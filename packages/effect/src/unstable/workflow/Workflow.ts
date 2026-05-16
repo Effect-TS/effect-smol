@@ -1,4 +1,25 @@
 /**
+ * The `Workflow` module defines typed durable workflow descriptions and the
+ * helpers used to execute them through a `WorkflowEngine`. A workflow combines
+ * a stable name, a struct payload schema, success and error schemas, and an
+ * idempotency key so callers can derive deterministic execution IDs, execute or
+ * discard runs, poll results, interrupt or resume suspended executions, and
+ * register handlers with `toLayer`.
+ *
+ * Workflows are intended for long-running business processes that coordinate
+ * activities, durable deferreds, durable clocks, retries, and compensation.
+ * Keep external side effects at activity boundaries so engine implementations
+ * can safely persist, suspend, and resume execution state. Running activities
+ * can delay workflow suspension until they finish or suspend, and compensation
+ * registered with `withCompensation` only applies to top-level workflow
+ * effects, not nested activities.
+ *
+ * When exposing workflows through `WorkflowProxy`, remember that proxy APIs are
+ * derived from the workflow name and schemas. Discard execution returns the
+ * `executionId` instead of the workflow result, resume requires the persisted
+ * `executionId`, and idempotency keys must remain stable for the same logical
+ * request.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
@@ -26,8 +47,12 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/Workflow"
 
 /**
- * @since 4.0.0
+ * Durable workflow definition with typed payload, success, and error schemas
+ * plus operations for execution, polling, interruption, resumption, and
+ * registration.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface Workflow<
   Name extends string,
@@ -167,6 +192,8 @@ export interface Workflow<
 }
 
 /**
+ * Schema constraint for workflow payload schemas that expose struct fields.
+ *
  * @since 4.0.0
  */
 export interface AnyStructSchema extends Schema.Top {
@@ -174,8 +201,11 @@ export interface AnyStructSchema extends Schema.Top {
 }
 
 /**
- * @since 4.0.0
+ * Type-level marker for services associated with a specific workflow
+ * execution name.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface Execution<Name extends string> {
   readonly _: unique symbol
@@ -183,8 +213,11 @@ export interface Execution<Name extends string> {
 }
 
 /**
- * @since 4.0.0
+ * Type-erased workflow shape for APIs that operate on workflows without
+ * preserving their specific payload, success, or error types.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -197,8 +230,11 @@ export interface Any {
 }
 
 /**
- * @since 4.0.0
+ * Type-erased workflow shape that also exposes executable operations needed by
+ * workflow proxy and engine helpers.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface AnyWithProps extends Any {
   readonly payloadSchema: AnyStructSchema
@@ -214,8 +250,10 @@ export interface AnyWithProps extends Any {
 }
 
 /**
- * @since 4.0.0
+ * Extracts the payload schema from a `Workflow`.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export type PayloadSchema<W> = W extends Workflow<
   infer _Name,
@@ -226,8 +264,11 @@ export type PayloadSchema<W> = W extends Workflow<
   : never
 
 /**
- * @since 4.0.0
+ * Computes the schema services required by clients that execute or poll
+ * workflows.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export type RequirementsClient<Workflows extends Any> = Workflows extends Workflow<
   infer _Name,
@@ -241,8 +282,11 @@ export type RequirementsClient<Workflows extends Any> = Workflows extends Workfl
   : never
 
 /**
- * @since 4.0.0
+ * Computes the schema services required by handlers that decode workflow
+ * payloads and encode workflow results.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export type RequirementsHandler<Workflows extends Any> = Workflows extends Workflow<
   infer _Name,
@@ -270,8 +314,12 @@ const InstanceTag = Context.Service<
 )
 
 /**
- * @since 4.0.0
+ * Creates a durable workflow definition with schemas, annotations, and
+ * deterministic execution IDs derived from the workflow name and idempotency
+ * key.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <
   const Name extends string,
@@ -393,30 +441,40 @@ export const make = <
 const ResultTypeId = "~effect/workflow/Workflow/Result"
 
 /**
- * @since 4.0.0
+ * Returns `true` when a value is a workflow `Result`.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export const isResult = <A = unknown, E = unknown>(
   u: unknown
 ): u is Result<A, E> => Predicate.hasProperty(u, ResultTypeId)
 
 /**
- * @since 4.0.0
+ * Result of a workflow execution, either a completed exit or a suspended
+ * workflow state.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export type Result<A, E> = Complete<A, E> | Suspended
 
 /**
- * @since 4.0.0
+ * Encoded representation of a workflow `Result`.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export type ResultEncoded<A, E> =
   | CompleteEncoded<A, E>
   | typeof Suspended.Encoded
 
 /**
- * @since 4.0.0
+ * Encoded representation of a completed workflow result containing an encoded
+ * `Exit`.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export interface CompleteEncoded<A, E> {
   readonly _tag: "Complete"
@@ -424,6 +482,9 @@ export interface CompleteEncoded<A, E> {
 }
 
 /**
+ * Schema constructor for `Complete` workflow results using the supplied
+ * success and error schemas.
+ *
  * @since 4.0.0
  */
 export interface CompleteSchema<
@@ -441,18 +502,25 @@ export interface CompleteSchema<
 }
 
 /**
- * @since 4.0.0
+ * Workflow result representing a completed execution with its success or
+ * failure `Exit`.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export class Complete<A, E> extends Data.TaggedClass("Complete")<{
   readonly exit: Exit.Exit<A, E>
 }> {
   /**
+   * Marks this value as a workflow result for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ResultTypeId] = ResultTypeId
 
   /**
+   * Builds the schema for completed workflow results from success and error schemas.
+   *
    * @since 4.0.0
    */
   static Schema<Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -490,7 +558,10 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
             }),
             Tranformation.transform({
               decode: (encoded) => new Complete({ exit: encoded.exit }),
-              encode: (result) => ({ _tag: "Complete", exit: result.exit }) as const
+              encode: (result) => (({
+                _tag: "Complete",
+                exit: result.exit
+              }) as const)
             })
           )
       }
@@ -503,8 +574,11 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
 }
 
 /**
- * @since 4.0.0
+ * Workflow result representing a suspended execution, optionally carrying the
+ * cause that triggered suspension.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export class Suspended extends Schema.Class<Suspended>(
   "effect/workflow/Workflow/Suspended"
@@ -513,14 +587,19 @@ export class Suspended extends Schema.Class<Suspended>(
   cause: Schema.optional(Schema.Cause(Schema.Never, Schema.Defect))
 }) {
   /**
+   * Marks this value as a workflow result for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ResultTypeId] = ResultTypeId
 }
 
 /**
- * @since 4.0.0
+ * Creates a schema for workflow results using the supplied success and error
+ * schemas.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export const Result = <
   Success extends Schema.Top,
@@ -533,8 +612,10 @@ export const Result = <
 const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
 
 /**
- * @since 4.0.0
+ * Codec for encoded workflow results with generic success and error payloads.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEncoded(
   Schema.toCodecJson(
@@ -546,8 +627,12 @@ export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEnc
 ) as any
 
 /**
- * @since 4.0.0
+ * Runs an effect as a workflow execution and converts its outcome into a
+ * `Result`, handling suspension, defect capture, interruption, and workflow
+ * scope finalization.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export const intoResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -606,8 +691,11 @@ export const intoResult = <A, E, R>(
   })
 
 /**
- * @since 4.0.0
+ * Wraps an activity-like effect so workflow suspension waits for currently
+ * running activities to finish or suspend.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export const wrapActivityResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -658,8 +746,8 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
  * The workflow scope is only closed when the workflow execution fully
  * completes.
  *
- * @since 1.0.0
  * @category Scope
+ * @since 4.0.0
  */
 export const scope: Effect.Effect<
   Scope.Scope,
@@ -676,8 +764,8 @@ export const scope: Effect.Effect<
  * The workflow scope is only closed when the workflow execution fully
  * completes.
  *
- * @since 1.0.0
  * @category Scope
+ * @since 4.0.0
  */
 export const provideScope = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -685,8 +773,11 @@ export const provideScope = <A, E, R>(
   Effect.flatMap(scope, (scope) => Scope.provide(effect, scope))
 
 /**
- * @since 1.0.0
+ * Adds an exit finalizer to the current workflow scope, preserving the
+ * services available when the finalizer is registered.
+ *
  * @category Scope
+ * @since 4.0.0
  */
 export const addFinalizer: <R>(
   f: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
@@ -710,8 +801,8 @@ export const addFinalizer: <R>(
  * NOTE: Compensation will not work for nested activities. Compensation
  * finalizers are only registered for top-level effects in the workflow.
  *
- * @since 1.0.0
  * @category Compensation
+ * @since 4.0.0
  */
 export const withCompensation: {
   <A, R2>(
@@ -735,8 +826,11 @@ export const withCompensation: {
   ))
 
 /**
- * @since 4.0.0
+ * Marks a workflow instance as suspended and interrupts the current fiber to
+ * stop execution until it is resumed.
+ *
  * @category Result
+ * @since 4.0.0
  */
 export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<never> =>
   Effect.interruptible(Effect.callback<never>(() => {
@@ -751,8 +845,8 @@ export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<ne
  *
  * By default, this is set to `true`, meaning that defects will be captured.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const CaptureDefects = Context.Reference<boolean>(
   "effect/workflow/Workflow/CaptureDefects",
@@ -762,14 +856,13 @@ export const CaptureDefects = Context.Reference<boolean>(
 )
 
 /**
- * If you set this annotation to `true` for a workflow, it will suspend if it
- * encounters any kind of error.
+ * Annotation that causes a workflow to suspend when it encounters any error.
  *
- * You can then manually resume the workflow later with
- * `Workflow.resume(executionId)`.
+ * The suspended execution can later be resumed with the workflow's `resume`
+ * method, for example `MyWorkflow.resume(executionId)`.
  *
- * @since 4.0.0
  * @category Annotations
+ * @since 4.0.0
  */
 export const SuspendOnFailure = Context.Reference<boolean>(
   "effect/workflow/Workflow/SuspendOnFailure",

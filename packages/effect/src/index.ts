@@ -276,7 +276,8 @@ export * as Cause from "./Cause.ts"
  * 2. **Sequencing**: Use the result of one channel to create another
  * 3. **Concatenating**: Combine multiple channels into a single channel
  *
- * @example
+ * **Example** (Creating a simple channel)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -289,7 +290,8 @@ export * as Cause from "./Cause.ts"
  * // Running the channel would output: 84
  * ```
  *
- * @example
+ * **Example** (Transforming array-backed channels)
+ *
  * ```ts
  * import { Channel } from "effect"
  *
@@ -341,7 +343,8 @@ export * as ChannelSchema from "./ChannelSchema.ts"
  * - **Iteration**: O(n)
  * - **Memory**: Structural sharing minimizes allocation
  *
- * @example
+ * **Example** (Creating and combining chunks)
+ *
  * ```ts
  * import { Chunk } from "effect"
  *
@@ -355,7 +358,8 @@ export * as ChannelSchema from "./ChannelSchema.ts"
  * console.log(Chunk.toReadonlyArray(combined)) // [1, 2, 3, 4, 5, 6]
  * ```
  *
- * @example
+ * **Example** (Transforming chunks)
+ *
  * ```ts
  * import { Chunk } from "effect"
  *
@@ -366,7 +370,8 @@ export * as ChannelSchema from "./ChannelSchema.ts"
  * const sum = Chunk.reduce(evens, 0, (acc, n) => acc + n) // 12
  * ```
  *
- * @example
+ * **Example** (Processing chunks with Effect)
+ *
  * ```ts
  * import { Chunk, Effect } from "effect"
  *
@@ -402,7 +407,8 @@ export * as Chunk from "./Chunk.ts"
  * - **Testable**: Mock time control for deterministic testing
  * - **Resource-safe**: Automatic cleanup of time-based resources
  *
- * @example
+ * **Example** (Measuring elapsed time)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -421,7 +427,8 @@ export * as Chunk from "./Chunk.ts"
  * })
  * ```
  *
- * @example
+ * **Example** (Using the Clock service)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -686,7 +693,8 @@ export * as ConfigProvider from "./ConfigProvider.ts"
  * - **Data display**: `table`, `dir`, `dirxml` for structured data visualization
  * - **Utilities**: `clear`, `count`, `countReset`, `trace`
  *
- * @example
+ * **Example** (Logging basic messages)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -699,7 +707,8 @@ export * as ConfigProvider from "./ConfigProvider.ts"
  * })
  * ```
  *
- * @example
+ * **Example** (Grouping timed logs)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -716,7 +725,8 @@ export * as ConfigProvider from "./ConfigProvider.ts"
  * )
  * ```
  *
- * @example
+ * **Example** (Displaying structured data)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -853,7 +863,8 @@ export * as DateTime from "./DateTime.ts"
  * - **Fiber-safe**: Thread-safe operations across concurrent fibers
  * - **Composable**: Works seamlessly with other Effect operations
  *
- * @example
+ * **Example** (Coordinating fibers with a Deferred)
+ *
  * ```ts
  * import { Deferred, Effect, Fiber } from "effect"
  *
@@ -950,7 +961,8 @@ export * as Duration from "./Duration.ts"
  * - **Testable**: Built-in support for testing with controlled environments
  * - **Interruptible**: Effects can be safely interrupted and cancelled
  *
- * @example
+ * **Example** (Usage)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -968,7 +980,8 @@ export * as Duration from "./Duration.ts"
  * Effect.runPromise(program).then(console.log) // 13
  * ```
  *
- * @example
+ * **Example** (Usage)
+ *
  * ```ts
  * import { Data, Effect } from "effect"
  *
@@ -1155,7 +1168,8 @@ export * as Equivalence from "./Equivalence.ts"
  * Use the annotation symbols (`ignore`, `severity`, `attributes`) on your
  * error classes to control reporting behavior per-error.
  *
- * @example
+ * **Example** (Reporting errors with annotations)
+ *
  * ```ts
  * import { Data, Effect, ErrorReporter } from "effect"
  *
@@ -1275,7 +1289,8 @@ export * as Exit from "./Exit.ts"
  * - **Supervision**: Monitor and restart failed fibers
  * - **Resource management**: Ensure proper cleanup on interruption
  *
- * @example
+ * **Example** (Running effects in fibers)
+ *
  * ```ts
  * import { Console, Effect, Fiber } from "effect"
  *
@@ -1357,7 +1372,8 @@ export * as FiberSet from "./FiberSet.ts"
  * allowing you to work with files and directories in a functional, composable way. All operations
  * return `Effect` values that can be composed, transformed, and executed safely.
  *
- * @example
+ * **Example** (Working with files and directories)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -1496,7 +1512,8 @@ export * as HashSet from "./HashSet.ts"
  * can represent complex type relationships with multiple type parameters, including
  * contravariant, covariant, and invariant positions.
  *
- * @example
+ * **Example** (Encoding type lambdas)
+ *
  * ```ts
  * import type { HKT } from "effect"
  *
@@ -1532,7 +1549,8 @@ export * as HKT from "./HKT.ts"
  * The module also includes redaction capabilities for sensitive data, allowing objects
  * to provide different representations based on the current execution context.
  *
- * @example
+ * **Example** (Creating inspectable values)
+ *
  * ```ts
  * import { Inspectable } from "effect"
  * import { format } from "effect/Formatter"
@@ -1575,7 +1593,8 @@ export * as Inspectable from "./Inspectable.ts"
  * for stream processing and memory-efficient data manipulation. All functions in this
  * module preserve the lazy nature of iterables where possible.
  *
- * @example
+ * **Example** (Working with iterables)
+ *
  * ```ts
  * import { Iterable, Option } from "effect"
  *
@@ -1844,6 +1863,8 @@ export * as LayerMap from "./LayerMap.ts"
  *
  * ## Basic Usage
  *
+ * **Example** (Logging messages with structured data)
+ *
  * ```ts
  * import { Effect } from "effect"
  *
@@ -1863,6 +1884,8 @@ export * as LayerMap from "./LayerMap.ts"
  * ```
  *
  * ## Custom Loggers
+ *
+ * **Example** (Creating and providing custom loggers)
  *
  * ```ts
  * import { Effect, Logger } from "effect"
@@ -1885,6 +1908,8 @@ export * as LayerMap from "./LayerMap.ts"
  *
  * ## Multiple Loggers
  *
+ * **Example** (Combining multiple loggers)
+ *
  * ```ts
  * import { Effect, Logger } from "effect"
  *
@@ -1900,6 +1925,8 @@ export * as LayerMap from "./LayerMap.ts"
  * ```
  *
  * ## Batched Logging
+ *
+ * **Example** (Batching log messages)
  *
  * ```ts
  * import { Duration, Effect, Logger } from "effect"
@@ -1950,6 +1977,8 @@ export * as Logger from "./Logger.ts"
  *
  * ## Basic Usage
  *
+ * **Example** (Logging at different levels)
+ *
  * ```ts
  * import { Effect } from "effect"
  *
@@ -1966,6 +1995,8 @@ export * as Logger from "./Logger.ts"
  *
  * ## Level Comparison
  *
+ * **Example** (Comparing log levels)
+ *
  * ```ts
  * import { LogLevel } from "effect"
  *
@@ -1979,6 +2010,8 @@ export * as Logger from "./Logger.ts"
  * ```
  *
  * ## Filtering by Level
+ *
+ * **Example** (Filtering logger output)
  *
  * ```ts
  * import { Logger, LogLevel } from "effect"
@@ -2008,6 +2041,8 @@ export * as Logger from "./Logger.ts"
  * ```
  *
  * ## Runtime Configuration
+ *
+ * **Example** (Configuring log level from the environment)
  *
  * ```ts
  * import { Config, Effect, Logger, LogLevel } from "effect"
@@ -2105,6 +2140,8 @@ export * as Match from "./Match.ts"
  *
  * ## Basic Usage
  *
+ * **Example** (Creating and updating metrics)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -2134,6 +2171,8 @@ export * as Match from "./Match.ts"
  *
  * ## Attributes and Tagging
  *
+ * **Example** (Tagging metrics with attributes)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  *
@@ -2161,6 +2200,8 @@ export * as Match from "./Match.ts"
  * ```
  *
  * ## Advanced Examples
+ *
+ * **Example** (Recording business and performance metrics)
  *
  * ```ts
  * import { Effect, Metric } from "effect"
@@ -2228,8 +2269,8 @@ export * as Metric from "./Metric.ts"
  * - Size: O(1)
  * - Iteration: O(n)
  *
- * @since 2.0.0
  * @category data-structures
+ * @since 2.0.0
  */
 export * as MutableHashMap from "./MutableHashMap.ts"
 
@@ -2256,8 +2297,8 @@ export * as MutableHashMap from "./MutableHashMap.ts"
  * - Size: O(1)
  * - Iteration: O(n)
  *
- * @since 2.0.0
  * @category data-structures
+ * @since 2.0.0
  */
 export * as MutableHashSet from "./MutableHashSet.ts"
 
@@ -2294,8 +2335,8 @@ export * as MutableHashSet from "./MutableHashSet.ts"
  * - Streaming data buffers
  * - Real-time data processing pipelines
  *
- * @since 4.0.0
  * @category data-structures
+ * @since 4.0.0
  */
 export * as MutableList from "./MutableList.ts"
 
@@ -2328,8 +2369,8 @@ export * as MutableList from "./MutableList.ts"
  * - Compare-and-set: O(1)
  * - All operations: O(1)
  *
- * @since 2.0.0
  * @category data-structures
+ * @since 2.0.0
  */
 export * as MutableRef from "./MutableRef.ts"
 
@@ -2424,6 +2465,8 @@ export * as Newtype from "./Newtype.ts"
  *
  * ## Basic Usage
  *
+ * **Example** (Requiring a non-empty iterable)
+ *
  * ```ts
  * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
@@ -2459,6 +2502,8 @@ export * as Newtype from "./Newtype.ts"
  * ```
  *
  * ## Working with Different Iterable Types
+ *
+ * **Example** (Adapting iterable inputs)
  *
  * ```ts
  * import { Array } from "effect"
@@ -2505,9 +2550,10 @@ export * as Newtype from "./Newtype.ts"
  *
  * ## Integration with Effect Arrays
  *
+ * **Example** (Processing non-empty iterables with Array)
+ *
  * ```ts
  * import { Array, pipe } from "effect"
- * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // Many Array functions work with NonEmptyIterable
@@ -2634,7 +2680,6 @@ export * as Number from "./Number.ts"
  * - {@link some} / {@link success} / {@link failure} — built-in prisms
  *
  * @since 4.0.0
- * @module
  */
 export * as Optic from "./Optic.ts"
 
@@ -2710,7 +2755,6 @@ export * as Optic from "./Optic.ts"
  * - {@link gen} for generator-based syntax
  *
  * @since 2.0.0
- * @module
  */
 export * as Option from "./Option.ts"
 
@@ -2791,8 +2835,8 @@ export * as Order from "./Order.ts"
  * - Creating ordered data structures
  * - Pattern matching on comparison outcomes
  *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 export * as Ordering from "./Ordering.ts"
 
@@ -2884,7 +2928,8 @@ export * as PrimaryKey from "./PrimaryKey.ts"
  * can subscribe to receive those messages. PubSub supports various backpressure strategies,
  * message replay, and concurrent access from multiple producers and consumers.
  *
- * @example
+ * **Example** (Creating and using a PubSub)
+ *
  * ```ts
  * import { Effect, PubSub } from "effect"
  *
@@ -2924,7 +2969,8 @@ export * as Queue from "./Queue.ts"
  * programs. It offers a testable and composable way to work with randomness,
  * supporting integers, floating-point numbers, and range-based generation.
  *
- * @example
+ * **Example** (Generating random values)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -3118,7 +3164,8 @@ export * as Reducer from "./Reducer.ts"
  * mutable variables, Refs are thread-safe and work seamlessly with Effect's concurrency model.
  * They provide atomic operations for safe state management in concurrent programs.
  *
- * @example
+ * **Example** (Managing shared state with refs)
+ *
  * ```ts
  * import { Effect, Ref } from "effect"
  *
@@ -3269,7 +3316,8 @@ export * as Result from "./Result.ts"
  * teardown, error reporting, and exit code management. These utilities are particularly useful
  * for creating CLI applications and server processes that need to manage their lifecycle properly.
  *
- * @example
+ * **Example** (Creating a main runner)
+ *
  * ```ts
  * import { Effect, Fiber, Runtime } from "effect"
  *
@@ -3300,7 +3348,8 @@ export * as Runtime from "./Runtime.ts"
  * along with a delay duration. Schedules can be combined, transformed, and used to implement
  * sophisticated retry and repetition logic.
  *
- * @example
+ * **Example** (Retrying and repeating effects)
+ *
  * ```ts
  * import { Effect, Schedule } from "effect"
  *

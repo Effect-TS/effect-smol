@@ -754,15 +754,12 @@ export function passthrough<T>(): Transformation<T, T> {
 }
 
 /**
- * A passthrough transformation typed so that `T extends E` — the decoded
- * type is a supertype of the encoded type.
+ * A passthrough transformation typed so that `T extends E`, where the decoded
+ * type `T` is a subtype of the encoded type `E`.
  *
- * When to use this:
- * - Widening: the decoded side accepts a broader type than the encoded side.
- *
- * Behavior:
- * - Both decode and encode are no-ops (same as {@link passthrough}).
- * - Returns a shared singleton instance.
+ * Use this when the runtime value is unchanged but the decoded side should be
+ * narrower than the encoded side. Both decode and encode are no-ops and return a
+ * shared singleton transformation.
  *
  * **Example** (Supertype passthrough)
  *
@@ -996,15 +993,12 @@ export const durationFromNanos: Transformation<Duration.Duration, bigint> = tran
 })
 
 /**
- * Decodes a `number` (milliseconds) into a `Duration` and encodes a
- * `Duration` back to `number` milliseconds.
+ * Decodes a `number` of milliseconds into a `Duration` and encodes a `Duration`
+ * back to milliseconds.
  *
- * When to use this:
- * - Working with millisecond-precision timestamps (e.g. `Date.now()`).
- *
- * Behavior:
- * - Decode: creates a Duration from milliseconds. Always succeeds.
- * - Encode: converts a Duration to milliseconds. Always succeeds.
+ * Use this for timeouts, delays, elapsed intervals, or other duration values
+ * stored as millisecond counts. Decode creates a duration from the number, and
+ * encode returns the duration length in milliseconds.
  *
  * **Example** (Duration from milliseconds)
  *
@@ -1485,16 +1479,13 @@ export const stringFromUriComponent: Transformation<string, string> = new Transf
 )
 
 /**
- * Decodes a JSON `string` into an `unknown` value and encodes an `unknown`
- * value back to a JSON string.
+ * Decodes a JSON string with `JSON.parse` and encodes a value with
+ * `JSON.stringify`.
  *
- * When to use this:
- * - Parsing JSON strings from HTTP bodies, message queues, or storage.
- * - Typically composed with a further schema to validate the parsed structure.
- *
- * Behavior:
- * - Decode: calls `JSON.parse`. Fails if the string is not valid JSON.
- * - Encode: calls `JSON.stringify`.
+ * Use this for JSON stored or transmitted as a string, usually before composing
+ * with another schema that validates the parsed structure. Decode fails with
+ * `InvalidValue` for invalid JSON, and encode can fail with `InvalidValue` when
+ * `JSON.stringify` cannot serialize the value.
  *
  * **Example** (Parsing JSON)
  *
@@ -1518,15 +1509,13 @@ export const fromJsonString = new Transformation<unknown, string>(
 )
 
 /**
- * Decodes a `FormData` instance into an `unknown` record and encodes an
- * `unknown` record back to `FormData`.
+ * Decodes a `FormData` instance into a nested record using bracket-path keys and
+ * encodes object-like values back into `FormData`.
  *
- * When to use this:
- * - Handling HTML form submissions or multipart API requests.
- *
- * Behavior:
- * - Decode: extracts entries from the FormData into a plain object.
- * - Encode: constructs a FormData from the record's entries.
+ * Use this for form or multipart payloads where keys such as `user[name]` or
+ * `items[0]` should become nested data. Decode preserves string and `Blob`
+ * leaves. Encode flattens nested objects and arrays into bracket-path entries
+ * and returns an empty `FormData` for non-object inputs.
  *
  * **Example** (Decoding FormData)
  *
@@ -1550,15 +1539,13 @@ export const fromFormData = new Transformation<unknown, FormData>(
 )
 
 /**
- * Decodes a `URLSearchParams` instance into an `unknown` record and encodes
- * an `unknown` record back to `URLSearchParams`.
+ * Decodes `URLSearchParams` into a nested record using bracket-path keys and
+ * encodes object-like values back into `URLSearchParams`.
  *
- * When to use this:
- * - Parsing URL query parameters.
- *
- * Behavior:
- * - Decode: extracts entries from URLSearchParams into a plain object.
- * - Encode: constructs URLSearchParams from the record's entries.
+ * Use this for query strings where keys such as `filter[name]` or `items[0]`
+ * should become nested data. Decode produces string leaves. Encode flattens
+ * nested objects and arrays into bracket-path entries and returns empty
+ * `URLSearchParams` for non-object inputs.
  *
  * **Example** (Decoding URLSearchParams)
  *
@@ -1582,6 +1569,12 @@ export const fromURLSearchParams = new Transformation<unknown, URLSearchParams>(
 )
 
 /**
+ * Decodes a numeric time-zone offset in milliseconds into a
+ * `DateTime.TimeZone.Offset` and encodes it back to the offset number.
+ *
+ * Decode uses `DateTime.zoneMakeOffset`; encode returns the offset's `offset`
+ * field.
+ *
  * @since 4.0.0
  */
 export const timeZoneOffsetFromNumber: Transformation<DateTime.TimeZone.Offset, number> = transform<
@@ -1593,6 +1586,12 @@ export const timeZoneOffsetFromNumber: Transformation<DateTime.TimeZone.Offset, 
 })
 
 /**
+ * Decodes an IANA time-zone identifier string into a
+ * `DateTime.TimeZone.Named` and encodes a named time zone back to its `id`.
+ *
+ * Decode fails with `InvalidValue` when the string is not a valid IANA time-zone
+ * identifier.
+ *
  * @since 4.0.0
  */
 export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, string> = transformOrFail<
@@ -1609,6 +1608,13 @@ export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, st
 })
 
 /**
+ * Decodes a string into a `DateTime.TimeZone` and encodes a time zone back to
+ * its string representation.
+ *
+ * Accepted decode inputs include valid IANA identifiers and offset strings such
+ * as `"+03:00"`. Decode fails with `InvalidValue` when the string cannot be
+ * parsed as a time zone.
+ *
  * @since 4.0.0
  */
 export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = transformOrFail<
@@ -1625,6 +1631,13 @@ export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = tra
 })
 
 /**
+ * Decodes a date-time string into a `DateTime.Utc` and encodes it back to an ISO
+ * string.
+ *
+ * Decode accepts strings supported by `DateTime.make`, converts the result to
+ * UTC, and fails with `InvalidValue` when parsing fails. Encode uses
+ * `DateTime.formatIso`.
+ *
  * @since 4.0.0
  */
 export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = transformOrFail<
@@ -1642,6 +1655,13 @@ export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = trans
 })
 
 /**
+ * Decodes a zoned date-time string into a `DateTime.Zoned` and encodes it back
+ * to an ISO zoned string.
+ *
+ * Decode uses `DateTime.makeZonedFromString` and fails with `InvalidValue` when
+ * the input is not a valid zoned date-time. Encode uses
+ * `DateTime.formatIsoZoned`.
+ *
  * @since 4.0.0
  */
 export const dateTimeZonedFromString: Transformation<DateTime.Zoned, string> = transformOrFail<

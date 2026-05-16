@@ -1,4 +1,18 @@
 /**
+ * Assertion utilities for `@effect/vitest` test suites.
+ *
+ * This module collects small assertion helpers for common Effect testing
+ * scenarios: Node-style equality checks, `Equal.equals` comparisons, string
+ * matching, thrown error validation, and focused assertions for `Option`,
+ * `Result`, and `Exit` values. They are intended to be imported as `assert`
+ * helpers from `@effect/vitest` and used in both regular Vitest tests and
+ * `it.effect` tests after the value under test has already been produced.
+ *
+ * These helpers throw assertion errors synchronously; they do not run Effects,
+ * provide services, or advance test environments such as `TestClock`. In
+ * Effect-based tests, yield the effect first and then assert on the resulting
+ * value so failures are reported through the surrounding Vitest test.
+ *
  * @since 4.0.0
  */
 import type * as Cause from "effect/Cause"
@@ -24,7 +38,7 @@ export function fail(message: string) {
 }
 
 /**
- * Asserts that `actual` is equal to `expected` using the `Equal.equals` trait.
+ * Asserts that `actual` is deeply strictly equal to `expected` using Node's `assert.deepStrictEqual`.
  *
  * @since 4.0.0
  */
@@ -33,7 +47,7 @@ export function deepStrictEqual<A>(actual: A, expected: A, message?: string, ...
 }
 
 /**
- * Asserts that `actual` is not equal to `expected` using the `Equal.equals` trait.
+ * Asserts that `actual` is not deeply strictly equal to `expected` using Node's `assert.notDeepStrictEqual`.
  *
  * @since 4.0.0
  */
@@ -42,7 +56,7 @@ export function notDeepStrictEqual<A>(actual: A, expected: A, message?: string, 
 }
 
 /**
- * Asserts that `actual` is equal to `expected` using the `Equal.equals` trait.
+ * Asserts that `actual` is strictly equal to `expected` using Node's `assert.strictEqual`.
  *
  * @since 4.0.0
  */
@@ -132,7 +146,7 @@ export function assertMatch(actual: string, regExp: RegExp, ..._: Array<never>) 
 }
 
 /**
- * Asserts that `thunk` throws an error.
+ * Asserts that `thunk` throws, optionally checking the thrown value against an expected `Error` or validation function.
  *
  * @since 4.0.0
  */
@@ -154,7 +168,7 @@ export function throws(thunk: () => void, error?: Error | ((u: unknown) => undef
 }
 
 /**
- * Asserts that `thunk` throws an error.
+ * Asserts that `thunk` throws or returns a rejected promise, optionally checking the failure value against an expected `Error` or validation function.
  *
  * @since 4.0.0
  */
@@ -219,7 +233,7 @@ export function assertUndefined<A>(
 }
 
 /**
- * Asserts that `option` is `Some`.
+ * Asserts that `option` is `Some` and contains a value equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -236,7 +250,7 @@ export function assertSome<A>(
 // ----------------------------
 
 /**
- * Asserts that `result` is `Success`.
+ * Asserts that `result` is `Success` and contains a value equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -249,7 +263,7 @@ export function assertSuccess<A, E>(
 }
 
 /**
- * Asserts that `result` is `Failure`.
+ * Asserts that `result` is `Failure` and contains an error equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -266,7 +280,7 @@ export function assertFailure<A, E>(
 // ----------------------------
 
 /**
- * Asserts that `exit` is a failure.
+ * Asserts that `exit` is a failure with a cause equal to `expected`.
  *
  * @since 4.0.0
  */
@@ -279,7 +293,7 @@ export function assertExitFailure<A, E>(
 }
 
 /**
- * Asserts that `exit` is a success.
+ * Asserts that `exit` is a success with a value equal to `expected`.
  *
  * @since 4.0.0
  */

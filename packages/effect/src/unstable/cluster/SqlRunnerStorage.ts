@@ -1,4 +1,33 @@
 /**
+ * SQL-backed storage for Effect Cluster runner metadata and shard ownership.
+ *
+ * The `SqlRunnerStorage` module builds a `RunnerStorage` implementation from a
+ * `SqlClient`, creating the runner and lock tables it needs using the configured
+ * table prefix. It is used by clustered applications that need runner
+ * registration, health tracking, shard acquisition, refresh, and release to be
+ * coordinated through an external database instead of in-memory state.
+ *
+ * **Common tasks**
+ *
+ * - Provide the default storage layer with {@link layer}
+ * - Use {@link layerWith} when multiple clusters share the same database and
+ *   need distinct table prefixes
+ * - Create a storage implementation directly with {@link make} for custom layer
+ *   composition
+ *
+ * **Gotchas**
+ *
+ * - Runner heartbeats and persisted shard locks expire according to
+ *   `ShardingConfig.shardLockExpiration`; stale rows may be reused or cleaned up
+ *   by later storage operations.
+ * - PostgreSQL and MySQL use advisory locks by default, keeping shard ownership
+ *   tied to a reserved database connection. Set
+ *   `ShardingConfig.shardLockDisableAdvisory` when persisted lock rows should be
+ *   used instead.
+ * - The selected table prefix controls the generated `runners` and `locks`
+ *   table names, so changing it points the cluster at a different storage
+ *   namespace.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
@@ -18,8 +47,12 @@ import * as ShardingConfig from "./ShardingConfig.ts"
 const withTracerDisabled = Effect.withTracerEnabled(false)
 
 /**
- * @since 4.0.0
+ * Creates a SQL-backed `RunnerStorage` implementation for registered runners and
+ * shard locks, using the configured table prefix and advisory locks where
+ * supported and enabled.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: {
   readonly prefix?: string | undefined
@@ -643,8 +676,10 @@ export const make = Effect.fnUntraced(function*(options: {
 }, withTracerDisabled)
 
 /**
- * @since 4.0.0
+ * Layer that provides SQL-backed `RunnerStorage` using the default table prefix.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   RunnerStorage.RunnerStorage,
@@ -653,8 +688,10 @@ export const layer: Layer.Layer<
 > = Layer.effect(RunnerStorage.RunnerStorage)(make({}))
 
 /**
- * @since 4.0.0
+ * Layer that provides SQL-backed `RunnerStorage` using a custom table prefix.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWith = (options: {
   readonly prefix?: string | undefined

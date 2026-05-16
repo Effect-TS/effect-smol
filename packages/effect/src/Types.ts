@@ -231,8 +231,8 @@ export type ExtractTag<E, K extends string> = E extends { readonly _tag: infer T
  *
  * @see {@link IsUnion}
  *
- * @since 2.0.0
  * @category types
+ * @since 2.0.0
  */
 export type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R
   : never
@@ -257,8 +257,8 @@ export type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) ext
  * @see {@link MergeLeft}
  * @see {@link MergeRight}
  *
- * @since 2.0.0
  * @category types
+ * @since 2.0.0
  */
 export type Simplify<A> = {
   [K in keyof A]: A[K]
@@ -286,8 +286,8 @@ export type Simplify<A> = {
  *
  * @see {@link EqualsWith}
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
   T
@@ -311,8 +311,8 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
  *
  * @see {@link Equals}
  *
- * @since 3.15.0
  * @category models
+ * @since 3.15.0
  */
 export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? Y : N
 
@@ -332,8 +332,8 @@ export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>
  * type No = Types.Has<{ a: number }, "b" | "c"> // false
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof A ? true : never : never) extends never
   ? false
@@ -362,8 +362,8 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
  * @see {@link MergeRecord}
  * @see {@link Simplify}
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type MergeLeft<Source, Target> = MergeRight<Target, Source>
 
@@ -389,8 +389,8 @@ export type MergeLeft<Source, Target> = MergeRight<Target, Source>
  * @see {@link MergeLeft}
  * @see {@link Simplify}
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type MergeRight<Target, Source> = Simplify<
   & Source
@@ -421,8 +421,8 @@ export type MergeRight<Target, Source> = Simplify<
  * @see {@link MergeLeft}
  * @see {@link MergeRight}
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
 
@@ -445,8 +445,8 @@ export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
  * const inherit: Types.Concurrency = "inherit"
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Concurrency = number | "unbounded" | "inherit"
 
@@ -478,8 +478,8 @@ export type Concurrency = number | "unbounded" | "inherit"
  *
  * @see {@link DeepMutable}
  *
- * @since 2.0.0
  * @category types
+ * @since 2.0.0
  */
 export type Mutable<T> = {
   -readonly [P in keyof T]: T[P]
@@ -507,8 +507,8 @@ export type Mutable<T> = {
  *
  * @see {@link Mutable}
  *
- * @since 3.1.0
  * @category types
+ * @since 3.1.0
  */
 export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepMutable<K>, DeepMutable<V>>
   : T extends ReadonlySet<infer V> ? Set<DeepMutable<V>>
@@ -534,8 +534,8 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
  * const result = withDefault<"a" | "b">("a", "b")
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type NoInfer<A> = [A][A extends any ? 0 : never]
 
@@ -563,16 +563,16 @@ export type NoInfer<A> = [A][A extends any ? 0 : never]
  * @see {@link Covariant}
  * @see {@link Contravariant}
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Invariant<A> = (_: A) => A
 
 /**
  * Namespace for {@link Invariant}-related utilities.
  *
- * @since 3.9.0
  * @category models
+ * @since 3.9.0
  */
 export declare namespace Invariant {
   /**
@@ -589,8 +589,8 @@ export declare namespace Invariant {
    *
    * @see {@link Invariant}
    *
-   * @since 3.9.0
    * @category models
+   * @since 3.9.0
    */
   export type Type<A> = A extends Invariant<infer U> ? U : never
 }
@@ -619,16 +619,16 @@ export declare namespace Invariant {
  * @see {@link Contravariant}
  * @see {@link Invariant}
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Covariant<A> = (_: never) => A
 
 /**
  * Namespace for {@link Covariant}-related utilities.
  *
- * @since 3.9.0
  * @category models
+ * @since 3.9.0
  */
 export declare namespace Covariant {
   /**
@@ -645,8 +645,8 @@ export declare namespace Covariant {
    *
    * @see {@link Covariant}
    *
-   * @since 3.9.0
    * @category models
+   * @since 3.9.0
    */
   export type Type<A> = A extends Covariant<infer U> ? U : never
 }
@@ -675,16 +675,16 @@ export declare namespace Covariant {
  * @see {@link Covariant}
  * @see {@link Invariant}
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export type Contravariant<A> = (_: A) => void
 
 /**
  * Namespace for {@link Contravariant}-related utilities.
  *
- * @since 3.9.0
  * @category models
+ * @since 3.9.0
  */
 export declare namespace Contravariant {
   /**
@@ -701,8 +701,8 @@ export declare namespace Contravariant {
    *
    * @see {@link Contravariant}
    *
-   * @since 3.9.0
    * @category models
+   * @since 3.9.0
    */
   export type Type<A> = A extends Contravariant<infer U> ? U : never
 }
@@ -711,8 +711,8 @@ export declare namespace Contravariant {
  * Conditional type that returns `void` if `S` is an empty object type,
  * otherwise returns `S`.
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type VoidIfEmpty<S> = keyof S extends never ? void : S
 
@@ -731,8 +731,8 @@ export type VoidIfEmpty<S> = keyof S extends never ? void : S
  * // string | number
  * ```
  *
- * @since 2.0.0
  * @category types
+ * @since 2.0.0
  */
 export type NotFunction<T> = T extends Function ? never : T
 
@@ -755,8 +755,8 @@ export type NotFunction<T> = T extends Function ? never : T
  * // { a: number; b: string; readonly c: never }
  * ```
  *
- * @since 3.9.0
  * @category types
+ * @since 3.9.0
  */
 export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyof T>, never>>
 
@@ -768,8 +768,8 @@ export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyo
  *
  * @see {@link unhandled}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export interface unassigned {
   readonly _: unique symbol
@@ -783,8 +783,8 @@ export interface unassigned {
  *
  * @see {@link unassigned}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export interface unhandled {
   readonly _: unique symbol
@@ -811,8 +811,8 @@ export interface unhandled {
  *
  * @see {@link UnionToIntersection}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
 
@@ -840,8 +840,8 @@ export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
  * @see {@link ExtractReason}
  * @see {@link ExcludeReason}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type ReasonOf<E> = E extends { readonly reason: infer R } ? R : never
 
@@ -867,8 +867,8 @@ export type ReasonOf<E> = E extends { readonly reason: infer R } ? R : never
  * @see {@link ReasonOf}
  * @see {@link ExtractReason}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string } } ? E["reason"]["_tag"]
   : never
@@ -897,8 +897,8 @@ export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string
  * @see {@link ReasonOf}
  * @see {@link ReasonTags}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type ExtractReason<E, K extends string> = E extends { readonly reason: infer R }
   ? R extends { readonly _tag: infer T } ? K extends T ? R : never
@@ -929,8 +929,8 @@ export type ExtractReason<E, K extends string> = E extends { readonly reason: in
  * @see {@link ReasonOf}
  * @see {@link ReasonTags}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type NarrowReason<E, K extends string> = E extends { readonly reason: infer R }
   ? R extends { readonly _tag: infer T } ? K extends T ? E & { readonly reason: R } : never
@@ -963,8 +963,8 @@ export type NarrowReason<E, K extends string> = E extends { readonly reason: inf
  * @see {@link ReasonOf}
  * @see {@link ReasonTags}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type OmitReason<E, K extends string> = E extends { readonly reason: infer R }
   ? R extends { readonly _tag: infer T } ? K extends T ? never : E & { readonly reason: R }
@@ -995,8 +995,8 @@ export type OmitReason<E, K extends string> = E extends { readonly reason: infer
  * @see {@link ReasonOf}
  * @see {@link ReasonTags}
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type ExcludeReason<E, K extends string> = E extends { readonly reason: infer R }
   ? Exclude<R, { readonly _tag: K }>
@@ -1005,7 +1005,7 @@ export type ExcludeReason<E, K extends string> = E extends { readonly reason: in
 /**
  * Extracts the required keys from a type.
  *
- * @since 4.0.0
  * @category types
+ * @since 4.0.0
  */
 export type RequiredKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]

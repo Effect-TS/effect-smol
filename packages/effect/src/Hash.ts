@@ -24,7 +24,8 @@ export const symbol = "~effect/interfaces/Hash"
  * Objects implementing this interface provide a method to compute their hash value,
  * which is used for efficient comparison and storage operations.
  *
- * @example
+ * **Example** (Implementing Hash)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -64,7 +65,8 @@ export interface Hash {
  * **ALLOWED**: Using immutable objects, or mutable objects with custom `Hash` interface
  * that uses referential equality (hashes the object reference, not content)
  *
- * @example
+ * **Example** (Hashing different values)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -76,7 +78,7 @@ export interface Hash {
  * // Hash objects and arrays
  * console.log(Hash.hash({ name: "John", age: 30 }))
  * console.log(Hash.hash([1, 2, 3]))
- * console.log(Hash.hash(new Date("2023-01-01")))
+ * console.log(Hash.hash({ id: "user-1", roles: ["admin", "editor"] }))
  * ```
  *
  * @category hashing
@@ -143,7 +145,8 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
  * hash implementation. The hash value is cached using a WeakMap, so the same object
  * will always return the same hash value during its lifetime.
  *
- * @example
+ * **Example** (Hashing objects by reference)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -174,7 +177,8 @@ export const random: <A extends object>(self: A) => number = (self) => {
  * operation to produce a new hash value. It's useful for creating hash values
  * of composite structures.
  *
- * @example
+ * **Example** (Combining hash values)
+ *
  * ```ts
  * import { Hash } from "effect" // combined hash value
  *
@@ -204,7 +208,8 @@ export const combine: {
  * This function takes a hash value and applies bitwise operations to improve
  * the distribution of hash values, reducing the likelihood of collisions.
  *
- * @example
+ * **Example** (Optimizing a hash value)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -227,7 +232,8 @@ export const optimize = (n: number): number => (n & 0xbfffffff) | ((n >>> 1) & 0
  * This function determines whether a given value has the Hash symbol property,
  * indicating that it can provide its own hash value implementation.
  *
- * @example
+ * **Example** (Checking for Hash support)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -255,7 +261,8 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  * like NaN, Infinity, and -Infinity with distinct hash values. It uses bitwise operations to ensure good distribution
  * of hash values across different numeric inputs.
  *
- * @example
+ * **Example** (Hashing numbers)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -298,7 +305,8 @@ export const number = (n: number) => {
  * known for its good distribution properties and speed. It processes each
  * character of the string to produce a consistent hash value.
  *
- * @example
+ * **Example** (Hashing strings)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -328,7 +336,8 @@ export const string = (str: string) => {
  * which is useful when you want to create a hash based on a subset of an object's
  * properties.
  *
- * @example
+ * **Example** (Hashing selected object keys)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -359,13 +368,14 @@ export const structureKeys = (o: object, keys: Iterable<PropertyKey>) => {
 }
 
 /**
- * Computes a hash value for an object using all of its enumerable keys.
+ * Computes a structural hash for an object using Effect's object key
+ * collection.
  *
- * This function creates a hash value based on all enumerable properties of an object.
- * It's a convenient way to hash an entire object structure when you want to consider
- * all its properties.
+ * The hash is based on the object's structural keys and their values, including
+ * symbol keys and relevant prototype keys for non-plain objects.
  *
- * @example
+ * **Example** (Hashing object structures)
+ *
  * ```ts
  * import { Hash } from "effect"
  *
@@ -401,7 +411,8 @@ const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<a
  * The order of elements matters, so arrays with the same elements in different
  * orders will produce different hash values.
  *
- * @example
+ * **Example** (Hashing arrays)
+ *
  * ```ts
  * import { Hash } from "effect"
  *

@@ -1,5 +1,21 @@
 /**
- * @since 1.0.0
+ * Bridges Effect metrics into OpenTelemetry by exposing the current Effect
+ * metric snapshot as an OpenTelemetry `MetricProducer` and registering it with
+ * one or more SDK `MetricReader`s. Use this module when an application already
+ * records metrics with Effect and needs those counters, gauges, histograms,
+ * frequencies, or summaries exported through OTLP, Prometheus, or another
+ * OpenTelemetry-compatible reader/exporter.
+ *
+ * The `layer` constructor is the usual entry point, and is also used by the
+ * Node and Web SDK layers when `metricReader` configuration is supplied. Metric
+ * readers are acquired inside the layer scope and shut down when the scope is
+ * released, so periodic exporters need the runtime to stay alive long enough to
+ * collect and export data. The exporter or backend determines whether
+ * cumulative or delta aggregation is expected; this module defaults to
+ * cumulative temporality and can be configured with `temporality: "delta"` for
+ * backends that require interval-based values.
+ *
+ * @since 4.0.0
  */
 import type { MetricProducer, MetricReader } from "@opentelemetry/sdk-metrics"
 import type * as Arr from "effect/Array"
@@ -21,16 +37,16 @@ import { Resource } from "./Resource.ts"
  * - `delta`: Reports changes since the last export. Each interval is
  *   independent with no dependency on previous measurements.
  *
- * @since 1.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type TemporalityPreference = "cumulative" | "delta"
 
 /**
  * Creates an OpenTelemetry metric producer from Effect metrics.
  *
- * @since 1.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect<MetricProducer, never, Resource> =>
   Effect.gen(function*() {
@@ -42,8 +58,8 @@ export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect
 /**
  * Registers a metric producer with one or more metric readers.
  *
- * @since 1.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const registerProducer = (
   self: MetricProducer,
@@ -74,7 +90,8 @@ export const registerProducer = (
 /**
  * Creates a Layer that registers a metric producer with metric readers.
  *
- * @example
+ * **Example** (Creating a metrics layer with temporality)
+ *
  * ```ts
  * import { Metrics } from "@effect/opentelemetry"
  * import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics"
@@ -98,8 +115,8 @@ export const registerProducer = (
  * )
  * ```
  *
- * @since 1.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer = (
   evaluate: LazyArg<MetricReader | Arr.NonEmptyReadonlyArray<MetricReader>>,

@@ -1,10 +1,27 @@
 /**
  * Prometheus metrics exporter for Effect's Metric system.
  *
- * This module provides functionality to export Effect metrics in the Prometheus
- * exposition format, making them scrapeable by Prometheus servers.
+ * This module snapshots the metrics registered in the current Effect context
+ * and renders them in the Prometheus text exposition format. It is intended for
+ * services that already record `Metric` counters, gauges, histograms,
+ * frequencies, or summaries and need a pull-based `/metrics` endpoint, or for
+ * integrations that want the formatted scrape body for a custom HTTP server.
  *
- * @example
+ * Use `format` when you need the current runtime's registry rendered as a
+ * string, `formatUnsafe` when you already have the `Context`, and `layerHttp`
+ * when an `HttpRouter` should serve `GET /metrics` directly. Formatting happens
+ * at scrape time; the module does not push metrics, schedule exports, or start
+ * an HTTP server on its own. Make sure the route is installed in the same
+ * application context that records the metrics you want to expose.
+ *
+ * Metric and label names are sanitized for Prometheus, optional prefixes and
+ * name mappers are applied before output, and metric attributes become labels.
+ * Keep attributes low-cardinality, avoid relying on invalid characters being
+ * preserved exactly, and configure Prometheus to scrape the route served by
+ * `layerHttp` with the expected `text/plain; version=0.0.4` response.
+ *
+ * **Example** (Exporting Prometheus metrics)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
@@ -37,7 +54,8 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 /**
  * A function that transforms metric names before formatting.
  *
- * @example
+ * **Example** (Mapping metric names)
+ *
  * ```ts
  * import type * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
  *
@@ -46,16 +64,16 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
  *   name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase()
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export type MetricNameMapper = (name: string) => string
 
 /**
  * Options for formatting metrics.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface FormatOptions {
   /**
@@ -72,8 +90,8 @@ export interface FormatOptions {
 /**
  * Options for exporting Prometheus metrics over HTTP.
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface HttpOptions extends FormatOptions {
   /**
@@ -85,7 +103,8 @@ export interface HttpOptions extends FormatOptions {
 /**
  * Format all metrics in the registry to Prometheus exposition format.
  *
- * @example
+ * **Example** (Formatting metrics)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
@@ -109,8 +128,8 @@ export interface HttpOptions extends FormatOptions {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Formatting
+ * @since 4.0.0
  */
 export const format: (options?: FormatOptions | undefined) => Effect.Effect<string> = Effect.fnUntraced(
   function*(options) {
@@ -125,8 +144,8 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
  * This is a low-level function that requires access to the context.
  * Most users should use `format` instead.
  *
- * @since 4.0.0
  * @category Formatting
+ * @since 4.0.0
  */
 export const formatUnsafe = (
   context: Context.Context<never>,
@@ -166,7 +185,8 @@ export const formatUnsafe = (
  * metrics in Prometheus exposition format. By default, the endpoint is
  * registered at `/metrics`, but this can be customized via the `path` option.
  *
- * @example
+ * **Example** (Serving metrics over HTTP)
+ *
  * ```ts
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
  *
@@ -180,8 +200,8 @@ export const formatUnsafe = (
  * })
  * ```
  *
- * @since 4.0.0
  * @category Http
+ * @since 4.0.0
  */
 export const layerHttp = (
   options?: HttpOptions | undefined

@@ -130,3 +130,77 @@ const v = 1`,
  */
 const v = 1`
 )
+
+expectTransformation(
+  "should skip wrapping indented examples that are already in a ts fence",
+  `
+export declare namespace ReadonlyArray {
+  /**
+   * Flattens a nested array type.
+   *
+   * @example
+   * \`\`\`ts
+   * import type { Array } from "effect"
+   *
+   * type Nested = ReadonlyArray<ReadonlyArray<number>>
+   * type Flattened = Array.ReadonlyArray.Flatten<Nested>
+   * // Flattened is Array<number>
+   * \`\`\`
+   *
+   * @category types
+   * @since 2.0.0
+   */
+  export type Flatten<T extends ReadonlyArray<ReadonlyArray<any>>> = Array<T[number][number]>
+}`,
+  `
+export declare namespace ReadonlyArray {
+  /**
+   * Flattens a nested array type.
+   *
+   * @example
+   * \`\`\`ts
+   * import type { Array } from "effect"
+   *
+   * type Nested = ReadonlyArray<ReadonlyArray<number>>
+   * type Flattened = Array.ReadonlyArray.Flatten<Nested>
+   * // Flattened is Array<number>
+   * \`\`\`
+   *
+   * @category types
+   * @since 2.0.0
+   */
+  export type Flatten<T extends ReadonlyArray<ReadonlyArray<any>>> = Array<T[number][number]>
+}`
+)
+
+expectTransformation(
+  "should wrap indented examples using the current doc prefix",
+  `
+export declare namespace ReadonlyArray {
+  /**
+   * Infers the element type of an iterable.
+   *
+   * @example
+   * type A = string
+   *
+   * @category types
+   * @since 2.0.0
+   */
+  export type Infer<S extends Iterable<any>> = S extends Iterable<infer A> ? A : never
+}`,
+  `
+export declare namespace ReadonlyArray {
+  /**
+   * Infers the element type of an iterable.
+   *
+   * @example
+   * \`\`\`ts
+   * type A = string
+   * \`\`\`
+   *
+   * @category types
+   * @since 2.0.0
+   */
+  export type Infer<S extends Iterable<any>> = S extends Iterable<infer A> ? A : never
+}`
+)

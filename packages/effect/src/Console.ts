@@ -21,7 +21,8 @@
  * - **Data display**: `table`, `dir`, `dirxml` for structured data visualization
  * - **Utilities**: `clear`, `count`, `countReset`, `trace`
  *
- * @example
+ * **Example** (Logging basic messages)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -34,7 +35,8 @@
  * })
  * ```
  *
- * @example
+ * **Example** (Grouping timed logs)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -51,7 +53,8 @@
  * )
  * ```
  *
- * @example
+ * **Example** (Displaying structured data)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -83,8 +86,8 @@ import type { Scope } from "./Scope.ts"
  * Provides methods for various console operations including logging, debugging,
  * timing, and grouping output.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Console {
   assert(condition: boolean, ...args: ReadonlyArray<any>): void
@@ -114,7 +117,8 @@ export interface Console {
  * This reference allows you to access the current console implementation
  * from within the Effect context.
  *
- * @example
+ * **Example** (Accessing the current console)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -125,8 +129,8 @@ export interface Console {
  * )
  * ```
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const Console: Context.Reference<Console> = effect.ConsoleRef
 
@@ -136,7 +140,8 @@ export const Console: Context.Reference<Console> = effect.ConsoleRef
  * This function allows you to access the console service and perform operations
  * with it within an Effect context.
  *
- * @example
+ * **Example** (Using the current console service)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -148,8 +153,8 @@ export const Console: Context.Reference<Console> = effect.ConsoleRef
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   core.withFiber((fiber) => f(fiber.getRef(Console)))
@@ -160,7 +165,8 @@ export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E
  * If the condition is true, nothing happens. If the condition is false,
  * the message is logged to the console as an error.
  *
- * @example
+ * **Example** (Logging failed assertions)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -170,8 +176,8 @@ export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -185,7 +191,8 @@ export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.
  *
  * This function clears all previously logged messages from the console.
  *
- * @example
+ * **Example** (Clearing console output)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -196,8 +203,8 @@ export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const clear: Effect.Effect<void> = consoleWith((console) =>
   effect.sync(() => {
@@ -211,7 +218,8 @@ export const clear: Effect.Effect<void> = consoleWith((console) =>
  * This function maintains a counter for each unique label and increments it
  * each time count is called with that label.
  *
- * @example
+ * **Example** (Counting repeated calls)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -222,8 +230,8 @@ export const clear: Effect.Effect<void> = consoleWith((console) =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const count = (label?: string): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -238,7 +246,8 @@ export const count = (label?: string): Effect.Effect<void> =>
  * This function resets the counter associated with the specified label
  * back to zero.
  *
- * @example
+ * **Example** (Resetting a counter)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -250,8 +259,8 @@ export const count = (label?: string): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const countReset = (label?: string): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -261,12 +270,15 @@ export const countReset = (label?: string): Effect.Effect<void> =>
   )
 
 /**
- * Outputs a debug message to the console.
+ * Writes a debug message through the current `Console` service.
  *
- * This function logs messages at the debug level, which may be filtered
- * out in production environments.
+ * **Details**
+ * The arguments are passed to the service's `debug` method when the returned
+ * Effect is executed. Any filtering behavior depends on the active console
+ * implementation.
  *
- * @example
+ * **Example** (Writing debug messages)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -276,8 +288,8 @@ export const countReset = (label?: string): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -292,7 +304,8 @@ export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * This function provides a detailed view of an object's properties,
  * which can be useful for debugging complex data structures.
  *
- * @example
+ * **Example** (Inspecting an object)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -303,8 +316,8 @@ export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const dir = (item: any, options?: any): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -318,19 +331,21 @@ export const dir = (item: any, options?: any): Effect.Effect<void> =>
  *
  * This function is particularly useful for inspecting DOM elements in browser environments.
  *
- * @example
+ * **Example** (Inspecting XML-like data)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   // In a browser environment
- *   const element = document.getElementById("myElement")
- *   yield* Console.dirxml(element)
+ *   yield* Console.dirxml("<user id=\"1\">Ada</user>")
  * })
+ *
+ * Effect.runSync(program)
+ * // <user id="1">Ada</user>
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -345,7 +360,8 @@ export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * This function logs messages at the error level, typically displayed
  * in red or with an error icon in most console implementations.
  *
- * @example
+ * **Example** (Writing error messages)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -358,8 +374,8 @@ export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -374,7 +390,8 @@ export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * This function creates a collapsible group of console messages. The group
  * is automatically closed when the Effect's scope is finalized.
  *
- * @example
+ * **Example** (Grouping scoped output)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -390,8 +407,8 @@ export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const group = (
   options?: { label?: string | undefined; collapsed?: boolean | undefined } | undefined
@@ -418,7 +435,8 @@ export const group = (
  * This function logs messages at the info level, typically displayed
  * with an info icon in most console implementations.
  *
- * @example
+ * **Example** (Writing informational messages)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -431,8 +449,8 @@ export const group = (
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -446,7 +464,8 @@ export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  *
  * This is the most commonly used console method for general purpose logging.
  *
- * @example
+ * **Example** (Writing log messages)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -457,8 +476,8 @@ export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -473,7 +492,8 @@ export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * This function takes tabular data and displays it in a formatted table,
  * making it easier to read structured data.
  *
- * @example
+ * **Example** (Displaying tabular data)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -488,8 +508,8 @@ export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const table = (tabularData: any, properties?: ReadonlyArray<string>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -504,7 +524,8 @@ export const table = (tabularData: any, properties?: ReadonlyArray<string>): Eff
  * This function returns a scoped Effect that starts a timer when entered
  * and automatically ends the timer when the scope is finalized.
  *
- * @example
+ * **Example** (Timing scoped work)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -520,8 +541,8 @@ export const table = (tabularData: any, properties?: ReadonlyArray<string>): Eff
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const time = (label?: string | undefined): Effect.Effect<void, never, Scope> =>
   consoleWith((console) =>
@@ -542,7 +563,8 @@ export const time = (label?: string | undefined): Effect.Effect<void, never, Sco
  * This function logs the elapsed time for a timer without stopping it,
  * allowing you to track progress of long-running operations.
  *
- * @example
+ * **Example** (Logging timer progress)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -559,8 +581,8 @@ export const time = (label?: string | undefined): Effect.Effect<void, never, Sco
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -575,7 +597,8 @@ export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Eff
  * This function logs the current stack trace, which is useful for debugging
  * to understand how the current point in the code was reached.
  *
- * @example
+ * **Example** (Writing stack traces)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -585,8 +608,8 @@ export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Eff
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -601,7 +624,8 @@ export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * This function logs messages at the warning level, typically displayed
  * in yellow or with a warning icon in most console implementations.
  *
- * @example
+ * **Example** (Writing warning messages)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -613,8 +637,8 @@ export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   consoleWith((console) =>
@@ -630,7 +654,8 @@ export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * automatically starting the group before the Effect runs and ending it
  * after the Effect completes.
  *
- * @example
+ * **Example** (Wrapping an effect in a group)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -646,8 +671,8 @@ export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const withGroup = dual<
   (
@@ -688,7 +713,8 @@ export const withGroup = dual<
  * starting a timer before the Effect runs and logging the elapsed time
  * after the Effect completes.
  *
- * @example
+ * **Example** (Timing an effect)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
  *
@@ -703,8 +729,8 @@ export const withGroup = dual<
  * })
  * ```
  *
- * @since 2.0.0
  * @category accessor
+ * @since 2.0.0
  */
 export const withTime = dual<
   (label?: string) => <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>,

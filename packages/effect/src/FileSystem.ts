@@ -7,7 +7,8 @@
  * allowing you to work with files and directories in a functional, composable way. All operations
  * return `Effect` values that can be composed, transformed, and executed safely.
  *
- * @example
+ * **Example** (Working with files and directories)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -59,7 +60,8 @@ const TypeId = "~effect/platform/FileSystem"
  * that work cross-platform. All operations return Effect values that can be composed,
  * transformed, and executed safely with proper error handling.
  *
- * @example
+ * **Example** (Accessing file system operations)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -85,8 +87,8 @@ const TypeId = "~effect/platform/FileSystem"
  * })
  * ```
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export interface FileSystem {
   readonly [TypeId]: typeof TypeId
@@ -374,7 +376,8 @@ export interface FileSystem {
  * bigint allows for handling very large file sizes beyond JavaScript's
  * number precision limits.
  *
- * @example
+ * **Example** (Creating branded file sizes)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -383,15 +386,14 @@ export interface FileSystem {
  * const largeFile = FileSystem.Size(BigInt("9007199254740992")) // Very large
  *
  * // Use with file operations
- * const truncateToSize = (path: string, size: FileSystem.Size) =>
- *   Effect.gen(function*() {
- *     const fs = yield* FileSystem.FileSystem
- *     return fs.truncate(path, size)
- *   })
+ * const truncateToSize = Effect.fnUntraced(function*(path: string, size: FileSystem.Size) {
+ *   const fs = yield* FileSystem.FileSystem
+ *   return yield* fs.truncate(path, size)
+ * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export type Size = Brand.Branded<bigint, "Size">
 
@@ -402,7 +404,8 @@ export type Size = Brand.Branded<bigint, "Size">
  * different formats for convenience, which are then normalized to the
  * branded `Size` type internally.
  *
- * @example
+ * **Example** (Using size inputs)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -416,8 +419,8 @@ export type Size = Brand.Branded<bigint, "Size">
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export type SizeInput = bigint | number | Size
 
@@ -428,7 +431,8 @@ export type SizeInput = bigint | number | Size
  * branded Size type. This function handles the conversion and ensures
  * type safety for file size operations.
  *
- * @example
+ * **Example** (Converting size inputs)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -452,8 +456,8 @@ export type SizeInput = bigint | number | Size
  *   })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? bytes as Size : BigInt(bytes) as Size
 
@@ -463,7 +467,8 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
  * Converts a number of kilobytes to the equivalent size in bytes.
  * Uses binary kilobytes (1024 bytes) rather than decimal (1000 bytes).
  *
- * @example
+ * **Example** (Creating kibibyte sizes)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -482,8 +487,8 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const KiB = (n: number): Size => Size(n * 1024)
 
@@ -493,7 +498,8 @@ export const KiB = (n: number): Size => Size(n * 1024)
  * Converts a number of mebibytes to the equivalent size in bytes.
  * Uses binary mebibytes (1,048,576 bytes) rather than decimal megabytes.
  *
- * @example
+ * **Example** (Creating mebibyte sizes)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -516,8 +522,8 @@ export const KiB = (n: number): Size => Size(n * 1024)
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const MiB = (n: number): Size => Size(n * 1024 * 1024)
 
@@ -527,27 +533,30 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  * Converts a number of gibibytes to the equivalent size in bytes.
  * Uses binary gibibytes (1,073,741,824 bytes) rather than decimal gigabytes.
  *
- * @example
+ * **Example** (Creating gibibyte sizes)
+ *
  * ```ts
- * import { Console, Effect, FileSystem } from "effect"
+ * import { Effect, FileSystem } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
- *   // Check available space before creating large files
- *   const stats = yield* fs.stat(".")
- *   const requiredSpace = FileSystem.GiB(5)
+ *   // Use GiB values as size thresholds
+ *   const maxArchiveSize = FileSystem.GiB(1)
+ *   console.log(maxArchiveSize.toString()) // "1073741824"
  *
- *   // Create a large temporary file
- *   const tempFile = yield* fs.makeTempFile({ prefix: "large-" })
- *   yield* fs.truncate(tempFile, FileSystem.GiB(1)) // 1 GiB file
+ *   const tempFile = yield* fs.makeTempFile({ prefix: "archive-" })
+ *   yield* fs.writeFileString(tempFile, "backup data")
  *
- *   yield* Console.log(`Created ${tempFile} with 1 GiB size`)
+ *   const info = yield* fs.stat(tempFile)
+ *   console.log(info.size < maxArchiveSize) // true
+ *
+ *   yield* fs.remove(tempFile)
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
 
@@ -557,7 +566,8 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  * Converts a number of tebibytes to the equivalent size in bytes.
  * Uses binary tebibytes (1,099,511,627,776 bytes) rather than decimal terabytes.
  *
- * @example
+ * **Example** (Creating tebibyte sizes)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -579,8 +589,8 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const TiB = (n: number): Size => Size(n * 1024 * 1024 * 1024 * 1024)
 
@@ -594,7 +604,8 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  * Uses binary pebibytes (1,125,899,906,842,624 bytes) rather than decimal petabytes.
  * This function uses BigInt arithmetic to handle the very large numbers involved.
  *
- * @example
+ * **Example** (Creating pebibyte sizes)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -615,8 +626,8 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  * })
  * ```
  *
- * @since 4.0.0
  * @category sizes
+ * @since 4.0.0
  */
 export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
 
@@ -637,7 +648,8 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * - `"a+"` - Read/write. Appends to file or creates new file.
  * - `"ax+"` - Like 'a+' but fails if file exists.
  *
- * @example
+ * **Example** (Opening files with flags)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -658,8 +670,8 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * })
  * ```
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type OpenFlag =
   | "r"
@@ -679,7 +691,8 @@ export type OpenFlag =
  * This key is used to provide and access the FileSystem service in the Effect context.
  * Use this to inject file system implementations or access file system operations.
  *
- * @example
+ * **Example** (Accessing and providing FileSystem)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -708,8 +721,8 @@ export type OpenFlag =
  * )
  * ```
  *
- * @since 4.0.0
  * @category tag
+ * @since 4.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")
 
@@ -720,8 +733,8 @@ export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Servi
  * default implementations for `exists`, `readFileString`, `stream`, `sink`, and
  * `writeFileString` methods based on the provided core methods.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const make = (
   impl: Omit<FileSystem, typeof TypeId | "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
@@ -811,16 +824,15 @@ const notFound = (method: string, path: string) =>
   })
 
 /**
- * Creates a no-op FileSystem implementation for testing purposes.
+ * Creates a stub `FileSystem` implementation for tests.
  *
- * This function creates a FileSystem where most operations fail with "NotFound" errors,
- * except for operations that can be safely stubbed. You can override specific methods
- * by providing them in the `fileSystem` parameter.
+ * By default, `exists` returns `false`, `remove` succeeds, many file operations
+ * fail with `PlatformError` `NotFound`, and temporary-directory/file operations
+ * die as not implemented. Pass method overrides to provide the behavior needed
+ * by a specific test without touching the real file system.
  *
- * This is useful for testing scenarios where you want to control specific file system
- * behaviors without affecting the actual file system.
+ * **Example** (Creating a no-op FileSystem)
  *
- * @example
  * ```ts
  * import { Effect, FileSystem, PlatformError } from "effect"
  *
@@ -857,8 +869,8 @@ const notFound = (method: string, path: string) =>
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
   FileSystem.of({
@@ -959,7 +971,8 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  * This is a convenience function that wraps `makeNoop` in a Layer, making it easy
  * to provide the test filesystem to your Effect programs.
  *
- * @example
+ * **Example** (Providing a no-op FileSystem layer)
+ *
  * ```ts
  * import { Effect, FileSystem } from "effect"
  *
@@ -979,15 +992,18 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  * const testProgram = Effect.provide(program, testLayer)
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSystem> =>
   Layer.succeed(FileSystem)(makeNoop(fileSystem))
 
 /**
- * @since 4.0.0
+ * Runtime type identifier attached to `FileSystem.File` handles and used by
+ * `isFile` to recognize them.
+ *
  * @category File
+ * @since 4.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"
 
@@ -997,8 +1013,8 @@ export const FileTypeId = "~effect/platform/FileSystem/File"
  * This function determines whether the provided value is a valid File
  * instance by checking for the presence of the File type identifier.
  *
- * @since 4.0.0
  * @category File
+ * @since 4.0.0
  */
 export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
 
@@ -1009,7 +1025,8 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * and retrieving file information. File handles are automatically managed
  * within scoped operations to ensure proper cleanup.
  *
- * @example
+ * **Example** (Working with file handles)
+ *
  * ```ts
  * import { Console, Effect, FileSystem } from "effect"
  *
@@ -1040,8 +1057,8 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * })
  * ```
  *
- * @since 4.0.0
  * @category File
+ * @since 4.0.0
  */
 export interface File {
   readonly [FileTypeId]: typeof FileTypeId
@@ -1057,8 +1074,11 @@ export interface File {
 }
 
 /**
- * @since 4.0.0
+ * Namespace containing types associated with open file handles, including file
+ * descriptors, entry kinds, and stat information.
+ *
  * @category File
+ * @since 4.0.0
  */
 export declare namespace File {
   /**
@@ -1067,8 +1087,8 @@ export declare namespace File {
    * File descriptors are numeric handles used by the operating system
    * to identify open files. The branded type ensures type safety.
    *
-   * @since 4.0.0
    * @category File
+   * @since 4.0.0
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
 
@@ -1078,8 +1098,8 @@ export declare namespace File {
    * Represents the different types of entries that can exist in a file system,
    * from regular files to special device files and symbolic links.
    *
-   * @since 4.0.0
    * @category File
+   * @since 4.0.0
    */
   export type Type =
     | "File"
@@ -1098,32 +1118,41 @@ export declare namespace File {
    * permissions, and size information. This structure is returned by file
    * stat operations.
    *
-   * @example
+   * **Example** (Inspecting file information)
+   *
    * ```ts
-   * import { Console, Effect, FileSystem, Option } from "effect"
+   * import { Effect, FileSystem, Option } from "effect"
    *
    * const program = Effect.gen(function*() {
    *   const fs = yield* FileSystem.FileSystem
    *
-   *   const info: FileSystem.File.Info = yield* fs.stat("./data.txt")
+   *   const path = yield* fs.makeTempFile({ prefix: "info-" })
+   *   yield* fs.writeFileString(path, "hello")
    *
-   *   yield* Console.log(`File type: ${info.type}`)
-   *   yield* Console.log(`File size: ${info.size} bytes`)
-   *   yield* Console.log(`Mode: ${info.mode.toString(8)}`) // Octal permissions
+   *   const info: FileSystem.File.Info = yield* fs.stat(path)
    *
-   *   // Handle optional timestamps
-   *   const mtime = Option.getOrElse(info.mtime, () => new Date(0))
-   *   yield* Console.log(`Modified: ${mtime.toISOString()}`)
+   *   console.log(`File type: ${info.type}`) // "File type: File"
+   *   console.log(`File size: ${info.size} bytes`) // "File size: 5 bytes"
+   *   console.log(`Mode: ${info.mode.toString(8)}`) // Octal permissions
+   *
+   *   // Handle optional timestamps without inventing a fallback date
+   *   const modified = Option.match(info.mtime, {
+   *     onNone: () => "unavailable",
+   *     onSome: (mtime) => mtime.toISOString()
+   *   })
+   *   console.log(`Modified: ${modified}`)
    *
    *   // Check if it's a regular file
    *   if (info.type === "File") {
-   *     yield* Console.log("Processing regular file...")
+   *     console.log("Processing regular file...") // "Processing regular file..."
    *   }
+   *
+   *   yield* fs.remove(path)
    * })
    * ```
    *
-   * @since 4.0.0
    * @category File
+   * @since 4.0.0
    */
   export interface Info {
     readonly type: Type
@@ -1149,8 +1178,8 @@ export declare namespace File {
  * File descriptors are integer handles that the operating system uses to identify
  * open files. This branded type ensures type safety when working with file descriptors.
  *
- * @since 4.0.0
  * @category constructor
+ * @since 4.0.0
  */
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
 
@@ -1160,22 +1189,24 @@ export const FileDescriptor = Brand.nominal<File.Descriptor>()
  * - `"start"` - Seek from the beginning of the file
  * - `"current"` - Seek from the current position
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type SeekMode = "start" | "current"
 
 /**
  * Represents file system events that can be observed when watching files or directories.
  *
- * @since 4.0.0
  * @category model
+ * @since 4.0.0
  */
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
 
 /**
- * @since 4.0.0
+ * Namespace containing the concrete event shapes emitted by `FileSystem.watch`.
+ *
  * @category model
+ * @since 4.0.0
  */
 export declare namespace WatchEvent {
   /**
@@ -1184,8 +1215,8 @@ export declare namespace WatchEvent {
    * This event is triggered when a new file or directory is created
    * in the watched location.
    *
-   * @since 4.0.0
    * @category model
+   * @since 4.0.0
    */
   export interface Create {
     readonly _tag: "Create"
@@ -1198,8 +1229,8 @@ export declare namespace WatchEvent {
    * This event is triggered when an existing file or directory is
    * modified in the watched location.
    *
-   * @since 4.0.0
    * @category model
+   * @since 4.0.0
    */
   export interface Update {
     readonly _tag: "Update"
@@ -1212,8 +1243,8 @@ export declare namespace WatchEvent {
    * This event is triggered when a file or directory is deleted
    * from the watched location.
    *
-   * @since 4.0.0
    * @category model
+   * @since 4.0.0
    */
   export interface Remove {
     readonly _tag: "Remove"
@@ -1228,7 +1259,8 @@ export declare namespace WatchEvent {
  * implemented differently on various platforms (e.g., inotify on Linux,
  * FSEvents on macOS, etc.).
  *
- * @example
+ * **Example** (Providing a custom watch backend)
+ *
  * ```ts
  * import { Effect, FileSystem, Option, Stream } from "effect"
  *
@@ -1255,8 +1287,8 @@ export declare namespace WatchEvent {
  * )
  * ```
  *
- * @since 4.0.0
  * @category file watcher
+ * @since 4.0.0
  */
 export class WatchBackend extends Context.Service<WatchBackend, {
   readonly register: (path: string, stat: File.Info) => Option.Option<Stream.Stream<WatchEvent, PlatformError>>

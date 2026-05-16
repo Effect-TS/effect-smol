@@ -416,8 +416,8 @@ export declare namespace TaggedEnum {
    *
    * @see {@link taggedEnum} — creates a `Constructor`
    *
-   * @since 3.1.0
    * @category types
+   * @since 3.1.0
    */
   export type Constructor<A extends { readonly _tag: string }> = Types.Simplify<
     {
@@ -457,7 +457,8 @@ export declare namespace TaggedEnum {
    * Function type that constructs a tagged-union variant from its fields,
    * excluding the keys listed in `Tag`.
    *
-   * Returns `void` when no fields remain after excluding `Tag` keys.
+   * The constructor returns the full variant type `A`. If no fields remain
+   * after excluding `Tag` keys, the constructor argument type becomes `void`.
    *
    * @since 4.0.0
    */

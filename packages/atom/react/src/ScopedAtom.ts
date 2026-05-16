@@ -1,5 +1,22 @@
 /**
- * @since 1.0.0
+ * The `ScopedAtom` module provides a small React integration for creating atom
+ * instances that are scoped to a component subtree. A scoped atom bundles a
+ * React provider, context, and `use` accessor so each mounted provider owns its
+ * own atom instance instead of sharing a single module-level atom.
+ *
+ * Use `ScopedAtom` when an atom needs to be isolated per feature, route,
+ * component instance, test harness, or provider input. The provider may receive
+ * an initial `value` that is passed to the atom factory, making it useful for
+ * state that should be seeded from React props while still being consumed by the
+ * atom hooks in descendants.
+ *
+ * **Gotchas**
+ *
+ * - `use` must be called under the matching provider or it throws.
+ * - The provider creates the atom once for its lifetime; changing the provider
+ *   `value` prop after mount does not recreate the atom.
+ *
+ * @since 4.0.0
  */
 "use client"
 
@@ -7,28 +24,26 @@ import type * as Atom from "effect/unstable/reactivity/Atom"
 import * as React from "react"
 
 /**
- * @since 1.0.0
- * @category Type IDs
- *
  * Type identifier for ScopedAtom.
+ *
+ * @category Type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
- * @since 1.0.0
- * @category Type IDs
- *
  * Type identifier for ScopedAtom.
+ *
+ * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
- * @since 1.0.0
- * @category models
- *
  * Scoped Atom interface with a provider-backed instance.
  *
- * @example
+ * **Example** (Providing and reading a scoped atom)
+ *
  * ```ts
  * import * as Atom from "effect/unstable/reactivity/Atom"
  * import * as React from "react"
@@ -47,6 +62,9 @@ export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
  *   return React.createElement(Counter.Provider, null, React.createElement(View))
  * }
  * ```
+ *
+ * @category models
+ * @since 4.0.0
  */
 export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
   readonly [TypeId]: TypeId
@@ -57,12 +75,10 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
 }
 
 /**
- * @since 1.0.0
- * @category constructors
- *
  * Creates a ScopedAtom from a factory function.
  *
- * @example
+ * **Example** (Creating a scoped atom with input)
+ *
  * ```ts
  * import * as Atom from "effect/unstable/reactivity/Atom"
  * import * as React from "react"
@@ -85,6 +101,9 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
  *   )
  * }
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = <A extends Atom.Atom<any>, Input = never>(
   f: (() => A) | ((input: Input) => A)

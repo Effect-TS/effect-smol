@@ -10,7 +10,8 @@
  * This module uses an AST-based approach where commands are built first
  * using `make` and `pipeTo`, then executed using `spawn`.
  *
- * @example
+ * **Example** (Spawning and piping commands)
+ *
  * ```ts
  * import { NodeServices } from "@effect/platform-node"
  * import { Effect, Stream } from "effect"

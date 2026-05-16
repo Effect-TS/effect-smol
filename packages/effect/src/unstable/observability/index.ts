@@ -45,7 +45,8 @@ export * as OtlpTracer from "./OtlpTracer.ts"
  * This module provides functionality to export Effect metrics in the Prometheus
  * exposition format, making them scrapeable by Prometheus servers.
  *
- * @example
+ * **Example** (Exporting Prometheus metrics)
+ *
  * ```ts
  * import { Effect, Metric } from "effect"
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"

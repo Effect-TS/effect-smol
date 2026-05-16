@@ -1,4 +1,49 @@
 /**
+ * The `Function` module provides small, pure helpers for defining, composing,
+ * adapting, and reusing TypeScript functions. It is the foundation for the
+ * data-first and data-last APIs used throughout Effect, and it includes the
+ * core pipeline utilities that make those APIs ergonomic.
+ *
+ * **Mental model**
+ *
+ * - {@link pipe} starts with a value and passes it through one unary function at
+ *   a time
+ * - {@link flow} composes unary functions into a reusable function
+ * - {@link dual} builds APIs that support both direct calls and `pipe`-friendly
+ *   data-last calls
+ * - {@link identity}, {@link constant}, and the `const*` helpers model common
+ *   identity and thunk patterns without allocating ad hoc callbacks
+ * - {@link tupled}, {@link untupled}, {@link flip}, and {@link apply} adapt
+ *   call shapes without changing the underlying behavior
+ * - Type helpers such as {@link LazyArg}, {@link FunctionN}, {@link satisfies},
+ *   and {@link cast} describe or constrain functions at the type level
+ *
+ * **Common tasks**
+ *
+ * - Build readable transformation pipelines: {@link pipe}
+ * - Create reusable composed functions: {@link flow}, {@link compose}
+ * - Define functions callable in both data-first and data-last style: {@link dual}
+ * - Return a value unchanged: {@link identity}
+ * - Create thunks and common constant functions: {@link constant},
+ *   {@link constTrue}, {@link constFalse}, {@link constNull},
+ *   {@link constUndefined}, {@link constVoid}
+ * - Convert between rest-argument and tuple-argument functions: {@link tupled},
+ *   {@link untupled}
+ * - Express impossible branches: {@link absurd}
+ * - Cache results for object keys: {@link memoize}
+ *
+ * **Gotchas**
+ *
+ * - Functions passed to {@link pipe} and {@link flow} are applied left-to-right
+ *   and should be unary at each step
+ * - {@link dual} uses either an arity or a predicate to decide whether a call is
+ *   data-first or data-last; use a predicate when optional arguments make arity
+ *   ambiguous
+ * - {@link cast} changes only the static TypeScript type and performs no runtime
+ *   validation
+ * - {@link memoize} is intended for object keys and stores cached values in a
+ *   `WeakMap`
+ *
  * @since 2.0.0
  */
 import type { TypeLambda } from "./HKT.ts"
@@ -7,7 +52,8 @@ import { pipeArguments } from "./Pipeable.ts"
 /**
  * Type lambda for function types, used for higher-kinded type operations.
  *
- * @example
+ * **Example** (Creating a function type with a type lambda)
+ *
  * ```ts
  * import type { FunctionTypeLambda } from "effect/Function"
  * import type { Kind } from "effect/HKT"
@@ -40,20 +86,6 @@ export interface FunctionTypeLambda extends TypeLambda {
  * You can pass either the arity of the uncurried function or a predicate
  * which determines if the function is being used in a data-first or
  * data-last style.
- *
- * @example
- * ```ts
- * import { dual, pipe } from "effect/Function"
- *
- * // Using arity to determine data-first or data-last style
- * const sum = dual<
- *   (that: number) => (self: number) => number,
- *   (self: number, that: number) => number
- * >(2, (self, that) => self + that)
- *
- * console.log(sum(2, 3)) // 5 (data-first)
- * console.log(pipe(2, sum(3))) // 5 (data-last)
- * ```
  *
  * **Example** (Using arity to determine data-first or data-last style)
  *
@@ -162,7 +194,8 @@ export const dual: {
 /**
  * Apply a function to a given value.
  *
- * @example
+ * **Example** (Applying an argument to a function)
+ *
  * ```ts
  * import { apply, pipe } from "effect/Function"
  * import { length } from "effect/String"
@@ -177,9 +210,10 @@ export const dual: {
 export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
 
 /**
- * A lazy argument.
+ * A zero-argument function that produces a value when invoked.
  *
- * @example
+ * **Example** (Creating a lazy argument)
+ *
  * ```ts
  * import { constant, type LazyArg } from "effect/Function"
  *
@@ -194,7 +228,8 @@ export type LazyArg<A> = () => A
 /**
  * Represents a function with multiple arguments.
  *
- * @example
+ * **Example** (Typing a variadic function)
+ *
  * ```ts
  * import type { FunctionN } from "effect/Function"
  * import * as assert from "node:assert"
@@ -211,7 +246,8 @@ export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 /**
  * The identity function, i.e. A function that returns its input argument.
  *
- * @example
+ * **Example** (Returning the same value)
+ *
  * ```ts
  * import { identity } from "effect/Function"
  * import * as assert from "node:assert"
@@ -228,7 +264,8 @@ export const identity = <A>(a: A): A => a
  * A function that ensures that the type of an expression matches some type,
  * without changing the resulting type of that expression.
  *
- * @example
+ * **Example** (Checking an expression against a type)
+ *
  * ```ts
  * import { satisfies } from "effect/Function"
  * import * as assert from "node:assert"
@@ -248,7 +285,10 @@ export const identity = <A>(a: A): A => a
 export const satisfies = <A>() => <B extends A>(b: B) => b
 
 /**
- * Casts the result to the specified type.
+ * Returns the input value with a different static type.
+ *
+ * This is a type-level cast only; it performs no runtime validation or
+ * conversion.
  *
  * @category type utils
  * @since 2.0.0
@@ -256,12 +296,13 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
 export const cast: <A, B>(a: A) => B = identity as any
 
 /**
- * Creates a constant value that never changes.
+ * Creates a zero-argument function that always returns the provided value.
  *
- * This is useful when you want to pass a value to a higher-order function (a function that takes another function as its argument)
- * and want that inner function to always use the same value, no matter how many times it is called.
+ * Use `constant` when an API expects a thunk or callback and every invocation
+ * should return the same value.
  *
- * @example
+ * **Example** (Creating a constant thunk)
+ *
  * ```ts
  * import { constant } from "effect/Function"
  * import * as assert from "node:assert"
@@ -280,7 +321,8 @@ export const constant = <A>(value: A): LazyArg<A> => () => value
 /**
  * A thunk that returns always `true`.
  *
- * @example
+ * **Example** (Returning true from a thunk)
+ *
  * ```ts
  * import { constTrue } from "effect/Function"
  * import * as assert from "node:assert"
@@ -296,7 +338,8 @@ export const constTrue: LazyArg<boolean> = constant(true)
 /**
  * A thunk that returns always `false`.
  *
- * @example
+ * **Example** (Returning false from a thunk)
+ *
  * ```ts
  * import { constFalse } from "effect/Function"
  * import * as assert from "node:assert"
@@ -312,7 +355,8 @@ export const constFalse: LazyArg<boolean> = constant(false)
 /**
  * A thunk that returns always `null`.
  *
- * @example
+ * **Example** (Returning null from a thunk)
+ *
  * ```ts
  * import { constNull } from "effect/Function"
  * import * as assert from "node:assert"
@@ -328,7 +372,8 @@ export const constNull: LazyArg<null> = constant(null)
 /**
  * A thunk that returns always `undefined`.
  *
- * @example
+ * **Example** (Returning undefined from a thunk)
+ *
  * ```ts
  * import { constUndefined } from "effect/Function"
  * import * as assert from "node:assert"
@@ -344,7 +389,8 @@ export const constUndefined: LazyArg<undefined> = constant(undefined)
 /**
  * A thunk that returns always `void`.
  *
- * @example
+ * **Example** (Returning void from a thunk)
+ *
  * ```ts
  * import { constVoid } from "effect/Function"
  * import * as assert from "node:assert"
@@ -360,7 +406,8 @@ export const constVoid: LazyArg<void> = constUndefined
 /**
  * Reverses the order of arguments for a curried function.
  *
- * @example
+ * **Example** (Flipping curried arguments)
+ *
  * ```ts
  * import { flip } from "effect/Function"
  * import * as assert from "node:assert"
@@ -383,7 +430,8 @@ export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
  * Composes two functions, `ab` and `bc` into a single function that takes in an argument `a` of type `A` and returns a result of type `C`.
  * The result is obtained by first applying the `ab` function to `a` and then applying the `bc` function to the result of `ab`.
  *
- * @example
+ * **Example** (Composing two functions)
+ *
  * ```ts
  * import { compose } from "effect/Function"
  * import * as assert from "node:assert"
@@ -408,7 +456,8 @@ export const compose: {
  *
  * This function is particularly useful when it's necessary to specify that certain cases are impossible.
  *
- * @example
+ * **Example** (Handling impossible values)
+ *
  * ```ts
  * import { absurd } from "effect/Function"
  *
@@ -427,7 +476,8 @@ export const absurd = <A>(_: never): A => {
 /**
  * Creates a tupled version of this function: instead of `n` arguments, it accepts a single tuple argument.
  *
- * @example
+ * **Example** (Converting arguments to a tuple)
+ *
  * ```ts
  * import { tupled } from "effect/Function"
  * import * as assert from "node:assert"
@@ -445,7 +495,8 @@ export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): 
 /**
  * Inverse function of `tupled`
  *
- * @example
+ * **Example** (Converting a tuple to arguments)
+ *
  * ```ts
  * import { untupled } from "effect/Function"
  * import * as assert from "node:assert"
@@ -470,23 +521,31 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * passes it as the input to the next function in the pipeline. This enables us
  * to build complex transformations by chaining multiple functions together.
  *
- * ```ts skip-type-checking
+ * **Example** (Showing pipeline syntax)
+ *
+ * ```ts
  * import { pipe } from "effect"
  *
- * const result = pipe(input, func1, func2, ..., funcN)
+ * const result = pipe(
+ *   1,
+ *   (n) => n + 1,
+ *   (n) => n * 2,
+ *   (n) => `result: ${n}`
+ * )
+ *
+ * console.log(result) // "result: 4"
  * ```
  *
- * In this syntax, `input` is the initial value, and `func1`, `func2`, ...,
- * `funcN` are the functions to be applied in sequence. The result of each
- * function becomes the input for the next function, and the final result is
- * returned.
+ * In this syntax, `1` is the initial value, and each function is applied in
+ * sequence. The result of each function becomes the input for the next
+ * function, and the final result is returned.
  *
  * Here's an illustration of how `pipe` works:
  *
  * ```
- * ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌────────┐
- * │ input │───►│ func1 │───►│ func2 │───►│  ...  │───►│ funcN │───►│ result │
- * └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └────────┘
+ * ┌───┐    ┌───────┐    ┌─────────────┐    ┌────────┐
+ * │ 1 │───►│ add 1 │───►│ multiply 2  │───►│ format │───► "result: 4"
+ * └───┘    └───────┘    └─────────────┘    └────────┘
  * ```
  *
  * It's important to note that functions passed to `pipe` must have a **single
@@ -497,16 +556,36 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * This is useful in combination with data-last functions as a simulation of
  * methods:
  *
- * ```ts skip-type-checking
- * as.map(f).filter(g)
+ * **Example** (Chaining methods before conversion)
+ *
+ * ```ts
+ * const numbers = [1, 2, 3, 4]
+ * const double = (n: number) => n * 2
+ * const greaterThanFour = (n: number) => n > 4
+ *
+ * const result = numbers.map(double).filter(greaterThanFour)
+ *
+ * console.log(result) // [6, 8]
  * ```
  *
  * becomes:
  *
- * ```ts skip-type-checking
+ * **Example** (Rewriting method chains with pipe)
+ *
+ * ```ts
  * import { Array, pipe } from "effect"
  *
- * pipe(as, Array.map(f), Array.filter(g))
+ * const numbers = [1, 2, 3, 4]
+ * const double = (n: number) => n * 2
+ * const greaterThanFour = (n: number) => n > 4
+ *
+ * const result = pipe(
+ *   numbers,
+ *   Array.map(double),
+ *   Array.filter(greaterThanFour)
+ * )
+ *
+ * console.log(result) // [6, 8]
  * ```
  *
  * **Example** (Chaining Arithmetic Operations)
@@ -526,7 +605,8 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * // Output: 2
  * ```
  *
- * @example
+ * **Example** (Building a simple transformation pipeline)
+ *
  * ```ts
  * import { pipe } from "effect"
  *
@@ -1001,7 +1081,8 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
  *
  * See also [`pipe`](#pipe).
  *
- * @example
+ * **Example** (Composing functions left to right)
+ *
  * ```ts
  * import { flow } from "effect/Function"
  * import * as assert from "node:assert"
@@ -1183,14 +1264,23 @@ export function flow(
 }
 
 /**
- * Type hole simulation. Creates a placeholder for any type, primarily used during development.
+ * Creates a compile-time placeholder for a value of any type.
  *
- * @example
+ * `hole` is intended for temporary development use. If the placeholder is
+ * evaluated at runtime, it throws.
+ *
+ * **Example** (Creating a development placeholder)
+ *
  * ```ts
  * import { hole } from "effect/Function"
  *
- * // Use during development as a placeholder
- * const placeholder: string = hole<string>()
+ * // Intentionally not called: `hole` throws if the placeholder is evaluated.
+ * const buildUser = (id: number): { readonly id: number; readonly name: string } => ({
+ *   id,
+ *   name: hole<string>()
+ * })
+ *
+ * console.log(typeof buildUser) // "function"
  * ```
  *
  * @category utilities
@@ -1204,7 +1294,8 @@ export const hole: <T>() => T = cast(absurd)
  *
  * This function is useful for discarding the first argument passed to it and returning the second argument.
  *
- * @example
+ * **Example** (Discarding the first argument)
+ *
  * ```ts
  * import { SK } from "effect/Function"
  * import * as assert from "node:assert"
@@ -1218,6 +1309,9 @@ export const hole: <T>() => T = cast(absurd)
 export const SK = <A, B>(_: A, b: B): B => b
 
 /**
+ * Memoizes a function whose input is an object, caching results by object
+ * identity.
+ *
  * @since 4.0.0
  */
 export function memoize<A extends object, O>(f: (a: A) => O): (ast: A) => O {

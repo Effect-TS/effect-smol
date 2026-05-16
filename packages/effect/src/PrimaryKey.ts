@@ -25,7 +25,8 @@ export const symbol = "~effect/interfaces/PrimaryKey"
  * Objects implementing this interface must provide a method that returns
  * a unique string identifier.
  *
- * @example
+ * **Example** (Implementing a primary key)
+ *
  * ```ts
  * import { PrimaryKey } from "effect"
  *
@@ -49,6 +50,11 @@ export interface PrimaryKey {
 }
 
 /**
+ * Checks whether a value implements the `PrimaryKey` protocol.
+ *
+ * This is a structural guard for the `PrimaryKey.symbol` property. It does not
+ * call the method or verify that it returns a string.
+ *
  * @category models
  * @since 2.0.0
  */
@@ -57,7 +63,8 @@ export const isPrimaryKey = (u: unknown): u is PrimaryKey => hasProperty(u, symb
 /**
  * Extracts the string value from a `PrimaryKey`.
  *
- * @example
+ * **Example** (Reading primary key values)
+ *
  * ```ts
  * import { PrimaryKey } from "effect"
  *

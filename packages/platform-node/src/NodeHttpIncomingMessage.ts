@@ -1,5 +1,17 @@
 /**
- * @since 1.0.0
+ * Utilities for adapting Node `http.IncomingMessage` values to the Effect HTTP
+ * incoming message interface used by the platform Node server and client
+ * implementations.
+ *
+ * This module is useful when code needs to keep access to Node's request or
+ * response object while also exposing Effect's typed headers, remote address,
+ * body decoders, and stream interface. The body helpers consume Node's readable
+ * stream, cache decoded text and array-buffer results, and honor the
+ * `HttpIncomingMessage.MaxBodySize` fiber ref. Prefer a single body access
+ * strategy per message: raw `stream` access is not cached, and Node request
+ * bodies cannot be replayed once the underlying stream has been consumed.
+ *
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/Inspectable"
@@ -13,14 +25,20 @@ import type * as Http from "node:http"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
- * @since 1.0.0
+ * Base adapter from Node `IncomingMessage` to Effect HTTP incoming messages,
+ * exposing headers, remote address, stream access, and cached text, JSON, URL
+ * parameter, and array-buffer body decoders with caller-provided error mapping.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   implements IncomingMessage.HttpIncomingMessage<E>
 {
   /**
-   * @since 1.0.0
+   * Marks this value as an HTTP incoming message for runtime guards.
+   *
+   * @since 4.0.0
    */
   readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
   readonly source: Http.IncomingMessage

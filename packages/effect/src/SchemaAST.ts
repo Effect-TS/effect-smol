@@ -371,17 +371,22 @@ export class Link {
 export type Encoding = readonly [Link, ...Array<Link>]
 
 /**
- * Options that control parsing/validation behavior.
+ * Options that control schema parsing, validation, transformation, and output behavior.
  *
- * Pass to `Schema.decodeUnknown`, `Schema.encode`, etc. to customize error
- * reporting, excess property handling, and output key ordering.
+ * Pass to `Schema.decodeUnknown`, `Schema.encode`, and related APIs to customize
+ * error reporting, excess property handling, output key ordering, check
+ * execution, and asynchronous parser concurrency.
  *
- * - `errors` — `"first"` (default) stops at the first error; `"all"`
- *   collects every error.
- * - `onExcessProperty` — `"ignore"` (default) strips unknown keys;
+ * - `errors` — `"first"` (default) stops at the first error; `"all"` collects
+ *   every error.
+ * - `onExcessProperty` — `"ignore"` (default) strips unknown object keys;
  *   `"error"` fails; `"preserve"` keeps them.
  * - `propertyOrder` — `"none"` (default) lets the system choose key order;
  *   `"original"` preserves input key order.
+ * - `disableChecks` — skips validation checks while still applying defaults and
+ *   transformations.
+ * - `concurrency` — maximum number of async parse effects to run concurrently;
+ *   defaults to `1`, or use `"unbounded"`.
  *
  * @category model
  * @since 4.0.0
@@ -1653,14 +1658,15 @@ export class IndexSignature {
 }
 
 /**
- * AST node for object-like types — both structs and records.
+ * AST node for object-like schemas, including structs and records.
  *
  * - `propertySignatures` — named properties with their types (struct fields).
  * - `indexSignatures` — index signature entries (record patterns), each with
- *   a `parameter` AST (the key type) and a `type` AST (the value type).
+ *   a `parameter` AST for matching keys and a `type` AST for values.
  *
- * An `Objects` with no properties and no index signatures acts as a bare
- * `object | array` type check (accepts any non-nullish value).
+ * An `Objects` node with no properties and no index signatures performs only a
+ * non-nullish check: it accepts any value except `null` and `undefined`,
+ * including primitive values.
  *
  * Duplicate property names throw at construction time.
  *
@@ -2613,12 +2619,15 @@ export function makeFilterByGuard<T extends E, E>(
 }
 
 /**
- * Creates a {@link Filter} that validates strings against a regular expression.
+ * Creates a {@link Filter} that validates strings by running `RegExp.test`.
  *
- * - Returns a `Filter<string>` suitable for use with `Schema.filter` or
- *   attached directly to a `String` AST node via checks.
- * - The regex `source` is stored in annotations for serialization and
- *   arbitrary generation.
+ * The filter can be used with `Schema.filter` or attached directly to a
+ * `String` AST node through checks. The regular expression source is stored in
+ * annotations for serialization and arbitrary generation.
+ *
+ * Use a non-global, non-sticky regular expression, or reset `lastIndex`
+ * yourself, because `RegExp.test` is stateful for expressions with the `g` or
+ * `y` flag.
  *
  * **Example** (Validating an email pattern)
  *

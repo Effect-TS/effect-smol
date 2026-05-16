@@ -100,7 +100,29 @@
     },
     "plugins": [{
       "name": "@effect/language-service",
-      "namespaceImportPackages": []
+      "namespaceImportPackages": [],
+      "includeSuggestionsInTsc": false,
+      "ignoreEffectWarningsInTscExitCode": true,
+      "ignoreEffectErrorsInTscExitCode": true,
+      "overrides": [
+        {
+          "include": [
+            "./packages/*/typetest/**/*.ts",
+            "./packages/ai/*/typetest/**/*.ts",
+            "./packages/tools/*/typetest/**/*.ts",
+            "./packages/atom/*/typetest/**/*.ts"
+          ],
+          "options": {
+            "diagnosticSeverity": {
+              "floatingEffect": "off"
+            }
+          }
+        }
+      ],
+      "diagnosticSeverity": {
+        "unknownInEffectCatch": "off",
+        "multipleEffectProvide": "off"
+      }
     }]
   }
 }

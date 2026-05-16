@@ -92,7 +92,6 @@
  * - {@link some} / {@link success} / {@link failure} — built-in prisms
  *
  * @since 4.0.0
- * @module
  */
 
 import { format } from "./Formatter.ts"
@@ -882,7 +881,7 @@ export interface Optional<in out S, in out A> {
    *
    * @see `.pick()` — the inverse operation
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   omit<S, A, Keys extends ReadonlyArray<keyof A>>(
     this: Lens<S, A>,

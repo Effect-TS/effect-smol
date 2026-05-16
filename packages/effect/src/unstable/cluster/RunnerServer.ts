@@ -1,4 +1,28 @@
 /**
+ * The `RunnerServer` module provides the transport-agnostic server side of the
+ * cluster runner protocol. It turns the runner RPC group into handlers that
+ * receive ping, notification, request, stream, and envelope messages from other
+ * runners, then forwards them into `Sharding` and coordinates persisted replies
+ * through `MessageStorage`.
+ *
+ * **Common tasks**
+ *
+ * - Build a runner server once an `RpcServer.Protocol` has been supplied by a
+ *   transport such as HTTP, WebSocket, or sockets
+ * - Provide the complete runner runtime with `Sharding` and `Runners` clients
+ *   using {@link layerWithClients}
+ * - Embed a cluster client without serving runner RPCs or accepting shard
+ *   assignments using {@link layerClientOnly}
+ *
+ * **Gotchas**
+ *
+ * - This module does not choose a wire transport; transport-specific modules
+ *   provide the `RpcServer.Protocol`
+ * - Persisted requests register reply handlers in `MessageStorage` before the
+ *   message is delivered to `Sharding`
+ * - Client-only layers clear the configured runner address, so they can send
+ *   cluster messages but do not register as shard-owning runners
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -22,8 +46,11 @@ import { ShardingConfig } from "./ShardingConfig.ts"
 const constVoid = constant(Effect.void)
 
 /**
- * @since 4.0.0
+ * Layer of RPC handlers for the runner protocol, forwarding ping, notify, effect,
+ * stream, and envelope requests to `Sharding` and `MessageStorage`.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
   const sharding = yield* Sharding.Sharding
@@ -134,8 +161,8 @@ const constWaitUntilRead = { waitUntilRead: true } as const
  *
  * It also responds to `Ping` requests.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   never,
@@ -149,8 +176,8 @@ export const layer: Layer.Layer<
 /**
  * A `RunnerServer` layer that includes the `Runners` & `Sharding` clients.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWithClients: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -173,8 +200,8 @@ export const layerWithClients: Layer.Layer<
  * so this layer can be used to embed a cluster client inside another effect
  * application.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,

@@ -27,7 +27,8 @@ const CloseableTypeId = effect.ScopeCloseableTypeId
  * automatically cleaned up when the scope is closed. Scopes can use
  * either sequential or parallel finalization strategies.
  *
- * @example
+ * **Example** (Managing scoped resources)
+ *
  * ```ts
  * import { Effect, Exit, Scope } from "effect"
  *
@@ -44,8 +45,8 @@ const CloseableTypeId = effect.ScopeCloseableTypeId
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Scope {
   readonly [TypeId]: typeof TypeId
@@ -56,7 +57,8 @@ export interface Scope {
  * A `Closeable` scope extends the base `Scope` interface with the ability
  * to be closed, executing all registered finalizers.
  *
- * @example
+ * **Example** (Closing a scope)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -71,18 +73,20 @@ export interface Scope {
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Closeable extends Scope {
   readonly [CloseableTypeId]: typeof CloseableTypeId
 }
 
 /**
- * The `State` namespace contains types representing the different states
- * a scope can be in: Open (accepting new finalizers) or Closed (no longer accepting finalizers).
+ * The `State` namespace contains the concrete states of a scope: `Empty`
+ * before any finalizers are registered, `Open` with registered finalizers, and
+ * `Closed` with the exit value used to close the scope.
  *
- * @example
+ * **Example** (Checking scope states)
+ *
  * ```ts
  * import { Effect, Exit, Scope } from "effect"
  *
@@ -105,14 +109,17 @@ export interface Closeable extends Scope {
  * ```
  *
  * @since 2.0.0
- * @category models
  */
 export namespace State {
   /**
-   * Represents an open scope state where finalizers can be added and
-   * the scope is still accepting new resources.
+   * Represents an open scope with no registered finalizers yet.
    *
-   * @example
+   * Adding the first finalizer transitions the scope to `Open`; closing an
+   * empty scope transitions directly to `Closed` without producing a finalizer
+   * effect.
+   *
+   * **Example** (Inspecting an empty scope state)
+   *
    * ```ts
    * import { Scope } from "effect"
    *
@@ -125,8 +132,8 @@ export namespace State {
    * }
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export type Empty = {
     readonly _tag: "Empty"
@@ -135,7 +142,8 @@ export namespace State {
    * Represents an open scope state where finalizers can be added and
    * the scope is still accepting new resources.
    *
-   * @example
+   * **Example** (Inspecting an open scope state)
+   *
    * ```ts
    * import { Scope } from "effect"
    *
@@ -148,8 +156,8 @@ export namespace State {
    * }
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export type Open = {
     readonly _tag: "Open"
@@ -159,7 +167,8 @@ export namespace State {
    * Represents a closed scope state where finalizers have been executed
    * and the scope is no longer accepting new resources.
    *
-   * @example
+   * **Example** (Inspecting a closed scope state)
+   *
    * ```ts
    * import { Effect, Exit, Scope } from "effect"
    *
@@ -177,8 +186,8 @@ export namespace State {
    * })
    * ```
    *
-   * @since 2.0.0
    * @category models
+   * @since 2.0.0
    */
   export type Closed = {
     readonly _tag: "Closed"
@@ -189,7 +198,8 @@ export namespace State {
 /**
  * The service tag for `Scope`, used for dependency injection in the Effect system.
  *
- * @example
+ * **Example** (Accessing the scope service)
+ *
  * ```ts
  * import { Effect, Scope } from "effect"
  *
@@ -205,15 +215,16 @@ export namespace State {
  * const scoped = Effect.scoped(program)
  * ```
  *
- * @since 2.0.0
  * @category tags
+ * @since 2.0.0
  */
 export const Scope: Context.Service<Scope, Scope> = effect.scopeTag
 
 /**
  * Creates a new `Scope` with the specified finalizer strategy.
  *
- * @example
+ * **Example** (Creating a scope)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -241,7 +252,8 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Clo
  * This is useful when you need a scope immediately but should be used with caution
  * as it doesn't provide the same safety guarantees as the `Effect`-wrapped version.
  *
- * @example
+ * **Example** (Creating a scope synchronously)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -255,8 +267,8 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Clo
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Closeable = effect.scopeMakeUnsafe
 
@@ -270,7 +282,8 @@ export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Clos
  *
  * - `Scope.extend`
  *
- * @example
+ * **Example** (Providing a scope)
+ *
  * ```ts
  * import { Console, Effect, Scope } from "effect"
  *
@@ -288,8 +301,8 @@ export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Clos
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const provide: {
   (value: Scope): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>
@@ -297,10 +310,14 @@ export const provide: {
 } = effect.provideScope
 
 /**
- * Adds a finalizer to a scope that will be executed when the scope is closed.
- * Finalizers are cleanup functions that receive the exit value of the scope.
+ * Registers an exit-aware finalizer on a scope.
  *
- * @example
+ * If the scope is open, the finalizer runs when the scope closes and receives
+ * the scope's exit value. If the scope is already closed, the finalizer runs
+ * immediately with the stored exit value.
+ *
+ * **Example** (Adding an exit-aware finalizer)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -333,11 +350,14 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
   effect.scopeAddFinalizerExit
 
 /**
- * Adds a finalizer to a scope. The finalizer is a simple `Effect` that will be
- * executed when the scope is closed, regardless of whether the scope closes
- * successfully or with an error.
+ * Registers a finalizer effect on a scope.
  *
- * @example
+ * If the scope is open, the finalizer runs when the scope closes, regardless of
+ * whether the scope closes successfully or with an error. If the scope is
+ * already closed, the finalizer runs immediately.
+ *
+ * **Example** (Adding finalizers)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -357,16 +377,20 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<void> = effect.scopeAddFinalizer
 
 /**
- * Creates a child scope from a parent scope. The child scope inherits the
- * parent's finalization strategy unless overridden.
+ * Creates a closeable child scope registered with a parent scope.
  *
- * @example
+ * Closing the parent closes the child with the same exit value, and closing the
+ * child detaches it from the parent. The optional finalizer strategy configures
+ * the child scope and defaults to `"sequential"` when omitted.
+ *
+ * **Example** (Creating a child scope)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -397,10 +421,14 @@ export const fork: (
 ) => Effect<Closeable> = effect.scopeFork
 
 /**
- * Creates a child scope from a parent scope synchronously without wrapping it in an `Effect`.
- * The child scope inherits the parent's finalization strategy unless overridden.
+ * Synchronously creates a closeable child scope registered with a parent scope.
  *
- * @example
+ * Closing the parent closes the child with the same exit value, and closing the
+ * child detaches it from the parent. The optional finalizer strategy configures
+ * the child scope and defaults to `"sequential"` when omitted.
+ *
+ * **Example** (Creating a child scope synchronously)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -418,8 +446,8 @@ export const fork: (
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "parallel") => Closeable =
   effect.scopeForkUnsafe
@@ -428,7 +456,8 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * Closes a scope, running all registered finalizers in the appropriate order.
  * The exit value is passed to each finalizer.
  *
- * @example
+ * **Example** (Running scope finalizers)
+ *
  * ```ts
  * import { Console, Effect, Exit, Scope } from "effect"
  *
@@ -455,12 +484,26 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
 export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effect.scopeClose
 
 /**
+ * Unsafely transitions a scope to `Closed` with the provided exit value.
+ *
+ * Returns an effect that runs registered finalizers, or `undefined` when the
+ * scope was already closed or no finalizers need to run. Prefer `close` unless
+ * you are implementing lower-level scope machinery and can correctly run the
+ * returned effect.
+ *
  * @since 4.0.0
  */
 export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void, never, never> | undefined =
   effect.scopeCloseUnsafe
 
 /**
+ * Runs an effect with the provided closeable scope in its context and closes
+ * that scope when the effect exits.
+ *
+ * The scope is closed with the same exit value as the effect, so registered
+ * finalizers can observe whether the effect succeeded, failed, or was
+ * interrupted.
+ *
  * @category combinators
  * @since 4.0.0
  */

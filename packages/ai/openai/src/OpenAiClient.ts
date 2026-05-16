@@ -4,7 +4,7 @@
  * Provides a type-safe, Effect-based client for OpenAI operations including
  * completions, embeddings, and streaming responses.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Array from "effect/Array"
 import type * as Config from "effect/Config"
@@ -39,10 +39,13 @@ import * as OpenAiSchema from "./OpenAiSchema.ts"
 // =============================================================================
 
 /**
- * The OpenAI client interface.
+ * Effect service interface for the handwritten OpenAI client.
  *
- * @since 1.0.0
+ * **Details**
+ * Provides the configured HTTP client plus helpers for Responses API calls, streaming Responses events, and embeddings. Transport and schema decoding failures are mapped to `AiError`.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Service {
   /**
@@ -88,8 +91,8 @@ export interface Service {
 /**
  * Service identifier for the OpenAI client.
  *
- * @since 1.0.0
  * @category service
+ * @since 4.0.0
  */
 export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
   "@effect/ai-openai/OpenAiClient"
@@ -102,8 +105,8 @@ export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
 /**
  * Options for configuring the OpenAI client.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Options = {
   /**
@@ -146,8 +149,8 @@ const RedactedOpenAiHeaders = {
 /**
  * Creates an OpenAI client service with the given options.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(
   function*(
@@ -298,8 +301,8 @@ export const make = Effect.fnUntraced(
 /**
  * Creates a layer for the OpenAI client with the given options.
  *
- * @since 1.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpClient.HttpClient> =>
   Layer.effect(OpenAiClient, make(options))
@@ -308,8 +311,8 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
  * Creates a layer for the OpenAI client, loading the requisite configuration
  * via Effect's `Config` module.
  *
- * @since 1.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerConfig = (options?: {
   /**
@@ -367,14 +370,18 @@ export const layerConfig = (options?: {
 // =============================================================================
 
 /**
- * @since 1.0.0
+ * Response stream event emitted by the OpenAI Responses API.
+ *
  * @category Events
+ * @since 4.0.0
  */
 export type ResponseStreamEvent = typeof OpenAiSchema.ResponseStreamEvent.Type
 
 /**
- * @since 1.0.0
+ * Service for creating OpenAI response streams over a WebSocket connection.
+ *
  * @category Websocket mode
+ * @since 4.0.0
  */
 export class OpenAiSocket extends Context.Service<OpenAiSocket, {
   /**
@@ -587,8 +594,8 @@ const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
  * This is because it needs to use non-standard options for setting the
  * Authorization header.
  *
- * @since 1.0.0
  * @category Websocket mode
+ * @since 4.0.0
  */
 export const withWebSocketMode = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -615,8 +622,8 @@ export const withWebSocketMode = <A, E, R>(
  * This is because it needs to use non-standard options for setting the
  * Authorization header.
  *
- * @since 1.0.0
  * @category Websocket mode
+ * @since 4.0.0
  */
 export const layerWebSocketMode: Layer.Layer<
   OpenAiSocket | ResponseIdTracker.ResponseIdTracker,

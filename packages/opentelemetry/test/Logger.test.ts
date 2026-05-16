@@ -52,8 +52,7 @@ describe("Logger", () => {
         assert.strictEqual(byText.Error, SeverityNumber.ERROR)
         assert.strictEqual(byText.Fatal, SeverityNumber.FATAL)
       }).pipe(
-        Effect.provide(SeverityLayer),
-        Effect.provide(Layer.succeed(References.MinimumLogLevel, "Trace"))
+        Effect.provide(SeverityLayer.pipe(Layer.provideMerge(Layer.succeed(References.MinimumLogLevel, "Trace"))))
       )
     })
 

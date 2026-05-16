@@ -18,8 +18,8 @@ const TypeId = "~effect/Brand"
 /**
  * A generic interface that defines a branded type.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Brand<in out Keys extends string> {
   readonly [TypeId]: {
@@ -77,24 +77,34 @@ export class BrandError {
     this.issue = issue
   }
   /**
+   * Discriminant used to identify brand construction failures.
+   *
    * @since 4.0.0
    */
   readonly _tag = "BrandError"
   /**
+   * Error name used by tools that inspect JavaScript error-like objects.
+   *
    * @since 4.0.0
    */
   readonly name: string = "BrandError"
   /**
+   * Schema issue describing why brand validation failed.
+   *
    * @since 4.0.0
    */
   readonly issue: Issue.Issue
   /**
+   * Human-readable rendering of the validation issue.
+   *
    * @since 4.0.0
    */
   get message() {
     return this.issue.toString()
   }
   /**
+   * Formats the brand error together with its validation message.
+   *
    * @since 4.0.0
    */
   toString() {
@@ -103,6 +113,9 @@ export class BrandError {
 }
 
 /**
+ * Namespace containing type-level helpers for working with branded types and
+ * brand constructors.
+ *
  * @since 2.0.0
  */
 export declare namespace Brand {
@@ -199,6 +212,12 @@ export function make<A extends Brand<any>>(
 }
 
 /**
+ * Creates a branded type `Constructor` from one or more schema checks.
+ *
+ * Calling the returned constructor validates the unbranded value and throws on
+ * failure. Use the returned `option`, `result`, or `is` methods for
+ * non-throwing validation.
+ *
  * @since 4.0.0
  */
 export function check<A extends Brand<any>>(
