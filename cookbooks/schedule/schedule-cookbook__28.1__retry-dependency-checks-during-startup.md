@@ -57,7 +57,7 @@ grow beyond a maximum. `Schedule.both` keeps the policy running only while both
 sides still allow another retry; the backoff supplies the delay, and the count
 and time schedules supply stopping conditions.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

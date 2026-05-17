@@ -38,7 +38,7 @@ duration.
 `Schedule.identity<A>()` outputs the retry input as the schedule output.
 `Schedule.addDelay` can then derive the wait from that output.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

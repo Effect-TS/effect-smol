@@ -63,7 +63,7 @@ Add `Schedule.recurs(n)` when the worker should make only `n` additional
 successful recurrences. For a long-lived supervised worker, fiber lifetime or a
 queue shutdown signal may be the stop condition instead.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Ref, Schedule } from "effect"

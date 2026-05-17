@@ -55,7 +55,7 @@ the schedule output to the latest successful status value, so `Effect.repeat`
 returns the last observation. `Schedule.while` stops as soon as a terminal
 status is observed.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

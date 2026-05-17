@@ -48,7 +48,7 @@ attempt.
 contributes the growing delay, and the recurrence schedule contributes the
 limit.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"

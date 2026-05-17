@@ -51,7 +51,7 @@ follow-up phase. Put `Schedule.while` after the sequencing so terminal statuses
 stop both phases, and use `Schedule.passthrough` to return the latest
 `WorkflowStatus`.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"

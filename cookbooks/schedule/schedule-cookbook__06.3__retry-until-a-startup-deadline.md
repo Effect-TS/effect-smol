@@ -52,7 +52,7 @@ whether another retry is allowed.
 and the retry delay is the maximum of their delays. Here that means backoff
 controls waiting and `during` controls when retry scheduling stops.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

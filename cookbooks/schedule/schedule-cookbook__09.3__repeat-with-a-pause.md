@@ -54,7 +54,7 @@ that recurrence.
 recurrences after the original successful run. If every run succeeds, the effect
 runs four times total, with a pause before each recurrence.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

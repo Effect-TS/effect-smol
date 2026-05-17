@@ -61,7 +61,7 @@ Add `Schedule.jittered` when many instances may hit the same service at once.
 It adjusts each recurrence delay between 80% and 120% of the original delay,
 which helps avoid synchronized retry waves.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

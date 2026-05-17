@@ -60,7 +60,7 @@ To honor `Retry-After`, combine the backoff schedule with `Schedule.identity`.
 schedule output the current error. Then `Schedule.modifyDelay` can choose the
 larger of the local backoff delay and the server-provided retry delay.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Schedule } from "effect"

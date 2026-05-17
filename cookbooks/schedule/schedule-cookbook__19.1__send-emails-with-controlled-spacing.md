@@ -51,7 +51,7 @@ applies the schedule only to failures accepted by the predicate.
 
 The first provider call is not delayed.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

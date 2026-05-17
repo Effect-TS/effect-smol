@@ -60,7 +60,7 @@ through as the schedule output, and continue only while the latest status is
 running. Add a count or elapsed budget so a rollout that never becomes terminal
 does not poll forever.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

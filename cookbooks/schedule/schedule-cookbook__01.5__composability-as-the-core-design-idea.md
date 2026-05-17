@@ -37,7 +37,7 @@ Use the output-selecting variants when a tuple is not useful:
 `bothLeft`, `bothRight`, `bothWith`, `eitherLeft`, `eitherRight`, and
 `eitherWith`.
 
-## Code
+## Example
 
 This retry policy has three separate concerns: a fast phase, a slower phase, and
 a hard retry limit.

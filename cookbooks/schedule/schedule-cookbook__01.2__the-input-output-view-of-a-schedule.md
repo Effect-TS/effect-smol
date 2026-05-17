@@ -44,7 +44,7 @@ Common constructor outputs are also worth knowing:
 | `Schedule.exponential`, `Schedule.duration`, `Schedule.elapsed` | durations |
 | `Schedule.passthrough(schedule)`                   | the latest input    |
 
-## Code
+## Example
 
 This repeat policy observes successful values. `Schedule.passthrough` turns the
 latest input into the schedule output, then `Schedule.map` changes the output

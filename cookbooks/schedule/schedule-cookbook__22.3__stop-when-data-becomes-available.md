@@ -63,7 +63,7 @@ result as the schedule output, and continue only while that result is
 `Missing`. The repeated program can then inspect the final observed lookup
 result after the schedule stops.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

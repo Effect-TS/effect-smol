@@ -58,7 +58,7 @@ count and an elapsed retry budget. `Schedule.both` continues only while both
 sides continue and uses the maximum of their delays; the backoff side supplies
 the waits while the count and duration schedules supply stopping conditions.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

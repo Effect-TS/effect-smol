@@ -46,7 +46,7 @@ for the next recurrence with `Schedule.modifyDelay`. The clamp is
 `Schedule.modifyDelay` changes the actual sleep used by the schedule. Add
 stopping behavior separately with `Schedule.recurs` or `Schedule.during`.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

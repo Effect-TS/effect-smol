@@ -49,7 +49,7 @@ The schedule output is the recurrence count. When passed directly to
 `Effect.repeat`, the repeated program returns the schedule's final output, not
 the effect's final value.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

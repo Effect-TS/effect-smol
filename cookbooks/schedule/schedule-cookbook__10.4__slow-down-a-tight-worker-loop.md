@@ -54,7 +54,7 @@ For a bounded worker loop, combine the spacing with `Schedule.take`:
 recurrences after the initial successful run. If every iteration succeeds, the
 worker runs 101 times total.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

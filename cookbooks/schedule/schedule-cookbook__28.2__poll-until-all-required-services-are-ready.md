@@ -44,7 +44,7 @@ budget so startup cannot wait indefinitely.
 The first readiness check happens before the schedule decides whether to recur.
 The schedule controls only the follow-up checks.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

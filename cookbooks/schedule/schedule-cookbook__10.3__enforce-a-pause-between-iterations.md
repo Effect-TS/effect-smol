@@ -46,7 +46,7 @@ This is different from `Schedule.fixed("2 seconds")`. `fixed` schedules recurren
 
 When the repeat should stop after a known number of scheduled recurrences, add `Schedule.take`, as in `Schedule.spaced("2 seconds").pipe(Schedule.take(3))`. This allows three scheduled recurrences after the original successful run. If all runs succeed, the effect runs four times total.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

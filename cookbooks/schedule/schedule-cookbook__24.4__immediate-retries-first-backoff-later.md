@@ -50,7 +50,7 @@ Sequencing them with `Schedule.andThen` keeps the phase boundary reviewable.
 For `Effect.retry`, the original effect execution is not counted by the
 schedule. The schedule starts only after a typed failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

@@ -42,7 +42,7 @@ Use a spaced cadence, preserve the latest successful status with
 `Schedule.passthrough`, continue only while that status is `"pending"`, and
 combine the policy with `Schedule.during` to cap the recurrence window.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"

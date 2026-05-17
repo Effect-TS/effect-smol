@@ -33,7 +33,7 @@ observe the typed retry input. `Schedule.identity<ApiError>()` exposes the
 current failure as the schedule output; `Schedule.modifyDelay` can choose a
 delay that matches that failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Ref, Schedule } from "effect"

@@ -61,7 +61,7 @@ non-terminal. `Schedule.during` bounds the recurrence window.
 The repeated effect therefore returns the final observed ETL status, not the
 schedule's timing or count output.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

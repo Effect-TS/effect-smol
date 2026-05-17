@@ -59,7 +59,7 @@ consulted between runs; it does not interrupt an effect that is already running.
 For retry, "three additional recurrences" means up to three retries. For
 repeat, it means up to three additional successful executions.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Ref, Schedule } from "effect"

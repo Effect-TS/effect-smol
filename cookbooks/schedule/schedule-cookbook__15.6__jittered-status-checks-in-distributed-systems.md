@@ -53,7 +53,7 @@ Effect's `Schedule.jittered` changes each recurrence delay to 80% to 120% of
 the original delay. A ten-second interval becomes a delay between eight and
 twelve seconds.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

@@ -54,7 +54,7 @@ adds no meaningful wait. It only contributes the retry budget. `Schedule.recurs(
 means four retries after the original attempt, so the effect can run up to five
 times total.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

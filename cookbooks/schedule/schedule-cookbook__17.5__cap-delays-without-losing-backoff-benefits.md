@@ -49,7 +49,7 @@ The cap does not flatten the whole policy. With a base of `250 millis` and a
 5-second cap, the early delays are still `250 millis`, `500 millis`, `1 second`,
 `2 seconds`, and `4 seconds`. Only computed delays above 5 seconds are replaced.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

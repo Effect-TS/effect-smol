@@ -64,7 +64,7 @@ Then use `Schedule.while` to continue only while that status is not terminal.
 Returning `true` from the predicate allows another poll. Returning `false`
 stops the repeat and returns the latest status.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

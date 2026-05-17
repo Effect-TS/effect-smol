@@ -57,7 +57,7 @@ continues with the second schedule. The first execution of the effect is not
 part of the schedule; the schedule controls the follow-up attempts after each
 failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

@@ -44,7 +44,7 @@ comes from `Schedule.spaced`, `Schedule.fixed`, or `Schedule.exponential`.
 Use `Schedule.recurs` as a secondary guard only when the count itself is a real
 requirement.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

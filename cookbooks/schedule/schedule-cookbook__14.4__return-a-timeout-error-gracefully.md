@@ -50,7 +50,7 @@ Keep the latest successful status as the schedule output with
 policy with `Schedule.during("30 seconds")`. After `Effect.repeat`, map a final
 `"pending"` status to your timeout error.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"

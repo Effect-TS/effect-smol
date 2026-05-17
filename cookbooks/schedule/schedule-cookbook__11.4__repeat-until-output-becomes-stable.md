@@ -53,7 +53,7 @@ state.
 output. `Schedule.reduce` remembers the previous observation and computes a
 stability state. `Schedule.while` stops when that state is stable.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

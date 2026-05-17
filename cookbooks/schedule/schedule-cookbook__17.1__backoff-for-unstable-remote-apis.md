@@ -48,7 +48,7 @@ cadence with `Schedule.recurs` and `Schedule.during` for count and time bounds.
 
 Use the `while` option on `Effect.retry` to classify retryable errors.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

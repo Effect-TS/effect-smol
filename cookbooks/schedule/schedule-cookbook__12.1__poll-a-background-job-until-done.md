@@ -54,7 +54,7 @@ the predicate reads `metadata.input`. `Schedule.passthrough` keeps the successfu
 `JobStatus` as the schedule output, so the repeated effect returns the final
 observed status.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

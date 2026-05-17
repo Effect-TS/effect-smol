@@ -48,7 +48,7 @@ Use `Schedule.spaced("30 seconds")` for the slower cadence,
 `Schedule.passthrough` to keep the latest status as the result, and
 `Schedule.while` to continue only while that status is still pending.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"

@@ -53,7 +53,7 @@ The count belongs to the scheduled recurrences, not to the original run:
 `Schedule.recurs(n)` outputs a zero-based recurrence count. When used directly
 with `Effect.repeat`, the repeated program returns the final schedule output.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

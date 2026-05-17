@@ -45,7 +45,7 @@ Use `Schedule.spaced("250 millis")` for the burst cadence, `Schedule.take(12)`
 to cap the burst, `Schedule.while` to continue only for pending statuses, and
 `Schedule.passthrough` to return the latest status.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"

@@ -49,7 +49,7 @@ maximum. Keep the retry count separate from the delay shape:
 `Schedule.recurs(8)` means at most eight retries after the original reconnect
 attempt.
 
-## Code
+## Example
 
 ```ts
 import { Data, Duration, Effect, Schedule } from "effect"

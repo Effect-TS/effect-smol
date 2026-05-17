@@ -62,7 +62,7 @@ those recurrences are retries after failures. `Schedule.both` requires both
 schedules to continue, so the combined policy stops when the retry count is
 exhausted.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

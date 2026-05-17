@@ -34,7 +34,7 @@ use logging as a substitute for filtering permanent failures before retrying.
 Use `Schedule.tapInput` to observe the failure fed to `Effect.retry`. Use
 `Schedule.tapOutput` to log only accepted retry steps.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Schedule } from "effect"

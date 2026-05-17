@@ -43,7 +43,7 @@ The options form is the smallest expression:
 If an attempt succeeds, retrying stops immediately. If every permitted attempt
 fails, `Effect.retry` returns the last typed failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect } from "effect"

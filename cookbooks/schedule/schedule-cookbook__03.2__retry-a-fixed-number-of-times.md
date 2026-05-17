@@ -48,7 +48,7 @@ failure is offered to the schedule:
 If a later attempt succeeds, retrying stops immediately. If the schedule stops
 while the effect is still failing, the last typed failure is returned.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

@@ -55,7 +55,7 @@ the requirement. Use `Schedule.fixed` for wall-clock cadence, `Schedule.spaced`
 for a gap after work finishes, `Schedule.exponential` for deterministic backoff,
 and `Schedule.recurs`, `Schedule.take`, or `Schedule.during` for visible bounds.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Ref, Schedule } from "effect"

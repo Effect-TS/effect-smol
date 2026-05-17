@@ -51,7 +51,7 @@ Combine a cadence with `Schedule.during(duration)`:
 `Schedule.during` tracks elapsed schedule time. `Schedule.both` requires both
 schedules to continue, so the repeat stops when the budget is exhausted.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

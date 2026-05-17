@@ -69,7 +69,7 @@ Use `Schedule.fixed("1 second")` for a different shape: it targets fixed
 one-second interval boundaries. If a request takes longer than the interval,
 the next run happens immediately, but missed runs do not pile up.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Ref, Schedule } from "effect"

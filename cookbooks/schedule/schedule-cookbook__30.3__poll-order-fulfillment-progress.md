@@ -38,7 +38,7 @@ Use `Schedule.spaced` for the read cadence, `Schedule.passthrough` to keep the
 latest status, `Schedule.while` to continue only for non-terminal states, and
 `Schedule.during` for the user-facing budget.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

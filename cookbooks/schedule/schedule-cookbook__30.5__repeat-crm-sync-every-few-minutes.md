@@ -37,7 +37,7 @@ single sync pass. Do not rely on scheduling to make writes idempotent.
 `Schedule.spaced("5 minutes")` waits after each successful sync before the next
 run. The first sync starts immediately.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

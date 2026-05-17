@@ -45,7 +45,7 @@ retry options receive each failure in `while`, so the classifier can stop the
 retry loop for permanent errors. Combine that classifier with bounded backoff
 and jitter so export workers do not retry in lockstep.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

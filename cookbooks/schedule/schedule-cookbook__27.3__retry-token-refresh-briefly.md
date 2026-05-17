@@ -66,7 +66,7 @@ delay so many clients do not retry at exactly the same moment.
 `Schedule.both` continues only while both schedules continue, retrying stops as
 soon as either limit is exhausted.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

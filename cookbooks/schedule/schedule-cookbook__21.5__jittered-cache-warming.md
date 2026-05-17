@@ -60,7 +60,7 @@ The first warming pass is not delayed by the schedule. It runs when the effect
 starts. The schedule controls only the recurrences after successful warming
 passes.
 
-## Code
+## Example
 
 ```ts
 import { Effect, Schedule } from "effect"

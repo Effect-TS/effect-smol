@@ -55,7 +55,7 @@ Use `Schedule.modifyDelay` to clamp each computed delay before it is used. Add
 a retry limit separately with `Schedule.both(Schedule.recurs(n))` when the
 operation should eventually give up.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

@@ -63,7 +63,7 @@ and add a retry limit with `Schedule.recurs`. `Schedule.both` combines the
 backoff and retry limit with intersection semantics, so reconnecting stops as
 soon as the limit stops.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

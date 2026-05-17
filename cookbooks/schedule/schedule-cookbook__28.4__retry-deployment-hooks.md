@@ -51,7 +51,7 @@ Use exponential backoff with jitter, cap each sleep, and combine it with
 `Schedule.recurs`. `Effect.retry` feeds typed failures into the schedule, so a
 `while` predicate can stop immediately for non-retryable hook errors.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

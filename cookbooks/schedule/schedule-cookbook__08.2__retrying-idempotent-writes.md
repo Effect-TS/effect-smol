@@ -71,7 +71,7 @@ error, that error is fed to the schedule. The schedule decides whether another
 attempt is allowed and how long to wait before that attempt. If all retries are
 exhausted, `Effect.retry` returns the last typed failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

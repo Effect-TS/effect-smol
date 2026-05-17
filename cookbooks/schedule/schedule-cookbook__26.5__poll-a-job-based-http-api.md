@@ -53,7 +53,7 @@ loop an elapsed budget.
 `Schedule.passthrough` makes the latest `JobStatus` the schedule output.
 `Schedule.bothLeft` adds the deadline while preserving that status output.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

@@ -34,7 +34,7 @@ you meant to inspect.
 The same real-world workflow can use either operator depending on how the result
 is modeled.
 
-## Code
+## Example
 
 This program uses `repeat` for successful job states and `retry` for transient
 service failures:

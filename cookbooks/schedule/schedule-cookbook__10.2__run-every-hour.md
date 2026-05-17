@@ -53,7 +53,7 @@ current run completes, but missed runs do not pile up.
 By contrast, `Schedule.spaced("1 hour")` waits one full hour after each
 successful run completes.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

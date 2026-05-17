@@ -49,7 +49,7 @@ add spacing.
 maximum delay, so the composed policy preserves the one-second cadence and
 stops when the one-minute window closes.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

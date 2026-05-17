@@ -41,7 +41,7 @@ The count is a retry count:
 - `Schedule.recurs(1)` allows one retry.
 - `Schedule.recurs(2)` allows two retries.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Ref, Schedule } from "effect"

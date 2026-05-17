@@ -46,7 +46,7 @@ retry, then 400 milliseconds, 800 milliseconds, and so on. Combine it with
 `Schedule.recurs` for a startup budget. Use `Schedule.jittered` for fleet
 startup so instances are less likely to retry at exactly the same moment.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

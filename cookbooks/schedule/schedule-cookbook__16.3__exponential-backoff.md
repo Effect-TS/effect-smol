@@ -60,7 +60,7 @@ next call.
 Combine `Schedule.exponential(base)` with `Schedule.recurs(n)` to keep the
 growing delay but bound the number of retries.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

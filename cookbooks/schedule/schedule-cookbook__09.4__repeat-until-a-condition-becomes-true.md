@@ -52,7 +52,7 @@ recurrence; returning `false` stops the repeat.
 Because the predicate is `!isDone(input)`, the repeat continues while the latest
 successful value is not done and stops as soon as a successful value is done.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

@@ -61,7 +61,7 @@ delay.
 `Schedule.take(5)` bounds the schedule so the effect can retry only a limited
 number of times after the original attempt.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

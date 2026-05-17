@@ -47,7 +47,7 @@ continue only while the failure is classified as transient.
 The combined schedule stops as soon as either condition stops recurring: the
 error is no longer transient, or the retry count has been exhausted.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

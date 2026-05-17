@@ -49,7 +49,7 @@ minimum of that duration and the cap. For a base of 100 milliseconds and a cap
 of 250 milliseconds, the first five delays are 100, 200, 250, 250, and 250
 milliseconds.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Fiber, Schedule } from "effect"

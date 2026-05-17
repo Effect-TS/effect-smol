@@ -71,7 +71,7 @@ the final sleep never exceeds the cap.
 reconnect attempt runs immediately. If it fails, the schedule may allow up to
 eight more attempts, each separated by the capped jittered backoff.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Schedule } from "effect"

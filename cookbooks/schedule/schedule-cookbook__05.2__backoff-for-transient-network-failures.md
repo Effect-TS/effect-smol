@@ -47,7 +47,7 @@ In the options form, `while` filters the typed error before spending another
 retry. If the predicate returns `false`, `Effect.retry` fails with that error
 immediately.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"

@@ -41,7 +41,7 @@ Use `Effect.repeat` because the decision is based on successful statuses. The
 schedule keeps the latest status with `Schedule.passthrough`, continues while
 the status is open, and also enforces a time budget.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

@@ -48,7 +48,7 @@ Build the operational shape first, then jitter it:
 - `Schedule.jittered` spreads each computed delay by 80% to 120%
 - `Schedule.both(Schedule.recurs(6))` stops after a bounded number of retries
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

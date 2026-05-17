@@ -28,7 +28,7 @@ Use a small deterministic policy such as
 three retries after the initial attempt. If the effect fails four times in a
 row, `Effect.retry` returns the fourth failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"

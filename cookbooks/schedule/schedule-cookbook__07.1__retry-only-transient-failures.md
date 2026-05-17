@@ -49,7 +49,7 @@ type.
 until this predicate becomes true." If a predicate and a finite schedule are
 both present, both must allow another attempt.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

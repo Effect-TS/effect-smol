@@ -59,7 +59,7 @@ interval becomes a delay between 48 and 72 seconds.
 The first refresh is not delayed by the schedule. It runs when the effect
 starts. The schedule controls only the recurrences after successful refreshes.
 
-## Code
+## Example
 
 ```ts
 import { Effect, Schedule } from "effect"

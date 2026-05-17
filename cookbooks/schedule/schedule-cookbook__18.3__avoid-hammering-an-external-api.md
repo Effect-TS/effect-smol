@@ -69,7 +69,7 @@ schedules continue, and it uses the maximum of their delays.
 The code below uses shorter durations so it can be pasted into a scratchpad and
 finish quickly.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Random, Ref, Schedule } from "effect"

@@ -51,7 +51,7 @@ allowed. Compose those decisions separately:
 - `Schedule.recurs` or `Schedule.during` bounds the recurrence
 - `Schedule.jittered` spreads wake-ups around the base cadence
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

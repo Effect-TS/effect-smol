@@ -51,7 +51,7 @@ attempt. The effect may run four times total.
 Use a raw schedule when timing, composition, or reuse matters. Use options such
 as `while`, `until`, and `times` when the policy is local to one call site.
 
-## Code
+## Example
 
 This request fails twice with a retryable error, then succeeds:
 

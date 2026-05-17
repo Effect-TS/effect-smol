@@ -51,7 +51,7 @@ lookup result, and `Schedule.while` to continue only while the lookup is
 If a bounded schedule stops first, the final observation can still be
 `Missing`; interpret that case explicitly.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

@@ -53,7 +53,7 @@ schedule output. The options form, such as `Effect.repeat({ times: n })` or
 `Effect.repeat({ schedule })`, returns the final successful value from the
 effect.
 
-## Code
+## Example
 
 This heartbeat runs once immediately, then repeats twice more:
 

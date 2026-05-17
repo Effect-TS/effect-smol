@@ -52,7 +52,7 @@ and keep polling only while the operation is active.
 Effect's jitter range is fixed at 80% to 120%. A fifteen-second interval becomes
 a delay between twelve and eighteen seconds.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

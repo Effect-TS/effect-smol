@@ -63,7 +63,7 @@ been used.
 The `both` combinator gives intersection semantics: the retry continues only
 while all pieces of the policy still allow another recurrence.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

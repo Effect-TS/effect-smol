@@ -51,7 +51,7 @@ practical delay.
 the backoff is preserved while the `during` side determines when retry
 scheduling must stop.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

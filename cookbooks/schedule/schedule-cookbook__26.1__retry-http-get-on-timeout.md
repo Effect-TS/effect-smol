@@ -48,7 +48,7 @@ clients, `Schedule.recurs(3)` allows three retries after the first request, and
 `Schedule.during` adds an elapsed retry budget. `Schedule.both` means both
 limits must still allow recurrence.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

@@ -40,7 +40,7 @@ Use `Schedule.recurs(n)` for a pure retry-count limit. Its output is the
 zero-based recurrence count, but for this test the important value is the number
 of times the effect itself was evaluated.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Exit, Ref, Schedule } from "effect"

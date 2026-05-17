@@ -63,7 +63,7 @@ Only failures after that first execution are fed to the schedule:
 - continue through retry 5
 - if retry 5 fails: propagate the last typed failure
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

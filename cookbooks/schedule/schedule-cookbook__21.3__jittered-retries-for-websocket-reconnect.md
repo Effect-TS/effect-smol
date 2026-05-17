@@ -51,7 +51,7 @@ with `Schedule.modifyDelay`, and add a retry limit with `Schedule.recurs`.
 wrapped schedule's delay. A 1 second reconnect delay therefore becomes 800
 milliseconds to 1.2 seconds.
 
-## Code
+## Example
 
 ```ts
 import { Data, Duration, Effect, Schedule } from "effect"

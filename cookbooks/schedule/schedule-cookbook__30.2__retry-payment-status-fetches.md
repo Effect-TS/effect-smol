@@ -40,7 +40,7 @@ backoff controls pressure, `Schedule.jittered` avoids synchronized callers,
 `Schedule.recurs` bounds retries, and `Schedule.while` filters retryable
 failures.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

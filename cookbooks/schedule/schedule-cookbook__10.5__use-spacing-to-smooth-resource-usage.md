@@ -48,7 +48,7 @@ before allowing the next recurrence.
 
 Together, the schedule says: run now, then keep repeating after success with a fixed gap between completed work items, and stop after a known recurrence limit.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

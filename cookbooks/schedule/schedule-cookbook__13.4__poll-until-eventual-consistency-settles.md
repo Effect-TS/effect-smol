@@ -55,7 +55,7 @@ while the latest observation is `Behind`.
 After polling, interpret `Settled` as success, `Inconsistent` as a domain
 failure, and a bounded final `Behind` as "not settled in time."
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

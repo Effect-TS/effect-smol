@@ -44,7 +44,7 @@ executions.
 The `times` option follows the same rule: `Effect.repeat({ times: 4 })` also
 means one initial run plus four repeats.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Ref, Schedule } from "effect"

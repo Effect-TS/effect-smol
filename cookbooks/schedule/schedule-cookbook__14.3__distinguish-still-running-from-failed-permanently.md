@@ -41,7 +41,7 @@ Classify in-progress statuses with a predicate such as `isStillRunning`, use it
 from `Schedule.while`, and keep the final `JobStatus` with
 `Schedule.passthrough`.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"
