@@ -883,7 +883,6 @@ const styles = String.raw`
 }
 
 html {
-  scroll-behavior: smooth;
   background: var(--bg);
 }
 
