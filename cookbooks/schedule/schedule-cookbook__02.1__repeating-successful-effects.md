@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "2.1"
 section_title: "Repeating successful effects"
 part_title: "Part I — Foundations"

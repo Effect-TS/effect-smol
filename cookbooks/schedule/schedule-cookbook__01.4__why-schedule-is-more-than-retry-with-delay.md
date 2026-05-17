@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "1.4"
 section_title: "Why `Schedule` is more than “retry with delay”"
 part_title: "Part I — Foundations"

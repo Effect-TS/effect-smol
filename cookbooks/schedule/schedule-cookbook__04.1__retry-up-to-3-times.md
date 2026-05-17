@@ -1,9 +1,9 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "4.1"
 section_title: "Retry up to 3 times"
-part_title: "Part II — Core Retry Recipes"
-chapter_title: "4. Retry a Few Times"
+part_title: "Part II — Retry Recipes"
+chapter_title: "4. Retry Limits and Simple Delays"
 status: "draft"
 code_included: true
 ---

@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "2.2"
 section_title: "Retrying failed effects"
 part_title: "Part I — Foundations"
