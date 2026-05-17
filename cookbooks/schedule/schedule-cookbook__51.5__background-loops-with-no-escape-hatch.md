@@ -12,17 +12,7 @@ code_included: false
 
 Background loops with no escape hatch are an anti-pattern because they turn a
 useful recurrence policy into a process that can only be stopped from the
-outside. A loop built with `Schedule.forever` or an unbounded
-`Schedule.spaced(...)` may look harmless, especially when it is forked into the
-background, but it still consumes resources, emits traffic, keeps state alive,
-and may keep repeating bad work after the caller that needed it has gone away.
-
-`Schedule` can describe recurrence forever. That is sometimes the right timing
-shape for a worker, heartbeat, subscription refresh, or polling loop. It is not,
-by itself, a lifecycle policy. A background loop still needs a clear owner, an
-interruption path, a retry or repeat budget where failure is possible, limits on
-how much work it can accumulate, and enough observability for operators to know
-whether it is healthy.
+outside.
 
 ## The anti-pattern
 
@@ -37,9 +27,11 @@ the schedule as the whole design:
 
 The schedule may be valid as a schedule. `Schedule.forever` recurs forever with
 zero delay. `Schedule.spaced("30 seconds")` recurs continuously with a delay
-between runs. These are real tools, not mistakes. The anti-pattern is using them
-for a background process without deciding when the process should stop, who owns
-it, what failure budget it has, and how anyone will notice that it is stuck.
+between runs. These are real tools, not mistakes, and they can be the right
+timing shape for a worker, heartbeat, subscription refresh, or polling loop. The
+anti-pattern is using them as a lifecycle policy without deciding when the
+process should stop, who owns it, what failure budget it has, how much work it
+can accumulate, and how anyone will notice that it is stuck.
 
 This often shows up as a "fire-and-forget" maintenance loop: refresh a cache,
 renew a lease, publish metrics, scan a queue, reconcile state, or reconnect a

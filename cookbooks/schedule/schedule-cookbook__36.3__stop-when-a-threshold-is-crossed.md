@@ -19,8 +19,9 @@ more poll should run.
 
 ## Problem
 
-You need to poll a metric until the latest successful observation crosses a
-threshold.
+A rollout monitor should return the sample that first reaches the required
+percentage, or a backlog monitor should return the sample that first falls under
+the drain target.
 
 The first poll should run immediately. Later polls should be spaced. The final
 value should be the observation that crossed the threshold, not an internal

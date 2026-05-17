@@ -10,7 +10,8 @@ code_included: true
 
 # 25.4 Make schedules operationally predictable
 
-Operationally predictable schedules answer three questions before the code runs in production: how long can the workflow keep trying, how much pressure can it create while it is trying, and what will operators be able to see when it does. A `Schedule` value is a good place to make those answers explicit because it gathers cadence, caps, stop conditions, and observation into one reviewable policy.
+Use this recipe to make a retry, reconnect, or polling schedule reviewable by
+naming its cadence, caps, stop conditions, and observation hooks in one policy.
 
 ## Problem
 

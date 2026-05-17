@@ -10,20 +10,8 @@ code_included: true
 
 # 34.3 Count-based guardrails
 
-Count limits are operational guardrails. They keep a retry, repeat, or polling
-policy from spending unbounded work when the real completion condition never
-arrives.
-
-In Effect, the usual count guard is `Schedule.recurs(n)`. It does not run the
-effect by itself and it does not count the original execution. It limits how
-many scheduled recurrences may happen after that first execution.
-
-That distinction is the whole point of using it as a guardrail:
-
-- with `Effect.retry`, `Schedule.recurs(5)` permits up to five retries after the
-  original failed attempt
-- with `Effect.repeat`, `Schedule.recurs(5)` permits up to five repeated
-  executions after the original successful execution
+Count limits are operational guardrails for retry, repeat, and polling policies
+when the real completion condition may never arrive.
 
 ## Problem
 

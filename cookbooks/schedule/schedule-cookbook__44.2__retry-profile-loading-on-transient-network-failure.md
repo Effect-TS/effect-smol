@@ -10,11 +10,8 @@ code_included: true
 
 # 44.2 Retry profile loading on transient network failure
 
-A profile screen can recover from a short network interruption, a dropped mobile
-connection, or a brief `503` from the profile API. It should not keep retrying a
-bad request, an unauthorized session, or a missing user. Put that distinction in
-the error model, then let `Schedule` describe how many follow-up attempts are
-allowed and how quickly they happen.
+Profile reads are user-facing, but they are usually safe to retry only when the
+failure is clearly transient.
 
 ## Problem
 

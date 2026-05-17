@@ -10,13 +10,9 @@ code_included: true
 
 # 19.2 Jittered polling for dashboards
 
-A dashboard or status page often has many viewers, tabs, panels, or widgets polling the
-same read-only endpoint. A fixed interval such as five seconds is easy to reason about,
-but it can make every visible widget refresh on the same boundary. This recipe treats
-polling as repeated successful observations. The schedule controls cadence and the
-condition for taking another observation, while the surrounding Effect code interprets
-terminal states, missing data, stale reads, and real failures. Keeping those
-responsibilities separate makes the polling loop easier to bound and diagnose.
+Dashboard polling usually needs freshness without exact clock alignment.
+Jitter keeps the refresh cadence familiar while spreading repeated reads across
+viewers and widgets.
 
 ## Problem
 

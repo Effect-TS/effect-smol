@@ -10,11 +10,9 @@ code_included: true
 
 # 25.1 Never wait more than 5 seconds
 
-You want a retry or polling policy whose delay may grow, but whose next wait is
-never allowed to exceed 5 seconds. That is a delay cap, not a total timeout. The
-operation can still run for longer than 5 seconds overall if the schedule allows
-many recurrences, but each individual pause before the next attempt stays within
-the 5-second ceiling.
+Use this recipe when a retry or polling schedule may grow, but each pause before
+the next attempt must stay at or below 5 seconds. The cap applies to each delay,
+not to the total runtime of the operation.
 
 ## Problem
 
@@ -23,8 +21,9 @@ reduces pressure on an unhealthy dependency. Left alone, the same curve can
 eventually produce waits that are too long for a request, reconnect loop,
 lease-based worker, or status check.
 
-You need to keep the backoff shape while making the maximum delay explicit:
-never wait more than 5 seconds before the next recurrence.
+The policy should preserve the early backoff curve for normal transient
+failures, then clamp the chosen delay once it would exceed the workflow's
+tolerance.
 
 ## When to use it
 

@@ -20,10 +20,8 @@ operation is idempotent, and how the final failure is reported.
 
 ## Problem
 
-You have an operation that is worth trying again right away, but only a small
-number of times. The failure is expected to be short-lived: a local resource was
-busy, a cache was between states, or a dependency was just initialized by another
-fiber.
+The retry burst should be immediate and bounded. There is no delay policy here;
+the count limit is what prevents a tight loop from continuing indefinitely.
 
 Use `Schedule.recurs(n)` when the whole policy is "retry immediately, then stop
 quickly". The schedule adds no delay by itself. It only caps how many retry

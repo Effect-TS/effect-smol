@@ -10,11 +10,11 @@ code_included: false
 
 # 51.1 Missing retry limits
 
-Missing retry limits is an anti-pattern because it lets a retry policy continue after the useful recovery window has passed. A schedule without an attempt limit can keep asking the same failing dependency, re-run the same unsafe operation, and preserve a bad state long after the caller should have received a clear failure.
+Missing retry limits is an anti-pattern because a retry schedule needs a visible stopping rule, not only a delay shape.
 
 ## The anti-pattern
 
-The problematic version uses an open-ended schedule for retrying, often because the delay shape looks reasonable on its own. A policy such as an exponential, fixed, spaced, or repeating schedule can describe when the next retry should happen without saying how many retries are allowed.
+The problematic version uses an open-ended schedule for retrying, often because the delay shape looks reasonable on its own. A policy such as an exponential, fixed, spaced, or repeating schedule can describe when the next retry should happen while still allowing the same failing dependency, unsafe operation, or invalid request to be tried again without a clear end.
 
 That missing second half is the bug. The retry policy has timing, but it has no budget. When the failing effect never succeeds, the schedule can continue to produce retry decisions indefinitely.
 

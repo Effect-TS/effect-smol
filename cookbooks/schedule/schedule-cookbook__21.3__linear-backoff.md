@@ -10,10 +10,9 @@ code_included: true
 
 # 21.3 Linear backoff
 
-Linear backoff slows a retry loop by adding the same amount of extra delay at
-each decision point. It is a gradual pressure-reduction strategy: the caller
-backs away from an unhealthy dependency, but the delay curve stays easy to
-explain and does not grow as quickly as exponential backoff.
+Linear backoff adds the same amount of extra delay at each retry decision. It
+reduces pressure gradually while keeping the delay curve easier to explain than
+exponential backoff.
 
 Effect does not provide a dedicated `Schedule.linear` constructor. Build this
 policy from a stateful schedule that counts retry decisions, then add a delay
@@ -21,11 +20,10 @@ derived from that count.
 
 ## Problem
 
-You need retries to become less aggressive after repeated failures, but
-doubling delays would be too steep. For example, a worker may call a dependency
-that usually recovers within a few seconds, and you want delays such as 250
-milliseconds, 500 milliseconds, 750 milliseconds, and 1 second before giving
-up.
+A worker calls an internal dependency that usually recovers within a few
+seconds. You want delays such as 250 milliseconds, 500 milliseconds, 750
+milliseconds, and 1 second before giving up because doubling would make later
+attempts too far apart for this workflow.
 
 Use `Schedule.unfold` to produce the retry step and `Schedule.addDelay` to turn
 that step into a delay:

@@ -10,13 +10,23 @@ code_included: true
 
 # 26.2 Coordinated clients
 
-Coordinated clients are clients that start from the same signal and then keep making follow-up calls on the same cadence. A deploy, a cache expiry, a feature flag flip, or a shared upstream outage can make hundreds of clients fail or poll together. If every client retries after exactly `100 millis`, then `200 millis`, then `400 millis`, the schedule is polite for one client and noisy for the service receiving all of them.
-
-Jitter is the small random offset that keeps those clients from moving as a single wave. In Effect, `Schedule.jittered` adjusts each recurrence delay to a random value between `80%` and `120%` of the delay produced by the schedule it wraps.
+Use this recipe to add jitter when client follow-up calls would otherwise move
+as one wave. In Effect, `Schedule.jittered` adjusts each recurrence delay to a
+random value between `80%` and `120%` of the delay produced by the schedule it
+wraps.
 
 ## Problem
 
-You need many clients to retry or poll without accidentally aligning their follow-up requests. The recurrence policy should still be easy to review: the base cadence, retry limit, polling budget, and final stop condition should remain visible in the code.
+Coordinated clients start from the same signal and then keep making follow-up
+calls on the same cadence. A deploy, a cache expiry, a feature flag flip, or a
+shared upstream outage can make hundreds of clients fail or poll together. If
+every client retries after exactly `100 millis`, then `200 millis`, then
+`400 millis`, a schedule that is polite for one client can become noisy for the
+service receiving all of them.
+
+The recurrence policy should still be easy to review: the base cadence, retry
+limit, polling budget, and final stop condition should remain visible in the
+code.
 
 ## When to use it
 

@@ -10,13 +10,9 @@ code_included: true
 
 # 19.1 Polling from many clients without synchronization
 
-Many clients need to poll the same service for status. A plain fixed polling interval is
-simple, but if clients start around the same time, they can keep checking on the same
-boundaries. This recipe treats polling as repeated successful observations. The schedule
-controls cadence and the condition for taking another observation, while the surrounding
-Effect code interprets terminal states, missing data, stale reads, and real failures.
-Keeping those responsibilities separate makes the polling loop easier to bound and
-diagnose.
+Jittered polling keeps a regular status-check cadence while reducing accidental
+alignment across callers. The schedule controls timing, while the surrounding
+Effect code interprets the observed status.
 
 ## Problem
 

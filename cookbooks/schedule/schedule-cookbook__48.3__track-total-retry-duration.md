@@ -13,12 +13,6 @@ code_included: true
 Retry count tells you how many follow-up attempts were scheduled. It does not
 tell you how long the caller spent inside the retry window.
 
-Use `Schedule.elapsed` when the total retry duration is something you want to
-log, export as a metric, or compare with an operational budget. The elapsed
-schedule recurs forever and outputs the duration since the schedule started,
-so combine it with the real retry policy rather than using it as the policy by
-itself.
-
 ## Problem
 
 You have a retry policy with a delay strategy and a budget, but operators need

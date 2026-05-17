@@ -10,11 +10,17 @@ code_included: true
 
 # 32.2 Space notification retries
 
-Notification retries are user-facing side effects. A timeout from a push, SMS, email, or in-app notification provider may be transient, but retrying immediately can create duplicate-looking messages, increase provider pressure, and make the product feel noisy. Use a schedule to make the retry spacing explicit.
+Notification retries are user-facing side effects, so their timing needs to be
+explicit. A schedule lets the code describe the retry cadence instead of hiding
+it in worker sleeps or provider calls.
 
 ## Problem
 
-A notification send failed after the request left your service. You do not know whether the provider accepted it, delayed it, or dropped the connection before processing it. Retrying can be correct, but only if the send operation is idempotent and the retry cadence leaves enough room for the provider and the user experience.
+A push, SMS, email, or in-app notification send failed after the request left
+your service. You do not know whether the provider accepted it, delayed it, or
+dropped the connection before processing it. Retrying can be correct, but only
+if the send operation is idempotent and the retry cadence leaves enough room
+for the provider and the user experience.
 
 The policy should answer three questions directly:
 

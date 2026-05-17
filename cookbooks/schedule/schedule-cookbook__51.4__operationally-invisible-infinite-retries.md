@@ -10,13 +10,13 @@ code_included: false
 
 # 51.4 Operationally invisible infinite retries
 
-Operationally invisible infinite retries are an anti-pattern because they let an operation fail forever without producing the operational evidence needed to understand, limit, or stop it. In Effect, several useful schedules recur forever unless you bound them: `Schedule.forever` has no delay, `Schedule.spaced` repeats at a fixed spacing, and `Schedule.exponential` or `Schedule.fibonacci` keep producing larger delays. Those schedules are not wrong, but using them for retry without logging, metrics, alerts, and limits turns failure into background activity.
+Operationally invisible infinite retries are an anti-pattern because they turn repeated failure into background activity instead of a visible operational event.
 
 ## The anti-pattern
 
 The problematic version treats a retry schedule as private implementation detail. A request fails, the effect retries, and nothing outside the fiber can tell whether this is attempt two or attempt two thousand. The caller sees latency or eventual failure, operators see no structured signal, and dashboards show only downstream symptoms: extra database traffic, repeated API calls, elevated queue age, or a job that never completes.
 
-This often appears as a tidy shared policy such as an unbounded `Schedule.exponential("200 millis")` or `Schedule.spaced("1 second")`. The policy looks responsible because it contains delay, but it still has no retry budget, no elapsed time budget, no classification of retryable failures, and no way to count or observe each retry attempt.
+This often appears as a tidy shared policy such as an unbounded `Schedule.exponential("200 millis")` or `Schedule.spaced("1 second")`. In Effect, several useful schedules recur forever unless you bound them: `Schedule.forever` has no delay, `Schedule.spaced` repeats at a fixed spacing, and `Schedule.exponential` or `Schedule.fibonacci` keep producing larger delays. Those schedules are not wrong, but the policy is incomplete when it has no retry budget, no elapsed time budget, no classification of retryable failures, and no way to count or observe each retry attempt.
 
 ## Why it happens
 

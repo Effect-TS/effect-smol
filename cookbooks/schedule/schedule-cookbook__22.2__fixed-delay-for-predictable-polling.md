@@ -10,11 +10,9 @@ code_included: true
 
 # 22.2 Fixed delay for predictable polling
 
-Use a fixed delay when a polling loop should be easy to reason about: check the
-status, and if the status is still non-terminal, wait the same amount of time
-before checking again. This is a good default for status endpoints where
-precision is less important than predictable load and readable operational
-behavior.
+Fixed-delay polling uses the same pause after each non-terminal observation. It
+favors predictable load and readable operational behavior over wall-clock
+precision.
 
 In Effect, polling with `Effect.repeat` is driven by successful values. A status
 such as `"running"` is not a failure; it is a successful observation that tells
@@ -22,8 +20,8 @@ the schedule whether another observation is needed.
 
 ## Problem
 
-You have a status endpoint for a submitted operation. The endpoint can report a
-terminal state, or it can report that the operation is still running.
+You submit an operation and then read its status endpoint. The endpoint may
+report `"running"` many times before returning `"completed"` or `"failed"`.
 
 You want the first check to happen immediately, then every later check to be
 spaced by a fixed delay while the operation remains non-terminal.

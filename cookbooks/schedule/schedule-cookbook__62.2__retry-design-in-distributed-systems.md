@@ -10,16 +10,15 @@ code_included: false
 
 # 62.2 Retry design in distributed systems
 
-Retry design in distributed systems is a further-reading entry. It connects
-the operational concerns behind retries to the `Schedule` primitives used in
-the rest of this cookbook. It does not introduce a new `Schedule` primitive.
+This further-reading entry connects distributed retry concerns to the
+`Schedule` primitives used throughout the cookbook.
 
 ## What this section is about
 
-Distributed retry design is not only a timing problem. It is a contract between
-the caller, the downstream system, and every other caller that may observe the
-same failure. A retry policy should answer five questions before choosing a
-delay curve:
+Distributed retry design is not a new primitive and not only a timing problem.
+It is a contract between the caller, the downstream system, and every other
+caller that may observe the same failure. A retry policy should answer five
+questions before choosing a delay curve:
 
 - Is the operation safe to run more than once?
 - Which failures are retryable, and which should stop immediately?

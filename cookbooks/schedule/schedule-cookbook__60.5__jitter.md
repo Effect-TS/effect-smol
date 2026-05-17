@@ -10,13 +10,12 @@ code_included: false
 
 # 60.5 Jitter
 
-Jitter means "keep the same recurrence policy, but randomize each computed
-delay so many callers do not move together." In `Schedule` terms, the primitive
-for this shape is `Schedule.jittered`.
+Jitter is the `Schedule` pattern for randomizing recurrence delays so
+independent callers do not move together.
 
-Use this index entry when the primary question is coordination: will many
-clients, workers, pods, tabs, or service instances retry or repeat at the same
-time if they share the same schedule?
+Use this index entry when the primary question is coordination across clients,
+workers, pods, tabs, or service instances that share the same retry or repeat
+policy.
 
 ## Source-of-truth mapping
 

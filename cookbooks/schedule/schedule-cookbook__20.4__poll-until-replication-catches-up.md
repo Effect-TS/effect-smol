@@ -11,11 +11,8 @@ code_included: true
 # 20.4 Poll until replication catches up
 
 Replication-aware polling asks a lagging view one narrow question: has it
-observed at least the version the caller already knows exists? The target may
-be an event-stream version, a projection watermark, a search-index sequence
-number, or a cursor returned by a write path. The schedule should keep polling
-while the follower is behind, preserve the latest observation as the repeat
-result, and leave read failures in the error channel.
+observed at least the version the caller already knows exists? The schedule
+keeps the repeated reads focused on that comparable position.
 
 ## Problem
 

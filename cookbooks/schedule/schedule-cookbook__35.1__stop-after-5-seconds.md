@@ -10,11 +10,9 @@ code_included: true
 
 # 35.1 Stop after 5 seconds
 
-Use `Schedule.during("5 seconds")` when a retry or polling policy should keep
-making recurrence decisions only inside a short elapsed-time budget. The effect
-still runs once immediately. The schedule controls what happens after that first
-run: whether another retry or repeat should be scheduled, and how long to wait
-before it.
+Use `Schedule.during("5 seconds")` for a retry or polling policy with a short
+elapsed-time budget. Pair it with an explicit cadence so the policy says both
+how often to try and when the recurrence window closes.
 
 This is a schedule budget, not a hard process timeout. It is evaluated at
 schedule decision points, after an attempt has finished. If an individual
@@ -23,12 +21,10 @@ not interrupt it.
 
 ## Problem
 
-You want to try a short-lived operation for up to about five seconds, without
-encoding the budget in a manual loop or scattered sleeps.
-
-For example, a startup path might need to retry a dependency probe briefly. The
-first probe should run immediately. If it fails, retries should continue at a
-controlled cadence while the five-second recurrence window remains open.
+During startup, a dependency probe should get a few quick retries before the
+service reports that readiness has not been reached. The policy should show that
+five-second recurrence window directly, instead of hiding it in a manual loop or
+scattered sleeps.
 
 ## When to use it
 

@@ -20,10 +20,8 @@ compose without hiding timing behavior inside ad hoc loops.
 
 ## Problem
 
-You have an effect that should run again, but not immediately. For example, a
-heartbeat should wait between pulses, a polling loop should leave time for state
-to change, or a retry should avoid hammering a dependency after a transient
-failure.
+The recurrence needs pacing instead of a tight loop. The policy should insert
+the same pause before each scheduled run.
 
 The smallest fixed-delay building block is `Schedule.spaced(duration)`.
 

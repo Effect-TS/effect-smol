@@ -11,17 +11,16 @@ code_included: true
 # 49.1 Assert retry count
 
 Retry-count tests should assert how many times the effect was evaluated, not how
-long the retry loop took. A deterministic schedule such as `Schedule.recurs(3)`
-is enough when the behavior under test is "retry three times after the first
-failure".
+long the retry loop took. Keep the schedule deterministic so the test can focus
+on attempts rather than timing.
 
 ## Problem
 
-You have an effect that should retry a fixed number of times, and you want a
-test that catches off-by-one mistakes. The common mistake is treating
+An implementation uses `Schedule.recurs(3)`, and the test needs to catch
+whether the fixture ran four times, not three. The common mistake is treating
 `Schedule.recurs(3)` as "three total attempts". With `Effect.retry`, the first
-attempt happens before the schedule is consulted, so `Schedule.recurs(3)` allows
-three retries after that first failed attempt.
+attempt happens before the schedule is consulted, so the three recurrences are
+retries after that initial failed attempt.
 
 ## When to use it
 

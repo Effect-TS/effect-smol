@@ -22,11 +22,8 @@ limits visible in the policy.
 
 ## Problem
 
-You call a dependency that usually recovers quickly when it recovers at all. An
-immediate failure should not be returned without a small retry burst, but the
-caller should also not wait through a long backoff sequence.
-
-The policy should answer three questions directly:
+Turn that operational phrase into concrete limits for a retry schedule. The
+policy should answer three questions directly:
 
 - how quickly to retry after a failure
 - how many follow-up attempts are allowed

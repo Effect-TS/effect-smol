@@ -11,16 +11,12 @@ code_included: true
 # 38.4 Repeat every second, but no more than 30 times
 
 You have an effect that should run once, then repeat after successful runs with
-a one-second pause, but only for a bounded number of recurrences. This is common
-for short background loops, bounded status refreshes, and maintenance tasks
-where "keep checking" should still have a clear stop.
-
-Use `Schedule.spaced("1 second")` for the delay and add a count limit with
-`Schedule.take(30)` or `Schedule.recurs(30)`.
+a one-second pause, but only for a bounded number of recurrences.
 
 ## Problem
 
-You need repeat behavior that is easy to read from the policy itself:
+You need repeat behavior for a short background loop, bounded status refresh,
+or maintenance task that is easy to read from the policy itself:
 
 - the first run happens immediately;
 - each successful recurrence waits one second after the previous run completes;

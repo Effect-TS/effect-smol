@@ -10,20 +10,15 @@ code_included: true
 
 # 45.1 Retry dependency checks during startup
 
-Startup dependency checks should be patient with short races and strict about
-real boot failures. A database may still be accepting connections, DNS may not
-have settled, or a broker may still be electing a leader. Those are good reasons
-to retry briefly before the process declares itself unhealthy.
-
-The retry policy should still have a visible end. During startup, an unbounded
-retry loop can keep an instance in a half-started state forever and hide the
-fact that the deployment cannot become ready.
+Startup dependency checks sit between process boot and readiness. They should
+absorb short platform races without hiding real boot failures.
 
 ## Problem
 
-You need to check a required dependency before marking the service ready. The
-check may fail for transient reasons, but startup must eventually fail if the
-dependency remains unavailable.
+A service must prove that its database is reachable before it marks itself
+ready. DNS lookup failures, refused connections, and timeouts may clear after a
+short wait; bad credentials or schema mismatches should fail the process
+immediately.
 
 The policy needs three separate bounds:
 

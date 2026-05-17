@@ -10,20 +10,14 @@ code_included: true
 
 # 8.5 Jitter for reconnect storms
 
-You have many clients, fibers, workers, or service instances that can lose a connection
-at the same time. If every caller reconnects on the same schedule, the reconnect logic
-can create a second burst of traffic just as the dependency is trying to recover. This
-recipe keeps the retry policy explicit: the schedule decides when another typed failure
-should be attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe shows how to use jittered backoff to spread reconnect attempts after a
+shared connection loss.
 
 ## Problem
 
-You have many clients, fibers, workers, or service instances that can lose a
-connection at the same time. If every caller reconnects on the same schedule,
-the reconnect logic can create a second burst of traffic just as the dependency
-is trying to recover.
+When many clients, fibers, workers, or service instances lose a connection at
+the same time, reconnecting on the same schedule can create a second burst of
+traffic just as the dependency is trying to recover.
 
 Use a backoff schedule with jitter so reconnect attempts spread out around the
 same base policy:

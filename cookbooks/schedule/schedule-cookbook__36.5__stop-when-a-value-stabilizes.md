@@ -22,11 +22,10 @@ next successful output is stable.
 
 ## Problem
 
-You have a successful effect that returns the current state of something, and
-you want to keep repeating it until the latest successful value matches the
-previous successful value by a domain-specific comparison.
+A projection reader may need two consecutive snapshots with the same version and
+item count before treating the projection as settled.
 
-The comparison should be visible in the schedule. Future readers should not have
+That comparison should be visible in the schedule. Future readers should not have
 to infer "stable" from an unstructured loop, a mutable variable outside the
 policy, or scattered sleep calls.
 

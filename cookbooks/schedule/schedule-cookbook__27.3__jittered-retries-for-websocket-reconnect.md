@@ -10,21 +10,14 @@ code_included: true
 
 # 27.3 Jittered retries for WebSocket reconnect
 
-WebSocket clients often disconnect together: a deploy restarts the gateway, a
-mobile network flaps, a load balancer rotates connections, or a regional outage
-briefly drops many sockets. If every client reconnects on the same deterministic
-backoff boundary, the reconnect policy can create a second burst exactly when
-the server is recovering.
-
-Use a bounded, jittered exponential backoff for reconnect attempts. The original
-connect attempt still runs immediately. The schedule controls only later
-attempts after a retryable connect failure.
+WebSocket clients often disconnect together when a gateway restarts, a network
+flaps, or a load balancer rotates connections. This recipe uses a bounded,
+jittered exponential backoff for retryable reconnect attempts.
 
 ## Problem
 
-You need to reconnect a WebSocket after transient failures without asking every
-client to wait for the same sequence of delays. The policy should make three
-things explicit:
+The reconnect loop should recover from transient close or connect failures while
+keeping user-facing waits bounded. The policy should make three things explicit:
 
 - which close or connect failures are worth retrying
 - how the reconnect delay grows

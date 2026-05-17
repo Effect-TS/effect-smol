@@ -20,10 +20,8 @@ operation is idempotent, and how the final failure is reported.
 
 ## Problem
 
-You have a failing effect that is worth retrying a few times, but immediate
-retries are too aggressive. A short, fixed pause between attempts gives the
-dependency a little time to recover without making the policy more complicated
-than it needs to be.
+The retry policy needs two simple constraints: a fixed pause before each retry
+and a finite retry budget.
 
 Use `Schedule.spaced(duration)` for the delay and combine it with
 `Schedule.recurs(n)` for the retry limit:

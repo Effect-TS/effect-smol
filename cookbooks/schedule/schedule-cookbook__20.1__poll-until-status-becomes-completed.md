@@ -11,11 +11,8 @@ code_included: true
 # 20.1 Poll until status becomes `Completed`
 
 Polling for a desired output is different from polling for any terminal state.
-Here, the repeated effect successfully observes a status value, and the schedule
-keeps asking only while the work is still in progress. When polling stops, the
-final status must still be interpreted: `"Completed"` is the desired result,
-while `"Failed"` and `"Canceled"` are terminal domain outcomes that are not
-completion. Transport or decoding failures remain effect failures.
+The schedule can decide when to stop asking, while the surrounding code decides
+whether the final status is the wanted result.
 
 ## Problem
 

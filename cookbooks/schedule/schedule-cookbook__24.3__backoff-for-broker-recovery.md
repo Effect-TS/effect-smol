@@ -10,29 +10,16 @@ code_included: true
 
 # 24.3 Backoff for broker recovery
 
-A message broker can be unavailable for reasons that are genuinely temporary: a
-leader election is in progress, a connection is being rebalanced, or the broker
-is accepting connections before partitions are fully ready. Retrying immediately
-can make recovery slower. Each reconnect attempt competes for broker resources,
-and each successful reconnect can release a burst of consumers that start
-pulling messages and pushing work into downstream databases, APIs, and caches.
-
-Use a visible `Schedule` for broker recovery so the retry behavior is part of
-the operational contract: how quickly the client comes back, how much pressure
-it applies while the broker is recovering, and where the retry loop stops.
+Broker recovery retries need to reconnect eventually without turning recovery
+into a second load spike. A visible `Schedule` makes that operational contract
+explicit: how quickly clients return, how much pressure they apply, and where
+the loop stops.
 
 ## Problem
 
-You have a worker that needs to reconnect to a broker before it can resume
-consuming messages. The first connection attempt should happen immediately, but
-repeated failures should wait progressively longer.
-
-Without backoff, a broker outage can turn into a retry storm. Hundreds of
-workers may reconnect at the same time, then immediately start draining
-partitions. That does not only pressure the broker. It also shifts the backlog
-downstream: handlers may fan out to payment services, search indexes, storage
-systems, or notification APIs before those systems are ready for the recovered
-traffic.
+A worker has to reconnect before it can resume consuming messages. Transient
+broker errors such as connection refusals, leader-election windows, and
+rebalances should wait progressively longer between attempts.
 
 Use `Schedule.exponential` with `Effect.retry` for the reconnect attempt, and
 bound it with `Schedule.recurs` so a worker does not retry forever without

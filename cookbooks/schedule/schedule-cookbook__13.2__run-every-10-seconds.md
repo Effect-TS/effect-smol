@@ -10,19 +10,16 @@ code_included: true
 
 # 13.2 Run every 10 seconds
 
-You have a successful effect that should run repeatedly with a predictable ten-second
-rhythm. This is common for lightweight background work such as sending a heartbeat,
-polling a local status endpoint, refreshing a small cache entry, or publishing a
-periodic liveness signal. This recipe treats repetition as a policy for successful
-effects. The schedule decides whether another successful iteration should run, what
-spacing applies, and what value the repeat returns. Failures stay in the effect error
-channel, so the repeat policy stays separate from recovery or retry behavior.
+Use this recipe when lightweight successful background work should repeat on a
+predictable ten-second rhythm.
 
 ## Problem
 
-You have a successful effect that should run repeatedly with a predictable ten-second rhythm.
+A heartbeat sender, local status poller, small cache refresh, or liveness signal needs
+to run immediately and then recur every ten seconds after successful runs.
 
-This is common for lightweight background work such as sending a heartbeat, polling a local status endpoint, refreshing a small cache entry, or publishing a periodic liveness signal.
+The schedule should own the recurrence decision and spacing. Failures should remain in
+the effect error channel instead of being hidden by the repeat policy.
 
 ## When to use it
 

@@ -10,19 +10,9 @@ code_included: false
 
 # 53.3 Forgetting that jitter complicates logs and metrics
 
-Forgetting that jitter complicates logs and metrics is an anti-pattern because
-it treats randomized timing as if it were still a clean, predictable cadence.
-Jitter is often the right tool for spreading retries across many fibers,
-clients, or service instances, but it also makes every individual delay harder
-to explain from a log line alone.
-
-In Effect, `Schedule.jittered` randomly adjusts each recurrence delay to
-between `80%` and `120%` of the delay produced by the wrapped schedule. It does
-this by modifying the next delay; it preserves the schedule output and does not
-change which inputs recur, when the schedule stops, or whether the repeated
-operation is safe. That distinction matters for observability: the policy still
-has a deterministic base schedule, but the observed sleep is intentionally
-randomized.
+Jitter spreads repeated work, but it also changes what logs and metrics should
+mean. This section focuses on observability that still reports a deterministic
+cadence after individual delays have been randomized.
 
 ## The anti-pattern
 

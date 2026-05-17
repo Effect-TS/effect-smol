@@ -10,13 +10,9 @@ code_included: true
 
 # 19.5 Reduce herd effects in control planes
 
-Control planes often have many clients polling for the same kind of status: deployment
-rollout state, cluster membership, workflow progress, assignment health, or resource
-reconciliation. A fixed polling interval can accidentally align those clients. This
-recipe treats polling as repeated successful observations. The schedule controls cadence
-and the condition for taking another observation, while the surrounding Effect code
-interprets terminal states, missing data, stale reads, and real failures. Keeping those
-responsibilities separate makes the polling loop easier to bound and diagnose.
+Control-plane polling needs regular observation without turning many
+independent clients into one bursty caller. Jitter preserves the cadence while
+spreading recurrence decisions across clients.
 
 ## Problem
 

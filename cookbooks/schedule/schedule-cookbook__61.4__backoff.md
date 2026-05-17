@@ -17,10 +17,10 @@ offers between attempts.
 
 ## What this section is about
 
-This glossary entry defines backoff as schedule timing. A backoff policy says
-how long to wait before the next recurrence, while other schedule combinators
-decide how many recurrences are allowed, which inputs may continue, and when an
-elapsed-time budget has expired.
+This glossary entry separates delay shape from the rest of a recurrence policy.
+Backoff controls the wait before the next attempt; other schedule combinators
+control how many recurrences are allowed, which inputs may continue, and when
+an elapsed-time budget has expired.
 
 ## Why it matters
 

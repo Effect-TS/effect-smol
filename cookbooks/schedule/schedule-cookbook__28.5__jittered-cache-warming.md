@@ -10,25 +10,16 @@ code_included: true
 
 # 28.5 Jittered cache warming
 
-Cache warming is often successful background work: each service instance
-periodically reads the keys it wants hot and refreshes its local or shared
-cache. The operation is not a retry just because it repeats. With
-`Effect.repeat`, the schedule sees successful warming runs and decides when to
-start the next one.
-
-In a fleet, a plain fixed interval can make every instance warm the same data
-at the same time, especially after a deploy or autoscaling event. Jitter keeps
-the recognizable warming cadence while spreading follow-up runs across a small
-time window.
+Cache warming is successful background work that repeats on a cadence; it is
+not a retry simply because it runs again. This recipe adds jitter to the repeat
+schedule while keeping the warming interval recognizable.
 
 ## Problem
 
-Every instance should warm important cache entries about every thirty seconds.
-The first warming pass should happen when the process starts, but later passes
-should not stay synchronized across the fleet.
-
-Use a normal repeat cadence for the operational contract, then apply
-`Schedule.jittered` so each recurrence waits for a slightly different delay.
+Every instance should run its first warming pass when the process starts and
+then refresh important cache entries roughly every thirty seconds. In a fleet,
+later passes should drift enough that instances do not all read the same backing
+services at once.
 
 ## When to use it
 

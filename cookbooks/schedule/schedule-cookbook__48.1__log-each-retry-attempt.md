@@ -15,12 +15,6 @@ which policy handled it, and whether another attempt was scheduled. They become
 noise when every layer logs the same failure or when a log line says "retrying"
 after the retry policy has already stopped.
 
-Use schedule taps to keep retry observability next to the retry policy. With
-`Effect.retry`, typed failures are the schedule input, so `Schedule.tapInput`
-can observe the error that caused the retry decision. `Schedule.tapOutput`
-observes outputs from schedule steps that continue, which is useful for logging
-the retry number or delay that was actually scheduled.
-
 ## Problem
 
 You have a retried effect and want one clear log event for retry behavior. The

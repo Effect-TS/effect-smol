@@ -10,19 +10,18 @@ code_included: true
 
 # 46.2 Retry export generation
 
-Export generation is usually expensive: it may scan a large dataset, render a
-file, compress it, and write it to storage. Retrying blindly can duplicate that
-load at the exact moment a database, renderer, or worker pool is already under
-pressure. The retry policy should therefore answer two questions in code: which
-failures are transient, and how many extra attempts are allowed?
+Export retries spend real batch capacity, so the policy should be conservative.
+Keep transient-error classification and the retry limit visible next to the
+generation call.
 
 ## Problem
 
-You start an export for a report, invoice bundle, or customer data download.
-Some failures are worth retrying, such as a temporarily unavailable database or
-a saturated renderer. Others should fail immediately, such as an invalid export
-request or missing permission. You want those decisions next to the retry
-schedule instead of hidden inside scattered conditionals.
+A report, invoice bundle, or customer data export may fail because the database
+is temporarily unavailable, the renderer is saturated, or object storage is
+down. Invalid requests and permission failures should surface immediately.
+
+The retry schedule should recover from short outages without regenerating a
+large export indefinitely.
 
 ## When to use it
 

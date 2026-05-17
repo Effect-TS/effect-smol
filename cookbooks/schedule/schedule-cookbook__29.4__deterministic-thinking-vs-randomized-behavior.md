@@ -10,15 +10,9 @@ code_included: true
 
 # 29.4 Deterministic thinking vs randomized behavior
 
-Jitter can make a retry policy look harder to reason about because the next
-sleep is no longer one exact number. The useful way to think about it is not
-"random timing everywhere." Start with a deterministic schedule that states the
-base cadence and the stopping rule, then add jitter as a bounded random
-adjustment to each computed delay.
-
-In Effect, `Schedule.jittered` does exactly that. It keeps the same recurrence
-and output type as the schedule it wraps, but changes each delay to a random
-value between 80% and 120% of the original delay.
+Jitter is easiest to reason about when it is added to an explicit base schedule.
+The cadence and stopping rule stay visible; only each computed delay becomes a
+bounded random value.
 
 ## Problem
 

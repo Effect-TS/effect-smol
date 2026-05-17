@@ -10,9 +10,7 @@ code_included: false
 
 # 54.5 Refactoring complex schedules into named patterns
 
-Refactoring complex schedules into named patterns is the remediation for an over-composed schedule that nobody can read at the call site. The anti-pattern is leaving a long chain of `Schedule` combinators inline and asking every reviewer to reconstruct the operational policy from operators alone.
-
-`Schedule` composition is powerful, but the pieces usually mean different things: cadence, retry budget, elapsed-time budget, fleet-wide jitter, and termination behavior. A good refactor gives those pieces names before combining them.
+Named schedule patterns are a remedy for over-composed policies. This section covers the anti-pattern of leaving cadence, budgets, jitter, and termination behavior buried in one expression.
 
 ## The anti-pattern
 

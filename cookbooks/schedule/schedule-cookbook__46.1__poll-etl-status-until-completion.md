@@ -10,19 +10,15 @@ code_included: true
 
 # 46.1 Poll ETL status until completion
 
-An ETL submission often returns quickly with a run id while the real work
-continues in a data platform. The status endpoint then reports ordinary domain
-states such as queued, extracting, loading, succeeded, failed, or canceled. This
-recipe treats those status responses as successful observations. The schedule
-decides when to ask again and when the polling budget is exhausted; the
-surrounding Effect code decides how to interpret the final ETL state.
+ETL polling observes work that continues in a data platform after submission.
+Treat status responses as domain values; let the schedule decide when to ask
+again and let surrounding Effect code interpret the final state.
 
 ## Problem
 
-You have submitted an ETL run and need to poll its status until it reaches a
-terminal state. While the run is active, the caller should wait between status
-checks. If the run never becomes terminal within the allowed polling window, the
-caller should still get the last observed status instead of an unbounded loop.
+A caller has an ETL run id and needs the last observed status: terminal if the
+run finishes, or still active when the polling window expires. Active states
+should be spaced out with waits between reads instead of a tight loop.
 
 The status check itself can also hang or fail. That is a separate concern from
 the polling schedule: use an operation timeout for each status read, and use a

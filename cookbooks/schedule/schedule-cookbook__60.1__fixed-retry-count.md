@@ -10,12 +10,11 @@ code_included: false
 
 # 60.1 Fixed retry count
 
-Fixed retry count means "try the original effect once, then allow at most `n`
-follow-up retries if it fails." In `Schedule` terms, the primitive for this
-shape is `Schedule.recurs(n)`.
+Fixed retry count is the count-based retry shape represented by
+`Schedule.recurs(n)`.
 
-Use this index entry when the primary question is count-based: how many more
-times may this failing operation run before the last failure is returned?
+Use this index entry when the primary decision is how many follow-up attempts
+may run after the original attempt fails.
 
 ## Source-of-truth mapping
 

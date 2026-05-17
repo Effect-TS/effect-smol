@@ -19,11 +19,8 @@ operation is idempotent, and how the final failure is reported.
 
 ## Problem
 
-You want to retry an operation a few times before giving up, and five retries
-is a reasonable upper bound for the kind of transient failure you expect. For
-example, a remote cache lookup, a short reconnect attempt, or an idempotent
-metadata request may be worth trying again briefly before surfacing the error to
-the caller.
+The policy should allow a little more room than a tiny retry burst, but still
+stop at a fixed upper bound.
 
 Use `Schedule.recurs(5)` with `Effect.retry` when the retry budget is exactly
 five additional attempts. The first execution is not counted as a retry, so this

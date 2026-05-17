@@ -11,15 +11,12 @@ code_included: false
 # 60.4 Capped backoff
 
 Capped backoff is a reference-index entry for retry and reconnect policies that
-should grow more conservative at first, then stop increasing after a maximum
-single delay. It does not introduce a separate `Schedule` constructor. In the
-Effect API, capped backoff is built by starting with a backoff schedule and
-modifying the recurrence delay explicitly.
+grow more conservative at first but enforce a maximum single delay.
 
 ## What this section is about
 
-Use this entry when the policy you want to defend is "retry soon, then back
-away, but never wait longer than this cap between attempts." The usual base is
+The policy should read as "retry soon, then back away, but never wait longer
+than this cap between attempts." The usual base is
 `Schedule.exponential(base, factor)`, which computes delays from the base
 duration and a growth factor. The cap is then applied with
 `Schedule.modifyDelay`.

@@ -21,10 +21,8 @@ inside ad hoc loops.
 
 ## Problem
 
-You have an effect that can fail with a typed error, and a small number of
-immediate retries is enough. For example, a request might race a short-lived
-service restart, a connection pool might briefly have no available connection,
-or a cache refresh might fail once before succeeding.
+The retry budget is the whole policy: after a typed failure, try again
+immediately until the small fixed count is exhausted.
 
 The minimal schedule for this is `Schedule.recurs(n)`. It retries a failing
 effect at most `n` times. The initial execution is not counted as a retry, so

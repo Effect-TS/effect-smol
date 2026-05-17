@@ -10,19 +10,14 @@ code_included: true
 
 # 12.3 Repeat with a pause
 
-You have an effect that should run again only after a successful run, but the next run
-should not start immediately. For example, after successfully checking a queue,
-refreshing a cache entry, or sending a small heartbeat, you may want a deliberate pause
-before the next recurrence. This recipe treats repetition as a policy for successful
-effects. The schedule decides whether another successful iteration should run, what
-spacing applies, and what value the repeat returns. Failures stay in the effect error
-channel, so the repeat policy stays separate from recovery or retry behavior.
+`Effect.repeat` can add a deliberate pause between successful runs. This recipe covers
+spacing recurrences without turning the repeat into failure recovery.
 
 ## Problem
 
-You have an effect that should run again only after a successful run, but the next run should not start immediately.
-
-For example, after successfully checking a queue, refreshing a cache entry, or sending a small heartbeat, you may want a deliberate pause before the next recurrence.
+Without spacing, a successful queue check, cache refresh, or heartbeat can
+immediately schedule the next run. Use the schedule to place a fixed pause
+between successful recurrences.
 
 ## When to use it
 

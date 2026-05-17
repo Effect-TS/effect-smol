@@ -10,23 +10,15 @@ code_included: true
 
 # 8.4 Avoid synchronized retries in clustered systems
 
-Several nodes, pods, workers, or service clients in a cluster can observe the same
-failure at roughly the same time. If they all use the same deterministic retry delay,
-they can also retry at the same time. This recipe keeps the retry policy explicit: the
-schedule decides when another typed failure should be attempted again and where retrying
-stops. The surrounding Effect code remains responsible for domain safety, including
-which failures are transient, whether the operation is idempotent, and how the final
-failure is reported.
+This recipe shows how to reduce synchronized retry waves from clustered callers that
+share the same failure.
 
 ## Problem
 
-Several nodes, pods, workers, or service clients in a cluster can observe the
-same failure at roughly the same time. If they all use the same deterministic
-retry delay, they can also retry at the same time.
-
-That synchronized wave is especially risky after a shared dependency has just
-started recovering. A fixed retry delay or identical exponential backoff policy
-can send many callers back to the dependency on the same retry boundaries.
+Several nodes, pods, workers, or service clients can observe the same failure at
+roughly the same time. A fixed retry delay or identical exponential backoff
+policy can then send many callers back to a recovering dependency on the same
+retry boundaries.
 
 Add jitter to the retry schedule so each caller keeps the same general backoff
 shape but waits a slightly different amount of time before retrying:

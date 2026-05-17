@@ -10,23 +10,17 @@ code_included: true
 
 # 40.1 Aggressive at startup, relaxed afterward
 
-Some workflows deserve very fast follow-up checks immediately after they start,
-but should not keep that pressure forever. A service may become ready within a
-few hundred milliseconds, a leader election may settle quickly, or a cache may
-warm almost immediately. If that quick path does not complete, the same workflow
-should switch to a calmer cadence that is easier on the dependency.
-
-Model that as two named schedule phases. `Schedule.andThen` runs the first
-schedule until it completes, then runs the second schedule. The effect itself
-still runs once immediately; the schedule controls only the later repeats or
-retries.
+Some startup workflows benefit from a short fast phase before settling into a
+calmer cadence. Model that handoff as two named schedules sequenced with
+`Schedule.andThen`.
 
 ## Problem
 
-You need to poll aggressively during startup, then relax automatically if the
-system is still not ready. A single fast `Schedule.spaced("100 millis")` policy
-is too noisy for a long startup. A single slow policy gives poor startup
-responsiveness. Scattered sleeps make the transition hard to review.
+You need a readiness probe that catches the quick startup path without hammering
+a service that takes longer to become ready. A single fast
+`Schedule.spaced("100 millis")` policy is too noisy for a long startup, while a
+single slow policy gives poor startup responsiveness. Scattered sleeps make the
+transition hard to review.
 
 Use a bounded warm-up phase followed by a steady-state phase:
 

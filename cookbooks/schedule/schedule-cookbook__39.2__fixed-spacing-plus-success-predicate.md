@@ -10,21 +10,18 @@ code_included: true
 
 # 39.2 Fixed spacing plus success predicate
 
-Use fixed spacing when each successful check should be followed by the same
-pause, and use a success predicate when the value returned by the effect tells
-you whether another check is needed.
+Use a schedule when a successful value, not a failure, decides whether another
+check is needed.
 
-This is a repeat policy, not a retry policy. `Effect.repeat` feeds successful
-values into the schedule. The schedule can then inspect the latest value and
-decide whether to continue.
+This recipe pairs a fixed gap with a predicate over the latest successful
+observation.
 
 ## Problem
 
-You have an effect that succeeds with an observation, such as a job status,
-cache lookup, or readiness check. Some successful observations are still
-non-terminal, so you want to run the effect again after a fixed pause. Once the
-successful value satisfies your predicate, repetition should stop and the final
-value should be returned.
+You are reading a status-style API where `Queued` or `Running` is a successful
+response, but not the final answer. Each non-terminal observation should be
+followed by the same pause, and the first value that satisfies your predicate
+should be returned.
 
 ## When to use it
 

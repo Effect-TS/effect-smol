@@ -12,19 +12,14 @@ code_included: true
 
 Authorization failures are usually not timing problems. A missing token, expired
 session, disabled account, or missing permission will normally fail again until
-the caller authenticates differently or an operator changes access. Retrying
-those failures only adds latency and load while hiding the error that the caller
-needs to act on.
-
-Classify authorization failures before applying the retry schedule. Let the
-schedule handle transient failures such as timeouts or temporary unavailability,
-and stop immediately when the typed failure says the request is not authorized.
+the caller authenticates differently or an operator changes access.
 
 ## Problem
 
-You have an operation that can fail with both transient infrastructure errors
-and authorization errors. The transient errors should receive a small retry
-policy, but authorization failures should be returned immediately.
+An authenticated operation can fail with transient infrastructure errors or an
+authorization error from the protected resource. The retry policy should handle
+timeouts and temporary unavailability, but return authorization failures
+immediately.
 
 The schedule should make that distinction visible. A bounded backoff answers
 "how often may transient failures be retried?" The authorization predicate

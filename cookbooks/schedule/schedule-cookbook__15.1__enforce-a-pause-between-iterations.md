@@ -10,20 +10,13 @@ code_included: true
 
 # 15.1 Enforce a pause between iterations
 
-You have a successful effect that should run again, but each next run must wait for an
-explicit pause after the previous run completes. For example, after refreshing local
-state, polling a lightweight source, or emitting a heartbeat, you want the next
-iteration to start only after a known gap. This recipe treats repetition as a policy for
-successful effects. The schedule decides whether another successful iteration should
-run, what spacing applies, and what value the repeat returns. Failures stay in the
-effect error channel, so the repeat policy stays separate from recovery or retry
-behavior.
+Use spacing when a successful repeat should leave a deliberate gap before the next
+iteration. This recipe keeps the pause policy separate from failure recovery.
 
 ## Problem
 
-You have a successful effect that should run again, but each next run must wait for an explicit pause after the previous run completes.
-
-For example, after refreshing local state, polling a lightweight source, or emitting a heartbeat, you want the next iteration to start only after a known gap.
+After refreshing local state, polling a lightweight source, or emitting a heartbeat,
+you want the next successful iteration to start only after a known gap.
 
 ## When to use it
 

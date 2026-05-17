@@ -10,7 +10,8 @@ code_included: true
 
 # 25.5 Cap delays without losing backoff benefits
 
-An exponential backoff is useful because the first few retries stay close to the original failure while later retries back away from the dependency. Left uncapped, however, the same curve can eventually produce waits that are too long for the workflow you are protecting. Capping the delay keeps the early exponential shape and replaces only the late tail with a maximum wait.
+Use this recipe to cap the late delays of exponential backoff while preserving
+the short early retries that make backoff useful.
 
 ## Problem
 

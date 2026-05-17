@@ -15,8 +15,7 @@ that reports its current state. The mutation might be `POST /payments`,
 `POST /captures`, or `POST /refunds`. The status read is usually a safe
 `GET /payments/:id/status`.
 
-This recipe is for retrying the safe read when the network or payment provider
-temporarily fails. It is not a license to retry the payment mutation itself.
+Keep the retry policy tied to the safe read path, not to the payment mutation.
 
 ## Problem
 

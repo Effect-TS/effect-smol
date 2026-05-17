@@ -10,16 +10,13 @@ code_included: false
 
 # 8.1 Why jitter matters
 
-This subsection explains Why jitter matters as a practical Effect `Schedule` recipe.
-This recipe keeps the retry policy explicit: the schedule decides when another typed
-failure should be attempted again and where retrying stops. The surrounding Effect code
-remains responsible for domain safety, including which failures are transient, whether
-the operation is idempotent, and how the final failure is reported.
+This section explains why retry schedules sometimes need a small amount of randomized
+delay.
 
 ## What this section is about
 
-This section explains why a retry policy can need randomness even when its
-delay shape already looks reasonable.
+A retry policy can need randomness even when its delay shape already looks
+reasonable.
 
 Jitter is the practice of slightly randomizing retry delays so that callers do
 not all retry at the same instant. In Effect, `Schedule.jittered` adjusts each

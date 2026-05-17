@@ -10,15 +10,8 @@ code_included: true
 
 # 44.5 Reconnect WebSocket with jitter
 
-WebSocket reconnects are usually client-facing, but they still create backend
-load. If a deploy, network interruption, load balancer restart, or regional
-incident drops many sockets at once, every client can notice the failure at
-about the same time. A plain exponential reconnect policy reduces repeated
-pressure, but identical clients can still reconnect in synchronized waves.
-
-Use `Schedule.jittered` after the base backoff so each client keeps the same
-operational policy while spreading reconnect attempts around each computed
-delay.
+Jitter keeps WebSocket reconnect attempts from many clients from landing on the
+same backoff boundaries.
 
 ## Problem
 

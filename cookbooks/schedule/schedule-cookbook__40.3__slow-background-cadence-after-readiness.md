@@ -10,13 +10,15 @@ code_included: true
 
 # 40.3 Slow background cadence after readiness
 
-Many services need to check readiness aggressively during startup, then keep checking at a much slower background cadence after the dependency is ready. The important distinction is that readiness is a phase transition, not just a longer delay.
-
-Use one schedule for the startup phase and another for the steady-state phase. `Schedule.andThen` runs the first schedule until it completes, then switches to the second schedule. When the first phase uses the latest successful observation as schedule input, the schedule itself can express "poll quickly until ready, then monitor slowly."
+Readiness and monitoring are different phases: check quickly until the
+dependency is ready, then observe at a slower cadence. `Schedule.andThen` makes
+that phase transition explicit.
 
 ## Problem
 
-A worker cannot do useful work until a dependency is ready. During startup, you want short gaps so the process becomes useful quickly. After readiness has been observed, continuing to check every few hundred milliseconds only creates noise and unnecessary load.
+A worker cannot do useful work until a dependency returns `Ready`. Probing too
+slowly delays useful work, but keeping the startup cadence after readiness only
+creates noise and unnecessary load.
 
 The recurrence policy should make that operational intent visible:
 

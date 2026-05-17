@@ -10,7 +10,9 @@ code_included: false
 
 # 55.3 Ignoring rate limits and downstream quotas
 
-Ignoring rate limits and downstream quotas is an anti-pattern because it treats recurrence as a local timing choice while the real constraint belongs to another system. A retry policy that looks modest in one process can still violate a vendor quota, overload a database, drain a message broker allowance, or keep hammering an API that has already told you to slow down.
+Rate limits and downstream quotas make recurrence a shared constraint. A retry
+or polling policy has to respect the system that owns the allowance, not only
+the caller that wants another attempt.
 
 ## The anti-pattern
 

@@ -10,20 +10,13 @@ code_included: false
 
 # 56.3 “I need a periodic background loop”
 
-Choose this path when you have successful work that should run again and again
-in the background: health checks, cache refreshes, local metric flushes,
-maintenance sweeps, reconciliation passes, or heartbeats.
-
-This is a repeat problem, not automatically a retry problem. A periodic
-background loop usually says "after a successful iteration, decide when the
-next iteration should happen." If a single iteration can fail transiently,
-handle or retry that iteration separately before returning to the longer
-periodic cadence.
+Choose this path for successful background work that should run again and again:
+health checks, cache refreshes, local metric flushes, maintenance sweeps,
+reconciliation passes, or heartbeats.
 
 ## What this section is about
 
-Use this entry to select the shape of a long-running repeat schedule before
-writing the worker. The important questions are:
+Before writing the worker, answer these questions:
 
 - Should the loop wait after each completed run, or try to stay aligned to a
   regular cadence?

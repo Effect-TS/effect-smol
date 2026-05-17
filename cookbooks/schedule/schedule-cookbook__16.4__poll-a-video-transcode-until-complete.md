@@ -10,25 +10,18 @@ code_included: true
 
 # 16.4 Poll a video transcode until complete
 
-You submitted a video transcode job and received a transcode id. The transcoding service
-exposes a status endpoint that reports ordinary domain states such as `"queued"`,
-`"probing"`, `"transcoding"`, `"complete"`, `"failed"`, or `"canceled"`. This recipe
-treats polling as repeated successful observations. The schedule controls cadence and
-the condition for taking another observation, while the surrounding Effect code
-interprets terminal states, missing data, stale reads, and real failures. Keeping those
-responsibilities separate makes the polling loop easier to bound and diagnose.
+Use polling when a submitted video transcode must be observed through ordinary domain
+states until it reaches a terminal result. This recipe keeps successful status
+observations separate from request failures and transcode-domain interpretation.
 
 ## Problem
 
-You submitted a video transcode job and received a transcode id. The transcoding
-service exposes a status endpoint that reports ordinary domain states such as
-`"queued"`, `"probing"`, `"transcoding"`, `"complete"`, `"failed"`, or
-`"canceled"`.
-
-You want to poll successful status observations until the transcode reaches a
-terminal state. A transcode status of `"failed"` is a successful observation of
-the video domain. It is not the same thing as the status request failing because
-the service could not be reached or the response could not be decoded.
+The transcoding service may report `"queued"`, `"probing"`, `"transcoding"`,
+`"complete"`, `"failed"`, or `"canceled"` for the same transcode id. You want to
+poll successful observations until the transcode reaches a terminal state. A
+transcode status of `"failed"` is a successful observation of the video domain,
+not the same thing as the status request failing because the service could not
+be reached or the response could not be decoded.
 
 ## When to use it
 

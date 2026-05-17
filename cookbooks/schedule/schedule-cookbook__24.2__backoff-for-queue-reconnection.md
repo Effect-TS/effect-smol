@@ -10,19 +10,16 @@ code_included: true
 
 # 24.2 Backoff for queue reconnection
 
-Queue consumers often fail for reasons that are not fixed by reconnecting
-immediately: the broker is restarting, the network path is unstable, or a queue
-endpoint has temporarily refused new sessions. A reconnect policy should make
-that pressure visible in one place instead of scattering sleeps through the
-consumer loop.
+Queue reconnection should have one visible timing policy instead of scattered
+sleeps in the consumer loop. That policy controls how much pressure a consumer
+applies while a broker, network path, or endpoint is recovering.
 
 ## Problem
 
-You have a consumer that should reconnect after transient queue connection
-failures, but it must not hammer the broker while it is recovering. The first
-connection attempt should happen immediately. Only failed reconnect attempts
-should wait, and the policy should say exactly how the delay grows and when the
-worker gives up.
+A consumer must open a queue connection before it can run. When that connection
+fails with a transient queue error, the retry behavior should be explicit: the
+initial attempt happens immediately, failed reconnect attempts wait with a
+growing delay, and the worker stops after a clear retry budget.
 
 ## When to use it
 

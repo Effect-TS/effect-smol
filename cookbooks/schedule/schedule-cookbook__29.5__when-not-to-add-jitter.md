@@ -10,20 +10,15 @@ code_included: true
 
 # 29.5 When not to add jitter
 
-Jitter is useful when many callers would otherwise retry or poll together. It
-is harmful when the timing itself is part of the contract. In Effect,
-`Schedule.jittered` randomly adjusts each recurrence delay to between `80%` and
-`120%` of the delay produced by the wrapped schedule. That is exactly what you
-want for fleet-wide desynchronization, and exactly what you do not want for
-work that needs predictable timing.
+Jitter is useful for desynchronizing callers, but it is the wrong tool when exact
+timing is part of the contract.
 
 ## Problem
 
-You need to decide whether a schedule should preserve its original cadence or
-spread recurrences around that cadence. Adding jitter to every retry or repeat
-policy can make a system look more resilient, but it also makes the next
-recurrence intentionally earlier or later than the schedule would otherwise
-choose.
+Before applying `Schedule.jittered`, identify what readers should rely on: the
+exact cadence, or only an approximate cadence around a base delay. A randomized
+recurrence may fire earlier or later than the wrapped schedule would choose, so
+it should be a deliberate load-shaping decision.
 
 ## When to use it
 

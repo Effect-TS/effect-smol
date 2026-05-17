@@ -10,19 +10,12 @@ code_included: true
 
 # 17.1 Poll every second for up to 30 seconds
 
-You need to observe a status endpoint immediately, then keep polling successful status
-observations about once per second, but only for an overall recurrence window of about
-30 seconds. This recipe treats polling as repeated successful observations. The schedule
-controls cadence and the condition for taking another observation, while the surrounding
-Effect code interprets terminal states, missing data, stale reads, and real failures.
-Keeping those responsibilities separate makes the polling loop easier to bound and
-diagnose.
+You need a short, bounded polling loop: check once immediately, then continue
+about once per second while the status is still pending. This recipe keeps
+cadence and stop conditions in the schedule and leaves status interpretation to
+surrounding Effect code.
 
 ## Problem
-
-You need to observe a status endpoint immediately, then keep polling successful
-status observations about once per second, but only for an overall recurrence
-window of about 30 seconds.
 
 The status endpoint returns domain states as successful values. For example,
 `"pending"` means "poll again", while `"ready"` or `"failed"` means "stop

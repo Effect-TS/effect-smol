@@ -12,18 +12,14 @@ code_included: true
 
 Retry tests should prove classification as well as timing. A retry schedule may
 allow several recurrences, but a fatal domain error should bypass that schedule
-and return immediately. In other words, the test should fail if the operation is
-executed a second time after a fatal error.
-
-`Effect.retry` applies its schedule to typed failures. Defects and interruptions
-are not retried as typed failures, and domain-level fatal errors should be
-excluded with retry options such as `while` or `until`.
+and return immediately.
 
 ## Problem
 
-You have one error channel with both transient and fatal cases. Transient cases
-should consume the retry schedule; fatal cases should stop before the schedule
-can trigger another attempt.
+The operation exposes one typed error channel with both transient and fatal
+cases. The test should run a fatal fixture under a policy that would retry
+transient failures, then assert that the fatal error is returned and the attempt
+count remains `1`.
 
 ## When to use it
 

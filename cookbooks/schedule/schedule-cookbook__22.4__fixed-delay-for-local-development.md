@@ -11,10 +11,8 @@ code_included: true
 # 22.4 Fixed delay for local development
 
 Local development often benefits from a retry policy that is boring and visible.
-When a local database, queue, emulator, or dependent service is still starting,
-an immediate retry loop can flood the console and make the real failure hard to
-see. A simple fixed delay keeps the loop readable: one failure, a short pause,
-then the next attempt.
+A simple fixed delay leaves a readable pause between failures while a local
+dependency finishes starting.
 
 This recipe uses a local-only constant delay. It is intentionally easy to watch
 in logs and easy to change while developing. Do not copy the same defaults into
@@ -22,9 +20,9 @@ production unchanged.
 
 ## Problem
 
-You are running an Effect program against local infrastructure that may not be
-ready yet. You want retries to be slow enough that the console remains useful,
-but not so slow that every restart becomes tedious.
+A local database, queue, emulator, or dependent service may still be booting
+when the Effect program starts. You want retries slow enough for console logs to
+remain useful, but short enough that a restart does not become tedious.
 
 Use `Schedule.spaced(duration)` with `Effect.retry`:
 

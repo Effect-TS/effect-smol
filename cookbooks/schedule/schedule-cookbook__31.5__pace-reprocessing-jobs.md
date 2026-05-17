@@ -10,23 +10,21 @@ code_included: true
 
 # 31.5 Pace reprocessing jobs
 
-Failed-record reprocessing is usually safe to run in the background, but it can
-still become a production incident if every worker drains the failure table as
-fast as possible. Use a `Schedule` to make the pacing policy explicit: each
-record is claimed and handled normally, then the schedule decides whether to
-wait before the next record.
-
-The goal is not to make broken records disappear quickly. The goal is to keep
-database pressure predictable while giving transient failures a steady path back
-through the system.
+Failed-record reprocessing should make progress without treating a failure
+table as high-priority live traffic. A `Schedule` keeps the pacing policy
+visible while each record is claimed and handled normally.
 
 ## Problem
 
-You have a table or queue of failed records. A worker should claim one failed
-record, reprocess it, store the outcome, and then pause before claiming another
-one. Without an explicit schedule, it is easy to create a tight loop that
-competes with live traffic for database connections, row locks, indexes, and
-downstream capacity.
+A table or queue of failed records may contain enough work for a worker to keep
+claiming rows indefinitely. The goal is not to make broken records disappear as
+quickly as possible; it is to keep database pressure predictable while giving
+transient failures a steady path back through the system.
+
+The worker should claim one failed record, reprocess it, store the outcome, and
+then pause before claiming another one. Without an explicit schedule, it is easy
+to create a tight loop that competes with live traffic for database connections,
+row locks, indexes, and downstream capacity.
 
 The first reprocessing attempt happens immediately. `Schedule.spaced` controls
 the recurrences after that attempt, spacing each repetition from the last run.

@@ -10,23 +10,20 @@ code_included: false
 
 # 62.4 Idempotency and safe retries
 
-Retries are only safe when repeating the operation preserves the domain meaning.
-`Schedule` can decide when another attempt is allowed, how long to wait, and
-when the retry budget is exhausted, but it cannot make a write idempotent. That
-property belongs to the operation being retried.
-
 Use this entry as a boundary check before applying retry recipes to writes,
-publishing, notifications, payments, or any workflow that can produce an
-externally visible side effect.
+publishing, notifications, payments, or any workflow with externally visible
+side effects.
 
 ## What this section is about
 
 Idempotency means that a logical operation can be attempted more than once
-without producing more than one logical result. For retries, the important word
-is "logical": the network request may be sent twice, the database statement may
-run twice, or the remote service may observe duplicate traffic, but the business
-result should remain one order, one charge, one reservation, one message, or one
-state transition.
+without producing more than one logical result. `Schedule` can decide when
+another attempt is allowed, how long to wait, and when the retry budget is
+exhausted, but it cannot create that property for a write. For retries, the
+important word is "logical": the network request may be sent twice, the
+database statement may run twice, or the remote service may observe duplicate
+traffic, but the business result should remain one order, one charge, one
+reservation, one message, or one state transition.
 
 The usual mechanism is an idempotency key. Generate one key for the logical
 operation and reuse that same key for every retry attempt. Do not create the key

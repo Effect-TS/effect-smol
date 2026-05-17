@@ -10,20 +10,14 @@ code_included: true
 
 # 40.2 Fast checks during initialization
 
-During startup, many services need a few quick readiness checks before they can
-accept traffic. A database socket may be opening, a broker connection may still
-be handshaking, or a local cache may need one more probe before it is usable.
-Those checks should happen quickly, but they should not become an unbounded
-startup loop.
-
-Use a short schedule for initialization and make its limits visible. The first
-check runs immediately. The schedule controls only the follow-up attempts after
-a failed check.
+Fast initialization checks are for dependencies that usually become ready
+quickly. Keep the cadence and limits visible so the startup loop stays bounded.
 
 ## Problem
 
-You need to retry startup checks for a short time while dependencies finish
-coming online. The policy should answer three questions directly:
+At startup, database and broker checks may fail with `DependencyUnavailable`
+while connections finish opening. Retry only that transient condition, and make
+the policy answer three questions directly:
 
 - how long to wait between checks
 - how many follow-up checks are allowed

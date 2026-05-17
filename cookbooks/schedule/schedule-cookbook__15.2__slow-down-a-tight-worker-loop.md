@@ -10,19 +10,14 @@ code_included: true
 
 # 15.2 Slow down a tight worker loop
 
-You have a worker effect that can finish very quickly when there is little or no work to
-do. If that effect is repeated immediately after each success, the worker can spin in a
-tight loop, consuming CPU and repeatedly checking the same empty source. This recipe
-treats repetition as a policy for successful effects. The schedule decides whether
-another successful iteration should run, what spacing applies, and what value the repeat
-returns. Failures stay in the effect error channel, so the repeat policy stays separate
-from recovery or retry behavior.
+Use spacing when a worker can complete successfully without doing useful work and
+should not immediately check again. This recipe keeps successful repetition separate
+from failure recovery.
 
 ## Problem
 
-You have a worker effect that can finish very quickly when there is little or no work to do.
-
-If that effect is repeated immediately after each success, the worker can spin in a tight loop, consuming CPU and repeatedly checking the same empty source.
+When the source is empty, the worker can finish very quickly and then repeat into a
+tight loop, consuming CPU while checking the same empty source again and again.
 
 ## When to use it
 

@@ -26,11 +26,9 @@ fleet of workers from retrying at exactly the same instant.
 
 ## Problem
 
-You have background work that is allowed to recover eventually: refreshing a
-cache, reconnecting to a secondary service, resending an idempotent notification,
-or checking whether a dependency has come back. Giving up after a small retry
-count would create unnecessary operator work, but retrying quickly forever would
-be hostile to the dependency.
+Apply this shape to background work such as refreshing a cache, reconnecting to
+a secondary service, resending an idempotent notification, or checking whether a
+dependency has come back.
 
 The policy should make three facts visible:
 

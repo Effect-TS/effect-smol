@@ -10,14 +10,8 @@ code_included: true
 
 # 43.1 Retry HTTP GET on timeout
 
-HTTP GET requests are usually the first place to apply a small retry policy.
-They are meant to be idempotent, and a timeout often means the client did not
-receive an answer before its local deadline. A later attempt may succeed without
-changing server state.
-
-That does not mean every GET should be retried forever. Classify the failure
-first, retry only the timeout case, and put a small bound around the policy so a
-slow dependency does not hold the caller indefinitely.
+HTTP GET retries are useful only when the read is safe and the failure is truly
+transient.
 
 ## Problem
 

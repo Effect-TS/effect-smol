@@ -11,18 +11,9 @@ code_included: true
 # 11.1 Safe retries for GET requests
 
 GET requests are usually safe to retry because they are intended to read state rather
-than change it. That makes them a good fit for retry policies around temporary transport
-failures, overloaded services, and brief gateway problems. This recipe keeps the retry
-policy explicit: the schedule decides when another typed failure should be attempted
-again and where retrying stops. The surrounding Effect code remains responsible for
-domain safety, including which failures are transient, whether the operation is
-idempotent, and how the final failure is reported.
+than change it. This recipe keeps read retries bounded, typed, and explicit.
 
 ## Problem
-
-GET requests are usually safe to retry because they are intended to read state
-rather than change it. That makes them a good fit for retry policies around
-temporary transport failures, overloaded services, and brief gateway problems.
 
 The risk is not usually duplicate mutation. The risk is turning a harmless read
 into unbounded pressure on the downstream service, hiding persistent failures,

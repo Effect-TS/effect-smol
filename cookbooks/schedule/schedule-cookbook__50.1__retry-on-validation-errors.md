@@ -15,17 +15,12 @@ invalid request. A missing field, unsupported enum, malformed payload, failed
 business rule, or rejected tenant boundary is information for the caller, not a
 temporary condition for the scheduler to absorb.
 
-`Schedule` is good at describing recurrence: delay shape, attempt limits, time
-budgets, jitter, and stop conditions. It is not a substitute for classifying the
-failure. If a validation error reaches a broad retry policy, the schedule will
-treat it like any other input unless the retry boundary stops it first.
-
 ## The anti-pattern
 
-The problematic shape is a shared retry policy wrapped around an operation that
-can fail for both transient and permanent reasons. The policy might use
-exponential backoff, a retry count, or a time budget, but it is applied before
-the error has been classified.
+The problematic shape is a shared retry policy wrapped around an operation whose
+typed errors have not yet been separated. The policy might use exponential
+backoff, a retry count, or a time budget, but it is applied before the
+validation failure has been classified as terminal.
 
 That makes validation failures consume the same retry budget as timeouts,
 temporary unavailability, or rate-limit responses. The implementation may look

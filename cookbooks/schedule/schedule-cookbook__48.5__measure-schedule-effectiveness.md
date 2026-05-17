@@ -11,10 +11,7 @@ code_included: true
 # 48.5 Measure schedule effectiveness
 
 A retry or polling schedule is only helpful when it improves the outcome more
-than it increases latency and load. Measure the policy as a production behavior,
-not just as a piece of timing code: how often it schedules another recurrence,
-how long it waits, how often the later attempt succeeds, and what pressure it
-adds to the downstream system.
+than it increases latency and load.
 
 ## Problem
 

@@ -10,11 +10,16 @@ code_included: true
 
 # 39.5 Repeat with spacing plus external cancellation
 
-Use a schedule to describe the repeat cadence, and use Effect interruption to stop the running workflow from the outside. These are different responsibilities. `Schedule` decides when the next successful iteration should happen. Cancellation decides whether the whole repeated effect should keep running at all.
+Use a schedule for repeat cadence and Effect interruption for lifetime. The
+schedule decides when the next successful iteration should happen; cancellation
+stops the fiber running the loop.
 
 ## Problem
 
-You have a background action such as a heartbeat, sync, metrics flush, lease refresh, or maintenance step. It should run once, then repeat with a fixed gap after each successful run. Separately, an external shutdown signal must be able to stop it immediately, including while it is sleeping between runs.
+You have a heartbeat, sync, metrics flush, lease refresh, or maintenance step
+that should run once, then repeat with a fixed gap after each successful run.
+An external shutdown signal must be able to stop it immediately, including
+while it is sleeping between runs.
 
 Do not put cancellation into the schedule by polling mutable state from `Schedule.while`. A schedule only makes a decision after the effect has produced an input for the next scheduling step. External cancellation should interrupt the fiber that is running the repeated effect.
 

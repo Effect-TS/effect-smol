@@ -20,13 +20,14 @@ should stop cleanly when there is nothing left to do.
 
 ## Problem
 
-You have an effect that drains a bounded amount of work from a queue. One run is
-always useful because it discovers the current state. After that first run, you
-want to continue only while the drain result says more work remains.
+A queue-drain effect processes one bounded batch and returns a result such as
+`{ processed, remaining }`. One run is always useful because it discovers the
+current backlog; after that, the schedule should continue only while `remaining`
+says work is left.
 
-Do not encode that decision with a mutable loop counter or a sleep hidden inside
-the worker. Make the stop condition part of the schedule so reviewers can see
-both the cadence and the termination rule.
+Keep that decision in the schedule so reviewers can see both the cadence and the
+termination rule, instead of finding a mutable loop counter or sleep hidden
+inside the worker.
 
 ## When to use it
 

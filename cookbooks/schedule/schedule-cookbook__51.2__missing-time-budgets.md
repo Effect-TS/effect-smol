@@ -12,13 +12,8 @@ code_included: false
 
 Missing time budgets are an anti-pattern because they make a retry policy look
 bounded while leaving its real cost open. A count such as `Schedule.recurs(5)`
-answers only "how many retry decisions may be made?" It does not answer "how
-long may the caller wait?"
-
-That distinction matters most when retries are attached to user requests,
-startup paths, queue workers, webhook delivery, reconnect loops, and dependency
-calls. Attempt counts feel precise, but elapsed time is what callers experience
-and what systems must reserve capacity for.
+answers how many retry decisions may be made, but not how long the caller may
+wait.
 
 ## The anti-pattern
 
@@ -35,7 +30,7 @@ window even though the schedule is "bounded."
 The anti-pattern is not "using retry counts." Counts are useful. The
 anti-pattern is using counts as a substitute for an elapsed budget when the
 operation has a latency promise, lease window, startup deadline, user request
-deadline, or operational recovery window.
+deadline, operational recovery window, or capacity reservation.
 
 ## Why it happens
 

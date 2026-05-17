@@ -10,18 +10,8 @@ code_included: true
 
 # 43.3 Retry HTTP POST with idempotency key
 
-HTTP `POST` requests often create or mutate state, so retrying them blindly can
-create duplicate orders, duplicate payments, duplicate tickets, or duplicate
-commands. Before you add a retry schedule to a `POST`, make the operation
-idempotent at the protocol boundary.
-
-For many APIs, that means sending an idempotency key with every attempt. The key
-identifies one logical command. If the first request reached the server but the
-response was lost, a later request with the same key can be recognized as the
-same command instead of a second command.
-
-`Schedule` then controls retry pressure: how long to wait, how quickly to back
-off, and where to stop.
+HTTP `POST` retries need a duplicate-safety contract before any schedule is
+added, such as an idempotency key at the protocol boundary.
 
 ## Problem
 

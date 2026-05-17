@@ -10,7 +10,7 @@ code_included: false
 
 # 54.3 Using composition when a simpler policy would do
 
-Using composition when a simpler policy would do is an anti-pattern because it makes the schedule harder to read without changing the operational requirement. If the requirement is only "wait this long between runs", "try this many more times", or "keep going during this window", a composed schedule makes readers reverse-engineer behavior that `Schedule.spaced`, `Schedule.recurs`, or `Schedule.during` can state directly.
+Composition should pay for itself by expressing a real multi-part requirement. This section covers schedules that use combinators where a direct constructor would state the policy more clearly.
 
 ## The anti-pattern
 

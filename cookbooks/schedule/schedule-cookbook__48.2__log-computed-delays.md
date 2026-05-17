@@ -14,11 +14,6 @@ Backoff policies are easier to operate when the chosen delay is visible in the
 logs. A retry that says only "trying again" leaves operators guessing whether
 the next wait is 100 milliseconds, 30 seconds, or several minutes.
 
-`Schedule` already computes the next delay at each decision point. For schedule
-constructors whose output is the delay, such as `Schedule.exponential`,
-`Schedule.fibonacci`, `Schedule.duration`, and `Schedule.cron`, use
-`Schedule.tapOutput` to log that output without changing the policy.
-
 ## Problem
 
 You want retry logs to include the next computed wait while keeping the retry

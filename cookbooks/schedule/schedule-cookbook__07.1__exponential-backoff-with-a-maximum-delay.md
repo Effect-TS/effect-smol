@@ -10,20 +10,14 @@ code_included: true
 
 # 7.1 Exponential backoff with a maximum delay
 
-You want retry delays to grow after repeated failures, but only up to a maximum.
-Exponential backoff is useful at the start of an outage because it quickly reduces
-pressure on a dependency. This recipe keeps the retry policy explicit: the schedule
-decides when another typed failure should be attempted again and where retrying stops.
-The surrounding Effect code remains responsible for domain safety, including which
-failures are transient, whether the operation is idempotent, and how the final failure
-is reported.
+This recipe shows how to cap exponential backoff so retry delays grow early without
+exceeding a maximum wait.
 
 ## Problem
 
-You want retry delays to grow after repeated failures, but only up to a
-maximum. Exponential backoff is useful at the start of an outage because it
-quickly reduces pressure on a dependency. Left unbounded, though, the delay can
-grow beyond the latency budget for one request.
+Uncapped exponential backoff can grow beyond the latency budget for one
+request, even when the first few retries are useful for reducing pressure on a
+dependency.
 
 Build the cap by composing schedules:
 

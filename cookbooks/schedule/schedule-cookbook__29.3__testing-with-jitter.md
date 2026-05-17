@@ -10,12 +10,8 @@ code_included: true
 
 # 29.3 Testing with jitter
 
-Jitter makes a schedule intentionally less predictable. That is useful in
-production, but it changes what a good test should prove. Test the durable
-contract: the operation retries or repeats the right number of times, stops for
-the right reason, and waits within the range allowed by the jittered schedule.
-Do not make the test depend on one exact sleep value unless the test owns the
-random seed and the exact generated sequence is itself the subject under test.
+Jittered schedules should be tested as bounded timing contracts. The exact sleep
+can vary; the retry count, stopping behavior, and allowed delay range should not.
 
 ## Problem
 

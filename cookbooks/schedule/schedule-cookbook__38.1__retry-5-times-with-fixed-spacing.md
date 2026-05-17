@@ -11,20 +11,14 @@ code_included: true
 # 38.1 Retry 5 times with fixed spacing
 
 You want a failing effect to run once immediately, then retry at most five
-times with the same delay before each retry. The delay should be obvious in the
-schedule, and the retry limit should be visible at the same boundary.
-
-This is a composition of two ideas:
-
-- `Schedule.spaced("1 second")` decides when the next retry may happen
-- `Schedule.recurs(5)` decides how many retries are allowed after the original
-  attempt
+times with the same delay before each retry. Compose the fixed spacing and retry
+limit so both parts are visible at the retry boundary.
 
 ## Problem
 
-You need a bounded retry policy for a transient operation. The first attempt
-should happen right away. If it fails, the next five retries should be spaced by
-a fixed interval.
+You need a bounded retry policy for a transient operation such as an inventory
+lookup or startup check. The first attempt should happen right away. If it
+fails, the next five retries should be spaced by a fixed interval.
 
 The policy should make the off-by-one rule clear: "retry five times" means one
 original attempt plus up to five retries, for at most six total attempts.

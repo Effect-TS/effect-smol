@@ -10,21 +10,16 @@ code_included: true
 
 # 6.3 Backoff for overloaded downstream services
 
-A downstream service is telling you it is under pressure: it returns overload errors,
-rejects requests, or fails because a connection pool is saturated. Retrying immediately
-keeps the pressure high. This recipe keeps the retry policy explicit: the schedule
-decides when another typed failure should be attempted again and where retrying stops.
-The surrounding Effect code remains responsible for domain safety, including which
-failures are transient, whether the operation is idempotent, and how the final failure
-is reported.
+This recipe applies exponential backoff when a downstream service reports overload.
+The schedule controls the growing retry delays, while the surrounding Effect code
+remains responsible for filtering typed failures and preserving idempotency.
 
 ## Problem
 
-A downstream service is telling you it is under pressure: it returns overload
-errors, rejects requests, or fails because a connection pool is saturated.
-Retrying immediately keeps the pressure high. Retrying with a small constant
-delay can still send a steady stream of work into a dependency that needs room
-to recover.
+A downstream service may return overload errors, reject requests, or fail
+because a connection pool is saturated. You need repeated failures to increase
+the retry delay so the caller contributes less traffic while the dependency has
+room to recover.
 
 Use `Schedule.exponential(base)` with `Effect.retry` when each consecutive
 failure should make the next retry wait longer. Bound the policy with

@@ -10,19 +10,16 @@ code_included: true
 
 # 5.5 Retry with different fixed delays for different environments
 
-You want the same retry policy shape in every environment, but the fixed delay should be
-different. For example, local development can retry quickly, staging can use a moderate
-pause, and production can wait longer between retries. This recipe keeps the retry
-policy explicit: the schedule decides when another typed failure should be attempted
-again and where retrying stops. The surrounding Effect code remains responsible for
-domain safety, including which failures are transient, whether the operation is
-idempotent, and how the final failure is reported.
+This recipe shows how to keep one fixed-delay retry shape while selecting the delay
+from the environment. The schedule controls the retry timing, while the surrounding
+Effect code remains responsible for keeping the retry budget and safety rules explicit.
 
 ## Problem
 
-You want the same retry policy shape in every environment, but the fixed delay
-should be different. For example, local development can retry quickly, staging
-can use a moderate pause, and production can wait longer between retries.
+Local development, staging, and production may need different retry pacing even
+when the operation, retry budget, and error filtering stay the same. You need to
+choose the fixed delay before building the schedule, without changing the rest
+of the policy shape.
 
 Use `Schedule.spaced(delay)` to represent the fixed delay, and choose the delay
 before passing the schedule to `Effect.retry`.

@@ -12,14 +12,7 @@ code_included: true
 
 A CRM sync is a background product workflow with externally visible side effects:
 contacts, companies, lead scores, lifecycle stages, and activity history may be
-read from one system and written into another. The schedule should make the
-recurrence policy explicit so readers can see whether the next sync is measured
-from the previous start time or from the previous completion time.
-
-For most CRM sync workers, the safer default is a spaced repeat. Run one sync,
-let it finish, then wait a few minutes before starting the next sync. That shape
-avoids overlapping sync passes and leaves room for rate limits, database load,
-and remote API consistency delays.
+read from one system and written into another.
 
 ## Problem
 

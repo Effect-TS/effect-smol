@@ -11,11 +11,7 @@ code_included: false
 # 52.5 Poll when a push-based model would be better
 
 Polling when a push-based model would be better is an anti-pattern because it
-uses recurrence to compensate for the wrong architecture. `Schedule` can make a
-poll loop slower, bounded, jittered, or easier to reason about, but it cannot
-turn repeated guessing into an event-driven design. If the producer already
-knows when something changed, the consumer should usually react to that signal
-instead of repeatedly asking whether the change happened yet.
+uses recurrence to compensate for the wrong architecture.
 
 ## The anti-pattern
 
@@ -30,7 +26,9 @@ The schedule may look careful. It might use `Schedule.spaced` for a predictable
 delay, `Schedule.fixed` for a wall-clock cadence, `Schedule.jittered` to avoid
 fleet synchronization, or `Schedule.take` / `Schedule.recurs` to avoid running
 forever. Those are useful controls for legitimate polling. They do not change
-the fact that every poll is still a speculative read.
+the fact that every poll is still a speculative read. `Schedule` can make the
+loop slower, bounded, jittered, or easier to reason about, but it cannot turn
+repeated guessing into an event-driven design.
 
 ## Why it happens
 

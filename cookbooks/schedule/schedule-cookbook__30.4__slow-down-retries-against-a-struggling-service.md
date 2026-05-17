@@ -10,13 +10,9 @@ code_included: true
 
 # 30.4 Slow down retries against a struggling service
 
-When a dependency is already struggling, fast retries are not neutral. They can
-turn a temporary overload into a larger incident by sending the same work back
-to the service before it has recovered.
-
-Use a backoff schedule when retrying might help, but each retry should apply less
-pressure than the previous one. The delay is not just waiting for success. It is
-load protection for the service you are calling.
+Backoff retries protect a struggling dependency by increasing the wait after
+repeated failures. The delay is part of load protection, not just waiting for
+success.
 
 ## Problem
 

@@ -10,12 +10,9 @@ code_included: true
 
 # 20.3 Poll until a cache entry appears
 
-Cache polling is a narrower form of output-driven polling: the lookup succeeds
-even when the entry is not present yet. That missing result is ordinary data,
-not a failure, and it should be the value that drives the schedule. Use a small
-spaced poll to observe asynchronous warm-up, a write-through delay, or another
-process populating the cache, then stop as soon as the latest successful lookup
-reports a present entry.
+Cache polling is a narrower form of output-driven polling. A small spaced poll
+can observe cache population without treating an ordinary miss as an effect
+failure.
 
 ## Problem
 

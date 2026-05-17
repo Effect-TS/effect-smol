@@ -11,14 +11,8 @@ code_included: true
 # 33.5 Coordinate retry and rate-limit handling
 
 Retries and rate limits answer different questions. Retry classification decides
-whether another attempt is allowed at all. The schedule decides when that attempt
-may happen. Keep those decisions close together, but do not blur them into one
-generic "try again later" policy.
-
-For rate-limited calls, the retry error often contains useful protocol data:
-`Retry-After`, reset time, remaining quota, or a provider-specific cooldown. A
-good schedule should preserve that signal instead of treating a `429` like an
-ordinary temporary failure.
+whether another attempt is allowed; the schedule decides when that attempt may
+happen.
 
 ## Problem
 

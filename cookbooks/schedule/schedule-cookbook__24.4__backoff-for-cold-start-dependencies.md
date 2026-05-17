@@ -10,26 +10,20 @@ code_included: true
 
 # 24.4 Backoff for cold-start dependencies
 
-Cold starts are noisy. A service instance boots, opens its database pool,
-loads configuration, warms caches, and tries to contact dependencies that may
-be starting at the same time. During a deploy or scale-out event, many
-instances can do this together.
+Cold-start checks need to be responsive when dependencies are ready and gentle
+when they are not. During deploys or scale-out, many instances may be opening
+pools, loading config, warming caches, and contacting dependencies at the same
+time.
 
-Use exponential backoff for startup readiness checks so the first check happens
-immediately, but repeated failures quickly become less aggressive. This keeps
-startup responsive when the dependency is already ready, while avoiding a storm
-of connection attempts when the dependency is still cold.
+Use exponential backoff for startup readiness checks. The first check happens
+immediately; repeated failures quickly become less aggressive so cold
+dependencies are not hit with a tight retry loop.
 
 ## Problem
 
-Your application cannot finish startup until a dependency is ready. The
-dependency may be a database accepting connections, a cache loading a snapshot,
-or a local sidecar that starts a few seconds after the main process.
-
-A tight retry loop creates exactly the wrong behavior under cold-start
-pressure: every instance asks the dependency again immediately, the dependency
-gets less time to recover, and the fleet synchronizes around the same failing
-check.
+Your application has a startup readiness check for a dependency such as a
+database, cache, or local sidecar. That check should control whether the process
+becomes ready or fails startup.
 
 You want a policy that:
 

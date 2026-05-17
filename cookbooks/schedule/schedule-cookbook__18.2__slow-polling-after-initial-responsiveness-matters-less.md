@@ -10,20 +10,11 @@ code_included: true
 
 # 18.2 Slow polling after initial responsiveness matters less
 
-You have already given the caller an initial responsive polling window. The work is
-still not finished, but the next few seconds are no longer critical: the user can wait,
-the UI can show progress, or the workflow can continue in the background. This recipe
-treats polling as repeated successful observations. The schedule controls cadence and
-the condition for taking another observation, while the surrounding Effect code
-interprets terminal states, missing data, stale reads, and real failures. Keeping those
-responsibilities separate makes the polling loop easier to bound and diagnose.
+Use this recipe for the slower phase after an initial responsive polling window
+has already passed. The goal is to keep observing progress without continuing
+the early high-frequency cadence.
 
 ## Problem
-
-You have already given the caller an initial responsive polling window. The
-work is still not finished, but the next few seconds are no longer critical:
-the user can wait, the UI can show progress, or the workflow can continue in
-the background.
 
 At this point, continuing to poll every few hundred milliseconds mostly creates
 load. The polling policy should switch to a slower cadence while still stopping

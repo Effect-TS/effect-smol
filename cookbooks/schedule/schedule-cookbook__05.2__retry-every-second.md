@@ -10,18 +10,16 @@ code_included: true
 
 # 5.2 Retry every second
 
-You want a failing effect to try again after a clear, fixed delay of one second. The
-delay should not grow, shrink, jitter, or depend on the error. This recipe keeps the
-retry policy explicit: the schedule decides when another typed failure should be
-attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe shows a readable fixed-delay retry policy using
+`Schedule.spaced("1 second")` with `Effect.retry`. The schedule controls the retry
+timing, while the surrounding Effect code remains responsible for deciding which typed
+failures are safe to retry.
 
 ## Problem
 
-You want a failing effect to try again after a clear, fixed delay of one second.
-The delay should not grow, shrink, jitter, or depend on the error. Every retry
-should wait one second before the next attempt.
+A failure may be temporary, but retrying immediately would be too noisy or too
+aggressive. You need each retry after the original attempt to wait exactly one
+second, with no growth, shrinkage, jitter, or error-dependent timing.
 
 Use `Schedule.spaced("1 second")` with `Effect.retry` for this policy.
 

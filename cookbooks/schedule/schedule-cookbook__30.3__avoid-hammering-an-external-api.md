@@ -10,14 +10,8 @@ code_included: true
 
 # 30.3 Avoid hammering an external API
 
-External APIs often publish rate limits, but a retry loop can violate those
-limits long before anyone notices. If every timeout, `429`, or temporary `503`
-is retried immediately, the client adds pressure exactly when the dependency is
-least able to absorb it.
-
-Use a schedule to make the spacing contract visible. The first request still
-happens immediately. The schedule controls only the follow-up attempts after a
-failure has been produced.
+Use a schedule to make retry spacing explicit for external APIs. The first call
+is immediate, and only follow-up attempts after a failure are paced.
 
 ## Problem
 

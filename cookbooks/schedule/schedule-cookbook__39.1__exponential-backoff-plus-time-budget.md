@@ -10,10 +10,8 @@ code_included: true
 
 # 39.1 Exponential backoff plus time budget
 
-Exponential backoff answers "how long should we wait before trying again?"
-A time budget answers "how long is this retry window allowed to stay open?"
-This recipe combines those two concerns without turning either one into an
-implicit loop counter.
+Combine a growing retry delay with an elapsed retry window when the caller cares
+about bounded recovery time more than a fixed attempt count.
 
 Use `Schedule.exponential` for the growing delays, and compose it with
 `Schedule.during` for the elapsed budget:
@@ -29,10 +27,10 @@ window is still open.
 
 ## Problem
 
-You are calling a dependency that may recover quickly from transient failures,
-but you do not want retrying to continue indefinitely. A fixed retry count is
-not the real requirement: the caller can tolerate a bounded recovery window,
-and the dependency should see less pressure after repeated failures.
+You are calling a dependency that sometimes returns retryable failures during
+deploys, restarts, or load spikes. The caller can wait through a short recovery
+window, but retrying should slow down after repeated failures and stop when that
+window is exhausted.
 
 You want one policy that makes both parts visible:
 

@@ -10,24 +10,17 @@ code_included: true
 
 # 16.5 Poll cloud provisioning until ready
 
-You asked a cloud provider to create a resource, such as a database, bucket, cluster,
-VM, or service account. The create request returned a resource id, but the resource is
-not usable immediately. This recipe treats polling as repeated successful observations.
-The schedule controls cadence and the condition for taking another observation, while
-the surrounding Effect code interprets terminal states, missing data, stale reads, and
-real failures. Keeping those responsibilities separate makes the polling loop easier to
-bound and diagnose.
+Use polling when a cloud resource has been accepted for creation but is not usable yet.
+This recipe keeps successful provisioning observations separate from request failures
+and cloud-domain interpretation.
 
 ## Problem
 
-You asked a cloud provider to create a resource, such as a database, bucket,
-cluster, VM, or service account. The create request returned a resource id, but
-the resource is not usable immediately.
-
-The provider exposes a read-only status endpoint. Successful responses can say
-that provisioning is still `"pending"` or `"creating"`, that the resource is
-`"ready"`, or that provisioning reached a domain failure such as
-`"provisioning_failed"`.
+After a create request returns a resource id for a database, bucket, cluster,
+VM, or service account, the provider exposes a read-only status endpoint.
+Successful responses can say that provisioning is still `"pending"` or
+`"creating"`, that the resource is `"ready"`, or that provisioning reached a
+domain failure such as `"provisioning_failed"`.
 
 Those statuses are part of the cloud resource domain. They are not the same as
 effect failures. The status-check effect should fail only when the status could

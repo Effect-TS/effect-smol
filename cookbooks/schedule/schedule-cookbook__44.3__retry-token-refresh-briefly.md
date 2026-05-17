@@ -10,14 +10,8 @@ code_included: true
 
 # 44.3 Retry token refresh briefly
 
-Refreshing an access token sits on a user-facing path: the caller is usually
-waiting to continue an API request, render a page, or keep a session alive. A
-short retry can smooth over a dropped connection or temporary auth-service
-blip, but a long retry can make the application feel frozen and can create
-extra pressure on the same service that is already struggling.
-
-The policy should therefore be narrow: retry only transient refresh failures,
-wait for a very small backoff, and stop quickly.
+Token refresh retries sit on an interactive path, so the policy must stay
+narrow and brief.
 
 ## Problem
 

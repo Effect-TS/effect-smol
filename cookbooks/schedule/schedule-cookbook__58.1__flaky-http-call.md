@@ -10,19 +10,13 @@ code_included: false
 
 # 58.1 Flaky HTTP call
 
-A flaky HTTP call is not one retry problem. It is a cluster of smaller
-decisions: which failures are transient, whether repeating the request is safe,
-how quickly the caller needs an answer, and how much extra traffic the
-downstream service can absorb.
-
-This reference entry maps that problem shape back to existing retry recipes. It
-does not introduce a new `Schedule` primitive. Use it when the symptom is
-"HTTP sometimes fails" and the next step is choosing the smallest defensible
-policy.
+Use this reference when an HTTP call sometimes fails and the next decision is
+whether retrying is safe before choosing a delay.
 
 ## What this section is about
 
-Start by classifying the call, not by picking a delay.
+Start by classifying the call, not by picking a delay. Method safety, failure
+class, caller latency, and downstream capacity lead to different recipes.
 
 For read-only calls, see 11.1 Safe retries for GET requests and 43.2 Retry HTTP
 GET on 503. A GET that fails with a timeout, connection reset, `502`, `503`, or

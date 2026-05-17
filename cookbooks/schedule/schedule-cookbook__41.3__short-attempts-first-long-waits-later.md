@@ -22,10 +22,9 @@ decisions.
 
 ## Problem
 
-You need a policy that tries or polls quickly at first, but stops putting
-frequent pressure on the dependency if the operation takes longer than expected.
-The behavior should be visible from the schedule value instead of being hidden
-inside counters, sleeps, or branching loops.
+Build one schedule value with two independently named phases. Reviewers should
+be able to see the handoff from the short responsive window to the longer
+patient window without reading counters, sleeps, or branching loops.
 
 ## When to use it
 

@@ -10,21 +10,21 @@ code_included: true
 
 # 32.4 Respect provider quotas
 
-Provider quotas turn retry timing into part of your API contract. If a vendor
-allows one request per second for a tenant, a retry policy that fires three
-quick attempts after a timeout can violate the quota even though the code looks
-small and local.
-
-Use a fixed-spacing schedule when the important rule is a minimum gap between
-attempts. The first call still happens immediately. The schedule controls only
-the follow-up attempts after a typed failure has been produced.
+Provider quotas turn retry timing into part of your API contract. Use a
+fixed-spacing schedule when the important rule is a minimum gap between
+attempts: the first call still happens immediately, and the schedule controls
+only the follow-up attempts after a typed failure.
 
 ## Problem
 
-You call a provider that enforces a documented per-tenant quota. Some failures
-are worth retrying: temporary network loss, `429 Too Many Requests`, or a
-short-lived server error. Other failures should stop immediately: malformed
-requests, invalid credentials, forbidden access, or an exhausted hard quota.
+A provider enforces a documented per-tenant quota, such as one request per
+second. A retry policy that fires several quick attempts after a timeout can
+violate that quota even though the code looks small and local.
+
+Some failures are worth retrying: temporary network loss, `429 Too Many
+Requests`, or a short-lived server error. Other failures should stop
+immediately: malformed requests, invalid credentials, forbidden access, or an
+exhausted hard quota.
 
 You want the retry policy to show three things directly:
 

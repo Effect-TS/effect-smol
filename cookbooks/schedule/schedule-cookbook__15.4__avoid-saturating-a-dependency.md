@@ -10,19 +10,15 @@ code_included: true
 
 # 15.4 Avoid saturating a dependency
 
-You have a successful repeated effect that calls a downstream dependency, such as a
-database, cache, queue, or internal service. If each successful iteration immediately
-starts the next one, the loop can keep pressure on that dependency even when every
-individual call succeeds. This recipe treats repetition as a policy for successful
-effects. The schedule decides whether another successful iteration should run, what
-spacing applies, and what value the repeat returns. Failures stay in the effect error
-channel, so the repeat policy stays separate from recovery or retry behavior.
+Use spacing when a successful repeat loop calls a shared downstream dependency and
+should not keep it under continuous pressure. This recipe keeps the pacing policy
+separate from failure recovery.
 
 ## Problem
 
-You have a successful repeated effect that calls a downstream dependency, such as a database, cache, queue, or internal service.
-
-If each successful iteration immediately starts the next one, the loop can keep pressure on that dependency even when every individual call succeeds. The dependency may stay busy, queues may grow, or other callers may see worse latency because the repeat loop never gives the system room to settle.
+A loop that calls a database, cache, queue, or internal service can keep that dependency
+busy even when every individual call succeeds. Queues may grow, or other callers may
+see worse latency, because the repeat loop never gives the system room to settle.
 
 ## When to use it
 

@@ -10,15 +10,17 @@ code_included: false
 
 # 50.5 Retry without error classification
 
-Retrying without error classification is an anti-pattern because it asks a timing policy to make a domain decision. `Schedule` describes recurrence: when another attempt may happen, how long to wait, how many recurrences are allowed, how delays combine, and whether delay should be jittered. It does not know whether a failure is transient, permanent, or fatal for the current operation.
-
-That distinction must be made before retry. A transient failure is the narrow case where another attempt may observe a different result: a timeout, temporary unavailability, rate limit, connection reset, leader election, or brief overload. A permanent failure is already decided for this request: invalid input, malformed data, missing configuration, authorization denial, or a business-rule rejection. A fatal failure means the operation should not continue under the same workflow at all: corrupted state, an invariant violation, an unsafe side effect with unknown outcome, or a dependency response that requires manual reconciliation.
-
-If all three categories flow into the same retry schedule, the system stops communicating what kind of failure occurred. Everything becomes "try again later", even when waiting cannot make the request correct or safe.
+Retrying without error classification is an anti-pattern because it asks a
+timing policy to make a domain decision.
 
 ## The anti-pattern
 
-The problematic version starts with a shared retry policy and applies it before the error model is understood. A client, worker, repository, or service helper wraps an operation in a broad schedule because some failures are retryable. The same policy then handles timeouts, rate limits, validation errors, authorization failures, malformed requests, declined payments, duplicate-key errors, and invariant violations.
+The problematic version starts with a shared retry policy and applies it before
+the error model is understood. A client, worker, repository, or service helper
+wraps an operation in a broad schedule because some failures are retryable. The
+same policy then handles timeouts, rate limits, validation errors,
+authorization failures, malformed requests, declined payments, duplicate-key
+errors, and invariant violations.
 
 The schedule may look responsible. It might use exponential backoff, a fixed spacing, a recurrence cap, an elapsed-time budget, and jitter. Those controls shape retry traffic, but they do not classify the error. A bounded retry of a permanent failure is still a delayed permanent failure. A jittered retry of a fatal failure is still a workflow continuing after it should have stopped.
 

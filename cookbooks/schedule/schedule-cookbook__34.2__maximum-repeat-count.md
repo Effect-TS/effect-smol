@@ -10,10 +10,8 @@ code_included: true
 
 # 34.2 Maximum repeat count
 
-Use a maximum repeat count when a successful effect may run again, but only a
-known number of times. The important detail is that the first execution is not a
-scheduled recurrence. `Effect.repeat` runs the effect once, feeds each successful
-value into the schedule, and the schedule decides whether another run is allowed.
+A maximum repeat count bounds successful recurrences while keeping the effect
+body focused on one unit of work.
 
 ## Problem
 

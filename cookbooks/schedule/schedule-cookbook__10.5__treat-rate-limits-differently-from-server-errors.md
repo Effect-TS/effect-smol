@@ -10,18 +10,15 @@ code_included: true
 
 # 10.5 Treat rate limits differently from server errors
 
-A `429 Too Many Requests` response and a `503 Service Unavailable` response can both be
-transient, but they do not mean the same thing. A 5xx response usually says the server
-failed to handle the request. This recipe keeps the retry policy explicit: the schedule
-decides when another typed failure should be attempted again and where retrying stops.
-The surrounding Effect code remains responsible for domain safety, including which
-failures are transient, whether the operation is idempotent, and how the final failure
-is reported.
+Use this recipe when rate limits and server failures both look transient but
+need different retry behavior. The schedule choice should reflect the typed
+failure, not just the fact that retrying is possible.
 
 ## Problem
 
-A `429 Too Many Requests` response and a `503 Service Unavailable` response can
-both be transient, but they do not mean the same thing.
+Model `429 Too Many Requests` and `503 Service Unavailable` as different typed
+errors before choosing a schedule. Treating them separately keeps the retry
+policy aligned with the signal each response carries.
 
 A 5xx response usually says the server failed to handle the request. The caller
 should back off, add jitter, and stop after a small budget. A rate-limit
@@ -29,8 +26,8 @@ response usually says the caller is sending too much traffic. The caller should
 respect the server's retry guidance, reduce pressure, and avoid turning retries
 into more rate-limit traffic.
 
-Model these cases as different typed errors and give them different retry
-schedules.
+The examples below keep those cases separate and give each one its own retry
+schedule.
 
 ## Why this comparison matters
 

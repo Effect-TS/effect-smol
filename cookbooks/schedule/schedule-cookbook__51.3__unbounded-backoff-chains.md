@@ -10,13 +10,13 @@ code_included: false
 
 # 51.3 Unbounded backoff chains
 
-Unbounded backoff chains are an anti-pattern because they make a retry policy look increasingly conservative while the operation itself remains alive forever. The growing delay can hide the problem from dashboards and operators, but it does not create a real recovery contract. It only stretches the failure into a long tail.
+Unbounded backoff chains are an anti-pattern because increasing delay can make a retry policy look conservative while leaving the operation alive forever.
 
 ## The anti-pattern
 
 The problematic version uses an unbounded backoff schedule as the whole retry story. A policy based on `Schedule.exponential("200 millis")` looks reasonable at first because each attempt waits longer than the last. In `Schedule`, however, `exponential` is a schedule that always recurs. By itself, it has no maximum attempt count, no elapsed time budget, and no maximum single delay.
 
-That means the schedule can keep a failed operation around long after the caller, job, or incident response process expects a decision. After enough attempts the next sleep may be minutes or hours away, but the work is still pending and may still retry later.
+That missing recovery contract only stretches the failure into a long tail. After enough attempts the next sleep may be minutes or hours away, but the work is still pending and may still retry after the caller, job, or incident response process expected a decision.
 
 ## Why it happens
 

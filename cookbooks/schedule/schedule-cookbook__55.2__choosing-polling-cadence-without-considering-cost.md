@@ -10,18 +10,9 @@ code_included: false
 
 # 55.2 Choosing polling cadence without considering cost
 
-Choosing polling cadence without considering cost is an anti-pattern because a
-small interval can look harmless in one process while becoming expensive across
-a fleet. Polling is not just "sleep and check again." Each recurrence consumes
-caller resources, dependency capacity, network bandwidth, log volume, metrics
-cardinality, and often database or queue read budget.
-
-In Effect, a `Schedule` makes recurrence explicit. That is useful only if the
-schedule also reflects the operational contract. A one-second
-`Schedule.spaced` policy may be appropriate for one short-lived provisioning
-request. The same policy can be reckless when hundreds of service instances,
-workers, browser tabs, or tenants run it continuously against a shared
-dependency.
+Polling cadence is an operational-cost decision. In Effect, a `Schedule` makes
+recurrence explicit, but the interval still has to match the resources, quotas,
+and lifetime of the workflow.
 
 ## The anti-pattern
 

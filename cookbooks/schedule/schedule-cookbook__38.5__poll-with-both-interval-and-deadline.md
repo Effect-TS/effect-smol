@@ -17,8 +17,9 @@ instead of hiding a sleep and a clock check inside a loop.
 
 ## Problem
 
-You need to poll a status endpoint every few seconds, but only until either the
-job reaches a terminal state or the polling window expires.
+You need to poll a job, export, provisioning, payment, or deployment status
+endpoint every few seconds, but only until either the work reaches a terminal
+state or the polling window expires.
 
 The first status read should happen immediately. After each successful
 non-terminal read, wait for the interval before checking again. If the elapsed

@@ -10,7 +10,8 @@ code_included: false
 
 # 56.1 “I need to retry a flaky call”
 
-Use this entry when the operation is expected to succeed if tried again, but only under a controlled policy. A flaky call is not a license to retry forever. It is a reason to choose a delay shape, a limit, and a safety rule before writing the retry.
+Use this entry when an operation is likely to succeed if tried again, but only
+under a bounded, explicit retry policy.
 
 ## What this section is about
 

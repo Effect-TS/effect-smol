@@ -10,18 +10,16 @@ code_included: true
 
 # 45.3 Poll rollout status
 
-You have started a rollout and need to poll the control plane until the rollout
-is no longer running. The status endpoint returns successful responses for all
-domain states: still running, succeeded, and failed.
-
-Use `Effect.repeat` for the polling loop and let the schedule inspect each
-successful status value. The first status read happens immediately. After that,
-the schedule decides whether to wait and read again.
+Rollout polling turns an external deployment's progress into a bounded wait.
+The status endpoint reports domain states as successful responses, so the
+schedule should inspect those values rather than treat unfinished work as an
+error.
 
 ## Problem
 
-You need to keep polling while the rollout is running, then stop as soon as the
-status says the rollout has either succeeded or failed.
+A deploy controller has a rollout id and needs one final outcome: succeeded,
+failed, or still running when the polling budget expires. While the latest
+status is `"running"`, it should wait and read again.
 
 The important boundary is between read failures and rollout failures. A timeout
 or malformed response from the status endpoint belongs in the Effect error

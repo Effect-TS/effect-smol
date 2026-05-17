@@ -10,11 +10,10 @@ code_included: true
 
 # 24.1 Backoff for unstable remote APIs
 
-Remote APIs often fail for reasons that are real but temporary: a gateway timeout,
-a short rate-limit window, a rolling deploy, or an overloaded dependency behind
-the endpoint. Retrying immediately can turn those failures into more load. A
-backoff schedule gives the dependency time to recover while keeping the retry
-contract visible in code.
+Remote APIs often fail for reasons that are real but temporary: a gateway
+timeout, a short rate-limit window, a rolling deploy, or an overloaded dependency
+behind the endpoint. A bounded backoff schedule gives the dependency time to
+recover while keeping the retry contract visible in code.
 
 Use `Schedule.exponential` as the base shape when each failed attempt should wait
 longer than the previous one. Then add limits so the policy cannot retry

@@ -10,23 +10,15 @@ code_included: true
 
 # 16.3 Poll an export job until ready
 
-You have started an export job, such as a CSV or report export, and the export service
-returns an id before the file is ready. Your program needs to poll the status endpoint
-until the export is ready to download. This recipe treats polling as repeated successful
-observations. The schedule controls cadence and the condition for taking another
-observation, while the surrounding Effect code interprets terminal states, missing data,
-stale reads, and real failures. Keeping those responsibilities separate makes the
-polling loop easier to bound and diagnose.
+Use polling when an export service returns an id before the exported file is ready.
+This recipe keeps successful status observations separate from request failures and
+export-domain interpretation.
 
 ## Problem
 
-You have started an export job, such as a CSV or report export, and the export
-service returns an id before the file is ready. Your program needs to poll the
-status endpoint until the export is ready to download.
-
-The status request can succeed while the export is still `"running"`. That is a
-domain state, not an effect failure. The effect should fail only when the status
-request itself cannot be performed or decoded.
+For a CSV or report export, the status request can succeed while the export is
+still `"running"`. That is a domain state, not an effect failure. The effect
+should fail only when the status request itself cannot be performed or decoded.
 
 ## When to use it
 

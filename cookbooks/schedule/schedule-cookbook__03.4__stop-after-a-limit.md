@@ -20,9 +20,8 @@ timing behavior inside ad hoc loops.
 
 ## Problem
 
-You have a recurrence policy that needs an explicit upper bound. The bound might
-be the whole policy, such as "try three more times", or it might cap another
-policy, such as "poll every second, but only twice more".
+The recurrence must have a clear stopping rule. Sometimes the limit is the
+whole policy; other times it caps an existing cadence, delay, or output shape.
 
 The small building blocks are:
 

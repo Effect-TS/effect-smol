@@ -10,22 +10,14 @@ code_included: true
 
 # 8.2 Add jitter to exponential backoff
 
-You want retry delays to grow after repeated failures, but you do not want every caller
-to retry on the same exponential schedule. Basic exponential backoff reduces pressure
-over time, but callers that fail together can still wake up together: 100 milliseconds
-later, then 200 milliseconds later, then 400 milliseconds later, and so on. This recipe
-keeps the retry policy explicit: the schedule decides when another typed failure should
-be attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe shows how to add jitter to exponential backoff so callers do not all retry
+on the same growing schedule.
 
 ## Problem
 
-You want retry delays to grow after repeated failures, but you do not want every
-caller to retry on the same exponential schedule. Basic exponential backoff
-reduces pressure over time, but callers that fail together can still wake up
-together: 100 milliseconds later, then 200 milliseconds later, then 400
-milliseconds later, and so on.
+Basic exponential backoff reduces pressure over time, but callers that fail
+together can still wake up together: 100 milliseconds later, then 200
+milliseconds later, then 400 milliseconds later, and so on.
 
 Add jitter by placing `Schedule.jittered` after the exponential schedule:
 

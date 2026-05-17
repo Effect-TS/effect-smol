@@ -10,13 +10,16 @@ code_included: false
 
 # 60.2 Fixed delay
 
-Fixed delay is the pattern where every recurrence waits by the same duration instead of growing, shrinking, or adapting over time. In Effect, the two direct constructors are `Schedule.spaced(duration)` and `Schedule.fixed(interval)`.
+Fixed delay is the steady recurrence pattern for policies that should not grow,
+shrink, or adapt over time.
 
-Use this entry to choose between "wait after each run" and "stay on a fixed cadence". Both are steady policies, but they answer different operational requirements.
+Use this entry to choose between "wait after each run" and "stay on a fixed
+cadence". Both are steady policies, but they answer different operational
+requirements.
 
 ## What this section is about
 
-This entry maps fixed-delay requirements to the Schedule constructors that express them directly:
+The direct `Schedule` constructors are:
 
 - `Schedule.spaced(duration)` recurs continuously with each repetition spaced by the given duration from the last run.
 - `Schedule.fixed(interval)` recurs on a fixed interval and outputs the repetition count so far.

@@ -10,13 +10,17 @@ code_included: false
 
 # 50.4 Retry non-idempotent side effects blindly
 
-Retrying non-idempotent side effects blindly is an anti-pattern because the schedule controls timing, not meaning. `Schedule` can describe how often an operation is retried, how delays grow, when a retry budget is exhausted, and how multiple policies combine. It cannot know whether the previous attempt already charged a card, sent an email, created an order, or reserved inventory.
-
-The dangerous case is an ambiguous failure after the request has left your process. A timeout, dropped connection, interrupted fiber, or `5xx` response may mean the dependency did nothing. It may also mean the dependency committed the side effect and failed before your service received the acknowledgement. Running the same operation again without a deduplication contract can turn uncertainty into duplication.
+Retrying non-idempotent side effects blindly is an anti-pattern because
+`Schedule` controls timing, not whether repeating the operation is safe.
 
 ## The anti-pattern
 
-The problematic version wraps a mutating operation in a broad retry policy because the failure looks transient. A shared `Schedule.exponential`, `Schedule.spaced`, or `Schedule.forever`-derived policy is attached around calls such as "capture payment", "send receipt email", "submit order", or "create shipment" before the operation has an idempotency story.
+The problematic version wraps a mutating operation in a broad retry policy
+because the failure looks transient or ambiguous. A timeout, dropped connection,
+interrupted fiber, or `5xx` response around calls such as "capture payment",
+"send receipt email", "submit order", or "create shipment" may mean the
+dependency did nothing, or it may mean the dependency committed the side effect
+before your service received the acknowledgement.
 
 The schedule may be bounded and well tuned. It may use backoff, jitter, `Schedule.recurs`, `Schedule.take`, or `Schedule.during`. Those choices can reduce load and make the retry budget visible, but they do not change the external semantics of the operation. If each attempt creates a new side effect, the policy is still unsafe.
 

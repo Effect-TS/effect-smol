@@ -10,15 +10,8 @@ code_included: true
 
 # 44.4 Reconnect WebSocket with backoff
 
-WebSocket reconnects should feel responsive at first and restrained after a
-real outage. A short first delay handles brief network changes, exponential
-backoff avoids a tight reconnect loop, and a cap keeps the UI from waiting an
-unbounded amount of time before the next visible attempt.
-
-The schedule should be part of the user-facing contract. It answers practical
-questions such as: how soon do we try again, how long can the next wait become,
-and when do we stop reconnecting and show the user that the connection is
-offline?
+WebSocket reconnect policies need to balance quick recovery with restraint
+during real outages.
 
 ## Problem
 

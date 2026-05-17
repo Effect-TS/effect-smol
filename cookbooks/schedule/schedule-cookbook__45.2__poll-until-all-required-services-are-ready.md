@@ -10,13 +10,16 @@ code_included: true
 
 # 45.2 Poll until all required services are ready
 
-Startup readiness checks often need to wait for several platform services at once: a database, a broker, a feature flag service, a cache, or an internal control plane. A good schedule makes three facts explicit: how often the process polls, which observed states are terminal, and how long startup is allowed to wait before giving up.
-
-Use `Schedule` for the recurrence policy, not for the readiness rules themselves. The readiness rules should stay in ordinary domain functions such as `allReady` and `isTerminal`; the schedule should say when another observation is allowed.
+Startup readiness polling coordinates several platform services before traffic
+opens. Keep the domain readiness rules separate from the schedule that decides
+when another observation is allowed.
 
 ## Problem
 
-You want a service to keep polling platform readiness until every required dependency is ready. If any required dependency reports a terminal failure, polling should stop immediately. If dependencies never become ready, startup should stop after a fixed budget instead of waiting forever.
+At boot, the service reads a readiness snapshot for the database, broker, and
+cache. It should keep polling while any required service is still starting, stop
+immediately if a required service reports failure, and return a timeout result
+if the fixed startup budget expires.
 
 ## When to use it
 

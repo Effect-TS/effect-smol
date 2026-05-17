@@ -10,20 +10,16 @@ code_included: true
 
 # 22.5 Why fixed delays can be enough
 
-Fixed delays are sometimes dismissed as the naive option. They are not. For
-predictable, low-volume work, a clear constant delay can be easier to operate
-than a more elaborate backoff curve. The important question is not whether the
-schedule looks sophisticated; it is whether the delay policy matches the
-failure mode and the amount of pressure the workflow can create.
+Fixed delays are sometimes dismissed as naive, but they can be the right policy
+for predictable, low-volume work. The useful question is whether the delay
+matches the failure mode and the pressure the workflow can create.
 
 ## Problem
 
-You need to choose between a fixed delay, exponential backoff, and jitter. A
-fixed delay is attractive because it is easy to explain: after each failed
-attempt, wait the same amount of time before trying again.
-
-That simplicity is useful when the operation is low volume, the dependency is
-not overloaded, and the expected recovery time is short and predictable.
+You are choosing between a steady delay, exponential backoff, and jitter for a
+bounded workflow. A fixed delay is enough when each retry has about the same
+cost, the dependency is not overloaded, and the expected recovery time is short
+and predictable.
 
 ## When fixed delay is enough
 

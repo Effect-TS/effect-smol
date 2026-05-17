@@ -19,10 +19,9 @@ recipes easier to compose without hiding timing behavior inside ad hoc loops.
 
 ## Problem
 
-You have an effect that may need to run more than once, and both `Effect.repeat`
-and `Effect.retry` accept schedules. The question is not only which timing
-policy to use. The first question is which channel should drive the next
-decision: the success channel or the error channel.
+A value-sensitive policy only sees the channel selected by the entry point. A
+polling state belongs on the success path, while a transient service error
+belongs on the failure path.
 
 Use the wrong operator and the schedule may never see the value you meant to
 inspect.

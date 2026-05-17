@@ -10,11 +10,9 @@ code_included: true
 
 # 23.1 Increase delay gradually
 
-Use a gradually increasing delay when immediate retries would be too aggressive,
-but exponential backoff would slow down too quickly. This is a common fit for
-moderate contention: refreshing a search index, reconnecting to an internal
-service, waiting for a lock, or polling a dependency that usually recovers within
-a few seconds.
+Gradual delay is a linear retry shape: each failure adds the same wait
+increment. It sits between immediate retries and exponential backoff for
+short-lived contention or warmup.
 
 Effect does not expose a `Schedule.linear` constructor. Build this shape from a
 stateful schedule with `Schedule.unfold`, then convert the state into a delay
@@ -22,7 +20,9 @@ with `Schedule.addDelay`.
 
 ## Problem
 
-You want each retry to wait a little longer than the previous one:
+A dependency usually recovers within a few seconds, but immediate retries would
+add avoidable pressure. Configure the retry policy so the waits grow by a fixed
+step:
 
 - first retry after 250 milliseconds
 - second retry after 500 milliseconds

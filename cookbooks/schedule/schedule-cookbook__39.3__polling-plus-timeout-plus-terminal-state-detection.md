@@ -10,22 +10,16 @@ code_included: true
 
 # 39.3 Polling plus timeout plus terminal-state detection
 
-Some polling loops have three separate stopping concerns: how often to poll,
-how long the caller is willing to wait overall, and which observed statuses are
-terminal. Put those concerns in the schedule instead of scattering sleeps,
-deadline checks, and status branches through a hand-written loop.
-
-In this recipe the polled effect succeeds with a domain status. The schedule
-repeats while the latest status is non-terminal and while the elapsed polling
-budget is still open. After the repeat completes, the surrounding Effect code
-interprets the final observed status.
+Polling an external workflow usually has separate cadence, budget, and
+terminal-state concerns. This recipe keeps those concerns in the schedule and
+leaves final status interpretation in Effect code.
 
 ## Problem
 
-You need to poll an external workflow until it reports a terminal state, but
-you also need a clear elapsed budget. If the workflow is still running when the
-budget closes, the caller should receive a timeout result or error. If the
-workflow reports a terminal failure, that should remain distinct from a timeout.
+An external job can report `Queued`, `Running`, `Succeeded`, or `Failed`.
+`Queued` and `Running` should keep the poll going only while the caller's elapsed
+budget remains open. `Failed` should remain a terminal job result, not be
+collapsed into the same case as a timeout.
 
 ## When to use it
 

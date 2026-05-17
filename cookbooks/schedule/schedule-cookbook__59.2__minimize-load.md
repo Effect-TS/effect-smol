@@ -10,10 +10,8 @@ code_included: false
 
 # 59.2 Minimize load
 
-Minimizing load means choosing recurrence policies that reduce pressure on the
-caller, the runtime, and downstream systems. This is a reference-index entry,
-not a new `Schedule` primitive. Use it to find recipes where spacing, backoff,
-jitter, caps, and retry budgets are the main operational concern.
+Minimize load is a reference-index entry for `Schedule` recipes that reduce
+recurrence pressure on callers, runtimes, and downstream systems.
 
 ## What this section is about
 

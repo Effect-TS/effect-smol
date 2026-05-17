@@ -16,12 +16,6 @@ required envelope, corrupted signature base string, impossible query shape, or
 unparseable protocol message will not become well formed because the caller
 waited before sending it again.
 
-`Schedule` describes recurrence: when another attempt may happen, how many
-times it may happen, how delays grow, and whether the delays should be jittered.
-It does not repair bytes, infer missing fields, or decide that a parser error is
-temporary. If a malformed request reaches a broad retry policy, the schedule can
-only make the same bad request happen later.
-
 ## The anti-pattern
 
 The problematic shape treats request parsing and transport recovery as the same

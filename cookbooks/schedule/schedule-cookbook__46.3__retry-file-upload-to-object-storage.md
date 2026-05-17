@@ -10,12 +10,11 @@ code_included: true
 
 # 46.3 Retry file upload to object storage
 
-Object storage uploads are often safe to retry, but only after the write has a
-stable identity. The schedule should bound retry pressure; the upload protocol
-should make duplicate attempts harmless.
+Object storage uploads are retryable only when duplicate attempts are harmless.
+The upload protocol supplies the stable identity; the schedule supplies bounded
+retry pressure.
 
-Use a retry policy for transient storage failures, and make the object key,
-upload id, checksum, or idempotency token part of the operation contract:
+A typical bounded policy looks like this:
 
 ```ts
 const uploadRetryPolicy = Schedule.exponential("250 millis").pipe(
@@ -31,9 +30,9 @@ window has been open for 30 seconds.
 
 ## Problem
 
-You need to upload a file to object storage from a batch or data workflow. The
-network can drop, the service can throttle, and a worker can lose the response
-after the server has already accepted bytes.
+A batch worker is writing a deterministic export object to storage. The network
+can drop, the service can throttle, and the worker can lose the response after
+the server has already accepted bytes.
 
 Blind retrying is risky. A second attempt might create a duplicate object, leave
 an incomplete multipart upload behind, or put avoidable pressure on a shared

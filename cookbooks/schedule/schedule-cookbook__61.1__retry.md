@@ -14,7 +14,9 @@ Retry is the use of a `Schedule` to decide whether, when, and how often to re-ru
 
 ## What this section is about
 
-This glossary entry defines retry as failure-driven recurrence. A retry policy is not a special kind of schedule: it is an ordinary `Schedule` interpreted by retrying APIs, where schedule inputs are failures from the effect being retried.
+This glossary entry focuses on the boundary between retry and other recurrence.
+It names the schedule input, halt behavior, and safety concerns that make a
+retry policy recovery logic rather than normal repetition.
 
 ## Why it matters
 

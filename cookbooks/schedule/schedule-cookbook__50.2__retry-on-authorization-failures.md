@@ -10,11 +10,17 @@ code_included: false
 
 # 50.2 Retry on authorization failures
 
-Retrying authorization failures is an anti-pattern because time does not usually change the answer. A `401` or `403` means the caller is not currently allowed to perform the operation. Running the same request again under `Schedule.exponential`, `Schedule.spaced`, or a shared retry policy usually just repeats the denial while adding load and hiding the real control-flow decision.
+Retrying authorization failures is an anti-pattern because time does not usually
+change whether the caller is allowed to perform the operation.
 
 ## The anti-pattern
 
-The problematic version treats authorization errors like transient transport failures. A broad retry policy is attached to an HTTP client, repository, or service boundary, and every failure shape flows through the same schedule. The policy may be well behaved as a schedule, with bounded recurrences and increasing delay, but it is still attached to the wrong condition.
+The problematic version treats `401`, `403`, and other authorization errors like
+transient transport failures. A broad retry policy is attached to an HTTP
+client, repository, or service boundary, and every failure shape flows through
+the same schedule. The policy may be well behaved as a schedule, with bounded
+recurrences and increasing delay, but it is still attached to the wrong
+condition.
 
 That mistake is easy to miss because the retry machinery is generic. `Schedule` describes when recurrence may continue; it does not know that an expired session, missing scope, revoked key, disabled account, or tenant mismatch needs a different response from a dropped connection.
 

@@ -10,24 +10,18 @@ code_included: false
 
 # 53.1 Adding jitter where precise cadence matters
 
-Adding jitter where precise cadence matters is an anti-pattern because it turns
-a timing contract into an approximation. `Schedule.jittered` is useful when
-many callers would otherwise retry or poll together, but it intentionally
-changes each recurrence delay. In Effect, the jittered delay is randomly chosen
-between `80%` and `120%` of the delay produced by the wrapped schedule.
-
-That behavior is exactly the point when the goal is desynchronization. It is
-harmful when the schedule is supposed to say "run every 30 seconds", "renew
-before this lease boundary", "sample at this interval", or "try again after the
-countdown reaches zero".
+Jitter is a load-spreading tool, not a precision tool. This section covers
+schedules whose cadence is part of a protocol, measurement, lease, or
+user-facing promise.
 
 ## The anti-pattern
 
 The problematic version starts with a deterministic cadence such as
 `Schedule.fixed`, `Schedule.spaced`, or deterministic backoff, then pipes it
-through `Schedule.jittered` because jitter sounds generally safer. The resulting
-schedule is still bounded, readable, and easy to reuse, but it no longer
-preserves the timing promise the original cadence expressed.
+through `Schedule.jittered` because jitter sounds generally safer. In Effect,
+the jittered delay is randomly chosen between `80%` and `120%` of the delay
+produced by the wrapped schedule, so the result no longer preserves the timing
+promise the original cadence expressed.
 
 This often appears in shared helpers. A team creates a standard "production
 schedule" that adds jitter to every retry, polling loop, heartbeat, refresh, or

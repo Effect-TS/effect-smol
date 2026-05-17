@@ -10,20 +10,15 @@ code_included: true
 
 # 12.1 Repeat 5 times
 
-You have a successful effect and want to run it again five times. With `Effect.repeat`,
-the effect runs once before the schedule is consulted. A schedule such as
-`Schedule.recurs(5)` therefore means five recurrences after the original run, for six
-total executions if every run succeeds. This recipe treats repetition as a policy for
-successful effects. The schedule decides whether another successful iteration should
-run, what spacing applies, and what value the repeat returns. Failures stay in the
-effect error channel, so the repeat policy stays separate from recovery or retry
-behavior.
+`Effect.repeat` treats repetition as a policy for successful effects. This recipe covers
+count-bounded repetition without adding timing or failure recovery.
 
 ## Problem
 
-You have a successful effect and want to run it again five times.
-
-With `Effect.repeat`, the effect runs once before the schedule is consulted. A schedule such as `Schedule.recurs(5)` therefore means five recurrences after the original run, for six total executions if every run succeeds.
+The count is easy to misread. With `Effect.repeat`, the effect runs once before
+the schedule is consulted. `Schedule.recurs(5)` therefore means five
+recurrences after the original run, for six total executions if every run
+succeeds.
 
 ## When to use it
 

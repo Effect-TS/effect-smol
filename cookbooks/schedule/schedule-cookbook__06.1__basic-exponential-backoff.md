@@ -10,20 +10,15 @@ code_included: true
 
 # 6.1 Basic exponential backoff
 
-You want to retry a failing effect, but each repeated failure should make the next retry
-wait longer. A small delay after the first failure is useful, but continuing to retry at
-that same pace can keep pressure on a dependency that is already unhealthy. This recipe
-keeps the retry policy explicit: the schedule decides when another typed failure should
-be attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe introduces exponential retry backoff with `Schedule.exponential` and
+`Effect.retry`. The schedule controls the growing retry delays, while the surrounding
+Effect code remains responsible for deciding which typed failures are safe to retry.
 
 ## Problem
 
-You want to retry a failing effect, but each repeated failure should make the
-next retry wait longer. A small delay after the first failure is useful, but
-continuing to retry at that same pace can keep pressure on a dependency that is
-already unhealthy.
+A dependency can be unhealthy long enough that fixed-delay retries keep too much
+pressure on it. You need the first retry to happen after a small pause, then
+each repeated failure should make the next retry wait longer.
 
 Use `Schedule.exponential(base)` with `Effect.retry` for this policy. In
 practice, combine it with a retry limit:

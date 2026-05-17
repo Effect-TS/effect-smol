@@ -20,10 +20,10 @@ inside ad hoc loops.
 
 ## Problem
 
-The same `Schedule` value can often be passed to either `Effect.repeat` or
-`Effect.retry`, so it is easy to choose based on the timing policy alone. That
-is the wrong first question. The entry point decides which value is fed into the
-schedule and which event stops the process.
+The entry point decides which channel the policy observes before any timing
+choice matters. A schedule that should inspect statuses such as `"starting"`
+belongs on `repeat`; a schedule that should inspect transient typed failures
+belongs on `retry`.
 
 `Effect.repeat` is driven by success. The original effect runs once, and after
 each success the schedule receives the successful value as input. If the effect

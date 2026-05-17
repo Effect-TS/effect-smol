@@ -10,11 +10,8 @@ code_included: true
 
 # 34.4 Conservative defaults
 
-Conservative retry and repeat policies are small on purpose. They retry only a
-few times, wait between recurrences, and make the retryable or repeatable case
-explicit before the schedule runs. The goal is not to find one global default
-for every workflow. The goal is to make the safe default boring enough that a
-reader can see the count, spacing, and classification at the call site.
+Conservative recurrence policies make small counts, visible delays, and explicit
+classification the default at the call site.
 
 ## Problem
 

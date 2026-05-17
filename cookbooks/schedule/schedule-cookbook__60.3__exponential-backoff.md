@@ -10,13 +10,14 @@ code_included: false
 
 # 60.3 Exponential backoff
 
-Exponential backoff is the pattern where retries wait for progressively longer intervals after repeated failure. In Effect, the direct constructor is `Schedule.exponential(base, factor)`.
+Exponential backoff is the retry pattern where repeated failures produce
+progressively longer waits.
 
 Use this entry when a remote dependency is likely to recover, but repeated immediate retries would amplify the failure. The common production shape is "retry transient failures with growing waits, stop by count or elapsed budget, and add jitter when many callers may retry at once."
 
 ## What this section is about
 
-This entry maps exponential-backoff requirements to the Schedule constructors and utilities that express them directly:
+The related `Schedule` constructors and utilities are:
 
 - `Schedule.exponential(base)` recurs forever with delays `base`, `base * 2`, `base * 4`, and so on.
 - `Schedule.exponential(base, factor)` uses the supplied growth factor instead of the default factor of `2`.

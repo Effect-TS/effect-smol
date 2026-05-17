@@ -10,28 +10,21 @@ code_included: true
 
 # 29.1 More stability, less predictability
 
-Jitter is a tradeoff. It makes the whole system steadier by spreading retries,
-polls, or background work across a small random range, but each individual
-caller becomes less predictable. A retry that would have waited exactly 1
-second may instead wait a little less or a little more.
-
-Use `Schedule.jittered` when synchronized timing is more dangerous than slight
-timing uncertainty. In Effect, jitter keeps the schedule's recurrence and output
-shape, but randomly adjusts each delay between 80% and 120% of the original
-delay.
+Jitter spreads recurrence delays so many callers do not wake up in lockstep. It
+keeps the base schedule recognizable while making each individual wait
+approximate.
 
 ## Problem
 
-Many clients, workers, or service instances can share the same schedule. If they
-start together, fail together, or are deployed together, a precise cadence can
-make them move together too. That creates bursts: many callers wake up at the
+Consider clients, workers, or service instances that all share the same
+schedule. After a deploy, a shared outage, or a batch restart, a precise cadence
+can make them move together too. That creates bursts: many callers wake up at the
 same instant, retry the same dependency, refresh the same cache, or poll the
 same endpoint.
 
-Jitter weakens that alignment. The cost is that the next attempt is no longer
-scheduled for an exact wall-clock delay. Operators can still describe the base
-policy and the jitter range, but they should not expect every individual caller
-to wake up at the same precise offset.
+The policy needs to weaken that alignment without hiding the base cadence.
+Operators can still describe the base policy and the jitter range, but they
+should not expect every individual caller to wake up at the same precise offset.
 
 ## When to use it
 

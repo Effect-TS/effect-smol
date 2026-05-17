@@ -10,17 +10,14 @@ code_included: true
 
 # 9.5 Prefer time-budget limits over attempt counts
 
-This subsection explains Prefer time-budget limits over attempt counts as a practical
-Effect `Schedule` recipe. This recipe keeps the retry policy explicit: the schedule
-decides when another typed failure should be attempted again and where retrying stops.
-The surrounding Effect code remains responsible for domain safety, including which
-failures are transient, whether the operation is idempotent, and how the final failure
-is reported.
+Use this section when retry latency matters more than a fixed number of
+attempts. It shows how to combine a delay schedule with an elapsed-time budget
+so the retry policy stays explicit.
 
 ## What this section is about
 
-This section explains why many retry policies should be bounded by elapsed time
-rather than by a fixed number of retries.
+Start by separating two limits that are easy to conflate in retry policy
+design.
 
 An attempt count answers "how many more times may this operation run?" A time
 budget answers "how long may this retry window remain open?" Those are related,

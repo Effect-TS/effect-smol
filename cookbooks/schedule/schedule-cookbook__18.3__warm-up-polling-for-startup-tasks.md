@@ -10,20 +10,11 @@ code_included: true
 
 # 18.3 Warm-up polling for startup tasks
 
-Your application has started a task that should become ready quickly during startup:
-loading an in-memory index, priming a local cache, registering with a control plane, or
-waiting for a freshly started internal worker to report `"ready"`. This recipe treats
-polling as repeated successful observations. The schedule controls cadence and the
-condition for taking another observation, while the surrounding Effect code interprets
-terminal states, missing data, stale reads, and real failures. Keeping those
-responsibilities separate makes the polling loop easier to bound and diagnose.
+Use this recipe for startup work that often becomes ready quickly, but may need
+a slower follow-up cadence if warm-up takes longer. The schedule starts with a
+tight readiness burst and then backs off.
 
 ## Problem
-
-Your application has started a task that should become ready quickly during
-startup: loading an in-memory index, priming a local cache, registering with a
-control plane, or waiting for a freshly started internal worker to report
-`"ready"`.
 
 You want the first few readiness observations to happen close together because
 early readiness matters. If the task takes longer than expected, polling should

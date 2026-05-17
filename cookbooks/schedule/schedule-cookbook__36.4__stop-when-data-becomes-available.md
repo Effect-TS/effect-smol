@@ -21,8 +21,10 @@ This recipe uses a cache lookup as the example. The lookup can succeed with
 
 ## Problem
 
-You need to wait briefly for data that is expected to appear soon, without
-turning a normal cache miss into a retryable failure.
+A profile lookup may hit a cache before the background warmer has published the
+entry. A miss is a normal observation in that path, so the polling policy should
+wait briefly for an `Available` result without converting `Missing` into an
+error.
 
 The first lookup should happen immediately. If the data is missing, wait and try
 again. If the data is available, stop without another lookup. The schedule should

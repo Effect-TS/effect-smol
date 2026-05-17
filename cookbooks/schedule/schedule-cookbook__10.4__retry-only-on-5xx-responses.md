@@ -10,24 +10,19 @@ code_included: true
 
 # 10.4 Retry only on 5xx responses
 
-An HTTP call can fail with many status codes, but only some of them are good retry
-candidates. A `500 Internal Server Error`, `502 Bad Gateway`, `503 Service Unavailable`,
-or `504 Gateway Timeout` may be caused by temporary server-side trouble. This recipe
-keeps the retry policy explicit: the schedule decides when another typed failure should
-be attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+Use this recipe when an HTTP adapter should retry temporary server responses
+but return client-side failures immediately. The schedule controls timing and
+limits; a status predicate decides whether the current typed response is
+retryable.
 
 ## Problem
 
-An HTTP call can fail with many status codes, but only some of them are good
-retry candidates. A `500 Internal Server Error`, `502 Bad Gateway`, `503
-Service Unavailable`, or `504 Gateway Timeout` may be caused by temporary
-server-side trouble. A `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`,
-or `404 Not Found` usually needs a different request or different credentials.
+Keep the HTTP status in the typed error and retry only statuses from 500
+through 599. Server-side failures such as 500, 502, 503, and 504 may be
+temporary; 400, 401, 403, and 404 usually need a different request or different
+credentials.
 
-Keep the HTTP status in the typed error and put the retry decision in
-`Effect.retry`:
+Put the retry decision in `Effect.retry`:
 
 ```ts
 const program = requestUser("user-123").pipe(

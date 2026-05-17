@@ -10,7 +10,7 @@ code_included: false
 
 # 53.5 Randomizing behavior without sensible bounds
 
-Randomizing behavior without sensible bounds is an anti-pattern because jitter only changes the next delay of an existing schedule. It does not decide how often work should start, how large a delay may become, or when the work should stop. Without those decisions, randomness can make unsafe recurrence look more careful than it is.
+Jitter is useful only after the underlying recurrence policy is sensible. This section covers schedules that add randomness before choosing cadence, limits, and termination.
 
 ## The anti-pattern
 

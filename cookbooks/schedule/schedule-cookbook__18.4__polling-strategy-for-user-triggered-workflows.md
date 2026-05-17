@@ -10,19 +10,12 @@ code_included: true
 
 # 18.4 Polling strategy for user-triggered workflows
 
-A user clicks a button that starts work on another system: generating a report,
-submitting a review, importing a small file, refreshing derived data, or starting an
-approval flow. This recipe treats polling as repeated successful observations. The
-schedule controls cadence and the condition for taking another observation, while the
-surrounding Effect code interprets terminal states, missing data, stale reads, and real
-failures. Keeping those responsibilities separate makes the polling loop easier to bound
-and diagnose.
+Use this recipe for work started by a user action, such as generating a report,
+submitting a review, importing a small file, refreshing derived data, or
+starting an approval flow. The schedule starts responsive, then slows down if
+the workflow is still processing.
 
 ## Problem
-
-A user clicks a button that starts work on another system: generating a report,
-submitting a review, importing a small file, refreshing derived data, or
-starting an approval flow.
 
 The first few seconds are important because the user is still watching. If the
 workflow finishes quickly, the UI should notice quickly. If it does not finish
