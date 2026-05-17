@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "2.3"
 section_title: "When the distinction matters"
 part_title: "Part I — Foundations"

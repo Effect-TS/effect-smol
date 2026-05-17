@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "1.3"
 section_title: "Time, repetition, and decision points"
 part_title: "Part I — Foundations"

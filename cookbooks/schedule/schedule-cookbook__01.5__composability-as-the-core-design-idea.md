@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "1.5"
 section_title: "Composability as the core design idea"
 part_title: "Part I — Foundations"

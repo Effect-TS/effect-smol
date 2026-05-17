@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "3.2"
 section_title: "Retry a fixed number of times"
 part_title: "Part I — Foundations"

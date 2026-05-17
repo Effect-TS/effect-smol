@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "2.4"
 section_title: "Common beginner mistakes"
 part_title: "Part I — Foundations"

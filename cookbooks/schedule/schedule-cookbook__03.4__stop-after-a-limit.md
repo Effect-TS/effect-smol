@@ -1,5 +1,5 @@
 ---
-book: Effect `Schedule` Cookbook
+book: "Effect `Schedule` Cookbook"
 section_number: "3.4"
 section_title: "Stop after a limit"
 part_title: "Part I — Foundations"
