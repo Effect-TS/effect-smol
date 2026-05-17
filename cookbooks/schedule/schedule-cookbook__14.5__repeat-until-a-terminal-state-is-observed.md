@@ -10,19 +10,13 @@ code_included: true
 
 # 14.5 Repeat until a terminal state is observed
 
-You have an effect that successfully observes the current status of some work, and you
-want to repeat that observation until the status reports a terminal state. With
-`Effect.repeat`, the effect runs once before the schedule is consulted. This recipe
-treats repetition as a policy for successful effects. The schedule decides whether
-another successful iteration should run, what spacing applies, and what value the repeat
-returns. Failures stay in the effect error channel, so the repeat policy stays separate
-from recovery or retry behavior.
+Use this recipe when successful status observations should repeat until the observed
+domain state is terminal.
 
 ## Problem
 
-You have an effect that successfully observes the current status of some work,
-and you want to repeat that observation until the status reports a terminal
-state.
+A job observer, workflow monitor, or similar status check returns domain states
+such as queued, running, succeeded, failed, or canceled.
 
 With `Effect.repeat`, the effect runs once before the schedule is consulted.
 After each successful observation, the successful status value becomes the

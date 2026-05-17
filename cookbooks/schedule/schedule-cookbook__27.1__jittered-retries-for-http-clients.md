@@ -10,11 +10,11 @@ code_included: true
 
 # 27.1 Jittered retries for HTTP clients
 
-HTTP clients are a common place to add jitter because failures often affect many callers at once. If every process retries after the same backoff delay, a temporary 503 or network flap can turn into another synchronized burst. `Schedule.jittered` keeps the base retry policy recognizable while spreading each retry delay across a small random range.
+HTTP clients are a common place to add jitter because temporary outages often affect many callers at once. `Schedule.jittered` keeps the base retry policy recognizable while spreading follow-up attempts across a small random range.
 
 ## Problem
 
-You need an HTTP retry policy that backs off after transient failures, avoids retrying unsafe requests, and prevents a fleet of clients from retrying in lockstep. The first HTTP request is still made by the effect itself. The schedule only decides whether to make another attempt, and how long to wait before that next attempt.
+A client that sees a timeout, 408, 429, or 5xx response should retry only when the request is safe to repeat. The first HTTP request is still made by the effect itself. The schedule only decides whether to make another attempt, and how long to wait before that next attempt.
 
 ## When to use it
 

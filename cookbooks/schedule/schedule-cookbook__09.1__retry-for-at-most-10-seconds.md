@@ -10,19 +10,16 @@ code_included: true
 
 # 9.1 Retry for at most 10 seconds
 
-You want a failing effect to retry only while a short time budget remains. The policy
-should not retry forever, and you may not know in advance how many attempts will fit
-into the budget. This recipe keeps the retry policy explicit: the schedule decides when
-another typed failure should be attempted again and where retrying stops. The
-surrounding Effect code remains responsible for domain safety, including which failures
-are transient, whether the operation is idempotent, and how the final failure is
-reported.
+This recipe shows how to bound retries by a short elapsed-time budget instead
+of a fixed retry count. The schedule controls retry timing and stopping;
+surrounding Effect code still decides which typed failures are safe to retry
+and how the last failure is reported.
 
 ## Problem
 
-You want a failing effect to retry only while a short time budget remains. The
-policy should not retry forever, and you may not know in advance how many
-attempts will fit into the budget.
+Given an effect that may fail with a typed transient error, build a retry
+policy that uses exponential backoff only while a 10 second schedule window is
+still open.
 
 Use `Schedule.during("10 seconds")` as the schedule-side time window and
 compose it with the retry delay policy:

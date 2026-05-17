@@ -10,11 +10,9 @@ code_included: false
 
 # 54.2 Building schedules nobody can explain later
 
-Building schedules nobody can explain later is an anti-pattern because
-recurrence policy is operational policy. A schedule decides how often work is
-repeated, how long callers wait, how much pressure a dependency sees, and which
-conditions are allowed to keep work alive. When that policy is compressed into a
-dense anonymous pipeline, reviewers can see the operators but not the promise.
+A schedule is operational policy: it decides cadence, pressure, lifetime, and
+stop conditions. This section focuses on dense anonymous pipelines where those
+promises are no longer visible.
 
 ## The anti-pattern
 

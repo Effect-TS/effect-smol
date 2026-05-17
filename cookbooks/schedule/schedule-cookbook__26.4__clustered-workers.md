@@ -10,17 +10,8 @@ code_included: true
 
 # 26.4 Clustered workers
 
-A worker cluster often contains many identical processes running the same loop:
-claim work, process it, then claim more work. If every worker uses the same
-fixed delay after an empty claim or the same retry backoff after a transient
-failure, the cluster can move in visible waves. All workers sleep, all workers
-wake up, all workers call the queue, and all workers retry a dependency
-together.
-
-Jitter keeps the policy recognizable while making each worker's recurrence
-slightly different. The schedule still says "poll about every five seconds" or
-"retry with exponential backoff", but the exact delay is chosen independently
-for each recurrence.
+Use this recipe to jitter worker polling and retry schedules so a cluster does
+not wake up and call shared infrastructure in synchronized bursts.
 
 ## Problem
 
@@ -34,8 +25,8 @@ workers polling every five seconds can become a synchronized burst every five
 seconds, especially after a deploy, autoscaling event, queue outage, or process
 restart.
 
-Add jitter to both the idle polling cadence and the transient retry backoff so
-the cluster spreads those follow-up attempts across a small time window.
+Both paths need spreading: the idle polling cadence and the transient retry
+backoff should avoid sending follow-up attempts in a single burst.
 
 ## When to use it
 

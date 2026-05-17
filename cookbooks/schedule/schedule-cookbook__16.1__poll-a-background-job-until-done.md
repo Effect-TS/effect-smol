@@ -10,24 +10,16 @@ code_included: true
 
 # 16.1 Poll a background job until done
 
-You have submitted a background job to another system. The submission already returned a
-job id, and now your program needs to check the job status until the job reaches a
-terminal domain state. This recipe treats polling as repeated successful observations.
-The schedule controls cadence and the condition for taking another observation, while
-the surrounding Effect code interprets terminal states, missing data, stale reads, and
-real failures. Keeping those responsibilities separate makes the polling loop easier to
-bound and diagnose.
+Use polling when a submitted background job must be observed until it reaches a terminal
+domain state. This recipe keeps successful status observations separate from transport,
+decoding, and domain interpretation.
 
 ## Problem
 
-You have submitted a background job to another system. The submission already
-returned a job id, and now your program needs to check the job status until the
-job reaches a terminal domain state.
-
-The status check itself is an effect. A successful status check can still report
-that the job is `"queued"` or `"running"`. Those are domain statuses, not effect
-failures. The effect should fail only when the status check could not be
-performed or decoded.
+After submission returns a job id, the status check itself is an effect. A
+successful check can still report that the job is `"queued"` or `"running"`.
+Those are domain statuses, not effect failures. The effect should fail only when
+the status check could not be performed or decoded.
 
 ## When to use it
 

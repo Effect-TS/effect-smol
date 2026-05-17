@@ -10,20 +10,16 @@ code_included: true
 
 # 6.5 Backoff with a practical base interval
 
-You want exponential backoff, but the starting delay matters. A base interval that is
-too small can behave like immediate retry for the first few failures. A base interval
-that is too large can make recoverable user-facing failures feel slow. This recipe keeps
-the retry policy explicit: the schedule decides when another typed failure should be
-attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe focuses on choosing the base interval for an exponential retry policy. The
+schedule controls the growing retry delays, while the surrounding Effect code remains
+responsible for deciding which typed failures are safe to retry.
 
 ## Problem
 
-You want exponential backoff, but the starting delay matters. A base interval
-that is too small can behave like immediate retry for the first few failures. A
-base interval that is too large can make recoverable user-facing failures feel
-slow.
+The first backoff delay can be just as important as the later growth. A base
+interval that is too small can behave like immediate retry for the first few
+failures, while one that is too large can make recoverable user-facing failures
+feel slow.
 
 Use `Schedule.exponential(base, factor?)` and choose `base` as the first real
 pause you want after the original attempt fails. The default `factor` is `2`,

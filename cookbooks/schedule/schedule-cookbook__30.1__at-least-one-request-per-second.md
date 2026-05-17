@@ -10,11 +10,8 @@ code_included: true
 
 # 30.1 At least one request per second
 
-Some request loops should be deliberately paced instead of allowed to burst. A
-common way to describe that requirement is "one request per second", but the
-wording matters. `Schedule` can control when the next recurrence is allowed; it
-cannot make a slow request finish faster or guarantee aggregate throughput by
-itself.
+Use `Schedule` to make a repeat loop's pacing visible instead of hiding sleeps
+around request code.
 
 This recipe uses `Schedule.spaced("1 second")` when each request should be
 followed by a one-second pause before the next request starts. Use
@@ -23,15 +20,10 @@ wall-clock boundaries.
 
 ## Problem
 
-You need a client or worker loop to keep making requests, but not in a tight
-loop. Future readers should not have to infer pacing from scattered sleeps or
-counters. The recurrence policy should say how much time separates later
-requests and whether that time is measured after work completes or against
-fixed interval boundaries.
-
-Use `Schedule.spaced("1 second")` with `Effect.repeat` for the simplest
-"wait one second after each successful request before making the next one"
-policy.
+A client or worker may need to keep making requests without running in a tight
+loop. Reviewers should be able to see whether the one-second rule is a
+post-completion gap or a fixed interval boundary, because those shapes behave
+differently when requests are slow.
 
 ## When to use it
 

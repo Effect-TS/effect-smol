@@ -10,13 +10,15 @@ code_included: true
 
 # 32.3 Avoid bursty reminder delivery
 
-Reminder systems can become noisy when a worker drains a backlog as fast as
-possible. A user who missed one message might suddenly receive several
-follow-ups, or a provider might see a sharp burst that looks like spam. Model
-the delivery cadence as a `Schedule` so the spacing and quota are visible in
-one place.
+Reminder systems are safest when delivery cadence is part of the workflow, not
+an accidental property of a worker loop. Model the cadence as a `Schedule` so
+the spacing and quota are visible in one place.
 
 ## Problem
+
+A reminder worker may have a backlog of follow-ups to deliver. If it drains
+them as fast as possible, a user who missed one message might suddenly receive
+several more, or a provider might see a sharp burst that looks like spam.
 
 You need to send follow-up reminders without delivering them back-to-back. The
 policy should answer two operational questions directly:

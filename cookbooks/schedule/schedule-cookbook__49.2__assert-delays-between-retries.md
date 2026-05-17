@@ -10,27 +10,17 @@ code_included: true
 
 # 49.2 Assert delays between retries
 
-Retry timing is part of the behavior you should test. A retry policy that says
-"wait 100 milliseconds between attempts" should not be tested with real time,
-and it should not be tested only by counting attempts. Use `TestClock` to drive
-the sleeping retry fiber deterministically, and assert the observable contract:
-the next attempt does not happen before the delay, does happen after the delay,
-and the retry budget produces the expected number of attempts.
-
-For tests that only need to verify the schedule shape, inspect the schedule with
-`Schedule.delays`. For tests that need to verify an operation wired through
-`Effect.retry`, fork the retrying effect and move the `TestClock` forward.
+Retry timing is part of the behavior you should test. Use `TestClock` to drive
+sleeping retry fibers deterministically instead of relying on wall-clock time.
 
 ## Problem
 
 You have a retry policy such as `Schedule.spaced("100 millis").pipe(
 Schedule.both(Schedule.recurs(2)))`, and you need a stable test proving that the
-operation waits between retries.
-
-Sleeping for real time makes the test slow and flaky. Counting calls proves the
-retry limit, but it does not prove that retries were spaced. The test should
-control virtual time and check both sides of the boundary: before the scheduled
-delay and after it.
+operation waits between retries. Counting calls proves the retry limit, but it
+does not prove that retries were spaced. The test should fork the retrying
+effect, move virtual time forward, and check both sides of the boundary: before
+the scheduled delay and after it.
 
 ## When to use it
 

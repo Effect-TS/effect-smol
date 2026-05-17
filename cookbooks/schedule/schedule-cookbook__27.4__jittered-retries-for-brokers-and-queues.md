@@ -10,22 +10,15 @@ code_included: true
 
 # 27.4 Jittered retries for brokers and queues
 
-Broker and queue clients often fail in waves. A partition leader moves, a
-connection pool is drained, a queue service throttles producers, or a worker
-deployment restarts many consumers at once. If every worker retries delivery on
-the same deterministic backoff sequence, the retry policy can create another
-burst against the broker just as it is recovering.
-
-Use jittered backoff when a retry is safe but many workers may make the same
-decision at the same time. The original publish or acknowledgement attempt still
-runs immediately. The schedule controls only later attempts after a retryable
-broker failure.
+Broker and queue clients often fail in waves when leaders move, pools drain, or
+deployments restart many consumers at once. This recipe applies jitter after you
+choose the retryable broker backoff shape.
 
 ## Problem
 
 You deliver a message to a broker from a background worker. Temporary broker
-errors should be retried, but the worker should not retry forever or synchronize
-with every other worker that saw the same outage.
+errors should be retried, but the worker needs a bounded policy that can hand
+the message off to a dead-letter, requeue, or operator-visible path.
 
 You want a delivery policy that:
 

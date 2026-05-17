@@ -21,13 +21,10 @@ the retry count, and the elapsed budget without hunting through a custom loop.
 
 ## Problem
 
-A downstream service is slow, unavailable, or returning rate-limit signals. A
-fast retry loop may improve a single caller's chance of success, but it can make
-the shared failure worse by multiplying traffic exactly when the service has the
-least spare capacity.
-
-Build a retry policy that recovers from brief transient failures while backing
-off aggressively enough that the caller does not become part of the overload.
+Define a retry schedule for callers seeing a slow, unavailable, or rate-limited
+downstream service. The schedule must make overload control explicit:
+conservative initial delay, growing waits, jitter, a maximum wait, and finite
+count and time limits.
 
 ## When to use it
 

@@ -10,26 +10,22 @@ code_included: true
 
 # 10.3 Retry only on timeouts
 
-You are calling an operation that can fail for several typed reasons, but only a timeout
-should be retried. A timeout often means the caller did not receive an answer in time.
-This recipe keeps the retry policy explicit: the schedule decides when another typed
-failure should be attempted again and where retrying stops. The surrounding Effect code
-remains responsible for domain safety, including which failures are transient, whether
-the operation is idempotent, and how the final failure is reported.
+Use this recipe when timeout is the only retryable typed failure for an
+operation. The schedule controls timing and limits; a predicate supplies retry
+eligibility.
 
 ## Problem
 
-You are calling an operation that can fail for several typed reasons, but only a
-timeout should be retried. A timeout often means the caller did not receive an
-answer in time. The same request may still succeed on a later attempt if the
-operation is idempotent and the caller can tolerate the extra latency.
+Build a finite retry policy that accepts only the typed timeout failure. This is
+appropriate when the same request may succeed later, the operation is
+idempotent, and the caller can tolerate the extra latency.
 
 Other failures should fail fast. Invalid input, authentication failures,
 authorization failures, and decoding errors usually describe a request that will
 not become valid just because it is run again.
 
-Use `Effect.retry` with a finite schedule and a `while` predicate that accepts
-only the typed timeout failure.
+Use the options form of `Effect.retry` so timing stays in the finite schedule
+and timeout eligibility stays in the predicate.
 
 ## When to use it
 

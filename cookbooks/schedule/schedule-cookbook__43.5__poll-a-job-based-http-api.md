@@ -10,14 +10,8 @@ code_included: true
 
 # 43.5 Poll a job-based HTTP API
 
-Job-based HTTP APIs often split work into two calls: one request starts the job,
-and later requests read the job status. The status endpoint usually returns a
-normal successful response while the job is still running, so this is a repeat
-problem, not a retry problem.
-
-Use `Schedule` to make the polling contract visible: check immediately, wait
-between pending statuses, stop on a terminal status, and stop after a deadline if
-the job never becomes terminal.
+Job-based HTTP APIs are polling problems when the status endpoint returns
+successful "still running" responses rather than failures.
 
 ## Problem
 

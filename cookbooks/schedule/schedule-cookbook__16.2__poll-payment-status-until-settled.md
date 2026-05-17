@@ -10,22 +10,16 @@ code_included: true
 
 # 16.2 Poll payment status until settled
 
-You have submitted or received a payment, and the payment provider exposes a status
-endpoint. The status request succeeds even while the payment is still in flight,
-returning domain states such as `"pending"` or `"processing"`. This recipe treats
-polling as repeated successful observations. The schedule controls cadence and the
-condition for taking another observation, while the surrounding Effect code interprets
-terminal states, missing data, stale reads, and real failures. Keeping those
-responsibilities separate makes the polling loop easier to bound and diagnose.
+Use polling when a payment provider reports in-flight and terminal states through a
+status endpoint. This recipe keeps successful status observations separate from request
+failures and payment-domain interpretation.
 
 ## Problem
 
-You have submitted or received a payment, and the payment provider exposes a
-status endpoint. The status request succeeds even while the payment is still in
-flight, returning domain states such as `"pending"` or `"processing"`.
-
-You want to poll successful status observations until the payment reaches a
-settled terminal state, such as `"settled"`, `"failed"`, or `"canceled"`.
+The status request can succeed while the payment is still in flight, returning
+domain states such as `"pending"` or `"processing"`. You want to poll successful
+observations until the payment reaches a settled terminal state, such as
+`"settled"`, `"failed"`, or `"canceled"`.
 
 ## When to use it
 

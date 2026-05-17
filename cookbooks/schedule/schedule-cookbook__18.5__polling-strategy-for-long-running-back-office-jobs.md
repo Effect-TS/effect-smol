@@ -10,21 +10,11 @@ code_included: true
 
 # 18.5 Polling strategy for long-running back-office jobs
 
-A back-office job has been accepted and may run for minutes or hours: ledger
-reconciliation, warehouse synchronization, report generation, data repair, or bulk
-indexing. Operators need periodic visibility, but nobody is waiting for a sub-second UI
-update. This recipe treats polling as repeated successful observations. The schedule
-controls cadence and the condition for taking another observation, while the surrounding
-Effect code interprets terminal states, missing data, stale reads, and real failures.
-Keeping those responsibilities separate makes the polling loop easier to bound and
-diagnose.
+Use this recipe for back-office jobs that need periodic operator visibility but
+are not latency-critical. The schedule gives a few early observations, then
+settles into a low-pressure background cadence.
 
 ## Problem
-
-A back-office job has been accepted and may run for minutes or hours: ledger
-reconciliation, warehouse synchronization, report generation, data repair, or
-bulk indexing. Operators need periodic visibility, but nobody is waiting for a
-sub-second UI update.
 
 Polling too frequently creates steady pressure on the job store, status API, and
 worker database. The polling policy should provide enough early signal to catch

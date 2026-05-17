@@ -10,20 +10,15 @@ code_included: true
 
 # 40.5 Transition from reactive to maintenance mode
 
-Some operational loops should start aggressively and then become quiet. A
-freshly recovered dependency, a service that just left an incident state, or a
-cache that has just been rebuilt may need close observation for a short period.
-After that window, the same loop should settle into a maintenance cadence that
-keeps visibility without creating constant background pressure.
-
-Model that handoff as two schedules in sequence. The first schedule describes
-the reactive window. The second schedule describes the steady maintenance mode.
-`Schedule.andThen` makes the phase transition explicit in the policy itself.
+Use a reactive phase followed by a maintenance phase when an operational loop
+should quiet down over time. `Schedule.andThen` keeps the handoff explicit in
+the policy.
 
 ## Problem
 
-You want to run a health check immediately, continue checking frequently for a
-short reactive window, and then switch to a slower maintenance cadence.
+After a dependency recovery, rebuild, or incident transition, you want an
+immediate health read, frequent follow-up checks for a short reactive window,
+and then a slower maintenance cadence.
 
 The policy should answer three questions directly:
 

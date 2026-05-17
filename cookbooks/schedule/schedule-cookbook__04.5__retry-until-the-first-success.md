@@ -20,12 +20,12 @@ reported.
 
 ## Problem
 
-You have an effect that may fail a few times before succeeding, and the first
-successful attempt should complete the whole operation.
+The retry schedule should only handle failures. A successful attempt is terminal:
+it completes the retried operation and prevents any remaining retry budget from
+being used.
 
 This is the default behavior of `Effect.retry`. The retry policy is only
-consulted after typed failures. If any attempt succeeds, retrying stops
-immediately and the successful value is returned.
+consulted after typed failures.
 
 ## When to use it
 

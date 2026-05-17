@@ -10,16 +10,9 @@ code_included: true
 
 # 33.3 Retry with longer spacing after quota signals
 
-A quota signal is different from an ordinary transient failure. A timeout or a
-brief `503` says that the call may succeed if you try again after a short pause.
-A `429`, quota-exceeded response, or provider-specific rate-limit error says
-that the caller has already used too much capacity for the current window.
-
-For quota signals, retrying faster is usually the wrong response. The retry
-policy should create visibly longer spacing, and it should still stop after a
-bounded number of retries. `Schedule` can express that contract directly: inspect
-the failure fed to `Effect.retry`, choose the next delay, and terminate when the
-error is not retryable or the retry budget is exhausted.
+Quota signals need slower retry timing than ordinary transient failures. This
+recipe builds one bounded schedule that inspects the typed failure and chooses
+the next delay from that signal.
 
 ## Problem
 

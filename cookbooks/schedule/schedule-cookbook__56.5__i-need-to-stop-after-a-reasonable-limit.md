@@ -10,7 +10,8 @@ code_included: false
 
 # 56.5 “I need to stop after a reasonable limit”
 
-“I need to stop after a reasonable limit” is a recipe-selection entry for choosing the boundary that should end a retry, repeat, poll, or background loop. It does not introduce a new Schedule primitive. It helps distinguish count limits, elapsed-time budgets, schedule-output limits, and domain stop conditions before those concerns are mixed into one policy.
+Use this entry when a retry, repeat, poll, or background loop needs a clear
+stopping boundary.
 
 ## What this section is about
 

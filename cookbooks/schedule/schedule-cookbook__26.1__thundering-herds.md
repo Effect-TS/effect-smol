@@ -10,24 +10,19 @@ code_included: true
 
 # 26.1 Thundering herds
 
-A thundering herd happens when many clients, workers, browser tabs, service
-instances, or fibers all decide to do the same follow-up work at the same time.
-The first attempt may be harmless. The problem appears after a shared event:
-deployment, outage recovery, cache expiry, process restart, rate-limit response,
-or a dependency returning the same transient error to every caller. If every
-caller retries after exactly one second, then exactly two seconds, then exactly
-four seconds, the retry policy preserves the synchronization that caused the
-load spike.
-
-`Schedule` makes that timing policy explicit. Choose the base cadence first, then
-add jitter when many independent actors may otherwise move together.
+Use this recipe to add jitter when many clients, workers, service instances, or
+fibers might otherwise follow the same retry or polling cadence.
 
 ## Problem
 
-You need retries or polling that still waits long enough to protect a downstream
-dependency, but you do not want every actor to wake up on the same boundary.
-Fixed spacing and deterministic backoff are easy to reason about for one caller,
-but across a fleet they can concentrate load into sharp waves.
+After a shared event such as a deployment, outage recovery, cache expiry,
+process restart, rate-limit response, or common transient error, every actor can
+make the same follow-up decision. Fixed spacing and deterministic backoff are
+easy to reason about for one caller, but across a fleet they can concentrate
+load into sharp waves.
+
+The policy still needs enough delay to protect the downstream dependency. It
+should not wake every actor on the same boundary.
 
 ## When to use it
 

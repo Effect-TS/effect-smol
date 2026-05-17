@@ -10,18 +10,14 @@ code_included: true
 
 # 12.4 Repeat until a condition becomes true
 
-You have an effect that produces a successful value, and you want to run it again until
-that value satisfies a condition. With `Effect.repeat`, the first run happens before the
-schedule is consulted. This recipe treats repetition as a policy for successful effects.
-The schedule decides whether another successful iteration should run, what spacing
-applies, and what value the repeat returns. Failures stay in the effect error channel,
-so the repeat policy stays separate from recovery or retry behavior.
+`Effect.repeat` can keep running successful work until the latest successful value
+satisfies a condition. This recipe focuses on using that value as the schedule input.
 
 ## Problem
 
-You have an effect that produces a successful value, and you want to run it again until that value satisfies a condition.
-
-With `Effect.repeat`, the first run happens before the schedule is consulted. For this recipe, the condition is checked after each successful run, using the successful output as the schedule input. When the condition is already true after the first run, there are no recurrences.
+The condition is checked after each successful run, because the first run
+happens before the schedule is consulted. When the condition is already true
+after the first run, there are no recurrences.
 
 ## When to use it
 

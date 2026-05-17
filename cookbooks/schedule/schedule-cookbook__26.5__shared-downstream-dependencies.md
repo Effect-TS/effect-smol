@@ -10,15 +10,8 @@ code_included: true
 
 # 26.5 Shared downstream dependencies
 
-When many services depend on the same API, database, broker, cache, or control
-plane, synchronized retries can make a partial outage worse. Every caller sees
-the same failure, computes the same delay, wakes up together, and sends another
-burst to the dependency at exactly the wrong time.
-
-Jitter protects the shared dependency by spreading those follow-up attempts
-around the base delay. It does not reduce the number of allowed retries by
-itself, but it makes the pressure less bursty and gives other callers a fairer
-chance to use the same limited capacity.
+Use this recipe to protect a shared dependency by jittering retry delays around
+a bounded backoff policy.
 
 ## Problem
 

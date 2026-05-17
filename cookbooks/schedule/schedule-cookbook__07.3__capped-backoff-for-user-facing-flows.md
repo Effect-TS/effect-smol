@@ -10,20 +10,14 @@ code_included: true
 
 # 7.3 Capped backoff for user-facing flows
 
-You want exponential backoff for a request a person is waiting on, but you do not want
-later retries to become slower than the product can tolerate. Basic exponential backoff
-keeps growing. This recipe keeps the retry policy explicit: the schedule decides when
-another typed failure should be attempted again and where retrying stops. The
-surrounding Effect code remains responsible for domain safety, including which failures
-are transient, whether the operation is idempotent, and how the final failure is
-reported.
+This recipe shows how to use capped exponential backoff for requests where a person is
+waiting for the result.
 
 ## Problem
 
-You want exponential backoff for a request a person is waiting on, but you do
-not want later retries to become slower than the product can tolerate. Basic
-exponential backoff keeps growing. In a user-facing flow, that can turn a
-recoverable failure into a long pause with no useful feedback.
+In a user-facing flow, basic exponential backoff can turn a recoverable failure
+into a long pause with no useful feedback once later retries become slower than
+the product can tolerate.
 
 Compose the cap explicitly:
 

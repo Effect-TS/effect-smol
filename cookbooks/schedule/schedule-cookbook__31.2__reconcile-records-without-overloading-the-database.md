@@ -10,23 +10,18 @@ code_included: true
 
 # 31.2 Reconcile records without overloading the database
 
-Database reconciliation jobs often start as a simple loop: read the next stale row,
-write the derived state, mark the row reconciled, and immediately ask for more
-work. That is fine for a handful of records, but it becomes a bursty database
-client when a backlog appears.
-
-Use one schedule for the worker cadence and another, much smaller schedule for
-retrying a single record. The cadence protects the database from an unbounded
-scan loop. The retry policy protects one idempotent reconciliation step from
-short-lived database errors without turning permanent data problems into hidden
-load.
+Database reconciliation jobs are easier to operate when worker cadence and
+per-record retry policy are separate. One schedule spaces successful records;
+a smaller retry schedule handles transient database errors for a single
+idempotent record.
 
 ## Problem
 
-You need to reconcile many records, but each record may touch several tables or
-indexes. Running the next record immediately after every successful write can
-turn a recovery backlog into sustained write pressure. Retrying failed writes
-without a limit can make the problem worse.
+A backlog of stale records can turn a simple read, write, mark loop into
+sustained database pressure. Each record may touch several tables or indexes,
+so running the next record immediately after every successful write can make
+the worker behave like an unbounded scan loop. Retrying failed writes without a
+limit can make the problem worse.
 
 The schedule should make two different decisions visible:
 

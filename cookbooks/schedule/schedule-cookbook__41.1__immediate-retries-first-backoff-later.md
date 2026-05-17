@@ -24,10 +24,9 @@ to completion, then run the second schedule.
 
 ## Problem
 
-You want the first couple of retries to happen immediately, but only the first
-couple. After that, each retry should wait longer than the previous one.
-
-The policy should make the phase boundary visible:
+Build a retry schedule whose early phase is intentionally tiny and whose later
+phase has a different timing shape. The policy should make the phase boundary
+visible:
 
 - first, a bounded zero-delay retry burst
 - then, a bounded exponential backoff

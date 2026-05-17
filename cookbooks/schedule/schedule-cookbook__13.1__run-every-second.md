@@ -10,19 +10,17 @@ code_included: true
 
 # 13.1 Run every second
 
-You have a successful effect that should keep running on a one-second cadence. For
-example, you may want a small health check, heartbeat, sampler, or local maintenance
-action to run immediately and then recur every second while the surrounding fiber is
-alive. This recipe treats repetition as a policy for successful effects. The schedule
-decides whether another successful iteration should run, what spacing applies, and what
-value the repeat returns. Failures stay in the effect error channel, so the repeat
-policy stays separate from recovery or retry behavior.
+Use this recipe when a successful effect should recur on a one-second cadence while
+keeping repeat policy separate from retry or recovery behavior.
 
 ## Problem
 
-You have a successful effect that should keep running on a one-second cadence.
+A small health check, heartbeat, sampler, or local maintenance action needs to run
+immediately and then recur every second while the surrounding fiber is alive.
 
-For example, you may want a small health check, heartbeat, sampler, or local maintenance action to run immediately and then recur every second while the surrounding fiber is alive.
+The schedule should decide whether another successful iteration should run, what
+spacing applies, and what value the repeat returns. Failures should remain in the
+effect error channel.
 
 ## When to use it
 

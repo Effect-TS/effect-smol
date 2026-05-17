@@ -23,16 +23,15 @@ maximum retry work obvious to operators.
 
 ## Problem
 
-You have one operation that is used in two phases:
+Define separate retry schedules for the same dependency operation when it is used
+in two contexts:
 
 - a boot-time readiness check that must succeed before the service is marked
   ready
 - a runtime call that may fail after the service is already serving traffic
 
-Using the same retry policy for both phases hides the operational intent. A
-readiness path wants fast feedback and a small total budget. A runtime path wants
-slower retries, jitter, and a lower chance of synchronized pressure across the
-fleet.
+Using the same retry policy for both contexts hides the operational intent and
+makes the different budgets harder to review.
 
 ## When to use it
 

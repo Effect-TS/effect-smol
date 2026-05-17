@@ -10,7 +10,8 @@ code_included: false
 
 # 55.1 Choosing backoff without considering system load
 
-Choosing backoff without considering system load is an anti-pattern because retry timing is part of the load a system produces. A local delay that looks conservative in one process can become an incident when thousands of fibers, pods, jobs, or clients retry against the same dependency at the same time.
+Backoff timing is part of the load a system produces. Treat it as an
+operational policy, not just a local delay curve.
 
 ## The anti-pattern
 

@@ -10,11 +10,8 @@ code_included: false
 
 # 59.1 Minimize latency
 
-Minimizing latency means choosing the fastest recurrence policy that is still
-defensible for the caller, the dependency, and the failure mode. This is a
-reference-index entry, not a new `Schedule` primitive. Use it to find the
-recipes where immediate retries, short fixed delays, responsive polling, and
-explicit stopping rules are the main operational concern.
+Minimize latency is a reference-index entry for `Schedule` recipes where fast
+recurrence is the main operational concern.
 
 ## What this section is about
 

@@ -10,18 +10,13 @@ code_included: true
 
 # 14.3 Repeat until a threshold is reached
 
-You have a successful effect that reports a numeric or domain value, and you want to
-keep repeating it until that successful output reaches a threshold. With
-`Effect.repeat`, the effect runs once before the schedule is consulted. This recipe
-treats repetition as a policy for successful effects. The schedule decides whether
-another successful iteration should run, what spacing applies, and what value the repeat
-returns. Failures stay in the effect error channel, so the repeat policy stays separate
-from recovery or retry behavior.
+Use this recipe when the successful output of each run decides whether repetition
+should continue.
 
 ## Problem
 
-You have a successful effect that reports a numeric or domain value, and you
-want to keep repeating it until that successful output reaches a threshold.
+A progress read, backlog sample, score refresh, or other domain check returns a
+successful value that can be compared with a threshold.
 
 With `Effect.repeat`, the effect runs once before the schedule is consulted.
 After each successful run, the successful output becomes the schedule input.

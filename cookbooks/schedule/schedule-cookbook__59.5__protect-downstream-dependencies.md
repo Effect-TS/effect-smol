@@ -10,10 +10,8 @@ code_included: false
 
 # 59.5 Protect downstream dependencies
 
-Protect downstream dependencies is a reference-index entry. It maps the
-operational goal of keeping pressure off a downstream service, database, queue,
-or provider back to existing Schedule recipes and primitives. It does not
-introduce a new `Schedule` primitive.
+Protect downstream dependencies is a reference-index entry for `Schedule`
+recipes that keep recurrence pressure within another system's capacity.
 
 ## What this section is about
 

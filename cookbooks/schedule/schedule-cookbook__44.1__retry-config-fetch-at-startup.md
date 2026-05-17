@@ -10,7 +10,8 @@ code_included: true
 
 # 44.1 Retry config fetch at startup
 
-Startup configuration is often needed before a client can render the correct feature flags, API endpoints, or regional settings. A short retry policy is useful when the config service is momentarily unavailable, but the startup path still has to return control to the UI quickly.
+Startup configuration fetches sit on the first-render path, where a tiny outage
+should not leave the UI stuck.
 
 ## Problem
 

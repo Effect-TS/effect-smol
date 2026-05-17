@@ -10,21 +10,15 @@ code_included: true
 
 # 7.4 Capped backoff for worker processes
 
-A worker process pulls jobs from a queue and handles them in the background. Some
-failures are transient: a downstream service is overloaded, a database connection is
-briefly unavailable, or an external API returns a retryable status. This recipe keeps
-the retry policy explicit: the schedule decides when another typed failure should be
-attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe shows how to apply capped backoff to a single background job handled by a
+worker process.
 
 ## Problem
 
-A worker process pulls jobs from a queue and handles them in the background.
-Some failures are transient: a downstream service is overloaded, a database
-connection is briefly unavailable, or an external API returns a retryable
-status. Retrying immediately can amplify the outage, but uncapped exponential
-backoff can make one job sleep for too long inside a worker slot.
+Transient worker failures often come from an overloaded downstream service, a
+briefly unavailable database connection, or an external API returning a
+retryable status. Retrying immediately can amplify the outage, but uncapped
+exponential backoff can make one job sleep for too long inside a worker slot.
 
 Use capped backoff for the retry policy around a single job. The worker slows
 down after repeated transient failures, but the pause between attempts never

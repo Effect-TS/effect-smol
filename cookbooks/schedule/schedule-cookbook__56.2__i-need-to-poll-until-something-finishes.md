@@ -10,7 +10,9 @@ code_included: false
 
 # 56.2 “I need to poll until something finishes”
 
-Use this recipe family when each repeat is a fresh observation of external state: a job status endpoint, an import pipeline, a payment settlement, a deployment rollout, or any process that eventually reports a terminal result.
+Use this recipe family when each repeat is a fresh observation of external
+state, such as a job status endpoint, import pipeline, payment settlement, or
+deployment rollout.
 
 The schedule should answer three questions before code is written:
 

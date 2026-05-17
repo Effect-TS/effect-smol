@@ -10,10 +10,8 @@ code_included: true
 
 # 39.4 Retry with cap plus max attempts
 
-A capped backoff policy answers two operational questions at once: how long can
-the next retry wait, and how many retries can happen at all. Use exponential
-backoff for the early pressure relief, clamp each computed delay to a maximum,
-then add a count limit so the policy cannot keep trying forever.
+Capped backoff combines early pressure relief with a visible ceiling on retry
+delay and retry count.
 
 This is a retry policy, so the first call still happens immediately.
 `Schedule` controls only the decisions after a failure.
@@ -21,8 +19,9 @@ This is a retry policy, so the first call still happens immediately.
 ## Problem
 
 You call a dependency that may fail briefly during deploys, restarts, or load
-spikes. Retrying immediately is too aggressive, but unbounded exponential backoff
-can leave a request hanging for longer than the caller can tolerate.
+spikes. Immediate retries create pressure, but pure exponential backoff can
+eventually wait longer than the caller can tolerate. Reviewers should be able to
+see both the maximum delay and the maximum number of follow-up attempts.
 
 You want a policy that:
 

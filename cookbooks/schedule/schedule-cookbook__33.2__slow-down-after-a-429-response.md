@@ -10,16 +10,9 @@ code_included: true
 
 # 33.2 Slow down after a 429 response
 
-HTTP `429 Too Many Requests` is a coordination signal from the server. It says
-the request may be valid, but this client, credential, route, tenant, or fleet is
-currently moving too quickly. A good retry policy should therefore slow down
-according to the rate-limit signal instead of treating the response like an
-ordinary transient failure.
-
-In `Effect.retry`, the failed value is fed into the `Schedule`. That makes a
-429-specific error a useful schedule input: the schedule can inspect the
-`Retry-After` information, choose the next delay, and stop immediately for
-non-rate-limit failures.
+HTTP `429 Too Many Requests` is a server pacing signal. This recipe uses a typed
+rate-limit error as schedule input so retry timing can follow provider guidance
+instead of ordinary transient-failure backoff.
 
 ## Problem
 

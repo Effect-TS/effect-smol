@@ -22,12 +22,9 @@ after the user is no longer waiting?"
 
 ## Problem
 
-You want to make a best effort while the caller is waiting, then continue from a
-queue, durable job, or workflow when the operation is still likely to recover.
-
-For example, a profile update might call a remote CRM. The HTTP handler should
-not hold the user for minutes during an outage, but the update should not be
-dropped after the first transient failure either.
+A profile update might call a remote CRM. The HTTP handler should not hold the
+user for minutes during an outage, but the update should not be dropped after
+the first transient failure either.
 
 ## When to use it
 

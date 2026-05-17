@@ -10,18 +10,15 @@ code_included: true
 
 # 49.3 Simulate transient failures
 
-Transient-failure tests should prove two things: the operation eventually
-recovers when the retry budget is large enough, and the same policy stops when
-the failures outlast that budget. Keep the fixture deterministic. The test
-should not depend on a real clock, random failure, or a live remote service.
+Transient-failure tests need a deterministic fixture, not random failure, a live
+remote service, or wall-clock waiting.
 
 ## Problem
 
-You have an effect that represents a flaky dependency. The first few calls may
-fail, later calls may succeed, and production code retries those failures with a
-`Schedule`. You want a test that demonstrates the success case without waiting
-in real time, and another test that verifies the schedule does not retry
-forever.
+Model the dependency as an effect whose first few evaluations fail and whose
+later evaluations may succeed. The tests should cover both sides of the retry
+budget: recovery when the failures fit within the schedule, and final failure
+when they outlast it.
 
 ## Schedule shape
 

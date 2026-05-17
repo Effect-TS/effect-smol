@@ -11,15 +11,8 @@ code_included: true
 # 48.4 Surface termination reasons
 
 Schedules decide whether another recurrence is allowed. They do not, by
-themselves, explain why the whole workflow ended. A retry that eventually
-succeeds, a retry budget that gives up, a fatal error that should never be
-retried, a polling budget that expires, and a domain terminal state are
-different operational outcomes. Surface those outcomes explicitly in the code
-around the schedule.
-
-For polling, the schedule sees successful observations. For retrying, the
-schedule sees failures. That difference is the key to producing useful
-diagnostics instead of one generic "stopped" event.
+themselves, explain why the whole workflow ended. Surface that distinction in
+the code around the schedule.
 
 ## Problem
 

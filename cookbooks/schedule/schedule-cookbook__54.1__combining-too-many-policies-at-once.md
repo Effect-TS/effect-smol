@@ -10,7 +10,7 @@ code_included: false
 
 # 54.1 Combining too many policies at once
 
-Combining too many policies at once is an anti-pattern because a schedule can stop describing one operational decision and start hiding several of them. `Schedule` values are intentionally composable, but composition is only helpful when each added policy has a clear job.
+`Schedule` composition is useful when each piece has a clear job. This section covers policies that combine so many decisions that the operational promise disappears.
 
 ## The anti-pattern
 

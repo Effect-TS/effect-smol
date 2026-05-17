@@ -10,20 +10,17 @@ code_included: true
 
 # 6.2 Backoff for transient network failures
 
-You are calling a remote service and some failures are probably temporary: connection
-resets, timeouts, temporary DNS failures, or gateway errors. Retrying immediately can
-turn a brief network hiccup into extra pressure on the service or on your own client.
-This recipe keeps the retry policy explicit: the schedule decides when another typed
-failure should be attempted again and where retrying stops. The surrounding Effect code
-remains responsible for domain safety, including which failures are transient, whether
-the operation is idempotent, and how the final failure is reported.
+This recipe applies exponential backoff to retryable network failures from a remote
+service call. The schedule controls the growing retry delays, while the surrounding
+Effect code remains responsible for filtering typed failures and preserving
+idempotency.
 
 ## Problem
 
-You are calling a remote service and some failures are probably temporary:
-connection resets, timeouts, temporary DNS failures, or gateway errors. Retrying
-immediately can turn a brief network hiccup into extra pressure on the service
-or on your own client.
+Remote calls can fail for temporary transport reasons such as connection resets,
+timeouts, temporary DNS failures, or gateway errors. You need retries that slow
+down after repeated failures so a brief network hiccup does not become extra
+pressure on the service or on your own client.
 
 Use exponential backoff for the delay, add a finite retry budget, and filter the
 typed failures so only retryable network errors are retried.

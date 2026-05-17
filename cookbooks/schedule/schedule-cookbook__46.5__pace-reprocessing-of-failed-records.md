@@ -10,10 +10,8 @@ code_included: true
 
 # 46.5 Pace reprocessing of failed records
 
-Failed-record reprocessing is usually a background repair path, not an urgent
-request path. The worker should make progress, but it should not turn one bad
-deployment, one unavailable dependency, or one poison record into continuous
-database pressure.
+Failed-record reprocessing is a background repair path. It should make steady
+progress without turning stale failures into constant database pressure.
 
 Use a `Schedule` to make that pacing explicit. The reprocessing effect performs
 one bounded pass over the failed-record table. The schedule decides when another
@@ -21,15 +19,14 @@ pass is allowed.
 
 ## Problem
 
-You have records marked as failed in a database table. A worker should pick up a
-small batch, re-run the operation, and mark each record as completed or still
-failed. Without a schedule, it is easy to accidentally build a tight loop that
-keeps scanning the same rows, contends with foreground traffic, and repeatedly
-writes failure metadata for records that cannot yet succeed.
+A worker reads records marked failed, re-runs the operation for a small batch,
+and updates each record as completed or still failed. Without a spaced
+recurrence policy, it can fall into a tight scan/write loop against the same
+rows.
 
 The recurrence policy needs to answer three operational questions:
 
-- how much time is left between reprocessing passes
+- how much time to leave between reprocessing passes
 - how many follow-up passes the worker will run
 - whether each pass is safe to repeat when the same record is seen again
 

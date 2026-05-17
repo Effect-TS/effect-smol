@@ -11,10 +11,7 @@ code_included: true
 # 35.3 Stop after 2 minutes
 
 A two-minute budget is useful when a workflow should keep trying long enough for
-normal background latency, but should not become an unbounded loop. It is common
-for user-triggered work that hands back a progress state, and for background
-workers that reconcile remote systems after a webhook, queue message, or cache
-miss.
+normal background latency, but should not become an unbounded loop.
 
 Use `Schedule.during("2 minutes")` as the elapsed-time stop condition, and
 combine it with a cadence such as `Schedule.spaced`, `Schedule.fixed`, or
@@ -23,14 +20,10 @@ The budget says when the recurrence window closes.
 
 ## Problem
 
-You need a repeat or retry policy that gives a workflow up to two minutes to
-make progress, without hiding that limit inside manual sleeps, counters, or
-custom loop state.
-
-For example, after a user starts an export you may poll the export status for up
-to two minutes before returning a "still processing" response. In a background
-worker, you may retry a temporary dependency failure for up to two minutes before
-leaving the message for later recovery or surfacing an operational failure.
+After a user starts an export, the status path may poll briefly before returning
+a "still processing" response. In a background worker, a temporary dependency
+failure may be retried within the same budget before leaving the message for
+later recovery or surfacing an operational failure.
 
 ## When to use it
 

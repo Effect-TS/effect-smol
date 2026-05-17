@@ -10,18 +10,15 @@ code_included: true
 
 # 15.5 Use spacing to smooth resource usage
 
-You have a successful repeated effect that consumes a shared resource each time it runs:
-CPU, database connections, queue visibility checks, cache bandwidth, file handles, or an
-external API quota. This recipe treats repetition as a policy for successful effects.
-The schedule decides whether another successful iteration should run, what spacing
-applies, and what value the repeat returns. Failures stay in the effect error channel,
-so the repeat policy stays separate from recovery or retry behavior.
+Use spacing when a successful repeat loop should spread its resource usage over time.
+This recipe keeps the pacing policy separate from failure recovery.
 
 ## Problem
 
-You have a successful repeated effect that consumes a shared resource each time it runs: CPU, database connections, queue visibility checks, cache bandwidth, file handles, or an external API quota.
-
-If the next iteration starts immediately after each success, the loop can create bursts of resource usage. Even when every individual run is correct, the repeated workflow can make the system feel uneven: short spikes, quiet gaps, then more spikes.
+Each run may consume CPU, database connections, queue visibility checks, cache
+bandwidth, file handles, or external API quota. If the next iteration starts
+immediately after each success, the loop can create bursts of usage even when every
+individual run is correct.
 
 ## When to use it
 

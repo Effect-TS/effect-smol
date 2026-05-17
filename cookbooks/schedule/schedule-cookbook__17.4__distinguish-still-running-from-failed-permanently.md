@@ -10,19 +10,12 @@ code_included: true
 
 # 17.4 Distinguish “still running” from “failed permanently”
 
-A polling endpoint often reports several successful domain statuses. Some mean "the
-remote workflow is still active", while others mean "the remote workflow is finished and
-must be interpreted". This recipe treats polling as repeated successful observations.
-The schedule controls cadence and the condition for taking another observation, while
-the surrounding Effect code interprets terminal states, missing data, stale reads, and
-real failures. Keeping those responsibilities separate makes the polling loop easier to
-bound and diagnose.
+Use this recipe when a polling endpoint reports multiple successful domain
+statuses and only some of them mean work is still in progress. The schedule
+decides whether to continue from the status value; later code interprets the
+terminal result.
 
 ## Problem
-
-A polling endpoint often reports several successful domain statuses. Some mean
-"the remote workflow is still active", while others mean "the remote workflow
-is finished and must be interpreted".
 
 For example, `"queued"` and `"running"` should continue polling. `"succeeded"`,
 `"failed"`, and `"canceled"` should stop polling. The important distinction is

@@ -10,23 +10,21 @@ code_included: true
 
 # 31.4 Limit maintenance loops
 
-Recurring maintenance work should have an explicit stop condition. A cache
-warmer, compaction pass, reconciliation sweep, or orphan cleanup can look
-harmless when each step is small, but an unbounded loop can keep consuming
-capacity long after the useful work is gone.
-
-Use `Schedule` to put the cadence and the limit in one place. The first run of
-`Effect.repeat` happens normally. The schedule decides whether to run again,
-how long to wait before the next run, and when the loop has spent enough work
-or time.
+Recurring maintenance work should make both cadence and stop conditions
+explicit. A small cache-warming, compaction, reconciliation, or cleanup step can
+still consume capacity long after useful work is gone if the loop is unbounded.
 
 ## Problem
 
-You need a maintenance loop that runs slowly and predictably, but not forever.
+You need a maintenance loop that runs opportunistically inside a bounded
+window. The first run of `Effect.repeat` should happen normally, and the
+schedule should then decide whether to run again, how long to wait, and when
+the loop has spent enough work or time.
+
 The policy should answer two operational questions without reading the loop
 body:
 
-- how much time is left between maintenance steps
+- how much time to leave between maintenance steps
 - what stops the loop if there is always more work to check
 
 ## When to use it

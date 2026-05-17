@@ -10,20 +10,17 @@ code_included: true
 
 # 6.4 Backoff for startup dependency readiness
 
-Your application is starting, but a dependency it needs is not ready yet. The database
-process may be accepting connections a few seconds after the app process starts, a cache
-may still be warming, or a local service may be behind its own startup sequence. This
-recipe keeps the retry policy explicit: the schedule decides when another typed failure
-should be attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe uses exponential backoff as a bounded startup gate for dependencies that
+may become ready shortly after the application starts. The schedule controls the retry
+timing, while the surrounding Effect code remains responsible for deciding which
+readiness failures should keep startup waiting.
 
 ## Problem
 
-Your application is starting, but a dependency it needs is not ready yet. The
-database process may be accepting connections a few seconds after the app
-process starts, a cache may still be warming, or a local service may be behind
-its own startup sequence.
+The database process may accept connections a few seconds after the app process
+starts, a cache may still be warming, or a local service may be behind its own
+startup sequence. You need startup to wait briefly for this readiness gap
+without retrying forever.
 
 You want the first readiness check to run immediately, then retry with growing
 delays so startup gives the dependency time to become available without sending

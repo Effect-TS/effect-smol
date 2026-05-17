@@ -10,22 +10,18 @@ code_included: true
 
 # 14.4 Repeat until output becomes stable
 
-You have a successful effect that reports an observation, and you want to keep repeating
-it until the observation stops changing by a concrete comparison. This recipe treats
-repetition as a policy for successful effects. The schedule decides whether another
-successful iteration should run, what spacing applies, and what value the repeat
-returns. Failures stay in the effect error channel, so the repeat policy stays separate
-from recovery or retry behavior.
+Use this recipe when repeated successful observations should stop once a named
+stability comparison says the output is unchanged.
 
 ## Problem
-
-You have a successful effect that reports an observation, and you want to keep
-repeating it until the observation stops changing by a concrete comparison.
 
 For example, a read model may be considered stable when two consecutive reads
 have the same version, a cache snapshot may be stable when its checksum stops
 changing, or an aggregate may be stable when both its revision and item count
 match the previous observation.
+
+The schedule should carry enough state to compare the latest successful output
+with the previous one and stop when the comparison reports stability.
 
 ## When to use it
 

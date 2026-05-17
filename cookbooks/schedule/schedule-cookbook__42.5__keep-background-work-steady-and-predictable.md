@@ -21,10 +21,10 @@ the worker's point of view: one run at a time, followed by one deliberate pause.
 
 ## Problem
 
-You have a background task such as refreshing a cache, reconciling records,
-publishing metrics, or pruning expired state. It should continue at a steady pace
-without a hand-written loop, scattered sleeps, or a composed policy that makes
-ordinary cadence look more complicated than it is.
+Represent a recurring maintenance task such as refreshing a cache, reconciling
+records, publishing metrics, or pruning expired state with the simplest schedule
+that states its cadence. Keep normal cadence separate from retry, catch-up, or
+overload-control behavior.
 
 ## When to use it
 

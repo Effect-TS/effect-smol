@@ -10,11 +10,9 @@ code_included: true
 
 # 33.1 Space calls to a third-party API
 
-A worker has a queue of requests to send to a third-party API. The provider
-allows steady traffic, but bursts can burn quota, trigger 429 responses, or make
-your own retries arrive at the worst possible time. This recipe keeps the
-normal call cadence visible with `Schedule.spaced`, and keeps transient retry
-behavior as a separate policy around each call.
+Third-party API workers often need two visible policies: a steady cadence for
+normal calls, and a separate retry policy for transient failures around each
+call.
 
 ## Problem
 

@@ -10,20 +10,16 @@ code_included: true
 
 # 40.4 Warm-up polling followed by regular monitoring
 
-Some services need two different polling behaviors in one loop. During warm-up,
-you want short gaps so readiness is detected quickly. After that first responsive
-window, you still want monitoring, but at a calmer cadence that is easier on the
-dependency.
-
-Model those phases as schedules and compose them. The initial effect still runs
-immediately; the schedule controls only the recurrences that follow.
+Use sequential schedules when one loop needs a short warm-up cadence followed by
+regular monitoring. The initial effect still runs immediately; the schedule
+controls only the recurrences that follow.
 
 ## Problem
 
-You need to poll aggressively for a short warm-up window, then keep polling at a
-regular monitoring interval. A single `Schedule.spaced("1 second")` is too noisy
-for steady state, while a single `Schedule.spaced("30 seconds")` is too slow for
-startup.
+You need a health reader to sample quickly during the first few successful
+observations, then continue at a regular monitoring interval. A single
+`Schedule.spaced("1 second")` is too noisy for steady state, while a single
+`Schedule.spaced("30 seconds")` is too slow for startup.
 
 ## When to use it
 

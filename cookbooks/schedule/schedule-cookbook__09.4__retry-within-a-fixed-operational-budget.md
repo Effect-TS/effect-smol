@@ -10,18 +10,15 @@ code_included: true
 
 # 9.4 Retry within a fixed operational budget
 
-You want retrying to stay inside a fixed operational budget, such as "keep trying for
-about 30 seconds", while still using a normal delay policy between attempts. This recipe
-keeps the retry policy explicit: the schedule decides when another typed failure should
-be attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+Use this recipe when retries must fit inside an operational time budget while
+still using a normal delay schedule. The schedule provides the retry cadence and
+the stopping condition; surrounding code still decides retry eligibility and
+idempotency.
 
 ## Problem
 
-You want retrying to stay inside a fixed operational budget, such as "keep
-trying for about 30 seconds", while still using a normal delay policy between
-attempts.
+Build a retry policy that uses exponential backoff but schedules more attempts
+only while a 30 second budget remains open.
 
 Compose the delay policy with `Schedule.during`:
 

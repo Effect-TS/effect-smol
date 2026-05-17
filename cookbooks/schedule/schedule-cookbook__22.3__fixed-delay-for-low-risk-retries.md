@@ -14,17 +14,12 @@ Use a fixed delay when a retry is cheap, safe, and expected to recover quickly.
 The policy should still be bounded: even low-risk retries can create steady
 background load if every caller keeps trying forever.
 
-This is a good fit for idempotent reads such as fetching a feature flag,
-refreshing cached metadata, or checking a small control-plane document. The
-operation can be tried again without changing server state, and the caller has a
-reasonable fallback if the remote service is still unavailable.
-
 ## Problem
 
-You want a simple retry policy for a low-risk read. The first attempt should run
-immediately. If it fails with a transient error, retry a few more times at a
-predictable cadence, then stop and let the surrounding Effect decide how to
-recover.
+Feature flags, cached metadata, or small control-plane documents can often be
+read again without changing server state. You want the first read to run
+immediately, then a few more attempts at a predictable cadence before the
+surrounding Effect decides how to recover.
 
 ## Schedule shape
 

@@ -10,26 +10,16 @@ code_included: true
 
 # 28.1 Jittered periodic refresh
 
-Many services keep local state fresh by periodically reloading cache entries,
-feature flags, routing tables, or application configuration. A plain periodic
-refresh is easy to understand, but when every process starts from the same
-deployment event, each instance can refresh on the same boundaries forever.
-
-Jitter keeps the periodic shape while moving each recurrence slightly away from
-the exact interval. That matters for repeat and polling loops, not only retry
-loops: the work may be succeeding, but a whole fleet can still create bursts of
-successful refresh traffic.
+Periodic refresh loops keep local state current without requiring exact
+wall-clock timing. This recipe adds jitter to a regular repeat cadence while
+leaving the refresh interval recognizable.
 
 ## Problem
 
-You want each service instance to refresh cached configuration every minute.
-The refresh should happen forever in a background fiber, but the configuration
-service should not receive a synchronized request from every instance at the
-same second.
-
-Use a normal periodic schedule for the base cadence, then apply
-`Schedule.jittered` so each follow-up refresh waits for a slightly different
-delay.
+Each service instance should refresh cached configuration every minute in a
+background fiber. The first refresh should run when the loop starts, while later
+refreshes should drift enough that the configuration service does not receive a
+synchronized request from every instance at the same second.
 
 ## When to use it
 

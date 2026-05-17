@@ -10,16 +10,8 @@ code_included: true
 
 # 26.3 Recovery spikes
 
-A recovery spike happens after an outage clears and many clients discover the
-same fact at roughly the same time. The database is back, the queue accepts
-connections again, or the control plane starts answering requests, so every
-worker that has been waiting tries to recover at once.
-
-Backoff helps by reducing pressure while the dependency is still unhealthy.
-Jittered backoff helps with the moment it becomes healthy again: instead of
-every client retrying on the same exponential boundaries, each delay is moved a
-little earlier or later. In Effect, `Schedule.jittered` randomizes each delay
-between 80% and 120% of the delay produced by the schedule it wraps.
+Use this recipe to apply jittered backoff after an outage so recovery traffic
+spreads out instead of forming synchronized retry waves.
 
 ## Problem
 

@@ -10,23 +10,17 @@ code_included: true
 
 # 9.2 Retry for at most 1 minute
 
-You want a retry policy that gives a dependency a short recovery window, but does not
-keep the caller waiting indefinitely. The operation should run once immediately, retry
-inside a one-minute schedule window after typed failures, and then return the last
-failure if it still cannot succeed. This recipe keeps the retry policy explicit: the
-schedule decides when another typed failure should be attempted again and where retrying
-stops. The surrounding Effect code remains responsible for domain safety, including
-which failures are transient, whether the operation is idempotent, and how the final
-failure is reported.
+Use this recipe when a dependency deserves a brief recovery window but the
+caller must not wait indefinitely. The schedule controls the bounded retry
+window; surrounding code still decides retry safety and failure handling.
 
 ## Problem
 
-You want a retry policy that gives a dependency a short recovery window, but
-does not keep the caller waiting indefinitely. The operation should run once
-immediately, retry inside a one-minute schedule window after typed failures,
-and then return the last failure if it still cannot succeed.
+Build a policy that runs the operation once immediately, retries typed failures
+on a one-second cadence inside a one-minute window, and returns the last failure
+if the window closes.
 
-Build the policy by combining a retry cadence with a one-minute elapsed window:
+Combine the retry cadence with a one-minute elapsed window:
 
 ```ts
 const retryForAtMost1Minute = Schedule.spaced("1 second").pipe(

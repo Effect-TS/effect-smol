@@ -10,19 +10,16 @@ code_included: true
 
 # 37.3 Stop on validation problems
 
-Validation problems are not transient. If a request is missing a required field,
-contains an invalid value, fails a business rule, or cannot be decoded into the
-shape a downstream service accepts, waiting will not make the next attempt safer.
-This recipe keeps that decision outside the timing policy: classify failures
-first, then let `Schedule` describe only the retry mechanics for failures that
+Validation problems are input or domain feedback, not timing signals. Classify
+them before retrying so `Schedule` only describes mechanics for failures that
 can plausibly recover.
 
 ## Problem
 
-A single operation can fail for both transient and permanent reasons. A timeout,
-connection reset, or temporary service outage may be worth retrying. A
-validation problem is feedback about the input or domain state and should be
-returned immediately.
+An operation such as an order submission can fail because transport is unstable
+or because the request itself is invalid. A timeout, connection reset, or
+temporary service outage may be worth retrying. Missing fields, invalid values,
+business-rule failures, or decode failures should be returned immediately.
 
 The mistake is to attach a retry schedule to the whole error channel before the
 errors are classified. That turns malformed requests into repeated malformed

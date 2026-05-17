@@ -10,17 +10,8 @@ code_included: true
 
 # 34.5 Making retry behavior explicit
 
-Retry policy is operational behavior. It decides how much extra traffic a
-dependency sees, how long a caller may wait, and how many chances an operation
-gets after the first failure.
-
-Make those decisions visible in named `Schedule` values. A reviewer should be
-able to answer these questions from the policy boundary:
-
-- what delay pattern is used between retries
-- how many retries are allowed after the original attempt
-- whether there is an elapsed time budget
-- whether the policy has been jittered for many concurrent callers
+Retry behavior belongs in named `Schedule` values so traffic, wait time, and
+retry budgets are reviewable at the policy boundary.
 
 ## Problem
 

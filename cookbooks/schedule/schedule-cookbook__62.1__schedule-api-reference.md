@@ -10,11 +10,17 @@ code_included: false
 
 # 62.1 Schedule API reference
 
-This reference entry summarizes the main concepts exposed by `Schedule` itself. Use it as a map from cookbook recipes back to the API surface in `packages/effect/src/Schedule.ts`: constructors create recurrence policies, combinators compose or transform those policies, and metadata-aware utilities let a schedule make decisions from attempts, elapsed time, inputs, outputs, and computed delays.
+This reference entry maps cookbook recipes back to the `Schedule` API surface
+in `packages/effect/src/Schedule.ts`.
 
 ## What this section is about
 
-`Schedule<Output, Input, Error, Env>` represents a stepwise policy. Each step receives an input, produces an output and a delay, or halts with a final output. Retry APIs usually feed failures into the schedule. Repeat APIs usually feed successful values into the schedule. The same `Schedule` value can therefore describe retry timing, repeat cadence, polling intervals, bounded loops, and custom recurrence state.
+`Schedule<Output, Input, Error, Env>` is a stepwise policy: each step receives
+an input and either produces an output plus delay, or halts with a final output.
+Retry APIs usually feed failures into the schedule. Repeat APIs usually feed
+successful values into the schedule. The same value can therefore describe
+retry timing, repeat cadence, polling intervals, bounded loops, and custom
+recurrence state.
 
 The API falls into a few useful groups:
 

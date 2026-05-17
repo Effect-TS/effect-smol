@@ -10,19 +10,14 @@ code_included: true
 
 # 30.2 Process a batch with gaps between items
 
-You have a finite batch of items, but sending the whole batch as a burst would put
-too much pressure on a downstream dependency. This recipe uses `Schedule.spaced`
-to make the gap between successful item sends part of the program's recurrence
-policy instead of hiding it inside a manual sleep loop.
+Use `Schedule.spaced` when a finite batch should move one item at a time with a
+visible pause between successful sends.
 
 ## Problem
 
-You need to process a batch one item at a time and leave a deliberate pause
-between items.
-
-For example, an import worker may call a partner API, write to a rate-limited
-database, publish messages to a broker, or invalidate cache keys. Each item can
-be processed independently, but processing all items back-to-back would create a
+An import worker may call a partner API, write to a rate-limited database,
+publish messages to a broker, or invalidate cache keys. Each item can be
+processed independently, but processing all items back-to-back would create a
 short spike in connections, locks, queue depth, or remote requests.
 
 ## When to use it

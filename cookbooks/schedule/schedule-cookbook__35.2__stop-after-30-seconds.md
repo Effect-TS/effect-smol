@@ -10,17 +10,16 @@ code_included: true
 
 # 35.2 Stop after 30 seconds
 
-You want a retry or polling loop to keep trying for a short, operationally
-visible window, then stop. `Schedule.during("30 seconds")` is the elapsed
-recurrence budget: it allows another recurrence while the schedule's elapsed
-time is still within 30 seconds. Combine it with a cadence or backoff so the
-policy also says how much pressure the operation puts on the dependency during
-that window.
+Use `Schedule.during("30 seconds")` for an elapsed recurrence budget that is
+long enough to be operationally visible but still short. Combine it with a
+cadence or backoff so the policy also says how much pressure the operation puts
+on the dependency during that window.
 
 ## Problem
 
-You need a policy that says "try for about 30 seconds" without scattering
-sleeps, counters, or deadline checks around the program.
+A dependency probe, webhook delivery, or short recovery step should keep trying
+for about 30 seconds without scattering sleeps, counters, or deadline checks
+around the program.
 
 The important distinction is that the time budget and the delay policy are
 separate:

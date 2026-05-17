@@ -10,12 +10,9 @@ code_included: false
 
 # 55.5 Designing schedules without production observability
 
-Designing schedules without production observability is an anti-pattern because
-recurrence is operational behavior, not just local control flow. A schedule
-decides whether work may happen again, how long the next delay is, and when the
-policy stops allowing recurrence. If that decision leaves no logs, metrics, or
-termination reason, operators can see the original failure or final timeout but
-not the policy that stretched the incident across time.
+Schedules are production behavior: they decide when work may happen again and
+when the policy stops. This entry focuses on making those recurrence decisions
+observable.
 
 ## The anti-pattern
 

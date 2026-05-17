@@ -10,11 +10,8 @@ code_included: true
 
 # 25.3 Cap long tails in retry behavior
 
-Capping long tails keeps retry behavior useful after the first few failures.
-Exponential backoff is good at reducing pressure quickly, but without a ceiling
-the later delays can become so large that the retry effectively disappears from
-normal operational view. A capped policy keeps slowing down under failure while
-still giving operators a predictable maximum wait between attempts.
+Use this recipe to keep late retry attempts visible by putting a maximum wait on
+an otherwise growing backoff policy.
 
 ## Problem
 

@@ -10,19 +10,16 @@ code_included: true
 
 # 10.1 Retry only transient failures
 
-An operation can fail for different reasons, but only some of those reasons are
-transient. A timeout, rate limit, or temporary service outage may succeed on a later
-attempt. This recipe keeps the retry policy explicit: the schedule decides when another
-typed failure should be attempted again and where retrying stops. The surrounding Effect
-code remains responsible for domain safety, including which failures are transient,
-whether the operation is idempotent, and how the final failure is reported.
+Use this recipe when only some typed failures should consume retry budget. The
+schedule controls retry timing and limits; an error predicate controls retry
+eligibility.
 
 ## Problem
 
-An operation can fail for different reasons, but only some of those reasons are
-transient. A timeout, rate limit, or temporary service outage may succeed on a
-later attempt. Invalid input, forbidden access, or an unsupported operation will
-usually fail again no matter how long you wait.
+Given an operation with mixed failure modes, retry only failures that are likely
+to be transient. Timeouts, rate limits, and temporary service outages can be
+eligible; invalid input, forbidden access, and unsupported operations should
+return immediately.
 
 Put the retry decision in `Effect.retry` with a predicate over the typed error:
 

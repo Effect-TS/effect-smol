@@ -10,20 +10,15 @@ code_included: true
 
 # 27.2 Jittered retries for Redis reconnects
 
-Redis reconnects are a classic place for jitter. If a Redis node restarts, a
-network path drops, or a deployment rolls through a cluster, many workers can
-notice the same failure at roughly the same time. A plain exponential backoff
-reduces pressure after each failure, but identical clients still tend to retry
-on the same delay sequence.
-
-Use `Schedule.jittered` after choosing the backoff shape so each client keeps
-the same general policy while avoiding lockstep reconnect attempts.
+Redis reconnects are a common use for jitter when restarts, network drops, or
+deployments affect many workers at once. This recipe applies jitter after
+choosing the reconnect backoff shape.
 
 ## Problem
 
 You have a background process that depends on Redis. When the connection is
-lost, the process should retry the reconnect instead of failing the whole
-worker immediately.
+lost for a transient reason, the reconnect loop should try again instead of
+failing the whole worker immediately.
 
 You want a reconnect policy that:
 

@@ -10,18 +10,12 @@ code_included: true
 
 # 7.5 Backoff with both cap and retry limit
 
-You want exponential backoff, but two separate bounds must hold at the same time: no
-delay between retries should grow beyond a practical maximum the retrying operation
-should stop after a fixed number of retries. This recipe keeps the retry policy
-explicit: the schedule decides when another typed failure should be attempted again and
-where retrying stops. The surrounding Effect code remains responsible for domain safety,
-including which failures are transient, whether the operation is idempotent, and how the
-final failure is reported.
+This recipe shows how to combine exponential backoff with both a maximum delay and a
+maximum retry count.
 
 ## Problem
 
-You want exponential backoff, but two separate bounds must hold at the same
-time:
+An exponential retry policy often needs two separate bounds at the same time:
 
 - no delay between retries should grow beyond a practical maximum
 - the retrying operation should stop after a fixed number of retries

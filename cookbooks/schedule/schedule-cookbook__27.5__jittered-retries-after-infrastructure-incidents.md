@@ -10,26 +10,18 @@ code_included: true
 
 # 27.5 Jittered retries after infrastructure incidents
 
-After an infrastructure incident, the dangerous moment is often the recovery
-window. A database primary comes back, a service mesh route starts accepting
-traffic again, or a regional dependency begins returning healthy responses. If
-every client, worker, and service replica retries on the same deterministic
-backoff boundaries, recovery can turn into a second load spike.
-
-Use a jittered retry schedule when many callers may observe the same outage and
-then try to recover together. The schedule keeps the backoff policy visible,
-while `Schedule.jittered` spreads each retry delay so the fleet does not move in
-one synchronized wave.
+Infrastructure recovery is a high-risk moment because many callers may begin
+retrying as a dependency comes back. This recipe keeps the retry shape visible
+while adding jitter to spread fleet recovery.
 
 ## Problem
 
-A shared infrastructure dependency has failed or restarted, and many callers
-are waiting to retry the same operation. A plain exponential policy helps each
-caller back off, but identical callers still retry at identical boundaries:
-200 milliseconds, 400 milliseconds, 800 milliseconds, and so on.
+The recovery path should retry a safe operation after transient failures using a
+bounded exponential backoff. With many identical callers, a 200 millisecond, 400
+millisecond, 800 millisecond cadence can still align at fleet scale.
 
-Those aligned retries can hit the recovering dependency exactly when it is
-least able to absorb a burst. Add jitter after choosing the base cadence:
+Add jitter after choosing the base cadence so the retry limit and growth curve
+stay explicit:
 
 ```ts
 const recoveryRetryPolicy = Schedule.exponential("200 millis").pipe(

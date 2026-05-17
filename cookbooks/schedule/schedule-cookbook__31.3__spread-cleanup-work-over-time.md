@@ -10,20 +10,16 @@ code_included: true
 
 # 31.3 Spread cleanup work over time
 
-Cleanup work is often safe to run in the background, but unsafe to run all at
-once. Deleting expired rows, compacting old partitions, clearing orphaned files,
-or rebuilding stale metadata can compete with foreground traffic for the same
-database, filesystem, object store, or cache.
-
-Use a schedule to make that load-smoothing policy explicit. The cleanup effect
-runs one unit of work, then the schedule decides whether another unit may run
-and how long to wait before it starts.
+Cleanup work is often safe in small units and unsafe as an all-at-once
+background sweep. Use a schedule to make the load-smoothing policy explicit:
+run one unit, decide whether another may run, and wait before it starts.
 
 ## Problem
 
-You have a cleanup or maintenance job that can be split into small successful
-steps. Running every step immediately would create a burst of database writes,
-storage I/O, locks, cache churn, or downstream calls.
+A cleanup or maintenance job can usually be split into small successful steps:
+deleting expired rows, compacting old partitions, clearing orphaned files, or
+rebuilding stale metadata. Running every step immediately would create a burst
+of database writes, storage I/O, locks, cache churn, or downstream calls.
 
 You want the job to keep making progress while spreading the pressure over time.
 

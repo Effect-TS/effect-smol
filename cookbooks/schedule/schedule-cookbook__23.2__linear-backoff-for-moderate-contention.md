@@ -10,10 +10,9 @@ code_included: true
 
 # 23.2 Linear backoff for moderate contention
 
-Linear backoff is useful when contention is expected but not severe. Each failed
-attempt waits a little longer than the previous one, which gives the competing
-transaction, worker, or lease holder time to finish without jumping straight to
-long exponential delays.
+Linear backoff is a retry shape for contention that should clear quickly. It
+gives competing work a little room without jumping straight to long exponential
+delays.
 
 In Effect, there is no special `Schedule.linear` constructor. Build the shape
 from a finite counter schedule and add a delay derived from the retry count.

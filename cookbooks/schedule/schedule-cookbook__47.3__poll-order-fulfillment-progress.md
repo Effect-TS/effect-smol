@@ -11,14 +11,7 @@ code_included: true
 # 47.3 Poll order fulfillment progress
 
 An order has been accepted, payment has cleared, and fulfillment is now moving
-through a warehouse, shipping, pickup, or delivery workflow. The customer is
-waiting on a screen that needs a useful answer soon: either the order reached a
-terminal state, or the app should stop polling and show the latest known
-progress with a clear "still processing" message.
-
-Use `Effect.repeat` when each poll succeeds with an ordinary fulfillment status.
-The schedule decides whether another successful status should be requested. The
-code after polling decides what the final status means for the user.
+through a warehouse, shipping, pickup, or delivery workflow.
 
 ## Problem
 

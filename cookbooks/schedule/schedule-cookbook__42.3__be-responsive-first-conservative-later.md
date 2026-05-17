@@ -16,7 +16,9 @@ Encode that intent as phases: a responsive phase first, then a conservative phas
 
 ## Problem
 
-You need retries that are quick enough for short-lived glitches but restrained enough for longer outages. A single exponential schedule can express growing delay, but it does not name the operational transition. A phase-based schedule makes the transition explicit and keeps the two policies independently tunable.
+A single exponential schedule can express growing delay, but it does not name the
+operational transition. Put that transition in the schedule value so the
+responsive and conservative phases can be tuned independently.
 
 ## When to use it
 

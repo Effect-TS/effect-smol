@@ -10,11 +10,9 @@ code_included: true
 
 # 20.5 Poll until eventual consistency settles
 
-Eventually consistent reads often answer successfully before they answer with the value a caller expects. A write may be
-accepted, while a projection, search index, or read replica still shows an older version. Treat those reads as
-observations, not failures. The schedule should poll only while the latest observation is still behind the expected state,
-then return the first observation that has caught up or report a domain inconsistency if the system has moved past the
-point where the expected value should be visible.
+Eventually consistent reads often answer successfully before they answer with
+the value a caller expects. Treat those reads as observations, not failures,
+and let the schedule focus on whether the view has caught up.
 
 ## Problem
 

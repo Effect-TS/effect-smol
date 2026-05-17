@@ -10,21 +10,17 @@ code_included: true
 
 # 32.5 Reduce spam-like behavior
 
-User-facing side effects need stricter retry behavior than internal reads. A
-timeout while sending an email, push notification, SMS, webhook, or in-app
-message does not mean the user saw nothing. It only means your process did not
-observe a successful response.
-
-This recipe uses `Schedule` to make delivery retries paced, bounded, and easy
-to review. The schedule is not the spam-prevention mechanism by itself. Product
-safety still comes from the operation boundary: duplicate suppression,
-idempotency keys, unsubscribe checks, channel preferences, and clear rules for
-when the user should receive another message.
+User-facing side effects need stricter retry behavior than internal reads
+because an uncertain response does not mean the user saw nothing. This recipe
+keeps delivery retries paced, bounded, and tied to a duplicate-safe send
+boundary.
 
 ## Problem
 
-You want to retry transient delivery failures without creating a burst of
-messages that feels like spam.
+A timeout while sending an email, push notification, SMS, webhook, or in-app
+message can leave your process unsure whether the provider accepted the
+delivery. You want to retry transient delivery failures without creating a
+burst of messages that feels like spam.
 
 The unsafe shape is to treat every failure as a reason to try again
 immediately, or to use a repeating schedule as if it were a reminder policy.
@@ -38,6 +34,11 @@ A safer retry policy answers four questions in code:
 - how long to wait before each retry
 - how many retries are allowed after the original attempt
 - what duplicate-safe boundary makes another attempt acceptable
+
+The schedule is not the spam-prevention mechanism by itself. Product safety
+still comes from the operation boundary: duplicate suppression, idempotency
+keys, unsubscribe checks, channel preferences, and clear rules for when the
+user should receive another message.
 
 ## When to use it
 

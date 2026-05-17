@@ -10,22 +10,16 @@ code_included: true
 
 # 21.5 Capped exponential backoff
 
-Capped exponential backoff keeps the useful part of an exponential curve while
-putting an operational ceiling on the delay between attempts. Early retries back
-off quickly, which reduces pressure on an unhealthy dependency. Later retries
-stop growing forever, which keeps the caller, worker, or supervisor from waiting
-minutes or hours between attempts.
+Capped exponential backoff grows retry delays quickly at first, then stops
+increasing once they reach an operational maximum. The cap keeps a caller,
+worker, or supervisor from waiting minutes or hours between attempts.
 
 ## Problem
 
-You want retries to slow down after repeated transient failures, but an
-uncapped exponential schedule eventually creates delays that are too large for
-the operation that owns the retry.
-
-A delay of 100 milliseconds, 200 milliseconds, 400 milliseconds, and 800
-milliseconds may be exactly what you want at the start of an outage. The same
-curve eventually reaches long waits that no longer match a request timeout,
-queue lease, reconnect loop, or operational alert window.
+An operation can tolerate short exponential delays at the start of an outage,
+but not the long tail of an uncapped curve. A request timeout, queue lease,
+reconnect loop, or operational alert window may require every retry decision to
+stay below a known maximum.
 
 ## When to use it
 

@@ -10,14 +10,12 @@ code_included: false
 
 # 59.3 Avoid synchronized retries
 
-Avoid synchronized retries is a reference-index entry for choosing existing
-Schedule recipes when many callers may fail at the same time and then retry the
-same dependency. It does not introduce a new Schedule primitive. It maps the
-operational risk to jittered, bounded, and fleet-aware retry policies.
+Avoid synchronized retries is a reference-index entry for `Schedule` recipes
+that desynchronize retry timing across many callers.
 
 ## What this section is about
 
-This entry is about retry phase alignment. A retry policy can look reasonable
+The concrete risk is retry phase alignment. A retry policy can look reasonable
 for one fiber, process, worker, or host while still being unsafe across a fleet.
 If many callers observe the same outage, deploy, restart, cache miss, broker
 disconnect, or quota response, identical retry schedules can produce identical

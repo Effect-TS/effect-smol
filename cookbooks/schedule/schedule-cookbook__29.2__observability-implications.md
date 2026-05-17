@@ -10,22 +10,15 @@ code_included: true
 
 # 29.2 Observability implications
 
-Jitter makes a schedule healthier for the system and noisier for people reading
-the system. A fixed 1 second retry interval is easy to recognize in logs. A
-jittered 1 second retry interval intentionally stops looking exact.
-
-In Effect, `Schedule.jittered` randomly adjusts each recurrence delay between
-80% and 120% of the delay produced by the base schedule. The retry count, stop
-condition, and schedule output stay the same; the wait before the next attempt is
-the part that moves.
+Jitter makes recurrence timing intentionally approximate. Logs and metrics need
+to explain that variance as part of the policy, not as accidental drift.
 
 ## Problem
 
-You want to add jitter to reduce synchronized retries or polling across a fleet,
-but your logs, metrics, dashboards, and incident notes still need to explain what
-happened. Without clear observability, random-looking waits can be mistaken for
-timer drift, event-loop stalls, queue latency, downstream slowness, or a broken
-retry policy.
+After a production path adds jitter to retries or polling, logs, metrics,
+dashboards, and incident notes still need to explain what happened. Without
+clear observability, random-looking waits can be mistaken for timer drift,
+event-loop stalls, queue latency, downstream slowness, or a broken retry policy.
 
 ## When to use it
 

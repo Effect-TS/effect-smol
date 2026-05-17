@@ -10,22 +10,14 @@ code_included: true
 
 # 9.3 Retry until a startup deadline
 
-Your application is starting and must prove that a required dependency is ready before
-it begins serving traffic. The dependency is expected to become available soon, but
-startup should not wait forever. This recipe keeps the retry policy explicit: the
-schedule decides when another typed failure should be attempted again and where retrying
-stops. The surrounding Effect code remains responsible for domain safety, including
-which failures are transient, whether the operation is idempotent, and how the final
-failure is reported.
+Use this recipe for startup gates that should wait briefly for a required
+dependency before serving traffic. The schedule expresses the readiness retry
+window; surrounding code still decides which startup failures are retryable.
 
 ## Problem
 
-Your application is starting and must prove that a required dependency is ready
-before it begins serving traffic. The dependency is expected to become available
-soon, but startup should not wait forever.
-
-Use an exponential retry policy for the readiness check, and combine it with a
-startup retry window:
+Build a readiness-check policy that uses exponential backoff while a 30 second
+startup retry window remains open:
 
 ```ts
 const startupReadinessPolicy = Schedule.exponential("200 millis").pipe(

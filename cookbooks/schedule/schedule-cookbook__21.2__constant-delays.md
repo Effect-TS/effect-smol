@@ -10,21 +10,16 @@ code_included: true
 
 # 21.2 Constant delays
 
-A constant delay is the simplest useful delay strategy: wait the same amount of
-time before each retry or repeated iteration. It is a good default when the
-dependency is normally stable, failures are brief, and you want predictable
-behavior without the operational complexity of backoff.
-
-Use it deliberately. A constant delay makes load easy to reason about, but it
-does not reduce pressure over time. If the dependency is overloaded, rate
-limited, or shared by many coordinated clients, prefer backoff, jitter, or a
-larger external rate limit.
+A constant delay waits the same amount of time before each retry or repeated
+iteration. It keeps timing predictable without introducing an adaptive backoff
+curve.
 
 ## Problem
 
-You need to retry a transient failure without hammering the dependency and
-without making the policy adaptive. Immediate retries are too aggressive, but
-exponential backoff would be more machinery than the situation needs.
+You have a retry that needs a visible pause between attempts, but the dependency
+does not need progressively increasing delays. Immediate retries are too
+aggressive, while exponential backoff would obscure a deliberately steady
+cadence.
 
 The policy should say two things clearly:
 

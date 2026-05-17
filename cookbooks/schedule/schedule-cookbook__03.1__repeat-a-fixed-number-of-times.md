@@ -20,9 +20,11 @@ compose without hiding timing behavior inside ad hoc loops.
 
 ## Problem
 
-You have an effect that should run a bounded number of times, with no timing or stop condition beyond the count.
+The repeat policy is count-only: there is no predicate, delay, or elapsed-time
+window involved.
 
-Use `Schedule.recurs(n)` when the effect should run once immediately and then repeat at most `n` more times.
+Use `Schedule.recurs(n)` when the effect should run once immediately and then
+repeat at most `n` more times.
 
 ## When to use it
 

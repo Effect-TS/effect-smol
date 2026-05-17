@@ -10,18 +10,16 @@ code_included: true
 
 # 21.4 Exponential backoff
 
-Exponential backoff is the usual default for retrying transient remote
-failures. It gives the dependency a short chance to recover, then quickly
-reduces pressure if the problem continues. In Effect, use
-`Schedule.exponential` for the growing delay and compose it with an explicit
+Exponential backoff grows the delay after each failed attempt. In Effect, use
+`Schedule.exponential` for that growing delay and compose it with an explicit
 limit so the retry policy has a clear end.
 
 ## Problem
 
-You are calling a remote system that may fail briefly: an HTTP API returns a
-temporary 503, a database is failing over, or a queue broker is recovering
-after a restart. Retrying immediately can make the outage worse. Retrying at a
-fixed interval can still keep too much steady pressure on the dependency.
+An HTTP API returns a temporary 503, a database is failing over, or a queue
+broker is recovering after a restart. Retrying immediately can make the outage
+worse. Retrying at a fixed interval can still keep too much steady pressure on
+the dependency.
 
 You want the first retry to happen soon, later retries to slow down
 aggressively, and the whole policy to stop after a known number of retries.

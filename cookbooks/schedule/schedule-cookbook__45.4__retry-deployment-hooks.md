@@ -10,16 +10,9 @@ code_included: true
 
 # 45.4 Retry deployment hooks
 
-Deployment hooks often sit on the boundary between a deploy system and another
-platform service: notify an incident tool, refresh a load balancer, start a
-smoke test, or record an audit event. Those calls can fail transiently while the
-deployment is still valid, but retrying them blindly can duplicate side effects
-or create a burst against the same control plane.
-
-Use `Effect.retry` with an explicit `Schedule` when the hook call is safe to
-replay. The schedule should answer three operational questions in code: how the
-delay backs off, how many retries are allowed, and which failures are still
-worth retrying.
+Deployment hooks bridge a deploy system and external platform services. They
+can be retried only when the hook call has a duplicate-safe contract and the
+retry policy is bounded.
 
 ## Problem
 

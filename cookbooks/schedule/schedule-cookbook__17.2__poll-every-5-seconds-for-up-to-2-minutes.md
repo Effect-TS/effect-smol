@@ -10,22 +10,15 @@ code_included: true
 
 # 17.2 Poll every 5 seconds for up to 2 minutes
 
-You need to poll a status endpoint every five seconds, but only for a bounded window of
-roughly two minutes. Each successful status observation may say that the remote work is
-still pending, or it may report a terminal state. This recipe treats polling as repeated
-successful observations. The schedule controls cadence and the condition for taking
-another observation, while the surrounding Effect code interprets terminal states,
-missing data, stale reads, and real failures. Keeping those responsibilities separate
-makes the polling loop easier to bound and diagnose.
+Use this recipe for a status endpoint that may need several checks before it
+reaches a terminal state, but should not keep the caller waiting indefinitely.
+The schedule owns cadence and stopping; surrounding Effect code interprets the
+final status.
 
 ## Problem
 
-You need to poll a status endpoint every five seconds, but only for a bounded
-window of roughly two minutes. Each successful status observation may say that
-the remote work is still pending, or it may report a terminal state.
-
-The status check itself is an effect. The schedule should control successful
-recurrences: after a successful non-terminal status, wait five seconds and
+The status check itself is an effect whose successful result may still be
+non-terminal. After a successful non-terminal status, wait five seconds and
 check again while the two-minute recurrence budget is still open.
 
 ## When to use it

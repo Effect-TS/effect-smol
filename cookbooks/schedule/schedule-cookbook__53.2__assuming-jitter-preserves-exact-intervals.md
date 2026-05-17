@@ -10,14 +10,9 @@ code_included: false
 
 # 53.2 Assuming jitter preserves exact intervals
 
-Assuming jitter preserves exact intervals is an anti-pattern because jitter is
-defined by changing intervals. `Schedule.jittered` does not keep a fixed delay
-and merely randomize bookkeeping around it. In Effect, it modifies each
-recurrence delay to a random value between `80%` and `120%` of the delay
-produced by the wrapped schedule.
-
-That makes jitter useful for spreading work across many callers. It makes it
-the wrong tool when the program requires an exact cadence.
+`Schedule.jittered` changes intervals; it does not decorate an exact cadence.
+This section focuses on code that keeps exact-interval assumptions after jitter
+has been applied.
 
 ## The anti-pattern
 
@@ -32,7 +27,8 @@ The code may look harmless because the original schedule is still visible:
 `Schedule.spaced("5 seconds").pipe(Schedule.jittered)` still starts from a
 five-second delay. The mistake is assuming the starting delay remains the
 observable cadence. Once jitter is applied, each recurrence may be earlier or
-later than the base interval.
+later than the base interval; in Effect, that means a random value between
+`80%` and `120%` of the wrapped delay.
 
 ## Why it happens
 

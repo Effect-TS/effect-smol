@@ -10,16 +10,16 @@ code_included: true
 
 # 13.4 Run every 5 minutes
 
-You have a successful background action that should run repeatedly every five minutes,
-such as a health probe, cache refresh, metrics sync, or lightweight maintenance check.
-This recipe treats repetition as a policy for successful effects. The schedule decides
-whether another successful iteration should run, what spacing applies, and what value
-the repeat returns. Failures stay in the effect error channel, so the repeat policy
-stays separate from recovery or retry behavior.
+Use this recipe when successful background work should stay on a regular five-minute
+cadence.
 
 ## Problem
 
-You have a successful background action that should run repeatedly every five minutes, such as a health probe, cache refresh, metrics sync, or lightweight maintenance check.
+A health probe, cache refresh, metrics sync, or lightweight maintenance check needs an
+immediate first run followed by successful recurrences every five minutes.
+
+The schedule should keep the cadence visible and return its repeat output, while
+failures remain in the effect error channel.
 
 ## When to use it
 

@@ -10,11 +10,8 @@ code_included: true
 
 # 23.4 Linear backoff when exponential is too aggressive
 
-Exponential backoff is a good default when repeated failures mean the caller
-should quickly get out of the way. Sometimes that curve is too steep. A
-dependency may recover in a few seconds, an interactive caller may still need a
-prompt answer, or a worker may need to reduce pressure without going quiet for
-long stretches.
+Exponential backoff is useful when callers should quickly get out of the way,
+but its curve can be too steep for short recovery windows or interactive flows.
 
 Use linear backoff when you want each failure to add the same amount of extra
 waiting time. Effect does not provide a `Schedule.linear` constructor; build the
@@ -22,8 +19,8 @@ shape explicitly from `Schedule.unfold` and `Schedule.addDelay`.
 
 ## Problem
 
-You have a retryable operation, but doubling the delay after each failure would
-push later retries too far away. For example, with a 250 millisecond base:
+Before choosing exponential backoff, compare the actual retry delays for the
+base interval you intend to use. With a 250 millisecond base:
 
 | Retry decision | Linear delay | Exponential delay |
 | -------------- | ------------ | ----------------- |

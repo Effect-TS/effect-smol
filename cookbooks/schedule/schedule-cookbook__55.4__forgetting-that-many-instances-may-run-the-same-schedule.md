@@ -10,12 +10,9 @@ code_included: false
 
 # 55.4 Forgetting that many instances may run the same schedule
 
-Forgetting that many instances may run the same schedule is an anti-pattern
-because a schedule that is modest for one fiber, process, or host can become a
-large coordinated workload across the fleet. A policy that says "retry five
-times" or "poll every 30 seconds" is a local statement. In production, the
-actual question is how many callers will run that same policy at the same time
-and which shared dependency or quota they all consume.
+When many instances run the same schedule, a modest local policy can become a
+coordinated workload. Review the fleet, tenants, and shared dependency behind
+the recurrence.
 
 ## The anti-pattern
 

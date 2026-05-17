@@ -10,18 +10,16 @@ code_included: true
 
 # 5.3 Retry every 5 seconds
 
-You want a failing effect to try again on a slow, steady cadence. The delay should not
-grow, shrink, or depend on the error. Every retry should wait 5 seconds before the next
-attempt. This recipe keeps the retry policy explicit: the schedule decides when another
-typed failure should be attempted again and where retrying stops. The surrounding Effect
-code remains responsible for domain safety, including which failures are transient,
-whether the operation is idempotent, and how the final failure is reported.
+This recipe shows a slower fixed-delay retry policy using
+`Schedule.spaced("5 seconds")` with `Effect.retry`. The schedule controls the retry
+timing, while the surrounding Effect code remains responsible for deciding which typed
+failures are safe to retry.
 
 ## Problem
 
-You want a failing effect to try again on a slow, steady cadence. The delay
-should not grow, shrink, or depend on the error. Every retry should wait 5
-seconds before the next attempt.
+A dependency may need a little real recovery time before another attempt is
+useful. You need each retry after the original attempt to wait exactly 5
+seconds, with no growth, shrinkage, jitter, or error-dependent timing.
 
 Use `Schedule.spaced("5 seconds")` with `Effect.retry` for this policy.
 

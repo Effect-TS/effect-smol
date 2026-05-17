@@ -10,19 +10,17 @@ code_included: false
 
 # 62.3 Polling vs push-based workflows
 
-Polling and push-based workflows solve different coordination problems. A
-`Schedule` describes when an Effect should repeat or retry; it does not make a
-consumer aware of a change that only the producer knows about. Use this entry as
-further reading when deciding whether a scheduled loop is the right boundary, or
-whether the workflow should be driven by a webhook, event stream, queue, or
-subscription instead.
+Polling and push-based workflows solve different coordination problems. Use
+this entry to decide whether a scheduled loop is the right boundary, or whether
+a webhook, event stream, queue, or subscription should drive the workflow
+instead.
 
 ## What this section is about
 
-This entry compares timer-driven observation with producer-driven notification.
-Polling asks a question repeatedly: "has the state changed yet?" Push-based
-workflows deliver a signal when the producer observes the change: "this state
-changed" or "this work is ready".
+This comparison starts with who observes the change. Polling asks a question
+repeatedly: "has the state changed yet?" Push-based workflows deliver a signal
+when the producer observes the change: "this state changed" or "this work is
+ready".
 
 `Schedule` is useful on the polling side because it makes recurrence explicit.
 It can express fixed or spaced cadence, backoff, elapsed-time budgets,

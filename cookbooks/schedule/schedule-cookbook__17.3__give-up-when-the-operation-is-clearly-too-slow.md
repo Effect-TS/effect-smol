@@ -10,19 +10,12 @@ code_included: true
 
 # 17.3 Give up when the operation is clearly too slow
 
-You are polling a remote operation that should normally become ready quickly. After a
-practical amount of elapsed time, the useful answer is no longer "keep waiting"; it is
-"this operation is taking too long for this workflow". This recipe treats polling as
-repeated successful observations. The schedule controls cadence and the condition for
-taking another observation, while the surrounding Effect code interprets terminal
-states, missing data, stale reads, and real failures. Keeping those responsibilities
-separate makes the polling loop easier to bound and diagnose.
+Use this recipe when continued polling stops being useful after an operation
+has exceeded a practical elapsed-time budget. The schedule bounds recurrence;
+surrounding Effect code interprets whether the last status is ready, failed, or
+simply too slow.
 
 ## Problem
-
-You are polling a remote operation that should normally become ready quickly.
-After a practical amount of elapsed time, the useful answer is no longer "keep
-waiting"; it is "this operation is taking too long for this workflow".
 
 The status endpoint still returns successful domain values such as `"pending"`,
 `"ready"`, and `"failed"`. The schedule should stop asking for another status

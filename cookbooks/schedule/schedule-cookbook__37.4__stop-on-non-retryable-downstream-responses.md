@@ -15,10 +15,6 @@ error. Most `4xx` responses say that the request, credentials, authorization,
 or target resource is wrong for this caller. Retrying the same request usually
 adds load and delays the useful failure.
 
-Use a retry schedule only after classifying the downstream failure. Let the
-schedule control timing and retry count, and let the retry predicate decide
-whether this particular response is allowed to reach the schedule at all.
-
 ## Problem
 
 You call an HTTP dependency that can fail with both retryable and

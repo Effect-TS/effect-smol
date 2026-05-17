@@ -11,9 +11,7 @@ code_included: true
 # 37.5 Classify errors before retrying
 
 Retry policies should be narrow. A schedule can say when to try again and when
-to stop, but it should not be asked to make every domain decision. Classify the
-typed failure first, then let `Effect.retry` apply the schedule only to failures
-that are genuinely transient.
+to stop, but it should not be asked to make every domain decision.
 
 ## Problem
 
@@ -22,9 +20,10 @@ timeouts, overload, rate limits, or a service that is briefly unavailable. Other
 failures are final for the current request: bad input, authorization failure,
 missing configuration, or a business rule violation.
 
-Using one broad retry policy for all of them delays permanent failures and adds
-unnecessary load. The caller also loses a useful signal: whether the operation
-failed because it was never retryable or because the retry budget was exhausted.
+Classify the typed failure first, then let `Effect.retry` apply the schedule
+only to genuinely transient failures. Using one broad retry policy for all
+errors delays permanent failures, adds unnecessary load, and hides whether the
+operation was never retryable or merely exhausted its retry budget.
 
 ## When to use it
 

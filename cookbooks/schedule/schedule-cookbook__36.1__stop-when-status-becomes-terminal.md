@@ -21,14 +21,13 @@ that, the schedule decides whether to wait and read again.
 
 ## Problem
 
-You need to keep polling while a status is non-terminal, then stop as soon as
-the status becomes terminal.
+A status API may return `"queued"` or `"running"` as successful responses before
+it eventually returns `"completed"`, `"failed"`, or `"canceled"`. The repeat
+policy should treat only the non-terminal statuses as reasons to poll again.
 
-The important distinction is that a terminal domain status is not necessarily
-an Effect failure. A job status such as `"failed"` may be a successful response
-from the status API. The schedule should observe that successful value and stop
-the repeat loop, while transport or decoding failures remain ordinary Effect
-failures.
+A domain status such as `"failed"` is still a successful response from the status
+API. The schedule should observe that value and stop the repeat loop, while
+transport or decoding failures remain ordinary Effect failures.
 
 ## When to use it
 

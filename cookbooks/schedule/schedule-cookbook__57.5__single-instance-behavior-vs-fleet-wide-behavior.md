@@ -10,11 +10,17 @@ code_included: false
 
 # 57.5 Single-instance behavior vs fleet-wide behavior
 
-Single-instance behavior vs fleet-wide behavior is a decision-matrix entry for choosing a schedule by operational scope. A schedule describes the recurrence behavior of one running workflow. If the same workflow runs in many processes, pods, browsers, or workers, the downstream system sees the sum of all of those independent schedules.
+Use this entry when a locally reasonable schedule may multiply across many
+processes, pods, browsers, or workers.
 
 ## What this section is about
 
-Use this entry when the local policy looks reasonable but the fleet-wide behavior may not be. `Schedule.spaced("10 seconds")` is modest for one process. Across 200 instances, it can mean up to 200 follow-up attempts every interval if the instances line up. `Schedule.exponential`, `Schedule.recurs`, `Schedule.take`, `Schedule.during`, and `Schedule.jittered` change different parts of that multiplication, so choose them for the risk they actually control.
+Compare the local recurrence to the aggregate behavior it creates.
+`Schedule.spaced("10 seconds")` is modest for one process. Across 200
+instances, it can mean up to 200 follow-up attempts every interval if the
+instances line up. `Schedule.exponential`, `Schedule.recurs`, `Schedule.take`,
+`Schedule.during`, and `Schedule.jittered` change different parts of that
+multiplication, so choose them for the risk they actually control.
 
 ## Why it matters
 

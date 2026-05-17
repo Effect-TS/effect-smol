@@ -22,10 +22,8 @@ and reused.
 
 ## Problem
 
-You need to poll quickly at first, because early completion is common and useful
-to report. After that initial window, you need to keep observing the same status
-endpoint at a slower cadence without scattering sleeps, counters, and phase
-flags through the polling code.
+Model a status loop for a newly submitted workflow without scattering sleeps,
+counters, and phase flags through the polling code.
 
 The first status check should still happen immediately. The schedule should
 describe only the follow-up observations: how often to poll while the workflow is

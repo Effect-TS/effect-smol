@@ -10,21 +10,19 @@ code_included: true
 
 # 28.2 Jittered heartbeat emission
 
-Many service instances emit periodic heartbeats to a coordinator, registry, or
-monitoring endpoint. A plain interval is easy to understand, but after a deploy
-or restart, all instances can begin on the same boundary and keep sending
-heartbeats together. This recipe keeps the normal heartbeat cadence while adding
-small random variation to each recurrence delay.
+Heartbeat loops are successful periodic writes that usually need a stable
+cadence rather than exact alignment. This recipe adds jitter to a regular
+heartbeat schedule.
 
 ## Problem
 
-You need every running instance to emit a heartbeat regularly, but you do not
-want the whole fleet to wake up and write to the same endpoint at the same time.
+Every running instance should emit a heartbeat regularly to the same
+coordinator, registry, or monitoring endpoint. The heartbeat still runs as a
+successful repeat: send one heartbeat, then decide whether and when to send the
+next one.
 
-The heartbeat should still run as a successful repeat: send one heartbeat, then
-decide whether and when to send the next one. Jitter belongs in the schedule, so
-the emission effect stays focused on one heartbeat and the recurrence policy
-stays visible.
+Jitter belongs in the schedule, so the emission effect stays focused on one
+heartbeat and the recurrence policy stays visible.
 
 ## When to use it
 

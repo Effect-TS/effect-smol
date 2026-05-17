@@ -10,17 +10,14 @@ code_included: false
 
 # 58.3 Redis reconnect
 
-Redis reconnect maps to a jittered, bounded backoff policy. It does not need a
-new `Schedule` primitive: use `Schedule.exponential` for increasing reconnect
-delays, `Schedule.jittered` to desynchronize clients, `Schedule.modifyDelay` to
-apply a maximum sleep, and `Schedule.recurs`, `Schedule.take`, or
-`Schedule.during` to keep the reconnect loop bounded.
+Use this reference when Redis reconnects need bounded backoff that protects both
+one client and the fleet.
 
 ## What this section is about
 
-Use this entry when a worker, stream consumer, cache client, subscription
-listener, or queue processor loses Redis and should attempt to reconnect without
-turning a short outage into a synchronized connection storm.
+Apply it to a worker, stream consumer, cache client, subscription listener, or
+queue processor that loses Redis and should reconnect without turning a short
+outage into a synchronized connection storm.
 
 The closest full recipe is [27.2 Jittered retries for Redis reconnects](schedule-cookbook__27.2__jittered-retries-for-redis-reconnects.md).
 Related entries are [21.5 Capped exponential backoff](schedule-cookbook__21.5__capped-exponential-backoff.md),

@@ -14,12 +14,6 @@ Payment settlement is often asynchronous. A card authorization, bank transfer,
 or processor capture may be accepted first, then settle later after the payment
 provider finishes its own workflow.
 
-Model the provider response as ordinary domain data. `Pending` and
-`Processing` mean "poll again"; terminal states such as `Settled`, `Declined`,
-and `Cancelled` mean "stop polling and interpret the result". Add a time budget
-so a caller does not wait forever when the provider never reaches a terminal
-state.
-
 ## Problem
 
 You need to poll a payment provider until a settlement reaches a terminal state,

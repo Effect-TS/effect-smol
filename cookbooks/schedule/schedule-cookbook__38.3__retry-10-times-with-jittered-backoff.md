@@ -10,11 +10,8 @@ code_included: true
 
 # 38.3 Retry 10 times with jittered backoff
 
-Use this policy when a transient failure should get several chances to recover,
-but each retry should wait longer than the last and avoid lining up with the
-same policy running elsewhere. The retry schedule has three visible parts:
-exponential backoff for pressure relief, jitter for fleet-wide load spreading,
-and an attempt limit so the caller eventually gets a final result.
+Use this policy when a transient failure should get several chances to recover
+without every caller retrying at the same moments.
 
 ## Problem
 

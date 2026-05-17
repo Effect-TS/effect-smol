@@ -10,14 +10,9 @@ code_included: true
 
 # 19.3 Jittered status checks in distributed systems
 
-Many workers or service instances need to check the status of remote work: leases, shard
-assignments, replication tasks, queue drains, or long-running operations owned by
-another service. A fixed interval is easy to reason about, but it can accidentally
-synchronize instances. This recipe treats polling as repeated successful observations.
-The schedule controls cadence and the condition for taking another observation, while
-the surrounding Effect code interprets terminal states, missing data, stale reads, and
-real failures. Keeping those responsibilities separate makes the polling loop easier to
-bound and diagnose.
+Distributed status checks often need regular observation without turning the
+fleet into synchronized callers. Jitter keeps each instance near the intended
+cadence while letting checks drift apart.
 
 ## Problem
 

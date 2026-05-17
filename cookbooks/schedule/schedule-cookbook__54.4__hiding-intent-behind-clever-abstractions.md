@@ -10,11 +10,9 @@ code_included: false
 
 # 54.4 Hiding intent behind clever abstractions
 
-Hiding intent behind clever abstractions is an anti-pattern because a Schedule is
-an operational policy, not just a reusable timing helper. The important
-question is not whether a helper can assemble a valid schedule. The important
-question is whether the resulting value says what work may recur, how often it
-may recur, when it must stop, and why that behavior is safe for this operation.
+Schedule helpers are useful only when they preserve the operational contract.
+This section covers abstractions that make a recurrence policy look reusable
+while hiding whether it is safe for the current operation.
 
 ## The anti-pattern
 

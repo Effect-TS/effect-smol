@@ -17,10 +17,9 @@ payments, duplicate messages, or any other extra externally visible change.
 
 ## What this section is about
 
-This glossary entry explains the safety requirement behind retries. A
-`Schedule` can decide whether, when, and how often to re-run an effect after
-failure, but it does not make the effect itself safe to run again. Idempotency
-belongs to the operation being retried, or to the protocol around it.
+This glossary entry places the safety requirement outside the schedule. A
+`Schedule` can time and bound a retry, but duplicate safety belongs to the
+operation being retried, or to the protocol around it.
 
 ## Why it matters
 

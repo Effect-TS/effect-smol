@@ -10,20 +10,15 @@ code_included: true
 
 # 45.5 Retry infrastructure API calls
 
-Infrastructure API calls often sit on a boundary between automation and shared
-platform capacity. A deployment worker, reconciler, or provisioning job may need
-to call a control-plane API again after a timeout, a `503`, or a `429`, but the
-retry policy must not turn a temporary failure into a traffic spike.
-
-Use `Schedule` to make that contract visible: the first call happens normally,
-then typed failures are retried with bounded backoff, jitter, and an elapsed
-budget.
+Infrastructure retries happen against shared control-plane capacity. A useful
+retry policy gives transient failures time to clear without turning automation
+into a traffic spike.
 
 ## Problem
 
-You are calling an infrastructure API to create, update, or inspect platform
-state. The API can fail transiently because the network timed out, the provider
-is overloaded, or the caller has hit a rate limit.
+A provisioning worker calls a provider API to create a subnet. The request may
+time out, receive a `503`, or hit a `429`; invalid requests and unsafe writes
+should leave the retry path immediately.
 
 Retrying immediately can make the incident worse. Retrying forever can block a
 worker or hold a deployment open after the useful deadline has passed. Retrying

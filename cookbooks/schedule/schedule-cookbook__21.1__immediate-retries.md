@@ -10,22 +10,16 @@ code_included: true
 
 # 21.1 Immediate retries
 
-Immediate retries are the smallest retry policy: after a typed failure, try the
-same effect again without adding a delay. In Effect, that policy is expressed
-with `Schedule.recurs(n)`, where `n` is the maximum number of retry decisions
-after the original attempt.
-
-Use this only when a failure is likely to clear almost instantly and another
-attempt is cheap. A brief race with a local resource, a just-started in-process
-dependency, or a transient optimistic-concurrency conflict can fit this shape.
-Remote APIs, overloaded services, rate limits, and user-facing workflows usually
-need spacing, backoff, jitter, or a time budget instead.
+Immediate retries run the same effect again after a typed failure without
+adding a delay. In Effect, `Schedule.recurs(n)` expresses that policy and makes
+the retry count explicit.
 
 ## Problem
 
-You want to retry a small transient failure a few times, but you do not want a
-loop with hidden counters or sleeps. The retry policy should make it clear that
-there is no delay and that the number of extra attempts is deliberately small.
+A local operation can lose a brief race with startup, an in-process dependency,
+or an optimistic-concurrency update. You want to cover that narrow window
+without hidden counters or sleeps. The retry policy should make it clear that
+every retry is immediate and that only a couple of extra attempts are allowed.
 
 Use `Schedule.recurs` with `Effect.retry` for this policy.
 

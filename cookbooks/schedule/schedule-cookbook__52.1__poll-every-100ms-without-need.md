@@ -11,16 +11,7 @@ code_included: false
 # 52.1 Poll every 100ms without need
 
 Polling every 100 milliseconds without a clear need is an anti-pattern because
-it turns a convenient recurrence policy into constant background pressure. A
-single loop looks small. Ten loops already mean roughly one hundred checks per
-second. Across services, tenants, browser tabs, or worker fibers, the same
-choice can become a steady stream of requests, database reads, lock checks,
-metrics writes, and wakeups that compete with useful work.
-
-`Schedule.spaced("100 millis")` is a valid tool when the operation is cheap,
-local, bounded, and expected to become ready almost immediately. The problem is
-using that shape as the default polling policy for work that does not need that
-latency.
+it turns a convenient recurrence policy into constant background pressure.
 
 ## The anti-pattern
 
@@ -33,7 +24,10 @@ that duration until something outside the schedule stops it.
 That may be far more aggressive than the domain requires. A batch job that
 finishes in minutes, an eventually consistent index, a queue that is usually
 empty, or a remote status endpoint with rate limits rarely benefits from ten
-checks per second. The extra polls mostly discover the same state again.
+checks per second. A single loop looks small, but ten loops already mean roughly
+one hundred checks per second; across services, tenants, browser tabs, or worker
+fibers, the extra polls mostly discover the same state again while competing
+with useful work.
 
 ## Why it happens
 

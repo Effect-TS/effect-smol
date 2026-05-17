@@ -10,12 +10,8 @@ code_included: false
 
 # 3.5 Build intuition before composing policies
 
-This subsection explains Build intuition before composing policies as a practical Effect
-`Schedule` recipe. This section keeps the focus on Effect's `Schedule` model: recurrence
-is represented as data that decides whether another decision point exists, which delay
-applies, and what output the policy contributes. That framing makes later retry, repeat,
-and polling recipes easier to compose without hiding timing behavior inside ad hoc
-loops.
+An Effect `Schedule` is a policy value: it decides whether another decision point
+exists, which delay applies, and what output the policy contributes.
 
 ## What this section is about
 

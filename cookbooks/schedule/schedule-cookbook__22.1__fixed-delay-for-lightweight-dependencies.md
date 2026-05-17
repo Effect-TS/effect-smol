@@ -10,21 +10,15 @@ code_included: true
 
 # 22.1 Fixed delay for lightweight dependencies
 
-A lightweight dependency often needs a small retry window, not a complex backoff
-policy. An internal cache, local sidecar, or process-local health endpoint may be
-temporarily unavailable during startup, reload, or a brief connection reset. A
-short fixed delay keeps the retry behavior obvious: wait the same amount between
-attempts, stop after a small number of retries, and return the last typed failure
-if the dependency does not recover.
+For a lightweight dependency, a small fixed-delay retry can be clearer than a
+backoff policy. The policy waits the same amount between attempts and gives up
+after a small retry count.
 
 ## Problem
 
-You call a dependency that is cheap to retry and close to the current process,
-but it can fail briefly while warming up or rotating state.
-
-The goal is not to protect a shared downstream service from sustained load. The
-goal is to smooth over a narrow transient window without hiding a dependency
-that is genuinely down.
+A local cache, sidecar, or health endpoint may be temporarily unavailable during
+startup, reload, or a brief connection reset. You want to smooth over that
+narrow transient window without hiding a dependency that is genuinely down.
 
 ## When to use it
 

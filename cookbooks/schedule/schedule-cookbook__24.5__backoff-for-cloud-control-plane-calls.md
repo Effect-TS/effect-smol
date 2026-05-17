@@ -10,11 +10,9 @@ code_included: true
 
 # 24.5 Backoff for cloud control plane calls
 
-Cloud control planes are shared, quota-protected, and often eventually
-consistent. A request to attach a network, create a rule, or update an identity
-binding may be accepted by one part of the provider before every later read or
-dependent write can observe it. Retrying can be correct, but only when the
-policy reduces pressure on the provider and stops within an explicit budget.
+Cloud control-plane retries need to account for shared quotas and eventual
+consistency. A request may be accepted by one part of the provider before later
+reads or dependent writes can observe it.
 
 Use a bounded, jittered exponential backoff for retryable control-plane
 responses. Keep the retry predicate separate from the schedule so rate limits,
@@ -30,9 +28,9 @@ been created or changed. The provider may temporarily answer with:
 - a temporary unavailable response while the control plane is overloaded
 - a conflict or "not propagated yet" response while eventual consistency settles
 
-All three cases can be transient. They should not be retried with a tight loop,
-and they should not be retried forever. The first call should happen
-immediately; only later attempts should wait.
+Treat those responses as retryable only inside a bounded policy: the first call
+happens immediately, later attempts wait, and permanent failures bypass the
+schedule.
 
 ## When to use it
 

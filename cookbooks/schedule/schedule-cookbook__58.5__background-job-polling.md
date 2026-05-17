@@ -10,20 +10,14 @@ code_included: false
 
 # 58.5 Background job polling
 
-Background job polling maps to a repeat schedule over successful status
-observations. It does not need a new `Schedule` primitive: use a status
-predicate to decide whether the job is still active, a spacing policy to decide
-when to check again, and a count or elapsed budget to decide when the caller
-should stop waiting.
-
-This reference entry is for exports, imports, media processing, indexing,
-provisioning, ETL runs, and other jobs where submission returns quickly but
-completion is observed later through a status endpoint.
+Use this reference when a submitted job completes later and the caller must poll
+status without overloading the status endpoint.
 
 ## What this section is about
 
-Use this entry when the important question is "how should I poll this job
-status?" rather than "how should I retry this failing call?"
+Frame exports, imports, media processing, indexing, provisioning, ETL runs, and
+similar workflows as "how should I poll this job status?" rather than "how
+should I retry this failing call?"
 
 The closest full recipes are [17.2 Poll every 5 seconds for up to 2 minutes](schedule-cookbook__17.2__poll-every-5-seconds-for-up-to-2-minutes.md),
 [17.3 Give up when the operation is clearly too slow](schedule-cookbook__17.3__give-up-when-the-operation-is-clearly-too-slow.md),

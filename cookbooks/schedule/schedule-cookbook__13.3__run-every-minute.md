@@ -10,20 +10,17 @@ code_included: true
 
 # 13.3 Run every minute
 
-You have a successful effect that should keep running about once per minute. This is a
-common cadence for moderate-frequency background work: refreshing a small cache,
-publishing metrics, checking local state, or sending a periodic liveness signal when
-second-scale repetition would be unnecessarily frequent. This recipe treats repetition
-as a policy for successful effects. The schedule decides whether another successful
-iteration should run, what spacing applies, and what value the repeat returns. Failures
-stay in the effect error channel, so the repeat policy stays separate from recovery or
-retry behavior.
+Use this recipe when successful background work should repeat about once per minute
+without turning the repeat policy into failure recovery.
 
 ## Problem
 
-You have a successful effect that should keep running about once per minute.
+A cache refresh, metrics publisher, local-state check, or liveness signal needs to run
+immediately and then recur on a minute-scale cadence because second-scale repetition
+would be unnecessarily frequent.
 
-This is a common cadence for moderate-frequency background work: refreshing a small cache, publishing metrics, checking local state, or sending a periodic liveness signal when second-scale repetition would be unnecessarily frequent.
+The schedule should decide later successful recurrences and their spacing, while
+failures remain in the effect error channel.
 
 ## When to use it
 

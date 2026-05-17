@@ -10,7 +10,8 @@ code_included: true
 
 # 47.4 Retry notification delivery
 
-Notification delivery is an externally visible side effect: a retry can send a second email, push message, webhook, or SMS if the provider does not deduplicate it. Model the retry policy explicitly and make the delivery request idempotent before applying the schedule.
+Notification delivery is an externally visible side effect: an unsafe retry can
+send a second email, push message, webhook, or SMS.
 
 ## Problem
 

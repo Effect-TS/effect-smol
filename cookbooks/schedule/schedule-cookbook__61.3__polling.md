@@ -18,9 +18,8 @@ budget has ended.
 
 ## What this section is about
 
-This glossary entry distinguishes polling from retrying. Polling uses
-`Effect.repeat` with a schedule that receives successful observations as its
-inputs. A status such as "pending" is therefore not a failure; it is a
+This glossary entry clarifies the boundary between domain status and
+operational failure in polling loops. A status such as "pending" is a
 successful value that says another observation may be useful. Transport,
 decoding, authorization, and other operational failures remain effect failures
 unless the program explicitly retries them separately.

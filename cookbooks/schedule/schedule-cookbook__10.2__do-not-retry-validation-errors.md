@@ -10,24 +10,14 @@ code_included: true
 
 # 10.2 Do not retry validation errors
 
-You want retry to help with temporary failures without hiding permanent request
-problems. A timeout, connection reset, or overloaded upstream may succeed on a later
-attempt. A validation error usually means the request is wrong now and will still be
-wrong after waiting. This recipe keeps the retry policy explicit: the schedule decides
-when another typed failure should be attempted again and where retrying stops. The
-surrounding Effect code remains responsible for domain safety, including which failures
-are transient, whether the operation is idempotent, and how the final failure is
-reported.
+Use this recipe to let retry handle temporary failures without hiding permanent
+request problems. The schedule defines the retry budget; a predicate keeps
+validation failures out of that budget.
 
 ## Problem
 
-You want retry to help with temporary failures without hiding permanent
-request problems. A timeout, connection reset, or overloaded upstream may
-succeed on a later attempt. A validation error usually means the request is
-wrong now and will still be wrong after waiting.
-
-Model those cases in the typed error channel and use `Effect.retry` with a
-retry predicate:
+Model transient cases and validation cases in the typed error channel, then use
+`Effect.retry` with a predicate that accepts only retryable failures:
 
 ```ts
 const program = submitRegistration(input).pipe(

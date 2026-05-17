@@ -10,20 +10,16 @@ code_included: true
 
 # 11.2 Retrying idempotent writes
 
-A write can fail after the remote system has already applied it. The caller sees a
-timeout, dropped connection, or temporary service error, but the external state may have
-changed. This recipe keeps the retry policy explicit: the schedule decides when another
-typed failure should be attempted again and where retrying stops. The surrounding Effect
-code remains responsible for domain safety, including which failures are transient,
-whether the operation is idempotent, and how the final failure is reported.
+Idempotent writes can be retried only when repeated attempts mean the same logical
+write. This recipe focuses on placing `Schedule` around that duplicate-safe boundary.
 
 ## Problem
 
-A write can fail after the remote system has already applied it. The caller sees
-a timeout, dropped connection, or temporary service error, but the external state
-may have changed. Retrying an ordinary write can then create a duplicate charge,
-send a second notification, insert a second row, or publish the same command
-twice.
+Ambiguous write failures are dangerous because the caller may see a timeout,
+dropped connection, or temporary service error after the remote system has
+already applied the change. Retrying an ordinary write can then create a
+duplicate charge, send a second notification, insert a second row, or publish
+the same command twice.
 
 Retry the write only when the operation is designed to be duplicate-safe. In
 that case, use `Schedule` to make the retry policy finite, delayed, and visible.

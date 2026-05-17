@@ -10,18 +10,15 @@ code_included: true
 
 # 12.2 Repeat forever with care
 
-You have a successful effect that should keep running for the lifetime of a process,
-fiber, or scope. An unbounded repeat is easy to express, but it is also easy to make too
-aggressive. This recipe treats repetition as a policy for successful effects. The
-schedule decides whether another successful iteration should run, what spacing applies,
-and what value the repeat returns. Failures stay in the effect error channel, so the
-repeat policy stays separate from recovery or retry behavior.
+`Effect.repeat` can run successful work for the lifetime of a process, fiber, or scope.
+This recipe focuses on doing that with an explicit owner and spacing policy.
 
 ## Problem
 
-You have a successful effect that should keep running for the lifetime of a process, fiber, or scope.
-
-An unbounded repeat is easy to express, but it is also easy to make too aggressive. `Schedule.forever` repeats with no delay. For most operational loops, use an explicit spacing schedule so each successful run leaves room for the rest of the system.
+An unbounded repeat is easy to express, but it is also easy to make too
+aggressive. `Schedule.forever` repeats with no delay. For most operational
+loops, use an explicit spacing schedule so each successful run leaves room for
+the rest of the system.
 
 ## When to use it
 

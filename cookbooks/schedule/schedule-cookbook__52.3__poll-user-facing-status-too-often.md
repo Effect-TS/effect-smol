@@ -11,16 +11,7 @@ code_included: false
 # 52.3 Poll user-facing status too often
 
 Polling user-facing status too often is an anti-pattern because it confuses
-responsiveness with constant checking. A fast status loop may make a spinner,
-progress bar, or "processing" badge look alive, but every poll still wakes a
-fiber, performs work, and usually touches a remote service, database, queue, or
-control plane.
-
-The user-visible part matters. A person usually cannot benefit from dozens of
-status refreshes per second, and many workflows do not change state that fast.
-Aggressive polling can spend capacity on repeatedly rediscovering the same
-"pending" state while making the interface feel noisy, unstable, or falsely
-precise.
+responsiveness with constant checking.
 
 ## The anti-pattern
 
@@ -34,7 +25,9 @@ The schedule may be technically valid. `Schedule.spaced("250 millis")`,
 `Schedule.fixed("1 second")`, or a similar policy can describe repeated checks.
 The issue is that the cadence does not match the product promise, the expected
 state-change rate, or the user's deadline. It updates the transport more often
-than it updates useful information.
+than it updates useful information: a fast loop may keep a spinner or progress
+bar looking alive, but each poll still wakes a fiber and usually touches a
+remote service, database, queue, or control plane.
 
 This often appears as a shared "poll status" helper used by many screens. A
 payment authorization, video transcoding job, background import, and long-lived

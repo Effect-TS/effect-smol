@@ -10,14 +10,8 @@ code_included: true
 
 # 43.4 Retry rate-limited requests carefully
 
-Rate limits are not ordinary transient failures. A `429 Too Many Requests`
-response usually means the client is already applying too much pressure, so the
-retry policy should slow down, respect server-provided guidance, and avoid
-retrying errors that cannot be fixed by waiting.
-
-Use `Schedule` to keep those decisions explicit: which failures are retryable,
-how retries are spaced, how many retries are allowed, and how a `Retry-After`
-hint changes the next delay.
+Rate-limit retries need a different shape from generic transient-error retries:
+they should reduce pressure and honor server guidance.
 
 ## Problem
 

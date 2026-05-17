@@ -10,15 +10,13 @@ code_included: true
 
 # 49.5 Test capped backoff behavior
 
-Capped backoff tests should prove the policy shape, not the behavior of the
-machine clock. Keep the production schedule as a value, remove randomness from
-the test path, and assert the computed delays or the observed retry count under
-`TestClock`.
+Capped backoff tests should prove the policy shape without depending on the
+machine clock.
 
 ## Problem
 
-You have a retry policy that starts with exponential backoff and then stops
-growing after a maximum delay. The important contract is:
+Given a retry policy that starts with exponential backoff and then stops growing
+after a maximum delay, the test needs to show the exact contract:
 
 - early retries use the exponential curve
 - later retries never wait longer than the cap

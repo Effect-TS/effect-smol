@@ -10,7 +10,8 @@ code_included: true
 
 # 33.4 Build polite clients
 
-External dependencies are shared systems. A polite client does not turn one failure into a burst of follow-up traffic, and it does not keep retrying an operation whose side effects are unsafe to repeat. Put that behavior in the `Schedule` value so the spacing, cap, and fleet-wide load profile are visible in one place.
+External dependencies are shared systems. A polite client makes retry spacing,
+caps, jitter, and safety assumptions visible in the `Schedule` value.
 
 ## Problem
 

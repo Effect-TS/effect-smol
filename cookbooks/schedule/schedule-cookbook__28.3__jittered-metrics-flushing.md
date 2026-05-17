@@ -10,26 +10,17 @@ code_included: true
 
 # 28.3 Jittered metrics flushing
 
-Metrics flushing is usually successful, repetitive background work. Each
-service instance accumulates counters, gauges, histograms, or spans locally and
-periodically sends a batch to a collector.
-
-The problem appears at fleet scale. If every instance starts during the same
-deploy and flushes every ten seconds, the collector can receive a burst every
-ten seconds even though the average traffic is modest. Jitter keeps the normal
-repeat interval recognizable while spreading those flushes across nearby
-times.
+Metrics flushing is usually successful background work: each service instance
+periodically sends local counters, gauges, histograms, or spans to a collector.
+This recipe adds jitter to the repeat schedule while keeping the flush interval
+recognizable.
 
 ## Problem
 
-You want every service instance to flush buffered metrics about every ten
-seconds. The first flush should happen as soon as the background loop starts,
-and every later flush should happen after a small randomized adjustment around
-the ten-second cadence.
-
-Use `Schedule.spaced` for the base repeat interval, then apply
-`Schedule.jittered` so each instance chooses a slightly different delay for
-each recurrence.
+Every service instance should flush buffered metrics about every ten seconds.
+The first flush should happen as soon as the background loop starts, while later
+flushes should drift enough that a deploy does not make the collector receive a
+burst from every instance at the same instant.
 
 ## When to use it
 

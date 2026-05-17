@@ -10,21 +10,18 @@ code_included: true
 
 # 23.3 Linear backoff for user-facing retries
 
-User-facing retries need a short and explainable budget. The caller is waiting,
-so the policy should avoid both extremes: hammering the dependency with
-immediate retries, or delaying so long that the interface feels stuck.
+Linear backoff is a fit for interactive retries when the caller can wait
+briefly, but only within a small budget. Each later retry becomes a little more
+conservative without jumping to long delays.
 
-Linear backoff is a good fit when one or two quick retries often recover the
-operation, but each later retry should be a little more conservative. Effect
-does not provide a `Schedule.linear` constructor. Build the shape from
+Effect does not provide a `Schedule.linear` constructor. Build the shape from
 `Schedule.unfold`, then derive the delay with `Schedule.addDelay`.
 
 ## Problem
 
-A request handler loads data for an interactive screen. Most transient failures
-clear quickly: a brief network issue, a warm cache miss, or a dependency that is
-momentarily busy. Retrying immediately can amplify the problem, but exponential
-backoff can become too slow for a person waiting on the response.
+A request handler loads data for an interactive screen and may fail with typed
+transient errors: a brief network issue, a warm cache miss, or a dependency that
+is momentarily busy.
 
 Use a small linear retry policy:
 

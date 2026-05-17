@@ -10,17 +10,14 @@ code_included: false
 
 # 59.4 Bound total retry time
 
-Bound total retry time means giving retrying an elapsed budget, not just a
-retry count. In Effect `Schedule`, the primary reference point is
-`Schedule.during(duration)`, usually combined with a real delay schedule such as
-`Schedule.exponential`, `Schedule.spaced`, or `Schedule.fixed`.
+Bound total retry time is a reference-index entry for retry policies governed by
+elapsed time instead of only retry count.
 
 ## What this section is about
 
-Use this entry when the operational question is "how long may this caller keep
-retrying?" rather than "how many retries are allowed?" The answer is a time
-budget: retry while the schedule's elapsed recurrence window remains open, then
-surface the last failure when the budget is exhausted.
+Use this entry when a caller has a deadline-like recovery window. The retry
+loop may keep scheduling follow-up attempts only while that window remains open,
+then surface the last failure when the budget is exhausted.
 
 This is the schedule-level version of a deadline. It limits future retry
 decisions. It does not interrupt an attempt that is already running.

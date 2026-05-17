@@ -10,19 +10,15 @@ code_included: true
 
 # 11.4 Retrying with idempotency keys
 
-Some external writes are safe to retry only when every attempt carries the same
-idempotency key. The key tells the downstream system that repeated requests are the same
-logical operation, not independent writes. This recipe keeps the retry policy explicit:
-the schedule decides when another typed failure should be attempted again and where
-retrying stops. The surrounding Effect code remains responsible for domain safety,
-including which failures are transient, whether the operation is idempotent, and how the
-final failure is reported.
+Idempotency keys make some external writes safe to retry by tying repeated attempts to
+one logical operation. This recipe shows where the key belongs relative to
+`Effect.retry` and a bounded `Schedule`.
 
 ## Problem
 
-Some external writes are safe to retry only when every attempt carries the same
-idempotency key. The key tells the downstream system that repeated requests are
-the same logical operation, not independent writes.
+The failure mode is using a retry policy without preserving the same key across
+attempts. If each attempt uses a different key, the downstream system may treat
+them as independent writes.
 
 The retry policy still matters. A key can prevent duplicate business effects,
 but it does not make unbounded retry traffic harmless. Use `Schedule` to keep

@@ -10,25 +10,21 @@ code_included: true
 
 # 32.1 Send emails with controlled spacing
 
-Email delivery is a user-visible side effect. A burst of retries can create
-duplicate messages, trigger provider throttling, or turn a temporary outage into
-spam-like behavior. This recipe keeps retry spacing explicit: the first send
+Email delivery is a user-visible side effect, so retry timing is part of the
+product behavior. This recipe keeps retry spacing explicit: the first send
 attempt happens immediately, and `Schedule` controls only the later attempts.
-
-Use the schedule to describe the operational contract: how long to wait between
-delivery attempts, how many attempts are allowed, and which failures are safe to
-try again.
 
 ## Problem
 
-You need to send an email through a provider that can fail transiently with
-timeouts, temporary unavailability, or rate-limit responses. Retrying
-immediately can exceed provider quotas and can also create a poor user
-experience if the provider does not deduplicate requests.
+An email provider can fail transiently with timeouts, temporary unavailability,
+or rate-limit responses. A burst of retries can exceed provider quotas, trigger
+throttling, create duplicate-looking messages, or turn a temporary outage into
+spam-like behavior if the provider does not deduplicate requests.
 
 The retry policy should be visible in one place. Future readers should not have
 to infer delivery behavior from scattered sleeps, counters, or worker-loop
-details.
+details. It should show how long to wait between delivery attempts, how many
+attempts are allowed, and which failures are safe to try again.
 
 ## When to use it
 

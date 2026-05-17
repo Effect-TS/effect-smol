@@ -24,13 +24,9 @@ one phase to the next explicit.
 
 ## Problem
 
-You need one polling policy for a workflow that may take seconds, minutes, or
-hours. Early completion should be noticed quickly. Longer-running work should be
-observed at a calmer cadence. The entire policy should still have a visible
-upper bound so a stuck workflow does not poll forever.
-
-The first status read should happen immediately. The schedule should describe
-only the follow-up reads:
+Build a single polling schedule for follow-up status reads. The first status
+read should happen immediately, so the schedule should describe only later reads
+and their stopping conditions:
 
 - a responsive phase while fast completion is common
 - a steady phase while the workflow is still expected to finish normally

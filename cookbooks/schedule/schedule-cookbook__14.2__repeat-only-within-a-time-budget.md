@@ -10,20 +10,16 @@ code_included: true
 
 # 14.2 Repeat only within a time budget
 
-You have an effect that should run immediately, then keep repeating after successful
-runs only while an elapsed time budget is still open. For example, a worker may poll for
-a short warm-up window, refresh a cache briefly after a trigger, or sample a successful
-operation for at most a few seconds. This recipe treats repetition as a policy for
-successful effects. The schedule decides whether another successful iteration should
-run, what spacing applies, and what value the repeat returns. Failures stay in the
-effect error channel, so the repeat policy stays separate from recovery or retry
-behavior.
+Use this recipe when successful repetitions should stay open only for an elapsed time
+budget.
 
 ## Problem
 
-You have an effect that should run immediately, then keep repeating after successful runs only while an elapsed time budget is still open.
+A worker needs to poll during a short warm-up window, refresh a cache briefly after a
+trigger, or sample an operation for at most a few seconds.
 
-For example, a worker may poll for a short warm-up window, refresh a cache briefly after a trigger, or sample a successful operation for at most a few seconds.
+The effect should run immediately, then allow later successful recurrences only while
+the elapsed budget remains open. Failures should remain in the effect error channel.
 
 ## When to use it
 

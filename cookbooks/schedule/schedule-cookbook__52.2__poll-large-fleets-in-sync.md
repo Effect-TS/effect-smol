@@ -11,10 +11,7 @@ code_included: false
 # 52.2 Poll large fleets in sync
 
 Polling large fleets in sync is an anti-pattern because a harmless-looking
-per-instance cadence can become a coordinated traffic spike. One worker polling
-every few seconds is usually fine. Thousands of workers polling at the same
-second can turn a status endpoint, queue broker, database, or control plane into
-the bottleneck even when the average request rate looks acceptable.
+per-instance cadence can become a coordinated traffic spike.
 
 ## The anti-pattern
 
@@ -24,9 +21,12 @@ incident recovery. A policy such as a plain fixed or spaced interval reads as
 "poll every 30 seconds", but across a fleet it can mean "make all instances ask
 the same dependency at once."
 
-This is especially easy to miss with background polling. The loop is small, the
-schedule is simple, and each instance is well behaved in isolation. The load
-shape only appears when many identical processes run the same policy together.
+This is especially easy to miss with background polling. One worker polling
+every few seconds is usually fine, and each instance can be well behaved in
+isolation. The load shape only appears when many identical processes run the
+same policy together and thousands of workers turn a status endpoint, queue
+broker, database, or control plane into the bottleneck even though the average
+request rate looks acceptable.
 
 ## Why it happens
 

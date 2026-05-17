@@ -11,11 +11,8 @@ code_included: true
 # 20.2 Poll until a resource exists
 
 Polling for a resource to exist is best modeled as repeated successful
-observations. A lookup that says "not found yet" should usually produce an
-ordinary value, not fail the effect, because the absence is the condition that
-drives polling. The schedule keeps polling only while the latest successful
-lookup reports that the resource is still missing. When the resource becomes
-observable, the schedule stops and the caller can return the found resource.
+observations. The schedule should be driven by lookup results, leaving the
+caller to return the resource once the final observation is found.
 
 ## Problem
 

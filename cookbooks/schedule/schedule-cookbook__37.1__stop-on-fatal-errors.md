@@ -10,26 +10,20 @@ code_included: true
 
 # 37.1 Stop on fatal errors
 
-Fatal errors should not wait for the retry schedule to decide what to do. The
-important step is classification: turn raw downstream failures into domain
-errors first, then retry only the class of errors that can realistically succeed
-later.
-
-`Effect.retry` feeds each typed failure into the retry policy. When you pass a
-`while` predicate with a schedule, the predicate is the retry gate. If it returns
-`false`, the failure is returned immediately and the timing schedule is not used
-for another attempt.
+Fatal errors should bypass retry timing. Classify raw downstream failures into
+domain errors first, then let only realistically recoverable failures reach the
+schedule.
 
 ## Problem
 
-You call a dependency that can fail in two different ways:
+You call a dependency that reports both recoverable and unrecoverable failures:
 
 - transient errors such as timeouts, temporary unavailability, or quota pressure
 - fatal errors such as bad input, missing authorization, or a request that cannot
   ever succeed unchanged
 
-The transient failures should use a bounded retry schedule. The fatal failures
-should fail fast so callers see the real problem immediately.
+The retry policy should spend its bounded budget only on transient failures.
+Fatal failures should return immediately so callers see the real problem.
 
 ## When to use it
 

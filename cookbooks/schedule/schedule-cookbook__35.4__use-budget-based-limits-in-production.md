@@ -20,10 +20,9 @@ how long to wait between recurrences and when the recurrence window closes.
 
 ## Problem
 
-You need a production policy that stops after a bounded window without guessing
-how many attempts will fit into that window. A fast failure might produce many
-retries. A slow failure might produce only a few. Both should stay inside the
-same operational budget.
+An external API might fail immediately during one incident and slowly during
+another. The policy should bound both cases by elapsed recurrence time without
+guessing how many attempts will fit into that window.
 
 The schedule should make this visible in one place:
 

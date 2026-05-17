@@ -10,9 +10,7 @@ code_included: true
 
 # 34.1 Maximum retry count
 
-Use `Schedule.recurs` when a retry policy needs a hard count limit. The count is
-part of the schedule, so reviewers can see exactly how many follow-up attempts
-may happen after the first failed execution.
+`Schedule.recurs` makes a retry count limit explicit at the policy boundary.
 
 ## Problem
 

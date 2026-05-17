@@ -20,12 +20,11 @@ easier to compose without hiding timing behavior inside ad hoc loops.
 
 ## Problem
 
-You have an effect that represents one successful unit of work, and a successful
-run should be followed by another run. The next run might happen immediately,
-after a delay, a fixed number of times, or until the successful value says the
-loop is finished.
+Manual repetition tends to mix the unit of work with cadence, stopping rules,
+and sleeps. The problem is to keep the effect focused on one successful run
+while a separate policy decides whether another successful run should follow.
 
-Without `Schedule`, that logic is easy to hide inside manual loops and sleeps.
+Without `Schedule`, those concerns are easy to bury inside control flow.
 With `Effect.repeat`, the effect stays focused on the work and the schedule
 describes the recurrence policy.
 

@@ -11,15 +11,7 @@ code_included: false
 # 52.4 Poll without a timeout
 
 Poll without a timeout is an anti-pattern because it turns "check again later"
-into "check forever unless something external happens to stop us." That may be
-acceptable for a deliberately owned background fiber, but it is dangerous as the
-default shape for job status pages, payment settlement checks, provisioning
-flows, export generation, and eventual-consistency reads.
-
-In Effect, schedules make recurrence explicit. That also means an unbounded
-polling schedule is an explicit choice to keep asking. If the code does not say
-when the polling window closes, the operational system has to discover that
-answer through load, stuck fibers, noisy logs, or a user waiting indefinitely.
+into "check forever unless something external happens to stop us."
 
 ## The anti-pattern
 
@@ -34,6 +26,10 @@ quickly. The happy path returns a terminal status, so the absence of a budget
 does not show up in local testing. In production, a lost job id, a stuck
 downstream workflow, a provider incident, or a caller that has already gone away
 can leave the poller alive long after the result has stopped mattering.
+
+That may be acceptable for a deliberately owned background fiber, but it is
+dangerous as the default shape for job status pages, payment settlement checks,
+provisioning flows, export generation, and eventual-consistency reads.
 
 ## Why it happens
 

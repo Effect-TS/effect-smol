@@ -10,17 +10,9 @@ code_included: true
 
 # 25.2 Never wait more than 30 seconds
 
-You have a background or service workflow that should back off when a
-dependency is unavailable, but no single wait should grow beyond 30 seconds.
-The schedule should still preserve the useful part of exponential backoff:
-short waits near the first failure, longer waits as the outage continues, and a
-clear ceiling once the policy reaches its steady state.
-
-This is different from a user-facing cap. A person waiting on a button, page
-load, login flow, or checkout step usually needs a much smaller total budget
-and a quick answer. A background service can keep trying for longer because it
-is not blocking an interactive response, but it still needs a maximum delay so
-recovery does not become sluggish and operational behavior remains predictable.
+Use this recipe for background or service workflows that should preserve early
+exponential backoff while guaranteeing that no scheduled wait exceeds 30
+seconds.
 
 ## Problem
 

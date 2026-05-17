@@ -10,22 +10,14 @@ code_included: true
 
 # 7.2 Preventing excessively long waits
 
-You want exponential backoff, but you do not want a single retry policy to wait longer
-and longer without a practical upper bound. Exponential growth is useful early in a
-failure: the caller quickly backs away from an unhealthy dependency. This recipe keeps
-the retry policy explicit: the schedule decides when another typed failure should be
-attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe shows how to keep exponential backoff useful without letting one retry
+policy wait indefinitely longer between attempts.
 
 ## Problem
 
-You want exponential backoff, but you do not want a single retry policy to wait
-longer and longer without a practical upper bound. Exponential growth is useful
-early in a failure: the caller quickly backs away from an unhealthy dependency.
-After enough failures, though, the next wait can become longer than the caller's
-latency budget, the job's usefulness window, or the time an operator expects
-before seeing a final failure.
+After enough failures, an exponential retry delay can become longer than the
+caller's latency budget, the job's usefulness window, or the time an operator
+expects before seeing a final failure.
 
 There is no need to invent a special cap API. Compose the exponential schedule
 with a fixed `Schedule.spaced(cap)` schedule using `Schedule.either`, then add a

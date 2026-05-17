@@ -10,22 +10,16 @@ code_included: true
 
 # 17.5 Return a timeout error gracefully
 
-You have a bounded polling loop. It should stop when a terminal status is observed, but
-it should also stop after a schedule-side budget is exhausted. When that budget ends
-while the last observed status is still non-terminal, the caller should receive a clear
-domain timeout error instead of a raw `"pending"` value. This recipe treats polling as
-repeated successful observations. The schedule controls cadence and the condition for
-taking another observation, while the surrounding Effect code interprets terminal
-states, missing data, stale reads, and real failures. Keeping those responsibilities
-separate makes the polling loop easier to bound and diagnose.
+Use this recipe when a bounded polling policy needs a caller-friendly result
+after it stops. The schedule limits recurrence, and surrounding Effect code
+maps the final observed status into the API contract.
 
 ## Problem
 
-You have a bounded polling loop. It should stop when a terminal status is
-observed, but it should also stop after a schedule-side budget is exhausted.
-When that budget ends while the last observed status is still non-terminal, the
-caller should receive a clear domain timeout error instead of a raw
-`"pending"` value.
+The loop should stop when a terminal status is observed and also when its
+schedule-side budget is exhausted. If the budget ends while the last observed
+status is still non-terminal, return a domain timeout error instead of exposing
+a raw `"pending"` value.
 
 The schedule is responsible for recurrence. It decides whether to poll again.
 It does not turn an exhausted duration budget into an error by itself.

@@ -10,19 +10,13 @@ code_included: true
 
 # 8.3 Add jitter to fixed delays
 
-You want a fixed-delay retry policy, but you do not want every caller to retry on
-exactly the same boundary. A plain fixed delay is easy to reason about, but when many
-fibers or clients fail together, they can also retry together. This recipe keeps the
-retry policy explicit: the schedule decides when another typed failure should be
-attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe shows how to add jitter to a fixed-delay retry policy so callers do not all
+retry on the same boundary.
 
 ## Problem
 
-You want a fixed-delay retry policy, but you do not want every caller to retry
-on exactly the same boundary. A plain fixed delay is easy to reason about, but
-when many fibers or clients fail together, they can also retry together.
+A plain fixed delay is easy to reason about, but when many fibers or clients
+fail together, they can also retry together on exactly the same boundary.
 
 Start with the fixed delay you want, then add jitter to that schedule:
 

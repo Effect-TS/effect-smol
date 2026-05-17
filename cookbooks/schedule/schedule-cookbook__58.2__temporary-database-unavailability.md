@@ -10,13 +10,17 @@ code_included: false
 
 # 58.2 Temporary database unavailability
 
-Temporary database unavailability is a reference-index entry. It maps a common operational failure mode to existing `Schedule` recipes rather than introducing a new primitive.
+Use this reference when a database is temporarily unreachable, overloaded,
+restarting, or failing over and a retry policy must protect recovery.
 
 ## What this section is about
 
-Use this entry when a database operation fails because the database is briefly unreachable, overloaded, restarting, failing over, or refusing connections. The scheduling question is whether the operation should be retried, how quickly retries should back off, and where the retry budget stops.
+Attach the schedule to the failed database effect with `Effect.retry`. The
+timing policy should answer how quickly retries back off and where the retry
+budget stops; the retry predicate should admit only temporary unavailability.
 
-This is usually a retry policy, not a polling policy. The schedule is attached to the failed database effect with `Effect.retry`, and it should only retry errors that represent temporary unavailability. Validation failures, constraint violations, authorization errors, and permanent query-shape errors should not be hidden behind the same schedule.
+Validation failures, constraint violations, authorization errors, and permanent
+query-shape errors should not be hidden behind the same schedule.
 
 ## Why it matters
 

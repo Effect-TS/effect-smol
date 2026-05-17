@@ -10,22 +10,19 @@ code_included: true
 
 # 31.1 Drain a queue slowly
 
-A queue drain is often successful work, not retry work. The worker takes one
-available item, processes it, observes whether more items remain, and only then
-decides whether to continue. `Schedule` is a good fit for the continuation
-policy: it can put a deliberate gap after each processed item and make the stop
-conditions visible in one value.
-
-This recipe drains a local queue one item at a time with controlled spacing. It
-stops when the queue is empty, and it also has a per-run cap so one drain
-invocation cannot monopolize the process forever.
+A queue drain is often successful work, not retry work. `Schedule` is a good
+fit for the continuation policy: it can put a deliberate gap after each
+processed item and keep the stop conditions visible in one value.
 
 ## Problem
 
-You have a queue with work already buffered. Processing every available item in
-a tight loop would create a burst against a database, API, or other shared
-dependency. You want to keep making progress, but with a clear pause between
-items and a clear point where this drain pass stops.
+You have a local queue with work already buffered. A worker should process one
+available item, observe whether more items remain, and then decide whether this
+drain pass should continue. Processing every available item in a tight loop
+would create a burst against a database, API, or other shared dependency.
+
+You want steady progress, but also a clear pause between items and a per-run
+cap so one invocation cannot monopolize the process forever.
 
 The empty-queue case matters. `Queue.take` waits when no item is available, so a
 slow drain should observe whether work exists before taking. The schedule should

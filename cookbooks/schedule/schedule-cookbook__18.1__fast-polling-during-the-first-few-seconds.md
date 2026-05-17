@@ -10,19 +10,11 @@ code_included: true
 
 # 18.1 Fast polling during the first few seconds
 
-You have started a workflow where completion is very likely to happen almost
-immediately: a cache refresh, a short background job, a payment authorization, or a
-remote system that usually settles within a few seconds. This recipe treats polling as
-repeated successful observations. The schedule controls cadence and the condition for
-taking another observation, while the surrounding Effect code interprets terminal
-states, missing data, stale reads, and real failures. Keeping those responsibilities
-separate makes the polling loop easier to bound and diagnose.
+Use this recipe for workflows that usually settle within a few seconds, where
+an immediate answer is valuable but a permanent fast loop would be wasteful.
+The schedule models only the short initial burst.
 
 ## Problem
-
-You have started a workflow where completion is very likely to happen almost
-immediately: a cache refresh, a short background job, a payment authorization,
-or a remote system that usually settles within a few seconds.
 
 You want to poll aggressively at the beginning so users do not wait through a
 large fixed interval when the answer is probably already available. At the same

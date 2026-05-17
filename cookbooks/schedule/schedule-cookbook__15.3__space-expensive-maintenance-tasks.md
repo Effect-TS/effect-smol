@@ -10,18 +10,15 @@ code_included: true
 
 # 15.3 Space expensive maintenance tasks
 
-You have a maintenance effect that succeeds when it completes one unit of work, but that
-unit is expensive enough that immediate repetition would put unnecessary pressure on the
-system. This recipe treats repetition as a policy for successful effects. The schedule
-decides whether another successful iteration should run, what spacing applies, and what
-value the repeat returns. Failures stay in the effect error channel, so the repeat
-policy stays separate from recovery or retry behavior.
+Use spacing when successful maintenance work should continue, but not back-to-back.
+This recipe keeps the post-success pause separate from failure recovery.
 
 ## Problem
 
-You have a maintenance effect that succeeds when it completes one unit of work, but that unit is expensive enough that immediate repetition would put unnecessary pressure on the system.
-
-For example, a task may compact storage, rebuild a cache segment, refresh derived records, prune old rows, or reconcile external state. Each successful run is useful, but the next run should wait long enough to leave CPU, database, storage, or downstream services room to recover.
+A maintenance task may compact storage, rebuild a cache segment, refresh derived
+records, prune old rows, or reconcile external state. Each successful run is useful,
+but the next run should wait long enough to leave CPU, database, storage, or
+downstream services room to recover.
 
 ## When to use it
 

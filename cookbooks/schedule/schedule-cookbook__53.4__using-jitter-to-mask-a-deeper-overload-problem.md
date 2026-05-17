@@ -10,24 +10,17 @@ code_included: false
 
 # 53.4 Using jitter to mask a deeper overload problem
 
-Using jitter to mask a deeper overload problem is an anti-pattern because it
-turns an overloaded system into a less synchronized overloaded system. Jitter
-can reduce stampedes when many fibers, clients, or jobs would otherwise retry or
-poll on the same boundary. It does not reduce the amount of work being admitted,
-create spare capacity, enforce fairness, or tell callers to stop.
-
-In Effect, `Schedule.jittered` randomly modifies each recurrence delay. In
-`Schedule.ts`, the jittered delay is between 80% and 120% of the original delay.
-That is useful when the base schedule is already appropriate. It is not load
-shedding, backpressure, rate limiting, a concurrency bound, or a capacity plan.
+Jitter can smooth synchronized recurrence, but it cannot decide whether the
+system should accept the work. This section covers random timing used in place
+of capacity control.
 
 ## The anti-pattern
 
 The problematic version notices synchronized load and adds jitter as the main
 fix. A hot endpoint gets retried by many callers, a polling loop hammers a
 downstream service, or a batch job fans out more work than the dependency can
-accept. The immediate symptom is a spike, so the schedule is randomized and the
-spike becomes a wider plateau.
+accept. The immediate symptom is a spike, so `Schedule.jittered` shifts each
+delay within its 80% to 120% band and the spike becomes a wider plateau.
 
 That can look successful in a graph. The tallest peak may go down. The incident,
 however, has not necessarily been solved. If every caller still retries too many

@@ -10,19 +10,17 @@ code_included: true
 
 # 5.1 Retry every 100 milliseconds
 
-You want a failing effect to try again after a small, fixed delay. The delay is not
-meant to grow, jitter, or depend on the error. Every retry should wait 100 milliseconds
-before the next attempt. This recipe keeps the retry policy explicit: the schedule
-decides when another typed failure should be attempted again and where retrying stops.
-The surrounding Effect code remains responsible for domain safety, including which
-failures are transient, whether the operation is idempotent, and how the final failure
-is reported.
+This recipe shows a very short fixed-delay retry policy using
+`Schedule.spaced("100 millis")` with `Effect.retry`. The schedule controls the retry
+timing, while the surrounding Effect code remains responsible for deciding which typed
+failures are safe to retry.
 
 ## Problem
 
-You want a failing effect to try again after a small, fixed delay. The delay is
-not meant to grow, jitter, or depend on the error. Every retry should wait 100
-milliseconds before the next attempt.
+A fast operation can fail because of brief local contention or another condition
+expected to clear almost immediately. You need each retry after the original
+attempt to wait exactly 100 milliseconds, with no growth, jitter, or
+error-dependent timing.
 
 Use `Schedule.spaced("100 millis")` with `Effect.retry` for this policy.
 

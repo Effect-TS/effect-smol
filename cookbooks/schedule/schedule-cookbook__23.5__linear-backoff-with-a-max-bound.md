@@ -10,10 +10,8 @@ code_included: true
 
 # 23.5 Linear backoff with a max bound
 
-Linear backoff is useful when you want each retry to wait a little longer than
-the previous one, but you do not want the curve to grow aggressively. The max
-bound keeps that policy operationally predictable: after the delay reaches the
-cap, later retries keep using the capped delay instead of growing forever.
+Linear backoff with a max bound gives retries a predictable ramp: delays grow by
+a fixed increment until they reach a cap, then stay there.
 
 Effect does not need a dedicated "linear backoff" constructor for this. Build a
 small schedule that outputs a step number, turn that step into a delay, and cap
@@ -21,8 +19,9 @@ the computed duration before returning it.
 
 ## Problem
 
-You want retry delays like 250 milliseconds, 500 milliseconds, 750
-milliseconds, and 1 second, but never more than 1 second between attempts.
+The concrete target is a sequence that starts at 250 milliseconds, then 500
+milliseconds, then 750 milliseconds, and then never exceeds 1 second between
+attempts.
 
 Scattered sleeps make that hard to review. A single `Schedule` value makes the
 timing policy explicit and lets you add the retry limit, cap, logging, or jitter

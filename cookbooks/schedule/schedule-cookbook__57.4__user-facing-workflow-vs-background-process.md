@@ -10,17 +10,12 @@ code_included: false
 
 # 57.4 User-facing workflow vs background process
 
-User-facing workflows and background processes often use the same `Schedule`
-constructors, but they should not inherit the same budgets. The useful split is
-not "frontend versus backend"; it is whether a person or request path is waiting
-for the result, or whether a supervised process can keep working after the
-caller has moved on.
+Use this entry to choose different retry or polling budgets for visible
+workflows and unattended processes.
 
-A user-facing policy should spend a small, explainable retry or polling window
-and then return control. A background policy can usually wait longer, run at a
-slower cadence, and add jitter to protect shared dependencies. Both policies
-still need explicit stop conditions when failure or staleness should eventually
-surface.
+The useful split is not "frontend versus backend"; it is whether a person or
+request path is waiting for the result, or whether a supervised process can keep
+working after the caller has moved on.
 
 ## Decision matrix
 

@@ -10,11 +10,14 @@ code_included: false
 
 # 62.5 Load shedding, rate limiting, and backpressure
 
-Load shedding, rate limiting, and backpressure are related operational tools, but they are not the same tool. `Schedule` is useful in all three conversations because it can describe when a repeated or retried action is allowed to try again. It is not, by itself, an admission controller, a distributed quota system, or a queue.
+Load shedding, rate limiting, and backpressure are related operational
+controls, but they solve different problems from a local `Schedule`.
 
 ## What this section is about
 
-This entry separates the timing policy that `Schedule` can express from the surrounding control policy that a production system usually needs.
+This entry separates the recurrence timing that `Schedule` can express from the
+surrounding admission, quota, and demand-shaping policies that production
+systems usually need.
 
 A `Schedule` steps with an input and either continues with an output and a delay or halts. In practice, that makes it a good fit for local retry timing, polling cadence, recurring maintenance work, and bounded repeat loops. The source API gives you constructors such as `Schedule.spaced`, `Schedule.fixed`, `Schedule.windowed`, `Schedule.exponential`, `Schedule.fibonacci`, `Schedule.recurs`, `Schedule.during`, `Schedule.take`, and `Schedule.forever`, plus composition and transformation utilities such as `Schedule.both`, `Schedule.either`, `Schedule.andThen`, `Schedule.addDelay`, `Schedule.modifyDelay`, and `Schedule.jittered`.
 

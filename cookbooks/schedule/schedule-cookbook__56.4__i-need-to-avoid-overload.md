@@ -10,15 +10,9 @@ code_included: false
 
 # 56.4 “I need to avoid overload”
 
-Avoiding overload is a selection problem before it is a scheduling problem. The
-goal is not to make retries more persistent. The goal is to keep one caller,
-one worker, or one fleet from adding traffic faster than a dependency can absorb
-it.
-
-This entry does not introduce a new `Schedule` primitive. It helps choose an
-existing recipe shape: fixed spacing for steady work, backoff for contention,
-jitter for fleets, caps for long tails, budgets for termination, and
-classification for deciding whether the schedule should run at all.
+Avoiding overload is a selection problem before it is a scheduling problem:
+choose recurrence that keeps aggregate traffic within what the dependency can
+absorb.
 
 ## What this section is about
 

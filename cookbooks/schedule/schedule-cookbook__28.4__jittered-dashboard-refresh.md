@@ -10,20 +10,16 @@ code_included: true
 
 # 28.4 Jittered dashboard refresh
 
-Dashboards often refresh by polling the same summary endpoint from many browser tabs,
-wallboards, or service-side render workers. A plain fixed interval is easy to
-understand, but it can make every client wake up on the same boundary. Jitter keeps the
-dashboard cadence recognizable while spreading the actual refresh calls around that
-cadence.
+Dashboard refresh is polling-driven successful work, not a retry. This recipe adds
+jitter to a fixed refresh cadence for clients that do not need exact wall-clock
+alignment.
 
 ## Problem
 
-A dashboard should refresh every few seconds while it remains open, but many dashboards
-may be opened, deployed, or reconnected at the same time. If each one polls exactly every
-ten seconds, the backend sees synchronized bursts instead of a steadier stream of reads.
-
-Use a fixed polling interval for the human-facing refresh model, then apply
-`Schedule.jittered` so each follow-up delay is randomly adjusted.
+A dashboard should fetch an initial snapshot immediately and keep refreshing while it
+remains open. If many sessions open, deploy, or reconnect together, later polls should
+drift around the human-facing refresh interval instead of lining up exactly every ten
+seconds.
 
 ## When to use it
 

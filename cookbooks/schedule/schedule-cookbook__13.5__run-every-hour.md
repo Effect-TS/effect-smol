@@ -10,17 +10,17 @@ code_included: true
 
 # 13.5 Run every hour
 
-You have successful background work that should run repeatedly on an hourly cadence,
-such as refreshing slow-moving reference data, compacting local state, syncing summary
-metrics, or checking an infrequent external condition. This recipe treats repetition as
-a policy for successful effects. The schedule decides whether another successful
-iteration should run, what spacing applies, and what value the repeat returns. Failures
-stay in the effect error channel, so the repeat policy stays separate from recovery or
-retry behavior.
+Use this recipe when successful background work should repeat on a low-frequency
+hourly cadence.
 
 ## Problem
 
-You have successful background work that should run repeatedly on an hourly cadence, such as refreshing slow-moving reference data, compacting local state, syncing summary metrics, or checking an infrequent external condition.
+Slow-moving reference data, local compaction, summary metrics, or an infrequent
+external condition needs an immediate first run followed by successful hourly
+recurrences.
+
+The schedule should express the recurrence policy and final repeat output, while
+failures remain in the effect error channel.
 
 ## When to use it
 

@@ -14,10 +14,6 @@ Exponential backoff is a good default when a failure may be temporary but
 retrying immediately would add pressure to the dependency. The retry limit is
 what makes that policy operationally bounded.
 
-In Effect, `Schedule.exponential` describes the growing delay between retries.
-It does not stop by itself, so pair it with `Schedule.recurs(5)` when the
-requirement is "retry at most five times after the original attempt."
-
 ## Problem
 
 You call a dependency that sometimes fails with a transient error. The operation

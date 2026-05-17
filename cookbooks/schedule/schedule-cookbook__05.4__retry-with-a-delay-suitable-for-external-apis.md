@@ -10,20 +10,16 @@ code_included: true
 
 # 5.4 Retry with a delay suitable for external APIs
 
-You are calling an external API and want to retry transient failures without hammering
-the provider. Immediate retries are often too aggressive across a network boundary, but
-a small fixed delay can be enough for simple, idempotent requests. This recipe keeps the
-retry policy explicit: the schedule decides when another typed failure should be
-attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+This recipe shows a bounded fixed-delay retry policy for simple external API calls.
+The schedule controls the retry timing, while the surrounding Effect code remains
+responsible for filtering retryable typed failures and preserving idempotency.
 
 ## Problem
 
-You are calling an external API and want to retry transient failures without
-hammering the provider. Immediate retries are often too aggressive across a
-network boundary, but a small fixed delay can be enough for simple, idempotent
-requests.
+An external API call can fail transiently across the network boundary, but
+immediate retries can hammer the provider. You need a small fixed delay, a retry
+budget, and an error predicate so only safe, retryable API failures are tried
+again.
 
 Use `Schedule.spaced("1 second")` with `Effect.retry`, and bound it with
 `times` or `Schedule.recurs`. Add an error predicate when only some API

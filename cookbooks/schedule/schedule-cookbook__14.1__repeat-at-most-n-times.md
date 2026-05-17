@@ -10,18 +10,13 @@ code_included: true
 
 # 14.1 Repeat at most N times
 
-You have a successful effect and want to allow no more than `N` additional successful
-repetitions. With `Effect.repeat`, the effect runs once before the schedule is
-consulted. " If every run succeeds, the maximum total executions are `n + 1`. This
-recipe treats repetition as a policy for successful effects. The schedule decides
-whether another successful iteration should run, what spacing applies, and what value
-the repeat returns. Failures stay in the effect error channel, so the repeat policy
-stays separate from recovery or retry behavior.
+Use this recipe when a successful effect needs a recurrence budget and the
+off-by-one behavior of `Effect.repeat` should stay explicit.
 
 ## Problem
 
-You have a successful effect and want to allow no more than `N` additional
-successful repetitions.
+The requirement is to allow no more than `N` additional successful repetitions
+after the original run.
 
 With `Effect.repeat`, the effect runs once before the schedule is consulted.
 `Schedule.recurs(n)` therefore means "after the original successful run, allow

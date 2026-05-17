@@ -10,24 +10,17 @@ code_included: true
 
 # 30.5 Smooth demand over time
 
-Smoothing demand means turning repeated work into a steady stream instead of a
-burst. The work still runs as ordinary effects, but the recurrence policy makes
-the gap between runs visible and reviewable.
-
-Use `Schedule.spaced` when the next unit of work should wait until the previous
-unit completes and then pause for a configured duration. Add `Schedule.jittered`
-when many workers may share the same cadence and you want them to drift apart
-instead of moving together.
+Use `Schedule.spaced` and, when needed, `Schedule.jittered` to turn repeated
+work into a paced stream with visible timing rules.
 
 ## Problem
 
-You have repeated work such as queue draining, cache warming, search indexing,
-or remote API calls. Running the work as quickly as possible creates uneven
-pressure: an idle period, then a burst of requests, then another idle period.
+Queue draining, cache warming, search indexing, and remote API calls can create
+uneven pressure when they run as quickly as possible: an idle period, then a
+burst of requests, then another idle period.
 
-You want each worker to process work at a deliberate pace, and you want a fleet
-of workers to avoid synchronized requests when they all start with the same
-configuration.
+The schedule should make each worker's pace explicit, and a fleet should avoid
+synchronized requests when instances share the same configuration.
 
 ## When to use it
 

@@ -19,9 +19,6 @@ operation is idempotent, and how the final failure is reported.
 
 ## Problem
 
-You have an effect that may fail for a short-lived reason, and you want to try
-it again a small, fixed number of times before returning the final failure.
-
 In Effect, "retry up to 3 times" means the original effect runs once, then may
 run up to three more times after typed failures. If every attempt fails, the
 effect can run four times total.

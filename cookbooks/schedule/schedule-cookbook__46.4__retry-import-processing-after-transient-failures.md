@@ -10,19 +10,16 @@ code_included: true
 
 # 46.4 Retry import processing after transient failures
 
-Import jobs often sit between systems that fail briefly: object storage returns
-a timeout, a staging database is overloaded, or a downstream enrichment service
-returns a temporary 503. Retrying those failures is reasonable only when the
-processing step is idempotent. The schedule should make the recovery behavior
-visible: how long the worker waits between attempts, how many retries it will
-spend, and which failures are allowed to try again.
+Import retry policies belong around one idempotent processing step. They should
+show the retry cadence, the retry budget, and the failure classifier without
+hiding permanent data problems.
 
 ## Problem
 
-You have an import worker that processes one import batch. Some failures are
-transient and may succeed if the same batch is attempted again. Other failures,
-such as invalid CSV structure or a violated domain rule, should stop
-immediately.
+An import worker is processing one batch from object storage into a staging
+database and an enrichment service. Storage timeouts or temporary database
+unavailability may clear on another attempt; invalid CSV structure or a
+violated domain rule should stop immediately.
 
 The retry policy needs to be local to the idempotent processing step. Do not
 wrap the whole worker loop in a retry if only the batch write or enrichment call

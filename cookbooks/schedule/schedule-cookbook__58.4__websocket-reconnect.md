@@ -10,11 +10,15 @@ code_included: false
 
 # 58.4 WebSocket reconnect
 
-WebSocket reconnect is a reference entry for choosing a `Schedule` policy for a disconnected, user-visible, long-lived connection. It does not introduce a new Schedule primitive. It maps the problem to backoff, jitter, caps, and user-experience decisions that should be explicit in the reconnect policy.
+Use this reference when a user-visible WebSocket drops and reconnect timing must
+balance fast recovery, service pressure, and a clear offline boundary.
 
 ## What this section is about
 
-Use this entry when a client loses a WebSocket connection and must decide when to attempt reconnection. The useful question is not “how do I retry forever?” but “how quickly should the user see recovery, and when should the UI stop pretending that recovery is imminent?”
+After a disconnect, the policy needs product-facing boundaries, not just a loop.
+The useful question is not “how do I retry forever?” but “how quickly should the
+user see recovery, and when should the UI stop pretending that recovery is
+imminent?”
 
 The usual starting point is `Schedule.exponential`, because immediate repeated reconnect attempts can amplify outages. In `Schedule.ts`, `Schedule.exponential(base, factor)` produces delays using `base * factor^(attempt - 1)`, with a default factor of `2`. That makes it suitable for the common reconnect shape: try soon, then back away as the outage persists.
 

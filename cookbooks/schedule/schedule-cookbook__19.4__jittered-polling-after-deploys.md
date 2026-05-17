@@ -10,13 +10,9 @@ code_included: true
 
 # 19.4 Jittered polling after deploys
 
-After a deploy, many instances or clients may start at nearly the same time. If each one
-begins polling a status endpoint on the same fixed interval, the first successful check
-can turn into a synchronized sequence of later checks. This recipe treats polling as
-repeated successful observations. The schedule controls cadence and the condition for
-taking another observation, while the surrounding Effect code interprets terminal
-states, missing data, stale reads, and real failures. Keeping those responsibilities
-separate makes the polling loop easier to bound and diagnose.
+Jitter is useful when many polling loops begin together and a strict shared
+boundary is unnecessary. It preserves a familiar cadence while letting later
+checks spread out.
 
 ## Problem
 

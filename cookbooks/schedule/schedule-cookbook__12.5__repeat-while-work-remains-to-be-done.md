@@ -10,18 +10,16 @@ code_included: true
 
 # 12.5 Repeat while work remains to be done
 
-You have an effect that successfully completes one unit of work and tells you whether
-more work remains. For example, a queue drain may process one batch and return the
-number of remaining messages. This recipe treats repetition as a policy for successful
-effects. The schedule decides whether another successful iteration should run, what
-spacing applies, and what value the repeat returns. Failures stay in the effect error
-channel, so the repeat policy stays separate from recovery or retry behavior.
+`Effect.repeat` can keep draining work while each successful result says more work
+remains. This recipe focuses on continuation signals such as remaining counts, cursors,
+or `hasMore` flags.
 
 ## Problem
 
-You have an effect that successfully completes one unit of work and tells you whether more work remains.
-
-For example, a queue drain may process one batch and return the number of remaining messages. A paginated import may fetch one page and return whether there is another page. You want success to drive the next run, but only while the successful result says there is still work to do.
+The repeated effect should advance one unit of work and return the signal that
+decides whether another run is needed. A queue drain may process one batch and
+return the number of remaining messages; a paginated import may fetch one page
+and return whether there is another page.
 
 ## When to use it
 

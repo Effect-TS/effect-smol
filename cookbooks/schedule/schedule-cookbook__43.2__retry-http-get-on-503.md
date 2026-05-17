@@ -10,16 +10,8 @@ code_included: true
 
 # 43.2 Retry HTTP GET on 503
 
-A `503 Service Unavailable` response is a classic retry candidate for an HTTP
-`GET`: the server is saying it cannot handle the request right now, and the
-same read may succeed shortly after. The important part is to keep the retry
-decision narrow. A `404`, `401`, `400`, or even a different server status
-should not accidentally follow the same path just because the client has a
-retry schedule available.
-
-This recipe classifies the HTTP response first, then retries only the typed
-`503` failure. The schedule describes the mechanics: exponential backoff,
-finite limits, and optional jitter for clients that may retry together.
+A `503 Service Unavailable` response can be retryable for an idempotent HTTP
+`GET`, but it should not turn into a generic HTTP retry policy.
 
 ## Problem
 
