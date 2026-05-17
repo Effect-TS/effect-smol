@@ -13,18 +13,17 @@ code_included: true
 Startup and steady-state failures usually deserve different retry shapes. During
 boot, the service may be racing DNS, migrations, a database primary election, or
 a dependency that is still becoming reachable. The schedule can be aggressive
-because readiness has not opened traffic yet, and a quick recovery is worth a
-short burst of attempts.
+because readiness has not opened traffic yet.
 
 After the service is running, the same dependency failure should usually be
 handled more steadily. A runtime retry policy should avoid adding pressure to an
-already unhealthy dependency, spread retries across instances, and make the
-maximum retry work obvious to operators.
+unhealthy dependency, spread retries across instances, and make the maximum
+retry work obvious to operators.
 
 ## Problem
 
-Define separate retry schedules for the same dependency operation when it is used
-in two contexts:
+Define separate retry schedules for the same dependency operation when it is
+used in two contexts:
 
 - a boot-time readiness check that must succeed before the service is marked
   ready
@@ -40,15 +39,15 @@ during normal request or worker processing. Typical examples are database
 connectivity checks, message broker readiness, cache warmup probes, feature flag
 client initialization, and search cluster health checks.
 
-It is especially useful when readiness is allowed to fail the process quickly,
-but runtime failures should be retried conservatively so the service does not
-turn a partial outage into a traffic spike.
+It is especially useful when readiness may fail the process quickly, but runtime
+failures should be retried conservatively so the service does not turn a partial
+outage into a traffic spike.
 
 ## When not to use it
 
 Do not retry permanent boot failures. Invalid configuration, missing secrets,
 bad credentials, incompatible schema versions, and malformed endpoints should
-fail startup without a Schedule.
+fail startup without a schedule.
 
 Do not use a runtime schedule to make unsafe side effects look resilient. If the
 operation is not idempotent, classify the failure before retrying and keep the
@@ -78,35 +77,61 @@ continues only while both schedules continue, and it uses the larger delay.
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class DependencyUnavailable extends Data.TaggedError("DependencyUnavailable")<{
   readonly phase: "boot" | "runtime"
 }> {}
 
-declare const checkDependency: Effect.Effect<void, DependencyUnavailable>
-declare const callDependency: Effect.Effect<string, DependencyUnavailable>
+let bootAttempts = 0
+let runtimeAttempts = 0
 
-const bootReadinessPolicy = Schedule.exponential("25 millis").pipe(
+const checkDependency = Effect.gen(function*() {
+  bootAttempts++
+  yield* Console.log(`boot readiness attempt ${bootAttempts}`)
+
+  if (bootAttempts < 3) {
+    return yield* Effect.fail(
+      new DependencyUnavailable({ phase: "boot" })
+    )
+  }
+})
+
+const callDependency = Effect.gen(function*() {
+  runtimeAttempts++
+  yield* Console.log(`runtime dependency attempt ${runtimeAttempts}`)
+
+  if (runtimeAttempts < 3) {
+    return yield* Effect.fail(
+      new DependencyUnavailable({ phase: "runtime" })
+    )
+  }
+
+  return "runtime value"
+})
+
+const bootReadinessPolicy = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(6))
 )
 
-const runtimePolicy = Schedule.exponential("250 millis").pipe(
+const runtimePolicy = Schedule.exponential("30 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(3)))
+    Effect.succeed(Duration.min(delay, Duration.millis(100)))
   ),
   Schedule.both(Schedule.recurs(4))
 )
 
-export const boot = checkDependency.pipe(
-  Effect.retry(bootReadinessPolicy)
-)
+const program = Effect.gen(function*() {
+  yield* checkDependency.pipe(Effect.retry(bootReadinessPolicy))
+  yield* Console.log("service is ready")
 
-export const runtime = callDependency.pipe(
-  Effect.retry(runtimePolicy)
-)
+  const value = yield* callDependency.pipe(Effect.retry(runtimePolicy))
+  yield* Console.log(`runtime result: ${value}`)
+})
+
+Effect.runPromise(program)
 ```
 
 The boot policy tries to recover quickly from short startup races. The original
@@ -114,30 +139,19 @@ readiness check runs once, then the schedule allows at most six scheduled
 retries with very small exponential delays. If the dependency is still
 unavailable after that, startup fails instead of waiting in readiness forever.
 
-The runtime policy starts slower, jitters each delay, caps the maximum sleep at
-three seconds, and stops after four scheduled retries. That gives an in-flight
-operation a chance to survive a transient dependency blip without turning every
-instance into a tight retry loop.
+The runtime policy starts slower, jitters each delay, caps the maximum sleep,
+and stops after four scheduled retries. That gives an in-flight operation a
+chance to survive a transient dependency blip without turning every instance
+into a tight retry loop.
 
 ## Variants
 
-For a readiness probe that should stay simple, use a fixed short cadence:
-
-```ts
-const bootProbePolicy = Schedule.spaced("100 millis").pipe(
-  Schedule.both(Schedule.recurs(10))
-)
-```
+For a readiness probe that should stay simple, use a fixed short cadence such as
+`Schedule.spaced("100 millis").pipe(Schedule.both(Schedule.recurs(10)))`.
 
 For a runtime worker that should keep trying but at a calm cadence, avoid
-exponential growth and use spaced retries with a visible count:
-
-```ts
-const workerReconnectPolicy = Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(12))
-)
-```
+exponential growth and use spaced retries with a visible count, for example
+`Schedule.spaced("5 seconds").pipe(Schedule.jittered, Schedule.both(Schedule.recurs(12)))`.
 
 For a deployment where hundreds of instances may start at the same time, keep
 jitter on both policies. Boot jitter spreads readiness pressure during rollout;

@@ -55,29 +55,21 @@ your provider, or use the provider's idempotency mechanism if it offers one.
 ## Schedule shape
 
 Start with a small exponential delay and bound it by both retry count and
-elapsed time:
+elapsed time.
 
-```ts
-const retryTokenRefreshBriefly = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(2)),
-  Schedule.both(Schedule.during("1 second"))
-)
-```
+`Schedule.exponential` chooses the next delay after an accepted failure.
+`Schedule.jittered` randomizes each delay between 80% and 120% of the base
+delay so many clients do not retry at exactly the same moment.
 
-`Schedule.exponential("100 millis")` chooses the next delay after an accepted
-failure. `Schedule.jittered` randomizes each delay between 80% and 120% of the
-base delay so many clients do not retry at exactly the same moment.
-
-`Schedule.recurs(2)` allows at most two retries after the original refresh
-attempt. `Schedule.during("1 second")` adds a short elapsed-time budget. Because
-`Schedule.both` continues only while both schedules continue, the retry stops as
-soon as either the retry count or the time budget is exhausted.
+`Schedule.recurs(2)` allows at most two retries after the original refresh.
+`Schedule.during("1 second")` adds a short elapsed-time budget. Because
+`Schedule.both` continues only while both schedules continue, retrying stops as
+soon as either limit is exhausted.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 interface Tokens {
   readonly accessToken: string
@@ -101,9 +93,25 @@ type RefreshError =
   | RefreshServiceUnavailable
   | RefreshRejected
 
-declare const postRefreshToken: (
-  refreshToken: string
-) => Effect.Effect<Tokens, RefreshError>
+let attempts = 0
+
+const postRefreshToken = (refreshToken: string): Effect.Effect<Tokens, RefreshError> =>
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`refresh attempt ${attempts}`)
+
+    if (refreshToken === "revoked") {
+      return yield* Effect.fail(new RefreshRejected({ reason: "revoked" }))
+    }
+    if (attempts === 1) {
+      return yield* Effect.fail(new RefreshTimeout({ endpoint: "/oauth/token" }))
+    }
+
+    return {
+      accessToken: "access-token-2",
+      refreshToken: "refresh-token-2"
+    }
+  })
 
 const isTransientRefreshFailure = (
   error: RefreshError
@@ -111,19 +119,22 @@ const isTransientRefreshFailure = (
   error._tag === "RefreshTimeout" ||
   error._tag === "RefreshServiceUnavailable"
 
-const retryTokenRefreshBriefly = Schedule.exponential("100 millis").pipe(
+const retryTokenRefreshBriefly = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(2)),
-  Schedule.both(Schedule.during("1 second"))
+  Schedule.both(Schedule.during("150 millis"))
 )
 
-export const refreshSession = (refreshToken: string) =>
+const refreshSession = (refreshToken: string) =>
   postRefreshToken(refreshToken).pipe(
     Effect.retry({
       schedule: retryTokenRefreshBriefly,
       while: isTransientRefreshFailure
-    })
+    }),
+    Effect.tap((tokens) => Console.log(`new access token: ${tokens.accessToken}`))
   )
+
+Effect.runPromise(refreshSession("refresh-token-1")).then(console.log, console.error)
 ```
 
 `refreshSession` sends the refresh request once immediately. If the request
@@ -135,27 +146,11 @@ If the provider rejects the token with `RefreshRejected`, the predicate returns
 
 ## Variants
 
-For a very latency-sensitive path, retry once and use a smaller budget:
-
-```ts
-const retryTokenRefreshOnce = Schedule.exponential("50 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(1)),
-  Schedule.both(Schedule.during("250 millis"))
-)
-```
+For a very latency-sensitive path, retry once and use a smaller budget.
 
 For a backend-for-frontend or gateway where refresh does not block direct UI
 interaction, you can allow a little more time while still keeping the policy
-bounded:
-
-```ts
-const gatewayTokenRefreshRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3)),
-  Schedule.both(Schedule.during("2 seconds"))
-)
-```
+bounded.
 
 Keep the classification predicate separate from the schedule. The predicate
 answers whether the failure is retryable; the schedule answers how brief and how

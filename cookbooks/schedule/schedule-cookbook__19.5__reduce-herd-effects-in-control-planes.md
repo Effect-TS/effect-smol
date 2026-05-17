@@ -10,76 +10,52 @@ code_included: true
 
 # 19.5 Reduce herd effects in control planes
 
-Control-plane polling needs regular observation without turning many
-independent clients into one bursty caller. Jitter preserves the cadence while
-spreading recurrence decisions across clients.
+A herd effect is many independent callers hitting the same dependency at the
+same time. In control planes, jitter is a small scheduling tool that helps keep
+status polling from turning into synchronized bursts.
 
 ## Problem
 
-Control planes often have many clients polling for the same kind of status:
-deployment rollout state, cluster membership, workflow progress, assignment
-health, or resource reconciliation.
+Control planes often expose status for deployment rollouts, cluster membership,
+workflow progress, assignment health, or reconciliation. After restarts,
+incident recovery, autoscaling, or batch submissions, many callers may begin
+polling together and remain aligned on fixed interval boundaries.
 
-A fixed polling interval can accidentally align those clients. After a restart,
-incident recovery, autoscaling event, or batch submission, many callers may
-begin polling at the same time and continue hitting the control plane on the
-same interval boundaries.
-
-Use jittered repeat schedules to keep the intended polling cadence while making
-individual recurrence delays vary slightly. The goal is not to make polling
-rare; it is to avoid turning many independent clients into one synchronized
-burst.
+Jitter does not make polling rare. It keeps the intended cadence while making
+each caller's recurrence delay slightly different.
 
 ## When to use it
 
 Use this when many processes, workers, tenants, or browser sessions poll a
 control-plane endpoint for read-only status.
 
-It fits status checks where a response that is a second early or late is fine,
-but synchronized bursts are operationally expensive.
-
-Use it when callers may start together, recover together, or receive work in
-large batches, and each caller can safely choose its own recurrence timing.
+It fits cases where a response that is a second early or late is fine, but
+synchronized read bursts are expensive.
 
 ## When not to use it
 
-Do not use jitter when a control-plane action must happen on precise wall-clock
-boundaries. Jitter intentionally moves each recurrence around the base delay.
+Do not use jitter when a control-plane action must happen on an exact
+wall-clock boundary.
 
-Do not use jitter as the completion rule. It changes when the next status check
-happens; it does not decide whether the observed operation is finished.
+Do not use jitter as the completion rule. Status values still decide whether an
+operation is queued, reconciling, ready, or rejected.
 
-Do not treat client-side jitter as a complete overload strategy. It can reduce
-accidental synchronization, but server-side capacity controls, admission,
-quotas, and deployment pacing remain separate concerns.
+Do not treat jitter as a complete overload strategy. Admission control, quotas,
+server-side rate limits, and deployment pacing remain separate concerns.
 
 ## Schedule shape
 
-Start with the ordinary control-plane polling interval, add jitter, preserve
-the latest status, and continue while the status is still non-terminal:
+Use a normal control-plane polling interval with `Schedule.spaced`, apply
+`Schedule.jittered`, preserve the latest status with `Schedule.passthrough`,
+and keep polling only while the operation is active.
 
-```ts
-Schedule.spaced("15 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<ControlPlaneStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "queued" || input.state === "reconciling")
-)
-```
-
-`Schedule.spaced("15 seconds")` supplies the base delay between successful
-status checks. `Schedule.jittered` randomly adjusts each recurrence delay
-between 80% and 120% of that delay, so a fifteen-second interval becomes a
-delay between twelve and eighteen seconds.
-
-`Schedule.satisfiesInputType<ControlPlaneStatus>()` makes the timing schedule
-accept status values before `Schedule.while` reads `metadata.input`.
-`Schedule.passthrough` keeps the latest successful status as the repeat result.
+Effect's jitter range is fixed at 80% to 120%. A fifteen-second interval becomes
+a delay between twelve and eighteen seconds.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type ControlPlaneStatus =
   | { readonly state: "queued"; readonly operationId: string }
@@ -87,81 +63,73 @@ type ControlPlaneStatus =
   | { readonly state: "ready"; readonly operationId: string }
   | { readonly state: "rejected"; readonly operationId: string; readonly reason: string }
 
-type StatusError = {
-  readonly _tag: "StatusError"
-  readonly message: string
-}
+const scriptedStatuses: ReadonlyArray<ControlPlaneStatus> = [
+  { state: "queued", operationId: "op-22" },
+  { state: "reconciling", operationId: "op-22" },
+  { state: "ready", operationId: "op-22" }
+]
 
-const isActive = (status: ControlPlaneStatus): boolean => status.state === "queued" || status.state === "reconciling"
+let readIndex = 0
 
-declare const describeOperation: (
+const isActive = (status: ControlPlaneStatus): boolean =>
+  status.state === "queued" || status.state === "reconciling"
+
+const describeOperation = (
   operationId: string
-) => Effect.Effect<ControlPlaneStatus, StatusError>
+): Effect.Effect<ControlPlaneStatus> =>
+  Effect.sync(() => {
+    const status = scriptedStatuses[
+      Math.min(readIndex, scriptedStatuses.length - 1)
+    ]!
+    readIndex += 1
+    return status
+  }).pipe(
+    Effect.tap((status) =>
+      Console.log(`[${operationId}] ${status.state}`)
+    )
+  )
 
-const controlPlanePolling = Schedule.spaced("15 seconds").pipe(
+const controlPlanePolling = Schedule.spaced("30 millis").pipe(
   Schedule.jittered,
   Schedule.satisfiesInputType<ControlPlaneStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => isActive(input))
 )
 
-const waitForControlPlaneOperation = (operationId: string) =>
-  describeOperation(operationId).pipe(
-    Effect.repeat(controlPlanePolling)
-  )
+const program = describeOperation("op-22").pipe(
+  Effect.repeat(controlPlanePolling),
+  Effect.tap((status) => Console.log(`control-plane result: ${status.state}`))
+)
+
+Effect.runPromise(program).then((status) => {
+  console.log("result:", status)
+})
 ```
 
-`waitForControlPlaneOperation` performs the first status check immediately. If
-that status is terminal, the repeat stops. If the operation is still active,
-the next check waits for a jittered delay around fifteen seconds.
-
-Across many clients, each repeat schedule chooses its own adjusted delay. Even
-when callers begin together, later status checks are less likely to remain
-aligned on the same instant.
+Each caller chooses its own adjusted delay on each recurrence. Even when callers
+start together, later status checks are less likely to stay aligned.
 
 ## Variants
 
-Use a longer base interval for expensive control-plane reads or operations that
-normally take minutes. A thirty-second base interval becomes a jittered delay
-between twenty-four and thirty-six seconds.
+Use longer base intervals for expensive control-plane reads or operations that
+normally take minutes. Use shorter intervals only for cheap endpoints where
+tighter observation is worth the load.
 
-Use a shorter base interval only when the endpoint is cheap and the caller
-needs tighter observation. A five-second base interval becomes a jittered delay
-between four and six seconds.
+Add a bounded schedule when callers must stop observing non-terminal operations.
+Return a distinct "still active" outcome if the bound stops polling before the
+control plane reaches a terminal state.
 
-Add a recurrence cap when the caller should eventually stop observing a
-non-terminal operation:
-
-```ts
-const boundedControlPlanePolling = Schedule.spaced("15 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<ControlPlaneStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isActive(input)),
-  Schedule.bothLeft(
-    Schedule.recurs(80).pipe(Schedule.satisfiesInputType<ControlPlaneStatus>())
-  )
-)
-```
-
-This still returns the latest observed `ControlPlaneStatus`. It may be
-terminal, or it may be the last active status observed before the recurrence
-cap stopped the repeat.
+If the control-plane read can fail transiently, add a retry policy to that read
+before the repeat.
 
 ## Notes and caveats
 
-`Schedule.jittered` has fixed bounds in Effect. It randomly adjusts each
-recurrence delay between 80% and 120% of the original delay.
-
-The first status check is not delayed. The schedule controls recurrences after
-successful status checks.
-
-With `Effect.repeat`, a failure from `describeOperation` stops the repeat
-unless the status-check effect has its own retry policy.
-
 Client-side jitter reduces accidental alignment among cooperative callers. It
 does not protect the control plane from malicious clients, hard capacity
-limits, or all clients being forced to poll at exactly the same external event.
+limits, or every caller being triggered by the same external event.
 
-When combining timing schedules with status predicates, use
-`Schedule.satisfiesInputType<T>()` before reading `metadata.input`.
+`Effect.repeat` repeats after successful status reads. Failed reads stop the
+repeat unless recovered first.
+
+Use `Schedule.satisfiesInputType<T>()` before reading `metadata.input` in
+`Schedule.while`.

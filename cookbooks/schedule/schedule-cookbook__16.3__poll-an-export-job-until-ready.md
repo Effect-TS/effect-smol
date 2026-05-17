@@ -10,9 +10,8 @@ code_included: true
 
 # 16.3 Poll an export job until ready
 
-Use polling when an export service returns an id before the exported file is ready.
-This recipe keeps successful status observations separate from request failures and
-export-domain interpretation.
+Use polling when an export service returns an id before the exported file is
+ready.
 
 ## Problem
 
@@ -45,15 +44,7 @@ small recurrence cap. Deadline-oriented polling belongs in Chapter 17.
 ## Schedule shape
 
 Use a spaced schedule for the pause between status checks, preserve the latest
-successful export status, and continue only while the export is still running:
-
-```ts
-Schedule.spaced("3 seconds").pipe(
-  Schedule.satisfiesInputType<ExportStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "running")
-)
-```
+successful export status, and continue only while the export is still running.
 
 `Effect.repeat` runs the first status check immediately. After each successful
 check, the resulting `ExportStatus` becomes the schedule input.
@@ -68,7 +59,7 @@ latest `ExportStatus` as the value returned by the repeated effect.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type ExportStatus =
   | { readonly state: "running"; readonly exportId: string; readonly percent: number }
@@ -80,23 +71,50 @@ type ExportStatusError = {
   readonly message: string
 }
 
-declare const checkExportStatus: (
-  exportId: string
-) => Effect.Effect<ExportStatus, ExportStatusError>
+let step = 0
 
-const pollUntilReadyOrFailed = Schedule.spaced("3 seconds").pipe(
+const nextExportStatus = (exportId: string): ExportStatus => {
+  step += 1
+  switch (step) {
+    case 1:
+      return { state: "running", exportId, percent: 25 }
+    case 2:
+      return { state: "running", exportId, percent: 80 }
+    default:
+      return {
+        state: "ready",
+        exportId,
+        downloadUrl: "https://example.com/report.csv"
+      }
+  }
+}
+
+const checkExportStatus = (
+  exportId: string
+): Effect.Effect<ExportStatus, ExportStatusError> =>
+  Effect.gen(function*() {
+    const status = nextExportStatus(exportId)
+    yield* Console.log(`export ${exportId}: ${status.state}`)
+    return status
+  })
+
+const pollUntilReadyOrFailed = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<ExportStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.state === "running")
 )
 
-const pollExport = (exportId: string) =>
-  checkExportStatus(exportId).pipe(
+const program = Effect.gen(function*() {
+  const finalStatus = yield* checkExportStatus("export-123").pipe(
     Effect.repeat(pollUntilReadyOrFailed)
   )
+  yield* Console.log(`final export status: ${finalStatus.state}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`pollExport` succeeds with the first non-running status observed. That value may
+The program succeeds with the first non-running status observed. That value may
 be `"ready"` with a `downloadUrl`, or `"failed"` with a domain failure reason.
 
 It fails with `ExportStatusError` only when a status check effect fails. A
@@ -106,22 +124,10 @@ from the status endpoint.
 ## Variants
 
 Add a recurrence cap when the caller wants to stop after a bounded number of
-status checks even if the export is still running:
-
-```ts
-const pollExportAtMostFortyTimes = Schedule.spaced("3 seconds").pipe(
-  Schedule.satisfiesInputType<ExportStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "running"),
-  Schedule.bothLeft(
-    Schedule.recurs(40).pipe(Schedule.satisfiesInputType<ExportStatus>())
-  )
-)
-```
-
-This still returns an `ExportStatus`. The final value can be `"ready"`,
-`"failed"`, or the last `"running"` status if the recurrence cap stops the
-repeat first.
+status checks even if the export is still running, for example by combining the
+status schedule with `Schedule.recurs(40)` using `Schedule.bothLeft`. The final
+value can be `"ready"`, `"failed"`, or the last `"running"` status if the cap
+stops the repeat first.
 
 If the caller wants ready exports to succeed and failed exports to fail, keep
 that decision after polling. The polling schedule should only decide whether to

@@ -13,8 +13,6 @@ code_included: false
 Use this reference when Redis reconnects need bounded backoff that protects both
 one client and the fleet.
 
-## What this section is about
-
 Apply it to a worker, stream consumer, cache client, subscription listener, or
 queue processor that loses Redis and should reconnect without turning a short
 outage into a synchronized connection storm.
@@ -23,8 +21,6 @@ The closest full recipe is [27.2 Jittered retries for Redis reconnects](schedule
 Related entries are [21.5 Capped exponential backoff](schedule-cookbook__21.5__capped-exponential-backoff.md),
 [25.3 Cap long tails in retry behavior](schedule-cookbook__25.3__cap-long-tails-in-retry-behavior.md),
 and [57.5 Single-instance behavior vs fleet-wide behavior](schedule-cookbook__57.5__single-instance-behavior-vs-fleet-wide-behavior.md).
-
-## Why it matters
 
 A Redis restart, failover, network flap, or rolling deployment can be observed
 by many clients at nearly the same time. Plain exponential backoff reduces
@@ -40,16 +36,16 @@ behavior and the failure should surface.
 
 ## Core idea
 
-Build the policy in named layers:
+Build the reconnect policy in named layers:
 
 - `Schedule.exponential(base, factor)` gives a short initial delay and grows the
   delay as reconnect failures continue.
 - `Schedule.jittered` spreads each computed delay between `80%` and `120%` of
   the original delay, which helps a fleet avoid lockstep reconnects.
-- `Schedule.modifyDelay` can cap the resulting delay so the final wait never
+- `Schedule.modifyDelay` can cap the computed delay so the final wait never
   exceeds the operational maximum.
 - `Schedule.recurs`, `Schedule.take`, or `Schedule.during` bounds the policy by
-  retry count, recurrence count, or elapsed time.
+  recurrence count or elapsed time.
 - `Schedule.both` combines independent constraints with intersection semantics,
   so the reconnect policy continues only while both sides still allow it.
 
@@ -66,7 +62,7 @@ failure. Keep the cap visible in the schedule instead of burying it in the Redis
 client wrapper.
 
 For a large fleet, keep jitter even when the cap is low. The cap limits maximum
-per-client sleep; jitter reduces synchronization across clients. Neither one
-limits total fleet demand by itself, so pair the reconnect policy with Redis
-connection limits, readiness behavior, graceful shutdown, and any service-level
-load shedding required by the deployment.
+per-client sleep; jitter reduces synchronization across clients. Neither limits
+total fleet demand by itself, so pair the reconnect policy with Redis connection
+limits, readiness behavior, graceful shutdown, and any service-level load
+shedding required by the deployment.

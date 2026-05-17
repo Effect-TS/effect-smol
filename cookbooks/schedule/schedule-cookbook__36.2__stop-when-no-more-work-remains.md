@@ -53,21 +53,9 @@ stream, or consumer loop may be a better model than scheduled draining.
 
 ## Schedule shape
 
-Start with a spacing policy, make it accept the drain result as input, preserve
-that input as the repeat output, and continue only while work remains:
-
-```ts
-Schedule.spaced("1 second").pipe(
-  Schedule.satisfiesInputType<DrainResult>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.remaining > 0)
-)
-```
-
-`Schedule.spaced("1 second")` waits between successful drain runs.
-`Schedule.satisfiesInputType<DrainResult>()` gives the timing schedule the input
-type that `Schedule.while` will inspect. `Schedule.passthrough` keeps the latest
-`DrainResult` as the output of `Effect.repeat`.
+Use `Schedule.identity<DrainResult>()` to keep the latest successful drain
+result as the schedule output, combine it with a spacing policy, and continue
+only while `remaining` is greater than zero.
 
 `Schedule.while` receives metadata for each successful step. Returning `true`
 continues the schedule; returning `false` stops it and yields the latest output.
@@ -75,7 +63,7 @@ continues the schedule; returning `false` stops it and yields the latest output.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type DrainResult = {
   readonly processed: number
@@ -87,27 +75,51 @@ type QueueDrainError = {
   readonly message: string
 }
 
-declare const drainWorkQueue: Effect.Effect<DrainResult, QueueDrainError>
+const batches: ReadonlyArray<DrainResult> = [
+  { processed: 25, remaining: 40 },
+  { processed: 25, remaining: 15 },
+  { processed: 15, remaining: 0 }
+]
 
-const drainUntilEmpty = Schedule.spaced("1 second").pipe(
-  Schedule.satisfiesInputType<DrainResult>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.remaining > 0)
+let drains = 0
+
+const drainWorkQueue: Effect.Effect<DrainResult, QueueDrainError> = Effect.gen(function*() {
+  const index = yield* Effect.sync(() => {
+    const current = drains
+    drains += 1
+    return current
+  })
+  const result = batches[index] ?? batches[batches.length - 1]!
+
+  yield* Console.log(
+    `drain ${index + 1}: processed=${result.processed}, remaining=${result.remaining}`
+  )
+  return result
+})
+
+const drainUntilEmpty = Schedule.identity<DrainResult>().pipe(
+  Schedule.bothLeft(Schedule.spaced("100 millis")),
+  Schedule.while(({ output }) => output.remaining > 0)
 )
 
-export const runDrain = drainWorkQueue.pipe(
-  Effect.repeat(drainUntilEmpty)
+const program = drainWorkQueue.pipe(
+  Effect.repeat(drainUntilEmpty),
+  Effect.flatMap((result) =>
+    Console.log(`stopped with ${result.remaining} items remaining`)
+  )
 )
+
+Effect.runPromise(program)
 ```
 
 `drainWorkQueue` runs once immediately. If that first drain returns
 `remaining: 0`, the schedule stops without waiting and `runDrain` succeeds with
 that result.
 
-If the first drain returns `remaining: 120`, the schedule waits one second and
-runs another drain. It keeps repeating while each successful `DrainResult`
-reports more remaining work. The final result is the first observation whose
-`remaining` value is `0`.
+If the first drain returns `remaining: 120`, the schedule waits before running
+another drain. The example uses a short delay so it finishes quickly; production
+drainers often use a longer cadence. The final result is the first observation
+whose `remaining` value is `0`.
 
 ## Variants
 
@@ -133,9 +145,9 @@ successful `DrainResult`.
 repeat fails unless the effect handles the error or the whole drain is wrapped
 in a retry policy.
 
-`Schedule.passthrough` is what makes `runDrain` return the latest
-`DrainResult`. Without it, the result would come from the timing schedule, such
-as the numeric output of `Schedule.spaced`.
+`Schedule.identity<DrainResult>()` is what makes `runDrain` return the latest
+`DrainResult`. Without preserving the domain value, the result would come from a
+timing schedule, such as the numeric output of `Schedule.spaced`.
 
 Keep the reported `remaining` value meaningful. If it is approximate, stale, or
 eventually consistent, add an operational guard such as an elapsed budget or a

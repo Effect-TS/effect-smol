@@ -21,14 +21,9 @@ hook endpoint sometimes returns a timeout, `429`, or `503`. The hook operation i
 idempotent because the request includes a stable deployment id and hook id, so
 the receiver can collapse duplicates.
 
-You want a retry policy that:
-
-- performs the first hook call immediately
-- backs off after each failed retry
-- adds jitter so many deployments do not retry together
-- caps the maximum delay between attempts
-- stops after a fixed number of retries
-- retries only transient hook failures
+The retry policy should run the first call immediately, back off after failures,
+add jitter for fleet-wide deploys, cap the delay, stop after a small number of
+retries, and retry only transient hook failures.
 
 ## When to use it
 
@@ -52,19 +47,14 @@ as deployment problems instead of being hidden behind backoff.
 
 ## Schedule shape
 
-`Schedule.exponential("200 millis")` starts with a short retry delay and doubles
-the delay after each failure. `Schedule.jittered` spreads callers around that
-computed delay so a fleet does not retry in lockstep.
-
-The recipe caps each final delay at five seconds and combines the cadence with
-`Schedule.recurs(5)`, so the original hook call may be followed by at most five
-scheduled retries. `Schedule.while` reads the failure that `Effect.retry` feeds
-into the schedule and stops immediately for non-retryable hook errors.
+Use exponential backoff with jitter, cap each sleep, and combine it with
+`Schedule.recurs`. `Effect.retry` feeds typed failures into the schedule, so a
+`while` predicate can stop immediately for non-retryable hook errors.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class DeploymentHookError extends Data.TaggedError("DeploymentHookError")<{
   readonly status: number
@@ -77,11 +67,35 @@ interface HookReceipt {
   readonly accepted: boolean
 }
 
-declare const invokeDeploymentHook: (request: {
+let attempts = 0
+
+const invokeDeploymentHook = Effect.fnUntraced(function*(request: {
   readonly deploymentId: string
   readonly hookName: string
   readonly idempotencyKey: string
-}) => Effect.Effect<HookReceipt, DeploymentHookError>
+}) {
+  attempts += 1
+  yield* Console.log(`hook attempt ${attempts}: ${request.hookName}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail(new DeploymentHookError({
+      status: 503,
+      message: "hook receiver unavailable"
+    }))
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail(new DeploymentHookError({
+      status: 429,
+      message: "hook receiver is throttling"
+    }))
+  }
+
+  return {
+    deploymentId: request.deploymentId,
+    hookName: request.hookName,
+    accepted: true
+  } satisfies HookReceipt
+})
 
 const isRetryableHookError = (error: DeploymentHookError) =>
   error.status === 408 ||
@@ -89,22 +103,30 @@ const isRetryableHookError = (error: DeploymentHookError) =>
   error.status === 429 ||
   error.status >= 500
 
-const deploymentHookRetryPolicy = Schedule.exponential("200 millis").pipe(
+const deploymentHookRetryPolicy = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(40)))
   ),
   Schedule.both(Schedule.recurs(5)),
   Schedule.while(({ input }) => isRetryableHookError(input))
 )
 
-export const program = invokeDeploymentHook({
+const program = invokeDeploymentHook({
   deploymentId: "deploy-2026-05-16-001",
   hookName: "post-deploy-smoke-test",
   idempotencyKey: "deploy-2026-05-16-001:post-deploy-smoke-test"
 }).pipe(
-  Effect.retry(deploymentHookRetryPolicy)
+  Effect.retry(deploymentHookRetryPolicy),
+  Effect.flatMap((receipt) =>
+    Console.log(`hook accepted: ${receipt.deploymentId}/${receipt.hookName}`)
+  ),
+  Effect.catch((error: DeploymentHookError) =>
+    Console.log(`hook failed with status ${error.status}: ${error.message}`)
+  )
 )
+
+void Effect.runPromise(program)
 ```
 
 ## Variants
@@ -124,7 +146,7 @@ reduces synchronization across callers.
 ## Notes and caveats
 
 The original hook call is not counted by `Schedule.recurs(5)`. The schedule
-controls only the follow-up retries after a failure, so this policy permits one
+controls only follow-up retries after a failure, so this policy permits one
 initial call plus at most five retries.
 
 `Schedule.exponential` has no retry limit by itself. Always pair it with

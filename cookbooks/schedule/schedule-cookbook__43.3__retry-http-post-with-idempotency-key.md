@@ -11,7 +11,8 @@ code_included: true
 # 43.3 Retry HTTP POST with idempotency key
 
 HTTP `POST` retries need a duplicate-safety contract before any schedule is
-added, such as an idempotency key at the protocol boundary.
+added. An idempotency key is a request identifier the server uses to treat
+repeated attempts as one logical write.
 
 ## Problem
 
@@ -31,12 +32,8 @@ creation, order submission, subscription changes, shipment creation, and
 command-style API calls.
 
 It is especially useful for failures where the outcome is unknown to the
-client:
-
-- the request timed out after being sent
-- the TCP connection reset before the response arrived
-- a proxy returned a transient `502`, `503`, or `504`
-- the provider returned a retryable rate-limit or overload response
+client: a timeout after the request was sent, a connection reset before the
+response arrived, a transient gateway error, or a retryable overload response.
 
 Create or load the idempotency key before entering `Effect.retry`, then pass
 that same key to the HTTP request effect on every attempt.
@@ -58,20 +55,17 @@ they do not remove load from a struggling downstream service.
 
 Use a bounded schedule for HTTP `POST` retries:
 
-- exponential backoff, so repeated failures slow down
-- jitter, so many clients do not retry at exactly the same moments
-- a finite retry count, so the operation eventually returns a failure
-- an error predicate, so only ambiguous or transient failures are retried
+Use exponential backoff so repeated failures slow down, jitter so many clients
+do not retry at the same moment, a finite retry count, and an error predicate
+that accepts only ambiguous or transient failures.
 
-`Schedule.exponential("100 millis")` starts with a short delay and increases it
-after each failed attempt. `Schedule.jittered` randomizes each computed delay.
-`Schedule.both(Schedule.recurs(4))` bounds the policy to four retries after the
-initial request.
+`Schedule.recurs(4)` means four retries after the initial request. It is not a
+total-attempt count.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class PostOrderError extends Data.TaggedError("PostOrderError")<{
   readonly reason:
@@ -95,9 +89,26 @@ interface OrderRequest {
   readonly idempotencyKey: string
 }
 
-declare const postOrder: (request: OrderRequest) => Effect.Effect<Order, PostOrderError>
+let attempts = 0
 
-const retryPost = Schedule.exponential("100 millis").pipe(
+const postOrder = (request: OrderRequest): Effect.Effect<Order, PostOrderError> =>
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(
+      `POST /orders attempt ${attempts} with key ${request.idempotencyKey}`
+    )
+
+    if (attempts === 1) {
+      return yield* Effect.fail(new PostOrderError({ reason: "Timeout" }))
+    }
+
+    return {
+      id: "order-1000",
+      status: attempts === 2 ? "Created" : "AlreadyCreated"
+    }
+  })
+
+const retryPost = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(4))
 )
@@ -115,23 +126,29 @@ const isRetryablePostFailure = (error: PostOrderError): boolean => {
   }
 }
 
-const submitOrder = (
+const submitOrder = Effect.fnUntraced(function*(
   customerId: string,
   sku: string,
   quantity: number,
   idempotencyKey: string
-) =>
-  postOrder({ customerId, sku, quantity, idempotencyKey }).pipe(
+) {
+  return yield* postOrder({ customerId, sku, quantity, idempotencyKey }).pipe(
     Effect.retry({
       schedule: retryPost,
       while: isRetryablePostFailure
     })
   )
+})
+
+const program = submitOrder("customer-1", "sku-1", 2, "order-key-123").pipe(
+  Effect.tap((order) => Console.log(`order ${order.id}: ${order.status}`))
+)
+
+Effect.runPromise(program).then(console.log, console.error)
 ```
 
-The key detail is that `idempotencyKey` is an input to `submitOrder`. It is not
-created inside `postOrder`, and it is not created inside the retried effect.
-Every attempt sends the same logical request with the same key.
+The key detail is that `idempotencyKey` is an input to `submitOrder`. Every
+attempt sends the same logical request with the same key.
 
 If the first `POST` succeeds on the server but the response is lost, a later
 attempt with the same key should return the same logical result, such as
@@ -142,24 +159,10 @@ between attempts.
 ## Variants
 
 For a user-facing request path, reduce the retry count so the caller gets a
-prompt result:
-
-```ts
-const userFacingPostRetry = Schedule.exponential("75 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(2))
-)
-```
+prompt result.
 
 For a background worker or outbox processor, use a larger bounded policy and
-persist the idempotency key with the job record:
-
-```ts
-const backgroundPostRetry = Schedule.exponential("500 millis", 1.5).pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(6))
-)
-```
+persist the idempotency key with the job record.
 
 If the provider returns a specific "already processed" response for a repeated
 key, model it as a successful domain value when it represents the same logical

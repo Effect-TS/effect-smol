@@ -48,33 +48,17 @@ newer state, make the operation idempotent before adding a retry schedule.
 
 ## Schedule shape
 
-Use a short foreground schedule and a separate longer background schedule:
-
-```ts
-const foregroundRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.during("2 seconds"))
-)
-
-const backgroundRetry = Schedule.exponential("1 second").pipe(
-  Schedule.both(Schedule.during("10 minutes")),
-  Schedule.jittered
-)
-```
-
+Use a short foreground schedule and a separate longer background schedule.
 `Schedule.exponential` increases the delay after each failed attempt.
-`Schedule.during` keeps recurrence decisions inside an elapsed-time budget.
-`Schedule.both` gives intersection semantics: the combined schedule recurs only
-while both the cadence and the time budget still allow another recurrence.
-
-Add `Schedule.jittered` to the background policy when many workers may retry the
-same dependency. In `Schedule.ts`, jitter adjusts each delay to a random value
-between 80% and 120% of the original delay, which helps avoid synchronized
-retry waves.
+`Schedule.during` keeps recurrence decisions inside an elapsed-time budget, and
+`Schedule.both` stops when either the cadence or the budget stops. Add
+`Schedule.jittered` to the background policy when many workers may retry the
+same dependency.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type CrmError = {
   readonly _tag: "CrmError"
@@ -85,42 +69,85 @@ type UpdateResult =
   | { readonly _tag: "Updated" }
   | { readonly _tag: "AcceptedForBackgroundRetry" }
 
-declare const updateCrm: Effect.Effect<void, CrmError>
-declare const enqueueCrmUpdate: Effect.Effect<void>
-declare const processQueuedCrmUpdate: Effect.Effect<void, CrmError>
+let requestAttempts = 0
+let workerAttempts = 0
 
-const foregroundRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.during("2 seconds"))
+const updateCrm: Effect.Effect<void, CrmError> = Effect.gen(function*() {
+  const attempt = yield* Effect.sync(() => {
+    requestAttempts += 1
+    return requestAttempts
+  })
+
+  yield* Console.log(`request-path CRM attempt ${attempt}`)
+  return yield* Effect.fail({
+    _tag: "CrmError",
+    message: "CRM is temporarily unavailable"
+  })
+})
+
+const enqueueCrmUpdate = Console.log("queued CRM update for background retry")
+
+const processQueuedCrmUpdate: Effect.Effect<void, CrmError> = Effect.gen(function*() {
+  const attempt = yield* Effect.sync(() => {
+    workerAttempts += 1
+    return workerAttempts
+  })
+
+  yield* Console.log(`background CRM attempt ${attempt}`)
+
+  if (attempt < 3) {
+    return yield* Effect.fail({
+      _tag: "CrmError",
+      message: "CRM is still unavailable"
+    })
+  }
+})
+
+const foregroundRetry = Schedule.exponential("10 millis").pipe(
+  Schedule.both(Schedule.during("50 millis"))
 )
 
-const backgroundRetry = Schedule.exponential("1 second").pipe(
-  Schedule.both(Schedule.during("10 minutes")),
-  Schedule.jittered
+const backgroundRetry = Schedule.exponential("10 millis").pipe(
+  Schedule.both(Schedule.during("100 millis"))
 )
 
-export const handleRequest: Effect.Effect<UpdateResult, never> = updateCrm.pipe(
+const handleRequest: Effect.Effect<UpdateResult> = updateCrm.pipe(
   Effect.retry(foregroundRetry),
   Effect.as({ _tag: "Updated" as const }),
-  Effect.catchAll(() =>
+  Effect.catch(() =>
     enqueueCrmUpdate.pipe(
       Effect.as({ _tag: "AcceptedForBackgroundRetry" as const })
     )
   )
 )
 
-export const backgroundWorker: Effect.Effect<void, CrmError> =
-  processQueuedCrmUpdate.pipe(
-    Effect.retry(backgroundRetry)
-  )
+const backgroundWorker = processQueuedCrmUpdate.pipe(
+  Effect.retry(backgroundRetry),
+  Effect.flatMap(() => Console.log("background retry completed")),
+  Effect.catch((error) => Console.log(`background stopped: ${error.message}`))
+)
+
+const program = Effect.gen(function*() {
+  const result = yield* handleRequest
+  yield* Console.log(`handler returned: ${result._tag}`)
+  yield* backgroundWorker
+})
+
+Effect.runPromise(program)
 ```
 
 `handleRequest` tries the CRM update immediately, then retries only inside the
 short foreground budget. If that budget is exhausted, it records the work for
 later and returns a value the caller can render as "accepted" or "pending".
 
-`backgroundWorker` uses a longer retry budget with jitter. It can be persistent
-without tying up the original request, and it still has a clear stop condition
-for alerting, dead-lettering, or operator review.
+`backgroundWorker` uses a longer retry budget. It can be persistent without
+tying up the original request, and it still has a clear stop condition for
+alerting, dead-lettering, or operator review. Add `Schedule.jittered` when many
+workers may retry the same dependency.
+
+The snippet uses short millisecond budgets so it completes immediately as a
+copy-paste demo. In production, keep the same two-policy shape but use a short
+request budget such as seconds and a longer background budget such as minutes.
 
 ## Variants
 
@@ -134,15 +161,9 @@ workflow-level policy, but the schedule should still make the maximum retry
 window visible.
 
 If the background retry should stop after either a time budget or a count budget
-is exhausted, compose the cadence with both limits:
-
-```ts
-const boundedBackgroundRetry = Schedule.exponential("1 second").pipe(
-  Schedule.both(Schedule.during("10 minutes")),
-  Schedule.both(Schedule.recurs(20)),
-  Schedule.jittered
-)
-```
+is exhausted, compose the cadence with both `Schedule.during` and
+`Schedule.recurs`. Add `Schedule.jittered` after those limits when many workers
+may retry together.
 
 ## Notes and caveats
 

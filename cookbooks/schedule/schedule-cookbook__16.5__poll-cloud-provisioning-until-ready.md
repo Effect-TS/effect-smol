@@ -10,9 +10,8 @@ code_included: true
 
 # 16.5 Poll cloud provisioning until ready
 
-Use polling when a cloud resource has been accepted for creation but is not usable yet.
-This recipe keeps successful provisioning observations separate from request failures
-and cloud-domain interpretation.
+Use polling when a cloud resource has been accepted for creation but is not
+usable yet.
 
 ## Problem
 
@@ -53,15 +52,7 @@ decide how the caller should handle that final successful value.
 ## Schedule shape
 
 Poll on a spaced schedule, preserve the latest successful status as the
-schedule output, and continue only while the resource is still provisioning:
-
-```ts
-Schedule.spaced("5 seconds").pipe(
-  Schedule.satisfiesInputType<ProvisioningStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isProvisioning(input))
-)
-```
+schedule output, and continue only while the resource is still provisioning.
 
 `Schedule.spaced("5 seconds")` controls the delay before each recurrence.
 `Schedule.satisfiesInputType<ProvisioningStatus>()` constrains the timing
@@ -71,7 +62,7 @@ keeps the final observed status as the result of `Effect.repeat`.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type ProvisioningStatus =
   | { readonly state: "pending"; readonly resourceId: string }
@@ -90,26 +81,53 @@ const isProvisioning = (status: ProvisioningStatus): boolean =>
   status.state === "creating" ||
   status.state === "configuring"
 
-declare const describeResource: (
-  resourceId: string
-) => Effect.Effect<ProvisioningStatus, StatusCheckError>
+let step = 0
 
-const pollUntilReadyOrFailed = Schedule.spaced("5 seconds").pipe(
+const nextProvisioningStatus = (resourceId: string): ProvisioningStatus => {
+  step += 1
+  switch (step) {
+    case 1:
+      return { state: "pending", resourceId }
+    case 2:
+      return { state: "creating", resourceId }
+    default:
+      return {
+        state: "ready",
+        resourceId,
+        endpoint: "https://db.example.com"
+      }
+  }
+}
+
+const describeResource = (
+  resourceId: string
+): Effect.Effect<ProvisioningStatus, StatusCheckError> =>
+  Effect.gen(function*() {
+    const status = nextProvisioningStatus(resourceId)
+    yield* Console.log(`resource ${resourceId}: ${status.state}`)
+    return status
+  })
+
+const pollUntilReadyOrFailed = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<ProvisioningStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => isProvisioning(input))
 )
 
-const waitForProvisioning = (resourceId: string) =>
-  describeResource(resourceId).pipe(
+const program = Effect.gen(function*() {
+  const finalStatus = yield* describeResource("db-123").pipe(
     Effect.repeat(pollUntilReadyOrFailed)
   )
+  yield* Console.log(`final provisioning status: ${finalStatus.state}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`waitForProvisioning` performs the first status check immediately. If the first
+The program performs the first status check immediately. If the first
 successful response is `"ready"` or `"provisioning_failed"`, the schedule stops
 without another request. If the resource is still provisioning, the schedule
-waits five seconds before checking again.
+waits before checking again.
 
 The returned effect succeeds with the final `ProvisioningStatus`. It fails with
 `StatusCheckError` only when `describeResource` fails.
@@ -117,22 +135,10 @@ The returned effect succeeds with the final `ProvisioningStatus`. It fails with
 ## Variants
 
 Add a recurrence cap when the caller wants to stop after a bounded number of
-successful observations:
-
-```ts
-const pollAtMostFortyTimes = Schedule.spaced("5 seconds").pipe(
-  Schedule.satisfiesInputType<ProvisioningStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isProvisioning(input)),
-  Schedule.bothLeft(
-    Schedule.recurs(40).pipe(Schedule.satisfiesInputType<ProvisioningStatus>())
-  )
-)
-```
-
-This still returns a `ProvisioningStatus`. The value may be terminal, or it may
-be the last non-terminal status observed when the recurrence cap stopped the
-repeat.
+successful observations, for example by combining the status schedule with
+`Schedule.recurs(40)` using `Schedule.bothLeft`. The returned value may be
+terminal, or it may be the last non-terminal status observed when the cap
+stopped the repeat.
 
 After polling, map the final successful status into the shape your application
 needs. For example, a caller may return the ready endpoint, surface a

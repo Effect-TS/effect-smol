@@ -12,17 +12,11 @@ code_included: true
 
 Some work should keep trying for as long as the process is alive, but it should
 never turn a failure into pressure on an already weak dependency. Use a slow
-`Schedule.spaced` cadence when persistence matters more than fast recovery:
+`Schedule.spaced` cadence when persistence matters more than fast recovery.
 
-```ts
-const lowPressureRetry = Schedule.spaced("30 seconds").pipe(
-  Schedule.jittered
-)
-```
-
-Read that as: after each retryable failure, wait about 30 seconds before trying
-again. `Schedule.jittered` keeps the delay near that cadence while preventing a
-fleet of workers from retrying at exactly the same instant.
+Read the policy as: after each retryable failure, wait for a deliberate pause
+before trying again. `Schedule.jittered` keeps the delay near that cadence while
+preventing a fleet of workers from retrying at exactly the same instant.
 
 ## Problem
 
@@ -79,32 +73,48 @@ to error classification, shutdown, cancellation, or a separate business rule.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class DeliveryError extends Data.TaggedError("DeliveryError")<{
   readonly reason: "Network" | "Unavailable" | "BadRecipient" | "InvalidPayload"
 }> {}
 
-declare const deliverNotification: Effect.Effect<void, DeliveryError>
+let attempts = 0
+
+const deliverNotification = Effect.gen(function*() {
+  attempts++
+  yield* Console.log(`delivery attempt ${attempts}`)
+
+  if (attempts < 4) {
+    return yield* Effect.fail(
+      new DeliveryError({ reason: "Unavailable" })
+    )
+  }
+
+  yield* Console.log("notification delivered")
+})
 
 const isRecoverable = (error: DeliveryError) =>
   error.reason === "Network" || error.reason === "Unavailable"
 
-const lowPressureRetry = Schedule.spaced("30 seconds").pipe(
+const lowPressureRetry = Schedule.spaced("40 millis").pipe(
   Schedule.jittered
 )
 
-export const program = deliverNotification.pipe(
+const program = deliverNotification.pipe(
   Effect.retry({
     schedule: lowPressureRetry,
     while: isRecoverable
   })
 )
+
+Effect.runPromise(program)
 ```
 
-The first delivery attempt runs immediately. If it fails with `Network` or
-`Unavailable`, the program waits roughly 30 seconds and tries again. It keeps
-doing that while the process remains alive and the failures are recoverable.
+The demo uses a short delay so it terminates quickly. In production, choose a
+low-pressure interval such as 30 seconds or several minutes. The first delivery
+attempt runs immediately. If it fails with `Network` or `Unavailable`, the
+program waits for the spaced cadence and tries again.
 
 If the delivery succeeds, `program` succeeds. If the error is `BadRecipient` or
 `InvalidPayload`, the retry predicate returns `false` and `program` fails with
@@ -112,37 +122,17 @@ that error instead of spending more time on a permanent problem.
 
 ## Variants
 
-Use a longer spacing when the dependency is shared or expensive:
+Use a longer spacing when the dependency is shared or expensive. A five-minute
+cadence can be appropriate for secondary background recovery.
 
-```ts
-const veryLowPressureRetry = Schedule.spaced("5 minutes").pipe(
-  Schedule.jittered
-)
-```
-
-Add an elapsed budget only when persistence is no longer the requirement:
-
-```ts
-const lowPressureForOneHour = Schedule.spaced("30 seconds").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.during("1 hour"))
-)
-```
-
-That variant still retries gently, but it stops once the schedule's elapsed
+Add an elapsed budget only when persistence is no longer the requirement. A
+policy that combines `Schedule.spaced("30 seconds")`, `Schedule.jittered`, and
+`Schedule.during("1 hour")` still retries gently, but it stops once the elapsed
 window is closed.
 
-Use an exponential policy when fast early recovery matters:
-
-```ts
-const gentleStartupRetry = Schedule.exponential("500 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.during("2 minutes"))
-)
-```
-
-That is a different operational promise: it tries sooner at first, then backs
-off, and eventually gives up.
+Use an exponential policy when fast early recovery matters. That is a different
+operational promise: it tries sooner at first, then backs off, and eventually
+gives up.
 
 ## Notes and caveats
 

@@ -11,15 +11,14 @@ code_included: true
 # 43.4 Retry rate-limited requests carefully
 
 Rate-limit retries need a different shape from generic transient-error retries:
-they should reduce pressure and honor server guidance.
+they should reduce pressure and honor server guidance such as `Retry-After`.
 
 ## Problem
 
 A downstream HTTP API sometimes responds with `429` and may include a
 `Retry-After` value. You want to retry those responses without turning every
-HTTP failure into a retry, without hammering the service with synchronized
-clients, and without ignoring a server-supplied delay that is longer than your
-local backoff.
+HTTP failure into a retry and without ignoring a server-supplied delay that is
+longer than your local backoff.
 
 The first request still happens outside the schedule. The schedule controls only
 the follow-up attempts after a failed request is classified as retryable.
@@ -39,9 +38,9 @@ behind a rate-limit schedule.
 
 ## When not to use it
 
-Do not use this policy as a generic HTTP retry wrapper. A rate limit says
-"wait before asking again"; it does not say the original request is valid, safe
-to replay, or worth retrying forever.
+Do not use this as a generic HTTP retry wrapper. A rate limit says "wait before
+asking again"; it does not say the original request is valid, safe to replay, or
+worth retrying forever.
 
 Also avoid short fixed delays such as "retry every 100 millis" for `429`
 responses. They make recovery look fast in tests but create exactly the kind of
@@ -51,10 +50,10 @@ pressure that the server is trying to reduce.
 
 Build the policy from four parts:
 
-- `Schedule.exponential` spaces retries progressively.
-- `Schedule.jittered` spreads clients so they do not retry in lockstep.
-- `Schedule.recurs` caps the number of follow-up attempts.
-- `Schedule.while` stops immediately when the failure is not rate limited.
+`Schedule.exponential` spaces retries progressively. `Schedule.jittered`
+spreads clients so they do not retry in lockstep. `Schedule.recurs` caps the
+number of follow-up attempts. `Schedule.while` stops immediately when the
+failure is not rate limited.
 
 To honor `Retry-After`, combine the backoff schedule with `Schedule.identity`.
 `Effect.retry` feeds each failure into the schedule, so `identity` lets the
@@ -64,7 +63,7 @@ larger of the local backoff delay and the server-provided retry delay.
 ## Code
 
 ```ts
-import { Duration, Effect, Schedule } from "effect"
+import { Console, Duration, Effect, Schedule } from "effect"
 
 type HttpError =
   | {
@@ -75,15 +74,29 @@ type HttpError =
     readonly _tag: "Unauthorized" | "Forbidden" | "BadRequest" | "Unavailable"
   }
 
-declare const callApi: Effect.Effect<string, HttpError>
+let attempts = 0
 
-const rateLimitPolicy = Schedule.exponential("500 millis").pipe(
+const callApi: Effect.Effect<string, HttpError> = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`calling API, attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail({
+      _tag: "RateLimited",
+      retryAfter: Duration.millis(30)
+    })
+  }
+
+  return "accepted"
+})
+
+const rateLimitPolicy = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.identity<HttpError>()),
   Schedule.modifyDelay(([_, error], delay) =>
     Effect.succeed(
       error._tag === "RateLimited" && error.retryAfter !== undefined
-        ? Duration.max(Duration.fromInputUnsafe(delay), error.retryAfter)
+        ? Duration.max(delay, error.retryAfter)
         : delay
     )
   ),
@@ -91,7 +104,11 @@ const rateLimitPolicy = Schedule.exponential("500 millis").pipe(
   Schedule.while(({ input }) => input._tag === "RateLimited")
 )
 
-export const program = Effect.retry(callApi, rateLimitPolicy)
+const program = Effect.retry(callApi, rateLimitPolicy).pipe(
+  Effect.tap((result) => Console.log(`result: ${result}`))
+)
+
+Effect.runPromise(program).then(console.log, console.error)
 ```
 
 ## Variants
@@ -116,7 +133,8 @@ not coordinate all callers that share the same quota.
 `Schedule.both` continues only while both schedules continue, uses the maximum
 delay from the two sides, and returns both outputs as a tuple. In this recipe the
 timing side provides the backoff delay, while `Schedule.identity` carries the
-current `HttpError` into `modifyDelay`.
+current `HttpError` into `modifyDelay`. The recipe then chooses the larger of
+the local backoff delay and the parsed `Retry-After` delay.
 
 `Schedule.while` sees schedule metadata, including the latest retry input. When
 the predicate returns `false`, the retry stops and the original failure remains

@@ -10,53 +10,78 @@ code_included: false
 
 # 60.3 Exponential backoff
 
-Exponential backoff is the retry pattern where repeated failures produce
-progressively longer waits.
+Use this index when repeated failures should produce progressively longer waits.
+Exponential backoff gives a transient failure a short chance to clear, then
+reduces retry pressure as evidence grows that the dependency is unavailable,
+overloaded, throttling, or rate-limiting the caller.
 
-Use this entry when a remote dependency is likely to recover, but repeated immediate retries would amplify the failure. The common production shape is "retry transient failures with growing waits, stop by count or elapsed budget, and add jitter when many callers may retry at once."
+The common production shape is: retry only classified transient failures, grow
+the delay, stop by count or elapsed budget, and add jitter when many callers may
+retry together.
 
-## What this section is about
+## API mapping
 
-The related `Schedule` constructors and utilities are:
-
-- `Schedule.exponential(base)` recurs forever with delays `base`, `base * 2`, `base * 4`, and so on.
-- `Schedule.exponential(base, factor)` uses the supplied growth factor instead of the default factor of `2`.
-- `Schedule.recurs(times)` adds a retry-count limit.
+- `Schedule.exponential(base)` recurs forever with delays `base`, `base * 2`,
+  `base * 4`, and so on.
+- `Schedule.exponential(base, factor)` uses the supplied growth factor instead
+  of the default `2`.
+- `Schedule.recurs(times)` or `Schedule.take(times)` adds a count limit.
 - `Schedule.during(duration)` adds an elapsed-time budget.
-- `Schedule.jittered(schedule)` randomly adjusts each recurrence delay to between 80% and 120% of the original delay.
+- `Schedule.jittered(schedule)` randomizes each selected delay between 80% and
+  120% of the original delay.
 
-The schedule controls delays between retries or repeats. It does not delay the first attempt.
+The schedule controls delays between retries or repeats. It does not delay the
+first attempt.
 
-## Why it matters
+## How to choose
 
-Exponential backoff is a load-shedding retry policy. It gives a transient remote failure a short chance to clear, then backs away as the evidence grows that the dependency is unavailable, throttled, overloaded, or rate-limiting the caller.
+Start with `Schedule.exponential(base)` when repeated failure should slow the
+caller down. Add the smallest constraints that make the policy reviewable:
 
-Without limits, exponential backoff can still wait forever. Without jitter, a fleet of callers can synchronize into retry waves. Without a cap or budget, later delays can exceed the product requirement even though the policy looked reasonable at the start.
+- `Schedule.recurs(n)` when the caller should make at most `n` retries.
+- `Schedule.during(duration)` when the user, request, job, or lease has a total
+  time budget.
+- `Schedule.jittered` when multiple clients, workers, fibers, or nodes may fail
+  and retry together.
+- A cap when later waits must not exceed a product or operations limit.
 
-## Core idea
+For a custom growth sequence, use `Schedule.unfold` or another constructor only
+when `Schedule.exponential` cannot describe the policy directly.
 
-Start with `Schedule.exponential(base)` when repeated failure should reduce retry pressure on a remote system. Then add the smallest set of constraints that makes the policy safe:
+## Related recipes
 
-- Add `Schedule.recurs(n)` when the caller should make at most `n` retries.
-- Add `Schedule.during(duration)` when the user, request, job, or lease has a total time budget.
-- Add `Schedule.jittered` when multiple clients, workers, fibers, or nodes can fail and retry together.
-- Add an explicit maximum delay when the remote system or product flow requires a cap.
+Use [6.1 Basic exponential backoff](schedule-cookbook__06.1__basic-exponential-backoff.md)
+for the smallest exponential retry policy.
 
-For capped backoff, combine exponential growth with a delay adjustment such as `Schedule.modifyDelay` so later retries do not exceed the maximum wait. For a custom growth sequence, use `Schedule.unfold` or another constructor only when `Schedule.exponential` cannot describe the policy directly.
+Use [24.1 Backoff for unstable remote APIs](schedule-cookbook__24.1__backoff-for-unstable-remote-apis.md)
+or [24.3 Backoff for broker recovery](schedule-cookbook__24.3__backoff-for-broker-recovery.md)
+for remote dependencies.
 
-## Practical guidance
+Use [38.2 Retry 5 times with exponential backoff](schedule-cookbook__38.2__retry-5-times-with-exponential-backoff.md)
+when the retry count must be visible.
 
-Use exponential backoff for transient remote failures such as:
+Use [39.1 Exponential backoff plus time budget](schedule-cookbook__39.1__exponential-backoff-plus-time-budget.md)
+when elapsed time is the stronger bound.
 
-- HTTP 429, 503, connection reset, temporary DNS, or gateway failures
-- optimistic concurrency conflicts where a short retry is expected to succeed
-- queue, lock, or lease acquisition against a shared remote service
-- cloud API calls where the provider explicitly recommends backoff
+Use [60.4 Capped backoff](schedule-cookbook__60.4__capped-backoff.md) when a
+maximum single delay is part of the contract.
 
-Do not use it as a blanket retry policy for validation errors, authentication failures, permanent missing resources, or non-idempotent writes unless the operation has a safe idempotency key or equivalent protection.
+## Caveats
 
-Choose the base delay from the expected recovery time, not from convenience. Use a small base for brief network instability, a larger base for rate limits or overload signals, and a lower factor when the caller needs a gentler increase. Keep the retry count and elapsed budget visible next to the backoff so the worst case is easy to review.
+Do not use exponential backoff as a blanket retry policy for validation errors,
+authentication failures, permanent missing resources, or non-idempotent writes
+unless the operation has a safe idempotency key or equivalent protection.
 
-Add jitter by default for service-to-service traffic, scheduled jobs, clients that may share the same clock, and worker fleets. Leave jitter out only when deterministic timing is required and synchronized retries are harmless.
+Choose the base delay from the expected recovery time, not convenience. Use a
+small base for brief network instability, a larger base for rate limits or
+overload signals, and a lower factor when the caller needs a gentler increase.
+Keep the retry count and elapsed budget visible next to the backoff so the worst
+case is easy to review.
 
-When a remote API publishes retry-after information or a rate-limit reset time, prefer honoring that signal over blindly applying local exponential growth. Exponential backoff is the fallback policy for uncertainty; explicit remote timing is stronger evidence.
+Add jitter for service-to-service traffic, scheduled jobs, clients that may
+share a clock, and worker fleets. Leave jitter out only when deterministic
+timing is required and synchronized retries are harmless.
+
+When a remote API publishes retry-after information or a rate-limit reset time,
+prefer that signal over local exponential growth. Exponential backoff is the
+fallback policy for uncertainty; explicit remote timing is stronger evidence.

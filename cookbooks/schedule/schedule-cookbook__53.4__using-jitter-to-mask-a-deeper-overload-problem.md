@@ -11,42 +11,37 @@ code_included: false
 # 53.4 Using jitter to mask a deeper overload problem
 
 Jitter can smooth synchronized recurrence, but it cannot decide whether the
-system should accept the work. This section covers random timing used in place
-of capacity control.
+system should accept more work. Random timing is not capacity control.
 
-## The anti-pattern
+## Anti-pattern
 
-The problematic version notices synchronized load and adds jitter as the main
-fix. A hot endpoint gets retried by many callers, a polling loop hammers a
-downstream service, or a batch job fans out more work than the dependency can
-accept. The immediate symptom is a spike, so `Schedule.jittered` shifts each
-delay within its 80% to 120% band and the spike becomes a wider plateau.
+Synchronized load appears, and jitter becomes the main fix. A hot endpoint is
+retried by many callers, a poller hammers a downstream service, or a batch job
+fans out more work than the dependency can accept. `Schedule.jittered` shifts
+each delay within its `80%` to `120%` band, so a spike becomes a wider plateau.
 
-That can look successful in a graph. The tallest peak may go down. The incident,
-however, has not necessarily been solved. If every caller still retries too many
-times, every poller still has no useful terminal condition, or every worker still
-admits unbounded concurrency, the system is still asking the dependency to do
-more work than it can handle.
+That graph can look better while the overload remains. If callers still retry
+too many times, pollers still have no terminal condition, or workers still admit
+unbounded concurrency, the system is still asking the dependency to do more than
+it can handle.
 
 ## Why it happens
 
-It happens because jitter is cheap to add and often produces an immediate visual
-improvement. `Schedule.exponential("200 millis").pipe(Schedule.jittered)` reads
-like a more production-ready retry policy than the same backoff without jitter,
-so it is tempting to stop there.
+Jitter is cheap to add and often produces an immediate visual improvement. A
+jittered exponential backoff reads as more production-ready than the same
+backoff without jitter, so it is tempting to stop there.
 
 The missing question is whether the system should be doing the work at all.
-Jitter only changes when the next recurrence happens. It does not classify
-non-retryable failures, cap retry budgets, bound request concurrency, queue work
-behind a backpressure boundary, reject excess demand, or slow callers according
-to a shared rate limit.
+Jitter changes when the next recurrence happens. It does not classify
+non-retryable failures, cap retry budgets, bound concurrency, queue work behind
+backpressure, reject excess demand, or enforce a shared rate limit.
 
 ## Why it is risky
 
 Randomized overload is still overload. During a partial outage, jitter can keep
-pressure continuously applied to a dependency that needs room to recover. The
-system may avoid sharp retry waves while still consuming connection pools,
-worker slots, request budgets, and operator attention.
+steady pressure on a dependency that needs room to recover. The system may avoid
+sharp retry waves while still consuming connection pools, worker slots, request
+budgets, and operator attention.
 
 It also hides the real contract from the code. A reader sees a jittered schedule
 and may assume the retry or polling policy is operationally safe. If the schedule
@@ -66,24 +61,24 @@ long the recurrence window may stay open, and what should happen when the system
 is saturated.
 
 Use schedule operators for the recurrence contract. `Schedule.recurs(n)` or
-`Schedule.take(n)` makes the attempt budget visible. `Schedule.during(duration)`
-makes the elapsed recurrence window visible. `Schedule.both` can combine a
-cadence with a count or time limit so the policy stops when either side is
-exhausted. Add `Schedule.jittered` only when many callers may otherwise align on
+`Schedule.take(n)` makes a count budget visible. `Schedule.during(duration)`
+makes the elapsed recurrence window visible. `Schedule.both` can combine cadence
+with a count or time budget so recurrence continues only while both schedules
+continue. Add `Schedule.jittered` only when many callers may otherwise align on
 the same delay boundaries.
 
 Use the right non-schedule mechanism for overload control. Bound concurrency for
 work that consumes scarce worker or connection capacity. Use queues or streams
 with backpressure when producers must slow down behind consumers. Use rate
 limiting or admission control when excess demand should wait, be rejected, or
-receive a clear retry-after signal. Use load shedding when preserving the health
-of the system is more important than accepting every request.
+receive a clear retry-after signal. Use load shedding when preserving service
+health matters more than accepting every request.
 
 The schedule should then describe retry or polling behavior, not carry the full
 burden of system protection. A good policy might be jittered, but it is safe
 because it is narrow, bounded, and coordinated with capacity controls.
 
-## Notes and caveats
+## Caveats
 
 Do not remove jitter from a fleet-wide retry policy just because it is not a
 capacity fix. Jitter is still useful for avoiding synchronized recurrence and is

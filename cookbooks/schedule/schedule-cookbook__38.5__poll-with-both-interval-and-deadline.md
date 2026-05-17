@@ -51,23 +51,7 @@ its own hard deadline.
 ## Schedule shape
 
 Use `Schedule.spaced` for the gap after each successful status read, and
-`Schedule.during` for the elapsed recurrence budget:
-
-```ts
-const cadence = Schedule.spaced("5 seconds").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough
-)
-
-const deadline = Schedule.during("2 minutes").pipe(
-  Schedule.satisfiesInputType<JobStatus>()
-)
-
-const pollEvery5SecondsForUpTo2Minutes = cadence.pipe(
-  Schedule.while(({ output }) => output._tag === "Running"),
-  Schedule.bothLeft(deadline)
-)
-```
+`Schedule.during` for the elapsed recurrence budget.
 
 `Schedule.passthrough` makes the latest successful status the schedule output.
 That lets `Schedule.while` express terminal-state detection directly against
@@ -78,7 +62,8 @@ recurrence.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type JobStatus =
   | { readonly _tag: "Running"; readonly jobId: string }
@@ -92,17 +77,26 @@ type PollDeadlineExceeded = {
   readonly lastStatus: JobStatus
 }
 
-declare const readStatus: (
-  jobId: string
-) => Effect.Effect<JobStatus, StatusReadError>
+let reads = 0
+
+const readStatus = Effect.fnUntraced(function*(jobId: string) {
+  reads += 1
+
+  const status: JobStatus = reads < 3
+    ? { _tag: "Running", jobId }
+    : { _tag: "Completed", jobId, resultId: "result-1" }
+
+  yield* Console.log(`read ${reads}: ${status._tag}`)
+  return status
+})
 
 const cadence = Schedule.spaced("5 seconds").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
+  Schedule.setInputType<JobStatus>(),
   Schedule.passthrough
 )
 
 const deadline = Schedule.during("2 minutes").pipe(
-  Schedule.satisfiesInputType<JobStatus>()
+  Schedule.setInputType<JobStatus>()
 )
 
 const pollEvery5SecondsForUpTo2Minutes = cadence.pipe(
@@ -110,32 +104,47 @@ const pollEvery5SecondsForUpTo2Minutes = cadence.pipe(
   Schedule.bothLeft(deadline)
 )
 
-export const pollJob = (
-  jobId: string
-): Effect.Effect<JobStatus, StatusReadError | PollDeadlineExceeded> =>
-  readStatus(jobId).pipe(
-    Effect.repeat(pollEvery5SecondsForUpTo2Minutes),
-    Effect.flatMap((status) =>
-      status._tag === "Running"
-        ? Effect.fail({
-            _tag: "PollDeadlineExceeded",
-            lastStatus: status
-          } as const)
-        : Effect.succeed(status)
-    )
+const pollJob = Effect.fnUntraced(function*(jobId: string) {
+  const status = yield* readStatus(jobId).pipe(
+    Effect.repeat(pollEvery5SecondsForUpTo2Minutes)
   )
+
+  if (status._tag === "Running") {
+    return yield* Effect.fail({
+      _tag: "PollDeadlineExceeded",
+      lastStatus: status
+    } satisfies PollDeadlineExceeded)
+  }
+
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* pollJob("job-1").pipe(Effect.forkDetach)
+  yield* TestClock.adjust("10 seconds")
+
+  const status = yield* Fiber.join(fiber)
+  yield* Console.log(`poll result: ${status._tag}`)
+}).pipe(
+  Effect.matchEffect({
+    onFailure: (error: StatusReadError | PollDeadlineExceeded) =>
+      Console.log(`poll failed with ${error._tag}`),
+    onSuccess: () => Console.log("polling finished")
+  }),
+  Effect.provide(TestClock.layer()),
+  Effect.scoped
+)
+
+Effect.runPromise(program)
 ```
 
-`pollJob` performs the first read immediately. If that read is terminal, the
-schedule stops without waiting. If it is `"Running"`, the schedule waits five
-seconds before the next read, and it keeps doing that while the two-minute
-deadline still allows another recurrence.
+`pollJob` performs the first read immediately. The next two reads are driven by
+the five-second cadence, but `TestClock` advances those intervals instantly for
+the runnable example.
 
-The final `Effect.flatMap` is optional but often useful. Without it, the repeat
-returns the last observed `JobStatus`, which may still be `"Running"` when the
-deadline stops the schedule. With it, the caller gets a typed
-`PollDeadlineExceeded` error for the "still running when we stopped polling"
-case.
+The final `PollDeadlineExceeded` branch is optional but often useful. Without
+it, the repeat returns the last observed `JobStatus`, which may still be
+`Running` when the deadline stops the schedule.
 
 ## Variants
 
@@ -147,19 +156,10 @@ For a background worker, increase the spacing and keep the same terminal-state
 detection. If many workers start at the same time, apply `Schedule.jittered` to
 the cadence after choosing the base interval.
 
-If each status request also needs a per-request timeout, put it on `readStatus`:
-
-```ts
-const pollJobWithRequestTimeout = (jobId: string) =>
-  readStatus(jobId).pipe(
-    Effect.timeout("3 seconds"),
-    Effect.repeat(pollEvery5SecondsForUpTo2Minutes)
-  )
-```
-
-That timeout changes the behavior of an individual status read. The schedule
-still controls only the recurrence interval, deadline, and terminal-state
-detection.
+If each status request also needs a per-request timeout, put `Effect.timeout` on
+`readStatus`. That timeout changes the behavior of an individual status read.
+The schedule still controls only the recurrence interval, deadline, and
+terminal-state detection.
 
 ## Notes and caveats
 

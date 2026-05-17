@@ -10,36 +10,30 @@ code_included: false
 
 # 60.2 Fixed delay
 
-Fixed delay is the steady recurrence pattern for policies that should not grow,
-shrink, or adapt over time.
+Use this index for steady recurrence policies: delays that do not grow, shrink,
+or adapt over time. The main choice is whether to wait after each run or target
+a fixed cadence.
 
-Use this entry to choose between "wait after each run" and "stay on a fixed
-cadence". Both are steady policies, but they answer different operational
-requirements.
+## API mapping
 
-## What this section is about
+- `Schedule.spaced(duration)` recurs continuously, spacing each repetition by
+  the given duration from the last run.
+- `Schedule.fixed(interval)` recurs on a fixed interval and outputs the
+  repetition count so far.
 
-The direct `Schedule` constructors are:
+Both schedules are unbounded unless combined with a limit such as
+`Schedule.take`, `Schedule.recurs`, `Schedule.during`, or a predicate such as
+`Schedule.while`. Retry-level predicates can also be supplied with
+`Effect.retry({ while })`.
 
-- `Schedule.spaced(duration)` recurs continuously with each repetition spaced by the given duration from the last run.
-- `Schedule.fixed(interval)` recurs on a fixed interval and outputs the repetition count so far.
-
-Both schedules are unbounded unless you combine them with a limit such as `Schedule.take`, `Schedule.recurs`, `Schedule.during`, or a condition such as `Schedule.recurWhile`.
-
-## Why it matters
-
-A fixed delay is often the simplest policy that can be defended in production. It is predictable, easy to explain, and easy to observe. It is a good fit when the operation is low risk, the downstream service can tolerate steady traffic, and the goal is clarity rather than adaptive load shedding.
-
-The main risk is choosing the wrong kind of fixed delay. `Schedule.spaced("5 seconds")` waits five seconds after a run completes before the next run. `Schedule.fixed("5 seconds")` tries to keep a five-second cadence. If the action takes longer than the interval, `fixed` runs the next action immediately, but missed runs do not pile up.
-
-## Core idea
+## How to choose
 
 Choose `Schedule.spaced` when the requirement is:
 
-- retry after a small, constant pause
+- retry after a constant pause
 - poll only after the previous check has completed
 - leave a quiet period between background jobs
-- avoid immediate tight loops while keeping behavior simple
+- avoid a tight loop while keeping the policy simple
 
 Choose `Schedule.fixed` when the requirement is:
 
@@ -47,17 +41,39 @@ Choose `Schedule.fixed` when the requirement is:
 - sample, flush, check, or refresh at an interval measured from the schedule clock
 - keep the intended rate visible even when individual runs are shorter or longer
 
-If the policy is a retry policy, remember that the first attempt is not delayed by the schedule. The schedule controls the waits between retries after failures. If the policy is a repeat policy, the first successful run happens before the schedule controls the next recurrence.
+If work takes longer than a `fixed` interval, the next recurrence can happen
+immediately, but missed runs do not pile up. If the requirement is simply "wait
+five seconds after this finishes", use `Schedule.spaced("5 seconds")`.
 
-## Practical guidance
+## Related recipes
 
-Use fixed delay for simple, bounded, operationally predictable work:
+Use [5.2 Retry every second](schedule-cookbook__05.2__retry-every-second.md)
+or [5.3 Retry every 5 seconds](schedule-cookbook__05.3__retry-every-5-seconds.md)
+for simple retry spacing.
 
-- lightweight idempotent retries against a dependency that usually recovers quickly
-- predictable polling for job status, payment status, cache availability, or readiness
-- steady background loops such as maintenance, queue draining, metrics flushing, and health checks
-- user-facing workflows where a short constant pause is easier to reason about than exponential backoff
+Use [13.1 Run every second](schedule-cookbook__13.1__run-every-second.md),
+[13.3 Run every minute](schedule-cookbook__13.3__run-every-minute.md), or
+[13.5 Run every hour](schedule-cookbook__13.5__run-every-hour.md) when cadence
+is the point.
 
-Add a count or elapsed-time limit when the loop must eventually stop. Add jitter when many clients or workers could otherwise synchronize on the same delay. Prefer exponential backoff or another increasing schedule when repeated failure means the downstream system may be overloaded.
+Use [22.2 Fixed delay for predictable polling](schedule-cookbook__22.2__fixed-delay-for-predictable-polling.md)
+when polling should stay simple and observable.
 
-Do not build fixed delay indirectly with lower-level composition when one constructor states the policy. `Schedule.spaced("1 second")` is the reference shape for "wait one second after each run." `Schedule.fixed("1 second")` is the reference shape for "run on a one-second cadence."
+Use [49.2 Assert delays between retries](schedule-cookbook__49.2__assert-delays-between-retries.md)
+when tests need to verify steady delays.
+
+## Caveats
+
+If the policy is a retry policy, the first attempt is not delayed. The schedule
+controls waits between retries after failures. If the policy is a repeat policy,
+the first successful run happens before the schedule controls the next
+recurrence.
+
+Add a count or elapsed-time limit when the loop must stop. Add jitter when many
+clients or workers could synchronize on the same delay. Prefer
+`Schedule.exponential` or another increasing schedule when repeated failure
+means the downstream system may be overloaded.
+
+Do not build fixed delay indirectly when a constructor states the policy.
+`Schedule.spaced("1 second")` means "wait one second after each run."
+`Schedule.fixed("1 second")` means "run on a one-second cadence."

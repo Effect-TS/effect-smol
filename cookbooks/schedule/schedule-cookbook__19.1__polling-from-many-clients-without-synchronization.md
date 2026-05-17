@@ -10,151 +10,120 @@ code_included: true
 
 # 19.1 Polling from many clients without synchronization
 
-Jittered polling keeps a regular status-check cadence while reducing accidental
-alignment across callers. The schedule controls timing, while the surrounding
-Effect code interprets the observed status.
+Use jitter when many clients poll the same service on a regular cadence, but no
+client needs to land on an exact shared boundary. Jitter keeps the interval
+recognizable while making each recurrence delay vary slightly.
 
 ## Problem
 
-Many clients need to poll the same service for status. A plain fixed polling
-interval is simple, but if clients start around the same time, they can keep
-checking on the same boundaries.
+If many clients start together and all poll every five seconds, they can keep
+calling the status endpoint in waves. The average request rate may be fine, but
+the service sees short synchronized bursts instead of a steadier stream.
 
-That synchronization can create unnecessary bursts: every client wakes up,
-calls the status endpoint, waits the same amount of time, and then calls it
-again together. The service sees waves of traffic instead of a steadier stream.
-
-Add jitter to the polling schedule so each recurrence delay is slightly
-different for each client and each decision.
+Jitter is a small random adjustment to each recurrence delay. It does not change
+what status means or when polling should stop; it only reduces accidental timing
+alignment.
 
 ## When to use it
 
-Use this when many independent clients, fibers, workers, or browser sessions
-poll the same status endpoint.
+Use this for independent clients, fibers, workers, or browser sessions that poll
+the same read-only status endpoint.
 
-It fits polling for work that is already in progress, where each client has its
-own identifier and periodically asks whether the remote state has changed.
-
-Use it when a fixed cadence is still the right mental model, but the exact
-polling boundary does not need to be identical across callers.
+It fits work that is already in progress, where each caller has its own id and
+periodically asks whether the remote state has changed.
 
 ## When not to use it
 
-Do not use jitter as a substitute for a stop condition. It changes recurrence
-delays; it does not decide when polling should finish.
+Do not use jitter as a stop condition. Polling still needs a status predicate,
+timeout, recurrence cap, or external interruption.
 
-Do not use this when the polling cadence must happen on exact wall-clock
-boundaries. Jitter intentionally moves each recurrence away from the original
-delay.
+Do not use it for clock-aligned work, such as checks that must run exactly at
+the top of each minute.
 
-Do not use client-side jitter as your only protection for a service that needs
-strict admission control. Rate limits, quotas, and server-side load shedding
-are separate concerns.
+Do not treat client-side jitter as overload control. Rate limits, admission
+control, quotas, and server-side load shedding are separate mechanisms.
 
 ## Schedule shape
 
-Start with the normal polling interval, add jitter, preserve the latest status,
-and continue only while the status is non-terminal:
+Start with `Schedule.spaced` for the base interval, apply
+`Schedule.jittered`, preserve the latest status with `Schedule.passthrough`,
+and stop with `Schedule.while` once the status is no longer pending.
+
+In Effect, `Schedule.jittered` adjusts each delay to between 80% and 120% of
+the original delay. A five-second interval becomes a recurrence delay between
+four and six seconds.
+
+## Code
 
 ```ts
-Schedule.spaced("5 seconds").pipe(
+import { Console, Effect, Schedule } from "effect"
+
+type Status =
+  | { readonly state: "pending"; readonly requestId: string }
+  | { readonly state: "complete"; readonly requestId: string; readonly resultId: string }
+
+const scriptedStatuses: ReadonlyArray<Status> = [
+  { state: "pending", requestId: "request-42" },
+  { state: "pending", requestId: "request-42" },
+  { state: "complete", requestId: "request-42", resultId: "result-7" }
+]
+
+let readIndex = 0
+
+const checkStatus = (requestId: string): Effect.Effect<Status> =>
+  Effect.sync(() => {
+    const status = scriptedStatuses[
+      Math.min(readIndex, scriptedStatuses.length - 1)
+    ]!
+    readIndex += 1
+    return status
+  }).pipe(
+    Effect.tap((status) =>
+      Console.log(`[${requestId}] observed ${status.state}`)
+    )
+  )
+
+const pollWithJitter = Schedule.spaced("20 millis").pipe(
   Schedule.jittered,
   Schedule.satisfiesInputType<Status>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.state === "pending")
 )
-```
 
-`Schedule.spaced("5 seconds")` supplies the base delay between successful
-status checks. `Schedule.jittered` randomly adjusts each recurrence delay
-between 80% and 120% of that delay, so a five-second interval becomes a delay
-between four seconds and six seconds.
-
-`Schedule.satisfiesInputType<Status>()` makes the timing schedule accept status
-values before `Schedule.while` reads `metadata.input`. `Schedule.passthrough`
-keeps the latest successful status as the repeat result.
-
-## Code
-
-```ts
-import { Effect, Schedule } from "effect"
-
-type Status =
-  | { readonly state: "pending"; readonly requestId: string }
-  | { readonly state: "complete"; readonly requestId: string; readonly resultId: string }
-  | { readonly state: "failed"; readonly requestId: string; readonly reason: string }
-
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
-
-const isPending = (status: Status): boolean => status.state === "pending"
-
-declare const checkStatus: (
-  requestId: string
-) => Effect.Effect<Status, StatusCheckError>
-
-const pollWithJitter = Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isPending(input))
+const program = checkStatus("request-42").pipe(
+  Effect.repeat(pollWithJitter),
+  Effect.tap((status) => Console.log(`finished with ${status.state}`))
 )
 
-const pollStatus = (requestId: string) =>
-  checkStatus(requestId).pipe(
-    Effect.repeat(pollWithJitter)
-  )
+Effect.runPromise(program).then((status) => {
+  console.log("result:", status)
+})
 ```
 
-`pollStatus` performs the first status check immediately. If the first
-successful status is terminal, the schedule stops without another request. If
-the status is `"pending"`, the next check waits for a jittered delay around
-five seconds.
-
-Across many clients, each recurrence chooses its own adjusted delay. Even if
-clients start together, their later checks are less likely to remain aligned.
+The first status check runs immediately. Later checks wait for the jittered
+delay, and the repeat stops as soon as the latest successful status is no longer
+`"pending"`.
 
 ## Variants
 
-Add a recurrence cap when the caller should stop after a bounded number of
-successful observations:
+Add `Schedule.take` or combine with `Schedule.recurs` when the caller needs a
+hard recurrence limit. Interpret the last status explicitly, because a bounded
+schedule can stop while the operation is still pending.
 
-```ts
-const pollWithJitterAtMostThirtyTimes = Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isPending(input)),
-  Schedule.bothLeft(
-    Schedule.recurs(30).pipe(Schedule.satisfiesInputType<Status>())
-  )
-)
-```
+Use a shorter base interval for cheap status checks that need quick feedback.
+Use a longer interval when the dependency should receive less polling traffic.
 
-This still returns the latest observed `Status`. It may be terminal, or it may
-be the last `"pending"` status observed when the recurrence cap stops the
-repeat.
-
-Use a shorter base interval for cheap status checks that need quick feedback,
-or a longer base interval when the service should receive less polling traffic.
-The jitter range follows the base delay: a two-second interval becomes 1.6 to
-2.4 seconds, while a thirty-second interval becomes 24 to 36 seconds.
+If the status request itself can fail transiently, retry that request separately
+before repeating it. `Effect.repeat` feeds successful status values into the
+schedule; failures stop the repeat unless handled first.
 
 ## Notes and caveats
 
-`Schedule.jittered` does not expose configurable jitter bounds. In Effect, it
-adjusts each recurrence delay between 80% and 120% of the original delay.
+`Schedule.jittered` has fixed bounds: 80% to 120% of the original delay.
 
-The first status check is not delayed. The schedule controls recurrences after
-successful checks.
+`Schedule.while` sees successful status values only. It does not classify
+transport, decoding, authorization, or service failures from the effect error
+channel.
 
-With `Effect.repeat`, a failure from `checkStatus` stops the repeat unless the
-status-check effect has its own retry policy.
-
-`Schedule.while` sees successful status values. It does not classify transport,
-decoding, or service errors from the effect error channel.
-
-When combining timing schedules with status predicates, use
-`Schedule.satisfiesInputType<T>()` before reading `metadata.input`.
+When a timing schedule reads the latest status through `metadata.input`, apply
+`Schedule.satisfiesInputType<T>()` before `Schedule.while`.

@@ -11,7 +11,7 @@ code_included: true
 # 43.5 Poll a job-based HTTP API
 
 Job-based HTTP APIs are polling problems when the status endpoint returns
-successful "still running" responses rather than failures.
+successful "still running" responses rather than errors.
 
 ## Problem
 
@@ -44,25 +44,11 @@ the system already offers a push-based completion signal.
 
 ## Schedule shape
 
-Combine three pieces:
-
-```ts
-Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input)),
-  Schedule.bothLeft(
-    Schedule.during("1 minute").pipe(
-      Schedule.satisfiesInputType<JobStatus>()
-    )
-  )
-)
-```
-
+Combine a spaced cadence, a terminal-state predicate, and an elapsed budget.
 `Schedule.spaced("2 seconds")` waits after each successful status response
 before the next poll. `Schedule.while` allows another recurrence only while the
 latest status is non-terminal. `Schedule.during("1 minute")` gives the polling
-loop an elapsed recurrence budget.
+loop an elapsed budget.
 
 `Schedule.passthrough` makes the latest `JobStatus` the schedule output.
 `Schedule.bothLeft` adds the deadline while preserving that status output.
@@ -70,7 +56,7 @@ loop an elapsed recurrence budget.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
   | { readonly state: "queued"; readonly jobId: string }
@@ -86,16 +72,29 @@ type JobStatusError = {
 const isTerminal = (status: JobStatus): boolean =>
   status.state === "succeeded" || status.state === "failed"
 
-declare const readJobStatus: (
-  jobId: string
-) => Effect.Effect<JobStatus, JobStatusError>
+let polls = 0
 
-const pollJobUntilTerminalOrDeadline = Schedule.spaced("2 seconds").pipe(
+const readJobStatus = (jobId: string): Effect.Effect<JobStatus, JobStatusError> =>
+  Effect.gen(function*() {
+    polls += 1
+
+    const status: JobStatus =
+      polls === 1
+        ? { state: "queued", jobId }
+        : polls === 2
+          ? { state: "running", jobId, progress: 60 }
+          : { state: "succeeded", jobId, artifactUrl: "/exports/job-1.csv" }
+
+    yield* Console.log(`poll ${polls}: ${status.state}`)
+    return status
+  })
+
+const pollJobUntilTerminalOrDeadline = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<JobStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => !isTerminal(input)),
   Schedule.bothLeft(
-    Schedule.during("1 minute").pipe(
+    Schedule.during("200 millis").pipe(
       Schedule.satisfiesInputType<JobStatus>()
     )
   )
@@ -103,8 +102,11 @@ const pollJobUntilTerminalOrDeadline = Schedule.spaced("2 seconds").pipe(
 
 const waitForJob = (jobId: string) =>
   readJobStatus(jobId).pipe(
-    Effect.repeat(pollJobUntilTerminalOrDeadline)
+    Effect.repeat(pollJobUntilTerminalOrDeadline),
+    Effect.tap((status) => Console.log(`final status: ${status.state}`))
   )
+
+Effect.runPromise(waitForJob("job-1")).then(console.log, console.error)
 ```
 
 `waitForJob` performs the first status request immediately. If that first
@@ -119,11 +121,9 @@ used up first.
 
 ## Variants
 
-Use a shorter spacing, such as `"500 millis"` or `"1 second"`, when the caller is
-waiting interactively and the status endpoint is cheap.
-
-Use a longer spacing, such as `"10 seconds"` or `"30 seconds"`, for background
-jobs where completion latency matters less than endpoint load.
+Use shorter spacing when the caller is waiting interactively and the status
+endpoint is cheap. Use longer spacing for background jobs where completion
+latency matters less than endpoint load.
 
 Add `Schedule.jittered` after the base cadence when many workers may begin
 polling similar jobs at the same time.

@@ -10,16 +10,15 @@ code_included: true
 
 # 16.1 Poll a background job until done
 
-Use polling when a submitted background job must be observed until it reaches a terminal
-domain state. This recipe keeps successful status observations separate from transport,
-decoding, and domain interpretation.
+Use `Effect.repeat` with a spaced schedule when a submitted job exposes a
+read-only status endpoint and should be observed until it reaches a terminal
+domain state.
 
 ## Problem
 
-After submission returns a job id, the status check itself is an effect. A
-successful check can still report that the job is `"queued"` or `"running"`.
-Those are domain statuses, not effect failures. The effect should fail only when
-the status check could not be performed or decoded.
+After submission returns a job id, a successful status check can still report
+`"queued"` or `"running"`. Those are ordinary job states, not failures of the
+status request. Polling should continue until a terminal state is observed.
 
 ## When to use it
 
@@ -45,17 +44,9 @@ caller explicitly wants job failure to fail the effect after polling completes.
 
 ## Schedule shape
 
-Use a timing schedule for the pause between status checks, preserve the latest
-successful status as the schedule output, and continue while that status is not
-terminal:
-
-```ts
-Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input))
-)
-```
+Use a timing schedule for the pause between status checks, constrain its input
+to the status type, pass the latest status through as the schedule output, and
+continue only while that status is not terminal.
 
 `Schedule.spaced("2 seconds")` supplies the delay before each recurrence.
 `Schedule.satisfiesInputType<JobStatus>()` constrains the timing schedule before
@@ -66,7 +57,7 @@ observed status.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
   | { readonly state: "queued" }
@@ -85,25 +76,45 @@ const isTerminal = (status: JobStatus): boolean =>
   status.state === "failed" ||
   status.state === "canceled"
 
-declare const checkJobStatus: (
-  jobId: string
-) => Effect.Effect<JobStatus, StatusCheckError>
+let step = 0
 
-const pollUntilTerminal = Schedule.spaced("2 seconds").pipe(
+const nextStatus = (): JobStatus => {
+  step += 1
+  switch (step) {
+    case 1:
+      return { state: "queued" }
+    case 2:
+      return { state: "running", percent: 40 }
+    default:
+      return { state: "succeeded", resultId: "result-123" }
+  }
+}
+
+const checkJobStatus = (jobId: string): Effect.Effect<JobStatus, StatusCheckError> =>
+  Effect.gen(function*() {
+    const status = nextStatus()
+    yield* Console.log(`${jobId}: ${status.state}`)
+    return status
+  })
+
+const pollUntilTerminal = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<JobStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => !isTerminal(input))
 )
 
-const pollJob = (jobId: string) =>
-  checkJobStatus(jobId).pipe(
+const program = Effect.gen(function*() {
+  const finalStatus = yield* checkJobStatus("job-123").pipe(
     Effect.repeat(pollUntilTerminal)
   )
+  yield* Console.log(`final status: ${finalStatus.state}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`pollJob` performs the first status check immediately. If the first successful
-response is terminal, the schedule stops without another status check. If the
-response is non-terminal, the schedule waits two seconds and then repeats.
+The example checks immediately, logs two non-terminal statuses, waits briefly
+between recurrences, and stops when `"succeeded"` is observed.
 
 The resulting effect succeeds with the terminal `JobStatus` when a terminal
 status is observed. It fails with `StatusCheckError` only when a status check
@@ -112,27 +123,10 @@ effect fails.
 ## Variants
 
 Add a recurrence cap when the caller wants to stop after a small number of
-observations even if the job is still non-terminal:
-
-```ts
-const pollAtMostThirtyTimes = Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input)),
-  Schedule.bothLeft(
-    Schedule.recurs(30).pipe(Schedule.satisfiesInputType<JobStatus>())
-  )
-)
-
-const terminalOrLastObservedStatus = (jobId: string) =>
-  checkJobStatus(jobId).pipe(
-    Effect.repeat(pollAtMostThirtyTimes)
-  )
-```
-
-This still returns a `JobStatus`. The value may be terminal because the status
-predicate stopped the repeat, or it may be the last non-terminal status observed
-when the recurrence cap stopped the repeat.
+observations even if the job is still non-terminal, for example by combining the
+status schedule with `Schedule.recurs(30)` using `Schedule.bothLeft`. The result
+is still a `JobStatus`: either terminal, or the last non-terminal status before
+the cap stopped the repeat.
 
 If a terminal domain state should fail the caller, keep polling until the
 terminal status is observed, then handle the final successful value in a

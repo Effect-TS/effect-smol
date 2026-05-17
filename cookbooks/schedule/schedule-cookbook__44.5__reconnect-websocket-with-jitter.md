@@ -60,22 +60,12 @@ disconnected and provide an explicit recovery path.
 
 ## Schedule shape
 
-Start with exponential backoff, add jitter, then clamp the final delay:
+Start with exponential backoff, add jitter, then clamp the final delay.
 
-```ts
-Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
-  ),
-  Schedule.both(Schedule.recurs(8))
-)
-```
-
-`Schedule.exponential("100 millis")` starts with a short reconnect delay and
-doubles by default. `Schedule.jittered` randomly adjusts each computed delay
-between `80%` and `120%` of that delay. `Schedule.modifyDelay` applies the cap
-after jitter, so the final sleep never exceeds five seconds.
+`Schedule.exponential` starts with a short reconnect delay and doubles by
+default. `Schedule.jittered` randomly adjusts each computed delay between 80%
+and 120% of that delay. `Schedule.modifyDelay` applies the cap after jitter, so
+the final sleep never exceeds the cap.
 
 `Schedule.recurs(8)` is the retry budget. With `Effect.retry`, the first
 reconnect attempt runs immediately. If it fails, the schedule may allow up to
@@ -84,37 +74,55 @@ eight more attempts, each separated by the capped jittered backoff.
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class WebSocketReconnectError extends Data.TaggedError("WebSocketReconnectError")<{
   readonly reason: "closed" | "timeout" | "gateway-unavailable" | "unauthorized"
 }> {}
 
-declare const reconnectWebSocket: Effect.Effect<void, WebSocketReconnectError>
+let attempts = 0
+
+const reconnectWebSocket: Effect.Effect<string, WebSocketReconnectError> = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`reconnect attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail(new WebSocketReconnectError({ reason: "gateway-unavailable" }))
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail(new WebSocketReconnectError({ reason: "timeout" }))
+  }
+
+  return "socket-open"
+})
 
 const isRetryableReconnect = (error: WebSocketReconnectError) =>
   error.reason === "closed" ||
   error.reason === "timeout" ||
   error.reason === "gateway-unavailable"
 
-const webSocketReconnectPolicy = Schedule.exponential("100 millis").pipe(
+const webSocketReconnectPolicy = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(50)))
   ),
   Schedule.both(Schedule.recurs(8)),
   Schedule.while(({ input }) => isRetryableReconnect(input))
 )
 
-export const program = reconnectWebSocket.pipe(
-  Effect.retry(webSocketReconnectPolicy)
+const program = reconnectWebSocket.pipe(
+  Effect.retry(webSocketReconnectPolicy),
+  Effect.tap((state) => Console.log(`connected: ${state}`))
 )
+
+Effect.runPromise(program).then(console.log, console.error)
 ```
 
 `program` calls `reconnectWebSocket` once immediately. If the attempt fails with
 `closed`, `timeout`, or `gateway-unavailable`, the first retry waits around 100
-milliseconds, adjusted by jitter. Later failures use the exponential sequence as
-the base delay, then jitter and cap the final sleep.
+milliseconds in a production-sized policy, adjusted by jitter. Later failures
+use the exponential sequence as the base delay, then jitter and cap the final
+sleep. The example uses 10 milliseconds so it terminates quickly.
 
 If the failure is `unauthorized`, the `Schedule.while` predicate stops retrying
 immediately. If all permitted retries fail, `Effect.retry` returns the last
@@ -123,36 +131,14 @@ state.
 
 ## Variants
 
-For a very latency-sensitive UI, lower the cap and retry count:
-
-```ts
-const quickUiReconnectPolicy = Schedule.exponential("50 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(2)))
-  ),
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
-This gives the client a few fast attempts before asking the user to retry or
-showing a degraded realtime state.
+For a very latency-sensitive UI, lower the cap and retry count. This gives the
+client a few fast attempts before asking the user to retry or showing a degraded
+realtime state.
 
 For background clients, kiosks, or long-lived internal dashboards, use a larger
-elapsed budget while keeping the per-delay cap:
-
-```ts
-const longLivedReconnectPolicy = Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(10)))
-  ),
-  Schedule.both(Schedule.during("1 minute"))
-)
-```
-
-This lets the client keep trying through a short outage without allowing any
-single sleep to grow beyond ten seconds.
+elapsed budget while keeping the per-delay cap. This lets the client keep
+trying through a short outage without allowing any single sleep to grow beyond
+the UI contract.
 
 ## Notes and caveats
 

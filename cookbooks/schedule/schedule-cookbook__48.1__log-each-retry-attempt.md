@@ -10,172 +10,85 @@ code_included: true
 
 # 48.1 Log each retry attempt
 
-Retry logs are useful when they answer a production question: what failed,
-which policy handled it, and whether another attempt was scheduled. They become
-noise when every layer logs the same failure or when a log line says "retrying"
-after the retry policy has already stopped.
+Retry logs should answer what failed, which policy handled it, and whether
+another attempt was scheduled. Logging belongs at the boundary that owns the
+retry policy.
 
 ## Problem
 
-You have a retried effect and want one clear log event for retry behavior. The
-log should include enough context to diagnose transient failures without
-turning every failed attempt into a long stack trace or a second copy of the
-same application error.
-
-Use `Schedule.tapInput` for the failure context and `Schedule.tapOutput` for
-the accepted retry step.
+You have a retried dependency call and want one clear log event for retry
+behavior without duplicating final error reporting.
 
 ## When to use it
 
-Use this recipe around dependency calls where retry behavior matters during
-incident review: HTTP requests, database calls, queue publishing, cache fills,
-and startup probes. It fits policies where the retry limit and delay shape are
-already explicit, and logging is an observation of that policy rather than a
-separate control path.
-
-Log stable fields that operators can group by, such as error tag, endpoint,
-operation, retry number, and scheduled delay. Prefer debug-level logs for
-high-volume paths and promote only unusual conditions to higher levels.
+Use this around HTTP requests, database calls, queue publishing, cache fills,
+and startup probes where retry behavior matters during incident review.
 
 ## When not to use it
 
-Do not use retry logs to compensate for weak error classification. Permanent
-errors should usually stop before the schedule spends more time and capacity.
-
-Do not log large request bodies, credentials, response payloads, or full causes
-on every retry. Keep retry logs small and structured. The final failure handler
-can produce the detailed error report if all retries fail.
-
-Do not add logging at every layer of a call stack. Choose one boundary that owns
-the retry policy and log there.
+Do not log large payloads, credentials, or full causes on every retry. Do not
+use logging as a substitute for filtering permanent failures before retrying.
 
 ## Schedule shape
 
-`Schedule.tapInput` runs an effect for every input fed to the schedule without
-changing the schedule input or output. For `Effect.retry`, that input is the
-typed failure from the effect's error channel.
-
-`Schedule.tapOutput` runs an effect for every output produced by the schedule
-without changing that output. In a bounded retry schedule, this is the safer
-place to log "retry scheduled" because it only runs when the schedule accepts
-another recurrence.
-
-The policy in this recipe has three parts:
-
-- `Schedule.exponential("200 millis")` produces the next retry delay
-- `Schedule.recurs(5)` limits the policy to five retries after the original
-  attempt
-- the taps add observability without changing retry timing or stop conditions
+Use `Schedule.tapInput` to observe the failure fed to `Effect.retry`. Use
+`Schedule.tapOutput` to log only accepted retry steps.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Duration, Effect, Schedule } from "effect"
 
-class RequestTimeout extends Data.TaggedError("RequestTimeout")<{
-  readonly endpoint: string
-}> {}
+type RequestError =
+  | { readonly _tag: "RequestTimeout"; readonly endpoint: string }
+  | { readonly _tag: "ServiceUnavailable"; readonly endpoint: string }
 
-class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
-  readonly endpoint: string
-  readonly status: 503 | 504
-}> {}
+let attempts = 0
 
-type RequestError = RequestTimeout | ServiceUnavailable
+const fetchInventory = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`inventory attempt ${attempts}`)
 
-interface InventoryResponse {
-  readonly sku: string
-  readonly available: boolean
-}
+  if (attempts < 3) {
+    return yield* Effect.fail({
+      _tag: "RequestTimeout",
+      endpoint: "/inventory"
+    } as const)
+  }
 
-declare const fetchInventory: Effect.Effect<InventoryResponse, RequestError>
+  return ["sku-1", "sku-2"]
+})
 
-const retryInventoryPolicy = Schedule.exponential("200 millis").pipe(
+const retryInventoryPolicy = Schedule.exponential("10 millis").pipe(
+  Schedule.satisfiesInputType<RequestError>(),
   Schedule.both(Schedule.recurs(5)),
-  Schedule.tapInput((error: RequestError) =>
-    Effect.logDebug("retry failure observed").pipe(
-      Effect.annotateLogs({
-        endpoint: error.endpoint,
-        error: error._tag
-      })
-    )
+  Schedule.tapInput((error) =>
+    Console.log(`retry input: ${error._tag} at ${error.endpoint}`)
   ),
   Schedule.tapOutput(([delay, retry]) =>
-    Effect.logDebug("retry scheduled").pipe(
-      Effect.annotateLogs({
-        retry: retry + 1,
-        delay: Duration.format(delay)
-      })
+    Console.log(
+      `retry ${retry + 1} scheduled after ${Duration.format(delay)}`
     )
   )
 )
 
-export const program = fetchInventory.pipe(
-  Effect.retry(retryInventoryPolicy)
+const program = fetchInventory.pipe(
+  Effect.retry(retryInventoryPolicy),
+  Effect.flatMap((items) => Console.log(`loaded ${items.length} items`))
 )
+
+Effect.runPromise(program)
 ```
 
-`program` runs `fetchInventory` once immediately. If it fails with a typed
-`RequestError`, the failure is fed to the schedule. The input tap records the
-failure tag and endpoint. If the composed schedule still allows another retry,
-the output tap records the retry number and exponential delay.
-
-The taps do not affect retry eligibility, delay calculation, or the final
-result. If an attempt eventually succeeds, `program` succeeds with the
-`InventoryResponse`. If all retries are exhausted, `Effect.retry` propagates
-the last typed failure.
+The input log records the typed failure. The output log runs only when the
+schedule accepts another recurrence.
 
 ## Variants
 
-For very hot paths, log only the accepted schedule output:
-
-```ts
-const quietRetryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.tapOutput(([delay, retry]) =>
-    Effect.logDebug("retry scheduled").pipe(
-      Effect.annotateLogs({
-        retry: retry + 1,
-        delay: Duration.format(delay)
-      })
-    )
-  )
-)
-```
-
-This loses the typed error detail but avoids emitting an input log for a final
-failure that is observed by the schedule but not retried.
-
-For a local call site, keep classification in `Effect.retry` options and reuse
-the observed schedule:
-
-```ts
-const retryTimeoutsOnly = fetchInventory.pipe(
-  Effect.retry({
-    schedule: retryInventoryPolicy,
-    while: (error) => error._tag === "RequestTimeout"
-  })
-)
-```
-
-The schedule still logs retry behavior. The `while` predicate decides whether a
-given typed failure is eligible for retry.
+For hot paths, log only `tapOutput` so final non-retried failures are not logged
+twice. Keep detailed error reporting at the final failure boundary.
 
 ## Notes and caveats
 
-`Schedule.tapInput` observes failures before the schedule step completes. With a
-bounded schedule, that can include the final failure that exhausts the retry
-policy. Use neutral wording such as "retry failure observed" for input logs, or
-log "retry scheduled" from `Schedule.tapOutput` when you only want accepted
-recurrences.
-
-The retry number in this recipe comes from `Schedule.recurs(5)`, whose output
-is zero-based. The log uses `retry + 1` for a human-facing retry count.
-
-Keep retry logs low-cardinality. Error tags, operation names, endpoints, and
-retry counts are usually useful. Raw payloads, full URLs with user data, and
-unique exception strings are usually too noisy.
-
-`Effect.retry` retries typed failures from the error channel. Defects and fiber
-interruptions are not retried as typed failures, and they are not inputs to this
-retry schedule.
+`Schedule.recurs(5)` outputs a zero-based recurrence count, so the log prints
+`retry + 1` for a human-facing retry number.

@@ -13,11 +13,6 @@ code_included: true
 Use `Schedule` to make a repeat loop's pacing visible instead of hiding sleeps
 around request code.
 
-This recipe uses `Schedule.spaced("1 second")` when each request should be
-followed by a one-second pause before the next request starts. Use
-`Schedule.fixed("1 second")` instead when the loop should target fixed
-wall-clock boundaries.
-
 ## Problem
 
 A client or worker may need to keep making requests without running in a tight
@@ -56,16 +51,10 @@ request loop.
 
 ## Schedule shape
 
-The basic policy is:
-
-```ts
-Schedule.spaced("1 second")
-```
-
-`Schedule.spaced("1 second")` recurs continuously and contributes a one-second
-delay to every recurrence decision. With `Effect.repeat`, the first request
-runs immediately. After each successful request, the schedule waits one second
-before the next request starts.
+The basic policy is `Schedule.spaced("1 second")`. It recurs continuously and
+contributes a one-second delay to every recurrence decision. With
+`Effect.repeat`, the first request runs immediately. After each successful
+request, the schedule waits one second before the next request starts.
 
 The shape is:
 
@@ -83,62 +72,56 @@ the next run happens immediately, but missed runs do not pile up.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Ref, Schedule } from "effect"
 
 type RequestError = {
   readonly _tag: "RequestError"
   readonly message: string
 }
 
-declare const sendRequest: Effect.Effect<void, RequestError>
-
-const oneSecondAfterEachRequest = Schedule.spaced("1 second")
-
-const program = sendRequest.pipe(
-  Effect.repeat(oneSecondAfterEachRequest)
+const oneSecondAfterEachRequest = Schedule.spaced("1 second").pipe(
+  Schedule.take(2)
 )
+
+const program = Effect.gen(function*() {
+  const sent = yield* Ref.make(0)
+
+  const sendRequest: Effect.Effect<void, RequestError> = Ref.updateAndGet(
+    sent,
+    (n) => n + 1
+  ).pipe(
+    Effect.tap((requestNumber) =>
+      Console.log(`sent request ${requestNumber}`)
+    ),
+    Effect.flatMap(() => Effect.sleep("25 millis"))
+  )
+
+  const finalRecurrence = yield* sendRequest.pipe(
+    Effect.repeat(oneSecondAfterEachRequest)
+  )
+
+  yield* Console.log(`schedule stopped after recurrence ${finalRecurrence}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`program` sends the first request immediately. If that request succeeds, it
-waits one second and sends the next request. If any request fails with
-`RequestError`, the repeat stops with that failure.
+`program` sends the first request immediately, then waits one second after each
+successful request before the next run. `Schedule.take(2)` keeps the example
+finite: one initial run plus two scheduled recurrences.
 
-The schedule output is the recurrence count, but this program does not use it.
-The operational contract is the delay between successful request runs.
+The schedule output is the recurrence count. The operational contract is the
+delay between successful request runs.
 
 ## Variants
 
 Bound the loop when the worker should perform only a limited number of
-additional requests:
-
-```ts
-const fiveMoreRequestsOneSecondApart = Schedule.spaced("1 second").pipe(
-  Schedule.take(5)
-)
-
-const boundedProgram = sendRequest.pipe(
-  Effect.repeat(fiveMoreRequestsOneSecondApart)
-)
-```
-
-The first request still runs immediately. `Schedule.take(5)` limits the
-recurrences after that first request, so this program can run at most six
-successful requests total.
+additional requests. The first request still runs immediately; `Schedule.take(5)`
+limits the scheduled recurrences after that first request.
 
 Use `Schedule.fixed("1 second")` when fixed interval boundaries are the
-requirement:
-
-```ts
-const oneSecondBoundaries = Schedule.fixed("1 second")
-
-const fixedCadenceProgram = sendRequest.pipe(
-  Effect.repeat(oneSecondBoundaries)
-)
-```
-
-This is useful for checks that should stay aligned to a cadence. It is not the
-same as "sleep one second after each request"; if a request runs long, the next
-request may start immediately.
+requirement. It is not the same as "sleep one second after each request"; if a
+request runs long, the next request may start immediately.
 
 ## Notes and caveats
 

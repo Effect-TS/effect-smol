@@ -22,8 +22,8 @@ missing configuration, or a business rule violation.
 
 Classify the typed failure first, then let `Effect.retry` apply the schedule
 only to genuinely transient failures. Using one broad retry policy for all
-errors delays permanent failures, adds unnecessary load, and hides whether the
-operation was never retryable or merely exhausted its retry budget.
+errors delays permanent failures, adds load, and hides whether the operation was
+never retryable or merely exhausted its retry budget.
 
 ## When to use it
 
@@ -66,7 +66,7 @@ which decides whether another retry is allowed and how long to wait.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class DownstreamError extends Data.TaggedError("DownstreamError")<{
   readonly reason:
@@ -77,7 +77,37 @@ class DownstreamError extends Data.TaggedError("DownstreamError")<{
     | "Unauthorized"
 }> {}
 
-declare const callDownstream: Effect.Effect<string, DownstreamError>
+const classifyStatus = (status: number): DownstreamError => {
+  if (status === 408) {
+    return new DownstreamError({ reason: "Timeout" })
+  }
+  if (status === 429) {
+    return new DownstreamError({ reason: "RateLimited" })
+  }
+  if (status >= 500) {
+    return new DownstreamError({ reason: "Unavailable" })
+  }
+  if (status === 401 || status === 403) {
+    return new DownstreamError({ reason: "Unauthorized" })
+  }
+  return new DownstreamError({ reason: "BadRequest" })
+}
+
+const statuses = [429, 401] as const
+let attempts = 0
+
+const callDownstream = Effect.gen(function*() {
+  attempts += 1
+  const status = statuses[attempts - 1] ?? 200
+
+  yield* Console.log(`downstream returned ${status}`)
+
+  if (status === 200) {
+    return "ok"
+  }
+
+  return yield* Effect.fail(classifyStatus(status))
+})
 
 const isTransient = (error: DownstreamError) =>
   error.reason === "Timeout" ||
@@ -89,46 +119,30 @@ const retryTransientFailures = Schedule.exponential("100 millis").pipe(
   Schedule.both(Schedule.recurs(4))
 )
 
-export const program = callDownstream.pipe(
+const program = callDownstream.pipe(
   Effect.retry({
     schedule: retryTransientFailures,
     while: isTransient
+  }),
+  Effect.matchEffect({
+    onFailure: (error) =>
+      Console.log(`stopped on ${error.reason} after ${attempts} attempts`),
+    onSuccess: (value) => Console.log(`succeeded with ${value}`)
   })
 )
+
+Effect.runPromise(program)
 ```
 
-`program` runs `callDownstream` once immediately. If it fails with
-`BadRequest` or `Unauthorized`, retrying stops without consulting the backoff
-policy. If it fails with `Timeout`, `Unavailable`, or `RateLimited`, the first
-retry uses the jittered exponential schedule.
-
-If any retry succeeds, `program` succeeds with the downstream value. If all
-allowed transient retries fail, `Effect.retry` returns the last typed
-`DownstreamError`.
+The `429` response is classified as transient and retried. The later `401` is
+classified as `Unauthorized`, so retrying stops immediately and reports that
+typed error.
 
 ## Variants
 
-Use a faster, smaller policy for user-facing paths:
-
-```ts
-const interactiveRetry = Schedule.exponential("50 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(2))
-)
-```
-
-This gives a brief recovery window without hiding the failure from the caller
-for long.
-
-Use an elapsed budget when the caller cares more about total waiting time than
-attempt count:
-
-```ts
-const retryWithinBudget = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.during("2 seconds"))
-)
-```
+Use a faster, smaller policy for user-facing paths so a permanent failure is not
+hidden for long. Use an elapsed budget with `Schedule.during` when the caller
+cares more about total waiting time than attempt count.
 
 The same `isTransient` predicate can be reused with either schedule. The
 predicate answers "is this failure retryable?" The schedule answers "how should

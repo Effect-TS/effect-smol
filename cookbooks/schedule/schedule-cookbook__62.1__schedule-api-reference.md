@@ -10,61 +10,84 @@ code_included: false
 
 # 62.1 Schedule API reference
 
-This reference entry maps cookbook recipes back to the `Schedule` API surface
-in `packages/effect/src/Schedule.ts`.
+`Schedule<Output, Input, Error, Env>` is a stepwise recurrence policy. Each
+step receives an input and either produces an output with a delay, or halts with
+a final output. Retry APIs usually feed failures into the schedule. Repeat APIs
+usually feed successful values into the schedule.
 
-## What this section is about
+Read the API by role:
 
-`Schedule<Output, Input, Error, Env>` is a stepwise policy: each step receives
-an input and either produces an output plus delay, or halts with a final output.
-Retry APIs usually feed failures into the schedule. Repeat APIs usually feed
-successful values into the schedule. The same value can therefore describe
-retry timing, repeat cadence, polling intervals, bounded loops, and custom
-recurrence state.
+- Constructors: `spaced`, `fixed`, `windowed`, `exponential`, `fibonacci`,
+  `recurs`, `during`, `duration`, `cron`, `forever`, `identity`, and `unfold`.
+- Low-level step APIs: `fromStep`, `fromStepWithMetadata`, `toStep`,
+  `toStepWithMetadata`, and `toStepWithSleep`.
+- Delay utilities: `addDelay`, `modifyDelay`, `jittered`, and `delays`.
+- Composition: `both`, `either`, `andThen`, plus `bothLeft`, `bothRight`,
+  `bothWith`, `eitherLeft`, `eitherRight`, `eitherWith`, and `andThenResult`
+  when the output shape matters.
+- Output, input, and state utilities: `map`, `reduce`, `collectInputs`,
+  `collectOutputs`, `collectWhile`, `passthrough`, `tapInput`, `tapOutput`,
+  `while`, and `take`.
+- Type helpers: `satisfiesInputType`, `setInputType`,
+  `satisfiesOutputType`, `satisfiesErrorType`, and
+  `satisfiesServicesType`.
 
-The API falls into a few useful groups:
+Start with the constructor that names the timing shape:
 
-- constructors such as `spaced`, `fixed`, `exponential`, `fibonacci`, `recurs`, `during`, `cron`, `windowed`, `duration`, `forever`, `identity`, and `unfold`
-- low-level constructors and destructors such as `fromStep`, `fromStepWithMetadata`, `toStep`, `toStepWithMetadata`, and `toStepWithSleep`
-- timing modifiers such as `addDelay`, `modifyDelay`, `jittered`, and `delays`
-- composition combinators such as `both`, `either`, `andThen`, and their output-selecting variants
-- output, input, and state utilities such as `map`, `reduce`, `collectInputs`, `collectOutputs`, `collectWhile`, `passthrough`, `tapInput`, `tapOutput`, and `take`
-- type-level helpers such as `satisfiesInputType`, `setInputType`, `satisfiesOutputType`, `satisfiesErrorType`, and `satisfiesServicesType`
-
-## Why it matters
-
-Most schedule code is small, but the semantics compound quickly. `both` and `either` do not merely combine outputs; they also choose different continuation and delay rules. `take` and `recurs` both bound recurrence, but they are applied at different points in a composed policy. `fixed`, `spaced`, and `windowed` all describe periodic work, but they answer different timing questions.
-
-Reading the API by category prevents accidental policies. A retry schedule should make its backoff, limit, elapsed budget, and jitter visible. A polling schedule should make its cadence and stop condition visible. A custom schedule should usually start from `unfold`, `fromStepWithMetadata`, or a simple constructor plus `map` or `modifyDelay`, rather than hiding operational behavior in surrounding code.
-
-## Core idea
-
-Start with the constructor that names the recurrence shape:
-
-- `Schedule.spaced(duration)` waits the same duration after each run completes.
-- `Schedule.fixed(interval)` aligns to a constant rate and does not pile up missed runs when work takes longer than the interval.
-- `Schedule.windowed(interval)` sleeps until the next interval boundary.
-- `Schedule.exponential(base, factor)` and `Schedule.fibonacci(one)` produce increasing delay sequences.
-- `Schedule.recurs(times)` limits the number of recurrences and outputs a zero-based count.
-- `Schedule.during(duration)` keeps recurring while elapsed schedule time remains within the duration.
-- `Schedule.cron(expression, tz?)` schedules from a cron expression or parsed cron value.
+- `Schedule.spaced(duration)` waits after each completed run.
+- `Schedule.fixed(interval)` targets a fixed cadence and does not pile up
+  missed runs when work takes longer than the interval.
+- `Schedule.windowed(interval)` waits until the next interval boundary.
+- `Schedule.exponential(base, factor)` and `Schedule.fibonacci(one)` produce
+  increasing delays.
+- `Schedule.recurs(times)` limits recurrence count and outputs a zero-based
+  count.
+- `Schedule.during(duration)` continues while elapsed schedule time is within
+  the duration.
 - `Schedule.duration(duration)` recurs once after the duration.
-- `Schedule.forever` recurs forever with no delay.
-- `Schedule.identity<A>()` recurs forever and emits each input as the output.
-- `Schedule.unfold(initial, next)` keeps custom state, emitting the previous state and computing the next state with an effect.
+- `Schedule.cron(expression, tz?)` schedules from a cron expression or parsed
+  cron value.
+- `Schedule.forever` recurs forever with zero delay.
+- `Schedule.identity<A>()` recurs forever and emits each input as output.
+- `Schedule.unfold(initial, next)` keeps custom state, emits the previous
+  state, and computes the next state with an effect.
 
-Then add combinators for the production constraint. Use `both` when all constraints must continue; it uses the maximum delay from the two schedules. Use `either` when either side may continue; it uses the minimum delay while both sides are active. Use `andThen` when one phase should run to completion before the next begins. Use `bothLeft`, `bothRight`, `eitherLeft`, `eitherRight`, `bothWith`, `eitherWith`, and `andThenResult` when the output shape matters.
+Then add the operational constraint. `Schedule.both` continues only while both
+schedules continue and uses the maximum delay. `Schedule.either` continues
+while either schedule continues and uses the minimum delay while both sides are
+active. `Schedule.andThen` runs one schedule to completion before starting the
+next.
 
-Use delay modifiers only when the base constructor is not enough. `addDelay` adds an effectfully computed duration to the existing delay. `modifyDelay` replaces or adjusts the computed delay with access to the current output and delay. `jittered` randomizes delays between 80% and 120% of the original delay. `delays` exposes each computed delay as the schedule output.
+Use delay modifiers when the constructor is not enough. `Schedule.addDelay`
+adds an effectfully computed duration to the existing delay.
+`Schedule.modifyDelay` replaces or adjusts the computed delay with access to
+the current output and delay. `Schedule.jittered` randomizes each delay between
+80% and 120% of the original delay. `Schedule.delays` exposes computed delays
+as schedule output.
 
-Use metadata when the decision needs runtime context. `InputMetadata` contains `input`, `attempt`, `start`, `now`, `elapsed`, and `elapsedSincePrevious`. `Metadata` adds `output` and `duration`. `fromStepWithMetadata`, `collectWhile`, and `while` are the main APIs for policies that depend on this information. `CurrentMetadata` is a context reference populated by scheduling operations so code running between schedule steps can inspect the current schedule metadata.
+Use metadata when a decision depends on runtime context. `InputMetadata`
+contains `input`, `attempt`, `start`, `now`, `elapsed`, and
+`elapsedSincePrevious`. `Metadata` adds `output` and `duration`.
+`fromStepWithMetadata`, `collectWhile`, and `while` are the main APIs for
+metadata-aware decisions. `CurrentMetadata` is a context reference populated by
+scheduling operations so code running between schedule steps can inspect the
+current schedule metadata.
 
-## Practical guidance
+Prefer named constructors over custom steps when they express the policy
+directly. Reach for `fromStep` or `fromStepWithMetadata` when you need custom
+step semantics, custom halt behavior, or metadata-aware logic that existing
+combinators cannot express.
 
-Prefer named constructors over custom steps whenever they express the policy directly. Reach for `fromStep` or `fromStepWithMetadata` when the schedule truly needs custom step semantics, custom halt behavior, or metadata-aware decisions that cannot be represented by existing combinators.
+Keep output types intentional. Counts and durations are useful for logging,
+metrics, and transformations, but they should not leak into application logic by
+accident. Use `map` for pure or effectful output transformation, `tapOutput` and
+`tapInput` for observation, `reduce` for accumulated state, and
+`collectInputs` or `collectOutputs` only when retaining the full history is
+acceptable.
 
-Keep output types intentional. Many constructors output counts or durations because those values are useful for logging, metrics, or later transformations. Use `map` for effectful output transformation, `tapOutput` for observation, `tapInput` for observing retry or repeat inputs, `reduce` for accumulated state, and `collectInputs` or `collectOutputs` only when retaining the whole history is acceptable.
-
-Be explicit about limits. Infinite constructors such as `spaced`, `fixed`, `exponential`, `fibonacci`, `windowed`, `forever`, and `unfold` usually need `take`, `recurs`, `during`, `both`, or `collectWhile` before they are suitable for user-facing retries or bounded jobs.
-
-Use the type helpers as compile-time documentation. `satisfiesInputType`, `setInputType`, `satisfiesOutputType`, `satisfiesErrorType`, and `satisfiesServicesType` do not change runtime behavior; they make the expected schedule shape clear to TypeScript and to readers.
+Most timing constructors are unbounded by themselves. `spaced`, `fixed`,
+`windowed`, `exponential`, `fibonacci`, `cron`, `forever`, `identity`, and
+`unfold` usually need `take`, `recurs`, `during`, `both`, or a predicate before
+they are appropriate for user-facing retries or bounded jobs. The type helpers
+do not change runtime behavior; use them as compile-time documentation for the
+expected schedule shape.

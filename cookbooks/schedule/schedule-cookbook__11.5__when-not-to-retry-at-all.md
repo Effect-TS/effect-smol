@@ -10,11 +10,9 @@ code_included: true
 
 # 11.5 When not to retry at all
 
-This subsection explains When not to retry at all as a practical Effect `Schedule`
-recipe. This recipe keeps the retry policy explicit: the schedule decides when another
-typed failure should be attempted again and where retrying stops. The surrounding Effect
-code remains responsible for domain safety, including which failures are transient,
-whether the operation is idempotent, and how the final failure is reported.
+Sometimes the correct retry policy is no retry. Use that policy when another
+attempt would be a new business action, when the failure is permanent, or when
+the next step is reconciliation rather than repetition.
 
 ## The anti-pattern
 
@@ -23,18 +21,32 @@ to attach a reasonable-looking `Schedule` to an effect only because the failure
 looks temporary:
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-declare const chargeCardOnce: Effect.Effect<void, Error>
+let attempts = 0
+let providerCharges = 0
 
-const retryTransientFailure = Schedule.exponential("100 millis").pipe(
+const chargeCardOnce = Effect.gen(function*() {
+  attempts += 1
+  providerCharges += 1
+  yield* Console.log(`charge attempt ${attempts}; provider charge ${providerCharges}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail("response-lost")
+  }
+})
+
+const retryTransientFailure = Schedule.exponential("10 millis").pipe(
   Schedule.both(Schedule.recurs(3))
 )
 
 // Unsafe: do not attach a generic retry policy to a one-way charge.
 const unsafeProgram = chargeCardOnce.pipe(
-  Effect.retry(retryTransientFailure)
+  Effect.retry(retryTransientFailure),
+  Effect.tap(() => Console.log(`provider charges: ${providerCharges}`))
 )
+
+Effect.runPromise(unsafeProgram)
 ```
 
 The schedule is finite and delayed, but that does not make the operation safe.
@@ -77,9 +89,15 @@ A retry limit only bounds the number of additional attempts. It does not make an
 unsafe operation safe:
 
 ```ts
+import { Console, Effect, Schedule } from "effect"
+
 const boundedButStillUnsafe = Schedule.spaced("1 second").pipe(
   Schedule.both(Schedule.recurs(1))
 )
+
+const program = Console.log(`bounded policy: ${Schedule.isSchedule(boundedButStillUnsafe)}`)
+
+Effect.runPromise(program)
 ```
 
 This policy allows only one retry after the original attempt, but that one retry
@@ -91,20 +109,30 @@ Do not attach `Effect.retry` when the next correct action is correction,
 escalation, or reconciliation.
 
 ```ts
-import { Effect } from "effect"
+import { Console, Effect, Result } from "effect"
 
-declare const submitPaymentOnce: Effect.Effect<void, Error>
-declare const recordForReconciliation: (
-  error: unknown
-) => Effect.Effect<void>
+let providerCharges = 0
+
+const submitPaymentOnce = Effect.gen(function*() {
+  providerCharges += 1
+  yield* Console.log(`submitted payment once; provider charge ${providerCharges}`)
+  return yield* Effect.fail("unknown-payment-outcome")
+})
+
+const recordForReconciliation = (error: unknown) =>
+  Console.log(`recorded for reconciliation: ${String(error)}`)
 
 const program = Effect.gen(function*() {
   const result = yield* Effect.result(submitPaymentOnce)
 
-  if (result._tag === "Failure") {
-    return yield* recordForReconciliation(result.error)
+  if (Result.isFailure(result)) {
+    return yield* recordForReconciliation(result.failure)
   }
+
+  yield* Console.log("payment confirmed")
 })
+
+Effect.runPromise(program)
 ```
 
 This program intentionally has no retry schedule around `submitPaymentOnce`. A

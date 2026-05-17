@@ -15,10 +15,10 @@ visible pause between successful sends.
 
 ## Problem
 
-An import worker may call a partner API, write to a rate-limited database,
-publish messages to a broker, or invalidate cache keys. Each item can be
-processed independently, but processing all items back-to-back would create a
-short spike in connections, locks, queue depth, or remote requests.
+An import worker may call a partner API, write to a rate-limited database, or
+publish messages to a broker. Each item can be processed independently, but a
+back-to-back batch can create a short spike in connections, locks, queue depth,
+or remote requests.
 
 ## When to use it
 
@@ -48,20 +48,10 @@ dependency can safely absorb the burst. In that case a plain sequential
 
 ## Schedule shape
 
-The central shape is:
-
-```ts
-Schedule.spaced("250 millis").pipe(
-  Schedule.satisfiesInputType<number>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input > 0)
-)
-```
-
 The repeated effect returns the number of items remaining after the item it just
 processed. `Schedule.while` sees that successful value as `input`. If more items
-remain, the schedule waits 250 milliseconds and allows the next recurrence. If
-no items remain, the repeat stops immediately.
+remain, the schedule waits and allows the next recurrence. If no items remain,
+the repeat stops immediately.
 
 Use `Schedule.spaced` rather than `Schedule.fixed` when you want the gap to be
 measured after each item completes. If an item takes 100 milliseconds to send and
@@ -71,7 +61,7 @@ after the previous item started.
 ## Code
 
 ```ts
-import { Effect, Option, Ref, Schedule } from "effect"
+import { Console, Effect, Ref, Schedule } from "effect"
 
 type BatchItem = {
   readonly id: string
@@ -83,57 +73,58 @@ type DependencyError = {
   readonly itemId: string
 }
 
-declare const sendToDependency: (
-  item: BatchItem
-) => Effect.Effect<void, DependencyError>
+const items: ReadonlyArray<BatchItem> = [
+  { id: "a", payload: "alpha" },
+  { id: "b", payload: "bravo" },
+  { id: "c", payload: "charlie" }
+]
 
-const gapBetweenItems = Schedule.spaced("250 millis").pipe(
+const gapBetweenItems = Schedule.spaced("50 millis").pipe(
   Schedule.satisfiesInputType<number>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input > 0)
 )
 
-export const processBatch = (items: ReadonlyArray<BatchItem>) =>
-  Effect.gen(function*() {
-    const remaining = yield* Ref.make(items)
+const program = Effect.gen(function*() {
+  const remaining = yield* Ref.make(items)
 
-    const processNext = Effect.gen(function*() {
-      const next = yield* Ref.modify(remaining, (items) => {
-        const [item, ...rest] = items
+  const sendToDependency = (
+    item: BatchItem
+  ): Effect.Effect<void, DependencyError> =>
+    Console.log(`sent ${item.id}: ${item.payload}`)
 
-        return [
-          item === undefined
-            ? Option.none()
-            : Option.some([item, rest.length] as const),
-          rest
-        ] as const
-      })
+  const processNext = Effect.gen(function*() {
+    const item = yield* Ref.modify(remaining, (items) => [
+      items[0],
+      items.slice(1)
+    ] as const)
 
-      if (Option.isNone(next)) {
-        return 0
-      }
+    if (item === undefined) {
+      return 0
+    }
 
-      const [item, remainingAfter] = next.value
+    yield* sendToDependency(item)
 
-      yield* sendToDependency(item)
+    const left = yield* Ref.get(remaining)
+    yield* Console.log(`${left.length} item(s) left`)
 
-      return remainingAfter
-    })
-
-    return yield* processNext.pipe(
-      Effect.repeat(gapBetweenItems)
-    )
+    return left.length
   })
+
+  const finalRemaining = yield* processNext.pipe(
+    Effect.repeat(gapBetweenItems)
+  )
+
+  yield* Console.log(`batch complete; remaining=${finalRemaining}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`processBatch` sends the first item immediately. If more items remain after that
-successful send, the schedule waits 250 milliseconds before sending the next
-item. After the last item succeeds, `processNext` returns `0`, so the schedule
-stops without adding another gap.
-
-The returned effect succeeds with the final schedule output. Because
-`Schedule.passthrough` is used here, that final output is the last remaining
-count, which is `0` when the batch has been fully processed.
+The first item is sent immediately. If more items remain, the schedule waits
+before processing the next item. After the last item succeeds, `processNext`
+returns `0`, so the schedule stops without adding another gap. The snippet uses
+a short gap so it finishes quickly in a scratchpad.
 
 ## Variants
 
@@ -145,21 +136,11 @@ Use a shorter gap when each item is cheap and the dependency has enough spare
 capacity. Keep the chosen duration visible in a named schedule so operators can
 tune it without reverse-engineering a loop.
 
-If many workers may start batches at the same time, add jitter after choosing
-the base spacing:
-
-```ts
-const jitteredGapBetweenItems = Schedule.spaced("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<number>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input > 0)
-)
-```
-
-Jitter reduces synchronized pressure across workers, but it does not bound total
-throughput by itself. Pair it with worker concurrency limits or a dependency
-rate limiter when the dependency has a hard quota.
+If many workers may start batches at the same time, add `Schedule.jittered`
+after choosing the base spacing. Jitter reduces synchronized pressure across
+workers, but it does not bound total throughput by itself. Pair it with worker
+concurrency limits or a dependency rate limiter when the dependency has a hard
+quota.
 
 ## Notes and caveats
 

@@ -10,138 +10,126 @@ code_included: true
 
 # 10.5 Treat rate limits differently from server errors
 
-Use this recipe when rate limits and server failures both look transient but
-need different retry behavior. The schedule choice should reflect the typed
-failure, not just the fact that retrying is possible.
+Rate limits and server failures can both be transient, but they communicate
+different operational signals. Preserve that difference in the typed error
+model and choose a schedule for each case.
 
 ## Problem
 
-Model `429 Too Many Requests` and `503 Service Unavailable` as different typed
-errors before choosing a schedule. Treating them separately keeps the retry
-policy aligned with the signal each response carries.
-
-A 5xx response usually says the server failed to handle the request. The caller
-should back off, add jitter, and stop after a small budget. A rate-limit
-response usually says the caller is sending too much traffic. The caller should
-respect the server's retry guidance, reduce pressure, and avoid turning retries
-into more rate-limit traffic.
-
-The examples below keep those cases separate and give each one its own retry
-schedule.
+`503 Service Unavailable` usually means the server failed to handle the
+request. `429 Too Many Requests` means the caller is applying too much
+pressure. A single generic retry policy hides that distinction.
 
 ## Why this comparison matters
 
-Using one generic retry policy for both cases hides the operational signal.
-Exponential backoff is a reasonable default for many temporary server failures,
-but it can be too eager for a provider that explicitly asked the caller to wait.
+For retryable 5xx responses, a short jittered backoff is often enough: probe
+again, spread callers around each delay, and stop after a small budget.
 
-The reverse is also true. Treating every 5xx response like a rate limit can make
-ordinary transient server errors wait longer than necessary, especially when no
-`Retry-After` value exists.
+For rate limits, prefer provider guidance. If the response carries a
+`Retry-After` value or equivalent metadata, use that value instead of guessing
+from a generic exponential sequence.
 
-Separate policies also make reviews clearer. A server-error policy answers "how
-long should I keep probing this unavailable dependency?" A rate-limit policy
-answers "how long did the provider ask this caller to stand down?"
+## Schedule shape
 
-## Option 1
+Use a finite jittered backoff for server errors. Use a rate-limit-specific
+schedule that can read the typed retry input when the error carries the wait
+duration.
 
-Use a short, jittered backoff for retryable 5xx responses:
+`Schedule.identity<A>()` outputs the retry input as the schedule output.
+`Schedule.addDelay` can then derive the wait from that output.
+
+## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class ServerError extends Data.TaggedError("ServerError")<{
   readonly status: 500 | 502 | 503 | 504
 }> {}
 
-declare const callApi: Effect.Effect<string, ServerError>
-
-const retryServerErrors = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3))
-)
-
-const program = callApi.pipe(
-  Effect.retry({
-    schedule: retryServerErrors,
-    while: (error) => error.status >= 500 && error.status < 600
-  })
-)
-```
-
-This policy probes again quickly, spreads callers around each exponential delay,
-and stops after three retries after the original attempt. It is suitable for
-temporary server-side failures where the response does not give a more specific
-retry time.
-
-## Option 2
-
-Use a rate-limit-specific schedule when the error carries retry guidance:
-
-```ts
-import { Data, Duration, Effect, Schedule } from "effect"
-
 class RateLimited extends Data.TaggedError("RateLimited")<{
   readonly retryAfterMillis: number
 }> {}
 
-declare const callApi: Effect.Effect<string, RateLimited>
+let serverAttempts = 0
+
+const callServer: Effect.Effect<string, ServerError> = Effect.gen(function*() {
+  serverAttempts += 1
+  yield* Console.log(`server attempt ${serverAttempts}`)
+
+  if (serverAttempts < 3) {
+    return yield* Effect.fail(new ServerError({ status: 503 }))
+  }
+
+  return "server value"
+})
+
+let rateLimitAttempts = 0
+
+const callRateLimitedApi: Effect.Effect<string, RateLimited> = Effect.gen(function*() {
+  rateLimitAttempts += 1
+  yield* Console.log(`rate-limit attempt ${rateLimitAttempts}`)
+
+  if (rateLimitAttempts === 1) {
+    return yield* Effect.fail(new RateLimited({ retryAfterMillis: 100 }))
+  }
+
+  return "rate-limited value"
+})
+
+const retryServerErrors = Schedule.exponential("50 millis").pipe(
+  Schedule.jittered,
+  Schedule.both(Schedule.recurs(3))
+)
 
 const retryRateLimits = Schedule.identity<RateLimited>().pipe(
   Schedule.both(Schedule.recurs(2)),
-  Schedule.addDelay(([error]) => Effect.succeed(Duration.millis(error.retryAfterMillis)))
+  Schedule.addDelay(([error]) =>
+    Effect.succeed(Duration.millis(error.retryAfterMillis))
+  )
 )
 
-const program = callApi.pipe(
-  Effect.retry({
-    schedule: retryRateLimits,
-    while: (error) => error._tag === "RateLimited"
-  })
-)
+const program = Effect.gen(function*() {
+  const serverValue = yield* callServer.pipe(
+    Effect.retry({
+      schedule: retryServerErrors,
+      while: (error) => error.status >= 500 && error.status < 600
+    })
+  )
+  yield* Console.log(`server result: ${serverValue}`)
+
+  const rateLimitedValue = yield* callRateLimitedApi.pipe(
+    Effect.retry({
+      schedule: retryRateLimits,
+      while: (error) => error._tag === "RateLimited"
+    })
+  )
+  yield* Console.log(`rate-limit result: ${rateLimitedValue}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`Schedule.identity<RateLimited>()` makes the schedule output the typed retry
-input. `Schedule.recurs(2)` allows at most two retries after the original
-attempt. `Schedule.addDelay` can then read `retryAfterMillis` from the paired
-schedule output and use it as the wait before the next retry.
+The server policy retries quickly with jitter. The rate-limit policy waits from
+the typed retry hint.
 
 ## Tradeoffs
 
-The 5xx policy is simple and works even when the server gives no retry hint. It
-is also intentionally conservative: a small retry budget avoids tying up callers
-when the dependency remains unavailable.
+The 5xx policy works even when the server gives no retry hint, but it is only a
+guess. Keep its retry budget small.
 
-The rate-limit policy is more protocol-aware. It waits for the provider's
-advertised interval instead of guessing from an exponential sequence. That is
-usually better for shared APIs, quota-based systems, and endpoints that enforce
-per-client budgets.
-
-The cost is that the typed error must preserve the retry hint. If an HTTP
-adapter discards `Retry-After` or quota metadata, the caller can only fall back
-to a generic delay.
+The rate-limit policy is more protocol-aware. It works best when the adapter
+preserves `Retry-After` or equivalent quota metadata in the typed error.
 
 ## Recommended default
 
-Do not put `429` into the same predicate as generic 5xx failures. Keep a
-dedicated `RateLimited` error, preserve the retry delay if the server provides
-one, and use a schedule that waits from that value with a small retry count.
+Do not put `429` into the same predicate as generic 5xx failures. Use a
+dedicated `RateLimited` error, preserve the retry delay when available, and use
+a small retry count.
 
-For retryable 5xx responses, use jittered exponential backoff with a finite
-budget. For rate limits, prefer provider guidance first; use a fixed or capped
-fallback only when no retry hint is available.
+For retryable 5xx responses, use finite jittered exponential backoff. For rate
+limits, prefer provider guidance first and fall back to a fixed or capped delay
+only when no retry hint exists.
 
-## Notes and caveats
-
-`Effect.retry` retries typed failures from the error channel. Defects and fiber
-interruptions are not retried as typed failures.
-
-The first request is not delayed. Schedules control the waits between retries
-after a typed failure.
-
-`Schedule.addDelay` adds to the delay already produced by the schedule. In the
-rate-limit example, `Schedule.recurs(2)` contributes no meaningful delay, so the
-added delay is the effective wait.
-
-Retried writes still need a domain-level safety guarantee, such as an
-idempotency key, deduplication, or a transaction boundary. A better retry policy
-does not make duplicate side effects safe by itself.
+Retried writes still need idempotency, de-duplication, or a transaction
+boundary. A better retry policy does not make duplicate side effects safe.

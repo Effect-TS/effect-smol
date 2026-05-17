@@ -58,29 +58,15 @@ producer already has a reliable way to signal availability.
 
 ## Schedule shape
 
-Use a spaced schedule for the polling cadence, pass the successful lookup result
-through as the schedule output, and continue only while the latest lookup is
-missing:
-
-```ts
-const pollUntilAvailable = Schedule.spaced("500 millis").pipe(
-  Schedule.satisfiesInputType<Availability<unknown>>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Missing")
-)
-```
-
-`Schedule.while` receives schedule metadata. In this recipe the important field
-is `input`, which is the latest successful value produced by `Effect.repeat`.
-
-`Schedule.passthrough` changes the schedule output to that latest input. That
-means the repeated program can inspect the final observed lookup result after
-the schedule stops.
+Use a spaced schedule for the polling cadence, preserve the successful lookup
+result as the schedule output, and continue only while that result is
+`Missing`. The repeated program can then inspect the final observed lookup
+result after the schedule stops.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type Availability<A> =
   | { readonly _tag: "Missing" }
@@ -96,34 +82,62 @@ type CacheLookupError = {
   readonly message: string
 }
 
-declare const lookupProfileCache: (
-  userId: string
-) => Effect.Effect<Availability<UserProfile>, CacheLookupError>
+const observations: ReadonlyArray<Availability<UserProfile>> = [
+  { _tag: "Missing" },
+  { _tag: "Missing" },
+  {
+    _tag: "Available",
+    value: { id: "user-1", displayName: "Ada" }
+  }
+]
 
-const pollUntilAvailable = Schedule.spaced("500 millis").pipe(
-  Schedule.satisfiesInputType<Availability<UserProfile>>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Missing")
+let lookups = 0
+
+const lookupProfileCache = (
+  userId: string
+): Effect.Effect<Availability<UserProfile>, CacheLookupError> =>
+  Effect.gen(function*() {
+    const index = yield* Effect.sync(() => {
+      const current = lookups
+      lookups += 1
+      return current
+    })
+    const observation = observations[index] ?? observations[observations.length - 1]!
+
+    yield* Console.log(`${userId} cache lookup ${index + 1}: ${observation._tag}`)
+    return observation
+  })
+
+const pollUntilAvailable = Schedule.identity<Availability<UserProfile>>().pipe(
+  Schedule.bothLeft(Schedule.spaced("100 millis")),
+  Schedule.while(({ output }) => output._tag === "Missing")
 )
 
 const waitForProfile = (
   userId: string
-): Effect.Effect<UserProfile, CacheLookupError> =>
+): Effect.Effect<
+  UserProfile,
+  CacheLookupError | { readonly _tag: "ProfileUnavailable" }
+> =>
   lookupProfileCache(userId).pipe(
     Effect.repeat(pollUntilAvailable),
-    Effect.flatMap((availability) => {
-      switch (availability._tag) {
-        case "Available":
-          return Effect.succeed(availability.value)
-        case "Missing":
-          return Effect.never
-      }
-    })
+    Effect.flatMap((availability) =>
+      availability._tag === "Available"
+        ? Effect.succeed(availability.value)
+        : Effect.fail({ _tag: "ProfileUnavailable" as const })
+    )
   )
+
+const program = waitForProfile("user-1").pipe(
+  Effect.flatMap((profile) => Console.log(`profile ready: ${profile.displayName}`))
+)
+
+Effect.runPromise(program)
 ```
 
 The first cache lookup runs immediately. If it returns `Missing`, the schedule
-waits 500 milliseconds before the next lookup. If it returns `Available`, the
+waits before the next lookup. The runnable example uses a short delay; a
+production path can use a longer cadence. If the lookup returns `Available`, the
 schedule stops and `Effect.repeat` returns that final `Available` value.
 
 The `Missing` branch after `Effect.repeat` is unreachable for this unbounded
@@ -133,48 +147,12 @@ is no longer missing. It becomes reachable when you add a limit.
 ## Variants
 
 Add a recurrence cap when the caller should stop waiting after a bounded number
-of misses:
+of misses. With the cap, `Effect.repeat` can return `Missing` because the
+recurrence limit may stop the schedule before the cache entry appears. Interpret
+that result explicitly instead of assuming the data was found.
 
-```ts
-type WaitForProfileError =
-  | CacheLookupError
-  | { readonly _tag: "ProfileUnavailable" }
-
-const pollUntilAvailableAtMostTenTimes = pollUntilAvailable.pipe(
-  Schedule.bothLeft(
-    Schedule.recurs(10).pipe(
-      Schedule.satisfiesInputType<Availability<UserProfile>>()
-    )
-  )
-)
-
-const waitForProfileAtMostTenTimes = (
-  userId: string
-): Effect.Effect<UserProfile, WaitForProfileError> =>
-  lookupProfileCache(userId).pipe(
-    Effect.repeat(pollUntilAvailableAtMostTenTimes),
-    Effect.flatMap((availability) =>
-      availability._tag === "Available"
-        ? Effect.succeed(availability.value)
-        : Effect.fail({ _tag: "ProfileUnavailable" })
-    )
-  )
-```
-
-With the cap, `Effect.repeat` can return `Missing`: the recurrence limit may
-stop the schedule before the cache entry appears. Interpret that result
-explicitly instead of assuming the data was found.
-
-Add jitter when many callers may wait for the same key:
-
-```ts
-const jitteredPollUntilAvailable = pollUntilAvailable.pipe(
-  Schedule.jittered
-)
-```
-
-`Schedule.jittered` changes the timing of each recurrence. It does not change
-the stop condition.
+Add `Schedule.jittered` when many callers may wait for the same key. It changes
+the timing of each recurrence, not the stop condition.
 
 ## Notes and caveats
 

@@ -10,196 +10,149 @@ code_included: true
 
 # 20.4 Poll until replication catches up
 
-Replication-aware polling asks a lagging view one narrow question: has it
-observed at least the version the caller already knows exists? The schedule
-keeps the repeated reads focused on that comparable position.
+Replication-aware polling should ask a narrow question: has the lagging view
+observed at least the version the caller already knows exists?
 
 ## Problem
 
-You have written data to a primary system and received a required version,
-watermark, or cursor. A follower, read model, replica, or search index may lag
-behind that point for a short time.
+After writing to a primary system, the caller may receive a version, watermark,
+or cursor. A follower, read model, replica, or search index can lag behind that
+position for a short time.
 
-The polling loop should:
-
-- read the current replicated position
-- continue only while the observed position is behind the required position
-- return the first observation that has caught up
-- keep failed reads separate from ordinary replication lag
+Poll the replicated view until its observed position reaches the required
+position. Treat "behind" as a successful observation, not as a failed read.
 
 ## When to use it
 
 Use this when the caller has a concrete target position and the downstream view
-can report its latest observed position.
+can report a comparable observed position.
 
-This is a good fit after commands that return a stream version, writes that
-publish a projection watermark, indexing pipelines that expose a sequence
-number, or read models that can say which event cursor they have processed.
+This fits event stream versions, projection watermarks, indexing sequence
+numbers, and read models that expose the cursor they have processed.
 
 ## When not to use it
 
 Do not use this when the follower cannot report a comparable position. Polling
-for "maybe the data is visible now" without a required version is a different
-recipe.
+for "maybe visible now" is a different shape.
 
-Do not use this to hide failed replica reads. A timeout, authorization error,
-decode failure, or unavailable read model should remain an effect failure unless
-your domain has explicitly translated it into a successful observation.
+Do not hide failed replica reads. Timeouts, authorization errors, decode
+failures, and unavailable read models should remain effect failures unless your
+domain explicitly recovers them.
 
-Do not use this for generic cache-miss polling. A cache miss is not the same as
-a replica proving it has or has not reached a known committed position.
+Do not compare opaque cursor strings lexicographically unless the producer
+defines that order.
 
 ## Schedule shape
 
-Poll again only while the latest successful observation is still behind the
-required version:
+Use `Schedule.spaced` for the read interval, `Schedule.passthrough` to keep the
+latest observation, and `Schedule.while` to continue only while the observed
+version is below the required version.
 
-```ts
-const pollUntilVersion = (requiredVersion: number) =>
-  Schedule.spaced("250 millis").pipe(
-    Schedule.satisfiesInputType<ReplicaObservation>(),
-    Schedule.passthrough,
-    Schedule.while(({ input }) => input.observedVersion < requiredVersion)
-  )
-```
-
-`Schedule.spaced("250 millis")` supplies the delay between later reads.
-`Schedule.satisfiesInputType<ReplicaObservation>()` constrains the timing
-schedule before `Schedule.while` reads `metadata.input`.
-`Schedule.passthrough` keeps the latest `ReplicaObservation` as the schedule
-output, so `Effect.repeat` returns the final observed position.
-
-The schedule stops when the observation has reached or passed the required
-version.
+If you add a bound, handle the final behind observation as "did not catch up in
+time" instead of returning stale data.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 interface ReplicaObservation {
-  readonly replica: "follower" | "read-model" | "search-index"
+  readonly replica: "read-model"
   readonly observedVersion: number
 }
 
-type ReplicaReadError = {
-  readonly _tag: "ReplicaReadError"
-  readonly message: string
+type WaitForReplicaError = {
+  readonly _tag: "ReplicaDidNotCatchUp"
+  readonly requiredVersion: number
+  readonly observedVersion: number
 }
 
-declare const readReplicaWatermark: (
-  streamName: string
-) => Effect.Effect<ReplicaObservation, ReplicaReadError>
+const scriptedObservations: ReadonlyArray<ReplicaObservation> = [
+  { replica: "read-model", observedVersion: 41 },
+  { replica: "read-model", observedVersion: 43 },
+  { replica: "read-model", observedVersion: 45 }
+]
+
+let readIndex = 0
 
 const hasCaughtUp = (
   observation: ReplicaObservation,
   requiredVersion: number
 ): boolean => observation.observedVersion >= requiredVersion
 
-const pollUntilVersion = (requiredVersion: number) =>
-  Schedule.spaced("250 millis").pipe(
-    Schedule.satisfiesInputType<ReplicaObservation>(),
-    Schedule.passthrough,
-    Schedule.while(({ input }) => !hasCaughtUp(input, requiredVersion))
-  )
-
-const waitForReplicaVersion = (
-  streamName: string,
-  requiredVersion: number
-): Effect.Effect<ReplicaObservation, ReplicaReadError> =>
-  readReplicaWatermark(streamName).pipe(
-    Effect.repeat(pollUntilVersion(requiredVersion)),
-    Effect.flatMap((observation) =>
-      hasCaughtUp(observation, requiredVersion)
-        ? Effect.succeed(observation)
-        : Effect.never
-    )
-  )
-```
-
-The first replica read runs immediately. If the replica reports a lower version,
-the schedule waits 250 milliseconds before reading again. If the first or any
-later observation is already at or beyond the required version, the schedule
-stops and the caught-up observation is returned.
-
-The `Effect.never` branch is unreachable for the unbounded schedule because
-`pollUntilVersion` stops only after the observation has caught up. It becomes
-relevant when you add a limit, because a bounded schedule can stop with the last
-behind observation.
-
-## Variants
-
-Add a recurrence cap when the caller needs a bounded wait:
-
-```ts
-type WaitForReplicaError =
-  | ReplicaReadError
-  | {
-    readonly _tag: "ReplicaDidNotCatchUp"
-    readonly requiredVersion: number
-    readonly observedVersion: number
-  }
-
-const pollUntilVersionAtMostFortyTimes = (requiredVersion: number) =>
-  pollUntilVersion(requiredVersion).pipe(
-    Schedule.bothLeft(
-      Schedule.recurs(40).pipe(
-        Schedule.satisfiesInputType<ReplicaObservation>()
+const readReplicaWatermark = (
+  streamName: string
+): Effect.Effect<ReplicaObservation> =>
+  Effect.sync(() => {
+    const observation = scriptedObservations[
+      Math.min(readIndex, scriptedObservations.length - 1)
+    ]!
+    readIndex += 1
+    return observation
+  }).pipe(
+    Effect.tap((observation) =>
+      Console.log(
+        `[${streamName}] ${observation.replica} at ${observation.observedVersion}`
       )
     )
   )
 
-const waitForReplicaVersionAtMostFortyTimes = (
-  streamName: string,
-  requiredVersion: number
+const pollUntilVersion = (requiredVersion: number) =>
+  Schedule.spaced("10 millis").pipe(
+    Schedule.satisfiesInputType<ReplicaObservation>(),
+    Schedule.passthrough,
+    Schedule.while(({ input }) => !hasCaughtUp(input, requiredVersion)),
+    Schedule.take(10)
+  )
+
+const requireCaughtUp = (
+  requiredVersion: number,
+  observation: ReplicaObservation
 ): Effect.Effect<ReplicaObservation, WaitForReplicaError> =>
-  readReplicaWatermark(streamName).pipe(
-    Effect.repeat(pollUntilVersionAtMostFortyTimes(requiredVersion)),
-    Effect.flatMap((observation) =>
-      hasCaughtUp(observation, requiredVersion)
-        ? Effect.succeed(observation)
-        : Effect.fail({
-          _tag: "ReplicaDidNotCatchUp",
-          requiredVersion,
-          observedVersion: observation.observedVersion
-        })
-    )
+  hasCaughtUp(observation, requiredVersion)
+    ? Effect.succeed(observation)
+    : Effect.fail({
+      _tag: "ReplicaDidNotCatchUp",
+      requiredVersion,
+      observedVersion: observation.observedVersion
+    })
+
+const requiredVersion = 45
+
+const program = readReplicaWatermark("orders").pipe(
+  Effect.repeat(pollUntilVersion(requiredVersion)),
+  Effect.flatMap((observation) => requireCaughtUp(requiredVersion, observation)),
+  Effect.tap((observation) =>
+    Console.log(`caught up at ${observation.observedVersion}`)
   )
+)
+
+Effect.runPromise(program).then((observation) => {
+  console.log("result:", observation)
+})
 ```
 
-With a cap, the final observation may still be behind because the recurrence
-limit stopped the schedule before replication caught up. Interpret that case
-explicitly instead of returning stale data as if it were current.
+The first read runs immediately. Behind observations wait before the next read.
+Once the replica reports the required version or later, the schedule stops.
 
-When many clients may wait on the same replica, add jitter to avoid aligned
-read bursts:
+## Variants
 
-```ts
-const jitteredPollUntilVersion = (requiredVersion: number) =>
-  pollUntilVersion(requiredVersion).pipe(
-    Schedule.jittered
-  )
-```
+Add `Schedule.jittered` when many clients may wait on the same replica and
+aligned read bursts would add load.
 
-`Schedule.jittered` randomly adjusts each delay to between 80% and 120% of the
-original delay.
+For opaque cursors, keep the same schedule shape but replace the numeric
+comparison with a domain comparison that knows whether the observed cursor has
+reached the required cursor.
 
-If the follower reports an opaque cursor instead of a number, keep the same
-shape but replace the numeric comparison with a domain comparison that knows
-whether an observed cursor has reached the required cursor. Do not compare
-opaque cursor strings lexicographically unless the producer defines that order.
+Use a target position from the write path or another authoritative source. A
+guessed target can make polling report success for the wrong point in history.
 
 ## Notes and caveats
 
 `Schedule.while` sees successful replica observations only. It does not inspect
-failures from `readReplicaWatermark`.
+read failures.
 
-`Effect.repeat` repeats after success. A failed replica read stops the repeat
-unless the read effect handles that failure before the repeat.
+`Effect.repeat` repeats successes. Retry transient failed reads separately when
+that is appropriate.
 
-The first replica read is not delayed by the schedule. Delays apply only before
-later recurrences.
-
-Use a target that came from the write path or another authoritative source. If
-the target version is guessed, polling can report "caught up" to the wrong
-point.
+The first read is not delayed by the schedule.

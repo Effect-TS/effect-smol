@@ -10,45 +10,78 @@ code_included: false
 
 # 51.3 Unbounded backoff chains
 
-Unbounded backoff chains are an anti-pattern because increasing delay can make a retry policy look conservative while leaving the operation alive forever.
-
 ## The anti-pattern
 
-The problematic version uses an unbounded backoff schedule as the whole retry story. A policy based on `Schedule.exponential("200 millis")` looks reasonable at first because each attempt waits longer than the last. In `Schedule`, however, `exponential` is a schedule that always recurs. By itself, it has no maximum attempt count, no elapsed time budget, and no maximum single delay.
+An unbounded backoff schedule is used as the whole retry policy. A policy based
+on `Schedule.exponential("200 millis")` looks conservative because each attempt
+waits longer than the last. In `Schedule`, `exponential` always recurs. By
+itself it has no maximum attempt count, no elapsed budget, and no maximum single
+delay.
 
-That missing recovery contract only stretches the failure into a long tail. After enough attempts the next sleep may be minutes or hours away, but the work is still pending and may still retry after the caller, job, or incident response process expected a decision.
+Backoff changes pressure; it does not create a recovery contract. After enough
+attempts the next sleep may be minutes or hours away, but the work is still
+pending and may retry after the caller, job, or incident process expected a
+decision.
 
 ## Why it happens
 
-It happens when "back off" is treated as the same thing as "bound the retry." Exponential growth reduces pressure on a downstream service, but it does not decide when the original operation has failed. The operator name can make the policy feel safer than a tight loop, so the missing stop condition is easy to miss in review.
+It happens when "back off" is treated as "bound the retry." Exponential growth
+reduces pressure on a dependency, but it does not decide when the original
+operation has failed.
 
-It also happens when a shared backoff is reused for different workflows. A queue reconnect loop, a user-facing request, a startup probe, and a control-plane mutation may all benefit from backoff, but they should not inherit the same unlimited lifetime.
+A shared backoff can also leak across workflows. A queue reconnect loop, a
+user-facing request, a startup probe, and a control-plane mutation may all need
+backoff, but they should not inherit the same lifetime.
 
 ## Why it is risky
 
-The long tail is the main risk. Early attempts are visible and close together, but later attempts are far apart. A failing job can look quiet even though it is still scheduled to act. That makes ownership ambiguous: the caller may have moved on, the worker may still hold state, and the next retry may happen after the surrounding context is no longer valid.
+The long tail is the main risk. Early attempts are visible and close together;
+later attempts are far apart. A failing job can look quiet even though it is
+still scheduled to act. Ownership becomes ambiguous: the caller may have moved
+on, the worker may still hold state, and the next retry may run after the
+surrounding context is stale.
 
-Unbounded delay also creates poor operational semantics. A very large next wait can be indistinguishable from a stuck process. If the operation eventually retries, it may do so after credentials, leases, idempotency windows, request deadlines, or deployment assumptions have changed. For unsafe side effects, that late retry can be worse than failing promptly.
+A very large next wait can also look like a stuck process. If the operation
+eventually retries, it may run after credentials, leases, idempotency windows,
+request deadlines, or deployment assumptions have changed. For unsafe side
+effects, a late retry can be worse than a clear failure.
 
-The backoff curve does not protect the system from all load either. Many callers using the same unbounded policy can still accumulate delayed work. Without jitter, similar failures can retry together. Without a deadline, the backlog can persist through recovery and produce traffic long after the original incident.
+Backoff does not eliminate fleet load. Many callers using the same unbounded
+policy can accumulate delayed work. Without jitter, similar failures can retry
+together. Without a deadline, the backlog can persist through recovery.
 
 ## A better approach
 
-Treat backoff as the cadence, not the limit. Start with the retryable case, then add explicit bounds that match the workflow:
+Treat backoff as cadence, not limit. Start with the retryable case, then add
+explicit bounds that match the workflow:
 
 - use `Schedule.recurs` when the contract is a maximum number of retries
 - use `Schedule.during` when the contract is a wall-clock retry budget
 - use `Schedule.modifyDelay` with `Duration.min` when each sleep needs a maximum cap
 - use `Schedule.jittered` when many fibers or processes may run the same policy together
 
-For example, an exponential cadence can still be appropriate when a remote service is temporarily overloaded. The safer policy also says when to stop and how long any single sleep is allowed to become. That gives the caller a clear exhausted-retry outcome instead of leaving the operation in a remote future.
+An exponential cadence is appropriate for temporary overload. A production
+policy also says when to stop and how long any single sleep may become. That
+gives the caller an exhausted-retry outcome instead of leaving the operation in
+a distant future.
 
-Prefer names that include the bound, such as "retry transient inventory reads for up to 20 seconds" or "reconnect with at most 10 capped backoff attempts." A name like "exponential retry" describes the curve but not the operational promise.
+Prefer names that include the bound, such as "retry inventory reads for up to
+twenty seconds" or "reconnect with ten capped backoff attempts." A name like
+`exponentialRetry` describes the curve but not the promise.
 
 ## Notes and caveats
 
-Caps and deadlines solve different parts of the problem. A delay cap prevents one recurrence from sleeping too long. A deadline or recurrence limit decides when the retry as a whole is over. Most production policies need both: a maximum gap between attempts and a maximum lifetime for the operation.
+Caps and deadlines solve different problems. A delay cap prevents one
+recurrence from sleeping too long. A deadline or recurrence limit decides when
+the retry as a whole is over. Most production policies need both.
 
-Be careful with schedule combinators. Intersection-style composition with `Schedule.both` stops when the first component stops and uses the maximum delay between components, which is usually what you want when combining a cadence with a limit. Union-style composition keeps going while either side still wants to recur, which can accidentally preserve the unbounded tail.
+Use schedule combinators deliberately. `Schedule.both` uses intersection
+semantics: it continues only while both schedules continue and uses the maximum
+delay. That is usually what you want when combining cadence with a limit.
+`Schedule.either` uses union semantics and can accidentally preserve an
+unbounded tail.
 
-A bounded policy may surface failures sooner than the previous unbounded one. That is a feature, not a regression, when the old behavior was only delaying a decision. If the workflow truly needs indefinite background recovery, make that explicit with monitoring, cancellation, jitter, and a bounded per-attempt delay rather than hiding it behind an uncapped exponential chain.
+A bounded policy may surface failures sooner. That is expected when the old
+behavior only delayed a decision. If a workflow truly needs indefinite
+background recovery, make it visible with ownership, cancellation,
+observability, jitter where appropriate, and a bounded per-attempt delay.

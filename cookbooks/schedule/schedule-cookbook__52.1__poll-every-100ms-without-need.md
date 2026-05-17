@@ -10,37 +10,29 @@ code_included: false
 
 # 52.1 Poll every 100ms without need
 
-Polling every 100 milliseconds without a clear need is an anti-pattern because
-it turns a convenient recurrence policy into constant background pressure.
-
 ## The anti-pattern
 
-The problematic version starts from a fixed 100 millisecond cadence and applies
-it before asking how quickly the answer can change or how expensive each check
-is. The schedule reads like a harmless detail, but it creates an unbounded loop:
-`Schedule.spaced("100 millis")` recurs continuously, spacing each repetition by
-that duration until something outside the schedule stops it.
+A fixed 100 millisecond cadence is chosen before the code asks how quickly the
+answer can change or how expensive each check is. The schedule reads like a
+small detail, but `Schedule.spaced("100 millis")` keeps recurring until another
+condition stops it.
 
-That may be far more aggressive than the domain requires. A batch job that
-finishes in minutes, an eventually consistent index, a queue that is usually
-empty, or a remote status endpoint with rate limits rarely benefits from ten
-checks per second. A single loop looks small, but ten loops already mean roughly
-one hundred checks per second; across services, tenants, browser tabs, or worker
-fibers, the extra polls mostly discover the same state again while competing
-with useful work.
+A batch job that finishes in minutes, an eventually consistent index, a mostly
+empty queue, or a rate-limited status endpoint rarely benefits from ten checks
+per second. One loop looks small. Ten loops already mean roughly one hundred
+checks per second; across services, tenants, browser tabs, or worker fibers, the
+extra polls mostly rediscover the same state.
 
 ## Why it happens
 
-It usually happens when "responsive" is treated as the only scheduling goal. A
-100 millisecond interval feels fast enough for humans and easy to remember, so
-it gets copied into polling code even when no user is waiting, no service-level
-objective depends on that latency, and the polled value cannot change that
-quickly.
+Responsiveness becomes the only scheduling goal. A 100 millisecond interval
+feels fast and is easy to remember, so it gets copied into polling code even
+when no user is waiting, no service-level objective depends on that latency, and
+the observed value cannot change that quickly.
 
-It also happens when polling code is written while testing a happy path. A short
-interval makes tests, demos, and manual verification feel snappy. If that value
-is promoted unchanged into production, the schedule no longer documents
-operational intent; it documents impatience.
+Local testing also biases toward tight intervals. Short polling makes demos and
+manual verification feel snappy. If that value reaches production unchanged,
+the schedule documents impatience rather than operational intent.
 
 ## Why it is risky
 
@@ -55,9 +47,9 @@ already struggling. When many callers share the same fixed interval, their
 checks can align and produce bursts. When the loop is unbounded, the load keeps
 going until interruption, success, or an explicit stopping rule ends it.
 
-Fast polling can also hide missing domain signals. If the right design is an
-event, callback, subscription, queue, or "try once and come back later" workflow,
-a 100 millisecond loop makes the absence of that signal look acceptable while
+Fast polling can also hide a missing domain signal. If the right design is an
+event, callback, subscription, queue, or "try once and come back later" flow, a
+100 millisecond loop makes the absence of that signal look acceptable while
 charging the system continuously.
 
 ## A better approach
@@ -71,7 +63,7 @@ For steady polling, prefer a wider `Schedule.spaced` interval that matches the
 freshness requirement. For recovery or readiness checks, prefer a backoff shape
 such as `Schedule.exponential` or `Schedule.fibonacci` so repeated misses become
 less frequent. For any policy that is not meant to run forever, add an explicit
-bound with `Schedule.take`, `Schedule.recurs`, or a time-based limit.
+bound with `Schedule.take`, `Schedule.recurs`, or `Schedule.during`.
 
 When many processes may poll the same dependency, add jitter after the base
 cadence is correct so the fleet does not check in lockstep. Jitter is not a

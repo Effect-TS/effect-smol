@@ -11,8 +11,8 @@ code_included: true
 # 38.1 Retry 5 times with fixed spacing
 
 You want a failing effect to run once immediately, then retry at most five
-times with the same delay before each retry. Compose the fixed spacing and retry
-limit so both parts are visible at the retry boundary.
+times with the same delay before each retry. Compose the spacing and retry
+limit so both concerns are visible at the retry boundary.
 
 ## Problem
 
@@ -30,8 +30,8 @@ enough recovery time. It fits idempotent HTTP requests, short dependency
 outages, service startup checks, and reconnect attempts where a steady cadence
 is easier to reason about than backoff.
 
-It is also useful when logs and operational runbooks need a simple answer:
-"the call is tried once, then retried up to five more times, one second apart."
+It is also useful when logs and runbooks need a simple answer: the call is tried
+once, then retried up to five more times at the chosen spacing.
 
 ## When not to use it
 
@@ -49,20 +49,9 @@ that case the first attempt counts too, so the retry limit would be
 
 ## Schedule shape
 
-Start with the cadence, then add the count guard:
-
-```ts
-import { Schedule } from "effect"
-
-const retry5TimesWithFixedSpacing = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
-`Schedule.spaced("1 second")` recurs continuously and waits one second between
-recurrences. `Schedule.recurs(5)` allows five scheduled recurrences. Combining
-them with `Schedule.both` means both schedules must continue, so the policy
-stops when the retry count is exhausted.
+Start with `Schedule.spaced` for the cadence, then add `Schedule.recurs(5)` as
+the count guard. Combining them with `Schedule.both` means both schedules must
+continue, so the policy stops when the retry count is exhausted.
 
 With `Effect.retry`, the first execution is not scheduled. It runs immediately.
 Only failures after that first execution are fed to the schedule:
@@ -77,63 +66,57 @@ Only failures after that first execution are fed to the schedule:
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
   readonly service: string
 }> {}
 
-declare const fetchInventory: Effect.Effect<ReadonlyArray<string>, ServiceUnavailable>
+let attempts = 0
 
-const retry5TimesWithFixedSpacing = Schedule.spaced("1 second").pipe(
+const fetchInventory = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`inventory attempt ${attempts}`)
+
+  if (attempts < 3) {
+    return yield* Effect.fail(
+      new ServiceUnavailable({ service: "inventory" })
+    )
+  }
+
+  return ["sku-123", "sku-456"] as const
+})
+
+const retry5TimesWithFixedSpacing = Schedule.spaced("20 millis").pipe(
   Schedule.both(Schedule.recurs(5))
 )
 
-export const program = fetchInventory.pipe(
-  Effect.retry(retry5TimesWithFixedSpacing)
+const program = fetchInventory.pipe(
+  Effect.retry(retry5TimesWithFixedSpacing),
+  Effect.matchEffect({
+    onFailure: (error) =>
+      Console.log(`failed with ${error._tag} after ${attempts} attempts`),
+    onSuccess: (items) =>
+      Console.log(`loaded ${items.length} items after ${attempts} attempts`)
+  })
 )
+
+Effect.runPromise(program)
 ```
 
-`program` calls `fetchInventory` once immediately. If that attempt fails with a
-typed `ServiceUnavailable`, it waits one second and retries. It can retry at
-most five times. If every allowed attempt fails, `Effect.retry` propagates the
-last typed failure.
+The example uses `20 millis` so it terminates quickly. Use the same shape with
+`1 second`, or any other fixed interval, in application code.
 
 ## Variants
 
 If you do not need to keep the output from `Schedule.recurs`, `Schedule.take(5)`
-can express the same retry cap directly on the fixed-spacing schedule:
-
-```ts
-const retry5TimesWithTake = Schedule.spaced("1 second").pipe(
-  Schedule.take(5)
-)
-```
-
-For `Effect.retry`, this still means up to five retries after the original
-attempt. `take(5)` limits the number of schedule outputs, and those outputs
-correspond to scheduled retries.
+can express the same retry cap directly on the fixed-spacing schedule. For
+`Effect.retry`, `take(5)` still means up to five retries after the original
+attempt because schedule outputs correspond to scheduled retries.
 
 Use a named count guard when the retry limit is important enough to read as its
-own policy:
-
-```ts
-const cadence = Schedule.spaced("1 second")
-const retryLimit = Schedule.recurs(5)
-
-const policy = cadence.pipe(
-  Schedule.both(retryLimit)
-)
-```
-
-If the requirement is "try the operation five times total", allow only four
-retries:
-
-```ts
-const fiveTotalAttempts = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.recurs(4))
-)
-```
+own policy. If the requirement is "try the operation five times total", allow
+only four retries with `Schedule.recurs(4)`.
 
 ## Notes and caveats
 

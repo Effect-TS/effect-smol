@@ -58,111 +58,83 @@ another cadence.
 
 ## Schedule shape
 
-Start with the cadence:
-
-```ts
-const cadence = Schedule.exponential("200 millis")
-```
-
-Then add the budget:
-
-```ts
-const budget = Schedule.during("30 seconds")
-```
-
-Compose them with `Schedule.both`:
-
-```ts
-const retryWithinBudget = cadence.pipe(
-  Schedule.both(budget)
-)
-```
-
-`Schedule.both` continues only while both schedules continue. The exponential
-side supplies the retry delay. The `Schedule.during("30 seconds")` side supplies
-the elapsed recurrence window. When either side stops, the composed schedule
-stops.
-
-Add `Schedule.recurs` only when you also need a hard recurrence cap:
-
-```ts
-const retryWithinBudgetAndCount = cadence.pipe(
-  Schedule.both(Schedule.during("30 seconds")),
-  Schedule.both(Schedule.recurs(12))
-)
-```
-
-Read that as "retry with this delay while the 30 second budget is open and no
-more than 12 retries have been scheduled."
+Start with the cadence, add `Schedule.during`, and compose them with
+`Schedule.both`. `Schedule.both` continues only while both schedules continue.
+The cadence supplies the retry delay. The `Schedule.during` side supplies the
+elapsed recurrence window. Add `Schedule.recurs` only when you also need a hard
+recurrence cap.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
+type ServiceUnavailable = {
+  readonly _tag: "ServiceUnavailable"
   readonly status: number
-}> {}
+}
 
-declare const fetchConfiguration: Effect.Effect<string, ServiceUnavailable>
+const responses: ReadonlyArray<number | "ok"> = [503, 503, 429, "ok"]
+let attempts = 0
+
+const fetchConfiguration: Effect.Effect<string, ServiceUnavailable> = Effect.gen(function*() {
+  const index = yield* Effect.sync(() => {
+    const current = attempts
+    attempts += 1
+    return current
+  })
+  const response = responses[index] ?? 503
+
+  yield* Console.log(`configuration attempt ${index + 1}: ${response}`)
+
+  if (response === "ok") {
+    return "feature flags loaded"
+  }
+
+  return yield* Effect.fail({
+    _tag: "ServiceUnavailable",
+    status: response
+  })
+})
 
 const productionRetryBudget = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.during("30 seconds"))
+  Schedule.both(Schedule.during("30 seconds")),
+  Schedule.both(Schedule.recurs(10))
 )
 
-export const program = fetchConfiguration.pipe(
+const program = fetchConfiguration.pipe(
   Effect.retry({
     schedule: productionRetryBudget,
     while: (error) => error.status === 429 || error.status >= 500
-  })
+  }),
+  Effect.flatMap((result) => Console.log(result)),
+  Effect.catch((error) =>
+    Console.log(`stopped on status ${error.status} after ${attempts} attempts`)
+  )
 )
+
+Effect.runPromise(program)
 ```
 
 `fetchConfiguration` runs once immediately. If it fails with a retryable
 `ServiceUnavailable`, the schedule retries with exponential backoff while the
-30 second elapsed budget remains open. If an attempt succeeds, `program`
+30-second elapsed budget remains open. If an attempt succeeds, `program`
 succeeds with the configuration. If the budget closes first, `program` fails
 with the last typed error.
 
 ## Variants
 
-For a steady background operation, use fixed spacing inside the budget:
+For a steady background operation, use fixed spacing inside the budget. This
+keeps the load profile predictable. For a user-facing path, keep the budget
+short so transient failures get a brief recovery window without making the
+caller wait through a long retry policy.
 
-```ts
-const steadyProductionBudget = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.during("2 minutes"))
-)
-```
-
-This keeps the load profile predictable and stops after the elapsed window
-closes.
-
-For a user-facing path, keep the budget short:
-
-```ts
-const interactiveBudget = Schedule.exponential("50 millis").pipe(
-  Schedule.both(Schedule.during("2 seconds"))
-)
-```
-
-This gives transient failures a brief recovery window without making the caller
-wait through a long retry policy.
-
-For a production safety cap, combine time and count:
-
-```ts
-const boundedProductionRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.during("30 seconds")),
-  Schedule.both(Schedule.recurs(10))
-)
-```
-
-This is useful when the time budget is the primary constraint, but you still
-want protection against very fast failures consuming too many attempts.
+Combine time and count when the time budget is primary but you still want
+protection against very fast failures consuming too many attempts.
 
 ## Notes and caveats
 
-Budget-based limits are not attempt-count limits. A 30 second budget does not
+Budget-based limits are not attempt-count limits. A 30-second budget does not
 mean 30 retries, even with a one second cadence, because each attempt takes time
 and the schedule is consulted between attempts.
 

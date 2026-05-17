@@ -54,24 +54,7 @@ schedule predicate instead of switching to an unbounded maintenance cadence.
 
 ## Schedule shape
 
-Build the phases separately:
-
-```ts
-const reactiveChecks = Schedule.spaced("5 seconds").pipe(
-  Schedule.take(12)
-)
-
-const maintenanceChecks = Schedule.spaced("5 minutes")
-```
-
-Then sequence them:
-
-```ts
-const reactiveThenMaintenance = Schedule.andThen(
-  reactiveChecks,
-  maintenanceChecks
-)
-```
+Build the phases separately, then sequence them with `Schedule.andThen`.
 
 `reactiveChecks` controls the first twelve follow-up checks after the initial
 successful run. Once that schedule completes, `maintenanceChecks` takes over
@@ -83,38 +66,50 @@ starts. The schedule controls only the decisions after each successful check.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type Health =
   | { readonly _tag: "Healthy" }
   | { readonly _tag: "Degraded"; readonly reason: string }
 
-type HealthReadError = {
-  readonly _tag: "HealthReadError"
-  readonly message: string
-}
+let reads = 0
 
-declare const readHealth: Effect.Effect<Health, HealthReadError>
+const readHealth = Effect.gen(function*() {
+  reads += 1
+  const health: Health = reads < 6
+    ? { _tag: "Healthy" }
+    : { _tag: "Degraded", reason: "sample window complete" }
+  yield* Console.log(`health read ${reads}: ${health._tag}`)
+  return health
+})
 
-const reactiveChecks = Schedule.spaced("5 seconds").pipe(
-  Schedule.take(12)
+const reactiveChecks = Schedule.spaced("10 millis").pipe(
+  Schedule.take(4)
 )
 
-const maintenanceChecks = Schedule.spaced("5 minutes")
+const maintenanceChecks = Schedule.spaced("50 millis").pipe(
+  Schedule.take(2)
+)
 
 const reactiveThenMaintenance = Schedule.andThen(
   reactiveChecks,
   maintenanceChecks
 )
 
-export const healthMonitor = readHealth.pipe(
+const healthMonitor = readHealth.pipe(
   Effect.repeat(reactiveThenMaintenance)
 )
+
+const program = healthMonitor.pipe(
+  Effect.flatMap(() => Console.log("reactive-to-maintenance sample finished"))
+)
+
+Effect.runPromise(program)
 ```
 
 `healthMonitor` reads health immediately. If the read succeeds, it performs up
-to twelve follow-up reads with five seconds between successful reads. After
-that reactive window, it switches to one successful read every five minutes.
+to four fast follow-up reads in this runnable sample. After that reactive
+window, it switches to the slower maintenance cadence.
 
 This schedule does not inspect whether the returned `Health` is `Healthy` or
 `Degraded`; it only controls the phase timing. If the observed health should
@@ -124,47 +119,16 @@ transition remains readable.
 ## Variants
 
 Use a time budget instead of a recurrence count when the reactive window is
-defined by elapsed time:
+defined by elapsed time. Use jitter when many instances may enter maintenance
+mode together, for example after a deploy or regional recovery.
 
-```ts
-const reactiveForOneMinute = Schedule.spaced("5 seconds").pipe(
-  Schedule.both(Schedule.during("1 minute"))
-)
+Keep retries for failed reads separate from the repeat cadence. A short
+`Effect.retry` policy can handle transient failures of one health read, while
+the sequenced repeat policy handles successful monitoring cadence.
 
-const reactiveThenMaintenance = Schedule.andThen(
-  reactiveForOneMinute,
-  Schedule.spaced("5 minutes")
-)
-```
-
-Use jitter when many instances may enter maintenance mode together, for example
-after a deploy or regional recovery:
-
-```ts
-const maintenanceChecks = Schedule.spaced("5 minutes").pipe(
-  Schedule.jittered
-)
-```
-
-Keep retries for failed reads separate from the repeat cadence:
-
-```ts
-const retryReadFailure = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(3))
-)
-
-const resilientReadHealth = readHealth.pipe(
-  Effect.retry(retryReadFailure)
-)
-
-export const resilientHealthMonitor = resilientReadHealth.pipe(
-  Effect.repeat(reactiveThenMaintenance)
-)
-```
-
-Here, the short exponential policy handles transient failures of one health
-read. The sequenced repeat policy handles the successful monitoring cadence:
-reactive first, maintenance afterward.
+The example bounds the maintenance phase so it terminates quickly. In a daemon,
+remove that bound and let scope lifetime or explicit cancellation stop the
+monitor.
 
 ## Notes and caveats
 

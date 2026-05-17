@@ -11,24 +11,13 @@ code_included: true
 # 43.2 Retry HTTP GET on 503
 
 A `503 Service Unavailable` response can be retryable for an idempotent HTTP
-`GET`, but it should not turn into a generic HTTP retry policy.
+`GET`. Keep it narrower than a generic HTTP retry policy.
 
 ## Problem
 
-You need to fetch a resource with `GET`. If the service responds with `503`,
-you want to retry briefly with backoff. If it responds with anything else, the
-caller should see that failure immediately.
-
-Keep those two decisions separate:
-
-```ts
-const program = getCatalog("https://api.example.test/catalog").pipe(
-  Effect.retry({
-    schedule: retry503WithBackoff,
-    while: isServiceUnavailableGet
-  })
-)
-```
+You fetch a resource with `GET`. If the service responds with `503`, retry
+briefly with backoff. If it responds with any other failure, return that failure
+to the caller immediately.
 
 The predicate decides whether the current typed failure is retryable. The
 schedule decides when another attempt is allowed and when retrying stops.
@@ -40,9 +29,7 @@ unavailability: dependency warm-up, rolling deploys, overloaded gateways, or a
 backend pool with short-lived capacity trouble.
 
 It is a good fit when callers need an answer quickly but a small number of
-retries can hide brief service interruptions. It also fits shared client
-libraries because the policy makes retry count, elapsed budget, and delay shape
-visible at the call site.
+retries can hide brief service interruptions.
 
 ## When not to use it
 
@@ -61,44 +48,23 @@ guarantee before adding retries.
 ## Schedule shape
 
 With `Effect.retry`, failures from the error channel are the schedule inputs.
-Use the retry options form when the retryability decision is easiest to express
-as a predicate over the typed error:
+Use the options form when retryability is a predicate over the typed error.
 
-```ts
-Effect.retry({
-  schedule: retry503WithBackoff,
-  while: isServiceUnavailableGet
-})
-```
-
-For the timing policy, start with exponential backoff:
-
-```ts
-Schedule.exponential("100 millis")
-```
-
-Then intersect it with explicit limits:
-
-```ts
-Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(4)),
-  Schedule.both(Schedule.during("3 seconds"))
-)
-```
-
-`Schedule.both` has intersection semantics: the combined schedule recurs only
-while both sides still allow another recurrence. Here that means at most four
+Start with `Schedule.exponential`, then intersect it with explicit limits using
+`Schedule.both`. The combined schedule recurs only while both sides still allow
+another recurrence. For example, a backoff schedule combined with
+`Schedule.recurs(4)` and `Schedule.during("3 seconds")` allows at most four
 retries after the first request, and only while the elapsed retry budget is
-still within three seconds.
+still open.
 
 Add `Schedule.jittered` when many instances may hit the same service at once.
-In `Schedule.ts`, jitter adjusts each recurrence delay between 80% and 120% of
-the original delay, which helps avoid synchronized retry waves.
+It adjusts each recurrence delay between 80% and 120% of the original delay,
+which helps avoid synchronized retry waves.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 type HttpStatus = 200 | 400 | 401 | 403 | 404 | 429 | 500 | 502 | 503 | 504
 
@@ -120,7 +86,19 @@ class HttpResponseError extends Data.TaggedError("HttpResponseError")<{
 
 type GetCatalogError = TransportError | HttpResponseError
 
-declare const rawGet: (url: string) => Effect.Effect<HttpResponse, TransportError>
+let attempts = 0
+
+const rawGet = (url: string): Effect.Effect<HttpResponse, TransportError> =>
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`GET ${url}, attempt ${attempts}`)
+
+    if (attempts <= 2) {
+      return { status: 503, body: "warming up" }
+    }
+
+    return { status: 200, body: "catalog-v1" }
+  })
 
 const classifyGetResponse = (
   url: string,
@@ -132,7 +110,7 @@ const classifyGetResponse = (
         new HttpResponseError({
           method: "GET",
           url,
-          status: response.status
+          status: response.status as Exclude<HttpStatus, 200>
         })
       )
 
@@ -146,29 +124,28 @@ const isServiceUnavailableGet = (error: GetCatalogError): boolean =>
   error.method === "GET" &&
   error.status === 503
 
-const retry503WithBackoff = Schedule.exponential("100 millis").pipe(
+const retry503WithBackoff = Schedule.exponential("10 millis").pipe(
   Schedule.both(Schedule.recurs(4)),
-  Schedule.both(Schedule.during("3 seconds")),
+  Schedule.both(Schedule.during("300 millis")),
   Schedule.jittered
 )
 
-export const program = getCatalog("https://api.example.test/catalog").pipe(
+const program = getCatalog("https://api.example.test/catalog").pipe(
   Effect.retry({
     schedule: retry503WithBackoff,
     while: isServiceUnavailableGet
-  })
+  }),
+  Effect.tap((body) => Console.log(`received ${body}`))
 )
+
+Effect.runPromise(program).then(console.log, console.error)
 ```
 
-`program` sends the first `GET` immediately. If `rawGet` succeeds with a `200`
-response, the body is returned. If the response is `503`, the retry predicate
-returns `true`, so the schedule may wait and try again.
+The example uses short delays so it finishes quickly. The first `GET` is sent
+immediately. A `503` is retried; any other status is surfaced immediately.
 
-If the response is `400`, `401`, `403`, `404`, `429`, `500`, `502`, or `504`,
-the predicate returns `false` and `Effect.retry` propagates that
-`HttpResponseError` immediately. If the transport layer fails with
-`TransportError`, this policy also does not retry it; that can be a separate
-timeout or network-failure recipe.
+If the transport layer fails with `TransportError`, this policy also does not
+retry it. That can be a separate timeout or network-failure recipe.
 
 If every permitted retry still receives `503`, retrying stops when the count
 limit or elapsed-time limit is exhausted, and the last typed failure is
@@ -177,39 +154,11 @@ propagated.
 ## Variants
 
 Use a count-only policy when elapsed time is less important than a fixed number
-of attempts:
+of attempts. Use a shorter user-facing budget when the caller is waiting.
 
-```ts
-const retry503FourTimes = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(4)),
-  Schedule.jittered
-)
-```
-
-Use a shorter user-facing budget when the caller is waiting:
-
-```ts
-const retry503ForInteractiveRequest = Schedule.exponential("50 millis").pipe(
-  Schedule.both(Schedule.recurs(2)),
-  Schedule.both(Schedule.during("500 millis"))
-)
-```
-
-Use `Schedule.while` in the schedule builder form when you want the reusable
-schedule itself to carry the typed 503 filter:
-
-```ts
-const programWithScheduleFilter = getCatalog("https://api.example.test/catalog").pipe(
-  Effect.retry(($) =>
-    $(Schedule.exponential("100 millis")).pipe(
-      Schedule.while(({ input }) => isServiceUnavailableGet(input)),
-      Schedule.both(Schedule.recurs(4)),
-      Schedule.both(Schedule.during("3 seconds")),
-      Schedule.jittered
-    )
-  )
-)
-```
+If you want the reusable schedule itself to carry the 503 filter, use
+`Schedule.while(({ input }) => isServiceUnavailableGet(input))` after setting
+the schedule input type to the HTTP error.
 
 ## Notes and caveats
 

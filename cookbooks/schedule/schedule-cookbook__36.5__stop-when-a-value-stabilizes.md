@@ -55,25 +55,15 @@ real business rule.
 ## Schedule shape
 
 Start with a schedule whose input and output are the successful observation,
-reduce those observations into stability state, and continue only while the
-state is not stable:
-
-```ts
-Schedule.identity<Snapshot>().pipe(
-  Schedule.reduce(() => initialState, updateStabilityState),
-  Schedule.while(({ output }) => !output.stable)
-)
-```
-
-`Schedule.identity<Snapshot>()` passes each successful `Snapshot` through as the
-schedule output. `Schedule.reduce` keeps the previous observation in schedule
-state. `Schedule.while` stops the repeat once the reduced output says the value
-has stabilized.
+reduce those observations into stability state, and continue only while that
+state is not stable. `Schedule.identity<Snapshot>()` passes each successful
+`Snapshot` through as the schedule output. `Schedule.reduce` keeps the previous
+observation in schedule state.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 interface Snapshot {
   readonly version: string
@@ -86,7 +76,27 @@ interface StabilityState {
   readonly stable: boolean
 }
 
-declare const readSnapshot: Effect.Effect<Snapshot>
+const snapshots: ReadonlyArray<Snapshot> = [
+  { version: "v1", itemCount: 8 },
+  { version: "v2", itemCount: 10 },
+  { version: "v2", itemCount: 10 }
+]
+
+let reads = 0
+
+const readSnapshot: Effect.Effect<Snapshot> = Effect.gen(function*() {
+  const index = yield* Effect.sync(() => {
+    const current = reads
+    reads += 1
+    return current
+  })
+  const snapshot = snapshots[index] ?? snapshots[snapshots.length - 1]!
+
+  yield* Console.log(
+    `snapshot ${index + 1}: version=${snapshot.version}, items=${snapshot.itemCount}`
+  )
+  return snapshot
+})
 
 const sameSnapshot = (left: Snapshot, right: Snapshot) =>
   left.version === right.version && left.itemCount === right.itemCount
@@ -98,6 +108,7 @@ const initialState: StabilityState = {
 }
 
 const untilStable = Schedule.identity<Snapshot>().pipe(
+  Schedule.bothLeft(Schedule.spaced("100 millis")),
   Schedule.reduce(
     () => initialState,
     (state, current): StabilityState => ({
@@ -109,9 +120,16 @@ const untilStable = Schedule.identity<Snapshot>().pipe(
   Schedule.while(({ output }) => !output.stable)
 )
 
-export const stableSnapshotState = readSnapshot.pipe(
-  Effect.repeat(untilStable)
+const program = readSnapshot.pipe(
+  Effect.repeat(untilStable),
+  Effect.flatMap((state) =>
+    Console.log(
+      `stable at version ${state.current?.version} with ${state.current?.itemCount} items`
+    )
+  )
 )
+
+Effect.runPromise(program)
 ```
 
 `readSnapshot` runs once before the schedule is consulted. The first successful
@@ -125,57 +143,14 @@ snapshot that matched `previous`.
 
 ## Variants
 
-Add spacing and a limit when the observation is remote or when stabilization is
-not guaranteed:
+For domains that can pause and then continue changing, require a longer stable
+streak instead of one unchanged comparison. Track a count in the reduced state
+and stop only after the count reaches the required number of unchanged
+observations.
 
-```ts
-import { Effect, Schedule } from "effect"
-
-interface Snapshot {
-  readonly checksum: string
-}
-
-interface StableStreak {
-  readonly previous: Snapshot | undefined
-  readonly current: Snapshot | undefined
-  readonly count: number
-}
-
-declare const readSnapshot: Effect.Effect<Snapshot>
-
-const requiredUnchangedComparisons = 3
-
-const stableForThreeReads = Schedule.spaced("500 millis").pipe(
-  Schedule.satisfiesInputType<Snapshot>(),
-  Schedule.passthrough,
-  Schedule.reduce(
-    (): StableStreak => ({ previous: undefined, current: undefined, count: 0 }),
-    (state, current): StableStreak => {
-      const unchanged = state.current !== undefined &&
-        state.current.checksum === current.checksum
-
-      return {
-        previous: state.current,
-        current,
-        count: unchanged ? state.count + 1 : 0
-      }
-    }
-  ),
-  Schedule.while(({ output }) => output.count < requiredUnchangedComparisons),
-  Schedule.both(Schedule.recurs(20)),
-  Schedule.both(Schedule.during("30 seconds"))
-)
-
-export const stableSnapshotState = readSnapshot.pipe(
-  Effect.repeat(stableForThreeReads)
-)
-```
-
-Here `Schedule.spaced("500 millis")` waits between successful observations.
-`Schedule.passthrough` makes each successful `Snapshot` the schedule output so
-`Schedule.reduce` can compare it with the previous one. The repeat stops after
-three consecutive unchanged comparisons, or earlier if the count or time limit
-ends the schedule.
+Add a recurrence limit or elapsed budget when stabilization is not guaranteed.
+If the limit stops the schedule first, inspect the final state and return a
+domain-specific "not stable yet" result.
 
 ## Notes and caveats
 

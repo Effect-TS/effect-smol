@@ -11,14 +11,13 @@ code_included: true
 # 29.2 Observability implications
 
 Jitter makes recurrence timing intentionally approximate. Logs and metrics need
-to explain that variance as part of the policy, not as accidental drift.
+to show that variance as policy behavior, not accidental drift.
 
 ## Problem
 
-After a production path adds jitter to retries or polling, logs, metrics,
-dashboards, and incident notes still need to explain what happened. Without
-clear observability, random-looking waits can be mistaken for timer drift,
-event-loop stalls, queue latency, downstream slowness, or a broken retry policy.
+After retries or polling add jitter, random-looking waits can be mistaken for
+timer drift, event-loop stalls, queue latency, downstream slowness, or a broken
+policy. Observability should make the expected range visible.
 
 ## When to use it
 
@@ -34,9 +33,9 @@ particular retry did not happen at the nominal interval.
 
 ## When not to use it
 
-Do not add jitter where exact timing is part of the product or protocol contract.
-For example, a billing deadline, a user-visible countdown, or a lease renewal
-with narrow timing requirements should not become random just to smooth logs.
+Do not add jitter where exact timing is part of the product or protocol
+contract. A billing deadline, a user-visible countdown, or a lease renewal with
+narrow timing requirements should not become random just to smooth logs.
 
 Also avoid using jitter to explain away a deeper overload problem. If every
 attempt is failing, a jittered schedule may spread the load, but it does not make
@@ -55,24 +54,50 @@ even though the schedule is behaving correctly.
 ## Code
 
 ```ts
-import { Duration, Effect, Schedule } from "effect"
+import { Console, Duration, Effect, Random, Ref, Schedule } from "effect"
 
-type ApiError = { readonly _tag: "Timeout" | "Unavailable" }
+type ApiError = {
+  readonly _tag: "Timeout" | "Unavailable"
+  readonly attempt: number
+}
 
-declare const callApi: Effect.Effect<void, ApiError>
-
-const apiRetryPolicy = Schedule.exponential("200 millis").pipe(
+const apiRetryPolicy = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((baseDelay, jitteredDelay) =>
-    Effect.log(
+    Console.log(
       `retry delay: base=${Duration.format(baseDelay)} actual=${Duration.format(jitteredDelay)}`
     ).pipe(Effect.as(jitteredDelay))
   ),
-  Schedule.both(Schedule.recurs(5))
+  Schedule.both(Schedule.recurs(3))
 )
 
-export const program = Effect.retry(callApi, apiRetryPolicy)
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+
+  const callApi: Effect.Effect<string, ApiError> = Effect.gen(function*() {
+    const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+    yield* Console.log(`api attempt ${attempt}`)
+
+    if (attempt < 3) {
+      return yield* Effect.fail({ _tag: "Timeout", attempt } as const)
+    }
+
+    return "api response"
+  })
+
+  const result = yield* callApi.pipe(
+    Effect.retry(apiRetryPolicy),
+    Random.withSeed("observability-demo")
+  )
+
+  yield* Console.log(`result: ${result}`)
+})
+
+Effect.runPromise(program)
 ```
+
+The schedule logs the base exponential delay and the final jittered delay. Log
+the latter when explaining when the next attempt was actually scheduled.
 
 ## Variants
 

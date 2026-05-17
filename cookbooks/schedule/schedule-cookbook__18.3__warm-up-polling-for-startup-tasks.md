@@ -10,9 +10,9 @@ code_included: true
 
 # 18.3 Warm-up polling for startup tasks
 
-Use this recipe for startup work that often becomes ready quickly, but may need
-a slower follow-up cadence if warm-up takes longer. The schedule starts with a
-tight readiness burst and then backs off.
+Use this for startup work that often becomes ready quickly but may need a slower
+follow-up cadence. The schedule starts with a tight readiness burst and then
+backs off.
 
 ## Problem
 
@@ -45,82 +45,70 @@ work or contends with the startup task it is observing.
 
 ## Schedule shape
 
-Sequence a short warm-up cadence into a slower cadence, then stop the whole
-policy when the latest successful status is ready:
-
-```ts
-Schedule.spaced("200 millis").pipe(
-  Schedule.take(10),
-  Schedule.andThen(Schedule.spaced("2 seconds")),
-  Schedule.satisfiesInputType<StartupStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "starting")
-)
-```
-
-`Schedule.spaced("200 millis").pipe(Schedule.take(10))` supplies the warm-up
-burst after the immediate first check. `Schedule.andThen` moves to
-`Schedule.spaced("2 seconds")` once that burst is exhausted. The
-`Schedule.while` predicate is applied after the sequencing, so a ready status
-stops both the warm-up phase and the slower phase.
-
-`Schedule.passthrough` keeps the latest `StartupStatus` as the schedule output,
-so the repeated effect returns the final observed status rather than the timing
-schedule's numeric output.
+Sequence a short warm-up cadence into a slower cadence with `Schedule.andThen`.
+Apply `Schedule.while` after the sequencing so a terminal status stops both
+phases. Use `Schedule.passthrough` so the repeat result is the latest
+`StartupStatus`.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Clock, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type StartupStatus =
   | { readonly state: "starting"; readonly loaded: number; readonly total: number }
   | { readonly state: "ready"; readonly warmedEntries: number }
   | { readonly state: "failed"; readonly reason: string }
 
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
-
-declare const checkWarmUpStatus: Effect.Effect<StartupStatus, StatusCheckError>
-
 const warmUpPolling = Schedule.spaced("200 millis").pipe(
-  Schedule.take(10),
+  Schedule.take(3),
   Schedule.andThen(Schedule.spaced("2 seconds")),
   Schedule.satisfiesInputType<StartupStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.state === "starting")
 )
 
-const waitForWarmUpStatus = checkWarmUpStatus.pipe(
-  Effect.repeat(warmUpPolling)
-)
+const script: ReadonlyArray<StartupStatus> = [
+  { state: "starting", loaded: 1, total: 4 },
+  { state: "starting", loaded: 2, total: 4 },
+  { state: "starting", loaded: 3, total: 4 },
+  { state: "starting", loaded: 3, total: 4 },
+  { state: "ready", warmedEntries: 4 }
+]
+
+let checks = 0
+
+const checkWarmUpStatus = Effect.gen(function*() {
+  const now = yield* Clock.currentTimeMillis
+  const status = script[Math.min(checks, script.length - 1)]!
+  checks += 1
+  console.log(`t+${now}ms check ${checks}: ${status.state}`)
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* checkWarmUpStatus.pipe(
+    Effect.repeat(warmUpPolling),
+    Effect.forkDetach
+  )
+
+  yield* TestClock.adjust("3 seconds")
+
+  const finalStatus = yield* Fiber.join(fiber)
+  console.log("final:", finalStatus)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program)
 ```
 
-`checkWarmUpStatus` runs once immediately. If it reports `"ready"` or
-`"failed"`, polling stops without waiting. If it reports `"starting"`, the
-schedule waits 200 milliseconds between the first few recurrences, then falls
-back to a two-second cadence.
-
-The resulting effect succeeds with the latest observed `StartupStatus`. That is
-usually `"ready"` or `"failed"`, but it can keep polling indefinitely in the
-slower phase while the status remains `"starting"`.
+The first three scheduled recurrences use the warm-up cadence. Later recurrences
+use the two-second cadence.
 
 ## Variants
 
 Use a shorter warm-up burst when the task is expected to settle almost
-immediately:
-
-```ts
-const shortWarmUpPolling = Schedule.spaced("100 millis").pipe(
-  Schedule.take(5),
-  Schedule.andThen(Schedule.spaced("1 second")),
-  Schedule.satisfiesInputType<StartupStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "starting")
-)
-```
+immediately.
 
 Use a slower steady cadence when the status endpoint is only useful as a
 coarse-grained startup signal. For example, keep the 200 millisecond warm-up
@@ -139,12 +127,9 @@ Apply the readiness predicate after `Schedule.andThen`. If the predicate is
 attached only to the warm-up phase, the sequenced schedule can still move into
 the slower phase after the warm-up schedule completes.
 
-`Schedule.take(10)` limits the number of warm-up recurrences; it is not the
+`Schedule.take(3)` limits the number of warm-up recurrences; it is not the
 number of total status checks. The initial status check happens before those
 scheduled recurrences.
 
 `Schedule.while` sees successful status values only. If `checkWarmUpStatus`
-fails with `StatusCheckError`, `Effect.repeat` stops with that failure.
-
-When a timing schedule reads status through `metadata.input`, constrain it with
-`Schedule.satisfiesInputType<StartupStatus>()` before `Schedule.while`.
+fails, `Effect.repeat` stops with that failure.

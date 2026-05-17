@@ -10,37 +10,30 @@ code_included: false
 
 # 61.2 Repeat
 
-Repeat is the operation of running an effect again after it succeeds, according
-to a `Schedule`.
+Repeat reruns an effect after it succeeds. In `Effect.repeat`, the first
+execution runs immediately. Each successful value then becomes the input to the
+`Schedule`; the schedule decides whether to run again, how long to wait before
+that run, and which schedule output is returned when repetition stops.
 
-In Effect terms, the successful value produced by the effect becomes the input
-to the schedule. The schedule then decides whether another execution should
-happen, what delay should be used before that execution, and what schedule output
-should be returned when repetition stops. This is why repeat policies can inspect
-successful results with input-aware schedule combinators and can preserve the
-latest successful value with `Schedule.passthrough`.
+Repeat stops on failure unless the repeated effect handles or retries that
+failure itself. Retry is the opposite shape: failures feed the schedule, and a
+success ends the retry loop.
 
-Repeat is different from retry. With retry, failures feed the schedule, and a
-success ends the retry loop. With repeat, successes feed the schedule, and a
-failure ends the repeat immediately unless the repeated effect handles or retries
-that failure itself.
+Because the first execution is outside the schedule, count limits describe
+additional successful recurrences. `Schedule.recurs(3)` allows three repeats
+after the initial run, not three total executions.
 
-The first execution is not scheduled by the repeat policy. The effect runs once
-immediately, and only then does the schedule control additional successful
-recurrences. Count-limiting schedules therefore describe repetitions after the
-initial run, not a delay before the first run.
+Use repeat for polling, heartbeats, refresh loops, sampling, maintenance loops,
+and other workflows where the next run depends on the previous successful
+observation. Use retry when the next run is a response to a typed failure.
 
-Use repeat for polling, heartbeats, refresh loops, sampling, and other workflows
-where the next run depends on the previous successful observation. Use retry when
-the next run is a response to a typed failure.
+Common repeat policies start with `Schedule.spaced` for a delay after each
+successful run or `Schedule.fixed` for wall-clock cadence. Add `Schedule.recurs`
+or `Schedule.take` for a count budget, `Schedule.during` for an elapsed-time
+budget, `Schedule.while` for a value-based stop condition, and
+`Schedule.passthrough` when the final result should be the latest successful
+value rather than the schedule's own counter or duration output.
 
-Common repeat schedules include `Schedule.spaced` for a delay after each
-successful run, `Schedule.fixed` for a fixed cadence, `Schedule.recurs` or
-`Schedule.take` for a recurrence budget, `Schedule.during` for an elapsed-time
-budget, and `Schedule.while` for stopping based on the successful value supplied
-to the schedule.
-
-Operationally, a repeat policy should make its stopping condition explicit. An
-unbounded repeat such as a heartbeat may be intentional, but polling and refresh
-loops usually need a count limit, elapsed-time budget, domain predicate, or
-surrounding cancellation boundary.
+Make the stopping condition visible. An unbounded heartbeat may be deliberate,
+but polling and refresh loops usually need a count limit, time budget, domain
+predicate, or surrounding cancellation boundary.

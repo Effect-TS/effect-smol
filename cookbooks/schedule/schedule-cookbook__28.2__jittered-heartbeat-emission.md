@@ -10,9 +10,8 @@ code_included: true
 
 # 28.2 Jittered heartbeat emission
 
-Heartbeat loops are successful periodic writes that usually need a stable
-cadence rather than exact alignment. This recipe adds jitter to a regular
-heartbeat schedule.
+Use jittered repetition for heartbeat loops that need a stable cadence, not
+exact alignment across every instance.
 
 ## Problem
 
@@ -53,12 +52,6 @@ retry inside the heartbeat effect, then repeat the recovered effect.
 
 Start with the intended gap between successful heartbeats, then apply jitter:
 
-```ts
-Schedule.spaced("30 seconds").pipe(
-  Schedule.jittered
-)
-```
-
 `Schedule.spaced("30 seconds")` supplies the base delay between successful
 heartbeats. `Schedule.jittered` randomly adjusts each recurrence delay between
 80% and 120% of that delay, so a thirty-second heartbeat waits between
@@ -77,43 +70,49 @@ type Heartbeat = {
   readonly generation: number
 }
 
-type HeartbeatError = {
-  readonly _tag: "HeartbeatError"
-  readonly message: string
-}
+let generation = 0
 
-declare const emitHeartbeat: (
-  heartbeat: Heartbeat
-) => Effect.Effect<void, HeartbeatError>
+const nextHeartbeat = Effect.sync((): Heartbeat => {
+  generation += 1
+  return {
+    instanceId: "worker-a",
+    generation
+  }
+})
 
-const heartbeatSchedule = Schedule.spaced("30 seconds").pipe(
-  Schedule.jittered
+const emitHeartbeat = (heartbeat: Heartbeat) =>
+  Effect.sync(() => {
+    console.log(
+      `heartbeat ${heartbeat.instanceId} generation ${heartbeat.generation}`
+    )
+  })
+
+const sendHeartbeat = nextHeartbeat.pipe(
+  Effect.flatMap(emitHeartbeat)
 )
 
-const runHeartbeat = (heartbeat: Heartbeat) =>
-  emitHeartbeat(heartbeat).pipe(
-    Effect.repeat(heartbeatSchedule)
-  )
-```
-
-`runHeartbeat` sends one heartbeat immediately. If it succeeds, the next
-heartbeat waits for a jittered delay around thirty seconds. Across many
-instances, each recurrence chooses its own adjusted delay, so instances that
-started together are less likely to keep writing together.
-
-## Variants
-
-For a short-lived process or a test fixture, add a recurrence limit:
-
-```ts
-const boundedHeartbeatSchedule = Schedule.spaced("30 seconds").pipe(
+const demoHeartbeatSchedule = Schedule.spaced("20 millis").pipe(
   Schedule.jittered,
   Schedule.take(3)
 )
+
+const program = sendHeartbeat.pipe(
+  Effect.repeat(demoHeartbeatSchedule),
+  Effect.tap(() => Effect.sync(() => console.log("heartbeat loop stopped")))
+)
+
+Effect.runPromise(program)
 ```
 
-This sends the initial heartbeat and then allows three scheduled recurrences.
-The initial execution is not counted as one of the scheduled recurrences.
+The sample emits the initial heartbeat plus three scheduled recurrences. For a
+real heartbeat loop, use the production interval and interrupt the fiber when
+the process shuts down.
+
+## Variants
+
+For a short-lived process or test fixture, keep a recurrence limit with
+`Schedule.take`. The initial execution is not counted as one of the scheduled
+recurrences.
 
 For a lower-cost liveness signal, shorten the base interval. A ten-second base
 interval becomes a jittered delay between eight and twelve seconds.

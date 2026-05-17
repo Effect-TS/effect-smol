@@ -10,117 +10,87 @@ code_included: true
 
 # 31.4 Limit maintenance loops
 
-Recurring maintenance work should make both cadence and stop conditions
-explicit. A small cache-warming, compaction, reconciliation, or cleanup step can
-still consume capacity long after useful work is gone if the loop is unbounded.
+Maintenance loops should make cadence and stopping rules visible. Even small
+cache-warming, compaction, reconciliation, or cleanup steps can waste capacity
+when the loop has no clear bound.
 
 ## Problem
 
-You need a maintenance loop that runs opportunistically inside a bounded
-window. The first run of `Effect.repeat` should happen normally, and the
-schedule should then decide whether to run again, how long to wait, and when
-the loop has spent enough work or time.
-
-The policy should answer two operational questions without reading the loop
-body:
-
-- how much time to leave between maintenance steps
-- what stops the loop if there is always more work to check
+A worker should run opportunistic maintenance inside a bounded window. The
+policy should show how long to wait between steps and what stops the loop if
+there is always more work to check.
 
 ## When to use it
 
-Use this recipe for internal recurring work that is useful only inside a bounded
-window: draining a backlog during startup, warming a limited set of keys,
-reconciling a shard, compacting old records, or sweeping temporary resources.
+Use this for finite internal work: startup backlog draining, limited key
+warming, shard reconciliation, old-record compaction, or temporary-resource
+sweeps.
 
-It is especially useful when a worker is allowed to make progress opportunistically
-but must hand capacity back to the rest of the service after a count or time
-budget is reached.
+It is useful when the worker may make progress for a while but must return
+capacity to the rest of the service after a count or time budget is reached.
 
 ## When not to use it
 
-Do not use a bounded maintenance loop as a substitute for proper ownership of
-long-running background work. If the task must run for the lifetime of the
-process, model that directly and add interruption, supervision, and
-observability around the worker.
+Do not use a bounded repeat as a substitute for a supervised long-running
+worker. If the task must run for the process lifetime, model interruption,
+supervision, and observability directly.
 
-Also avoid hiding domain completion inside the schedule. If the maintenance step
-can report "nothing left to do", use that result to stop the workflow. Use the
-schedule for recurrence mechanics: spacing, count limits, elapsed budgets, and
-fleet-wide load smoothing.
+Do not hide domain completion in the schedule. If the maintenance step can say
+"nothing left to do," use that result to stop. Use the schedule for mechanics:
+spacing, recurrence count, elapsed budget, and jitter.
 
 ## Schedule shape
 
-Start with the cadence. `Schedule.spaced("30 seconds")` waits after each
-successful step before the next one. Use `Schedule.fixed` instead when the work
-must align to a wall-clock cadence; if a fixed interval is missed because the
-work took too long, the next run happens immediately and missed runs do not pile
-up.
+Start with `Schedule.spaced` for a pause after each successful step. Add
+`Schedule.recurs(n)` for a maximum number of scheduled recurrences. Add
+`Schedule.during(duration)` when elapsed schedule time is part of the budget.
 
-Then add limits:
-
-- `Schedule.recurs(n)` allows at most `n` scheduled recurrences after the
-  original run.
-- `Schedule.take(n)` limits how many outputs are taken from another schedule.
-- `Schedule.during(duration)` keeps recurring only while the schedule elapsed
-  time is within the duration.
-
-Combine independent limits with `Schedule.both`. The combined schedule continues
-only while both schedules continue, and it uses the larger delay. That makes a
-count-and-time budget read as "run again every interval until either limit is
-exhausted."
+`Schedule.both` combines independent limits: the combined schedule continues
+only while both schedules continue, and it uses the longer delay.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-type MaintenanceError = { readonly _tag: "MaintenanceError" }
+let step = 0
 
-declare const runMaintenanceStep: Effect.Effect<void, MaintenanceError>
+const runMaintenanceStep = Effect.gen(function*() {
+  step += 1
+  yield* Console.log(`maintenance step ${step}`)
+  return step
+})
 
-const maintenanceWindow = Schedule.spaced("30 seconds").pipe(
-  Schedule.both(Schedule.recurs(20)),
-  Schedule.both(Schedule.during("15 minutes"))
+const maintenanceWindow = Schedule.spaced("20 millis").pipe(
+  Schedule.both(Schedule.recurs(4)),
+  Schedule.both(Schedule.during("100 millis"))
 )
 
-export const program = Effect.repeat(runMaintenanceStep, maintenanceWindow)
+const program = runMaintenanceStep.pipe(
+  Effect.repeat(maintenanceWindow),
+  Effect.andThen(Console.log("maintenance window closed"))
+)
+
+Effect.runPromise(program)
 ```
 
-The maintenance step runs once before the schedule is consulted. After a
-successful step, the schedule waits 30 seconds before the next step. The loop can
-then recur at most 20 times, and it also stops once the schedule has been active
-for more than 15 minutes. Whichever limit is reached first ends the repeated
-work.
+The step runs once before the schedule is consulted. After that, it can recur
+only while the spacing policy, count limit, and elapsed-time budget all continue.
 
 ## Variants
 
-For a small one-shot cleanup, use only a count limit:
+For a small one-shot sweep, use a count limit with a short spacing. For a
+startup warmup where time matters more than count, keep `Schedule.during`
+visible and choose the spacing from the dependency being warmed.
 
-```ts
-const shortSweep = Schedule.spaced("5 seconds").pipe(
-  Schedule.recurs(3)
-)
-```
-
-For a maintenance window where elapsed time matters more than count, keep the
-time budget visible:
-
-```ts
-const startupWarmup = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.during("1 minute"))
-)
-```
-
-For many service instances running the same maintenance policy, add jitter after
-the base cadence is correct so instances do not all wake up together.
+For many service instances running the same maintenance loop, add
+`Schedule.jittered` after the base cadence is correct.
 
 ## Notes and caveats
 
 `Effect.repeat` feeds successful values into the schedule. `Effect.retry` feeds
-failures into the schedule. Maintenance loops usually use `Effect.repeat`
-because each successful step is the signal to schedule the next one.
+failures into a schedule. Maintenance loops usually use `repeat` because each
+successful step is the signal to consider another step.
 
-The count is a recurrence limit, not the number of total executions. With
-`Effect.repeat(effect, Schedule.recurs(20))`, the original execution can be
-followed by at most 20 scheduled recurrences.
+`Schedule.recurs(4)` means at most four scheduled recurrences after the original
+execution, not four total executions.

@@ -10,80 +10,32 @@ code_included: true
 
 # 4.3 Retry with a small constant delay
 
-You have a failing effect that is worth retrying a few times, but immediate retries are
-too aggressive. A short, fixed pause between attempts gives the dependency a little time
-to recover without making the policy more complicated than it needs to be. This recipe
-keeps the retry policy explicit: the schedule decides when another typed failure should
-be attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+Combine `Schedule.spaced(duration)` with a count limit when immediate retries
+are too aggressive but full backoff is unnecessary.
 
 ## Problem
 
-The retry policy needs two simple constraints: a fixed pause before each retry
-and a finite retry budget.
-
-Use `Schedule.spaced(duration)` for the delay and combine it with
-`Schedule.recurs(n)` for the retry limit:
-
-```ts
-const retryPolicy = Schedule.spaced("100 millis").pipe(
-  Schedule.both(Schedule.recurs(3))
-)
-```
-
-This means "wait 100 milliseconds before each retry, and retry at most three
-times after the initial attempt."
+The retry policy needs two constraints: wait a fixed amount before each retry,
+and stop after a small number of retries.
 
 ## When to use it
 
-Use this recipe for small transient failures where an immediate retry may be too
-soon, but a full backoff policy is unnecessary. It fits short-lived connection
-hiccups, local service restarts, brief lock contention, and idempotent requests
-to dependencies that usually recover quickly.
+Use this for short-lived failures where a tiny pause helps: local service
+startup, brief lock contention, or an idempotent request to a dependency that
+usually recovers quickly.
 
-It is also a good step up from `Schedule.recurs(n)` when you discover that
-immediate retries are noisy in logs or put unnecessary pressure on a dependency.
-The count is still explicit, and the delay is easy to read.
-
-## When not to use it
-
-Do not use a constant delay when failures are likely to be caused by overload or
-rate limiting. Those cases usually need a policy that spreads demand out more
-carefully.
-
-Do not use it without a retry limit unless unbounded retry is intentional.
-`Schedule.spaced("100 millis")` by itself keeps recurring forever, so pair it
-with `Schedule.recurs`, `times`, a predicate, or another stopping condition.
-
-Do not use it for operations that are not safe to run more than once. Retrying a
-write needs idempotency, deduplication, or a domain-specific recovery strategy.
+Do not use a constant delay as the default for overloaded or rate-limited
+systems. Those usually need backoff, jitter, or error-specific handling.
 
 ## Schedule shape
 
-`Schedule.spaced(duration)` is an unbounded schedule that produces the same
-delay on every recurrence. The schedule tests verify this constant-delay shape:
-stepping a spaced schedule repeatedly yields the same duration each time.
-
-`Schedule.recurs(times)` is the finite part of the policy. In a retry, it counts
-retry decisions after the first execution. `Schedule.recurs(3)` allows up to
-three retries, for up to four executions total.
-
-`Schedule.both(left, right)` combines two schedules with intersection semantics.
-Both schedules must want to continue, and the combined schedule uses the maximum
-of the two delays. Since `Schedule.recurs(3)` has no extra delay and
-`Schedule.spaced("100 millis")` delays each recurrence by 100 milliseconds, the
-combined policy retries at most three times with a 100 millisecond delay before
-each retry.
-
-The combined schedule outputs a tuple of the two schedule outputs. `Effect.retry`
-uses the schedule to decide whether and when to retry, but it succeeds with the
-successful value of the retried effect, not with that tuple.
-
-## Code
+`Schedule.spaced(duration)` keeps recurring with the same delay. `Schedule.recurs(n)`
+caps the retry count. `Schedule.both` combines them with intersection semantics:
+both schedules must continue, and the combined delay is the maximum of their
+delays.
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class TemporaryRequestError extends Data.TaggedError("TemporaryRequestError")<{
   readonly attempt: number
@@ -93,6 +45,7 @@ let attempt = 0
 
 const request = Effect.gen(function*() {
   attempt += 1
+  yield* Console.log(`attempt ${attempt}`)
 
   if (attempt < 4) {
     return yield* Effect.fail(new TemporaryRequestError({ attempt }))
@@ -101,70 +54,34 @@ const request = Effect.gen(function*() {
   return { id: "user-1", name: "Ada" }
 })
 
-const retryPolicy = Schedule.spaced("100 millis").pipe(
+const retryPolicy = Schedule.spaced("25 millis").pipe(
   Schedule.both(Schedule.recurs(3))
 )
 
 const program = request.pipe(
-  Effect.retry(retryPolicy)
+  Effect.retry(retryPolicy),
+  Effect.tap((user) => Console.log(`loaded ${user.name}`))
 )
+
+Effect.runPromise(program)
 ```
 
-Here `request` fails on attempts 1, 2, and 3, then succeeds on attempt 4. The
-policy waits 100 milliseconds before each retry and permits exactly three
-retries, so `program` succeeds with the user value.
-
-If attempt 4 failed too, `Schedule.recurs(3)` would be exhausted and
-`Effect.retry` would propagate the last `TemporaryRequestError`.
+The policy allows three retries and waits 25 milliseconds before each retry.
+The first execution is not delayed.
 
 ## Variants
 
-You can write the same policy with retry options:
+For a local policy, `Effect.retry({ schedule: Schedule.spaced("25 millis"), times: 3 })`
+expresses the same count and delay. Use the explicit schedule composition when
+you want to name, reuse, or extend the policy.
 
-```ts
-const program = request.pipe(
-  Effect.retry({
-    schedule: Schedule.spaced("100 millis"),
-    times: 3
-  })
-)
-```
+Changing the duration changes only the pause between attempts; the retry count
+is still controlled by `Schedule.recurs(3)`.
 
-This is compact when the policy is local to one call site. Use the explicit
-`Schedule.spaced(...).pipe(Schedule.both(Schedule.recurs(...)))` form when you
-want to name the policy, reuse it, or compose it further.
+## Notes
 
-You can also pass the effect as the first argument:
+`Effect.retry` stops at the first success. The combined schedule output is not
+the final success value; it only controls whether and when another retry should
+happen.
 
-```ts
-const program = Effect.retry(request, retryPolicy)
-```
-
-This is equivalent to the piped form.
-
-For a slightly slower retry loop, change only the duration:
-
-```ts
-const retryPolicy = Schedule.spaced("500 millis").pipe(
-  Schedule.both(Schedule.recurs(3))
-)
-```
-
-The retry count and the shape of the policy stay the same.
-
-## Notes and caveats
-
-The first execution is not delayed. The delay happens between a typed failure
-and the next retry attempt.
-
-`Effect.retry` retries typed failures from the error channel. Defects and
-interruptions are not retried as typed failures.
-
-The delay is constant, not adaptive. If a dependency is overloaded, a constant
-delay can still keep pressure high. Treat this as a small retry recipe for
-simple transient failures, not as a general production policy for every remote
-call.
-
-Keep the retried effect as small as possible. Retry the operation that can
-safely be attempted again, not a larger workflow that may already have completed
-other side effects before the failure occurred.
+Keep the retried effect small and safe to run more than once.

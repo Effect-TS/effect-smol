@@ -10,18 +10,14 @@ code_included: true
 
 # 39.2 Fixed spacing plus success predicate
 
-Use a schedule when a successful value, not a failure, decides whether another
-check is needed.
-
-This recipe pairs a fixed gap with a predicate over the latest successful
-observation.
+Use a schedule when a successful value decides whether another check is needed.
+The policy pairs a fixed gap with a predicate over the latest observation.
 
 ## Problem
 
 You are reading a status-style API where `Queued` or `Running` is a successful
 response, but not the final answer. Each non-terminal observation should be
-followed by the same pause, and the first value that satisfies your predicate
-should be returned.
+followed by the same pause. The first terminal observation should be returned.
 
 ## When to use it
 
@@ -48,16 +44,6 @@ available.
 
 ## Schedule shape
 
-Compose three small pieces:
-
-```ts
-Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isDone(input))
-)
-```
-
 `Schedule.spaced` supplies the fixed pause before each recurrence.
 `Schedule.satisfiesInputType<Status>()` tells TypeScript what successful value
 the repeated effect feeds into the schedule. `Schedule.passthrough` changes the
@@ -68,34 +54,49 @@ the latest successful value is still not good enough.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type ExportStatus =
   | { readonly _tag: "Queued" }
   | { readonly _tag: "Running"; readonly percent: number }
   | { readonly _tag: "Ready"; readonly downloadUrl: string }
 
-type ExportReadError = { readonly _tag: "ExportReadError" }
+const observations: ReadonlyArray<ExportStatus> = [
+  { _tag: "Queued" },
+  { _tag: "Running", percent: 45 },
+  { _tag: "Ready", downloadUrl: "https://example.com/export.csv" }
+]
 
-declare const readExportStatus: Effect.Effect<ExportStatus, ExportReadError>
+let reads = 0
 
-const pollUntilReady = Schedule.spaced("2 seconds").pipe(
+const readExportStatus = Effect.gen(function*() {
+  const status = observations[Math.min(reads, observations.length - 1)]
+  reads += 1
+  yield* Console.log(`read ${reads}: ${status._tag}`)
+  return status
+})
+
+const pollUntilReady = Schedule.spaced("25 millis").pipe(
   Schedule.satisfiesInputType<ExportStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input._tag !== "Ready")
 )
 
-export const program = Effect.repeat(readExportStatus, pollUntilReady)
+const program = Effect.repeat(readExportStatus, pollUntilReady).pipe(
+  Effect.flatMap((status) => Console.log(`finished with ${status._tag}`))
+)
+
+Effect.runPromise(program)
 ```
 
 The first `readExportStatus` call is made immediately. If it returns `Ready`,
 the schedule stops and `program` succeeds with that ready status. If it returns
-`Queued` or `Running`, the schedule waits two seconds and runs the effect again.
+`Queued` or `Running`, the schedule waits and runs the effect again.
 
 ## Variants
 
-- Add a time budget with `Schedule.both(Schedule.during("2 minutes").pipe(Schedule.satisfiesInputType<ExportStatus>()))` when the poll must eventually give up.
-- Add a recurrence limit with `Schedule.both(Schedule.recurs(30).pipe(Schedule.satisfiesInputType<ExportStatus>()))` when an attempt count is easier to reason about than elapsed time.
+- Add a time budget with `Schedule.bothLeft(Schedule.during("2 minutes").pipe(Schedule.satisfiesInputType<ExportStatus>()))` when the poll must eventually give up while still returning the last status.
+- Add a recurrence limit with `Schedule.bothLeft(Schedule.recurs(30).pipe(Schedule.satisfiesInputType<ExportStatus>()))` when an attempt count is easier to reason about than elapsed time.
 - Add `Schedule.jittered` to the fixed spacing for fleet-wide polling, after you decide that exact cadence is not required.
 
 ## Notes and caveats

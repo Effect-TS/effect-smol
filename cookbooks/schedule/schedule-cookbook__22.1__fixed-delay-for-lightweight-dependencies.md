@@ -45,13 +45,7 @@ before applying the schedule.
 ## Schedule shape
 
 For retrying failures with the same pause between attempts, use
-`Schedule.spaced(duration)` and combine it with a finite retry limit:
-
-```ts
-Schedule.spaced("100 millis").pipe(
-  Schedule.both(Schedule.recurs(4))
-)
-```
+`Schedule.spaced(duration)` and combine it with a finite retry limit.
 
 `Schedule.spaced("100 millis")` waits 100 milliseconds before each retry.
 `Schedule.recurs(4)` allows up to four retries after the original attempt. With
@@ -64,7 +58,7 @@ choice because the wait happens after the failed attempt completes.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class CacheUnavailable extends Data.TaggedError("CacheUnavailable")<{
   readonly reason: "Starting" | "ConnectionReset"
@@ -81,9 +75,20 @@ interface CachedUser {
   readonly name: string
 }
 
-declare const readUserFromLocalCache: (
-  id: string
-) => Effect.Effect<CachedUser, CacheError>
+let attempts = 0
+
+const readUserFromLocalCache = Effect.fnUntraced(function*(id: string) {
+  attempts += 1
+  yield* Console.log(`cache read attempt ${attempts}`)
+
+  if (attempts < 3) {
+    return yield* Effect.fail(
+      new CacheUnavailable({ reason: "Starting" })
+    )
+  }
+
+  return { id, name: "Ada" } satisfies CachedUser
+})
 
 const isTransientCacheError = (error: CacheError): boolean => {
   switch (error._tag) {
@@ -98,13 +103,20 @@ const retryLocalCacheWarmup = Schedule.spaced("100 millis").pipe(
   Schedule.both(Schedule.recurs(4))
 )
 
-export const getCachedUser = (id: string) =>
-  readUserFromLocalCache(id).pipe(
+const getCachedUser = Effect.fnUntraced(function*(id: string) {
+  return yield* readUserFromLocalCache(id).pipe(
     Effect.retry({
       schedule: retryLocalCacheWarmup,
       while: isTransientCacheError
     })
   )
+})
+
+const program = getCachedUser("user-123")
+
+Effect.runPromise(program).then((user) => {
+  console.log(`loaded user: ${user.name}`)
+})
 ```
 
 `getCachedUser` runs the cache read immediately. If the local cache reports
@@ -119,22 +131,8 @@ with the `CachedUser`.
 ## Variants
 
 For a startup health probe, the same shape works with a longer delay and a small
-count:
-
-```ts
-const waitForSidecarStartup = Schedule.spaced("250 millis").pipe(
-  Schedule.both(Schedule.recurs(8))
-)
-```
-
-For many application instances retrying the same dependency at the same time,
-add jitter after choosing the base delay:
-
-```ts
-const retryCacheWithJitter = retryLocalCacheWarmup.pipe(
-  Schedule.jittered
-)
-```
+count. For many application instances retrying the same dependency at the same
+time, add `Schedule.jittered` after choosing the base delay.
 
 ## Notes and caveats
 

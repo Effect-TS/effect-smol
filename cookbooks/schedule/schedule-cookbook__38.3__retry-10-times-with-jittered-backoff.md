@@ -19,7 +19,7 @@ You have an effect that may fail because a dependency is restarting,
 overloaded, briefly unreachable, or returning a retryable service error. A plain
 `Schedule.exponential` retry policy backs off over time, but it is unbounded by
 itself. If many workers use the same deterministic backoff, they can also retry
-at the same boundaries and create synchronized bursts.
+at the same boundaries and create bursts.
 
 You want the operation to retry at most ten times after the original attempt,
 with exponential delays that are randomly adjusted around each computed delay.
@@ -55,9 +55,9 @@ fallback once the dependency is still unavailable.
 doubles the base delay after each failed attempt.
 
 `Schedule.jittered` modifies each recurrence delay between 80% and 120% of the
-delay chosen by the schedule it wraps. With a 200 millisecond exponential base,
-the first retry waits somewhere from 160 to 240 milliseconds, the next retry is
-jittered around 400 milliseconds, and so on.
+delay chosen by the schedule it wraps. With a 200 millisecond base, the first
+retry waits somewhere from 160 to 240 milliseconds, the next retry is jittered
+around 400 milliseconds, and so on.
 
 `Schedule.both(Schedule.recurs(10))` adds the stopping condition. Both sides of
 the composed schedule must continue, so the exponential schedule supplies the
@@ -70,51 +70,57 @@ total.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
   readonly status: number
 }> {}
 
-declare const callService: Effect.Effect<string, ServiceUnavailable>
+const statuses = [503, 503, 200] as const
+let attempts = 0
 
-const retryTenTimesWithJitteredBackoff = Schedule.exponential("200 millis").pipe(
+const callService = Effect.gen(function*() {
+  attempts += 1
+  const status = statuses[attempts - 1] ?? 200
+
+  yield* Console.log(`service attempt ${attempts}: ${status}`)
+
+  if (status === 200) {
+    return "ok"
+  }
+
+  return yield* Effect.fail(new ServiceUnavailable({ status }))
+})
+
+const retryTenTimesWithJitteredBackoff = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(10))
 )
 
-export const program = callService.pipe(
+const program = callService.pipe(
   Effect.retry({
     schedule: retryTenTimesWithJitteredBackoff,
     while: (error) => error.status === 429 || error.status >= 500
+  }),
+  Effect.matchEffect({
+    onFailure: (error) =>
+      Console.log(`failed with HTTP ${error.status} after ${attempts} attempts`),
+    onSuccess: (value) =>
+      Console.log(`succeeded with ${value} after ${attempts} attempts`)
   })
 )
+
+Effect.runPromise(program)
 ```
 
-The `while` predicate keeps non-retryable typed failures out of the schedule.
-For retryable `429` and `5xx` responses, the next attempt waits for the
-jittered exponential delay. If all ten retries fail, `program` fails with the
-last `ServiceUnavailable`.
+The example uses a `10 millis` base interval so it terminates quickly. The
+`while` predicate keeps non-retryable typed failures out of the schedule. If all
+ten retries fail, `program` fails with the last `ServiceUnavailable`.
 
 ## Variants
 
-Use a smaller retry budget when the caller needs a quick answer:
-
-```ts
-const shortJitteredBackoff = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3))
-)
-```
-
-Use a larger starting delay when the dependency is already under pressure:
-
-```ts
-const conservativeJitteredBackoff = Schedule.exponential("1 second").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(10))
-)
-```
+Use a smaller retry budget when the caller needs a quick answer. Use a larger
+starting delay when the dependency is already under pressure.
 
 If the operation has a hard elapsed-time budget, add a time limit alongside the
 attempt limit instead of relying on retry count alone.

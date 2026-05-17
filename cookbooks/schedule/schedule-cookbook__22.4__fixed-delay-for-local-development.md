@@ -24,16 +24,8 @@ A local database, queue, emulator, or dependent service may still be booting
 when the Effect program starts. You want retries slow enough for console logs to
 remain useful, but short enough that a restart does not become tedious.
 
-Use `Schedule.spaced(duration)` with `Effect.retry`:
-
-```ts
-const localRetryPolicy = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.recurs(10))
-)
-```
-
-This means "wait 1 second before each retry, and retry at most 10 times after
-the first attempt."
+Use `Schedule.spaced(duration)` with `Effect.retry`: wait after each failed
+attempt, and combine the delay with a small retry limit.
 
 ## When to use it
 
@@ -83,46 +75,47 @@ class LocalDependencyUnavailable extends Data.TaggedError(
   readonly service: string
 }> {}
 
-declare const connectToLocalQueue: Effect.Effect<
-  { readonly connectionId: string },
-  LocalDependencyUnavailable
->
+let attempts = 0
 
-const localRetryPolicy = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.recurs(10))
+const connectToLocalQueue = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`connect attempt ${attempts}`)
+
+  if (attempts < 4) {
+    return yield* Effect.fail(
+      new LocalDependencyUnavailable({ service: "queue" })
+    )
+  }
+
+  return { connectionId: "local-queue-1" }
+})
+
+const localRetryPolicy = Schedule.spaced("50 millis").pipe(
+  Schedule.both(Schedule.recurs(5))
 )
 
-export const program = connectToLocalQueue.pipe(
+const program = connectToLocalQueue.pipe(
   Effect.tapError((error) =>
     Console.log(`Waiting for local ${error.service} to become available`)
   ),
   Effect.retry(localRetryPolicy)
 )
+
+Effect.runPromise(program).then((connection) => {
+  console.log(`connected: ${connection.connectionId}`)
+})
 ```
 
 `program` tries to connect once immediately. If the local queue is not ready, it
-logs the typed failure, waits 1 second, and tries again. After 10 retries, a
-continuously failing connection propagates the last
-`LocalDependencyUnavailable`.
+logs the typed failure, waits, and tries again. A continuously failing
+connection propagates the last `LocalDependencyUnavailable` after the retry
+limit is exhausted.
 
 ## Variants
 
-For a dependency that usually starts quickly, shorten the loop:
-
-```ts
-const quickLocalRetryPolicy = Schedule.spaced("500 millis").pipe(
-  Schedule.both(Schedule.recurs(6))
-)
-```
-
-For a noisy service that takes longer to boot, keep the delay visible but reduce
-log pressure:
-
-```ts
-const slowLocalRetryPolicy = Schedule.spaced("2 seconds").pipe(
-  Schedule.both(Schedule.recurs(15))
-)
-```
+For a dependency that usually starts quickly, shorten the loop. For a noisy
+service that takes longer to boot, keep the delay visible but use a larger
+interval to reduce log pressure.
 
 If the goal is a fixed wall-clock cadence rather than a pause after each failed
 attempt, compare this with `Schedule.fixed(duration)`. For retrying local

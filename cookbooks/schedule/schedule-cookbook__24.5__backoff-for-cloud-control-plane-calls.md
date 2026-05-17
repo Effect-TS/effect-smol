@@ -10,89 +10,74 @@ code_included: true
 
 # 24.5 Backoff for cloud control plane calls
 
-Cloud control-plane retries need to account for shared quotas and eventual
-consistency. A request may be accepted by one part of the provider before later
+Cloud control-plane retries must account for shared quotas and eventual
+consistency. A write may be accepted by one part of the provider before later
 reads or dependent writes can observe it.
 
-Use a bounded, jittered exponential backoff for retryable control-plane
-responses. Keep the retry predicate separate from the schedule so rate limits,
-temporary unavailability, and eventual-consistency races are retried while
-authorization and validation failures fail immediately.
+Use bounded, jittered exponential backoff for retryable control-plane responses.
+Keep retryability separate from timing so validation and authorization failures
+still fail immediately.
 
 ## Problem
 
-You need to call a cloud control-plane API after a related resource has just
-been created or changed. The provider may temporarily answer with:
+After a related resource is created or changed, a provider may temporarily
+return:
 
 - a rate-limit response because the account or client is over quota
 - a temporary unavailable response while the control plane is overloaded
 - a conflict or "not propagated yet" response while eventual consistency settles
 
-Treat those responses as retryable only inside a bounded policy: the first call
-happens immediately, later attempts wait, and permanent failures bypass the
-schedule.
+Retry those cases inside a bounded policy. Do not retry permanent failures.
 
 ## When to use it
 
-Use this recipe for idempotent or safely deduplicated control-plane operations:
-adding a tag, attaching a security group, updating a route, creating a DNS
-record with a stable name, or retrying a follow-up write after a resource was
-accepted but is not visible everywhere yet.
+Use this for idempotent or deduplicated operations: adding a tag, attaching a
+security group, updating a route, creating a DNS record with a stable name, or
+retrying a follow-up write after a resource has been accepted but is not visible
+everywhere yet.
 
-It is especially useful in deployment tools and reconcilers, where many
-instances may make similar calls during a rollout and the provider enforces
-account-level rate limits.
+It is common in deployment tools and reconcilers, where many workers may make
+similar calls while the provider enforces account-level rate limits.
 
 ## When not to use it
 
-Do not use backoff to make an invalid request look transient. Bad input, missing
-permissions, invalid regions, exhausted hard quotas, and non-idempotent
-side-effects should fail without retrying.
+Do not retry invalid regions, missing permissions, malformed requests, exhausted
+hard quotas, or unsafe non-idempotent side effects.
 
-Do not ignore provider guidance. If the response carries a `Retry-After` value
-or a richer quota reset timestamp, prefer that value for the rate-limit case or
-compose it into a rate-limit-specific policy. A generic exponential fallback is
-useful when the provider gives no better timing signal.
+If the provider returns `Retry-After` or a quota reset timestamp, prefer that
+signal for rate limits. Generic exponential backoff is a fallback when the
+provider gives no better timing.
 
 ## Schedule shape
 
-Start with exponential backoff, add jitter so a fleet does not retry in lockstep,
-then clamp the final delay so the tail stays operationally predictable:
+Start with `Schedule.exponential`, add `Schedule.jittered`, then clamp the
+result with `Schedule.modifyDelay` and `Duration.min`. Combine that cadence with
+`Schedule.recurs` and `Schedule.during` so the call has both retry-count and
+elapsed-time bounds.
 
-```ts
-Schedule.exponential("500 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
-  ),
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.both(Schedule.during("45 seconds"))
-)
-```
-
-`Schedule.exponential("500 millis")` produces the increasing delay curve.
-`Schedule.jittered` spreads callers around each computed delay. The
-`Schedule.modifyDelay` step applies the hard five-second cap after jitter, so
-randomization cannot push a wait past the bound. `Schedule.recurs(8)` allows at
-most eight retries after the original attempt. `Schedule.during("45 seconds")`
-adds an elapsed-time budget.
+Use the `while` option on `Effect.retry` to allow only rate limits, temporary
+unavailability, and eventual-consistency races into the schedule.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class RateLimited extends Data.TaggedError("RateLimited")<{
   readonly retryAfterMillis?: number
 }> {}
 
-class ControlPlaneUnavailable extends Data.TaggedError("ControlPlaneUnavailable")<{}> {}
+class ControlPlaneUnavailable extends Data.TaggedError(
+  "ControlPlaneUnavailable"
+)<{}> {}
 
 class ResourceNotPropagated extends Data.TaggedError("ResourceNotPropagated")<{
   readonly resourceId: string
 }> {}
 
-class InvalidControlPlaneRequest extends Data.TaggedError("InvalidControlPlaneRequest")<{
+class InvalidControlPlaneRequest extends Data.TaggedError(
+  "InvalidControlPlaneRequest"
+)<{
   readonly reason: string
 }> {}
 
@@ -102,7 +87,27 @@ type ControlPlaneError =
   | ResourceNotPropagated
   | InvalidControlPlaneRequest
 
-declare const attachSubnetToLoadBalancer: Effect.Effect<string, ControlPlaneError>
+let attempts = 0
+
+const attachSubnetToLoadBalancer: Effect.Effect<string, ControlPlaneError> =
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`control-plane attempt ${attempts}`)
+
+    if (attempts === 1) {
+      return yield* Effect.fail(new RateLimited({ retryAfterMillis: 50 }))
+    }
+    if (attempts === 2) {
+      return yield* Effect.fail(
+        new ResourceNotPropagated({ resourceId: "subnet-123" })
+      )
+    }
+    if (attempts === 3) {
+      return yield* Effect.fail(new ControlPlaneUnavailable({}))
+    }
+
+    return "load-balancer attached to subnet-123"
+  })
 
 const isRetryableControlPlaneError = (error: ControlPlaneError): boolean => {
   switch (error._tag) {
@@ -115,56 +120,52 @@ const isRetryableControlPlaneError = (error: ControlPlaneError): boolean => {
   }
 }
 
-const boundedControlPlaneBackoff = Schedule.exponential("500 millis").pipe(
+const boundedControlPlaneBackoff = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(100)))
   ),
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.both(Schedule.during("45 seconds"))
+  Schedule.both(Schedule.recurs(6)),
+  Schedule.both(Schedule.during("2 seconds"))
 )
 
-export const program = attachSubnetToLoadBalancer.pipe(
-  Effect.retry({
-    schedule: boundedControlPlaneBackoff,
-    while: isRetryableControlPlaneError
-  })
+const program = Effect.gen(function*() {
+  const result = yield* attachSubnetToLoadBalancer.pipe(
+    Effect.retry({
+      schedule: boundedControlPlaneBackoff,
+      while: isRetryableControlPlaneError
+    })
+  )
+  yield* Console.log(result)
+}).pipe(
+  Effect.catch((error) =>
+    Console.log(`control-plane call failed: ${error._tag}`)
+  )
 )
+
+Effect.runPromise(program)
 ```
 
-The retry boundary is the single control-plane call. `RateLimited`,
-`ControlPlaneUnavailable`, and `ResourceNotPropagated` are allowed to use the
-bounded backoff. `InvalidControlPlaneRequest` is not retried, because another
-attempt would send the same bad request.
+The retry boundary is the single control-plane call. The example succeeds after
+rate limiting, propagation lag, and temporary unavailability are retried.
 
 ## Variants
 
-If the provider returns a precise rate-limit delay, route that error through a
-separate schedule that uses the provider's value instead of guessing from the
-exponential curve. Keep the bounded exponential policy as a fallback for
-temporary unavailability and eventual-consistency races.
+Route precise provider rate-limit delays through a rate-limit-specific policy
+when available, and keep bounded exponential backoff for temporary
+unavailability or propagation races.
 
-For interactive workflows, reduce the retry count and elapsed budget so the
-caller receives a clear failure quickly. For background reconcilers, the same
-delay cap can remain useful, but the surrounding process should record attempts,
-last error tags, and exhausted-budget failures so operators can see whether the
-control plane is rate limiting or still converging.
-
-When many workers may update the same account or region, keep jitter enabled.
-Without it, every worker computes the same exponential delays and can create
-new bursts exactly when the provider is asking clients to slow down.
+For interactive workflows, reduce the retry count and elapsed budget. For
+background reconcilers, keep the cap but record attempts, last error tags, and
+exhausted-budget failures.
 
 ## Notes and caveats
 
-`Effect.retry` feeds typed failures into the schedule. The first execution is
-not delayed; the schedule decides only whether and when to make another attempt
-after a failure.
-
 `Schedule.both` uses intersection semantics: the combined policy continues only
-while both schedules continue. Combining the backoff with `Schedule.recurs(8)`
-and `Schedule.during("45 seconds")` therefore gives both a retry-count bound and
-a time-budget bound.
+while both schedules continue. Combining backoff with `Schedule.recurs(6)` and
+`Schedule.during("2 seconds")` gives both a retry-count bound and a time-budget
+bound.
 
-Backoff does not provide idempotency. Cloud control-plane writes should still
-use stable resource names, idempotency tokens, conditional updates, or provider
+Backoff does not provide idempotency. Cloud control-plane writes still need
+stable names, idempotency tokens, conditional updates, or provider
 deduplication where the API supports them.

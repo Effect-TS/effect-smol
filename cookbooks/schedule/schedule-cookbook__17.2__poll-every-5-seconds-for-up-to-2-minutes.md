@@ -10,82 +10,48 @@ code_included: true
 
 # 17.2 Poll every 5 seconds for up to 2 minutes
 
-Use this recipe for a status endpoint that may need several checks before it
-reaches a terminal state, but should not keep the caller waiting indefinitely.
-The schedule owns cadence and stopping; surrounding Effect code interprets the
-final status.
+Use this when the status endpoint may take several observations to reach a
+terminal state, but the caller should not wait indefinitely. The schedule owns
+the five-second cadence and the two-minute recurrence budget.
 
 ## Problem
 
-The status check itself is an effect whose successful result may still be
-non-terminal. After a successful non-terminal status, wait five seconds and
-check again while the two-minute recurrence budget is still open.
+A successful status check can still report `"pending"`. After each successful
+pending observation, wait five seconds and check again while the two-minute
+recurrence budget remains open.
 
 ## When to use it
 
-Use this when polling is driven by successful status values and the caller wants
-a practical upper bound on how long the repeat loop remains open.
-
-This is a good fit for job, export, provisioning, indexing, or payment-status
-checks where a non-terminal status is an ordinary successful response.
+Use it for exports, provisioning, indexing, payment settlement, and other
+workflows where a non-terminal status is an ordinary successful response.
 
 ## When not to use it
 
-Do not use this to retry a failing status endpoint by itself. With
-`Effect.repeat`, a failure from the status-check effect stops the repeat
-immediately. Apply retry to the status check separately when transport or
-decoding failures should be retried.
+Do not use it as a retry policy for failed requests. With `Effect.repeat`, the
+first failure from the checked effect stops the repeat.
 
-Do not treat the schedule-side two-minute budget as an interruption timeout for
-an in-flight status check. `Schedule.during("2 minutes")` is consulted at
-recurrence decision points after successful checks; it does not cancel a check
-that is already running.
-
-Do not use this when every individual request needs its own hard deadline
-unless you also apply `Effect.timeout` to the status-check effect.
+Do not treat `Schedule.during("2 minutes")` as a request timeout. It limits
+future recurrences after successful checks; it does not cancel an in-flight
+request.
 
 ## Schedule shape
 
-Combine a five-second cadence, a two-minute elapsed recurrence budget, and a
-status predicate:
-
-```ts
-Schedule.spaced("5 seconds").pipe(
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "pending"),
-  Schedule.bothLeft(
-    Schedule.during("2 minutes").pipe(Schedule.satisfiesInputType<Status>())
-  )
-)
-```
-
-`Schedule.spaced("5 seconds")` supplies the delay before each recurrence.
-`Schedule.during("2 minutes")` supplies the elapsed recurrence budget.
-`Schedule.while` stops when a terminal status is observed.
-`Schedule.passthrough` keeps the latest successful status as the schedule
-output, so the repeated effect returns the final observed status.
+Combine `Schedule.spaced("5 seconds")`, `Schedule.while` over the latest status,
+and `Schedule.during("2 minutes")`. Add `Schedule.passthrough` so
+`Effect.repeat` returns the final observed status.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Clock, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type Status =
   | { readonly state: "pending"; readonly requestId: string }
   | { readonly state: "complete"; readonly requestId: string; readonly resultId: string }
   | { readonly state: "failed"; readonly requestId: string; readonly reason: string }
 
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
-
 const isPending = (status: Status): boolean => status.state === "pending"
-
-declare const checkStatus: (
-  requestId: string
-) => Effect.Effect<Status, StatusCheckError>
 
 const pollEvery5SecondsForUpTo2Minutes = Schedule.spaced("5 seconds").pipe(
   Schedule.satisfiesInputType<Status>(),
@@ -96,38 +62,44 @@ const pollEvery5SecondsForUpTo2Minutes = Schedule.spaced("5 seconds").pipe(
   )
 )
 
-const pollStatus = (requestId: string) =>
-  checkStatus(requestId).pipe(
-    Effect.repeat(pollEvery5SecondsForUpTo2Minutes)
+const script: ReadonlyArray<Status> = [
+  { state: "pending", requestId: "export-1" },
+  { state: "pending", requestId: "export-1" },
+  { state: "complete", requestId: "export-1", resultId: "file-9" }
+]
+
+let checks = 0
+
+const checkStatus = Effect.gen(function*() {
+  const now = yield* Clock.currentTimeMillis
+  const status = script[Math.min(checks, script.length - 1)]!
+  checks += 1
+  console.log(`t+${now}ms check ${checks}: ${status.state}`)
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* checkStatus.pipe(
+    Effect.repeat(pollEvery5SecondsForUpTo2Minutes),
+    Effect.forkDetach
   )
+
+  yield* TestClock.adjust("2 minutes")
+
+  const finalStatus = yield* Fiber.join(fiber)
+  console.log("final:", finalStatus)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program)
 ```
 
-`pollStatus` performs the first status check immediately. If that first
-successful observation is terminal, the schedule stops without another request.
-If the status is still `"pending"`, the schedule waits five seconds before the
-next check, and keeps doing that while the two-minute recurrence budget allows
-another recurrence.
-
-The returned effect succeeds with the final observed `Status`. That value may
-be terminal, or it may be the last `"pending"` status observed when the
-schedule-side budget stopped the repeat.
+`TestClock` makes the scratchpad example finish immediately while preserving the
+five-second and two-minute values in the schedule.
 
 ## Variants
 
-If each status check also needs a hard per-request timeout, put the timeout on
-the checked effect, not only on the schedule:
-
-```ts
-const pollStatusWithPerCheckTimeout = (requestId: string) =>
-  checkStatus(requestId).pipe(
-    Effect.timeout("3 seconds"),
-    Effect.repeat(pollEvery5SecondsForUpTo2Minutes)
-  )
-```
-
-That changes the behavior of an individual in-flight check. The schedule still
-controls only the five-second recurrence cadence and the two-minute recurrence
-budget.
+Apply `Effect.timeout("3 seconds")` to the checked effect when an individual
+status request needs a hard deadline.
 
 Use `Schedule.fixed("5 seconds")` instead of `Schedule.spaced("5 seconds")`
 when the polling cadence should target fixed five-second boundaries rather than
@@ -135,17 +107,6 @@ waiting five seconds after each successful status check completes.
 
 ## Notes and caveats
 
-The first status check is not delayed. The schedule controls recurrences after
-the first successful check.
-
-The two-minute duration is approximate for the whole polling workflow because
-the schedule budget is checked between successful runs. Time spent inside
-status checks contributes to elapsed schedule time before the next recurrence
-decision, but the schedule does not interrupt an in-flight check.
-
-`Schedule.while` sees successful status values. It does not inspect effect
-failures from `checkStatus`.
-
-When reading `metadata.input` from a timing schedule, use
-`Schedule.satisfiesInputType<T>()` before `Schedule.while` so the input type is
-explicit.
+The first status check is immediate. Time spent inside status checks contributes
+to elapsed schedule time, but `Schedule.during` is still checked only between
+successful observations. `Schedule.while` does not inspect effect failures.

@@ -10,106 +10,73 @@ code_included: true
 
 # 31.1 Drain a queue slowly
 
-A queue drain is often successful work, not retry work. `Schedule` is a good
-fit for the continuation policy: it can put a deliberate gap after each
-processed item and keep the stop conditions visible in one value.
+A queue drain is repeat work, not retry work. Run one item, decide whether more
+work remains, and let a schedule add the pause before the next item.
 
 ## Problem
 
-You have a local queue with work already buffered. A worker should process one
-available item, observe whether more items remain, and then decide whether this
-drain pass should continue. Processing every available item in a tight loop
-would create a burst against a database, API, or other shared dependency.
+A local queue already contains work. Processing everything in a tight loop can
+burst against a database, API, or shared worker pool. The drain should make
+steady progress, stop when the queue is empty, and cap how much one invocation
+can do.
 
-You want steady progress, but also a clear pause between items and a per-run
-cap so one invocation cannot monopolize the process forever.
-
-The empty-queue case matters. `Queue.take` waits when no item is available, so a
-slow drain should observe whether work exists before taking. The schedule should
-then repeat only while the successful drain step says more work remains.
+`Queue.take` waits when the queue is empty, so the drain step should check for
+available work before taking. The successful step result can then tell
+`Effect.repeat` whether another scheduled pass is useful.
 
 ## When to use it
 
-Use this when a single worker is draining local or already-acquired work and the
-main operational goal is smoothing load. The repeated effect should advance the
-drain by processing one item or one small batch, and its successful output
-should report whether another iteration is useful.
-
-This is a good fit for maintenance queues, reprocessing backlogs, outbox
-dispatchers, and local buffers where empty means "this drain pass is done",
-not "wait here for the next item forever".
+Use this for local buffers, outbox dispatchers, maintenance queues, and
+reprocessing backlogs where empty means "this drain pass is done." The repeated
+effect should process one item or one small batch and return whether more work
+is likely.
 
 ## When not to use it
 
-Do not use this as a long-lived consumer that should block waiting for future
-messages. In that case, a normal queue consumer loop can call `Queue.take` and
-let the queue provide backpressure.
+Do not use this as a long-lived consumer that should block for future messages.
+A normal consumer loop can call `Queue.take` and let the queue provide
+backpressure.
 
-Do not use the schedule to recover from processing failures. With
-`Effect.repeat`, failures from the repeated effect stop the repeat. If processing
-an item can fail transiently, give that item-processing effect its own retry
-policy and keep the queue-drain schedule focused on successful drain steps.
+Do not use the drain schedule to recover from item-processing failures.
+`Effect.repeat` schedules successful values. If processing can fail
+transiently, retry that item-processing effect separately.
 
-Do not rely on `Queue.size` as a global truth in a multi-consumer queue. It is
-fine for a single drain worker deciding whether to take more local work, but it
-is not a transactional reservation.
+Do not treat `Queue.size` as a transactional reservation in a multi-consumer
+queue. It is fine for a single drain worker deciding whether to keep going, but
+another consumer can change the size at any time.
 
 ## Schedule shape
 
-Drain again only when the last successful step processed an item and still saw
-work remaining:
+Use `Schedule.spaced` for the pause between successful drain steps and combine
+it with a recurrence limit such as `Schedule.recurs(99)`. Put the empty-queue
+stop condition in `Effect.repeat({ while })`, where it can inspect the
+`DrainStep` returned by the effect.
 
-```ts
-Schedule.spaced("250 millis").pipe(
-  Schedule.satisfiesInputType<DrainStep>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => shouldContinueDraining(input)),
-  Schedule.bothLeft(
-    Schedule.recurs(99).pipe(Schedule.satisfiesInputType<DrainStep>())
-  )
-)
-```
-
-`Schedule.spaced("250 millis")` waits after each completed drain step before the
-next one starts. `Schedule.passthrough` keeps the latest `DrainStep` as the
-schedule output, so `Effect.repeat` returns the final drain observation.
-`Schedule.while` stops when the queue is empty. `Schedule.recurs(99)` adds a
-count limit: the first drain step runs immediately, and the schedule can permit
-up to 99 more, for at most 100 steps in this drain pass.
+The first item is processed immediately. The schedule controls only the
+follow-up drain steps.
 
 ## Code
 
 ```ts
-import { Effect, Queue, Schedule } from "effect"
+import { Console, Effect, Queue, Schedule } from "effect"
 
 type WorkItem = {
-  readonly id: string
+  readonly id: number
   readonly payload: string
 }
 
-type ProcessError = {
-  readonly _tag: "ProcessError"
-  readonly itemId: string
-}
-
 type DrainStep =
-  | {
-    readonly _tag: "Processed"
-    readonly item: WorkItem
-    readonly remaining: number
-  }
-  | {
-    readonly _tag: "Drained"
-  }
+  | { readonly _tag: "Processed"; readonly item: WorkItem; readonly remaining: number }
+  | { readonly _tag: "Drained" }
 
-declare const processItem: (item: WorkItem) => Effect.Effect<void, ProcessError>
+const processItem = (item: WorkItem) =>
+  Console.log(`processed item ${item.id}: ${item.payload}`)
 
-const drainOneAvailableItem = Effect.fnUntraced(function*(
-  queue: Queue.Queue<WorkItem>
-) {
+const drainOneAvailableItem = Effect.fnUntraced(function*(queue: Queue.Queue<WorkItem>) {
   const queued = yield* Queue.size(queue)
 
   if (queued === 0) {
+    yield* Console.log("queue is empty")
     return { _tag: "Drained" } as const
   }
 
@@ -117,64 +84,59 @@ const drainOneAvailableItem = Effect.fnUntraced(function*(
   yield* processItem(item)
 
   const remaining = yield* Queue.size(queue)
+  yield* Console.log(`${remaining} item(s) remain`)
 
   return { _tag: "Processed", item, remaining } as const
 })
 
-const shouldContinueDraining = (step: DrainStep): boolean =>
-  step._tag === "Processed" && step.remaining > 0
-
-const slowDrainPolicy = Schedule.spaced("250 millis").pipe(
-  Schedule.satisfiesInputType<DrainStep>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => shouldContinueDraining(input)),
-  Schedule.bothLeft(
-    Schedule.recurs(99).pipe(Schedule.satisfiesInputType<DrainStep>())
-  )
+const slowDrainPolicy = Schedule.spaced("10 millis").pipe(
+  Schedule.both(Schedule.recurs(9))
 )
 
-export const drainQueueSlowly = (
-  queue: Queue.Queue<WorkItem>
-): Effect.Effect<DrainStep, ProcessError> =>
-  drainOneAvailableItem(queue).pipe(
-    Effect.repeat(slowDrainPolicy)
+const shouldContinue = (step: DrainStep) =>
+  step._tag === "Processed" && step.remaining > 0
+
+const program = Effect.gen(function*() {
+  const queue = yield* Queue.unbounded<WorkItem>()
+  yield* Queue.offerAll(queue, [
+    { id: 1, payload: "refresh-search-index" },
+    { id: 2, payload: "publish-outbox-event" },
+    { id: 3, payload: "expire-cache-entry" }
+  ])
+
+  yield* drainOneAvailableItem(queue).pipe(
+    Effect.repeat({
+      schedule: slowDrainPolicy,
+      while: shouldContinue
+    })
   )
+
+  yield* Console.log("drain pass finished")
+})
+
+Effect.runPromise(program)
 ```
 
-The first drain step runs immediately. If the queue is empty, it returns
-`"Drained"` and the schedule stops without sleeping. If an item is processed and
-more work remains, the schedule waits 250 milliseconds before the next take. If
-the pass reaches the recurrence cap first, the repeat also stops and returns the
-last processed step.
+The demo uses `10 millis` so it terminates quickly. In production, choose a gap
+from the dependency you are protecting, such as a database write budget or API
+quota.
 
 ## Variants
 
-For a gentler background drain, increase the spacing:
+For batch drains, process a small batch and return the remaining count. Keep
+the same schedule shape: a spacing policy, a count limit, and a stop condition
+based on the successful drain result.
 
-```ts
-const slowBackgroundDrain = slowDrainPolicy.pipe(
-  Schedule.addDelay(() => Effect.succeed("750 millis"))
-)
-```
-
-For batch drains, change the repeated effect to take and process a small batch,
-then keep the same shape: return `"Drained"` when no work is available, return
-`"Processed"` with `remaining`, and repeat only while `remaining > 0`.
-
-For a queue shared by several consumers, prefer a design where each worker owns
-its reservation semantics. The schedule can still pace successful work, but the
-queue operation should not depend on `size` being stable across workers.
+For shared queues, move reservation semantics into the queue or database claim
+operation. The schedule can pace successful work, but it cannot make `size`
+stable across workers.
 
 ## Notes and caveats
 
-`Effect.repeat` feeds successful `DrainStep` values into the schedule. It does
-not feed failures into the schedule. A `ProcessError` from `processItem` stops
-the drain immediately.
+`Effect.repeat` feeds successful `DrainStep` values into the repeat decision.
+Failures from `processItem` stop the drain unless the processing effect has its
+own retry policy.
 
-`Schedule.spaced` waits after a successful iteration completes. It is different
-from `Schedule.fixed`, which follows wall-clock interval boundaries and may run
-again immediately if work took longer than the interval.
-
-The count limit is a guardrail, not the empty-queue condition. Keep both: the
-empty check says the drain is complete, while the recurrence cap keeps one pass
-bounded under a large backlog.
+`Schedule.spaced` waits after a successful iteration completes. `Schedule.fixed`
+is different: it follows interval boundaries and may run again immediately if a
+previous iteration took longer than the interval.

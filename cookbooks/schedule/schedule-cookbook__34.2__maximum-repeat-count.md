@@ -10,29 +10,27 @@ code_included: true
 
 # 34.2 Maximum repeat count
 
-A maximum repeat count bounds successful recurrences while keeping the effect
-body focused on one unit of work.
+A maximum repeat count bounds successful recurrences while the effect body stays
+focused on one unit of work.
 
 ## Problem
 
 You need to run a successful effect a bounded number of additional times without
-putting counters and sleeps around the effect body.
-
-For example, a metrics sampler might run once immediately and then take four
-more samples. A warmup task might run once and then repeat twice to smooth out
-transient startup state. In both cases, the effect describes one unit of work and
-the schedule describes the repeat limit.
+putting counters or sleeps around the effect body. A sampler might run once
+immediately and then take a few more samples. A warmup step might run once and
+repeat twice. In both cases, the effect describes the work and the schedule
+describes the repeat limit.
 
 ## When to use it
 
-Use `Schedule.recurs(n)` when the only policy is "repeat at most `n` more
-times." It is the smallest count-based schedule and its output is the current
-recurrence count.
+Use `Schedule.recurs(n)` when the policy is "repeat at most `n` more times." It
+is the smallest count-based schedule, and its output is the current recurrence
+count.
 
-Use `Schedule.take(n)` when another schedule already describes the cadence or
-shape, and you only want to cap how many outputs from that schedule are used.
-This is common with `Schedule.spaced`, `Schedule.fixed`, or
-`Schedule.exponential`, which otherwise keep recurring.
+Use `Schedule.take(n)` when another schedule already describes the cadence and
+you only want to cap how many outputs from that schedule are used. This is
+common with `Schedule.spaced`, `Schedule.fixed`, or `Schedule.exponential`,
+which otherwise keep recurring.
 
 ## When not to use it
 
@@ -40,9 +38,9 @@ Do not use repeat counts to recover from failures. `Effect.repeat` consults the
 schedule after success. If the effect fails, the repeat stops with that failure.
 Use `Effect.retry` for failure-driven recurrence.
 
-Also avoid counted repeats when the domain has a clearer terminal condition. If
-a polling response says `"ready"` or `"done"`, prefer a predicate such as
-`until` or `while` with a count limit as a guardrail.
+Avoid counted repeats when the domain has a clearer terminal condition. If a
+polling response says `"ready"` or `"done"`, prefer `until` or `while`, with a
+count limit only as a guardrail.
 
 ## Schedule shape
 
@@ -50,73 +48,48 @@ a polling response says `"ready"` or `"done"`, prefer a predicate such as
 `Effect.repeat`, that means one initial execution plus up to `n` additional
 executions.
 
-`Schedule.take(n)` limits another schedule to at most `n` outputs. The original
-schedule still controls its delay and output type; `take` only adds the maximum
-count.
-
-When you pass a raw schedule to `Effect.repeat`, the repeated effect succeeds
-with the schedule's final output. For count schedules, that means a number. If
-you need the final successful value from the effect instead, use the options form
-of `Effect.repeat`, such as `Effect.repeat({ schedule })` or
-`Effect.repeat({ times })`.
+When you pass a raw schedule to `Effect.repeat`, the returned effect succeeds
+with the schedule's final output. If callers need the last successful value
+instead, use the options form of `Effect.repeat`.
 
 ## Code
 
-This program runs the effect once immediately and then repeats it three more
-times. The final value is the schedule output, so the type is `Effect<number>`:
-
 ```ts
-import { Console, Effect, Schedule } from "effect"
+import { Console, Effect, Ref, Schedule } from "effect"
 
-const writeHeartbeat = Console.log("heartbeat")
+const writeHeartbeat = Effect.fnUntraced(function*(
+  counter: Ref.Ref<number>
+) {
+  const count = yield* Ref.updateAndGet(counter, (n) => n + 1)
+  yield* Console.log(`heartbeat ${count}`)
+  return count
+})
 
-export const program: Effect.Effect<number> = writeHeartbeat.pipe(
-  Effect.repeat(Schedule.recurs(3))
-)
+const program = Effect.gen(function*() {
+  const counter = yield* Ref.make(0)
+  const finalScheduleOutput = yield* writeHeartbeat(counter).pipe(
+    Effect.repeat(Schedule.recurs(3))
+  )
+  yield* Console.log(`schedule output: ${finalScheduleOutput}`)
+})
+
+Effect.runPromise(program)
 ```
 
-Add `take` when the count limit should cap a timing schedule:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const sampleMetrics = Console.log("sample")
-
-export const sampled: Effect.Effect<number> = sampleMetrics.pipe(
-  Effect.repeat(Schedule.spaced("1 second").pipe(Schedule.take(4)))
-)
-```
-
-The second example runs once immediately, then repeats up to four times with one
-second between successful runs.
-
-Use the options form when callers need the last successful value rather than the
-schedule output:
-
-```ts
-import { Effect, Schedule } from "effect"
-
-declare const readVersion: Effect.Effect<number>
-
-export const finalVersion: Effect.Effect<number> = readVersion.pipe(
-  Effect.repeat({
-    schedule: Schedule.spaced("1 second").pipe(Schedule.take(4))
-  })
-)
-```
+The effect runs once immediately and then repeats three more times. The final
+logged value is the schedule output, not the last heartbeat value.
 
 ## Variants
 
-Use `Schedule.recurs(0)` when the effect should run once and not repeat. This
-can be useful when a count is configurable and zero means "disable additional
-runs."
+Use `Schedule.recurs(0)` when the effect should run once and not repeat. This is
+useful when a configured count of zero means "disable additional runs."
 
 Use `Schedule.spaced(duration).pipe(Schedule.take(n))` when operators need both
 a maximum repeat count and a predictable delay.
 
-Use `Schedule.exponential(base).pipe(Schedule.take(n))` when repeated successful
-work should become less frequent over time, such as checking a non-urgent
-background condition after an initial success.
+Use `Schedule.exponential(base).pipe(Schedule.take(n))` when successful work
+should become less frequent over time, such as checking a non-urgent condition
+after an initial success.
 
 ## Notes and caveats
 
@@ -126,8 +99,8 @@ allows the initial execution plus three scheduled recurrences.
 `Schedule.recurs` and `Schedule.take` both use the schedule attempt count to
 decide when to stop. The distinction is what they preserve: `recurs` is itself a
 counting schedule, while `take` keeps another schedule's delay and output and
-only limits how many outputs are accepted.
+only adds a cap.
 
 Successful values are schedule inputs. That matters if you add `Schedule.while`,
 `Schedule.tapInput`, or `Schedule.passthrough`: those combinators observe the
-successful result of the effect, not its failures.
+successful result, not failures.

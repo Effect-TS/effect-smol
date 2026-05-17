@@ -10,32 +10,28 @@ code_included: false
 
 # 60.5 Jitter
 
-Jitter is the `Schedule` pattern for randomizing recurrence delays so
-independent callers do not move together.
+Use this index when the main problem is coordination across clients, workers,
+pods, tabs, or service instances that share the same retry or repeat policy.
+Jitter randomizes recurrence delays so independent callers do not move together.
 
-Use this index entry when the primary question is coordination across clients,
-workers, pods, tabs, or service instances that share the same retry or repeat
-policy.
-
-## Source-of-truth mapping
+## API mapping
 
 `Schedule.jittered(schedule)` returns a new schedule with the same output,
 input, error, and environment types as the schedule it wraps. It changes the
 delay selected for each recurrence.
 
 The implementation in `packages/effect/src/Schedule.ts` uses
-`Schedule.modifyDelay` and `Random.next` to adjust the selected delay to a
-random value between `80%` and `120%` of the original delay.
+`Schedule.modifyDelay` and the runtime random service to adjust the selected
+delay to a random value between `80%` and `120%` of the original delay.
 
 That means jitter is a delay modifier. It does not change which inputs are
 accepted, what the schedule outputs, how many recurrences are allowed, or why the
 schedule stops.
 
-## Recipes
+## Related recipes
 
-Start with [8.4 Avoid synchronized retries in clustered systems](schedule-cookbook__08.4__avoid-synchronized-retries-in-clustered-systems.md)
-for the retry case. It maps jitter to herd avoidance after a shared failure and
-shows why backoff, jitter, and limits are separate decisions.
+Use [8.4 Avoid synchronized retries in clustered systems](schedule-cookbook__08.4__avoid-synchronized-retries-in-clustered-systems.md)
+for the retry case and the separation between backoff, jitter, and limits.
 
 Use [19.1 Polling from many clients without synchronization](schedule-cookbook__19.1__polling-from-many-clients-without-synchronization.md)
 when the repeated work is polling rather than retrying after failure.

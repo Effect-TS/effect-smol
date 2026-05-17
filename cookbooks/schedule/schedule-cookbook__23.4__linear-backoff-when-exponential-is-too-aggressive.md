@@ -10,17 +10,17 @@ code_included: true
 
 # 23.4 Linear backoff when exponential is too aggressive
 
-Exponential backoff is useful when callers should quickly get out of the way,
-but its curve can be too steep for short recovery windows or interactive flows.
+Exponential backoff is useful when callers should quickly reduce pressure. Its
+curve can be too steep for short recovery windows, interactive work, or local
+contention.
 
-Use linear backoff when you want each failure to add the same amount of extra
-waiting time. Effect does not provide a `Schedule.linear` constructor; build the
-shape explicitly from `Schedule.unfold` and `Schedule.addDelay`.
+Linear backoff adds the same delay after each failure. Use it when retries
+should become more conservative without jumping to multi-second waits after only
+a few failures.
 
 ## Problem
 
-Before choosing exponential backoff, compare the actual retry delays for the
-base interval you intend to use. With a 250 millisecond base:
+Compare the retry delays for a 250 millisecond base:
 
 | Retry decision | Linear delay | Exponential delay |
 | -------------- | ------------ | ----------------- |
@@ -30,139 +30,101 @@ base interval you intend to use. With a 250 millisecond base:
 | 4              | 1000 ms      | 2000 ms           |
 | 5              | 1250 ms      | 4000 ms           |
 
-Both policies slow the caller down. The difference is the curve. Linear backoff
-keeps adding one fixed increment, while `Schedule.exponential("250 millis")`
-multiplies each later delay by the exponential factor, `2` by default.
+Both policies slow the caller down. The difference is the growth curve:
+linear backoff adds one fixed increment, while
+`Schedule.exponential("250 millis")` multiplies later delays by the factor
+`2` unless you pass a different factor.
 
 ## When to use it
 
-Use linear backoff when repeated failures should reduce pressure gradually, but
-later retries still need to stay close enough to catch a quick recovery. It
-fits short-lived internal service disruption, local resource contention,
-connection re-establishment, and background jobs where an exponential curve
-would make the workflow appear stalled.
+Use linear backoff when failures should reduce pressure gradually, but later
+attempts still need to stay close enough to catch a quick recovery. It fits
+short internal disruptions, local resource contention, reconnects, and
+background jobs where exponential backoff would make the workflow appear
+stalled.
 
-It is also useful when operators need a policy they can read at a glance:
-"wait 250 milliseconds more after each failure, up to five retries" is easier
-to reason about than a curve that grows by multiplication.
+It is also easier to explain operationally: "wait 250 milliseconds more after
+each failure, up to five retries" is a concrete contract.
 
 ## When not to use it
 
-Do not use linear backoff for failures that are not safe to retry. Validation
-errors, authorization failures, malformed requests, and non-idempotent writes
-without duplicate protection should be handled before the schedule is applied.
+Do not retry validation failures, authorization failures, malformed requests, or
+non-idempotent writes without duplicate protection. For overload that may last a
+long time or affect many clients at once, exponential backoff, caps, jitter, and
+admission control are usually more appropriate.
 
-Do not use it when the dependency needs aggressive load shedding from each
-caller. For overload that may last longer or affect many clients at once,
-exponential backoff, a cap, jitter, and admission control are usually more
-appropriate.
-
-Do not leave a linear policy unbounded unless the operation is meant to retry
-forever under external supervision. Linear growth is gentle, so an unbounded
-schedule can keep work alive for a long time.
+Do not leave a linear policy unbounded unless an external supervisor is expected
+to own the lifetime of the work.
 
 ## Schedule shape
 
-Start with a schedule that outputs the current retry step:
+Start with a schedule that emits the retry step:
+`Schedule.unfold(1, (step) => Effect.succeed(step + 1))`.
 
-```ts
-Schedule.unfold(1, (step) => Effect.succeed(step + 1))
-```
-
-`Schedule.unfold` outputs the current state and computes the next state for the
-following decision. Starting at `1` makes the first retry delay one increment
-instead of zero.
-
-Then turn that step into an added delay:
-
-```ts
-Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 250)))
-```
-
-Because the unfold schedule has no delay of its own, the delay added here is
-the retry delay. The resulting sequence is 250 milliseconds, 500 milliseconds,
-750 milliseconds, 1 second, and so on.
-
-Finally, add a stopping condition such as `Schedule.take(5)` so one operation
-cannot retry forever.
+Then use `Schedule.addDelay` to turn that step into a delay. Because the unfold
+schedule has no delay of its own, the added duration is the retry delay. Add
+`Schedule.take` or `Schedule.recurs` to keep the operation finite.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class SearchIndexUnavailable extends Data.TaggedError("SearchIndexUnavailable")<{
   readonly shard: string
 }> {}
 
-declare const refreshSearchIndex: Effect.Effect<void, SearchIndexUnavailable>
+let attempts = 0
 
-const refreshBackoff = Schedule.unfold(1, (step) => Effect.succeed(step + 1)).pipe(
-  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 250))),
+const refreshSearchIndex = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`refresh attempt ${attempts}`)
+
+  if (attempts < 5) {
+    return yield* Effect.fail(
+      new SearchIndexUnavailable({ shard: "products-1" })
+    )
+  }
+
+  return "search index refreshed"
+})
+
+const refreshBackoff = Schedule.unfold(1, (step) =>
+  Effect.succeed(step + 1)
+).pipe(
+  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 25))),
   Schedule.take(5)
 )
 
-export const program = refreshSearchIndex.pipe(
-  Effect.retry(refreshBackoff)
+const program = Effect.gen(function*() {
+  const result = yield* refreshSearchIndex.pipe(
+    Effect.retry(refreshBackoff)
+  )
+  yield* Console.log(result)
+}).pipe(
+  Effect.catch((error) => Console.log(`refresh failed: ${error._tag}`))
 )
+
+Effect.runPromise(program)
 ```
 
-`program` runs `refreshSearchIndex` once immediately. If it fails with
-`SearchIndexUnavailable`, the first retry waits 250 milliseconds. Later
-failures wait 500 milliseconds, 750 milliseconds, 1 second, and 1250
-milliseconds before the next retry, up to the limit.
-
-If any attempt succeeds, the whole program succeeds with `void`. If the
-original attempt and all five retries fail, `Effect.retry` propagates the last
-`SearchIndexUnavailable`.
+The example waits `25ms`, `50ms`, `75ms`, and `100ms` before succeeding. With a
+250 millisecond production step, the same shape would wait ten times longer.
 
 ## Variants
 
-Use a smaller increment when the caller is waiting for an answer:
+If you still want a curve but the default doubling is too abrupt, pass a smaller
+factor to `Schedule.exponential`, for example `1.5`.
 
-```ts
-const interactiveBackoff = Schedule.unfold(
-  1,
-  (step) => Effect.succeed(step + 1)
-).pipe(
-  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 100))),
-  Schedule.take(3)
-)
-```
-
-Use exponential backoff with a gentler factor when you still want a curve, but
-the default doubling behavior is too abrupt:
-
-```ts
-const gentleExponentialBackoff = Schedule.exponential("250 millis", 1.5).pipe(
-  Schedule.take(5)
-)
-```
-
-This produces 250 milliseconds, 375 milliseconds, 562.5 milliseconds, and so
-on. It is still exponential; the multiplier is just smaller than the default
-factor of `2`.
-
-If many fibers or processes may fail together, add jitter after the base
-linear shape is correct:
-
-```ts
-const jitteredLinearBackoff = refreshBackoff.pipe(
-  Schedule.jittered
-)
-```
+If many fibers or processes may fail together, apply `Schedule.jittered` after
+the base linear shape is correct.
 
 ## Notes and caveats
 
-`Effect.retry` feeds typed failures into the schedule. The linear policy above
-ignores the failure value and uses only schedule state, so classify retryable
-and non-retryable failures at the retry boundary.
-
-`Schedule.exponential(base)` returns the current duration between recurrences
-and is unbounded by itself. The hand-built linear policy is also unbounded
-until you add `Schedule.take`, `Schedule.recurs`, a time budget, or another
+`Schedule.exponential(base)` and the hand-built linear policy are both unbounded
+until you add `Schedule.take`, `Schedule.recurs`, `Schedule.during`, or another
 stopping condition.
 
-Changing the initial state changes the first delay. Starting the unfold at `0`
-would make the first added delay zero, which means the first retry would happen
-immediately. Start at `1` when the first retry should wait one full increment.
+Changing the initial unfold state changes the first delay. Starting at `0` makes
+the first added delay zero; start at `1` when the first retry should wait one
+full increment.

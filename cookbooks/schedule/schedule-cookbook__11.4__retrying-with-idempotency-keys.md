@@ -10,9 +10,9 @@ code_included: true
 
 # 11.4 Retrying with idempotency keys
 
-Idempotency keys make some external writes safe to retry by tying repeated attempts to
-one logical operation. This recipe shows where the key belongs relative to
-`Effect.retry` and a bounded `Schedule`.
+An idempotency key is a stable token that tells a downstream service which
+attempts belong to one logical command. This recipe shows where that key belongs
+relative to `Effect.retry` and a bounded `Schedule`.
 
 ## Problem
 
@@ -21,8 +21,8 @@ attempts. If each attempt uses a different key, the downstream system may treat
 them as independent writes.
 
 The retry policy still matters. A key can prevent duplicate business effects,
-but it does not make unbounded retry traffic harmless. Use `Schedule` to keep
-the retry delayed, finite, and explicit.
+but it does not make unbounded retry traffic harmless. Use `Schedule` to keep the
+retry delayed, finite, and explicit.
 
 The important boundary is: create or receive one idempotency key before the
 retried write, then reuse that exact key for every attempt made by
@@ -65,11 +65,11 @@ For keyed external writes, start with a conservative bounded retry:
 - a finite recurrence limit, so the write cannot retry forever
 - a predicate that retries only ambiguous or transient failures
 
-`Schedule.exponential("100 millis")` computes increasing delays.
-`Schedule.jittered` randomly adjusts each delay between 80% and 120%.
-`Schedule.both(Schedule.recurs(4))` keeps the schedule finite: both schedules
-must continue, so the write is retried at most four times after the original
-attempt.
+The example uses `Schedule.exponential("10 millis")` so it terminates quickly.
+Production values are usually larger. `Schedule.jittered` randomly adjusts each
+delay between 80% and 120%. `Schedule.both(Schedule.recurs(4))` keeps the
+schedule finite: both schedules must continue, so the write is retried at most
+four times after the original attempt.
 
 With `Effect.retry`, the write runs once immediately. The same effect is then
 re-run only after a typed failure that the predicate allows and only while the
@@ -78,7 +78,7 @@ schedule continues.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class CreatePaymentError extends Data.TaggedError("CreatePaymentError")<{
   readonly reason: "Timeout" | "ConnectionReset" | "RateLimited" | "BadGateway" | "InvalidRequest" | "Declined"
@@ -95,9 +95,21 @@ interface PaymentInput {
   readonly idempotencyKey: string
 }
 
-declare const createPayment: (input: PaymentInput) => Effect.Effect<Payment, CreatePaymentError>
+let attempts = 0
 
-const retryKeyedWrite = Schedule.exponential("100 millis").pipe(
+const createPayment = (input: PaymentInput): Effect.Effect<Payment, CreatePaymentError> =>
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`payment attempt ${attempts} with key ${input.idempotencyKey}`)
+
+    if (attempts < 3) {
+      return yield* Effect.fail(new CreatePaymentError({ reason: "Timeout" }))
+    }
+
+    return { id: "pay_123", status: "Created" }
+  })
+
+const retryKeyedWrite = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(4))
 )
@@ -125,7 +137,13 @@ const submitPayment = (
       schedule: retryKeyedWrite,
       while: isRetryablePaymentFailure
     })
+  ).pipe(
+    Effect.tap((payment) => Console.log(`${payment.id} ${payment.status}`))
   )
+
+const program = submitPayment("customer-1", 5000, "payment-command-42")
+
+Effect.runPromise(program)
 ```
 
 The `idempotencyKey` is an argument to `submitPayment`, not a value created
@@ -143,15 +161,24 @@ For user-facing writes, keep the retry budget small. The idempotency key
 reduces duplicate-write risk, but the user still waits for the retry sequence:
 
 ```ts
-const userFacingKeyedWrite = Schedule.exponential("75 millis").pipe(
+import { Console, Effect, Schedule } from "effect"
+
+const userFacingKeyedWrite = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(2))
 )
 
-const backgroundKeyedWrite = Schedule.exponential("500 millis", 1.5).pipe(
+const backgroundKeyedWrite = Schedule.exponential("20 millis", 1.5).pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(6))
+  Schedule.both(Schedule.recurs(4))
 )
+
+const program = Effect.gen(function*() {
+  yield* Console.log(`user-facing policy: ${Schedule.isSchedule(userFacingKeyedWrite)}`)
+  yield* Console.log(`background policy: ${Schedule.isSchedule(backgroundKeyedWrite)}`)
+})
+
+Effect.runPromise(program)
 ```
 
 Use the smaller policy when the caller needs a prompt answer. Use the larger

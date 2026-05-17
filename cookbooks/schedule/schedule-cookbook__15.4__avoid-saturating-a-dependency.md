@@ -10,9 +10,8 @@ code_included: true
 
 # 15.4 Avoid saturating a dependency
 
-Use spacing when a successful repeat loop calls a shared downstream dependency and
-should not keep it under continuous pressure. This recipe keeps the pacing policy
-separate from failure recovery.
+Use `Schedule.spaced` when a successful repeat loop calls a shared dependency
+and should leave that dependency breathing room between calls.
 
 ## Problem
 
@@ -24,13 +23,16 @@ see worse latency, because the repeat loop never gives the system room to settle
 
 Use this when success should not mean "run again immediately."
 
-This is common for maintenance loops, polling loops, batch-drain loops, and periodic synchronization jobs where each iteration touches a shared dependency. The goal is to keep making progress while placing a deliberate pause between successful calls.
+This is common for maintenance loops, polling loops, batch-drain loops, and
+periodic synchronization jobs where each iteration touches a shared dependency.
+The goal is steady progress with a fixed pause between successful calls.
 
 Use a bounded schedule when the repeat belongs to a command, migration, short worker pass, or test. The spacing limits pressure per unit of time; the bound limits the total amount of work performed by that loop.
 
 ## When not to use it
 
-Do not use this to handle failed calls. `Effect.repeat` is success-driven; if the dependency call fails, repetition stops with that failure. Use `Effect.retry` for failure-driven recovery.
+Do not use this to handle failed calls. `Effect.repeat` stops when the
+dependency call fails. Use `Effect.retry` for failure-driven recovery.
 
 Do not use this as a complete rate-limit implementation. This section is about spacing one successful repeat loop so it does not continuously press on a dependency.
 
@@ -38,13 +40,9 @@ Do not use this when work must run on wall-clock interval boundaries. `Schedule.
 
 ## Schedule shape
 
-The basic shape is:
-
-```ts
-Schedule.spaced("500 millis").pipe(Schedule.take(20))
-```
-
-`Schedule.spaced("500 millis")` waits 500 milliseconds after each successful iteration before allowing the next recurrence.
+The basic shape is `Schedule.spaced("500 millis").pipe(Schedule.take(20))`.
+`Schedule.spaced("500 millis")` waits 500 milliseconds after each successful
+iteration before allowing the next recurrence.
 
 `Schedule.take(20)` bounds the schedule to 20 scheduled recurrences after the first successful run. If all iterations succeed, the effect runs 21 times total.
 
@@ -55,32 +53,38 @@ Together, the schedule says: keep repeating after success, but leave a fixed gap
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const writeBatch = Console.log("writing one batch to the dependency")
+let batch = 0
 
-const dependencyFriendlyRepeat = Schedule.spaced("500 millis").pipe(
-  Schedule.take(20)
+const writeBatch = Effect.gen(function*() {
+  batch += 1
+  yield* Console.log(`wrote batch ${batch}`)
+  return batch
+})
+
+const dependencyFriendlyRepeat = Schedule.spaced("10 millis").pipe(
+  Schedule.take(2)
 )
 
-const program = writeBatch.pipe(
-  Effect.repeat(dependencyFriendlyRepeat)
-)
+const program = Effect.gen(function*() {
+  const finalRecurrence = yield* writeBatch.pipe(
+    Effect.repeat(dependencyFriendlyRepeat)
+  )
+  yield* Console.log(`dependency loop stopped after recurrence ${finalRecurrence}`)
+})
+
+Effect.runPromise(program)
 ```
 
-The first `writeBatch` runs immediately. After each successful batch, the schedule waits 500 milliseconds before the next batch. The loop ends after the configured recurrence bound, or earlier if `writeBatch` fails.
+The first batch runs immediately. The next two batches are separated by the
+configured pause. In production, choose a delay that reflects the dependency's
+latency, quota, and impact on other callers.
 
 ## Variants
 
-Use a longer fixed spacing when the dependency is sensitive to sustained pressure. Use increasing spacing when each successful pass may still leave pressure behind and later passes should become less aggressive:
-
-```ts
-const cautiousRepeat = Schedule.spaced("2 seconds").pipe(
-  Schedule.take(10)
-)
-
-const backingOffRepeat = Schedule.exponential("200 millis").pipe(
-  Schedule.take(8)
-)
-```
+Use a longer fixed spacing when the dependency is sensitive to sustained
+pressure. Use a bounded increasing schedule, such as
+`Schedule.exponential("200 millis").pipe(Schedule.take(8))`, when later passes
+should become less aggressive.
 
 Both variants are still success-driven when used with `Effect.repeat`. They control when the next successful recurrence may happen; they do not convert failures into retries.
 

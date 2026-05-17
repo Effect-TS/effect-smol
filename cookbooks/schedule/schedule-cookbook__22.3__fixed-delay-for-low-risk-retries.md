@@ -23,14 +23,10 @@ surrounding Effect decides how to recover.
 
 ## Schedule shape
 
-`Schedule.fixed(interval)` recurs on fixed interval boundaries. Combining it
-with `Schedule.take(n)` keeps the policy finite.
-
-```ts
-const policy = Schedule.fixed("750 millis").pipe(
-  Schedule.take(3)
-)
-```
+For retry delay, use `Schedule.spaced(interval)` and combine it with
+`Schedule.recurs(n)`. `Schedule.spaced` waits after each failed attempt
+completes. Use `Schedule.fixed` only when you need wall-clock interval
+boundaries for repeated successful work.
 
 With `Effect.retry`, the schedule observes failures. In this example the
 original feature-flag read is attempted once, then retried up to three times.
@@ -38,7 +34,7 @@ original feature-flag read is attempted once, then retried up to three times.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 type FeatureFlag = {
   readonly key: string
@@ -50,9 +46,20 @@ class FlagReadError extends Data.TaggedError("FlagReadError")<{
   readonly reason: "Timeout" | "Unavailable"
 }> {}
 
-declare const fetchFeatureFlag: (
-  key: string
-) => Effect.Effect<FeatureFlag, FlagReadError>
+let attempts = 0
+
+const fetchFeatureFlag = Effect.fnUntraced(function*(key: string) {
+  attempts += 1
+  yield* Console.log(`flag read attempt ${attempts}`)
+
+  if (attempts < 10) {
+    return yield* Effect.fail(
+      new FlagReadError({ reason: "Unavailable" })
+    )
+  }
+
+  return { key, enabled: true, source: "remote" } satisfies FeatureFlag
+})
 
 const defaultCheckoutFlag: FeatureFlag = {
   key: "checkout.v2",
@@ -60,15 +67,22 @@ const defaultCheckoutFlag: FeatureFlag = {
   source: "default"
 }
 
-const flagRetryPolicy = Schedule.fixed("750 millis").pipe(
-  Schedule.take(3)
+const flagRetryPolicy = Schedule.spaced("30 millis").pipe(
+  Schedule.both(Schedule.recurs(3))
 )
 
-export const loadCheckoutFlag = fetchFeatureFlag("checkout.v2").pipe(
+const loadCheckoutFlag = fetchFeatureFlag("checkout.v2").pipe(
   Effect.retry(flagRetryPolicy),
-  Effect.catchAll(() => Effect.succeed(defaultCheckoutFlag))
+  Effect.catch(() => Effect.succeed(defaultCheckoutFlag))
 )
+
+Effect.runPromise(loadCheckoutFlag).then((flag) => {
+  console.log(`${flag.key}: ${flag.enabled} from ${flag.source}`)
+})
 ```
+
+The feature flag read fails in this scratchpad example, so the bounded retry
+finishes by returning the conservative default.
 
 ## Why this is low risk
 
@@ -83,10 +97,10 @@ the retry policy more carefully before applying a schedule.
 
 ## Keep it bounded
 
-A fixed delay is easy to reason about, but it also creates a stable request rate.
-For one process, three retries every 750 milliseconds may be harmless. Across a
-large deployment, an unbounded fixed retry can become permanent pressure on the
-service that is already failing.
+A fixed delay is easy to reason about, but it also creates a stable request
+rate. For one process, a few retries with a short delay may be harmless. Across
+a large deployment, an unbounded fixed retry can become permanent pressure on
+the service that is already failing.
 
 Keep the retry count small for request-path reads. If many instances may retry
 the same dependency at the same time, consider adding jitter after choosing the

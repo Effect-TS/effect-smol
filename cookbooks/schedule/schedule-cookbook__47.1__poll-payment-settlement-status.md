@@ -10,207 +10,107 @@ code_included: true
 
 # 47.1 Poll payment settlement status
 
-Payment settlement is often asynchronous. A card authorization, bank transfer,
-or processor capture may be accepted first, then settle later after the payment
-provider finishes its own workflow.
+Payment settlement is often asynchronous: the provider accepts the payment
+first, then moves it through pending, processing, and terminal states. Model
+those non-terminal states as successful observations and use a repeat schedule
+to decide when another read is worth doing.
 
 ## Problem
 
-You need to poll a payment provider until a settlement reaches a terminal state,
-but you also need an explicit timeout when the provider keeps returning an
-in-progress status.
-
-The first status fetch should happen immediately. The schedule should control
-only the follow-up polls: how long to wait between them, which successful
-statuses continue polling, and when the polling budget is exhausted.
+You need to poll a provider until settlement reaches a terminal state, but the
+caller still needs a bounded answer. `Pending` and `Processing` are not errors;
+they are successful responses that mean "poll again after a pause."
 
 ## When to use it
 
-Use this when all of these are true:
-
-- A non-terminal settlement status is a successful provider response.
-- The payment provider does not give you a reliable callback for this path.
-- The caller needs a bounded answer rather than an unbounded background wait.
-- Terminal payment states must be handled differently in domain code.
-
-This fits checkout confirmation screens, admin reconciliation tools, payment
-capture workers, and short-lived API calls that wait for a processor to finish
-settlement.
+Use this for checkout confirmation, payment reconciliation, and short-lived
+API calls where the current request should wait briefly for settlement. The
+status endpoint must be safe to call repeatedly.
 
 ## When not to use it
 
-Do not use scheduled polling to hide provider errors. Authentication failures,
-invalid payment IDs, malformed requests, and network failures should stay in the
-effect error channel or be classified before the polling policy is applied.
-
-Prefer a webhook, queue event, or provider callback when it is reliable enough
-for the workflow. Polling is useful when the current request needs a bounded
-answer or when the provider's push signal is not available for this operation.
-
-Do not treat a timeout as a failed payment. A timeout means the polling policy
-stopped before a terminal status was observed. The payment may still settle
-later, so record or surface that distinction explicitly.
+Do not use this to hide provider failures. Authentication errors, invalid
+payment ids, malformed requests, and transport failures belong in the error
+channel or in a separate retry policy. Do not treat a timeout as a failed
+payment; it only means this polling window ended before a terminal status was
+seen.
 
 ## Schedule shape
 
-Use a spaced cadence for provider pressure, pass the latest successful status
-through as the schedule output, keep polling only while the status is
-non-terminal, and combine that with an elapsed budget:
-
-```ts
-const pollOpenSettlements = Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<SettlementStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isOpen(input)),
-  Schedule.bothLeft(Schedule.during("2 minutes"))
-)
-```
-
-`Effect.repeat` feeds successful values into the schedule. Here that means each
-provider status response becomes the schedule input.
-
-`Schedule.passthrough` makes the repeated effect return the latest observed
-status when polling stops. `Schedule.while` stops after a terminal status.
-`Schedule.during("2 minutes")` stops the schedule when the elapsed recurrence
-budget is exhausted. `Schedule.bothLeft` keeps the status as the schedule output
-while still requiring both the status condition and the time budget to continue.
+Use `Effect.repeat` because the decision is based on successful statuses. The
+schedule keeps the latest status with `Schedule.passthrough`, continues while
+the status is open, and also enforces a time budget.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type SettlementStatus =
   | { readonly _tag: "Pending" }
   | { readonly _tag: "Processing" }
   | { readonly _tag: "Settled"; readonly settlementId: string }
   | { readonly _tag: "Declined"; readonly reason: string }
-  | { readonly _tag: "Cancelled"; readonly reason: string }
 
-type PaymentProviderError = {
-  readonly _tag: "PaymentProviderError"
-  readonly message: string
-}
+const statuses: ReadonlyArray<SettlementStatus> = [
+  { _tag: "Pending" },
+  { _tag: "Processing" },
+  { _tag: "Settled", settlementId: "set_123" }
+]
 
-type SettlementResult =
-  | { readonly _tag: "SettlementSucceeded"; readonly settlementId: string }
-  | { readonly _tag: "SettlementDeclined"; readonly reason: string }
-  | { readonly _tag: "SettlementCancelled"; readonly reason: string }
+let reads = 0
 
-type SettlementTimeout = {
-  readonly _tag: "SettlementTimeout"
-  readonly paymentId: string
-  readonly lastStatus: "Pending" | "Processing"
-}
+const fetchSettlementStatus = Effect.gen(function*() {
+  const status = statuses[Math.min(reads, statuses.length - 1)]
+  reads += 1
+  yield* Console.log(`provider status: ${status._tag}`)
+  return status
+})
 
-declare const fetchSettlementStatus: (
-  paymentId: string
-) => Effect.Effect<SettlementStatus, PaymentProviderError>
-
-const isOpen = (status: SettlementStatus): boolean =>
+const isOpen = (status: SettlementStatus) =>
   status._tag === "Pending" || status._tag === "Processing"
 
-const pollOpenSettlements = Schedule.spaced("2 seconds").pipe(
+const pollOpenSettlements = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<SettlementStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => isOpen(input)),
-  Schedule.bothLeft(Schedule.during("2 minutes"))
+  Schedule.bothLeft(
+    Schedule.during("100 millis").pipe(
+      Schedule.satisfiesInputType<SettlementStatus>()
+    )
+  )
 )
 
-export const waitForSettlement = Effect.fnUntraced(function*(paymentId: string) {
-  const status = yield* fetchSettlementStatus(paymentId).pipe(
-    Effect.repeat(pollOpenSettlements)
-  )
+const program = fetchSettlementStatus.pipe(
+  Effect.repeat(pollOpenSettlements),
+  Effect.flatMap((status) => {
+    switch (status._tag) {
+      case "Settled":
+        return Console.log(`settled as ${status.settlementId}`)
+      case "Declined":
+        return Console.log(`declined: ${status.reason}`)
+      case "Pending":
+      case "Processing":
+        return Console.log(`timed out while ${status._tag}`)
+    }
+  })
+)
 
-  switch (status._tag) {
-    case "Settled":
-      return {
-        _tag: "SettlementSucceeded",
-        settlementId: status.settlementId
-      } as const
-    case "Declined":
-      return {
-        _tag: "SettlementDeclined",
-        reason: status.reason
-      } as const
-    case "Cancelled":
-      return {
-        _tag: "SettlementCancelled",
-        reason: status.reason
-      } as const
-    case "Pending":
-    case "Processing":
-      return yield* Effect.fail({
-        _tag: "SettlementTimeout",
-        paymentId,
-        lastStatus: status._tag
-      } as const)
-  }
-})
+Effect.runPromise(program)
 ```
 
-`fetchSettlementStatus` runs once immediately. If it returns `Pending` or
-`Processing`, the schedule waits two seconds before the next provider call. If a
-later call returns `Settled`, `Declined`, or `Cancelled`, `Schedule.while` stops
-the repetition and the function maps the terminal status into a domain result.
-
-If the two-minute budget closes first, `Effect.repeat` returns the last
-non-terminal status. The function turns that into `SettlementTimeout`, keeping
-the provider error channel separate from the "still not terminal" outcome.
+The first read happens immediately. The schedule controls only follow-up reads.
+When the terminal `Settled` status appears, the repeat stops and the domain code
+decides what to report.
 
 ## Variants
 
-Use a shorter budget for user-facing checkout requests:
-
-```ts
-const checkoutPolling = Schedule.spaced("1 second").pipe(
-  Schedule.satisfiesInputType<SettlementStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isOpen(input)),
-  Schedule.bothLeft(Schedule.during("15 seconds"))
-)
-```
-
-Use a slower cadence for background reconciliation:
-
-```ts
-const reconciliationPolling = Schedule.spaced("30 seconds").pipe(
-  Schedule.satisfiesInputType<SettlementStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isOpen(input)),
-  Schedule.bothLeft(Schedule.during("10 minutes"))
-)
-```
-
-Add jitter when many payments may enter polling at the same time:
-
-```ts
-const fleetFriendlyPolling = Schedule.spaced("2 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<SettlementStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isOpen(input)),
-  Schedule.bothLeft(Schedule.during("2 minutes"))
-)
-```
-
-Jitter changes only the timing between polls. It does not change which
-settlement states are terminal or how timeout is interpreted.
+Use a shorter budget for a checkout request and a slower cadence for background
+reconciliation. Add `Schedule.jittered` when many payments may start polling at
+the same time.
 
 ## Notes and caveats
 
-Use `Effect.repeat` because the decision to continue is based on successful
-status responses. `Effect.retry` feeds failures into the schedule, which is the
-right tool for transient provider errors but not for ordinary `Pending` or
-`Processing` statuses.
-
-`Schedule.during` is a recurrence budget, not a hard timeout for an in-flight
-provider request. If the provider call itself needs a deadline, apply that to
-`fetchSettlementStatus` separately.
-
-The schedule does not delay the first provider call. It controls only the
-recurrences after successful observations.
-
-Keep terminal-state interpretation outside the schedule. The schedule should
-answer "should we poll again?"; the business workflow should decide what
-`Settled`, `Declined`, `Cancelled`, or `SettlementTimeout` means for the order.
+Keep settlement interpretation outside the schedule. The schedule answers
+"should another status read happen?"; the payment workflow decides what
+`Settled`, `Declined`, or a still-open timeout means.

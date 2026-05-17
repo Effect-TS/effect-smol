@@ -10,29 +10,39 @@ code_included: true
 
 # 27.1 Jittered retries for HTTP clients
 
-HTTP clients are a common place to add jitter because temporary outages often affect many callers at once. `Schedule.jittered` keeps the base retry policy recognizable while spreading follow-up attempts across a small random range.
+Use jittered retries when many HTTP clients may see the same transient failure
+and retry at nearly the same time. `Schedule.jittered` keeps the chosen retry
+shape visible while spreading each retry delay across a small random range.
 
 ## Problem
 
-A client that sees a timeout, 408, 429, or 5xx response should retry only when the request is safe to repeat. The first HTTP request is still made by the effect itself. The schedule only decides whether to make another attempt, and how long to wait before that next attempt.
+An HTTP call can fail because a gateway is overloaded, a request times out, or a
+server returns `408`, `429`, or `5xx`. Retrying can help, but only when the
+request is safe to repeat. For writes, "safe" usually means idempotent: running
+the same request more than once has the same external effect as running it once.
 
 ## When to use it
 
-Use this recipe for transient HTTP failures such as timeouts, 408, 429, and 5xx responses where another attempt is expected to be safe. It is especially useful for service-to-service calls, background workers, and webhook delivery paths where many clients can observe the same outage window.
-
-Keep the retry boundary close to the HTTP operation. The schedule can handle timing and limits, but the operation should still classify errors so the retry policy only sees failures that can be safely retried.
+Use it for service-to-service calls, background delivery, and webhooks where a
+shared outage can affect many callers. Keep error classification close to the
+HTTP operation so the retry policy only sees failures that are worth retrying.
 
 ## When not to use it
 
-Do not retry validation errors, malformed requests, authentication failures, authorization failures, or normal 4xx responses. Also do not blindly retry non-idempotent writes. A `POST` that creates a charge, sends an email, or mutates external state needs an idempotency key or another application-level safety mechanism before it belongs behind a retry schedule.
+Do not retry validation errors, malformed requests, authentication failures, or
+ordinary `4xx` responses. Do not blindly retry a `POST` that charges a card,
+sends an email, or creates external state unless it carries an idempotency key or
+another deduplication guarantee.
 
-Jitter also does not replace rate-limit handling. If the server gives a specific `Retry-After` policy, model that explicitly instead of pretending every response should follow the same client-side backoff curve.
+Jitter also does not replace explicit rate-limit handling. If the server returns
+a `Retry-After` value, prefer that server-provided delay for that response.
 
 ## Schedule shape
 
-Start with the operational shape you would want without jitter, then apply `Schedule.jittered` to that base cadence. In `Schedule.ts`, `Schedule.exponential("100 millis")` produces an exponential sequence of delays, and `Schedule.jittered` modifies each delay to a random value between 80% and 120% of the original delay.
-
-Combine the jittered backoff with a stop condition such as `Schedule.recurs(5)`. `Schedule.both` uses intersection semantics, so the retry continues only while both schedules continue.
+Choose the backoff first, then add jitter. `Schedule.exponential("100 millis")`
+produces increasing delays. `Schedule.jittered` modifies each selected delay to
+a random value between 80% and 120% of the original delay. Add
+`Schedule.recurs` or a time budget so the retry is bounded.
 
 ## Code
 
@@ -47,10 +57,6 @@ class HttpError extends Data.TaggedError("HttpError")<{
   readonly idempotencyKey?: string
 }> {}
 
-declare const getJson: (
-  url: string
-) => Effect.Effect<unknown, HttpError>
-
 const isRetryableStatus = (status: number) =>
   status === 408 || status === 429 || status >= 500
 
@@ -64,26 +70,55 @@ const isRetrySafe = (error: HttpError) =>
     error.idempotencyKey !== undefined
   )
 
-const httpRetryPolicy = Schedule.exponential("100 millis").pipe(
+let attempt = 0
+
+const getProfile = Effect.gen(function*() {
+  attempt += 1
+  yield* Effect.sync(() => console.log(`GET /profile attempt ${attempt}`))
+
+  if (attempt < 3) {
+    return yield* Effect.fail(
+      new HttpError({ method: "GET", status: 503 })
+    )
+  }
+
+  return { id: 123, name: "Ada" }
+})
+
+const httpRetryPolicy = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.while(({ input }) => isRetrySafe(input))
+  Schedule.both(Schedule.recurs(5))
 )
 
-export const program = Effect.retry(
-  getJson("https://api.example.com/profile"),
-  httpRetryPolicy
+const program = getProfile.pipe(
+  Effect.retry({
+    schedule: httpRetryPolicy,
+    while: isRetrySafe
+  }),
+  Effect.tap((profile) =>
+    Effect.sync(() => console.log(`loaded ${profile.name}`))
+  )
 )
+
+Effect.runPromise(program)
 ```
 
 ## Variants
 
-For user-facing requests, use fewer recurrences or add a short elapsed-time budget so the caller gets a timely answer. For background delivery, use a larger base delay and a larger retry limit, but keep the policy bounded so failed work eventually moves to a dead-letter path or operator-visible state.
+For user-facing calls, use fewer retries or a short elapsed-time budget so the
+caller gets a timely answer. For background delivery, use a larger base delay
+and retry limit, but keep a clear handoff to a dead-letter queue, alert, or
+operator-visible failed state.
 
-For writes, keep the safety check stricter than the timing check. Retrying a `POST` can be reasonable when the request carries an idempotency key and the downstream service honors it. Without that guarantee, prefer surfacing the failure over creating duplicate side effects.
+For writes, keep the safety check stricter than the timing check. Retrying a
+`POST` can be reasonable when the downstream service honors an idempotency key.
+Without that guarantee, surface the failure instead of risking duplicate side
+effects.
 
 ## Notes and caveats
 
-`Effect.retry` feeds failures into the schedule as inputs. That is why the example can use `Schedule.while(({ input }) => isRetrySafe(input))` to stop retrying when the HTTP error is not safe to repeat.
+`Effect.retry` runs the original request immediately. Jitter affects only waits
+between retries after typed failures.
 
-`Schedule.jittered` changes the delay, not the retry decision. Keep retry classification, maximum retry count, and any total time budget explicit in the surrounding schedule composition.
+`Schedule.jittered` changes delay only. Keep retry classification, maximum retry
+count, and any total time budget explicit.

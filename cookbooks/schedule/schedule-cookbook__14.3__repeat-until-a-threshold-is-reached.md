@@ -20,8 +20,8 @@ successful value that can be compared with a threshold.
 
 With `Effect.repeat`, the effect runs once before the schedule is consulted.
 After each successful run, the successful output becomes the schedule input.
-That is the value a `Schedule.while` predicate inspects when it decides whether
-another recurrence is allowed.
+That is the value `Schedule.while` inspects when it decides whether another
+recurrence is allowed.
 
 ## When to use it
 
@@ -46,14 +46,8 @@ surrounding workflow or the fiber has a clear lifetime owner.
 
 ## Schedule shape
 
-Make the successful output the schedule input, then continue while the latest
-successful output is still below the threshold:
-
-```ts
-Schedule.identity<Progress>().pipe(
-  Schedule.while(({ input }) => input.percent < 100)
-)
-```
+Make the successful output the schedule input, preserve it as the schedule
+output, then continue while it is still below the threshold.
 
 `Schedule.while` receives schedule metadata after a successful run. Returning
 `true` allows another recurrence. Returning `false` stops the repeat.
@@ -65,65 +59,53 @@ The predicate above therefore means "repeat while the latest successful
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 interface Progress {
   readonly percent: number
 }
 
-declare const readProgress: Effect.Effect<Progress>
+let percent = 0
 
-const untilComplete = Schedule.identity<Progress>().pipe(
+const readProgress = Effect.gen(function*() {
+  percent = Math.min(percent + 40, 100)
+  yield* Console.log(`progress: ${percent}%`)
+  return { percent }
+})
+
+const untilComplete = Schedule.spaced("10 millis").pipe(
+  Schedule.satisfiesInputType<Progress>(),
+  Schedule.passthrough,
   Schedule.while(({ input }) => input.percent < 100)
 )
 
-const finalProgress = readProgress.pipe(
-  Effect.repeat(untilComplete)
-)
+const program = Effect.gen(function*() {
+  const finalProgress = yield* readProgress.pipe(
+    Effect.repeat(untilComplete)
+  )
+
+  yield* Console.log(`final progress: ${finalProgress.percent}%`)
+})
+
+Effect.runPromise(program)
 ```
 
 `readProgress` runs once immediately. If it succeeds with `percent >= 100`, no
 recurrence is scheduled. If it succeeds with `percent < 100`, the schedule
 allows another run.
 
-Because the schedule is `Schedule.identity<Progress>()`, the repeated program
-succeeds with the final successful `Progress` value that stopped the loop.
+Because the schedule uses `Schedule.passthrough`, the repeated program succeeds
+with the final successful `Progress` value that stopped the loop.
 
 ## Variants
 
 Add a recurrence limit or a pause when the threshold may take time to appear:
 
-```ts
-import { Effect, Schedule } from "effect"
+Use the same threshold schedule, then compose it with
+`Schedule.bothLeft(Schedule.recurs(20).pipe(Schedule.satisfiesInputType<Progress>()))`.
 
-interface Progress {
-  readonly percent: number
-}
-
-declare const readProgress: Effect.Effect<Progress>
-
-const untilCompleteOrTwentyRecurrences = Schedule.spaced("500 millis").pipe(
-  Schedule.satisfiesInputType<Progress>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.percent < 100),
-  Schedule.bothLeft(
-    Schedule.recurs(20).pipe(Schedule.satisfiesInputType<Progress>())
-  )
-)
-
-const finalProgress = readProgress.pipe(
-  Effect.repeat(untilCompleteOrTwentyRecurrences)
-)
-```
-
-`Schedule.spaced("500 millis")` controls the delay between successful runs.
-`Schedule.satisfiesInputType<Progress>()` is applied before reading
-`metadata.input`, because the base timing and count schedules are not
-constructed from `Progress` values. `Schedule.passthrough` keeps the latest
-successful `Progress` as the schedule output.
-
-The repeat stops when either a successful output reaches `percent >= 100` or
-twenty scheduled recurrences have been allowed.
+The repeat then stops when either a successful output reaches `percent >= 100`
+or twenty scheduled recurrences have been allowed.
 
 ## Notes and caveats
 
@@ -136,6 +118,7 @@ recurrences.
 Use `<` for "repeat while below the threshold" and `<=` when the threshold must
 be strictly exceeded. Make the boundary explicit in the predicate.
 
-When composing a count or timing schedule with `Schedule.while`, constrain the
+When composing a timing or count schedule with `Schedule.while`, constrain the
 input type with `Schedule.satisfiesInputType<T>()` before reading
-`metadata.input`.
+`metadata.input`, then use `Schedule.passthrough` when callers need the final
+successful value.

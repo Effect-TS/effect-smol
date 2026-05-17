@@ -10,79 +10,37 @@ code_included: true
 
 # 47.5 Repeat CRM sync every few minutes
 
-A CRM sync is a background product workflow with externally visible side effects:
-contacts, companies, lead scores, lifecycle stages, and activity history may be
-read from one system and written into another.
+A CRM sync is a successful background workflow repeated over time. The schedule
+should describe the cadence between completed sync passes; the sync itself
+should handle idempotent writes and transient request retries internally.
 
 ## Problem
 
-You need to keep CRM data fresh by running a sync every few minutes, but the
-sync may take variable time and may touch the same records more than once. A
-hidden loop with sleeps makes it hard to review spacing, overlap behavior, and
-idempotency assumptions.
-
-The first sync should start when the worker starts. After a successful sync, the
-schedule controls when the next successful recurrence is allowed to run.
+You need to keep CRM data fresh by running a sync every few minutes, but a
+hidden loop with sleeps makes spacing, overlap, and shutdown behavior hard to
+review.
 
 ## When to use it
 
-Use `Effect.repeat` with `Schedule.spaced("5 minutes")` when each sync pass
-should complete before the quiet period begins.
-
-This is a good fit for pull-based CRM integrations that periodically reconcile
-changes from a cursor, page token, or updated-at window. The spacing is part of
-the operational contract: each successful pass is followed by a fixed pause, so
-slow syncs naturally reduce the start rate.
+Use `Effect.repeat` with `Schedule.spaced` when each sync pass should complete
+before the quiet period begins. This fits cursor-based or updated-at-window CRM
+integrations.
 
 ## When not to use it
 
 Do not use this as a retry policy for failed CRM requests. `Effect.repeat`
-repeats successful effects. If a sync fails, the repeated program fails unless
-the sync effect handles or retries that failure internally.
-
-Do not use this shape when the business requirement is a wall-clock cadence such
-as "start every five minutes regardless of how long the previous run took." Use
-`Schedule.fixed("5 minutes")` for that cadence, and still keep the sync effect
-single-run and idempotent.
-
-Do not rely on scheduling alone to make writes safe. A CRM sync should use stable
-external identifiers, cursors, upserts, idempotency keys, or version checks so
-that repeated observations do not create duplicate contacts, duplicate notes, or
-out-of-order updates.
+repeats successes and stops on failure. Keep transient retries inside the
+single sync pass. Do not rely on scheduling to make writes idempotent.
 
 ## Schedule shape
 
-The central shape is:
-
-```ts
-Schedule.spaced("5 minutes")
-```
-
-With `Effect.repeat`, that means:
-
-1. Run the CRM sync once immediately.
-2. If it succeeds, wait five minutes.
-3. Run the next sync.
-4. Repeat the same wait-after-success pattern.
-
-The spacing is measured after the previous successful run completes. If a sync
-takes two minutes and the schedule is `Schedule.spaced("5 minutes")`, the next
-sync starts about seven minutes after the previous one started.
-
-This is different from `Schedule.fixed("5 minutes")`, which keeps a fixed
-interval cadence. If a fixed-interval action takes longer than the interval, the
-next action runs immediately when the previous one completes, but missed runs do
-not pile up.
+`Schedule.spaced("5 minutes")` waits after each successful sync before the next
+run. The first sync starts immediately.
 
 ## Code
 
 ```ts
 import { Console, Effect, Schedule } from "effect"
-
-type CrmSyncError = {
-  readonly _tag: "CrmSyncError"
-  readonly message: string
-}
 
 type SyncSummary = {
   readonly cursor: string
@@ -90,71 +48,49 @@ type SyncSummary = {
   readonly companiesUpserted: number
 }
 
-declare const syncCrmOnce: Effect.Effect<SyncSummary, CrmSyncError>
+let pass = 0
 
-const crmSyncSpacing = Schedule.spaced("5 minutes")
+const syncCrmOnce = Effect.gen(function*() {
+  pass += 1
+  const summary = {
+    cursor: `cursor-${pass}`,
+    contactsUpserted: pass * 3,
+    companiesUpserted: pass
+  }
+  yield* Console.log(
+    `CRM sync ${pass}: ${summary.contactsUpserted} contacts, ` +
+      `${summary.companiesUpserted} companies`
+  )
+  return summary
+})
 
-export const program = syncCrmOnce.pipe(
-  Effect.tap((summary) =>
-    Console.log(
-      `CRM sync finished at cursor ${summary.cursor}: ` +
-        `${summary.contactsUpserted} contacts, ` +
-        `${summary.companiesUpserted} companies`
-    )
-  ),
-  Effect.repeat(crmSyncSpacing)
+const demoCadence = Schedule.spaced("10 millis").pipe(
+  Schedule.satisfiesInputType<SyncSummary>(),
+  Schedule.passthrough,
+  Schedule.take(2)
 )
+
+const program = syncCrmOnce.pipe(
+  Effect.repeat(demoCadence),
+  Effect.flatMap((summary) =>
+    Console.log(`last cursor written: ${summary.cursor}`)
+  )
+)
+
+Effect.runPromise(program)
 ```
 
-`syncCrmOnce` runs immediately when `program` starts. After each successful
-summary, the schedule waits five minutes before allowing the next sync pass.
-The schedule itself does not create concurrent runs.
+The demo runs the first sync immediately and then two scheduled recurrences. In
+production, use the real interval and tie the repeated fiber to service
+lifetime.
 
 ## Variants
 
-Use a fixed cadence when the sync must stay aligned to a regular interval:
-
-```ts
-import { Schedule } from "effect"
-
-const everyFiveMinutes = Schedule.fixed("5 minutes")
-```
-
-With `Schedule.fixed`, a slow sync can cause the next sync to start immediately
-after the slow one finishes, but the schedule will not launch a backlog of
-missed executions. Use this only when clock cadence matters more than a quiet
-gap after each CRM pass.
-
-Use a longer spaced interval for expensive full reconciliations:
-
-```ts
-import { Schedule } from "effect"
-
-const fullReconciliationSpacing = Schedule.spaced("30 minutes")
-```
-
-Use a shorter spaced interval for small cursor-based incremental syncs, provided
-the CRM API, database, and downstream automations can tolerate the load.
+Use `Schedule.fixed` only when wall-clock alignment matters more than a quiet
+gap after completion. Add jitter when many instances run the same sync cadence.
 
 ## Notes and caveats
 
-The first CRM sync is not delayed. The schedule controls recurrences after the
-first successful evaluation.
-
-`Schedule.spaced` is unbounded by itself. In a long-running worker, scope the
-repeated workflow to the service lifetime and make shutdown behavior explicit in
-the surrounding application.
-
-Failures are not retried by this repeat schedule. If transient CRM transport
-failures should be retried within a sync pass, keep that retry policy inside
-`syncCrmOnce` so the outer schedule still describes successful periodic syncs.
-
-Avoid overlap at the deployment level too. If multiple worker instances can run
-the same CRM sync, use a lease, partition ownership, advisory lock, queue
-assignment, or another coordination mechanism. A local `Schedule` prevents one
-fiber from starting its next repeat before the previous run completes; it does
-not coordinate separate processes.
-
-Make the sync idempotent. Repeated passes should upsert by stable CRM ids, keep
-cursor advancement transactional with processed data, and tolerate replaying the
-same page or time window after a worker restart.
+Avoid overlap outside the local fiber too. If several processes can run the same
+CRM sync, use a lease, partition ownership, advisory lock, queue assignment, or
+another coordination mechanism.

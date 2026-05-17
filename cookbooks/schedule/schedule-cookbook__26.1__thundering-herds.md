@@ -10,102 +10,112 @@ code_included: true
 
 # 26.1 Thundering herds
 
-Use this recipe to add jitter when many clients, workers, service instances, or
-fibers might otherwise follow the same retry or polling cadence.
+Use jitter when many clients, workers, service instances, or fibers might
+otherwise retry or poll on the same cadence.
 
 ## Problem
 
-After a shared event such as a deployment, outage recovery, cache expiry,
-process restart, rate-limit response, or common transient error, every actor can
-make the same follow-up decision. Fixed spacing and deterministic backoff are
-easy to reason about for one caller, but across a fleet they can concentrate
-load into sharp waves.
-
-The policy still needs enough delay to protect the downstream dependency. It
-should not wake every actor on the same boundary.
+A thundering herd is a burst created when many actors react to the same event at
+the same time. Deploys, restarts, cache expiry, outage recovery, rate limits, and
+shared transient errors can all synchronize clients. A fixed delay that is mild
+for one caller can become a sharp load wave across a fleet.
 
 ## When to use it
 
-Use jitter when the same schedule can run in many places at once: reconnecting
+Use it when the same schedule can run in many places at once: reconnecting
 clients, workers polling a shared queue, dashboard refreshes, health checks,
-cache refills, or retries after a shared dependency outage.
+cache refills, or retries after a dependency outage.
 
-Use it after deciding the operational shape of the policy. For example, keep
-`Schedule.exponential("100 millis")` as the base retry shape, keep
-`Schedule.spaced("5 seconds")` as the base polling shape, and then apply
-`Schedule.jittered` so each recurrence delay is slightly different.
+Decide the base shape first, then add jitter. For example, keep
+`Schedule.exponential("100 millis")` as the retry shape or
+`Schedule.spaced("5 seconds")` as the polling shape, then apply
+`Schedule.jittered`.
 
 ## When not to use it
 
-Do not add jitter to hide an unsafe retry. Non-idempotent writes, authorization
+Do not use jitter to hide unsafe retries. Non-idempotent writes, authorization
 failures, validation failures, and malformed requests should be classified
-before a retry schedule is used.
+before retrying.
 
-Also avoid jitter when a precise cadence is the requirement. Some maintenance
-jobs, batch windows, tests, and user-facing countdowns need predictable timing
-more than load smoothing.
+Avoid jitter when exact timing is the requirement, such as protocol heartbeats,
+batch windows, deterministic tests, or user-facing countdowns.
 
 ## Schedule shape
 
-`Schedule.jittered` modifies the delay already produced by the schedule. In
-Effect, each delay is randomly adjusted between `80%` and `120%` of the original
-delay. A base delay of `1 second` can therefore become any delay from
-`800 millis` to `1.2 seconds`.
+`Schedule.jittered` modifies the delay produced by another schedule. In Effect,
+each delay is randomly adjusted between 80% and 120% of the original delay. It
+does not decide what is retryable, how often to stop, or how many attempts are
+allowed. Compose those decisions separately:
 
-That means jitter does not decide how many times to retry, when to stop, or which
-inputs are retryable. Compose those decisions separately:
-
-- `Schedule.exponential` or `Schedule.spaced` describes the base cadence.
-- `Schedule.recurs` or `Schedule.during` bounds the recurrence.
-- `Schedule.jittered` spreads individual wake-ups around the base cadence.
+- `Schedule.exponential` or `Schedule.spaced` describes the base cadence
+- `Schedule.recurs` or `Schedule.during` bounds the recurrence
+- `Schedule.jittered` spreads wake-ups around the base cadence
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-type ApiError =
-  | { readonly _tag: "RateLimited" }
-  | { readonly _tag: "ServiceUnavailable" }
+type ApiError = {
+  readonly _tag: "ServiceUnavailable"
+  readonly client: string
+  readonly attempt: number
+}
 
-declare const fetchSharedResource: Effect.Effect<string, ApiError>
-
-const retryWithoutHerding = Schedule.exponential("100 millis").pipe(
+const retryWithoutHerding = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(5))
+  Schedule.both(Schedule.recurs(4))
 )
 
-export const program = Effect.retry(fetchSharedResource, retryWithoutHerding)
+const runClient = (client: string) => {
+  let attempts = 0
+
+  const fetchSharedResource = Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`${client} attempt ${attempts}`)
+
+    if (attempts < 3) {
+      return yield* Effect.fail<ApiError>({
+        _tag: "ServiceUnavailable",
+        client,
+        attempt: attempts
+      })
+    }
+
+    return `${client} loaded the resource`
+  })
+
+  return fetchSharedResource.pipe(
+    Effect.retry(retryWithoutHerding),
+    Effect.flatMap(Console.log)
+  )
+}
+
+const program = Effect.forEach(
+  ["client-a", "client-b", "client-c"],
+  runClient,
+  { concurrency: 3, discard: true }
+)
+
+Effect.runPromise(program)
 ```
 
-The first call to `fetchSharedResource` still happens normally. If it fails,
-`Effect.retry` feeds the failure into the schedule and follows the schedule's
-next delay. The exponential schedule gives later attempts more room, while
-`Schedule.jittered` prevents every caller from retrying on the exact same
-milliseconds.
+The first attempt for each client runs immediately. If a client fails, the
+exponential schedule controls the retry shape and `Schedule.jittered` prevents
+every client from sleeping for exactly the same delay.
 
 ## Variants
 
-For a polling loop, use a spaced cadence and add jitter to the repeat schedule:
-
-```ts
-const pollCadence = Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.during("1 minute"))
-)
-```
-
-For outage recovery, combine exponential backoff, jitter, and a time budget so
-the dependency gets breathing room and the caller still has a clear stopping
-point.
+For polling, jitter a `Schedule.spaced` repeat policy. For outage recovery,
+combine exponential backoff, jitter, and an elapsed budget. For a hard
+maximum-delay guarantee, apply jitter before the final `Schedule.modifyDelay`
+cap.
 
 ## Notes and caveats
 
-Jitter reduces synchronization; it does not reduce the total number of attempts
-by itself. Keep attempt limits, elapsed-time budgets, rate limits, and error
-classification visible in the schedule or near the effect being retried.
+Jitter reduces synchronization; it does not reduce the total number of attempts.
+Keep attempt limits, elapsed-time budgets, rate limits, and error classification
+visible near the effect being retried.
 
-Because `Schedule.jittered` changes timing randomly, logs and metrics should be
-read as ranges around the base policy rather than exact timestamps. If you need
-deterministic timing in tests, test the base schedule separately or assert the
-allowed timing window.
+Because jitter changes timing randomly, logs and metrics should be read as
+ranges around the base policy rather than exact timestamps.

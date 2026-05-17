@@ -10,13 +10,10 @@ code_included: false
 
 # 58.1 Flaky HTTP call
 
-Use this reference when an HTTP call sometimes fails and the next decision is
-whether retrying is safe before choosing a delay.
-
-## What this section is about
-
-Start by classifying the call, not by picking a delay. Method safety, failure
-class, caller latency, and downstream capacity lead to different recipes.
+Use this reference when an HTTP call sometimes fails and you need to decide
+whether retrying is safe before choosing a delay. Start with classification:
+method safety, failure class, caller latency, and downstream capacity lead to
+different schedules.
 
 For read-only calls, see 11.1 Safe retries for GET requests and 43.2 Retry HTTP
 GET on 503. A GET that fails with a timeout, connection reset, `502`, `503`, or
@@ -26,15 +23,12 @@ GET on 503. A GET that fails with a timeout, connection reset, `502`, `503`, or
 For writes, see 11.2 Retrying idempotent writes and 50.4 Retry non-idempotent
 side effects blindly. A `POST`, payment request, email send, or notification
 delivery should not be retried only because the transport failed. Require an
-idempotency key, natural request id, deduplication token, or another
-duplicate-safety guarantee before applying the same retry shape.
+idempotency key, natural request id, deduplication token, or another guarantee
+that duplicate requests collapse to one effect.
 
-## Why it matters
-
-HTTP failures are easy to overgeneralize. Retrying every error can turn bad
-input into latency, authorization failures into noise, and overloaded services
-into a retry storm. Not retrying anything can expose callers to brief network
-or deployment blips that a bounded retry would have hidden.
+Retrying every HTTP error turns bad input into latency, authorization failures
+into noise, and overloaded services into retry storms. Retrying nothing exposes
+callers to brief network or deployment blips that a bounded retry would hide.
 
 The important split is:
 
@@ -44,8 +38,9 @@ The important split is:
 - limits decide when the caller must see the final failure
 
 Keep those decisions separate. `Effect.retry` receives failures from the typed
-error channel; the predicate or schedule input filter should decide retryability
-from that typed failure, while the `Schedule` describes timing and termination.
+error channel. The retry predicate or schedule input filter should decide
+retryability from that typed failure, while `Schedule` describes timing and
+termination.
 
 ## Core idea
 
@@ -58,15 +53,15 @@ duration, with a default factor of `2`. It does not stop by itself. Pair it with
 `Schedule.recurs(n)` or `Schedule.take(n)` for retry-count limits, and with
 `Schedule.during(duration)` when the caller has an elapsed-time budget.
 
-Use `Schedule.both` to combine timing with stopping conditions when all
-conditions must keep allowing recurrence. For example, the reference shape is
-"exponential backoff AND at most a few retries AND still within the caller's
-budget."
+Use `Schedule.both` when timing and stopping conditions must all keep allowing
+recurrence. It continues only while both input schedules continue and uses the
+larger delay. The reference shape is "exponential backoff AND at most a few
+retries AND still within the caller's budget."
 
 Use `Schedule.jittered` for clients, workers, or hosts that may fail together.
-In `Schedule.ts`, jitter modifies each recurrence delay to a random value
-between 80% and 120% of the original delay. That does not make the retry safer
-for a single call; it makes many retries less synchronized.
+It modifies each recurrence delay to a random value between 80% and 120% of the
+original delay. That does not make one call safer; it makes many retries less
+synchronized.
 
 ## Practical guidance
 
@@ -87,8 +82,8 @@ Use this index entry to choose among the concrete recipes:
   Treat rate limits differently from server errors.
 
 A practical default for a read is small exponential backoff, two to four
-retries, an elapsed budget that fits the caller, and jitter when the call can be
-made by many processes. A practical default for a write is no retry until the
+retries, an elapsed budget that fits the caller, and jitter when many processes
+can make the same call. A practical default for a write is no retry until the
 operation has a documented idempotency story.
 
 Avoid policies that retry all HTTP failures, retry non-idempotent writes without

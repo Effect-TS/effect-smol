@@ -10,8 +10,8 @@ code_included: true
 
 # 15.3 Space expensive maintenance tasks
 
-Use spacing when successful maintenance work should continue, but not back-to-back.
-This recipe keeps the post-success pause separate from failure recovery.
+Use `Schedule.spaced` when maintenance work should continue after success, but
+not run back-to-back.
 
 ## Problem
 
@@ -22,7 +22,8 @@ downstream services room to recover.
 
 ## When to use it
 
-Use this when the important rule is "after a successful maintenance pass, wait before starting the next one."
+Use this when the important rule is "after a successful maintenance pass, wait
+before starting the next one."
 
 `Schedule.spaced(duration)` is the direct policy for deliberate post-success spacing. With `Effect.repeat`, the maintenance effect runs once immediately. If it succeeds, the schedule waits for the configured duration before allowing the next recurrence.
 
@@ -30,21 +31,20 @@ This is a good fit for recurring maintenance jobs where a fixed pause after comp
 
 ## When not to use it
 
-Do not use this to handle failed maintenance attempts. `Effect.repeat` is success-driven; if the maintenance effect fails, repetition stops with that failure. Use `Effect.retry` when failures should be attempted again.
+Do not use this to handle failed maintenance attempts. `Effect.repeat` is
+success-driven; if the maintenance effect fails, repetition stops with that
+failure. Use `Effect.retry` when failures should be attempted again.
 
-Do not use this when the task must run at wall-clock interval boundaries, such as every hour on the hour. `Schedule.spaced` waits after the successful run completes, so the next start time includes the work duration plus the spacing.
+Do not use this when the task must run at wall-clock interval boundaries, such
+as every hour on the hour. `Schedule.spaced` waits after the successful run
+completes, so the next start time includes the work duration plus the spacing.
 
 Do not use this section for smoothing traffic across many workers or protecting a saturated dependency with adaptive backoff. Here the goal is simply to put a deliberate gap after successful expensive work.
 
 ## Schedule shape
 
-The central shape is:
-
-```ts
-Schedule.spaced("10 minutes")
-```
-
-With `Effect.repeat`, this means:
+The central shape is `Schedule.spaced("10 minutes")`. With `Effect.repeat`, it
+means:
 
 1. Run the maintenance effect once immediately.
 2. If it succeeds, wait ten minutes.
@@ -60,36 +60,30 @@ For a finite maintenance batch, combine spacing with a stopping rule, as in `Sch
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const compactOneShard = Console.log("compacting one shard")
+let shard = 0
 
-const maintenanceSpacing = Schedule.spaced("10 minutes").pipe(
-  Schedule.take(6)
-)
+const compactOneShard = Effect.gen(function*() {
+  shard += 1
+  yield* Console.log(`compacted shard ${shard}`)
+  return shard
+})
 
-const program = compactOneShard.pipe(
-  Effect.repeat(maintenanceSpacing)
-)
+const maintenanceSpacing = Schedule.spaced("10 millis").pipe(Schedule.take(2))
+
+const program = Effect.gen(function*() {
+  const finalRecurrence = yield* compactOneShard.pipe(
+    Effect.repeat(maintenanceSpacing)
+  )
+  yield* Console.log(`maintenance stopped after recurrence ${finalRecurrence}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`compactOneShard` runs immediately. After each successful compaction, the repeat waits ten minutes before starting the next compaction. The `Schedule.take(6)` limit keeps the example bounded.
+The example uses milliseconds so it terminates quickly. A real maintenance job
+would usually use minutes and a recurrence limit tied to the maintenance window.
 
 ## Variants
-
-Use a longer spacing for jobs that compete with foreground traffic:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const refreshSearchIndexPartition = Console.log("refreshing one search index partition")
-
-const offPeakMaintenance = Schedule.spaced("30 minutes").pipe(
-  Schedule.take(3)
-)
-
-const program = refreshSearchIndexPartition.pipe(
-  Effect.repeat(offPeakMaintenance)
-)
-```
 
 Use a shorter spacing when each pass is expensive but small, such as pruning one page of old rows at a time. Use a longer spacing when each pass causes noticeable CPU, I/O, lock, cache, or downstream pressure.
 

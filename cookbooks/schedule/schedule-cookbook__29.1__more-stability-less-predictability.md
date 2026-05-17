@@ -10,21 +10,20 @@ code_included: true
 
 # 29.1 More stability, less predictability
 
-Jitter spreads recurrence delays so many callers do not wake up in lockstep. It
-keeps the base schedule recognizable while making each individual wait
-approximate.
+Jitter keeps the base cadence visible while making each individual delay
+approximate. The point is to protect aggregate load, not to make one caller more
+precise.
 
 ## Problem
 
-Consider clients, workers, or service instances that all share the same
-schedule. After a deploy, a shared outage, or a batch restart, a precise cadence
-can make them move together too. That creates bursts: many callers wake up at the
-same instant, retry the same dependency, refresh the same cache, or poll the
-same endpoint.
+Many clients, workers, or service instances can start the same schedule at the
+same time after a deploy, outage, or restart. Without jitter, they can also wake
+up together and send a burst of retries, cache refreshes, or polls to the same
+dependency.
 
-The policy needs to weaken that alignment without hiding the base cadence.
-Operators can still describe the base policy and the jitter range, but they
-should not expect every individual caller to wake up at the same precise offset.
+The policy should weaken that alignment without hiding the intended cadence.
+Operators can still describe the base delay and the jitter range; they should
+not expect every caller to wake at the exact same offset.
 
 ## When to use it
 
@@ -35,9 +34,9 @@ Use jitter when aggregate load matters more than exact per-caller timing:
 - polling loops that would otherwise hit a service on the same boundary
 - reconnect loops after a broker, database, or gateway interruption
 
-This is especially useful for idempotent operations where a small timing
-variation does not change correctness. The schedule still needs an explicit
-limit or budget when the workflow must eventually stop.
+This fits idempotent operations, where repeating the same request does not
+change correctness. The schedule still needs a count limit, time budget, or
+external lifetime when the workflow must stop.
 
 ## When not to use it
 
@@ -54,16 +53,9 @@ attempt is valid.
 ## Schedule shape
 
 Start with the cadence you would have used without jitter, then apply
-`Schedule.jittered`:
-
-```ts
-const policy = Schedule.spaced("1 second").pipe(
-  Schedule.jittered
-)
-```
-
-The base schedule remains visible: "one second between recurrences." Jitter then
-turns each one-second delay into a random delay from 800 milliseconds to 1.2
+`Schedule.jittered`. For example, adding `Schedule.jittered` after
+`Schedule.spaced("1 second")` still says "one second between recurrences", but
+each one-second delay is randomized to roughly 800 milliseconds through 1.2
 seconds.
 
 For an exponential policy, each computed exponential delay is jittered:
@@ -81,52 +73,59 @@ any one fiber or process.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Random, Ref, Schedule } from "effect"
 
-type GatewayError = { readonly _tag: "GatewayError" }
+type GatewayError = {
+  readonly _tag: "GatewayError"
+  readonly attempt: number
+}
 
-declare const refreshCacheEntry: Effect.Effect<void, GatewayError>
-
-const refreshPolicy = Schedule.spaced("1 second").pipe(
+const refreshPolicy = Schedule.spaced("20 millis").pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(10))
+  Schedule.both(Schedule.recurs(3))
 )
 
-export const program = refreshCacheEntry.pipe(
-  Effect.retry(refreshPolicy)
-)
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+
+  const refreshCacheEntry: Effect.Effect<string, GatewayError> = Effect.gen(
+    function*() {
+      const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+      yield* Console.log(`refresh attempt ${attempt}`)
+
+      if (attempt < 3) {
+        return yield* Effect.fail({ _tag: "GatewayError", attempt } as const)
+      }
+
+      return "cache refreshed"
+    }
+  )
+
+  const result = yield* refreshCacheEntry.pipe(
+    Effect.retry(refreshPolicy),
+    Random.withSeed("cache-refresh-demo")
+  )
+
+  yield* Console.log(result)
+})
+
+Effect.runPromise(program)
 ```
 
-`program` runs `refreshCacheEntry` once immediately. If it fails, the retry
-policy waits around the one-second cadence instead of exactly one second: each
-retry delay is randomly adjusted to somewhere between 800 milliseconds and 1.2
-seconds. `Schedule.recurs(10)` limits the policy to at most ten retries after
-the original attempt.
+`program` runs the cache refresh immediately, then retries around a 20
+millisecond cadence instead of exactly every 20 milliseconds. The seeded random
+service makes the demo reproducible; production code usually uses the default
+random service.
 
 ## Variants
 
-For transient service failures, combine exponential backoff with jitter:
+For transient service failures, combine exponential backoff with jitter. That
+keeps the exponential shape while avoiding synchronized retry bursts around each
+step.
 
-```ts
-const retryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(6))
-)
-```
-
-This keeps the recognizable exponential shape while avoiding synchronized retry
-bursts around each exponential step.
-
-For periodic background work, jitter the steady cadence:
-
-```ts
-const pollingPolicy = Schedule.spaced("30 seconds").pipe(
-  Schedule.jittered
-)
-```
-
-This is useful when many instances are allowed to poll approximately every 30
-seconds, but the service should not receive all polls at exactly the same time.
+For periodic background work, jitter the steady cadence. This is useful when
+many instances may poll approximately every 30 seconds, but the service should
+not receive all polls on the same boundary.
 
 ## Notes and caveats
 

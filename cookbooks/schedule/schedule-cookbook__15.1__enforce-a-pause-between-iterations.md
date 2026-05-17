@@ -10,37 +10,37 @@ code_included: true
 
 # 15.1 Enforce a pause between iterations
 
-Use spacing when a successful repeat should leave a deliberate gap before the next
-iteration. This recipe keeps the pause policy separate from failure recovery.
+Use `Schedule.spaced` when each successful repeat should wait before the next
+iteration starts.
 
 ## Problem
 
-After refreshing local state, polling a lightweight source, or emitting a heartbeat,
-you want the next successful iteration to start only after a known gap.
+After a refresh, heartbeat, or lightweight poll succeeds, an immediate recurrence
+can be too aggressive. The loop should run again only after a known pause.
 
 ## When to use it
 
-Use this when the spacing between completed iterations matters more than a clock-aligned cadence.
+Use this when the gap after completed work matters more than wall-clock
+alignment.
 
-`Schedule.spaced(duration)` is the direct shape for this policy. The first run happens immediately. After each successful run, the schedule waits for the duration before allowing the next recurrence.
+`Schedule.spaced(duration)` runs the effect once immediately, then waits for the
+duration after each successful run before allowing another recurrence.
 
 ## When not to use it
 
-Do not use this to retry failures. `Effect.repeat` is success-driven; if the effect fails, repetition stops with that failure. Use `Effect.retry` for failure-driven attempts.
+Do not use this to retry failures. `Effect.repeat` is success-driven; a failure
+from the effect stops the repeat. Use `Effect.retry` for failure-driven attempts.
 
-Do not use this when the requirement is a fixed-rate periodic cadence, such as "try to run every second on a one-second interval." Use `Schedule.fixed(duration)` for that shape.
+Do not use this for fixed-rate cadence such as "run on each one-second
+boundary." Use `Schedule.fixed(duration)` for interval alignment.
 
-Do not use this when the first run itself must be delayed. `Effect.repeat` evaluates the effect once before the schedule controls later recurrences.
+Do not use this when the first run itself must be delayed. The schedule controls
+only recurrences after the first evaluation.
 
 ## Schedule shape
 
-The central shape is:
-
-```ts
-Schedule.spaced("2 seconds")
-```
-
-`Schedule.spaced("2 seconds")` means that each scheduled recurrence is separated from the last completed run by a two-second pause.
+The central shape is `Schedule.spaced("2 seconds")`: each scheduled recurrence
+is separated from the previous successful run by a two-second pause.
 
 This is different from `Schedule.fixed("2 seconds")`. `fixed` schedules recurrences against interval boundaries. If the effect takes longer than the interval, the next recurrence may happen immediately so the schedule can continue from the current time. `spaced` still waits the requested duration after the run completes.
 
@@ -51,32 +51,35 @@ When the repeat should stop after a known number of scheduled recurrences, add `
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const refresh = Console.log("refresh")
+let run = 0
 
-const program = refresh.pipe(
-  Effect.repeat(Schedule.spaced("2 seconds").pipe(Schedule.take(3)))
-)
+const refresh = Effect.gen(function*() {
+  run += 1
+  yield* Console.log(`refresh ${run}`)
+  return run
+})
+
+const program = Effect.gen(function*() {
+  const finalRecurrence = yield* refresh.pipe(
+    Effect.repeat(Schedule.spaced("10 millis").pipe(Schedule.take(2)))
+  )
+  yield* Console.log(`repeat returned schedule output ${finalRecurrence}`)
+})
+
+Effect.runPromise(program)
 ```
 
-Here `refresh` runs immediately. If it succeeds, Effect waits two seconds before the next iteration. The same pause is enforced before each later scheduled recurrence.
+This prints three refreshes: the initial run plus two scheduled recurrences. The
+short delay keeps the example quick while still showing that the schedule waits
+between successful runs.
 
 ## Variants
 
-Use a named schedule when the spacing is part of a larger workflow:
+Name the schedule when the same spacing policy is shared across a workflow, for
+example `const everyTwoSeconds = Schedule.spaced("2 seconds").pipe(Schedule.take(5))`.
 
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const everyTwoSeconds = Schedule.spaced("2 seconds").pipe(
-  Schedule.take(5)
-)
-
-const program = Console.log("sync").pipe(
-  Effect.repeat(everyTwoSeconds)
-)
-```
-
-Use `Schedule.spaced(duration)` when the policy is "wait this long after each successful run." Use `Schedule.fixed(duration)` when the policy is "schedule on this periodic interval."
+Use `Schedule.spaced(duration)` for "wait after completed work." Use
+`Schedule.fixed(duration)` for "target this periodic interval."
 
 ## Notes and caveats
 

@@ -10,22 +10,15 @@ code_included: true
 
 # 27.3 Jittered retries for WebSocket reconnect
 
-WebSocket clients often disconnect together when a gateway restarts, a network
-flaps, or a load balancer rotates connections. This recipe uses a bounded,
-jittered exponential backoff for retryable reconnect attempts.
+Use a bounded, jittered backoff when many WebSocket clients may reconnect after
+the same gateway restart, network flap, or load-balancer rotation.
 
 ## Problem
 
-The reconnect loop should recover from transient close or connect failures while
-keeping user-facing waits bounded. The policy should make three things explicit:
-
-- which close or connect failures are worth retrying
-- how the reconnect delay grows
-- where the reconnect loop stops and reports failure to the caller
-
-For user-facing clients, this is not just a load problem. A retry policy that
-waits too long can leave the UI looking stuck, while a policy that retries too
-quickly can burn battery, radio time, and server capacity.
+A reconnect loop should recover from transient close or connect failures without
+leaving a user-facing client in an indefinite "reconnecting" state. The policy
+must show which failures are retryable, how the delay grows, and where the loop
+stops.
 
 ## When to use it
 
@@ -45,39 +38,18 @@ first. A forbidden user, unsupported protocol version, malformed URL, or rejecte
 subprotocol should fail in the domain layer before the reconnect schedule is
 used.
 
-Do not treat jitter as admission control. Jitter spreads retries around each
-computed delay, but it does not reduce the number of clients that will attempt
-to reconnect. Large fleets still need server-side limits, connection draining,
-backpressure, and user-visible fallback states.
+Do not treat jitter as admission control. Jitter spreads reconnect attempts, but
+it does not reduce the number of clients that will try. Large fleets still need
+server-side limits, connection draining, backpressure, and user-visible fallback
+states.
 
 ## Schedule shape
 
-Start with exponential backoff, jitter each computed delay, cap the final delay,
-and add a retry limit:
-
-```ts
-Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
-  ),
-  Schedule.both(Schedule.recurs(8))
-)
-```
-
-`Schedule.exponential("250 millis")` produces the increasing reconnect delay
-curve. With the default factor of `2`, the base delays are 250 milliseconds, 500
-milliseconds, 1 second, 2 seconds, and so on.
-
-`Schedule.jittered` randomly adjusts each delay between 80% and 120% of the
-delay produced by the wrapped schedule. A 1 second reconnect delay therefore
-becomes 800 milliseconds to 1.2 seconds. The retry shape remains exponential,
-but clients no longer share the exact same reconnect boundary.
-
-The `Schedule.modifyDelay` step applies a hard five-second cap after jitter, so
-the randomization cannot push the final wait beyond the user-facing bound.
-`Schedule.recurs(8)` allows at most eight reconnect attempts after the original
-connection attempt.
+Start with exponential backoff, apply `Schedule.jittered`, cap the final delay
+with `Schedule.modifyDelay`, and add a retry limit with `Schedule.recurs`.
+`Schedule.jittered` adjusts each computed delay between 80% and 120% of the
+wrapped schedule's delay. A 1 second reconnect delay therefore becomes 800
+milliseconds to 1.2 seconds.
 
 ## Code
 
@@ -94,8 +66,6 @@ class WebSocketConnectError extends Data.TaggedError("WebSocketConnectError")<{
     | "UnsupportedProtocol"
 }> {}
 
-declare const connectWebSocket: Effect.Effect<void, WebSocketConnectError>
-
 const isRetryableReconnectError = (error: WebSocketConnectError): boolean => {
   switch (error.reason) {
     case "AbnormalClose":
@@ -109,45 +79,51 @@ const isRetryableReconnectError = (error: WebSocketConnectError): boolean => {
   }
 }
 
-const reconnectPolicy = Schedule.exponential("250 millis").pipe(
+let attempt = 0
+
+const connectWebSocket = Effect.gen(function*() {
+  attempt += 1
+  yield* Effect.sync(() => console.log(`websocket connect attempt ${attempt}`))
+
+  if (attempt === 1) {
+    return yield* Effect.fail(
+      new WebSocketConnectError({ reason: "GatewayUnavailable" })
+    )
+  }
+  if (attempt === 2) {
+    return yield* Effect.fail(
+      new WebSocketConnectError({ reason: "NetworkError" })
+    )
+  }
+
+  yield* Effect.sync(() => console.log("websocket connected"))
+})
+
+const reconnectPolicy = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(100)))
   ),
   Schedule.both(Schedule.recurs(8))
 )
 
-export const program = connectWebSocket.pipe(
+const program = connectWebSocket.pipe(
   Effect.retry({
     schedule: reconnectPolicy,
     while: isRetryableReconnectError
   })
 )
+
+Effect.runPromise(program)
 ```
 
-`program` opens the WebSocket immediately. If that attempt fails with a
-retryable `WebSocketConnectError`, the next attempt waits for the jittered
-backoff delay. If the error is `Unauthorized` or `UnsupportedProtocol`, the
-`while` predicate stops retrying immediately and the typed failure is returned.
-
-If all retryable attempts fail, `Effect.retry` returns the last
-`WebSocketConnectError`. The schedule does not hide the final failure; it only
-describes when another connection attempt is allowed.
+The sample uses short delays so it terminates quickly when pasted into
+`scratchpad/repro.ts`. The same shape can use larger production intervals.
 
 ## Variants
 
 For an interactive screen, keep the retry count and cap small enough that the UI
-can move to a visible "reconnect failed" state quickly:
-
-```ts
-const foregroundReconnectPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(2)))
-  ),
-  Schedule.both(Schedule.recurs(5))
-)
-```
+can move to a visible "reconnect failed" state quickly.
 
 For a background client, allow a longer tail but keep the cap explicit and emit
 attempt telemetry around the reconnect effect. Operators usually need to know

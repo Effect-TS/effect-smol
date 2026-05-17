@@ -10,36 +10,48 @@ code_included: true
 
 # 11.3 Why non-idempotent retries are dangerous
 
-This subsection explains Why non-idempotent retries are dangerous as a practical Effect
-`Schedule` recipe. This recipe keeps the retry policy explicit: the schedule decides
-when another typed failure should be attempted again and where retrying stops. The
-surrounding Effect code remains responsible for domain safety, including which failures
-are transient, whether the operation is idempotent, and how the final failure is
-reported.
+Non-idempotent work changes external state each time it runs. A retry schedule
+can limit attempts, but it cannot make repeated charges, emails, shipments, or
+webhooks semantically safe.
 
 ## The anti-pattern
 
 A retry policy is easy to attach to any failing effect:
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-declare const chargeCustomer: Effect.Effect<void, Error>
+let attempts = 0
+let chargesAccepted = 0
 
-const retryWrites = Schedule.exponential("100 millis").pipe(
+const chargeCustomer = Effect.gen(function*() {
+  attempts += 1
+  chargesAccepted += 1
+  yield* Console.log(`attempt ${attempts}: provider accepted charge #${chargesAccepted}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail("response-lost")
+  }
+
+  return "charged"
+})
+
+const retryWrites = Schedule.exponential("10 millis").pipe(
   Schedule.both(Schedule.recurs(3))
 )
 
 const program = chargeCustomer.pipe(
-  Effect.retry(retryWrites)
+  Effect.retry(retryWrites),
+  Effect.tap((result) => Console.log(`${result}; accepted charges: ${chargesAccepted}`))
 )
+
+Effect.runPromise(program)
 ```
 
-This shape is technically valid, but it is dangerous when `chargeCustomer`
-performs a non-idempotent side effect. `Effect.retry` runs the original effect
-once and then runs it again while the schedule allows another retry. If the
-effect fails after the external system already accepted the charge, the next
-attempt can create a second charge.
+This shape is technically valid, and the example terminates quickly, but it
+models the danger: the first attempt can be accepted by the provider and still
+fail from the caller's point of view. `Effect.retry` then runs the same
+side-effecting operation again.
 
 The same anti-pattern appears with email delivery, inventory updates, shipment
 creation, ticket creation, one-way webhook calls, and external systems that do
@@ -78,9 +90,15 @@ not own the downstream state.
 Attempt limits do not remove this risk:
 
 ```ts
+import { Console, Effect, Schedule } from "effect"
+
 const boundedButStillUnsafe = Schedule.spaced("1 second").pipe(
   Schedule.both(Schedule.recurs(2))
 )
+
+const program = Console.log(`bounded policy: ${Schedule.isSchedule(boundedButStillUnsafe)}`)
+
+Effect.runPromise(program)
 ```
 
 This policy limits the damage to two retries after the original attempt. It
@@ -94,12 +112,21 @@ outside generic retry wrappers unless the external protocol provides a
 duplicate-safe boundary.
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-declare const reserveLocalOrderNumber: Effect.Effect<string, Error>
-declare const submitChargeOnce: (orderNumber: string) => Effect.Effect<void, Error>
+let reservationAttempts = 0
 
-const retryTransientPreparation = Schedule.exponential("50 millis").pipe(
+const reserveLocalOrderNumber = Effect.gen(function*() {
+  reservationAttempts += 1
+  yield* Console.log(`reserve order number attempt ${reservationAttempts}`)
+  if (reservationAttempts < 2) return yield* Effect.fail("local-store-busy")
+  return "order-1001"
+})
+
+const submitChargeOnce = (orderNumber: string) =>
+  Console.log(`submit one charge for ${orderNumber}`)
+
+const retryTransientPreparation = Schedule.exponential("10 millis").pipe(
   Schedule.both(Schedule.recurs(3))
 )
 
@@ -110,6 +137,8 @@ const program = Effect.gen(function*() {
 
   yield* submitChargeOnce(orderNumber)
 })
+
+Effect.runPromise(program)
 ```
 
 Here the schedule is applied only to the preparation step that the application

@@ -10,25 +10,19 @@ code_included: true
 
 # 41.2 Fast polling first, slower polling later
 
-Some polling workflows deserve a short burst of responsiveness, then a much
-calmer steady-state cadence. A newly submitted export, payment, cache refresh,
-or provisioning request may complete almost immediately. If it does not, polling
-every few hundred milliseconds quickly becomes wasteful.
+Some polling workflows need a brief responsive phase, then a calmer cadence. A
+newly submitted export, payment, cache refresh, or provisioning request may
+complete almost immediately. If it does not, polling every few hundred
+milliseconds quickly becomes wasteful.
 
-Use `Schedule.andThen` when the phases are genuinely sequential: run the fast
-polling policy until it is exhausted, then switch to the slower policy. The
-resulting schedule still remains one value that can be reviewed, named, tested,
-and reused.
+Use `Schedule.andThen` to run the fast polling phase to completion, then switch
+to the slower phase.
 
 ## Problem
 
-Model a status loop for a newly submitted workflow without scattering sleeps,
-counters, and phase flags through the polling code.
-
-The first status check should still happen immediately. The schedule should
-describe only the follow-up observations: how often to poll while the workflow is
-still running, when to move from the fast phase to the slow phase, and when to
-stop.
+Model a status loop without scattering sleeps, counters, or phase flags through
+the polling code. The first status read should happen immediately; the schedule
+describes only follow-up reads and stop conditions.
 
 ## When to use it
 
@@ -46,9 +40,8 @@ settlement, indexing, cache warmups, and cloud provisioning.
 Do not use this when the remote system already provides a callback, queue
 message, webhook, or subscription that can replace polling.
 
-Do not use the fast phase as an unbounded loop. The fast phase should have a
-small recurrence cap so the policy cannot keep hammering a dependency when the
-workflow is slower than expected.
+Do not make the fast phase unbounded. Give it a small recurrence cap so a slow
+workflow does not keep hammering the status endpoint.
 
 Do not use this schedule by itself to retry failed status reads. `Effect.repeat`
 feeds successful values into the schedule. Transport failures, authorization
@@ -57,34 +50,15 @@ be classified separately if they need their own retry policy.
 
 ## Schedule shape
 
-Build each phase separately, then sequence them:
-
-```ts
-const fastPhase = Schedule.spaced("250 millis").pipe(
-  Schedule.take(8)
-)
-
-const slowPhase = Schedule.spaced("5 seconds").pipe(
-  Schedule.both(Schedule.during("2 minutes"))
-)
-
-const pollingPolicy = Schedule.andThen(fastPhase, slowPhase).pipe(
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Running")
-)
-```
-
-`Schedule.andThen(fastPhase, slowPhase)` runs the fast phase to completion
-before stepping the slow phase. `Schedule.passthrough` changes the schedule
-output to the latest successful status value, so the repeated effect returns the
-last observation. `Schedule.while` stops as soon as a terminal status is
-observed.
+Build each phase separately, then sequence them. `Schedule.passthrough` changes
+the schedule output to the latest successful status value, so `Effect.repeat`
+returns the last observation. `Schedule.while` stops as soon as a terminal
+status is observed.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type Status =
   | { readonly _tag: "Running"; readonly progress: number }
@@ -96,16 +70,29 @@ type StatusReadError = {
   readonly message: string
 }
 
-declare const readStatus: (
-  jobId: string
-) => Effect.Effect<Status, StatusReadError>
+const observations: ReadonlyArray<Status> = [
+  { _tag: "Running", progress: 10 },
+  { _tag: "Running", progress: 35 },
+  { _tag: "Running", progress: 70 },
+  { _tag: "Completed", resultId: "export-123" }
+]
 
-const fastPhase = Schedule.spaced("250 millis").pipe(
-  Schedule.take(8)
+let reads = 0
+
+const readStatus = (jobId: string): Effect.Effect<Status, StatusReadError> =>
+  Effect.gen(function*() {
+    const status = observations[Math.min(reads, observations.length - 1)]
+    reads++
+    yield* Console.log(`${jobId}: read ${reads} -> ${status._tag}`)
+    return status
+  })
+
+const fastPhase = Schedule.spaced("20 millis").pipe(
+  Schedule.take(3)
 )
 
-const slowPhase = Schedule.spaced("5 seconds").pipe(
-  Schedule.both(Schedule.during("2 minutes"))
+const slowPhase = Schedule.spaced("60 millis").pipe(
+  Schedule.both(Schedule.during("500 millis"))
 )
 
 const fastThenSlowPolling = Schedule.andThen(fastPhase, slowPhase).pipe(
@@ -118,16 +105,22 @@ export const pollJob = (jobId: string) =>
   readStatus(jobId).pipe(
     Effect.repeat(fastThenSlowPolling)
   )
+
+const program = pollJob("job-1").pipe(
+  Effect.flatMap((status) => Console.log(`final status: ${status._tag}`))
+)
+
+Effect.runPromise(program)
 ```
 
 `pollJob` reads the status immediately. If that first read is already
 `"Completed"` or `"Failed"`, the repeat stops without waiting. If the job is
-still `"Running"`, the schedule performs a short burst of 250 millisecond
-spacing, then moves to 5 second spacing for the slower phase.
+still `"Running"`, the schedule performs a short burst of fast spacing, then
+moves to slower spacing.
 
 The returned effect succeeds with the latest observed `Status`. That value can
 be terminal, or it can still be `"Running"` if the slow phase exhausts its
-2 minute budget before completion.
+budget before completion.
 
 ## Variants
 
@@ -140,7 +133,7 @@ reported later. A 30 second or 1 minute slow phase is often more appropriate for
 large exports, media processing, or asynchronous reconciliation.
 
 Add `Schedule.jittered` to the slow phase when many clients may start polling at
-roughly the same time. Jitter is usually more important in the slow phase,
+roughly the same time. Jitter is usually more important in the slow phase
 because that phase contains the long-lived population of pollers.
 
 Use `Schedule.andThenResult` instead of `Schedule.andThen` when you need the

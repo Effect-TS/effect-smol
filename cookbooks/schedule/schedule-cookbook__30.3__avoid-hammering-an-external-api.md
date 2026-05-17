@@ -15,12 +15,10 @@ is immediate, and only follow-up attempts after a failure are paced.
 
 ## Problem
 
-You call a third-party enrichment API from a worker. The request is safe to
-retry because it uses an idempotency key, but the service sometimes responds
-with a timeout, a short rate-limit window, or a transient server error.
-
-You want the worker to retry retryable failures without hammering the external
-API, and you want reviewers to see:
+You call a third-party API from a worker. The request is replay-safe because it
+uses an idempotency key, but the service sometimes responds with a timeout, a
+short rate-limit window, or a transient server error. Reviewers should be able
+to see:
 
 - how quickly retries start
 - how retries spread out over time
@@ -57,31 +55,24 @@ handling.
 
 ## Schedule shape
 
-Start with the delay shape, then add guardrails:
-
-```ts
-Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.during("30 seconds")
-)
-```
-
-`Schedule.exponential("250 millis")` starts with a short delay and grows by the
-default factor of `2`: about `250ms`, `500ms`, `1s`, `2s`, and so on.
-`Schedule.jittered` randomly adjusts each recurrence delay between `80%` and
-`120%` of the computed delay, which helps avoid synchronized retries when many
-workers fail at the same time.
+Start with the delay shape, then add guardrails. An exponential schedule
+starting at 250 milliseconds grows by the default factor of `2`: about `250ms`,
+`500ms`, `1s`, `2s`, and so on. `Schedule.jittered` randomly adjusts each
+recurrence delay between `80%` and `120%` of the computed delay, which helps
+avoid synchronized retries when many workers fail at the same time.
 
 `Schedule.recurs(5)` bounds the extra requests. `Schedule.during("30 seconds")`
-bounds the elapsed retry window. `Schedule.both` gives intersection semantics:
-the combined policy continues only while both component schedules continue, and
-uses the maximum of their delays.
+bounds the elapsed retry window when combined with `Schedule.both`. `both` gives
+intersection semantics: the combined policy continues only while both component
+schedules continue, and it uses the maximum of their delays.
+
+The code below uses shorter durations so it can be pasted into a scratchpad and
+finish quickly.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Random, Ref, Schedule } from "effect"
 
 class VendorApiError extends Data.TaggedError("VendorApiError")<{
   readonly status: number
@@ -93,29 +84,58 @@ interface Enrichment {
   readonly riskScore: number
 }
 
-declare const enrichCompany: (request: {
-  readonly companyId: string
-  readonly idempotencyKey: string
-}) => Effect.Effect<Enrichment, VendorApiError>
-
 const isRetryableVendorFailure = (error: VendorApiError) =>
   error.status === 408 ||
   error.status === 429 ||
   error.status >= 500
 
-const vendorRetryPolicy = Schedule.exponential("250 millis").pipe(
+const vendorRetryPolicy = Schedule.exponential("30 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("30 seconds")),
+  Schedule.both(Schedule.during("1 second")),
   Schedule.while(({ input }) => isRetryableVendorFailure(input))
 )
 
-export const program = enrichCompany({
-  companyId: "company_123",
-  idempotencyKey: "enrich-company_123"
-}).pipe(
-  Effect.retry(vendorRetryPolicy)
-)
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+
+  const enrichCompany = (request: {
+    readonly companyId: string
+    readonly idempotencyKey: string
+  }): Effect.Effect<Enrichment, VendorApiError> =>
+    Effect.gen(function*() {
+      const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+      yield* Console.log(
+        `vendor attempt ${attempt} with key ${request.idempotencyKey}`
+      )
+
+      if (attempt === 1) {
+        return yield* Effect.fail(
+          new VendorApiError({ status: 429, message: "slow down" })
+        )
+      }
+
+      if (attempt === 2) {
+        return yield* Effect.fail(
+          new VendorApiError({ status: 503, message: "temporary outage" })
+        )
+      }
+
+      return { companyId: request.companyId, riskScore: 42 }
+    })
+
+  const enrichment = yield* enrichCompany({
+    companyId: "company_123",
+    idempotencyKey: "enrich-company_123"
+  }).pipe(
+    Effect.retry(vendorRetryPolicy),
+    Random.withSeed("vendor-retry-demo")
+  )
+
+  yield* Console.log(`risk score: ${enrichment.riskScore}`)
+})
+
+Effect.runPromise(program)
 ```
 
 The first `enrichCompany` call happens immediately. If it fails with a retryable

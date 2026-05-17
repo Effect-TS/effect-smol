@@ -13,10 +13,6 @@ code_included: true
 Failed-record reprocessing is a background repair path. It should make steady
 progress without turning stale failures into constant database pressure.
 
-Use a `Schedule` to make that pacing explicit. The reprocessing effect performs
-one bounded pass over the failed-record table. The schedule decides when another
-pass is allowed.
-
 ## Problem
 
 A worker reads records marked failed, re-runs the operation for a small batch,
@@ -30,7 +26,7 @@ The recurrence policy needs to answer three operational questions:
 - how many follow-up passes the worker will run
 - whether each pass is safe to repeat when the same record is seen again
 
-## Solution
+## Schedule shape
 
 Model one reprocessing pass as an `Effect`, then repeat that pass with
 `Schedule.spaced`. `Schedule.spaced("30 seconds")` waits for thirty seconds
@@ -45,27 +41,49 @@ interval, or an outer supervisor that starts the worker again.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 type FailedRecord = {
   readonly id: string
   readonly payload: unknown
 }
 
-type ReprocessError = {
-  readonly _tag: "ReprocessError"
+class ReprocessError extends Data.TaggedError("ReprocessError")<{
   readonly recordId: string
-}
+}> {}
 
-declare const loadFailedRecords: Effect.Effect<ReadonlyArray<FailedRecord>>
-declare const reprocessRecord: (
-  record: FailedRecord
-) => Effect.Effect<void, ReprocessError>
-declare const markRecordProcessed: (id: string) => Effect.Effect<void>
-declare const markRecordStillFailed: (
-  id: string,
-  error: ReprocessError
-) => Effect.Effect<void>
+let pass = 0
+const remainingAttempts = new Map([
+  ["record-a", 1],
+  ["record-b", 2]
+])
+
+const loadFailedRecords = Effect.gen(function*() {
+  pass += 1
+  const records = Array.from(remainingAttempts.keys()).map((id) => ({
+    id,
+    payload: { id }
+  }))
+  yield* Console.log(`pass ${pass}: loaded ${records.length} failed records`)
+  return records
+})
+
+const reprocessRecord: (record: FailedRecord) => Effect.Effect<void, ReprocessError> =
+  Effect.fnUntraced(function*(record: FailedRecord) {
+    const attemptsLeft = remainingAttempts.get(record.id) ?? 0
+    if (attemptsLeft > 1) {
+      remainingAttempts.set(record.id, attemptsLeft - 1)
+      return yield* Effect.fail(new ReprocessError({ recordId: record.id }))
+    }
+    remainingAttempts.delete(record.id)
+    yield* Console.log(`reprocessed ${record.id}`)
+  })
+
+const markRecordProcessed = (id: string) =>
+  Console.log(`marked ${id} processed`)
+
+const markRecordStillFailed = (id: string, _error: ReprocessError) =>
+  Console.log(`kept ${id} failed for another pass`)
 
 const reprocessFailedRecord = (record: FailedRecord) =>
   reprocessRecord(record).pipe(
@@ -83,20 +101,25 @@ const reprocessFailedBatch = Effect.gen(function*() {
   })
 })
 
-const reprocessingCadence = Schedule.spaced("30 seconds").pipe(
-  Schedule.take(20)
+const reprocessingCadence = Schedule.spaced("10 millis").pipe(
+  Schedule.take(3)
 )
 
-export const program = Effect.repeat(
+const program = Effect.repeat(
   reprocessFailedBatch,
   reprocessingCadence
+).pipe(
+  Effect.flatMap(() => Console.log("reprocessing job finished")),
+  Effect.catch((error) => Console.log(`reprocessing failed: ${String(error)}`))
 )
+
+void Effect.runPromise(program)
 ```
 
 ## Why spaced
 
-`Schedule.spaced` recurs continuously with the specified duration from the last
-run. In this recipe, that means the worker does not start the next database scan
+`Schedule.spaced` recurs continuously with the specified duration from the
+previous run. In this recipe, the worker does not start the next database scan
 until the previous batch has finished and the spacing delay has elapsed.
 
 That behavior is different from `Schedule.fixed`. A fixed schedule targets a

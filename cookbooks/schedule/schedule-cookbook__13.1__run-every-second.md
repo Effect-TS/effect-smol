@@ -10,90 +10,82 @@ code_included: true
 
 # 13.1 Run every second
 
-Use this recipe when a successful effect should recur on a one-second cadence while
-keeping repeat policy separate from retry or recovery behavior.
+Use this when a successful effect should run now and then recur on a
+one-second cadence.
 
 ## Problem
 
-A small health check, heartbeat, sampler, or local maintenance action needs to run
-immediately and then recur every second while the surrounding fiber is alive.
-
-The schedule should decide whether another successful iteration should run, what
-spacing applies, and what value the repeat returns. Failures should remain in the
-effect error channel.
+A heartbeat, sampler, or small maintenance action needs an immediate first run
+and later successful recurrences every second.
 
 ## When to use it
 
-Use `Schedule.fixed("1 second")` when the one-second period is the important part of the policy.
-
-This is the usual shape for periodic work where each run should be scheduled against a fixed interval. The first run happens immediately, and later runs are placed on the one-second cadence as closely as possible.
+Use `Schedule.fixed("1 second")` when the interval itself is the policy. The
+first run happens immediately; the schedule controls only later successful
+recurrences.
 
 ## When not to use it
 
-Do not use this to retry failures. `Effect.repeat` repeats after success; if the effect fails, repetition stops with that failure. Use `Effect.retry` when failure should trigger another attempt.
+Do not use `Effect.repeat` to recover from failure. If the effect fails,
+repetition stops with that failure. Use `Effect.retry` for failure-driven
+attempts.
 
-Do not use this when you only need a one-second pause after each successful run. That is `Schedule.spaced("1 second")`, which waits one second after the previous run completes.
+Do not use a fixed cadence when the requirement is "wait one second after the
+previous run completes." Use `Schedule.spaced("1 second")` for that.
 
-Do not leave a one-second repeat unbounded unless the repeated work belongs to a long-lived process, supervised fiber, or explicit lifetime.
+Do not leave a one-second loop without an owner such as a scope, supervised
+fiber, timeout, or explicit interruption path.
 
 ## Schedule shape
 
-The central shape is `Schedule.fixed("1 second")`.
+The core schedule is `Schedule.fixed("1 second")`.
 
-With `Effect.repeat`, the effect runs once before the schedule is consulted. After a successful run, `Schedule.fixed("1 second")` schedules each recurrence on a fixed one-second interval.
+With `Effect.repeat`, the effect runs once before the schedule is consulted. If
+that run succeeds, `Schedule.fixed("1 second")` schedules later recurrences on
+one-second interval boundaries.
 
-If a run takes less than a second, the next recurrence waits until the next interval. If a run takes longer than the interval, later runs do not pile up; the next recurrence may run immediately to continue from the current time.
-
-This is different from `Schedule.spaced("1 second")`, which waits one full second after each successful run completes. With `spaced`, the time spent doing the work is added before the next run starts.
+If a run takes longer than the interval, missed runs do not pile up. The next
+run may start immediately after the slow run completes.
 
 ## Code
 
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const heartbeat = Console.log("heartbeat")
+let heartbeats = 0
 
-const program = heartbeat.pipe(
-  Effect.repeat(Schedule.fixed("1 second"))
-)
+const heartbeat = Effect.gen(function*() {
+  heartbeats += 1
+  yield* Console.log(`heartbeat ${heartbeats}`)
+})
+
+const program = Effect.gen(function*() {
+  const scheduleOutput = yield* heartbeat.pipe(
+    Effect.repeat(Schedule.fixed("1 second").pipe(Schedule.take(2)))
+  )
+
+  yield* Console.log(`schedule output: ${scheduleOutput}`)
+})
+
+Effect.runPromise(program)
 ```
 
-Here `heartbeat` runs immediately. If it succeeds, the schedule keeps recurring on a fixed one-second interval.
-
-For an example that stops after a few recurrences:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const pollStatus = Console.log("polling status")
-
-const program = pollStatus.pipe(
-  Effect.repeat(Schedule.fixed("1 second").pipe(Schedule.take(5)))
-)
-```
-
-This allows five scheduled recurrences after the original successful run. If every run succeeds, the effect runs six times total.
+This prints three heartbeats: the original run plus two scheduled recurrences.
+`Schedule.take(2)` is only the example cap.
 
 ## Variants
 
-Use `Schedule.spaced("1 second")` when the requirement is a one-second pause after each successful run:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const program = Console.log("tick").pipe(
-  Effect.repeat(Schedule.spaced("1 second"))
-)
-```
-
-Choose `fixed` for a periodic cadence. Choose `spaced` for a delay between completed runs.
+Use `Schedule.spaced("1 second")` when each successful run should be followed
+by a full one-second pause. Choose `fixed` for a cadence; choose `spaced` for a
+gap after completion.
 
 ## Notes and caveats
 
-The first execution is not delayed. `Effect.repeat` evaluates the effect once immediately, then uses the schedule for later recurrences.
+The first execution is not delayed. `Effect.repeat` evaluates the effect once,
+then uses the schedule for later recurrences.
 
-The repeat is success-driven. A failure from the repeated effect stops the loop and returns the failure.
+The repeat is success-driven. A failure from the repeated effect stops the loop
+and returns the failure.
 
-`Schedule.fixed("1 second")` is unbounded by itself. Combine it with `Schedule.take`, another stopping rule, or an enclosing fiber lifetime when the repeated process must end.
-
-The repeated program succeeds with the schedule's final output when the schedule ends. With these schedules, that output is the recurrence count.
+`Schedule.fixed("1 second")` is unbounded by itself. Combine it with a limit or
+run it inside a lifetime that can interrupt it.

@@ -10,92 +10,80 @@ code_included: false
 
 # 1.3 Time, repetition, and decision points
 
-This subsection explains Time, repetition, and decision points as a practical Effect
-`Schedule` recipe. This section keeps the focus on Effect's `Schedule` model: recurrence
-is represented as data that decides whether another decision point exists, which delay
-applies, and what output the policy contributes. That framing makes later retry, repeat,
-and polling recipes easier to compose without hiding timing behavior inside ad hoc
-loops.
+A `Schedule` is stepped between executions of some other effect. It does not run
+the effect. It receives the latest input, updates its own recurrence state, and
+decides whether another execution is allowed.
 
-## What this section is about
+## Problem
 
-A `Schedule` is a small decision machine that runs between attempts. It does not perform the work itself. Instead, it is asked what should happen after a retryable failure, a repeatable success, or another scheduled input.
+Time-based recurrence is often described as "sleep, then try again." That is too
+small a model for `Schedule`. A schedule decision includes continuation,
+output, and delay. Those are related, but they are not the same thing.
 
-Each decision has three important pieces:
+## Model
 
-- the input observed by the schedule
-- the output produced by the schedule
-- the delay before the next recurrence
+Each successful schedule decision answers three questions:
 
-If the schedule can continue, it produces an output and a duration. If it is finished, it halts and returns its final output to the operation that is driving it.
+- What input did the policy observe?
+- What output did the policy emit?
+- How long should the driver wait before the next recurrence?
 
-This means a schedule is not just a timer. It is also not just a counter. It is the place where time, repetition state, and continuation logic meet.
+If the policy is done, there is no next recurrence. A zero delay means
+"continue immediately"; it does not mean "stop."
 
-## Why it matters
+For retry, the decision point happens after a typed failure. The failure is the
+schedule input. For repeat, the decision point happens after a success. The
+successful value is the schedule input. In both cases, the first execution
+happens before the first schedule decision.
 
-In a retry, the schedule is consulted after a failure. The failure becomes the schedule input. If the schedule continues, the retry waits for the schedule's delay and then runs the effect again. If the schedule stops, the retry stops retrying.
+That rule is the source of the common count distinction:
+`Schedule.recurs(3)` allows up to three recurrences after the initial execution.
+In retry code, that means up to three retries. In repeat code, it means up to
+three repetitions.
 
-In a repeat, the schedule is consulted after a success. The successful value becomes the schedule input. If the schedule continues, the repeat waits for the schedule's delay and then runs the effect again. If the schedule stops, the repeat stops repeating.
+## Time
 
-The important shift is that the schedule controls the gap between attempts, not the body of the attempt. The effect being retried or repeated decides whether there is a success or failure. The schedule decides whether there should be another chance, when that chance should occur, and what information should be carried forward.
+Schedule time is measured at the step boundary. The schedule receives the
+current timestamp and the latest input, then computes its output and next delay.
+This lets time-based and count-based policies compose cleanly.
 
-## Core idea
+Common timing policies have different meanings:
 
-Schedule time is measured at the boundary where the schedule is stepped. Internally, a schedule step is given the current timestamp and the latest input. From that, it can compute elapsed time, attempt count, and the next delay.
+- `Schedule.spaced(duration)` waits the same amount after each recurrence.
+- `Schedule.fixed(duration)` aligns recurrences to fixed time windows.
+- `Schedule.exponential(base)` increases the delay from one decision to the
+  next.
+- `Schedule.duration(duration)` recurs once after the configured duration, then
+  completes.
+- `Schedule.during(duration)` continues while elapsed schedule time remains
+  within the configured duration.
+- `Schedule.elapsed` emits elapsed time as its output.
 
-This is why time-based schedules compose naturally with count-based schedules. A count-based policy such as `Schedule.recurs` answers "how many more recurrence decisions may pass?" A time-based policy such as `Schedule.spaced`, `Schedule.fixed`, `Schedule.exponential`, `Schedule.elapsed`, or `Schedule.during` answers questions about waiting, alignment, backoff, or total elapsed time.
-
-The duration produced by a schedule is the sleep before the next recurrence. A zero duration means "continue immediately." A longer duration means "continue after this delay." Completion means "do not continue."
-
-A schedule can continue with no delay, delay without changing its output shape, or stop after producing a final output. Keeping those concerns separate is what makes schedules composable.
-
-For example:
-
-- `Schedule.forever` continues immediately, producing a recurrence count
-- `Schedule.spaced` continues with the same delay after each decision
-- `Schedule.fixed` aligns recurrence decisions to fixed time windows
-- `Schedule.exponential` increases the delay from one decision to the next
-- `Schedule.duration` recurs once after the configured duration, then completes
-- `Schedule.during` continues while elapsed schedule time remains within the configured duration
-
-The delay answers "when is the next recurrence?" The continuation decision answers "is there a next recurrence at all?" The output answers "what did this policy learn or produce at this step?"
-
-Schedule metadata makes that boundary explicit. Each step tracks the latest input, the current attempt count, the start time, the current time, elapsed time, time since the previous step, the produced delay, and the produced output. Most cookbook recipes do not need to manipulate this metadata directly, but it explains why APIs such as `Schedule.while`, `Schedule.collectWhile`, `Schedule.elapsed`, and `Schedule.during` can make decisions from both time and values.
+These policies still produce schedule decisions. The delay answers when the next
+recurrence may happen. The continuation decision answers whether it may happen
+at all. The output answers what the policy reports to the driver or later
+combinators.
 
 ## Common mistakes
 
-The count tracked by a schedule belongs to schedule steps. It is not the same thing as the number of times the effect body has been entered in all contexts.
+The first mistake is counting the initial effect execution as a schedule step.
+The schedule is consulted only after the first success or retryable failure.
 
-For example, `Schedule.recurs(3)` describes up to three recurrences. In a retry workflow, that means up to three retries after the initial failed attempt. In a repeat workflow, that means up to three repeats after the initial successful run.
+The second mistake is treating delay and continuation as the same field. A
+schedule can continue immediately, continue after a delay, or complete. Only the
+last case stops recurrence.
 
-This distinction avoids off-by-one mistakes:
-
-- the first effect execution happens before the first schedule decision
-- the first schedule decision decides whether to run the effect again
-- recurrence limits count those decisions, not the initial execution
-
-When reading schedule code, ask "how many times can this policy say continue?" rather than "how many times will my effect run?"
-
-A second common mistake is to blur delay and continuation. A zero duration does not mean the schedule has stopped; it means the next recurrence can happen immediately. A completed schedule is the thing that says there is no next recurrence.
-
-A useful way to read any schedule is to turn it into three questions:
-
-1. What input does it observe?
-2. What output does it produce?
-3. Under what condition does it continue, and how long does it wait?
-
-For a retry policy, the input is usually the error. For a repeat policy, the input is usually the successful value. For a composed policy, the output may be a tuple, a transformed value, a collected value, or a value selected from one side of the composition.
-
-Once those three questions are clear, the rest of the API becomes easier to reason about. Count limits, elapsed-time limits, fixed windows, exponential backoff, jitter, and predicates are all different ways of shaping the same decision point.
+The third mistake is reading schedule output as elapsed time in every case.
+Some schedules output durations, but many output counts or transformed values.
 
 ## Practical guidance
 
-Choose the schedule by naming the decision you want to make:
+When reading a schedule, translate it into a decision:
 
-- "Try at most three more times" points to a recurrence limit.
-- "Wait one second between attempts" points to spacing.
-- "Back off more each time" points to exponential or Fibonacci backoff.
-- "Keep going for no more than thirty seconds" points to elapsed-time control.
-- "Stop when the latest input or output no longer qualifies" points to a predicate.
+- What input does this decision observe?
+- What condition lets it continue?
+- What delay does it choose for the next recurrence?
+- What output does it publish?
 
-The schedule is the policy for the next opportunity. The effect is the work done at that opportunity. Keeping those roles separate is the foundation for every retry and repeat recipe that follows.
+This framing keeps retry, repeat, polling, backoff, jitter, and elapsed-time
+limits as variations of the same model instead of separate control-flow tricks.

@@ -10,154 +10,122 @@ code_included: true
 
 # 19.2 Jittered polling for dashboards
 
-Dashboard polling usually needs freshness without exact clock alignment.
-Jitter keeps the refresh cadence familiar while spreading repeated reads across
-viewers and widgets.
+Dashboard polling usually needs freshness, not exact clock alignment. Jitter
+keeps refreshes near the chosen cadence while spreading reads across viewers,
+tabs, and widgets.
 
 ## Problem
 
-A dashboard or status page often has many viewers, tabs, panels, or widgets
-polling the same read-only endpoint. A fixed interval such as five seconds is
-easy to reason about, but it can make every visible widget refresh on the same
-boundary.
+A dashboard can have many widgets polling the same read-only endpoint. If each
+widget refreshes every five seconds and several viewers open the page at once,
+the endpoint receives bursts at the same five-second boundaries.
 
-That synchronized refresh pattern creates small traffic spikes. The endpoint
-receives a burst, then a quiet gap, then another burst, even though the user
-experience only needs a roughly regular refresh cadence.
-
-Add jitter to the polling schedule so each recurrence delay is slightly
-different. The dashboard still refreshes around the intended interval, but many
-viewers and widgets are less likely to refresh at exactly the same instant.
+The user experience usually only needs "roughly every five seconds." Adding
+jitter makes each recurrence a little early or late, reducing synchronized
+refreshes without changing the dashboard's basic behavior.
 
 ## When to use it
 
 Use this for dashboard widgets, status pages, monitoring panels, admin screens,
-or live summaries that periodically refresh read-only state.
+and live summaries that periodically refresh read-only state.
 
-It fits cases where the UI should stay reasonably current, but no viewer needs
-the refresh to happen on an exact shared boundary.
-
-Use it when several widgets may be mounted together, many browser tabs may be
-open at once, or a shared dashboard is displayed by many users.
+It is a good fit when several panels may mount together or a shared dashboard
+may be open in many browser tabs.
 
 ## When not to use it
 
-Do not use jitter when the UI must refresh on precise wall-clock boundaries,
-such as a clock-aligned report that intentionally updates at the top of every
-minute.
+Do not use jitter when the UI intentionally refreshes on wall-clock boundaries,
+such as a report that updates at the top of every minute.
 
-Do not use this as a substitute for a stop condition. Jitter changes recurrence
-delays; it does not decide when a dashboard widget is no longer relevant.
+Do not use polling jitter as the only protection for an expensive endpoint.
+Caching, aggregation, quotas, and request collapse belong outside the schedule.
 
-Do not use dashboard polling jitter as your only protection for an expensive
-endpoint. Cache headers, server-side aggregation, quotas, and request collapse
-are separate design choices.
+Do not keep polling after a widget is no longer live. Jitter changes delay
+timing; it does not replace a lifecycle or status predicate.
 
 ## Schedule shape
 
-Start with the normal dashboard refresh interval, add jitter, preserve the
-latest status, and continue while the widget still wants live updates:
+Use `Schedule.spaced` for the dashboard refresh interval, then
+`Schedule.jittered` to spread recurrences. Use `Schedule.passthrough` and
+`Schedule.while` when the latest successful widget status decides whether live
+polling should continue.
 
-```ts
-Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<DashboardStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.mode === "live")
-)
-```
-
-`Schedule.spaced("5 seconds")` describes the base refresh cadence.
-`Schedule.jittered` randomly adjusts each recurrence delay between 80% and
-120% of that delay, so the next refresh waits somewhere between four and six
-seconds.
-
-`Schedule.satisfiesInputType<DashboardStatus>()` makes the timing schedule
-accept dashboard status values before `Schedule.while` reads
-`metadata.input`. `Schedule.passthrough` keeps the latest successful status as
-the repeated effect's result.
+`Schedule.jittered` uses Effect's built-in 80% to 120% range. With a five-second
+base interval, later reads wait between four and six seconds.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type DashboardStatus =
   | { readonly mode: "live"; readonly widgetId: string; readonly value: number }
   | { readonly mode: "paused"; readonly widgetId: string; readonly value: number }
 
-type DashboardError = {
-  readonly _tag: "DashboardError"
-  readonly message: string
-}
+const scriptedStatuses: ReadonlyArray<DashboardStatus> = [
+  { mode: "live", widgetId: "queue-depth", value: 14 },
+  { mode: "live", widgetId: "queue-depth", value: 11 },
+  { mode: "paused", widgetId: "queue-depth", value: 11 }
+]
 
-declare const fetchWidgetStatus: (
+let readIndex = 0
+
+const fetchWidgetStatus = (
   widgetId: string
-) => Effect.Effect<DashboardStatus, DashboardError>
+): Effect.Effect<DashboardStatus> =>
+  Effect.sync(() => {
+    const status = scriptedStatuses[
+      Math.min(readIndex, scriptedStatuses.length - 1)
+    ]!
+    readIndex += 1
+    return status
+  }).pipe(
+    Effect.tap((status) =>
+      Console.log(`[${widgetId}] ${status.mode}: ${status.value}`)
+    )
+  )
 
-const refreshWhileLive = Schedule.spaced("5 seconds").pipe(
+const refreshWhileLive = Schedule.spaced("20 millis").pipe(
   Schedule.jittered,
   Schedule.satisfiesInputType<DashboardStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.mode === "live")
 )
 
-const pollDashboardWidget = (widgetId: string) =>
-  fetchWidgetStatus(widgetId).pipe(
-    Effect.repeat(refreshWhileLive)
-  )
+const program = fetchWidgetStatus("queue-depth").pipe(
+  Effect.repeat(refreshWhileLive),
+  Effect.tap((status) => Console.log(`stopped with ${status.mode}`))
+)
+
+Effect.runPromise(program).then((status) => {
+  console.log("result:", status)
+})
 ```
 
-`pollDashboardWidget` performs the first status request immediately. If that
-status says the widget is still `"live"`, the next request waits for a
-jittered delay around five seconds. If the status says `"paused"`, the repeat
-stops and returns that latest status.
-
-Across many viewers and widgets, each recurrence chooses its own adjusted
-delay. Even if several panels mount together, their later refreshes are less
-likely to stay aligned.
+The first widget read runs immediately. While the widget reports `"live"`, the
+next read waits for a jittered delay. When the widget reports `"paused"`, the
+repeat stops and returns that latest status.
 
 ## Variants
 
-Use a shorter base interval for highly visible widgets where users expect quick
-movement, such as a compact incident banner or queue-depth counter. A two
-second base interval becomes a jittered delay between 1.6 and 2.4 seconds.
+Use shorter intervals for small, highly visible widgets where stale data is
+noticeable. Use longer intervals for low-priority panels or large dashboards
+with many widgets.
 
-Use a longer base interval for lower-priority panels, historical summaries, or
-large dashboards with many widgets. A thirty second base interval becomes a
-jittered delay between 24 and 36 seconds.
+Add a recurrence cap for dashboards that should stop after a bounded live
+window. If the cap stops the schedule first, the final status may still be
+`"live"` and should be interpreted as a separate outcome.
 
-Add a recurrence cap when a dashboard panel should eventually stop polling
-after it has remained live for too long:
-
-```ts
-const refreshWhileLiveAtMostOneHundredTimes = Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<DashboardStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.mode === "live"),
-  Schedule.bothLeft(
-    Schedule.recurs(100).pipe(Schedule.satisfiesInputType<DashboardStatus>())
-  )
-)
-```
-
-This keeps the latest `DashboardStatus` as the result while also limiting the
-number of successful recurrence decisions.
+If refreshing can fail, retry the individual refresh effect before repeating
+it. Keep the normal refresh cadence separate from failure recovery.
 
 ## Notes and caveats
 
-`Schedule.jittered` does not expose configurable jitter bounds. In Effect, it
-adjusts each recurrence delay between 80% and 120% of the original delay.
+Keep dashboard polling read-only. A refresh loop should observe state, not
+trigger the work that changes state.
 
-The first dashboard request is not delayed. The schedule controls recurrences
-after successful requests.
+The first request is not delayed by the schedule. Delays apply only before
+recurrences after successful requests.
 
-With `Effect.repeat`, a failure from `fetchWidgetStatus` stops the repeat
-unless the status request has its own retry policy.
-
-Keep dashboard polling read-only. A refresh loop should observe current state,
-not trigger the work that changes that state.
-
-When a timing schedule reads `metadata.input`, constrain the schedule with
-`Schedule.satisfiesInputType<T>()` before `Schedule.while`.
+When `Schedule.while` reads `metadata.input`, constrain the schedule first with
+`Schedule.satisfiesInputType<T>()`.

@@ -15,94 +15,141 @@ caps, jitter, and safety assumptions visible in the `Schedule` value.
 
 ## Problem
 
-You call an external API that can fail transiently with timeouts, overload, or rate-limit responses. Retrying immediately would make the dependency's bad moment worse, but never retrying would make the client brittle. You need a policy that spaces follow-up attempts, gives up after a clear cap, and avoids synchronized retries across many instances.
+An external API can fail transiently with timeouts, overload, or rate-limit
+responses. Immediate retries increase pressure on the dependency, but no retry
+at all can make the client brittle. The policy should space follow-up attempts,
+stop after a clear cap, and avoid synchronized retries across many instances.
 
-The first call still happens normally. The schedule controls only what happens after a retryable failure.
+The first call still happens normally. The schedule controls only what happens
+after a retryable failure.
 
 ## When to use it
 
-Use this recipe for idempotent reads, status checks, reconnects, and writes protected by an idempotency key. It is especially useful when many processes may call the same dependency, because the schedule documents both per-client behavior and aggregate pressure.
+Use this for idempotent reads, status checks, reconnects, and writes protected
+by an idempotency key. It is especially useful when many processes may call the
+same dependency, because the schedule documents both per-client behavior and
+aggregate pressure.
 
-Good polite-client policies answer four questions:
-
-- How long do we wait between retries?
-- What is the maximum number of retries or elapsed time?
-- Are clients desynchronized with jitter?
-- Is the operation safe to perform more than once?
+A useful polite-client policy answers four questions: how long to wait between
+retries, how many retries are allowed, whether callers are desynchronized with
+jitter, and whether the operation is safe to perform more than once.
 
 ## When not to use it
 
-Do not use a schedule to make an unsafe operation appear safe. Retrying a non-idempotent write can create duplicate payments, duplicate emails, duplicate orders, or repeated mutations in another system. Add an idempotency key, use a status lookup, or move the work behind a queue before applying retry.
+Do not use a schedule to make an unsafe operation appear safe. Retrying a
+non-idempotent write can create duplicate payments, emails, orders, or repeated
+mutations. Add an idempotency key, use a status lookup, or move the work behind a
+queue before applying retry.
 
-Also avoid this recipe for validation errors, malformed requests, permission failures, and other permanent failures. Classify those before `Effect.retry` sees them.
+Also avoid this recipe for validation errors, malformed requests, permission
+failures, and other permanent failures. Classify those before `Effect.retry`.
 
 ## Schedule shape
 
 A practical default is exponential backoff, a retry cap, and jitter:
+`Schedule.exponential(base)`, `Schedule.recurs(n)`, `Schedule.both`, then
+`Schedule.jittered`.
 
-- `Schedule.exponential("200 millis")` increases spacing after each retryable failure.
-- `Schedule.recurs(5)` caps the number of retries.
-- `Schedule.both` keeps both policies active and stops when either one stops.
-- `Schedule.jittered` adjusts each delay to roughly 80-120% of the computed delay so a fleet does not retry in lockstep.
-
-Use `Schedule.spaced` instead of exponential backoff when the dependency asks for a steady cadence, such as polling every few seconds. Use `Schedule.during` when the important cap is elapsed time rather than attempt count.
+Use `Schedule.spaced` instead of exponential backoff when the dependency asks
+for a steady cadence. Use `Schedule.during` when elapsed time matters more than
+attempt count.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Ref, Schedule } from "effect"
 
-type RetryableHttpError =
+type ClientError =
   | { readonly _tag: "Timeout" }
   | { readonly _tag: "Unavailable" }
   | { readonly _tag: "RateLimited" }
+  | { readonly _tag: "Rejected"; readonly reason: string }
 
-declare const fetchAccount: Effect.Effect<string, RetryableHttpError>
+const isRetryable = (error: ClientError): boolean =>
+  error._tag !== "Rejected"
 
-const politeRetryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.recurs(5)),
+const politeReadRetryPolicy = Schedule.exponential("20 millis").pipe(
+  Schedule.both(Schedule.recurs(3)),
   Schedule.jittered
 )
 
-export const getAccount = Effect.retry(fetchAccount, politeRetryPolicy)
-```
+const politeWriteRetryPolicy = Schedule.exponential("30 millis").pipe(
+  Schedule.both(Schedule.recurs(2)),
+  Schedule.jittered
+)
 
-For a write, make idempotency part of the operation before attaching the same kind of retry policy:
+const fetchAccount = Effect.fnUntraced(function*(attempts: Ref.Ref<number>) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`read attempt ${attempt}`)
 
-```ts
-import { Effect, Schedule } from "effect"
+  if (attempt < 3) {
+    return yield* Effect.fail({ _tag: "Unavailable" } as const)
+  }
 
-type RetryableHttpError =
-  | { readonly _tag: "Timeout" }
-  | { readonly _tag: "Unavailable" }
-  | { readonly _tag: "RateLimited" }
+  return "account-123"
+})
 
-type ChargeId = string
-
-declare const createCharge: (
+const createCharge = Effect.fnUntraced(function*(
+  attempts: Ref.Ref<number>,
   idempotencyKey: string
-) => Effect.Effect<ChargeId, RetryableHttpError>
+) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`write attempt ${attempt} with ${idempotencyKey}`)
 
-const politeWriteRetryPolicy = Schedule.exponential("500 millis").pipe(
-  Schedule.both(Schedule.recurs(4)),
-  Schedule.jittered
-)
+  if (attempt === 1) {
+    return yield* Effect.fail({ _tag: "Timeout" } as const)
+  }
 
-export const chargeOnce = (idempotencyKey: string) =>
-  Effect.retry(createCharge(idempotencyKey), politeWriteRetryPolicy)
+  return `charge-for-${idempotencyKey}`
+})
+
+const program = Effect.gen(function*() {
+  const readAttempts = yield* Ref.make(0)
+  const writeAttempts = yield* Ref.make(0)
+
+  const account = yield* fetchAccount(readAttempts).pipe(
+    Effect.retry({
+      schedule: politeReadRetryPolicy,
+      while: isRetryable
+    })
+  )
+
+  const charge = yield* createCharge(writeAttempts, "charge-key-1").pipe(
+    Effect.retry({
+      schedule: politeWriteRetryPolicy,
+      while: isRetryable
+    })
+  )
+
+  yield* Console.log(`done: ${account}, ${charge}`)
+})
+
+Effect.runPromise(program)
 ```
+
+The read uses jittered exponential backoff and a small retry cap. The write uses
+the same idea, but the idempotency key is part of the operation before retry is
+attached.
 
 ## Variants
 
-- For user-facing calls, keep the cap small so callers receive a clear failure quickly.
-- For background work, prefer a longer base delay and a stricter aggregate budget.
-- For APIs that publish explicit rate-limit reset times, derive the delay from the response metadata instead of guessing.
-- For steady polling, use `Schedule.spaced("5 seconds")` with `Schedule.jittered` if many clients poll the same service.
+For user-facing calls, keep the cap small so callers receive a clear answer
+quickly. For background work, prefer longer base delays and stronger aggregate
+budgets. For APIs that publish explicit reset times, derive the delay from the
+response metadata instead of guessing.
+
+For steady polling, use `Schedule.spaced(duration)` and add jitter only when the
+provider contract allows approximate spacing.
 
 ## Notes and caveats
 
-`Effect.retry` feeds failures into the schedule, so classify errors before retrying. A timeout, a 503, or a rate-limit response may be retryable; a 400 or an authorization failure usually is not.
+`Effect.retry` feeds failures into the schedule, so classify errors before
+retrying. A timeout, `503`, or rate-limit response may be retryable; a `400` or
+authorization failure usually is not.
 
-Jitter reduces synchronized load, but it also makes exact timing less predictable in logs and tests. Keep the base policy understandable before adding jitter, then add `Schedule.jittered` at the edge where many clients might otherwise move together.
+Jitter reduces synchronized load, but it also makes exact timing less
+predictable in logs and tests. Keep the base policy understandable before adding
+jitter.
 
-The schedule controls recurrence. It does not provide rate limiting across processes, enforce provider quotas, or make side effects idempotent. Use it alongside client-side concurrency limits, provider-specific rate-limit handling, and idempotency keys.
+The schedule controls recurrence. It does not provide rate limiting across
+processes, enforce provider quotas, or make side effects idempotent.

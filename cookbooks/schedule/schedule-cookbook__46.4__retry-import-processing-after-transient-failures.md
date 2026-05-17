@@ -59,11 +59,10 @@ typed failures.
 
 For transient import failures, a small exponential backoff is a better default
 than a fixed interval because it backs away from overloaded storage, databases,
-or enrichment services. `Schedule.exponential("200 millis")` keeps increasing
-the delay and does not stop by itself, so combine it with `Schedule.recurs`.
-Add `Schedule.jittered` when many workers may retry similar imports at the same
-time. In Effect, `Schedule.jittered` adjusts each recurrence delay between 80%
-and 120% of the original delay.
+or enrichment services. `Schedule.exponential` keeps increasing the delay and
+does not stop by itself, so combine it with `Schedule.recurs`. Add
+`Schedule.jittered` when many workers may retry similar imports at the same
+time.
 
 Keep retry eligibility in an error predicate. The schedule describes timing and
 limits; the predicate decides whether the typed failure is transient enough to
@@ -72,7 +71,7 @@ retry.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class StorageTimeout extends Data.TaggedError("StorageTimeout")<{
   readonly importId: string
@@ -106,11 +105,27 @@ interface ImportBatch {
   readonly sourceUri: string
 }
 
-declare const batch: ImportBatch
+const batch: ImportBatch = {
+  importId: "import-2026-05-17",
+  sourceUri: "s3://imports/customers.csv"
+}
 
-declare const processImportBatch: (
-  batch: ImportBatch
-) => Effect.Effect<void, ImportError>
+let attempts = 0
+
+const processImportBatch: (batch: ImportBatch) => Effect.Effect<void, ImportError> =
+  Effect.fnUntraced(function*(batch: ImportBatch) {
+    attempts += 1
+    yield* Console.log(`import attempt ${attempts}: ${batch.sourceUri}`)
+
+    if (attempts === 1) {
+      return yield* Effect.fail(new StorageTimeout({ importId: batch.importId }))
+    }
+    if (attempts === 2) {
+      return yield* Effect.fail(new StagingDatabaseUnavailable({ importId: batch.importId }))
+    }
+
+    yield* Console.log(`imported batch ${batch.importId}`)
+  })
 
 const isTransientImportError = (error: ImportError): boolean => {
   switch (error._tag) {
@@ -123,17 +138,21 @@ const isTransientImportError = (error: ImportError): boolean => {
   }
 }
 
-const retryTransientImportFailure = Schedule.exponential("200 millis").pipe(
+const retryTransientImportFailure = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(5))
 )
 
-export const program = processImportBatch(batch).pipe(
+const program = processImportBatch(batch).pipe(
   Effect.retry({
     schedule: retryTransientImportFailure,
     while: isTransientImportError
-  })
+  }),
+  Effect.flatMap(() => Console.log("import finished")),
+  Effect.catch((error: ImportError) => Console.log(`import failed: ${error._tag}`))
 )
+
+void Effect.runPromise(program)
 ```
 
 `program` processes the batch once immediately. If object storage times out or
@@ -149,27 +168,9 @@ transactional import state says it is safe.
 
 ## Variants
 
-For a short interactive import preview, keep the budget smaller:
-
-```ts
-const retryPreviewImport = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(2))
-)
-```
-
-For a background import worker, use a slower base delay and log each retry
-input:
-
-```ts
-const retryBackgroundImport = Schedule.exponential("1 second").pipe(
-  Schedule.jittered,
-  Schedule.tapInput((error: ImportError) =>
-    Effect.log(`retrying import after ${error._tag}`)
-  ),
-  Schedule.both(Schedule.recurs(8))
-)
-```
+For a short interactive import preview, keep the budget smaller. For a
+background import worker, use a slower base delay and `Schedule.tapInput` to log
+each retry input.
 
 For a dependency that exposes a precise `Retry-After` value, keep that timing
 near the adapter and make the schedule responsible for the maximum number of

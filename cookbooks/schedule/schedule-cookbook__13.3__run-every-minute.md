@@ -10,98 +10,85 @@ code_included: true
 
 # 13.3 Run every minute
 
-Use this recipe when successful background work should repeat about once per minute
-without turning the repeat policy into failure recovery.
+Use this when successful background work should run now and then recur on a
+one-minute cadence.
 
 ## Problem
 
-A cache refresh, metrics publisher, local-state check, or liveness signal needs to run
-immediately and then recur on a minute-scale cadence because second-scale repetition
-would be unnecessarily frequent.
-
-The schedule should decide later successful recurrences and their spacing, while
-failures remain in the effect error channel.
+A cache refresh, metrics publisher, or local-state check needs an immediate
+first run and later successful recurrences once per minute.
 
 ## When to use it
 
-Use this when success means "do this again later" and one minute is a reasonable operational interval.
+Use `Schedule.fixed("1 minute")` when minute-level cadence matters and
+second-level freshness would be unnecessary load.
 
-It fits background work that is cheap enough to repeat regularly, slow enough not to need second-level freshness, and owned by a long-lived process, scope, or supervised fiber.
+This fits background work owned by a long-lived process, scope, or supervised
+fiber.
 
 ## When not to use it
 
-Do not use `Effect.repeat` for failure-driven recovery. If the effect fails, repetition stops with that failure. Use `Effect.retry` when failures should trigger another attempt.
+Do not use this for failure recovery. If the effect fails, `Effect.repeat`
+stops with that failure.
 
-Do not use an unbounded minute loop in a request-response path that needs to complete. The repeated work needs an owner that can interrupt it.
+Do not use an unbounded minute loop in a request-response path that needs to
+complete.
 
-Do not use this as a cron replacement. This recipe describes a periodic repeat every minute, not calendar-aware scheduling such as "at the top of each hour" or "only on weekdays."
+Do not use this as a cron replacement. A fixed one-minute interval is not the
+same as "at the top of every minute" or "only during business hours."
 
 ## Schedule shape
 
-For most moderate-frequency background loops, use:
+The core schedule is `Schedule.fixed("1 minute")`.
 
-```ts
-import { Schedule } from "effect"
-
-const everyMinute = Schedule.spaced("1 minute")
-```
-
-`Schedule.spaced("1 minute")` waits one full minute after each successful run completes before starting the next recurrence. With `Effect.repeat`, the first run still happens immediately.
-
-Use `Schedule.fixed("1 minute")` when the one-minute cadence itself is important. `fixed` schedules recurrences against fixed interval boundaries; if a run takes longer than the interval, the next recurrence may run immediately, but missed runs do not pile up. `spaced` measures the pause after completion, so the work duration is added before the next run starts.
+`fixed` schedules recurrences against interval boundaries. If a run takes
+longer than a minute, the next recurrence may run immediately, but missed runs
+do not pile up. Use `Schedule.spaced("1 minute")` when the gap after completion
+is what matters.
 
 ## Code
 
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const refreshCache = Console.log("refreshing cache")
+let refreshes = 0
 
-const program = refreshCache.pipe(
-  Effect.repeat(Schedule.spaced("1 minute"))
+const refreshCache = Effect.gen(function*() {
+  refreshes += 1
+  yield* Console.log(`cache refresh ${refreshes}`)
+})
+
+const loop = refreshCache.pipe(
+  Effect.repeat(Schedule.fixed("1 minute"))
 )
+
+const program = loop.pipe(
+  Effect.timeoutOrElse({
+    duration: "50 millis",
+    orElse: () =>
+      Console.log(`demo stopped after ${refreshes} refresh`)
+  })
+)
+
+Effect.runPromise(program)
 ```
 
-The first cache refresh runs immediately. After each successful refresh, the schedule waits one minute before allowing the next recurrence.
-
-Because `Schedule.spaced("1 minute")` is unbounded, `program` is long-lived work. It completes only if `refreshCache` fails, the schedule fails, or the fiber is interrupted.
+The timeout keeps the example quick while still using the real one-minute
+schedule.
 
 ## Variants
 
-Use a fixed-rate minute cadence when the starts should stay close to minute intervals:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const publishMetrics = Console.log("publishing metrics")
-
-const program = publishMetrics.pipe(
-  Effect.repeat(Schedule.fixed("1 minute"))
-)
-```
-
-Use a bounded version for diagnostics or short-lived maintenance:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const checkState = Console.log("checking state")
-
-const program = checkState.pipe(
-  Effect.repeat(Schedule.spaced("1 minute").pipe(Schedule.take(3)))
-)
-```
-
-With `Schedule.take(3)`, the effect runs once immediately and then up to three scheduled recurrences, for four successful runs total.
+Use `Schedule.spaced("1 minute")` when every completed run should be followed
+by one quiet minute. Add `Schedule.take(n)` when a diagnostic or test should
+stop after a fixed number of recurrences.
 
 ## Notes and caveats
 
-The schedule does not delay the first execution. `Effect.repeat` runs the effect once before consulting the schedule.
+The schedule does not delay the first execution. It controls only later
+successful recurrences.
 
-`Schedule.spaced("1 minute")` is usually the clearer choice for background work where "wait a minute after finishing" is acceptable.
+`Schedule.fixed("1 minute")` runs one recurrence at a time. It does not start
+concurrent catch-up runs.
 
-`Schedule.fixed("1 minute")` is the better fit when drift matters more than the gap after completion. It still runs one recurrence at a time; slow executions do not create a backlog of missed runs.
-
-Failures are not skipped. If the repeated operation can fail transiently and should continue on the next minute, handle retry or recovery inside the repeated effect before applying the periodic repeat.
-
-When the schedule eventually ends, `Effect.repeat` succeeds with the schedule's final output. With `Schedule.spaced`, `Schedule.fixed`, and `Schedule.take`, that output is a recurrence count.
+If transient failures should not stop the loop, handle retry or recovery inside
+the repeated effect before applying the periodic repeat.

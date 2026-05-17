@@ -11,16 +11,16 @@ code_included: true
 # 38.4 Repeat every second, but no more than 30 times
 
 You have an effect that should run once, then repeat after successful runs with
-a one-second pause, but only for a bounded number of recurrences.
+a one-second pause, but only for a bounded number of scheduled recurrences.
 
 ## Problem
 
 You need repeat behavior for a short background loop, bounded status refresh,
 or maintenance task that is easy to read from the policy itself:
 
-- the first run happens immediately;
-- each successful recurrence waits one second after the previous run completes;
-- the schedule permits no more than 30 scheduled recurrences.
+- the first run happens immediately
+- each successful recurrence waits one second after the previous run completes
+- the schedule permits no more than 30 scheduled recurrences
 
 The count belongs in the schedule rather than in a mutable loop counter next to
 the effect.
@@ -49,19 +49,8 @@ consulted between runs; it does not interrupt a run that is already in flight.
 
 ## Schedule shape
 
-Start with the unbounded cadence:
-
-```ts
-Schedule.spaced("1 second")
-```
-
-Then cap the number of schedule outputs:
-
-```ts
-Schedule.spaced("1 second").pipe(
-  Schedule.take(30)
-)
-```
+Start with `Schedule.spaced("1 second")`, then cap the number of schedule
+outputs with `Schedule.take(30)`.
 
 With `Effect.repeat`, the effect itself runs once before the schedule makes a
 decision. `Schedule.take(30)` therefore means "allow up to 30 recurrences after
@@ -73,40 +62,49 @@ one", use `Schedule.take(29)` instead.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
-type RefreshError = {
-  readonly _tag: "RefreshError"
-  readonly message: string
-}
+let runs = 0
 
-declare const refreshStatus: Effect.Effect<void, RefreshError>
+const refreshStatus = Effect.gen(function*() {
+  runs += 1
+  yield* Console.log(`refresh ${runs}`)
+  return runs
+})
 
 const repeatEverySecondAtMost30Times = Schedule.spaced("1 second").pipe(
   Schedule.take(30)
 )
 
-export const program = refreshStatus.pipe(
-  Effect.repeat(repeatEverySecondAtMost30Times)
+const program = Effect.gen(function*() {
+  const fiber = yield* refreshStatus.pipe(
+    Effect.repeat(repeatEverySecondAtMost30Times),
+    Effect.forkDetach
+  )
+
+  yield* TestClock.adjust("30 seconds")
+
+  const lastScheduleOutput = yield* Fiber.join(fiber)
+  yield* Console.log(
+    `completed after ${runs} executions; last schedule output ${lastScheduleOutput}`
+  )
+}).pipe(
+  Effect.provide(TestClock.layer()),
+  Effect.scoped
 )
+
+Effect.runPromise(program)
 ```
 
-`refreshStatus` runs immediately. After each successful run, the schedule waits
-one second before allowing the next recurrence. After 30 scheduled recurrences,
-the repeat stops.
+The example uses `TestClock` so the one-second schedule remains exact while the
+snippet terminates immediately. `refreshStatus` runs once immediately, then up
+to 30 more times after one-second schedule intervals.
 
 ## Variants
 
 Use `Schedule.recurs(30)` when you want to express the count limit as a separate
-schedule and combine it with the cadence:
-
-```ts
-import { Schedule } from "effect"
-
-const repeatEverySecondAtMost30Times = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.recurs(30))
-)
-```
+schedule and combine it with the cadence.
 
 Both schedules must continue for the combined schedule to continue. The spaced
 schedule contributes the one-second delay, and `Schedule.recurs(30)` contributes

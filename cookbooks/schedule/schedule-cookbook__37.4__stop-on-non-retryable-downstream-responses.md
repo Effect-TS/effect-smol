@@ -22,7 +22,7 @@ non-retryable responses. You want to retry temporary downstream failures such as
 timeouts, `429`, and `5xx`, but stop immediately for permanent responses such
 as `400`, `401`, `403`, `404`, or `422`.
 
-The policy should make two decisions visible:
+The policy should make two decisions explicit:
 
 - which responses are safe to retry
 - how long and how often retryable failures are attempted again
@@ -35,7 +35,7 @@ window resets.
 
 It is a good fit when callers need the original non-retryable response. For
 example, a `401 Unauthorized` should normally flow back as an authorization
-failure, not be hidden behind several delayed retries.
+failure, not be hidden behind delayed retries.
 
 ## When not to use it
 
@@ -56,8 +56,7 @@ sharing the downstream quota.
 `Effect.retry` feeds typed failures into the retry policy. In this recipe, the
 policy has two parts:
 
-- `Schedule.exponential("200 millis")` controls the delay after retryable
-  failures
+- `Schedule.exponential` controls the delay after retryable failures
 - `Schedule.recurs(4)` stops after at most four retries after the original call
 
 The `while` predicate is the response classifier. When it returns `false`,
@@ -66,7 +65,7 @@ retrying stops immediately and `Effect.retry` propagates that typed failure.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type DownstreamError =
   | { readonly _tag: "NetworkFailure"; readonly reason: string }
@@ -76,10 +75,30 @@ type DownstreamError =
       readonly body: string
     }
 
-declare const fetchCustomer: Effect.Effect<
-  { readonly id: string; readonly name: string },
-  DownstreamError
->
+type Customer = {
+  readonly id: string
+  readonly name: string
+}
+
+const statuses = [503, 422] as const
+let calls = 0
+
+const fetchCustomer = Effect.gen(function*() {
+  calls += 1
+  const status = statuses[calls - 1] ?? 200
+
+  yield* Console.log(`HTTP attempt ${calls}: ${status}`)
+
+  if (status === 200) {
+    return { id: "customer-1", name: "Ada" } satisfies Customer
+  }
+
+  return yield* Effect.fail({
+    _tag: "DownstreamResponse",
+    status,
+    body: status === 503 ? "service unavailable" : "invalid filter"
+  } as const)
+})
 
 const isRetryableDownstreamError = (error: DownstreamError) => {
   if (error._tag === "NetworkFailure") {
@@ -91,55 +110,43 @@ const isRetryableDownstreamError = (error: DownstreamError) => {
   return status === 408 || status === 429 || status >= 500
 }
 
-const downstreamRetrySchedule = Schedule.exponential("200 millis").pipe(
+const downstreamRetrySchedule = Schedule.exponential("20 millis").pipe(
   Schedule.both(Schedule.recurs(4))
 )
 
-export const program = fetchCustomer.pipe(
+const program = fetchCustomer.pipe(
   Effect.retry({
     schedule: downstreamRetrySchedule,
     while: isRetryableDownstreamError
+  }),
+  Effect.matchEffect({
+    onFailure: (error) =>
+      Console.log(
+        error._tag === "DownstreamResponse"
+          ? `stopped on HTTP ${error.status} after ${calls} calls`
+          : `stopped on network failure after ${calls} calls`
+      ),
+    onSuccess: (customer) => Console.log(`loaded ${customer.name}`)
   })
 )
+
+Effect.runPromise(program)
 ```
 
-If `fetchCustomer` fails with `503 Service Unavailable`, the program waits 200
-milliseconds before the next attempt. Consecutive retryable failures use the
-exponential schedule, and the policy allows at most four retries after the
-original call.
-
-If `fetchCustomer` fails with `404 Not Found` or `422 Unprocessable Entity`, the
-predicate returns `false`. No retry delay is consulted, no additional request is
-sent, and the original typed error is propagated.
+The `503` response is retried. The later `422` response is not retryable, so no
+additional request is sent and the original typed response is reported.
 
 ## Variants
 
-If your API treats only server errors as retryable, keep the classifier smaller:
-
-```ts
-const retryOnlyServerErrors = (error: DownstreamError) =>
-  error._tag === "NetworkFailure" ||
-  (error._tag === "DownstreamResponse" && error.status >= 500)
-```
+If your API treats only server errors as retryable, keep the classifier to
+network failures and `5xx` responses.
 
 If the downstream uses `409 Conflict` for optimistic concurrency that may clear
-after a short delay, include it explicitly:
+after a short delay, include `409` explicitly and document that service-specific
+contract.
 
-```ts
-const retryConcurrencyConflicts = (error: DownstreamError) =>
-  isRetryableDownstreamError(error) ||
-  (error._tag === "DownstreamResponse" && error.status === 409)
-```
-
-For a user-facing path, combine the retry count with an elapsed budget so the
-caller gets a response quickly:
-
-```ts
-const userFacingRetrySchedule = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(3)),
-  Schedule.both(Schedule.during("2 seconds"))
-)
-```
+For a user-facing path, combine the retry count with `Schedule.during` so the
+caller gets a response within a known elapsed budget.
 
 ## Notes and caveats
 

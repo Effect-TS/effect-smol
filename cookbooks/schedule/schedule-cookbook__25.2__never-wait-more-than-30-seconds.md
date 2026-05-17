@@ -10,95 +10,72 @@ code_included: true
 
 # 25.2 Never wait more than 30 seconds
 
-Use this recipe for background or service workflows that should preserve early
-exponential backoff while guaranteeing that no scheduled wait exceeds 30
-seconds.
+Use this for service or background work that should back off under failure but
+must never schedule a wait longer than 30 seconds.
 
 ## Problem
 
-You need retry delays that grow under sustained failure, but you do not want a
-long exponential tail where the next attempt might be minutes away. For
-background workers, service reconnects, queue consumers, control-plane calls,
-and periodic reconciliation, "wait longer" is useful, but "wait arbitrarily
-long" is usually not.
-
-The first effect evaluation still happens immediately. The 30 second rule
-applies only to delays before later retry attempts.
+Background retries often need to continue longer than user-facing retries. They
+still need an operational bound: during an incident, "try less often" is useful,
+but "wait arbitrarily long" makes recovery and observation harder.
 
 ## When to use it
 
-Use this when a non-interactive workflow may retry for an extended period, but
-operators should be able to say that no scheduled retry delay will exceed 30
-seconds after the cap is reached.
-
-This is a good fit for reconnect loops, shard processors, background sync,
-lease renewal helpers, cache warmers, and service-to-service calls where the
-dependency may recover independently.
-
-It is also useful when many attempts may happen during a real incident and the
-policy needs to balance two pressures: avoid hammering the dependency while it
-is unhealthy, and avoid waiting too long once it becomes healthy again.
+Use it for reconnect loops, shard processors, background sync, lease renewal,
+cache warming, and service-to-service calls where a dependency may recover on
+its own. The cap gives operators a clear maximum delay between attempts.
 
 ## When not to use it
 
-Do not use a 30 second cap for an interactive request just because it is a
-convenient round number. User-facing paths usually need a smaller cap, fewer
-attempts, and often a total elapsed-time budget so the caller receives a clear
-failure quickly.
+Avoid this cap on interactive paths unless the product can tolerate it.
+User-facing flows usually need smaller caps, fewer attempts, and an elapsed-time
+budget.
 
-Do not use this to retry permanent errors. Validation failures, authorization
-failures, malformed requests, configuration errors, and unsafe non-idempotent
-writes should be classified before the retry policy is applied.
-
-Do not treat the cap as a stopping rule. A capped schedule can still retry
-forever unless you combine it with `Schedule.recurs`, `Schedule.take`,
-`Schedule.during`, or another condition that terminates the recurrence.
+The cap is not a stopping rule. Combine it with `Schedule.recurs`,
+`Schedule.take`, `Schedule.during`, or another terminating condition when the
+retry policy must end.
 
 ## Schedule shape
 
-Start with the backoff curve you want, then clamp the delay produced by that
-schedule:
+Choose the backoff curve, optionally jitter it, and apply the hard cap last. A
+typical pipeline is `Schedule.exponential("250 millis")`, then
+`Schedule.jittered`, then `Schedule.modifyDelay` with
+`Duration.min(delay, Duration.seconds(30))`.
 
-```ts
-Schedule.exponential("250 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(30)))
-  )
-)
-```
-
-`Schedule.exponential("250 millis")` produces a growing delay between
-recurrences. `Schedule.modifyDelay` receives each proposed next delay and
-returns the delay that should actually be used. `Duration.min(delay,
-Duration.seconds(30))` keeps the original delay while it is below 30 seconds
-and returns 30 seconds once the backoff would exceed the cap.
-
-If you add jitter, apply the cap after jitter so the randomized delay still
-obeys the maximum:
-
-```ts
-Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(30)))
-  )
-)
-```
-
-`Schedule.jittered` randomly adjusts each recurrence delay between 80% and 120%
-of the incoming delay. Capping after jitter keeps the final wait at or below 30
-seconds.
+`Schedule.jittered` adjusts each delay to a random value between 80% and 120% of
+the incoming delay. Capping after jitter keeps the final scheduled wait at or
+below 30 seconds.
 
 ## Code
 
 ```ts
-import { Duration, Effect, Schedule } from "effect"
+import { Console, Duration, Effect, Schedule } from "effect"
 
 type ServiceError =
-  | { readonly _tag: "Unavailable"; readonly service: string }
-  | { readonly _tag: "Timeout"; readonly service: string }
+  | { readonly _tag: "Unavailable"; readonly attempt: number }
+  | { readonly _tag: "Timeout"; readonly attempt: number }
 
-declare const refreshServiceState: Effect.Effect<void, ServiceError>
+let attempts = 0
+
+const refreshServiceState = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`refresh attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail<ServiceError>({
+      _tag: "Unavailable",
+      attempt: attempts
+    })
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail<ServiceError>({
+      _tag: "Timeout",
+      attempt: attempts
+    })
+  }
+
+  yield* Console.log("service state refreshed")
+})
 
 const retryWithThirtySecondDelayCap = Schedule.exponential("250 millis").pipe(
   Schedule.jittered,
@@ -108,35 +85,24 @@ const retryWithThirtySecondDelayCap = Schedule.exponential("250 millis").pipe(
   Schedule.both(Schedule.recurs(20))
 )
 
-export const program = refreshServiceState.pipe(
+const program = refreshServiceState.pipe(
   Effect.retry(retryWithThirtySecondDelayCap)
 )
+
+Effect.runPromise(program)
 ```
 
-`refreshServiceState` is evaluated once immediately. If it fails with a
-`ServiceError`, the retry schedule starts with a short jittered exponential
-delay. As failures continue, the proposed exponential delay grows, but the
-actual delay used by the schedule never exceeds 30 seconds. `Schedule.recurs(20)`
-keeps the example finite by allowing at most 20 retries.
+The example succeeds quickly, but the policy has the same shape you would use
+for longer-running background work: exponential backoff, jitter, a final
+30-second cap, and a recurrence limit.
 
 ## Variants
 
-For a long-running service loop, remove the retry count only when the loop is
-scoped by service lifetime and the error classification is strict. In that
-case, the 30 second cap describes steady-state retry cadence, not termination.
-
-For a user-facing path, prefer a much smaller cap, such as one or two seconds,
-and combine it with a small retry count or `Schedule.during`. The caller should
-not wait through many 30 second sleeps to learn that a request failed.
-
-For fleet-wide reconnects, keep `Schedule.jittered` before the final cap. The
-jitter reduces synchronized retries across instances, while the final
-`Schedule.modifyDelay` preserves the "never more than 30 seconds" promise.
-
-For polling successful observations rather than retrying failures, use
-`Effect.repeat` with an input-aware stopping rule. The same delay cap technique
-can be used, but the schedule input will be the successful value instead of the
-failure.
+For service-lifetime reconnect loops, remove the retry count only when error
+classification is strict and shutdown is handled elsewhere. For user-facing
+paths, use a smaller cap and a shorter elapsed budget. For polling successful
+values, use `Effect.repeat`; the same delay cap works, but the schedule input is
+the successful value rather than the failure.
 
 ## Notes and caveats
 
@@ -144,15 +110,7 @@ The cap applies to schedule delays, not to the runtime of the effect being
 retried. If one attempt can hang for a long time, add an effect-level timeout
 separately.
 
-`Effect.retry` feeds failures into the schedule. `Effect.repeat` feeds
-successful values into the schedule. That difference matters when you add
-`Schedule.while`, `Schedule.tapInput`, or `Schedule.passthrough`.
-
-`Schedule.both` combines two schedules with intersection semantics: recurrence
-continues only while both schedules continue. For delays, the combined schedule
-uses the larger delay, so pairing a capped backoff with `Schedule.recurs(20)`
-keeps the backoff delay and adds a retry limit.
-
-Keep the name of the schedule honest. A name like
-`retryWithThirtySecondDelayCap` communicates the operational guarantee better
-than a name that only describes the implementation, such as `exponentialBackoff`.
+`Schedule.both` combines schedules with intersection semantics: recurrence
+continues only while both schedules continue. Its delay is the larger of the two
+delays, so pairing capped backoff with `Schedule.recurs(20)` keeps the cadence
+and adds a retry limit.

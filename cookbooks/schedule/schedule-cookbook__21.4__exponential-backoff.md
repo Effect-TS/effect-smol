@@ -21,8 +21,9 @@ broker is recovering after a restart. Retrying immediately can make the outage
 worse. Retrying at a fixed interval can still keep too much steady pressure on
 the dependency.
 
-You want the first retry to happen soon, later retries to slow down
-aggressively, and the whole policy to stop after a known number of retries.
+Use exponential backoff when the first retry should happen soon, later retries
+should slow down aggressively, and the whole policy should stop after a known
+number of retries.
 
 ## When to use it
 
@@ -56,69 +57,54 @@ With `Effect.retry`, the first call runs immediately. If it fails with a typed
 error, the schedule decides whether to retry and how long to wait before the
 next call.
 
-For retries, a common shape is:
-
-```ts
-const retryPolicy = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
-This keeps the growing delay from the exponential schedule and stops after at
-most five retries after the original attempt.
+Combine `Schedule.exponential(base)` with `Schedule.recurs(n)` to keep the
+growing delay but bound the number of retries.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class DownstreamError extends Data.TaggedError("DownstreamError")<{
   readonly reason: "Timeout" | "Unavailable" | "Overloaded"
 }> {}
 
-declare const fetchCustomerProfile: (
-  customerId: string
-) => Effect.Effect<
-  { readonly customerId: string; readonly plan: "free" | "pro" },
-  DownstreamError
->
+let attempts = 0
 
-const retryTransientRemoteFailure = Schedule.exponential("100 millis").pipe(
+const fetchCustomerProfile = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`profile API attempt ${attempts}`)
+
+  if (attempts < 4) {
+    return yield* Effect.fail(new DownstreamError({ reason: "Unavailable" }))
+  }
+
+  return { customerId: "customer-123", plan: "pro" as const }
+})
+
+const retryTransientRemoteFailure = Schedule.exponential("20 millis").pipe(
   Schedule.both(Schedule.recurs(5))
 )
 
-export const program = fetchCustomerProfile("customer-123").pipe(
+const program = fetchCustomerProfile.pipe(
   Effect.retry(retryTransientRemoteFailure)
 )
+
+Effect.runPromise(program).then((profile) => {
+  console.log(`${profile.customerId} plan: ${profile.plan}`)
+})
 ```
 
-`program` calls the remote service once immediately. If the call fails with
-`DownstreamError`, it retries after 100 milliseconds, then 200 milliseconds,
-400 milliseconds, 800 milliseconds, and 1600 milliseconds. If all retries
-fail, `Effect.retry` fails with the last `DownstreamError`.
+The example uses 20 milliseconds as the base so it finishes quickly. With a
+100 millisecond base, the first five retry delays would be 100ms, 200ms, 400ms,
+800ms, and 1600ms. If all retries fail, `Effect.retry` returns the last
+`DownstreamError`.
 
 ## Variants
 
-Use a gentler factor when doubling backs off too quickly for the workflow:
-
-```ts
-const gentlerBackoff = Schedule.exponential("200 millis", 1.5).pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
-For repeated successful work, `Schedule.take` can limit how many schedule
-outputs are used:
-
-```ts
-const limitedBackoff = Schedule.exponential("250 millis").pipe(
-  Schedule.take(4)
-)
-```
-
-This is useful when the schedule is being reused for a bounded repeat or when
-you want the limit to read as "take this many backoff decisions" rather than
-"retry this many failures."
+Use a gentler factor, such as `Schedule.exponential("200 millis", 1.5)`, when
+doubling backs off too quickly for the workflow. For repeated successful work,
+`Schedule.take` can limit how many schedule outputs are used.
 
 ## Notes and caveats
 

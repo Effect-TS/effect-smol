@@ -10,173 +10,113 @@ code_included: true
 
 # 7.1 Exponential backoff with a maximum delay
 
-This recipe shows how to cap exponential backoff so retry delays grow early without
-exceeding a maximum wait.
+Use capped exponential backoff when early retries should spread out quickly, but
+no single wait should exceed a known maximum.
 
 ## Problem
 
-Uncapped exponential backoff can grow beyond the latency budget for one
-request, even when the first few retries are useful for reducing pressure on a
-dependency.
+Plain `Schedule.exponential` keeps growing. That is useful at first, but later
+delays can exceed the request budget, worker lease, or supervisor timeout.
 
-Build the cap by composing schedules:
-
-```ts
-const cappedBackoff = Schedule.exponential("100 millis").pipe(
-  Schedule.either(Schedule.spaced("5 seconds")),
-  Schedule.both(Schedule.recurs(8))
-)
-```
-
-This means "use exponential delays starting at 100 milliseconds, never wait
-more than 5 seconds between retries, and stop after at most 8 retries."
+Cap the delay by combining exponential backoff with `Schedule.spaced(maxDelay)`
+using `Schedule.either`. `either` continues while either schedule continues and
+uses the smaller delay. Add `Schedule.recurs(n)` with `Schedule.both` when the
+policy also needs a retry limit.
 
 ## When to use it
 
-Use capped exponential backoff when failures are probably transient, repeated
-retries should slow down, and there is still a practical upper bound on how
-long one retrying operation should wait between attempts.
+Use this shape for transient failures in idempotent calls: external APIs,
+databases, queues, caches, and service clients. The first retries happen soon,
+then the delay settles at the cap instead of growing without bound.
 
-It fits external APIs, databases, queues, caches, and service calls where the
-first few retries should back off quickly but later retries should settle into a
-maximum polling interval.
-
-The cap is especially useful when an uncapped exponential policy would create
-delays that are too large for a user-facing request, background job lease, or
-supervisor timeout.
+The cap is a per-retry maximum. It is not a total timeout and does not interrupt
+an attempt that is already running.
 
 ## When not to use it
 
-Do not use this policy for operations that are unsafe to run more than once.
-Retried writes need idempotency, deduplication, transactions, or a
-domain-specific recovery plan.
+Do not retry operations that are unsafe to run more than once unless the call is
+made idempotent with a key, transaction, de-duplication, or another domain
+guarantee.
 
-Do not confuse a maximum retry delay with an overall timeout. A capped policy
-can still spend more total time retrying than the cap, because the cap applies
-to each delay between attempts.
-
-Do not use capped backoff as the whole resilience strategy for high fan-out
-clients. If many callers can retry together, add jitter, concurrency limits, or
-rate limiting around the call site.
+Do not use capped backoff alone for high fan-out clients. If many callers can
+fail together, combine the policy with jitter, admission control, or rate
+limits.
 
 ## Schedule shape
 
-`Schedule.exponential("100 millis")` is unbounded and returns growing delay
-durations: 100 milliseconds, 200 milliseconds, 400 milliseconds, 800
-milliseconds, and so on with the default factor of `2`.
+With a base of 10 milliseconds and a cap of 40 milliseconds, the delay sequence
+is 10 milliseconds, 20 milliseconds, 40 milliseconds, 40 milliseconds, and so
+on. The exponential side wants to continue forever, and the spaced side also
+wants to continue forever, so `Schedule.recurs(n)` supplies the stopping point.
 
-`Schedule.spaced("5 seconds")` is also unbounded, but its delay is always 5
-seconds.
-
-`Schedule.either(left, right)` continues when either schedule wants to continue
-and uses the minimum of the two schedule delays. When the left side is
-exponential backoff and the right side is fixed spacing, that minimum gives the
-cap:
-
-- first retry: min(100 milliseconds, 5 seconds) = 100 milliseconds
-- second retry: min(200 milliseconds, 5 seconds) = 200 milliseconds
-- third retry: min(400 milliseconds, 5 seconds) = 400 milliseconds
-- later retries: once exponential exceeds 5 seconds, use 5 seconds
-
-`Schedule.either` is the part that caps the delay. `Schedule.both` has different
-timing semantics: it continues only while both schedules continue and uses the
-maximum of their delays. Use `Schedule.both(Schedule.recurs(n))` after the cap
-when you want a retry limit.
-
-With `Effect.retry`, the original effect runs immediately. If it fails with a
-typed error, the error is fed to the capped schedule. The schedule chooses the
-delay before the next retry. If all allowed retries fail, `Effect.retry`
-propagates the last typed failure.
+`Schedule.both(Schedule.recurs(n))` keeps the capped delay because `recurs`
+adds no meaningful wait. It only contributes the retry budget. `Schedule.recurs(4)`
+means four retries after the original attempt, so the effect can run up to five
+times total.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class ApiError extends Data.TaggedError("ApiError")<{
   readonly status: number
 }> {}
 
-declare const request: Effect.Effect<string, ApiError>
+let attempts = 0
 
-const cappedBackoff = Schedule.exponential("100 millis").pipe(
-  Schedule.either(Schedule.spaced("5 seconds")),
-  Schedule.both(Schedule.recurs(8))
+const request = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`request attempt ${attempts}`)
+
+  if (attempts < 4) {
+    return yield* Effect.fail(new ApiError({ status: 503 }))
+  }
+
+  return "response body"
+})
+
+const cappedBackoff = Schedule.exponential("10 millis").pipe(
+  Schedule.either(Schedule.spaced("40 millis")),
+  Schedule.both(Schedule.recurs(4))
 )
 
 const program = request.pipe(
-  Effect.retry(cappedBackoff)
+  Effect.retry(cappedBackoff),
+  Effect.tap((body) => Console.log(`success: ${body}`))
 )
+
+Effect.runPromise(program).then(() => undefined, console.error)
 ```
 
-`program` runs `request` immediately. If it fails with a typed `ApiError`, it
-waits 100 milliseconds and retries. Later failures wait 200 milliseconds, 400
-milliseconds, 800 milliseconds, and so on until the exponential delay would
-exceed 5 seconds. After that point, each retry waits 5 seconds.
-
-`Schedule.recurs(8)` allows at most eight retries after the original attempt. If
-any attempt succeeds, `program` succeeds with the string returned by `request`.
-If the original attempt and all eight retries fail, `Effect.retry` returns the
-last `ApiError`.
+The first call is immediate. If it fails with a typed `ApiError`, the next waits
+10 milliseconds. Later failures wait 20 milliseconds, then 40 milliseconds, and
+the cap prevents longer waits. If all four retries fail, `Effect.retry`
+propagates the last `ApiError`.
 
 ## Variants
 
-Use a smaller cap for interactive work:
+For interactive work, use a small base, a small cap, and a short retry budget,
+for example a 50 millisecond base capped at 1 second with three to five
+retries.
 
-```ts
-const interactiveBackoff = Schedule.exponential("50 millis").pipe(
-  Schedule.either(Schedule.spaced("1 second")),
-  Schedule.both(Schedule.recurs(5))
-)
-```
+For background work, use a larger base and cap, such as 500 milliseconds capped
+at 30 seconds, but still keep an explicit retry count unless retrying forever is
+intentional.
 
-This grows quickly but never waits more than 1 second between retries.
-
-Use a gentler factor when doubling reaches the cap too quickly:
-
-```ts
-const gentleCappedBackoff = Schedule.exponential("250 millis", 1.5).pipe(
-  Schedule.either(Schedule.spaced("5 seconds")),
-  Schedule.both(Schedule.recurs(10))
-)
-```
-
-This starts at 250 milliseconds and multiplies each later exponential delay by
-1.5, while still using 5 seconds as the maximum delay.
-
-When only some typed failures are retryable, keep the same schedule and add a
-retry predicate at the boundary:
-
-```ts
-const program = request.pipe(
-  Effect.retry({
-    schedule: cappedBackoff,
-    while: (error) => error.status === 429 || error.status === 503
-  })
-)
-```
-
-The schedule still controls delay and count. The predicate decides which typed
-failures are allowed to use that retry policy.
+When only some typed failures are retryable, keep the capped schedule and pass
+`Effect.retry({ schedule, while })`. The `while` predicate decides which errors
+may consume retry budget; the schedule still decides timing and count.
 
 ## Notes and caveats
 
-There is no special `Schedule.cap` API in this recipe. The cap comes from
-`Schedule.either(Schedule.spaced(maxDelay))`, because `either` uses the minimum
-delay while either side continues.
+There is no dedicated cap constructor in this recipe. The cap comes from
+`Schedule.either(Schedule.spaced(maxDelay))`.
 
-Do not use `Schedule.both` to combine the exponential schedule with the fixed
-maximum delay. `both` uses the maximum delay, so it would wait at least the
-fixed duration from the first retry instead of capping only the large
-exponential delays.
+Do not replace `either` with `both` for the cap. `Schedule.both` uses the larger
+delay, so pairing exponential backoff directly with fixed spacing would wait at
+least the fixed duration from the first retry.
 
-`Schedule.recurs(8)` means eight retries after the original attempt, not eight
-total attempts.
-
-The schedule output is nested composition data: `either` outputs the outputs of
-both sides, and `both` adds the recurrence count. Plain `Effect.retry` uses the
-schedule for retry timing and stops, but the successful value is still the value
-produced by the retried effect.
-
-The first execution is not delayed. Backoff begins only after the effect fails
-with a typed error.
+The composed schedule output is nested composition data. Plain `Effect.retry`
+uses it for timing and stopping, then returns the successful value produced by
+the retried effect.

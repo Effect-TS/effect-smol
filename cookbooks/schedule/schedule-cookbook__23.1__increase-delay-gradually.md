@@ -10,100 +10,110 @@ code_included: true
 
 # 23.1 Increase delay gradually
 
-Gradual delay is a linear retry shape: each failure adds the same wait
-increment. It sits between immediate retries and exponential backoff for
-short-lived contention or warmup.
+Linear backoff increases each retry delay by the same amount. It is useful when
+immediate retries are too noisy but exponential backoff would slow a short
+recovery window too quickly.
 
-Effect does not expose a `Schedule.linear` constructor. Build this shape from a
-stateful schedule with `Schedule.unfold`, then convert the state into a delay
-with `Schedule.addDelay`.
+Effect does not expose a `Schedule.linear` constructor. Build the shape with
+`Schedule.unfold`, then use `Schedule.addDelay` to convert the step number into
+a delay.
 
 ## Problem
 
-A dependency usually recovers within a few seconds, but immediate retries would
-add avoidable pressure. Configure the retry policy so the waits grow by a fixed
-step:
+A dependency usually recovers within a few seconds. Configure retries so the
+first retry waits one step, the next waits two steps, and so on:
 
-- first retry after 250 milliseconds
-- second retry after 500 milliseconds
-- third retry after 750 milliseconds
-- later retries continue by the same step
+```text
+250ms, 500ms, 750ms, 1000ms, ...
+```
 
-The first evaluation of the effect still happens immediately. The schedule only
-controls the waits before later retry attempts.
+The original effect still runs immediately. The schedule controls only the wait
+before later attempts.
 
 ## Schedule shape
 
-`Schedule.unfold(1, ...)` gives the schedule an integer step. On each decision,
-the schedule outputs the current step and computes the next one.
+`Schedule.unfold(1, ...)` emits `1`, then `2`, then `3`. Starting at `1` makes
+the first retry wait one full interval instead of retrying immediately.
 
-`Schedule.addDelay` receives that output. Multiplying the step by a base interval
-turns the sequence `1, 2, 3, ...` into `250ms, 500ms, 750ms, ...`.
-
-Add a stopping rule, such as `Schedule.take`, so a transient policy does not
-retry forever.
+`Schedule.addDelay` receives each emitted step. Multiplying the step by the base
+interval turns the sequence into a linear delay series. Add `Schedule.take` or
+`Schedule.recurs` so the policy is finite unless an unbounded retry loop is
+intentional.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class SearchIndexUnavailable extends Data.TaggedError("SearchIndexUnavailable")<{
   readonly shard: string
 }> {}
 
-declare const updateSearchIndex: Effect.Effect<void, SearchIndexUnavailable>
+let attempts = 0
+
+const updateSearchIndex = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`index attempt ${attempts}`)
+
+  if (attempts < 4) {
+    return yield* Effect.fail(
+      new SearchIndexUnavailable({ shard: "products-1" })
+    )
+  }
+
+  return `indexed products-1 on attempt ${attempts}`
+})
 
 const retryWithGradualDelay = Schedule.unfold(1, (step) =>
   Effect.succeed(step + 1)
 ).pipe(
-  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 250))),
+  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 25))),
   Schedule.take(5)
 )
 
-const program = updateSearchIndex.pipe(
-  Effect.retry(retryWithGradualDelay)
+const program = Effect.gen(function*() {
+  const result = yield* updateSearchIndex.pipe(
+    Effect.retry(retryWithGradualDelay)
+  )
+  yield* Console.log(result)
+}).pipe(
+  Effect.catch((error) =>
+    Console.log(`indexing failed after retries: ${error._tag}`)
+  )
 )
+
+Effect.runPromise(program)
 ```
 
-This policy starts with a 250 millisecond delay and adds another 250
-milliseconds on each scheduled retry. The retry budget is still finite because
-the schedule is capped with `Schedule.take(5)`.
+The example uses 25 millisecond steps so it terminates quickly:
+
+```text
+25ms, 50ms, 75ms, ...
+```
+
+In production, use the same schedule shape with the interval that matches the
+dependency and user-visible latency budget.
 
 ## When to use it
 
-Use gradual delay when the dependency is expected to recover soon, but repeated
-immediate attempts would create avoidable pressure. It is easier to reason about
-than a hand-written loop because the retry count, state progression, and delay
-calculation are all visible in one `Schedule` value.
+Use gradual delay for short-lived contention, internal service warmup, local
+coordination, and interactive work where a few retries can help but long waits
+would be hard to justify.
 
-This is often a better first choice than exponential backoff for local
-coordination problems, internal service warmup, and user-facing operations where
-waiting several seconds after only a few failures would be too conservative.
+It is often easier to review than a hand-written loop because the retry count,
+state progression, and delay calculation are all expressed as one `Schedule`.
 
 ## Variants
 
-Change the base interval to tune the slope:
-
-```ts
-const slowerRamp = Schedule.unfold(1, (step) => Effect.succeed(step + 1)).pipe(
-  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 500))),
-  Schedule.take(5)
-)
-```
-
-For a fleet-wide retry policy, apply `Schedule.jittered` after the base cadence
-is correct so many callers do not retry at the same moments.
-
-For a hard upper bound, combine the gradual delay with a time budget or a capped
-delay recipe instead of letting the linear sequence grow without limit.
+Increase the base interval to make the ramp slower. Add `Schedule.jittered` when
+many callers may retry at the same time. For a hard maximum delay, clamp the
+duration returned from `Schedule.addDelay` or use a capped-delay recipe.
 
 ## Notes and caveats
 
-`Schedule.addDelay` adds to the delay already produced by the base schedule.
-`Schedule.unfold` produces zero delay by itself, so the added delay is the
-effective wait in this recipe.
+`Schedule.addDelay` adds to the delay produced by the schedule it wraps.
+`Schedule.unfold` has no delay of its own, so the added duration is the effective
+wait here.
 
-`Effect.retry` feeds failures into the schedule. `Effect.repeat` feeds
-successful values into the schedule. Use this pattern for retrying typed,
-retryable failures; classify permanent failures before applying the policy.
+`Effect.retry` feeds typed failures into the schedule. Use a retry predicate or
+an error type split when only some failures are safe to retry.

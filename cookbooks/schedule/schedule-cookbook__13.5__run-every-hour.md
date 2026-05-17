@@ -10,74 +10,94 @@ code_included: true
 
 # 13.5 Run every hour
 
-Use this recipe when successful background work should repeat on a low-frequency
+Use this when successful background work should run now and then recur on an
 hourly cadence.
 
 ## Problem
 
-Slow-moving reference data, local compaction, summary metrics, or an infrequent
-external condition needs an immediate first run followed by successful hourly
+Slow-moving reference data, local compaction, summary metrics, or another
+low-frequency task needs an immediate first run followed by successful hourly
 recurrences.
-
-The schedule should express the recurrence policy and final repeat output, while
-failures remain in the effect error channel.
 
 ## When to use it
 
-Use `Schedule.fixed("1 hour")` when the action should stay on a regular hourly cadence.
+Use `Schedule.fixed("1 hour")` when the action should stay on a regular
+hourly cadence.
 
-This fits low-frequency background work where each successful run means "run this again on the next hourly interval" and the work is owned by a long-lived process, scope, or supervised fiber.
+This fits background work owned by a long-lived process, scope, or supervised
+fiber.
 
 ## When not to use it
 
-Do not use `Effect.repeat` as failure recovery. `Effect.repeat` repeats successful effects; if the action fails, the repeated effect fails unless you handle or retry that failure inside the action.
+Do not use `Effect.repeat` as failure recovery. If the action fails, the
+repeated effect fails unless you handle or retry that failure inside the action.
 
-Do not use this recipe when the requirement is calendar-aware scheduling, such as "run at the top of every hour" or "run only during business hours." This recipe is about a periodic one-hour interval.
+Do not use this for calendar-aware scheduling, such as "run at the top of every
+hour" or "run only during business hours." This recipe is about a periodic
+one-hour interval.
 
-Do not use a fixed hourly cadence when every run must be followed by one quiet hour after it completes. Use `Schedule.spaced("1 hour")` for that shape.
+Do not use a fixed hourly cadence when every run must be followed by one quiet
+hour after it completes. Use `Schedule.spaced("1 hour")` for that shape.
 
 ## Schedule shape
 
-`Schedule.fixed("1 hour")` recurs on a fixed interval and outputs the number of repetitions so far.
+`Schedule.fixed("1 hour")` recurs on a fixed interval and outputs the number
+of repetitions so far.
 
-With `Effect.repeat`, the first run happens immediately. The schedule controls the successful repetitions after that first run.
+With `Effect.repeat`, the first run happens immediately. The schedule controls
+successful recurrences after that first run.
 
-If a run takes longer than one hour, the next run starts immediately when the current run completes, but missed runs do not pile up. This keeps a slow hourly job from creating a backlog of catch-up executions.
+If a run takes longer than one hour, the next run starts immediately when the
+current run completes, but missed runs do not pile up.
 
-By contrast, `Schedule.spaced("1 hour")` waits one full hour after each successful run completes. With `spaced`, a ten-minute action followed by one hour of spacing produces about seventy minutes between start times.
+By contrast, `Schedule.spaced("1 hour")` waits one full hour after each
+successful run completes.
 
 ## Code
 
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const everyHour = Schedule.fixed("1 hour")
+let syncs = 0
 
-const syncReferenceData = Console.log("syncing reference data")
+const syncReferenceData = Effect.gen(function*() {
+  syncs += 1
+  yield* Console.log(`reference-data sync ${syncs}`)
+})
 
-export const program = syncReferenceData.pipe(
-  Effect.repeat(everyHour)
+const loop = syncReferenceData.pipe(
+  Effect.repeat(Schedule.fixed("1 hour"))
 )
+
+const program = loop.pipe(
+  Effect.timeoutOrElse({
+    duration: "50 millis",
+    orElse: () =>
+      Console.log(`demo stopped after ${syncs} sync`)
+  })
+)
+
+Effect.runPromise(program)
 ```
 
-The schedule is unbounded, so `program` is long-lived work. It completes only if `syncReferenceData` fails, the schedule fails, or the fiber is interrupted.
+The timeout keeps the example quick. The hourly schedule itself is unbounded
+and should be owned by the surrounding application.
 
 ## Variants
 
-Use `Schedule.spaced("1 hour")` when the requirement is "wait one hour after finishing" rather than "keep an hourly cadence":
-
-```ts
-const program = syncReferenceData.pipe(
-  Effect.repeat(Schedule.spaced("1 hour"))
-)
-```
-
-Use a named schedule value for shared hourly policies. This keeps the cadence visible and avoids scattering duration strings across background workers.
+Use `Schedule.spaced("1 hour")` when the requirement is "wait one hour after
+finishing" rather than "keep an hourly cadence." Use a named schedule value for
+shared hourly policies so the duration is not scattered through background
+workers.
 
 ## Notes and caveats
 
-`Schedule.fixed("1 hour")` does not run actions concurrently by itself. A slow run delays the next run, and if the schedule is behind, the next repetition may start immediately after the slow run completes.
+`Schedule.fixed("1 hour")` does not run actions concurrently by itself. A slow
+run delays the next run.
 
-Keep the repeated action idempotent or otherwise safe to run many times. Hourly background work often touches caches, snapshots, indexes, or external state where duplicate effects should be considered explicitly.
+Hourly background work often touches caches, snapshots, indexes, or external
+state. Decide whether duplicate successful runs are harmless before making the
+loop long-lived.
 
-If transient failures should not stop the hourly loop, handle recovery inside the repeated action before applying the periodic repeat.
+If transient failures should not stop the hourly loop, handle recovery inside
+the repeated action before applying the periodic repeat.

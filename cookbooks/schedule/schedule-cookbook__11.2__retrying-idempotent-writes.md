@@ -10,23 +10,23 @@ code_included: true
 
 # 11.2 Retrying idempotent writes
 
-Idempotent writes can be retried only when repeated attempts mean the same logical
-write. This recipe focuses on placing `Schedule` around that duplicate-safe boundary.
+An idempotent write is a write where repeating the same request has the same
+effect as running it once. This recipe places `Schedule` around that
+duplicate-safe boundary.
 
 ## Problem
 
 Ambiguous write failures are dangerous because the caller may see a timeout,
 dropped connection, or temporary service error after the remote system has
-already applied the change. Retrying an ordinary write can then create a
-duplicate charge, send a second notification, insert a second row, or publish
-the same command twice.
+already applied the change. Retrying an ordinary write can create a duplicate
+charge, send a second notification, insert a second row, or publish the same
+command twice.
 
-Retry the write only when the operation is designed to be duplicate-safe. In
-that case, use `Schedule` to make the retry policy finite, delayed, and visible.
+Retry the write only when the operation is designed to be duplicate-safe. Then
+use `Schedule` to make the retry policy finite, delayed, and visible.
 
 The schedule is not the safety mechanism. It only says when to try again. The
-write itself must make repeated attempts equivalent to one successful logical
-write.
+write contract must make repeated attempts equivalent to one logical write.
 
 ## When to use it
 
@@ -40,9 +40,8 @@ It also fits writes where the downstream system documents that a retry after a
 transport failure is safe. In those cases, the schedule handles transient timing
 problems while the protocol handles duplicate attempts.
 
-Keep the retry around the smallest duplicate-safe write. If a larger workflow
-contains reads, validation, and one idempotent write, retry the write effect
-itself rather than the whole workflow.
+Keep the retry around the smallest duplicate-safe write. If a workflow contains
+reads, validation, and one idempotent write, retry the write effect itself.
 
 ## When not to use it
 
@@ -60,19 +59,12 @@ returned immediately.
 
 ## Schedule shape
 
-For duplicate-safe writes, prefer a bounded policy with backoff and jitter:
-
-```ts
-const retryDuplicateSafeWrite = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(4))
-)
-```
-
-`Schedule.exponential("100 millis")` spaces retries farther apart after repeated
-failures. `Schedule.jittered` spreads concurrent callers around each computed
-delay. `Schedule.recurs(4)` limits the policy to at most four retries after the
-original attempt.
+For duplicate-safe writes, prefer a bounded policy with backoff and jitter. The
+example uses short demo delays; production values are usually larger.
+`Schedule.exponential` spaces retries farther apart after repeated failures.
+`Schedule.jittered` spreads concurrent callers around each computed delay.
+`Schedule.recurs(4)` limits the policy to at most four retries after the original
+attempt.
 
 With `Effect.retry`, the write runs once immediately. If it fails with a typed
 error, that error is fed to the schedule. The schedule decides whether another
@@ -82,7 +74,7 @@ exhausted, `Effect.retry` returns the last typed failure.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class WriteTimeout extends Data.TaggedError("WriteTimeout")<{
   readonly operation: "SetAccountEmail"
@@ -98,12 +90,28 @@ class InvalidEmail extends Data.TaggedError("InvalidEmail")<{
 
 type WriteError = WriteTimeout | ServiceUnavailable | InvalidEmail
 
-declare const setAccountEmail: (
+let attempts = 0
+
+const setAccountEmail = (
   accountId: string,
   email: string
-) => Effect.Effect<void, WriteError>
+): Effect.Effect<void, WriteError> =>
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`set email attempt ${attempts} for ${accountId}`)
 
-const retryDuplicateSafeWrite = Schedule.exponential("100 millis").pipe(
+    if (!email.includes("@")) {
+      return yield* Effect.fail(new InvalidEmail({ email }))
+    }
+
+    if (attempts < 3) {
+      return yield* Effect.fail(new WriteTimeout({ operation: "SetAccountEmail" }))
+    }
+
+    yield* Console.log(`stored ${email}`)
+  })
+
+const retryDuplicateSafeWrite = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(4))
 )
@@ -115,6 +123,10 @@ const updateEmail = (accountId: string, email: string) =>
       while: (error) => error._tag === "WriteTimeout" || error._tag === "ServiceUnavailable"
     })
   )
+
+const program = updateEmail("account-1", "ada@example.com")
+
+Effect.runPromise(program)
 ```
 
 This example assumes `setAccountEmail(accountId, email)` is duplicate-safe:
@@ -128,15 +140,34 @@ Use a fixed delay when the downstream system prefers steady retry traffic, or a
 larger background policy when the caller can tolerate more latency:
 
 ```ts
-const steadyWriteRetry = Schedule.spaced("250 millis").pipe(
+import { Console, Effect, Schedule } from "effect"
+
+const steadyWriteRetry = Schedule.spaced("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(3))
 )
 
-const backgroundWriteRetry = Schedule.exponential("500 millis", 2).pipe(
+const backgroundWriteRetry = Schedule.exponential("20 millis", 2).pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(8))
+  Schedule.both(Schedule.recurs(4))
 )
+
+let attempts = 0
+
+const writeAuditMarker = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`audit marker attempt ${attempts}`)
+  if (attempts < 2) return yield* Effect.fail("service-unavailable")
+  return "stored"
+})
+
+const program = Effect.gen(function*() {
+  const result = yield* writeAuditMarker.pipe(Effect.retry(steadyWriteRetry))
+  yield* Console.log(`steady policy result: ${result}`)
+  yield* Console.log(`background policy ready: ${Schedule.isSchedule(backgroundWriteRetry)}`)
+})
+
+Effect.runPromise(program)
 ```
 
 The fixed schedule still limits retries and adds jitter, but avoids exponential

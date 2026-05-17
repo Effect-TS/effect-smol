@@ -25,7 +25,6 @@ You want a reconnect policy that:
 
 - starts with a small delay
 - grows after repeated failed opens
-- jitters each delay so clients do not retry in lockstep
 - caps the final wait so the UI remains understandable
 - stops after a bounded number of retries
 
@@ -56,72 +55,61 @@ effect.
 
 ## Schedule shape
 
-Start with exponential backoff:
-
-```ts
-Schedule.exponential("250 millis")
-```
-
-`Schedule.exponential("250 millis")` recurs forever by itself and doubles the
+Start with `Schedule.exponential`. It recurs forever by itself and doubles the
 delay by default: 250 ms, 500 ms, 1 second, 2 seconds, and so on.
 
-Add jitter after choosing the backoff shape:
-
-```ts
-Schedule.exponential("250 millis").pipe(
-  Schedule.jittered
-)
-```
-
-`Schedule.jittered` randomly adjusts each recurrence delay between `80%` and
-`120%` of the incoming delay. This is useful for WebSocket reconnects because
-many clients can observe the same outage at nearly the same time.
-
-For a user-facing reconnect, also cap the final delay and add a retry limit:
-
-```ts
-Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
-  ),
-  Schedule.both(Schedule.recurs(8))
-)
-```
-
-The cap is applied after jitter, so the actual sleep never exceeds 5 seconds.
-`Schedule.recurs(8)` allows the initial connection attempt to be followed by at
-most eight scheduled retries. `Schedule.both` combines the backoff and retry
-limit with intersection semantics, so reconnecting stops as soon as the limit
-stops.
+For a user-facing reconnect, cap the final delay with `Schedule.modifyDelay`
+and add a retry limit with `Schedule.recurs`. `Schedule.both` combines the
+backoff and retry limit with intersection semantics, so reconnecting stops as
+soon as the limit stops.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class WebSocketOpenError extends Data.TaggedError("WebSocketOpenError")<{
-  readonly reason: "network" | "timeout" | "server-restarting"
+  readonly reason: "network" | "timeout" | "server-restarting" | "unauthorized"
 }> {}
 
 interface LiveSocket {
-  readonly send: (message: string) => Effect.Effect<void>
-  readonly close: Effect.Effect<void>
+  readonly id: string
 }
 
-declare const openLiveSocket: Effect.Effect<LiveSocket, WebSocketOpenError>
+let attempts = 0
 
-const websocketReconnectPolicy = Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
+const openLiveSocket: Effect.Effect<LiveSocket, WebSocketOpenError> = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`open WebSocket attempt ${attempts}`)
+
+  if (attempts <= 2) {
+    return yield* Effect.fail(new WebSocketOpenError({ reason: "network" }))
+  }
+
+  return { id: "live-socket-1" }
+})
+
+const isRetryableOpenError = (error: WebSocketOpenError): boolean =>
+  error.reason === "network" ||
+  error.reason === "timeout" ||
+  error.reason === "server-restarting"
+
+const websocketReconnectPolicy = Schedule.exponential("10 millis").pipe(
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(50)))
   ),
   Schedule.both(Schedule.recurs(8))
 )
 
-export const connectLiveSocket = openLiveSocket.pipe(
-  Effect.retry(websocketReconnectPolicy)
+const connectLiveSocket = openLiveSocket.pipe(
+  Effect.retry({
+    schedule: websocketReconnectPolicy,
+    while: isRetryableOpenError
+  }),
+  Effect.tap((socket) => Console.log(`connected ${socket.id}`))
 )
+
+Effect.runPromise(connectLiveSocket).then(console.log, console.error)
 ```
 
 `openLiveSocket` is evaluated once immediately. If opening the socket fails with
@@ -139,9 +127,9 @@ For a passive background tab or non-critical live feed, use a larger cap and a
 larger retry budget. Keep the retry state observable so the UI can stop showing
 stale data as if it were live.
 
-For large deployments, keep jitter enabled even if the delay cap is small. The
-cap protects the person waiting in the UI; jitter protects the server from many
-clients retrying together.
+For large deployments, add jitter to this backoff. The cap protects the person
+waiting in the UI; jitter protects the server from many clients retrying
+together. Section 44.5 focuses on that version.
 
 For a socket that opens successfully and then closes later, wrap the whole
 connection lifecycle in the effect being retried. The schedule should surround

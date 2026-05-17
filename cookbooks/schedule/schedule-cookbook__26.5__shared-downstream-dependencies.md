@@ -10,63 +10,50 @@ code_included: true
 
 # 26.5 Shared downstream dependencies
 
-Use this recipe to protect a shared dependency by jittering retry delays around
-a bounded backoff policy.
+Use jitter to protect a shared dependency by spreading retries around a bounded
+backoff policy.
 
 ## Problem
 
-You need to retry a safe downstream call when the dependency returns transient
-errors such as rate limits, overload, or temporary unavailability.
-
-A plain exponential backoff reduces retry frequency, but a fleet using the same
-policy can still retry in lockstep. That is especially harmful when the
-dependency enforces shared rate limits or quota buckets. The retry policy should
-slow down, stop within explicit bounds, and avoid making every client compete at
-the same instant.
+A plain exponential backoff reduces retry frequency for one caller, but a fleet
+using the same policy can still retry in lockstep. That is especially harmful
+when the dependency enforces shared rate limits, quota buckets, or expensive
+cold paths. The retry policy should slow down, stop within explicit bounds, and
+avoid making every client compete at the same instant.
 
 ## When to use it
 
-Use this recipe when many independent clients, workers, pods, fibers, or
-scheduled jobs call the same downstream dependency and may see the same
-transient failure at roughly the same time.
+Use it when many clients, workers, pods, fibers, or scheduled jobs call the same
+downstream dependency and may see the same transient failure at roughly the same
+time.
 
 It fits idempotent reads, idempotent writes, reconnect attempts, status checks,
-and remote calls protected by shared rate limits. It is also useful for
-multi-tenant systems where one busy tenant should not cause every other caller
-to lose a fair chance at the dependency.
+and remote calls protected by shared rate limits.
 
 ## When not to use it
 
 Do not use jitter to retry permanent failures. Invalid requests, authorization
 failures, malformed payloads, exhausted hard quotas, and unsafe non-idempotent
-writes should be classified before retry is applied.
+writes should be classified before retrying.
 
-Do not treat jitter as a replacement for real admission control. Server-side
-rate limits, queues, circuit breakers, and concurrency limits still matter.
-Jitter only changes when the next recurrence happens.
+Do not treat jitter as a replacement for admission control. Server-side rate
+limits, queues, circuit breakers, and concurrency limits still matter.
 
 ## Schedule shape
 
-Start with the backoff shape that matches the dependency, add jitter to spread
-callers around each computed delay, and then compose explicit bounds:
+Start with the backoff shape that matches the dependency, add jitter, then add
+explicit bounds. A typical policy is `Schedule.exponential("200 millis")`, then
+`Schedule.jittered`, then `Schedule.both(Schedule.recurs(6))`, then
+`Schedule.both(Schedule.during("20 seconds"))`.
 
-```ts
-Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(6)),
-  Schedule.both(Schedule.during("20 seconds"))
-)
-```
-
-`Schedule.exponential("200 millis")` increases the delay after repeated
-failures. `Schedule.jittered` randomly adjusts each recurrence delay between
-80% and 120% of the original delay. The count and time bounds keep the retry
-policy from turning a downstream incident into an unbounded background load.
+`Schedule.jittered` randomly adjusts each recurrence delay between 80% and 120%
+of the original delay. The count and time bounds keep the retry policy from
+turning a downstream incident into unbounded background load.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class RateLimited extends Data.TaggedError("RateLimited")<{
   readonly dependency: string
@@ -90,8 +77,6 @@ type DownstreamError =
   | DependencyUnavailable
   | BadRequest
 
-declare const writeAuditEvent: Effect.Effect<void, DownstreamError>
-
 const isRetryableDownstreamError = (error: DownstreamError): boolean => {
   switch (error._tag) {
     case "RateLimited":
@@ -103,52 +88,58 @@ const isRetryableDownstreamError = (error: DownstreamError): boolean => {
   }
 }
 
-const sharedDependencyRetry = Schedule.exponential("200 millis").pipe(
+let attempts = 0
+
+const writeAuditEvent = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`audit write attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail(new RateLimited({ dependency: "audit-api" }))
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail(
+      new DependencyOverloaded({ dependency: "audit-api" })
+    )
+  }
+
+  yield* Console.log("audit event written")
+})
+
+const sharedDependencyRetry = Schedule.exponential("25 millis").pipe(
   Schedule.jittered,
+  Schedule.modifyDelay((_, delay) =>
+    Effect.succeed(Duration.min(delay, Duration.seconds(30)))
+  ),
   Schedule.both(Schedule.recurs(6)),
   Schedule.both(Schedule.during("20 seconds"))
 )
 
-export const program = writeAuditEvent.pipe(
+const program = writeAuditEvent.pipe(
   Effect.retry({
     schedule: sharedDependencyRetry,
     while: isRetryableDownstreamError
   })
 )
+
+Effect.runPromise(program)
 ```
 
-The first call to `writeAuditEvent` is immediate. If it fails with
-`RateLimited`, `DependencyOverloaded`, or `DependencyUnavailable`, the retry
-waits according to the jittered backoff. If it fails with `BadRequest`, retry
-does not run because another attempt would send the same invalid request.
-
-Across a fleet, every caller still follows the same operational policy, but
-each recurrence chooses its own adjusted delay. That makes retries less likely
-to arrive as synchronized waves against the shared dependency.
+`BadRequest` is not retried because another attempt would send the same invalid
+request. Transient downstream failures use jittered backoff with explicit count,
+time, and maximum-delay bounds.
 
 ## Variants
 
-For a strict public API rate limit, prefer any explicit provider signal such as
-`Retry-After` when it is available. Use jittered exponential backoff as the
-fallback when the dependency only tells you that the request should be retried
-later.
-
-For background workers, keep jitter enabled and consider longer base delays.
-Background work usually benefits more from protecting shared capacity than from
-retrying as quickly as possible.
-
-For user-facing requests, reduce the retry count or elapsed budget so the user
-gets a timely failure. Jitter still helps fairness, but the caller experience
-should define the maximum wait.
+For public API rate limits, prefer provider signals such as `Retry-After` when
+available. Use jittered exponential backoff as the fallback when the dependency
+only says to retry later. For user-facing requests, reduce the retry count or
+elapsed budget so the caller gets a timely failure.
 
 ## Notes and caveats
 
 `Effect.retry` feeds failures into the schedule. The schedule decides whether
 and when to make another attempt after the original effect has failed.
-
-`Schedule.jittered` preserves the schedule output and changes only the computed
-delay. In Effect, the jitter range is fixed at 80% to 120% of the original
-delay.
 
 Jitter improves fairness by reducing synchronized contention, but it does not
 guarantee equal access. If fairness is a hard requirement, pair jitter with

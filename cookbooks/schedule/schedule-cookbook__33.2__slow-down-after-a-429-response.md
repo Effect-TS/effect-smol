@@ -10,62 +10,54 @@ code_included: true
 
 # 33.2 Slow down after a 429 response
 
-HTTP `429 Too Many Requests` is a server pacing signal. This recipe uses a typed
-rate-limit error as schedule input so retry timing can follow provider guidance
-instead of ordinary transient-failure backoff.
+HTTP `429 Too Many Requests` is a pacing signal. Treat it differently from
+ordinary transient failures so retry timing can follow provider guidance.
 
 ## Problem
 
-You call an HTTP API that sometimes returns `429`. When the response includes a
-retry-after signal, the next attempt should honor it. When the signal is absent,
-the retry should still slow down with a conservative fallback delay. Other
-failures, especially `5xx` failures, should not accidentally inherit the same
-policy because they have different operational meaning.
+An HTTP API sometimes returns `429`. If the response includes a retry-after
+signal, the next attempt should honor it. If the signal is missing, the client
+should still wait for a conservative fallback delay. Other failures should not
+silently inherit the same policy because they have different operational
+meaning.
 
 ## When to use it
 
-Use this recipe when a server explicitly tells the client it is being rate
-limited. Typical sources are a `Retry-After` header, a provider-specific reset
-header, or a decoded response body field that says when quota is expected to be
-available again.
+Use this when the server explicitly says the client is rate limited. Common
+sources are a `Retry-After` header, a provider-specific reset header, or a
+decoded response field that says when quota should be available again.
 
-This is especially useful for clients that perform idempotent calls, background
-sync jobs, polling workers, or queued writes where waiting is better than
-turning a temporary quota limit into a hard failure.
+This is a good fit for idempotent calls, background sync jobs, polling workers,
+and queued writes where waiting is better than turning a temporary quota limit
+into a hard failure.
 
 ## When not to use it
 
-Do not use this policy as a generic HTTP retry policy. A `500` or `503` often
-means the service is unhealthy or overloaded; exponential backoff with jitter and
-a short budget is usually a better fit. A `429` means the server understood
-enough to apply a quota rule, so the client should respect that quota boundary.
+Do not use this as a generic HTTP retry policy. A `500` or `503` usually means
+the service is unhealthy or overloaded; exponential backoff with jitter and a
+short budget is usually a better fit.
 
-Also avoid retrying unsafe non-idempotent requests unless the protocol gives you
-an idempotency key or another deduplication guarantee. Slowing down prevents
-bursts, but it does not make repeated writes safe by itself.
+Do not retry unsafe non-idempotent requests unless the protocol gives you an
+idempotency key or another deduplication guarantee. Slowing down prevents bursts;
+it does not make repeated writes safe.
 
 ## Schedule shape
 
-Build the policy around the error value:
+Build the policy around the typed error value:
 
-- keep retrying only while the input is a rate-limit error
-- preserve the input as the schedule output with `Schedule.passthrough`
-- replace the recurrence delay with the server-provided retry-after duration
-- use a fallback delay when the server does not provide one
-- cap the number of retries so a stuck quota does not hold the caller forever
+- classify retryable errors before scheduling
+- use `Schedule.identity<ApiError>()` so the schedule output is the latest error
+- use `Schedule.modifyDelay` to choose the next delay from that error
+- cap retries with `Schedule.recurs(n)`
 
-`Schedule.recurs` supplies the retry count limit. `Schedule.passthrough` makes
-the latest failure available as the schedule output. `Schedule.modifyDelay`
-chooses the actual spacing for the next retry.
+Normalize provider headers into a `Duration` before constructing the typed
+`RateLimited` error. The schedule should consume domain data, not parse raw HTTP
+headers.
 
 ## Code
 
 ```ts
-import { Duration, Effect, Schedule } from "effect"
-
-type Response = {
-  readonly body: string
-}
+import { Console, Duration, Effect, Ref, Schedule } from "effect"
 
 type ApiError =
   | {
@@ -76,49 +68,85 @@ type ApiError =
     readonly _tag: "ServerUnavailable"
   }
 
-declare const callApi: Effect.Effect<Response, ApiError>
-
-const fallback429Delay = Duration.seconds(5)
+const fallback429Delay = Duration.millis(40)
 
 const retryAfter = (error: ApiError): Duration.Duration =>
   error._tag === "RateLimited" && error.retryAfter !== undefined
     ? error.retryAfter
     : fallback429Delay
 
-const rateLimitPolicy = Schedule.recurs(4).pipe(
-  Schedule.passthrough,
+const isRateLimited = (error: ApiError): boolean =>
+  error._tag === "RateLimited"
+
+const rateLimitPolicy = Schedule.identity<ApiError>().pipe(
   Schedule.while(({ input }) => input._tag === "RateLimited"),
-  Schedule.modifyDelay((error, _delay) => Effect.succeed(retryAfter(error)))
+  Schedule.modifyDelay((error) => {
+    const delay = retryAfter(error)
+    return Console.log(`429 delay: ${Duration.toMillis(delay)}ms`).pipe(
+      Effect.as(delay)
+    )
+  }),
+  Schedule.both(Schedule.recurs(4))
 )
 
-export const program = Effect.retry(callApi, rateLimitPolicy)
+const callApi = Effect.fnUntraced(function*(attempts: Ref.Ref<number>) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`HTTP attempt ${attempt}`)
+
+  if (attempt === 1) {
+    return yield* Effect.fail({
+      _tag: "RateLimited",
+      retryAfter: Duration.millis(25)
+    } as const)
+  }
+
+  if (attempt === 2) {
+    return yield* Effect.fail({
+      _tag: "RateLimited",
+      retryAfter: undefined
+    } as const)
+  }
+
+  return { body: "ok" }
+})
+
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+  const response = yield* callApi(attempts).pipe(
+    Effect.retry({
+      schedule: rateLimitPolicy,
+      while: isRateLimited
+    })
+  )
+  yield* Console.log(`response: ${response.body}`)
+})
+
+Effect.runPromise(program)
 ```
+
+The first retry uses the provider's 25 millisecond signal. The second retry uses
+the fallback because the simulated response omits `retryAfter`. In production,
+use durations that match the provider contract rather than documentation-sized
+delays.
 
 ## Variants
 
-- If the provider gives an absolute reset time, convert it into a duration at
-  the HTTP boundary and store that duration on the `RateLimited` error. Keep the
-  schedule focused on recurrence rather than header parsing.
-- If many workers share the same credential, add jitter around the fallback path
-  or coordinate through a shared limiter. A precise `Retry-After` value should
-  usually be respected; a guessed fallback is safer to spread out.
-- If a user is waiting on the request, combine the policy with a shorter retry
-  count or elapsed-time budget. A background job can afford longer spacing; a
-  foreground request usually needs a clear answer quickly.
-- If the same client also retries `5xx` failures, keep that as a separate policy
-  and select the policy after error classification. Rate limits are about client
-  pacing; `5xx` failures are about server recovery.
+If the provider gives an absolute reset time, convert it into a duration at the
+HTTP boundary and store that duration on the `RateLimited` error.
+
+If many workers share the same credential, coordinate through a shared limiter.
+Only jitter fallback delays when doing so cannot retry before a required
+provider minimum.
+
+If the request is user-facing, combine the retry count with a short elapsed-time
+budget. Background jobs can usually afford longer spacing than foreground
+requests.
 
 ## Notes and caveats
 
-The first call is not delayed by this schedule. The schedule controls only the
-follow-up attempts after `callApi` fails.
-
-`Retry-After` can be encoded by providers in different ways. Normalize that
-signal before constructing the `RateLimited` error, then let the schedule consume
-a `Duration`. This keeps rate-limit parsing near the HTTP response and keeps the
-retry policy easy to inspect.
+The first call is not delayed. The schedule controls follow-up attempts after
+`callApi` fails.
 
 The fallback delay is part of the contract. Without it, a missing retry-after
-signal can turn into a burst of immediate retries, which is exactly what a rate
-limit policy is supposed to prevent.
+signal can become a burst of immediate retries, which is what a rate-limit
+policy is meant to prevent.

@@ -22,17 +22,9 @@ a service that takes longer to become ready. A single fast
 single slow policy gives poor startup responsiveness. Scattered sleeps make the
 transition hard to review.
 
-Use a bounded warm-up phase followed by a steady-state phase:
-
-```ts
-const warmUp = Schedule.spaced("100 millis").pipe(Schedule.take(20))
-const steadyState = Schedule.spaced("5 seconds")
-
-const cadence = Schedule.andThen(warmUp, steadyState)
-```
-
-That says: after the first observation, check quickly for up to 20 scheduled
-recurrences, then check every five seconds.
+Use a bounded warm-up phase followed by a steady-state phase: after the first
+observation, check quickly for a limited number of recurrences, then check less
+often.
 
 ## When to use it
 
@@ -73,88 +65,68 @@ when readiness is reached.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type Readiness =
   | { readonly _tag: "Starting" }
   | { readonly _tag: "Ready" }
   | { readonly _tag: "Failed"; readonly reason: string }
 
-type ReadinessError = { readonly _tag: "ReadinessProbeError" }
+const observations: ReadonlyArray<Readiness> = [
+  { _tag: "Starting" },
+  { _tag: "Starting" },
+  { _tag: "Starting" },
+  { _tag: "Starting" },
+  { _tag: "Ready" }
+]
 
-declare const checkReadiness: Effect.Effect<Readiness, ReadinessError>
+let checks = 0
 
-const warmUp = Schedule.spaced("100 millis").pipe(
-  Schedule.take(20)
+const checkReadiness = Effect.gen(function*() {
+  const status = observations[Math.min(checks, observations.length - 1)]
+  checks += 1
+  yield* Console.log(`readiness check ${checks}: ${status._tag}`)
+  return status
+})
+
+const warmUp = Schedule.spaced("10 millis").pipe(
+  Schedule.take(3)
 )
 
-const steadyState = Schedule.spaced("5 seconds")
+const steadyState = Schedule.spaced("40 millis")
 
 const startupThenRelaxed = Schedule.andThen(warmUp, steadyState).pipe(
   Schedule.satisfiesInputType<Readiness>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input._tag === "Starting"),
-  Schedule.both(Schedule.during("10 minutes"))
+  Schedule.bothLeft(
+    Schedule.during("200 millis").pipe(
+      Schedule.satisfiesInputType<Readiness>()
+    )
+  )
 )
 
-export const program = Effect.repeat(checkReadiness, startupThenRelaxed)
+const program = Effect.repeat(checkReadiness, startupThenRelaxed).pipe(
+  Effect.flatMap((status) => Console.log(`finished with ${status._tag}`))
+)
+
+Effect.runPromise(program)
 ```
 
 `program` performs one readiness check immediately. If that check returns
-`Starting`, the schedule allows another check after 100 milliseconds. The warm-up
-phase allows up to 20 fast follow-up checks. If the service is still starting,
-the policy switches to one check every five seconds.
+`Starting`, the schedule allows another check after the warm-up delay. Once the
+fast phase is exhausted, the policy switches to the slower phase.
 
 The repeat stops when `checkReadiness` returns `Ready` or `Failed`, because the
-`Schedule.while` predicate only continues for `Starting`. The ten-minute budget
+`Schedule.while` predicate only continues for `Starting`. The elapsed budget
 prevents an indefinitely starting service from polling forever under this
 workflow.
 
 ## Variants
 
-Use a smaller warm-up for user-facing paths:
-
-```ts
-const userFacingStartup = Schedule.andThen(
-  Schedule.spaced("50 millis").pipe(Schedule.take(6)),
-  Schedule.spaced("1 second")
-).pipe(
-  Schedule.satisfiesInputType<Readiness>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Starting"),
-  Schedule.both(Schedule.during("15 seconds"))
-)
-```
-
-Use a wider steady-state interval for platform checks that can continue longer:
-
-```ts
-const platformStartup = Schedule.andThen(
-  Schedule.spaced("250 millis").pipe(Schedule.take(12)),
-  Schedule.spaced("30 seconds")
-).pipe(
-  Schedule.satisfiesInputType<Readiness>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Starting"),
-  Schedule.both(Schedule.during("15 minutes"))
-)
-```
-
-For a fleet-wide startup policy, jitter the cadence before adding the status
-predicate and budget:
-
-```ts
-const fleetStartup = Schedule.andThen(
-  Schedule.spaced("100 millis").pipe(Schedule.take(20)),
-  Schedule.spaced("5 seconds")
-).pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<Readiness>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Starting"),
-  Schedule.both(Schedule.during("10 minutes"))
-)
-```
+Use a smaller warm-up for user-facing paths, and a wider steady-state interval
+for platform checks that can continue longer. For a fleet-wide startup policy,
+add `Schedule.jittered` before the status predicate and elapsed budget.
 
 ## Notes and caveats
 

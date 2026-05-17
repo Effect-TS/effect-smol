@@ -16,12 +16,10 @@ curve.
 
 ## Problem
 
-You have a retry that needs a visible pause between attempts, but the dependency
-does not need progressively increasing delays. Immediate retries are too
-aggressive, while exponential backoff would obscure a deliberately steady
-cadence.
-
-The policy should say two things clearly:
+You need a visible pause between attempts, but the dependency does not need
+progressively increasing delays. Immediate retries are too aggressive, while
+exponential backoff would obscure a deliberately steady cadence. The policy
+should say two things clearly:
 
 - how long to wait between attempts
 - when to stop retrying
@@ -52,27 +50,7 @@ deduplication, or a domain-specific recovery plan before the schedule is chosen.
 ## Schedule shape
 
 For retrying with a constant delay, start with `Schedule.spaced(duration)` and
-combine it with a limit:
-
-```ts
-import { Effect, Schedule } from "effect"
-
-type TemporaryError = { readonly _tag: "TemporaryError" }
-
-declare const fetchProfile: Effect.Effect<string, TemporaryError>
-
-const retryWithConstantDelay = Schedule.spaced("500 millis").pipe(
-  Schedule.both(Schedule.recurs(4))
-)
-
-export const program = fetchProfile.pipe(
-  Effect.retry(retryWithConstantDelay)
-)
-```
-
-This means the first `fetchProfile` attempt runs immediately. If it fails with a
-typed error, Effect waits 500 milliseconds before the next attempt. The policy
-allows up to four retries after the initial attempt.
+combine it with a limit such as `Schedule.recurs(n)`.
 
 `Schedule.spaced(duration)` waits that duration after each completed attempt
 before allowing the next recurrence. Use this for ordinary retry spacing and
@@ -83,19 +61,52 @@ That is useful for fixed-cadence repeating work, but it is usually not what you
 mean by "wait 500 milliseconds before retrying." For retry policies, reach for
 `spaced` first unless you specifically need clock-like cadence.
 
+## Code
+
+```ts
+import { Console, Data, Effect, Schedule } from "effect"
+
+class TemporaryProfileError extends Data.TaggedError("TemporaryProfileError")<{
+  readonly reason: "Timeout" | "Unavailable"
+}> {}
+
+let attempts = 0
+
+const fetchProfile = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`profile attempt ${attempts}`)
+
+  if (attempts < 3) {
+    return yield* Effect.fail(
+      new TemporaryProfileError({ reason: "Unavailable" })
+    )
+  }
+
+  return { id: "user-123", name: "Ada" }
+})
+
+const retryWithConstantDelay = Schedule.spaced("50 millis").pipe(
+  Schedule.both(Schedule.recurs(4))
+)
+
+const program = fetchProfile.pipe(
+  Effect.retry(retryWithConstantDelay)
+)
+
+Effect.runPromise(program).then((profile) => {
+  console.log(`loaded profile: ${profile.name}`)
+})
+```
+
+The example uses a short delay so it terminates quickly in `scratchpad/repro.ts`.
+In a real retry, choose the delay from the dependency's recovery behavior.
+
 ## Variants
 
 For a user-facing request, keep both the delay and the retry count small so the
-caller gets an answer quickly:
-
-```ts
-const retryBriefly = Schedule.spaced("100 millis").pipe(
-  Schedule.both(Schedule.recurs(2))
-)
-```
-
-For a background worker, increase the delay before increasing the retry count.
-That keeps the policy simple while reducing pressure on the dependency.
+caller gets an answer quickly. For a background worker, increase the delay
+before increasing the retry count. That keeps the policy simple while reducing
+pressure on the dependency.
 
 If many instances run the same policy at the same time, a constant delay can
 synchronize retries. Add jitter only after the base delay and retry limit are

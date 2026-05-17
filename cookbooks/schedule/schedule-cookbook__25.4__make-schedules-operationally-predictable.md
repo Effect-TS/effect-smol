@@ -10,56 +10,83 @@ code_included: true
 
 # 25.4 Make schedules operationally predictable
 
-Use this recipe to make a retry, reconnect, or polling schedule reviewable by
-naming its cadence, caps, stop conditions, and observation hooks in one policy.
+Use this to make a retry, reconnect, or polling policy reviewable: name the
+cadence, cap, stop conditions, and observation hooks near the call site.
 
 ## Problem
 
-An exponential backoff without a cap is easy to write and hard to reason about later. The first few delays may look harmless, but the tail can become too long for a user-facing request, too quiet for incident response, or too vague for a reviewer to know the worst case. A schedule that is buried inside a helper such as `retryWithBackoff` has the same problem: the operational contract exists, but readers have to infer it from implementation details.
-
-You need a policy whose upper bounds and signals are visible at the call site.
+Raw backoff helpers hide important production behavior. Reviewers need to know
+the maximum single wait, retry volume, elapsed budget, and what gets logged or
+measured. A schedule buried behind `retryWithBackoff` often forces readers to
+infer those guarantees from implementation details.
 
 ## When to use it
 
-Use this recipe when a retry, reconnect, or polling loop has to be defended in production. It fits service startup checks, control-plane calls, background worker reconnects, and dependency probes where reviewers need concrete answers about maximum delay, retry count, elapsed budget, and logging or metrics hooks.
-
-It is especially useful when the schedule will be reused. Naming a bounded and observed policy is clearer than passing around a raw `Schedule.exponential("250 millis")` and relying on every caller to remember the missing guardrails.
+Use it for service startup checks, control-plane calls, background worker
+reconnects, and dependency probes. It is especially useful for shared policies:
+named pieces such as `retryCadence`, `retryLimit`, and `elapsedBudget` are easier
+to review than a raw `Schedule.exponential("250 millis")`.
 
 ## When not to use it
 
-Do not use a more elaborate schedule to compensate for missing error classification. Validation failures, authorization failures, malformed requests, and unsafe non-idempotent writes should be filtered before the schedule is applied.
+Do not use a more elaborate schedule to compensate for missing error
+classification. Permanent errors should be filtered before the schedule is
+applied.
 
-Also avoid this pattern when a recurrence policy is not the right operational model. If a queue acknowledgement, callback, subscription, or domain event can report completion directly, polling with a tidy schedule is still polling.
+Avoid polling when a queue acknowledgement, callback, subscription, or domain
+event can report completion directly. A tidy polling schedule is still polling.
 
 ## Schedule shape
 
 Start with the smallest set of bounds that make the behavior reviewable:
 
 - a cadence, such as `Schedule.exponential`, for normal retry spacing
-- a per-delay cap, using `Schedule.modifyDelay`, so no individual wait grows beyond an operationally acceptable value
+- a per-delay cap, using `Schedule.modifyDelay`, so no individual wait grows
+  beyond an operationally acceptable value
 - a count limit, using `Schedule.recurs`, so the retry volume is bounded
-- an elapsed budget, using `Schedule.during`, when wall-clock time matters more than attempt count
-- observation hooks, such as `Schedule.tapInput` or `Schedule.tapOutput`, when failures, decisions, or next-delay values should appear in logs or metrics
+- an elapsed budget, using `Schedule.during`, when wall-clock time matters more
+  than attempt count
+- observation hooks, such as `Schedule.tapInput` or `Schedule.tapOutput`, when
+  failures or schedule outputs should appear in logs or metrics
 
-`Schedule.both` is useful for combining independent bounds because the combined schedule recurs only while both sides recur. Its delay is the maximum delay selected by the two schedules, which makes it a conservative way to combine a cadence with a limit.
+`Schedule.both` is useful for combining independent bounds because the combined
+schedule recurs only while both sides recur. Its delay is the maximum delay
+selected by the two schedules, which makes it a conservative way to combine a
+cadence with a limit.
 
 ## Code
 
 ```ts
-import { Duration, Effect, Schedule } from "effect"
+import { Console, Duration, Effect, Schedule } from "effect"
 
 type RemoteError =
-  | { readonly _tag: "Timeout" }
-  | { readonly _tag: "Unavailable" }
+  | { readonly _tag: "Timeout"; readonly attempt: number }
+  | { readonly _tag: "Unavailable"; readonly attempt: number }
 
-declare const callControlPlane: Effect.Effect<string, RemoteError>
+let attempts = 0
+
+const callControlPlane = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`control-plane attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail<RemoteError>({ _tag: "Timeout", attempt: attempts })
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail<RemoteError>({
+      _tag: "Unavailable",
+      attempt: attempts
+    })
+  }
+
+  return "control plane responded"
+})
+
+const capAt5Seconds = (delay: Duration.Duration) =>
+  Duration.min(delay, Duration.seconds(5))
 
 const retryCadence = Schedule.exponential("250 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(
-      Duration.min(Duration.fromInputUnsafe(delay), Duration.seconds(5))
-    )
-  )
+  Schedule.modifyDelay((_, delay) => Effect.succeed(capAt5Seconds(delay)))
 )
 
 const retryLimit = Schedule.recurs(8)
@@ -69,30 +96,44 @@ const operationalRetryPolicy = retryCadence.pipe(
   Schedule.both(retryLimit),
   Schedule.both(elapsedBudget),
   Schedule.tapInput((error: RemoteError) =>
-    Effect.log(`retrying control-plane call after ${error._tag}`)
+    Console.log(`retrying after ${error._tag} on attempt ${error.attempt}`)
   ),
   Schedule.tapOutput(([[delay, retryCount], elapsed]) =>
-    Effect.log(
-      `next delay: ${Duration.format(delay)}, retries so far: ${retryCount}, elapsed: ${Duration.format(elapsed)}`
+    Console.log(
+      `raw delay: ${Duration.format(delay)}, capped delay: ${
+        Duration.format(capAt5Seconds(delay))
+      }, retries so far: ${retryCount}, elapsed: ${Duration.format(elapsed)}`
     )
   )
 )
 
-export const program = Effect.retry(callControlPlane, operationalRetryPolicy)
+const program = callControlPlane.pipe(
+  Effect.retry(operationalRetryPolicy),
+  Effect.flatMap((message) => Console.log(`result: ${message}`))
+)
+
+Effect.runPromise(program)
 ```
 
-This policy has explicit upper bounds: no computed delay exceeds 5 seconds, no more than 8 recurrences are allowed by the count limit, and the elapsed schedule stops the policy once the 30 second budget is exhausted. The logs also show the failed input and the schedule output, so operators can distinguish a healthy transient retry from a policy that is repeatedly burning its budget.
+This policy exposes its contract: the effective delay is capped at 5 seconds,
+the retry count is bounded, and the elapsed schedule stops the policy once the
+30-second budget is exhausted. The logs show both the failed input and the
+schedule output.
 
 ## Variants
 
-For a user-facing path, prefer a short elapsed budget and a small retry count. The caller should receive a clear failure while the request is still relevant.
-
-For a background worker, the count and elapsed budget can be larger, but the cap and observation become more important. Long-running workers should make their retry state visible instead of disappearing into a quiet backoff tail.
-
-For many instances using the same policy, add `Schedule.jittered` after the base cadence is correct. Jitter improves fleet behavior by spreading retries, but it also makes exact delay values less deterministic in logs and tests, so keep the non-jittered bounds easy to explain first.
+For a user-facing path, prefer a short elapsed budget and a small retry count.
+For a background worker, the budget can be larger, but observation matters more.
+For many instances using the same policy, add `Schedule.jittered` before the
+final cap and keep the non-jittered bounds easy to explain.
 
 ## Notes and caveats
 
-`Effect.retry` feeds failures into the schedule, which is why `Schedule.tapInput` sees `RemoteError` in the example. `Effect.repeat` feeds successful values into the schedule instead. That distinction matters for observability and for predicates that inspect schedule input.
+`Effect.retry` feeds failures into the schedule, which is why
+`Schedule.tapInput` sees `RemoteError` in the example. `Effect.repeat` feeds
+successful values into the schedule instead. That distinction matters for
+observability and for predicates that inspect schedule input.
 
-Keep review clarity ahead of clever composition. A production schedule should make its promises obvious: maximum single wait, maximum retry volume, elapsed budget, whether jitter is present, and what gets logged or measured. If a single pipeline is hard to read, split it into named pieces such as `retryCadence`, `retryLimit`, `elapsedBudget`, and `observedPolicy`.
+Keep review clarity ahead of clever composition. If one pipeline is hard to
+read, split it into named pieces such as `retryCadence`, `retryLimit`,
+`elapsedBudget`, and `operationalRetryPolicy`.

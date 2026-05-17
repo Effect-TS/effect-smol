@@ -16,9 +16,8 @@ bounded random value.
 
 ## Problem
 
-You want to spread retries from many clients, workers, or fibers without losing
-the ability to explain the retry contract in code review. Operators still need
-answers such as:
+You may need to spread retries from many clients, workers, or fibers without
+making the retry contract vague. Operators still need answers such as:
 
 - How many times can this retry?
 - What is the base backoff shape?
@@ -54,30 +53,12 @@ must stop.
 
 ## Schedule shape
 
-Build the deterministic part first:
-
-```ts
-const basePolicy = Schedule.exponential("250 millis").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
-This says the retry waits are based on 250 milliseconds, then 500 milliseconds,
-then 1 second, and so on, and that the policy permits at most five retries after
-the original attempt.
-
-Then add jitter to the delay-producing cadence:
-
-```ts
-const jitteredPolicy = Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
-The recurrence limit remains deterministic. The base backoff remains
-deterministic. Only each wait is randomized within Effect's fixed 80%-120%
-range:
+Build the deterministic part first: the base delay, the backoff shape, and the
+stop condition. Then add `Schedule.jittered` to the delay-producing cadence. A
+policy that combines `Schedule.exponential("250 millis")`,
+`Schedule.jittered`, and `Schedule.both(Schedule.recurs(5))` still permits at
+most five retries after the original attempt. Only each wait is randomized
+within Effect's fixed 80%-120% range:
 
 | Base delay | Possible jittered delay |
 | ---------- | ----------------------- |
@@ -92,62 +73,59 @@ selection inside known bounds.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Random, Ref, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
   readonly status: number
+  readonly attempt: number
 }> {}
 
-declare const refreshRemoteState: Effect.Effect<void, ServiceUnavailable>
+const isRetryable = (error: ServiceUnavailable) =>
+  error.status === 429 || error.status >= 500
 
-const retryPolicy = Schedule.exponential("250 millis").pipe(
+const retryPolicy = Schedule.exponential("25 millis").pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(5))
+  Schedule.both(Schedule.recurs(5)),
+  Schedule.while(({ input }) => isRetryable(input))
 )
 
-export const program = refreshRemoteState.pipe(
-  Effect.retry({
-    schedule: retryPolicy,
-    while: (error) => error.status === 429 || error.status >= 500
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+
+  const refreshRemoteState = Effect.gen(function*() {
+    const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+    yield* Console.log(`refresh attempt ${attempt}`)
+
+    if (attempt < 4) {
+      return yield* Effect.fail(
+        new ServiceUnavailable({ status: 503, attempt })
+      )
+    }
+
+    return "remote state refreshed"
   })
-)
+
+  const result = yield* refreshRemoteState.pipe(
+    Effect.retry(retryPolicy),
+    Random.withSeed("deterministic-shape-demo")
+  )
+
+  yield* Console.log(result)
+})
+
+Effect.runPromise(program)
 ```
 
-`program` runs `refreshRemoteState` once immediately. If it fails with a
-retryable `ServiceUnavailable`, the schedule decides whether another attempt is
-allowed and how long to wait. The first retry waits somewhere from 200 to 300
-milliseconds, because the base delay is 250 milliseconds. Later retries follow
-the exponential sequence and jitter each delay within the same 80%-120% bounds.
-
-If the error is not retryable, the `while` predicate stops retrying regardless
-of the schedule. If all allowed retries fail, `Effect.retry` returns the last
-typed failure.
+`program` keeps the deterministic pieces visible: exponential backoff, a retry
+limit, and an error predicate. The random part is limited to the delay selected
+between retry attempts.
 
 ## Variants
 
-For user-facing work, keep the deterministic envelope small:
-
-```ts
-const interactivePolicy = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3))
-)
-```
-
-This gives a quick answer while still avoiding perfectly synchronized retries.
-
-For background work, pair jitter with an elapsed budget so the policy has both
-a spread-out delay shape and a clear maximum retry window:
-
-```ts
-const backgroundPolicy = Schedule.exponential("1 second").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.during("2 minutes"))
-)
-```
-
-The exact sleeps vary, but the policy still communicates its base backoff and
-its total time budget.
+For user-facing work, keep the deterministic envelope small: short base delay,
+low retry count, and a narrow elapsed budget. For background work, pair jitter
+with an elapsed budget such as `Schedule.both(Schedule.during("2 minutes"))` so
+the exact sleeps vary but the maximum retry window stays explicit.
 
 ## Notes and caveats
 

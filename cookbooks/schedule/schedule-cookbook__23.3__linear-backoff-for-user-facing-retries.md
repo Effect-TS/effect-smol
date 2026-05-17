@@ -10,72 +10,54 @@ code_included: true
 
 # 23.3 Linear backoff for user-facing retries
 
-Linear backoff is a fit for interactive retries when the caller can wait
-briefly, but only within a small budget. Each later retry becomes a little more
-conservative without jumping to long delays.
+User-facing retries need a small budget. Linear backoff gives each later retry a
+little more space while keeping the worst-case wait easy to explain.
 
-Effect does not provide a `Schedule.linear` constructor. Build the shape from
-`Schedule.unfold`, then derive the delay with `Schedule.addDelay`.
+Effect does not provide `Schedule.linear`; model the step with `Schedule.unfold`
+and derive the delay with `Schedule.addDelay`.
 
 ## Problem
 
-A request handler loads data for an interactive screen and may fail with typed
-transient errors: a brief network issue, a warm cache miss, or a dependency that
-is momentarily busy.
+An interactive screen loads data from a dependency that can be briefly busy. The
+policy should:
 
-Use a small linear retry policy:
+- run the first attempt immediately
+- retry transient failures with short linear delays
+- stop after a few retries
+- return permanent failures without waiting
 
-- first retry waits 150 milliseconds
-- second retry waits 300 milliseconds
-- third retry waits 450 milliseconds
-- permanent errors skip the schedule entirely
-
-The first attempt still runs immediately. The schedule only decides what happens
-after a typed failure.
+For example, a 150 millisecond step gives `150ms`, `300ms`, and `450ms` before
+the first three retries.
 
 ## When to use it
 
-Use this recipe for interactive operations where a short retry window improves
-the experience without hiding the final result for too long: loading a profile,
-refreshing a dashboard panel, submitting a duplicate-safe form action, or
-calling a service that occasionally returns a typed "busy" signal.
+Use this for profile loads, dashboard panels, duplicate-safe form submissions,
+or service calls that occasionally return a typed "busy" or transient network
+failure.
 
-The operation must be safe to retry. For a write, that usually means an
-idempotency key, conditional update, or server-side deduplication. If repeating
-the operation can charge a card twice, send two emails, or publish duplicate
-events, do not wrap the whole workflow in a retry schedule.
+For writes, require an idempotency key, conditional update, or server-side
+deduplication. A retry schedule controls timing; it does not prevent duplicate
+charges, emails, or events.
 
 ## When not to use it
 
-Do not retry validation failures, authorization failures, missing required
-fields, malformed requests, or business-rule rejections. Those are not made more
-correct by waiting.
-
-Do not use a long user-facing retry ladder to mask an unhealthy dependency. Give
-the caller a clear failure and move slower recovery work to a background process
-or queue.
-
-For fleet-wide retries from many clients, deterministic linear delays can still
-line up. Add jitter after the base timing is correct, or move the retry closer
-to the service boundary where it can be coordinated.
+Do not retry validation failures, missing required fields, invalid sessions, or
+business-rule rejections. Do not hide a long outage behind a slow user-facing
+retry ladder; fail clearly and move longer recovery into a background process.
 
 ## Schedule shape
 
-`Schedule.unfold(1, ...)` emits the current step and advances to the next step.
-`Schedule.addDelay` converts that step into a delay. Multiplying by a base
-interval produces a linear sequence: `150ms`, `300ms`, `450ms`, and so on.
+`Schedule.unfold(1, ...)` emits the retry step. `Schedule.addDelay` turns the
+step into a duration. `Schedule.both(Schedule.recurs(3))` adds a separate retry
+limit, so the delay calculation and the budget are visible independently.
 
-Keep a separate retry budget so the user does not wait through an unbounded
-sequence. `Schedule.both` combines the timing policy with the count policy; the
-combined schedule continues only while both schedules continue.
-
-With `Effect.retry`, failures are passed to the schedule. The `while` predicate
-keeps permanent failures from consuming the user-facing retry budget.
+With `Effect.retry`, the `while` predicate sees the typed failure and decides
+whether the schedule should run for that error.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class ServiceBusy extends Data.TaggedError("ServiceBusy")<{
   readonly service: string
@@ -91,7 +73,21 @@ class InvalidSession extends Data.TaggedError("InvalidSession")<{
 
 type LoadError = ServiceBusy | NetworkGlitch | InvalidSession
 
-declare const loadDashboard: Effect.Effect<ReadonlyArray<string>, LoadError>
+let attempts = 0
+
+const loadDashboard = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`dashboard attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail(new ServiceBusy({ service: "profile-api" }))
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail(new NetworkGlitch({ requestId: "req-42" }))
+  }
+
+  return ["inbox", "notifications", "billing"] as const
+})
 
 const isRetryable = (error: LoadError): boolean => {
   switch (error._tag) {
@@ -106,62 +102,47 @@ const isRetryable = (error: LoadError): boolean => {
 const linearDelay = Schedule.unfold(1, (step) =>
   Effect.succeed(step + 1)
 ).pipe(
-  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 150)))
+  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 20)))
 )
 
 const userFacingRetry = linearDelay.pipe(
   Schedule.both(Schedule.recurs(3))
 )
 
-const program = loadDashboard.pipe(
-  Effect.retry({
-    schedule: userFacingRetry,
-    while: isRetryable
-  })
+const program = Effect.gen(function*() {
+  const sections = yield* loadDashboard.pipe(
+    Effect.retry({
+      schedule: userFacingRetry,
+      while: isRetryable
+    })
+  )
+  yield* Console.log(`loaded sections: ${sections.join(", ")}`)
+}).pipe(
+  Effect.catch((error) => Console.log(`dashboard failed: ${error._tag}`))
 )
+
+Effect.runPromise(program)
 ```
 
-`program` runs `loadDashboard` immediately. If it fails with `ServiceBusy` or
-`NetworkGlitch`, the retry waits according to the linear delay and stops after
-the small retry budget is spent. If it fails with `InvalidSession`, the error is
-returned immediately.
+The example uses 20 millisecond steps. In an HTTP handler, choose the step and
+retry count from the latency budget the caller can tolerate.
 
 ## Variants
 
-For a tighter interface budget, reduce both the base delay and retry count:
+For a tighter interface budget, reduce both the base delay and retry count. For
+many browser tabs, clients, or workers retrying together, apply
+`Schedule.jittered` after the linear timing is correct.
 
-```ts
-const quickUiRetry = Schedule.unfold(1, (step) =>
-  Effect.succeed(step + 1)
-).pipe(
-  Schedule.addDelay((step) => Effect.succeed(Duration.millis(step * 75))),
-  Schedule.both(Schedule.recurs(2))
-)
-```
-
-For a form submission, keep the schedule around the smallest idempotent effect:
-for example, retry the request protected by an idempotency key, not the entire
-flow that also updates local state, records analytics, and sends notifications.
-
-For many clients or browser tabs retrying at the same time, apply
-`Schedule.jittered` after the linear timing is correct:
-
-```ts
-const jitteredUserFacingRetry = userFacingRetry.pipe(
-  Schedule.jittered
-)
-```
+For form submission, place the retry around the idempotent request, not around
+the broader flow that updates local state, records analytics, and sends
+notifications.
 
 ## Notes and caveats
-
-`Schedule.addDelay` adds to the delay produced by the schedule it wraps.
-`Schedule.unfold` produces zero delay on its own, so in this recipe the added
-delay is the effective wait.
 
 `Effect.retry` retries typed failures from the error channel. Defects,
 interruptions, and failures filtered out by the `while` predicate are not turned
 into scheduled retries.
 
-Keep user-facing policies short enough to explain in product terms. "Try again
-a few times over about a second" is usually a better interface contract than a
-large retry ladder whose worst-case latency is hard to justify.
+Keep the contract short enough to describe in product terms: "try a few times
+over about a second" is usually clearer than a long ladder with unclear
+worst-case latency.
