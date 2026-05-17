@@ -312,12 +312,13 @@ export const cors = (options?: {
     ? opts.allowedOrigins
     : (origin: string) => (opts.allowedOrigins as ReadonlyArray<string>).includes(origin)
 
+  const originVaries = typeof opts.allowedOrigins === "function" || opts.allowedOrigins.length > 0
+
   const allowOrigin = typeof opts.allowedOrigins === "function" || opts.allowedOrigins.length > 1
     ? ((originHeader: string) => {
       if (!isAllowedOrigin(originHeader)) return undefined
       return {
-        "access-control-allow-origin": originHeader,
-        vary: "Origin"
+        "access-control-allow-origin": originHeader
       }
     })
     : opts.allowedOrigins.length === 0
@@ -325,8 +326,7 @@ export const cors = (options?: {
       "access-control-allow-origin": "*"
     })
     : constant({
-      "access-control-allow-origin": opts.allowedOrigins[0],
-      vary: "Origin"
+      "access-control-allow-origin": opts.allowedOrigins[0]
     })
 
   const allowMethods = opts.allowedMethods.length > 0
@@ -342,7 +342,6 @@ export const cors = (options?: {
   ): ReadonlyRecord<string, string> | undefined => {
     if (opts.allowedHeaders.length === 0 && accessControlRequestHeaders) {
       return {
-        vary: "Access-Control-Request-Headers",
         "access-control-allow-headers": accessControlRequestHeaders
       }
     }
@@ -366,23 +365,35 @@ export const cors = (options?: {
 
   const headersFromRequest = (request: HttpServerRequest) => {
     const origin = request.headers["origin"]
+    const allowOriginHeaders = allowOrigin(origin)
     return Headers.fromRecordUnsafe({
-      ...allowOrigin(origin),
+      ...allowOriginHeaders,
       ...allowCredentials,
-      ...exposeHeaders
+      ...exposeHeaders,
+      ...(allowOriginHeaders && originVaries ? { vary: "Origin" } : undefined)
     })
   }
 
   const headersFromRequestOptions = (request: HttpServerRequest) => {
     const origin = request.headers["origin"]
     const accessControlRequestHeaders = request.headers["access-control-request-headers"]
+    const allowOriginHeaders = allowOrigin(origin)
+    const allowHeadersHeaders = allowHeaders(accessControlRequestHeaders)
+    const varyParts: Array<string> = []
+    if (allowOriginHeaders && originVaries) {
+      varyParts.push("Origin")
+    }
+    if (opts.allowedHeaders.length === 0 && accessControlRequestHeaders) {
+      varyParts.push("Access-Control-Request-Headers")
+    }
     return Headers.fromRecordUnsafe({
-      ...allowOrigin(origin),
+      ...allowOriginHeaders,
       ...allowCredentials,
       ...exposeHeaders,
       ...allowMethods,
-      ...allowHeaders(accessControlRequestHeaders),
-      ...maxAge
+      ...allowHeadersHeaders,
+      ...maxAge,
+      ...(varyParts.length > 0 ? { vary: varyParts.join(", ") } : undefined)
     })
   }
 
