@@ -33,7 +33,7 @@ Those rules are small, but confusing them changes behavior and types.
 | Putting predicates on the wrong operator            | The predicate inspects the wrong channel.        |
 | Forgetting a schedule is unbounded                  | The loop runs until failure or interruption.     |
 
-## Code
+## Example
 
 This small program shows three of the common surprises:
 

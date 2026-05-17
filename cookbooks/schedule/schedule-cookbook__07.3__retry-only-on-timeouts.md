@@ -44,7 +44,7 @@ Read the policy as: run once immediately; after a typed timeout, back off and
 retry while attempts remain; after any non-timeout typed failure, stop
 immediately.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

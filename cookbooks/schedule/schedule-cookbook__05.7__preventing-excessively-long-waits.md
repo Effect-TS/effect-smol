@@ -55,7 +55,7 @@ so the effective sequence is 10 milliseconds, 20 milliseconds, 40 milliseconds,
 only while both schedules continue, so the retry count stops the otherwise
 unbounded capped backoff.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

@@ -51,7 +51,7 @@ Start with a modest operational cadence, then switch to a slower background
 cadence with `Schedule.andThen`. Preserve the latest `JobStatus` with
 `Schedule.passthrough`, and continue only while the job is still running.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"

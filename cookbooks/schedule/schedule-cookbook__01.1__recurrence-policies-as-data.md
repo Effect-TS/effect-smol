@@ -45,7 +45,7 @@ ignore their input and output counts. Backoff schedules such as
 Because a schedule is a value, you can name it, pass it around, transform it,
 and compose it before any recurrence happens.
 
-## Code
+## Example
 
 This example defines two policies first, then attaches them to effects:
 

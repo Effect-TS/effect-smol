@@ -59,7 +59,7 @@ schedule output, and continue only while the resource is still provisioning.
 schedule before the predicate reads `metadata.input`. `Schedule.passthrough`
 keeps the final observed status as the result of `Effect.repeat`.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

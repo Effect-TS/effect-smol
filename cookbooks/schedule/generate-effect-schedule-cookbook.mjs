@@ -367,8 +367,6 @@ const escapeHtml = (value) =>
 
 const escapeAttr = (value) => escapeHtml(value).replaceAll("\n", " ")
 
-const normalizeWhitespace = (value) => value.replace(/\s+/g, " ").trim()
-
 const romanToNumber = (roman) => {
   const map = { I: 1, V: 5, X: 10, L: 50, C: 100 }
   let total = 0
@@ -584,6 +582,11 @@ const highlightCode = (source) => {
   return grammar ? Prism.highlight(source, grammar, "typescript") : escapeHtml(source)
 }
 
+const compactCode = (source) =>
+  source
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/^\n+|\n+$/g, "")
+
 const renderMarkdown = (markdown) => {
   const lines = markdown.replace(/\r\n/g, "\n").split("\n")
   const html = []
@@ -619,8 +622,8 @@ const renderMarkdown = (markdown) => {
       }
       const codeId = `code-block-${++codeBlockCount}`
       html.push('<figure class="code-card">')
-      html.push(`<figcaption><button class="copy-button" type="button" data-copy-target="${codeId}">Copy</button></figcaption>`)
-      html.push(`<pre><code id="${codeId}" class="language-typescript">${highlightCode(code.join("\n"))}</code></pre>`)
+      html.push(`<figcaption><span class="code-file"><span class="code-file-icon" aria-hidden="true">TS</span></span><button class="copy-button" type="button" data-copy-target="${codeId}" aria-label="Copy code" title="Copy code"><svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V6.5A1.5 1.5 0 0 1 6.5 5H15"></path></svg><svg class="check-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></button></figcaption>`)
+      html.push(`<pre><code id="${codeId}" class="language-typescript">${highlightCode(compactCode(code.join("\n")))}</code></pre>`)
       html.push("</figure>")
       continue
     }
@@ -704,24 +707,6 @@ const renderMarkdown = (markdown) => {
   return html.join("\n")
 }
 
-const markdownToPlainText = (markdown) =>
-  normalizeWhitespace(
-    markdown
-      .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "")
-      .replace(/```[A-Za-z0-9_-]*\n([\s\S]*?)```/g, " $1 ")
-      .replace(/^#{1,6}\s+/gm, "")
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-      .replace(/[`*_>#|-]/g, " ")
-  )
-
-const extractCodeText = (markdown) => {
-  const code = []
-  for (const match of markdown.matchAll(/```[A-Za-z0-9_-]*\n([\s\S]*?)```/g)) {
-    code.push(match[1])
-  }
-  return code.join("\n\n")
-}
-
 const loadSections = () => {
   const files = readdirSync(sourceDir).filter((file) => /^schedule-cookbook__.+\.md$/.test(file))
   const byNumber = new Map()
@@ -740,9 +725,7 @@ const loadSections = () => {
       file,
       metadata,
       body,
-      content: stripTopHeading(body),
-      text: markdownToPlainText(body),
-      codeText: extractCodeText(body)
+      content: stripTopHeading(body)
     }
     if (!existing || metadata.section_title) {
       byNumber.set(sectionNumber, candidate)
@@ -765,7 +748,6 @@ const titleHtml = (title) => renderInline(title)
 const outline = parseOutline(publicOutline)
 const loaded = loadSections()
 const sectionEntries = []
-const searchIndex = []
 
 const allOutlineSubsections = []
 for (const chapter of outline.frontMatter) {
@@ -804,18 +786,6 @@ const renderSubsection = (part, chapter, subsection) => {
     missing: !loadedSection
   }
   sectionEntries.push(entry)
-  if (loadedSection) {
-    searchIndex.push({
-      id,
-      number,
-      title,
-      chapterTitle: chapter.title,
-      partTitle: part?.title ?? "Preface",
-      codeIncluded,
-      text: loadedSection.text,
-      codeText: loadedSection.codeText
-    })
-  }
 
   return `
 <article class="subsection${loadedSection ? "" : " is-missing"}" id="${id}" data-section-id="${id}" data-title="${escapeAttr(label)}" data-chapter="${escapeAttr(chapter.title)}" data-part="${escapeAttr(part?.title ?? "Preface")}">
@@ -881,7 +851,7 @@ const tocChapter = (chapter) => {
   }
   return `
 <li>
-  <details class="toc-chapter" open>
+  <details class="toc-chapter">
     <summary><a href="#${chapter.id}">${titleHtml(chapter.title)}</a></summary>
     <ol>${chapter.subsections.map(tocSubsection).join("")}</ol>
   </details>
@@ -889,13 +859,13 @@ const tocChapter = (chapter) => {
 }
 
 const tocPart = (part) => `
-<details class="toc-part" open>
+<details class="toc-part">
   <summary><a href="#${part.id}">${titleHtml(part.title)}</a></summary>
   <ol>${part.chapters.map(tocChapter).join("")}</ol>
 </details>`
 
 const tocFrontMatter = () => numberedFrontMatter().map((chapter) => `
-<details class="toc-part front-toc" open>
+<details class="toc-part front-toc">
   <summary><a href="#${chapter.id}">${titleHtml(chapter.title)}</a></summary>
   <ol>${chapter.subsections.map(tocSubsection).join("")}</ol>
 </details>`).join("")
@@ -1265,117 +1235,6 @@ input {
   min-width: 0;
 }
 
-.search-wrap {
-  position: relative;
-  width: min(420px, 46vw);
-}
-
-.search-input {
-  width: 100%;
-  height: 40px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel);
-  color: var(--text);
-  padding: 0 12px 0 36px;
-  outline: none;
-}
-
-.search-wrap::before {
-  content: "";
-  position: absolute;
-  left: 13px;
-  top: 50%;
-  width: 13px;
-  height: 13px;
-  border: 2px solid var(--faint);
-  border-radius: 50%;
-  transform: translateY(-55%);
-}
-
-.search-wrap::after {
-  content: "";
-  position: absolute;
-  left: 25px;
-  top: 25px;
-  width: 7px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--faint);
-  transform: rotate(45deg);
-}
-
-.search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-soft) 82%, transparent);
-}
-
-.search-results {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 10px);
-  display: none;
-  width: min(620px, calc(100vw - 32px));
-  max-height: min(620px, calc(100vh - 96px));
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  padding: 8px;
-  z-index: 50;
-}
-
-.search-results.is-open {
-  display: block;
-}
-
-.search-empty {
-  padding: 16px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.search-result {
-  display: block;
-  width: 100%;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  padding: 12px;
-  text-align: left;
-}
-
-.search-result:hover,
-.search-result:focus {
-  background: var(--panel-soft);
-  outline: none;
-}
-
-.search-result strong {
-  display: block;
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.search-result span {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.search-result mark {
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--accent-soft) 86%, transparent);
-  color: var(--accent-strong);
-  padding: 0 2px;
-}
-
 .reading {
   max-width: var(--content-width);
   margin: 0 auto;
@@ -1476,7 +1335,7 @@ input {
 
 .section-body {
   color: var(--muted);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.82;
 }
 
@@ -1745,10 +1604,6 @@ th {
     padding: 0 14px;
   }
 
-  .search-wrap {
-    width: min(46vw, 300px);
-  }
-
   .reading {
     padding: 30px 18px 80px;
   }
@@ -1771,15 +1626,6 @@ th {
     padding-bottom: 10px;
   }
 
-  .top-actions {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
-  .search-wrap {
-    width: 100%;
-  }
-
   .book-hero h1 {
     font-size: 34px;
   }
@@ -1794,10 +1640,617 @@ th {
   }
 
 }
+
+/* Vercel docs inspired skin */
+:root {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-soft: #fafafa;
+  --topbar-bg: #f7f7f7;
+  --text: #000000;
+  --muted: #525252;
+  --faint: #737373;
+  --border: #eaeaea;
+  --border-strong: #d4d4d4;
+  --accent: #000000;
+  --accent-strong: #000000;
+  --accent-soft: #f5f5f5;
+  --toc-active-bg: rgba(0, 0, 0, 0.06);
+  --warm: #171717;
+  --code-bg: #ffffff;
+  --code-header-bg: #fafafa;
+  --inline-code-bg: #f4f4f5;
+  --inline-code-border: #d4d4d8;
+  --inline-code-text: #09090b;
+  --code-text: #171717;
+  --code-muted: #737373;
+  --code-line: #e5e5e5;
+  --code-button-bg: transparent;
+  --code-button-hover: #f5f5f5;
+  --code-token-comment: #6a737d;
+  --code-token-keyword: #d0006f;
+  --code-token-string: #007a1f;
+  --code-token-number: #0057d9;
+  --code-token-type: #7c3aed;
+  --code-token-function: #0068d6;
+  --code-token-operator: #24292e;
+  --shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
+  --topbar-height: 48px;
+  --sidebar-width: 390px;
+  --sidebar-gutter: 0px;
+  --content-width: 760px;
+  --font-body: Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-display: Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-code: "Geist Mono", "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --panel: #000000;
+  --panel-soft: #0a0a0a;
+  --topbar-bg: #0a0a0a;
+  --text: #ededed;
+  --muted: #a3a3a3;
+  --faint: #737373;
+  --border: #262626;
+  --border-strong: #404040;
+  --accent: #ffffff;
+  --accent-strong: #ffffff;
+  --accent-soft: #171717;
+  --toc-active-bg: rgba(255, 255, 255, 0.1);
+  --warm: #f5f5f5;
+  --code-bg: #0a0a0a;
+  --code-header-bg: #0a0a0a;
+  --inline-code-bg: #171717;
+  --inline-code-border: #404040;
+  --inline-code-text: #f5f5f5;
+  --code-text: #ededed;
+  --code-muted: #a3a3a3;
+  --code-line: #262626;
+  --code-button-bg: transparent;
+  --code-button-hover: #262626;
+  --code-token-comment: #7c7c7c;
+  --code-token-keyword: #ff7b72;
+  --code-token-string: #a5d6ff;
+  --code-token-number: #79c0ff;
+  --code-token-type: #d2a8ff;
+  --code-token-function: #d2a8ff;
+  --code-token-operator: #ededed;
+  --shadow: 0 16px 32px rgba(0, 0, 0, 0.44);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+}
+
+.app-shell {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  border-right-color: var(--border);
+  overflow: hidden;
+}
+
+.sidebar::after {
+  display: none;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--topbar-height);
+  min-height: var(--topbar-height);
+  max-height: var(--topbar-height);
+  padding: 0 24px;
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand a {
+  gap: 10px;
+}
+
+.sidebar-brand strong {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-brand svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.7;
+}
+
+.toc {
+  padding: 18px 20px 40px;
+}
+
+.toc details {
+  margin: 0;
+}
+
+.toc summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+.toc summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--faint);
+  border-bottom: 2px solid var(--faint);
+  transform: rotate(-45deg);
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.toc details[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+.toc summary:hover::after {
+  border-color: var(--muted);
+}
+
+.toc summary a,
+.toc-chapter-link,
+.toc-section {
+  min-height: 40px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 300;
+  font-variation-settings: "wght" 300;
+  line-height: 1.25;
+}
+
+.toc summary a {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px 8px 0;
+}
+
+.toc-part {
+  margin: 0 0 10px;
+}
+
+.toc-part + .toc-part {
+  margin-top: 10px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.toc-part > summary a {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 300;
+  font-variation-settings: "wght" 300;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.toc-part > ol {
+  margin: 6px 0 10px 8px;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--border);
+}
+
+.toc-chapter > summary a,
+.toc-chapter-link {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 300;
+  font-variation-settings: "wght" 300;
+}
+
+.toc-chapter > ol {
+  margin: 6px 0 12px 8px;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--border);
+}
+
+.toc-section {
+  position: relative;
+  z-index: 0;
+  min-height: 40px;
+  padding: 8px 12px 8px 14px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 300;
+  font-variation-settings: "wght" 300;
+  line-height: 1.25;
+}
+
+.toc summary a:hover,
+.toc-chapter-link:hover,
+.toc-section:hover {
+  color: var(--text);
+}
+
+.toc-section.is-active {
+  color: var(--text);
+  font-weight: 300;
+  font-variation-settings: "wght" 300;
+}
+
+.toc-section.is-active::before {
+  left: -9px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  border-radius: 0;
+  z-index: 1;
+}
+
+.toc-section.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 -34px;
+  z-index: -1;
+  border-radius: 8px;
+  background: var(--toc-active-bg);
+  pointer-events: none;
+}
+
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--topbar-height);
+  min-height: var(--topbar-height);
+  max-height: var(--topbar-height);
+  padding: 0 24px;
+  background: var(--topbar-bg);
+  border-bottom-color: var(--border);
+  overflow: visible;
+}
+
+.top-actions {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.menu-button,
+.theme-button,
+.back-to-top {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.menu-button:hover,
+.theme-button:hover,
+.theme-button:focus-visible,
+.back-to-top:hover {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.theme-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.reading {
+  max-width: var(--content-width);
+  margin: 0 auto 0 72px;
+  padding: 64px 32px 110px 0;
+}
+
+.book-hero {
+  padding-bottom: 52px;
+}
+
+.eyebrow,
+.kicker,
+.part-header p {
+  color: var(--faint);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.book-hero h1 {
+  font-size: 44px;
+  font-weight: 620;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.hero-copy {
+  max-width: 620px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.part-header {
+  margin-top: 76px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.part-header h2 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.chapter-header {
+  margin-top: 46px;
+}
+
+.chapter-header h3 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.subsection {
+  margin-top: 34px;
+  padding-bottom: 32px;
+}
+
+.subsection-header {
+  margin-bottom: 16px;
+}
+
+.subsection-header h4 {
+  gap: 7px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.subsection-header h4 > span:first-child {
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+
+.section-body {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.78;
+}
+
+.section-body p,
+.section-body ul,
+.section-body ol,
+.section-body blockquote,
+.section-body .table-scroll,
+.code-card {
+  margin: 14px 0;
+}
+
+.section-body h5 {
+  margin: 30px 0 10px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.section-body h6 {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.section-body code:not(pre code) {
+  border: 1px solid var(--inline-code-border);
+  border-radius: 4px;
+  background: var(--inline-code-bg);
+  color: var(--inline-code-text);
+  padding: 0.08em 0.3em;
+  font-size: 0.9em;
+  font-weight: 400;
+}
+
+.section-body a {
+  color: var(--text);
+  text-decoration-color: var(--border-strong);
+}
+
+.section-body a:hover {
+  text-decoration-color: var(--text);
+}
+
+.table-scroll,
+.missing-content {
+  border-radius: 8px;
+}
+
+th {
+  background: var(--panel-soft);
+  font-weight: 600;
+}
+
+.code-card {
+  border-color: var(--code-line);
+  border-radius: 8px;
+  background: var(--code-bg);
+  box-shadow: none;
+}
+
+.code-card figcaption {
+  min-height: 42px;
+  justify-content: space-between;
+  padding: 0 18px 0 20px;
+  background: var(--code-header-bg);
+  color: var(--code-muted);
+  font-size: 12px;
+}
+
+.code-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.code-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  background: #525252;
+  color: #ffffff;
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.copy-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--code-button-bg);
+  color: var(--code-text);
+  padding: 0;
+}
+
+.copy-button:hover,
+.copy-button:focus {
+  background: var(--code-button-hover);
+}
+
+.copy-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.copy-button .check-icon {
+  display: none;
+}
+
+.copy-button.is-copied .copy-icon {
+  display: none;
+}
+
+.copy-button.is-copied .check-icon {
+  display: block;
+}
+
+.copy-button.is-failed {
+  color: #d0006f;
+}
+
+.code-card pre {
+  background: var(--code-bg);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  line-height: 1.54;
+  padding: 18px 24px;
+}
+
+.code-card code {
+  display: block;
+  font-size: 13px;
+  font-weight: 300;
+  font-variation-settings: "wght" 300;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  line-height: 1.54;
+}
+
+.code-card code * {
+  font-weight: 300;
+  font-variation-settings: "wght" 300;
+}
+
+.code-card .token.property,
+.code-card .token.parameter,
+.code-card .token.imports,
+.code-card .token.exports {
+  color: var(--code-token-function);
+}
+
+.back-to-top {
+  width: auto;
+  min-width: 42px;
+  padding: 0 10px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+@media (max-width: 1080px) {
+  :root {
+    --sidebar-width: 292px;
+  }
+}
+
+@media (max-width: 860px) {
+  .sidebar {
+    width: min(88vw, 320px);
+  }
+
+  .topbar {
+    padding: 0 16px;
+    height: var(--topbar-height);
+    min-height: var(--topbar-height);
+    max-height: var(--topbar-height);
+  }
+
+  .reading {
+    margin: 0 auto;
+    padding: 42px 22px 88px;
+  }
+}
+
+@media (max-width: 640px) {
+  .book-hero h1 {
+    font-size: 36px;
+  }
+
+  .part-header h2 {
+    font-size: 28px;
+  }
+
+  .chapter-header h3 {
+    font-size: 21px;
+  }
+}
 `
 
-const script = String.raw`
-const searchIndex = __SEARCH_INDEX__;
+const scriptTemplate = String.raw`
 const sectionEntries = __SECTION_ENTRIES__;
 
 const root = document.documentElement;
@@ -1805,8 +2258,6 @@ const body = document.body;
 const themeButton = document.getElementById("theme-toggle");
 const menuButton = document.getElementById("menu-toggle");
 const sidebarScrim = document.getElementById("sidebar-scrim");
-const searchInput = document.getElementById("search-input");
-const searchResults = document.getElementById("search-results");
 const backToTop = document.getElementById("back-to-top");
 
 const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -1851,17 +2302,24 @@ document.querySelectorAll(".copy-button").forEach((button) => {
     if (!target) {
       return;
     }
-    const original = button.textContent;
     try {
       await copyText(target.innerText);
-      button.textContent = "Copied";
+      button.classList.add("is-copied");
+      button.setAttribute("aria-label", "Copied");
+      button.setAttribute("title", "Copied");
       window.setTimeout(() => {
-        button.textContent = original;
+        button.classList.remove("is-copied");
+        button.setAttribute("aria-label", "Copy code");
+        button.setAttribute("title", "Copy code");
       }, 1300);
     } catch {
-      button.textContent = "Failed";
+      button.classList.add("is-failed");
+      button.setAttribute("aria-label", "Copy failed");
+      button.setAttribute("title", "Copy failed");
       window.setTimeout(() => {
-        button.textContent = original;
+        button.classList.remove("is-failed");
+        button.setAttribute("aria-label", "Copy code");
+        button.setAttribute("title", "Copy code");
       }, 1300);
     }
   });
@@ -1915,129 +2373,18 @@ document.addEventListener("click", (event) => {
   }
 });
 
-const normalize = (value) => value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
-
-const highlight = (text, terms) => {
-  let output = text.replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
-  for (const term of terms.slice(0, 4)) {
-    if (term.length < 2) {
-      continue;
-    }
-    output = output.replace(new RegExp("(" + term.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&") + ")", "ig"), "<mark>$1</mark>");
-  }
-  return output;
-};
-
-const snippetFor = (entry, terms) => {
-  const haystack = entry.title + " " + entry.chapterTitle + " " + entry.partTitle + " " + entry.text + " " + entry.codeText;
-  const normalized = normalize(haystack);
-  const firstTerm = terms.find((term) => normalized.includes(term));
-  if (!firstTerm) {
-    return entry.text.slice(0, 170);
-  }
-  const index = normalized.indexOf(firstTerm);
-  const start = Math.max(0, index - 70);
-  const end = Math.min(haystack.length, index + 140);
-  return (start > 0 ? "..." : "") + haystack.slice(start, end) + (end < haystack.length ? "..." : "");
-};
-
-const scoreEntry = (entry, terms) => {
-  const title = normalize(entry.number + " " + entry.title);
-  const chapter = normalize(entry.chapterTitle + " " + entry.partTitle);
-  const bodyText = normalize(entry.text);
-  const codeText = normalize(entry.codeText);
-  let score = 0;
-  for (const term of terms) {
-    if (title.includes(term)) {
-      score += 10;
-    }
-    if (chapter.includes(term)) {
-      score += 4;
-    }
-    if (bodyText.includes(term)) {
-      score += 2;
-    }
-    if (codeText.includes(term)) {
-      score += 3;
-    }
-  }
-  return score;
-};
-
-const closeSearch = () => {
-  searchResults.classList.remove("is-open");
-  searchResults.innerHTML = "";
-};
-
-const renderSearch = () => {
-  const query = searchInput.value.trim();
-  if (query.length === 0) {
-    closeSearch();
-    return;
-  }
-  const terms = normalize(query).split(/\s+/).filter(Boolean);
-  const results = searchIndex
-    .map((entry) => ({ entry, score: scoreEntry(entry, terms) }))
-    .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 18);
-
-  searchResults.classList.add("is-open");
-  if (results.length === 0) {
-    searchResults.innerHTML = '<div class="search-empty">No matching sections.</div>';
-    return;
-  }
-  searchResults.innerHTML = results
-    .map(({ entry }) => {
-      const label = entry.number + " " + entry.title;
-      const location = entry.partTitle + " / " + entry.chapterTitle;
-      const snippet = snippetFor(entry, terms);
-      return '<button type="button" class="search-result" data-jump="' + entry.id + '"><strong>' + highlight(label, terms) + '</strong><span>' + highlight(location, terms) + '</span><span>' + highlight(snippet, terms) + '</span></button>';
-    })
-    .join("");
-};
-
-searchInput.addEventListener("input", renderSearch);
-searchInput.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    searchInput.blur();
-    closeSearch();
-  }
-});
-
-searchResults.addEventListener("click", (event) => {
-  const result = event.target.closest("[data-jump]");
-  if (!result) {
-    return;
-  }
-  window.location.hash = result.dataset.jump;
-  closeSearch();
-  closeSidebar();
-});
-
-document.addEventListener("click", (event) => {
-  if (!event.target.closest(".search-wrap")) {
-    closeSearch();
-  }
-});
-
 window.addEventListener("scroll", () => {
   backToTop.classList.toggle("is-visible", window.scrollY > 900);
 }, { passive: true });
 `
-  .replace("__SEARCH_INDEX__", jsonForScript(searchIndex))
-  .replace("__SECTION_ENTRIES__", jsonForScript(sectionEntries))
 
 const contentHtml = `
 ${renderFrontMatter()}
 ${outline.parts.map(renderPart).join("\n")}
 `
+
+const script = scriptTemplate
+  .replace("__SECTION_ENTRIES__", jsonForScript(sectionEntries))
 
 const sidebarHtml = `
 <aside class="sidebar" id="sidebar">
@@ -2066,6 +2413,9 @@ const html = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Effect Schedule Cookbook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>${styles}</style>
 </head>
 <body>
@@ -2076,10 +2426,6 @@ const html = `<!doctype html>
       <header class="topbar">
         <button class="menu-button" id="menu-toggle" type="button" aria-label="Open table of contents">Menu</button>
         <div class="top-actions">
-          <div class="search-wrap">
-            <input class="search-input" id="search-input" type="search" placeholder="Search sections and code" autocomplete="off" spellcheck="false" aria-label="Search book">
-            <div class="search-results" id="search-results" role="listbox" aria-label="Search results"></div>
-          </div>
           <button class="theme-button" id="theme-toggle" type="button" aria-label="Toggle theme">
             <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M21 12.7A8.5 8.5 0 1 1 11.3 3 6.6 6.6 0 0 0 21 12.7Z"></path>

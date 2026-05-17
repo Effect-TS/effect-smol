@@ -70,7 +70,7 @@ For an exponential policy, each computed exponential delay is jittered:
 The benefit is smoother aggregate load. The tradeoff is less exact timing for
 any one fiber or process.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Random, Ref, Schedule } from "effect"

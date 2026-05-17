@@ -51,7 +51,7 @@ version is below the required version.
 If you add a bound, handle the final behind observation as "did not catch up in
 time" instead of returning stale data.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

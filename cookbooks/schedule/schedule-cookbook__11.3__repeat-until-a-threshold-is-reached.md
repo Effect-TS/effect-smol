@@ -56,7 +56,7 @@ The predicate above therefore means "repeat while the latest successful
 `Progress` value is still below `100`." When a successful run returns
 `percent >= 100`, the repeat stops.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

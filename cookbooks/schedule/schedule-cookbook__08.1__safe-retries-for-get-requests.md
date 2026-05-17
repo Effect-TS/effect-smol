@@ -67,7 +67,7 @@ original attempt.
 With `Effect.retry`, the GET runs once immediately. Only failures from the typed
 error channel are retried, and only while the predicate returns `true`.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

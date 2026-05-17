@@ -54,7 +54,7 @@ successful value. The raw schedule overload of `Effect.repeat` succeeds with the
 schedule output. The options form of `Effect.repeat` keeps the repeated effect's
 final successful value.
 
-## Code
+## Example
 
 This program uses both entry points for their intended channels:
 

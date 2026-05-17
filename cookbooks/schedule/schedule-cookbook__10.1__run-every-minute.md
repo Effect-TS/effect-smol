@@ -46,7 +46,7 @@ longer than a minute, the next recurrence may run immediately, but missed runs
 do not pile up. Use `Schedule.spaced("1 minute")` when the gap after completion
 is what matters.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

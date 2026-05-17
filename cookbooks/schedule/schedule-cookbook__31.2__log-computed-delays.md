@@ -35,7 +35,7 @@ For `Schedule.exponential`, the output is the base duration. Log it with
 `Schedule.tapOutput`. If later combinators modify the actual delay, log close
 to the combinator whose output you want to observe.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Schedule } from "effect"

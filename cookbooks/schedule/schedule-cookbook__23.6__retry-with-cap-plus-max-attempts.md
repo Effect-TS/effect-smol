@@ -61,7 +61,7 @@ while both schedules recur, and it uses the larger of their delays. Since
 `Schedule.recurs(5)` has no meaningful delay of its own, the capped backoff side
 provides the wait time and the recurrence side provides the retry count.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Schedule } from "effect"

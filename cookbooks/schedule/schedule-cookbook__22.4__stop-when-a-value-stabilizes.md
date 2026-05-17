@@ -60,7 +60,7 @@ state is not stable. `Schedule.identity<Snapshot>()` passes each successful
 `Snapshot` through as the schedule output. `Schedule.reduce` keeps the previous
 observation in schedule state.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

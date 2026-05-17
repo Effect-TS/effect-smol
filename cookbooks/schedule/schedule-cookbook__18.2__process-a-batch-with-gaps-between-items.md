@@ -58,7 +58,7 @@ measured after each item completes. If an item takes 100 milliseconds to send an
 the spacing is 250 milliseconds, the next item starts about 350 milliseconds
 after the previous item started.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Ref, Schedule } from "effect"

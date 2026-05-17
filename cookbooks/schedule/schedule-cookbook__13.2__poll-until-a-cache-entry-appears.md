@@ -48,7 +48,7 @@ only while the lookup is `Missing`.
 
 For bounded waits, handle a final `Missing` value explicitly.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

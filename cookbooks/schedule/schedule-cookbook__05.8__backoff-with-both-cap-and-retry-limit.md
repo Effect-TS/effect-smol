@@ -50,7 +50,7 @@ gives a maximum delay of 40 milliseconds. Combining that capped schedule with
 The original effect still runs immediately. The schedule is consulted only
 after a typed failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

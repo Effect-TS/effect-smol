@@ -50,7 +50,7 @@ each base delay. `Schedule.recurs(4)` stops each caller after four retries.
 The first execution is not delayed. The schedule is consulted only after a
 typed failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

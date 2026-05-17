@@ -63,7 +63,7 @@ Use `Schedule.modifyDelay` to cap the final delay after jitter. Add
 `Schedule.recurs` and `Schedule.during` with `Schedule.both` so the policy stops
 when either the retry count or elapsed budget is exhausted.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Schedule } from "effect"

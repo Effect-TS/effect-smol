@@ -35,7 +35,7 @@ retry if the downstream system cannot tolerate duplicate delivery.
 Use `Effect.retry` because delivery failures drive recurrence. Use a short
 exponential backoff, jitter for fleet safety, and a small retry count.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

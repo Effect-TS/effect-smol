@@ -43,7 +43,7 @@ Combine a deterministic delay with a retry limit. With
 original attempt runs immediately. Each failed attempt schedules the next retry
 100 milliseconds later, up to two retries.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Fiber, Ref, Schedule } from "effect"

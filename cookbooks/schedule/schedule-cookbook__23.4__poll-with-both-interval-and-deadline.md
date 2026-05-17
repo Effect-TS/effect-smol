@@ -59,7 +59,7 @@ the observed status. `Schedule.bothLeft` keeps that status as the output while
 requiring both the cadence policy and the deadline policy to allow another
 recurrence.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Fiber, Schedule } from "effect"

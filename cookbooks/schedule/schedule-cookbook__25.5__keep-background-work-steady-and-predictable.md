@@ -61,7 +61,7 @@ the recurrence count and delays each follow-up run by thirty seconds after the
 previous successful run completes. The initial run is not delayed by the
 schedule; `Effect.repeat` runs the effect once before consulting the schedule.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

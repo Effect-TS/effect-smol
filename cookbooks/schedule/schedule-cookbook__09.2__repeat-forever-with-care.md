@@ -67,7 +67,7 @@ duration after each successful run before starting the next recurrence. The firs
 run still happens immediately; the schedule controls only what happens after a
 success. The `Schedule.take(2)` above is only there to keep the example finite.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

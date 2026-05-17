@@ -46,7 +46,7 @@ After each typed failure, `while` is checked first. If it returns `false`,
 retrying stops with that failure. If it returns `true`, the schedule decides
 whether another retry is available and how long to wait.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

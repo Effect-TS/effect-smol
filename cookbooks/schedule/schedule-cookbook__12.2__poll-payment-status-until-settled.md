@@ -56,7 +56,7 @@ successful observation, the observed `PaymentStatus` becomes the schedule input.
 constructed from `PaymentStatus` values. `Schedule.passthrough` keeps the final
 observed status as the value returned by the repeated effect.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

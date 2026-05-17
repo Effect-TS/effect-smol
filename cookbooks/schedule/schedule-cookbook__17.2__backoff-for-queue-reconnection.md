@@ -40,7 +40,7 @@ action.
 default. `Schedule.recurs(6)` allows six retries after the original attempt.
 `Schedule.jittered` spreads reconnects when many workers fail at the same time.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

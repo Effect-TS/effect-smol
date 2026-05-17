@@ -49,7 +49,7 @@ produces approximately 500 milliseconds, 1 second, 2 seconds, and 4 seconds.
 With `Effect.retry`, the original attempt runs immediately. The base interval
 is the first pause after a typed failure.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"

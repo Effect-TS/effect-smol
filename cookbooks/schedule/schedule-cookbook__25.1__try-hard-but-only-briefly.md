@@ -67,7 +67,7 @@ while both sides still want to recur, and it uses the larger delay from the
 pieces being combined. The result is a policy that tries quickly, stops by
 count, and also stops when the short time budget is exhausted.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

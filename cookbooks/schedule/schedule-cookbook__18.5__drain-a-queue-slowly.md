@@ -55,7 +55,7 @@ stop condition in `Effect.repeat({ while })`, where it can inspect the
 The first item is processed immediately. The schedule controls only the
 follow-up drain steps.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Queue, Schedule } from "effect"

@@ -54,7 +54,7 @@ so `metadata.input` is the latest successful result.
 If the predicate returns `true`, the schedule allows another recurrence. If it
 returns `false`, the repeat stops.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

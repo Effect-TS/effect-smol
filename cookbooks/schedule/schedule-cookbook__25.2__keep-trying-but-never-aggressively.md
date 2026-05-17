@@ -70,7 +70,7 @@ There is intentionally no `Schedule.recurs` or `Schedule.during` in the base
 policy. Persistence is the point of this recipe. The stopping condition belongs
 to error classification, shutdown, cancellation, or a separate business rule.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

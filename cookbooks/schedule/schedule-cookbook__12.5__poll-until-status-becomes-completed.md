@@ -51,7 +51,7 @@ status, and `Schedule.while` to continue only while the status is still in
 progress. After `Effect.repeat` returns, map `"Completed"` to success and map
 other terminal statuses to domain errors.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

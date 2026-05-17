@@ -75,7 +75,7 @@ attempt. A time budget says how long the retry window may remain open. Slow
 failed attempts can consume the budget before many retries happen; fast failed
 attempts may fit more retries into the same budget.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

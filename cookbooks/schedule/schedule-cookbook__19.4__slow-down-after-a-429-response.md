@@ -54,7 +54,7 @@ Normalize provider headers into a `Duration` before constructing the typed
 `RateLimited` error. The schedule should consume domain data, not parse raw HTTP
 headers.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Ref, Schedule } from "effect"

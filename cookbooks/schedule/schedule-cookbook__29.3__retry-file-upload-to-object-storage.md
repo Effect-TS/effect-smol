@@ -65,7 +65,7 @@ attempts after typed failures.
 count limit and elapsed budget with `Schedule.both` means both limits must
 allow another retry.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

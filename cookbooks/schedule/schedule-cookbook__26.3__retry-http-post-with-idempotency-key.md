@@ -62,7 +62,7 @@ that accepts only ambiguous or transient failures.
 `Schedule.recurs(4)` means four retries after the initial request. It is not a
 total-attempt count.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

@@ -49,7 +49,7 @@ The options form keeps the three policy pieces together:
 If an attempt succeeds, retrying stops immediately. If a non-retryable error is
 returned, the retry budget is not spent.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"

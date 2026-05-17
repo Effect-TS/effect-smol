@@ -46,7 +46,7 @@ long to wait.
 
 For most clients, combine the predicate with a finite backoff schedule.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

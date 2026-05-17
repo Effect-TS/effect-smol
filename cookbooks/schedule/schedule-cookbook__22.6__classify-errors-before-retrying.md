@@ -63,7 +63,7 @@ the typed failure. If it returns `false`, retrying stops immediately and that
 failure is returned. If it returns `true`, the failure is fed to the schedule,
 which decides whether another retry is allowed and how long to wait.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

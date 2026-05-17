@@ -37,7 +37,7 @@ For `Effect.retry`, each typed failure is offered to the schedule:
 `Schedule.recurs(4)` permits up to five total executions, but fewer executions
 happen when an earlier attempt succeeds.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Ref, Schedule } from "effect"

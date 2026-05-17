@@ -44,7 +44,7 @@ produces increasing delays. `Schedule.jittered` modifies each selected delay to
 a random value between 80% and 120% of the original delay. Add
 `Schedule.recurs` or a time budget so the retry is bounded.
 
-## Code
+## Example
 
 ```ts
 import { Data, Effect, Schedule } from "effect"

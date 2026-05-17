@@ -50,7 +50,7 @@ milliseconds, and 64-96 milliseconds.
 `Schedule.both(Schedule.recurs(4))` adds a finite retry count without changing
 the jittered delay.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

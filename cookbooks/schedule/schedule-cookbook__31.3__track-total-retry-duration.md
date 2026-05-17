@@ -35,7 +35,7 @@ time; it does not provide spacing or a stopping condition by itself.
 Combine the real retry cadence with `Schedule.elapsed`. The cadence still owns
 delays and limits; elapsed time is additional output for observability.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Schedule } from "effect"

@@ -38,7 +38,7 @@ Limit the schedule with `Schedule.take` when the worker is invoked as a bounded
 job. A daemon can use the same base cadence with a larger limit, a longer
 interval, or an outer supervisor that starts the worker again.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

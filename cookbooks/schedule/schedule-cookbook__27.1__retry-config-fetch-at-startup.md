@@ -46,7 +46,7 @@ retries after the initial request.
 Add `while` classification so deterministic configuration failures do not spend
 the transient-failure budget.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

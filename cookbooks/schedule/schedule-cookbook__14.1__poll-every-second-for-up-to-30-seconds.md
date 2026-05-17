@@ -45,7 +45,7 @@ pending-status predicate, and `Schedule.during("30 seconds")` for the elapsed
 recurrence budget. `Schedule.passthrough` keeps the latest status as the repeat
 result instead of returning the timing schedule's numeric output.
 
-## Code
+## Example
 
 ```ts
 import { Clock, Effect, Fiber, Schedule } from "effect"

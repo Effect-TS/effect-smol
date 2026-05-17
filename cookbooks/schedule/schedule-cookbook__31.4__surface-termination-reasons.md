@@ -37,7 +37,7 @@ schedule can see them.
 For polling, keep the latest status as output and stop when the status is no
 longer running or the budget is exhausted. Then inspect the final value.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

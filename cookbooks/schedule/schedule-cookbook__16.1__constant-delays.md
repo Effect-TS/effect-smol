@@ -61,7 +61,7 @@ That is useful for fixed-cadence repeating work, but it is usually not what you
 mean by "wait 500 milliseconds before retrying." For retry policies, reach for
 `spaced` first unless you specifically need clock-like cadence.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

@@ -46,7 +46,7 @@ attempt, then at most three retries. `Schedule.both` requires both schedules to
 continue; the spaced schedule supplies the delay, and the recurrence schedule
 supplies the limit.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Duration, Effect, Fiber, Ref, Schedule } from "effect"

@@ -45,7 +45,7 @@ millisecond, 800 millisecond, and 1.6 second delays with the default factor.
 Combined with `Schedule.both`, the exponential schedule supplies the delay and
 the recurrence schedule stops the policy after the retry budget is exhausted.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"

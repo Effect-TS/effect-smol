@@ -58,7 +58,7 @@ repeat.
 The predicate above therefore repeats after successful non-terminal statuses and
 stops as soon as a successful terminal status is observed.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

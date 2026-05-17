@@ -55,7 +55,7 @@ original delay. Applied to a one-second spaced schedule, each sleep is randomly
 chosen between 800 milliseconds and 1.2 seconds. The average pace stays close to
 the base spacing, but instances no longer line up perfectly.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Random, Ref, Schedule } from "effect"

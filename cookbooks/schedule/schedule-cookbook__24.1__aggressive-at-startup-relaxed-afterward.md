@@ -62,7 +62,7 @@ The first effect run is not delayed. With `Effect.repeat`, the successful value
 from each run is fed into the schedule. That is what allows the schedule to stop
 when readiness is reached.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

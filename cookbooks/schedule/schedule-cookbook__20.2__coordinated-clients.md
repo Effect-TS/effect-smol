@@ -50,7 +50,7 @@ Choose the deterministic shape first, then jitter it:
 
 That order keeps the policy readable: exponential retry, jittered, bounded.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

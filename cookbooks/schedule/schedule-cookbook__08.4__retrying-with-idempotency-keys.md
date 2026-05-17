@@ -75,7 +75,7 @@ With `Effect.retry`, the write runs once immediately. The same effect is then
 re-run only after a typed failure that the predicate allows and only while the
 schedule continues.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

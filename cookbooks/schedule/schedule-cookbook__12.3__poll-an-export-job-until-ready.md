@@ -56,7 +56,7 @@ and returns `false` for `"ready"` or `"failed"` so polling stops.
 schedule constructed from export statuses. `Schedule.passthrough` keeps the
 latest `ExportStatus` as the value returned by the repeated effect.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

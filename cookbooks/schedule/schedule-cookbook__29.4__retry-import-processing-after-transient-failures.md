@@ -68,7 +68,7 @@ Keep retry eligibility in an error predicate. The schedule describes timing and
 limits; the predicate decides whether the typed failure is transient enough to
 retry.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

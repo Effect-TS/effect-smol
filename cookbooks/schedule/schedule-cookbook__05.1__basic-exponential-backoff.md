@@ -52,7 +52,7 @@ With `Effect.retry`, the original attempt is immediate. The schedule is
 consulted only after a typed failure. Pair it with `Schedule.recurs(5)` or
 `times: 5` when the caller needs a final failure after five retries.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"

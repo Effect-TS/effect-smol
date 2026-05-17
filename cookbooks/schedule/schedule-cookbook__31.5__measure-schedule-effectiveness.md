@@ -36,7 +36,7 @@ Use `Schedule.tapInput` for recurrence inputs and `Schedule.tapOutput` for
 schedule outputs. Keep operation-level success and failure metrics around the
 effect that uses the policy.
 
-## Code
+## Example
 
 ```ts
 import { Console, Duration, Effect, Metric, Schedule } from "effect"

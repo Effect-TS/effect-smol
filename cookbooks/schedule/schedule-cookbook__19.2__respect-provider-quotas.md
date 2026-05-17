@@ -51,7 +51,7 @@ Combine `Schedule.spaced` with `Schedule.recurs`, then pass a retry predicate to
 `Effect.retry`. The schedule controls when another attempt may happen; the
 predicate controls whether a failure is allowed to use the schedule.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

@@ -70,7 +70,7 @@ that cadence with constraints that apply to the whole polling policy:
 - `Schedule.passthrough` returns the latest successful workflow status.
 - `Schedule.while` stops as soon as the workflow is no longer running.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

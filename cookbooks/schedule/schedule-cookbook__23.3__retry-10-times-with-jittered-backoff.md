@@ -67,7 +67,7 @@ With `Effect.retry`, the original effect runs immediately. `Schedule.recurs(10)`
 means ten retries after that original execution, for up to eleven executions in
 total.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

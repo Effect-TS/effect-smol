@@ -55,7 +55,7 @@ Here the exponential schedule supplies the wait, and `during` supplies the
 stopping condition. A retry decision made just inside the window may still
 sleep and run the next attempt after the nominal 10 second boundary.
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"

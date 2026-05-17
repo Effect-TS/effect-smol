@@ -57,7 +57,7 @@ The steady-state phase uses a slower `Schedule.spaced("30 seconds")`. Because
 it is sequenced with `Schedule.andThen`, it starts only after the startup phase
 completes.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

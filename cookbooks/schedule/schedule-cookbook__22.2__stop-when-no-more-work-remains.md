@@ -60,7 +60,7 @@ only while `remaining` is greater than zero.
 `Schedule.while` receives metadata for each successful step. Returning `true`
 continues the schedule; returning `false` stops it and yields the latest output.
 
-## Code
+## Example
 
 ```ts
 import { Console, Effect, Schedule } from "effect"

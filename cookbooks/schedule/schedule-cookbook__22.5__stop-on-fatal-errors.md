@@ -53,7 +53,7 @@ the `Effect.retry` call site:
 This keeps the responsibilities separate. The schedule answers "when and how
 many times?", while the predicate answers "is this failure retryable?"
 
-## Code
+## Example
 
 ```ts
 import { Console, Data, Effect, Schedule } from "effect"
