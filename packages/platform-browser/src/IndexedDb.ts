@@ -1,12 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Config from "effect/Config"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
-import * as SchemaIssue from "effect/SchemaIssue"
 
 const TypeId = "~@effect/platform-browser/IndexedDb"
 
@@ -72,7 +70,7 @@ export const make = (impl: Omit<IndexedDb, typeof TypeId>): IndexedDb => Indexed
  * @since 4.0.0
  * @category constructors
  */
-export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> = Layer.effect(
+export const layerWindow: Layer.Layer<IndexedDb> = Layer.effect(
   IndexedDb,
   Effect.suspend(() => {
     if (window.indexedDB && window.IDBKeyRange) {
@@ -83,15 +81,7 @@ export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> = Layer.eff
         })
       )
     } else {
-      return Effect.fail(
-        new Config.ConfigError(
-          new Schema.SchemaError(
-            new SchemaIssue.MissingKey({
-              messageMissingKey: "window.indexedDB is not available"
-            })
-          )
-        )
-      )
+      return Effect.die(new Error("window.indexedDB is not available"))
     }
   })
 )
