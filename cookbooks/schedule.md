@@ -1,14 +1,27 @@
 # Schedule Cookbook
 
+Use GitHub's document outline or browser search to jump to the recipe matching
+your problem. If you are new to `Schedule`, start with Part I. Otherwise,
+search for the shape of your problem, such as retry, repeat, polling, backoff,
+jitter, timeout, or recurrence limit.
+
+Watch for four beginner traps throughout the recipes:
+
+- **Channel choice** — `repeat` observes successes; `retry` observes typed
+  failures.
+- **Recurrence counts** — schedules count recurrences after the first execution.
+- **Schedule output** — schedule output is not always the business result.
+- **Bounds** — unbounded schedules need a limit, owner, or interruption path.
+
 ## Part I — Foundations
 
 ### 1. What a `Schedule` Really Represents
 
 #### 1.1 Recurrence policies as data
 
-A `Schedule` is a recurrence policy represented as a value. It describes when
-another decision point is allowed, how long to wait before it, and what output
-the policy emits. It does not perform the work being retried, repeated, or
+A `Schedule` is a value that describes when to run something again. It says
+whether another run is allowed, how long to wait before it, and what value the
+schedule reports. It does not perform the work being retried, repeated, or
 polled.
 
 ##### Problem
@@ -45,7 +58,7 @@ and compose it before any recurrence happens.
 
 This example defines two policies first, then attaches them to effects:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 const retryPolicy = Schedule.exponential("10 millis").pipe(
@@ -84,6 +97,15 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// request attempt 1
+// request attempt 2
+// request attempt 3
+// retry result: response
+// refresh cache
+// refresh cache
+// refresh cache
+// refresh schedule output: 2
 ```
 
 ##### Common mistakes
@@ -104,12 +126,12 @@ Other common mistakes are:
 
 ##### Practical guidance
 
-Name the recurrence policy before attaching it to work. Start with the smallest
-pieces, such as a cadence and a limit, then compose them.
+Name the rule for running again before attaching it to the work. Start with the
+smallest pieces, such as a cadence and a limit, then compose them.
 
 When reading schedule code, ask:
 
-- What recurrence policy am I declaring?
+- What rule for running again am I declaring?
 - What does the policy output?
 - What input does the policy need to observe?
 - Which constraints should be composed instead of embedded in the effect body?
@@ -124,12 +146,16 @@ A schedule is easier to read when you separate the value it observes from the
 value it emits. In `Schedule.Schedule<Output, Input, Error, Env>`, `Input` is
 what the driver feeds to the policy, and `Output` is what the policy reports.
 
+Beginner note: Schedule output — the schedule reports policy information; it is
+not automatically the successful value produced by the effect being repeated or
+retried.
+
 ##### Problem
 
-Developers often read a schedule only as a delay. That loses an important part
-of the model: schedules can inspect inputs and publish outputs. The input is not
-the constructor argument in `Schedule.spaced("1 second")`; it is the value passed
-to the schedule each time it is stepped.
+Developers often read a schedule only as a delay. That misses an important
+part of the model: schedules can receive values and report values. The input is
+not the constructor argument in `Schedule.spaced("1 second")`; it is the value
+passed to the schedule each time it is stepped.
 
 ##### Model
 
@@ -156,11 +182,12 @@ Common constructor outputs are also worth knowing:
 
 ##### Example
 
-This repeat policy observes successful values. `Schedule.passthrough` turns the
+This repeat policy receives successful values. `Schedule.passthrough` turns the
 latest input into the schedule output, then `Schedule.map` changes the output
 into a log-friendly label:
 
-```ts
+<!-- no-check: focuses on the schedule-builder shape rather than a standalone copy-paste example -->
+```ts no-check
 import { Console, Effect, Schedule } from "effect"
 
 type Status = "warming" | "ready"
@@ -231,8 +258,9 @@ decides whether another execution is allowed.
 ##### Problem
 
 Time-based recurrence is often described as "sleep, then try again." That is too
-small a model for `Schedule`. A schedule decision includes continuation,
-output, and delay. Those are related, but they are not the same thing.
+small a model for `Schedule`. A schedule decision says whether to keep going,
+what value to report, and how long to wait. Those are related, but they are not
+the same thing.
 
 ##### Model
 
@@ -255,6 +283,10 @@ That rule is the source of the common count distinction:
 In retry code, that means up to three retries. In repeat code, it means up to
 three repetitions.
 
+Beginner note: Recurrence counts — when a requirement says "run three times
+total", the schedule usually needs `recurs(2)` because the first execution has
+already happened.
+
 ##### Time
 
 Schedule time is measured at the step boundary. The schedule receives the
@@ -274,16 +306,17 @@ Common timing policies have different meanings:
 - `Schedule.elapsed` emits elapsed time as its output.
 
 These policies still produce schedule decisions. The delay answers when the next
-recurrence may happen. The continuation decision answers whether it may happen
-at all. The output answers what the policy reports to the driver or later
+run may happen. The continue-or-stop decision answers whether it may happen at
+all. The output answers what the policy reports to the driver or later
 combinators.
 
 ##### Common mistakes
 
 The first mistake is counting the initial effect execution as a schedule step.
-The schedule is consulted only after the first success or retryable failure.
+The effect runs once first. Only then does the schedule decide whether another
+run is allowed.
 
-The second mistake is treating delay and continuation as the same field. A
+The second mistake is treating delay and "keep going" as the same thing. A
 schedule can continue immediately, continue after a delay, or complete. Only the
 last case stops recurrence.
 
@@ -305,7 +338,7 @@ limits as variations of the same model instead of separate control-flow tricks.
 #### 1.4 Why `Schedule` is more than “retry with delay”
 
 Retry with a delay is one use of `Schedule`, not the definition of it. A
-schedule is a reusable recurrence policy that can drive retrying, repeating,
+schedule is a reusable rule for running again. It can drive retrying, repeating,
 polling, stream pacing, staged behavior, and observability.
 
 ##### Problem
@@ -371,13 +404,14 @@ inspect than a hand-written loop.
 
 ##### Practical guidance
 
-Reach for `Schedule` when the recurrence policy is more important than a single
-sleep. Name the policy in recurrence terms: bounded backoff, fixed polling,
-warm-up then steady state, retry while transient, repeat until terminal.
+Reach for `Schedule` when the rule for running again is more important than a
+single sleep. Name the policy in recurrence terms: bounded backoff, fixed
+polling, warm-up then steady state, retry while transient, repeat until terminal.
 
 If the only requirement is one hard-coded pause, a duration or `Effect.sleep`
-may be enough. If the requirement includes continuation, output, composition, or
-input-sensitive decisions, model it as a schedule.
+may be enough. If the requirement includes whether to keep going, what to
+report, how to compose policies, or how to inspect input values, model it as a
+schedule.
 
 #### 1.5 Composability as the core design idea
 
@@ -413,7 +447,7 @@ Use the output-selecting variants when a tuple is not useful:
 This retry policy has three separate concerns: a fast phase, a slower phase, and
 a hard retry limit.
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class TemporaryError extends Data.TaggedError("TemporaryError")<{
@@ -453,6 +487,15 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// request attempt 1
+// policy step 0
+// request attempt 2
+// policy step 1
+// request attempt 3
+// policy step 0
+// request attempt 4
+// result: ok
 ```
 
 The timing policy is phased with `andThen`. The retry budget is added with
@@ -482,7 +525,8 @@ Build schedules in this order:
 4. Add output mapping or tapping for observability.
 5. Sequence phases with `andThen` only when the policy really changes over time.
 
-The result should read as a recurrence policy, not as hidden control flow.
+The result should read like a rule for running again, not like hidden control
+flow.
 
 ### 2. `repeat` vs `retry`
 
@@ -490,6 +534,9 @@ The result should read as a recurrence policy, not as hidden control flow.
 
 Use `Effect.repeat` when a successful result should be followed by another run.
 The schedule is consulted after success, not after failure.
+
+Beginner note: Channel choice — choose `repeat` only when the value you need to
+inspect is a success value, such as a normal polling status.
 
 ##### Problem
 
@@ -503,9 +550,8 @@ Use `repeat` for workflows where success means "consider doing this again":
 heartbeats, periodic refreshes, metric sampling, polling successful domain
 states, and bounded setup checks.
 
-It is also the right fit when the value you need to inspect is in the success
-channel. A job status such as `"pending"` is usually a normal successful
-response, not an error.
+A job status such as `"pending"` is usually a normal successful response, not
+an error.
 
 ##### When not to use it
 
@@ -535,7 +581,7 @@ effect.
 
 This heartbeat runs once immediately, then repeats twice more:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let beats = 0
@@ -559,6 +605,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// heartbeat 1
+// heartbeat 2
+// heartbeat 3
+// repeat returned last value: heartbeat 3
 ```
 
 The initial execution is not counted as a scheduled recurrence. The example
@@ -622,6 +673,10 @@ Do not rely on retry for defects or interruptions. `Effect.retry` retries typed
 failures from the error channel; defects and interruptions are not retried as
 typed failures.
 
+Beginner note: Channel choice — `retry` is for temporary inability to complete
+an operation, not for ordinary states like `"pending"`, `"starting"`, or
+`"warming"`.
+
 ##### Schedule shape
 
 The schedule input is the typed failure from the failed attempt. If a later
@@ -638,7 +693,7 @@ as `while`, `until`, and `times` when the policy is local to one call site.
 
 This request fails twice with a retryable error, then succeeds:
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class HttpError extends Data.TaggedError("HttpError")<{
@@ -678,6 +733,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// request attempt 1
+// request attempt 2
+// request attempt 3
+// retry result: response body
 ```
 
 The `while` predicate is checked after each typed failure. If it returns
@@ -711,10 +771,10 @@ timing choice.
 
 ##### Problem
 
-A value-sensitive policy only sees the channel selected by the entry point.
-Polling states belong on the success path. Transient service errors belong on
-the failure path. If the operator is wrong, the schedule may never see the value
-you meant to inspect.
+A policy can only inspect the kind of value you give it. `repeat` gives it
+successes. `retry` gives it failures. Polling states belong on the success path.
+Transient service errors belong on the failure path. If the operator is wrong,
+the schedule may never see the value you meant to inspect.
 
 ##### Comparison
 
@@ -734,7 +794,7 @@ is modeled.
 This program uses `repeat` for successful job states and `retry` for transient
 service failures:
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 type JobState = "pending" | "ready"
@@ -788,6 +848,15 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// job state: pending
+// job state: pending
+// job state: ready
+// repeat finished with: ready
+// report attempt 1
+// report attempt 2
+// report attempt 3
+// retry finished with: report
 ```
 
 `"pending"` is a successful value, so the polling loop repeats. `"Unavailable"`
@@ -832,6 +901,9 @@ value.
 
 Those rules are small, but confusing them changes behavior and types.
 
+Beginner note: Channel choice — if a recipe surprises you, first ask which
+channel the schedule is observing, then ask what value the operator returns.
+
 ##### Mistakes to avoid
 
 | Mistake                                              | Consequence                                     |
@@ -847,7 +919,7 @@ Those rules are small, but confusing them changes behavior and types.
 
 This small program shows three of the common surprises:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 const program = Effect.gen(function*() {
@@ -897,6 +969,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// repeat ran 3 times and returned "repeat run 3"
+// retry attempted 3 times and ended with Failure
+// raw schedule repeat returned 2
+// repeat over failure ended with Failure
 ```
 
 `times: 2` allows two recurrences after the initial run. The retry example also
@@ -979,7 +1056,7 @@ final successful value.
 
 This program uses both entry points for their intended channels:
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 type Status = "starting" | "ready"
@@ -1033,6 +1110,15 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// status check: starting
+// status check: starting
+// status check: ready
+// repeat returned: ready
+// service call 1
+// service call 2
+// service call 3
+// retry returned: service response
 ```
 
 `"starting"` is a successful state, so it drives `repeat`. `ServiceError` is a
@@ -1069,8 +1155,8 @@ while the effect is still failing.
 #### 3.1 Repeat a fixed number of times
 
 Use `Schedule.recurs(n)` when a successful effect should run once now and then
-repeat at most `n` more times. The schedule is the recurrence policy; the effect
-itself is still executed by `Effect.repeat`.
+repeat at most `n` more times. The schedule is the rule for running again; the
+effect itself is still executed by `Effect.repeat`.
 
 ##### Problem
 
@@ -1093,6 +1179,9 @@ use `Effect.repeat` options such as `until` or `while`.
 `Schedule.recurs(4)` means four recurrences after the first run, for five total
 executions.
 
+Beginner note: Recurrence counts — count the first run separately, then use the
+schedule for the additional runs.
+
 | Desired total executions | Policy               |
 | ------------------------ | -------------------- |
 | 1                        | `Schedule.recurs(0)` |
@@ -1104,7 +1193,7 @@ means one initial run plus four repeats.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref, Schedule } from "effect"
 
 const program = Effect.gen(function*() {
@@ -1120,6 +1209,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// run 1
+// run 2
+// run 3
+// run 4
+// run 5
+// total runs: 5
 ```
 
 This prints five runs: the first execution plus four scheduled recurrences.
@@ -1129,7 +1225,7 @@ This prints five runs: the first execution plus four scheduled recurrences.
 Use `times` when you only need a local fixed repeat and want the final effect
 value back:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref } from "effect"
 
 const program = Effect.gen(function*() {
@@ -1144,6 +1240,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// run 1
+// run 2
+// run 3
+// run 4
+// run 5
+// last value: 5
 ```
 
 With a schedule, `Effect.repeat` succeeds with the schedule output. With
@@ -1159,7 +1262,7 @@ requirement says "run five times total", use `Schedule.recurs(4)` or
 #### 3.2 Retry a fixed number of times
 
 Use `Schedule.recurs(n)` with `Effect.retry` when the whole policy is "retry at
-most `n` more times". A retry observes typed failures, meaning failures in the
+most `n` more times". A retry receives typed failures. These are failures in the
 Effect error channel, not defects or interruptions.
 
 ##### Problem
@@ -1198,7 +1301,7 @@ while the effect is still failing, the last typed failure is returned.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class RequestError extends Data.TaggedError("RequestError")<{
@@ -1224,6 +1327,12 @@ const program = fetchUser.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// attempt 3
+// attempt 4
+// loaded Ada
 ```
 
 The first three attempts fail. The policy permits exactly three retries, so the
@@ -1267,6 +1376,8 @@ Do not use an unbounded spaced schedule accidentally. `Schedule.spaced("1 second
 continues until another condition stops it, so pair it with a count, predicate,
 or external interruption when the workflow must be finite.
 
+Beginner note: Bounds — adding a delay makes a loop slower, not finite.
+
 ##### Schedule shape
 
 `Schedule.spaced(duration)` keeps recurring and requests the same delay on each
@@ -1275,7 +1386,7 @@ immediately; the delay applies before each later recurrence.
 
 Limit a spaced schedule with `Schedule.take(n)`:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref, Schedule } from "effect"
 
 const program = Effect.gen(function*() {
@@ -1291,6 +1402,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// run 1
+// run 2
+// run 3
+// run 4
+// total runs: 4
 ```
 
 This runs four times total: one initial execution plus three spaced
@@ -1301,7 +1418,7 @@ recurrences.
 The same schedule can pace retries. In retry, typed failures drive the schedule
 instead of successful values.
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class RequestError extends Data.TaggedError("RequestError")<{
@@ -1327,6 +1444,11 @@ const program = request.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// attempt 3
+// result: ok
 ```
 
 Here the policy allows two retries and waits 25 milliseconds before each retry.
@@ -1343,8 +1465,8 @@ function becomes part of the schedule.
 
 #### 3.4 Stop after a limit
 
-Use a limit whenever a recurrence policy must not continue forever. The limit
-can be the whole policy, or it can cap another policy such as spacing or
+Use a limit whenever a rule for running again must not continue forever. The
+limit can be the whole policy, or it can cap another policy such as spacing or
 backoff.
 
 ##### Problem
@@ -1378,6 +1500,10 @@ typed failure decides whether to retry, use `Effect.retry` with `until` or
 Do not use `Schedule.during` as a timeout for a single slow run. A schedule is
 consulted between runs; it does not interrupt an effect that is already running.
 
+Beginner note: Bounds — schedule limits bound future recurrences, not the body
+of the current effect. Use an effect timeout when one execution must be
+interrupted.
+
 ##### Schedule shape
 
 `Effect.repeat` and `Effect.retry` run once before stepping the schedule:
@@ -1394,7 +1520,7 @@ repeat, it means up to three additional successful executions.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref, Schedule } from "effect"
 
 const countOnly = Effect.gen(function*() {
@@ -1428,6 +1554,15 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// count-only run 1
+// count-only run 2
+// count-only run 3
+// spaced run 1
+// spaced run 2
+// spaced run 3
+// count-only total: 3
+// spaced total: 3
 ```
 
 Both policies allow two recurrences after the first run, so both examples run
@@ -1438,7 +1573,7 @@ three times total.
 Use `Schedule.during` for a best-effort elapsed window, usually with spacing so
 the loop does not spin.
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref, Schedule } from "effect"
 
 const program = Effect.gen(function*() {
@@ -1458,6 +1593,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// windowed run 1
+// windowed run 2
+// windowed run 3
+// windowed run 4
+// windowed total: 4
 ```
 
 The window is checked at recurrence boundaries. It is not a deadline for the
@@ -1471,8 +1612,8 @@ a requirement says "try three times total", use a limit of `2`.
 
 #### 3.5 Build intuition before composing policies
 
-A `Schedule` is a policy value. It observes an input, produces an output,
-requests a delay, and decides whether another recurrence is allowed.
+A `Schedule` is a policy value. It receives an input, produces an output,
+requests a delay, and decides whether another run is allowed.
 
 ##### What this section is about
 
@@ -1571,12 +1712,15 @@ The options form is the smallest expression:
 `Schedule.recurs(3)` has the same retry-count meaning when used with
 `Effect.retry`.
 
+Beginner note: Recurrence counts — retry budgets count follow-up attempts, not
+the original attempt.
+
 If an attempt succeeds, retrying stops immediately. If every permitted attempt
 fails, `Effect.retry` returns the last typed failure.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
@@ -1602,6 +1746,12 @@ const program = callService.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// attempt 3
+// attempt 4
+// completed: service response
 ```
 
 Attempts 1, 2, and 3 fail. Attempt 4 is the third retry, so it is still inside
@@ -1650,7 +1800,7 @@ caps the retry count. `Schedule.both` combines them with intersection semantics:
 both schedules must continue, and the combined delay is the maximum of their
 delays.
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class TemporaryRequestError extends Data.TaggedError("TemporaryRequestError")<{
@@ -1680,6 +1830,12 @@ const program = request.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// attempt 3
+// attempt 4
+// loaded Ada
 ```
 
 The policy allows three retries and waits 25 milliseconds before each retry.
@@ -1737,7 +1893,7 @@ The count is a retry count:
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Ref, Schedule } from "effect"
 
 class CacheBusy extends Data.TaggedError("CacheBusy")<{
@@ -1768,6 +1924,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// attempt 3
+// snapshot v1: 42 entries
 ```
 
 The first two attempts fail, and the second retry succeeds. If the third attempt
@@ -1817,7 +1978,7 @@ happen when an earlier attempt succeeds.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Ref, Schedule } from "effect"
 
 class TemporaryError extends Data.TaggedError("TemporaryError")<{
@@ -1847,6 +2008,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// attempt 3
+// success on attempt 3; total attempts: 3
 ```
 
 The schedule allows four retries, but attempts 4 and 5 never run because
@@ -2685,7 +2851,7 @@ times total.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class ApiError extends Data.TaggedError("ApiError")<{
@@ -2716,6 +2882,12 @@ const program = request.pipe(
 )
 
 Effect.runPromise(program).then(() => undefined, console.error)
+// Output:
+// request attempt 1
+// request attempt 2
+// request attempt 3
+// request attempt 4
+// success: response body
 ```
 
 The first call is immediate. If it fails with a typed `ApiError`, the next waits
@@ -2799,7 +2971,7 @@ unbounded capped backoff.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
@@ -2842,6 +3014,12 @@ const program = loadAccountSummary("account-123").pipe(
 )
 
 Effect.runPromise(program).then(() => undefined, console.error)
+// Output:
+// load account-123: attempt 1
+// load account-123: attempt 2
+// load account-123: attempt 3
+// load account-123: attempt 4
+// balance: 125
 ```
 
 The first attempt runs immediately. If it fails, retries use the capped delay
@@ -2916,7 +3094,7 @@ after a typed failure.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class GatewayError extends Data.TaggedError("GatewayError")<{
@@ -2950,6 +3128,12 @@ const program = submitRequest.pipe(
 )
 
 Effect.runPromise(program).then(() => undefined, console.error)
+// Output:
+// gateway attempt 1
+// gateway attempt 2
+// gateway attempt 3
+// gateway attempt 4
+// result: accepted
 ```
 
 The retryable failures wait 10 milliseconds, 20 milliseconds, then at most 40
@@ -3547,7 +3731,7 @@ both present, both must allow another attempt.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class Timeout extends Data.TaggedError("Timeout")<{
@@ -3643,6 +3827,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// transient: attempt 1
+// transient: attempt 2
+// transient: attempt 3
+// transient: accepted
+// permanent: attempt 1
+// permanent: failed with InvalidRequest
 ```
 
 The transient request retries and then succeeds. The permanent request stops
@@ -3699,7 +3890,7 @@ whether another retry is available and how long to wait.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 interface RegistrationInput {
@@ -3786,6 +3977,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// ada@example.com: submit attempt 1
+// ada@example.com: submit attempt 2
+// ada@example.com: registration-2
+// not-an-email: submit attempt 1
+// not-an-email: failed with ValidationError
 ```
 
 The valid registration retries a temporary account-service failure. The invalid
@@ -3841,7 +4038,7 @@ immediately.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 interface Invoice {
@@ -3923,6 +4120,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// timeout-recovers: lookup attempt 1
+// timeout-recovers: lookup attempt 2
+// timeout-recovers: lookup attempt 3
+// timeout-recovers: invoice inv-123
+// http-failure: lookup attempt 1
+// http-failure: failed with HttpFailure
 ```
 
 The timeout case retries and succeeds. The HTTP failure stops after the first
@@ -3981,7 +4185,7 @@ For most clients, combine the predicate with a finite backoff schedule.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 type HttpStatus =
@@ -4066,6 +4270,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// server-recovers: HTTP attempt 1
+// server-recovers: HTTP attempt 2
+// server-recovers: HTTP attempt 3
+// server-recovers: user Ada
+// client-error: HTTP attempt 1
+// client-error: failed with HTTP 404
 ```
 
 The server-error case retries and succeeds. The 404 case stops immediately.
@@ -4114,7 +4325,7 @@ duration.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class ServerError extends Data.TaggedError("ServerError")<{
@@ -4180,6 +4391,14 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// server attempt 1
+// server attempt 2
+// server attempt 3
+// server result: server value
+// rate-limit attempt 1
+// rate-limit attempt 2
+// rate-limit result: rate-limited value
 ```
 
 The server policy retries quickly with jitter. The rate-limit policy waits from
@@ -4269,7 +4488,7 @@ error channel are retried, and only while the predicate returns `true`.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class GetUserError extends Data.TaggedError("GetUserError")<{
@@ -4323,6 +4542,11 @@ const program = getUser("user-123").pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// GET /users/user-123 attempt 1
+// GET /users/user-123 attempt 2
+// GET /users/user-123 attempt 3
+// loaded Ada
 ```
 
 `program` performs the GET once, then retries only timeout, connection reset, or
@@ -4340,7 +4564,7 @@ smaller delay. For background cache refreshes, use a slower base delay and a
 slightly larger budget. The reads are still safe, but the downstream service may
 already be under pressure.
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 const statusLookupRetryPolicy = Schedule.exponential("10 millis").pipe(
@@ -4369,6 +4593,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// status attempt 1
+// status attempt 2
+// status: ok
+// cache refresh policy ready: true
 ```
 
 The status policy gives the caller a quick second and third chance. The cache
@@ -4466,7 +4695,7 @@ exhausted, `Effect.retry` returns the last typed failure.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class WriteTimeout extends Data.TaggedError("WriteTimeout")<{
@@ -4520,6 +4749,11 @@ const updateEmail = (accountId: string, email: string) =>
 const program = updateEmail("account-1", "ada@example.com")
 
 Effect.runPromise(program)
+// Output:
+// set email attempt 1 for account-1
+// set email attempt 2 for account-1
+// set email attempt 3 for account-1
+// stored ada@example.com
 ```
 
 This example assumes `setAccountEmail(accountId, email)` is duplicate-safe:
@@ -4532,7 +4766,7 @@ not retried because repeating the same invalid write will not make it valid.
 Use a fixed delay when the downstream system prefers steady retry traffic, or a
 larger background policy when the caller can tolerate more latency:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 const steadyWriteRetry = Schedule.spaced("10 millis").pipe(
@@ -4561,6 +4795,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// audit marker attempt 1
+// audit marker attempt 2
+// steady policy result: stored
+// background policy ready: true
 ```
 
 The fixed schedule still limits retries and adds jitter, but avoids exponential
@@ -4595,7 +4834,7 @@ webhooks semantically safe.
 
 A retry policy is easy to attach to any failing effect:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let attempts = 0
@@ -4623,6 +4862,10 @@ const program = chargeCustomer.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// attempt 1: provider accepted charge #1
+// attempt 2: provider accepted charge #2
+// charged; accepted charges: 2
 ```
 
 This shape is technically valid, and the example terminates quickly, but it
@@ -4688,7 +4931,7 @@ Place retries around effects that are safe to re-run, and keep unsafe writes
 outside generic retry wrappers unless the external protocol provides a
 duplicate-safe boundary.
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let reservationAttempts = 0
@@ -4715,6 +4958,10 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// reserve order number attempt 1
+// reserve order number attempt 2
+// submit one charge for order-1001
 ```
 
 Here the schedule is applied only to the preparation step that the application
@@ -4815,7 +5062,7 @@ schedule continues.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class CreatePaymentError extends Data.TaggedError("CreatePaymentError")<{
@@ -4882,6 +5129,11 @@ const submitPayment = (
 const program = submitPayment("customer-1", 5000, "payment-command-42")
 
 Effect.runPromise(program)
+// Output:
+// payment attempt 1 with key payment-command-42
+// payment attempt 2 with key payment-command-42
+// payment attempt 3 with key payment-command-42
+// pay_123 Created
 ```
 
 The `idempotencyKey` is an argument to `submitPayment`, not a value created
@@ -4898,7 +5150,7 @@ how long it waits between attempts.
 For user-facing writes, keep the retry budget small. The idempotency key
 reduces duplicate-write risk, but the user still waits for the retry sequence:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 const userFacingKeyedWrite = Schedule.exponential("10 millis").pipe(
@@ -4917,6 +5169,9 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// user-facing policy: true
+// background policy: true
 ```
 
 Use the smaller policy when the caller needs a prompt answer. Use the larger
@@ -4954,13 +5209,17 @@ Sometimes the correct retry policy is no retry. Use that policy when another
 attempt would be a new business action, when the failure is permanent, or when
 the next step is reconciliation rather than repetition.
 
+Beginner note: Bounds — a bounded retry policy can still be wrong. Timing and
+limits do not make an unsafe operation safe to run again.
+
 ##### The anti-pattern
 
 Some operations should not receive a retry policy at all. The anti-pattern is
 to attach a reasonable-looking `Schedule` to an effect only because the failure
 looks temporary:
 
-```ts
+<!-- no-check: intentionally unsafe anti-pattern; do not treat as a runnable cookbook example -->
+```ts no-check
 import { Console, Effect, Schedule } from "effect"
 
 let attempts = 0
@@ -5048,7 +5307,7 @@ may still be one duplicate too many.
 Do not attach `Effect.retry` when the next correct action is correction,
 escalation, or reconciliation.
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Result } from "effect"
 
 let providerCharges = 0
@@ -5072,6 +5331,9 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// submitted payment once; provider charge 1
+// recorded for reconciliation: unknown-payment-outcome
 ```
 
 This program intentionally has no retry schedule around `submitPaymentOnce`. A
@@ -5155,7 +5417,7 @@ the effect's final value.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let executions = 0
@@ -5172,6 +5434,14 @@ const program = writeMetric.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// metric write 1
+// metric write 2
+// metric write 3
+// metric write 4
+// metric write 5
+// metric write 6
+// schedule output: 5; total executions: 6
 ```
 
 Here `writeMetric` runs once immediately. If it succeeds each time,
@@ -5181,7 +5451,7 @@ total.
 If you want the repeated effect's final successful value instead of the schedule
 output, use the options form:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect } from "effect"
 
 let sampleNumber = 0
@@ -5198,6 +5468,13 @@ const finalSample = readSample.pipe(
 )
 
 Effect.runPromise(finalSample)
+// Output:
+// sample 1
+// sample 2
+// sample 3
+// sample 4
+// sample 5
+// final sample: 5
 ```
 
 This uses four recurrences for five total executions and returns the final
@@ -5207,7 +5484,7 @@ successful sample.
 
 For five total executions, use four recurrences:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let executions = 0
@@ -5221,6 +5498,13 @@ const program = Effect.gen(function*() {
 )
 
 Effect.runPromise(program)
+// Output:
+// execution 1
+// execution 2
+// execution 3
+// execution 4
+// execution 5
+// total executions: 5
 ```
 
 Use `Schedule.recurs(5)` when you care about a composable schedule value. Use
@@ -5261,11 +5545,14 @@ Use a forever repeat only when the surrounding program has a clear lifetime. The
 normal way to stop an unbounded repeat is interruption, cancellation of the
 owning fiber, or shutdown of the scope that owns it.
 
+Beginner note: Bounds — "forever" is acceptable only when ownership is explicit.
+For request-response code, prefer a finite schedule or a timeout.
+
 ##### When not to use it
 
-Do not use a forever repeat for a request-response path that must return a value
-to its caller. If the effect keeps succeeding and the schedule is unbounded, the
-repeated program does not complete normally.
+Do not use a forever repeat for a request-response path. If the effect keeps
+succeeding and the schedule is unbounded, the repeated program does not complete
+normally.
 
 Do not use `Schedule.forever` for ordinary background polling unless a tight loop
 is intentional. It has zero delay between successful executions and can consume
@@ -5281,7 +5568,7 @@ outputs the current repetition count: `0`, `1`, `2`, and so on.
 
 For operational code, prefer a spaced forever schedule:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 const repeatEveryTick = Schedule.spaced("10 millis").pipe(
@@ -5291,6 +5578,8 @@ const repeatEveryTick = Schedule.spaced("10 millis").pipe(
 const program = Console.log(`spaced policy: ${Schedule.isSchedule(repeatEveryTick)}`)
 
 Effect.runPromise(program)
+// Output:
+// spaced policy: true
 ```
 
 `Schedule.spaced(duration)` is also unbounded by default, but it waits for the
@@ -5300,7 +5589,7 @@ success. The `Schedule.take(2)` above is only there to keep the example finite.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let refreshes = 0
@@ -5321,6 +5610,16 @@ const program = refreshCache.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// cache refresh 1
+// scheduled repetition 0
+// cache refresh 2
+// scheduled repetition 1
+// cache refresh 3
+// scheduled repetition 2
+// cache refresh 4
+// scheduled repetition 3
+// stopped demo after repetition 3
 ```
 
 This runs `refreshCache` once immediately. After each success, the schedule
@@ -5428,7 +5727,7 @@ runs four times total, with a pause before each recurrence.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let refreshes = 0
@@ -5444,6 +5743,12 @@ const program = refreshCache.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// cache refresh 1
+// cache refresh 2
+// cache refresh 3
+// cache refresh 4
+// last repetition: 3
 ```
 
 Here `refreshCache` runs immediately. If it succeeds, Effect waits before the
@@ -5457,7 +5762,7 @@ final output. With `Schedule.spaced`, that output is the recurrence count.
 
 If you already have a count schedule and want to add a pause to it, use `Schedule.addDelay`:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 const repeatWithPause = Schedule.recurs(3).pipe(
@@ -5475,6 +5780,12 @@ const program = Effect.gen(function*() {
 )
 
 Effect.runPromise(program)
+// Output:
+// run 1
+// run 2
+// run 3
+// run 4
+// last repetition: 3
 ```
 
 This keeps the recurrence count shape explicit and adds the fixed delay to each
@@ -5544,7 +5855,7 @@ successful value is not done and stops as soon as a successful value is done.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -5574,6 +5885,11 @@ const finalStatus = checkJob.pipe(
 )
 
 Effect.runPromise(finalStatus)
+// Output:
+// check 1: running
+// check 2: running
+// check 3: ready
+// final state: ready
 ```
 
 `checkJob` runs once immediately. If it succeeds with `{ state: "ready", ... }`,
@@ -5589,7 +5905,7 @@ made the condition false.
 
 Add spacing when the next recurrence should wait after each non-terminal success:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -5619,6 +5935,10 @@ const finalStatus = checkJob.pipe(
 )
 
 Effect.runPromise(finalStatus)
+// Output:
+// check 1: running
+// check 2: ready
+// final state: ready
 ```
 
 `Schedule.spaced("10 millis")` supplies the pause.
@@ -5744,7 +6064,7 @@ The repeated program succeeds with the schedule output, not with the last
 Add a small pause between successful batches when the downstream system needs
 breathing room:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface PageResult {
@@ -5775,6 +6095,11 @@ const importAllAvailablePages = importNextPage.pipe(
 )
 
 Effect.runPromise(importAllAvailablePages)
+// Output:
+// imported page 1
+// imported page 2
+// imported page 3
+// last repetition: 2
 ```
 
 Use `Schedule.forever.pipe(Schedule.satisfiesInputType<T>(), Schedule.while(...))`
@@ -5787,7 +6112,7 @@ work.
 If you also need a hard safety limit, combine the continuation predicate with a
 bounded schedule:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface QueueDrainResult {
@@ -5805,6 +6130,8 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// bounded drain policy: true
 ```
 
 This still stops when the queue reports no remaining work, but it also stops
@@ -5870,7 +6197,7 @@ is what matters.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let refreshes = 0
@@ -5892,6 +6219,9 @@ const program = loop.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// cache refresh 1
+// demo stopped after 1 refresh
 ```
 
 The timeout keeps the example quick while still using the real one-minute
@@ -5961,7 +6291,7 @@ successful run completes.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let syncs = 0
@@ -5983,6 +6313,9 @@ const program = loop.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// reference-data sync 1
+// demo stopped after 1 sync
 ```
 
 The timeout keeps the example quick. The hourly schedule itself is unbounded
@@ -6047,7 +6380,7 @@ When the repeat should stop after a known number of scheduled recurrences, add `
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let run = 0
@@ -6066,6 +6399,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// refresh 1
+// refresh 2
+// refresh 3
+// repeat returned schedule output 2
 ```
 
 This prints three refreshes: the initial run plus two scheduled recurrences. The
@@ -6138,7 +6476,7 @@ worker runs 101 times total.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let checks = 0
@@ -6157,6 +6495,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// queue check 1: empty
+// queue check 2: empty
+// queue check 3: empty
+// queue check 4: empty
+// worker stopped after recurrence 3
 ```
 
 The worker prints four checks: one initial check and three scheduled
@@ -6223,7 +6567,7 @@ Together, the schedule says: run now, then keep repeating after success with a f
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let batch = 0
@@ -6246,6 +6590,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// processed batch 1
+// processed batch 2
+// processed batch 3
+// processed batch 4
+// smoothing run stopped after recurrence 3
 ```
 
 The example prints four batch runs with a short pause between successful
@@ -6324,7 +6674,7 @@ with `Effect.repeat`, the repeated program returns the final schedule output.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let runs = 0
@@ -6345,6 +6695,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// run 1
+// run 2
+// run 3
+// run 4
+// total executions: 4
+// schedule output: 3
 ```
 
 This can run four times total: one original run plus three scheduled
@@ -6397,9 +6754,9 @@ the loop must not remain open forever.
 Do not use this to retry failures. `Effect.repeat` repeats after success; if
 the effect fails, repetition stops with that failure.
 
-Do not use a schedule budget as a hard timeout for an in-flight run. The
-schedule is consulted between successful runs; it does not interrupt the
-currently running effect.
+Do not use a schedule budget as a hard timeout for a run that is already in
+progress. The schedule is checked between successful runs; it does not interrupt
+the currently running effect.
 
 Do not use this when the limit is purely a count. Use `Schedule.recurs(n)` for
 that, or combine count and time when both constraints matter.
@@ -6416,7 +6773,7 @@ schedules to continue, so the repeat stops when the budget is exhausted.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 let polls = 0
@@ -6437,6 +6794,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// poll 1
+// poll 2
+// poll 3
+// poll 4
+// poll 5
+// total polls: 5
 ```
 
 The example uses millisecond durations so it terminates quickly. The same shape
@@ -6517,7 +6881,7 @@ The predicate above therefore means "repeat while the latest successful
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface Progress {
@@ -6547,6 +6911,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// progress: 40%
+// progress: 80%
+// progress: 100%
+// final progress: 100%
 ```
 
 `readProgress` runs once immediately. If it succeeds with `percent >= 100`, no
@@ -6629,7 +6998,7 @@ stability state. `Schedule.while` stops when that state is stable.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface Snapshot {
@@ -6690,6 +7059,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// snapshot v1 with 10 items
+// snapshot v2 with 12 items
+// snapshot v2 with 12 items
+// stable version: v2
 ```
 
 `readSnapshot` runs once before the schedule is consulted. The first successful
@@ -6775,7 +7149,7 @@ stops as soon as a successful terminal status is observed.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -6822,6 +7196,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// observed queued
+// observed running
+// observed running
+// observed succeeded
+// final state: succeeded
 ```
 
 `observeJob` runs once immediately. If it succeeds with a terminal status, there
@@ -6911,7 +7291,7 @@ observed status.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -6966,6 +7346,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// job-123: queued
+// job-123: running
+// job-123: succeeded
+// final status: succeeded
 ```
 
 The example checks immediately, logs two non-terminal statuses, waits briefly
@@ -7051,7 +7436,7 @@ observed status as the value returned by the repeated effect.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type PaymentStatus =
@@ -7105,6 +7490,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// payment pay_123: pending
+// payment pay_123: processing
+// payment pay_123: settled
+// final payment status: settled
 ```
 
 `observePaymentStatus` runs once before any delay. If the first successful
@@ -7192,7 +7582,7 @@ latest `ExportStatus` as the value returned by the repeated effect.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type ExportStatus =
@@ -7246,6 +7636,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// export export-123: running
+// export export-123: running
+// export export-123: ready
+// final export status: ready
 ```
 
 The program succeeds with the first non-running status observed. That value may
@@ -7336,7 +7731,7 @@ keeps the final observed status as the result of `Effect.repeat`.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type ProvisioningStatus =
@@ -7397,6 +7792,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// resource db-123: pending
+// resource db-123: creating
+// resource db-123: ready
+// final provisioning status: ready
 ```
 
 The program performs the first status check immediately. If the first
@@ -7481,7 +7881,7 @@ other terminal statuses to domain errors.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -7554,6 +7954,12 @@ const program = checkJobStatus("job-1").pipe(
 Effect.runPromise(program).then((status) => {
   console.log("result:", status)
 })
+// Output:
+// [job-1] Queued
+// [job-1] Running
+// [job-1] Completed
+// completed with result-123
+// result: { state: 'Completed', resultId: 'result-123' }
 ```
 
 The first check runs immediately. The schedule repeats only while the latest
@@ -7627,7 +8033,7 @@ If a bounded schedule stops first, the final observation can still be
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface Resource {
@@ -7687,6 +8093,12 @@ const program = lookupResource("file-1").pipe(
 Effect.runPromise(program).then((resource) => {
   console.log("result:", resource)
 })
+// Output:
+// [file-1] Missing
+// [file-1] Missing
+// [file-1] Found
+// resource url: https://example.test/file-1
+// result: { id: 'file-1', url: 'https://example.test/file-1' }
 ```
 
 The first lookup runs immediately. Missing observations wait before the next
@@ -7753,7 +8165,7 @@ For bounded waits, handle a final `Missing` value explicitly.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface CacheEntry {
@@ -7814,6 +8226,12 @@ const program = lookupCacheEntry("user:1").pipe(
 Effect.runPromise(program).then((entry) => {
   console.log("result:", entry)
 })
+// Output:
+// [user:1] Missing
+// [user:1] Missing
+// [user:1] Present
+// cache value: Ada v3
+// result: { key: 'user:1', value: 'Ada', version: 3 }
 ```
 
 The first cache lookup runs immediately. Misses wait before the next read. The
@@ -7886,7 +8304,7 @@ time" instead of returning stale data.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface ReplicaObservation {
@@ -7961,6 +8379,12 @@ const program = readReplicaWatermark("orders").pipe(
 Effect.runPromise(program).then((observation) => {
   console.log("result:", observation)
 })
+// Output:
+// [orders] read-model at 41
+// [orders] read-model at 43
+// [orders] read-model at 45
+// caught up at 45
+// result: { replica: 'read-model', observedVersion: 45 }
 ```
 
 The first read runs immediately. Behind observations wait before the next read.
@@ -8037,7 +8461,7 @@ failure, and a bounded final `Behind` as "not settled in time."
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface OrderSummary {
@@ -8179,6 +8603,15 @@ const program = observeAccountOrders(
 Effect.runPromise(program).then((order) => {
   console.log("result:", order)
 })
+// Output:
+// [account-1] read revision 8
+// observation: Behind
+// [account-1] read revision 9
+// observation: Behind
+// [account-1] read revision 10
+// observation: Settled
+// settled order total: 2599
+// result: { orderId: 'order-7', revision: 10, totalCents: 2599 }
 ```
 
 The first read runs immediately. While the projection is behind the expected
@@ -8244,8 +8677,10 @@ caller needs interruption semantics.
 
 Use `Schedule.spaced("1 second")` for the cadence, `Schedule.while` for the
 pending-status predicate, and `Schedule.during("30 seconds")` for the elapsed
-recurrence budget. `Schedule.passthrough` keeps the latest status as the repeat
-result instead of returning the timing schedule's numeric output.
+recurrence budget.
+
+Beginner note: Schedule output — `Schedule.passthrough` is intentional here:
+the repeat result is the last status observed by the schedule.
 
 ##### Example
 
@@ -8593,6 +9028,9 @@ a raw `"pending"` value.
 recurrences, so the timeout error must be produced after `Effect.repeat`
 returns.
 
+Beginner note: Bounds — a schedule-side budget decides when to stop polling. It
+does not automatically create a timeout error or interrupt an in-flight poll.
+
 ##### When to use it
 
 Use it when `"pending"` is normal while polling is open, but a final
@@ -8604,9 +9042,9 @@ exports, provisioning, payment settlement, and readiness checks.
 Do not use it to interrupt an in-flight status check. Add `Effect.timeout` to
 the checked effect or to the whole workflow when interruption is required.
 
-Do not use this when the final non-terminal status should be returned to the
-caller as data. In that case, keep the `Effect.repeat` result as the final
-observed status and let the caller decide what to do with it.
+Sometimes `"pending"` at the end is still useful data. In that case, keep the
+`Effect.repeat` result as the final observed status and let the caller decide
+what to do with it.
 
 Do not map every final status to the same timeout error. A terminal `"failed"`
 status and an exhausted polling budget usually mean different things.
@@ -8673,7 +9111,10 @@ const checkJobStatus = Effect.gen(function*() {
 
 const pollUntilDoneOrTimeout = checkJobStatus.pipe(
   Effect.repeat(pollForUpTo30Seconds),
-  Effect.flatMap((status) => {
+  Effect.flatMap((status): Effect.Effect<
+    Extract<JobStatus, { readonly state: "done" }>,
+    JobFailed | JobTimedOut
+  > => {
     switch (status.state) {
       case "done":
         return Effect.succeed(status)
@@ -8708,7 +9149,7 @@ const program = Effect.gen(function*() {
   yield* TestClock.adjust("35 seconds")
   const result = yield* Fiber.join(fiber)
   console.log("result:", result)
-}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+}).pipe(Effect.scoped, Effect.provide(TestClock.layer()))
 
 Effect.runPromise(program)
 ```
@@ -9267,7 +9708,7 @@ four and six seconds.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type Status =
@@ -9308,6 +9749,12 @@ const program = checkStatus("request-42").pipe(
 Effect.runPromise(program).then((status) => {
   console.log("result:", status)
 })
+// Output:
+// [request-42] observed pending
+// [request-42] observed pending
+// [request-42] observed complete
+// finished with complete
+// result: { state: 'complete', requestId: 'request-42', resultId: 'result-7' }
 ```
 
 The first status check runs immediately. Later checks wait for the jittered
@@ -9385,7 +9832,7 @@ twelve seconds.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type WorkerStatus =
@@ -9429,6 +9876,12 @@ const program = checkWorkerStatus("worker-a", "task-9").pipe(
 Effect.runPromise(program).then((status) => {
   console.log("result:", status)
 })
+// Output:
+// [worker-a/task-9] running
+// [worker-a/task-9] running
+// [worker-a/task-9] complete
+// final status: complete
+// result: { state: 'complete', workerId: 'worker-a', taskId: 'task-9' }
 ```
 
 Each worker evaluates its own schedule. Even if several workers start together,
@@ -9504,7 +9957,7 @@ a delay between twelve and eighteen seconds.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type ControlPlaneStatus =
@@ -9551,6 +10004,12 @@ const program = describeOperation("op-22").pipe(
 Effect.runPromise(program).then((status) => {
   console.log("result:", status)
 })
+// Output:
+// [op-22] queued
+// [op-22] reconciling
+// [op-22] ready
+// control-plane result: ready
+// result: { state: 'ready', operationId: 'op-22' }
 ```
 
 Each caller chooses its own adjusted delay on each recurrence. Even when callers
@@ -9640,7 +10099,7 @@ mean by "wait 500 milliseconds before retrying." For retry policies, reach for
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class TemporaryProfileError extends Data.TaggedError("TemporaryProfileError")<{
@@ -9673,6 +10132,11 @@ const program = fetchProfile.pipe(
 Effect.runPromise(program).then((profile) => {
   console.log(`loaded profile: ${profile.name}`)
 })
+// Output:
+// profile attempt 1
+// profile attempt 2
+// profile attempt 3
+// loaded profile: Ada
 ```
 
 The example uses a short delay so it terminates quickly in `scratchpad/repro.ts`.
@@ -9758,7 +10222,7 @@ number of times after the original attempt.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class IndexError extends Data.TaggedError("IndexError")<{
@@ -9793,6 +10257,12 @@ const program = refreshSearchIndex.pipe(
 Effect.runPromise(program).then((message) => {
   console.log(message)
 })
+// Output:
+// index attempt 1
+// index attempt 2
+// index attempt 3
+// index attempt 4
+// index refreshed
 ```
 
 The example uses a 20 millisecond increment so it finishes quickly. With a 250
@@ -9874,7 +10344,7 @@ growing delay but bound the number of retries.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class DownstreamError extends Data.TaggedError("DownstreamError")<{
@@ -9905,6 +10375,12 @@ const program = fetchCustomerProfile.pipe(
 Effect.runPromise(program).then((profile) => {
   console.log(`${profile.customerId} plan: ${profile.plan}`)
 })
+// Output:
+// profile API attempt 1
+// profile API attempt 2
+// profile API attempt 3
+// profile API attempt 4
+// customer-123 plan: pro
 ```
 
 The example uses 20 milliseconds as the base so it finishes quickly. With a
@@ -9981,7 +10457,7 @@ operation should eventually give up.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
@@ -10015,6 +10491,13 @@ const program = refreshControlPlaneState.pipe(
 Effect.runPromise(program).then((message) => {
   console.log(message)
 })
+// Output:
+// control-plane attempt 1
+// control-plane attempt 2
+// control-plane attempt 3
+// control-plane attempt 4
+// control-plane attempt 5
+// control plane refreshed
 ```
 
 The first call to `refreshControlPlaneState` runs immediately. If it fails with
@@ -10207,7 +10690,7 @@ default. `Schedule.recurs(6)` allows six retries after the original attempt.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type QueueConnectError =
@@ -10254,6 +10737,11 @@ const consumer = Effect.gen(function*() {
 )
 
 Effect.runPromise(consumer)
+// Output:
+// queue connect attempt 1
+// queue connect attempt 2
+// queue connect attempt 3
+// consumer processed one message
 ```
 
 The example stops after one processed message so it can be pasted into a
@@ -10315,7 +10803,7 @@ startup so instances are less likely to retry at exactly the same moment.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class DependencyNotReady extends Data.TaggedError("DependencyNotReady")<{
@@ -10369,6 +10857,12 @@ const program = Effect.gen(function*() {
 )
 
 Effect.runPromise(program)
+// Output:
+// database readiness check 1
+// database readiness check 2
+// database readiness check 3
+// database readiness check 4
+// HTTP server started
 ```
 
 The first readiness check runs before the schedule is consulted. If a retry
@@ -10432,7 +10926,7 @@ stopping behavior separately with `Schedule.recurs` or `Schedule.during`.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class ControlPlaneUnavailable extends Data.TaggedError(
@@ -10481,6 +10975,18 @@ const program = refreshRoutingTable.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// refresh attempt 1
+// retrying routing after attempt 1
+// raw next delay: 250ms, capped at: 250ms
+// refresh attempt 2
+// retrying routing after attempt 2
+// raw next delay: 500ms, capped at: 500ms
+// refresh attempt 3
+// retrying routing after attempt 3
+// raw next delay: 1s, capped at: 1s
+// refresh attempt 4
+// result: routes refreshed
 ```
 
 `Schedule.tapInput` logs the failure that caused a retry. `Schedule.tapOutput`
@@ -10546,7 +11052,7 @@ The cap does not flatten the whole policy. With a base of `250 millis` and a
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class RemoteError extends Data.TaggedError("RemoteError")<{
@@ -10587,6 +11093,15 @@ const program = callControlPlane.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// raw delay 250ms -> capped 250ms
+// attempt 2
+// raw delay 500ms -> capped 500ms
+// attempt 3
+// raw delay 1s -> capped 1s
+// attempt 4
+// result: ok
 ```
 
 Delays below the cap pass through unchanged, so the policy keeps the early
@@ -10798,7 +11313,7 @@ after the previous item started.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref, Schedule } from "effect"
 
 type BatchItem = {
@@ -10857,6 +11372,14 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// sent a: alpha
+// 2 item(s) left
+// sent b: bravo
+// 1 item(s) left
+// sent c: charlie
+// 0 item(s) left
+// batch complete; remaining=0
 ```
 
 The first item is sent immediately. If more items remain, the schedule waits
@@ -10978,6 +11501,7 @@ const isRetryableVendorFailure = (error: VendorApiError) =>
   error.status >= 500
 
 const vendorRetryPolicy = Schedule.exponential("30 millis").pipe(
+  Schedule.satisfiesInputType<VendorApiError>(),
   Schedule.jittered,
   Schedule.both(Schedule.recurs(5)),
   Schedule.both(Schedule.during("1 second")),
@@ -11114,7 +11638,7 @@ the base spacing, but instances no longer line up perfectly.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Random, Ref, Schedule } from "effect"
 
 type WorkItem = {
@@ -11170,6 +11694,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// processed job-1
+// processed job-2
+// processed job-3
+// processed job-4
+// queue drained; remaining=0
 ```
 
 The first `processNextItem` run happens immediately. The schedule controls only
@@ -11253,7 +11783,7 @@ follow-up drain steps.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Queue, Schedule } from "effect"
 
 type WorkItem = {
@@ -11309,6 +11839,14 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// processed item 1: refresh-search-index
+// 2 item(s) remain
+// processed item 2: publish-outbox-event
+// 1 item(s) remain
+// processed item 3: expire-cache-entry
+// 0 item(s) remain
+// drain pass finished
 ```
 
 The demo uses `10 millis` so it terminates quickly. In production, choose a gap
@@ -11382,7 +11920,7 @@ The first provider call is not delayed.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class EmailDeliveryError extends Data.TaggedError("EmailDeliveryError")<{
@@ -11453,6 +11991,10 @@ const program = sendEmailWithControlledSpacing({
 )
 
 Effect.runPromise(program)
+// Output:
+// email attempt 1 using key email:report-ready:user-123
+// email attempt 2 using key email:report-ready:user-123
+// accepted as provider-email:report-ready:user-123
 ```
 
 The demo uses `20 millis` so it finishes quickly. In production, choose spacing
@@ -11526,7 +12068,7 @@ predicate controls whether a failure is allowed to use the schedule.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class ProviderError extends Data.TaggedError("ProviderError")<{
@@ -11587,6 +12129,11 @@ const program = sendProviderMessage({
 )
 
 Effect.runPromise(program)
+// Output:
+// provider attempt 1 for message-456
+// provider attempt 2 for message-456
+// provider attempt 3 for message-456
+// accepted: true
 ```
 
 The original provider call is immediate. Retryable failures are spaced by the
@@ -11673,7 +12220,7 @@ queue shutdown signal may be the stop condition instead.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref, Schedule } from "effect"
 
 type PartnerEvent = {
@@ -11755,6 +12302,18 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// next: event-1
+// provider call 1: alpha
+// provider call 2: alpha
+// sent: accepted-event-1
+// next: event-2
+// provider call 3: bravo
+// sent: accepted-event-2
+// next: event-3
+// provider call 4: charlie
+// sent: accepted-event-3
+// done
 ```
 
 The worker sends the first event immediately. The first provider call fails
@@ -11835,7 +12394,7 @@ headers.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Ref, Schedule } from "effect"
 
 type ApiError =
@@ -11904,6 +12463,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// HTTP attempt 1
+// 429 delay: 25ms
+// HTTP attempt 2
+// 429 delay: 40ms
+// HTTP attempt 3
+// response: ok
 ```
 
 The first retry uses the provider's 25 millisecond signal. The second retry uses
@@ -11960,7 +12526,7 @@ delay that matches that failure.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Ref, Schedule } from "effect"
 
 type ApiError =
@@ -12024,6 +12590,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// provider attempt 1
+// delay for ServiceUnavailable: 10ms
+// provider attempt 2
+// delay for RateLimited: 35ms
+// provider attempt 3
+// result: provider-ok
 ```
 
 This policy allows at most five retries after the original call. Ordinary
@@ -12121,7 +12694,7 @@ allowed. Compose those decisions separately:
 
 ##### Example
 
-```ts
+```ts runnable
 import { Console, Effect, Schedule } from "effect"
 
 type ApiError = {
@@ -12166,6 +12739,7 @@ const program = Effect.forEach(
 )
 
 Effect.runPromise(program)
+// Output may vary:
 ```
 
 The first attempt for each client runs immediately. If a client fails, the
@@ -12232,7 +12806,7 @@ That order keeps the policy readable: exponential retry, jittered, bounded.
 
 ##### Example
 
-```ts
+```ts runnable
 import { Console, Effect, Schedule } from "effect"
 
 type ClientError = {
@@ -12277,6 +12851,7 @@ const program = Effect.forEach(
 )
 
 Effect.runPromise(program)
+// Output may vary:
 ```
 
 Each client has the same retry policy, but each recurrence samples its own
@@ -12343,7 +12918,7 @@ Build the operational shape first, then jitter it:
 
 ##### Example
 
-```ts
+```ts runnable
 import { Console, Data, Effect, Schedule } from "effect"
 
 class DependencyUnavailable extends Data.TaggedError("DependencyUnavailable")<{
@@ -12390,6 +12965,7 @@ const program = Effect.forEach(
 )
 
 Effect.runPromise(program)
+// Output may vary:
 ```
 
 Each instance keeps the same general backoff shape, but its individual delays
@@ -12453,7 +13029,7 @@ the jittered delay.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class GatewayUnavailable extends Data.TaggedError("GatewayUnavailable")<{
@@ -12484,6 +13060,12 @@ const program = callGateway.pipe(
 )
 
 Effect.runPromise(program).then(() => undefined, console.error)
+// Output:
+// gateway attempt 1
+// gateway attempt 2
+// gateway attempt 3
+// gateway attempt 4
+// success: gateway response
 ```
 
 The original call runs immediately. Each retry uses the exponential delay as a
@@ -12556,7 +13138,7 @@ typed failure.
 
 ##### Example
 
-```ts
+```ts runnable
 import { Console, Data, Effect, Schedule } from "effect"
 
 class ClusterRequestError extends Data.TaggedError("ClusterRequestError")<{
@@ -12608,6 +13190,7 @@ const program = Effect.all([
 ], { concurrency: "unbounded", discard: true })
 
 Effect.runPromise(program).then(() => undefined, console.error)
+// Output may vary:
 ```
 
 Each node starts immediately and retries transient cluster errors with the same
@@ -12697,7 +13280,7 @@ any one fiber or process.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Random, Ref, Schedule } from "effect"
 
 type GatewayError = {
@@ -12735,6 +13318,11 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// refresh attempt 1
+// refresh attempt 2
+// refresh attempt 3
+// cache refreshed
 ```
 
 `program` runs the cache refresh immediately, then retries around a 20
@@ -12818,7 +13406,7 @@ and `Schedule.recurs`, `Schedule.take`, or `Schedule.during` for visible bounds.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Ref, Schedule } from "effect"
 
 const predictableStatusPolling = Schedule.spaced("50 millis").pipe(
@@ -12841,6 +13429,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// poll 1: status is still visible
+// poll 2: status is still visible
+// poll 3: status is still visible
+// poll 4: status is still visible
+// stopped after recurrence 3
 ```
 
 The loop uses a deterministic gap and a deterministic stop condition. Adding
@@ -12907,7 +13501,7 @@ a random value between 80% and 120% of the original delay. Add
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Data, Effect, Schedule } from "effect"
 
 type HttpMethod = "GET" | "HEAD" | "PUT" | "DELETE" | "POST"
@@ -12959,6 +13553,11 @@ const program = getProfile.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// GET /profile attempt 1
+// GET /profile attempt 2
+// GET /profile attempt 3
+// loaded Ada
 ```
 
 ##### Variants
@@ -13024,7 +13623,7 @@ attempt.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Data, Duration, Effect, Schedule } from "effect"
 
 class RedisReconnectError extends Data.TaggedError("RedisReconnectError")<{
@@ -13057,6 +13656,12 @@ const program = reconnectRedis.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// redis reconnect attempt 1
+// redis reconnect attempt 2
+// redis reconnect attempt 3
+// redis reconnect attempt 4
+// redis reconnected
 ```
 
 ##### Variants
@@ -13132,7 +13737,7 @@ milliseconds to 1.2 seconds.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Data, Duration, Effect, Schedule } from "effect"
 
 class WebSocketConnectError extends Data.TaggedError("WebSocketConnectError")<{
@@ -13192,6 +13797,11 @@ const program = connectWebSocket.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// websocket connect attempt 1
+// websocket connect attempt 2
+// websocket connect attempt 3
+// websocket connected
 ```
 
 The sample uses short delays so it terminates quickly when pasted into
@@ -13280,7 +13890,7 @@ starts. The schedule controls only the recurrences after successful refreshes.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Effect, Schedule } from "effect"
 
 type Config = {
@@ -13321,6 +13931,16 @@ const program = refreshCachedConfig.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// loaded config version 1
+// cached v1
+// loaded config version 2
+// cached v2
+// loaded config version 3
+// cached v3
+// loaded config version 4
+// cached v4
+// refresh loop stopped
 ```
 
 The sample uses a short interval and `Schedule.take(3)` so it terminates
@@ -13405,7 +14025,7 @@ passes.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Effect, Schedule } from "effect"
 
 type CacheKey = string
@@ -13439,6 +14059,17 @@ const program = warmCacheOnce.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// warmed catalog:featured
+// warmed pricing:default
+// warmed permissions:public
+// warmed catalog:featured
+// warmed pricing:default
+// warmed permissions:public
+// warmed catalog:featured
+// warmed pricing:default
+// warmed permissions:public
+// cache warming stopped
 ```
 
 The sample warms three keys immediately and then performs two scheduled
@@ -13531,7 +14162,7 @@ stops the repeat and returns the latest status.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type OrderStatus =
@@ -13589,6 +14220,11 @@ const program = waitForTerminalOrderStatus("order-123").pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// status read 1: queued
+// status read 2: running
+// status read 3: completed
+// final status: completed
 ```
 
 `waitForTerminalOrderStatus` reads the status immediately. If the first status
@@ -13685,7 +14321,7 @@ continues the schedule; returning `false` stops it and yields the latest output.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type DrainResult = {
@@ -13731,6 +14367,11 @@ const program = drainWorkQueue.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// drain 1: processed=25, remaining=40
+// drain 2: processed=25, remaining=15
+// drain 3: processed=15, remaining=0
+// stopped with 0 items remaining
 ```
 
 `drainWorkQueue` runs once immediately. If that first drain returns
@@ -13831,7 +14472,7 @@ result after the schedule stops.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type Availability<A> =
@@ -13899,6 +14540,11 @@ const program = waitForProfile("user-1").pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// user-1 cache lookup 1: Missing
+// user-1 cache lookup 2: Missing
+// user-1 cache lookup 3: Available
+// profile ready: Ada
 ```
 
 The first cache lookup runs immediately. If it returns `Missing`, the schedule
@@ -13986,7 +14632,7 @@ observation in schedule state.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 interface Snapshot {
@@ -14054,6 +14700,11 @@ const program = readSnapshot.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// snapshot 1: version=v1, items=8
+// snapshot 2: version=v2, items=10
+// snapshot 3: version=v2, items=10
+// stable at version v2 with 10 items
 ```
 
 `readSnapshot` runs once before the schedule is consulted. The first successful
@@ -14136,7 +14787,7 @@ many times?", while the predicate answers "is this failure retryable?"
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class TransientDownstreamError extends Data.TaggedError("TransientDownstreamError")<{
@@ -14188,6 +14839,10 @@ const program = callDownstream.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// stopped on FatalDownstreamError/Unauthorized after 2 attempts
 ```
 
 ##### Variants
@@ -14276,7 +14931,7 @@ which decides whether another retry is allowed and how long to wait.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class DownstreamError extends Data.TaggedError("DownstreamError")<{
@@ -14304,7 +14959,7 @@ const classifyStatus = (status: number): DownstreamError => {
   return new DownstreamError({ reason: "BadRequest" })
 }
 
-const statuses = [429, 401] as const
+const statuses: ReadonlyArray<number> = [429, 401]
 let attempts = 0
 
 const callDownstream = Effect.gen(function*() {
@@ -14342,6 +14997,10 @@ const program = callDownstream.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// downstream returned 429
+// downstream returned 401
+// stopped on Unauthorized after 2 attempts
 ```
 
 The `429` response is classified as transient and retried. The later `401` is
@@ -14431,7 +15090,7 @@ Only failures after that first execution are fed to the schedule:
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
@@ -14466,6 +15125,11 @@ const program = fetchInventory.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// inventory attempt 1
+// inventory attempt 2
+// inventory attempt 3
+// loaded 2 items after 3 attempts
 ```
 
 The example uses `20 millis` so it terminates quickly. Use the same shape with
@@ -14550,7 +15214,7 @@ exhausted.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type TransientError = {
@@ -14585,6 +15249,12 @@ const program = callDownstream.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// downstream attempt 1
+// downstream attempt 2
+// downstream attempt 3
+// downstream attempt 4
+// succeeded with "response body" after 4 attempts
 ```
 
 The example uses a `20 millis` base interval so it terminates quickly. With this
@@ -14674,7 +15344,7 @@ total.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
@@ -14714,6 +15384,11 @@ const program = callService.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// service attempt 1: 503
+// service attempt 2: 503
+// service attempt 3: 200
+// succeeded with ok after 3 attempts
 ```
 
 The example uses a `10 millis` base interval so it terminates quickly. The
@@ -14983,7 +15658,7 @@ attempts may fit more retries into the same budget.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class DependencyError extends Data.TaggedError("DependencyError")<{
@@ -15008,6 +15683,12 @@ const program = callDependency.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// dependency attempt 1
+// dependency attempt 2
+// dependency attempt 3
+// dependency attempt 4
+// stopped after 4 attempts; last error was attempt 4
 ```
 
 The first call is immediate. After each failure, the schedule waits with
@@ -15096,7 +15777,7 @@ provides the wait time and the recurrence side provides the retry count.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Schedule } from "effect"
 
 type TransientError = {
@@ -15128,6 +15809,18 @@ const program = fetchMetadata.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// metadata attempt 1
+// next delay: 10ms
+// metadata attempt 2
+// next delay: 20ms
+// metadata attempt 3
+// next delay: 40ms
+// metadata attempt 4
+// next delay: 40ms
+// metadata attempt 5
+// next delay: 40ms
+// gave up after 5 attempts; last error was attempt 5
 ```
 
 The retry delays grow until they reach the cap, and `Schedule.recurs(4)` allows
@@ -15212,7 +15905,7 @@ when readiness is reached.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type Readiness =
@@ -15259,6 +15952,13 @@ const program = Effect.repeat(checkReadiness, startupThenRelaxed).pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// readiness check 1: Starting
+// readiness check 2: Starting
+// readiness check 3: Starting
+// readiness check 4: Starting
+// readiness check 5: Ready
+// finished with Ready
 ```
 
 `program` performs one readiness check immediately. If that check returns
@@ -15352,7 +16052,7 @@ while all pieces of the policy still allow another recurrence.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type StartupCheckError =
@@ -15365,10 +16065,12 @@ const checkDatabase: Effect.Effect<void, StartupCheckError> = Effect.gen(functio
   databaseChecks += 1
   yield* Console.log(`database check ${databaseChecks}`)
   if (databaseChecks < 3) {
-    return yield* Effect.fail({
-      _tag: "DependencyUnavailable",
-      dependency: "database"
-    })
+    return yield* Effect.fail(
+      {
+        _tag: "DependencyUnavailable",
+        dependency: "database"
+      } as const
+    )
   }
 })
 
@@ -15400,6 +16102,12 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// database check 1
+// database check 2
+// database check 3
+// broker check ok
+// initialized
 ```
 
 `initialize` runs the first startup check immediately. If a dependency is not
@@ -15485,7 +16193,7 @@ completes.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type Readiness =
@@ -15527,6 +16235,14 @@ const program = Effect.repeat(
 )
 
 Effect.runPromise(program)
+// Output:
+// probe 1: Starting
+// probe 2: Starting
+// probe 3: Ready
+// probe 4: Ready
+// probe 5: Ready
+// probe 6: Ready
+// background monitoring sample finished
 ```
 
 The example bounds the background phase with `Schedule.take(3)` so it terminates
@@ -15599,7 +16315,7 @@ schedule. The schedule starts only after a typed failure.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class GatewayError extends Data.TaggedError("GatewayError")<{
@@ -15648,6 +16364,13 @@ const program = callGateway.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// gateway attempt 1
+// gateway attempt 2
+// gateway attempt 3
+// gateway attempt 4
+// gateway attempt 5
+// gateway succeeded on attempt 5
 ```
 
 The retry sequence is:
@@ -15738,7 +16461,7 @@ status is observed.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type Status =
@@ -15792,6 +16515,12 @@ const program = pollJob("job-1").pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// job-1: read 1 -> Running
+// job-1: read 2 -> Running
+// job-1: read 3 -> Running
+// job-1: read 4 -> Completed
+// final status: Completed
 ```
 
 `pollJob` reads the status immediately. If that first read is already
@@ -16086,7 +16815,7 @@ count, and also stops when the short time budget is exhausted.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type DependencyError = {
@@ -16123,6 +16852,12 @@ const program = readFromDependency.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// read attempt 1
+// read attempt 2
+// read attempt 3
+// read attempt 4
+// result: catalog metadata
 ```
 
 `program` performs the first dependency read immediately. If it fails with
@@ -16219,7 +16954,7 @@ to error classification, shutdown, cancellation, or a separate business rule.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class DeliveryError extends Data.TaggedError("DeliveryError")<{
@@ -16255,6 +16990,12 @@ const program = deliverNotification.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// delivery attempt 1
+// delivery attempt 2
+// delivery attempt 3
+// delivery attempt 4
+// notification delivered
 ```
 
 The demo uses a short delay so it terminates quickly. In production, choose a
@@ -16345,7 +17086,7 @@ failure.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type TransientError = { readonly _tag: "TransientError" }
@@ -16386,6 +17127,13 @@ const program = refreshRemoteSnapshot.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// refresh attempt 1
+// refresh attempt 2
+// refresh attempt 3
+// refresh attempt 4
+// refresh attempt 5
+// snapshot refreshed
 ```
 
 The first few retry decisions come from the responsive phase. If the operation
@@ -16472,7 +17220,7 @@ when either the retry count or elapsed budget is exhausted.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Schedule } from "effect"
 
 type InventorySnapshot = {
@@ -16536,6 +17284,12 @@ const program = loadInventorySnapshot.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// inventory attempt 1
+// inventory attempt 2
+// inventory attempt 3
+// inventory attempt 4
+// sku-123: 42 available
 ```
 
 The demo uses short durations so it finishes quickly. In production, the same
@@ -16636,7 +17390,7 @@ schedule; `Effect.repeat` runs the effect once before consulting the schedule.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type RefreshError = { readonly _tag: "RefreshError" }
@@ -16660,6 +17414,12 @@ const program = refreshSearchIndex.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// refresh 1
+// refresh 2
+// refresh 3
+// refresh 4
+// demo complete
 ```
 
 The demo bounds the repeat with `Schedule.take(3)` so it terminates quickly.
@@ -16745,7 +17505,7 @@ limits must still allow recurrence.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 interface User {
@@ -16819,6 +17579,12 @@ const program = getUser("user-123").pipe(
 )
 
 Effect.runPromise(program).then(console.log, console.error)
+// Output:
+// GET /users/user-123, attempt 1
+// GET /users/user-123, attempt 2
+// GET /users/user-123, attempt 3
+// loaded Ada
+// { id: 'user-123', name: 'Ada' }
 ```
 
 The example uses small delays so it terminates quickly. The first request is
@@ -16906,7 +17672,7 @@ which helps avoid synchronized retry waves.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 type HttpStatus = 200 | 400 | 401 | 403 | 404 | 429 | 500 | 502 | 503 | 504
@@ -16982,6 +17748,12 @@ const program = getCatalog("https://api.example.test/catalog").pipe(
 )
 
 Effect.runPromise(program).then(console.log, console.error)
+// Output:
+// GET https://api.example.test/catalog, attempt 1
+// GET https://api.example.test/catalog, attempt 2
+// GET https://api.example.test/catalog, attempt 3
+// received catalog-v1
+// catalog-v1
 ```
 
 The example uses short delays so it finishes quickly. The first `GET` is sent
@@ -17076,7 +17848,7 @@ total-attempt count.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class PostOrderError extends Data.TaggedError("PostOrderError")<{
@@ -17157,6 +17929,11 @@ const program = submitOrder("customer-1", "sku-1", 2, "order-key-123").pipe(
 )
 
 Effect.runPromise(program).then(console.log, console.error)
+// Output:
+// POST /orders attempt 1 with key order-key-123
+// POST /orders attempt 2 with key order-key-123
+// order order-1000: Created
+// { id: 'order-1000', status: 'Created' }
 ```
 
 The key detail is that `idempotencyKey` is an input to `submitOrder`. Every
@@ -17251,7 +18028,7 @@ larger of the local backoff delay and the server-provided retry delay.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Schedule } from "effect"
 
 type HttpError =
@@ -17270,10 +18047,12 @@ const callApi: Effect.Effect<string, HttpError> = Effect.gen(function*() {
   yield* Console.log(`calling API, attempt ${attempts}`)
 
   if (attempts === 1) {
-    return yield* Effect.fail({
-      _tag: "RateLimited",
-      retryAfter: Duration.millis(30)
-    })
+    return yield* Effect.fail(
+      {
+        _tag: "RateLimited",
+        retryAfter: Duration.millis(30)
+      } as const
+    )
   }
 
   return "accepted"
@@ -17298,6 +18077,11 @@ const program = Effect.retry(callApi, rateLimitPolicy).pipe(
 )
 
 Effect.runPromise(program).then(console.log, console.error)
+// Output:
+// calling API, attempt 1
+// calling API, attempt 2
+// result: accepted
+// accepted
 ```
 
 ##### Variants
@@ -17378,7 +18162,7 @@ loop an elapsed budget.
 
 ##### Example
 
-```ts
+```ts runnable
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -17428,6 +18212,7 @@ const waitForJob = (jobId: string) =>
   )
 
 Effect.runPromise(waitForJob("job-1")).then(console.log, console.error)
+// Output may vary:
 ```
 
 `waitForJob` performs the first status request immediately. If that first
@@ -17512,7 +18297,7 @@ the transient-failure budget.
 
 ##### Example
 
-```ts
+```ts runnable
 import { Console, Effect, Schedule } from "effect"
 
 type ClientConfig = {
@@ -17532,7 +18317,7 @@ const fetchStartupConfig: Effect.Effect<ClientConfig, ConfigFetchError> = Effect
   yield* Console.log(`fetch config attempt ${attempts}`)
 
   if (attempts <= 2) {
-    return yield* Effect.fail({ _tag: "ServiceUnavailable" })
+    return yield* Effect.fail({ _tag: "ServiceUnavailable" } as const)
   }
 
   return {
@@ -17557,6 +18342,7 @@ const loadStartupConfig = fetchStartupConfig.pipe(
 )
 
 Effect.runPromise(loadStartupConfig).then(console.log, console.error)
+// Output may vary:
 ```
 
 ##### Variants
@@ -17617,7 +18403,7 @@ error is no longer transient, or the retry count has been exhausted.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 interface Profile {
@@ -17711,6 +18497,12 @@ const loadProfile = (userId: string) =>
   )
 
 Effect.runPromise(loadProfile("user-123")).then(console.log, console.error)
+// Output:
+// load profile user-123, attempt 1
+// load profile user-123, attempt 2
+// load profile user-123, attempt 3
+// loaded Ada
+// { id: 'user-123', name: 'Ada' }
 ```
 
 ##### Variants
@@ -17791,7 +18583,7 @@ soon as either limit is exhausted.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 interface Tokens {
@@ -17858,6 +18650,11 @@ const refreshSession = (refreshToken: string) =>
   )
 
 Effect.runPromise(refreshSession("refresh-token-1")).then(console.log, console.error)
+// Output:
+// refresh attempt 1
+// refresh attempt 2
+// new access token: access-token-2
+// { accessToken: 'access-token-2', refreshToken: 'refresh-token-2' }
 ```
 
 `refreshSession` sends the refresh request once immediately. If the request
@@ -17953,7 +18750,7 @@ soon as the limit stops.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class WebSocketOpenError extends Data.TaggedError("WebSocketOpenError")<{
@@ -17996,6 +18793,12 @@ const connectLiveSocket = openLiveSocket.pipe(
 )
 
 Effect.runPromise(connectLiveSocket).then(console.log, console.error)
+// Output:
+// open WebSocket attempt 1
+// open WebSocket attempt 2
+// open WebSocket attempt 3
+// connected live-socket-1
+// { id: 'live-socket-1' }
 ```
 
 `openLiveSocket` is evaluated once immediately. If opening the socket fails with
@@ -18105,7 +18908,7 @@ eight more attempts, each separated by the capped jittered backoff.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class WebSocketReconnectError extends Data.TaggedError("WebSocketReconnectError")<{
@@ -18134,6 +18937,7 @@ const isRetryableReconnect = (error: WebSocketReconnectError) =>
   error.reason === "gateway-unavailable"
 
 const webSocketReconnectPolicy = Schedule.exponential("10 millis").pipe(
+  Schedule.satisfiesInputType<WebSocketReconnectError>(),
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.millis(50)))),
   Schedule.both(Schedule.recurs(8)),
@@ -18146,6 +18950,12 @@ const program = reconnectWebSocket.pipe(
 )
 
 Effect.runPromise(program).then(console.log, console.error)
+// Output:
+// reconnect attempt 1
+// reconnect attempt 2
+// reconnect attempt 3
+// connected: socket-open
+// socket-open
 ```
 
 `program` calls `reconnectWebSocket` once immediately. If the attempt fails with
@@ -18241,7 +19051,7 @@ and time schedules supply stopping conditions.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class DependencyCheckError extends Data.TaggedError("DependencyCheckError")<{
@@ -18287,6 +19097,12 @@ const program = checkDatabase.pipe(
 )
 
 void Effect.runPromise(program)
+// Output:
+// database check 1
+// database check 2
+// database check 3
+// database reachable
+// startup ready after 3 checks
 ```
 
 The demo runs quickly by using millisecond delays. In production, use larger
@@ -18352,7 +19168,7 @@ The schedule controls only the follow-up checks.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 type ServiceName = "database" | "broker" | "cache"
@@ -18456,6 +19272,11 @@ const program = waitForRequiredServices.pipe(
 )
 
 void Effect.runPromise(program)
+// Output:
+// readiness 1: database:Starting, broker:Starting, cache:Ready
+// readiness 2: database:Ready, broker:Starting, cache:Ready
+// readiness 3: database:Ready, broker:Ready, cache:Ready
+// all required services are ready
 ```
 
 ##### Variants
@@ -18536,7 +19357,7 @@ does not poll forever.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type RolloutStatus =
@@ -18616,7 +19437,10 @@ const pollRolloutStatus = Schedule.spaced("10 millis").pipe(
 const waitForRollout = (rolloutId: string) =>
   readRolloutStatus(rolloutId).pipe(
     Effect.repeat(pollRolloutStatus),
-    Effect.flatMap((status) => {
+    Effect.flatMap((status): Effect.Effect<
+      Extract<RolloutStatus, { readonly state: "succeeded" }>,
+      RolloutFailed | RolloutTimedOut
+    > => {
       switch (status.state) {
         case "succeeded":
           return Effect.succeed(status)
@@ -18647,6 +19471,11 @@ const program = waitForRollout("rollout-42").pipe(
 )
 
 void Effect.runPromise(program)
+// Output:
+// rollout read 1 for rollout-42: running
+// rollout read 2 for rollout-42: running
+// rollout read 3 for rollout-42: succeeded
+// rollout rollout-42 finished on 2026.05.17
 ```
 
 `waitForRollout` reads immediately. If the first result is `"succeeded"` or
@@ -18665,7 +19494,7 @@ a slower cadence and a recurrence cap when each read already has its own request
 timeout. For transient status-read failures, retry the read itself and then
 repeat successful statuses:
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type StatusReadError = { readonly _tag: "StatusReadError" }
@@ -18701,6 +19530,11 @@ const program = readStatus.pipe(
 )
 
 void Effect.runPromise(program)
+// Output:
+// status read attempt 1
+// status read attempt 2
+// status read attempt 3
+// final status: succeeded
 ```
 
 The retry schedule sees status-read errors. The repeat schedule sees successful
@@ -18767,7 +19601,7 @@ Use exponential backoff with jitter, cap each sleep, and combine it with
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class DeploymentHookError extends Data.TaggedError("DeploymentHookError")<{
@@ -18783,11 +19617,11 @@ interface HookReceipt {
 
 let attempts = 0
 
-const invokeDeploymentHook = Effect.fnUntraced(function*(request: {
+const invokeDeploymentHook: (request: {
   readonly deploymentId: string
   readonly hookName: string
   readonly idempotencyKey: string
-}) {
+}) => Effect.Effect<HookReceipt, DeploymentHookError> = Effect.fnUntraced(function*(request) {
   attempts += 1
   yield* Console.log(`hook attempt ${attempts}: ${request.hookName}`)
 
@@ -18822,6 +19656,7 @@ const isRetryableHookError = (error: DeploymentHookError) =>
   error.status >= 500
 
 const deploymentHookRetryPolicy = Schedule.exponential("10 millis").pipe(
+  Schedule.satisfiesInputType<DeploymentHookError>(),
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.millis(40)))),
   Schedule.both(Schedule.recurs(5)),
@@ -18839,6 +19674,11 @@ const program = invokeDeploymentHook({
 )
 
 void Effect.runPromise(program)
+// Output:
+// hook attempt 1: post-deploy-smoke-test
+// hook attempt 2: post-deploy-smoke-test
+// hook attempt 3: post-deploy-smoke-test
+// hook accepted: deploy-2026-05-16-001/post-deploy-smoke-test
 ```
 
 ##### Variants
@@ -18925,7 +19765,7 @@ the waits while the count and duration schedules supply stopping conditions.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class ApiTimeout extends Data.TaggedError("ApiTimeout")<{
@@ -18952,11 +19792,11 @@ type InfrastructureApiError =
 
 let attempts = 0
 
-const createSubnet = Effect.fnUntraced(function*(request: {
+const createSubnet: (request: {
   readonly vpcId: string
   readonly cidrBlock: string
   readonly clientToken: string
-}) {
+}) => Effect.Effect<string, InfrastructureApiError> = Effect.fnUntraced(function*(request) {
   attempts += 1
   yield* Console.log(`create subnet attempt ${attempts} with ${request.clientToken}`)
 
@@ -18993,6 +19833,11 @@ const program = createSubnet({
 )
 
 void Effect.runPromise(program)
+// Output:
+// create subnet attempt 1 with deploy-2026-05-16-subnet-10-0-8
+// create subnet attempt 2 with deploy-2026-05-16-subnet-10-0-8
+// create subnet attempt 3 with deploy-2026-05-16-subnet-10-0-8
+// created subnet-10.0.8.0/24
 ```
 
 The `clientToken` is the idempotency guard. If the first request reached the
@@ -19088,7 +19933,7 @@ schedule's timing or count output.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type EtlStatus =
@@ -19151,6 +19996,12 @@ const program = pollEtlStatus("etl-run-7").pipe(
 )
 
 void Effect.runPromise(program)
+// Output:
+// ETL etl-run-7 read 1: queued
+// ETL etl-run-7 read 2: extracting
+// ETL etl-run-7 read 3: loading
+// ETL etl-run-7 read 4: succeeded
+// ETL completed: analytics.daily_orders
 ```
 
 `pollEtlStatus` performs the first status read immediately. If the first
@@ -19231,7 +20082,7 @@ and jitter so export workers do not retry in lockstep.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type ExportRequest = {
@@ -19308,6 +20159,11 @@ const program = runExport({
 )
 
 void Effect.runPromise(program)
+// Output:
+// export attempt 1: export-2026-05-17
+// export attempt 2: export-2026-05-17
+// export attempt 3: export-2026-05-17
+// export ready: s3://exports/acct-123/export-2026-05-17.csv
 ```
 
 ##### Variants
@@ -19387,7 +20243,7 @@ allow another retry.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class UploadError extends Data.TaggedError("UploadError")<{
@@ -19460,6 +20316,12 @@ const program = uploadReport(
 )
 
 void Effect.runPromise(program)
+// Output:
+// upload attempt 1: reports/daily/sha256-demo.json
+// upload attempt 2: reports/daily/sha256-demo.json
+// upload attempt 3: reports/daily/sha256-demo.json
+// stored checksum sha256-demo
+// upload complete
 ```
 
 The object key and idempotency key are derived from the content checksum. If the
@@ -19558,7 +20420,7 @@ retry.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 class StorageTimeout extends Data.TaggedError("StorageTimeout")<{
@@ -19638,6 +20500,12 @@ const program = processImportBatch(batch).pipe(
 )
 
 void Effect.runPromise(program)
+// Output:
+// import attempt 1: s3://imports/customers.csv
+// import attempt 2: s3://imports/customers.csv
+// import attempt 3: s3://imports/customers.csv
+// imported batch import-2026-05-17
+// import finished
 ```
 
 `program` processes the batch once immediately. If object storage times out or
@@ -19711,7 +20579,7 @@ interval, or an outer supervisor that starts the worker again.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Schedule } from "effect"
 
 type FailedRecord = {
@@ -19782,6 +20650,17 @@ const program = Effect.repeat(
 )
 
 void Effect.runPromise(program)
+// Output:
+// pass 1: loaded 2 failed records
+// reprocessed record-a
+// marked record-a processed
+// kept record-b failed for another pass
+// pass 2: loaded 1 failed records
+// reprocessed record-b
+// marked record-b processed
+// pass 3: loaded 0 failed records
+// pass 4: loaded 0 failed records
+// reprocessing job finished
 ```
 
 ##### Why spaced
@@ -19871,7 +20750,7 @@ the status is open, and also enforces a time budget.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type SettlementStatus =
@@ -19924,6 +20803,11 @@ const program = fetchSettlementStatus.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// provider status: Pending
+// provider status: Processing
+// provider status: Settled
+// settled as set_123
 ```
 
 The first read happens immediately. The schedule controls only follow-up reads.
@@ -19976,7 +20860,7 @@ failures.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type PaymentStatus =
@@ -20031,6 +20915,13 @@ const program = fetchPaymentStatus.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// status fetch attempt 1
+// retryable payment read failure: HTTP 503
+// status fetch attempt 2
+// retryable payment read failure: HTTP 429
+// status fetch attempt 3
+// final status: Captured
 ```
 
 The first read runs immediately. Only failures are fed to the retry schedule,
@@ -20080,7 +20971,7 @@ latest status, `Schedule.while` to continue only for non-terminal states, and
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type FulfillmentStatus =
@@ -20129,6 +21020,12 @@ const program = readFulfillmentStatus.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// fulfillment status: received
+// fulfillment status: picking
+// fulfillment status: shipped
+// fulfillment status: delivered
+// terminal fulfillment state: delivered
 ```
 
 The first status read is immediate. The schedule waits only before follow-up
@@ -20173,7 +21070,7 @@ exponential backoff, jitter for fleet safety, and a small retry count.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type Notification = {
@@ -20220,6 +21117,13 @@ const program = sendWithIdempotency(notification).pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// send attempt 1 with key notification-01HZYX8R7P0J9PAW4Q6V7N3QYB
+// delivery retry after Timeout
+// send attempt 2 with key notification-01HZYX8R7P0J9PAW4Q6V7N3QYB
+// delivery retry after Timeout
+// send attempt 3 with key notification-01HZYX8R7P0J9PAW4Q6V7N3QYB
+// delivered to user@example.com
 ```
 
 The first attempt happens immediately. The same `idempotencyKey` is used for
@@ -20267,7 +21171,7 @@ run. The first sync starts immediately.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type SyncSummary = {
@@ -20304,6 +21208,11 @@ const program = syncCrmOnce.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// CRM sync 1: 3 contacts, 1 companies
+// CRM sync 2: 6 contacts, 2 companies
+// CRM sync 3: 9 contacts, 3 companies
+// last cursor written: cursor-3
 ```
 
 The demo runs the first sync immediately and then two scheduled recurrences. In
@@ -20353,7 +21262,7 @@ Use `Schedule.tapInput` to observe the failure fed to `Effect.retry`. Use
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Schedule } from "effect"
 
 type RequestError =
@@ -20395,6 +21304,15 @@ const program = fetchInventory.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// inventory attempt 1
+// retry input: RequestTimeout at /inventory
+// retry 1 scheduled after 10ms
+// inventory attempt 2
+// retry input: RequestTimeout at /inventory
+// retry 2 scheduled after 20ms
+// inventory attempt 3
+// loaded 2 items
 ```
 
 The input log records the typed failure. The output log runs only when the
@@ -20439,7 +21357,7 @@ to the combinator whose output you want to observe.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Schedule } from "effect"
 
 type RetryError = {
@@ -20470,6 +21388,13 @@ const program = callWebhook.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// webhook attempt 1
+// base retry delay: 10ms
+// webhook attempt 2
+// base retry delay: 20ms
+// webhook attempt 3
+// webhook delivered
 ```
 
 The example logs the base exponential delay. `Schedule.jittered` changes the
@@ -20517,7 +21442,7 @@ delays and limits; elapsed time is additional output for observability.
 
 ##### Example
 
-```ts
+```ts runnable
 import { Console, Duration, Effect, Schedule } from "effect"
 
 type DependencyError = {
@@ -20573,6 +21498,7 @@ const program = callDependency.pipe(
 )
 
 Effect.runPromise(program)
+// Output may vary:
 ```
 
 The next delay explains immediate pressure on the dependency. The elapsed value
@@ -20621,7 +21547,7 @@ longer running or the budget is exhausted. Then inspect the final value.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -20673,6 +21599,12 @@ const program = checkJobStatus.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// job status: Running
+// job status: Running
+// job status: Running
+// job status: Done
+// termination reason: Completed
 ```
 
 The timeout reason comes from interpreting the final `Running` status. It is
@@ -20700,6 +21632,10 @@ You have a retry policy that looks reasonable, but you need evidence that it is
 helping. Count scheduled recurrences, record chosen delays, and measure final
 outcomes outside the schedule.
 
+Beginner note: Schedule output — schedule metrics explain the recurrence policy.
+Keep business success and failure metrics around the effect that uses the
+policy.
+
 ##### When to use it
 
 Use this when retry or polling affects user latency, infrastructure load,
@@ -20719,7 +21655,7 @@ effect that uses the policy.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Duration, Effect, Metric, Schedule } from "effect"
 
 type InventoryError = {
@@ -20728,7 +21664,7 @@ type InventoryError = {
 
 let attempts = 0
 
-const fetchInventory = Effect.gen(function*() {
+const fetchInventory: Effect.Effect<ReadonlyArray<string>, InventoryError> = Effect.gen(function*() {
   attempts += 1
   yield* Console.log(`inventory attempt ${attempts}`)
 
@@ -20775,6 +21711,15 @@ const program = fetchInventory.pipe(
 )
 
 Effect.runPromise(program)
+// Output:
+// inventory attempt 1
+// scheduled retry after Unavailable
+// observed retry delay 10ms
+// inventory attempt 2
+// scheduled retry after Unavailable
+// observed retry delay 20ms
+// inventory attempt 3
+// inventory loaded after retry: 3 items
 ```
 
 The counter records scheduled retries, not the initial attempt. The histogram
@@ -20799,6 +21744,9 @@ while hiding an outage or adding too much latency is not effective.
 
 Retry-count tests should count effect evaluations. They should not infer retry
 count from elapsed time or from the schedule output.
+
+Beginner note: Recurrence counts — assert the number of effect attempts when you
+care about retry count; schedule outputs can be transformed or combined.
 
 ##### Problem
 
@@ -20829,7 +21777,7 @@ of times the effect itself was evaluated.
 
 ##### Example
 
-```ts
+```ts runnable deterministic
 import { Console, Effect, Exit, Ref, Schedule } from "effect"
 
 type TestError = { readonly _tag: "TestError" }
@@ -20855,6 +21803,13 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// attempt 1
+// attempt 2
+// attempt 3
+// attempt 4
+// total attempts: 4
+// failed: true
 ```
 
 ##### Variants
@@ -21113,7 +22068,7 @@ failures, so `Effect.retry` does not feed them into the retry schedule.
 Use a schedule that would clearly retry if classification allowed it, then add a
 classification predicate to the retry options.
 
-```ts
+```ts runnable deterministic
 import { Console, Data, Effect, Ref, Schedule } from "effect"
 
 class TransientError extends Data.TaggedError("TransientError")<{
@@ -21157,6 +22112,10 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
+// Output:
+// attempt 1: FatalError
+// returned: FatalError
+// total attempts: 1
 ```
 
 ##### Why this catches regressions
