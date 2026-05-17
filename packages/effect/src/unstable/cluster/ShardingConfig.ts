@@ -329,6 +329,9 @@ export const layerFromEnv = (options?: Partial<ShardingConfig["Service"]> | unde
   )
 
 /**
+ * Normalizes the provided `ShardingConfig` to calculate the `available` and
+ * `assigned` shard groups.
+ *
  * @category Shard groups
  * @since 4.0.0
  */
