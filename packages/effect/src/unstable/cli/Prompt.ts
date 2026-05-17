@@ -66,8 +66,8 @@ export const isPrompt = (u: unknown): u is Prompt<unknown> => Predicate.hasPrope
 export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
 
 /**
- * Represents the action that should be taken by a `Prompt` based upon the
- * user input received during the current frame.
+ * Represents the action that should be taken by a `Prompt` based upon user
+ * input or an external event received during the current frame.
  *
  * @category models
  * @since 4.0.0
@@ -751,12 +751,33 @@ export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
  * next prompt action, and `clear` returns ANSI output used to clear the previous
  * frame.
  *
+ * Optionally, an external `events` dequeue can be provided as the third
+ * argument. When present, the render loop will race user input against events
+ * from the dequeue, allowing background events to trigger re-renders without
+ * waiting for a keypress. When an event is received from the dequeue, the
+ * `receive` handler is called instead of `process`.
+ *
  * @category constructors
  * @since 4.0.0
  */
-export const custom = <State, Output>(
+export const custom: {
+  <State, Output>(
+    initialState: State | Effect.Effect<State, never, Environment>,
+    handlers: Handlers<State, Output>
+  ): Prompt<Output>
+  <State, Output, A>(
+    initialState: State | Effect.Effect<State, never, Environment>,
+    handlers: Handlers<State, Output> & {
+      readonly receive: (value: A, state: State) => Effect.Effect<Action<State, Output>, never, Environment>
+    },
+    events: Queue.Dequeue<A, never>
+  ): Prompt<Output>
+} = <State, Output, A>(
   initialState: State | Effect.Effect<State, never, Environment>,
-  handlers: Handlers<State, Output>
+  handlers: Handlers<State, Output> & {
+    readonly receive?: (value: A, state: State) => Effect.Effect<Action<State, Output>, never, Environment>
+  },
+  events?: Queue.Dequeue<A, never>
 ): Prompt<Output> => {
   const op = Object.create(proto)
   op._tag = "Loop"
@@ -764,6 +785,8 @@ export const custom = <State, Output>(
   op.render = handlers.render
   op.process = handlers.process
   op.clear = handlers.clear
+  op.receive = handlers.receive
+  op.events = events
   return op
 }
 
@@ -1254,6 +1277,10 @@ interface Loop extends
     readonly render: Handlers<unknown, unknown>["render"]
     readonly process: Handlers<unknown, unknown>["process"]
     readonly clear: Handlers<unknown, unknown>["clear"]
+    readonly receive:
+      | ((value: unknown, state: unknown) => Effect.Effect<Action<unknown, unknown>, never, Environment>)
+      | undefined
+    readonly events: Queue.Dequeue<unknown, never> | undefined
   }>
 {}
 
@@ -1324,8 +1351,16 @@ const runLoop = Effect.fnUntraced(
     while (true) {
       const msg = yield* loop.render(state, action)
       yield* Effect.orDie(terminal.display(msg))
-      const event = yield* Queue.take(input)
-      action = yield* loop.process(event, state)
+      const takeInput = Queue.take(input).pipe(Effect.map((event) => ({ _tag: "Input" as const, event })))
+      const result = loop.events
+        ? yield* Effect.raceFirst(
+          takeInput,
+          Queue.take(loop.events).pipe(Effect.map((value) => ({ _tag: "Event" as const, value })))
+        )
+        : yield* takeInput
+      action = result._tag === "Input"
+        ? yield* loop.process(result.event, state)
+        : yield* loop.receive!(result.value, state)
       switch (action._tag) {
         case "Beep":
           continue
