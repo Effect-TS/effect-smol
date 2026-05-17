@@ -33,8 +33,10 @@ import * as Option from "../../Option.ts"
 import type { Predicate } from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import { TracerEnabled } from "../../References.ts"
+import * as Stream from "../../Stream.ts"
 import { ParentSpan } from "../../Tracer.ts"
 import * as Headers from "./Headers.ts"
+import * as HttpBody from "./HttpBody.ts"
 import { causeResponseStripped, exitResponse } from "./HttpServerError.ts"
 import { HttpServerRequest } from "./HttpServerRequest.ts"
 import * as Request from "./HttpServerRequest.ts"
@@ -400,6 +402,195 @@ export const cors = (options?: {
           headers: headersFromRequestOptions(request)
         }))
       }
+      appendPreResponseHandlerUnsafe(request, preResponseHandler)
+      return httpApp
+    })
+}
+
+/**
+ * @since 4.0.0
+ * @category Compression
+ */
+export type CompressionEncoding = "gzip" | "deflate"
+
+const compressionEncodingsDefault: ReadonlyArray<CompressionEncoding> = ["gzip", "deflate"]
+
+// Curated set of compressible content types. Each entry is flagged
+// `compressible: true` in the IANA-derived mime-db dataset. Already-compressed
+// formats (woff/woff2, image/png, image/jpeg, video/*, audio/*, etc.) are
+// intentionally excluded. text/event-stream is excluded directly from the
+// regex so the policy is self-consistent even without the separate runtime
+// guard. Structured-syntax suffixes (+json, +xml, +text, +yaml) are matched
+// generically, which covers things like application/ld+json, image/svg+xml,
+// and application/xhtml+xml without listing them explicitly.
+const compressibleContentTypeDefault =
+  /^\s*(?:text\/(?!event-stream(?:[;\s]|$))[^;\s]+|application\/(?:javascript|json|xml|xml-dtd|ecmascript|dart|postscript|rtf|tar|toml|vnd\.dart|vnd\.ms-fontobject|vnd\.ms-opentype|wasm|x-httpd-php|x-javascript)|font\/(?:otf|ttf)|image\/(?:bmp|vnd\.adobe\.photoshop|vnd\.microsoft\.icon|vnd\.ms-dds|x-icon|x-ms-bmp)|message\/rfc822|model\/gltf-binary|x-shader\/x-fragment|x-shader\/x-vertex|[^;\s]+?\+(?:json|text|xml|yaml))(?:[;\s]|$)/i
+
+const pickCompressionEncoding = (
+  acceptEncoding: string | undefined,
+  preferred: ReadonlyArray<CompressionEncoding>
+): CompressionEncoding | undefined => {
+  if (!acceptEncoding) return undefined
+  // Parse RFC 7231 tokens so values like "gzipold" don't match "gzip".
+  const tokens = new Set<string>()
+  for (const part of acceptEncoding.split(",")) {
+    const token = part.split(";")[0].trim().toLowerCase()
+    if (token.length > 0) tokens.add(token)
+  }
+  for (const enc of preferred) {
+    if (tokens.has(enc)) return enc
+  }
+  return undefined
+}
+
+const varyAcceptEncoding = (existing: string | undefined): string => {
+  if (!existing) return "Accept-Encoding"
+  const parts = existing.split(",").map((part) => part.trim())
+  if (parts.some((part) => part.toLowerCase() === "accept-encoding")) {
+    return existing
+  }
+  return `${existing}, Accept-Encoding`
+}
+
+const compressBytes = (
+  bytes: globalThis.Uint8Array,
+  encoding: CompressionEncoding
+): Effect.Effect<globalThis.Uint8Array> =>
+  Effect.promise(async () => {
+    const transform = new globalThis.CompressionStream(encoding)
+    const writer = transform.writable.getWriter() as WritableStreamDefaultWriter<globalThis.Uint8Array>
+    await writer.write(bytes)
+    await writer.close()
+    const reader = transform.readable.getReader() as ReadableStreamDefaultReader<globalThis.Uint8Array>
+    const chunks: Array<globalThis.Uint8Array> = []
+    let total = 0
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      total += value.length
+    }
+    const out = new globalThis.Uint8Array(total)
+    let offset = 0
+    for (const chunk of chunks) {
+      out.set(chunk, offset)
+      offset += chunk.length
+    }
+    return out
+  })
+
+const compressStream = (
+  body: HttpBody.Stream,
+  encoding: CompressionEncoding
+): HttpBody.Stream => {
+  const compressed = Stream.fromReadableStream<globalThis.Uint8Array, unknown>({
+    evaluate: () => {
+      const source = Stream.toReadableStream(body.stream) as ReadableStream<globalThis.Uint8Array>
+      const transform = new globalThis.CompressionStream(encoding) as unknown as ReadableWritablePair<
+        globalThis.Uint8Array,
+        globalThis.Uint8Array
+      >
+      return source.pipeThrough(transform)
+    },
+    onError: (cause) => cause
+  })
+  return new HttpBody.Stream(compressed, body.contentType, undefined)
+}
+
+/**
+ * Compresses HTTP response bodies using gzip or deflate based on the request's
+ * `Accept-Encoding` header.
+ *
+ * Skips responses that:
+ * - Are for `HEAD` requests
+ * - Already have a `Content-Encoding` header
+ * - Have `Cache-Control: no-transform`
+ * - Have a content type that is not in the configured allowlist (defaults to a
+ *   list mirroring Hono's `compress` middleware; `text/event-stream` is always
+ *   excluded)
+ * - Have a known `Content-Length` smaller than the configured threshold
+ *   (defaults to 1024 bytes)
+ * - Have a body that is not `Uint8Array` or `Stream`
+ *
+ * When compression is applied, the response body is replaced, `Content-Encoding`
+ * is set, `Content-Length` is dropped, `Vary` gains `Accept-Encoding`, and any
+ * strong `ETag` is weakened.
+ *
+ * @since 4.0.0
+ * @category Compression
+ */
+export const compression = (options?: {
+  readonly threshold?: number | undefined
+  readonly skip?: Predicate<Request.HttpServerRequest> | undefined
+  readonly compressibleContentType?: RegExp | undefined
+  readonly encodings?: ReadonlyArray<CompressionEncoding> | undefined
+}): <E, R>(
+  httpApp: Effect.Effect<HttpServerResponse, E, R>
+) => Effect.Effect<HttpServerResponse, E, R | HttpServerRequest> => {
+  const threshold = options?.threshold ?? 1024
+  const skip = options?.skip
+  const compressibleContentType = options?.compressibleContentType ?? compressibleContentTypeDefault
+  const encodings = options?.encodings ?? compressionEncodingsDefault
+
+  const preResponseHandler = (request: Request.HttpServerRequest, response: HttpServerResponse) => {
+    if (request.method === "HEAD") return Effect.succeed(response)
+    if (skip?.(request)) return Effect.succeed(response)
+    if (response.headers["content-encoding"]) return Effect.succeed(response)
+
+    const cacheControl = response.headers["cache-control"]
+    if (cacheControl && cacheControl.toLowerCase().includes("no-transform")) {
+      return Effect.succeed(response)
+    }
+
+    const encoding = pickCompressionEncoding(request.headers["accept-encoding"], encodings)
+    if (!encoding) return Effect.succeed(response)
+
+    const body = response.body
+    if (body._tag !== "Uint8Array" && body._tag !== "Stream") {
+      return Effect.succeed(response)
+    }
+
+    const contentType = body.contentType
+    if (!contentType || contentType.toLowerCase().includes("text/event-stream")) {
+      return Effect.succeed(response)
+    }
+    if (!compressibleContentType.test(contentType)) {
+      return Effect.succeed(response)
+    }
+
+    if (body.contentLength !== undefined && body.contentLength < threshold) {
+      return Effect.succeed(response)
+    }
+
+    const applyHeaders = (next: HttpServerResponse): HttpServerResponse => {
+      let out = Response.setHeader(next, "content-encoding", encoding)
+      out = Response.setHeader(out, "vary", varyAcceptEncoding(out.headers["vary"]))
+      const etag = out.headers["etag"]
+      if (etag && !etag.startsWith("W/")) {
+        out = Response.setHeader(out, "etag", `W/${etag}`)
+      }
+      return out
+    }
+
+    if (body._tag === "Stream") {
+      // Compressed stream length is unknown; drop any stale value carried over
+      // from the original body before applying the encoding headers.
+      const next = Response.setBody(response, compressStream(body, encoding))
+      return Effect.succeed(applyHeaders(Response.removeHeader(next, "content-length")))
+    }
+
+    return compressBytes(body.body, encoding).pipe(
+      Effect.map((compressed) =>
+        applyHeaders(Response.setBody(response, HttpBody.uint8Array(compressed, body.contentType)))
+      )
+    )
+  }
+
+  return <E, R>(
+    httpApp: Effect.Effect<HttpServerResponse, E, R>
+  ): Effect.Effect<HttpServerResponse, E, R | HttpServerRequest> =>
+    Effect.withFiber((fiber) => {
+      const request = Context.getUnsafe(fiber.context, HttpServerRequest)
       appendPreResponseHandlerUnsafe(request, preResponseHandler)
       return httpApp
     })

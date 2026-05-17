@@ -541,6 +541,22 @@ export const setHeaders: {
  * @category combinators
  * @since 4.0.0
  */
+export const removeHeader: {
+  (key: string): (self: HttpServerResponse) => HttpServerResponse
+  (self: HttpServerResponse, key: string): HttpServerResponse
+} = dual(
+  2,
+  (self: HttpServerResponse, key: string): HttpServerResponse =>
+    makeResponse({
+      ...self,
+      headers: Headers.remove(self.headers, key)
+    })
+)
+
+/**
+ * @since 4.0.0
+ * @category combinators
+ */
 export const removeCookie: {
   (name: string): (self: HttpServerResponse) => HttpServerResponse
   (self: HttpServerResponse, name: string): HttpServerResponse

@@ -1140,6 +1140,20 @@ export const cors = (
 ): Layer.Layer<never, never, HttpRouter> => middleware(HttpMiddleware.cors(options), { global: true })
 
 /**
+ * A middleware that compresses HTTP response bodies using gzip or deflate
+ * based on the request's `Accept-Encoding` header.
+ *
+ * See `HttpMiddleware.compression` for the list of conditions under which
+ * compression is skipped.
+ *
+ * @since 4.0.0
+ * @category Middleware
+ */
+export const compression = (
+  options?: Parameters<typeof HttpMiddleware.compression>[0]
+): Layer.Layer<never, never, HttpRouter> => middleware(HttpMiddleware.compression(options), { global: true })
+
+/**
  * A middleware that disables the logger for some routes.
  *
  * ```ts
