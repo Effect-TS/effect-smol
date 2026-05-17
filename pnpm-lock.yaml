@@ -333,6 +333,15 @@ importers:
         specifier: ^3.5.34
         version: 3.5.34(typescript@6.0.3)
 
+  packages/bun-test:
+    devDependencies:
+      '@types/bun':
+        specifier: ^1.1.0
+        version: 1.3.13
+      effect:
+        specifier: workspace:^
+        version: link:../effect
+
   packages/effect:
     dependencies:
       '@standard-schema/spec':
