@@ -908,6 +908,7 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
     offset: 0,
     next: undefined
   }
+  self.length = array.length
 }
 
 /**
