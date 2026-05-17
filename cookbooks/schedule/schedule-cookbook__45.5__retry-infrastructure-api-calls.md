@@ -20,12 +20,10 @@ A provisioning worker calls a provider API to create a subnet. The request may
 time out, receive a `503`, or hit a `429`; invalid requests and unsafe writes
 should leave the retry path immediately.
 
-Retrying immediately can make the incident worse. Retrying forever can block a
-worker or hold a deployment open after the useful deadline has passed. Retrying
-an unsafe write can duplicate side effects.
-
-Model retryable infrastructure failures explicitly and put the recurrence policy
-in one named schedule.
+Retrying immediately can make the incident worse. Retrying forever can hold a
+worker or deployment open past its useful deadline. Retrying an unsafe write can
+duplicate side effects. Model retryable infrastructure failures explicitly and
+put the recurrence policy in one named schedule.
 
 ## When to use it
 
@@ -56,30 +54,14 @@ feedback from the provider that this caller should slow down. Preserve
 ## Schedule shape
 
 Start with exponential backoff, add jitter, and combine it with both a retry
-count and an elapsed retry budget:
-
-```ts
-const infrastructureRetry = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("20 seconds"))
-)
-```
-
-`Schedule.exponential("200 millis")` produces growing delays. `Schedule.jittered`
-randomizes each computed delay between 80% and 120%, which helps avoid
-synchronized retries across a fleet. `Schedule.recurs(5)` allows at most five
-retries after the original call. `Schedule.during("20 seconds")` stops the retry
-window once the schedule's elapsed time is outside the budget.
-
-`Schedule.both` continues only while both sides continue and uses the maximum of
-their delays. In this shape, the backoff side supplies the waits while the count
-and duration sides supply stopping conditions.
+count and an elapsed retry budget. `Schedule.both` continues only while both
+sides continue and uses the maximum of their delays; the backoff side supplies
+the waits while the count and duration schedules supply stopping conditions.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class ApiTimeout extends Data.TaggedError("ApiTimeout")<{
   readonly operation: "CreateSubnet"
@@ -103,21 +85,33 @@ type InfrastructureApiError =
   | RateLimited
   | InvalidRequest
 
-declare const createSubnet: (
-  request: {
-    readonly vpcId: string
-    readonly cidrBlock: string
-    readonly clientToken: string
-  }
-) => Effect.Effect<string, InfrastructureApiError>
+let attempts = 0
 
-const retryInfrastructureApi = Schedule.exponential("200 millis").pipe(
+const createSubnet = Effect.fnUntraced(function*(request: {
+  readonly vpcId: string
+  readonly cidrBlock: string
+  readonly clientToken: string
+}) {
+  attempts += 1
+  yield* Console.log(`create subnet attempt ${attempts} with ${request.clientToken}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail(new ApiTimeout({ operation: "CreateSubnet" }))
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail(new ApiUnavailable({ status: 503 }))
+  }
+
+  return `subnet-${request.cidrBlock}`
+})
+
+const retryInfrastructureApi = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("20 seconds"))
+  Schedule.both(Schedule.during("200 millis"))
 )
 
-export const program = createSubnet({
+const program = createSubnet({
   vpcId: "vpc-123",
   cidrBlock: "10.0.8.0/24",
   clientToken: "deploy-2026-05-16-subnet-10-0-8"
@@ -128,8 +122,14 @@ export const program = createSubnet({
       error._tag === "ApiTimeout" ||
       error._tag === "ApiUnavailable" ||
       error._tag === "RateLimited"
-  })
+  }),
+  Effect.flatMap((subnetId) => Console.log(`created ${subnetId}`)),
+  Effect.catch((error: InfrastructureApiError) =>
+    Console.log(`infrastructure call failed: ${error._tag}`)
+  )
 )
+
+void Effect.runPromise(program)
 ```
 
 The `clientToken` is the idempotency guard. If the first request reached the
@@ -143,44 +143,10 @@ traffic.
 ## Variants
 
 When a rate-limit response includes provider guidance, keep that information in
-the typed error and use it to add delay:
-
-```ts
-import { Duration, Effect, Schedule } from "effect"
-
-const retryRateLimitsFromHeader = Schedule.identity<RateLimited>().pipe(
-  Schedule.both(Schedule.recurs(2)),
-  Schedule.addDelay(([error]) =>
-    Effect.succeed(Duration.millis(error.retryAfterMillis ?? 1_000))
-  )
-)
-```
-
-This variant is intentionally small: it waits from the provider's retry hint,
-falls back to one second if the hint is missing, and allows only two retries.
-Use it for endpoints where `429` should be handled differently from generic
-server unavailability.
-
-For background reconciliation, use a larger budget but keep the same shape:
-
-```ts
-const backgroundInfrastructureRetry = Schedule.exponential("1 second").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.both(Schedule.during("2 minutes"))
-)
-```
-
-For an interactive deployment command, shorten the budget so the caller gets a
-clear result quickly:
-
-```ts
-const interactiveInfrastructureRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3)),
-  Schedule.both(Schedule.during("5 seconds"))
-)
-```
+the typed error and prefer the provider's `Retry-After` timing over a guessed
+delay. For background reconciliation, use a larger budget but keep the same
+shape. For an interactive deployment command, shorten the budget so the caller
+gets a clear result quickly.
 
 ## Notes and caveats
 

@@ -58,18 +58,9 @@ instead.
 ## Schedule shape
 
 Compose a short fast cadence with a retry-count limit and an elapsed-time
-budget:
-
-```ts
-Schedule.exponential("50 millis").pipe(
-  Schedule.both(Schedule.recurs(4)),
-  Schedule.both(Schedule.during("500 millis"))
-)
-```
-
-`Schedule.exponential("50 millis")` starts with a small delay and increases it
-on each recurrence. `Schedule.recurs(4)` bounds the number of retries.
-`Schedule.during("500 millis")` bounds the retry window.
+budget. `Schedule.exponential("50 millis")` starts with a small delay and
+increases it on each recurrence. `Schedule.recurs(4)` bounds the number of
+retries. `Schedule.during("500 millis")` bounds the retry window.
 
 `Schedule.both` gives intersection semantics: the combined schedule recurs only
 while both sides still want to recur, and it uses the larger delay from the
@@ -79,62 +70,58 @@ count, and also stops when the short time budget is exhausted.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type DependencyError = {
   readonly _tag: "DependencyUnavailable"
   readonly service: string
 }
 
-declare const readFromDependency: Effect.Effect<string, DependencyError>
+let attempts = 0
 
-const tryHardButBriefly = Schedule.exponential("50 millis").pipe(
+const readFromDependency = Effect.gen(function*() {
+  attempts++
+  yield* Console.log(`read attempt ${attempts}`)
+
+  if (attempts < 4) {
+    return yield* Effect.fail({
+      _tag: "DependencyUnavailable",
+      service: "catalog"
+    } satisfies DependencyError)
+  }
+
+  return "catalog metadata"
+})
+
+const tryHardButBriefly = Schedule.exponential("20 millis").pipe(
   Schedule.both(Schedule.recurs(4)),
-  Schedule.both(Schedule.during("500 millis"))
+  Schedule.both(Schedule.during("250 millis"))
 )
 
-export const program = readFromDependency.pipe(
-  Effect.retry(tryHardButBriefly)
+const program = readFromDependency.pipe(
+  Effect.retry(tryHardButBriefly),
+  Effect.flatMap((value) => Console.log(`result: ${value}`))
 )
+
+Effect.runPromise(program)
 ```
 
 `program` performs the first dependency read immediately. If it fails with
-`DependencyUnavailable`, the retry policy starts with a 50 millisecond delay,
-then grows from there, while the count limit and the 500 millisecond budget both
-remain open. If either limit is exhausted, `Effect.retry` returns the last typed
-failure.
+`DependencyUnavailable`, the retry policy starts with a small delay, then grows
+from there, while the count limit and elapsed budget both remain open. If either
+limit is exhausted, `Effect.retry` returns the last typed failure.
 
 ## Variants
 
-For an even tighter user-facing path, reduce the budget and the retry count:
-
-```ts
-const veryShortBurst = Schedule.exponential("25 millis").pipe(
-  Schedule.both(Schedule.recurs(2)),
-  Schedule.both(Schedule.during("150 millis"))
-)
-```
+For an even tighter user-facing path, reduce the budget and retry count, for
+example `Schedule.exponential("25 millis")` with `Schedule.recurs(2)` and a
+`Schedule.during("150 millis")` budget.
 
 For a small background task where a brief recovery window is still acceptable,
-increase the budget slightly but keep the policy visibly bounded:
-
-```ts
-const briefBackgroundRecovery = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(6)),
-  Schedule.both(Schedule.during("2 seconds"))
-)
-```
+increase the budget slightly but keep the policy visibly bounded.
 
 If many clients or workers can hit the same dependency at once, add
-`Schedule.jittered` after the basic cadence and limits are correct:
-
-```ts
-const fleetFriendlyBurst = Schedule.exponential("50 millis").pipe(
-  Schedule.both(Schedule.recurs(4)),
-  Schedule.both(Schedule.during("500 millis")),
-  Schedule.jittered
-)
-```
+`Schedule.jittered` after the basic cadence and limits are correct.
 
 ## Notes and caveats
 

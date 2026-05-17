@@ -21,10 +21,10 @@ A deploy controller has a rollout id and needs one final outcome: succeeded,
 failed, or still running when the polling budget expires. While the latest
 status is `"running"`, it should wait and read again.
 
-The important boundary is between read failures and rollout failures. A timeout
-or malformed response from the status endpoint belongs in the Effect error
-channel. A rollout status of `"failed"` is a successful status read and should
-stop polling just like `"succeeded"` does.
+Keep read failures separate from rollout failures. A timeout or malformed
+response from the status endpoint belongs in the Effect error channel. A rollout
+status of `"failed"` is a successful read that stops polling just like
+`"succeeded"` does.
 
 ## When to use it
 
@@ -41,10 +41,10 @@ the operation continues outside the current process.
 
 ## When not to use it
 
-Do not use this as a retry policy for failed status reads. With
-`Effect.repeat`, a failed read stops the repeat before the schedule can inspect
-a status. If transient read failures should be retried, add a separate
-`Effect.retry` around the single status read.
+Do not use this as a retry policy for failed status reads. With `Effect.repeat`,
+a failed read stops the repeat before the schedule can inspect a status. If
+transient reads should be retried, add a separate `Effect.retry` around the
+single status read.
 
 Do not encode a rollout's terminal `"failed"` status as an Effect failure just
 to stop polling. Keep it as a successful status value, stop the schedule, and
@@ -57,30 +57,13 @@ recurrence limit, or owner fiber that can interrupt the poller.
 
 Start with a cadence, add jitter for fleet-wide polling, pass the latest status
 through as the schedule output, and continue only while the latest status is
-running:
-
-```ts
-Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<RolloutStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "running")
-)
-```
-
-`Schedule.spaced("5 seconds")` waits between successful status reads.
-`Schedule.jittered` adjusts each delay so many instances do not poll at the
-same instant. `Schedule.passthrough` makes the schedule output the latest
-successful status, and `Schedule.while` uses that status to decide whether
-another poll is needed.
-
-Returning `true` from the predicate allows another poll. Returning `false`
-stops the repeat and returns the latest status.
+running. Add a count or elapsed budget so a rollout that never becomes terminal
+does not poll forever.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type RolloutStatus =
   | {
@@ -116,23 +99,46 @@ type RolloutFailed = {
   readonly reason: string
 }
 
-declare const readRolloutStatus: (
-  rolloutId: string
-) => Effect.Effect<RolloutStatus, StatusReadError>
+const statuses: ReadonlyArray<RolloutStatus> = [
+  {
+    state: "running",
+    rolloutId: "rollout-42",
+    completedInstances: 1,
+    totalInstances: 3
+  },
+  {
+    state: "running",
+    rolloutId: "rollout-42",
+    completedInstances: 2,
+    totalInstances: 3
+  },
+  {
+    state: "succeeded",
+    rolloutId: "rollout-42",
+    version: "2026.05.17"
+  }
+]
 
-const pollRolloutStatus = Schedule.spaced("5 seconds").pipe(
+let reads = 0
+
+const readRolloutStatus: (rolloutId: string) => Effect.Effect<RolloutStatus, StatusReadError> =
+  Effect.fnUntraced(function*(rolloutId: string) {
+    const status = statuses[Math.min(reads, statuses.length - 1)]
+    reads += 1
+    yield* Console.log(`rollout read ${reads} for ${rolloutId}: ${status.state}`)
+    return status
+  })
+
+const pollRolloutStatus = Schedule.spaced("10 millis").pipe(
   Schedule.jittered,
   Schedule.satisfiesInputType<RolloutStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.state === "running"),
-  Schedule.bothLeft(
-    Schedule.during("3 minutes").pipe(
-      Schedule.satisfiesInputType<RolloutStatus>()
-    )
-  )
+  Schedule.bothLeft(Schedule.during("200 millis")),
+  Schedule.bothLeft(Schedule.recurs(5))
 )
 
-export const waitForRollout = (rolloutId: string) =>
+const waitForRollout = (rolloutId: string) =>
   readRolloutStatus(rolloutId).pipe(
     Effect.repeat(pollRolloutStatus),
     Effect.flatMap((status) => {
@@ -153,69 +159,73 @@ export const waitForRollout = (rolloutId: string) =>
       }
     })
   )
+
+const program = waitForRollout("rollout-42").pipe(
+  Effect.flatMap((status) =>
+    Console.log(`rollout ${status.rolloutId} finished on ${status.version}`)
+  ),
+  Effect.catch((error: RolloutFailed | RolloutTimedOut | StatusReadError) =>
+    Console.log(`rollout stopped: ${error._tag}`)
+  )
+)
+
+void Effect.runPromise(program)
 ```
 
-`waitForRollout` reads the rollout status immediately. If the first result is
-`"succeeded"` or `"failed"`, there is no delay and no second request. If the
-result is `"running"`, the schedule waits about five seconds, with jitter, and
-then reads again.
+`waitForRollout` reads immediately. If the first result is `"succeeded"` or
+`"failed"`, there is no delay and no second request. If the result is
+`"running"`, the schedule waits, applies jitter, and reads again.
 
-The repeat returns the last observed `RolloutStatus`. The final
-`Effect.flatMap` keeps the three cases separate: success returns the succeeded
-status, a terminal rollout failure becomes `RolloutFailed`, and exhausting the
-three-minute polling budget while still running becomes `RolloutTimedOut`.
+The repeat returns the last observed `RolloutStatus`. The final `flatMap` keeps
+the three outcomes separate: success returns the succeeded status, rollout
+failure becomes `RolloutFailed`, and exhausting the polling budget while still
+running becomes `RolloutTimedOut`.
 
 ## Variants
 
-For a command-line tool where users expect a quicker answer, use a smaller
-budget:
+For a command-line tool, use a smaller budget. For a background reconciler, use
+a slower cadence and a recurrence cap when each read already has its own request
+timeout. For transient status-read failures, retry the read itself and then
+repeat successful statuses:
 
 ```ts
-const cliRolloutPolling = Schedule.spaced("2 seconds").pipe(
+import { Console, Effect, Schedule } from "effect"
+
+type StatusReadError = { readonly _tag: "StatusReadError" }
+type RolloutStatus = { readonly state: "running" | "succeeded" }
+
+let attempts = 0
+
+const readStatus = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`status read attempt ${attempts}`)
+  if (attempts === 1) {
+    return yield* Effect.fail({ _tag: "StatusReadError" } satisfies StatusReadError)
+  }
+  return { state: attempts < 3 ? "running" : "succeeded" } satisfies RolloutStatus
+})
+
+const readRetry = Schedule.exponential("10 millis").pipe(
+  Schedule.both(Schedule.recurs(2))
+)
+
+const pollStatus = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<RolloutStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.state === "running"),
-  Schedule.bothLeft(
-    Schedule.during("30 seconds").pipe(
-      Schedule.satisfiesInputType<RolloutStatus>()
-    )
+  Schedule.bothLeft(Schedule.recurs(4))
+)
+
+const program = readStatus.pipe(
+  Effect.retry(readRetry),
+  Effect.repeat(pollStatus),
+  Effect.flatMap((status) => Console.log(`final status: ${status.state}`)),
+  Effect.catch((error: StatusReadError) =>
+    Console.log(`status read failed: ${error._tag}`)
   )
 )
-```
 
-For a background reconciler, prefer a recurrence cap when each read may already
-have its own request timeout:
-
-```ts
-const reconcilerRolloutPolling = Schedule.spaced("15 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<RolloutStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "running"),
-  Schedule.bothLeft(
-    Schedule.recurs(40).pipe(
-      Schedule.satisfiesInputType<RolloutStatus>()
-    )
-  )
-)
-```
-
-For transient status-read failures, retry the read itself and then repeat the
-successful statuses:
-
-```ts
-const readWithRetry = (rolloutId: string) =>
-  readRolloutStatus(rolloutId).pipe(
-    Effect.retry(Schedule.exponential("100 millis").pipe(
-      Schedule.jittered,
-      Schedule.both(Schedule.recurs(3))
-    ))
-  )
-
-const program = (rolloutId: string) =>
-  readWithRetry(rolloutId).pipe(
-    Effect.repeat(pollRolloutStatus)
-  )
+void Effect.runPromise(program)
 ```
 
 The retry schedule sees status-read errors. The repeat schedule sees successful
@@ -226,13 +236,13 @@ The retry schedule sees status-read errors. The repeat schedule sees successful
 The first status read is not delayed. Schedule delays apply only before later
 recurrences.
 
-`Schedule.while` is evaluated after a successful status read. It does not
-cancel a read that is already in progress.
+`Schedule.while` is evaluated after a successful status read. It does not cancel
+a read that is already in progress.
 
-`Schedule.during("3 minutes")` limits the recurrence policy. If that budget is
-exhausted before a terminal status is observed, `Effect.repeat` still returns
-the last successful status, which can be `"running"`.
+`Schedule.during` limits recurrence decisions. If the budget is exhausted before
+a terminal status is observed, `Effect.repeat` still returns the last successful
+status, which can be `"running"`.
 
-Use `Schedule.passthrough` when the caller needs the final domain status. If
-you omit it, the repeat returns the timing schedule's output instead of the
-rollout status.
+Use `Schedule.passthrough` when the caller needs the final domain status. If you
+omit it, the repeat returns the timing schedule's output instead of the rollout
+status.

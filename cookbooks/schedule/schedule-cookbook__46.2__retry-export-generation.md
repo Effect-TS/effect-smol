@@ -20,8 +20,8 @@ A report, invoice bundle, or customer data export may fail because the database
 is temporarily unavailable, the renderer is saturated, or object storage is
 down. Invalid requests and permission failures should surface immediately.
 
-The retry schedule should recover from short outages without regenerating a
-large export indefinitely.
+The retry schedule should recover from short outages without regenerating large
+exports indefinitely.
 
 ## When to use it
 
@@ -41,14 +41,14 @@ generation layer has a deduplication key.
 ## Schedule shape
 
 Use `Effect.retry` because export generation is retried after failures. The
-schedule receives each failure as its input, so `Schedule.while` can stop the
-retry loop for non-transient errors. Combine that classifier with a bounded
-backoff, and add jitter so several export workers do not retry in lockstep.
+retry options receive each failure in `while`, so the classifier can stop the
+retry loop for permanent errors. Combine that classifier with bounded backoff
+and jitter so export workers do not retry in lockstep.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type ExportRequest = {
   readonly exportId: string
@@ -68,9 +68,25 @@ type ExportError =
   | { readonly _tag: "InvalidExportRequest"; readonly reason: string }
   | { readonly _tag: "PermissionDenied" }
 
-declare const generateExport: (
-  request: ExportRequest
-) => Effect.Effect<ExportFile, ExportError>
+let attempts = 0
+
+const generateExport: (request: ExportRequest) => Effect.Effect<ExportFile, ExportError> =
+  Effect.fnUntraced(function*(request: ExportRequest) {
+    attempts += 1
+    yield* Console.log(`export attempt ${attempts}: ${request.exportId}`)
+
+    if (attempts === 1) {
+      return yield* Effect.fail({ _tag: "RendererBusy" } satisfies ExportError)
+    }
+    if (attempts === 2) {
+      return yield* Effect.fail({ _tag: "ObjectStorageUnavailable" } satisfies ExportError)
+    }
+
+    return {
+      exportId: request.exportId,
+      location: `s3://exports/${request.accountId}/${request.exportId}.${request.format}`
+    }
+  })
 
 const isTransientExportError = (error: ExportError): boolean => {
   switch (error._tag) {
@@ -84,18 +100,29 @@ const isTransientExportError = (error: ExportError): boolean => {
   }
 }
 
-const retryTransientExportFailures = Schedule.exponential("500 millis").pipe(
+const retryTransientExportFailures = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(4)),
-  Schedule.satisfiesInputType<ExportError>(),
-  Schedule.while(({ input }) => isTransientExportError(input))
+  Schedule.both(Schedule.recurs(4))
 )
 
-export const runExport = (request: ExportRequest) =>
-  Effect.retry(
-    generateExport(request),
-    retryTransientExportFailures
+const runExport = (request: ExportRequest) =>
+  generateExport(request).pipe(
+    Effect.retry({
+      schedule: retryTransientExportFailures,
+      while: isTransientExportError
+    })
   )
+
+const program = runExport({
+  exportId: "export-2026-05-17",
+  accountId: "acct-123",
+  format: "csv"
+}).pipe(
+  Effect.flatMap((file) => Console.log(`export ready: ${file.location}`)),
+  Effect.catch((error: ExportError) => Console.log(`export failed: ${error._tag}`))
+)
+
+void Effect.runPromise(program)
 ```
 
 ## Variants
@@ -110,7 +137,8 @@ can become a second incident.
 ## Notes and caveats
 
 `Schedule.recurs(4)` allows at most four retries after the first generation
-attempt. `Schedule.while` inspects the error passed by `Effect.retry`; when the
-error is permanent, the schedule stops and the original export error is returned.
-Keep the classifier conservative. It is better to surface a permanent export
-failure than to repeatedly regenerate a large file that can never succeed.
+attempt. The `while` predicate passed to `Effect.retry` inspects each typed
+failure; when the error is permanent, retrying stops and the original export
+error is returned. Keep the classifier conservative. It is better to surface a
+permanent export failure than to repeatedly regenerate a large file that can
+never succeed.

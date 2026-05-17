@@ -16,11 +16,11 @@ and lifetime of the workflow.
 
 ## The anti-pattern
 
-The problematic version chooses the polling interval from the desired user
-experience alone: "check every second so the UI feels fresh" or "poll quickly
-so jobs finish as soon as possible." The code then applies that cadence without
-asking how many callers will use it, how long they can keep polling, or what
-the downstream service can tolerate.
+The mistake is choosing the polling interval from user experience alone: "check
+every second so the UI feels fresh" or "poll quickly so jobs finish as soon as
+possible." The code then applies that cadence without asking how many callers
+will use it, how long they can keep polling, or what the downstream service can
+tolerate.
 
 This usually appears as a simple fixed or spaced repeat policy that is copied
 between workflows. The cadence is visible, but the cost model is absent. There
@@ -33,31 +33,31 @@ long-lived background monitor.
 It happens because local polling feels cheap. A single request every second is
 easy to ignore during development, and `Schedule.spaced("1 second")` describes
 that local behavior clearly. The missing calculation is multiplication:
-callers times resources times polling frequency times worst-case duration.
+callers, resources, polling frequency, and worst-case duration.
 
-The schedule abstraction can also hide the pressure because it reads like
-control flow instead of capacity planning. `Schedule.spaced` always proposes
-the same delay after each recurrence. `Schedule.fixed` targets fixed cadence
-boundaries. Neither constructor knows the price of a status check, the number
-of instances in the fleet, or the read quota of the dependency being polled.
-Those facts have to be represented in the policy around the schedule.
+The abstraction can hide pressure because it reads like control flow instead of
+capacity planning. `Schedule.spaced` waits the configured duration after each
+run. `Schedule.fixed` targets regular interval boundaries and does not pile up
+missed runs. Neither constructor knows the price of a status check, the number
+of instances in the fleet, or the dependency's read quota. Those facts belong
+in the policy around the schedule.
 
 ## Why it is risky
 
 Polling cost scales with fleet size. One caller polling every second is one
 request per second. Five hundred callers polling every second is five hundred
-requests per second before retries, page refreshes, deploy overlap, autoscaling,
-or synchronized wakeups are counted. If each poll reads several rows, calls
-another service, or emits multiple telemetry events, the real cost is higher
-than the visible interval suggests.
+requests per second before retries, page refreshes, deploy overlap,
+autoscaling, or synchronized wakeups are counted. If each poll reads several
+rows, calls another service, or emits telemetry, the real cost is higher than
+the visible interval suggests.
 
-Aggressive polling also applies pressure exactly when dependencies are least
+Aggressive polling can add pressure exactly when dependencies are least
 able to absorb it. A stuck job runner, slow control plane, delayed payment
 provider, or degraded search index causes pollers to keep seeing non-terminal
 states. Without a budget, the fleet continues spending dependency capacity on
 observations that are unlikely to change soon.
 
-The business cost is easy to miss too. Some providers bill per request. Some
+The business cost is easy to miss. Some providers bill per request. Some
 internal systems have shared quotas. Some endpoints are backed by databases
 whose read capacity must be reserved for user traffic. A polling cadence that
 feels responsive can consume the same budget that protects writes, interactive
@@ -75,9 +75,9 @@ Use `Schedule.spaced` when the contract is "wait this long after each
 successful observation." Use `Schedule.fixed` only when fixed timing boundaries
 are part of the requirement. Add `Schedule.during`, `Schedule.recurs`, or
 `Schedule.take` so a caller cannot poll indefinitely. Combine cadence and budget
-with `Schedule.both` when both must continue: the polling loop should stop when
-the status is terminal, when the elapsed budget closes, or when the count
-budget is exhausted.
+with `Schedule.both` when both must continue. The polling loop should also stop
+when the observed status is terminal; that domain decision belongs in the
+repeated effect, not in the cadence alone.
 
 When many callers may run the same cadence, add jitter if exact timing is not
 required. In Effect, `Schedule.jittered` adjusts each recurrence delay between
@@ -85,11 +85,9 @@ required. In Effect, `Schedule.jittered` adjusts each recurrence delay between
 polling cheaper, but it can prevent many pollers from concentrating their cost
 on the same boundary.
 
-Name the policy after the budget it promises, not only the interval it uses. A
-name such as `orderStatusPollForTwoMinutes` communicates a different contract
-than `pollEverySecond`. The first invites reviewers to ask whether two minutes
-and the implied request volume fit the dependency budget. The second makes the
-interval look like the whole decision.
+Name the policy after the budget it promises, not only the interval it uses.
+`orderStatusPollForTwoMinutes` communicates more than `pollEverySecond`: it
+invites review of both the timeout and the implied request volume.
 
 ## Notes and caveats
 

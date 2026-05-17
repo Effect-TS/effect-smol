@@ -20,11 +20,8 @@ request may fail for reasons that are worth retrying, such as the browser being
 temporarily offline or the server returning `502`, `503`, or `504`. Other
 failures are terminal for this interaction and should reach the UI immediately.
 
-The retry policy should therefore do two jobs:
-
-- retry only classified transient network failures
-- stop after a small number of retries so the screen can show an actionable
-  failure state
+The retry policy should retry only classified transient failures and stop after
+a small number of attempts so the screen can show an actionable failure state.
 
 ## When to use it
 
@@ -44,7 +41,7 @@ idempotency and conflict-handling rules.
 
 Use a short exponential backoff, add jitter so many clients do not retry at the
 same instant, and combine it with `Schedule.recurs` to cap retries. Because
-`Effect.retry` feeds each failure into the schedule, add `Schedule.while` to
+`Effect.retry` sees each typed failure, use the retry `while` predicate to
 continue only while the failure is classified as transient.
 
 The combined schedule stops as soon as either condition stops recurring: the
@@ -53,11 +50,16 @@ error is no longer transient, or the retry count has been exhausted.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 interface Profile {
   readonly id: string
   readonly name: string
+}
+
+interface HttpResponse {
+  readonly status: number
+  readonly body: unknown
 }
 
 class ProfileLoadError extends Data.TaggedError("ProfileLoadError")<{
@@ -74,7 +76,7 @@ class ProfileLoadError extends Data.TaggedError("ProfileLoadError")<{
 const isTransient = (error: ProfileLoadError): boolean =>
   error.reason === "Offline" || error.reason === "ServerUnavailable"
 
-const classifyStatus = (response: Response): ProfileLoadError => {
+const classifyHttpStatus = (response: HttpResponse): ProfileLoadError => {
   if (response.status === 401 || response.status === 403) {
     return new ProfileLoadError({ reason: "Forbidden", status: response.status })
   }
@@ -87,33 +89,60 @@ const classifyStatus = (response: Response): ProfileLoadError => {
   return new ProfileLoadError({ reason: "BadResponse", status: response.status })
 }
 
-const retryTransientProfileLoad = Schedule.exponential("200 millis").pipe(
+const retryTransientProfileLoad = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
-  Schedule.both(Schedule.recurs(3)),
-  Schedule.setInputType<ProfileLoadError>(),
-  Schedule.while(({ input }) => Effect.succeed(isTransient(input)))
+  Schedule.both(Schedule.recurs(3))
 )
 
-const decodeProfile = (response: Response) =>
-  Effect.tryPromise({
-    try: () => response.json() as Promise<Profile>,
-    catch: (cause) => new ProfileLoadError({ reason: "BadResponse", cause })
+const decodeProfile = (body: unknown): Effect.Effect<Profile, ProfileLoadError> => {
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "id" in body &&
+    "name" in body &&
+    typeof body.id === "string" &&
+    typeof body.name === "string"
+  ) {
+    return Effect.succeed({ id: body.id, name: body.name })
+  }
+  return Effect.fail(new ProfileLoadError({ reason: "BadResponse", cause: body }))
+}
+
+let attempts = 0
+
+const requestProfile = (userId: string): Effect.Effect<HttpResponse, ProfileLoadError> =>
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`load profile ${userId}, attempt ${attempts}`)
+
+    if (attempts === 1) {
+      return yield* Effect.fail(new ProfileLoadError({ reason: "Offline" }))
+    }
+    if (attempts === 2) {
+      return { status: 503, body: "service unavailable" }
+    }
+    return { status: 200, body: { id: userId, name: "Ada" } }
   })
 
-const fetchProfile = (userId: string) =>
-  Effect.tryPromise({
-    try: (signal) => fetch(`/api/profile/${userId}`, { signal }),
-    catch: (cause) => new ProfileLoadError({ reason: "Offline", cause })
-  }).pipe(
+const fetchProfile = (userId: string): Effect.Effect<Profile, ProfileLoadError> =>
+  requestProfile(userId).pipe(
     Effect.flatMap((response) =>
-      response.ok
-        ? decodeProfile(response)
-        : Effect.fail(classifyStatus(response))
+      response.status === 200
+        ? decodeProfile(response.body)
+        : Effect.fail(classifyHttpStatus(response))
     )
   )
 
-export const loadProfile = (userId: string) =>
-  Effect.retry(fetchProfile(userId), retryTransientProfileLoad)
+const loadProfile = (userId: string) =>
+  fetchProfile(userId).pipe(
+    Effect.retry({
+      schedule: retryTransientProfileLoad,
+      while: isTransient
+    }),
+    Effect.tap((profile) => Console.log(`loaded ${profile.name}`))
+  )
+
+Effect.runPromise(loadProfile("user-123")).then(console.log, console.error)
 ```
 
 ## Variants
@@ -125,10 +154,10 @@ separately instead of treating every `429` as an ordinary network failure.
 
 ## Notes and caveats
 
-`Schedule.recurs(3)` allows three retries after the first profile request. With
-the exponential schedule above, the planned delays start around 200ms, 400ms,
-and 800ms before jitter is applied. `Schedule.jittered` randomly adjusts each
-delay between 80% and 120% of the base delay.
+`Schedule.recurs(3)` allows three retries after the first profile request. The
+example uses tiny delays so it terminates quickly; use larger delays for a real
+frontend path. `Schedule.jittered` randomly adjusts each delay between 80% and
+120% of the base delay.
 
 Keep classification close to the HTTP boundary. The schedule should not parse
 responses or guess whether a status is retryable; it should receive a domain

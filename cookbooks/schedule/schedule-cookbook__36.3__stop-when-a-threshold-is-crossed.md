@@ -52,30 +52,15 @@ unless the producer specifies how to compare them.
 
 ## Schedule shape
 
-Start with the polling cadence, preserve the successful poll value as the
-schedule output, and continue only while the output is still below the
-threshold:
-
-```ts
-const pollUntilThreshold = (threshold: number) =>
-  Schedule.spaced("500 millis").pipe(
-    Schedule.satisfiesInputType<ProgressSample>(),
-    Schedule.passthrough,
-    Schedule.while(({ output }) => output.percentComplete < threshold)
-  )
-```
-
-`Schedule.spaced("500 millis")` supplies the delay before later polls.
-`Schedule.satisfiesInputType<ProgressSample>()` constrains the timing schedule
-so it can be stepped with successful `ProgressSample` values.
-`Schedule.passthrough` changes the schedule output to the latest successful
-poll result. `Schedule.while` then reads `metadata.output` and allows another
-recurrence only while the threshold has not been crossed.
+Preserve the successful poll value as the schedule output, combine it with a
+cadence, and continue only while the output is still below the threshold.
+`Schedule.while` reads the latest output and allows another recurrence only
+while the threshold has not been crossed.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 interface ProgressSample {
   readonly jobId: string
@@ -87,17 +72,35 @@ type ProgressReadError = {
   readonly jobId: string
 }
 
-declare const readProgress: (
+const samples: ReadonlyArray<ProgressSample> = [
+  { jobId: "export-1", percentComplete: 35 },
+  { jobId: "export-1", percentComplete: 70 },
+  { jobId: "export-1", percentComplete: 100 }
+]
+
+let reads = 0
+
+const readProgress = (
   jobId: string
-) => Effect.Effect<ProgressSample, ProgressReadError>
+): Effect.Effect<ProgressSample, ProgressReadError> =>
+  Effect.gen(function*() {
+    const index = yield* Effect.sync(() => {
+      const current = reads
+      reads += 1
+      return current
+    })
+    const sample = samples[index] ?? samples[samples.length - 1]!
+
+    yield* Console.log(`${jobId} progress: ${sample.percentComplete}%`)
+    return sample
+  })
 
 const hasReached = (sample: ProgressSample, threshold: number): boolean =>
   sample.percentComplete >= threshold
 
 const pollUntilProgressAtLeast = (threshold: number) =>
-  Schedule.spaced("500 millis").pipe(
-    Schedule.satisfiesInputType<ProgressSample>(),
-    Schedule.passthrough,
+  Schedule.identity<ProgressSample>().pipe(
+    Schedule.bothLeft(Schedule.spaced("100 millis")),
     Schedule.while(({ output }) => !hasReached(output, threshold))
   )
 
@@ -108,88 +111,42 @@ const waitForProgress = (
   readProgress(jobId).pipe(
     Effect.repeat(pollUntilProgressAtLeast(threshold))
   )
+
+const program = waitForProgress("export-1", 90).pipe(
+  Effect.flatMap((sample) =>
+    Console.log(`threshold crossed at ${sample.percentComplete}%`)
+  )
+)
+
+Effect.runPromise(program)
 ```
 
 `readProgress` runs once immediately. If the first successful sample is already
 at or above the threshold, the schedule stops and that sample is returned. If
-the sample is below the threshold, the schedule waits 500 milliseconds before
-the next poll.
+the sample is below the threshold, the schedule waits before the next poll. The
+runnable example uses a short delay; a production poller can use a longer
+cadence.
 
 The repeat returns the final schedule output. Because the schedule uses
-`Schedule.passthrough`, that output is the `ProgressSample` that made the
-`Schedule.while` predicate return `false`.
+`Schedule.identity<ProgressSample>()`, that output is the `ProgressSample` that
+made the `Schedule.while` predicate return `false`.
 
 ## Variants
 
-Add a maximum number of recurrences when the caller needs a bounded wait:
+Add a maximum number of recurrences when the caller needs a bounded wait. With a
+cap in place, the repeat may stop because the recurrence limit was reached
+rather than because the progress threshold was crossed. Check the final sample
+and translate that case into a domain error.
 
-```ts
-type WaitForProgressError =
-  | ProgressReadError
-  | {
-    readonly _tag: "ProgressThresholdNotReached"
-    readonly jobId: string
-    readonly threshold: number
-    readonly lastPercentComplete: number
-  }
-
-const pollUntilProgressAtLeastAtMostTwentyTimes = (threshold: number) =>
-  pollUntilProgressAtLeast(threshold).pipe(
-    Schedule.bothLeft(
-      Schedule.recurs(20).pipe(
-        Schedule.satisfiesInputType<ProgressSample>()
-      )
-    )
-  )
-
-const waitForProgressAtMostTwentyTimes = (
-  jobId: string,
-  threshold: number
-): Effect.Effect<ProgressSample, WaitForProgressError> =>
-  readProgress(jobId).pipe(
-    Effect.repeat(pollUntilProgressAtLeastAtMostTwentyTimes(threshold)),
-    Effect.flatMap((sample) =>
-      hasReached(sample, threshold)
-        ? Effect.succeed(sample)
-        : Effect.fail({
-          _tag: "ProgressThresholdNotReached",
-          jobId,
-          threshold,
-          lastPercentComplete: sample.percentComplete
-        })
-    )
-  )
-```
-
-With the cap in place, the repeat may stop because the recurrence limit was
-reached rather than because the progress threshold was crossed. Check the final
-sample and translate that case into a domain error.
-
-For a draining threshold, invert the predicate:
-
-```ts
-interface BacklogSample {
-  readonly queueName: string
-  readonly pendingMessages: number
-}
-
-const pollUntilBacklogBelow = (limit: number) =>
-  Schedule.spaced("1 second").pipe(
-    Schedule.satisfiesInputType<BacklogSample>(),
-    Schedule.passthrough,
-    Schedule.while(({ output }) => output.pendingMessages >= limit)
-  )
-```
-
-This schedule continues while the backlog is still at or above the limit and
-stops on the first successful sample below the limit.
+For a draining threshold, invert the predicate: continue while the backlog is
+still at or above the limit, and stop on the first successful sample below the
+limit.
 
 ## Notes and caveats
 
 `Schedule.while` receives schedule metadata after the timing schedule has been
-stepped. In this recipe the important field is `output`, because
-`Schedule.passthrough` makes the output equal to the latest successful poll
-value.
+stepped. In this recipe the important field is `output`, because the schedule
+preserves the latest successful poll value.
 
 `Effect.repeat` feeds successful values into the schedule. Failures from
 `readProgress` do not reach the threshold predicate.

@@ -10,71 +10,51 @@ code_included: true
 
 # 20.1 Poll until status becomes `Completed`
 
-Polling for a desired output is different from polling for any terminal state.
-The schedule can decide when to stop asking, while the surrounding code decides
-whether the final status is the wanted result.
+Polling for a desired output is not the same as polling until any terminal state
+appears. The schedule decides when to ask again; the code after polling decides
+whether the final status is the desired one.
 
 ## Problem
 
-You have a status endpoint that returns successful observations such as
-`"Queued"`, `"Running"`, `"Completed"`, `"Failed"`, or `"Canceled"`. The caller
-wants the completed result, but the polling loop must not confuse three
-different cases:
+A status endpoint may successfully return `"Queued"`, `"Running"`,
+`"Completed"`, `"Failed"`, or `"Canceled"`. Only `"Completed"` is the result
+the caller wants.
 
-- `"Completed"` is the desired successful output.
-- `"Failed"` and `"Canceled"` are terminal domain statuses, but they are not the
-  desired output.
-- A failed status check is an effect failure, not a status value.
+`"Failed"` and `"Canceled"` are terminal domain states: successful status
+responses that mean the job will not complete. They should stop polling, but
+they should not be treated as completed work. A failed status request is a
+separate effect failure.
 
 ## When to use it
 
-Use this when the status check succeeds with ordinary domain states, and only
-one terminal state should be treated as the desired result.
-
-This is a good fit for job APIs where `"Queued"` and `"Running"` mean "poll
-again", `"Completed"` means "return the result", and other terminal statuses
-must be reported separately.
+Use this for job APIs where in-progress statuses mean "poll again", one status
+means "return the completed result", and other terminal statuses must be
+reported separately.
 
 ## When not to use it
 
-Do not use this to retry a status-check request that failed because of a
-transport, authorization, or decoding problem. With `Effect.repeat`, a failure
-from the repeated effect stops the repeat immediately.
+Do not retry transport, authorization, or decoding failures with this schedule.
+With `Effect.repeat`, failures from the repeated effect stop the repeat unless
+handled before repeating.
 
-Do not continue while `status.state !== "Completed"` if the domain has other
-terminal states. That would keep polling after a job has already reached
-`"Failed"` or `"Canceled"`.
+Do not continue while `status.state !== "Completed"` when the domain has other
+terminal states. That would keep polling after a job has already failed or been
+canceled.
 
-Do not use this as a timeout recipe by itself. If the job can remain in progress
-forever, compose the polling schedule with a recurrence or time limit and decide
-how to interpret the last in-progress status.
+Do not leave long-running jobs unbounded unless another owner controls the
+fiber lifetime.
 
 ## Schedule shape
 
-Poll again only while the latest successful status is still in progress:
-
-```ts
-Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isInProgress(input))
-)
-```
-
-`Schedule.spaced("2 seconds")` supplies the delay between later status checks.
-`Schedule.satisfiesInputType<JobStatus>()` constrains the timing schedule before
-`Schedule.while` reads `metadata.input`. `Schedule.passthrough` keeps the latest
-successful `JobStatus` as the schedule output, so `Effect.repeat` returns the
-final observed status.
-
-The schedule stops when the status is no longer in progress. The code after
-polling then decides whether that final status is exactly `"Completed"` or a
-different terminal state.
+Use `Schedule.spaced` for the delay, `Schedule.passthrough` to keep the latest
+status, and `Schedule.while` to continue only while the status is still in
+progress. After `Effect.repeat` returns, map `"Completed"` to success and map
+other terminal statuses to domain errors.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
   | { readonly state: "Queued" }
@@ -83,90 +63,92 @@ type JobStatus =
   | { readonly state: "Failed"; readonly reason: string }
   | { readonly state: "Canceled" }
 
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
+type CompletedStatus = Extract<JobStatus, { readonly state: "Completed" }>
 
 type CompletionError =
   | { readonly _tag: "JobFailed"; readonly reason: string }
   | { readonly _tag: "JobCanceled" }
+  | { readonly _tag: "JobDidNotCompleteInTime"; readonly lastState: JobStatus["state"] }
 
-const isInProgress = (status: JobStatus): boolean => status.state === "Queued" || status.state === "Running"
+const scriptedStatuses: ReadonlyArray<JobStatus> = [
+  { state: "Queued" },
+  { state: "Running", percent: 40 },
+  { state: "Completed", resultId: "result-123" }
+]
 
-declare const checkJobStatus: (
-  jobId: string
-) => Effect.Effect<JobStatus, StatusCheckError>
+let readIndex = 0
 
-const pollWhileInProgress = Schedule.spaced("2 seconds").pipe(
+const isInProgress = (status: JobStatus): boolean =>
+  status.state === "Queued" || status.state === "Running"
+
+const checkJobStatus = (jobId: string): Effect.Effect<JobStatus> =>
+  Effect.sync(() => {
+    const status = scriptedStatuses[
+      Math.min(readIndex, scriptedStatuses.length - 1)
+    ]!
+    readIndex += 1
+    return status
+  }).pipe(
+    Effect.tap((status) => Console.log(`[${jobId}] ${status.state}`))
+  )
+
+const pollWhileInProgress = Schedule.spaced("20 millis").pipe(
   Schedule.satisfiesInputType<JobStatus>(),
   Schedule.passthrough,
-  Schedule.while(({ input }) => isInProgress(input))
+  Schedule.while(({ input }) => isInProgress(input)),
+  Schedule.take(10)
 )
 
-const pollUntilCompleted = (
-  jobId: string
-): Effect.Effect<
-  Extract<JobStatus, { readonly state: "Completed" }>,
-  StatusCheckError | CompletionError
-> =>
-  checkJobStatus(jobId).pipe(
-    Effect.repeat(pollWhileInProgress),
-    Effect.flatMap((status) => {
-      switch (status.state) {
-        case "Completed":
-          return Effect.succeed(status)
-        case "Failed":
-          return Effect.fail({ _tag: "JobFailed", reason: status.reason })
-        case "Canceled":
-          return Effect.fail({ _tag: "JobCanceled" })
-        case "Queued":
-        case "Running":
-          return Effect.never
-      }
-    })
-  )
+const requireCompleted = (
+  status: JobStatus
+): Effect.Effect<CompletedStatus, CompletionError> => {
+  switch (status.state) {
+    case "Completed":
+      return Effect.succeed(status)
+    case "Failed":
+      return Effect.fail({ _tag: "JobFailed", reason: status.reason })
+    case "Canceled":
+      return Effect.fail({ _tag: "JobCanceled" })
+    case "Queued":
+    case "Running":
+      return Effect.fail({
+        _tag: "JobDidNotCompleteInTime",
+        lastState: status.state
+      })
+  }
+}
+
+const program = checkJobStatus("job-1").pipe(
+  Effect.repeat(pollWhileInProgress),
+  Effect.flatMap(requireCompleted),
+  Effect.tap((status) => Console.log(`completed with ${status.resultId}`))
+)
+
+Effect.runPromise(program).then((status) => {
+  console.log("result:", status)
+})
 ```
 
-The first status check runs immediately. If it returns `"Queued"` or
-`"Running"`, the schedule waits two seconds before checking again. If it returns
-`"Completed"`, `"Failed"`, or `"Canceled"`, the schedule stops.
-
-The final `Effect.flatMap` is intentionally separate from the schedule. The
-schedule decides whether to poll again; the interpreter decides whether the
-final terminal status is the desired output.
+The first check runs immediately. The schedule repeats only while the latest
+successful status is `"Queued"` or `"Running"`. The final interpretation is
+kept outside the schedule so `"Failed"` and `"Canceled"` remain visible domain
+outcomes.
 
 ## Variants
 
-Add a recurrence limit when the caller needs a bounded poll:
+Remove `Schedule.take` when another lifetime or timeout bounds the polling
+fiber. Keep an explicit branch for in-progress statuses if you add any schedule
+that can stop before completion.
 
-```ts
-const pollWhileInProgressAtMostThirtyTimes = pollWhileInProgress.pipe(
-  Schedule.bothLeft(
-    Schedule.recurs(30).pipe(Schedule.satisfiesInputType<JobStatus>())
-  )
-)
-```
-
-With a limit, the repeated effect can finish with the last `"Queued"` or
-`"Running"` status when the recurrence cap is exhausted. In that variant, add a
-separate `"NotCompletedInTime"` outcome instead of using `Effect.never` for the
-in-progress cases.
-
-If `"Failed"` or `"Canceled"` should be returned as values rather than failures,
-keep the same schedule and change only the final interpreter. The polling rule
-is still "repeat while in progress", not "repeat while not completed".
+If failed or canceled jobs should be returned as values instead of failures,
+keep the same polling schedule and change only the final interpreter.
 
 ## Notes and caveats
 
-`Schedule.while` sees successful status values only. It does not inspect failures
-from `checkJobStatus`.
+`Schedule.while` sees successful status values only. It does not inspect
+failures from the status-check effect.
 
-`"Completed"` is the desired output. Other terminal statuses should stop
-polling, but they should not be treated as completed work.
+The first status check is not delayed. Delays apply only before recurrences.
 
-The first status check is not delayed by the schedule. Delays apply only before
-recurrences.
-
-When a timing schedule reads the latest status through `metadata.input`, apply
-`Schedule.satisfiesInputType<T>()` before `Schedule.while`.
+Use `Schedule.satisfiesInputType<T>()` before `Schedule.while` when a timing
+schedule reads the latest successful status from `metadata.input`.

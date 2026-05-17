@@ -10,33 +10,29 @@ code_included: false
 
 # 52.5 Poll when a push-based model would be better
 
-Polling when a push-based model would be better is an anti-pattern because it
-uses recurrence to compensate for the wrong architecture.
-
 ## The anti-pattern
 
-The problematic version treats polling as the default integration shape. A
-worker asks a remote API for status every few seconds. A dashboard refreshes a
-large query on a fixed cadence. A service repeatedly scans a database table to
-discover new work. A fleet of consumers checks for "anything changed?" even
-though the upstream system could send a webhook, publish an event, expose a
-subscription, or enqueue work when the state changes.
+Polling is used as the default integration shape. A worker asks a remote API for
+status every few seconds. A dashboard refreshes a large query on a fixed
+cadence. A service repeatedly scans a table to discover new work. A fleet of
+consumers checks for "anything changed?" even though the upstream system could
+send a webhook, publish an event, expose a subscription, or enqueue work when
+state changes.
 
 The schedule may look careful. It might use `Schedule.spaced` for a predictable
 delay, `Schedule.fixed` for a wall-clock cadence, `Schedule.jittered` to avoid
 fleet synchronization, or `Schedule.take` / `Schedule.recurs` to avoid running
 forever. Those are useful controls for legitimate polling. They do not change
 the fact that every poll is still a speculative read. `Schedule` can make the
-loop slower, bounded, jittered, or easier to reason about, but it cannot turn
-repeated guessing into an event-driven design.
+loop slower, bounded, jittered, or easier to review; it cannot turn repeated
+guessing into an event-driven design.
 
 ## Why it happens
 
-It usually happens because polling is easy to add locally. The consumer can
-ship without asking the producer for a new contract, without provisioning a
-queue, without validating webhook signatures, and without designing event
-delivery semantics. `Schedule` then makes the loop look intentional because the
-cadence is explicit and composable.
+Polling is easy to add locally. The consumer can ship without asking the
+producer for a new contract, provisioning a queue, validating webhook
+signatures, or designing event delivery semantics. `Schedule` then makes the
+loop look intentional because the cadence is explicit and composable.
 
 That convenience can hide the architectural question: who has the information
 first? If the producer observes the change, the producer is usually the better
@@ -56,7 +52,7 @@ recovery, many consumers can resume the same polling loop at once. Jitter can
 smooth that pattern, but it cannot remove the repeated work. Backoff can protect
 a dependency during failure, but it also makes change detection slower. A count
 or time budget can stop the loop, but it may stop before the change arrives.
-Those are symptoms of using a timer where a message would describe the real
+These are symptoms of using a timer where a message would describe the real
 business event.
 
 ## A better approach

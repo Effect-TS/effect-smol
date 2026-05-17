@@ -10,66 +10,53 @@ code_included: true
 
 # 31.5 Pace reprocessing jobs
 
-Failed-record reprocessing should make progress without treating a failure
-table as high-priority live traffic. A `Schedule` keeps the pacing policy
-visible while each record is claimed and handled normally.
+Failed-record reprocessing should make progress without turning a repair queue
+into high-priority live traffic. A schedule keeps the claim cadence explicit.
 
 ## Problem
 
-A table or queue of failed records may contain enough work for a worker to keep
-claiming rows indefinitely. The goal is not to make broken records disappear as
-quickly as possible; it is to keep database pressure predictable while giving
-transient failures a steady path back through the system.
+A failed-record table or dead-letter queue can keep a worker busy indefinitely.
+The goal is predictable repair pressure: claim one record, reprocess it, store
+the outcome, and pause before claiming another.
 
-The worker should claim one failed record, reprocess it, store the outcome, and
-then pause before claiming another one. Without an explicit schedule, it is easy
-to create a tight loop that competes with live traffic for database connections,
-row locks, indexes, and downstream capacity.
-
-The first reprocessing attempt happens immediately. `Schedule.spaced` controls
-the recurrences after that attempt, spacing each repetition from the last run.
+Without an explicit schedule, reprocessing often becomes a tight loop that
+competes with live traffic for connections, locks, indexes, and downstream
+capacity.
 
 ## When to use it
 
-Use this recipe when failed records are stored durably and can be reprocessed
-one at a time. It is a good fit for background repair loops, dead-letter table
-drains, and low-priority reconciliation work where steady progress matters more
-than immediate throughput.
+Use this when failed records are durable and can be reprocessed one at a time:
+dead-letter drains, background repair loops, and low-priority reconciliation
+work.
 
-The reprocessing operation should be idempotent. A worker may be interrupted
-after applying the business effect but before marking the failed record as
-reprocessed. Re-running the same record must either produce the same final state
-or detect that the work already happened.
+The reprocessing operation should be idempotent. If a worker is interrupted
+after applying the business effect but before marking the record complete,
+running the same record again must be safe.
 
 ## When not to use it
 
 Do not use pacing to hide permanent data errors. Malformed payloads, deleted
-accounts, authorization failures, and schema mismatches should be classified and
-moved to an operator-visible state instead of being reprocessed forever.
+accounts, authorization failures, and schema mismatches should move to an
+operator-visible state.
 
-Avoid this pattern for non-idempotent writes unless the write has a stable
-deduplication key. If reprocessing can charge a customer twice, send a duplicate
-email, or create a second external resource, fix that contract before adding a
-schedule.
+Do not reprocess non-idempotent writes unless the write has a stable
+deduplication key.
 
 ## Schedule shape
 
-Start with `Schedule.spaced` when the important rule is "wait after each
-record." This keeps the database from seeing a burst of immediate claims after a
-slow record finishes. Add `Schedule.take` when a single worker invocation should
-have a bounded amount of follow-up work.
-
-Prefer a small, named policy. Operators should be able to answer: how long do we
-wait between records, and how many scheduled recurrences can this invocation
-perform?
+Start with `Schedule.spaced` when the rule is "wait after each record." Add
+`Schedule.take` or `Schedule.recurs` when one invocation should have a bounded
+amount of follow-up work. Use `Schedule.tapInput` for lightweight observation
+of each successful reprocessing result.
 
 ## Code
 
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-type ReprocessError = {
-  readonly _tag: "DatabaseUnavailable" | "DownstreamUnavailable"
+type FailedRecord = {
+  readonly id: string
+  readonly alreadyFixed: boolean
 }
 
 type ReprocessResult =
@@ -77,46 +64,67 @@ type ReprocessResult =
   | { readonly _tag: "AlreadyProcessed"; readonly recordId: string }
   | { readonly _tag: "NoFailedRecordAvailable" }
 
-declare const claimAndReprocessOneFailedRecord: Effect.Effect<
-  ReprocessResult,
-  ReprocessError
->
+const failedRecords: Array<FailedRecord> = [
+  { id: "failed-1", alreadyFixed: false },
+  { id: "failed-2", alreadyFixed: true },
+  { id: "failed-3", alreadyFixed: false }
+]
 
-const reprocessingCadence = Schedule.spaced("10 seconds").pipe(
-  Schedule.take(100),
+const claimAndReprocessOneFailedRecord = Effect.gen(function*() {
+  const record = failedRecords.shift()
+
+  if (record === undefined) {
+    yield* Console.log("no failed records available")
+    return { _tag: "NoFailedRecordAvailable" } as const
+  }
+
+  if (record.alreadyFixed) {
+    yield* Console.log(`${record.id} was already processed`)
+    return { _tag: "AlreadyProcessed", recordId: record.id } as const
+  }
+
+  yield* Console.log(`reprocessed ${record.id}`)
+  return { _tag: "Reprocessed", recordId: record.id } as const
+})
+
+const reprocessingCadence = Schedule.spaced("15 millis").pipe(
+  Schedule.take(10),
   Schedule.tapInput((result: ReprocessResult) =>
-    Console.log(`finished reprocessing step: ${result._tag}`)
+    Console.log(`completed step: ${result._tag}`)
   )
 )
 
-export const program = Effect.repeat(
-  claimAndReprocessOneFailedRecord,
-  reprocessingCadence
+const program = claimAndReprocessOneFailedRecord.pipe(
+  Effect.repeat({
+    schedule: reprocessingCadence,
+    while: (result) => result._tag !== "NoFailedRecordAvailable"
+  })
 )
+
+Effect.runPromise(program)
 ```
+
+The demo claims one record at a time and stops once the queue is empty. A real
+worker would store each outcome transactionally with the claim or completion
+state.
 
 ## Variants
 
-- For higher database pressure, increase the spacing before adding more workers.
-  More workers multiply claims, updates, and index scans.
-- For a large backlog, run more worker invocations with the same conservative
-  cadence instead of removing the delay entirely.
-- For a fleet of workers that start together, consider `Schedule.jittered` after
-  the base cadence is correct so all instances do not claim rows at the same
-  moments.
-- For empty queues, make `claimAndReprocessOneFailedRecord` return
-  `NoFailedRecordAvailable` and decide separately whether the surrounding worker
-  should stop, sleep longer, or keep polling.
+For higher database pressure, increase spacing before adding workers. More
+workers multiply claims, updates, and index scans.
+
+For a fleet that starts together, add `Schedule.jittered` after the base cadence
+so instances do not claim rows at the same moments.
+
+For empty queues, decide outside the claim effect whether the surrounding
+worker should stop, sleep longer, or keep polling.
 
 ## Notes and caveats
 
-`Effect.repeat` feeds successful values into the schedule, so
-`Schedule.tapInput` in this recipe observes each `ReprocessResult`. If
-`claimAndReprocessOneFailedRecord` fails with `DatabaseUnavailable` or
-`DownstreamUnavailable`, the repeat fails unless you handle or retry that error
-inside the effect.
+`Schedule.tapInput` observes successful `ReprocessResult` values. If the claim
+or reprocess step fails, the repeat fails unless that effect handles or retries
+the error itself.
 
-Keep idempotency close to the database operation: claim with a stable record
-identifier, write progress in a transaction when possible, and make the final
-marking step tolerate records that were already completed. The schedule controls
-pace; it does not make duplicate processing safe by itself.
+The schedule controls pace. It does not make duplicate processing safe; that
+comes from stable record identifiers, transactional progress, and idempotent
+business operations.

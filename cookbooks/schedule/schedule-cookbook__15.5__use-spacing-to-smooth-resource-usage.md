@@ -10,8 +10,8 @@ code_included: true
 
 # 15.5 Use spacing to smooth resource usage
 
-Use spacing when a successful repeat loop should spread its resource usage over time.
-This recipe keeps the pacing policy separate from failure recovery.
+Use `Schedule.spaced` when a successful repeat loop should spread resource use
+over time instead of producing bursts.
 
 ## Problem
 
@@ -22,7 +22,8 @@ individual run is correct.
 
 ## When to use it
 
-Use this when the repeat loop should keep making progress, but each successful iteration should leave a predictable gap before the next one starts.
+Use this when the loop should keep making progress, but each successful
+iteration should leave a predictable gap before the next one starts.
 
 This is useful for polling, periodic cleanup, small batch processing, and maintenance work where the exact wall-clock boundary is less important than avoiding back-to-back successful runs.
 
@@ -30,7 +31,8 @@ Use `Schedule.spaced(duration)` when the policy is "after a successful run compl
 
 ## When not to use it
 
-Do not use this to retry failures. `Effect.repeat` is success-driven; if the effect fails, repetition stops with that failure. Use `Effect.retry` for failure-driven recovery.
+Do not use this to retry failures. `Effect.repeat` stops when the effect fails.
+Use `Effect.retry` for failure-driven recovery.
 
 Do not use this as a full rate limiter. Spacing one repeat loop smooths that loop's own resource usage, but it does not coordinate with other fibers, processes, users, or services.
 
@@ -38,13 +40,9 @@ Do not use this when work must run on fixed interval boundaries. `Schedule.space
 
 ## Schedule shape
 
-The central shape is:
-
-```ts
-Schedule.spaced("1 second").pipe(Schedule.take(30))
-```
-
-`Schedule.spaced("1 second")` waits one second after each successful iteration before allowing the next recurrence.
+The central shape is `Schedule.spaced("1 second").pipe(Schedule.take(30))`.
+`Schedule.spaced("1 second")` waits one second after each successful iteration
+before allowing the next recurrence.
 
 `Schedule.take(30)` bounds the repeat to 30 scheduled recurrences after the initial successful run. If every run succeeds, the effect runs 31 times total.
 
@@ -55,34 +53,40 @@ Together, the schedule says: run now, then keep repeating after success with a f
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const processOneBatch = Console.log("processing one batch")
+let batch = 0
 
-const smoothBatchSchedule = Schedule.spaced("1 second").pipe(
-  Schedule.take(30)
+const processOneBatch = Effect.gen(function*() {
+  batch += 1
+  yield* Console.log(`processed batch ${batch}`)
+  return batch
+})
+
+const smoothBatchSchedule = Schedule.spaced("10 millis").pipe(
+  Schedule.take(3)
 )
 
-const program = processOneBatch.pipe(
-  Effect.repeat(smoothBatchSchedule)
-)
+const program = Effect.gen(function*() {
+  const finalRecurrence = yield* processOneBatch.pipe(
+    Effect.repeat(smoothBatchSchedule)
+  )
+  yield* Console.log(`smoothing run stopped after recurrence ${finalRecurrence}`)
+})
+
+Effect.runPromise(program)
 ```
 
-The first `processOneBatch` runs immediately. After each successful batch, the schedule waits one second before the next batch. The repeat ends after the recurrence bound, or earlier if `processOneBatch` fails.
+The example prints four batch runs with a short pause between successful
+recurrences. Use a larger duration when smoothing real CPU, connection, cache,
+or API pressure.
 
 ## Variants
 
-Use shorter spacing when responsiveness matters and each iteration is cheap:
+Use shorter spacing when responsiveness matters and each iteration is cheap.
+Use longer spacing when repeated work competes with interactive traffic, keeps
+connections open, or causes visible load on a dependency.
 
-```ts
-const responsiveSpacing = Schedule.spaced("100 millis").pipe(
-  Schedule.take(100)
-)
-
-const quietSpacing = Schedule.spaced("5 seconds").pipe(
-  Schedule.take(12)
-)
-```
-
-Use longer spacing when the repeated work competes with interactive traffic, keeps connections open, or causes visible load on a dependency.
+For finite jobs, keep the recurrence limit explicit with `Schedule.take` or
+another stopping rule.
 
 For long-lived services, the schedule can be unbounded, but the fiber running the repeat should still be tied to the service lifetime.
 

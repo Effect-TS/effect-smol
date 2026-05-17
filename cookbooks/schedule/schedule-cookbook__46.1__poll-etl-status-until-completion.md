@@ -52,25 +52,9 @@ status read when each request needs its own interruption limit.
 ## Schedule shape
 
 Combine a polling cadence, a terminal-state predicate, and an elapsed recurrence
-budget:
-
-```ts
-Schedule.spaced("5 seconds").pipe(
-  Schedule.satisfiesInputType<EtlStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input)),
-  Schedule.bothLeft(
-    Schedule.during("10 minutes").pipe(
-      Schedule.satisfiesInputType<EtlStatus>()
-    )
-  )
-)
-```
-
-`Schedule.spaced("5 seconds")` waits after each completed status read before
-the next poll. `Schedule.while` continues only while the latest successful
-status is non-terminal. `Schedule.during("10 minutes")` bounds the recurrence
-window.
+budget. `Schedule.spaced` waits after each completed status read before the next
+poll. `Schedule.while` continues only while the latest successful status is
+non-terminal. `Schedule.during` bounds the recurrence window.
 
 `Schedule.passthrough` makes the schedule output the latest `EtlStatus`, and
 `Schedule.bothLeft` preserves that output after composing the elapsed budget.
@@ -80,7 +64,7 @@ schedule's timing or count output.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type EtlStatus =
   | { readonly state: "queued" }
@@ -100,33 +84,53 @@ const isTerminal = (status: EtlStatus): boolean =>
   status.state === "failed" ||
   status.state === "canceled"
 
-declare const readEtlStatus: (
-  runId: string
-) => Effect.Effect<EtlStatus, StatusReadError>
+const statuses: ReadonlyArray<EtlStatus> = [
+  { state: "queued" },
+  { state: "extracting", rowsRead: 1_000 },
+  { state: "loading", rowsWritten: 1_000 },
+  { state: "succeeded", outputTable: "analytics.daily_orders" }
+]
 
-const pollEtlStatusBudget = Schedule.spaced("5 seconds").pipe(
+let reads = 0
+
+const readEtlStatus: (runId: string) => Effect.Effect<EtlStatus, StatusReadError> =
+  Effect.fnUntraced(function*(runId: string) {
+    const status = statuses[Math.min(reads, statuses.length - 1)]
+    reads += 1
+    yield* Console.log(`ETL ${runId} read ${reads}: ${status.state}`)
+    return status
+  })
+
+const pollEtlStatusBudget = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<EtlStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => !isTerminal(input)),
-  Schedule.bothLeft(
-    Schedule.during("10 minutes").pipe(
-      Schedule.satisfiesInputType<EtlStatus>()
-    )
-  )
+  Schedule.bothLeft(Schedule.during("300 millis")),
+  Schedule.bothLeft(Schedule.recurs(8))
 )
 
 const pollEtlStatus = (runId: string) =>
   readEtlStatus(runId).pipe(
-    Effect.timeout("2 seconds"),
+    Effect.timeout("50 millis"),
     Effect.repeat(pollEtlStatusBudget)
   )
+
+const program = pollEtlStatus("etl-run-7").pipe(
+  Effect.flatMap((status) =>
+    status.state === "succeeded"
+      ? Console.log(`ETL completed: ${status.outputTable}`)
+      : Console.log(`ETL stopped while ${status.state}`)
+  ),
+  Effect.catch((error) => Console.log(`ETL status read failed: ${String(error)}`))
+)
+
+void Effect.runPromise(program)
 ```
 
 `pollEtlStatus` performs the first status read immediately. If the first
 successful response is `"succeeded"`, `"failed"`, or `"canceled"`, polling stops
-without waiting. If the response is still active, the schedule waits five
-seconds before the next read, and continues while the ten-minute recurrence
-budget allows another poll.
+without waiting. If the response is still active, the schedule waits before the
+next read and continues while the recurrence budget allows another poll.
 
 The effect succeeds with the last observed `EtlStatus`. That status may be
 terminal, or it may still be active if the schedule budget stopped allowing
@@ -139,46 +143,13 @@ For a user-facing request, shorten both limits: a one-second status-read timeout
 and a 30-second recurrence budget often make more sense than a long batch
 worker budget.
 
-For a background reconciler, increase the spacing and add jitter after the
-basic policy is correct:
-
-```ts
-const backgroundEtlPolling = Schedule.spaced("30 seconds").pipe(
-  Schedule.satisfiesInputType<EtlStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input)),
-  Schedule.bothLeft(
-    Schedule.during("1 hour").pipe(
-      Schedule.satisfiesInputType<EtlStatus>()
-    )
-  ),
-  Schedule.jittered
-)
-```
-
-`Schedule.jittered` adjusts each computed delay so many workers do not poll the
-ETL control plane at the same instant.
+For a background reconciler, increase the spacing and add `Schedule.jittered`
+after the basic policy is correct so many workers do not poll the ETL control
+plane at the same instant.
 
 If the caller must fail when the ETL run ends in `"failed"` or `"canceled"`,
-keep that decision after polling:
-
-```ts
-const requireSuccessfulEtl = (status: EtlStatus) => {
-  if (status.state === "succeeded") {
-    return Effect.succeed(status.outputTable)
-  }
-  if (status.state === "failed") {
-    return Effect.fail(status.reason)
-  }
-  if (status.state === "canceled") {
-    return Effect.fail("ETL run was canceled")
-  }
-  return Effect.fail("ETL run did not complete before the polling budget ended")
-}
-```
-
-This keeps polling mechanics separate from the business rule for incomplete or
-unsuccessful ETL runs.
+keep that decision after polling. This keeps polling mechanics separate from the
+business rule for incomplete or unsuccessful ETL runs.
 
 ## Notes and caveats
 
@@ -188,9 +159,8 @@ after a successful status read.
 `Effect.repeat` feeds successful `EtlStatus` values into the schedule. Failed
 status reads do not become schedule inputs.
 
-`Schedule.during("10 minutes")` is a recurrence budget, not a hard deadline for
-the whole program. `Effect.timeout("2 seconds")` is the per-read timeout in this
-example.
+`Schedule.during` is a recurrence budget, not a hard deadline for the whole
+program. `Effect.timeout` is the per-read timeout in this example.
 
 When a timing schedule reads the latest status through `metadata.input`,
 constrain the schedule with `Schedule.satisfiesInputType<EtlStatus>()` before

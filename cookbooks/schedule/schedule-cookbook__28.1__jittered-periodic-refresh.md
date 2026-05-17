@@ -10,16 +10,15 @@ code_included: true
 
 # 28.1 Jittered periodic refresh
 
-Periodic refresh loops keep local state current without requiring exact
-wall-clock timing. This recipe adds jitter to a regular repeat cadence while
-leaving the refresh interval recognizable.
+Use jittered repetition when a refresh loop should run on a recognizable cadence
+without making every instance hit the same dependency at the same moment.
 
 ## Problem
 
-Each service instance should refresh cached configuration every minute in a
-background fiber. The first refresh should run when the loop starts, while later
-refreshes should drift enough that the configuration service does not receive a
-synchronized request from every instance at the same second.
+Each service instance refreshes cached configuration in the background. The
+first refresh should run immediately. Later refreshes should stay near the
+chosen interval while drifting enough to avoid synchronized requests across the
+fleet.
 
 ## When to use it
 
@@ -52,12 +51,6 @@ policy before repeating it.
 
 Start with the intended refresh cadence and apply jitter to that cadence:
 
-```ts
-Schedule.spaced("1 minute").pipe(
-  Schedule.jittered
-)
-```
-
 `Schedule.spaced("1 minute")` waits one minute after each successful refresh
 before starting the next one. `Schedule.jittered` randomly adjusts each
 recurrence delay between 80% and 120% of the original delay, so a one-minute
@@ -74,82 +67,56 @@ import { Effect, Schedule } from "effect"
 type Config = {
   readonly version: string
   readonly cacheTtlMillis: number
-  readonly featureFlags: ReadonlySet<string>
+  readonly featureFlags: ReadonlyArray<string>
 }
 
-type ConfigRefreshError = {
-  readonly _tag: "ConfigRefreshError"
-  readonly message: string
-}
+let version = 0
 
-declare const loadConfig: Effect.Effect<Config, ConfigRefreshError>
-declare const replaceCachedConfig: (config: Config) => Effect.Effect<void>
+const loadConfig = Effect.sync((): Config => {
+  version += 1
+  console.log(`loaded config version ${version}`)
+  return {
+    version: `v${version}`,
+    cacheTtlMillis: 60_000,
+    featureFlags: ["search", "checkout"]
+  }
+})
+
+const replaceCachedConfig = (config: Config) =>
+  Effect.sync(() => {
+    console.log(`cached ${config.version}`)
+  })
 
 const refreshCachedConfig = loadConfig.pipe(
   Effect.flatMap(replaceCachedConfig)
 )
 
-const refreshEveryMinuteWithJitter = Schedule.spaced("1 minute").pipe(
-  Schedule.jittered
-)
-
-export const configRefreshLoop = refreshCachedConfig.pipe(
-  Effect.repeat(refreshEveryMinuteWithJitter)
-)
-```
-
-`configRefreshLoop` loads configuration immediately and writes it into the local
-cache. After a successful refresh, it waits for a jittered delay around one
-minute before refreshing again.
-
-Across a fleet, each instance chooses its own adjusted delay on every
-recurrence. Even if many instances start together after a deploy, later refresh
-requests are less likely to stay aligned.
-
-## Variants
-
-Use a longer interval when stale configuration is acceptable and the
-configuration service is shared by many callers:
-
-```ts
-const conservativeRefresh = Schedule.spaced("5 minutes").pipe(
-  Schedule.jittered
-)
-```
-
-Use `Schedule.tapOutput` when you want to observe the repeat count produced by
-`Schedule.spaced`:
-
-```ts
-const observedRefresh = Schedule.spaced("1 minute").pipe(
-  Schedule.jittered,
-  Schedule.tapOutput((refreshCount) =>
-    Effect.logDebug(`completed config refresh ${refreshCount + 1}`)
-  )
-)
-```
-
-If refresh failures should be retried briefly before the loop stops, retry the
-single refresh operation and then repeat the recovered operation:
-
-```ts
-const retryTransientRefreshFailure = Schedule.spaced("2 seconds").pipe(
+const demoRefreshSchedule = Schedule.spaced("20 millis").pipe(
   Schedule.jittered,
   Schedule.take(3)
 )
 
-const resilientRefreshCachedConfig = refreshCachedConfig.pipe(
-  Effect.retry(retryTransientRefreshFailure)
+const program = refreshCachedConfig.pipe(
+  Effect.repeat(demoRefreshSchedule),
+  Effect.tap(() => Effect.sync(() => console.log("refresh loop stopped")))
 )
 
-export const resilientConfigRefreshLoop = resilientRefreshCachedConfig.pipe(
-  Effect.repeat(refreshEveryMinuteWithJitter)
-)
+Effect.runPromise(program)
 ```
 
-This keeps two different policies visible: a short jittered retry policy for a
-failed refresh attempt, and a longer jittered repeat policy for the normal
-periodic refresh loop.
+The sample uses a short interval and `Schedule.take(3)` so it terminates
+quickly. For a real background fiber, use the operational interval, such as one
+minute, and tie interruption to the process lifecycle.
+
+## Variants
+
+Use a longer interval when stale configuration is acceptable and the shared
+configuration service is expensive. Use `Schedule.tapOutput` when you want
+telemetry for the repeat count.
+
+If a refresh can fail transiently, retry the single refresh operation with its
+own short policy, then repeat the recovered operation on the longer refresh
+cadence. That keeps failure recovery separate from normal periodic repetition.
 
 ## Notes and caveats
 

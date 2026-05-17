@@ -51,86 +51,61 @@ is correct.
 Start with `Schedule.exponential(base)`. It returns a schedule whose output is
 the current delay and whose delay grows by the exponential factor.
 
-Use `Schedule.modifyDelay` to clamp each computed delay before it is used:
-
-```ts
-const cappedBackoff = Schedule.exponential("100 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
-  )
-)
-```
-
-`Duration.min(delay, Duration.seconds(5))` keeps the exponential delay while it
-is below 5 seconds. Once the exponential curve would exceed 5 seconds, the
-modified schedule keeps returning 5 seconds as the delay between attempts.
-
-Add a retry limit separately with `Schedule.both(Schedule.recurs(n))` when the
+Use `Schedule.modifyDelay` to clamp each computed delay before it is used. Add
+a retry limit separately with `Schedule.both(Schedule.recurs(n))` when the
 operation should eventually give up.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
   readonly service: string
 }> {}
 
-declare const refreshControlPlaneState: Effect.Effect<
-  string,
-  ServiceUnavailable
->
+let attempts = 0
 
-const cappedBackoff = Schedule.exponential("100 millis").pipe(
+const refreshControlPlaneState = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`control-plane attempt ${attempts}`)
+
+  if (attempts < 5) {
+    return yield* Effect.fail(
+      new ServiceUnavailable({ service: "control-plane" })
+    )
+  }
+
+  return "control plane refreshed"
+})
+
+const cappedBackoff = Schedule.exponential("20 millis").pipe(
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(50)))
   ),
   Schedule.both(Schedule.recurs(8))
 )
 
-export const program = refreshControlPlaneState.pipe(
+const program = refreshControlPlaneState.pipe(
   Effect.retry(cappedBackoff)
 )
+
+Effect.runPromise(program).then((message) => {
+  console.log(message)
+})
 ```
 
 The first call to `refreshControlPlaneState` runs immediately. If it fails with
-`ServiceUnavailable`, retries use exponential delays starting at 100
-milliseconds. Each delay is capped at 5 seconds, and `Schedule.recurs(8)` allows
-at most eight retries after the original attempt.
+`ServiceUnavailable`, retries use exponential delays starting at 20
+milliseconds. Each delay is capped at 50 milliseconds in the example. A
+production policy might use a 5 second or 30 second cap, depending on the
+workflow.
 
 ## Variants
 
-Use a smaller cap for interactive work:
-
-```ts
-const interactiveBackoff = Schedule.exponential("50 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(1)))
-  ),
-  Schedule.both(Schedule.recurs(4))
-)
-```
-
-Use a larger cap for background recovery:
-
-```ts
-const backgroundBackoff = Schedule.exponential("500 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(30)))
-  ),
-  Schedule.both(Schedule.recurs(20))
-)
-```
-
+Use a smaller cap for interactive work and a larger cap for background recovery.
 If many processes may retry the same dependency together, keep the cap and add
-jitter:
-
-```ts
-const fleetBackoff = cappedBackoff.pipe(
-  Schedule.jittered
-)
-```
+`Schedule.jittered`.
 
 ## Notes and caveats
 

@@ -10,71 +10,43 @@ code_included: true
 
 # 4.2 Retry up to 5 times
 
-You want to retry an operation a few times before giving up, and five retries is a
-reasonable upper bound for the kind of transient failure you expect. This recipe keeps
-the retry policy explicit: the schedule decides when another typed failure should be
-attempted again and where retrying stops. The surrounding Effect code remains
-responsible for domain safety, including which failures are transient, whether the
-operation is idempotent, and how the final failure is reported.
+Use `Schedule.recurs(5)` with `Effect.retry` when an operation may need a little
+more room than a tiny retry burst but must still stop at a fixed count.
 
 ## Problem
 
-The policy should allow a little more room than a tiny retry burst, but still
-stop at a fixed upper bound.
-
-Use `Schedule.recurs(5)` with `Effect.retry` when the retry budget is exactly
-five additional attempts. The first execution is not counted as a retry, so this
-policy allows up to six executions total: the original attempt plus five
-retries.
+The retry budget is five additional attempts after the original execution. If
+every attempt fails, the effect can run six times total.
 
 ## When to use it
 
-Use this recipe when all typed failures should be retried immediately and the
-operation is safe to run more than once. It is most appropriate for small,
-idempotent effects where an extra few attempts are cheap and the caller benefits
-from hiding brief instability.
+Use this for cheap, idempotent operations where five immediate retries are still
+reasonable. It can be a practical ceiling for local or low-latency work that
+occasionally races with startup or cache refresh.
 
-Five retries is often a practical ceiling for local or low-latency work. It is
-large enough to survive a few unlucky races, but still small enough to avoid an
-accidental unbounded loop.
-
-## When not to use it
-
-Do not use five immediate retries for dependencies that are already overloaded,
-rate-limited, or expensive. In those cases, five can be too many because all
-retries happen back-to-back unless you combine the count limit with a delay,
-backoff, or jitter policy.
-
-Do not use this policy for non-idempotent writes unless the operation has a
-deduplication key, transaction boundary, or another guarantee that repeated
-execution will not duplicate external side effects.
-
-Do not use it for defects or interruptions. `Effect.retry` retries typed
-failures from the error channel; it does not turn defects or fiber interruptions
-into retryable typed errors.
+Do not use five immediate retries for expensive calls, rate-limited APIs, or
+dependencies that may already be overloaded. Add spacing or backoff for those
+cases.
 
 ## Schedule shape
 
-`Schedule.recurs(5)` is a count-limited schedule. When `Effect.retry` uses it,
-each typed failure is fed into the schedule. If the schedule continues, the
-effect runs again. If the schedule stops while the effect is still failing, the
-last typed failure is propagated.
+`Schedule.recurs(5)` is count-limited. In retry, each typed failure is offered
+to the schedule:
 
-The schedule output is the zero-based recurrence count, but plain
-`Effect.retry` discards that output when a later attempt succeeds. For this
-recipe, the important shape is the retry budget:
+- attempt 1 is the original execution.
+- attempts 2 through 6 are the possible retries.
+- if attempt 6 fails, that last typed failure is returned.
 
-- attempt 1: original execution
-- attempts 2 through 6: at most five retries
-- if attempt 6 fails, the final failure is returned
+The schedule output is a recurrence count, but plain `Effect.retry` succeeds
+with the retried effect's successful value.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class LookupError extends Data.TaggedError("LookupError")<{
-  readonly key: string
+  readonly attempt: number
 }> {}
 
 interface Profile {
@@ -82,54 +54,41 @@ interface Profile {
   readonly displayName: string
 }
 
-declare const loadProfile: (id: string) => Effect.Effect<Profile, LookupError>
+let attempt = 0
 
-const retryUpTo5Times = <A, E, R>(effect: Effect.Effect<A, E, R>) => effect.pipe(Effect.retry(Schedule.recurs(5)))
+const loadProfile = Effect.gen(function*() {
+  attempt += 1
+  yield* Console.log(`attempt ${attempt}`)
 
-const program = retryUpTo5Times(loadProfile("user-123"))
+  if (attempt <= 5) {
+    return yield* Effect.fail(new LookupError({ attempt }))
+  }
+
+  return { id: "user-123", displayName: "Ada" } satisfies Profile
+})
+
+const program = loadProfile.pipe(
+  Effect.retry(Schedule.recurs(5)),
+  Effect.tap((profile) => Console.log(`loaded ${profile.displayName}`))
+)
+
+Effect.runPromise(program)
 ```
 
-`program` runs `loadProfile("user-123")` once, then retries it up to five more
-times if it fails with a typed `LookupError`. A success on any attempt completes
-the whole effect with the `Profile`. If every attempt fails, the last
-`LookupError` is propagated.
+This uses the whole budget: five failures followed by a successful sixth
+attempt.
 
 ## Variants
 
-For a one-off local policy, the options form is equivalent and a little shorter:
+For one local call site, `Effect.retry({ times: 5 })` has the same count. Use
+the schedule form when you want to compose the count with another policy, for
+example `Schedule.exponential("100 millis").pipe(Schedule.both(Schedule.recurs(5)))`.
 
-```ts
-const program = loadProfile("user-123").pipe(
-  Effect.retry({ times: 5 })
-)
-```
+## Notes
 
-Use the schedule form when you want a named policy that can be composed later:
-
-```ts
-const retryUpTo5WithBackoff = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-
-const program = loadProfile("user-123").pipe(
-  Effect.retry(retryUpTo5WithBackoff)
-)
-```
-
-This keeps the same count limit, but spaces attempts with exponential backoff.
-That is usually a better production shape for network calls than five immediate
-retries.
-
-## Notes and caveats
-
-`Schedule.recurs(5)` means five retries, not five total attempts. If an API or
-product requirement says "try five times total", use `Schedule.recurs(4)`.
-
-Five retries is too many when each attempt is slow, costly, externally visible,
-or likely to increase pressure on an unhealthy dependency. In those cases,
-reduce the count, add a delay policy, filter retryable errors with `while` or
-`until`, or fail fast and let a higher-level workflow decide what to do.
+`Schedule.recurs(5)` means five retries, not five total attempts. If a product
+requirement says "try five times total", use `Schedule.recurs(4)`.
 
 Keep the retry boundary small. Put `Effect.retry` around the operation that may
-transiently fail, not around a larger workflow that also performs logging,
-notifications, writes, or other effects that should not be repeated.
+transiently fail, not around logging, notifications, writes, or other effects
+that should not be repeated.

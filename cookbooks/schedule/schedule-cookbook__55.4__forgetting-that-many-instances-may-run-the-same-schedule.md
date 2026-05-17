@@ -16,11 +16,10 @@ the recurrence.
 
 ## The anti-pattern
 
-The problematic version designs the schedule from the perspective of one
-operation and then reuses it across many workers. Each instance is well behaved
-in isolation: the retry count is finite, the polling interval is not tiny, and
-the loop may even have a clear stop condition. The missing part is the
-multiplier.
+The mistake is designing from the perspective of one operation, then reusing the
+same schedule across many workers. Each instance may be well behaved in
+isolation: finite retry count, non-tiny polling interval, and a clear stop
+condition. The missing part is the multiplier.
 
 For example, `Schedule.recurs(5)` limits one failed call to five recurrences. It
 does not limit the fleet. If 2,000 workers hit the same dependency, the policy
@@ -36,13 +35,13 @@ tenants, queue partitions, or browser clients are stepping the same policy.
 
 ## Why it happens
 
-It usually happens because schedules are small, reusable values. That is one of
-their strengths, but it can make the operational boundary look smaller than it
-is. A retry policy reviewed in a unit test has one caller. A background poller
-run locally has one loop. A deployed service may have hundreds of copies of that
-same logic, all created from the same image and started by the same rollout.
+Schedules are small, reusable values. That is one of their strengths, but it can
+make the operational boundary look smaller than it is. A retry policy reviewed
+in a unit test has one caller. A background poller run locally has one loop. A
+deployed service may have hundreds of copies of the same logic, all created from
+the same image and started by the same rollout.
 
-Synchronization also appears naturally. Deploys, restarts, cache invalidations,
+Synchronization appears naturally. Deploys, restarts, cache invalidations,
 leader elections, queue backlogs, and dependency outages can cause many
 instances to begin a schedule at nearly the same time. Without randomness or
 coordination, identical schedules produce similar next delays. The result is
@@ -81,7 +80,7 @@ schedule correctly.
 
 ## A better approach
 
-Design the policy as a fleet policy before choosing the combinators. Start with
+Design the policy as a fleet policy before choosing combinators. Start with
 the shared constraint: downstream capacity, provider quota, database write
 budget, acceptable staleness, or maximum recovery pressure. Then divide that
 budget across the number of instances and concurrent operations that may run
@@ -96,8 +95,8 @@ regional restarts, or dependency recovery.
 When the dependency enforces a shared quota, do not rely on per-instance
 schedules alone. Use slower spacing, smaller retry counts, queue admission,
 central rate limiting, lease ownership, partitioning, server-provided
-`Retry-After` delays, or provider-specific quota coordination. Jitter is a load
-spreading tool; quota protection needs an actual quota-aware mechanism.
+`Retry-After` delays, or provider-specific quota coordination. Jitter spreads
+load; quota protection needs a quota-aware mechanism.
 
 Keep the fleet assumption visible in the name or nearby documentation. A policy
 called `retryTransientApiFailure` says less than
@@ -111,7 +110,7 @@ Do not add jitter to workflows that require exact wall-clock alignment or
 protocol-defined timing. Heartbeats, leases, billing windows, and scheduled
 aggregation may need coordination rather than randomness.
 
-Also avoid treating a finite local schedule as proof that the system is safe.
+Do not treat a finite local schedule as proof that the system is safe.
 Stopping after five retries is useful, but five retries across thousands of
 instances can still be too much. The schedule should describe the local
 recurrence contract, and the surrounding system should enforce the shared

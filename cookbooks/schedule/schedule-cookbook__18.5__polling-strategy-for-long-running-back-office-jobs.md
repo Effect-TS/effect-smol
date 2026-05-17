@@ -48,69 +48,65 @@ lifetime, cancellation, or operational owner.
 ## Schedule shape
 
 Start with a modest operational cadence, then switch to a slower background
-cadence. Preserve the latest observed job status and continue only while the job
-is still running:
-
-```ts
-Schedule.spaced("30 seconds").pipe(
-  Schedule.take(10),
-  Schedule.andThen(Schedule.spaced("5 minutes")),
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "running")
-)
-```
-
-The first phase gives operators a few early observations without polling in a
-tight loop. `Schedule.andThen` moves to the long steady interval once that phase
-is exhausted. `Schedule.while` stops the whole policy as soon as a terminal
-status is observed.
-
-`Schedule.passthrough` keeps the latest `JobStatus` as the schedule output, so
-the repeated effect returns the last successful status observation instead of
-the numeric output from the timing schedules.
+cadence with `Schedule.andThen`. Preserve the latest `JobStatus` with
+`Schedule.passthrough`, and continue only while the job is still running.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Clock, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type JobStatus =
   | { readonly state: "running"; readonly processed: number; readonly total: number }
   | { readonly state: "completed"; readonly completedAt: string }
   | { readonly state: "failed"; readonly reason: string }
 
-type JobStatusError = {
-  readonly _tag: "JobStatusError"
-  readonly message: string
-}
-
-declare const readJobStatus: (
-  jobId: string
-) => Effect.Effect<JobStatus, JobStatusError>
-
 const backOfficeJobPolling = Schedule.spaced("30 seconds").pipe(
-  Schedule.take(10),
+  Schedule.take(3),
   Schedule.andThen(Schedule.spaced("5 minutes")),
   Schedule.satisfiesInputType<JobStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.state === "running")
 )
 
-const waitForBackOfficeJob = (jobId: string) =>
-  readJobStatus(jobId).pipe(
-    Effect.repeat(backOfficeJobPolling)
+const script: ReadonlyArray<JobStatus> = [
+  { state: "running", processed: 10, total: 100 },
+  { state: "running", processed: 20, total: 100 },
+  { state: "running", processed: 30, total: 100 },
+  { state: "running", processed: 40, total: 100 },
+  { state: "running", processed: 80, total: 100 },
+  { state: "completed", completedAt: "2026-05-17T12:00:00Z" }
+]
+
+let checks = 0
+
+const readJobStatus = Effect.gen(function*() {
+  const now = yield* Clock.currentTimeMillis
+  const status = script[Math.min(checks, script.length - 1)]!
+  checks += 1
+  console.log(`t+${now}ms check ${checks}: ${status.state}`)
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* readJobStatus.pipe(
+    Effect.repeat(backOfficeJobPolling),
+    Effect.forkDetach
   )
+
+  yield* TestClock.adjust("15 minutes")
+
+  const finalStatus = yield* Fiber.join(fiber)
+  console.log("final:", finalStatus)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program)
 ```
 
-`readJobStatus` runs once immediately. If the job is already `"completed"` or
-`"failed"`, polling stops without waiting. If the job is `"running"`, the
-schedule waits 30 seconds between the first ten recurrences, then waits five
-minutes between later recurrences.
-
-The resulting effect succeeds with the latest observed `JobStatus`. A domain
-failure such as `"failed"` is still a successful status read; decide after
-polling whether that terminal status should fail a larger workflow.
+The example uses three early recurrences to keep the output short. In a real
+back-office poller, increase that first-phase count if operators need more early
+progress samples.
 
 ## Variants
 
@@ -134,8 +130,8 @@ state.
 `Effect.repeat` runs the status check once before the schedule controls any
 recurrence. The first observation is immediate.
 
-`Schedule.take(10)` limits the first phase to ten recurrences after the initial
-status check. It is not ten total status checks.
+`Schedule.take(3)` limits the first phase to three recurrences after the initial
+status check. It is not three total status checks.
 
 `Schedule.spaced` waits after each successful status check completes. That is
 usually what you want for back-office polling because status checks may have
@@ -144,6 +140,3 @@ variable latency.
 `Schedule.while` reads successful `JobStatus` values only. Keep status endpoint
 failures in the effect error channel and handle retries separately if the
 endpoint itself is unreliable.
-
-When a timing schedule reads status through `metadata.input`, constrain it with
-`Schedule.satisfiesInputType<JobStatus>()` before `Schedule.while`.

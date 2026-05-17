@@ -10,90 +10,57 @@ code_included: false
 
 # 59.1 Minimize latency
 
-Minimize latency is a reference-index entry for `Schedule` recipes where fast
-recurrence is the main operational concern.
+Use this index when the main budget is latency: the time a caller waits before
+it gets an answer. A low-latency policy retries or polls quickly, but only when
+the next attempt is cheap, safe, likely to succeed soon, and explicitly bounded.
 
-## What this section is about
+The first execution is already immediate. `Schedule` controls only later
+recurrences: retries after typed failures with `Effect.retry`, or repeats after
+successful observations with `Effect.repeat`.
 
-Use low-latency scheduling when the caller is actively waiting and a short
-extra attempt is more valuable than conserving every request. The strongest
-examples are narrow local races, brief optimistic-concurrency conflicts,
-freshly started in-process services, and user-facing readiness checks where a
-successful answer is expected soon.
+## Core schedule choices
 
-The first execution of an effect is already immediate. A schedule controls only
-the recurrences after that first execution. For retries, `Effect.retry` runs the
-effect once, then consults the schedule after a typed failure. For polling with
-`Effect.repeat`, the first observation runs once, then the schedule decides
-whether and when to observe again.
-
-## Why it matters
-
-Fast policies are useful because they avoid needless waiting when the problem
-is likely to clear almost immediately. They are also risky because they can
-turn one failure into many requests before a human or an upstream system has
-time to react.
-
-Low latency justifies immediate or very fast recurrence only when the operation
-is cheap, safe to repeat, expected to settle quickly, and run by a small number
-of callers. If the dependency is shared, rate limited, overloaded, or touched by
-many fibers or nodes at once, latency is no longer the only budget. Prefer
-spacing, backoff, jitter, or a visible failure path.
-
-## Core idea
-
-Start with the smallest fast policy that explains the behavior:
-
-- Use `Schedule.recurs(n)` for immediate retries with no scheduled delay. This
-  is the lowest-latency retry shape. `n` is the number of retries after the
-  original attempt, not the total number of attempts.
-- Use a very small `Schedule.spaced` delay when a tight loop would be too
-  aggressive but the caller still benefits from a quick second attempt.
-  `spaced` waits the chosen duration between recurrences after the previous run
-  completes.
-- Use `Schedule.fixed` when the work should target regular interval
-  boundaries. If a run takes longer than the interval, the next run can happen
-  immediately, but missed runs do not pile up.
-- Use `Schedule.while` or an `Effect.retry` `while` predicate when the operation
-  has a domain-specific reason to stop before the count or time budget is
-  exhausted.
+- Use `Schedule.recurs(n)` for immediate retries. `n` is the number of retries
+  after the original attempt, not the total number of attempts.
+- Use a small `Schedule.spaced(duration)` delay when a zero-delay loop would be
+  too aggressive but the caller still benefits from a quick second attempt.
+- Use `Schedule.fixed(interval)` only when regular interval boundaries are part
+  of the requirement. If work overruns the interval, the next recurrence can be
+  immediate.
+- Use `Schedule.while` or `Effect.retry({ while })` when a domain predicate
+  should stop recurrence before the count or time budget is spent.
 - Add `Schedule.recurs`, `Schedule.take`, or `Schedule.during` whenever the
-  fast path must have a clear end. A low-latency policy without a stop condition
-  is usually an overload policy by accident.
+  fast path needs a clear end.
 
-## Recipe index
+## Related recipes
 
-Use section 21.1, "Immediate retries", when the failure window is shorter than
-any meaningful sleep and the retry count is deliberately tiny.
+Use [21.1 Immediate retries](schedule-cookbook__21.1__immediate-retries.md)
+when the failure window is shorter than any useful sleep and the retry count is
+deliberately tiny.
 
-Use section 5.1, "Retry every 100 milliseconds", when you need a small fixed
-delay between retry attempts instead of a zero-delay retry loop.
+Use [5.1 Retry every 100 milliseconds](schedule-cookbook__05.1__retry-every-100-milliseconds.md)
+when the policy needs a short pause instead of immediate retries.
 
-Use section 18.2, "Slow polling after initial responsiveness matters less",
-when the first responsive phase has passed and the workflow should trade
-instant feedback for lower background load.
+Use [18.2 Slow polling after initial responsiveness matters less](schedule-cookbook__18.2__slow-polling-after-initial-responsiveness-matters-less.md)
+when the first responsive phase should hand off to a slower cadence.
 
-Use section 57.2, "Immediate responsiveness vs infrastructure safety", when the
-choice is not purely local and you need to compare user-visible latency against
-aggregate load.
+Use [57.2 Immediate responsiveness vs infrastructure safety](schedule-cookbook__57.2__immediate-responsiveness-vs-infrastructure-safety.md)
+when local latency competes with fleet-wide load.
 
-Use section 59.4, "Bound total retry time", when the low-latency policy should
-be governed by an elapsed user-facing budget instead of only an attempt count.
+Use [59.4 Bound total retry time](schedule-cookbook__59.4__bound-total-retry-time.md)
+when elapsed user-facing time matters more than the exact number of retries.
 
-## Practical guidance
+## Caveats
 
 Treat low latency as a short exception, not a default. A fast policy should
-usually be bounded by a small recurrence count, a short elapsed-time budget, or
-a domain predicate that stops as soon as the condition is no longer transient.
+normally be bounded by a small recurrence count, a short elapsed-time budget, or
+a predicate that stops as soon as the condition is no longer transient.
 
-Stop immediately for validation errors, authorization failures, missing
-configuration, malformed requests, known permanent states, and non-idempotent
-writes that cannot be safely repeated. The schedule can decide timing and
-recurrence, but the surrounding Effect code must still classify errors and
-domain states.
+Do not use fast retries for validation errors, authorization failures, malformed
+requests, known permanent states, missing configuration, or non-idempotent
+writes that cannot be safely repeated.
 
-Move away from immediate or fast recurrence when failures persist beyond the
-responsive window. At that point, either fail visibly, switch to `Schedule.spaced`
-with a slower cadence, use `Schedule.exponential` or `Schedule.fibonacci` for
-backoff, and consider `Schedule.jittered` when many callers may otherwise align
-their retries.
+If failures persist beyond the responsive window, fail visibly or switch to a
+safer policy: slower `Schedule.spaced`, `Schedule.exponential` or
+`Schedule.fibonacci` backoff, and `Schedule.jittered` when many callers may
+otherwise retry together.

@@ -10,83 +10,52 @@ code_included: true
 
 # 4.5 Retry until the first success
 
-You have an effect that may fail a few times before succeeding, and the first successful
-attempt should complete the whole operation. This is the default behavior of
-`Effect.retry`. This recipe keeps the retry policy explicit: the schedule decides when
-another typed failure should be attempted again and where retrying stops. The
-surrounding Effect code remains responsible for domain safety, including which failures
-are transient, whether the operation is idempotent, and how the final failure is
-reported.
+`Effect.retry` stops as soon as one attempt succeeds. The schedule is only
+consulted after typed failures.
 
 ## Problem
 
-The retry schedule should only handle failures. A successful attempt is terminal:
-it completes the retried operation and prevents any remaining retry budget from
-being used.
-
-This is the default behavior of `Effect.retry`. The retry policy is only
-consulted after typed failures.
+The operation may fail a few times, but the first success should complete the
+whole workflow and leave any remaining retry budget unused.
 
 ## When to use it
 
-Use this when success means the work is done:
+Use this when success means the work is done: connecting to a service, reading a
+temporarily unavailable value, or retrying an idempotent request after transient
+typed failures.
 
-- Connecting to a service that may not be ready yet.
-- Reading from a temporarily unavailable dependency.
-- Retrying an idempotent request after transient typed failures.
-- Waiting for the first successful response from an operation with a small retry
-  budget.
-
-The retry schedule should describe how many failed attempts are acceptable and,
-when appropriate, how much delay to place between them.
-
-## When not to use it
-
-Do not use retry when the effect should continue after success. Retry is driven
-by failures and stops on the first success; use `Effect.repeat` when successful
-values should drive additional runs.
-
-Do not use an unbounded retry policy for work that can fail forever unless the
-operation is intentionally supervised and externally interruptible. A persistent
-failure with `Schedule.forever` or an uncapped spaced schedule can keep running
-indefinitely.
-
-Do not retry effects that are unsafe to run more than once unless the repeated
-side effects are intentional. Retrying a write usually needs idempotency,
-deduplication, or another duplicate-handling strategy.
+Use `Effect.repeat` instead when successful values should drive more executions.
 
 ## Schedule shape
 
-For `Effect.retry`, the schedule input is the typed error from the failed
-attempt. The original effect runs once before the schedule is used.
-
-After each typed failure:
+For `Effect.retry`, each typed failure is offered to the schedule:
 
 - If the schedule continues, the effect is run again.
 - If the schedule stops, the last typed failure is returned.
 - If the next attempt succeeds, the whole retried effect succeeds immediately.
 
-`Schedule.recurs(n)` allows at most `n` retries after the initial attempt. For
-example, `Schedule.recurs(4)` permits up to five total executions, but fewer
-executions happen when an earlier attempt succeeds.
+`Schedule.recurs(4)` permits up to five total executions, but fewer executions
+happen when an earlier attempt succeeds.
 
 ## Code
 
 ```ts
-import { Data, Effect, Ref, Schedule } from "effect"
+import { Console, Data, Effect, Ref, Schedule } from "effect"
 
 class TemporaryError extends Data.TaggedError("TemporaryError")<{
   readonly attempt: number
 }> {}
 
-const flakyRequest = (attempts: Ref.Ref<number>) =>
-  Ref.updateAndGet(attempts, (n) => n + 1).pipe(
-    Effect.flatMap((attempt) =>
-      attempt < 3
-        ? Effect.fail(new TemporaryError({ attempt }))
-        : Effect.succeed(`success on attempt ${attempt}`)
-    )
-  )
+const flakyRequest = Effect.fnUntraced(function*(attempts: Ref.Ref<number>) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`attempt ${attempt}`)
+
+  if (attempt < 3) {
+    return yield* Effect.fail(new TemporaryError({ attempt }))
+  }
+
+  return `success on attempt ${attempt}`
+})
 
 const program = Effect.gen(function*() {
   const attempts = yield* Ref.make(0)
@@ -96,74 +65,29 @@ const program = Effect.gen(function*() {
   )
 
   const totalAttempts = yield* Ref.get(attempts)
-  return { value, totalAttempts }
+  yield* Console.log(`${value}; total attempts: ${totalAttempts}`)
 })
+
+Effect.runPromise(program)
 ```
 
-`flakyRequest` fails on attempts 1 and 2, then succeeds on attempt 3. The
-schedule allows up to four retries, but attempts 4 and 5 never run because
-`Effect.retry` stops at the first success.
+The schedule allows four retries, but attempts 4 and 5 never run because
+attempt 3 succeeds.
 
 ## Variants
 
-For a count-only policy, the `times` option has the same retry-count meaning:
+`Effect.retry({ times: 4 })` has the same count-only behavior. Add a schedule,
+such as `Schedule.spaced("200 millis").pipe(Schedule.take(4))`, when failures
+should be paced. Add `while` or `until` when only some typed failures should be
+retried.
 
-```ts
-const program = Effect.gen(function*() {
-  const attempts = yield* Ref.make(0)
-
-  return yield* flakyRequest(attempts).pipe(
-    Effect.retry({ times: 4 })
-  )
-})
-```
-
-Use a schedule when you also need timing:
-
-```ts
-const policy = Schedule.spaced("200 millis").pipe(
-  Schedule.take(4)
-)
-
-const program = Effect.gen(function*() {
-  const attempts = yield* Ref.make(0)
-
-  return yield* flakyRequest(attempts).pipe(
-    Effect.retry(policy)
-  )
-})
-```
-
-Add `while` or `until` when only some failures should be retried:
-
-```ts
-const program = Effect.gen(function*() {
-  const attempts = yield* Ref.make(0)
-
-  return yield* flakyRequest(attempts).pipe(
-    Effect.retry({
-      schedule: Schedule.spaced("200 millis").pipe(Schedule.take(4)),
-      while: (error) => error._tag === "TemporaryError"
-    })
-  )
-})
-```
-
-The first success still wins. The predicate and schedule only decide what to do
+The first success still wins. Predicates and schedules only decide what happens
 after failures.
 
-## Notes and caveats
+## Notes
 
-The Effect tests include a retry case that succeeds immediately with
-`times: 10000`; the effect is evaluated once. A large retry budget does not
-cause extra executions after success.
-
-Plain `Effect.retry` does not run a fallback when the policy is exhausted. If
-all permitted attempts fail and you need recovery behavior, use
-`Effect.retryOrElse`.
-
-Retry only observes typed failures. Defects and interruptions are not retried as
-typed failures.
+Plain `Effect.retry` does not run a fallback when the policy is exhausted. Use
+`Effect.retryOrElse` when final failure should trigger recovery.
 
 Prefer a bounded or otherwise controlled schedule when unbounded retry is risky.
 For production dependencies, that usually means combining a retry count with a

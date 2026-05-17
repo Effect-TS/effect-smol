@@ -10,114 +10,130 @@ code_included: true
 
 # 31.2 Reconcile records without overloading the database
 
-Database reconciliation jobs are easier to operate when worker cadence and
-per-record retry policy are separate. One schedule spaces successful records;
-a smaller retry schedule handles transient database errors for a single
-idempotent record.
+Reconciliation jobs need two policies: one for spacing successful records and
+one for retrying a single idempotent record after a transient database failure.
 
 ## Problem
 
-A backlog of stale records can turn a simple read, write, mark loop into
-sustained database pressure. Each record may touch several tables or indexes,
-so running the next record immediately after every successful write can make
-the worker behave like an unbounded scan loop. Retrying failed writes without a
-limit can make the problem worse.
+A stale-record backlog can turn a read, write, mark loop into sustained database
+pressure. Each record may touch indexes, locks, or derived tables. Retrying a
+failing write without a limit can make that pressure worse.
 
-The schedule should make two different decisions visible:
-
-- how much space to leave between records
-- how many times it is safe to retry the same record after a transient failure
+Keep the decisions separate: how long to wait between records, and how many
+times to retry the same record when the database reports a transient error.
 
 ## When to use it
 
-Use this recipe for background reconciliation, projection repair, denormalized
-view updates, search-index catch-up, or any internal worker that processes
-database records one at a time.
+Use this for projection repair, denormalized view updates, search-index
+catch-up, and similar workers that process records one at a time.
 
-It works best when each reconciliation step is idempotent. For example, an
-`upsert`, compare-and-set, or write guarded by a reconciliation version is safe
-to retry because repeating the same record does not create duplicate side
-effects.
+It fits idempotent steps: an `upsert`, compare-and-set, or version-guarded write
+can be repeated without creating duplicate business effects.
 
 ## When not to use it
 
-Do not put non-idempotent writes behind this retry policy. If retrying a record
-can create a duplicate payment, duplicate email, or duplicate audit event, fix
-that boundary before adding a schedule.
+Do not retry non-idempotent writes such as payments, emails, or audit events
+unless that boundary has its own deduplication guarantee.
 
-Also avoid using the schedule to bury permanent record errors. Invalid input,
-missing required foreign keys, or authorization decisions should be recorded as
-terminal reconciliation outcomes, not retried as if the database were briefly
-unavailable.
+Do not bury permanent record errors. Invalid input or missing required data
+should become terminal reconciliation outcomes, not transient failures.
 
 ## Schedule shape
 
-Use `Schedule.spaced` for the worker loop because it waits after each record is
-processed before the next repetition. Use `Schedule.exponential` plus
-`Schedule.recurs` for the per-record retry so transient failures get a few
-increasing delays and then stop. `Schedule.jittered` is useful when several
-workers may retry at the same time; according to `Schedule.ts`, it adjusts each
-delay to a random value between 80% and 120% of the original delay.
+Use `Schedule.spaced` for the outer worker cadence. It waits after one record
+finishes before the next record is loaded.
+
+Use `Schedule.exponential` plus `Schedule.recurs` for record-local retry.
+`Schedule.jittered` is useful when several workers may retry at the same time;
+it randomizes each delay between 80% and 120% of the original delay.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 type RecordId = string
 
 interface StaleRecord {
   readonly id: RecordId
   readonly version: number
+  readonly valid: boolean
 }
 
-class DatabaseUnavailable extends Data.TaggedError("DatabaseUnavailable")<{}> {}
-class WriteConflict extends Data.TaggedError("WriteConflict")<{}> {}
+class DatabaseUnavailable extends Data.TaggedError("DatabaseUnavailable")<{
+  readonly recordId: RecordId
+  readonly attempt: number
+}> {}
+
 class InvalidRecord extends Data.TaggedError("InvalidRecord")<{
-  readonly id: RecordId
+  readonly recordId: RecordId
   readonly reason: string
 }> {}
 
-declare const loadNextStaleRecord: Effect.Effect<
-  StaleRecord | undefined,
-  DatabaseUnavailable
->
+const staleRecords: Array<StaleRecord> = [
+  { id: "record-a", version: 1, valid: true },
+  { id: "record-b", version: 3, valid: true },
+  { id: "record-c", version: 2, valid: false }
+]
 
-declare const upsertProjection: (
-  record: StaleRecord
-) => Effect.Effect<void, DatabaseUnavailable | WriteConflict | InvalidRecord>
+const attempts = new Map<RecordId, number>()
 
-declare const markReconciled: (
-  id: RecordId
-) => Effect.Effect<void, DatabaseUnavailable>
-
-declare const markInvalid: (
-  id: RecordId,
-  reason: string
-) => Effect.Effect<void, DatabaseUnavailable>
-
-const retryTransientDatabaseErrors = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3))
+const loadNextStaleRecord = Effect.sync(() => staleRecords.shift()).pipe(
+  Effect.tap((record) =>
+    record === undefined
+      ? Console.log("no stale records remain")
+      : Console.log(`loaded ${record.id}`)
+  )
 )
 
-const betweenRecords = Schedule.spaced("250 millis").pipe(
-  Schedule.recurs(1_000)
+const upsertProjection = (record: StaleRecord) =>
+  Effect.gen(function*() {
+    if (!record.valid) {
+      return yield* Effect.fail(
+        new InvalidRecord({ recordId: record.id, reason: "missing required field" })
+      )
+    }
+
+    const attempt = (attempts.get(record.id) ?? 0) + 1
+    attempts.set(record.id, attempt)
+
+    if (record.id === "record-b" && attempt === 1) {
+      yield* Console.log(`database unavailable for ${record.id}`)
+      return yield* Effect.fail(new DatabaseUnavailable({ recordId: record.id, attempt }))
+    }
+
+    yield* Console.log(`upserted projection for ${record.id} at version ${record.version}`)
+  })
+
+const markReconciled = (id: RecordId) =>
+  Console.log(`marked ${id} reconciled`)
+
+const markInvalid = (id: RecordId, reason: string) =>
+  Console.log(`marked ${id} invalid: ${reason}`)
+
+const retryTransientDatabaseErrors = Schedule.exponential("10 millis").pipe(
+  Schedule.jittered,
+  Schedule.both(Schedule.recurs(2))
+)
+
+const betweenRecords = Schedule.spaced("15 millis").pipe(
+  Schedule.both(Schedule.recurs(10))
 )
 
 const reconcileRecord = Effect.fnUntraced(function*(record: StaleRecord) {
   const result = yield* Effect.result(upsertProjection(record))
 
   if (result._tag === "Failure") {
-    if (result.error._tag === "InvalidRecord") {
-      yield* markInvalid(result.error.id, result.error.reason)
-      return
+    const error = result.failure
+    if (error._tag === "InvalidRecord") {
+      yield* markInvalid(error.recordId, error.reason)
+      return "invalid" as const
     }
-
-    return yield* Effect.fail(result.error)
+    return yield* Effect.fail(error)
   }
 
   yield* markReconciled(record.id)
+  return "reconciled" as const
 })
 
 const reconcileNextRecord = Effect.gen(function*() {
@@ -127,47 +143,40 @@ const reconcileNextRecord = Effect.gen(function*() {
     return "idle" as const
   }
 
-  yield* Effect.retry(
-    reconcileRecord(record),
-    retryTransientDatabaseErrors
-  )
-
-  return "reconciled" as const
+  return yield* Effect.retry(reconcileRecord(record), {
+    schedule: retryTransientDatabaseErrors,
+    while: (error) => error._tag === "DatabaseUnavailable"
+  })
 })
 
-export const program = Effect.repeat(reconcileNextRecord, betweenRecords)
+const program = reconcileNextRecord.pipe(
+  Effect.repeat({
+    schedule: betweenRecords,
+    while: (status) => status !== "idle"
+  })
+)
+
+Effect.runPromise(program)
 ```
 
-## Why this works
-
-`Effect.repeat` feeds successful values into the outer schedule, so the worker
-waits 250 milliseconds after each completed iteration before asking the database
-for another stale record. That gives the database predictable breathing room
-even when there is a large backlog.
-
-`Effect.retry` feeds failures into the inner schedule. Only failures that remain
-after the record-level classification reach the retry policy. The `InvalidRecord`
-case is handled once and marked as terminal, while database availability and
-write conflict failures get up to three retry recurrences with jittered
-exponential spacing.
+The demo retries `record-b` once, marks `record-c` invalid without retrying it,
+and spaces each successful worker iteration. Production values should come from
+database capacity and service-level objectives, not from the small demo delays.
 
 ## Variants
 
-For a heavier reconciliation step, increase `betweenRecords` before increasing
-parallelism. A wider gap is usually easier for the database to absorb than many
-workers retrying at once.
+For heavier reconciliation, increase spacing before adding workers. More
+workers multiply reads, writes, lock contention, and retry traffic.
 
-For a small catch-up job, replace `Schedule.recurs(1_000)` with a lower bound so
-the worker exits after a known number of records. For a long-running service,
-keep the same spacing policy but pair it with queue metrics so operators can see
-whether the backlog is shrinking.
+For a short catch-up job, lower the recurrence count. For a long-running worker,
+keep the same spacing policy and add backlog metrics so operators can see
+whether the queue is shrinking.
 
 ## Notes and caveats
 
-`Schedule.spaced("250 millis")` spaces repetitions from the last run rather than
-anchoring them to a wall-clock interval. That is the right default for database
-load smoothing because slow records naturally reduce throughput.
+`Effect.repeat` is success-driven; it spaces completed worker iterations.
+`Effect.retry` is failure-driven; it handles transient failures for one record.
 
-The retry schedule is intentionally local to one record. Do not wrap the whole
-worker in a broad retry unless you want every failure, including classification
-bugs, to restart the loop.
+Keep the retry schedule local to the idempotent record operation. A broad retry
+around the whole worker can hide classification bugs and repeat unrelated
+database reads.

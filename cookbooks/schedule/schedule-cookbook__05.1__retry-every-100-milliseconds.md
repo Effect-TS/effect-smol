@@ -10,119 +10,104 @@ code_included: true
 
 # 5.1 Retry every 100 milliseconds
 
-This recipe shows a very short fixed-delay retry policy using
-`Schedule.spaced("100 millis")` with `Effect.retry`. The schedule controls the retry
-timing, while the surrounding Effect code remains responsible for deciding which typed
-failures are safe to retry.
+`Schedule.spaced("100 millis")` adds a short fixed pause before each retry.
+Keep this policy narrow: it is for cheap, idempotent operations where another
+attempt after 100 milliseconds is still safe.
 
 ## Problem
 
-A fast operation can fail because of brief local contention or another condition
-expected to clear almost immediately. You need each retry after the original
-attempt to wait exactly 100 milliseconds, with no growth, jitter, or
-error-dependent timing.
-
-Use `Schedule.spaced("100 millis")` with `Effect.retry` for this policy.
+A local operation can fail because of brief contention or a dependency that is
+expected to recover almost immediately. Retrying in a tight loop is too
+aggressive, but a long delay would make recovery feel slow.
 
 ## When to use it
 
-Use this recipe when typed failures are expected to clear quickly and each retry
-is cheap, safe, and idempotent. It fits short-lived local coordination, brief
-resource contention, and tests or examples where a fixed delay makes the retry
-shape easy to see.
+Use this for cheap idempotent work, such as local coordination, a short-lived
+resource race, or a small request that often succeeds on the next attempt.
+Idempotent means repeating the operation has the same intended external effect
+as running it once.
 
-It is also useful as the smallest fixed-delay retry building block before adding
-a count limit in a later step.
+For request/response code, add a retry limit. An unbounded 100 millisecond loop
+is usually appropriate only when the fiber is supervised and can be interrupted.
 
 ## When not to use it
 
-Do not use an unbounded 100 millisecond retry loop for expensive work,
-rate-limited services, overloaded dependencies, or non-idempotent writes. A
-fast fixed retry can make those situations worse.
+Do not use this for expensive work, rate-limited services, overloaded
+dependencies, or writes that are not duplicate-safe. A fast retry loop can make
+those failures worse.
 
-Do not use this when retries should become less frequent after repeated
-failures. That calls for backoff or jitter instead of a fixed 100 millisecond
-spacing.
-
-Do not use it to retry defects or interruptions. `Effect.retry` retries typed
-failures from the error channel; defects and fiber interruptions are not retried
-as typed failures.
+Do not use it when each failure should increase the delay. Use backoff or
+jitter when repeated failures are a signal to slow down.
 
 ## Schedule shape
 
-`Schedule.spaced("100 millis")` is an unbounded schedule. It recurs
-continuously, waiting 100 milliseconds between recurrences.
+`Schedule.spaced("100 millis")` recurs indefinitely and contributes the same
+100 millisecond delay each time. With `Effect.retry`, the first attempt runs
+immediately. The schedule is consulted only after a typed failure, meaning an
+error produced through the Effect error channel.
 
-With `Effect.retry`, the first attempt happens immediately. If that attempt
-fails with a typed error, the error is fed to the schedule. The schedule then
-chooses the 100 millisecond delay, and the effect is attempted again after that
-delay.
+The bounded shape below is:
 
-The shape is:
-
-- attempt 1: run immediately
-- if attempt 1 fails: wait 100 milliseconds
-- attempt 2: run again
-- if attempt 2 fails: wait 100 milliseconds
-- continue until an attempt succeeds, the fiber is interrupted, or a bounded
-  variant stops the schedule
-
-The schedule output is a recurrence count, but plain `Effect.retry` returns the
-eventual success value and does not expose that count.
+- attempt 1 runs immediately
+- failed attempts wait 100 milliseconds before the next retry
+- `Schedule.recurs(5)` allows five retries after the original attempt
+- if all retries fail, `Effect.retry` returns the last typed failure
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 class RequestError extends Data.TaggedError("RequestError")<{
-  readonly reason: string
+  readonly attempt: number
 }> {}
 
-declare const request: Effect.Effect<string, RequestError>
+const request = Effect.fnUntraced(function*(attempts: Ref.Ref<number>) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`attempt ${attempt}`)
 
-const retryEvery100Millis = Schedule.spaced("100 millis")
+  if (attempt < 3) {
+    return yield* Effect.fail(new RequestError({ attempt }))
+  }
 
-const program = request.pipe(
-  Effect.retry(retryEvery100Millis)
-)
-```
+  return "ok"
+})
 
-`program` runs `request` once immediately. If `request` fails with a typed
-`RequestError`, it waits 100 milliseconds and tries again. Because
-`Schedule.spaced("100 millis")` does not stop on its own, this continues until
-one attempt succeeds or the fiber running `program` is interrupted.
-
-## Variants
-
-Bound the same fixed-delay policy with `Schedule.recurs` when you want a maximum
-retry count:
-
-```ts
-const retryEvery100MillisUpTo5Times = Schedule.spaced("100 millis").pipe(
+const retryEvery100Millis = Schedule.spaced("100 millis").pipe(
   Schedule.both(Schedule.recurs(5))
 )
 
-const boundedProgram = request.pipe(
-  Effect.retry(retryEvery100MillisUpTo5Times)
-)
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+  const fiber = yield* request(attempts).pipe(
+    Effect.retry(retryEvery100Millis),
+    Effect.forkScoped
+  )
+
+  yield* TestClock.adjust("100 millis")
+  yield* TestClock.adjust("100 millis")
+
+  const result = yield* Fiber.join(fiber)
+  yield* Console.log(`result: ${result}`)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program).then(() => undefined)
 ```
 
-`Schedule.both` continues only while both schedules continue. The spaced
-schedule contributes the fixed 100 millisecond delay, and `Schedule.recurs(5)`
-contributes the retry limit. If all retries fail, `Effect.retry` propagates the
-last typed failure.
+The example fails twice, advances virtual time twice, and then prints:
+`attempt 1`, `attempt 2`, `attempt 3`, and `result: ok`. `TestClock` keeps the
+snippet quick when pasted into `scratchpad/repro.ts`; application code usually
+uses the live clock.
 
-## Notes and caveats
+## Notes
 
-`Schedule.spaced("100 millis")` delays retries; it does not delay the first
-attempt. The first execution of the effect always happens immediately.
+`Schedule.spaced` delays retries, not the original attempt. It also measures
+the delay after the failed attempt has completed; it is not a strict
+wall-clock cadence.
 
-The delay is measured between retry attempts after the previous attempt has
-failed. It does not make the whole operation run on a strict wall-clock cadence.
+`Schedule.recurs(5)` means five retries after the original attempt, not five
+total attempts.
 
-When bounding this policy, remember that `Schedule.recurs(5)` means five
-retries after the original attempt, not five total attempts.
-
-Keep the retry boundary narrow. Wrap the transient operation itself, not a
-larger workflow that also performs effects that should not be repeated.
+`Effect.retry` retries typed failures. Defects, thrown exceptions that escape
+Effect, and fiber interruptions are not retried as typed failures.

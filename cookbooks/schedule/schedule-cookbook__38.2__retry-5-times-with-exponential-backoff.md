@@ -53,20 +53,9 @@ limit, add `Schedule.during` or put an explicit timeout around the operation.
 
 ## Schedule shape
 
-Start with the delay shape, then add the retry limit:
-
-```ts
-import { Schedule } from "effect"
-
-const retryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
+Start with the delay shape, then add the retry limit.
 `Schedule.exponential("200 millis")` starts with a 200 millisecond delay and,
-with the default factor, doubles the delay on later recurrences. The first few
-delays are roughly 200 milliseconds, 400 milliseconds, 800 milliseconds, 1.6
-seconds, and 3.2 seconds.
+with the default factor, doubles the delay on later recurrences.
 
 `Schedule.recurs(5)` allows five scheduled recurrences. With `Effect.retry`,
 those recurrences are retries after failures. `Schedule.both` requires both
@@ -76,60 +65,57 @@ exhausted.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type TransientError = {
   readonly _tag: "Timeout" | "Unavailable" | "RateLimited"
 }
 
-declare const callDownstream: Effect.Effect<string, TransientError>
+let attempts = 0
 
-const retryPolicy = Schedule.exponential("200 millis").pipe(
+const callDownstream = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`downstream attempt ${attempts}`)
+
+  if (attempts < 4) {
+    return yield* Effect.fail({
+      _tag: attempts === 1 ? "Timeout" : "Unavailable"
+    } as TransientError)
+  }
+
+  return "response body"
+})
+
+const retryPolicy = Schedule.exponential("20 millis").pipe(
   Schedule.both(Schedule.recurs(5))
 )
 
-export const program = callDownstream.pipe(
-  Effect.retry(retryPolicy)
+const program = callDownstream.pipe(
+  Effect.retry(retryPolicy),
+  Effect.matchEffect({
+    onFailure: (error) =>
+      Console.log(`failed with ${error._tag} after ${attempts} attempts`),
+    onSuccess: (value) =>
+      Console.log(`succeeded with "${value}" after ${attempts} attempts`)
+  })
 )
+
+Effect.runPromise(program)
 ```
 
-The first call to `callDownstream` happens immediately. If it fails with a typed
-`TransientError`, `Effect.retry` feeds that failure into the schedule. The
-schedule then decides whether another retry is allowed and how long to wait
-before running it.
-
-With this policy, `callDownstream` can run at most six times total: one original
-attempt plus five retries. If all retries fail, `Effect.retry` returns the last
-typed failure.
+The example uses a `20 millis` base interval so it terminates quickly. With this
+policy, `callDownstream` can run at most six times total: one original attempt
+plus five retries.
 
 ## Variants
 
-Use a larger base interval when the dependency needs more time to recover:
-
-```ts
-const slowerRetryPolicy = Schedule.exponential("1 second").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-```
+Use a larger base interval when the dependency needs more time to recover.
 
 Use a smaller retry limit for user-facing requests where returning a clear error
-quickly matters more than exhausting every recovery chance:
-
-```ts
-const quickRetryPolicy = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(2))
-)
-```
+quickly matters more than exhausting every recovery chance.
 
 For fleet-wide retries, add jitter after the exponential cadence so identical
-clients do not retry in lockstep:
-
-```ts
-const jitteredRetryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5))
-)
-```
+clients do not retry in lockstep.
 
 ## Notes and caveats
 

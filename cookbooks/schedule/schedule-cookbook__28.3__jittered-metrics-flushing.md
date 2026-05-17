@@ -10,17 +10,15 @@ code_included: true
 
 # 28.3 Jittered metrics flushing
 
-Metrics flushing is usually successful background work: each service instance
-periodically sends local counters, gauges, histograms, or spans to a collector.
-This recipe adds jitter to the repeat schedule while keeping the flush interval
-recognizable.
+Use jittered repetition when many service instances flush telemetry to the same
+collector on a shared cadence.
 
 ## Problem
 
-Every service instance should flush buffered metrics about every ten seconds.
-The first flush should happen as soon as the background loop starts, while later
-flushes should drift enough that a deploy does not make the collector receive a
-burst from every instance at the same instant.
+Each instance should flush buffered counters, gauges, histograms, or spans about
+every ten seconds. The first flush should happen immediately. Later flushes
+should drift enough that a deploy does not create one synchronized collector
+burst.
 
 ## When to use it
 
@@ -52,18 +50,6 @@ recovered operation on the longer periodic schedule.
 
 Start with the intended flush cadence:
 
-```ts
-Schedule.spaced("10 seconds")
-```
-
-Then apply jitter to the recurrence delay:
-
-```ts
-Schedule.spaced("10 seconds").pipe(
-  Schedule.jittered
-)
-```
-
 `Schedule.spaced("10 seconds")` waits ten seconds after a successful flush
 completes before starting the next one. `Schedule.jittered` randomly adjusts
 each recurrence delay between 80% and 120% of the original delay, so a
@@ -78,84 +64,56 @@ The schedule controls only the repeated flushes after successful completions.
 import { Effect, Schedule } from "effect"
 
 type MetricsBatch = {
-  readonly counters: ReadonlyMap<string, number>
-  readonly gauges: ReadonlyMap<string, number>
+  readonly counters: ReadonlyArray<readonly [string, number]>
+  readonly gauges: ReadonlyArray<readonly [string, number]>
 }
 
-type MetricsFlushError = {
-  readonly _tag: "MetricsFlushError"
-  readonly message: string
-}
+let flush = 0
 
-declare const drainMetrics: Effect.Effect<MetricsBatch>
-declare const sendMetrics: (
-  batch: MetricsBatch
-) => Effect.Effect<void, MetricsFlushError>
+const drainMetrics = Effect.sync((): MetricsBatch => {
+  flush += 1
+  return {
+    counters: [["requests_total", flush * 10]],
+    gauges: [["queue_depth", 4 - flush]]
+  }
+})
+
+const sendMetrics = (batch: MetricsBatch) =>
+  Effect.sync(() => {
+    console.log(
+      `flushed counters=${batch.counters.length} gauges=${batch.gauges.length}`
+    )
+  })
 
 const flushMetrics = drainMetrics.pipe(
   Effect.flatMap(sendMetrics)
 )
 
-const flushEveryTenSecondsWithJitter = Schedule.spaced("10 seconds").pipe(
-  Schedule.jittered
-)
-
-export const metricsFlushingLoop = flushMetrics.pipe(
-  Effect.repeat(flushEveryTenSecondsWithJitter)
-)
-```
-
-`metricsFlushingLoop` drains the local metrics buffer immediately and sends the
-batch to the collector. After a successful send, it waits for a jittered delay
-around ten seconds before flushing again.
-
-Across many service instances, each loop samples a new adjusted delay on every
-recurrence. Instances that start together can still flush at the same time once,
-but later flushes are less likely to remain synchronized.
-
-## Variants
-
-Use a longer cadence for low-volume services or expensive collectors:
-
-```ts
-const lowVolumeFlush = Schedule.spaced("1 minute").pipe(
-  Schedule.jittered
-)
-```
-
-Use `Schedule.tapOutput` to observe the repeat count produced by
-`Schedule.spaced`:
-
-```ts
-const observedFlush = Schedule.spaced("10 seconds").pipe(
-  Schedule.jittered,
-  Schedule.tapOutput((flushCount) =>
-    Effect.logDebug(`completed metrics flush ${flushCount + 1}`)
-  )
-)
-```
-
-If a failed export should be retried briefly, keep that retry policy separate
-from the periodic repeat policy:
-
-```ts
-const retryFlushFailure = Schedule.spaced("500 millis").pipe(
+const demoFlushSchedule = Schedule.spaced("20 millis").pipe(
   Schedule.jittered,
   Schedule.take(3)
 )
 
-const resilientFlushMetrics = flushMetrics.pipe(
-  Effect.retry(retryFlushFailure)
+const program = flushMetrics.pipe(
+  Effect.repeat(demoFlushSchedule),
+  Effect.tap(() => Effect.sync(() => console.log("metrics loop stopped")))
 )
 
-export const resilientMetricsFlushingLoop = resilientFlushMetrics.pipe(
-  Effect.repeat(flushEveryTenSecondsWithJitter)
-)
+Effect.runPromise(program)
 ```
 
-This makes the two timing decisions explicit: short jittered retries for a
-failed flush attempt, and longer jittered repetition for normal successful
-metrics flushing.
+The sample uses a short interval and a recurrence limit so it visibly finishes.
+Replace the demo interval with the production flush cadence and interrupt the
+background fiber during shutdown.
+
+## Variants
+
+Use a longer cadence for low-volume services or expensive collectors. Use
+`Schedule.tapOutput` to observe the repeat count produced by `Schedule.spaced`.
+
+If a failed export should be retried briefly, keep that retry policy separate
+from the periodic repeat policy: short jittered retries for a failed flush, and
+longer jittered repetition for normal successful flushing.
 
 ## Notes and caveats
 

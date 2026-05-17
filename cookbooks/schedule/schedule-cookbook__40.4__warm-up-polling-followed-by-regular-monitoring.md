@@ -57,45 +57,47 @@ can be unbounded for a daemon, or bounded with `Schedule.take`,
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type Health =
   | { readonly _tag: "Starting" }
   | { readonly _tag: "Ready" }
   | { readonly _tag: "Degraded" }
 
-type HealthCheckError = { readonly _tag: "HealthCheckError" }
+let reads = 0
 
-declare const readHealth: Effect.Effect<Health, HealthCheckError>
+const readHealth = Effect.gen(function*() {
+  reads += 1
+  const health: Health = reads < 3
+    ? { _tag: "Starting" }
+    : reads < 6
+    ? { _tag: "Ready" }
+    : { _tag: "Degraded" }
+  yield* Console.log(`health read ${reads}: ${health._tag}`)
+  return health
+})
 
-const warmUpPolling = Schedule.spaced("1 second").pipe(
-  Schedule.take(10)
+const warmUpPolling = Schedule.spaced("10 millis").pipe(
+  Schedule.take(3)
 )
 
-const regularMonitoring = Schedule.spaced("30 seconds")
+const regularMonitoring = Schedule.spaced("40 millis").pipe(
+  Schedule.take(2)
+)
 
 const pollingPolicy = Schedule.andThen(warmUpPolling, regularMonitoring)
 
-export const program = Effect.repeat(readHealth, pollingPolicy)
+const program = Effect.repeat(readHealth, pollingPolicy).pipe(
+  Effect.flatMap(() => Console.log("monitoring sample finished"))
+)
+
+Effect.runPromise(program)
 ```
 
 ## Variants
 
-For a bounded command-line check, make both phases finite:
-
-```ts
-const regularMonitoring = Schedule.spaced("30 seconds").pipe(
-  Schedule.take(4)
-)
-```
-
-For a fleet of instances, add jitter after the base timing is correct:
-
-```ts
-const regularMonitoring = Schedule.spaced("30 seconds").pipe(
-  Schedule.jittered
-)
-```
+For a bounded command-line check, make both phases finite. For a fleet of
+instances, add `Schedule.jittered` after the base timing is correct.
 
 For a strict wall-clock monitoring cadence, use `Schedule.fixed` for the steady
 phase instead of `Schedule.spaced`. `spaced` waits after each check completes;

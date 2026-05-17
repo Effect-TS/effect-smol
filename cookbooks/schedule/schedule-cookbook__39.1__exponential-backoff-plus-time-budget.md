@@ -13,17 +13,9 @@ code_included: true
 Combine a growing retry delay with an elapsed retry window when the caller cares
 about bounded recovery time more than a fixed attempt count.
 
-Use `Schedule.exponential` for the growing delays, and compose it with
-`Schedule.during` for the elapsed budget:
-
-```ts
-const retryWithinBudget = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.during("30 seconds"))
-)
-```
-
-Read that as: retry with exponential backoff while the 30 second recurrence
-window is still open.
+Use `Schedule.exponential` for the delay curve and `Schedule.during` for the
+elapsed budget. Combined with `Schedule.both`, both policies must allow another
+retry.
 
 ## Problem
 
@@ -42,12 +34,11 @@ You want one policy that makes both parts visible:
 ## When to use it
 
 Use this recipe for idempotent dependency calls, startup checks, connection
-setup, webhook delivery, cache refresh, or background jobs where transient
-failure is expected but unbounded retrying would create operational risk.
+setup, cache refresh, or background jobs where transient failure is expected but
+unbounded retrying would create operational risk.
 
-It is a good fit when the requirement is phrased in time: "keep trying for up
-to 30 seconds", "give the service a short recovery window", or "retry during
-startup, but do not block forever."
+It is a good fit when the requirement is phrased as a time window: "try for up
+to 30 seconds" or "give the service a short recovery window."
 
 ## When not to use it
 
@@ -56,8 +47,8 @@ credentials, forbidden access, malformed requests, and unsafe non-idempotent
 writes should be filtered before this schedule is allowed to run.
 
 Do not treat `Schedule.during` as a timeout for an attempt that is already in
-flight. Schedules are consulted at recurrence decision points. With
-`Effect.retry`, that means after an attempt has failed with a typed error.
+flight. A schedule is consulted between attempts; use an Effect timeout on the
+attempt itself if one call needs a deadline.
 
 Do not use `Schedule.during` alone for production retries. It describes an
 elapsed window, but it does not provide useful spacing. Pair it with a delay
@@ -73,10 +64,10 @@ then multiplies each later delay by the default factor of `2`: 200ms, 400ms,
 time is less than or equal to 30 seconds. It supplies the stopping window, not
 the backoff cadence.
 
-`Schedule.both` combines the two schedules with "both must continue"
-semantics. In this recipe, the exponential side contributes the delay and the
-`during` side contributes the elapsed budget. When the budget is closed, the
-combined schedule stops even if the exponential side could keep going.
+`Schedule.both` combines the two schedules with "both must continue" semantics.
+The exponential side contributes the delay and the `during` side contributes the
+elapsed budget. When the budget closes, the combined schedule stops even if the
+exponential side could keep going.
 
 This is different from an attempt count. A count limit such as
 `Schedule.recurs(5)` says how many retries may be scheduled after the original
@@ -87,77 +78,56 @@ attempts may fit more retries into the same budget.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class DependencyError extends Data.TaggedError("DependencyError")<{
-  readonly status: number
+  readonly attempt: number
 }> {}
 
-declare const fetchFromDependency: Effect.Effect<string, DependencyError>
+let attempts = 0
 
-const isRetryable = (error: DependencyError) =>
-  error.status === 408 ||
-  error.status === 429 ||
-  error.status >= 500
+const callDependency = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`dependency attempt ${attempts}`)
+  return yield* Effect.fail(new DependencyError({ attempt: attempts }))
+})
 
-const retryWithinBudget = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.during("30 seconds"))
+const retryWithinBudget = Schedule.exponential("10 millis").pipe(
+  Schedule.both(Schedule.during("70 millis"))
 )
 
-export const program = fetchFromDependency.pipe(
-  Effect.retry({
-    schedule: retryWithinBudget,
-    while: isRetryable
-  })
+const program = callDependency.pipe(
+  Effect.retry(retryWithinBudget),
+  Effect.catch((error) =>
+    Console.log(`stopped after ${attempts} attempts; last error was attempt ${error.attempt}`)
+  )
 )
+
+Effect.runPromise(program)
 ```
 
-The first call to `fetchFromDependency` is immediate. If it fails with a
-retryable `DependencyError`, the policy waits 200 milliseconds before the next
-attempt, then 400 milliseconds before the next, then 800 milliseconds, and so
-on while the 30 second retry window remains open.
+The first call is immediate. After each failure, the schedule waits with
+exponential backoff while the elapsed budget remains open. When the budget is
+exhausted, `Effect.retry` fails with the last error, which the example logs.
 
-If the dependency succeeds during the window, `program` succeeds with its
-value. If retryable failures continue until the schedule stops, `program` fails
-with the last `DependencyError`. If `isRetryable` returns `false`, retrying
-stops immediately for that error.
+In production, add error classification before or around this policy so only
+retryable failures spend the budget.
 
 ## Variants
 
-Add an attempt cap only when the count is a real secondary constraint:
+Add an attempt cap with `Schedule.both(Schedule.recurs(n))` only when count is a
+real secondary constraint. Both limits then apply: the elapsed window must still
+be open, and no more than `n` retries may be scheduled after the original
+attempt.
 
-```ts
-const retryWithinBudgetAndCount = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.during("30 seconds")),
-  Schedule.both(Schedule.recurs(12))
-)
-```
-
-This says both limits must hold: the elapsed retry window must still be open,
-and no more than 12 retries may be scheduled after the original attempt.
-
-Use a shorter budget for interactive paths:
-
-```ts
-const interactiveRetry = Schedule.exponential("50 millis").pipe(
-  Schedule.both(Schedule.during("2 seconds"))
-)
-```
-
-Use a larger base delay for background work that should be conservative with a
-shared dependency:
-
-```ts
-const backgroundRetry = Schedule.exponential("1 second").pipe(
-  Schedule.both(Schedule.during("2 minutes"))
-)
-```
+Use a shorter budget and smaller base delay for interactive paths. Use a larger
+base delay for background work that should be conservative with a shared
+dependency.
 
 ## Notes and caveats
 
-`Effect.retry` feeds failures into the schedule. The retry predicate in the
-example classifies those failures before the schedule spends more of the
-budget.
+`Effect.retry` feeds failures into the schedule. If only some failures are
+retryable, classify them before the schedule spends more of the budget.
 
 `Schedule.during` measures the schedule's elapsed recurrence window. It is not
 a hard wall-clock cancellation boundary for running work. If an individual

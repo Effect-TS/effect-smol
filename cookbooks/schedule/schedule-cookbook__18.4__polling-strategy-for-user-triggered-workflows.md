@@ -12,8 +12,8 @@ code_included: true
 
 Use this recipe for work started by a user action, such as generating a report,
 submitting a review, importing a small file, refreshing derived data, or
-starting an approval flow. The schedule starts responsive, then slows down if
-the workflow is still processing.
+starting an approval flow. Poll quickly while the user is likely watching, then
+slow down if the workflow is still processing.
 
 ## Problem
 
@@ -46,70 +46,66 @@ status values.
 
 ## Schedule shape
 
-Sequence a short responsive phase into a slower follow-up phase, preserve the
-latest status, and stop when a terminal status is observed:
-
-```ts
-Schedule.spaced("500 millis").pipe(
-  Schedule.take(8),
-  Schedule.andThen(Schedule.spaced("5 seconds")),
-  Schedule.satisfiesInputType<WorkflowStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "processing")
-)
-```
-
-The immediate first status check is performed by `Effect.repeat` before the
-schedule controls any recurrence. After that, the schedule polls every 500
-milliseconds for a small number of recurrences, then switches to a five-second
-cadence.
-
-`Schedule.while` stops both phases when the latest successful status is no
-longer `"processing"`. `Schedule.passthrough` makes the repeated effect return
-the latest observed `WorkflowStatus` instead of the timing schedule's numeric
-output.
+Use `Schedule.andThen` to sequence a short responsive phase into a slower
+follow-up phase. Put `Schedule.while` after the sequencing so terminal statuses
+stop both phases, and use `Schedule.passthrough` to return the latest
+`WorkflowStatus`.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Clock, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type WorkflowStatus =
   | { readonly state: "processing"; readonly message: string }
   | { readonly state: "ready"; readonly resultUrl: string }
   | { readonly state: "failed"; readonly reason: string }
 
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
-
-declare const checkWorkflowStatus: (
-  workflowId: string
-) => Effect.Effect<WorkflowStatus, StatusCheckError>
-
 const userTriggeredPolling = Schedule.spaced("500 millis").pipe(
-  Schedule.take(8),
+  Schedule.take(4),
   Schedule.andThen(Schedule.spaced("5 seconds")),
   Schedule.satisfiesInputType<WorkflowStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input.state === "processing")
 )
 
-const pollUserTriggeredWorkflow = (workflowId: string) =>
-  checkWorkflowStatus(workflowId).pipe(
-    Effect.repeat(userTriggeredPolling)
+const script: ReadonlyArray<WorkflowStatus> = [
+  { state: "processing", message: "queued" },
+  { state: "processing", message: "rendering" },
+  { state: "processing", message: "uploading" },
+  { state: "processing", message: "still uploading" },
+  { state: "processing", message: "almost done" },
+  { state: "ready", resultUrl: "/reports/42" }
+]
+
+let checks = 0
+
+const checkWorkflowStatus = Effect.gen(function*() {
+  const now = yield* Clock.currentTimeMillis
+  const status = script[Math.min(checks, script.length - 1)]!
+  checks += 1
+  console.log(`t+${now}ms check ${checks}: ${status.state}`)
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* checkWorkflowStatus.pipe(
+    Effect.repeat(userTriggeredPolling),
+    Effect.forkDetach
   )
+
+  yield* TestClock.adjust("10 seconds")
+
+  const finalStatus = yield* Fiber.join(fiber)
+  console.log("final:", finalStatus)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program)
 ```
 
-If the first status check returns `"ready"` or `"failed"`, the effect returns
-without waiting. If it returns `"processing"`, polling starts with the fast
-phase and then continues at the slower cadence until a terminal status is
-observed.
-
-The returned value is the latest successful `WorkflowStatus`. Domain failure
-reported as `{ state: "failed" }` is a terminal status value; transport,
-authorization, or decoding failures remain in the effect failure channel.
+The first check is immediate. The first four scheduled recurrences use the
+500-millisecond cadence; the next recurrence uses the five-second cadence.
 
 ## Variants
 
@@ -129,7 +125,7 @@ waiting and tell the user to check back later.
 
 ## Notes and caveats
 
-`Schedule.take(8)` limits only the fast recurrence phase. It does not include
+`Schedule.take(4)` limits only the fast recurrence phase. It does not include
 the initial status check, and it does not limit the slower phase after
 `Schedule.andThen`.
 
@@ -139,5 +135,5 @@ the whole policy, not only the fast phase.
 Keep the status check cheap and read-only. User-triggered polling should
 observe progress, not perform the work again.
 
-When a timing schedule reads `metadata.input`, constrain the schedule with
-`Schedule.satisfiesInputType<WorkflowStatus>()` before `Schedule.while`.
+Request failures stay in the effect failure channel. `Schedule.while` sees only
+successful status values.

@@ -10,140 +10,101 @@ code_included: true
 
 # 31.3 Spread cleanup work over time
 
-Cleanup work is often safe in small units and unsafe as an all-at-once
-background sweep. Use a schedule to make the load-smoothing policy explicit:
-run one unit, decide whether another may run, and wait before it starts.
+Cleanup is usually safest as small, paced units. Run one unit, return whether
+more remains, and let a schedule delay the next unit.
 
 ## Problem
 
-A cleanup or maintenance job can usually be split into small successful steps:
-deleting expired rows, compacting old partitions, clearing orphaned files, or
-rebuilding stale metadata. Running every step immediately would create a burst
-of database writes, storage I/O, locks, cache churn, or downstream calls.
-
-You want the job to keep making progress while spreading the pressure over time.
+Deleting expired rows, compacting partitions, clearing orphaned files, or
+rebuilding metadata can create bursts of writes, I/O, locks, cache invalidation,
+or downstream calls. The job should make progress without competing with
+foreground traffic all at once.
 
 ## When to use it
 
-Use this when each cleanup pass is useful on its own and the main operational
-concern is smoothing background load.
-
-`Schedule.spaced(duration)` is the base policy for this shape. With
-`Effect.repeat`, the cleanup effect runs once immediately. After each successful
-run, the schedule waits for the configured duration before allowing the next
-recurrence.
+Use this when each cleanup step is useful on its own and the main risk is
+background load. `Schedule.spaced(duration)` is the default shape: the first
+cleanup runs immediately, and later successful recurrences wait for the chosen
+duration.
 
 For a fleet of workers, add `Schedule.jittered` after choosing the base spacing.
-`Schedule.jittered` randomly adjusts each recurrence delay between 80% and 120%
-of the schedule's original delay, which helps keep many workers from waking up
-in lockstep.
+Jitter randomizes each delay between 80% and 120% of the original delay, which
+reduces synchronized cleanup spikes.
 
 ## When not to use it
 
-Do not use this to retry failed cleanup work. `Effect.repeat` is driven by
-successful values; if the cleanup effect fails, the repeated program fails. Use
-`Effect.retry` around the cleanup step when failures should be retried.
+Do not use this to retry failed cleanup work. A failed repeated effect stops
+the repeat. Put a separate `Effect.retry` around the cleanup step when retrying
+is appropriate.
 
-Do not use this when the job must run on wall-clock boundaries, such as every
-hour on the hour. `Schedule.spaced` waits after the previous run completes. Use
-`Schedule.fixed` when constant interval boundaries matter more than a pause
-after completed work.
+Do not use `Schedule.spaced` for jobs that must run on wall-clock boundaries,
+such as exactly every hour. Use `Schedule.fixed` for interval boundaries.
 
-Do not hide an unbounded cleanup loop inside a service without a shutdown or
-batch limit. Long-running workers should be scoped by the service lifetime, and
-finite batches should use a stopping rule such as `Schedule.take`.
+Do not hide unbounded cleanup inside a service without a lifetime, shutdown
+path, or recurrence limit.
 
 ## Schedule shape
 
-The shape is a base spacing, optional jitter, and a limit:
+Use a base spacing, optional jitter, and a limit:
+`Schedule.spaced("2 minutes").pipe(Schedule.jittered, Schedule.take(30))`.
 
-```ts
-Schedule.spaced("2 minutes").pipe(
-  Schedule.jittered,
-  Schedule.take(30)
-)
-```
-
-With `Effect.repeat`, this means:
-
-1. Run one cleanup step immediately.
-2. If it succeeds, compute the next delay from the schedule.
-3. Wait roughly two minutes, adjusted by jitter.
-4. Run the next cleanup step.
-5. Stop after the configured number of scheduled recurrences.
-
-`Schedule.take(30)` permits thirty scheduled recurrences after the original
-successful run. If every cleanup step succeeds, the cleanup effect runs
-thirty-one times total.
+With `Effect.repeat`, the first cleanup step is not delayed. `Schedule.take(30)`
+permits up to thirty scheduled recurrences after that first run.
 
 ## Code
 
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-type CleanupError = { readonly _tag: "CleanupError" }
+const expiredPages = ["page-1", "page-2", "page-3"]
 
-declare const deleteExpiredRecordsPage: Effect.Effect<void, CleanupError>
+const deleteExpiredRecordsPage = Effect.gen(function*() {
+  const page = expiredPages.shift()
 
-const cleanupCadence = Schedule.spaced("2 minutes").pipe(
+  if (page === undefined) {
+    yield* Console.log("cleanup complete")
+    return { remaining: 0 }
+  }
+
+  yield* Console.log(`deleted expired records from ${page}`)
+  return { remaining: expiredPages.length }
+})
+
+const cleanupCadence = Schedule.spaced("15 millis").pipe(
   Schedule.jittered,
-  Schedule.take(30)
+  Schedule.take(10)
 )
 
-export const program = deleteExpiredRecordsPage.pipe(
-  Effect.tap(() => Console.log("deleted one page of expired records")),
-  Effect.repeat(cleanupCadence)
+const program = deleteExpiredRecordsPage.pipe(
+  Effect.repeat({
+    schedule: cleanupCadence,
+    while: ({ remaining }) => remaining > 0
+  })
 )
+
+Effect.runPromise(program)
 ```
 
-The first page is deleted immediately. Each later page is delayed by the
-schedule. The two-minute spacing keeps cleanup from turning into a burst, and
-the jitter helps multiple worker instances avoid synchronized cleanup spikes.
+The demo uses milliseconds so it finishes quickly. In a real cleanup job, the
+spacing should reflect the database, storage, or cache pressure created by one
+cleanup unit.
 
 ## Variants
 
-Use a longer spacing for cleanup that contends with foreground traffic:
-
-```ts
-import { Effect, Schedule } from "effect"
-
-type CleanupError = { readonly _tag: "CleanupError" }
-
-declare const compactColdStoragePartition: Effect.Effect<void, CleanupError>
-
-const coldStorageCleanup = Schedule.spaced("15 minutes").pipe(
-  Schedule.jittered,
-  Schedule.take(8)
-)
-
-export const program = compactColdStoragePartition.pipe(
-  Effect.repeat(coldStorageCleanup)
-)
-```
-
-Use no jitter when deterministic timing is more important than fleet-wide load
-smoothing, for example in a single local worker whose schedule is used in tests
-or operational runbooks.
+Use longer spacing for cleanup that contends with foreground traffic. Use no
+jitter when deterministic timing matters more than fleet-wide smoothing, such
+as a single local worker in a runbook.
 
 Use `Schedule.fixed(duration)` instead of `Schedule.spaced(duration)` when the
-cleanup should be checked at regular interval boundaries. With `fixed`, if the
-work takes longer than the interval, the next recurrence can happen immediately
-rather than piling up missed runs. With `spaced`, the pause is always added
+cleanup should check regular interval boundaries. With `fixed`, a slow run can
+be followed immediately by the next boundary. With `spaced`, the pause is added
 after the run completes.
 
 ## Notes and caveats
 
-The schedule does not delay the first cleanup step. It controls only follow-up
-recurrences after a successful run.
+`Schedule.spaced` is based on completed work. A thirty-second cleanup followed
+by `Schedule.spaced("2 minutes")` starts the next step about two and a half
+minutes after the previous step started.
 
-`Schedule.spaced` is based on completed work. A cleanup step that takes thirty
-seconds followed by `Schedule.spaced("2 minutes")` starts the next step about
-two and a half minutes after the previous step started.
-
-`Schedule.jittered` changes the recurrence delays, not the cleanup effect
-itself. It is useful for smoothing aggregate load, but it makes exact log
-timestamps and metric intervals less predictable.
-
-`Effect.repeat` feeds successful cleanup results into the schedule. If the
-cleanup effect fails, repetition stops with that failure unless retry behavior
-is modeled separately.
+`Schedule.jittered` changes recurrence delays, not the cleanup effect. It
+smooths aggregate load but makes exact timestamps less predictable.

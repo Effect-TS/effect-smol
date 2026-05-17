@@ -10,95 +10,85 @@ code_included: true
 
 # 13.2 Run every 10 seconds
 
-Use this recipe when lightweight successful background work should repeat on a
-predictable ten-second rhythm.
+Use this when successful background work should run now and then recur on a
+ten-second cadence.
 
 ## Problem
 
-A heartbeat sender, local status poller, small cache refresh, or liveness signal needs
-to run immediately and then recur every ten seconds after successful runs.
-
-The schedule should own the recurrence decision and spacing. Failures should remain in
-the effect error channel instead of being hidden by the repeat policy.
+A heartbeat, local status poller, or small cache refresh needs an immediate
+first run followed by successful recurrences every ten seconds.
 
 ## When to use it
 
-Use this when success means "run again later" and a ten-second interval is frequent enough to keep state fresh without creating a tight loop.
+Use `Schedule.fixed("10 seconds")` when the ten-second interval is the
+operational signal and successful runs should stay close to that cadence.
 
-Use it for work that is expected to be cheap, bounded, and owned by a long-lived process, scope, or supervised fiber.
+This fits cheap background work owned by a long-lived scope, supervised fiber,
+or process.
 
 ## When not to use it
 
-Do not use `Effect.repeat` for failure-driven recovery. If the repeated effect fails, repetition stops with that failure. Use `Effect.retry` when failures should trigger another attempt.
+Do not use this for failure recovery. `Effect.repeat` repeats after success; if
+the effect fails, repetition stops with that failure.
 
-Do not use a ten-second repeat for expensive maintenance work that should run on minute-scale or longer intervals. Keep this shape for short operational loops.
+Do not use a ten-second loop for expensive maintenance work that belongs on a
+minute-scale or longer interval.
 
-Do not use an unbounded repeat in a request-response path that must return to its caller. The surrounding program needs a lifetime owner that can interrupt it.
+Do not put an unbounded repeat in a request-response path that must return to
+its caller.
 
 ## Schedule shape
 
-For most heartbeat, status, and cache-refresh loops, use:
+The core schedule is `Schedule.fixed("10 seconds")`.
 
-```ts
-import { Schedule } from "effect"
-
-const everyTenSeconds = Schedule.spaced("10 seconds")
-```
-
-`Schedule.spaced("10 seconds")` allows the effect to run once immediately. After each successful run completes, it waits ten seconds before the next recurrence.
-
-Use `Schedule.fixed("10 seconds")` only when you want a fixed-rate cadence measured against interval boundaries. With `fixed`, a slow run can make the next recurrence happen immediately to keep the cadence from drifting, but runs do not pile up. With `spaced`, each successful run is followed by a full ten-second pause.
+With `fixed`, slow runs do not create a backlog. If a run takes longer than ten
+seconds, the next run may start immediately after it completes. Use
+`Schedule.spaced("10 seconds")` instead when each successful run must be
+followed by a full ten-second pause.
 
 ## Code
 
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const sendHeartbeat = Console.log("heartbeat")
+let heartbeats = 0
 
-const program = sendHeartbeat.pipe(
-  Effect.repeat(Schedule.spaced("10 seconds"))
+const sendHeartbeat = Effect.gen(function*() {
+  heartbeats += 1
+  yield* Console.log(`heartbeat ${heartbeats}`)
+})
+
+const loop = sendHeartbeat.pipe(
+  Effect.repeat(Schedule.fixed("10 seconds"))
 )
+
+const program = loop.pipe(
+  Effect.timeoutOrElse({
+    duration: "50 millis",
+    orElse: () =>
+      Console.log(`demo stopped after ${heartbeats} heartbeat`)
+  })
+)
+
+Effect.runPromise(program)
 ```
 
-The first heartbeat is sent immediately. Each later heartbeat is scheduled only after the previous heartbeat succeeds and the ten-second spacing has elapsed.
-
-Because `Schedule.spaced("10 seconds")` is unbounded, `program` is long-lived work. It completes only if `sendHeartbeat` fails, the schedule fails, or the fiber is interrupted.
+The timeout keeps the example short. In production, the same loop usually runs
+inside a scope or supervised fiber.
 
 ## Variants
 
-Use `Schedule.fixed("10 seconds")` when the interval itself is the operational signal, such as sampling status close to fixed ten-second boundaries:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const sampleStatus = Console.log("status sampled")
-
-const program = sampleStatus.pipe(
-  Effect.repeat(Schedule.fixed("10 seconds"))
-)
-```
-
-Use a bounded version while testing a loop or running a short diagnostic:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const refreshSmallCache = Console.log("cache refreshed")
-
-const program = refreshSmallCache.pipe(
-  Effect.repeat(Schedule.spaced("10 seconds").pipe(Schedule.take(3)))
-)
-```
-
-With `Schedule.take(3)`, the effect runs once immediately and then up to three scheduled recurrences, for four successful runs total.
+Use `Schedule.spaced("10 seconds")` when the requirement is a ten-second gap
+after each completed run. Add `Schedule.take(n)` for diagnostics or tests that
+must stop after a known number of recurrences.
 
 ## Notes and caveats
 
-The schedule does not delay the first run. `Effect.repeat` evaluates the effect once before the schedule controls later recurrences.
+The schedule does not delay the first run. It controls only recurrences after a
+successful execution.
 
-`Schedule.spaced("10 seconds")` measures the pause after a successful run completes. If the work takes two seconds, the next run starts about twelve seconds after the previous run started.
+`Schedule.fixed("10 seconds")` is unbounded by itself. It completes only if the
+effect fails, the schedule fails, or the fiber is interrupted.
 
-`Schedule.fixed("10 seconds")` targets a fixed-rate cadence. If a run is slow, the next delay may be shorter, or zero when the schedule is behind, but Effect still runs one recurrence at a time.
-
-Failures are not ignored. If a heartbeat, status check, or cache refresh can fail transiently and should keep running, handle retry or error recovery inside the repeated unit before applying the periodic repeat.
+If transient failures should not stop the ten-second loop, handle retry or
+recovery inside the repeated effect before applying the periodic repeat.

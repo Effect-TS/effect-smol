@@ -28,9 +28,9 @@ things are already unhealthy?" Answer that before choosing the combinators.
 
 Retry and repeat policies can multiply traffic. A single fast retry loop may be
 harmless in isolation, but many clients running the same loop can synchronize
-into a thundering herd. A background worker that polls too quickly can compete
-with foreground traffic. A retry policy without a budget can keep a dependency
-hot long after the original work stopped being useful.
+into a large burst. A background worker that polls too quickly can compete with
+foreground traffic. A retry policy without a budget can keep a dependency hot
+long after the original work stopped being useful.
 
 `Schedule` makes the recurrence policy visible, but visibility only helps when
 the chosen shape matches the operational risk.
@@ -41,11 +41,11 @@ Start conservative and add pressure only when you can justify it.
 
 | Need | Prefer | Why |
 | --- | --- | --- |
-| Keep a steady gap between attempts | `Schedule.spaced` | It waits the same duration between recurrences. This is usually safer than a tight loop for polling, workers, and maintenance tasks. |
-| Run on wall-clock boundaries | `Schedule.fixed` | It aligns to interval boundaries. Be careful: if work runs behind, the next delay can become zero, so it is not the default overload-avoidance choice. |
+| Keep a steady gap between attempts | `Schedule.spaced` | It waits the configured duration after each recurrence. This is usually safer than a tight loop for polling, workers, and maintenance tasks. |
+| Run on interval boundaries | `Schedule.fixed` | It aligns to a regular interval and does not pile up missed runs. If work runs behind, the next delay can become zero, so it is not the default overload-avoidance choice. |
 | Slow down after repeated failure | `Schedule.exponential` | It starts at the base duration and grows by the factor, defaulting to `2`. It does not stop by itself. |
 | Build a custom increasing delay | `Schedule.unfold` plus `Schedule.addDelay` | Use this when the delay curve is domain-specific and should be named or explained. |
-| Desynchronize many clients | `Schedule.jittered` | It adjusts each delay to a random value between 80% and 120% of the incoming delay. |
+| Desynchronize many clients | `Schedule.jittered` | It adjusts each delay between 80% and 120% of the computed delay. |
 | Limit the number of recurrences | `Schedule.recurs` or `Schedule.take` | Use count limits when every additional recurrence adds meaningful load or cost. |
 | Limit total elapsed time | `Schedule.during` | Use time budgets when the work stops being useful after a deadline. |
 | Require multiple guardrails | `Schedule.both` | It continues only while both schedules continue and uses the larger delay. This is the usual way to combine backoff with count and time limits. |
@@ -57,7 +57,7 @@ Choose the schedule by the overload mechanism.
 If the problem is a tight loop, add spacing first. `Schedule.spaced` is the
 plainest answer when every recurrence should leave breathing room after the
 previous run. Prefer it for worker loops, polling, refreshes, and maintenance
-jobs where regularity is more important than immediate recovery.
+jobs where steadiness matters more than immediate recovery.
 
 If the problem is retry pressure against an unhealthy dependency, use backoff.
 `Schedule.exponential` is the standard starting point because later failures
@@ -69,10 +69,10 @@ the delay range, not the stop condition. Apply it to spread retries across the
 fleet, then decide whether a strict maximum delay is required.
 
 If the problem is unbounded tail behavior, cap and budget the policy. Use a
-maximum delay when operators need to know the longest single wait. Use
-`Schedule.recurs` or `Schedule.take` when the number of extra attempts matters.
-Use `Schedule.during` when the total elapsed time matters more than the exact
-count.
+maximum delay, typically with `Schedule.modifyDelay`, when operators need to
+know the longest single wait. Use `Schedule.recurs` or `Schedule.take` when the
+number of extra attempts matters. Use `Schedule.during` when total elapsed time
+matters more than exact count.
 
 If the problem is mixed failure modes, classify before retrying. Timeouts,
 temporary unavailability, and rate-limit responses may deserve conservative
@@ -125,8 +125,8 @@ Pair them with `Schedule.recurs`, `Schedule.take`, `Schedule.during`, or an
 input-aware stop condition.
 
 `Schedule.jittered` in Effect uses an 80%-120% range. If the maximum delay must
-be strict, cap after jitter with a delay modifier instead of assuming the base
-backoff cap remains exact.
+be strict, cap after jitter with `Schedule.modifyDelay` instead of assuming the
+base backoff cap remains exact.
 
 `Schedule.both` has intersection semantics: it continues only while both sides
 continue and chooses the larger delay. That is usually what overload protection

@@ -10,32 +10,27 @@ code_included: false
 
 # 52.2 Poll large fleets in sync
 
-Polling large fleets in sync is an anti-pattern because a harmless-looking
-per-instance cadence can become a coordinated traffic spike.
-
 ## The anti-pattern
 
-The problematic version gives every instance the same repeat schedule and starts
-them from the same lifecycle event: deploy, boot, leader change, cache flush, or
-incident recovery. A policy such as a plain fixed or spaced interval reads as
-"poll every 30 seconds", but across a fleet it can mean "make all instances ask
-the same dependency at once."
+Every instance gets the same repeat schedule and starts from the same lifecycle
+event: deploy, boot, leader change, cache flush, or incident recovery. A plain
+fixed or spaced interval reads as "poll every 30 seconds." Across a fleet it can
+mean "ask the same dependency at once."
 
-This is especially easy to miss with background polling. One worker polling
-every few seconds is usually fine, and each instance can be well behaved in
-isolation. The load shape only appears when many identical processes run the
-same policy together and thousands of workers turn a status endpoint, queue
-broker, database, or control plane into the bottleneck even though the average
+This is easy to miss with background polling. One worker polling every few
+seconds is usually fine. The load shape appears when many identical processes
+run the same policy and thousands of workers turn a status endpoint, queue
+broker, database, or control plane into the bottleneck even though average
 request rate looks acceptable.
 
 ## Why it happens
 
-It usually happens when the schedule is designed for one process instead of for
-the fleet. `Schedule.spaced("30 seconds")` waits after each successful poll
-completes before the next one. `Schedule.fixed("30 seconds")` maintains a
-constant interval, and if work takes longer than the interval the next run can
-happen immediately rather than piling up missed runs. Both are useful tools, but
-neither spreads identical clients by itself.
+The schedule is designed for one process instead of the fleet.
+`Schedule.spaced("30 seconds")` waits after each successful poll completes
+before the next one. `Schedule.fixed("30 seconds")` maintains a constant
+interval, and if work takes longer than the interval the next run can happen
+immediately rather than piling up missed runs. Both are useful; neither spreads
+identical clients by itself.
 
 Deployments make the synchronization worse. If every worker starts around the
 same time, the first poll aligns. If the work duration is similar, the following
@@ -50,9 +45,9 @@ window every minute. Synchronized polling can create noisy metrics, queue depth
 oscillation, periodic database contention, rate-limit bursts, and incident
 feedback loops where every client checks more aggressively at the worst time.
 
-It also hides the real cause. Operators may see "the poll endpoint is slow" or
-"the database spikes every 30 seconds" without an obvious bad actor, because no
-single instance is violating its local schedule.
+It also hides the cause. Operators may see a slow poll endpoint or a database
+spike every 30 seconds without an obvious offender because no single instance is
+violating its local schedule.
 
 ## A better approach
 

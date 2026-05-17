@@ -11,8 +11,8 @@ code_included: true
 # 37.3 Stop on validation problems
 
 Validation problems are input or domain feedback, not timing signals. Classify
-them before retrying so `Schedule` only describes mechanics for failures that
-can plausibly recover.
+them before retrying so `Schedule` is used only for failures that can plausibly
+recover.
 
 ## Problem
 
@@ -21,9 +21,9 @@ or because the request itself is invalid. A timeout, connection reset, or
 temporary service outage may be worth retrying. Missing fields, invalid values,
 business-rule failures, or decode failures should be returned immediately.
 
-The mistake is to attach a retry schedule to the whole error channel before the
-errors are classified. That turns malformed requests into repeated malformed
-requests, increases load, and delays the useful error the caller needs to fix.
+Do not attach a retry schedule to the whole error channel before errors are
+classified. That repeats malformed requests, increases load, and delays the
+useful error the caller needs to fix.
 
 ## When to use it
 
@@ -49,28 +49,16 @@ stop on the first observed failure.
 ## Schedule shape
 
 Use a normal bounded retry schedule for the transient side of the error model,
-and put the classification predicate at the retry boundary:
-
-```ts
-Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3))
-)
-```
-
-`Schedule.exponential("100 millis")` supplies growing delays for retryable
-failures. `Schedule.jittered` adjusts each delay between 80% and 120% of the
-original delay. `Schedule.both(Schedule.recurs(3))` keeps the policy finite:
-both schedules must continue, so the operation is retried at most three times
-after the original attempt.
-
-The schedule is not the classifier. The predicate decides whether a typed
-failure is retryable before the next scheduled attempt is allowed.
+and put the classification predicate at the retry boundary. `Schedule.exponential`
+supplies growing delays, `Schedule.jittered` spreads those delays, and
+`Schedule.recurs(3)` keeps retryable failures to three retries after the
+original attempt. The predicate still decides whether a typed failure is
+retryable before the next attempt is scheduled.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class SubmitOrderError extends Data.TaggedError("SubmitOrderError")<{
   readonly reason:
@@ -90,9 +78,41 @@ interface OrderReceipt {
   readonly orderId: string
 }
 
-declare const submitOrder: (
-  request: OrderRequest
-) => Effect.Effect<OrderReceipt, SubmitOrderError>
+let remoteAttempts = 0
+
+const submitOrder = Effect.fnUntraced(function*(request: OrderRequest) {
+  yield* Console.log(`submitting order for ${request.email}`)
+
+  if (!request.email.includes("@")) {
+    return yield* Effect.fail(
+      new SubmitOrderError({
+        reason: "InvalidEmail",
+        message: "email must contain @"
+      })
+    )
+  }
+
+  if (request.lineItems.length === 0) {
+    return yield* Effect.fail(
+      new SubmitOrderError({
+        reason: "MissingLineItems",
+        message: "order must contain at least one item"
+      })
+    )
+  }
+
+  remoteAttempts += 1
+  if (remoteAttempts === 1) {
+    return yield* Effect.fail(
+      new SubmitOrderError({
+        reason: "Timeout",
+        message: "temporary gateway timeout"
+      })
+    )
+  }
+
+  return { orderId: `order-${remoteAttempts}` } satisfies OrderReceipt
+})
 
 const isRetryableSubmitFailure = (error: SubmitOrderError): boolean => {
   switch (error.reason) {
@@ -110,49 +130,47 @@ const submitOrderRetryPolicy = Schedule.exponential("100 millis").pipe(
   Schedule.both(Schedule.recurs(3))
 )
 
-const request: OrderRequest = {
-  email: "ada@example.com",
-  lineItems: ["sku-123"]
-}
+const runExample = Effect.fnUntraced(function*(
+  label: string,
+  request: OrderRequest
+) {
+  yield* Console.log(`\n${label}`)
 
-export const program = submitOrder(request).pipe(
-  Effect.retry({
-    schedule: submitOrderRetryPolicy,
-    while: isRetryableSubmitFailure
+  yield* submitOrder(request).pipe(
+    Effect.retry({
+      schedule: submitOrderRetryPolicy,
+      while: isRetryableSubmitFailure
+    }),
+    Effect.matchEffect({
+      onFailure: (error) =>
+        Console.log(`stopped on ${error.reason}: ${error.message}`),
+      onSuccess: (receipt) => Console.log(`created ${receipt.orderId}`)
+    })
+  )
+})
+
+const program = Effect.gen(function*() {
+  yield* runExample("valid request retries once", {
+    email: "ada@example.com",
+    lineItems: ["sku-123"]
   })
-)
+
+  yield* runExample("invalid request stops immediately", {
+    email: "invalid-email",
+    lineItems: ["sku-123"]
+  })
+})
+
+Effect.runPromise(program)
 ```
 
-`program` submits the order once immediately. If that attempt fails with
-`Timeout` or `ServiceUnavailable`, the retry policy may schedule another
-attempt. If it fails with `InvalidEmail` or `MissingLineItems`, retrying stops
-immediately and the typed validation failure is returned to the caller.
-
-If every retryable attempt fails, `Schedule.recurs(3)` allows at most three
-retries after the original attempt. Once the schedule is exhausted,
-`Effect.retry` returns the last typed failure.
+The valid request fails once with a timeout, then succeeds on retry. The invalid
+request fails with `InvalidEmail` and never consumes the retry schedule.
 
 ## Variants
 
-When validation is a local step, keep it before the retried remote call so the
-downstream operation is never attempted with invalid input:
-
-```ts
-declare const validateOrder: (
-  request: OrderRequest
-) => Effect.Effect<OrderRequest, SubmitOrderError>
-
-const validatedProgram = validateOrder(request).pipe(
-  Effect.flatMap((validated) =>
-    submitOrder(validated).pipe(
-      Effect.retry({
-        schedule: submitOrderRetryPolicy,
-        while: isRetryableSubmitFailure
-      })
-    )
-  )
-)
-```
+When validation is local, keep it before the retried remote call so the
+downstream operation is never attempted with invalid input.
 
 For batch imports, classify each item before applying the retry policy for that
 item. Validation failures should be recorded as item failures, while retryable

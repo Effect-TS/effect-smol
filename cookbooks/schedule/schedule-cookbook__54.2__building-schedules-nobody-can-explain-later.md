@@ -11,13 +11,12 @@ code_included: false
 # 54.2 Building schedules nobody can explain later
 
 A schedule is operational policy: it decides cadence, pressure, lifetime, and
-stop conditions. This section focuses on dense anonymous pipelines where those
-promises are no longer visible.
+stop conditions. Dense anonymous pipelines hide those promises.
 
-## The anti-pattern
+## Anti-pattern
 
-The problematic version builds a clever schedule at the call site and leaves the
-reader to reconstruct the policy from combinator mechanics:
+An expressive schedule is built at the call site, leaving the reader to
+reconstruct the policy from combinator mechanics:
 
 - an unbounded base such as `Schedule.exponential` or `Schedule.spaced`
 - a limit hidden several operators later with `Schedule.recurs`,
@@ -28,16 +27,16 @@ reader to reconstruct the policy from combinator mechanics:
 - a delay adjustment with `Schedule.modifyDelay` whose operational purpose is
   not named
 
-Each individual operator can be valid. The anti-pattern is making the final
-policy explainable only by replaying the implementation in your head.
+Each operator can be valid. The problem is a final policy that can only be
+understood by replaying the implementation in your head.
 
 ## Why it happens
 
-It usually happens when `Schedule` is treated as a fluent expression language
-instead of a value that carries a service contract. The Effect API is expressive
-enough to combine timing, limits, input inspection, output mapping, jitter, and
-phase changes in one pipeline. That power is useful, but it also makes it easy
-to produce a schedule whose name says "retry policy" while its body says:
+`Schedule` is treated as a fluent expression language instead of a value that
+carries a service contract. The API can combine timing, limits, input
+inspection, output mapping, jitter, and phase changes in one pipeline. That
+power is useful, but it also makes it easy to produce a schedule whose name says
+"retry policy" while its body says:
 
 - retry with an exponential delay
 - randomize the delay by the built-in jitter bounds
@@ -97,7 +96,7 @@ Then keep the final composition close to the story. A policy named
 jitter, retry count, input inspection, and delay modification. The name tells
 the reader why those operators belong together.
 
-## Notes and caveats
+## Caveats
 
 Do not name schedules after implementation details unless the detail is the
 contract. `exponentialRetry` is weaker than `retryUnavailableSearchBriefly`
@@ -116,6 +115,6 @@ the last successful observation rather than an internal timing output. For
 retry-style classification, `Effect.retry({ while })` is usually easier to read
 than burying ordinary error classification inside the schedule.
 
-The goal is not to avoid composition. The goal is to make composed schedules
-auditable. A readable schedule lets an operator answer three questions quickly:
-what may recur, how often it may recur, and what stops it.
+The goal is auditable composition. A readable schedule lets an operator answer
+three questions quickly: what may recur, how often it may recur, and what stops
+it.

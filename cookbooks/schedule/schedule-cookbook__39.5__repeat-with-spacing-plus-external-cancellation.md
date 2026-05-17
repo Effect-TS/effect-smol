@@ -21,45 +21,73 @@ that should run once, then repeat with a fixed gap after each successful run.
 An external shutdown signal must be able to stop it immediately, including
 while it is sleeping between runs.
 
-Do not put cancellation into the schedule by polling mutable state from `Schedule.while`. A schedule only makes a decision after the effect has produced an input for the next scheduling step. External cancellation should interrupt the fiber that is running the repeated effect.
+Do not put cancellation into the schedule by polling mutable state from
+`Schedule.while`. A schedule makes decisions after the effect has produced an
+input for the next scheduling step. External cancellation should interrupt the
+fiber running the repeated effect.
 
 ## When to use it
 
-Use this recipe for supervised background loops where the cadence is stable but lifetime is owned by something else: an HTTP server shutdown hook, a scope closing, a user cancellation, or a worker coordinator. The schedule remains easy to review because it answers only cadence questions: "how long after one successful iteration do we wait before starting the next one?"
+Use this recipe for supervised background loops where the cadence is stable but
+lifetime is owned by something else: a server shutdown hook, a closing scope,
+user cancellation, or a worker coordinator. The schedule answers only cadence
+questions.
 
 ## When not to use it
 
-Do not use `Effect.repeat` when the repeated action's failure should be ignored and retried. `Effect.repeat` repeats successes and stops on the first failure. Use `Effect.retry` for failure-driven retry policies.
+Do not use `Effect.repeat` when the repeated action's failure should be ignored
+and retried. `Effect.repeat` repeats successes and stops on the first failure.
+Use `Effect.retry` for failure-driven retry policies.
 
-Also avoid this shape when the stop condition is ordinary domain data from the action itself. For example, polling a job status until it is no longer `Running` belongs in the schedule with `Schedule.while` or a related predicate. A process shutdown signal does not; it belongs outside the schedule.
+Also avoid this shape when the stop condition is ordinary domain data from the
+action itself. Polling a job status until it is no longer `Running` belongs in
+the schedule with `Schedule.while`; a process shutdown signal belongs outside
+the schedule.
 
 ## Schedule shape
 
-`Schedule.spaced("30 seconds")` waits for the given duration after each successful run before the next repetition. The initial run is not delayed by the schedule; `Effect.repeat` runs the effect once first, then asks the schedule whether and when to repeat.
+`Schedule.spaced("30 seconds")` waits for the given duration after each
+successful run before the next repetition. The initial run is not delayed by the
+schedule; `Effect.repeat` runs the effect once first, then asks the schedule
+whether and when to repeat.
 
-Use `Schedule.fixed` instead only when wall-clock cadence matters more than spacing after completion. For this recipe, `Schedule.spaced` is usually the clearer contract because slow work naturally pushes the next run later instead of trying to catch up.
+Use `Schedule.fixed` instead only when wall-clock cadence matters more than
+spacing after completion. Here, `Schedule.spaced` is usually clearer because slow
+work naturally pushes the next run later.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-type HeartbeatError = { readonly _tag: "HeartbeatError" }
+let heartbeats = 0
 
-declare const sendHeartbeat: Effect.Effect<void, HeartbeatError>
-declare const waitForShutdown: Effect.Effect<void>
+const sendHeartbeat = Effect.gen(function*() {
+  heartbeats += 1
+  yield* Console.log(`heartbeat ${heartbeats}`)
+})
 
-const heartbeatCadence = Schedule.spaced("30 seconds")
+const waitForShutdown = Effect.gen(function*() {
+  yield* Effect.sleep("75 millis")
+  yield* Console.log("shutdown signal")
+})
+
+const heartbeatCadence = Schedule.spaced("20 millis")
 
 const heartbeatLoop = Effect.repeat(sendHeartbeat, heartbeatCadence)
 
-export const program = Effect.raceFirst(
+const program = Effect.raceFirst(
   heartbeatLoop,
   waitForShutdown
 )
+
+Effect.runPromise(program)
 ```
 
-In this example, the schedule owns only the thirty-second gap between successful heartbeats. `waitForShutdown` is an external lifetime signal. `Effect.raceFirst` runs both effects and interrupts the loser when one side completes. If shutdown wins, the heartbeat loop is interrupted even if it is waiting for the next scheduled run. If `sendHeartbeat` fails first, the repeated loop fails and the shutdown wait is interrupted.
+The schedule owns only the gap between successful heartbeats. `waitForShutdown`
+is an external lifetime signal. `Effect.raceFirst` runs both effects and
+interrupts the loser when one side completes. If shutdown wins, the heartbeat
+loop is interrupted even if it is waiting for the next scheduled run.
 
 ## Variants
 

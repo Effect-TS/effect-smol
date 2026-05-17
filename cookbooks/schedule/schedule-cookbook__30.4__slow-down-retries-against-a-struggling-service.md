@@ -16,11 +16,9 @@ success.
 
 ## Problem
 
-You call a catalog service from a worker. The service is safe to retry because
-the request is read-only, but it sometimes fails with a retryable overload
-signal while a deploy, cache warmup, or database incident is in progress.
-
-You want retries that:
+You call a read-only service from a worker, and it sometimes fails with an
+overload signal during a deploy, cache warmup, or database incident. The retry
+policy should:
 
 - start soon enough to recover from short transient failures
 - slow down as failures continue
@@ -54,16 +52,17 @@ idempotent. Backoff changes timing; it does not make duplicate side effects safe
 default: `200ms`, `400ms`, `800ms`, and so on. That increasing delay gives the
 struggling service more recovery time after each failed attempt.
 
-The policy below adds `Schedule.jittered` so a fleet of workers does not retry in
-lockstep, caps each delay at five seconds, and combines the cadence with both a
-retry-count limit and an elapsed-time budget. The `Schedule.while` predicate
-looks at the error input that `Effect.retry` feeds into the schedule, so only
-retryable overload-style failures continue.
+The policy below adds `Schedule.jittered` so a fleet of workers does not retry
+in lockstep, caps each delay, and combines the cadence with both a retry-count
+limit and an elapsed-time budget. The code uses millisecond-scale durations so
+it terminates quickly; production caps are usually measured in seconds. The
+`Schedule.while` predicate looks at the error input that `Effect.retry` feeds
+into the schedule, so only retryable overload-style failures continue.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Random, Ref, Schedule } from "effect"
 
 class CatalogServiceError extends Data.TaggedError("CatalogServiceError")<{
   readonly reason: "Overloaded" | "Unavailable" | "InvalidProductId"
@@ -75,28 +74,56 @@ interface ProductSnapshot {
   readonly available: boolean
 }
 
-declare const overloadedCatalogService: {
-  readonly getProduct: (
-    productId: string
-  ) => Effect.Effect<ProductSnapshot, CatalogServiceError>
-}
-
 const isRetryable = (error: CatalogServiceError) =>
   error.reason === "Overloaded" || error.reason === "Unavailable"
 
-const slowDownRetries = Schedule.exponential("200 millis").pipe(
+const slowDownRetries = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
-  ),
+  Schedule.modifyDelay((baseDelay, delay) => {
+    const capped = Duration.min(delay, Duration.millis(60))
+
+    return Console.log(
+      `base=${Duration.format(baseDelay)} actual=${Duration.format(delay)} capped=${Duration.format(capped)}`
+    ).pipe(Effect.as(capped))
+  }),
   Schedule.both(Schedule.recurs(6)),
-  Schedule.both(Schedule.during("20 seconds")),
+  Schedule.both(Schedule.during("1 second")),
   Schedule.while(({ input }) => isRetryable(input))
 )
 
-export const program = overloadedCatalogService.getProduct("sku-123").pipe(
-  Effect.retry(slowDownRetries)
-)
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+
+  const catalogService = {
+    getProduct: (
+      productId: string
+    ): Effect.Effect<ProductSnapshot, CatalogServiceError> =>
+      Effect.gen(function*() {
+        const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+        yield* Console.log(`catalog attempt ${attempt}`)
+
+        if (attempt < 4) {
+          return yield* Effect.fail(
+            new CatalogServiceError({
+              reason: attempt === 1 ? "Overloaded" : "Unavailable",
+              message: `temporary failure for ${productId}`
+            })
+          )
+        }
+
+        return { id: productId, available: true }
+      })
+  }
+
+  const product = yield* catalogService.getProduct("sku-123").pipe(
+    Effect.retry(slowDownRetries),
+    Random.withSeed("slow-down-demo")
+  )
+
+  yield* Console.log(`${product.id} available=${product.available}`)
+})
+
+Effect.runPromise(program)
 ```
 
 ## Variants

@@ -10,21 +10,20 @@ code_included: true
 
 # 45.1 Retry dependency checks during startup
 
-Startup dependency checks sit between process boot and readiness. They should
-absorb short platform races without hiding real boot failures.
+Startup dependency checks sit between process boot and readiness. They can
+absorb short platform races, but they should not hide configuration or schema
+failures.
 
 ## Problem
 
-A service must prove that its database is reachable before it marks itself
-ready. DNS lookup failures, refused connections, and timeouts may clear after a
-short wait; bad credentials or schema mismatches should fail the process
+A service must prove that a required dependency is reachable before it marks
+itself ready. DNS lookup failures, refused connections, and timeouts may clear
+after a short wait. Bad credentials or schema mismatches should fail startup
 immediately.
 
-The policy needs three separate bounds:
-
-- exponential backoff so repeated failures slow down
-- a retry limit so one instance does not retry forever
-- a startup deadline so the total waiting time is bounded
+Use one retry policy for the dependency check, not for the whole boot sequence.
+The policy should slow repeated failures, cap the number of retries, and keep
+the total startup wait bounded.
 
 ## When to use it
 
@@ -32,9 +31,9 @@ Use this recipe for idempotent startup probes such as database connectivity,
 cache reachability, message broker readiness, feature flag client
 initialization, or a search cluster health check.
 
-It is a good fit when the service has not opened traffic yet and can afford a
-short readiness delay, but operators still need a clear answer when the
-dependency does not recover.
+It fits services that have not opened traffic yet and can afford a short
+readiness delay while still giving operators a clear failure when the dependency
+does not recover.
 
 ## When not to use it
 
@@ -44,26 +43,24 @@ should fail startup immediately.
 
 Do not put the whole boot sequence inside the retry. Keep the retry boundary
 around the small dependency check. Initialization steps that create records,
-run migrations, or perform other writes need their own idempotency guarantees
-before they are retried.
+run migrations, or perform writes need their own idempotency guarantees before
+they are retried.
 
 ## Schedule shape
 
-Start with `Schedule.exponential` for the backoff curve. It recurs forever by
-itself, so add the other limits explicitly.
+Start with `Schedule.exponential` for backoff. It does not stop by itself, so
+combine it with `Schedule.recurs` for the retry count and `Schedule.during` for
+the elapsed startup budget.
 
 Use `Schedule.modifyDelay` with `Duration.min` when no individual sleep should
-grow beyond a maximum. Then combine the timing policy with `Schedule.recurs`
-for the retry count and `Schedule.during` for the elapsed startup budget.
-
-`Schedule.both` is the right composition for these limits: the combined schedule
-continues only while both sides continue. The backoff supplies the delay;
-`recurs` and `during` supply stopping conditions.
+grow beyond a maximum. `Schedule.both` keeps the policy running only while both
+sides still allow another retry; the backoff supplies the delay, and the count
+and time schedules supply stopping conditions.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
 class DependencyCheckError extends Data.TaggedError("DependencyCheckError")<{
   readonly reason:
@@ -74,93 +71,66 @@ class DependencyCheckError extends Data.TaggedError("DependencyCheckError")<{
     | "SchemaMismatch"
 }> {}
 
-declare const checkDatabase: Effect.Effect<void, DependencyCheckError>
+let attempts = 0
+
+const checkDatabase = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`database check ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail(new DependencyCheckError({ reason: "DnsLookup" }))
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail(new DependencyCheckError({ reason: "Timeout" }))
+  }
+
+  yield* Console.log("database reachable")
+})
 
 const isRetryableStartupFailure = (error: DependencyCheckError) =>
   error.reason === "DnsLookup" ||
   error.reason === "ConnectionRefused" ||
   error.reason === "Timeout"
 
-const startupDependencyPolicy = Schedule.exponential("100 millis").pipe(
+const startupDependencyPolicy = Schedule.exponential("10 millis").pipe(
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(2)))
+    Effect.succeed(Duration.min(delay, Duration.millis(30)))
   ),
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.both(Schedule.during("20 seconds"))
+  Schedule.both(Schedule.recurs(5)),
+  Schedule.both(Schedule.during("200 millis"))
 )
 
-export const program = checkDatabase.pipe(
-  Effect.retry({
-    schedule: startupDependencyPolicy,
-    while: isRetryableStartupFailure
-  })
+const program = checkDatabase.pipe(
+  Effect.retry({ schedule: startupDependencyPolicy, while: isRetryableStartupFailure }),
+  Effect.flatMap(() => Console.log(`startup ready after ${attempts} checks`)),
+  Effect.catch((error: DependencyCheckError) =>
+    Console.log(`startup failed: ${error.reason}`)
+  )
 )
+
+void Effect.runPromise(program)
 ```
 
-The first database check runs immediately. If it fails with a retryable typed
-error, the schedule waits 100 milliseconds before the next attempt, then 200
-milliseconds, 400 milliseconds, and so on, with each sleep capped at 2 seconds.
-
-`Schedule.recurs(8)` allows at most eight retries after the original attempt.
-`Schedule.during("20 seconds")` stops the retry policy once the schedule has
-spent too much elapsed time deciding follow-up attempts. Whichever limit is hit
-first wins.
-
-If the check fails with `BadCredentials` or `SchemaMismatch`, the `while`
-predicate rejects the failure and startup fails without spending the retry
-budget.
+The demo runs quickly by using millisecond delays. In production, use larger
+values that match the orchestrator's readiness budget. The first dependency
+check runs immediately; only follow-up attempts are scheduled.
 
 ## Variants
 
 For a stricter container readiness path, reduce both the deadline and retry
-count:
-
-```ts
-const fastStartupPolicy = Schedule.exponential("50 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.millis(500)))
-  ),
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("5 seconds"))
-)
-```
-
-For a dependency that commonly takes longer during deploys, keep the first
-retry quick but allow a longer total budget:
-
-```ts
-const deploymentStartupPolicy = Schedule.exponential("100 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
-  ),
-  Schedule.both(Schedule.recurs(12)),
-  Schedule.both(Schedule.during("45 seconds"))
-)
-```
-
-If many instances start at the same time, add `Schedule.jittered` before the
-delay cap so they do not all retry on the same boundaries:
-
-```ts
-const fleetStartupPolicy = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(2)))
-  ),
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.both(Schedule.during("20 seconds"))
-)
-```
+count. For dependencies that commonly take longer during deploys, keep the first
+retry quick but allow a longer total budget. If many instances start at the same
+time, add `Schedule.jittered` before the delay cap so they do not retry on the
+same boundaries.
 
 ## Notes and caveats
 
 `Effect.retry` feeds each typed failure into the schedule after the effect
 fails. The original startup check is not delayed.
 
-`Schedule.exponential` controls the shape of the waits between retries. It does
-not provide a total timeout. Pair it with `Schedule.recurs` and
-`Schedule.during` when startup must either become ready or fail within a known
-budget.
+`Schedule.exponential` controls the waits between retries. It is not a total
+timeout. Pair it with `Schedule.recurs` and `Schedule.during` when startup must
+either become ready or fail within a known budget.
 
 The deadline here is a schedule deadline, not a timeout for a single check. If
 one dependency check can hang, put an Effect timeout on that check before

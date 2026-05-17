@@ -49,15 +49,7 @@ cadence.
 ## Schedule shape
 
 Use `Schedule.spaced` for a constant pause after each successful non-terminal
-observation:
-
-```ts
-Schedule.spaced("3 seconds").pipe(
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "running")
-)
-```
+observation.
 
 `Schedule.spaced("3 seconds")` waits three seconds before each recurrence.
 `Schedule.passthrough` keeps the latest successful `Status` as the schedule
@@ -71,7 +63,7 @@ that request completes.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type Status =
   | { readonly state: "running"; readonly jobId: string }
@@ -85,47 +77,59 @@ type StatusReadError = {
 
 const isRunning = (status: Status): boolean => status.state === "running"
 
-declare const readStatus: (
-  jobId: string
-) => Effect.Effect<Status, StatusReadError>
+const observations = [
+  { state: "running", jobId: "job-1" },
+  { state: "running", jobId: "job-1" },
+  { state: "completed", jobId: "job-1", artifactId: "artifact-9" }
+] as const satisfies ReadonlyArray<Status>
 
-const pollEvery3SecondsWhileRunning = Schedule.spaced("3 seconds").pipe(
+let reads = 0
+
+const readStatus = Effect.fnUntraced(function*(jobId: string) {
+  const status = observations[Math.min(reads, observations.length - 1)]!
+  reads += 1
+  yield* Console.log(`status read ${reads}: ${status.state}`)
+
+  if (status.jobId !== jobId) {
+    return yield* Effect.fail({
+      _tag: "StatusReadError",
+      message: "job id mismatch"
+    } satisfies StatusReadError)
+  }
+
+  return status
+})
+
+const pollEvery20MillisWhileRunning = Schedule.spaced("20 millis").pipe(
   Schedule.satisfiesInputType<Status>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => isRunning(input))
 )
 
-const pollStatus = (jobId: string) =>
-  readStatus(jobId).pipe(
-    Effect.repeat(pollEvery3SecondsWhileRunning)
+const pollStatus = Effect.fnUntraced(function*(jobId: string) {
+  return yield* readStatus(jobId).pipe(
+    Effect.repeat(pollEvery20MillisWhileRunning)
   )
+})
+
+Effect.runPromise(pollStatus("job-1")).then((status) => {
+  console.log(`final status: ${status.state}`)
+})
 ```
 
 `pollStatus` performs the first status read immediately. If that read returns
 `"completed"` or `"failed"`, the repeat stops and returns that terminal status.
-If it returns `"running"`, the schedule waits three seconds and reads again.
+If it returns `"running"`, the schedule waits and reads again.
 
 The returned effect succeeds with the final observed `Status`. It fails with
 `StatusReadError` only when `readStatus` itself fails.
 
 ## Variants
 
-Add a time budget when the caller should stop waiting even if the operation is
-still running:
-
-```ts
-const pollEvery3SecondsForUpTo1Minute = Schedule.spaced("3 seconds").pipe(
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => isRunning(input)),
-  Schedule.bothLeft(
-    Schedule.during("1 minute").pipe(Schedule.satisfiesInputType<Status>())
-  )
-)
-```
-
-With this variant, the final value may be terminal, or it may be the last
-`"running"` status observed before the schedule-side budget ended.
+Add a time budget with `Schedule.during` when the caller should stop waiting
+even if the operation is still running. With that variant, the final value may
+be terminal, or it may be the last `"running"` status observed before the
+schedule-side budget ended.
 
 Use `Schedule.fixed("3 seconds")` only when you want a fixed wall-clock cadence
 instead of a fixed pause after each status read completes.

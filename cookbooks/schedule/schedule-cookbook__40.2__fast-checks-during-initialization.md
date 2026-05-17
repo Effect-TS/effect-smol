@@ -52,20 +52,7 @@ a timeout to the check itself if one probe must not run too long.
 ## Schedule shape
 
 Combine a fast cadence with a retryable-error predicate, a count limit, and a
-short elapsed budget:
-
-```ts
-Schedule.spaced("100 millis").pipe(
-  Schedule.satisfiesInputType<StartupCheckError>(),
-  Schedule.while(({ input }) => input._tag === "DependencyUnavailable"),
-  Schedule.both(Schedule.recurs(12)),
-  Schedule.both(
-    Schedule.during("2 seconds").pipe(
-      Schedule.satisfiesInputType<StartupCheckError>()
-    )
-  )
-)
-```
+short elapsed budget.
 
 `Schedule.spaced("100 millis")` waits briefly after each failed check.
 `Schedule.while` prevents retries for permanent startup errors.
@@ -79,39 +66,58 @@ while all pieces of the policy still allow another recurrence.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type StartupCheckError =
   | { readonly _tag: "DependencyUnavailable"; readonly dependency: string }
   | { readonly _tag: "InvalidConfiguration"; readonly message: string }
 
-declare const checkDatabase: Effect.Effect<void, StartupCheckError>
-declare const checkMessageBroker: Effect.Effect<void, StartupCheckError>
+let databaseChecks = 0
+
+const checkDatabase: Effect.Effect<void, StartupCheckError> = Effect.gen(function*() {
+  databaseChecks += 1
+  yield* Console.log(`database check ${databaseChecks}`)
+  if (databaseChecks < 3) {
+    return yield* Effect.fail({
+      _tag: "DependencyUnavailable",
+      dependency: "database"
+    })
+  }
+})
+
+const checkMessageBroker: Effect.Effect<void, StartupCheckError> = Console.log("broker check ok")
 
 const startupChecks = Effect.fnUntraced(function*() {
   yield* checkDatabase
   yield* checkMessageBroker
 })
 
-const fastInitializationChecks = Schedule.spaced("100 millis").pipe(
+const fastInitializationChecks = Schedule.spaced("20 millis").pipe(
   Schedule.satisfiesInputType<StartupCheckError>(),
   Schedule.while(({ input }) => input._tag === "DependencyUnavailable"),
   Schedule.both(Schedule.recurs(12)),
   Schedule.both(
-    Schedule.during("2 seconds").pipe(
+    Schedule.during("200 millis").pipe(
       Schedule.satisfiesInputType<StartupCheckError>()
     )
   )
 )
 
-export const initialize = startupChecks().pipe(
+const initialize = startupChecks().pipe(
   Effect.retry(fastInitializationChecks)
 )
+
+const program = Effect.gen(function*() {
+  yield* initialize
+  yield* Console.log("initialized")
+})
+
+Effect.runPromise(program)
 ```
 
 `initialize` runs the first startup check immediately. If a dependency is not
-available yet, it retries every 100 milliseconds while the twelve-retry and
-two-second limits both still allow another attempt. If the check fails with
+available yet, it retries while the count and elapsed limits both still allow
+another attempt. If the check fails with
 `InvalidConfiguration`, the schedule stops and the original failure is returned.
 
 ## Variants

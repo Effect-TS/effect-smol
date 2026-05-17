@@ -10,91 +10,100 @@ code_included: true
 
 # 35.1 Stop after 5 seconds
 
-Use `Schedule.during("5 seconds")` for a retry or polling policy with a short
-elapsed-time budget. Pair it with an explicit cadence so the policy says both
-how often to try and when the recurrence window closes.
+Use `Schedule.during("5 seconds")` when a retry or polling policy should keep
+recurring only for a short elapsed-time window. Pair it with an explicit cadence
+so the policy says both how often to try and when to stop scheduling more work.
 
 This is a schedule budget, not a hard process timeout. It is evaluated at
-schedule decision points, after an attempt has finished. If an individual
-attempt hangs for longer than five seconds, `Schedule.during("5 seconds")` does
-not interrupt it.
+schedule decision points after an attempt finishes. If one attempt hangs for
+longer than five seconds, `Schedule.during("5 seconds")` will not interrupt it.
 
 ## Problem
 
-During startup, a dependency probe should get a few quick retries before the
-service reports that readiness has not been reached. The policy should show that
-five-second recurrence window directly, instead of hiding it in a manual loop or
-scattered sleeps.
+A startup probe should retry briefly before reporting that readiness was not
+reached. The five-second retry window should be visible in the schedule rather
+than hidden in a loop with manual sleeps.
 
 ## When to use it
 
-Use this when the important bound is elapsed retry or polling time rather than a
-fixed number of recurrences.
-
-This is a good fit for startup probes, short cache warmups, quick readiness
-checks, and user-facing operations where a small amount of persistence is useful
-but the caller still needs a prompt answer.
+Use it for startup probes, short cache warmups, readiness checks, and
+user-facing operations where a few retries are useful but the caller still needs
+a prompt answer. The bound is elapsed recurrence time, not a fixed attempt
+count.
 
 ## When not to use it
 
-Do not use this as the only protection against a slow in-flight operation. A
-schedule decides whether to run again after an attempt completes; it does not
-interrupt the attempt that is already running.
+Do not use it as the only protection against slow in-flight work. A schedule
+decides whether to run again; `Effect.timeout` is the tool that interrupts an
+operation that is already running.
 
 Do not use it to hide permanent failures. Validate inputs, classify errors, and
 avoid retrying unsafe side effects before applying the schedule.
 
 ## Schedule shape
 
-Pair `Schedule.during("5 seconds")` with an explicit cadence:
-
-```ts
-Schedule.spaced("250 millis").pipe(
-  Schedule.both(Schedule.during("5 seconds"))
-)
-```
-
-`Schedule.spaced("250 millis")` supplies the delay between recurrences.
-`Schedule.during("5 seconds")` keeps the recurrence window open only while the
-schedule elapsed time is within five seconds. Combining them makes both parts of
-the policy visible: how quickly the operation retries and when the retry budget
-stops allowing more retries.
+Pair a cadence such as `Schedule.spaced("1 second")` with
+`Schedule.during("5 seconds")` using `Schedule.both`. The spaced schedule
+provides the delay. The `during` schedule provides the elapsed-time stop
+condition. The combined schedule stops as soon as either side stops.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type DependencyError = {
   readonly _tag: "DependencyError"
   readonly message: string
 }
 
-declare const checkDependency: Effect.Effect<void, DependencyError>
+let attempts = 0
 
-const retryForUpToFiveSeconds = Schedule.spaced("250 millis").pipe(
-  Schedule.both(Schedule.during("5 seconds"))
+const checkDependency: Effect.Effect<void, DependencyError> = Effect.gen(function*() {
+  const attempt = yield* Effect.sync(() => {
+    attempts += 1
+    return attempts
+  })
+
+  yield* Console.log(`readiness probe ${attempt}`)
+  return yield* Effect.fail({
+    _tag: "DependencyError",
+    message: "database is still starting"
+  })
+})
+
+const retryForUpToFiveSeconds = Schedule.spaced("10 millis").pipe(
+  Schedule.both(Schedule.during("50 millis"))
 )
 
-export const program = checkDependency.pipe(
-  Effect.retry(retryForUpToFiveSeconds)
+const program = checkDependency.pipe(
+  Effect.retry(retryForUpToFiveSeconds),
+  Effect.catch((error) =>
+    Console.log(`stopped after ${attempts} probes: ${error.message}`)
+  )
 )
+
+Effect.runPromise(program)
 ```
 
 `checkDependency` runs once before the schedule is consulted. If it fails, the
-schedule waits 250 milliseconds before the next attempt while the five-second
+demo schedule waits 10 milliseconds before the next attempt while the short
 budget is still open. When the schedule stops recurring, `Effect.retry` returns
-the latest failure.
+the latest failure; the example handles it and logs the final attempt count.
+
+The snippet uses millisecond values so it finishes quickly when pasted into a
+file. The production shape is the same with `Schedule.spaced("1 second")` and
+`Schedule.during("5 seconds")`.
 
 ## Variants
 
 Use a shorter cadence for very cheap local checks, and a longer cadence for
 remote calls that could add load during an outage. For many clients running the
-same policy, add jitter after the cadence is correct so they do not all retry at
-the same moments.
+same policy, add `Schedule.jittered` after the cadence is correct so they do not
+all retry at the same moments.
 
 If the caller needs the whole operation to be interrupted at five seconds,
-combine this schedule-side budget with an Effect timeout at the operation
+combine this schedule-side budget with `Effect.timeout` at the operation
 boundary. Keep the two responsibilities separate: the schedule describes retry
 recurrence, while the timeout describes interruption.
 

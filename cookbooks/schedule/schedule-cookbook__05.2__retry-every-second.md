@@ -10,136 +10,95 @@ code_included: true
 
 # 5.2 Retry every second
 
-This recipe shows a readable fixed-delay retry policy using
-`Schedule.spaced("1 second")` with `Effect.retry`. The schedule controls the retry
-timing, while the surrounding Effect code remains responsible for deciding which typed
-failures are safe to retry.
+`Schedule.spaced("1 second")` is the plain fixed-delay retry policy: wait one
+second after each typed failure, then try the same effect again.
 
 ## Problem
 
-A failure may be temporary, but retrying immediately would be too noisy or too
-aggressive. You need each retry after the original attempt to wait exactly one
-second, with no growth, shrinkage, jitter, or error-dependent timing.
-
-Use `Schedule.spaced("1 second")` with `Effect.retry` for this policy.
+The failure may be temporary, but immediate retries would create noisy logs,
+extra load, or confusing traces. You want a readable retry cadence with no
+growth, jitter, or error-dependent timing.
 
 ## When to use it
 
-Use this recipe when failures are likely to be temporary, but immediate retries
-would be too noisy or too aggressive. A one-second pause is often readable in
-logs, friendly to nearby dependencies, and still quick enough for short-lived
-recovery.
+Use this for idempotent calls where one retry per second is acceptable:
+short reconnects, brief service restarts, status reads, or local coordination.
+The delay is long enough to be visible in logs and short enough for many
+operator-facing workflows.
 
-It fits idempotent requests, reconnect attempts, brief service restarts, and
-local coordination where trying again once per second is an acceptable cadence.
+Add a retry limit unless some outer scope is responsible for interrupting the
+fiber.
 
 ## When not to use it
 
-Do not use an unbounded one-second retry loop when the operation can keep
-failing for a long time. `Schedule.spaced("1 second")` does not stop by itself,
-so use a bounded variant when the caller needs a final failure.
+Do not use this for failures that can last a long time when the caller needs a
+clear final error. `Schedule.spaced("1 second")` does not stop on its own.
 
-Do not use a fixed one-second delay for overloaded or rate-limited dependencies
-that need demand to spread out over time. Those cases usually call for
-exponential backoff, jitter, server-provided retry metadata, or a wider timeout
-policy.
-
-Do not use it for operations that are not safe to run more than once. Retrying a
-write requires idempotency, deduplication, or another domain-specific guarantee.
+Do not use it for overloaded or rate-limited dependencies that need callers to
+spread out over time. Backoff, jitter, or server-provided retry metadata is a
+better fit.
 
 ## Schedule shape
 
-`Schedule.spaced("1 second")` is an unbounded schedule. Each recurrence has the
-same one-second delay.
+With `Effect.retry`, the first attempt runs immediately. If it fails with a
+typed failure, the schedule waits one second before the next attempt.
 
-With `Effect.retry`, the first attempt runs immediately. If that attempt fails
-with a typed error, the error is fed to the schedule. The schedule then chooses
-the one-second delay, and the effect is attempted again after that delay.
-
-The shape is:
-
-- attempt 1: run immediately
-- if attempt 1 fails: wait 1 second
-- attempt 2: run again
-- if attempt 2 fails: wait 1 second
-- continue until an attempt succeeds, the fiber is interrupted, or a bounded
-  variant stops the schedule
-
-The schedule output is a recurrence count. Plain `Effect.retry` uses the
-schedule to decide whether and when to retry, but returns the eventual success
-value rather than the schedule output.
+Combined with `Schedule.recurs(4)`, the policy permits four retries after the
+original attempt. The spaced schedule supplies the delay; the recurrence
+schedule supplies the stopping condition.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 class ServiceUnavailable extends Data.TaggedError("ServiceUnavailable")<{
-  readonly endpoint: string
+  readonly attempt: number
 }> {}
 
-interface ResponseBody {
-  readonly status: "ok"
-  readonly value: string
-}
+const fetchStatus = Effect.fnUntraced(function*(attempts: Ref.Ref<number>) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`status attempt ${attempt}`)
 
-declare const fetchStatus: Effect.Effect<ResponseBody, ServiceUnavailable>
+  if (attempt < 3) {
+    return yield* Effect.fail(new ServiceUnavailable({ attempt }))
+  }
 
-const retryEverySecond = Schedule.spaced("1 second")
+  return { status: "ok" as const, value: "ready" }
+})
 
-const program = fetchStatus.pipe(
-  Effect.retry(retryEverySecond)
+const retryEverySecond = Schedule.spaced("1 second").pipe(
+  Schedule.both(Schedule.recurs(4))
 )
+
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+  const fiber = yield* fetchStatus(attempts).pipe(
+    Effect.retry(retryEverySecond),
+    Effect.forkScoped
+  )
+
+  yield* TestClock.adjust("1 second")
+  yield* TestClock.adjust("1 second")
+
+  const result = yield* Fiber.join(fiber)
+  yield* Console.log(`status: ${result.status}, value: ${result.value}`)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program).then(() => undefined)
 ```
 
-`program` runs `fetchStatus` once immediately. If it fails with a typed
-`ServiceUnavailable`, it waits one second and tries again. Because
-`Schedule.spaced("1 second")` is unbounded, this continues until one attempt
-succeeds or the fiber running `program` is interrupted.
+The example logs two failed attempts, advances virtual time for the two
+one-second delays, and then logs the successful status value.
 
-## Variants
+## Notes
 
-Bound the same one-second retry cadence with `Schedule.recurs` when you want a
-maximum retry count:
+`Schedule.spaced("1 second")` delays retry attempts only. It does not delay the
+first execution.
 
-```ts
-const retryEverySecondUpTo5Times = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-
-const boundedProgram = fetchStatus.pipe(
-  Effect.retry(retryEverySecondUpTo5Times)
-)
-```
-
-This policy retries at most five times after the original attempt. If every
-attempt fails, `Effect.retry` propagates the last typed failure.
-
-For a local one-off call site, the options form expresses the same bounded
-shape:
-
-```ts
-const boundedProgram = fetchStatus.pipe(
-  Effect.retry({
-    schedule: Schedule.spaced("1 second"),
-    times: 5
-  })
-)
-```
-
-Use the named schedule form when you want to reuse the policy or compose it with
-more schedule operators.
-
-## Notes and caveats
-
-`Schedule.spaced("1 second")` delays retries; it does not delay the first
-attempt. The first execution of the effect always happens immediately.
-
-The delay is measured after a failed attempt before the next retry begins. It
-does not make the whole operation run on a strict wall-clock cadence.
-
-When bounding this policy, remember that `Schedule.recurs(5)` means five
-retries after the original attempt, not five total attempts.
+The delay is measured after a failure before the next retry begins. It does not
+make the whole operation run on a strict one-second wall-clock interval.
 
 `Effect.retry` retries typed failures from the error channel. Defects and fiber
 interruptions are not retried as typed failures.

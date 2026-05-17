@@ -11,17 +11,14 @@ code_included: true
 # 21.1 Immediate retries
 
 Immediate retries run the same effect again after a typed failure without
-adding a delay. In Effect, `Schedule.recurs(n)` expresses that policy and makes
-the retry count explicit.
+waiting. In Effect, `Schedule.recurs(n)` is the direct way to say how many
+extra attempts are allowed.
 
 ## Problem
 
 A local operation can lose a brief race with startup, an in-process dependency,
-or an optimistic-concurrency update. You want to cover that narrow window
-without hidden counters or sleeps. The retry policy should make it clear that
-every retry is immediate and that only a couple of extra attempts are allowed.
-
-Use `Schedule.recurs` with `Effect.retry` for this policy.
+or an optimistic-concurrency update. Add a small, visible retry budget without
+adding sleeps or wrapping a larger workflow.
 
 ## When to use it
 
@@ -30,25 +27,23 @@ Use immediate retries when all of these are true:
 - the operation is safe to repeat
 - the expected failure window is shorter than a meaningful delay
 - each attempt is cheap for the caller and the dependency
-- a small fixed retry count is enough to prove the failure was not momentary
+- a small count is enough to show the failure was not momentary
 
-This is most appropriate around narrow operations. Keep the retry boundary close
-to the effect that can fail transiently, not around a larger workflow that also
-performs non-repeatable work.
+Keep the retry boundary close to the transient operation. Do not wrap unrelated
+work that should not be repeated.
 
 ## When not to use it
 
-Do not use immediate retries as a default production retry policy. A tight
-retry loop can amplify load at exactly the point where a dependency is already
-unhealthy.
+Do not use immediate retries as a default production policy. A tight retry loop
+can amplify load while a dependency is already unhealthy.
 
 Do not use it for permanent errors such as validation failures, authorization
 failures, missing configuration, malformed requests, or known non-idempotent
-writes. Classify those failures before applying the schedule.
+writes. Idempotent means repeating the operation has the same domain effect as
+running it once.
 
-Do not use it when many fibers, processes, or nodes may fail together. If the
-same policy can run across a fleet, prefer a delayed policy and consider jitter
-after the base cadence is correct.
+If many fibers, processes, or nodes may fail together, prefer a delayed policy
+and add jitter if synchronized retries are a risk.
 
 ## Schedule shape
 
@@ -67,32 +62,48 @@ should be followed by another attempt.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class LocalCacheError extends Data.TaggedError("LocalCacheError")<{
   readonly reason: string
 }> {}
 
-declare const readThroughCache: Effect.Effect<string, LocalCacheError>
+let attempts = 0
+
+const readThroughCache = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`cache attempt ${attempts}`)
+
+  if (attempts < 3) {
+    return yield* Effect.fail(
+      new LocalCacheError({ reason: "cache is still warming" })
+    )
+  }
+
+  return "value-from-cache"
+})
 
 const retryTwiceImmediately = Schedule.recurs(2)
 
-export const program = readThroughCache.pipe(
+const program = readThroughCache.pipe(
   Effect.retry(retryTwiceImmediately)
 )
+
+Effect.runPromise(program).then((value) => {
+  console.log(`result: ${value}`)
+})
 ```
 
-`program` performs `readThroughCache` once. If it fails with a typed
-`LocalCacheError`, it may retry up to two more times immediately. If all three
-attempts fail, `Effect.retry` returns the last typed failure.
+`program` performs `readThroughCache` once and may retry it twice immediately.
+If all three attempts fail, `Effect.retry` returns the last typed failure. A
+typed failure is a value in the Effect error channel; defects and interruptions
+are not retried as ordinary failures.
 
 ## Variants
 
-For a slightly less aggressive policy, add a small fixed delay with
-`Schedule.spaced` and combine it with `Schedule.recurs`.
-
-For a remote dependency, use exponential backoff or another delayed schedule
-instead of immediate retries. The extra latency is usually cheaper than sending
+For a slightly less aggressive policy, use `Schedule.spaced` with
+`Schedule.recurs`. For a remote dependency, prefer exponential backoff or
+another delayed schedule; the extra latency is usually cheaper than sending
 several requests into the same failing system at once.
 
 ## Notes and caveats
@@ -101,6 +112,5 @@ several requests into the same failing system at once.
 attempts. `Schedule.recurs(2)` means at most three total executions: the first
 try plus two retries.
 
-Keep the count small. Immediate retries are useful because they are brief; once
-you need more than a couple of retries, the policy is no longer just handling a
-momentary failure and should usually introduce delay.
+Keep the count small. Once the policy needs more than a couple of retries, it is
+no longer only covering a momentary race and should usually introduce delay.

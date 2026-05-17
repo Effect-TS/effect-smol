@@ -16,8 +16,8 @@ work into a paced stream with visible timing rules.
 ## Problem
 
 Queue draining, cache warming, search indexing, and remote API calls can create
-uneven pressure when they run as quickly as possible: an idle period, then a
-burst of requests, then another idle period.
+uneven pressure when they run as quickly as possible: idle time, a burst of
+requests, then more idle time.
 
 The schedule should make each worker's pace explicit, and a fleet should avoid
 synchronized requests when instances share the same configuration.
@@ -58,7 +58,7 @@ the base spacing, but instances no longer line up perfectly.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Random, Ref, Schedule } from "effect"
 
 type WorkItem = {
   readonly id: string
@@ -68,22 +68,57 @@ type WorkerError = {
   readonly _tag: "WorkerError"
 }
 
-declare const processNextItem: Effect.Effect<WorkItem, WorkerError>
+const initialItems: ReadonlyArray<WorkItem> = [
+  { id: "job-1" },
+  { id: "job-2" },
+  { id: "job-3" },
+  { id: "job-4" }
+]
 
-const smoothedDemand = Schedule.spaced("1 second").pipe(
+const smoothedDemand = Schedule.spaced("40 millis").pipe(
   Schedule.jittered,
-  Schedule.take(100)
+  Schedule.satisfiesInputType<number>(),
+  Schedule.passthrough,
+  Schedule.while(({ input }) => input > 0)
 )
 
-export const program = processNextItem.pipe(
-  Effect.repeat(smoothedDemand)
-)
+const program = Effect.gen(function*() {
+  const queue = yield* Ref.make(initialItems)
+
+  const processNextItem: Effect.Effect<number, WorkerError> = Effect.gen(
+    function*() {
+      const item = yield* Ref.modify(queue, (items) => [
+        items[0],
+        items.slice(1)
+      ] as const)
+
+      if (item === undefined) {
+        return 0
+      }
+
+      yield* Console.log(`processed ${item.id}`)
+
+      const remaining = yield* Ref.get(queue)
+      return remaining.length
+    }
+  )
+
+  const remaining = yield* processNextItem.pipe(
+    Effect.repeat(smoothedDemand),
+    Random.withSeed("smoothed-demand-demo")
+  )
+
+  yield* Console.log(`queue drained; remaining=${remaining}`)
+})
+
+Effect.runPromise(program)
 ```
 
 The first `processNextItem` run happens immediately. The schedule controls only
 the follow-up repetitions. Each successful run is followed by a jittered delay
-around one second, and `Schedule.take(100)` bounds the number of scheduled
-repetitions.
+around the base spacing, and `Schedule.while` stops the loop when the worker
+reports that no items remain. The snippet uses millisecond-scale spacing so it
+finishes quickly in a scratchpad.
 
 ## Variants
 
@@ -93,10 +128,9 @@ and keep the spacing deterministic.
 For a larger fleet, keep the jitter even when the base interval is short. The
 spacing controls average demand; the jitter reduces alignment between instances.
 
-For long-running workers, replace `Schedule.take(100)` with a lifecycle boundary
-outside the schedule, such as the fiber, queue, or service lifetime that owns the
-loop. Keep the spacing policy named so operators can still see the intended
-load profile.
+For long-running workers, make the lifecycle boundary explicit in the fiber,
+queue, or service that owns the loop. Keep the spacing policy named so operators
+can still see the intended load profile.
 
 ## Notes and caveats
 

@@ -10,24 +10,22 @@ code_included: true
 
 # 18.1 Fast polling during the first few seconds
 
-Use this recipe for workflows that usually settle within a few seconds, where
-an immediate answer is valuable but a permanent fast loop would be wasteful.
-The schedule models only the short initial burst.
+Use this for workflows that often settle quickly. The schedule gives the caller
+a short responsive burst without making fast polling the steady-state policy.
 
 ## Problem
 
-You want to poll aggressively at the beginning so users do not wait through a
-large fixed interval when the answer is probably already available. At the same
-time, the aggressive cadence should be bounded so it does not become the whole
-polling policy.
+Early completion is common, so waiting through a large interval would feel
+unnecessarily slow. The fast cadence should still be bounded, because a
+permanent tight loop creates load without adding much value.
 
 ## When to use it
 
 Use this when early completion is common and a fresh result is valuable enough
 to justify a short burst of extra requests.
 
-This is a good fit for status checks that often move from `"pending"` to
-`"ready"` within the first one to three seconds after submission.
+This fits status checks that often move from `"pending"` to `"ready"` shortly
+after submission.
 
 ## When not to use it
 
@@ -43,43 +41,20 @@ limited, or likely to queue behind earlier requests.
 
 ## Schedule shape
 
-Use a short spacing interval, cap the number of fast recurrences, preserve the
-latest successful status, and continue only while the status is still
-non-terminal:
-
-```ts
-Schedule.spaced("250 millis").pipe(
-  Schedule.take(12),
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "pending")
-)
-```
-
-`Schedule.spaced("250 millis")` waits briefly after each successful pending
-observation. `Schedule.take(12)` bounds the fast burst to a small number of
-recurrences. `Schedule.while` stops as soon as a terminal status is observed.
-`Schedule.passthrough` keeps the latest status as the schedule output, so the
-repeated effect returns the final observed status from the burst.
+Use `Schedule.spaced("250 millis")` for the burst cadence, `Schedule.take(12)`
+to cap the burst, `Schedule.while` to continue only for pending statuses, and
+`Schedule.passthrough` to return the latest status.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Clock, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type Status =
   | { readonly state: "pending" }
   | { readonly state: "ready"; readonly resourceId: string }
   | { readonly state: "failed"; readonly reason: string }
-
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
-
-declare const checkStatus: (
-  workflowId: string
-) => Effect.Effect<Status, StatusCheckError>
 
 const fastInitialPolling = Schedule.spaced("250 millis").pipe(
   Schedule.take(12),
@@ -88,20 +63,39 @@ const fastInitialPolling = Schedule.spaced("250 millis").pipe(
   Schedule.while(({ input }) => input.state === "pending")
 )
 
-const pollDuringFastWindow = (workflowId: string) =>
-  checkStatus(workflowId).pipe(
-    Effect.repeat(fastInitialPolling)
+const script: ReadonlyArray<Status> = [
+  { state: "pending" },
+  { state: "pending" },
+  { state: "ready", resourceId: "result-1" }
+]
+
+let checks = 0
+
+const checkStatus = Effect.gen(function*() {
+  const now = yield* Clock.currentTimeMillis
+  const status = script[Math.min(checks, script.length - 1)]!
+  checks += 1
+  console.log(`t+${now}ms check ${checks}: ${status.state}`)
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* checkStatus.pipe(
+    Effect.repeat(fastInitialPolling),
+    Effect.forkDetach
   )
+
+  yield* TestClock.adjust("3 seconds")
+
+  const finalStatus = yield* Fiber.join(fiber)
+  console.log("final:", finalStatus)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program)
 ```
 
-The first `checkStatus` call runs immediately. If it returns `"ready"` or
-`"failed"`, polling stops without waiting. If it returns `"pending"`, the
-schedule waits 250 milliseconds before the next check and keeps doing that only
-for the bounded fast window.
-
-The resulting effect succeeds with the latest observed `Status`. That status
-may be terminal, or it may still be `"pending"` if the fast burst is exhausted
-before the workflow completes.
+The first check is immediate. The 250-millisecond delay applies only after a
+successful pending observation.
 
 ## Variants
 
@@ -120,15 +114,6 @@ check.
 
 ## Notes and caveats
 
-The first status check is not delayed. `Effect.repeat` runs the effect once
-before consulting the schedule for recurrences.
-
-The recurrence cap limits the aggressive burst. It is not a whole-workflow
-timeout and it does not interrupt an in-flight status check.
-
-`Schedule.while` reads successful status values. Transport, authorization, or
-decoding failures should remain in the effect failure channel and be handled
-separately if they should be retried.
-
-When a timing schedule reads `metadata.input`, constrain the schedule with
-`Schedule.satisfiesInputType<Status>()` before `Schedule.while`.
+`Schedule.take(12)` limits recurrences after the initial check. It is not a
+workflow timeout and it does not interrupt an in-flight request. `Schedule.while`
+sees successful status values only.

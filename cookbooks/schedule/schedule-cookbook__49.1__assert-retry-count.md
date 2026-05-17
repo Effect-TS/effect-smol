@@ -10,21 +10,19 @@ code_included: true
 
 # 49.1 Assert retry count
 
-Retry-count tests should assert how many times the effect was evaluated, not how
-long the retry loop took. Keep the schedule deterministic so the test can focus
-on attempts rather than timing.
+Retry-count tests should count effect evaluations. They should not infer retry
+count from elapsed time or from the schedule output.
 
 ## Problem
 
-An implementation uses `Schedule.recurs(3)`, and the test needs to catch
-whether the fixture ran four times, not three. The common mistake is treating
-`Schedule.recurs(3)` as "three total attempts". With `Effect.retry`, the first
-attempt happens before the schedule is consulted, so the three recurrences are
-retries after that initial failed attempt.
+`Schedule.recurs(3)` is often misread as "three total attempts". With
+`Effect.retry`, the original attempt runs first. The schedule is consulted only
+after a typed failure, so three recurrences means three retries after that
+original attempt.
 
 ## When to use it
 
-Use this recipe when the important assertion is the retry budget itself:
+Use this shape when the contract is the retry budget:
 
 - a permanently failing fixture should be evaluated `1 + retries` times
 - a transient fixture should stop as soon as it succeeds
@@ -32,70 +30,60 @@ Use this recipe when the important assertion is the retry budget itself:
 
 ## When not to use it
 
-Do not use this test shape to assert exact delays between attempts. Delay tests
-need clock control and should make time advancement explicit. Also avoid
-randomized schedules such as jittered policies in a retry-count test; test the
-counting policy first, then test timing or jitter behavior separately.
+Do not use a count test to prove delay behavior. Delay tests need clock control.
+Also keep jitter out of this test; random delay changes make the timing
+contract harder to see and do not affect the retry count.
 
 ## Schedule shape
 
-Use `Schedule.recurs(n)` for a pure retry-count limit. According to
-`Schedule.ts`, `recurs` creates a schedule that can be stepped the specified
-number of times before it terminates, and its output is the current zero-based
-recurrence count. In a retry loop, those recurrences are retries after failures;
-they are not the original attempt.
+Use `Schedule.recurs(n)` for a pure retry-count limit. Its output is the
+zero-based recurrence count, but for this test the important value is the number
+of times the effect itself was evaluated.
 
 ## Code
 
 ```ts
-import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Ref, Schedule } from "effect"
+import { Console, Effect, Exit, Ref, Schedule } from "effect"
 
 type TestError = { readonly _tag: "TestError" }
 const testError: TestError = { _tag: "TestError" }
 
-describe("retry count", () => {
-  it.effect("retries exactly three times after the first failure", () =>
-    Effect.gen(function*() {
-      const attempts = yield* Ref.make(0)
-
-      const fixture = Effect.gen(function*() {
-        yield* Ref.update(attempts, (n) => n + 1)
-        return yield* Effect.fail(testError)
-      })
-
-      const exit = yield* fixture.pipe(
-        Effect.retry(Schedule.recurs(3)),
-        Effect.exit
-      )
-      const count = yield* Ref.get(attempts)
-
-      assert.strictEqual(count, 4)
-      assert.isTrue(Exit.isFailure(exit))
-    }))
+const alwaysFails = Effect.fnUntraced(function*(attempts: Ref.Ref<number>) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`attempt ${attempt}`)
+  return yield* Effect.fail(testError)
 })
+
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+
+  const exit = yield* alwaysFails(attempts).pipe(
+    Effect.retry(Schedule.recurs(3)),
+    Effect.exit
+  )
+
+  const totalAttempts = yield* Ref.get(attempts)
+  yield* Console.log(`total attempts: ${totalAttempts}`)
+  yield* Console.log(`failed: ${Exit.isFailure(exit)}`)
+})
+
+Effect.runPromise(program)
 ```
 
 ## Variants
 
-To prove that retries stop after success, make the fixture fail while the
-counter is below a threshold and succeed afterward. For example, with
-`Schedule.recurs(3)`, a fixture that succeeds on the third evaluation should
-leave the counter at `3`, not `4`, because `Effect.retry` stops once the effect
-succeeds.
+To prove early success, make the fixture fail while the counter is below a
+threshold and succeed afterward. With `Schedule.recurs(3)`, a fixture that
+succeeds on the third evaluation should leave the counter at `3`, because
+`Effect.retry` stops as soon as the effect succeeds.
 
 If the production policy also has spacing or backoff, keep the count assertion
-focused on evaluations. For example, adding exponential spacing and combining it
-with `Schedule.recurs(3)` still has a three-retry limit, but the elapsed time
-depends on the schedule and on how the test advances the clock.
+focused on evaluations. The timing policy can be tested separately with
+`TestClock`.
 
 ## Notes and caveats
 
-This recipe asserts retry count deterministically. It does not prove that real
-wall-clock timing will match a production environment. For timing behavior, use
-clock-controlled tests and assert the schedule's delay behavior separately.
-
 `Effect.retry` feeds failures into the schedule. `Effect.repeat` feeds
 successful values into the schedule. The same `Schedule.recurs(3)` value has
-different meaning in those two contexts because retry recurrences follow
-failures, while repeat recurrences follow successes.
+different operational meaning in those two contexts because retry recurrences
+follow failures, while repeat recurrences follow successes.

@@ -10,24 +10,23 @@ code_included: true
 
 # 17.4 Distinguish “still running” from “failed permanently”
 
-Use this recipe when a polling endpoint reports multiple successful domain
-statuses and only some of them mean work is still in progress. The schedule
-decides whether to continue from the status value; later code interprets the
-terminal result.
+Use this when a status endpoint reports several successful domain states, but
+only some of them mean work is still in progress. The schedule should continue
+for in-progress states and stop for terminal states, including domain failures.
 
 ## Problem
 
-For example, `"queued"` and `"running"` should continue polling. `"succeeded"`,
-`"failed"`, and `"canceled"` should stop polling. The important distinction is
-that `"failed"` is a terminal domain status, not necessarily a failure of the
-status-check request.
+`"queued"` and `"running"` should poll again. `"succeeded"`, `"failed"`, and
+`"canceled"` should stop. A status value of `"failed"` is different from a
+failed status request: the request succeeded and reported a terminal domain
+outcome.
 
 ## Why this comparison matters
 
 `Effect.repeat` repeats after successful effects. With polling, the status
-check can succeed even when the remote job reports a permanent failure. That
-successful status becomes the schedule input, so the schedule should decide
-whether another recurrence is allowed from the domain status value.
+check can succeed even when the remote job reports permanent failure. That
+successful status becomes the schedule input, so the repeat predicate must be
+about domain state, not request success.
 
 If `"failed"` is treated like `"running"`, the caller keeps polling a job that
 is already finished. If `"running"` is treated like an error, the caller stops
@@ -36,13 +35,17 @@ before the workflow has had a chance to complete.
 Keep the repeat predicate narrow: continue only for statuses that are truly
 in progress. After the repeat stops, interpret the final observed status.
 
-## Option 1
+## Schedule shape
 
-Classify in-progress statuses with a small predicate and use that predicate in
-`Schedule.while`:
+Classify in-progress statuses with a predicate such as `isStillRunning`, use it
+from `Schedule.while`, and keep the final `JobStatus` with
+`Schedule.passthrough`.
+
+## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Clock, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type JobStatus =
   | { readonly state: "queued"; readonly jobId: string }
@@ -51,16 +54,7 @@ type JobStatus =
   | { readonly state: "failed"; readonly jobId: string; readonly reason: string }
   | { readonly state: "canceled"; readonly jobId: string }
 
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
-
 const isStillRunning = (status: JobStatus): boolean => status.state === "queued" || status.state === "running"
-
-declare const checkJobStatus: (
-  jobId: string
-) => Effect.Effect<JobStatus, StatusCheckError>
 
 const pollWhileStillRunning = Schedule.spaced("2 seconds").pipe(
   Schedule.satisfiesInputType<JobStatus>(),
@@ -71,27 +65,6 @@ const pollWhileStillRunning = Schedule.spaced("2 seconds").pipe(
   )
 )
 
-const pollJobStatus = (jobId: string) =>
-  checkJobStatus(jobId).pipe(
-    Effect.repeat(pollWhileStillRunning)
-  )
-```
-
-`Schedule.spaced("2 seconds")` supplies the cadence for later polls.
-`Schedule.while` allows another poll only while the latest successful status is
-`"queued"` or `"running"`. `Schedule.passthrough` keeps the final observed
-`JobStatus` as the result of the repeated effect.
-
-The returned status may be `"succeeded"`, `"failed"`, `"canceled"`, or the last
-in-progress status observed when the one-minute recurrence budget stopped the
-schedule. Interpreting that value is a separate step.
-
-## Option 2
-
-Separate polling from interpretation by giving the terminal domain statuses an
-explicit interpreter after the schedule has stopped:
-
-```ts
 type PollResult =
   | { readonly _tag: "Completed"; readonly resultId: string }
   | { readonly _tag: "FailedPermanently"; readonly reason: string }
@@ -112,16 +85,40 @@ const interpretFinalStatus = (status: JobStatus): PollResult => {
   }
 }
 
-const pollJob = (jobId: string) =>
-  pollJobStatus(jobId).pipe(
-    Effect.map(interpretFinalStatus)
+const script: ReadonlyArray<JobStatus> = [
+  { state: "queued", jobId: "job-1" },
+  { state: "running", jobId: "job-1", progress: 40 },
+  { state: "failed", jobId: "job-1", reason: "validation failed" }
+]
+
+let checks = 0
+
+const checkJobStatus = Effect.gen(function*() {
+  const now = yield* Clock.currentTimeMillis
+  const status = script[Math.min(checks, script.length - 1)]!
+  checks += 1
+  console.log(`t+${now}ms check ${checks}: ${status.state}`)
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* checkJobStatus.pipe(
+    Effect.repeat(pollWhileStillRunning),
+    Effect.map(interpretFinalStatus),
+    Effect.forkDetach
   )
+
+  yield* TestClock.adjust("1 minute")
+
+  const result = yield* Fiber.join(fiber)
+  console.log("result:", result)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program)
 ```
 
-This keeps `Schedule` responsible for recurrence and keeps business decisions
-about terminal outcomes in ordinary domain code. A permanent domain failure is
-not confused with a failed HTTP request, decoding failure, or authorization
-failure from `checkJobStatus`.
+The final `"failed"` status stops polling because it is not still running. The
+interpreter then maps it to a domain result.
 
 ## Tradeoffs
 
@@ -136,9 +133,9 @@ as failures. The cost is that the schedule no longer sees those statuses. The
 repeat stops because the effect failed, not because `Schedule.while` classified
 the status as terminal.
 
-For polling APIs, the first form is usually easier to reason about: transport
-or observation problems fail the effect, while domain statuses drive the
-schedule.
+For polling APIs, successful status values usually drive the schedule, while
+transport, authorization, and decoding problems stay in the effect failure
+channel.
 
 ## Recommended default
 
@@ -152,17 +149,8 @@ reason to keep polling.
 
 ## Notes and caveats
 
-`Schedule.while` sees successful status values only. It does not inspect
-failures from the status-check effect.
-
-Use `Schedule.satisfiesInputType<T>()` before `Schedule.while` when a timing
-schedule such as `Schedule.spaced` or `Schedule.during` needs to read the
-latest status through `metadata.input`.
-
-A schedule-side duration such as `Schedule.during("1 minute")` limits
-recurrences. It does not decide how to interpret the final status and does not
-interrupt an in-flight status check.
-
-Keep the in-progress predicate explicit. A catch-all such as
-`status.state !== "succeeded"` accidentally treats permanent failures as work
-that is still running.
+`Schedule.while` sees successful status values only. A schedule-side duration
+limits recurrences but does not interpret the final status or interrupt an
+in-flight status check. Keep the in-progress predicate explicit; a catch-all
+such as `status.state !== "succeeded"` treats permanent failures as work that
+is still running.

@@ -10,58 +10,53 @@ code_included: true
 
 # 37.1 Stop on fatal errors
 
-Fatal errors should bypass retry timing. Classify raw downstream failures into
-domain errors first, then let only realistically recoverable failures reach the
-schedule.
+Fatal errors should bypass retry timing. Classify raw failures into domain
+errors first, then let only recoverable failures reach the retry schedule.
 
 ## Problem
 
-You call a dependency that reports both recoverable and unrecoverable failures:
-
-- transient errors such as timeouts, temporary unavailability, or quota pressure
-- fatal errors such as bad input, missing authorization, or a request that cannot
-  ever succeed unchanged
-
-The retry policy should spend its bounded budget only on transient failures.
-Fatal failures should return immediately so callers see the real problem.
+One operation can fail for temporary reasons, such as a timeout or overloaded
+dependency, or for fatal reasons, such as bad input or missing authorization.
+The retry budget should be spent only on failures that may recover without
+changing the request.
 
 ## When to use it
 
 Use this recipe when a single operation can produce both retryable and
-non-retryable failures. It is a good fit for HTTP clients, database calls,
-message publication, and worker steps where a timeout may recover but a
-validation or authorization error should stop the workflow.
+non-retryable failures. It fits HTTP clients, database calls, message
+publication, and worker steps where a timeout may recover but validation or
+authorization should stop immediately.
 
 The classification belongs next to the boundary that understands the failure.
 For example, translate HTTP `408`, `429`, and `503` into transient domain errors,
-and translate HTTP `400`, `401`, and `403` into fatal domain errors before
-calling `Effect.retry`.
+and translate HTTP `400`, `401`, and `403` into fatal domain errors before the
+retry boundary.
 
 ## When not to use it
 
-Do not rely on a retry schedule to discover whether an error is fatal. If the
-error is known to be permanent, classify it before retry and let it bypass the
+Do not ask a schedule to discover whether an error is fatal. If the error is
+known to be permanent, classify it before retrying and let it bypass the
 schedule.
 
 Also avoid retrying non-idempotent writes unless the operation has a clear
-deduplication or transaction guarantee. A retry policy controls timing; it does
-not make an unsafe operation safe to run again.
+deduplication or transaction guarantee. Idempotent means safe to run more than
+once with the same effect; a retry policy does not provide that guarantee.
 
 ## Schedule shape
 
 Use a normal timing schedule for retryable failures, then add the retry gate at
 the `Effect.retry` call site:
 
-- `schedule` describes spacing and retry budget
-- `while` decides whether the current failure is allowed to retry
+- `schedule` controls delay and retry count
+- `while` decides whether the current typed failure is retryable
 
-This keeps the policy readable. The schedule still answers "how often and how
-many times?", while the predicate answers "is this error retryable at all?"
+This keeps the responsibilities separate. The schedule answers "when and how
+many times?", while the predicate answers "is this failure retryable?"
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class TransientDownstreamError extends Data.TaggedError("TransientDownstreamError")<{
   readonly reason: "Timeout" | "Unavailable" | "RateLimited"
@@ -73,50 +68,72 @@ class FatalDownstreamError extends Data.TaggedError("FatalDownstreamError")<{
 
 type DownstreamError = TransientDownstreamError | FatalDownstreamError
 
-declare const callDownstream: Effect.Effect<string, DownstreamError>
+let attempts = 0
+
+const callDownstream = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail(
+      new TransientDownstreamError({ reason: "Timeout" })
+    )
+  }
+
+  return yield* Effect.fail(
+    new FatalDownstreamError({ reason: "Unauthorized" })
+  )
+})
 
 const isTransient = (error: DownstreamError): error is TransientDownstreamError =>
   error._tag === "TransientDownstreamError"
 
-const retryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.jittered
+const retryPolicy = Schedule.exponential("20 millis").pipe(
+  Schedule.both(Schedule.recurs(5))
 )
 
-export const program = callDownstream.pipe(
+const program = callDownstream.pipe(
   Effect.retry({
     schedule: retryPolicy,
     while: isTransient
+  }),
+  Effect.matchEffect({
+    onFailure: (error) =>
+      Console.log(
+        `stopped on ${error._tag}/${error.reason} after ${attempts} attempts`
+      ),
+    onSuccess: (value) => Console.log(`succeeded with ${value}`)
   })
 )
+
+Effect.runPromise(program)
 ```
 
 ## Variants
 
-For a user-facing request, keep the retry budget small or add a time budget with
-`Schedule.during` so the caller gets a prompt answer.
+For a user-facing request, keep the retry budget small or add an elapsed budget
+with `Schedule.during` so callers get a prompt answer.
 
 For a background worker, use a larger budget and add logging or metrics around
 classification. The useful signal is often "fatal error bypassed retry", not
 just "retry exhausted".
 
-If the downstream error contains richer retry information, classify that data
-before retry as well. For example, a rate-limit response can become a transient
-error with a parsed delay, and a custom schedule can use that delay without
-inspecting raw HTTP headers.
+If the downstream error carries retry metadata, classify that data before retry
+as well. For example, a rate-limit response can become a transient error with a
+parsed delay, and a custom schedule can use that delay without inspecting raw
+HTTP headers elsewhere.
 
 ## Notes and caveats
 
 `Schedule.recurs(5)` means at most five retries after the original attempt. The
-original call is not counted as a schedule recurrence.
+first call is not counted as a schedule recurrence.
 
 `Effect.retry` observes failures, not successes. If `callDownstream` fails with
 `FatalDownstreamError`, `while: isTransient` rejects it and the program fails
 with that fatal error immediately. If it fails with `TransientDownstreamError`,
-the exponential schedule decides the next delay until the retry budget is
-exhausted.
+the schedule decides the next delay until the retry budget is exhausted.
 
 Keep fatal and transient error types separate when possible. A single loose
-error type with a boolean flag tends to spread retry decisions across the code
-base, while tagged domain errors make the stop condition explicit at the retry
+error type with a boolean flag tends to spread retry decisions through the code
+base. Tagged domain errors make the stop condition explicit at the retry
 boundary.

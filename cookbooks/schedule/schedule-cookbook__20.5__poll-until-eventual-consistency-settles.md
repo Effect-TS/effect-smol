@@ -10,66 +10,55 @@ code_included: true
 
 # 20.5 Poll until eventual consistency settles
 
-Eventually consistent reads often answer successfully before they answer with
-the value a caller expects. Treat those reads as observations, not failures,
-and let the schedule focus on whether the view has caught up.
+Eventually consistent reads can succeed while still showing an old view. Treat
+those stale reads as observations and poll until a concrete condition says the
+view has caught up.
 
 ## Problem
 
-You have performed a write, received an expected version or revision, and now need to read from an eventually consistent
-view. The first few reads may succeed but still show an older observation.
+After a write, the caller may know the expected revision, version, cursor, or
+checksum. The read side may lag for a short time, so the first few reads can be
+valid but stale.
 
-The polling loop should:
-
-- run the first read immediately
-- wait between later reads
-- stop as soon as the read model has caught up to the expected state
-- keep stale observations separate from transport, authorization, or decoding failures
+The polling loop should stop when the expected state is visible, keep stale
+observations separate from read failures, and avoid polling forever after the
+view has advanced far enough to prove the expected data is absent.
 
 ## When to use it
 
-Use this when a stale read is a normal temporary observation and the caller has a concrete condition that means "the view
-has caught up".
+Use this when stale reads are normal temporary observations and the caller has a
+specific condition for "settled."
 
-This is a good fit after command acceptance, event publication, or asynchronous projection updates where the write path
-can tell you the expected revision and the read side exposes enough data to verify it.
+This fits command acceptance followed by asynchronous projection updates, event
+publication followed by a read model, or search indexing that exposes enough
+state to verify the write has appeared.
 
 ## When not to use it
 
-Do not use this when the caller requires a strict read-after-write guarantee. Polling can hide latency, but it does not
-turn an eventually consistent dependency into a strongly consistent one.
+Do not use polling to claim strict read-after-write consistency. It can wait for
+an eventually consistent view; it does not make the dependency strongly
+consistent.
 
-Do not treat read failures as "not caught up yet". A stale observation should be a successful value. Network failures,
-authorization failures, and malformed responses should remain effect failures unless your domain deliberately recovers
-them before the repeat.
+Do not turn read failures into "not settled yet" unless the domain deliberately
+models them that way.
 
-Do not keep polling after the observation proves the expected value should already be present. If a projection revision
-has advanced beyond the expected revision but the expected record is still missing, return a domain inconsistency instead
-of polling forever.
+Do not keep polling after the view revision has passed the expected revision but
+the expected record is still missing. That is a domain inconsistency, not a
+stale read.
 
 ## Schedule shape
 
-Poll again only while the latest successful observation is still behind the expected state:
+Represent each successful read as `Behind`, `Settled`, or `Inconsistent`. Use
+`Schedule.spaced`, `Schedule.passthrough`, and `Schedule.while` to repeat only
+while the latest observation is `Behind`.
 
-```ts
-Schedule.spaced("1 second").pipe(
-  Schedule.satisfiesInputType<ProjectionObservation>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Behind")
-)
-```
-
-`Schedule.spaced("1 second")` supplies the delay between later reads. `Schedule.satisfiesInputType<ProjectionObservation>()`
-constrains the timing schedule before `Schedule.while` reads `metadata.input`. `Schedule.passthrough` keeps the latest
-successful observation as the schedule output, so `Effect.repeat` returns the final observed `ProjectionObservation`.
-
-The schedule stops when the observation is no longer behind. The code after polling decides whether that final observation
-is the expected settled value or a domain inconsistency.
+After polling, interpret `Settled` as success, `Inconsistent` as a domain
+failure, and a bounded final `Behind` as "not settled in time."
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 interface OrderSummary {
   readonly orderId: string
@@ -100,32 +89,55 @@ type ProjectionObservation =
     readonly reason: string
   }
 
-type ProjectionReadError = {
-  readonly _tag: "ProjectionReadError"
-  readonly message: string
-}
-
 type ProjectionWaitError =
-  | ProjectionReadError
+  | {
+    readonly _tag: "ProjectionDidNotSettleInTime"
+    readonly expectedRevision: number
+    readonly observedRevision: number
+  }
   | {
     readonly _tag: "ProjectionDidNotContainExpectedOrder"
     readonly reason: string
   }
 
-declare const readAccountOrders: (
-  accountId: string
-) => Effect.Effect<AccountOrdersView, ProjectionReadError>
+const scriptedViews: ReadonlyArray<AccountOrdersView> = [
+  { accountId: "account-1", revision: 8, orders: [] },
+  { accountId: "account-1", revision: 9, orders: [] },
+  {
+    accountId: "account-1",
+    revision: 10,
+    orders: [{ orderId: "order-7", revision: 10, totalCents: 2599 }]
+  }
+]
+
+let readIndex = 0
 
 const findOrder = (
   view: AccountOrdersView,
   orderId: string
-): OrderSummary | undefined => view.orders.find((order) => order.orderId === orderId)
+): OrderSummary | undefined =>
+  view.orders.find((order) => order.orderId === orderId)
+
+const readAccountOrders = (
+  accountId: string
+): Effect.Effect<AccountOrdersView> =>
+  Effect.sync(() => {
+    const view = scriptedViews[
+      Math.min(readIndex, scriptedViews.length - 1)
+    ]!
+    readIndex += 1
+    return view
+  }).pipe(
+    Effect.tap((view) =>
+      Console.log(`[${accountId}] read revision ${view.revision}`)
+    )
+  )
 
 const observeAccountOrders = (
   accountId: string,
   expectedRevision: number,
   orderId: string
-): Effect.Effect<ProjectionObservation, ProjectionReadError> =>
+): Effect.Effect<ProjectionObservation> =>
   readAccountOrders(accountId).pipe(
     Effect.map((view): ProjectionObservation => {
       const order = findOrder(view, orderId)
@@ -143,84 +155,80 @@ const observeAccountOrders = (
         view,
         reason: "Projection reached the expected revision without the order"
       }
-    })
+    }),
+    Effect.tap((observation) =>
+      Console.log(`observation: ${observation._tag}`)
+    )
   )
 
-const pollUntilProjectionSettles = Schedule.spaced("1 second").pipe(
+const pollUntilProjectionSettles = Schedule.spaced("15 millis").pipe(
   Schedule.satisfiesInputType<ProjectionObservation>(),
   Schedule.passthrough,
-  Schedule.while(({ input }) => input._tag === "Behind")
+  Schedule.while(({ input }) => input._tag === "Behind"),
+  Schedule.take(10)
 )
 
-const waitForOrderProjection = (
-  accountId: string,
+const requireSettled = (
   expectedRevision: number,
-  orderId: string
-): Effect.Effect<OrderSummary, ProjectionWaitError> =>
-  observeAccountOrders(accountId, expectedRevision, orderId).pipe(
-    Effect.repeat(pollUntilProjectionSettles),
-    Effect.flatMap((observation) => {
-      switch (observation._tag) {
-        case "Settled":
-          return Effect.succeed(observation.order)
-        case "Inconsistent":
-          return Effect.fail({
-            _tag: "ProjectionDidNotContainExpectedOrder",
-            reason: observation.reason
-          })
-        case "Behind":
-          return Effect.never
-      }
-    })
-  )
+  observation: ProjectionObservation
+): Effect.Effect<OrderSummary, ProjectionWaitError> => {
+  switch (observation._tag) {
+    case "Settled":
+      return Effect.succeed(observation.order)
+    case "Inconsistent":
+      return Effect.fail({
+        _tag: "ProjectionDidNotContainExpectedOrder",
+        reason: observation.reason
+      })
+    case "Behind":
+      return Effect.fail({
+        _tag: "ProjectionDidNotSettleInTime",
+        expectedRevision,
+        observedRevision: observation.view.revision
+      })
+  }
+}
+
+const expectedRevision = 10
+
+const program = observeAccountOrders(
+  "account-1",
+  expectedRevision,
+  "order-7"
+).pipe(
+  Effect.repeat(pollUntilProjectionSettles),
+  Effect.flatMap((observation) => requireSettled(expectedRevision, observation)),
+  Effect.tap((order) => Console.log(`settled order total: ${order.totalCents}`))
+)
+
+Effect.runPromise(program).then((order) => {
+  console.log("result:", order)
+})
 ```
 
-The first read runs immediately. If the view revision is still below `expectedRevision`, the schedule waits one second
-before reading again. If the view contains the expected order at or beyond that revision, polling stops and the order is
-returned.
-
-The `Inconsistent` case is intentionally terminal. It represents a successful observation that has caught up far enough
-to decide the expected state is absent, not a transient stale read.
+The first read runs immediately. While the projection is behind the expected
+revision, later reads wait for the schedule delay. Once the expected order is
+visible at the expected revision or later, polling stops.
 
 ## Variants
 
-Add a recurrence cap when the caller needs a bounded wait:
+Add `Schedule.jittered` when many callers may poll the same projection and
+aligned reads would add load.
 
-```ts
-const pollUntilProjectionSettlesAtMostTwentyTimes = pollUntilProjectionSettles.pipe(
-  Schedule.bothLeft(
-    Schedule.recurs(20).pipe(
-      Schedule.satisfiesInputType<ProjectionObservation>()
-    )
-  )
-)
-```
+If you do not have an expected revision, use a stricter stability signal such
+as the same projection version or checksum appearing in consecutive reads. That
+is weaker than checking a known target, so keep the wait bounded.
 
-With a cap, the final observed value can still be `Behind` because the recurrence limit stopped the schedule before the
-projection caught up. Interpret that case explicitly as a timeout or "not settled in time" domain result.
-
-When many callers may poll the same projection, add jitter to avoid aligned reads:
-
-```ts
-const jitteredPollUntilProjectionSettles = pollUntilProjectionSettles.pipe(
-  Schedule.jittered
-)
-```
-
-`Schedule.jittered` randomly adjusts each delay to between 80% and 120% of the original delay.
-
-If you do not have an expected revision, use a stricter stability signal such as the same projection version or checksum
-appearing in consecutive reads. That is weaker than checking a known expected state, so combine it with a bounded wait
-when a stale but unchanged value would be misleading.
+If the view advances beyond the expected revision without the expected data,
+return a domain inconsistency instead of continuing to poll.
 
 ## Notes and caveats
 
-`Schedule.while` sees successful observations only. It does not inspect failures from `readAccountOrders`.
+`Schedule.while` sees successful observations only. It does not inspect read
+failures.
 
-`Effect.repeat` repeats after success. A failed read stops the repeat unless you retry or recover that failure before the
-repeat.
+`Effect.repeat` repeats successes. Retry transient failed reads separately when
+that is appropriate.
 
-The first read is not delayed by the schedule. Delays apply only before later recurrences.
-
-Prefer a concrete expected revision, version, or checksum over vague "looks settled" checks. Eventual consistency is an
-observation problem here; the schedule should not encode replication internals.
+Prefer a concrete expected revision, version, or checksum over vague "looks
+settled" checks. The schedule should not encode replication internals.

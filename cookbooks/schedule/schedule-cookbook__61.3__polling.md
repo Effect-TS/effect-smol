@@ -10,48 +10,30 @@ code_included: false
 
 # 61.3 Polling
 
-Polling is repeated successful observation until a condition is met or a
-deadline stops the recurrence. In Schedule terms, the observed value is the
-successful output of the effect being repeated; the schedule decides whether to
-take another observation, how long to wait before it, and when the recurrence
-budget has ended.
+Polling repeats a successful observation until a domain condition is met or a
+recurrence budget expires. The observation is the successful value produced by
+the effect being repeated. The `Schedule` decides whether to observe again, how
+long to wait, and when the loop has run long enough.
 
-## What this section is about
+Keep domain status separate from operational failure. A response such as
+`"pending"`, `"running"`, or `"not ready"` is usually a successful value that
+may justify another poll. A timeout, malformed response, authorization failure,
+or unavailable endpoint is an effect failure unless the program handles or
+retries it separately.
 
-This glossary entry clarifies the boundary between domain status and
-operational failure in polling loops. A status such as "pending" is a
-successful value that says another observation may be useful. Transport,
-decoding, authorization, and other operational failures remain effect failures
-unless the program explicitly retries them separately.
+A typical polling policy uses `Schedule.spaced` for a gap after each completed
+check, or `Schedule.fixed` when a wall-clock cadence matters. Add
+`Schedule.passthrough` when the final result should be the latest observed
+status. Add `Schedule.while` to continue only while the observed status is
+non-terminal. Add `Schedule.during`, `Schedule.recurs`, or `Schedule.take` for
+elapsed-time or count budgets, and `Schedule.jittered` when many clients might
+otherwise poll together.
 
-## Why it matters
+The stop condition and budget are checked at schedule decision points after
+successful observations. They do not turn a failing request into a successful
+poll result, and they do not interrupt a request already in flight. Use a
+per-request timeout when each individual observation needs a hard deadline.
 
-Polling loops are often user-visible and infrastructure-sensitive. Without a
-clear definition, code can mix status interpretation, request failure handling,
-cadence, and time limits into one policy. Keeping polling as repeated
-successful observations makes the boundary clear: domain state decides whether
-the work is done, and the schedule decides whether another successful
-observation should be attempted.
-
-## Core idea
-
-Use a cadence schedule such as `Schedule.spaced` or `Schedule.fixed`, preserve
-the latest successful observation when the final value matters, and add a
-predicate that continues only while the observation is non-terminal. Add
-`Schedule.during`, `Schedule.recurs`, or `Schedule.take` when the loop also
-needs an elapsed-time or count budget. Add `Schedule.jittered` when many
-clients may otherwise poll in sync.
-
-The condition and the deadline are recurrence decisions. They are checked after
-successful observations; they do not turn a failing effect into a successful
-poll result, and they do not interrupt a request already in flight.
-
-## Practical guidance
-
-Model terminal states as successful values and stop polling when one is
-observed. Use separate retry policy around the status check when transient
-request failures should be retried. Use a per-request timeout when each
-observation must have a hard deadline, and use a schedule duration budget when
-the repeat loop should stop offering more observations after enough elapsed
-time. For user-facing workflows, prefer short budgets and explicit outcomes
-over long invisible waiting.
+For user-facing polling, prefer short budgets and explicit outcomes over long
+invisible waiting. For background reconciliation, keep the cadence modest and
+measure aggregate load across all workers, not just one loop.

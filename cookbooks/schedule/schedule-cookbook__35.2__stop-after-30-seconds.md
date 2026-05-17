@@ -12,26 +12,15 @@ code_included: true
 
 Use `Schedule.during("30 seconds")` for an elapsed recurrence budget that is
 long enough to be operationally visible but still short. Combine it with a
-cadence or backoff so the policy also says how much pressure the operation puts
-on the dependency during that window.
+cadence or backoff so the policy also says how much load the operation puts on
+the dependency during that window.
 
 ## Problem
 
 A dependency probe, webhook delivery, or short recovery step should keep trying
 for about 30 seconds without scattering sleeps, counters, or deadline checks
-around the program.
-
-The important distinction is that the time budget and the delay policy are
-separate:
-
-```ts
-const retryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.during("30 seconds"))
-)
-```
-
-The exponential schedule controls the retry cadence. `Schedule.during("30
-seconds")` controls when retry scheduling must stop.
+through the program. The delay policy controls retry pressure; the time budget
+controls when retry scheduling stops.
 
 ## When to use it
 
@@ -40,9 +29,9 @@ rather than an exact number of attempts. It fits startup checks, dependency
 probes, webhook delivery, cache refresh, short background recovery windows, and
 service calls where transient failures are worth retrying briefly.
 
-This shape is especially useful when attempt duration varies. A count limit can
-say how many retries are allowed, but it cannot say how long the retrying fiber
-may spend between failures, sleeps, and later retry decisions.
+This is useful when attempt duration varies. A count limit says how many retries
+are allowed; a budget says how long the retrying fiber may keep consuming time
+between failures, sleeps, and later retry decisions.
 
 ## When not to use it
 
@@ -68,35 +57,59 @@ duration, and it outputs the elapsed duration.
 
 When you compose it with a cadence using `Schedule.both`, both schedules must
 continue. `Schedule.both` uses the maximum of the two delays. Since
-`Schedule.during` contributes the budget and not the operational spacing, the
+`Schedule.during` contributes the budget, not the operational spacing, the
 cadence or backoff side still controls the waits while the budget remains open.
 
-With `Effect.retry`, the first attempt runs immediately. After each typed
-failure, the schedule decides whether another retry is allowed and how long to
-wait. With `Effect.repeat`, the schedule is consulted after successful values
-instead.
+With `Effect.retry`, the first attempt runs immediately. After each typed failure
+the schedule decides whether another retry is allowed and how long to wait. With
+`Effect.repeat`, the schedule is consulted after successful values instead.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-class DependencyError extends Data.TaggedError("DependencyError")<{
+type DependencyError = {
+  readonly _tag: "DependencyError"
   readonly retryable: boolean
-}> {}
+  readonly message: string
+}
 
-declare const callDependency: Effect.Effect<string, DependencyError>
+let attempts = 0
+
+const callDependency: Effect.Effect<string, DependencyError> = Effect.gen(function*() {
+  const attempt = yield* Effect.sync(() => {
+    attempts += 1
+    return attempts
+  })
+
+  yield* Console.log(`configuration fetch ${attempt}`)
+
+  if (attempt < 4) {
+    return yield* Effect.fail({
+      _tag: "DependencyError",
+      retryable: true,
+      message: "configuration service returned 503"
+    })
+  }
+
+  return `configuration loaded on attempt ${attempt}`
+})
 
 const retryWithinBudget = Schedule.exponential("200 millis").pipe(
   Schedule.both(Schedule.during("30 seconds"))
 )
 
-export const program = callDependency.pipe(
+const program = callDependency.pipe(
   Effect.retry({
     schedule: retryWithinBudget,
     while: (error) => error.retryable
-  })
+  }),
+  Effect.flatMap((result) => Console.log(result)),
+  Effect.catch((error) => Console.log(`stopped: ${error.message}`))
 )
+
+Effect.runPromise(program)
 ```
 
 `callDependency` runs once immediately. If it fails with a retryable
@@ -109,43 +122,17 @@ last `DependencyError`.
 
 ## Variants
 
-Use a steady cadence when you want predictable load inside the same budget:
+Use `Schedule.spaced("1 second")` instead of exponential backoff when you want a
+steady, predictable load profile inside the same 30-second budget.
 
-```ts
-const pollEverySecondFor30Seconds = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.during("30 seconds"))
-)
-```
+Add `Schedule.jittered` when many fibers or service instances may retry against
+the same dependency. The backoff still defines the general pressure profile,
+jitter spreads the individual delays, and `Schedule.during("30 seconds")` keeps
+the total retry window bounded.
 
-This schedules at most about one recurrence per second while the elapsed
-schedule window remains open.
-
-Add jitter when many fibers or service instances may retry against the same
-dependency:
-
-```ts
-const fleetFriendlyBudget = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.during("30 seconds"))
-)
-```
-
-The backoff still defines the general pressure profile, jitter spreads the
-individual delays, and `Schedule.during("30 seconds")` keeps the total retry
-window bounded.
-
-Add an attempt cap when both the total window and the maximum retry count
-matter:
-
-```ts
-const budgetAndCount = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.during("30 seconds")),
-  Schedule.both(Schedule.recurs(12))
-)
-```
-
-This stops when either the elapsed budget closes or 12 retries have already
-been scheduled after the original attempt.
+Add `Schedule.recurs` when both the total window and the maximum retry count
+matter. The composed policy stops when either the elapsed budget closes or the
+retry count is exhausted.
 
 ## Notes and caveats
 

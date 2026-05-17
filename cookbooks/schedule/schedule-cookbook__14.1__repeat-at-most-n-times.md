@@ -10,26 +10,25 @@ code_included: true
 
 # 14.1 Repeat at most N times
 
-Use this recipe when a successful effect needs a recurrence budget and the
-off-by-one behavior of `Effect.repeat` should stay explicit.
+Use this when a successful effect needs a count limit and the off-by-one
+behavior of `Effect.repeat` must stay explicit.
 
 ## Problem
 
-The requirement is to allow no more than `N` additional successful repetitions
-after the original run.
+The requirement is "run once now, then allow at most `N` more successful
+recurrences."
 
 With `Effect.repeat`, the effect runs once before the schedule is consulted.
 `Schedule.recurs(n)` therefore means "after the original successful run, allow
-at most `n` recurrences." If every run succeeds, the maximum total executions
-are `n + 1`.
+at most `n` recurrences."
 
 ## When to use it
 
 Use this when the repeat limit is a recurrence budget: one original run now,
 followed by at most `N` more successful runs.
 
-This is a good fit for bounded sampling, short repeated maintenance actions, or
-any repeat loop where the count itself is the policy.
+This fits bounded sampling, short repeated maintenance actions, and repeat
+loops where the count itself is the policy.
 
 ## When not to use it
 
@@ -59,47 +58,34 @@ with `Effect.repeat`, the repeated program returns the final schedule output.
 ```ts
 import { Console, Effect, Schedule } from "effect"
 
-const syncOnce = Console.log("sync")
+let runs = 0
 
-const program = syncOnce.pipe(
-  Effect.repeat(Schedule.recurs(3))
-)
+const sample = Effect.gen(function*() {
+  runs += 1
+  yield* Console.log(`run ${runs}`)
+  return runs
+})
+
+const program = Effect.gen(function*() {
+  const scheduleOutput = yield* sample.pipe(
+    Effect.repeat(Schedule.recurs(3))
+  )
+
+  yield* Console.log(`total executions: ${runs}`)
+  yield* Console.log(`schedule output: ${scheduleOutput}`)
+})
+
+Effect.runPromise(program)
 ```
 
-Here `syncOnce` runs once immediately. If every run succeeds, the schedule
-allows three more runs, for four total executions.
-
-If the external requirement says "run at most 3 times total", subtract the
-original run from the schedule limit:
-
-```ts
-import { Console, Effect, Schedule } from "effect"
-
-const program = Console.log("sample").pipe(
-  Effect.repeat(Schedule.recurs(2))
-)
-```
-
-This can execute at most three times total: one original run plus two
+This can run four times total: one original run plus three scheduled
 recurrences.
 
 ## Variants
 
 When the only policy is a repeat count and you want the final successful value
-of the effect, use the `times` option:
-
-```ts
-import { Effect } from "effect"
-
-const readSample = Effect.succeed("sample")
-
-const finalSample = readSample.pipe(
-  Effect.repeat({ times: 3 })
-)
-```
-
-`times` also counts recurrences after the original run. This program can run
-four times total and returns the final successful `"sample"` value.
+of the effect, use `Effect.repeat({ times: n })`. `times` also counts
+recurrences after the original run.
 
 Use `Schedule.recurs(n)` when you want a first-class schedule value that can be
 named, reused, or composed with other schedule combinators.

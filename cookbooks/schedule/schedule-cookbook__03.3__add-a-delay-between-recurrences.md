@@ -10,62 +10,34 @@ code_included: true
 
 # 3.3 Add a delay between recurrences
 
-You have an effect that should run again, but not immediately. For example, a heartbeat
-should wait between pulses, a polling loop should leave time for state to change, or a
-retry should avoid hammering a dependency after a transient failure. This section keeps
-the focus on Effect's `Schedule` model: recurrence is represented as data that decides
-whether another decision point exists, which delay applies, and what output the policy
-contributes. That framing makes later retry, repeat, and polling recipes easier to
-compose without hiding timing behavior inside ad hoc loops.
+Use `Schedule.spaced(duration)` when the next recurrence should wait for a
+constant delay instead of running immediately.
 
 ## Problem
 
-The recurrence needs pacing instead of a tight loop. The policy should insert
-the same pause before each scheduled run.
-
-The smallest fixed-delay building block is `Schedule.spaced(duration)`.
+The effect should recur, but a tight loop would be too aggressive. Each
+scheduled recurrence needs the same pause.
 
 ## When to use it
 
-Use this when every recurrence should wait the same amount of time:
+Use fixed spacing for simple pacing:
 
-- Polling a resource every few seconds.
-- Emitting a periodic heartbeat.
-- Adding a simple pause between retry attempts.
-- Turning a count-only example into a more realistic schedule.
-
-## When not to use it
-
-Do not use a fixed spacing when the delay should grow after repeated failures.
-Backoff policies are a separate shape.
+- Polling a resource every few milliseconds or seconds.
+- Emitting a heartbeat.
+- Adding a small delay between retry attempts.
+- Making a count-only example closer to production behavior.
 
 Do not use an unbounded spaced schedule accidentally. `Schedule.spaced("1 second")`
-continues forever unless the repeated or retried effect stops for another
-reason. Pair it with a limit when the workflow must be bounded.
-
-Do not use spacing to make unsafe side effects safe. A repeated write still
-needs idempotency or another clear duplicate-handling strategy.
+continues until another condition stops it, so pair it with a count, predicate,
+or external interruption when the workflow must be finite.
 
 ## Schedule shape
 
-`Schedule.spaced(duration)` creates a schedule that recurs continuously with the
-specified spacing. With `Effect.repeat`, the effect still runs once immediately;
-the schedule controls the recurrences after successful runs.
+`Schedule.spaced(duration)` keeps recurring and requests the same delay on each
+step. With `Effect.repeat`, the first effect execution still happens
+immediately; the delay applies before each later recurrence.
 
-For a bounded repeat, limit the spaced schedule:
-
-```ts
-Schedule.spaced("1 second").pipe(Schedule.take(4))
-```
-
-This describes four scheduled recurrences after the initial run. The effect can
-therefore run five times total.
-
-For retry, the same schedule is driven by typed failures instead of successes.
-Each failed attempt may be followed by the configured delay and another attempt,
-until the schedule stops or an attempt succeeds.
-
-## Code
+Limit a spaced schedule with `Schedule.take(n)`:
 
 ```ts
 import { Console, Effect, Ref, Schedule } from "effect"
@@ -74,40 +46,27 @@ const program = Effect.gen(function*() {
   const runs = yield* Ref.make(0)
 
   yield* Ref.updateAndGet(runs, (n) => n + 1).pipe(
-    Effect.flatMap((run) => Console.log(`run ${run}`)),
-    Effect.repeat(Schedule.spaced("1 second").pipe(Schedule.take(4)))
+    Effect.tap((run) => Console.log(`run ${run}`)),
+    Effect.repeat(Schedule.spaced("25 millis").pipe(Schedule.take(3)))
   )
 
-  return yield* Ref.get(runs)
+  const total = yield* Ref.get(runs)
+  yield* Console.log(`total runs: ${total}`)
 })
 
-// The effect runs 5 times total:
-// 1 initial run + 4 scheduled recurrences.
-// There is a 1 second delay before each recurrence.
+Effect.runPromise(program)
 ```
 
-## Variants
+This runs four times total: one initial execution plus three spaced
+recurrences.
 
-If you already have a count schedule and want to add a fixed delay to each next
-recurrence, use `Schedule.addDelay`:
+## Retry example
 
-```ts
-import { Effect, Schedule } from "effect"
-
-const policy = Schedule.addDelay(
-  Schedule.recurs(4),
-  () => Effect.succeed("1 second")
-)
-```
-
-`Schedule.addDelay` adds the computed delay to the delay already chosen by the
-base schedule. With `Schedule.recurs(4)`, the base schedule has no meaningful
-pause, so this acts like adding a one-second wait between the four recurrences.
-
-For retry, use the same schedule with `Effect.retry`:
+The same schedule can pace retries. In retry, typed failures drive the schedule
+instead of successful values.
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class RequestError extends Data.TaggedError("RequestError")<{
   readonly attempt: number
@@ -117,6 +76,7 @@ let attempt = 0
 
 const request = Effect.gen(function*() {
   attempt += 1
+  yield* Console.log(`attempt ${attempt}`)
 
   if (attempt < 3) {
     return yield* Effect.fail(new RequestError({ attempt }))
@@ -126,22 +86,21 @@ const request = Effect.gen(function*() {
 })
 
 const program = request.pipe(
-  Effect.retry(Schedule.spaced("1 second").pipe(Schedule.take(2)))
+  Effect.retry(Schedule.spaced("25 millis").pipe(Schedule.take(2))),
+  Effect.tap((value) => Console.log(`result: ${value}`))
 )
+
+Effect.runPromise(program)
 ```
 
-This allows up to two retries, waiting one second before each retry.
+Here the policy allows two retries and waits 25 milliseconds before each retry.
 
-## Notes and caveats
+## Notes
 
-`Schedule.spaced` is already a recurrence schedule. It is not a sleep that runs
-before the first execution. The first `repeat` or `retry` attempt happens
-immediately.
+`Schedule.spaced` is a schedule, not a sleep before the first attempt. The first
+`repeat` or `retry` attempt is immediate.
 
-When you pass a schedule directly to `Effect.repeat`, the returned value is the
-schedule's final output, not the repeated effect's last value. With
-`Schedule.spaced`, that output is the recurrence count.
-
-`Schedule.addDelay` is effectful: the delay function returns an `Effect` that
-produces a `Duration.Input`. If that effect can fail or require services, those
-requirements become part of the schedule.
+Use `Schedule.addDelay` when you already have a schedule and want to add an
+extra computed delay to whatever delay that schedule already chose. The delay
+function returns an `Effect`, so any failure or service requirement from that
+function becomes part of the schedule.

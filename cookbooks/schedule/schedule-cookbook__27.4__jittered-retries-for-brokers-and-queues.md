@@ -10,25 +10,15 @@ code_included: true
 
 # 27.4 Jittered retries for brokers and queues
 
-Broker and queue clients often fail in waves when leaders move, pools drain, or
-deployments restart many consumers at once. This recipe applies jitter after you
-choose the retryable broker backoff shape.
+Use jittered retries for broker and queue operations that may fail in waves when
+leaders move, pools drain, or many consumers restart together.
 
 ## Problem
 
-You deliver a message to a broker from a background worker. Temporary broker
-errors should be retried, but the worker needs a bounded policy that can hand
-the message off to a dead-letter, requeue, or operator-visible path.
-
-You want a delivery policy that:
-
-- retries only transient broker failures
-- starts with a short delay
-- backs off after repeated failures
-- jitters each delay so workers do not retry in lockstep
-- caps the maximum delay
-- stops after a bounded number of retries so the caller can dead-letter,
-  requeue, or surface the failure
+A worker publishes or acknowledges a message. Temporary broker failures should
+be retried, but the policy must be bounded so the caller can eventually
+dead-letter, requeue, or surface the failure. A dead-letter path is a separate
+queue or state used for messages that could not be processed normally.
 
 ## When to use it
 
@@ -53,20 +43,10 @@ consumer-side de-duplication before applying this policy.
 
 ## Schedule shape
 
-Start with the operational delay curve:
-
-```ts
-Schedule.exponential("200 millis")
-```
-
-With the default factor of `2`, that produces delays of 200 milliseconds, 400
-milliseconds, 800 milliseconds, 1.6 seconds, and so on. `Schedule.jittered`
-randomly adjusts each delay between 80% and 120% of the delay selected by the
-wrapped schedule.
-
-The cap is applied after jitter so the final sleep never exceeds the configured
-maximum. `Schedule.recurs(6)` allows at most six retries after the original
-delivery attempt.
+Start with an exponential delay curve for pressure relief. `Schedule.jittered`
+then adjusts each delay between 80% and 120% of the selected value. Apply any
+hard cap after jitter, and add `Schedule.recurs` so the message does not occupy
+a worker indefinitely.
 
 ## Code
 
@@ -88,10 +68,6 @@ class BrokerDeliveryError extends Data.TaggedError("BrokerDeliveryError")<{
     | "Unauthorized"
 }> {}
 
-declare const publishMessage: (
-  message: BrokerMessage
-) => Effect.Effect<void, BrokerDeliveryError>
-
 const isRetryableBrokerError = (error: BrokerDeliveryError): boolean => {
   switch (error.reason) {
     case "ConnectionLost":
@@ -104,32 +80,46 @@ const isRetryableBrokerError = (error: BrokerDeliveryError): boolean => {
   }
 }
 
-const brokerDeliveryPolicy = Schedule.exponential("200 millis").pipe(
+let attempt = 0
+
+const publishMessage = Effect.fnUntraced(function*(message: BrokerMessage) {
+  attempt += 1
+  yield* Effect.sync(() =>
+    console.log(`publish ${message.topic}/${message.key} attempt ${attempt}`)
+  )
+
+  if (attempt < 3) {
+    return yield* Effect.fail(
+      new BrokerDeliveryError({ reason: "LeaderUnavailable" })
+    )
+  }
+
+  yield* Effect.sync(() => console.log("message published"))
+})
+
+const brokerDeliveryPolicy = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(120)))
   ),
   Schedule.both(Schedule.recurs(6))
 )
 
-export const deliverOrderEvent = (message: BrokerMessage) =>
-  publishMessage(message).pipe(
-    Effect.retry({
-      schedule: brokerDeliveryPolicy,
-      while: isRetryableBrokerError
-    })
-  )
+const message: BrokerMessage = {
+  topic: "orders",
+  key: "order-123",
+  body: "created"
+}
+
+const program = publishMessage(message).pipe(
+  Effect.retry({
+    schedule: brokerDeliveryPolicy,
+    while: isRetryableBrokerError
+  })
+)
+
+Effect.runPromise(program)
 ```
-
-`deliverOrderEvent` publishes once immediately. If the broker reports
-`ConnectionLost`, `LeaderUnavailable`, or `Throttled`, the next attempt waits
-for the jittered exponential delay. If the broker reports `InvalidMessage` or
-`Unauthorized`, retrying stops immediately and the typed failure is returned.
-
-If all retryable attempts fail, `Effect.retry` returns the last
-`BrokerDeliveryError`. The schedule does not decide whether the message should
-be dead-lettered or requeued; it only describes the bounded retry window before
-that domain decision.
 
 ## Variants
 
@@ -152,9 +142,8 @@ broker provides no better timing signal.
 and 120% of the original delay; this recipe does not assume configurable jitter
 bounds.
 
-`Schedule.exponential` recurs forever by itself. Pair it with a limit such as
-`Schedule.recurs`, `Schedule.take`, `Schedule.during`, or a predicate that stops
-on non-retryable broker errors.
+`Schedule.exponential` recurs forever by itself. Pair it with `Schedule.recurs`,
+`Schedule.take`, `Schedule.during`, or a retry predicate.
 
 `Schedule.recurs(6)` means six retries after the original delivery attempt, not
 six total executions.

@@ -14,20 +14,6 @@ Object storage uploads are retryable only when duplicate attempts are harmless.
 The upload protocol supplies the stable identity; the schedule supplies bounded
 retry pressure.
 
-A typical bounded policy looks like this:
-
-```ts
-const uploadRetryPolicy = Schedule.exponential("250 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("30 seconds"))
-)
-```
-
-Read that as: retry transient failures with jittered exponential backoff, allow
-at most five retries after the original upload attempt, and stop once the retry
-window has been open for 30 seconds.
-
 ## Problem
 
 A batch worker is writing a deterministic export object to storage. The network
@@ -82,7 +68,7 @@ allow another retry.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class UploadError extends Data.TaggedError("UploadError")<{
   readonly reason:
@@ -102,22 +88,35 @@ interface UploadRequest {
   readonly idempotencyKey: string
 }
 
-declare const uploadObject: (
-  request: UploadRequest
-) => Effect.Effect<void, UploadError>
+let attempts = 0
+
+const uploadObject: (request: UploadRequest) => Effect.Effect<void, UploadError> =
+  Effect.fnUntraced(function*(request: UploadRequest) {
+    attempts += 1
+    yield* Console.log(`upload attempt ${attempts}: ${request.bucket}/${request.key}`)
+
+    if (attempts === 1) {
+      return yield* Effect.fail(new UploadError({ reason: "Throttled" }))
+    }
+    if (attempts === 2) {
+      return yield* Effect.fail(new UploadError({ reason: "Timeout" }))
+    }
+
+    yield* Console.log(`stored checksum ${request.checksumSha256}`)
+  })
 
 const isTransientStorageError = (error: UploadError) =>
   error.reason === "Timeout" ||
   error.reason === "Throttled" ||
   error.reason === "Unavailable"
 
-const uploadRetryPolicy = Schedule.exponential("250 millis").pipe(
+const uploadRetryPolicy = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("30 seconds"))
+  Schedule.both(Schedule.during("200 millis"))
 )
 
-export const uploadReport = (body: Uint8Array, checksumSha256: string) =>
+const uploadReport = (body: Uint8Array, checksumSha256: string) =>
   uploadObject({
     bucket: "reports",
     key: `daily/${checksumSha256}.json`,
@@ -130,6 +129,16 @@ export const uploadReport = (body: Uint8Array, checksumSha256: string) =>
       while: isTransientStorageError
     })
   )
+
+const program = uploadReport(
+  new TextEncoder().encode("{\"rows\":3}"),
+  "sha256-demo"
+).pipe(
+  Effect.flatMap(() => Console.log("upload complete")),
+  Effect.catch((error: UploadError) => Console.log(`upload failed: ${error.reason}`))
+)
+
+void Effect.runPromise(program)
 ```
 
 The object key and idempotency key are derived from the content checksum. If the
@@ -144,25 +153,8 @@ fed to the schedule. If it returns `ChecksumMismatch`, `Forbidden`, or
 
 ## Variants
 
-For small user-facing uploads, shorten both limits:
-
-```ts
-const interactiveUploadRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(2)),
-  Schedule.both(Schedule.during("3 seconds"))
-)
-```
-
-For large batch uploads, prefer a slower policy over a larger retry count:
-
-```ts
-const batchUploadRetry = Schedule.exponential("1 second").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(6)),
-  Schedule.both(Schedule.during("2 minutes"))
-)
-```
+For small user-facing uploads, shorten both limits. For large batch uploads,
+prefer a slower policy over a larger retry count.
 
 For multipart uploads, retry the smallest safe unit. Retrying an individual part
 with a stable upload id, part number, and part checksum is usually safer than

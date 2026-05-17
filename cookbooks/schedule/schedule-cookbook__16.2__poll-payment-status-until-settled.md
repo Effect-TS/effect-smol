@@ -10,9 +10,8 @@ code_included: true
 
 # 16.2 Poll payment status until settled
 
-Use polling when a payment provider reports in-flight and terminal states through a
-status endpoint. This recipe keeps successful status observations separate from request
-failures and payment-domain interpretation.
+Use polling when a payment provider reports in-flight and terminal states
+through a read-only status endpoint.
 
 ## Problem
 
@@ -46,15 +45,7 @@ interrupt it and the external system can tolerate the polling rate.
 ## Schedule shape
 
 Make the successful payment status the schedule input, preserve it as the
-schedule output, and continue only while it is not settled:
-
-```ts
-Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<PaymentStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isSettled(input))
-)
-```
+schedule output, and continue only while it is not settled.
 
 With `Effect.repeat`, the first status request runs immediately. After each
 successful observation, the observed `PaymentStatus` becomes the schedule input.
@@ -68,7 +59,7 @@ observed status as the value returned by the repeated effect.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type PaymentStatus =
   | { readonly state: "pending"; readonly paymentId: string }
@@ -83,41 +74,61 @@ const isSettled = (status: PaymentStatus): boolean =>
   status.state === "failed" ||
   status.state === "canceled"
 
-declare const observePaymentStatus: Effect.Effect<PaymentStatus>
+let step = 0
 
-const pollUntilSettled = Schedule.spaced("2 seconds").pipe(
+const nextPaymentStatus = (): PaymentStatus => {
+  step += 1
+  switch (step) {
+    case 1:
+      return { state: "pending", paymentId: "pay_123" }
+    case 2:
+      return { state: "processing", paymentId: "pay_123" }
+    default:
+      return {
+        state: "settled",
+        paymentId: "pay_123",
+        settlementId: "set_456"
+      }
+  }
+}
+
+const observePaymentStatus = Effect.gen(function*() {
+  const status = nextPaymentStatus()
+  yield* Console.log(`payment ${status.paymentId}: ${status.state}`)
+  return status
+})
+
+const pollUntilSettled = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<PaymentStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => !isSettled(input))
 )
 
-const finalStatus = observePaymentStatus.pipe(
-  Effect.repeat(pollUntilSettled)
-)
+const program = Effect.gen(function*() {
+  const finalStatus = yield* observePaymentStatus.pipe(
+    Effect.repeat(pollUntilSettled)
+  )
+  yield* Console.log(`final payment status: ${finalStatus.state}`)
+})
+
+Effect.runPromise(program)
 ```
 
 `observePaymentStatus` runs once before any delay. If the first successful
 status is already settled, there are no recurrences. If the status is
 `"pending"`, `"processing"`, or `"requires_review"`, the schedule waits two
-seconds before observing again.
+seconds in production before observing again. The snippet uses a shorter delay
+so it finishes quickly.
 
 The repeated effect succeeds with the terminal `PaymentStatus` that made
 `isSettled` return `true`.
 
 ## Variants
 
-Use `Schedule.identity` when you want to express only the terminal-state logic
-without adding a polling delay:
-
-```ts
-const untilSettled = Schedule.identity<PaymentStatus>().pipe(
-  Schedule.while(({ input }) => !isSettled(input))
-)
-```
-
-This keeps the status value visually central and is useful for explaining or
-testing the stop condition. In real payment polling, add spacing so successful
-non-terminal observations do not turn into a tight loop.
+Use `Schedule.identity<PaymentStatus>().pipe(Schedule.while(...))` only when
+you want to demonstrate the stop condition without a delay. Real payment
+polling should include spacing so successful non-terminal observations do not
+turn into a tight loop.
 
 ## Notes and caveats
 

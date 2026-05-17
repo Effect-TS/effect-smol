@@ -11,16 +11,15 @@ code_included: false
 # 54.4 Hiding intent behind clever abstractions
 
 Schedule helpers are useful only when they preserve the operational contract.
-This section covers abstractions that make a recurrence policy look reusable
-while hiding whether it is safe for the current operation.
+They are harmful when they make a recurrence policy look reusable while hiding
+whether it is safe for the current operation.
 
-## The anti-pattern
+## Anti-pattern
 
-The problematic version wraps Schedule composition in helpers with names such
-as `resilient`, `safeRetry`, `standardBackoff`, or `productionSchedule`. Those
-names sound reassuring, but they often hide the real recurrence policy:
-exponential delay, jitter, retry count, elapsed budget, input predicate, and
-side-effect assumptions.
+Schedule composition is wrapped in helpers with names such as `resilient`,
+`safeRetry`, `standardBackoff`, or `productionSchedule`. Those names sound
+reassuring, but they often hide the real policy: delay shape, jitter, retry
+count, elapsed budget, input predicate, and side-effect assumptions.
 
 This is especially risky when the helper accepts several loosely related
 options and decides which combinators to apply internally. A caller can no
@@ -31,7 +30,7 @@ decision out of review.
 
 ## Why it happens
 
-It usually starts with good intent. Teams notice repeated combinations such as
+It often starts with good intent. Teams notice repeated combinations such as
 `Schedule.exponential`, `Schedule.jittered`, and `Schedule.recurs`, then create
 a helper to avoid copy-paste. Over time, the helper gains switches for polling,
 startup checks, background workers, user-facing requests, quota errors, and
@@ -50,7 +49,7 @@ fixed delay and recurs forever unless another policy stops it.
 itself. `Schedule.recurs`, `Schedule.take`, and `Schedule.during` make stopping
 conditions visible. `Schedule.both` combines policies with AND semantics and
 uses the larger delay. `Schedule.jittered` changes each delay randomly between
-80% and 120% of the original delay.
+`80%` and `120%` of the original delay.
 
 A clever helper can hide all of that. The caller may believe they are using
 "the default retry policy" when they are actually retrying a non-idempotent
@@ -80,7 +79,7 @@ the base delay, cap, jitter, and recurrence budget at the call site. The problem
 is not abstraction itself; the problem is abstraction that makes the operational
 contract harder to audit.
 
-## Notes and caveats
+## Caveats
 
 Do not make every schedule inline just to avoid helpers. Reuse is appropriate
 when several call sites genuinely share the same operational contract. In that

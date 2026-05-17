@@ -13,18 +13,17 @@ code_included: true
 Some failures and pending states are most likely to clear quickly. A cache entry
 may appear a few hundred milliseconds later, a just-started job may finish soon,
 or a remote dependency may recover after a small network hiccup. In those cases,
-you often want a short responsive phase first, then a more patient phase if the
-operation is still not ready.
+use a short responsive phase first, then a more patient phase if the operation
+is still not ready.
 
 Use `Schedule.andThen` to model that handoff directly. The first schedule runs
-until it is exhausted. Only then does the second schedule start making recurrence
-decisions.
+until it is exhausted. Only then does the second schedule start making
+recurrence decisions.
 
 ## Problem
 
-Build one schedule value with two independently named phases. Reviewers should
-be able to see the handoff from the short responsive window to the longer
-patient window without reading counters, sleeps, or branching loops.
+Build one schedule value with two named phases so reviewers can see the handoff
+from a short responsive window to a longer patient window.
 
 ## When to use it
 
@@ -48,114 +47,63 @@ consumer must observe state over time.
 
 ## Schedule shape
 
-Build the policy as two named phases:
-
-```ts
-import { Schedule } from "effect"
-
-const quickPhase = Schedule.spaced("200 millis").pipe(
-  Schedule.take(5)
-)
-
-const patientPhase = Schedule.spaced("10 seconds").pipe(
-  Schedule.take(12)
-)
-
-const quickThenPatient = Schedule.andThen(quickPhase, patientPhase)
-```
-
-`quickPhase` allows five fast recurrences. If the effect still needs another
-recurrence after that, `patientPhase` takes over and allows twelve more
-recurrences with longer waits. With `Effect.retry`, the original attempt still
-runs immediately; the schedule controls only the waits before retry attempts.
-With `Effect.repeat`, the first successful value is produced immediately; the
-schedule controls whether and when another observation is made.
+Build the policy as two named phases. For example, a quick phase can allow a
+few recurrences at short spacing, then a patient phase can allow fewer, slower
+recurrences. With `Effect.retry`, the original attempt still runs immediately;
+the schedule controls only the waits before retry attempts.
 
 ## Code
 
-This example uses the same phase idea for polling a job status. The early phase
-checks quickly while the job is likely to finish soon. The later phase keeps
-watching, but at a lower cadence.
-
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-type JobStatus =
-  | { readonly _tag: "Running" }
-  | { readonly _tag: "Done"; readonly downloadUrl: string }
-  | { readonly _tag: "Failed"; readonly reason: string }
+type TransientError = {
+  readonly _tag: "TransientError"
+  readonly message: string
+}
 
-type StatusReadError = { readonly _tag: "StatusReadError" }
+let attempts = 0
 
-declare const readJobStatus: Effect.Effect<JobStatus, StatusReadError>
+const fetchFromDependency = Effect.gen(function*() {
+  attempts++
+  yield* Console.log(`dependency attempt ${attempts}`)
 
-const quickStatusChecks = Schedule.spaced("200 millis").pipe(
-  Schedule.take(5)
-)
+  if (attempts <= 4) {
+    return yield* Effect.fail({
+      _tag: "TransientError",
+      message: `not ready ${attempts}`
+    } satisfies TransientError)
+  }
 
-const slowerStatusChecks = Schedule.spaced("10 seconds").pipe(
-  Schedule.take(12)
-)
+  return `value returned on attempt ${attempts}`
+})
 
-const pollWhileRunning = Schedule
-  .andThen(quickStatusChecks, slowerStatusChecks)
-  .pipe(
-    Schedule.satisfiesInputType<JobStatus>(),
-    Schedule.passthrough,
-    Schedule.while(({ input }) => input._tag === "Running")
-  )
-
-export const program = Effect.repeat(readJobStatus, pollWhileRunning)
-```
-
-`Schedule.satisfiesInputType<JobStatus>()` narrows the schedule input for the
-status predicate. `Schedule.passthrough` keeps the latest successful status as
-the schedule output, so `Effect.repeat` can return the final status that stopped
-the repetition. `Schedule.while` stops polling as soon as the status is no
-longer `Running`, even if the longer phase still has recurrences left.
-
-For retrying failed effects, keep the same shape and apply it with
-`Effect.retry`:
-
-```ts
-import { Effect, Schedule } from "effect"
-
-type TransientError = { readonly _tag: "TransientError" }
-
-declare const fetchFromDependency: Effect.Effect<string, TransientError>
-
-const quickRetries = Schedule.spaced("100 millis").pipe(
+const quickRetries = Schedule.spaced("20 millis").pipe(
   Schedule.take(3)
 )
 
-const slowRetries = Schedule.spaced("5 seconds").pipe(
-  Schedule.take(6)
+const slowRetries = Schedule.spaced("80 millis").pipe(
+  Schedule.take(4)
 )
 
 const retryQuicklyThenSlowly = Schedule.andThen(quickRetries, slowRetries)
 
-export const program = Effect.retry(
-  fetchFromDependency,
-  retryQuicklyThenSlowly
+const program = fetchFromDependency.pipe(
+  Effect.retry(retryQuicklyThenSlowly),
+  Effect.flatMap((value) => Console.log(value))
 )
+
+Effect.runPromise(program)
 ```
+
+The quick phase handles the first few follow-up attempts. If the dependency is
+still failing, the slower phase takes over without changing the retrying code.
 
 ## Variants
 
 Add `Schedule.jittered` to each phase when many clients may run the same policy
-at the same time:
-
-```ts
-const quickRetries = Schedule.spaced("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.take(3)
-)
-
-const slowRetries = Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.take(6)
-)
-```
+at the same time. Jitter randomizes each delay slightly and reduces synchronized
+retries.
 
 Use `Schedule.andThenResult` instead of `Schedule.andThen` when you need to
 observe which phase produced each schedule output. The left phase is represented

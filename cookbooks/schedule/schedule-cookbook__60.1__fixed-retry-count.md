@@ -10,13 +10,10 @@ code_included: false
 
 # 60.1 Fixed retry count
 
-Fixed retry count is the count-based retry shape represented by
-`Schedule.recurs(n)`.
+Use this index when the primary decision is how many retries may run after the
+original attempt fails. The count-based `Schedule` shape is `Schedule.recurs(n)`.
 
-Use this index entry when the primary decision is how many follow-up attempts
-may run after the original attempt fails.
-
-## Source-of-truth mapping
+## API mapping
 
 `Schedule.recurs(times)` creates a schedule that can be stepped the specified
 number of `times` before it terminates. The implementation in
@@ -34,23 +31,22 @@ attempt limit.
 If an external requirement says "try three times total", translate that to
 `Schedule.recurs(2)`: one original attempt plus two retries.
 
-## Recipes
+## Related recipes
 
-Start with [3.2 Retry a fixed number of times](schedule-cookbook__03.2__retry-a-fixed-number-of-times.md)
-for the smallest count-only policy. It shows the basic off-by-one rule and the
-compact `Effect.retry({ times: n })` variant.
+Use [3.2 Retry a fixed number of times](schedule-cookbook__03.2__retry-a-fixed-number-of-times.md)
+for the smallest count-only policy and the compact `Effect.retry({ times: n })`
+variant.
 
 Use [34.1 Maximum retry count](schedule-cookbook__34.1__maximum-retry-count.md)
-when the fixed count is a production guardrail. It frames `Schedule.recurs` as a
-visible upper bound and shows how to combine it with timing policies.
+when the count is a production guardrail that should sit next to timing
+policies.
 
 Use [49.1 Assert retry count](schedule-cookbook__49.1__assert-retry-count.md)
-when tests need to prove the operation runs the original attempt plus the
-allowed retries.
+when tests need to prove the original attempt plus the allowed retries.
 
 Use [38.2 Retry 5 times with exponential backoff](schedule-cookbook__38.2__retry-5-times-with-exponential-backoff.md)
 or [38.3 Retry 10 times with jittered backoff](schedule-cookbook__38.3__retry-10-times-with-jittered-backoff.md)
-when the count limit should be paired with safer retry spacing.
+when the count limit should be paired with safer spacing.
 
 Use [9.5 Prefer time budget limits over attempt counts](schedule-cookbook__09.5__prefer-time-budget-limits-over-attempt-counts.md)
 when the operational requirement is better expressed as elapsed time than as a
@@ -67,9 +63,10 @@ over a short race or network hiccup without making the user wait through a long
 invisible loop.
 
 For calls that cross a process or network boundary, `Schedule.recurs(n)` is
-usually only the limit. Combine it with `Schedule.spaced`, `Schedule.fixed`,
+usually only the limit. Combine it with `Schedule.spaced`,
 `Schedule.exponential`, `Schedule.jittered`, or `Schedule.during` when cadence,
-fleet behavior, or elapsed budget matters.
+fleet behavior, or elapsed budget matters. Use `Schedule.fixed` only when a
+regular interval boundary is part of the requirement.
 
 ## Caveats
 

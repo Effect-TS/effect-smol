@@ -15,20 +15,9 @@ this entry to decide whether a scheduled loop is the right boundary, or whether
 a webhook, event stream, queue, or subscription should drive the workflow
 instead.
 
-## What this section is about
-
-This comparison starts with who observes the change. Polling asks a question
-repeatedly: "has the state changed yet?" Push-based workflows deliver a signal
-when the producer observes the change: "this state changed" or "this work is
-ready".
-
-`Schedule` is useful on the polling side because it makes recurrence explicit.
-It can express fixed or spaced cadence, backoff, elapsed-time budgets,
-recurrence limits, and jitter. It is still only a recurrence policy. Delivery,
-acknowledgement, replay, ordering, idempotency, and backpressure belong to the
-integration model around the schedule.
-
-## Why it matters
+Start with who observes the change. Polling asks repeatedly, "has the state
+changed yet?" Push-based workflows deliver a signal when the producer observes
+the change: "this state changed" or "this work is ready."
 
 Polling is often the fastest integration to ship because the consumer can call
 an existing read endpoint. The operational cost appears later: every recurrence
@@ -43,7 +32,11 @@ and dead-letter handling. Those costs are real, but they match the problem of
 delivering known changes. A schedule mostly controls how often a consumer asks
 whether a known change might have happened.
 
-## Core idea
+`Schedule` is useful on the polling side because it makes recurrence explicit.
+It can express fixed or spaced cadence, backoff, elapsed-time budgets,
+recurrence limits, and jitter. It is still only a recurrence policy. Delivery,
+acknowledgement, replay, ordering, idempotency, and backpressure belong to the
+integration model around the schedule.
 
 Prefer push when the producer already knows the meaningful transition and can
 emit a durable or authenticated signal. Use webhooks for cross-system
@@ -67,8 +60,6 @@ runs. `Schedule.exponential` increases delay by a factor from a base duration.
 randomly adjusts delays between 80% and 120% of the original delay, which helps
 avoid synchronized polling across a fleet but does not remove the underlying
 work.
-
-## Practical guidance
 
 Ask who knows about the change first. If the upstream service creates the event,
 prefer an event, webhook, queue message, or subscription. If the consumer can

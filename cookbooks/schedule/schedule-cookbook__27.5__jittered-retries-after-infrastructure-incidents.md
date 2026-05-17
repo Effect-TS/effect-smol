@@ -10,28 +10,15 @@ code_included: true
 
 # 27.5 Jittered retries after infrastructure incidents
 
-Infrastructure recovery is a high-risk moment because many callers may begin
-retrying as a dependency comes back. This recipe keeps the retry shape visible
-while adding jitter to spread fleet recovery.
+Infrastructure recovery is a high-risk moment because many callers may retry as
+the same dependency comes back. Use jitter to keep the retry policy recognizable
+while spreading fleet recovery.
 
 ## Problem
 
-The recovery path should retry a safe operation after transient failures using a
-bounded exponential backoff. With many identical callers, a 200 millisecond, 400
-millisecond, 800 millisecond cadence can still align at fleet scale.
-
-Add jitter after choosing the base cadence so the retry limit and growth curve
-stay explicit:
-
-```ts
-const recoveryRetryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(8))
-)
-```
-
-In Effect, `Schedule.jittered` randomly adjusts each recurrence delay between
-80% and 120% of the delay produced by the wrapped schedule.
+A safe recovery operation should retry after transient failures, back off under
+pressure, and stop at a clear boundary. Without jitter, identical callers can
+still align on the same 200 ms, 400 ms, 800 ms, and 1.6 s retry steps.
 
 ## When to use it
 
@@ -70,16 +57,9 @@ guarantee that repeated execution is acceptable.
 with the default factor of `2`, grows after each failure: 200 milliseconds, 400
 milliseconds, 800 milliseconds, 1.6 seconds, and so on.
 
-`Schedule.jittered` wraps that schedule and randomly adjusts each selected
-delay. Effect's jitter bounds are fixed at 80% to 120% of the original delay:
-
-- a 200 millisecond delay becomes 160 to 240 milliseconds
-- a 400 millisecond delay becomes 320 to 480 milliseconds
-- an 800 millisecond delay becomes 640 to 960 milliseconds
-
-The policy is still exponential, but callers no longer share the exact same
-retry boundary. During recovery, that small difference is often enough to turn a
-single synchronized retry spike into a wider stream of retry attempts.
+`Schedule.jittered` wraps that schedule and adjusts each selected delay between
+80% and 120% of the original delay. The policy is still exponential, but callers
+no longer share the exact same retry boundary.
 
 `Schedule.both(Schedule.recurs(8))` adds the retry limit. Both schedules must
 continue, so the policy allows at most eight retries after the original attempt.
@@ -101,80 +81,60 @@ class InfrastructureError extends Data.TaggedError("InfrastructureError")<{
   readonly reason: "Unavailable" | "Overloaded" | "Restarting" | "Misconfigured"
 }> {}
 
-declare const reconnectInfrastructure: Effect.Effect<void, InfrastructureError>
-
 const isRecoverableInfrastructureError = (error: InfrastructureError) =>
   error.reason === "Unavailable" ||
   error.reason === "Overloaded" ||
   error.reason === "Restarting"
 
-const recoveryRetryPolicy = Schedule.exponential("200 millis").pipe(
+let attempt = 0
+
+const reconnectInfrastructure = Effect.gen(function*() {
+  attempt += 1
+  yield* Effect.sync(() =>
+    console.log(`database recovery attempt ${attempt}`)
+  )
+
+  if (attempt < 4) {
+    return yield* Effect.fail(
+      new InfrastructureError({
+        dependency: "Database",
+        reason: "Restarting"
+      })
+    )
+  }
+
+  yield* Effect.sync(() => console.log("database connection restored"))
+})
+
+const recoveryRetryPolicy = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(8))
 )
 
-export const program = reconnectInfrastructure.pipe(
+const program = reconnectInfrastructure.pipe(
   Effect.retry({
     schedule: recoveryRetryPolicy,
     while: isRecoverableInfrastructureError
   })
 )
+
+Effect.runPromise(program)
 ```
 
-`program` attempts the reconnect immediately. If the dependency is unavailable,
-overloaded, or restarting, the retry policy waits with exponential backoff plus
-jitter. If the error is `Misconfigured`, the `while` predicate stops retrying
-immediately because waiting will not repair the configuration.
-
-Across a fleet, the first retry waits somewhere from 160 to 240 milliseconds,
-the second retry waits somewhere from 320 to 480 milliseconds, and later retries
-continue to spread around the exponential delay. Each instance still backs off,
-but the recovering dependency does not receive one coordinated burst at every
-retry boundary.
-
-If all eight retries fail, `Effect.retry` returns the final
-`InfrastructureError`.
+The sample uses short delays so it is easy to run locally. In production, keep
+the same composition and choose a base delay that matches the dependency's
+recovery profile.
 
 ## Variants
 
-For a slower recovery path, start with a larger base delay:
-
-```ts
-const conservativeRecoveryPolicy = Schedule.exponential("1 second").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(10))
-)
-```
-
-This keeps early recovery pressure lower while still spreading callers around
-each exponential delay.
-
-For a steady retry cadence during a known maintenance window, jitter a spaced
-schedule:
-
-```ts
-const steadyRecoveryPolicy = Schedule.spaced("5 seconds").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(12))
-)
-```
-
-Each retry waits between 4 and 6 seconds instead of every caller retrying
-exactly every 5 seconds.
+For a slower recovery path, start with a larger base delay and a higher retry
+limit. For a steady maintenance-window retry cadence, jitter a
+`Schedule.spaced` policy instead of an exponential one.
 
 For a recovery path that must stop within a wall-clock budget, combine the
-jittered cadence with `Schedule.during`:
-
-```ts
-const budgetedRecoveryPolicy = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.during("2 minutes"))
-)
-```
-
-The policy continues only while the elapsed schedule time remains within the
-two-minute budget. Use this when operators need a bounded recovery attempt
-before surfacing the failure to a supervisor, health check, or alerting path.
+jittered cadence with `Schedule.during`. Use this when operators need a bounded
+recovery attempt before surfacing the failure to a supervisor, health check, or
+alerting path.
 
 ## Notes and caveats
 

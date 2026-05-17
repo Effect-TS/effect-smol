@@ -10,76 +10,53 @@ code_included: true
 
 # 5.4 Retry with a delay suitable for external APIs
 
-This recipe shows a bounded fixed-delay retry policy for simple external API calls.
-The schedule controls the retry timing, while the surrounding Effect code remains
-responsible for filtering retryable typed failures and preserving idempotency.
+For simple external API calls, combine a modest fixed delay with a retry limit
+and an error predicate. The schedule answers "when"; the predicate answers
+"whether this failure is safe to retry."
 
 ## Problem
 
-An external API call can fail transiently across the network boundary, but
-immediate retries can hammer the provider. You need a small fixed delay, a retry
-budget, and an error predicate so only safe, retryable API failures are tried
-again.
-
-Use `Schedule.spaced("1 second")` with `Effect.retry`, and bound it with
-`times` or `Schedule.recurs`. Add an error predicate when only some API
-failures are retryable.
+External APIs can fail transiently at the network or service boundary, but
+retrying every failure can hammer the provider or repeat unsafe requests.
 
 ## When to use it
 
-Use this recipe for idempotent external API calls where a short, constant pause
-between retries is acceptable. It fits simple reads, metadata lookups, status
-checks, and writes protected by an idempotency key.
+Use this for idempotent external API calls where a short constant pause is
+acceptable: reads, metadata lookups, status checks, or writes protected by an
+idempotency key.
 
-It is also useful when the provider does not require a more specific retry
-policy, and you want a readable default such as "retry up to four times, waiting
-one second before each retry."
+A one-second delay with a small retry budget is a readable default when the API
+does not publish a more specific retry policy.
 
 ## When not to use it
 
-Do not retry every API failure. Client errors such as invalid input,
-authentication failure, authorization failure, and most not-found responses
-usually need to be returned or handled, not retried.
+Do not retry client errors such as invalid input, authentication failure,
+authorization failure, or most not-found responses. Those usually need to be
+returned or handled directly.
 
-Do not use a fixed delay when the provider gives a more specific instruction,
-such as a `Retry-After` value, endpoint-specific rate-limit guidance, or a
-required backoff policy.
-
-Do not use this for non-idempotent writes unless the API gives you a safe
-deduplication mechanism. Retrying a request that may already have completed can
-duplicate external side effects.
+Do not ignore provider guidance. If the API returns `Retry-After`, exposes
+rate-limit reset metadata, or documents endpoint-specific retry rules, model
+that policy instead of using a fixed delay.
 
 ## Schedule shape
 
-`Schedule.spaced("1 second")` is an unbounded schedule that contributes the same
-delay on every recurrence. With `Effect.retry`, the first API call runs
-immediately. The delay only happens after a typed failure and before the next
-attempt.
-
-The options form can combine the fixed delay, retry budget, and error predicate:
+The options form keeps the three policy pieces together:
 
 - `schedule: Schedule.spaced("1 second")` waits one second before each retry
-- `times: 4` allows four retries after the original attempt
+- `times: 4` permits four retries after the original attempt
 - `while: isRetryableApiError` retries only selected typed failures
 
-The resulting shape is:
-
-- attempt 1: call the API immediately
-- if the failure is not retryable: fail with that error
-- if the failure is retryable and retries remain: wait one second
-- attempts 2 through 5: retry at most four more times
-- if all permitted attempts fail: fail with the last typed error
-
-If any attempt succeeds, retrying stops immediately and the successful API value
-is returned.
+If an attempt succeeds, retrying stops immediately. If a non-retryable error is
+returned, the retry budget is not spent.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Fiber, Ref, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 class ExternalApiError extends Data.TaggedError("ExternalApiError")<{
-  readonly operation: string
+  readonly attempt: number
   readonly status: number
 }> {}
 
@@ -88,7 +65,19 @@ interface Customer {
   readonly name: string
 }
 
-declare const fetchCustomer: (id: string) => Effect.Effect<Customer, ExternalApiError>
+const fetchCustomer = Effect.fnUntraced(function*(
+  id: string,
+  attempts: Ref.Ref<number>
+) {
+  const attempt = yield* Ref.updateAndGet(attempts, (n) => n + 1)
+  yield* Console.log(`api attempt ${attempt}`)
+
+  if (attempt < 3) {
+    return yield* Effect.fail(new ExternalApiError({ attempt, status: 503 }))
+  }
+
+  return { id, name: "Ada" } satisfies Customer
+})
 
 const isRetryableApiError = (error: ExternalApiError) =>
   error.status === 408 ||
@@ -101,59 +90,35 @@ const retryExternalApi = {
   while: isRetryableApiError
 }
 
-const program = fetchCustomer("customer-123").pipe(
-  Effect.retry(retryExternalApi)
-)
+const program = Effect.gen(function*() {
+  const attempts = yield* Ref.make(0)
+  const fiber = yield* fetchCustomer("customer-123", attempts).pipe(
+    Effect.retry(retryExternalApi),
+    Effect.forkScoped
+  )
+
+  yield* TestClock.adjust("1 second")
+  yield* TestClock.adjust("1 second")
+
+  const customer = yield* Fiber.join(fiber)
+  yield* Console.log(`customer: ${customer.id} ${customer.name}`)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program).then(() => undefined)
 ```
 
-`program` calls `fetchCustomer("customer-123")` once immediately. If it fails
-with a retryable `ExternalApiError`, it waits one second and tries again. The
-policy allows at most four retries, so the API is called at most five times
-total.
+The API fails twice with a retryable `503`, waits one virtual second before
+each retry, and then returns the customer.
 
-If the error has a non-retryable status, or if the fifth total attempt still
-fails, `Effect.retry` propagates the last typed `ExternalApiError`.
+## Notes
 
-## Variants
+`times: 4` means four retries after the original attempt, so the API can be
+called at most five times. If a provider says "four total attempts", use
+`times: 3`.
 
-If your API adapter already turns only retryable failures into the typed error,
-you can keep the policy as a named schedule:
+A fixed delay is intentionally simple. It does not inspect headers, adapt to
+congestion, add jitter, or cap long-running retry behavior.
 
-```ts
-const retryEverySecondUpTo4Times = Schedule.spaced("1 second").pipe(
-  Schedule.both(Schedule.recurs(4))
-)
-
-const program = fetchCustomer("customer-123").pipe(
-  Effect.retry(retryEverySecondUpTo4Times)
-)
-```
-
-Use a longer fixed delay for slower or stricter APIs:
-
-```ts
-const retrySlowerExternalApi = {
-  schedule: Schedule.spaced("2 seconds"),
-  times: 3,
-  while: isRetryableApiError
-}
-```
-
-The retry count and delay are independent. Increasing the delay reduces request
-pressure without changing the maximum number of calls.
-
-## Notes and caveats
-
-`Schedule.spaced` does not delay the first attempt. It delays only retry
-attempts after typed failures.
-
-`times: 4` means four retries after the original attempt, not four total API
-calls. If a provider says "try at most four times total", use `times: 3`.
-
-A fixed delay is intentionally simple. It is not adaptive to congestion, does
-not read rate-limit headers, and does not add jitter. Use a more specific policy
-when the API contract requires one.
-
-Keep the retry boundary around the single idempotent API call. Avoid wrapping a
-larger workflow that also performs local writes, notifications, or other effects
-that should not be repeated.
+Keep the retry boundary around the single idempotent API call. Avoid wrapping
+local writes, notifications, or other effects that should not run more than
+once.

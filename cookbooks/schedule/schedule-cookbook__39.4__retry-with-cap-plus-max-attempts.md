@@ -52,8 +52,8 @@ the wait between retries. It does not interrupt one slow in-flight attempt.
 ## Schedule shape
 
 Start with `Schedule.exponential` for the growing delay curve. Use
-`Schedule.modifyDelay` to replace any delay above the cap with the cap. Then
-combine the capped delay schedule with `Schedule.recurs` so both constraints must
+`Schedule.modifyDelay` to replace any delay above the cap. Then combine the
+capped delay schedule with `Schedule.recurs` so both constraints must
 continue for another retry to happen.
 
 `Schedule.both` has intersection semantics: the combined schedule recurs only
@@ -64,45 +64,50 @@ provides the wait time and the recurrence side provides the retry count.
 ## Code
 
 ```ts
-import { Duration, Effect, Schedule } from "effect"
+import { Console, Duration, Effect, Schedule } from "effect"
 
-type TransientError = { readonly _tag: "TransientError" }
+type TransientError = {
+  readonly _tag: "TransientError"
+  readonly attempt: number
+}
 
-declare const fetchMetadata: Effect.Effect<string, TransientError>
+let attempts = 0
 
-const retryWithCappedBackoff = Schedule.exponential("100 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(2)))
-  ),
-  Schedule.both(Schedule.recurs(5))
+const fetchMetadata = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`metadata attempt ${attempts}`)
+  return yield* Effect.fail({ _tag: "TransientError", attempt: attempts } satisfies TransientError)
+})
+
+const retryWithCappedBackoff = Schedule.exponential("10 millis").pipe(
+  Schedule.modifyDelay((_, delay) => {
+    const capped = Duration.min(delay, Duration.millis(40))
+    return Console.log(`next delay: ${Duration.toMillis(capped)}ms`).pipe(
+      Effect.as(capped)
+    )
+  }),
+  Schedule.both(Schedule.recurs(4))
 )
 
-export const program = fetchMetadata.pipe(
-  Effect.retry(retryWithCappedBackoff)
+const program = fetchMetadata.pipe(
+  Effect.retry(retryWithCappedBackoff),
+  Effect.catch((error) =>
+    Console.log(`gave up after ${attempts} attempts; last error was attempt ${error.attempt}`)
+  )
 )
+
+Effect.runPromise(program)
 ```
 
-The retry delays start at roughly `100ms`, then `200ms`, `400ms`, `800ms`,
-`1600ms`, and then remain capped at `2s` for later retries. The policy allows at
-most five retries after the original call.
+The retry delays grow until they reach the cap, and `Schedule.recurs(4)` allows
+at most four retries after the original call.
 
 ## Variants
 
 If you want the count limit to read as "take this many outputs from the backoff
-schedule", put the limit directly on the backoff schedule:
-
-```ts
-const retryWithTake = Schedule.exponential("100 millis").pipe(
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(2)))
-  ),
-  Schedule.take(5)
-)
-```
-
-Use `Schedule.recurs` when you want the retry-count guard to stand out as a
-separate policy. Use `Schedule.take` when the count is simply part of shaping one
-schedule.
+schedule", put `Schedule.take(n)` directly on the backoff schedule. Use
+`Schedule.recurs` when you want the retry-count guard to stand out as a separate
+policy.
 
 For a fleet of clients, add `Schedule.jittered` before the delay cap and keep
 `Schedule.modifyDelay` after it, so randomization cannot push a computed delay

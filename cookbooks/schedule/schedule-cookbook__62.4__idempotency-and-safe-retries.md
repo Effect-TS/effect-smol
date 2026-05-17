@@ -14,8 +14,6 @@ Use this entry as a boundary check before applying retry recipes to writes,
 publishing, notifications, payments, or any workflow with externally visible
 side effects.
 
-## What this section is about
-
 Idempotency means that a logical operation can be attempted more than once
 without producing more than one logical result. `Schedule` can decide when
 another attempt is allowed, how long to wait, and when the retry budget is
@@ -36,8 +34,6 @@ deduplication, or remote APIs that honor an idempotency header. The exact
 mechanism is domain-specific, but the retry policy should assume that the
 mechanism exists before it repeats the write.
 
-## Why it matters
-
 A failed attempt does not prove that the side effect did not happen. The caller
 may time out after the database commits. A payment provider may accept a charge
 and drop the response. A message broker may receive a publish request while the
@@ -56,8 +52,6 @@ around "create user, send email, publish event, update search index" may repeat
 all four steps even though only one step was transient. Put the retry around the
 smallest operation that is safe to repeat, and give each externally visible
 effect its own deduplication story.
-
-## Core idea
 
 Separate the retry question from the safety question.
 
@@ -79,8 +73,6 @@ conservative shape for "retry with backoff, but stop after this many attempts or
 this much time." `Schedule.either` continues while either side continues and
 uses the smaller delay; that can accidentally extend unsafe retry work if used
 as a fallback instead of a deliberate union.
-
-## Practical guidance
 
 Treat idempotency keys as part of the request contract. Persist enough
 information to recognize a repeated logical operation and return the original

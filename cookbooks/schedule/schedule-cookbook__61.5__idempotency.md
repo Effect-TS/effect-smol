@@ -15,43 +15,29 @@ the same intended effect as running it once. For retryable writes and other side
 effects, it means a repeated attempt does not create duplicate orders, duplicate
 payments, duplicate messages, or any other extra externally visible change.
 
-## What this section is about
+The safety requirement lives outside the schedule. A `Schedule` can time and
+bound a retry, but duplicate safety belongs to the operation being retried or
+to the protocol around it.
 
-This glossary entry places the safety requirement outside the schedule. A
-`Schedule` can time and bound a retry, but duplicate safety belongs to the
-operation being retried, or to the protocol around it.
+Retries deliberately repeat work after failure. With reads, duplicate execution
+is often harmless. With writes, a failure may only mean the caller did not
+observe the result; the remote system may already have committed the change.
+Retrying that write without a duplicate guard can turn a transient timeout into
+duplicated state.
 
-## Why it matters
+Before retrying a side effect, decide how duplicate attempts are recognized and
+collapsed. Common guards include idempotency keys, deterministic request
+identifiers, conditional writes, upserts keyed by stable business identity,
+consumer-side de-duplication, and transactional checks that make "already done"
+a successful outcome. The important property is that every retry attempt
+represents the same logical operation, not a new operation with the same
+payload.
 
-Retries deliberately repeat work after a failed attempt. With reads, duplicate
-execution is often harmless. With writes, a failure may mean only that the
-caller did not observe the result; the remote system may already have applied
-the change. Retrying that write without an idempotency guard can turn a
-transient timeout into duplicated state.
-
-Backoff, jitter, and limits reduce load and bound waiting, but they do not
-remove this correctness risk. A retry policy can be well timed and still be
-unsafe if every attempt may perform the side effect again.
-
-## Core idea
-
-Treat retry as failure-driven recurrence: each failure steps the schedule, and
-the schedule either halts or permits another attempt after its computed delay.
-Before applying that recurrence to a write, decide how duplicate attempts are
-recognized and collapsed.
-
-Common guards include idempotency keys, deterministic request identifiers,
-conditional writes, upserts keyed by stable business identity, de-duplication at
-the consumer, and transactional checks that make "already done" a successful
-outcome. The important property is that every retry attempt represents the same
-logical operation, not a new operation with the same payload.
-
-## Practical guidance
-
-Require an idempotency design before retrying any effect that writes, sends,
-charges, publishes, provisions, deletes, or otherwise changes external state.
 Use `Schedule.recurs`, `Schedule.take`, `Schedule.during`, backoff, and jitter
 to control retry behavior, but do not treat those controls as substitutes for
-idempotency. If the operation cannot be made idempotent, prefer surfacing the
-failure, recording an ambiguous outcome for reconciliation, or moving the work
-behind a durable queue that can enforce de-duplication.
+idempotency. A well-timed retry policy is still unsafe if each attempt may
+perform the side effect again.
+
+If the operation cannot be made idempotent, prefer surfacing the failure,
+recording an ambiguous outcome for reconciliation, or moving the work behind a
+durable queue that can enforce de-duplication.

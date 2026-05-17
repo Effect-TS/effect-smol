@@ -10,15 +10,10 @@ code_included: false
 
 # 62.2 Retry design in distributed systems
 
-This further-reading entry connects distributed retry concerns to the
-`Schedule` primitives used throughout the cookbook.
-
-## What this section is about
-
 Distributed retry design is not a new primitive and not only a timing problem.
 It is a contract between the caller, the downstream system, and every other
-caller that may observe the same failure. A retry policy should answer five
-questions before choosing a delay curve:
+caller that may observe the same failure. Answer these questions before
+choosing a delay curve:
 
 - Is the operation safe to run more than once?
 - Which failures are retryable, and which should stop immediately?
@@ -27,10 +22,8 @@ questions before choosing a delay curve:
 - What happens when many clients retry at the same time?
 
 `Schedule` describes the local recurrence policy. The distributed-system
-design still has to decide whether recurrence is allowed, how much additional
-load it may create, and where shared limits live.
-
-## Why it matters
+design still has to decide whether recurrence is safe, how much additional load
+it may create, and where shared limits live.
 
 Retries can turn one failure into many requests. A policy that looks harmless
 inside one process can become a synchronized wave across a fleet when a shared
@@ -42,8 +35,6 @@ backpressure.
 
 The purpose of a retry schedule is therefore not to "try harder." It is to make
 the extra work explicit and bounded.
-
-## Core idea
 
 Start with safety, then choose timing, then add bounds.
 
@@ -58,8 +49,6 @@ Start with safety, then choose timing, then add bounds.
 | Elapsed-time budget | `Schedule.during(duration)` | Stop once the caller no longer benefits from more retries, even if the attempt count has not been reached. |
 | Multiple limits must all apply | `Schedule.both` | Intersection-style composition continues only while both schedules continue and uses the larger delay, which is usually the conservative retry composition. |
 | Provider-specific timing | `Schedule.unfold` with delay modification such as `Schedule.addDelay` or `Schedule.modifyDelay` | Model retry-after windows, quota resets, or protocol-specific delay curves directly instead of hiding them behind generic exponential backoff. |
-
-## Practical guidance
 
 Treat idempotency as the first retry decision. Reads and naturally idempotent
 writes can often retry with ordinary timing. Non-idempotent writes need a
@@ -77,7 +66,8 @@ Add jitter for shared failure domains. If many fibers, processes, containers,
 or client devices are likely to see the same error at the same time,
 deterministic backoff can synchronize them. `Schedule.jittered` should be
 applied after the base delay policy is chosen. It spreads retries; it does not
-change which errors are safe or how much total work is allowed.
+change which errors are safe, and it does not reduce the total number of local
+attempts.
 
 Budget retries from the caller's point of view and from the downstream's point
 of view. A user-facing request may need a short elapsed budget and a small

@@ -10,89 +10,75 @@ code_included: true
 
 # 23.5 Linear backoff with a max bound
 
-Linear backoff with a max bound gives retries a predictable ramp: delays grow by
-a fixed increment until they reach a cap, then stay there.
-
-Effect does not need a dedicated "linear backoff" constructor for this. Build a
-small schedule that outputs a step number, turn that step into a delay, and cap
-the computed duration before returning it.
+Capped linear backoff grows by a fixed increment until it reaches a maximum
+delay, then stays at that maximum. The cap keeps the tail predictable without
+losing the gentle ramp at the start.
 
 ## Problem
 
-The concrete target is a sequence that starts at 250 milliseconds, then 500
-milliseconds, then 750 milliseconds, and then never exceeds 1 second between
-attempts.
+You want retry delays like this:
 
-Scattered sleeps make that hard to review. A single `Schedule` value makes the
-timing policy explicit and lets you add the retry limit, cap, logging, or jitter
-at the same composition point.
+```text
+250ms, 500ms, 750ms, 1000ms, 1000ms, ...
+```
+
+The cap is the maximum delay between attempts. It is not a total time budget; a
+policy with many retries can still run for much longer overall.
 
 ## When to use it
 
-Use linear backoff when repeated failures should slow the caller down gradually,
-but exponential backoff would grow too quickly for the workflow.
-
-This is a good fit for local worker retries, lightweight reconnect loops, and
-background maintenance tasks where an unhealthy dependency needs relief but the
-operation should still make steady progress.
+Use capped linear backoff for local worker retries, lightweight reconnect loops,
+and maintenance tasks where each failure should slow the caller down gradually
+but the operation should still make steady progress.
 
 ## When not to use it
 
-Do not use a schedule to make permanent failures look transient. Validation
-errors, authorization failures, malformed requests, and unsafe non-idempotent
-writes should be classified before applying retry.
+Do not use a schedule to turn permanent failures into transient ones. Validate
+requests, credentials, resource identifiers, and idempotency before applying
+retry.
 
-Do not confuse the maximum delay with a total time budget. A policy capped at 1
-second can still run for much longer overall if it allows many retries.
+For high-volume shared dependencies, add jitter after the capped delay is
+correct so callers do not synchronize on the cap.
 
 ## Schedule shape
 
-Use `Schedule.unfold` to emit a retry step, then use `Schedule.addDelay` to add
-the delay derived from that step. Because `Schedule.unfold` has a zero base
-delay, the delay returned from `Schedule.addDelay` is the delay between retry
-attempts.
-
-```ts
-const maxDelay = Duration.seconds(1)
-
-const linearDelay = (step: number) =>
-  Duration.min(Duration.millis(step * 250), maxDelay)
-
-const linearBackoff = Schedule.unfold(1, (step) =>
-  Effect.succeed(step + 1)
-).pipe(
-  Schedule.addDelay((step) => Effect.succeed(linearDelay(step)))
-)
-```
-
-The first schedule output is `1`, so the first retry waits 250 milliseconds. The
-next outputs produce 500 milliseconds, 750 milliseconds, and then 1 second. Once
-the computed delay would exceed the cap, `Duration.min` keeps the delay at 1
-second.
-
-Add the retry limit separately. That keeps "how long to wait" independent from
-"how many times to try".
+Use `Schedule.unfold` for the step number and `Schedule.addDelay` for the
+duration. Clamp the computed duration with `Duration.min` before returning it.
+Add the retry limit separately so "how long to wait" and "how many times to try"
+remain independent.
 
 ## Code
 
 ```ts
-import { Data, Duration, Effect, Schedule } from "effect"
+import { Console, Data, Duration, Effect, Schedule } from "effect"
 
-class SearchIndexUnavailable extends Data.TaggedError(
-  "SearchIndexUnavailable"
-)<{
+class SearchIndexUnavailable extends Data.TaggedError("SearchIndexUnavailable")<{
   readonly shard: string
 }> {}
 
-declare const refreshSearchIndex: Effect.Effect<
-  void,
-  SearchIndexUnavailable
->
-
-const maxDelay = Duration.seconds(1)
+const maxDelay = Duration.millis(80)
 
 const delayForStep = (step: number) =>
-  Duration.min(Duration.millis(step * 250), maxDelay)
+  Duration.min(Duration.millis(step * 25), maxDelay)
+
+const previewDelays = [1, 2, 3, 4, 5].map((step) =>
+  `${Duration.toMillis(delayForStep(step))}ms`
+)
+
+let attempts = 0
+
+const refreshSearchIndex = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`refresh attempt ${attempts}`)
+
+  if (attempts < 5) {
+    return yield* Effect.fail(
+      new SearchIndexUnavailable({ shard: "products-1" })
+    )
+  }
+
+  return "refresh complete"
+})
 
 const linearBackoff = Schedule.unfold(1, (step) =>
   Effect.succeed(step + 1)
@@ -101,70 +87,33 @@ const linearBackoff = Schedule.unfold(1, (step) =>
   Schedule.both(Schedule.recurs(8))
 )
 
-export const program = refreshSearchIndex.pipe(
-  Effect.retry(linearBackoff)
+const program = Effect.gen(function*() {
+  yield* Console.log(`configured delays: ${previewDelays.join(", ")}`)
+  const result = yield* refreshSearchIndex.pipe(
+    Effect.retry(linearBackoff)
+  )
+  yield* Console.log(result)
+}).pipe(
+  Effect.catch((error) => Console.log(`refresh failed: ${error._tag}`))
 )
+
+Effect.runPromise(program)
 ```
 
-The original `refreshSearchIndex` attempt runs immediately. If it fails with
-`SearchIndexUnavailable`, retries use capped linear delays:
-
-```text
-250ms, 500ms, 750ms, 1000ms, 1000ms, ...
-```
-
-`Schedule.recurs(8)` allows at most eight retries after the original attempt.
-If all retries fail, `Effect.retry` returns the last typed failure.
+The example uses a small cap so it terminates quickly. In production, the same
+shape can use a 250 millisecond step and a 1 second cap.
 
 ## Variants
 
-For an interactive request, use a smaller cap and fewer retries:
-
-```ts
-const interactiveBackoff = Schedule.unfold(1, (step) =>
-  Effect.succeed(step + 1)
-).pipe(
-  Schedule.addDelay((step) =>
-    Effect.succeed(
-      Duration.min(Duration.millis(step * 100), Duration.millis(500))
-    )
-  ),
-  Schedule.both(Schedule.recurs(3))
-)
-```
-
-For a background worker, increase the step size, cap, and retry limit:
-
-```ts
-const workerBackoff = Schedule.unfold(1, (step) =>
-  Effect.succeed(step + 1)
-).pipe(
-  Schedule.addDelay((step) =>
-    Effect.succeed(
-      Duration.min(Duration.seconds(step), Duration.seconds(10))
-    )
-  ),
-  Schedule.both(Schedule.recurs(20))
-)
-```
-
-If many processes can fail at the same time, add jitter after the capped delay
-is correct:
-
-```ts
-const fleetBackoff = linearBackoff.pipe(
-  Schedule.jittered
-)
-```
+For an interactive request, use a smaller cap and fewer retries. For a
+background worker, increase the step size, cap, and retry limit. For a fleet,
+apply `Schedule.jittered` after the capped delay policy.
 
 ## Notes and caveats
 
-`Schedule.addDelay` adds to the schedule's existing delay. In this recipe the
-base schedule is `Schedule.unfold`, whose own delay is zero, so the added
-duration is the full retry delay. If you start from a schedule that already has
-a delay, use `Schedule.modifyDelay` when you want to replace or clamp that
-existing delay instead.
+`Schedule.addDelay` adds to the schedule's existing delay. Here the base
+schedule is `Schedule.unfold`, whose own delay is zero, so the added duration is
+the full retry delay.
 
-The schedule output is the step number, not the duration. If you need to observe
-the actual delays for tests or logging, wrap the finished policy with
-`Schedule.delays`.
+If you need to observe the actual delays for logging or tests, wrap the finished
+policy with `Schedule.delays`.

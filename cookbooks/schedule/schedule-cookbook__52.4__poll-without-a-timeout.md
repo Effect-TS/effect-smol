@@ -10,16 +10,12 @@ code_included: false
 
 # 52.4 Poll without a timeout
 
-Poll without a timeout is an anti-pattern because it turns "check again later"
-into "check forever unless something external happens to stop us."
-
 ## The anti-pattern
 
-The problematic version uses a recurring schedule for polling but omits a
-terminal condition or elapsed budget. It often starts as a tidy fixed cadence:
-poll every second, every five seconds, or with a small backoff. The missing part
-is not the delay; the missing part is the rule that says polling is no longer
-useful.
+A recurring schedule polls with no terminal condition or elapsed budget. It
+often starts as a tidy cadence: poll every second, every five seconds, or with a
+small backoff. The missing part is not the delay; it is the rule that says
+polling is no longer useful.
 
 This is especially easy to miss when the polled operation usually finishes
 quickly. The happy path returns a terminal status, so the absence of a budget
@@ -27,16 +23,16 @@ does not show up in local testing. In production, a lost job id, a stuck
 downstream workflow, a provider incident, or a caller that has already gone away
 can leave the poller alive long after the result has stopped mattering.
 
-That may be acceptable for a deliberately owned background fiber, but it is
-dangerous as the default shape for job status pages, payment settlement checks,
-provisioning flows, export generation, and eventual-consistency reads.
+That may be acceptable for a deliberately owned background fiber. It is a poor
+default for job status pages, payment settlement checks, provisioning flows,
+export generation, and eventual-consistency reads.
 
 ## Why it happens
 
-It happens when the schedule is treated as only a cadence. `Schedule.forever`
-recurs forever, and repeating a `Schedule.spaced` policy without a limiting
-operator has the same practical effect for polling: there is always another
-decision point after the next successful observation.
+The schedule is treated as only a cadence. `Schedule.forever` recurs forever,
+and repeating a `Schedule.spaced` policy without a limiting operator has the
+same practical effect for polling: there is always another decision point after
+the next successful observation.
 
 The terminal state is also easy to confuse with the timeout. A status predicate
 answers "did the operation finish?" A time budget answers "how long are we

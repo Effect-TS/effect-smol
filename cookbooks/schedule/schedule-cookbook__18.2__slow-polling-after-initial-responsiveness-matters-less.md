@@ -10,15 +10,15 @@ code_included: true
 
 # 18.2 Slow polling after initial responsiveness matters less
 
-Use this recipe for the slower phase after an initial responsive polling window
-has already passed. The goal is to keep observing progress without continuing
-the early high-frequency cadence.
+Use this for the slower phase after the initial responsive window has passed.
+The caller still observes progress, but the status endpoint is no longer polled
+at the early high-frequency cadence.
 
 ## Problem
 
-At this point, continuing to poll every few hundred milliseconds mostly creates
-load. The polling policy should switch to a slower cadence while still stopping
-as soon as a terminal status is observed.
+After the first few seconds, polling every few hundred milliseconds usually
+creates load without improving the user experience. The policy should slow down
+and still stop as soon as a terminal status appears.
 
 ## When to use it
 
@@ -44,43 +44,22 @@ successful status values.
 
 ## Schedule shape
 
-Use a slower spacing interval, preserve the latest successful status, and
-continue only while that status is still non-terminal:
-
-```ts
-Schedule.spaced("30 seconds").pipe(
-  Schedule.satisfiesInputType<Status>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => input.state === "pending")
-)
-```
-
-`Schedule.spaced("30 seconds")` supplies the steady slower cadence after each
-successful pending observation. `Schedule.while` stops when a terminal status is
-observed. `Schedule.passthrough` keeps the latest status as the schedule output,
-so the repeated effect returns the final observed status from this slower
-polling phase.
+Use `Schedule.spaced("30 seconds")` for the slower cadence,
+`Schedule.passthrough` to keep the latest status as the result, and
+`Schedule.while` to continue only while that status is still pending.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Clock, Effect, Fiber, Schedule } from "effect"
+import { TestClock } from "effect/testing"
 
 type Status =
   | { readonly state: "pending"; readonly progress: number }
   | { readonly state: "ready"; readonly resultId: string }
   | { readonly state: "failed"; readonly reason: string }
 
-type StatusCheckError = {
-  readonly _tag: "StatusCheckError"
-  readonly message: string
-}
-
 const isPending = (status: Status): boolean => status.state === "pending"
-
-declare const checkStatus: (
-  workflowId: string
-) => Effect.Effect<Status, StatusCheckError>
 
 const slowPollingAfterInitialWindow = Schedule.spaced("30 seconds").pipe(
   Schedule.satisfiesInputType<Status>(),
@@ -88,19 +67,35 @@ const slowPollingAfterInitialWindow = Schedule.spaced("30 seconds").pipe(
   Schedule.while(({ input }) => isPending(input))
 )
 
-const pollSlowly = (workflowId: string) =>
-  checkStatus(workflowId).pipe(
-    Effect.repeat(slowPollingAfterInitialWindow)
+const script: ReadonlyArray<Status> = [
+  { state: "pending", progress: 70 },
+  { state: "ready", resultId: "report-42" }
+]
+
+let checks = 0
+
+const checkStatus = Effect.gen(function*() {
+  const now = yield* Clock.currentTimeMillis
+  const status = script[Math.min(checks, script.length - 1)]!
+  checks += 1
+  console.log(`t+${now}ms check ${checks}: ${status.state}`)
+  return status
+})
+
+const program = Effect.gen(function*() {
+  const fiber = yield* checkStatus.pipe(
+    Effect.repeat(slowPollingAfterInitialWindow),
+    Effect.forkDetach
   )
+
+  yield* TestClock.adjust("30 seconds")
+
+  const finalStatus = yield* Fiber.join(fiber)
+  console.log("final:", finalStatus)
+}).pipe(Effect.provide(TestClock.layer()), Effect.scoped)
+
+Effect.runPromise(program)
 ```
-
-`pollSlowly` performs a status check immediately when this slower phase starts.
-If that observation is terminal, it stops without waiting. If the status is
-still `"pending"`, the schedule waits 30 seconds before checking again.
-
-The returned effect succeeds with the latest observed `Status`. That value may
-be terminal, or it may still be `"pending"` if this slower phase is combined
-with another stopping condition elsewhere.
 
 ## Variants
 
@@ -119,16 +114,6 @@ answer instead of an open-ended slow wait.
 
 ## Notes and caveats
 
-The first check in this slower phase is not delayed. `Effect.repeat` runs the
-effect once before consulting the schedule for recurrences.
-
-`Schedule.spaced` waits after each successful status check completes. Use it
-when the pause between completed checks matters more than aligning to
-wall-clock boundaries.
-
-`Schedule.while` sees successful status values. Transport, authorization, or
-decoding failures should stay in the effect failure channel and be retried or
-reported separately.
-
-When a timing schedule reads `metadata.input`, constrain the schedule with
-`Schedule.satisfiesInputType<Status>()` before `Schedule.while`.
+The first check in this phase is immediate. `Schedule.spaced` waits after each
+successful status check completes. `Schedule.while` sees successful status
+values only; request failures should be retried or reported separately.

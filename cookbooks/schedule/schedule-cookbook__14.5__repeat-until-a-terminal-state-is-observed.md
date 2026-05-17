@@ -10,7 +10,7 @@ code_included: true
 
 # 14.5 Repeat until a terminal state is observed
 
-Use this recipe when successful status observations should repeat until the observed
+Use this when successful status observations should repeat until the observed
 domain state is terminal.
 
 ## Problem
@@ -20,8 +20,8 @@ such as queued, running, succeeded, failed, or canceled.
 
 With `Effect.repeat`, the effect runs once before the schedule is consulted.
 After each successful observation, the successful status value becomes the
-schedule input. A `Schedule.while` predicate can inspect that successful output
-and allow another recurrence only while the status is still non-terminal.
+schedule input. `Schedule.while` can allow another recurrence only while that
+status is non-terminal.
 
 ## When to use it
 
@@ -47,14 +47,8 @@ terminal or the fiber has a clear owner that can interrupt it.
 
 ## Schedule shape
 
-Make the successful status the schedule input and continue while the latest
-successful status is not terminal:
-
-```ts
-Schedule.identity<JobStatus>().pipe(
-  Schedule.while(({ input }) => !isTerminal(input))
-)
-```
+Make the successful status the schedule input, preserve it as the schedule
+output, and continue while the latest status is not terminal.
 
 `Schedule.while` receives schedule metadata after a successful run. In
 `Effect.repeat`, `metadata.input` is the successful output from the repeated
@@ -67,7 +61,7 @@ stops as soon as a successful terminal status is observed.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
   | { readonly state: "queued" }
@@ -81,54 +75,54 @@ const isTerminal = (status: JobStatus): boolean =>
   status.state === "failed" ||
   status.state === "canceled"
 
-declare const observeJob: Effect.Effect<JobStatus>
+const statuses: ReadonlyArray<JobStatus> = [
+  { state: "queued" },
+  { state: "running", percent: 40 },
+  { state: "running", percent: 80 },
+  { state: "succeeded", resultId: "result-123" }
+]
 
-const untilTerminal = Schedule.identity<JobStatus>().pipe(
+let index = 0
+
+const observeJob = Effect.gen(function*() {
+  const lastStatus = statuses[statuses.length - 1]!
+  const status = statuses[index] ?? lastStatus
+  index += 1
+  yield* Console.log(`observed ${status.state}`)
+  return status
+})
+
+const untilTerminal = Schedule.spaced("10 millis").pipe(
+  Schedule.satisfiesInputType<JobStatus>(),
+  Schedule.passthrough,
   Schedule.while(({ input }) => !isTerminal(input))
 )
 
-const terminalStatus = observeJob.pipe(
-  Effect.repeat(untilTerminal)
-)
+const program = Effect.gen(function*() {
+  const terminalStatus = yield* observeJob.pipe(
+    Effect.repeat(untilTerminal)
+  )
+
+  yield* Console.log(`final state: ${terminalStatus.state}`)
+})
+
+Effect.runPromise(program)
 ```
 
 `observeJob` runs once immediately. If it succeeds with a terminal status, there
 are no recurrences. If it succeeds with a non-terminal status, the schedule
 allows another observation.
 
-Because the schedule is `Schedule.identity<JobStatus>()`, the repeated program
-succeeds with the final successful `JobStatus` that made the predicate return
-`false`.
+Because the schedule uses `Schedule.passthrough`, the repeated program succeeds
+with the final successful `JobStatus` that made the predicate return `false`.
 
 ## Variants
 
 Add a pause and a recurrence cap when terminal status may take time but the loop
 must still have a limit:
 
-```ts
-import { Effect, Schedule } from "effect"
-
-declare const observeJob: Effect.Effect<JobStatus>
-
-const untilTerminalOrTwentyRecurrences = Schedule.spaced("1 second").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input)),
-  Schedule.bothLeft(
-    Schedule.recurs(20).pipe(Schedule.satisfiesInputType<JobStatus>())
-  )
-)
-
-const terminalOrLastObservedStatus = observeJob.pipe(
-  Effect.repeat(untilTerminalOrTwentyRecurrences)
-)
-```
-
-`Schedule.spaced("1 second")` supplies the delay between successful
-observations. `Schedule.satisfiesInputType<JobStatus>()` is applied before
-reading `metadata.input`, because the base timing schedule is not constructed
-from `JobStatus` values. `Schedule.passthrough` keeps the successful status as
-the schedule output.
+Use the same terminal-status schedule, then compose it with
+`Schedule.bothLeft(Schedule.recurs(20).pipe(Schedule.satisfiesInputType<JobStatus>()))`.
 
 The repeat stops when either a successful terminal status is observed or the
 recurrence cap is reached. `Schedule.recurs(20)` permits up to 20 recurrences

@@ -32,26 +32,43 @@ In those cases, `Schedule.spaced` often communicates the policy better than
 backoff:
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class DependencyUnavailable extends Data.TaggedError("DependencyUnavailable")<{
   readonly service: string
 }> {}
 
-declare const loadConfiguration: Effect.Effect<string, DependencyUnavailable>
+let attempts = 0
 
-const retryAtSteadyCadence = Schedule.spaced("2 seconds").pipe(
+const loadConfiguration = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`configuration attempt ${attempts}`)
+
+  if (attempts < 3) {
+    return yield* Effect.fail(
+      new DependencyUnavailable({ service: "config-service" })
+    )
+  }
+
+  return "feature-x=enabled"
+})
+
+const retryAtSteadyCadence = Schedule.spaced("30 millis").pipe(
   Schedule.both(Schedule.recurs(5))
 )
 
-export const program = loadConfiguration.pipe(
+const program = loadConfiguration.pipe(
   Effect.retry(retryAtSteadyCadence)
 )
+
+Effect.runPromise(program).then((configuration) => {
+  console.log(`loaded: ${configuration}`)
+})
 ```
 
 This policy makes one initial attempt immediately. If it fails with
-`DependencyUnavailable`, it waits two seconds before each retry and retries at
-most five times after the original attempt.
+`DependencyUnavailable`, it waits before each retry and retries at most five
+times after the original attempt.
 
 ## Why not always use backoff?
 
@@ -77,14 +94,7 @@ after deploys, process restarts, cron boundaries, or a shared dependency
 outage.
 
 Add `Schedule.jittered` when many clients, fibers, or service instances may
-retry or poll at the same time:
-
-```ts
-const retryWithoutLockstep = Schedule.spaced("2 seconds").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5))
-)
-```
+retry or poll at the same time.
 
 `Schedule.jittered` randomly adjusts each recurrence delay between 80% and
 120% of the original delay. Apply it after choosing the base cadence, so the
@@ -92,8 +102,8 @@ policy still has a recognizable operational shape.
 
 ## Notes and caveats
 
-`Schedule.spaced("2 seconds")` waits two seconds between retry attempts. It
-does not delay the first attempt.
+`Schedule.spaced(duration)` waits between retry attempts. It does not delay the
+first attempt.
 
 Do not use a fixed delay to hide permanent failures. Validation errors,
 authorization errors, malformed requests, and unsafe non-idempotent writes

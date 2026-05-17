@@ -16,12 +16,11 @@ observable.
 
 ## The anti-pattern
 
-The problematic version treats `Schedule` as a private timing helper. A retry
-policy is attached because `Schedule.exponential("200 millis")` looks
-reasonable. A polling loop is attached because `Schedule.spaced("1 second")`
-looks harmless. The code may even have sensible bounds with `Schedule.recurs`,
-`Schedule.take`, or `Schedule.during`, but no one can answer the production
-questions:
+The mistake is treating `Schedule` as a private timing helper. A retry policy
+is attached because `Schedule.exponential("200 millis")` looks reasonable. A
+polling loop is attached because `Schedule.spaced("1 second")` looks harmless.
+The code may even have sensible bounds with `Schedule.recurs`, `Schedule.take`,
+or `Schedule.during`, but no one can answer the production questions:
 
 - what input caused the recurrence decision
 - what delay was actually scheduled
@@ -30,17 +29,16 @@ questions:
   a domain terminal state
 - whether many callers are following the same timing pattern at once
 
-That is not a small documentation gap. It means the schedule is changing the
-shape of production traffic while remaining invisible to the people responsible
-for the system.
+That is not just a documentation gap. The schedule is changing production
+traffic while remaining invisible to the people responsible for the system.
 
 ## Why it happens
 
-It usually happens when the delay shape is chosen before the operational signal.
-The team decides on exponential backoff, fixed spacing, jitter, or an elapsed
-budget, then leaves logging and metrics as a later concern. That order is
-backwards for production code. Observability is part of the schedule design
-because the schedule owns the recurrence boundary.
+This happens when the delay shape is chosen before the operational signal. The
+team decides on exponential backoff, fixed spacing, jitter, or an elapsed budget,
+then leaves logging and metrics for later. That order is backwards in production
+code. Observability is part of schedule design because the schedule owns the
+recurrence boundary.
 
 `Schedule.tapInput` and `Schedule.tapOutput` exist for this reason. The input
 tap observes what is fed into the schedule without changing the policy. With
@@ -55,10 +53,10 @@ also expose the fields needed to understand that decision.
 
 ## Why it is risky
 
-The first risk is false confidence. A bounded schedule can still be opaque. If a
-retry gives up after five accepted recurrences, the final error alone does not
-show the attempted delay sequence, the retry count, or the reason each failure
-was considered retryable.
+The first risk is false confidence. A bounded schedule can still be opaque. If
+a retry gives up after five accepted recurrences, the final error alone does not
+show the delay sequence, retry count, or reason each failure was considered
+retryable.
 
 The second risk is misleading metrics. A counter for "request failed" hides
 whether the request failed immediately, recovered after one retry, exhausted a
@@ -69,7 +67,7 @@ recovery look like ordinary request latency.
 The third risk is ambiguous termination. `Schedule.recurs`, `Schedule.take`,
 and `Schedule.during` stop recurrence; they do not invent a domain reason such
 as "timed out", "budget exhausted", or "terminal failure". The code around
-`Effect.retry` or `Effect.repeat` must turn the final error or value into a
+`Effect.retry` or `Effect.repeat` must interpret the final error or value as a
 termination reason that callers, logs, and metrics can distinguish.
 
 The fourth risk is hidden fleet behavior. `Schedule.jittered` can spread
@@ -85,13 +83,13 @@ questions the policy must answer, then choose the narrowest schedule that can
 answer them.
 
 For retries, classify errors before they reach the retry schedule. The schedule
-should only receive failures that are eligible for recurrence. Use
-`Schedule.tapInput` for stable failure fields such as error tag, endpoint,
-operation, tenant, or dependency name. Use `Schedule.tapOutput` for accepted
-recurrences: retry number, computed delay, elapsed budget, or any output
-created by combining schedules.
+should only receive failures eligible for recurrence. Use `Schedule.tapInput`
+for stable failure fields such as error tag, endpoint, operation, tenant, or
+dependency name. Use `Schedule.tapOutput` for accepted recurrences: retry
+number, computed delay, elapsed budget, or outputs created by combining
+schedules.
 
-For repetition and polling, remember that the schedule input is usually the
+For repetition and polling, the schedule input is usually the
 successful value that was just produced. Log or metric the observed status, the
 accepted recurrence count, and the next delay. If a terminal domain state stops
 the loop, surface that as a different termination reason from an elapsed budget
@@ -109,12 +107,10 @@ polling timeout, and a terminal domain result should be different outcomes in
 the surrounding Effect workflow. The schedule can provide the recurrence
 mechanics and observation hooks, but the domain code owns the final meaning.
 
-For naming, avoid names such as `retryPolicy` or `pollSchedule` when the
-production promise is narrower. Names such as
-`retryInventoryTimeoutsWithObservedBackoff`,
-`pollImportUntilTerminalStatusOrBudget`, or
-`retryTokenRefreshWithAttemptMetrics` make the observability contract visible
-at the call site.
+For naming, avoid `retryPolicy` or `pollSchedule` when the production promise
+is narrower. Names such as `retryInventoryTimeoutsWithObservedBackoff`,
+`pollImportUntilTerminalStatusOrBudget`, or `retryTokenRefreshWithAttemptMetrics`
+make the observability contract visible at the call site.
 
 ## Notes and caveats
 

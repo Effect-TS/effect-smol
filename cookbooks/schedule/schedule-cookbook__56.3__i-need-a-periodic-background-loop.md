@@ -29,8 +29,8 @@ Before writing the worker, answer these questions:
 ## Why it matters
 
 Background loops are easy to make unbounded by accident. `Schedule.spaced` and
-`Schedule.fixed` both recur continuously unless you add a stopping rule or run
-the repeated effect under a lifecycle that can interrupt it.
+`Schedule.fixed` both recur continuously unless a stopping rule or owning
+lifecycle interrupts the repeated effect.
 
 That is often exactly what a service worker needs, but the choice should be
 visible. The schedule should tell a reader whether the loop is quiet between
@@ -42,16 +42,16 @@ observability is attached.
 Start with the cadence.
 
 Use `Schedule.spaced(duration)` when the requirement is "wait this long after a
-successful run completes." This is the default shape for most background loops
-because slow work naturally pushes the next start later. A cache refresh that
-takes three seconds and is repeated with `Schedule.spaced("30 seconds")` starts
-the next refresh about thirty seconds after the previous refresh completes.
+successful run completes." This is the default for most background loops because
+slow work naturally pushes the next start later. A cache refresh that takes
+three seconds and repeats with `Schedule.spaced("30 seconds")` starts the next
+refresh about thirty seconds after the previous refresh completes.
 
-Use `Schedule.fixed(duration)` when the requirement is "stay on this regular
-interval." In `Schedule.ts`, `fixed` keeps a fixed interval and, if the action
-takes longer than the interval, the next run happens immediately without
-building a backlog of missed runs. That fits probes or ticks where cadence
-alignment matters more than quiet time after completion.
+Use `Schedule.fixed(duration)` when the requirement is "stay on this interval."
+`fixed` keeps a regular interval and, if the action takes longer than the
+interval, the next run happens immediately without building a backlog of missed
+runs. That fits probes or ticks where cadence alignment matters more than quiet
+time after completion.
 
 Then decide whether the loop is truly lifetime-bound. If it is not, add a
 limit:
@@ -63,11 +63,11 @@ limit:
 - Use `Schedule.during(duration)` when the loop should continue only during an
   elapsed schedule window.
 
-Combine an interval and a limit only when both rules are real requirements. For
-example, a bounded maintenance loop can be "run every thirty seconds until
-twenty recurrences or fifteen minutes have been spent." A process-lifetime
-heartbeat may deliberately have no schedule limit, but then cancellation must
-come from the owning fiber, scope, or supervisor.
+Combine an interval and a limit only when both rules are real requirements. A
+bounded maintenance loop might run every thirty seconds until twenty
+recurrences or fifteen minutes have been spent. A process-lifetime heartbeat may
+deliberately have no schedule limit, but then cancellation must come from the
+owning fiber, scope, or supervisor.
 
 ## Practical guidance
 
@@ -76,10 +76,10 @@ usually easier to reason about because each run completes before the quiet
 period begins. Pick `fixed` for clock-like periodic work, and remember that it
 does not launch concurrent catch-up executions by itself.
 
-Keep failure handling separate from periodic repetition. `Effect.repeat` uses
-the schedule after successful iterations. If a flush, poll, or refresh should
-retry on failure, put a short retry policy around that one iteration, then
-repeat the recovered operation on the background cadence.
+Keep failure handling separate from periodic repetition. `Effect.repeat` uses a
+schedule after successful iterations. If a flush, poll, or refresh should retry
+on failure, put a short retry policy around that one iteration, then repeat the
+recovered operation on the background cadence.
 
 Add jitter when many instances run the same loop against shared infrastructure.
 For periodic loops, jitter normally belongs on the repeat schedule so ordinary
@@ -94,11 +94,11 @@ the schedule or in the repeated effect's result instead of relying on process
 exit.
 
 Attach observability to the schedule when the recurrence policy is what you
-need to see. `Schedule.tapOutput` can record the recurrence count produced by
-`spaced` or `fixed`. `Schedule.tapInput` observes the values supplied to the
-schedule, which are successful values for repeats and failures for retries.
-For richer decisions, schedule metadata includes attempt, elapsed time,
-elapsed time since the previous step, output, and the computed duration.
+need to see. `Schedule.tapOutput` can record recurrence counts or delay outputs.
+`Schedule.tapInput` observes the values supplied to the schedule: successful
+values for repeats and failures for retries. For predicate-based decisions,
+`Schedule.while` receives metadata such as attempt, elapsed time, output, and
+computed duration.
 
 Prefer a small named schedule over inline composition. Names such as
 `refreshEveryMinute`, `boundedStartupWarmup`, or `jitteredMetricsFlush` make the

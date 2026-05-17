@@ -10,33 +10,22 @@ code_included: true
 
 # 27.2 Jittered retries for Redis reconnects
 
-Redis reconnects are a common use for jitter when restarts, network drops, or
-deployments affect many workers at once. This recipe applies jitter after
-choosing the reconnect backoff shape.
+Use jittered retries for Redis reconnect loops that may run across many workers
+at once. Pick the reconnect backoff first, then jitter the delay so workers do
+not all reconnect on the same boundary.
 
 ## Problem
 
-You have a background process that depends on Redis. When the connection is
-lost for a transient reason, the reconnect loop should try again instead of
-failing the whole worker immediately.
-
-You want a reconnect policy that:
-
-- starts quickly, because many Redis interruptions are brief
-- backs off after repeated failures
-- jitters each delay so many workers do not reconnect together
-- caps the maximum delay so the worker does not wait minutes between attempts
-- stops after a bounded number of retries
+A worker loses its Redis connection during a restart, failover, or short network
+drop. It should reconnect quickly at first, back off after repeated failures,
+and stop after a bounded number of attempts so the supervisor can report a real
+outage.
 
 ## When to use it
 
-Use this recipe for Redis reconnect loops in workers, stream consumers,
-subscription listeners, cache warmers, and queue processors where reconnecting
-is safe and expected.
-
-It is especially useful when many instances share the same Redis cluster. Jitter
-spreads retry traffic across a small window around each computed delay, which
-helps avoid a second burst of connection attempts immediately after an outage.
+Use it for workers, stream consumers, subscription listeners, cache warmers, and
+queue processors where reconnecting is expected. It is most useful when many
+instances share the same Redis cluster.
 
 ## When not to use it
 
@@ -55,10 +44,10 @@ unavailable.
 delay and doubles the delay after each failed reconnect. `Schedule.jittered`
 then randomizes each computed delay between `80%` and `120%` of that delay.
 
-The cap is applied after jitter so the final sleep never exceeds the configured
-maximum. The retry count is separate from the delay shape: `Schedule.recurs(8)`
-means the original reconnect attempt may be followed by at most eight scheduled
-retries.
+Apply a cap after jitter if the final sleep must never exceed a configured
+maximum. Keep the retry count separate from the delay shape:
+`Schedule.recurs(8)` means at most eight retries after the original reconnect
+attempt.
 
 ## Code
 
@@ -69,19 +58,34 @@ class RedisReconnectError extends Data.TaggedError("RedisReconnectError")<{
   readonly reason: "timeout" | "connection-refused" | "server-loading"
 }> {}
 
-declare const reconnectRedis: Effect.Effect<void, RedisReconnectError>
+let attempt = 0
 
-const redisReconnectPolicy = Schedule.exponential("100 millis").pipe(
+const reconnectRedis = Effect.gen(function*() {
+  attempt += 1
+  yield* Effect.sync(() => console.log(`redis reconnect attempt ${attempt}`))
+
+  if (attempt < 4) {
+    return yield* Effect.fail(
+      new RedisReconnectError({ reason: "server-loading" })
+    )
+  }
+
+  yield* Effect.sync(() => console.log("redis reconnected"))
+})
+
+const redisReconnectPolicy = Schedule.exponential("20 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.seconds(5)))
+    Effect.succeed(Duration.min(delay, Duration.millis(120)))
   ),
   Schedule.both(Schedule.recurs(8))
 )
 
-export const program = reconnectRedis.pipe(
+const program = reconnectRedis.pipe(
   Effect.retry(redisReconnectPolicy)
 )
+
+Effect.runPromise(program)
 ```
 
 ## Variants
@@ -95,8 +99,7 @@ operators a concrete answer to how long the worker will keep trying before it
 surfaces the failure.
 
 For a large fleet, keep jitter enabled even when the cap is low. The cap limits
-maximum wait time; jitter reduces synchronization. They solve different
-operational problems and are usually used together.
+maximum wait time; jitter reduces synchronization.
 
 ## Notes and caveats
 

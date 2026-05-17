@@ -12,7 +12,7 @@ code_included: true
 
 Authorization failures are usually not timing problems. A missing token, expired
 session, disabled account, or missing permission will normally fail again until
-the caller authenticates differently or an operator changes access.
+the caller authenticates differently or access changes.
 
 ## Problem
 
@@ -21,9 +21,8 @@ authorization error from the protected resource. The retry policy should handle
 timeouts and temporary unavailability, but return authorization failures
 immediately.
 
-The schedule should make that distinction visible. A bounded backoff answers
-"how often may transient failures be retried?" The authorization predicate
-answers "which failures must not be retried at all?"
+Keep that distinction visible: the schedule controls how transient failures are
+retried, and the predicate decides which failures must not be retried.
 
 ## When to use it
 
@@ -34,8 +33,7 @@ background workers that use scoped credentials.
 
 This is especially useful when a broad retry policy is already available but
 must not be applied blindly. The operation still runs once immediately. The
-schedule only decides whether a failed attempt should be followed by another
-attempt.
+schedule is consulted only after a typed failure.
 
 ## When not to use it
 
@@ -49,21 +47,20 @@ short-lived `CredentialsPropagating` or `PermissionPropagationDelay` error, and
 keep ordinary authorization failures non-retryable.
 
 Do not rely on `Schedule.recurs`, `Schedule.take`, or `Schedule.during` to make
-authorization retries acceptable. A limit bounds the damage, but the correct
-policy is still to stop before retrying the non-retryable failure.
+authorization retries acceptable. A limit bounds repeated work, but the correct
+policy is to stop before retrying the non-retryable failure.
 
 ## Schedule shape
 
-With `Effect.retry`, failed values from the effect become inputs to the
-schedule. `Schedule.while` receives schedule metadata that includes that input.
-When the predicate returns `false`, the schedule stops and the current typed
-failure is propagated.
+Use `Effect.retry({ schedule, while })` so the authorization check is applied
+before another retry is scheduled. The `while` predicate receives the typed
+failure. Returning `false` stops retrying and propagates that failure.
 
 Combine three pieces:
 
 - a delay policy for failures that may recover
 - a finite limit so retrying cannot continue forever
-- a schedule predicate that stops on authorization failures
+- a predicate that rejects authorization failures
 
 Keep the authorization check close to the error model. The schedule should not
 guess from strings or status text when the adapter can expose a typed error.
@@ -71,7 +68,7 @@ guess from strings or status text when the adapter can expose a typed error.
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class Timeout extends Data.TaggedError("Timeout")<{
   readonly operation: string
@@ -87,84 +84,77 @@ class Unauthorized extends Data.TaggedError("Unauthorized")<{
 
 type ApiError = Timeout | ServiceUnavailable | Unauthorized
 
-interface UserProfile {
+type UserProfile = {
   readonly id: string
   readonly name: string
 }
 
-declare const fetchProfile: Effect.Effect<UserProfile, ApiError>
+let attempts = 0
 
-const isAuthorizationFailure = (error: ApiError): boolean =>
-  error._tag === "Unauthorized"
+const fetchProfile = Effect.gen(function*() {
+  attempts += 1
+  yield* Console.log(`profile attempt ${attempts}`)
 
-const retryUnlessUnauthorized = Schedule.exponential("200 millis").pipe(
-  Schedule.setInputType<ApiError>(),
-  Schedule.while(({ input }) => !isAuthorizationFailure(input)),
+  if (attempts === 1) {
+    return yield* Effect.fail(new Timeout({ operation: "fetchProfile" }))
+  }
+  if (attempts === 2) {
+    return yield* Effect.fail(new ServiceUnavailable({ service: "profiles" }))
+  }
+  if (attempts === 3) {
+    return yield* Effect.fail(new Unauthorized({ reason: "ExpiredToken" }))
+  }
+
+  return { id: "user-1", name: "Ada" } satisfies UserProfile
+})
+
+const retryUnlessUnauthorized = Schedule.exponential("20 millis").pipe(
   Schedule.both(Schedule.recurs(3))
 )
 
-export const program = fetchProfile.pipe(
-  Effect.retry(retryUnlessUnauthorized)
+const program = fetchProfile.pipe(
+  Effect.retry({
+    schedule: retryUnlessUnauthorized,
+    while: (error: ApiError) => error._tag !== "Unauthorized"
+  }),
+  Effect.matchEffect({
+    onFailure: (error) =>
+      Console.log(`stopped on ${error._tag} after ${attempts} attempts`),
+    onSuccess: (profile) => Console.log(`loaded ${profile.name}`)
+  })
 )
+
+Effect.runPromise(program)
 ```
 
-`program` runs `fetchProfile` once immediately. If it fails with `Timeout` or
-`ServiceUnavailable`, the retry policy waits with exponential backoff while the
-three-retry limit still allows another attempt. If it fails with `Unauthorized`,
-`Schedule.while` returns `false`, no retry delay is scheduled, and the
-`Unauthorized` value is propagated.
-
-The predicate runs before the retry schedule commits to another recurrence.
-That is the important part: authorization is classified as non-retryable before
-the timing policy is allowed to spend another attempt.
+`fetchProfile` runs once immediately. The timeout and service outage are
+retried. The expired token is not retried, so the program stops after three
+attempts and reports the authorization failure.
 
 ## Variants
 
 If the retryable set is smaller than the non-retryable set, name the predicate
-after what may continue:
+after what may continue, such as `isRetryableApiError`, instead of after the
+thing that stops.
 
-```ts
-const isRetryableApiError = (error: ApiError): boolean => {
-  switch (error._tag) {
-    case "Timeout":
-    case "ServiceUnavailable":
-      return true
-    case "Unauthorized":
-      return false
-  }
-}
-
-const retryRetryableFailures = Schedule.spaced("500 millis").pipe(
-  Schedule.setInputType<ApiError>(),
-  Schedule.while(({ input }) => isRetryableApiError(input)),
-  Schedule.both(Schedule.recurs(2))
-)
-```
-
-Use a credential-refresh effect before the protected call when an expired token
-can be fixed safely:
-
-```ts
-declare const refreshToken: Effect.Effect<void, Unauthorized>
-
-const fetchWithExplicitRefresh = refreshToken.pipe(
-  Effect.andThen(fetchProfile),
-  Effect.retry(retryUnlessUnauthorized)
-)
-```
-
-This shape keeps token refresh explicit. If refresh itself fails with
-`Unauthorized`, the same retry policy stops immediately instead of repeatedly
+Use an explicit credential-refresh effect before the protected call when an
+expired token can be fixed safely. If refresh itself fails with an authorization
+error, the same retry predicate should stop immediately instead of repeatedly
 calling the protected endpoint with unusable credentials.
+
+For short-lived permission propagation, model a separate retryable error such
+as `PermissionPropagationDelay`. Do not reuse `Unauthorized` for both permanent
+and temporary authorization states.
 
 ## Notes and caveats
 
-`Schedule.while` describes the condition for continuing. In this recipe the
-schedule continues while the input is not an authorization failure.
+`Effect.retry({ while })` describes the condition for continuing. In this
+recipe, retrying continues only while the failure is not an authorization
+failure.
 
 `Schedule.recurs(3)` counts retries after the original attempt. It does not
 make an authorization failure retryable; it only limits failures that already
-passed the schedule predicate.
+passed the predicate.
 
 Use typed errors for the classification. Status codes such as `401` and `403`
 are useful at the adapter boundary, but the application retry policy should see

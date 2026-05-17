@@ -15,11 +15,9 @@ can vary; the retry count, stopping behavior, and allowed delay range should not
 
 ## Problem
 
-You have a retry or polling policy that uses `Schedule.jittered`, and you need
-tests that are stable. A test that advances the clock by the base delay can
-flake because the actual delay may be longer than the base delay. A test that
-asserts one exact jittered duration is brittle because the implementation is
-random by design.
+Tests for `Schedule.jittered` should not assume the base delay is the actual
+delay. The actual delay may be shorter or longer, and asserting one exact
+jittered value turns deliberate randomness into a brittle snapshot.
 
 In Effect, `Schedule.jittered` randomly adjusts each recurrence delay between
 80% and 120% of the delay produced by the schedule it wraps. For a base delay
@@ -33,8 +31,8 @@ client retries, worker reconnects, polling loops, or any recurrence that may be
 run by many fibers or service instances.
 
 Keep the same schedule shape in the test when you want coverage for the real
-policy. Use a deterministic random seed only to make the test reproducible, not
-to promise that future readers should care about one exact jitter value.
+policy. Use a deterministic random seed to make the run reproducible, not to make
+one random value part of the public contract.
 
 ## When not to use it
 
@@ -51,19 +49,11 @@ validated with simulation, metrics, or integration tests.
 
 ## Schedule shape
 
-Start with the production schedule:
-
-```ts
-const retryPolicy = Schedule.spaced("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(2))
-)
-```
-
-The first attempt is immediate. If it fails, the first retry waits somewhere
-from 80 to 120 milliseconds. If that retry fails, the second retry waits in the
-same range. `Schedule.recurs(2)` allows at most two retries after the original
-attempt.
+Start with the production schedule. For a 100 millisecond spaced schedule with
+`Schedule.jittered` and `Schedule.both(Schedule.recurs(2))`, the first attempt
+is immediate. If it fails, the first retry waits somewhere from 80 to 120
+milliseconds. If that retry fails, the second retry waits in the same range.
+`Schedule.recurs(2)` allows at most two retries after the original attempt.
 
 In a time-driven test, advance the `TestClock` by the upper bound for each
 recurrence you expect to pass. For a 100 millisecond base delay, that means
@@ -72,93 +62,57 @@ advancing by 120 milliseconds per recurrence, not 100.
 ## Code
 
 ```ts
-import { assert, describe, it } from "@effect/vitest"
-import { Effect, Fiber, Random, Ref, Schedule } from "effect"
-import { TestClock } from "effect/testing"
+import { Console, Duration, Effect, Random, Ref, Schedule } from "effect"
 
-describe("retryPolicy", () => {
-  it.effect("retries with jitter without assuming exact delays", () =>
-    Effect.gen(function*() {
-      const attempts = yield* Ref.make(0)
+const assertInRange = (
+  label: string,
+  delay: Duration.Duration,
+  minMillis: number,
+  maxMillis: number
+) =>
+  Effect.gen(function*() {
+    const millis = Duration.toMillis(delay)
+    yield* Console.log(`${label}: ${millis.toFixed(2)}ms`)
 
-      const operation = Ref.updateAndGet(attempts, (n) => n + 1).pipe(
-        Effect.flatMap((attempt) =>
-          attempt < 3
-            ? Effect.fail("transient" as const)
-            : Effect.succeed("ok" as const)
-        )
+    if (millis < minMillis || millis > maxMillis) {
+      return yield* Effect.fail(
+        `${label} was outside ${minMillis}-${maxMillis}ms`
       )
+    }
+  })
 
-      const retryPolicy = Schedule.spaced("100 millis").pipe(
-        Schedule.jittered,
-        Schedule.both(Schedule.recurs(2))
+const program = Effect.gen(function*() {
+  const checked = yield* Ref.make(0)
+
+  const schedule = Schedule.spaced("20 millis").pipe(
+    Schedule.jittered,
+    Schedule.delays,
+    Schedule.tapOutput((delay) =>
+      Ref.updateAndGet(checked, (n) => n + 1).pipe(
+        Effect.flatMap((n) => assertInRange(`delay ${n}`, delay, 16, 24))
       )
+    ),
+    Schedule.take(5)
+  )
 
-      const fiber = yield* operation.pipe(
-        Effect.retry(retryPolicy),
-        Random.withSeed("retry-policy-test"),
-        Effect.fork
-      )
+  yield* Effect.succeed("tick").pipe(
+    Effect.repeat(schedule),
+    Random.withSeed("jitter-range-demo")
+  )
 
-      yield* TestClock.adjust("120 millis")
-      yield* TestClock.adjust("120 millis")
-
-      const result = yield* Fiber.join(fiber)
-      const count = yield* Ref.get(attempts)
-
-      assert.strictEqual(result, "ok")
-      assert.strictEqual(count, 3)
-    }))
+  const total = yield* Ref.get(checked)
+  yield* Console.log(`checked ${total} jittered delays`)
 })
+
+Effect.runPromise(program)
 ```
 
-This test does not assert that either recurrence waited exactly 100
-milliseconds. It advances by the maximum delay that `Schedule.jittered` can
-produce for the 100 millisecond base interval. The seeded random service makes
-the run reproducible, while the assertion stays focused on the retry contract:
-the original attempt plus two allowed retries are enough for the operation to
-succeed.
+This is a scratchpad-sized version of the assertion you would put in an
+`it.effect` test. It checks bounds, not exact values. In a clock-driven unit
+test, advance `TestClock` by the upper bound for each recurrence that must
+complete.
 
 ## Variants
-
-To test delay bounds directly, inspect schedule delays and assert ranges rather
-than exact values:
-
-```ts
-import { assert, describe, it } from "@effect/vitest"
-import { Duration, Effect, Random, Schedule } from "effect"
-
-describe("jittered spacing", () => {
-  it.effect("keeps recurrence delays within the jitter range", () =>
-    Effect.gen(function*() {
-      const delays: Array<Duration.Duration> = []
-
-      const schedule = Schedule.spaced("1 second").pipe(
-        Schedule.jittered,
-        Schedule.delays,
-        Schedule.tapOutput((delay) =>
-          Effect.sync(() => {
-            delays.push(delay)
-          })
-        ),
-        Schedule.take(20)
-      )
-
-      yield* Effect.void.pipe(
-        Effect.repeat(schedule),
-        Random.withSeed("jitter-range-test")
-      )
-
-      assert.strictEqual(
-        delays.every((delay) => {
-          const millis = Duration.toMillis(delay)
-          return millis >= 800 && millis <= 1200
-        }),
-        true
-      )
-    }))
-})
-```
 
 For polling tests, use the same rule: if a five-second polling interval is
 jittered, advance the test clock by six seconds for each recurrence that must

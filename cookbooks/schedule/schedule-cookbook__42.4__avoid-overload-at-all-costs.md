@@ -11,13 +11,14 @@ code_included: true
 # 42.4 “Avoid overload at all costs”
 
 When the requirement is "avoid overload at all costs", the retry policy should
-prefer giving up over adding pressure to a dependency that is already struggling.
-That means conservative spacing, increasing waits, fleet-wide desynchronization,
-and explicit limits.
+prefer giving up over adding pressure to a dependency that is already
+struggling. That means conservative spacing, increasing waits, fleet-wide
+desynchronization, and explicit limits.
 
-Use the schedule to make that operational promise reviewable. A reader should be
-able to see the first retry delay, the backoff curve, the maximum final delay,
-the retry count, and the elapsed budget without hunting through a custom loop.
+Use the schedule to make that operational promise reviewable. A reader should
+be able to see the first retry delay, the backoff curve, the maximum final
+delay, the retry count, and the elapsed budget without hunting through a custom
+loop.
 
 ## Problem
 
@@ -50,40 +51,22 @@ backpressure, load shedding, or circuit breaking.
 ## Schedule shape
 
 Start with a slow exponential backoff, add jitter, cap the final delay, and add
-both count and elapsed-time limits:
-
-```ts
-Schedule.exponential("2 seconds").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.minutes(1)))
-  ),
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.both(Schedule.during("5 minutes"))
-)
-```
-
-`Schedule.exponential("2 seconds")` starts with a two-second delay and then
-grows by the default factor of `2`: 2 seconds, 4 seconds, 8 seconds, and so on.
-That is intentionally slower than a latency-oriented retry policy.
+both count and elapsed-time limits. `Schedule.exponential("2 seconds")` starts
+with a two-second delay and then grows by the default factor of `2`. That is
+intentionally slower than a latency-oriented retry policy.
 
 `Schedule.jittered` adjusts each recurrence delay between 80% and 120% of the
 incoming delay. If many workers fail at the same time, their later retries are
 less likely to stay synchronized.
 
-`Schedule.modifyDelay` caps the final delay after jitter. In this recipe, no
-single wait is allowed to exceed one minute.
-
-`Schedule.both(Schedule.recurs(8))` and
-`Schedule.both(Schedule.during("5 minutes"))` add stop conditions. `both`
-continues only while both schedules continue, and uses the larger delay between
-the combined schedules. The result is conservative: the retry stops when either
-the retry count or the elapsed budget is exhausted.
+Use `Schedule.modifyDelay` to cap the final delay after jitter. Add
+`Schedule.recurs` and `Schedule.during` with `Schedule.both` so the policy stops
+when either the retry count or elapsed budget is exhausted.
 
 ## Code
 
 ```ts
-import { Duration, Effect, Schedule } from "effect"
+import { Console, Duration, Effect, Schedule } from "effect"
 
 type InventorySnapshot = {
   readonly sku: string
@@ -101,27 +84,56 @@ const isRetryable = (error: DownstreamError): boolean =>
   error._tag === "Unavailable" ||
   error._tag === "RateLimited"
 
-declare const loadInventorySnapshot: Effect.Effect<
-  InventorySnapshot,
-  DownstreamError
->
+let attempts = 0
 
-const avoidOverloadRetryPolicy = Schedule.exponential("2 seconds").pipe(
+const loadInventorySnapshot = Effect.gen(function*() {
+  attempts++
+  yield* Console.log(`inventory attempt ${attempts}`)
+
+  if (attempts === 1) {
+    return yield* Effect.fail({
+      _tag: "RateLimited",
+      service: "inventory"
+    } satisfies DownstreamError)
+  }
+  if (attempts < 4) {
+    return yield* Effect.fail({
+      _tag: "Unavailable",
+      service: "inventory"
+    } satisfies DownstreamError)
+  }
+
+  return {
+    sku: "sku-123",
+    available: 42
+  } satisfies InventorySnapshot
+})
+
+const avoidOverloadRetryPolicy = Schedule.exponential("40 millis").pipe(
   Schedule.jittered,
   Schedule.modifyDelay((_, delay) =>
-    Effect.succeed(Duration.min(delay, Duration.minutes(1)))
+    Effect.succeed(Duration.min(delay, Duration.millis(120)))
   ),
   Schedule.both(Schedule.recurs(8)),
-  Schedule.both(Schedule.during("5 minutes"))
+  Schedule.both(Schedule.during("500 millis"))
 )
 
-export const program = loadInventorySnapshot.pipe(
+const program = loadInventorySnapshot.pipe(
   Effect.retry({
     schedule: avoidOverloadRetryPolicy,
     while: isRetryable
-  })
+  }),
+  Effect.flatMap((snapshot) =>
+    Console.log(`${snapshot.sku}: ${snapshot.available} available`)
+  )
 )
+
+Effect.runPromise(program)
 ```
+
+The demo uses short durations so it finishes quickly. In production, the same
+shape would usually start at seconds, cap at tens of seconds or minutes, and
+use an operational budget that matches the caller.
 
 `program` performs the first call immediately. If it fails with a retryable
 typed error, the retry schedule waits for a jittered exponential delay before
@@ -129,15 +141,14 @@ trying again. If the error is `"Rejected"`, the `while` predicate prevents the
 retry policy from adding more traffic.
 
 The policy allows at most eight retries after the original attempt, and only
-while the five-minute budget is still open. If every allowed retry fails,
+while the elapsed budget is still open. If every allowed retry fails,
 `Effect.retry` propagates the last typed failure.
 
 ## Variants
 
 For interactive requests, make the policy stricter: start closer to one second,
-cap at a few seconds, and use a small retry count or a short
-`Schedule.during` budget. Avoid making a user wait through a background-worker
-retry profile.
+cap at a few seconds, and use a small retry count or a short `Schedule.during`
+budget. Avoid making a user wait through a background-worker retry profile.
 
 For background recovery jobs, use a larger base delay and a smaller retry count
 when the dependency is known to be fragile. A policy such as "start at 10

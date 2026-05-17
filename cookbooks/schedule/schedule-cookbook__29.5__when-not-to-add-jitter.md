@@ -15,10 +15,10 @@ timing is part of the contract.
 
 ## Problem
 
-Before applying `Schedule.jittered`, identify what readers should rely on: the
-exact cadence, or only an approximate cadence around a base delay. A randomized
-recurrence may fire earlier or later than the wrapped schedule would choose, so
-it should be a deliberate load-shaping decision.
+Before applying `Schedule.jittered`, decide what readers may rely on: an exact
+cadence, or an approximate cadence around a base delay. A randomized recurrence
+may run earlier or later than the wrapped schedule would, so it should be a
+deliberate load-shaping choice.
 
 ## When to use it
 
@@ -51,64 +51,40 @@ predictability more than desynchronization.
 ## Schedule shape
 
 Choose the deterministic shape first and leave it unjittered when precision is
-the requirement:
-
-```ts
-import { Effect, Schedule } from "effect"
-
-declare const sendHeartbeat: Effect.Effect<void>
-declare const refreshVisibleStatus: Effect.Effect<void>
-declare const drainSmallQueue: Effect.Effect<void>
-
-const heartbeatCadence = Schedule.fixed("30 seconds")
-
-const visibleRefreshCadence = Schedule.spaced("5 seconds").pipe(
-  Schedule.take(12)
-)
-
-const smallQueueCadence = Schedule.spaced("1 second")
-
-export const heartbeatLoop = Effect.repeat(sendHeartbeat, heartbeatCadence)
-
-export const visibleRefreshLoop = Effect.repeat(
-  refreshVisibleStatus,
-  visibleRefreshCadence
-)
-
-export const smallQueueLoop = Effect.repeat(
-  drainSmallQueue,
-  smallQueueCadence
-)
-```
-
-These schedules are intentionally not piped through `Schedule.jittered`. The
-heartbeat keeps a fixed cadence, the visible refresh keeps a predictable
-five-second gap with a clear limit, and the single-instance queue loop stays
-simple because there is no synchronized fleet to spread.
+the requirement. Use `Schedule.fixed` for wall-clock cadence, `Schedule.spaced`
+for a gap after work finishes, `Schedule.exponential` for deterministic backoff,
+and `Schedule.recurs`, `Schedule.take`, or `Schedule.during` for visible bounds.
 
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Ref, Schedule } from "effect"
 
-type PollError = { readonly _tag: "PollError" }
-
-declare const pollUserVisibleStatus: Effect.Effect<string, PollError>
-
-const predictableStatusPolling = Schedule.spaced("2 seconds").pipe(
-  Schedule.take(15)
+const predictableStatusPolling = Schedule.spaced("50 millis").pipe(
+  Schedule.take(3)
 )
 
-export const program = Effect.repeat(
-  pollUserVisibleStatus,
-  predictableStatusPolling
-)
+const program = Effect.gen(function*() {
+  const polls = yield* Ref.make(0)
+
+  const pollUserVisibleStatus = Ref.updateAndGet(polls, (n) => n + 1).pipe(
+    Effect.tap((poll) => Console.log(`poll ${poll}: status is still visible`)),
+    Effect.as("visible")
+  )
+
+  const finalRecurrence = yield* pollUserVisibleStatus.pipe(
+    Effect.repeat(predictableStatusPolling)
+  )
+
+  yield* Console.log(`stopped after recurrence ${finalRecurrence}`)
+})
+
+Effect.runPromise(program)
 ```
 
-The next poll happens after a deterministic two-second gap, and the loop stops
-after the configured number of recurrences. Adding `Schedule.jittered` here
-would change the user-visible rhythm without improving safety for a
-single-user workflow.
+The loop uses a deterministic gap and a deterministic stop condition. Adding
+`Schedule.jittered` would change the user-visible rhythm without improving
+safety for this single-user workflow.
 
 ## Variants
 

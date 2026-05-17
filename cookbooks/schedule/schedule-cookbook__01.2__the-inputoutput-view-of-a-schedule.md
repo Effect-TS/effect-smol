@@ -10,113 +10,104 @@ code_included: true
 
 # 1.2 The input/output view of a schedule
 
-This subsection explains The input/output view of a schedule as a practical Effect
-`Schedule` recipe. This section keeps the focus on Effect's `Schedule` model: recurrence
-is represented as data that decides whether another decision point exists, which delay
-applies, and what output the policy contributes. That framing makes later retry, repeat,
-and polling recipes easier to compose without hiding timing behavior inside ad hoc
-loops.
+A schedule is easier to read when you separate the value it observes from the
+value it emits. In `Schedule.Schedule<Output, Input, Error, Env>`, `Input` is
+what the driver feeds to the policy, and `Output` is what the policy reports.
 
-## What this section is about
+## Problem
 
-The public type shows the input/output view directly:
+Developers often read a schedule only as a delay. That loses an important part
+of the model: schedules can inspect inputs and publish outputs. The input is not
+the constructor argument in `Schedule.spaced("1 second")`; it is the value passed
+to the schedule each time it is stepped.
 
-```ts
-Schedule.Schedule<Output, Input, Error, Env>
-```
+## Model
 
-For most cookbook work, the first two type parameters are the ones to read
-first:
+For cookbook usage, read the first two type parameters first:
 
-| Type     | Question it answers                                                     |
-| -------- | ----------------------------------------------------------------------- |
-| `Input`  | What value is fed to the schedule each time it makes its next decision? |
-| `Output` | What value does the schedule produce as its own result?                 |
+| Type     | Meaning                                                               |
+| -------- | --------------------------------------------------------------------- |
+| `Input`  | The value supplied to the schedule at each decision point.            |
+| `Output` | The value emitted by the schedule when it continues or completes.     |
 
-The input is not the constructor argument you pass to something like
-`Schedule.spaced("1 second")`. It is the value supplied by the driver that is
-running the schedule.
+`Effect.retry` feeds typed failures into the schedule. `Effect.repeat` feeds
+successful values into the schedule. A schedule that ignores input can usually
+be used with either entry point. A schedule that inspects input must match the
+channel selected by the driver.
 
-## Why it matters
+Common constructor outputs are also worth knowing:
 
-For `Effect.retry`, the schedule input is the failure value. If an effect fails
-with `NetworkError`, a retry policy that inspects its input is inspecting a
-`NetworkError`.
+| Schedule                                           | Common output       |
+| -------------------------------------------------- | ------------------- |
+| `Schedule.recurs`, `Schedule.spaced`, `Schedule.fixed` | recurrence counts   |
+| `Schedule.forever`                                 | recurrence counts   |
+| `Schedule.exponential`, `Schedule.duration`, `Schedule.elapsed` | durations |
+| `Schedule.passthrough(schedule)`                   | the latest input    |
 
-For `Effect.repeat`, the schedule input is the success value. If an effect
-succeeds with a `User`, a repeat schedule that inspects its input is inspecting
-that `User`.
+## Code
 
-This distinction affects both type inference and meaning. The same schedule can
-be used for retrying and repeating when it ignores input, but an input-sensitive
-schedule must match the driver that feeds it.
-
-## Core idea
-
-This is why many common schedules can be used almost anywhere. Constructors like
-`Schedule.recurs`, `Schedule.spaced`, and `Schedule.forever` do not need to look
-at the incoming value, so their input type is `unknown`. They can count, delay,
-or stop without caring whether the incoming value was an error from retrying or
-a success from repeating.
+This repeat policy observes successful values. `Schedule.passthrough` turns the
+latest input into the schedule output, then `Schedule.map` changes the output
+into a log-friendly label:
 
 ```ts
-import { Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
-const threeMoreDecisions: Schedule.Schedule<number, unknown> = Schedule.recurs(3)
+type Status = "warming" | "ready"
 
-const echoStringInput: Schedule.Schedule<string, string> = Schedule.identity<string>().pipe(Schedule.take(3))
+let polls = 0
 
-const labeledSpacing: Schedule.Schedule<string, unknown> = Schedule.spaced("1 second").pipe(
-  Schedule.map((count) => `repeat #${count + 1}`),
-  Schedule.take(5)
+const readStatus = Effect.sync((): Status => {
+  polls += 1
+  return polls < 3 ? "warming" : "ready"
+}).pipe(
+  Effect.tap((status) => Console.log(`effect success: ${status}`))
 )
+
+const program = Effect.gen(function*() {
+  const scheduleOutput = yield* readStatus.pipe(
+    Effect.repeat(($) =>
+      Schedule.passthrough($(Schedule.forever)).pipe(
+        Schedule.tapInput((status) => Console.log(`schedule input: ${status}`)),
+        Schedule.map((status) => `schedule output: saw ${status}`),
+        Schedule.tapOutput((message) => Console.log(message)),
+        Schedule.while(({ input }) => input !== "ready")
+      )
+    )
+  )
+
+  yield* Console.log(`repeat returned: ${scheduleOutput}`)
+})
+
+Effect.runPromise(program)
 ```
 
-In the first schedule, `number` is the output: the recurrence count. The input
-is `unknown` because `Schedule.recurs(3)` only needs metadata such as the
-attempt count.
-
-In the second schedule, the schedule is input-sensitive. `Schedule.identity`
-passes each input through as the output, so the input and output types are both
-`string`.
-
-In the third schedule, the input is still ignored, but the output has been
-changed from a numeric count into a label with `Schedule.map`.
+The effect succeeds with `"warming"`, `"warming"`, then `"ready"`. Each success
+is schedule input. The final success also becomes the final schedule output
+after mapping, because the raw schedule overload of `Effect.repeat` returns the
+schedule output.
 
 ## Common mistakes
 
-The output of a schedule is also separate from the value produced by the effect
-being retried or repeated. A retrying effect still succeeds with the successful
-value of the original effect. The retry policy's output is mostly useful for
-composition, observation, or fallback APIs such as `Effect.retryOrElse`.
+Schedule output is not automatically the business value produced by the effect.
+With `Effect.retry`, the retried effect still succeeds with the original
+successful value. With the raw schedule overload of `Effect.repeat`, the result
+is the schedule output. With the options form of `Effect.repeat`, the result is
+the last successful value of the repeated effect.
 
-Repeating is different in an important way: `Effect.repeat` returns the
-schedule's output when the repetition finishes. If the repeated effect succeeds
-with `User`, but the schedule is `Schedule.recurs(3)`, the repeated program is
-driven by `User` inputs and produces a `number` output from the schedule.
-
-One common source of confusion is delay. Internally, each schedule decision
-includes both an output and a duration for the next interval, but the duration is
-not automatically the `Output` type. Some schedules choose to output durations:
-`Schedule.exponential`, `Schedule.elapsed`, and `Schedule.duration` all produce
-`Duration.Duration` values. Others choose to output counts: `Schedule.spaced`,
-`Schedule.fixed`, `Schedule.forever`, and `Schedule.recurs` produce `number`
-values.
+Another common mistake is treating the delay as the output. A schedule decision
+contains both an output and the delay before the next recurrence, but only some
+schedules choose to output durations.
 
 ## Practical guidance
 
-Use this input/output view before choosing combinators:
+Before choosing combinators, ask two questions:
 
-| Need                                                         | Useful schedule operation                          |
-| ------------------------------------------------------------ | -------------------------------------------------- |
-| Ignore incoming values and only control timing or count      | `recurs`, `spaced`, `fixed`, `exponential`, `take` |
-| Observe incoming values without changing the schedule result | `tapInput`                                         |
-| Observe schedule results without changing them               | `tapOutput`                                        |
-| Change the schedule result value                             | `map`                                              |
-| Keep the input as the output                                 | `identity`                                         |
-| Combine two policies and keep both outputs                   | `both`                                             |
-| Combine two policies but keep only one side's output         | `bothLeft`, `bothRight`                            |
+- What value will the schedule receive: a success, an error, or some other
+  input from a lower-level driver?
+- What should the schedule report: a count, a duration, the latest input, a
+  label, or a combined value?
 
-The practical habit is simple: first ask what the schedule will be fed, then ask
-what the schedule should report. The delay strategy is only one part of that
-answer.
+Use `tapInput` to observe inputs without changing the result, `tapOutput` to
+observe outputs, `map` to transform outputs, and `passthrough` when the input
+itself is the useful output.

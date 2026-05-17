@@ -10,70 +10,48 @@ code_included: true
 
 # 43.1 Retry HTTP GET on timeout
 
-HTTP GET retries are useful only when the read is safe and the failure is truly
-transient.
+Retry a `GET` only when the endpoint is safe to repeat and the failure is a
+temporary transport problem.
 
 ## Problem
 
-You call a downstream HTTP endpoint with `GET /users/:id`. The request can fail
-because the client timed out, because the server returned a non-success status,
-or because the response could not be decoded.
+You call `GET /users/:id`. The request can time out, return a non-success HTTP
+status, or produce a response that cannot be decoded.
 
-Only the timeout is considered transient in this recipe. A `404`, `401`, `403`,
-or decode failure should return immediately. Retrying those failures adds load
-without making the request more likely to become valid.
-
-Use `Effect.retry` with a typed `while` predicate and a finite `Schedule`.
+In this recipe, only the timeout is retryable. Authentication failures,
+authorization failures, missing resources, and decoding failures should return
+immediately. Retrying them adds load without making the request valid.
 
 ## When to use it
 
-Use this policy for HTTP GET calls where the operation is safe to run again and
-the caller can tolerate a short delay. It fits metadata lookups, status reads,
-configuration fetches, and other read paths where the remote side treats
-duplicate requests as the same request.
+Use this for idempotent reads, where repeating the request has the same logical
+effect as sending it once. It fits metadata lookups, status reads, configuration
+fetches, and similar paths where a short delay is acceptable.
 
-The retryable condition should be explicit in the error model. A timeout tag is
-better than parsing an exception message or retrying a broad `unknown` failure.
+Make the retryable condition explicit in the error model. A `HttpTimeout` tag is
+clearer and safer than parsing exception messages.
 
 ## When not to use it
 
-Do not retry a GET blindly if the endpoint has side effects, starts work, marks
-records as viewed, advances a cursor, or depends on one-time credentials. HTTP
-method names are a useful signal, but the real safety property is the endpoint's
-behavior.
+Do not retry a `GET` blindly if it starts work, marks records as viewed,
+advances a cursor, or depends on one-time credentials. HTTP method names are a
+signal; the endpoint behavior is what matters.
 
-Do not retry permanent failures. Authentication, authorization, malformed
-requests, missing resources, and decoding problems should fail fast unless your
-domain has a specific reason to classify them as transient.
-
-Do not leave the schedule unbounded. `Schedule.exponential("100 millis")` by
-itself can keep recurring. Add a retry count, elapsed budget, or both.
+Do not leave the schedule unbounded. `Schedule.exponential("100 millis")` keeps
+recurring unless you add a retry count, elapsed budget, or both.
 
 ## Schedule shape
 
-The policy has two parts:
-
-- `while` classifies the typed failure and allows only timeout failures through
-- `Schedule` controls spacing and termination for the accepted timeout failures
-
-```ts
-const retryGetTimeouts = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(3)),
-  Schedule.both(Schedule.during("2 seconds"))
-)
-```
-
-`Schedule.exponential` backs off after each accepted failure. `Schedule.jittered`
-spreads retries so many callers do not retry at exactly the same moments.
-`Schedule.recurs(3)` allows at most three retries after the original request.
-`Schedule.during("2 seconds")` adds a wall-clock budget; because `both` recurs
-only while both schedules recur, whichever limit stops first ends the retry.
+Use `Effect.retry` with a typed `while` predicate and a finite schedule.
+`Schedule.exponential` spaces retries, `Schedule.jittered` avoids synchronized
+clients, `Schedule.recurs(3)` allows three retries after the first request, and
+`Schedule.during` adds an elapsed retry budget. `Schedule.both` means both
+limits must still allow recurrence.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 interface User {
   readonly id: string
@@ -95,11 +73,33 @@ class DecodeError extends Data.TaggedError("DecodeError")<{
 
 type GetUserError = HttpTimeout | HttpStatusError | DecodeError
 
-declare const httpGetJson: (
-  url: string
-) => Effect.Effect<unknown, HttpTimeout | HttpStatusError>
+let attempts = 0
 
-declare const decodeUser: (body: unknown) => Effect.Effect<User, DecodeError>
+const httpGetJson = (url: string): Effect.Effect<unknown, HttpTimeout | HttpStatusError> =>
+  Effect.gen(function*() {
+    attempts += 1
+    yield* Console.log(`GET ${url}, attempt ${attempts}`)
+
+    if (attempts <= 2) {
+      return yield* Effect.fail(new HttpTimeout({ url }))
+    }
+
+    return { id: "user-123", name: "Ada" }
+  })
+
+const decodeUser = (body: unknown): Effect.Effect<User, DecodeError> => {
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "id" in body &&
+    "name" in body &&
+    typeof body.id === "string" &&
+    typeof body.name === "string"
+  ) {
+    return Effect.succeed({ id: body.id, name: body.name })
+  }
+  return Effect.fail(new DecodeError({ message: "Expected a user object" }))
+}
 
 const getUser = Effect.fnUntraced(function*(id: string) {
   const url = `/users/${id}`
@@ -110,66 +110,49 @@ const getUser = Effect.fnUntraced(function*(id: string) {
 const isHttpTimeout = (error: GetUserError): error is HttpTimeout =>
   error._tag === "HttpTimeout"
 
-const retryGetTimeouts = Schedule.exponential("100 millis").pipe(
+const retryGetTimeouts = Schedule.exponential("10 millis").pipe(
   Schedule.jittered,
   Schedule.both(Schedule.recurs(3)),
-  Schedule.both(Schedule.during("2 seconds"))
+  Schedule.both(Schedule.during("200 millis"))
 )
 
-export const program = getUser("user-123").pipe(
+const program = getUser("user-123").pipe(
   Effect.retry({
     schedule: retryGetTimeouts,
     while: isHttpTimeout
-  })
+  }),
+  Effect.tap((user) => Console.log(`loaded ${user.name}`))
 )
+
+Effect.runPromise(program).then(console.log, console.error)
 ```
 
-`program` performs the GET once immediately. If `httpGetJson` fails with
-`HttpTimeout`, `Effect.retry` waits according to `retryGetTimeouts` and tries
-again while the retry count and elapsed budget still allow it.
+The example uses small delays so it terminates quickly. The first request is
+immediate; only accepted timeout failures are delayed and retried.
 
 If the request fails with `HttpStatusError`, or if decoding fails with
-`DecodeError`, `isHttpTimeout` returns `false` and the failure is returned
-without another HTTP request.
+`DecodeError`, the predicate returns `false` and the failure is returned without
+another HTTP request.
 
 ## Variants
 
-For an interactive request path, use fewer retries or a smaller elapsed budget:
+For an interactive path, use fewer retries or a smaller elapsed budget. For a
+background read path, keep the same timeout predicate but allow a wider bounded
+policy.
 
-```ts
-const interactiveGetRetry = Schedule.exponential("50 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(2)),
-  Schedule.both(Schedule.during("500 millis"))
-)
-```
-
-For a background read path, the same timeout classification can use a wider
-policy:
-
-```ts
-const backgroundGetRetry = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("10 seconds"))
-)
-```
-
-Keep the predicate separate from the schedule. The predicate answers whether the
-failure is retryable; the schedule answers how retrying proceeds once the
-failure has been accepted.
+Keep the predicate separate from the timing policy. The predicate answers
+whether the failure is retryable; the schedule answers how retrying proceeds
+after that failure is accepted.
 
 ## Notes and caveats
 
 `Effect.retry` feeds typed failures from the effect's error channel into the
-retry policy. The first HTTP request is not delayed. Schedule delays apply only
-after a failure is accepted by `while`.
+retry policy. The first HTTP request is not delayed.
 
-Timeouts are ambiguous. The server may have produced a response that the client
-did not receive, or the request may not have reached the server at all. Retrying
-a GET is normally reasonable because GET should be idempotent, but verify that
-the specific endpoint does not perform unsafe work.
+Timeouts are ambiguous: the server may have produced a response the client did
+not receive. Retrying a `GET` is normally reasonable, but only when the specific
+endpoint is actually idempotent.
 
-Bounded retry is part of the contract. A small `Schedule.recurs` limit protects
-the downstream service from unbounded pressure, and `Schedule.during` protects
-the caller from spending too long on one dependency.
+Bounded retry is part of the contract. A retry count protects the downstream
+service from unbounded pressure; an elapsed budget protects the caller from
+spending too long on one dependency.

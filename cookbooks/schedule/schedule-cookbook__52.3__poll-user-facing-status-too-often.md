@@ -10,23 +10,17 @@ code_included: false
 
 # 52.3 Poll user-facing status too often
 
-Polling user-facing status too often is an anti-pattern because it confuses
-responsiveness with constant checking.
-
 ## The anti-pattern
 
-The problematic version treats a user-facing status check as if the shortest
-possible interval is automatically the best interval. A job detail page,
-checkout flow, report export, deployment view, identity verification screen, or
-support ticket timeline gets a tight repeat policy because the UI should feel
-"live."
+A user-facing status check is treated as if the shortest interval is the best
+interval. A job page, checkout flow, report export, deployment view, identity
+verification screen, or support timeline gets a tight repeat policy because the
+UI should feel live.
 
-The schedule may be technically valid. `Schedule.spaced("250 millis")`,
-`Schedule.fixed("1 second")`, or a similar policy can describe repeated checks.
-The issue is that the cadence does not match the product promise, the expected
-state-change rate, or the user's deadline. It updates the transport more often
-than it updates useful information: a fast loop may keep a spinner or progress
-bar looking alive, but each poll still wakes a fiber and usually touches a
+`Schedule.spaced("250 millis")`, `Schedule.fixed("1 second")`, or a similar
+policy can be valid. The problem is a cadence that does not match the product
+promise, expected state-change rate, or user's deadline. A fast loop may keep a
+spinner looking active, but each poll still wakes a fiber and usually touches a
 remote service, database, queue, or control plane.
 
 This often appears as a shared "poll status" helper used by many screens. A
@@ -36,22 +30,16 @@ cadences are different.
 
 ## Why it happens
 
-It usually happens when UI feedback is designed before the operational budget.
-Developers want to remove uncertainty for the user, so the loop is made faster
-instead of making the state model clearer. A rapidly refreshed "still pending"
-message can feel easier than deciding when to show "this is taking longer than
-usual", when to stop automatic refresh, or when to move the user to an
+UI feedback is designed before the operational budget. Developers want to reduce
+uncertainty for the user, so the loop is made faster instead of making the state
+model clearer. A rapidly refreshed "pending" message can feel easier than
+deciding when to slow down, stop automatic refresh, or move the user to an
 asynchronous notification path.
 
-It also happens when local testing sets the cadence. A short interval makes a
-demo progress from pending to complete quickly. In production, the same interval
-may run across thousands of open browser tabs, mobile clients, server-side
-sessions, or workers waiting on user-visible state.
-
-`Schedule` makes the recurrence explicit, but it does not decide what freshness
-the user needs. That decision has to come from the workflow: how often the state
-can change, how quickly the user can act on a change, how expensive each check
-is, and what deadline the user experience should communicate.
+Local testing also sets bad defaults. A short interval makes a demo progress
+quickly. In production, the same interval may run across thousands of browser
+tabs, mobile clients, server-side sessions, or workers waiting on user-visible
+state.
 
 ## Why it is risky
 
@@ -67,17 +55,15 @@ can also create flicker, repeated announcements for assistive technology,
 unstable progress indicators, and confusing transitions when intermediate
 states are shown before they are meaningful.
 
-The third risk is incident amplification. If the downstream system is delayed,
+Another risk is incident amplification. If the downstream system is delayed,
 every waiting client may keep asking for status at the moment the system most
 needs breathing room. A fast user-facing poll loop can become a feedback loop:
 slow processing creates more pending users, more pending users create more
 polls, and more polls make the processing path harder to recover.
 
-The fourth risk is a missing product deadline. A loop that keeps refreshing
-quickly can hide the real decision: after some time, the UI should change
-behavior. The correct response may be to slow down, offer to notify the user,
-show a stable pending state, ask them to return later, or surface a timeout
-message rather than continuing to ask the same question aggressively.
+The missing product deadline matters too. After some time, the UI should change
+behavior: slow down, offer notification, show a stable pending state, ask the
+user to return later, or surface a timeout message.
 
 ## A better approach
 
@@ -91,16 +77,14 @@ Use `Schedule.spaced` when the intended contract is "wait this long after each
 status check before checking again." Use `Schedule.fixed` only when alignment to
 a regular interval is the desired behavior; the source implementation keeps a
 fixed interval and, when work runs behind, the next run can happen immediately
-rather than accumulating missed runs. That can be useful, but it is rarely what
-a user-facing status page needs by default.
+rather than accumulating missed runs. That is rarely the default a status page
+needs.
 
 Make the deadline visible in the policy. If the UI should only poll during a
 short active-wait window, combine the cadence with `Schedule.take`,
 `Schedule.recurs`, or `Schedule.during`. In the Schedule source, `Schedule.take`
 limits the wrapped schedule by recurrence attempt count, and `Schedule.during`
-continues only while elapsed time remains within the supplied duration. Those
-bounds make it reviewable that the UI will not keep aggressively refreshing
-forever.
+continues only while elapsed time remains within the supplied duration.
 
 After the active-wait window, switch behavior intentionally. The next phase may
 use a slower `Schedule.spaced` cadence, ask the server for a recommended next
@@ -110,11 +94,10 @@ stable message. If many users may wait on the same dependency, add
 refresh in lockstep; the implementation randomly adjusts each computed delay
 between 80% and 120% of the original delay.
 
-Name schedules after the experience they provide: "poll checkout status while
-the user is waiting", "refresh export status slowly after the first minute", or
-"check verification result until the handoff deadline." Names like "fast poll"
-or "live status" hide the questions that matter: who is waiting, for how long,
-and at what cost.
+Name schedules after the experience they provide:
+`pollCheckoutStatusWhileWaiting`, `refreshExportStatusSlowlyAfterFirstMinute`,
+or `checkVerificationUntilHandoffDeadline`. Names like `fastPoll` hide who is
+waiting, for how long, and at what cost.
 
 ## Notes and caveats
 

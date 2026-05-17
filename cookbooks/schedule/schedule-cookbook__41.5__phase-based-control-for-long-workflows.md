@@ -10,12 +10,12 @@ code_included: true
 
 # 41.5 Phase-based control for long workflows
 
-Long-running workflows often have more than one useful recurrence shape. The
-first few minutes may need frequent observations because users are waiting for
-visible progress. After that, the workflow may still be healthy, but checking it
-too often only adds load. Much later, the policy may become a watchdog: keep
-enough visibility to notice completion or failure, but do not pretend the
-workflow is still latency-sensitive.
+Long-running workflows often need more than one recurrence shape. The first few
+minutes may need frequent observations because users are waiting for visible
+progress. After that, the workflow may still be healthy, but checking it too
+often only adds load. Much later, the policy may become a watchdog: keep enough
+visibility to notice completion or failure, but do not pretend the workflow is
+still latency-sensitive.
 
 Model those phases as schedule values instead of encoding them with counters,
 mutable phase flags, and scattered sleeps. Each phase can say how often it
@@ -39,10 +39,9 @@ Use this recipe for workflows where operational expectations change over time:
 exports, imports, media processing, indexing jobs, data backfills, provisioning
 requests, settlement flows, and asynchronous reconciliations.
 
-It is especially useful when the same status endpoint serves both a
-user-visible experience and a background monitoring path. The schedule lets you
-keep the early user experience responsive without keeping the later background
-phase aggressive.
+It is especially useful when the same status endpoint serves both a user-visible
+experience and a background monitoring path. The schedule keeps the early user
+experience responsive without keeping the later background phase aggressive.
 
 ## When not to use it
 
@@ -61,35 +60,10 @@ own retry or error handling policy if they are recoverable.
 
 ## Schedule shape
 
-Build the cadence from named phases:
-
-```ts
-const responsivePhase = Schedule.spaced("1 second").pipe(
-  Schedule.take(30)
-)
-
-const steadyPhase = Schedule.spaced("30 seconds").pipe(
-  Schedule.jittered,
-  Schedule.take(20)
-)
-
-const watchdogPhase = Schedule.spaced("5 minutes").pipe(
-  Schedule.jittered,
-  Schedule.take(12)
-)
-
-const phasedCadence = responsivePhase.pipe(
-  Schedule.andThen(steadyPhase),
-  Schedule.andThen(watchdogPhase)
-)
-```
-
-`Schedule.andThen` sequences phases. The steady phase does not start until the
-responsive phase is exhausted, and the watchdog phase does not start until the
-steady phase is exhausted.
-
-Then combine the phased cadence with constraints that apply to the whole
-polling policy:
+Build the cadence from named phases and sequence them with `Schedule.andThen`.
+The steady phase does not start until the responsive phase is exhausted, and the
+watchdog phase does not start until the steady phase is exhausted. Then combine
+that cadence with constraints that apply to the whole polling policy:
 
 - `Schedule.during("2 hours")` gives the whole schedule an elapsed-time budget.
 - `Schedule.both` requires both the cadence and the budget to continue.
@@ -99,7 +73,7 @@ polling policy:
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type WorkflowStatus =
   | {
@@ -115,22 +89,38 @@ type StatusReadError = {
   readonly message: string
 }
 
-declare const readWorkflowStatus: (
+const observations: ReadonlyArray<WorkflowStatus> = [
+  { _tag: "Running", phase: "Queued", progress: 0 },
+  { _tag: "Running", phase: "Processing", progress: 25 },
+  { _tag: "Running", phase: "Processing", progress: 60 },
+  { _tag: "Running", phase: "Finalizing", progress: 90 },
+  { _tag: "Completed", artifactId: "artifact-123" }
+]
+
+let reads = 0
+
+const readWorkflowStatus = (
   workflowId: string
-) => Effect.Effect<WorkflowStatus, StatusReadError>
+): Effect.Effect<WorkflowStatus, StatusReadError> =>
+  Effect.gen(function*() {
+    const status = observations[Math.min(reads, observations.length - 1)]
+    reads++
+    yield* Console.log(`${workflowId}: observation ${reads} -> ${status._tag}`)
+    return status
+  })
 
-const responsivePhase = Schedule.spaced("1 second").pipe(
-  Schedule.take(30)
+const responsivePhase = Schedule.spaced("20 millis").pipe(
+  Schedule.take(2)
 )
 
-const steadyPhase = Schedule.spaced("30 seconds").pipe(
+const steadyPhase = Schedule.spaced("50 millis").pipe(
   Schedule.jittered,
-  Schedule.take(20)
+  Schedule.take(2)
 )
 
-const watchdogPhase = Schedule.spaced("5 minutes").pipe(
+const watchdogPhase = Schedule.spaced("100 millis").pipe(
   Schedule.jittered,
-  Schedule.take(12)
+  Schedule.take(2)
 )
 
 const phasedCadence = responsivePhase.pipe(
@@ -139,7 +129,7 @@ const phasedCadence = responsivePhase.pipe(
 )
 
 const longWorkflowPolicy = phasedCadence.pipe(
-  Schedule.both(Schedule.during("2 hours")),
+  Schedule.both(Schedule.during("1 second")),
   Schedule.satisfiesInputType<WorkflowStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => input._tag === "Running")
@@ -149,16 +139,22 @@ export const pollWorkflow = (workflowId: string) =>
   readWorkflowStatus(workflowId).pipe(
     Effect.repeat(longWorkflowPolicy)
   )
+
+const program = pollWorkflow("workflow-1").pipe(
+  Effect.flatMap((status) => Console.log(`final workflow status: ${status._tag}`))
+)
+
+Effect.runPromise(program)
 ```
 
 `pollWorkflow` reads once immediately. If that first read returns
 `"Completed"` or `"Failed"`, the repeat stops without waiting. If the workflow
-is still `"Running"`, the schedule starts with one-second spacing, moves to
-thirty-second spacing, then moves to five-minute watchdog checks.
+is still `"Running"`, the schedule starts with responsive spacing, moves to a
+steady cadence, then moves to watchdog checks.
 
 The effect succeeds with the latest observed `WorkflowStatus`. That may be a
 terminal status, or it may still be `"Running"` if the phase limits or the
-two-hour budget are exhausted before the workflow reaches a terminal state.
+overall budget are exhausted before the workflow reaches a terminal state.
 
 ## Variants
 

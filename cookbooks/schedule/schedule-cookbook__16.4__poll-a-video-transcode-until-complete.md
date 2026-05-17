@@ -10,9 +10,8 @@ code_included: true
 
 # 16.4 Poll a video transcode until complete
 
-Use polling when a submitted video transcode must be observed through ordinary domain
-states until it reaches a terminal result. This recipe keeps successful status
-observations separate from request failures and transcode-domain interpretation.
+Use polling when a submitted video transcode exposes ordinary domain states and
+must be observed until a terminal result appears.
 
 ## Problem
 
@@ -51,15 +50,7 @@ to interpret `"complete"`, `"failed"`, or `"canceled"`.
 Use a spacing schedule for the pause between observations, constrain its input
 to the transcode status type, pass the observed status through as the schedule
 output, and continue only while the latest successful observation is not
-terminal:
-
-```ts
-Schedule.spaced("5 seconds").pipe(
-  Schedule.satisfiesInputType<TranscodeStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input))
-)
-```
+terminal.
 
 `Effect.repeat` runs the first status request immediately. The schedule controls
 only later recurrences. After each successful request, that `TranscodeStatus`
@@ -73,7 +64,7 @@ constraint.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type TranscodeStatus =
   | { readonly state: "queued"; readonly id: string }
@@ -93,23 +84,51 @@ const isTerminal = (status: TranscodeStatus): boolean =>
   status.state === "failed" ||
   status.state === "canceled"
 
-declare const getTranscodeStatus: (
-  id: string
-) => Effect.Effect<TranscodeStatus, TranscodeStatusError>
+let step = 0
 
-const pollUntilComplete = Schedule.spaced("5 seconds").pipe(
+const nextTranscodeStatus = (id: string): TranscodeStatus => {
+  step += 1
+  switch (step) {
+    case 1:
+      return { state: "queued", id }
+    case 2:
+      return { state: "transcoding", id, percent: 60 }
+    default:
+      return {
+        state: "complete",
+        id,
+        assetId: "asset-456",
+        manifestUrl: "https://example.com/video.m3u8"
+      }
+  }
+}
+
+const getTranscodeStatus = (
+  id: string
+): Effect.Effect<TranscodeStatus, TranscodeStatusError> =>
+  Effect.gen(function*() {
+    const status = nextTranscodeStatus(id)
+    yield* Console.log(`transcode ${id}: ${status.state}`)
+    return status
+  })
+
+const pollUntilComplete = Schedule.spaced("10 millis").pipe(
   Schedule.satisfiesInputType<TranscodeStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => !isTerminal(input))
 )
 
-const pollTranscode = (id: string) =>
-  getTranscodeStatus(id).pipe(
+const program = Effect.gen(function*() {
+  const finalStatus = yield* getTranscodeStatus("transcode-123").pipe(
     Effect.repeat(pollUntilComplete)
   )
+  yield* Console.log(`final transcode status: ${finalStatus.state}`)
+})
+
+Effect.runPromise(program)
 ```
 
-`pollTranscode` succeeds with the terminal `TranscodeStatus` that stopped the
+The repeated effect succeeds with the terminal `TranscodeStatus` that stopped the
 schedule. That value may be `"complete"`, `"failed"`, or `"canceled"`.
 
 The resulting effect fails with `TranscodeStatusError` only when
@@ -119,32 +138,9 @@ still a successful response from the status endpoint.
 ## Variants
 
 If the caller wants a completed asset instead of the final status, keep polling
-separate from interpretation and inspect the terminal value afterward:
-
-```ts
-const pollForCompletedAsset = (id: string) =>
-  pollTranscode(id).pipe(
-    Effect.flatMap((status) => {
-      switch (status.state) {
-        case "complete":
-          return Effect.succeed({
-            assetId: status.assetId,
-            manifestUrl: status.manifestUrl
-          })
-        case "failed":
-          return Effect.fail(status)
-        case "canceled":
-          return Effect.fail(status)
-        default:
-          return Effect.die(new Error("pollTranscode returned a non-terminal status"))
-      }
-    })
-  )
-```
-
-This variant still treats polling as successful observation. The later
-`Effect.flatMap` chooses to fail the caller when the final domain status is not a
-completed asset.
+separate from interpretation and inspect the terminal value afterward. For
+example, map `"complete"` to `{ assetId, manifestUrl }`, and map `"failed"` or
+`"canceled"` to a domain error after polling has stopped.
 
 For production systems, choose a polling interval that reflects expected
 transcode duration, queue depth, and API limits. A short interval may be useful

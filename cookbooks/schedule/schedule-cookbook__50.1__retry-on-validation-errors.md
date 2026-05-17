@@ -10,50 +10,44 @@ code_included: false
 
 # 50.1 Retry on validation errors
 
-Retrying validation errors is an anti-pattern because waiting does not change an
-invalid request. A missing field, unsupported enum, malformed payload, failed
-business rule, or rejected tenant boundary is information for the caller, not a
-temporary condition for the scheduler to absorb.
+Retrying validation errors is an anti-pattern because waiting does not change
+an invalid request. A missing field, unsupported enum, malformed payload, failed
+business rule, or rejected tenant boundary should be returned to the caller.
 
 ## The anti-pattern
 
-The problematic shape is a shared retry policy wrapped around an operation whose
-typed errors have not yet been separated. The policy might use exponential
-backoff, a retry count, or a time budget, but it is applied before the
-validation failure has been classified as terminal.
+The problematic shape is a shared retry policy around an operation whose typed
+errors have not been separated. The policy might use exponential backoff, a
+retry count, or a time budget, but it runs before the validation failure is
+classified as terminal.
 
-That makes validation failures consume the same retry budget as timeouts,
-temporary unavailability, or rate-limit responses. The implementation may look
-simple because everything goes through one schedule, but the behavior is wrong:
-the invalid request is submitted again, delayed again, logged again, and often
-reported later than it should have been.
+That sends validation failures through the same schedule as timeouts, temporary
+unavailability, and rate limits. The invalid request is submitted again, delayed
+again, logged again, and usually reported later than it should be.
 
 ## Why it happens
 
-It usually happens when retry is added as infrastructure before the operation's
-error model is settled. A schedule such as `Schedule.exponential("100 millis")`
-is easy to reuse, and the existence of a backoff curve can make the retry look
-careful. But `Schedule.exponential` describes timing; by itself it does not know
-whether the failure is retryable, and it is unbounded unless composed with a
-limit such as `Schedule.recurs`, `Schedule.take`, or `Schedule.during`.
+It usually happens when retry is added before the error model is settled. A
+schedule such as `Schedule.exponential("100 millis")` is easy to reuse, and a
+backoff curve can make the retry look careful. But `Schedule.exponential`
+describes timing; it does not know whether the failure is retryable, and it is
+unbounded unless composed with a limit such as `Schedule.recurs`,
+`Schedule.take`, or `Schedule.during`.
 
-Another cause is placing retry too far outside the failing operation. If a whole
-workflow is retried, a validation failure from one step can cause unrelated
-steps to run again. The retry policy then hides the precise boundary where the
-request should have been rejected.
+The other common cause is placing retry too far outside the failing operation.
+If a whole workflow is retried, a validation failure from one step can cause
+unrelated steps to run again.
 
 ## Why it is risky
 
-The obvious cost is wasted work, but the larger problem is signal loss.
 Validation failures should be fast, stable, and actionable. Retrying them turns
-a deterministic rejection into a delayed operational failure.
+a deterministic rejection into delayed operational noise.
 
-This can create avoidable load on validators, databases, downstream services,
-and message queues. It can also make metrics misleading: a single bad payload may
-appear as several failing attempts, while the real issue is still one permanent
-input problem. If the retried operation contains writes or external calls, the
-retry can also duplicate side effects unless the operation is explicitly
-idempotent.
+A single bad payload can appear as several failing attempts, while the real
+issue is still one permanent input problem. If the retried operation contains
+writes or external calls, the retry can also duplicate side effects unless the
+operation is idempotent, meaning repeated attempts represent the same logical
+operation.
 
 Jitter does not fix this. `Schedule.jittered` spreads delay around a schedule's
 selected timing; it does not make an invalid request valid or decide whether a
@@ -74,8 +68,8 @@ understands the failure:
 After classification, let the schedule do schedule work. Use exponential or
 fixed spacing for the delay shape. Add `Schedule.recurs`, `Schedule.take`, or
 `Schedule.during` so termination is visible. Add `Schedule.jittered` when many
-callers may retry at the same time. Name the policy after the retryable case it
-serves, not after a generic operator.
+callers may retry at the same time. Name the policy after the retryable case,
+not after a generic operator.
 
 Use `Effect.retry`'s retry predicate at the boundary when the question is
 "should this typed failure be retried?" Reserve `Schedule.while` for cases where

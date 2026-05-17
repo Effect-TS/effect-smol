@@ -10,86 +10,46 @@ code_included: true
 
 # 24.4 Backoff for cold-start dependencies
 
-Cold-start checks need to be responsive when dependencies are ready and gentle
-when they are not. During deploys or scale-out, many instances may be opening
-pools, loading config, warming caches, and contacting dependencies at the same
-time.
-
-Use exponential backoff for startup readiness checks. The first check happens
-immediately; repeated failures quickly become less aggressive so cold
-dependencies are not hit with a tight retry loop.
+Cold-start checks should be responsive when dependencies are ready and gentle
+when they are not. During deploys or scale-out, many instances may open pools,
+load config, warm caches, and contact dependencies at the same time.
 
 ## Problem
 
-Your application has a startup readiness check for a dependency such as a
-database, cache, or local sidecar. That check should control whether the process
-becomes ready or fails startup.
-
-You want a policy that:
-
-- runs the first readiness check immediately
-- retries only transient readiness failures
-- increases delay after each failed check
-- stops after a clear startup budget
-- optionally spreads instances apart with jitter
+A startup readiness check controls whether the process becomes ready. It should
+run immediately, retry only transient readiness failures, increase delay after
+each failed check, and stop after a clear startup budget.
 
 ## When to use it
 
-Use this recipe for idempotent startup gates. Good examples include pinging a
-database, verifying that a cache endpoint accepts requests, checking that a
-message broker connection can be opened, or asking a local dependency whether
-it has completed its own initialization.
+Use this for idempotent startup gates: pinging a database, checking a cache
+endpoint, opening a broker connection, or asking a local sidecar whether it has
+finished initialization.
 
-It is most useful during deploys, autoscaling, local development with multiple
-services, test containers, and any environment where process start order does
-not guarantee dependency readiness.
-
-Use it when failure to become ready should fail startup. A bounded retry policy
-is easier to operate than a process that stays alive but never reaches a useful
-serving state.
+It is most useful when process start order does not guarantee dependency
+readiness: deploys, autoscaling, local multi-service development, and test
+containers.
 
 ## When not to use it
 
-Do not retry configuration problems. Bad credentials, invalid URLs, missing
-schemas, unsupported protocol versions, and authorization failures should fail
-startup immediately.
+Do not retry bad credentials, invalid URLs, missing schemas, unsupported
+protocol versions, or authorization failures. Retry the narrow readiness check,
+not the whole startup program.
 
-Do not wrap the whole startup program in this policy. Retry the narrow
-readiness check, not migrations, registration calls, background fiber startup,
-or other steps that may have already succeeded.
-
-Do not use backoff as a substitute for capacity planning. If every deploy
-overloads the dependency for minutes, the schedule is revealing a system limit,
-not solving it by itself.
+If every deploy overloads the dependency for minutes, the schedule is exposing a
+capacity problem rather than solving it.
 
 ## Schedule shape
 
 `Schedule.exponential("200 millis")` waits 200 milliseconds before the first
-retry, then 400 milliseconds, 800 milliseconds, 1.6 seconds, and so on. The
-default factor is `2`.
-
-`Schedule.recurs(8)` allows eight retries after the original attempt. Combined
-with `Schedule.both`, the policy continues only while both schedules continue:
-the exponential schedule supplies the delay, and the recurrence schedule
-supplies the retry budget.
-
-`Schedule.jittered` is useful for fleet startup. It randomly adjusts each
-computed delay to between 80% and 120% of the original delay, so many instances
-that fail at the same time are less likely to retry at exactly the same moment.
-
-The shape is:
-
-- attempt 1: check readiness immediately
-- retry 1: wait about 200 milliseconds
-- retry 2: wait about 400 milliseconds
-- retry 3: wait about 800 milliseconds
-- later retries: keep doubling
-- after eight retries: return the last readiness failure
+retry, then 400 milliseconds, 800 milliseconds, and so on. Combine it with
+`Schedule.recurs` for a startup budget. Use `Schedule.jittered` for fleet
+startup so instances are less likely to retry at exactly the same moment.
 
 ## Code
 
 ```ts
-import { Data, Effect, Schedule } from "effect"
+import { Console, Data, Effect, Schedule } from "effect"
 
 class DependencyNotReady extends Data.TaggedError("DependencyNotReady")<{
   readonly dependency: string
@@ -103,18 +63,34 @@ class DependencyMisconfigured extends Data.TaggedError("DependencyMisconfigured"
 
 type StartupDependencyError = DependencyNotReady | DependencyMisconfigured
 
-declare const checkDatabaseReady: Effect.Effect<void, StartupDependencyError>
-declare const startHttpServer: Effect.Effect<void>
+let readinessChecks = 0
 
-const coldStartBackoff = Schedule.exponential("200 millis").pipe(
-  Schedule.both(Schedule.recurs(8)),
+const checkDatabaseReady: Effect.Effect<void, StartupDependencyError> =
+  Effect.gen(function*() {
+    readinessChecks += 1
+    yield* Console.log(`database readiness check ${readinessChecks}`)
+
+    if (readinessChecks < 4) {
+      return yield* Effect.fail(
+        new DependencyNotReady({
+          dependency: "postgres",
+          reason: "accepting connections soon"
+        })
+      )
+    }
+  })
+
+const startHttpServer = Console.log("HTTP server started")
+
+const coldStartBackoff = Schedule.exponential("15 millis").pipe(
+  Schedule.both(Schedule.recurs(5)),
   Schedule.jittered
 )
 
 const isRetryableStartupFailure = (error: StartupDependencyError) =>
   error._tag === "DependencyNotReady"
 
-export const program = Effect.gen(function*() {
+const program = Effect.gen(function*() {
   yield* checkDatabaseReady.pipe(
     Effect.retry({
       schedule: coldStartBackoff,
@@ -123,50 +99,30 @@ export const program = Effect.gen(function*() {
   )
 
   yield* startHttpServer
-})
+}).pipe(
+  Effect.catch((error) => Console.log(`startup failed: ${error._tag}`))
+)
+
+Effect.runPromise(program)
 ```
 
-The readiness check runs once before the schedule is consulted. If it succeeds,
-startup continues immediately. If it fails with `DependencyNotReady`, the retry
-policy waits with jittered exponential backoff before checking again. If it
-fails with `DependencyMisconfigured`, the `while` predicate stops retrying and
-the error is returned.
+The first readiness check runs before the schedule is consulted. If a retry
+eventually succeeds, startup continues. If the failure is misconfiguration, the
+`while` predicate prevents retrying.
 
 ## Variants
 
-For a single local development process, remove jitter if deterministic timing is
-more helpful than fleet smoothing:
-
-```ts
-const localStartupBackoff = Schedule.exponential("100 millis").pipe(
-  Schedule.both(Schedule.recurs(5))
-)
-```
-
-For large fleet rollouts, keep jitter and use a slower base delay or gentler
-growth factor so each instance gives the dependency more room:
-
-```ts
-const fleetStartupBackoff = Schedule.exponential("500 millis", 1.5).pipe(
-  Schedule.both(Schedule.recurs(10)),
-  Schedule.jittered
-)
-```
-
-For dependencies with a strict startup service-level objective, use a smaller
-retry count and let orchestration restart or reschedule the process after a
-clear failure.
+For a single local process, remove jitter when deterministic timing is more
+useful. For large rollouts, keep jitter and use a slower base delay or gentler
+growth factor. For dependencies with a strict startup service-level objective,
+use a smaller retry count and let orchestration restart or reschedule the
+process after failure.
 
 ## Notes and caveats
 
-`Effect.retry` feeds failures into the schedule. The successful value of
-`checkDatabaseReady` is returned when a retry eventually succeeds; the schedule
-output is used for decisions and timing.
+`Schedule.recurs(5)` means five retries after the original readiness check, not
+five total checks.
 
-`Schedule.recurs(8)` means eight retries after the original readiness check,
-not eight total checks.
-
-Backoff reduces startup storms because each failed instance waits longer before
-asking again. Jitter reduces synchronization between instances. The two address
-different parts of the same operational problem, so they are often used
-together during fleet startup.
+Backoff reduces startup storms by waiting longer after each failure. Jitter
+reduces synchronization between instances. They address different parts of the
+same startup problem and are often used together.

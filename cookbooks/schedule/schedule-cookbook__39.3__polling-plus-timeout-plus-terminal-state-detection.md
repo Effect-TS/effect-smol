@@ -12,7 +12,7 @@ code_included: true
 
 Polling an external workflow usually has separate cadence, budget, and
 terminal-state concerns. This recipe keeps those concerns in the schedule and
-leaves final status interpretation in Effect code.
+leaves final status interpretation in ordinary Effect code.
 
 ## Problem
 
@@ -39,33 +39,15 @@ status. Use `Effect.retry` around the status read when transport recovery is a
 separate requirement.
 
 Do not treat the schedule-side budget as a hard timeout for one in-flight
-status request. `Schedule.during` controls whether another recurrence is
-allowed after a status has been observed; it does not interrupt the status read
-currently running.
+status request. `Schedule.during` controls whether another recurrence is allowed
+after a status has been observed; it does not interrupt the read currently
+running.
 
 Do not collapse terminal failure and timeout into the same case. A status such
 as `"failed"` means the remote workflow ended. A timeout means polling ended
 without observing a terminal status.
 
 ## Schedule shape
-
-Name the pieces before composing them:
-
-```ts
-const cadence = Schedule.spaced("2 seconds").pipe(
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input))
-)
-
-const elapsedBudget = Schedule.during("1 minute").pipe(
-  Schedule.satisfiesInputType<JobStatus>()
-)
-
-const pollingPolicy = cadence.pipe(
-  Schedule.bothLeft(elapsedBudget)
-)
-```
 
 `Schedule.spaced("2 seconds")` supplies the delay between status reads.
 `Schedule.passthrough` keeps the latest successful status as the schedule
@@ -77,7 +59,7 @@ status output from the left side.
 ## Code
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
   | { readonly _tag: "Queued"; readonly jobId: string }
@@ -101,20 +83,36 @@ type JobFailed = {
   readonly reason: string
 }
 
-declare const readStatus: (
-  jobId: string
-) => Effect.Effect<JobStatus, StatusReadError>
+const attempts: Record<string, number> = {}
+
+const readStatus = (jobId: string): Effect.Effect<JobStatus, StatusReadError> =>
+  Effect.gen(function*() {
+    const attempt = (attempts[jobId] ?? 0) + 1
+    attempts[jobId] = attempt
+
+    let status: JobStatus
+    if (jobId === "failed-job" && attempt >= 3) {
+      status = { _tag: "Failed", jobId, reason: "remote validation failed" }
+    } else if (attempt === 1) {
+      status = { _tag: "Queued", jobId }
+    } else {
+      status = { _tag: "Running", jobId, percent: Math.min(attempt * 30, 90) }
+    }
+
+    yield* Console.log(`${jobId}: ${status._tag}`)
+    return status
+  })
 
 const isTerminal = (status: JobStatus): boolean =>
   status._tag === "Succeeded" || status._tag === "Failed"
 
-const cadence = Schedule.spaced("2 seconds").pipe(
+const cadence = Schedule.spaced("20 millis").pipe(
   Schedule.satisfiesInputType<JobStatus>(),
   Schedule.passthrough,
   Schedule.while(({ input }) => !isTerminal(input))
 )
 
-const elapsedBudget = Schedule.during("1 minute").pipe(
+const elapsedBudget = Schedule.during("70 millis").pipe(
   Schedule.satisfiesInputType<JobStatus>()
 )
 
@@ -122,13 +120,13 @@ const pollingPolicy = cadence.pipe(
   Schedule.bothLeft(elapsedBudget)
 )
 
-export const pollJob = (jobId: string) =>
+const pollJob = (jobId: string) =>
   readStatus(jobId).pipe(
     Effect.repeat(pollingPolicy),
     Effect.flatMap((status) => {
       switch (status._tag) {
         case "Succeeded":
-          return Effect.succeed(status)
+          return Console.log(`${jobId}: completed with ${status.resultId}`)
         case "Failed":
           return Effect.fail(
             {
@@ -148,12 +146,26 @@ export const pollJob = (jobId: string) =>
       }
     })
   )
+
+const logPollError = (error: JobTimedOut | JobFailed) =>
+  Console.log(
+    error._tag === "JobTimedOut"
+      ? `${error.jobId}: polling budget exhausted`
+      : `${error.jobId}: terminal failure (${error.reason})`
+  )
+
+const program = Effect.gen(function*() {
+  yield* pollJob("failed-job").pipe(Effect.catch(logPollError))
+  yield* pollJob("slow-job").pipe(Effect.catch(logPollError))
+})
+
+Effect.runPromise(program)
 ```
 
 The first status read happens immediately. If it returns `Succeeded` or
 `Failed`, `Schedule.while` stops the repeat before any sleep. If it returns
-`Queued` or `Running`, the schedule waits two seconds and reads again while the
-one-minute budget is still open.
+`Queued` or `Running`, the schedule waits and reads again while the elapsed
+budget is still open.
 
 When the schedule stops, `Effect.repeat` returns the schedule output. Because
 the composed policy preserves the left output with `Schedule.bothLeft`, that
@@ -164,45 +176,13 @@ the polling budget was exhausted.
 
 ## Variants
 
-For a successful timeout result instead of an error channel timeout, map the
-final status into a result union after `Effect.repeat`:
+For a successful timeout result instead of an error-channel timeout, map the
+final status into a result union after `Effect.repeat`: completed, failed, or
+timed out with the last non-terminal status.
 
-```ts
-type PollResult =
-  | { readonly _tag: "Completed"; readonly status: Extract<JobStatus, { readonly _tag: "Succeeded" }> }
-  | { readonly _tag: "Failed"; readonly status: Extract<JobStatus, { readonly _tag: "Failed" }> }
-  | { readonly _tag: "TimedOut"; readonly lastStatus: Extract<JobStatus, { readonly _tag: "Queued" | "Running" }> }
-
-export const pollJobAsResult = (jobId: string) =>
-  readStatus(jobId).pipe(
-    Effect.repeat(pollingPolicy),
-    Effect.map((status): PollResult => {
-      switch (status._tag) {
-        case "Succeeded":
-          return { _tag: "Completed", status }
-        case "Failed":
-          return { _tag: "Failed", status }
-        case "Queued":
-        case "Running":
-          return { _tag: "TimedOut", lastStatus: status }
-      }
-    })
-  )
-```
-
-For large fleets, add jitter to the cadence after the base delay is correct:
-
-```ts
-const fleetCadence = Schedule.spaced("2 seconds").pipe(
-  Schedule.jittered,
-  Schedule.satisfiesInputType<JobStatus>(),
-  Schedule.passthrough,
-  Schedule.while(({ input }) => !isTerminal(input))
-)
-```
-
-Keep the terminal predicate unchanged when adding jitter. Jitter changes when
-the next observation happens, not which statuses are terminal.
+For large fleets, add `Schedule.jittered` to the cadence after the base delay is
+correct. Keep the terminal predicate unchanged; jitter changes when the next
+observation happens, not which statuses are terminal.
 
 ## Notes and caveats
 
