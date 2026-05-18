@@ -67,7 +67,7 @@ import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type { Predicate, Refinement } from "./Predicate.ts"
 import { hasProperty, isNotUndefined, isTagged } from "./Predicate.ts"
-import type * as PubSub from "./PubSub.ts"
+import * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
 import * as RcMap from "./RcMap.ts"
@@ -90,6 +90,7 @@ import type {
   OmitReason,
   ReasonTags,
   Tags,
+  TupleOf,
   unassigned
 } from "./Types.ts"
 import type * as Unify from "./Unify.ts"
@@ -8485,6 +8486,111 @@ export const aggregateWithin: {
       Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer))
     )
   }))))
+
+type BroadcastNOptions = {
+  readonly capacity: "unbounded"
+  readonly replay?: number | undefined
+} | {
+  readonly capacity: number
+  readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+  readonly replay?: number | undefined
+}
+
+const makeBroadcastNPubSub = <A, E>(
+  options: number | BroadcastNOptions
+): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, Scope.Scope> =>
+  Effect.acquireRelease(
+    typeof options === "number"
+      ? PubSub.bounded<Take.Take<A, E>>(options)
+      : options.capacity === "unbounded"
+      ? PubSub.unbounded<Take.Take<A, E>>(options)
+      : options.strategy === "dropping"
+      ? PubSub.dropping<Take.Take<A, E>>(options)
+      : options.strategy === "sliding"
+      ? PubSub.sliding<Take.Take<A, E>>(options)
+      : PubSub.bounded<Take.Take<A, E>>(options),
+    PubSub.shutdown
+  )
+
+/**
+ * Fan out the stream, producing a fixed-size tuple of streams that each emit
+ * the same elements as the source stream.
+ *
+ * The source stream starts after all downstream streams have been subscribed.
+ * With the default suspend strategy, the source can only advance `maximumLag`
+ * chunks ahead of the slowest downstream stream. If a downstream stream is
+ * interrupted, it unsubscribes from the broadcast so it no longer contributes
+ * backpressure.
+ *
+ * **Example** (Broadcasting to two consumers)
+ *
+ * ```ts
+ * import { Console, Effect, Stream } from "effect"
+ *
+ * const program = Effect.scoped(
+ *   Effect.gen(function*() {
+ *     const [left, right] = yield* Stream.make(1, 2, 3).pipe(
+ *       Stream.broadcastN(2, 8)
+ *     )
+ *
+ *     const values = yield* Effect.all([
+ *       Stream.runCollect(left),
+ *       Stream.runCollect(right)
+ *     ], { concurrency: "unbounded" })
+ *
+ *     yield* Console.log(values)
+ *   })
+ * )
+ *
+ * Effect.runPromise(program)
+ * // Output: [[1, 2, 3], [1, 2, 3]]
+ * ```
+ *
+ * @category Broadcast
+ * @since 4.0.0
+ */
+export const broadcastN: {
+  <N extends number>(
+    n: N,
+    maximumLag: number | BroadcastNOptions
+  ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
+  <A, E, R, N extends number>(
+    self: Stream<A, E, R>,
+    n: N,
+    maximumLag: number | BroadcastNOptions
+  ): Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
+} = dual(
+  3,
+  Effect.fnUntraced(function*<A, E, R, N extends number>(
+    self: Stream<A, E, R>,
+    n: N,
+    maximumLag: number | BroadcastNOptions
+  ) {
+    const pubsub = yield* makeBroadcastNPubSub<A, E>(maximumLag)
+    const parentScope = yield* Scope.Scope
+    const streams = yield* Effect.all(
+      Array.from({ length: n }, () => {
+        const scope = Scope.forkUnsafe(parentScope)
+        return PubSub.subscribe(pubsub).pipe(
+          Effect.provideService(Scope.Scope, scope),
+          Effect.map((subscription) =>
+            fromChannel(
+              Channel.onExit(
+                Channel.fromEffectTake(PubSub.take(subscription)),
+                (exit) => Scope.close(scope, exit)
+              )
+            )
+          )
+        )
+      })
+    )
+    yield* Channel.runForEach(self.channel, (value) => PubSub.publish(pubsub, value)).pipe(
+      Effect.onExit((exit) => PubSub.publish(pubsub, exit)),
+      Effect.forkScoped
+    )
+    return streams as TupleOf<N, Stream<A, E>>
+  })
+)
 
 /**
  * Creates a PubSub-backed stream that multicasts the source to all subscribers.
