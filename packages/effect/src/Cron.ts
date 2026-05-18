@@ -506,7 +506,7 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isCronParseError = (u: unknown): u is CronParseError => hasProperty(u, CronParseErrorTypeId)
 
@@ -596,7 +596,7 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron => Result.getOrThrow(parse(cron, tz))
 
@@ -703,7 +703,7 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
  * Returns the previous scheduled date/time for the given Cron instance.
  *
  * @category utils
- * @since 4.0.0
+ * @since 3.20.0
  */
 export const prev = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
   return stepCron(cron, now, "prev")

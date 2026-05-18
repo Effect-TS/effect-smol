@@ -39,7 +39,7 @@ const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
  * `RpcSchema.Stream`.
  *
  * @category Stream
- * @since 4.0.0
+ * @since 1.0.0
  */
 export function isStreamSchema(schema: Schema.Top): schema is Stream<Schema.Top, Schema.Top> {
   return Predicate.hasProperty(schema, StreamSchemaTypeId)
@@ -63,7 +63,7 @@ export function getStreamSchemas(schema: Schema.Top): Option.Option<{
  * schema and stream error schema used for encoding and decoding stream chunks.
  *
  * @category Stream
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
   Schema.Bottom<
@@ -88,7 +88,7 @@ const schema = Schema.declare(Stream_.isStream)
  * error schema.
  *
  * @category Stream
- * @since 4.0.0
+ * @since 1.0.0
  */
 export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, error: E): Stream<A, E> {
   return Schema.make(schema.ast, { [StreamSchemaTypeId]: StreamSchemaTypeId, success, error })

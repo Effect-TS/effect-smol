@@ -121,7 +121,7 @@ export interface Any {
  * Extracts the service dependencies (RIn) from a Layer type.
  *
  * @category type-level
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type Services<T extends Any> = T extends infer L
   ? L extends Layer<infer _ROut, infer _E, infer _RIn> ? _RIn : never
@@ -971,7 +971,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E, R> =>
   fromBuildMemo((memoMap, scope) => internalEffect.suspend(() => evaluate().build(memoMap, scope)))
@@ -1454,7 +1454,7 @@ export const flatMap: {
  * Performs the specified effect if this layer succeeds.
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const tap: {
   <ROut, XR extends ROut, RIn2, E2, X>(
@@ -1479,7 +1479,7 @@ export const tap: {
  * Performs the specified effect if this layer fails.
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const tapError: {
   <E, XE extends E, RIn2, E2, X>(
@@ -1734,7 +1734,7 @@ export const catchTag: {
  * ```
  *
  * @category error handling
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const catchCause: {
   <E, RIn2, E2, ROut2>(
@@ -1933,7 +1933,7 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
  * only the methods you need to test while leaving others unimplemented.
  *
  * @category Testing
- * @since 4.0.0
+ * @since 3.17.0
  */
 export type PartialEffectful<A extends object> = Types.Simplify<
   & {
@@ -1997,7 +1997,7 @@ type AnyEffectOrStream =
  * ```
  *
  * @category Testing
- * @since 4.0.0
+ * @since 3.17.0
  */
 export const mock: {
   <I, S extends object>(service: Context.Key<I, S>): (implementation: PartialEffectful<S>) => Layer<I>
@@ -2218,7 +2218,7 @@ export interface SpanOptions extends Tracer.SpanOptions {
  * ```
  *
  * @category tracing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const span = (
   name: string,
@@ -2273,7 +2273,7 @@ export const span = (
  * ```
  *
  * @category tracing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
   succeedContext(Tracer.ParentSpan.context(span))
@@ -2335,7 +2335,7 @@ export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
  * ```
  *
  * @category tracing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const withSpan: {
   (
@@ -2440,7 +2440,7 @@ export const withSpan: {
  * ```
  *
  * @category tracing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const withParentSpan: {
   (

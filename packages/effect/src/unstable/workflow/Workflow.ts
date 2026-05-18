@@ -52,7 +52,7 @@ const TypeId = "~effect/workflow/Workflow"
  * registration.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Workflow<
   Name extends string,
@@ -195,7 +195,7 @@ export interface Workflow<
  * Schema constraint for workflow payload schemas that expose struct fields.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface AnyStructSchema extends Schema.Top {
   readonly fields: Schema.Struct.Fields
@@ -206,7 +206,7 @@ export interface AnyStructSchema extends Schema.Top {
  * execution name.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Execution<Name extends string> {
   readonly _: unique symbol
@@ -218,7 +218,7 @@ export interface Execution<Name extends string> {
  * preserving their specific payload, success, or error types.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -320,7 +320,7 @@ const InstanceTag = Context.Service<
  * key.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <
   const Name extends string,
@@ -445,7 +445,7 @@ const ResultTypeId = "~effect/workflow/Workflow/Result"
  * Returns `true` when a value is a workflow `Result`.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isResult = <A = unknown, E = unknown>(
   u: unknown
@@ -456,7 +456,7 @@ export const isResult = <A = unknown, E = unknown>(
  * workflow state.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Result<A, E> = Complete<A, E> | Suspended
 
@@ -464,7 +464,7 @@ export type Result<A, E> = Complete<A, E> | Suspended
  * Encoded representation of a workflow `Result`.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ResultEncoded<A, E> =
   | CompleteEncoded<A, E>
@@ -475,7 +475,7 @@ export type ResultEncoded<A, E> =
  * `Exit`.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface CompleteEncoded<A, E> {
   readonly _tag: "Complete"
@@ -508,7 +508,7 @@ export interface CompleteSchema<
  * failure `Exit`.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Complete<A, E> extends Data.TaggedClass("Complete")<{
   readonly exit: Exit.Exit<A, E>
@@ -580,7 +580,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
  * cause that triggered suspension.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Suspended extends Schema.Class<Suspended>(
   "effect/workflow/Workflow/Suspended"
@@ -601,7 +601,7 @@ export class Suspended extends Schema.Class<Suspended>(
  * schemas.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Result = <
   Success extends Schema.Top,
@@ -617,7 +617,7 @@ const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
  * Codec for encoded workflow results with generic success and error payloads.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEncoded(
   Schema.toCodecJson(
@@ -634,7 +634,7 @@ export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEnc
  * scope finalization.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const intoResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -697,7 +697,7 @@ export const intoResult = <A, E, R>(
  * running activities to finish or suspend.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const wrapActivityResult = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -749,7 +749,7 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
  * completes.
  *
  * @category Scope
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const scope: Effect.Effect<
   Scope.Scope,
@@ -767,7 +767,7 @@ export const scope: Effect.Effect<
  * completes.
  *
  * @category Scope
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const provideScope = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -779,7 +779,7 @@ export const provideScope = <A, E, R>(
  * services available when the finalizer is registered.
  *
  * @category Scope
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const addFinalizer: <R>(
   f: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
@@ -804,7 +804,7 @@ export const addFinalizer: <R>(
  * finalizers are only registered for top-level effects in the workflow.
  *
  * @category Compensation
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const withCompensation: {
   <A, R2>(
@@ -832,7 +832,7 @@ export const withCompensation: {
  * stop execution until it is resumed.
  *
  * @category Result
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<never> =>
   Effect.interruptible(Effect.callback<never>(() => {
@@ -848,7 +848,7 @@ export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<ne
  * By default, this is set to `true`, meaning that defects will be captured.
  *
  * @category annotations
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const CaptureDefects = Context.Reference<boolean>(
   "effect/workflow/Workflow/CaptureDefects",
@@ -864,7 +864,7 @@ export const CaptureDefects = Context.Reference<boolean>(
  * method, for example `MyWorkflow.resume(executionId)`.
  *
  * @category annotations
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const SuspendOnFailure = Context.Reference<boolean>(
   "effect/workflow/Workflow/SuspendOnFailure",

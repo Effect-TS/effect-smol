@@ -560,7 +560,7 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
  * provide durability guarantees.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(
   Effect.gen(function*() {

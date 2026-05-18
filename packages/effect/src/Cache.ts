@@ -126,7 +126,7 @@ const TypeId = "~effect/Cache"
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface Cache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -186,7 +186,7 @@ export interface Entry<A, E> {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const makeWith = <
   Key,
@@ -278,7 +278,7 @@ export const makeWith = <
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const make = <
   Key,

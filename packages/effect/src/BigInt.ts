@@ -162,7 +162,7 @@ export const divide: {
  * ```
  *
  * @category math
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const divideUnsafe: {
   (that: bigint): (self: bigint) => bigint
@@ -238,7 +238,7 @@ export const Order: order.Order<bigint> = order.BigInt
  * ```
  *
  * @category instances
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Equivalence: Equ.Equivalence<bigint> = Equ.BigInt
 
@@ -257,7 +257,7 @@ export const Equivalence: Equ.Equivalence<bigint> = Equ.BigInt
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThan: {
   (that: bigint): (self: bigint) => boolean
@@ -279,7 +279,7 @@ export const isLessThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: bigint): (self: bigint) => boolean
@@ -301,7 +301,7 @@ export const isLessThanOrEqualTo: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThan: {
   (that: bigint): (self: bigint) => boolean
@@ -323,7 +323,7 @@ export const isGreaterThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: bigint): (self: bigint) => boolean
@@ -541,7 +541,7 @@ export const lcm: {
  * ```
  *
  * @category math
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const sqrtUnsafe = (n: bigint): bigint => {
   if (n < bigint0) {

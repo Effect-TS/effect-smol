@@ -20,7 +20,7 @@ import type { Command, KillOptions } from "./ChildProcess.ts"
  * Branded number representing the exit code reported by a child process.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ExitCode = Brand.Branded<number, "ExitCode">
 
@@ -28,7 +28,7 @@ export type ExitCode = Brand.Branded<number, "ExitCode">
  * Brand constructor for child process `ExitCode` values.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ExitCode: Brand.Constructor<ExitCode> = Brand.nominal<ExitCode>()
 
@@ -37,7 +37,7 @@ export const ExitCode: Brand.Constructor<ExitCode> = Brand.nominal<ExitCode>()
  * child process.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ProcessId = Brand.Branded<number, "ProcessId">
 
@@ -45,7 +45,7 @@ export type ProcessId = Brand.Branded<number, "ProcessId">
  * Brand constructor for child process `ProcessId` values.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ProcessId: Brand.Constructor<ProcessId> = Brand.nominal<ProcessId>()
 

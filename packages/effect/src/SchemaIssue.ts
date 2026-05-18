@@ -337,7 +337,7 @@ export class Encoding extends Base {
  * @see {@link Composite} — groups multiple issues under one schema node
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class Pointer extends Base {
   readonly _tag = "Pointer"
@@ -473,7 +473,7 @@ export class UnexpectedKey extends Base {
  * @see {@link Pointer} — adds path context to individual issues
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class Composite extends Base {
   readonly _tag = "Composite"
@@ -671,7 +671,7 @@ export class InvalidValue extends Base {
  * @see {@link InvalidValue} — for value-constraint failures (not operation failures)
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class Forbidden extends Base {
   readonly _tag = "Forbidden"

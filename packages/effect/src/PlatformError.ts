@@ -42,7 +42,7 @@ const TypeId = "~effect/platform/PlatformError"
  * optional description and cause. It is usually wrapped in `PlatformError`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class BadArgument extends Data.TaggedError("BadArgument")<{
   module: string
@@ -90,7 +90,7 @@ export type SystemErrorTag =
  * and original cause. It is usually wrapped in `PlatformError`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class SystemError extends Data.Error<{
   _tag: SystemErrorTag
@@ -121,7 +121,7 @@ export class SystemError extends Data.Error<{
  * When that reason has a cause, the cause is preserved on the wrapper.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class PlatformError extends Data.TaggedError("PlatformError")<{
   reason: BadArgument | SystemError

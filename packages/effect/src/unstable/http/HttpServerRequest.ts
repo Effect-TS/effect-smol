@@ -55,7 +55,7 @@ export {
  * Runtime type identifier for `HttpServerRequest` values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId = "~effect/http/HttpServerRequest"
 
@@ -67,7 +67,7 @@ export const TypeId = "~effect/http/HttpServerRequest"
  * creating adjusted request views.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessage<HttpServerError> {
   readonly [TypeId]: typeof TypeId
@@ -99,7 +99,7 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
  * Service tag for the current `HttpServerRequest`.
  *
  * @category context
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerRequest> = Context.Service(
   "effect/http/HttpServerRequest"
@@ -112,7 +112,7 @@ export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerReq
  * than once.
  *
  * @category search params
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class ParsedSearchParams extends Context.Service<
   ParsedSearchParams,
@@ -125,7 +125,7 @@ export class ParsedSearchParams extends Context.Service<
  * Repeated parameters are represented as arrays in insertion order.
  *
  * @category search params
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const searchParamsFromURL = (url: URL): ReadonlyRecord<string, string | Array<string>> => {
   const out: Record<string, string | Array<string>> = {}
@@ -151,7 +151,7 @@ export const searchParamsFromURL = (url: URL): ReadonlyRecord<string, string | A
  * socket, failing if the request cannot be upgraded or the socket fails.
  *
  * @category accessors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const upgradeChannel = <IE = never>(): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Uint8Array>,
@@ -172,7 +172,7 @@ export const upgradeChannel = <IE = never>(): Channel.Channel<
  * Decodes a schema from the cookies of the current request.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaCookies = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -186,7 +186,7 @@ export const schemaCookies = <A, I extends Readonly<Record<string, string | unde
  * Decodes a schema from the headers of the current request.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -200,7 +200,7 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
  * Decodes a schema from the parsed search parameters of the current request.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaSearchParams = <
   A,
@@ -221,7 +221,7 @@ export const schemaSearchParams = <
  * fails.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaBodyJson = <A, I, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -242,7 +242,7 @@ const isMultipart = (request: HttpServerRequest) =>
  * requests are decoded from URL-encoded body parameters.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -267,7 +267,7 @@ export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE
  * the supplied schema.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaBodyUrlParams = <
   A,
@@ -290,7 +290,7 @@ export const schemaBodyUrlParams = <
  * scope, file system, and path service.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -315,7 +315,7 @@ export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, R
  * with the supplied schema.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaBodyFormJson = <A, I, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -376,7 +376,7 @@ export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest):
  * original Web URL remains available as `originalUrl`.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
   new ServerRequestImpl(request, removeHost(request.url))
@@ -972,7 +972,7 @@ const textDecoder = new TextDecoder()
  * return `Option.none`.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
   const host = self.headers.host ?? "localhost"
@@ -1031,7 +1031,7 @@ export const toWebResult = (self: HttpServerRequest, options?: {
  * request.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toWeb = (self: HttpServerRequest, options?: {
   readonly signal?: AbortSignal | undefined

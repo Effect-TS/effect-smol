@@ -472,7 +472,7 @@ export const toTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env
  * ```
  *
  * @category constants
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const DefaultChunkSize: number = 4096
 
@@ -510,7 +510,7 @@ const asyncQueue = <A, E = never, R = never>(
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const callback = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E | Cause.Done>) => Effect.Effect<unknown, E, R | Scope.Scope>,
@@ -629,7 +629,7 @@ export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InE
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const acquireRelease: {
   <Z>(
@@ -662,7 +662,7 @@ export const acquireRelease: {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A, never, L> =>
   fromPull(
@@ -688,7 +688,7 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
   fromPull(Effect.sync(() => {
@@ -710,7 +710,7 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chunk.toReadonlyArray(chunk))
 
@@ -758,7 +758,7 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromIteratorArray = <A, L>(
   iterator: LazyArg<Iterator<A, L>>,
@@ -801,7 +801,7 @@ export const fromIteratorArray = <A, L>(
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, L> =>
   fromIterator(() => iterable[Symbol.iterator]())
@@ -820,7 +820,7 @@ export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, 
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromIterableArray = <A, L>(
   iterable: Iterable<A, L>,
@@ -913,7 +913,7 @@ export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.s
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const empty: Channel<never> = fromPull(Effect.succeed(Cause.done()))
 
@@ -1088,7 +1088,7 @@ export const failCauseSync = <E>(
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const die = (defect: unknown): Channel<never, never, never> => failCause(Cause.die(defect))
 
@@ -1219,7 +1219,7 @@ export const fromEffectTake = <A, E, Done, E2, R>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fromQueue = <A, E>(
   queue: Queue.Dequeue<A, E>
@@ -1529,7 +1529,7 @@ export const fromSubscriptionArray = <A>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fromPubSub = <A>(
   pubsub: PubSub.PubSub<A>
@@ -1796,7 +1796,7 @@ export const map: {
  * Maps the done value of this channel using the specified function.
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const mapDone: {
   <OutDone, OutDone2>(
@@ -1820,7 +1820,7 @@ export const mapDone: {
  * Maps the done value of this channel using the specified effectful function.
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const mapDoneEffect: {
   <OutDone, OutDone2, E, R>(
@@ -2405,7 +2405,7 @@ const flatMapConcurrent = <
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const concatWith: {
   <OutDone, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
@@ -2519,7 +2519,7 @@ export const concatWith: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const concat: {
   <OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
@@ -2714,7 +2714,7 @@ export const combine: {
  * receives the source done value and returns the replacement channel.
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const orElseIfEmpty: {
   <OutDone, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
@@ -3140,7 +3140,7 @@ export const schedule: {
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const filter: {
   <OutElem, B extends OutElem>(
@@ -3520,7 +3520,7 @@ export const filterMapArrayEffect: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const mapAccum: {
   <S, OutElem, B, E = never, R = never>(
@@ -3653,7 +3653,7 @@ export const mapAccum: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const scan: {
   <S, OutElem>(initial: S, f: (s: S, a: Types.NoInfer<OutElem>) => S): <
@@ -3727,7 +3727,7 @@ export const scan: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const scanEffect: {
   <S, OutElem, E, R>(initial: S, f: (s: S, a: Types.NoInfer<OutElem>) => Effect.Effect<S, E, R>): <
@@ -5442,7 +5442,7 @@ export const mapError: {
  * ```
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const orDie = <
   OutElem,
@@ -5648,7 +5648,7 @@ export const retry: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const switchMap: {
   <OutElem, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
@@ -5926,7 +5926,7 @@ export const mergeAll: {
  * ```
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type HaltStrategy = "left" | "right" | "both" | "either"
 
@@ -5957,7 +5957,7 @@ export type HaltStrategy = "left" | "right" | "both" | "either"
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const merge: {
   <OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(
@@ -6582,7 +6582,7 @@ export const buffer: {
  * buffering up to `capacity` elements in a queue.
  *
  * @category Buffering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const bufferArray: {
   (
@@ -6941,7 +6941,7 @@ export const contextWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone
  * requirements from the returned channel.
  *
  * @category services
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const provideContext: {
   <R2>(
@@ -6969,7 +6969,7 @@ export const provideContext: {
  * requirement from the returned channel.
  *
  * @category services
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const provideService: {
   <I, S>(
@@ -7084,7 +7084,7 @@ export const provide: {
  * build that context.
  *
  * @category services
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const updateContext: {
   <Env, R2>(
@@ -7147,7 +7147,7 @@ export const updateService: {
  * runs. The span is ended with the channel's exit value.
  *
  * @category tracing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const withSpan: {
   (
@@ -7416,7 +7416,7 @@ export const bindTo: {
  * ```
  *
  * @category execution
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runCount = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
@@ -7479,7 +7479,7 @@ export const runDrain = <OutElem, OutErr, OutDone, Env>(
  * ```
  *
  * @category execution
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runForEach: {
   <OutElem, EX, RX>(
@@ -7508,7 +7508,7 @@ export const runForEach: {
  * consumption early. The returned effect completes with `void`.
  *
  * @category execution
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runForEachWhile: {
   <OutElem, EX, RX>(
@@ -7584,7 +7584,7 @@ export const runDone = <OutElem, OutErr, OutDone, Env>(
  * channel completes without emitting output.
  *
  * @category execution
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runHead = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
@@ -7609,7 +7609,7 @@ export const runHead = <OutElem, OutErr, OutDone, Env>(
  * channel completes without emitting output.
  *
  * @category execution
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runLast = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>
@@ -7653,7 +7653,7 @@ export const runLast = <OutElem, OutErr, OutDone, Env>(
  * ```
  *
  * @category execution
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runFold: {
   <Z, OutElem>(
@@ -7696,7 +7696,7 @@ export const runFold: {
  * final accumulator value.
  *
  * @category execution
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runFoldEffect: {
   <OutElem, Z, E, R>(
@@ -7927,7 +7927,7 @@ export const runIntoQueueArray: {
  * ```
  *
  * @category destructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const toQueue: {
   (
@@ -8030,7 +8030,7 @@ export const toQueueArray: {
  * channel ends. By default this is `true`.
  *
  * @category destructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const toPubSub: {
   (

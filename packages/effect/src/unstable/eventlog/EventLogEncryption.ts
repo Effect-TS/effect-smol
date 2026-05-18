@@ -36,7 +36,7 @@ import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecret
  * entry.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const EncryptedEntry = Schema.Struct({
   entryId: EntryId,
@@ -48,7 +48,7 @@ export const EncryptedEntry = Schema.Struct({
  * initialization vector, entry id, and encrypted entry bytes.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface EncryptedRemoteEntry extends Schema.Schema.Type<typeof EncryptedRemoteEntry> {}
 
@@ -56,7 +56,7 @@ export interface EncryptedRemoteEntry extends Schema.Schema.Type<typeof Encrypte
  * Schema for encrypted entries exchanged with a remote event-log server.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const EncryptedRemoteEntry = Schema.Struct({
   sequence: Schema.Number,
@@ -78,7 +78,7 @@ const toBufferSource = (data: Uint8Array): ArrayBufferView<ArrayBuffer> => new U
  * encryption and decryption, and SHA-256 hashing.
  *
  * @category services
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class EventLogEncryption extends Context.Service<EventLogEncryption, {
   readonly encrypt: (
@@ -102,7 +102,7 @@ export class EventLogEncryption extends Context.Service<EventLogEncryption, {
  * APIs from the supplied `Crypto` implementation.
  *
  * @category encryption
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncryption["Service"]> =>
   Effect.sync(() => {
@@ -169,7 +169,7 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
  * Provides `EventLogEncryption` using `globalThis.crypto`.
  *
  * @category encryption
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerSubtle: Layer.Layer<EventLogEncryption> = Layer.effect(
   EventLogEncryption,

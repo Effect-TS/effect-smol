@@ -109,7 +109,7 @@ import * as Transformation from "./SchemaTransformation.ts"
  * @see {@link isAST}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export type AST =
   | Declaration
@@ -157,7 +157,7 @@ export function isAST(u: unknown): u is AST {
  * Narrows an {@link AST} to {@link Declaration}.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isDeclaration = makeGuard("Declaration")
 
@@ -253,7 +253,7 @@ export const isSymbol = makeGuard("Symbol")
  * Narrows an {@link AST} to {@link Literal}.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isLiteral = makeGuard("Literal")
 
@@ -261,7 +261,7 @@ export const isLiteral = makeGuard("Literal")
  * Narrows an {@link AST} to {@link UniqueSymbol}.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isUniqueSymbol = makeGuard("UniqueSymbol")
 
@@ -269,7 +269,7 @@ export const isUniqueSymbol = makeGuard("UniqueSymbol")
  * Narrows an {@link AST} to {@link ObjectKeyword}.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isObjectKeyword = makeGuard("ObjectKeyword")
 
@@ -285,7 +285,7 @@ export const isEnum = makeGuard("Enum")
  * Narrows an {@link AST} to {@link TemplateLiteral}.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isTemplateLiteral = makeGuard("TemplateLiteral")
 
@@ -309,7 +309,7 @@ export const isObjects = makeGuard("Objects")
  * Narrows an {@link AST} to {@link Union}.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isUnion = makeGuard("Union")
 
@@ -317,7 +317,7 @@ export const isUnion = makeGuard("Union")
  * Narrows an {@link AST} to {@link Suspend}.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isSuspend = makeGuard("Suspend")
 
@@ -389,7 +389,7 @@ export type Encoding = readonly [Link, ...Array<Link>]
  *   defaults to `1`, or use `"unbounded"`.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface ParseOptions {
   /**
@@ -572,7 +572,7 @@ export abstract class Base {
  * @see {@link isDeclaration}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class Declaration extends Base {
   readonly _tag = "Declaration"
@@ -835,7 +835,7 @@ export const unknown = new Unknown()
  * @see {@link isObjectKeyword}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class ObjectKeyword extends Base {
   readonly _tag = "ObjectKeyword"
@@ -853,7 +853,7 @@ export class ObjectKeyword extends Base {
  * Singleton {@link ObjectKeyword} AST instance.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const objectKeyword = new ObjectKeyword()
 
@@ -946,7 +946,7 @@ function isTemplateLiteralPart(ast: AST): ast is TemplateLiteralPart {
  * @see {@link isTemplateLiteral}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class TemplateLiteral extends Base {
   readonly _tag = "TemplateLiteral"
@@ -1019,7 +1019,7 @@ export class TemplateLiteral extends Base {
  * @see {@link isUniqueSymbol}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class UniqueSymbol extends Base {
   readonly _tag = "UniqueSymbol"
@@ -1055,7 +1055,7 @@ export class UniqueSymbol extends Base {
  * @see {@link Literal}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export type LiteralValue = string | number | boolean | bigint
 
@@ -1080,7 +1080,7 @@ export type LiteralValue = string | number | boolean | bigint
  * @see {@link isLiteral}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class Literal extends Base {
   readonly _tag = "Literal"
@@ -1585,7 +1585,7 @@ export function getIndexSignatureKeys(
  * @see {@link Objects}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class PropertySignature {
   readonly name: PropertyKey
@@ -1645,7 +1645,7 @@ export class KeyValueCombiner {
  * @see {@link PropertySignature}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class IndexSignature {
   readonly parameter: AST
@@ -2268,7 +2268,7 @@ export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyAr
  * @see {@link isUnion}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class Union<A extends AST = AST> extends Base {
   readonly _tag = "Union"
@@ -2465,7 +2465,7 @@ export function memoizeThunk<A>(f: () => A): () => A {
  * @see {@link isSuspend}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export class Suspend extends Base {
   readonly _tag = "Suspend"

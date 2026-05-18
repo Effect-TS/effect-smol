@@ -40,7 +40,7 @@ import type { Request } from "./Envelope.ts"
  * The default value is `false`.
  *
  * @category annotations
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchema/Persisted", {
   defaultValue: constFalse
@@ -67,7 +67,7 @@ export const WithTransaction = Context.Reference<boolean>(
  * interruption.
  *
  * @category annotations
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Uninterruptible = Context.Reference<boolean | "client" | "server">(
   "effect/cluster/ClusterSchema/Uninterruptible",
@@ -104,7 +104,7 @@ export const isUninterruptibleForClient = (context: Context.Context<never>): boo
  * By default, every entity id is assigned to the `"default"` shard group.
  *
  * @category annotations
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ShardGroup = Context.Reference<(entityId: EntityId) => string>(
   "effect/cluster/ClusterSchema/ShardGroup",
@@ -118,7 +118,7 @@ export const ShardGroup = Context.Reference<(entityId: EntityId) => string>(
  * The default value is `true`.
  *
  * @category annotations
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ClientTracingEnabled = Context.Reference<boolean>("effect/cluster/ClusterSchema/ClientTracingEnabled", {
   defaultValue: constTrue

@@ -26,7 +26,7 @@ import * as Msgpack from "../encoding/Msgpack.ts"
  * Unique type identifier used to mark event log event definitions.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TypeId = "~effect/eventlog/Event"
 
@@ -34,7 +34,7 @@ export type TypeId = "~effect/eventlog/Event"
  * Runtime type identifier used to mark event log event definitions.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/Event"
 
@@ -42,7 +42,7 @@ export const TypeId: TypeId = "~effect/eventlog/Event"
  * Returns `true` when a value is an event log event definition.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isEvent = (u: unknown): u is Event<any, any, any, any> => Predicate.hasProperty(u, TypeId)
 
@@ -53,7 +53,7 @@ export const isEvent = (u: unknown): u is Event<any, any, any, any> => Predicate
  * MessagePack payload schema, success schema, and error schema.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Event<
   out Tag extends string,
@@ -77,7 +77,7 @@ export interface Event<
  * which events they implement.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface EventHandler<in out Tag extends string> {
   readonly _: unique symbol
@@ -91,7 +91,7 @@ export interface EventHandler<in out Tag extends string> {
  * schema, and error schema without retaining the original type parameters.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   readonly [TypeId]: TypeId
@@ -108,7 +108,7 @@ export interface Any {
  * structurally.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface AnyWithProps extends Any {}
 
@@ -116,7 +116,7 @@ export interface AnyWithProps extends Any {}
  * Derives the handler service marker for an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ToService<A> = A extends Event<
   infer _Tag,
@@ -130,7 +130,7 @@ export type ToService<A> = A extends Event<
  * Extracts the tag string from an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Tag<A> = A extends Event<
   infer _Tag,
@@ -144,7 +144,7 @@ export type Tag<A> = A extends Event<
  * Extracts the error schema from an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ErrorSchema<A extends Any> = A extends Event<
   infer _Tag,
@@ -158,7 +158,7 @@ export type ErrorSchema<A extends Any> = A extends Event<
  * Decoded error value type for an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Error<A extends Any> = Schema.Schema.Type<ErrorSchema<A>>
 
@@ -167,7 +167,7 @@ export type Error<A extends Any> = Schema.Schema.Type<ErrorSchema<A>>
  * error schema.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
   infer _Tag,
@@ -181,7 +181,7 @@ export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
  * Extracts the payload schema from an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type PayloadSchema<A extends Any> = A extends Event<
   infer _Tag,
@@ -209,7 +209,7 @@ export type PayloadSchemaWithTag<A extends Any, Tag extends string> = A extends 
  * Decoded payload value type for an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Payload<A extends Any> = Schema.Schema.Type<PayloadSchema<A>>
 
@@ -220,7 +220,7 @@ export type Payload<A extends Any> = Schema.Schema.Type<PayloadSchema<A>>
  * decoded payload value.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TaggedPayload<A extends Any> = A extends Event<
   infer _Tag,
@@ -237,7 +237,7 @@ export type TaggedPayload<A extends Any> = A extends Event<
  * Extracts the success schema from an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SuccessSchema<A extends Any> = A extends Event<
   infer _Tag,
@@ -251,7 +251,7 @@ export type SuccessSchema<A extends Any> = A extends Event<
  * Decoded success value type for an event definition.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Success<A extends Any> = Schema.Schema.Type<SuccessSchema<A>>
 
@@ -320,7 +320,7 @@ export type Services<A> = A extends Event<
  * Extracts the event definition with the specified tag from an event union.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type WithTag<Events extends Any, Tag extends string> = Extract<Events, { readonly tag: Tag }>
 
@@ -328,7 +328,7 @@ export type WithTag<Events extends Any, Tag extends string> = Extract<Events, { 
  * Removes event definitions with the specified tag from an event union.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ExcludeTag<Events extends Any, Tag extends string> = Exclude<Events, { readonly tag: Tag }>
 
@@ -336,7 +336,7 @@ export type ExcludeTag<Events extends Any, Tag extends string> = Exclude<Events,
  * Decoded payload value type for the event in a union with the specified tag.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type PayloadWithTag<Events extends Any, Tag extends string> = Payload<WithTag<Events, Tag>>
 
@@ -344,7 +344,7 @@ export type PayloadWithTag<Events extends Any, Tag extends string> = Payload<Wit
  * Decoded success value type for the event in a union with the specified tag.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SuccessWithTag<Events extends Any, Tag extends string> = Success<WithTag<Events, Tag>>
 
@@ -352,7 +352,7 @@ export type SuccessWithTag<Events extends Any, Tag extends string> = Success<Wit
  * Decoded error value type for the event in a union with the specified tag.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ErrorWithTag<Events extends Any, Tag extends string> = Error<WithTag<Events, Tag>>
 
@@ -380,7 +380,7 @@ const Proto = {
  * from the payload schema.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export function make<
   Tag extends string,

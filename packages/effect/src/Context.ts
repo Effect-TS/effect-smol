@@ -86,7 +86,7 @@ export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Ide
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface Service<in out Identifier, in out Shape> extends Key<Identifier, Shape> {
   of(this: void, self: Shape): Shape
@@ -167,7 +167,7 @@ export declare namespace ServiceClass {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Service: {
   <Identifier, Shape = Identifier>(key: string): Service<Identifier, Shape>
@@ -296,7 +296,7 @@ const ReferenceTypeId = "~effect/Context/Reference" as const
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 3.11.0
  */
 export interface Reference<in out Shape> extends Service<never, Shape> {
   readonly [ReferenceTypeId]: typeof ReferenceTypeId
@@ -324,7 +324,7 @@ export interface Reference<in out Shape> extends Service<never, Shape> {
  * type DatabaseId = Context.Service.Identifier<typeof Database>
  * ```
  *
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace Service {
   /**
@@ -390,7 +390,7 @@ export declare namespace Service {
    * ```
    *
    * @category models
-   * @since 4.0.0
+   * @since 2.0.0
    */
   export type Identifier<T> = T extends Key<infer I, infer _S> ? I : never
 }
@@ -424,7 +424,7 @@ const TypeId = "~effect/Context" as const
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable {
   readonly [TypeId]: {
@@ -511,7 +511,7 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
  * ```
  *
  * @category guards
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isContext = (u: unknown): u is Context<never> => hasProperty(u, TypeId)
 
@@ -550,7 +550,7 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceT
  * ```
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.11.0
  */
 export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, ReferenceTypeId)
 
@@ -567,7 +567,7 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const empty = (): Context<never> => emptyContext
 const emptyContext = makeUnsafe(new Map())
@@ -589,7 +589,7 @@ const emptyContext = makeUnsafe(new Map())
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const make = <I, S>(
   key: Key<I, S>,
@@ -620,7 +620,7 @@ export const make = <I, S>(
  * ```
  *
  * @category Adders
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const add: {
   <I, S>(
@@ -710,7 +710,7 @@ export const addOrOmit: {
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 3.7.0
  */
 export const getOrElse: {
   <S, I, B>(key: Key<I, S>, orElse: LazyArg<B>): <Services>(self: Context<Services>) => S | B
@@ -813,7 +813,7 @@ export const getUnsafe: {
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const get: {
   <Services, I extends Services, S>(service: Key<I, S>): (self: Context<Services>) => S
@@ -910,7 +910,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const getOption: {
   <S, I>(service: Key<I, S>): <Services>(self: Context<Services>) => Option.Option<S>
@@ -952,7 +952,7 @@ export const getOption: {
  * ```
  *
  * @category Utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const merge: {
   <R1>(that: Context<R1>): <Services>(self: Context<Services>) => Context<R1 | Services>
@@ -1043,7 +1043,7 @@ export const mergeAll = <T extends Array<unknown>>(
  * ```
  *
  * @category Utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const pick = <S extends ReadonlyArray<Key<any, any>>>(
   ...services: S
@@ -1084,7 +1084,7 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  * ```
  *
  * @category Utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const omit = <S extends ReadonlyArray<Key<any, any>>>(
   ...keys: S
@@ -1161,7 +1161,7 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  * ```
  *
  * @category references
- * @since 4.0.0
+ * @since 3.11.0
  */
 export const Reference: <Service>(
   key: string,

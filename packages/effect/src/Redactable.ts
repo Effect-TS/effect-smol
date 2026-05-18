@@ -100,7 +100,7 @@ import { hasProperty } from "./Predicate.ts"
  * - {@link isRedactable} - check whether a value has this symbol
  *
  * @category symbol
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
 
@@ -132,7 +132,7 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
  * - {@link isRedactable} - type guard for this interface
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Redactable {
   readonly [symbolRedactable]: (context: Context.Context<never>) => unknown
@@ -147,7 +147,7 @@ export interface Redactable {
  * - {@link redact} - applies redaction if the value is redactable
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symbolRedactable)
 
@@ -168,7 +168,7 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  * - {@link getRedacted} - lower-level variant for known redactables
  *
  * @category destructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function redact(u: unknown): unknown {
   if (isRedactable(u)) return getRedacted(u)

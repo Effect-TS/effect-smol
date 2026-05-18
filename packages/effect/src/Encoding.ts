@@ -85,7 +85,7 @@ export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u
  * ```
  *
  * @category encoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? base64EncodeUint8Array(encoder.encode(input)) : base64EncodeUint8Array(input)
@@ -108,7 +108,7 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
  * ```
  *
  * @category decoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const stripped = stripCrlf(str)
@@ -181,7 +181,7 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingErr
  * ```
  *
  * @category decoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const decodeBase64String = (str: string) => Result.map(decodeBase64(str), (_) => decoder.decode(_))
 
@@ -205,7 +205,7 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
  * ```
  *
  * @category encoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? base64UrlEncodeUint8Array(encoder.encode(input)) : base64UrlEncodeUint8Array(input)
@@ -230,7 +230,7 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
  * ```
  *
  * @category decoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const decodeBase64Url = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const stripped = stripCrlf(str)
@@ -283,7 +283,7 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, Encoding
  * ```
  *
  * @category decoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url(str), (_) => decoder.decode(_))
 
@@ -308,7 +308,7 @@ export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url
  * ```
  *
  * @category encoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const encodeHex: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input)
@@ -332,7 +332,7 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
  * ```
  *
  * @category decoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const bytes = new TextEncoder().encode(str)
@@ -387,7 +387,7 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError>
  * ```
  *
  * @category decoding
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const decodeHexString = (str: string) => Result.map(decodeHex(str), (_) => decoder.decode(_))
 

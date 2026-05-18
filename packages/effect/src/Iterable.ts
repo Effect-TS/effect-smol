@@ -499,7 +499,7 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
  * ```
  *
  * @category getters
- * @since 3.3.0
+ * @since 4.0.0
  */
 export const headUnsafe = <A>(self: Iterable<A>): A => {
   const iterator = self[Symbol.iterator]()
@@ -1748,7 +1748,7 @@ export const getSomes = <A>(self: Iterable<Option<A>>): Iterable<A> => {
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> => {
   return {
@@ -1794,7 +1794,7 @@ export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> =
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0> => {
   return {
@@ -1928,7 +1928,7 @@ export const filter: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const flatMapNullishOr: {
   <A, B>(f: (a: A) => B): (self: Iterable<A>) => Iterable<NonNullable<B>>

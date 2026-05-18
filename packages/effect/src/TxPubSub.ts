@@ -118,7 +118,7 @@ const makeTxPubSub = <A>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bounded = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -154,7 +154,7 @@ export const bounded = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>>
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const dropping = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -189,7 +189,7 @@ export const dropping = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const sliding = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -221,7 +221,7 @@ export const sliding = <A = never>(capacity: number): Effect.Effect<TxPubSub<A>>
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const unbounded = <A = never>(): Effect.Effect<TxPubSub<A>> =>
   Effect.gen(function*() {
@@ -249,7 +249,7 @@ export const unbounded = <A = never>(): Effect.Effect<TxPubSub<A>> =>
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const capacity = <A>(self: TxPubSub<A>): number => self.capacity
 
@@ -277,7 +277,7 @@ export const capacity = <A>(self: TxPubSub<A>): number => self.capacity
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
   Effect.gen(function*() {
@@ -306,7 +306,7 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isEmpty = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => Effect.map(size(self), (s) => s === 0)
 
@@ -326,7 +326,7 @@ export const isEmpty = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => Effect.
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isFull = <A>(self: TxPubSub<A>): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -355,7 +355,7 @@ export const isFull = <A>(self: TxPubSub<A>): Effect.Effect<boolean> =>
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isShutdown = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => TxRef.get(self.shutdownRef)
 
@@ -397,7 +397,7 @@ export const isShutdown = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => TxRe
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const publish: {
   <A>(value: A): (self: TxPubSub<A>) => Effect.Effect<boolean>
@@ -447,7 +447,7 @@ export const publish: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const publishAll: {
   <A>(values: Iterable<A>): (self: TxPubSub<A>) => Effect.Effect<boolean>
@@ -500,7 +500,7 @@ export const publishAll: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A>, never, Scope.Scope> =>
   Effect.acquireRelease(
@@ -593,7 +593,7 @@ const makeSubscriberQueue = <A>(
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const shutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
   Effect.gen(function*() {
@@ -625,7 +625,7 @@ export const shutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const awaitShutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
   Effect.gen(function*() {

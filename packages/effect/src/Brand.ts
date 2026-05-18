@@ -139,7 +139,7 @@ export declare namespace Brand {
    * A utility type to extract the keys of a branded type.
    *
    * @category utility types
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Keys<B extends Brand<any>> = keyof B[typeof TypeId]
 
@@ -208,7 +208,7 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
  * values of the same type but with different meanings, see {@link nominal}.
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export function make<A extends Brand<any>>(
   filter: (unbranded: Brand.Unbranded<A>) => Schema.FilterOutput

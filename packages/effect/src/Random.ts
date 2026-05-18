@@ -50,7 +50,7 @@ import * as Predicate from "./Predicate.ts"
  * ```
  *
  * @category Random Number Generators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Random: Context.Reference<{
   nextIntUnsafe(): number
@@ -75,7 +75,7 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
  * ```
  *
  * @category Random Number Generators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe())
 
@@ -94,7 +94,7 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
  * ```
  *
  * @category Random Number Generators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubleUnsafe() > 0.5)
 
@@ -114,7 +114,7 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
  * ```
  *
  * @category Random Number Generators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe())
 
@@ -160,7 +160,7 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  * ```
  *
  * @category Random Number Generators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const nextIntBetween = (min: number, max: number, options?: {
   readonly halfOpen?: boolean
@@ -188,7 +188,7 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * ```
  *
  * @category Random Number Generators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   randomWith((r) => {

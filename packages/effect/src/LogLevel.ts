@@ -78,7 +78,7 @@ import * as References from "./References.ts"
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None"
 
@@ -177,7 +177,7 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  * ```
  *
  * @category ordering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThan: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -222,7 +222,7 @@ export const isGreaterThan: {
  * ```
  *
  * @category ordering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -259,7 +259,7 @@ export const isGreaterThanOrEqualTo: {
  * ```
  *
  * @category ordering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThan: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -302,7 +302,7 @@ export const isLessThan: {
  * ```
  *
  * @category ordering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean

@@ -108,7 +108,7 @@ export interface Closeable extends Scope {
  * })
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 export namespace State {
   /**
@@ -133,7 +133,7 @@ export namespace State {
    * ```
    *
    * @category models
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Empty = {
     readonly _tag: "Empty"
@@ -157,7 +157,7 @@ export namespace State {
    * ```
    *
    * @category models
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Open = {
     readonly _tag: "Open"
@@ -187,7 +187,7 @@ export namespace State {
    * ```
    *
    * @category models
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Closed = {
     readonly _tag: "Closed"
@@ -344,7 +344,7 @@ export const provide: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) => Effect<unknown>) => Effect<void> =
   effect.scopeAddFinalizerExit
@@ -378,7 +378,7 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<void> = effect.scopeAddFinalizer
 
@@ -413,7 +413,7 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fork: (
   scope: Scope,
@@ -479,7 +479,7 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effect.scopeClose
 
@@ -506,7 +506,7 @@ export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void,
  * interrupted.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const use: {
   (scope: Closeable): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, Scope>>

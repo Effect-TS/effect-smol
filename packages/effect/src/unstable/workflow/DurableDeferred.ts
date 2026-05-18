@@ -45,7 +45,7 @@ const TypeId = "~effect/workflow/DurableDeferred"
  * engine and encoded with success and error schemas.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DurableDeferred<
   Success extends Schema.Top,
@@ -64,7 +64,7 @@ export interface DurableDeferred<
  * identity and name.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -91,7 +91,7 @@ export interface AnyWithProps {
  * persisted completion.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <
   Success extends Schema.Top = Schema.Void,
@@ -179,7 +179,7 @@ export {
  * workflows that are waiting on that deferred.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const into: {
   <Success extends Schema.Top, Error extends Schema.Top>(
@@ -259,7 +259,7 @@ export const into: {
  * present or completing a named deferred with the first result.
  *
  * @category Racing
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const raceAll = <
   const Effects extends NonEmptyReadonlyArray<Effect.Effect<any, any, any>>,
@@ -302,7 +302,7 @@ export const raceAll = <
  * Runtime brand identifier for durable deferred tokens.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
 
@@ -310,7 +310,7 @@ export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
  * Type-level brand identifier for `Token` values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TokenTypeId = typeof TokenTypeId
 
@@ -319,7 +319,7 @@ export type TokenTypeId = typeof TokenTypeId
  * execution.
  *
  * @category Token
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Token = Brand.Branded<string, TokenTypeId>
 
@@ -327,7 +327,7 @@ export type Token = Brand.Branded<string, TokenTypeId>
  * Schema for branded durable deferred tokens.
  *
  * @category Token
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Token: Schema.brand<Schema.String, TokenTypeId> = Schema.String.pipe(Schema.brand(TokenTypeId))
 
@@ -336,7 +336,7 @@ export const Token: Schema.brand<Schema.String, TokenTypeId> = Schema.String.pip
  * name, execution ID, and deferred name.
  *
  * @category Token
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class TokenParsed extends Schema.Class<TokenParsed>(
   "effect/workflow/DurableDeferred/TokenParsed"
@@ -411,7 +411,7 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
  * workflow name and execution ID.
  *
  * @category Token
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const token: <Success extends Schema.Top, Error extends Schema.Top>(
   self: DurableDeferred<Success, Error>
@@ -429,7 +429,7 @@ export const token: <Success extends Schema.Top, Error extends Schema.Top>(
  * and deferred name.
  *
  * @category Token
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const tokenFromExecutionId: {
   (options: {
@@ -463,7 +463,7 @@ export const tokenFromExecutionId: {
  * the supplied workflow payload.
  *
  * @category Token
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const tokenFromPayload: {
   <W extends Workflow.Any>(options: {
@@ -508,7 +508,7 @@ export const tokenFromPayload: {
  * encoding the result through the deferred schemas.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const done: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -560,7 +560,7 @@ export const done: {
  * value.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const succeed: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -595,7 +595,7 @@ export const succeed: {
  * Completes the durable deferred identified by a token with a typed failure.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fail: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {
@@ -630,7 +630,7 @@ export const fail: {
  * Completes the durable deferred identified by a token with a failure cause.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const failCause: {
   <Success extends Schema.Top, Error extends Schema.Top>(options: {

@@ -30,7 +30,7 @@ const TypeId = "~effect/workflow/DurableClock"
  * completed when the timer wakes.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DurableClock {
   readonly [TypeId]: typeof TypeId
@@ -44,7 +44,7 @@ export interface DurableClock {
  * signal.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (options: {
   readonly name: string
@@ -72,7 +72,7 @@ const InstanceTag = Context.Service<
  * below the threshold and scheduling a durable clock for longer durations.
  *
  * @category Sleeping
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const sleep: (
   options: {

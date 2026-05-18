@@ -396,7 +396,7 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
  * ```
  *
  * @category combinators
- * @since 3.5.0
+ * @since 3.8.0
  */
 export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> => {
   return Effect.suspend(() =>
@@ -435,7 +435,7 @@ export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> 
  * ```
  *
  * @category combinators
- * @since 3.5.0
+ * @since 3.13.0
  */
 export const invalidate: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<void>
@@ -511,7 +511,7 @@ export const has: {
  * ```
  *
  * @category combinators
- * @since 3.5.0
+ * @since 3.13.0
  */
 export const touch: {
   <K>(key: K): <A, E>(self: RcMap<K, A, E>) => Effect.Effect<void>

@@ -467,7 +467,7 @@ export const getHash: {
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe: {
   <K1 extends K, K>(key: K1): <V>(self: HashMap<K, V>) => V
@@ -1033,7 +1033,7 @@ export const removeMany: {
  * ```
  *
  * @category transforming
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setMany: {
   <K, V>(entries: Iterable<readonly [K, V]>): (self: HashMap<K, V>) => HashMap<K, V>

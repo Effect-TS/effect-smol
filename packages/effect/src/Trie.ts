@@ -574,7 +574,7 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe: {
   (key: string): <V>(self: Trie<V>) => V

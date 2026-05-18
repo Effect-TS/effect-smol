@@ -271,7 +271,7 @@ export const appendElement: {
  * @see {@link appendElement} – append a single element
  *
  * @category Concatenating
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const appendElements: {
   <const T2 extends ReadonlyArray<unknown>>(
@@ -401,7 +401,7 @@ export const renameIndices: {
  * @see {@link evolve} – apply different functions to different indices
  *
  * @category mapping
- * @since 4.0.0
+ * @since 3.9.0
  */
 export const map: {
   <L extends Lambda>(
@@ -558,7 +558,7 @@ export const mapOmit: {
  * @see {@link makeOrder} – create an `Order` for tuples
  *
  * @category Equivalence
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeEquivalence = Equivalence.Tuple
 
@@ -585,7 +585,7 @@ export const makeEquivalence = Equivalence.Tuple
  * @see {@link makeEquivalence} – create an `Equivalence` for tuples
  *
  * @category Ordering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeOrder = order.Tuple
 

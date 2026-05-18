@@ -42,7 +42,7 @@ export class RpcClientDefect extends Schema.ErrorClass<RpcClientDefect>("effect/
  * client protocol defect failures.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RpcClientError extends Schema.ErrorClass<RpcClientError>(TypeId)({
   _tag: Schema.tag("RpcClientError"),

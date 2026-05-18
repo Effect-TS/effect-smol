@@ -295,7 +295,7 @@ export function isTransformation(u: unknown): u is Transformation<any, any, unkn
  * - {@link Transformation}
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const make = <T, E, RD = never, RE = never>(options: {
   readonly decode: Getter.Getter<T, E, RD>
@@ -347,7 +347,7 @@ export const make = <T, E, RD = never, RE = never>(options: {
  * - {@link make} — for transformations from existing Getters
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function transformOrFail<T, E, RD = never, RE = never>(options: {
   readonly decode: (e: E, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, RD>
@@ -394,7 +394,7 @@ export function transformOrFail<T, E, RD = never, RE = never>(options: {
  * - {@link passthrough} — when no conversion is needed
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function transform<T, E>(options: {
   readonly decode: (input: E) => T

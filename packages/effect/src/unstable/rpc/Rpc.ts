@@ -56,7 +56,7 @@ const TypeId = "~effect/rpc/Rpc"
  * Returns `true` when the value is an `Rpc` definition.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isRpc = (u: unknown): u is Rpc<any, any, any> => Predicate.hasProperty(u, TypeId)
 
@@ -85,7 +85,7 @@ export interface DefectSchema extends Schema.Top {
  * middleware, and annotation metadata used by RPC clients and servers.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Rpc<
   in out Tag extends string,
@@ -218,7 +218,7 @@ export class ServerClient {
  * and RPC metadata, and returns either an effectful result or a stream result.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Handler<Tag extends string> {
   readonly _: unique symbol
@@ -237,7 +237,7 @@ export interface Handler<Tag extends string> {
  * all RPCs.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -251,7 +251,7 @@ export interface Any extends Pipeable {
  * metadata available.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface AnyWithProps extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -270,7 +270,7 @@ export interface AnyWithProps extends Pipeable {
  * Extracts the tag string from an `Rpc`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Tag<R> = R extends Rpc<
   infer _Tag,
@@ -286,7 +286,7 @@ export type Tag<R> = R extends Rpc<
  * Extracts the success schema from an `Rpc`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SuccessSchema<R> = R extends Rpc<
   infer _Tag,
@@ -302,7 +302,7 @@ export type SuccessSchema<R> = R extends Rpc<
  * Extracts the decoded success value type from an `Rpc`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Success<R> = SuccessSchema<R>["Type"]
 
@@ -310,7 +310,7 @@ export type Success<R> = SuccessSchema<R>["Type"]
  * Extracts the encoded success value type from an `Rpc`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SuccessEncoded<R> = R extends Rpc<
   infer _Tag,
@@ -340,7 +340,7 @@ export type SuccessExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<inf
  * elements are delivered separately.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SuccessExit<R> = Success<R> extends infer T ? T extends Stream<infer _A, infer _E, infer _Env> ? void : T
   : never
@@ -350,7 +350,7 @@ export type SuccessExit<R> = Success<R> extends infer T ? T extends Stream<infer
  * non-streaming RPCs.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SuccessChunk<R> = Success<R> extends Stream<infer _A, infer _E, infer _Env> ? _A : never
 
@@ -359,7 +359,7 @@ export type SuccessChunk<R> = Success<R> extends Stream<infer _A, infer _E, infe
  * middleware.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ErrorSchema<R> = R extends Rpc<
   infer _Tag,
@@ -376,7 +376,7 @@ export type ErrorSchema<R> = R extends Rpc<
  * errors.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Error<R> = Schema.Schema.Type<ErrorSchema<R>>
 
@@ -398,7 +398,7 @@ export type ErrorExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<infer
  * For streaming RPCs, this includes both stream errors and RPC errors.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ErrorExit<R> = Success<R> extends Stream<infer _A, infer _E, infer _Env> ? _E | Error<R> : Error<R>
 
@@ -407,7 +407,7 @@ export type ErrorExit<R> = Success<R> extends Stream<infer _A, infer _E, infer _
  * error types.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Exit<R> = Exit_<SuccessExit<R>, ErrorExit<R>>
 
@@ -416,7 +416,7 @@ export type Exit<R> = Exit_<SuccessExit<R>, ErrorExit<R>>
  * schema.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type PayloadConstructor<R> = R extends Rpc<
   infer _Tag,
@@ -432,7 +432,7 @@ export type PayloadConstructor<R> = R extends Rpc<
  * Extracts the decoded payload type from an `Rpc`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Payload<R> = R extends Rpc<
   infer _Tag,
@@ -519,7 +519,7 @@ export type ServicesServer<R> = R extends Rpc<
  * Extracts the service identifiers for middleware attached to an `Rpc`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Middleware<R> = R extends Rpc<
   infer _Tag,
@@ -536,7 +536,7 @@ export type Middleware<R> = R extends Rpc<
  * required on the client.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type MiddlewareClient<R> = R extends Rpc<
   infer _Tag,
@@ -554,7 +554,7 @@ export type MiddlewareClient<R> = R extends Rpc<
  * channel.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type AddError<R extends Any, Error extends Schema.Top> = R extends Rpc<
   infer _Tag,
@@ -578,7 +578,7 @@ export type AddError<R extends Any, Error extends Schema.Top> = R extends Rpc<
  * middleware service requirements applied.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type AddMiddleware<R extends Any, Middleware extends RpcMiddleware.AnyService> = R extends Rpc<
   infer _Tag,
@@ -601,7 +601,7 @@ export type AddMiddleware<R extends Any, Middleware extends RpcMiddleware.AnySer
  * Converts an RPC definition into the corresponding `Handler` type.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ToHandler<R extends Any> = R extends Rpc<
   infer _Tag,
@@ -620,7 +620,7 @@ export type ToHandler<R extends Any> = R extends Rpc<
  * the RPC result shape, optionally wrapped with `Wrapper` options.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ToHandlerFn<Current extends Any, R = any> = (
   payload: Payload<Current>,
@@ -637,7 +637,7 @@ export type ToHandlerFn<Current extends Any, R = any> = (
  * schema, or `never` otherwise.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type IsStream<R extends Any, Tag extends string> = R extends Rpc<
   Tag,
@@ -653,7 +653,7 @@ export type IsStream<R extends Any, Tag extends string> = R extends Rpc<
  * Extracts the RPC with the specified tag from an RPC union.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ExtractTag<R extends Any, Tag extends string> = R extends Rpc<
   Tag,
@@ -670,7 +670,7 @@ export type ExtractTag<R extends Any, Tag extends string> = R extends Rpc<
  * tag.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ExtractProvides<R extends Any, Tag extends string> = R extends Rpc<
   Tag,
@@ -703,7 +703,7 @@ export type ExtractRequires<R extends Any, Tag extends string> = R extends Rpc<
  * environment type.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ExcludeProvides<Env, R extends Any, Tag extends string> = Exclude<
   Env,
@@ -718,7 +718,7 @@ export type ExcludeProvides<Env, R extends Any, Tag extends string> = Exclude<
  * success value.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ResultFrom<R extends Any, Services> = R extends Rpc<
   infer _Tag,
@@ -750,7 +750,7 @@ export type ResultFrom<R extends Any, Services> = R extends Rpc<
  * preserving its payload, success, error, middleware, and requirements.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Prefixed<Rpcs extends Any, Prefix extends string> = Rpcs extends Rpc<
   infer _Tag,
@@ -888,7 +888,7 @@ const makeProto = <
  * primary key derived from the payload value.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <
   const Tag extends string,
@@ -1101,7 +1101,7 @@ const exitSchemaCache = new WeakMap<Any, Schema.Exit<Schema.Top, Schema.Top, Def
  * the exit success value. The schema is cached per RPC definition.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const exitSchema = <R extends Any>(
   self: R
@@ -1140,7 +1140,7 @@ const WrapperTypeId = "~effect/rpc/Rpc/Wrapper"
  * uninterruptible execution.
  *
  * @category Wrapper
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Wrapper<A> {
   readonly [WrapperTypeId]: typeof WrapperTypeId
@@ -1162,7 +1162,7 @@ export type WrapperOr<A> = A | Wrapper<A>
  * Returns `true` when the value is an RPC `Wrapper`.
  *
  * @category Wrapper
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isWrapper = (u: object): u is Wrapper<any> => WrapperTypeId in u
 
@@ -1173,7 +1173,7 @@ export const isWrapper = (u: object): u is Wrapper<any> => WrapperTypeId in u
  * existing wrapper.
  *
  * @category Wrapper
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const wrap = (options: {
   readonly fork?: boolean | undefined
@@ -1223,7 +1223,7 @@ export const wrapMap = <A extends object, B extends object>(self: WrapperOr<A>, 
  * setting.
  *
  * @category Wrapper
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fork: <A extends object>(value: A) => Wrapper<A> = wrap({ fork: true })
 
@@ -1231,6 +1231,6 @@ export const fork: <A extends object>(value: A) => Wrapper<A> = wrap({ fork: tru
  * You can use `uninterruptible` to wrap a response Effect or Stream, to ensure that it is run in an uninterruptible region.
  *
  * @category Wrapper
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const uninterruptible: <A extends object>(value: A) => Wrapper<A> = wrap({ uninterruptible: true })

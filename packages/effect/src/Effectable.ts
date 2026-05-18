@@ -75,7 +75,7 @@ const Base: new<A, E, R>() => Effect.Effect<A, E, R> = (() => {
  * An abstract class that can be extended to create an `Effect`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export abstract class Class<A, E = never, R = never> extends Base<A, E, R> {
   abstract override: Effect.Effect<A, E, R>

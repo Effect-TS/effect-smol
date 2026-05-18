@@ -52,7 +52,7 @@ const TypeId = "~effect/ai/Model" as const
  * @template Requires - Services that this model requires.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Model<in out Provider, in out Provides, in out Requires>
   extends Layer.Layer<Provides | ProviderName | ModelName, never, Requires>
@@ -82,7 +82,7 @@ export interface Model<in out Provider, in out Provides, in out Requires>
  * Effect program.
  *
  * @category services
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class ProviderName extends Context.Service<ProviderName, string>()(
   "effect/unstable/ai/Model/ProviderName"
@@ -155,7 +155,7 @@ const Proto = {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <const Provider extends string, const Name extends string, Provides, Requires>(
   /**

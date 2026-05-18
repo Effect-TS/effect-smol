@@ -291,7 +291,7 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
  * conversion.
  *
  * @category type utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const cast: <A, B>(a: A) => B = identity as any
 

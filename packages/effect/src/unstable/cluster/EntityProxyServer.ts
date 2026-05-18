@@ -40,7 +40,7 @@ import type { Sharding } from "./Sharding.ts"
  * endpoints.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerHttpApi = <
   ApiId extends string,
@@ -105,7 +105,7 @@ export const layerHttpApi = <
  * the `entityId` embedded in the proxy payload.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerRpcHandlers = <
   const Type extends string,
@@ -142,7 +142,7 @@ export const layerRpcHandlers = <
  * Includes both the normal prefixed RPC handler and its discard variant.
  *
  * @category services
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type RpcHandlers<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs extends Rpc.Rpc<
   infer _Tag,

@@ -32,7 +32,7 @@ import * as Stream from "../../Stream.ts"
  * callbacks that are triggered when the internal queue applies backpressure.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const asyncPauseResume = <A, E = never, R = never>(
   register: (emit: {

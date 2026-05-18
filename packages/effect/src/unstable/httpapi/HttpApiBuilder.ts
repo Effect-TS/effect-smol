@@ -129,7 +129,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  * You can implement endpoints using the `handlers.handle` api.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const group = <
   ApiId extends string,
@@ -172,7 +172,7 @@ export const group = <
  * Type identifier symbol used to brand `Handlers` values.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
 
@@ -180,7 +180,7 @@ export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpAp
  * Type of the `Handlers` type identifier symbol.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type HandlersTypeId = typeof HandlersTypeId
 
@@ -192,7 +192,7 @@ export type HandlersTypeId = typeof HandlersTypeId
  * handlers.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Handlers<
   R,
@@ -247,14 +247,14 @@ export interface Handlers<
 /**
  * Namespace containing helper types for `HttpApiBuilder` handler collections.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Handlers {
   /**
    * A `Handlers` value with its context and endpoint types erased.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Any {
     readonly [HandlersTypeId]: any
@@ -267,7 +267,7 @@ export declare namespace Handlers {
    * is used, and whether the handler should run uninterruptibly.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Item<R> = {
     readonly endpoint: HttpApiEndpoint.AnyWithProps
@@ -281,7 +281,7 @@ export declare namespace Handlers {
    * still awaiting an implementation.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type FromGroup<Group extends HttpApiGroup.Any> = Handlers<
     never,
@@ -294,7 +294,7 @@ export declare namespace Handlers {
    * unhandled.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type ValidateReturn<A> = A extends (
     | Handlers<
@@ -318,7 +318,7 @@ export declare namespace Handlers {
    * collection, returning `never` for non-effectful handler collections.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Error<A> = A extends Effect.Effect<
     Handlers<
@@ -335,7 +335,7 @@ export declare namespace Handlers {
    * requirements and the environment required to construct the handlers.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Context<A> = A extends Handlers<
     infer _R,
@@ -414,7 +414,7 @@ export const endpoint = <
  * supporting bearer, API key, and basic authentication inputs.
  *
  * @category security
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>(
   self: Security
@@ -481,7 +481,7 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
  * response, defaulting the cookie to `secure` and `httpOnly` unless overridden.
  *
  * @category security
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const securitySetCookie = (
   self: HttpApiSecurity.ApiKey,

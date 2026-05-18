@@ -79,7 +79,7 @@ export type AggregationTemporality = "cumulative" | "delta"
  * scope finalization up to `shutdownTimeout`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: (options: {
   readonly url: string
@@ -461,7 +461,7 @@ export const make: (options: {
  * Layer that starts the OTLP metrics exporter created by `make`.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = (options: {
   readonly url: string

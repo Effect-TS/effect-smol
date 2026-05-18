@@ -54,7 +54,7 @@ const TypeId = "~effect/ScopedCache"
  * or when the cache's owning scope closes.
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface ScopedCache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -108,7 +108,7 @@ export interface Entry<A, E> {
  * construction time or required when lookup operations run.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const makeWith = <
   Key,
@@ -161,7 +161,7 @@ export const makeWith = <
  * when the cache's owning scope closes.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const make = <
   Key,

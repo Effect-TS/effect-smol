@@ -57,7 +57,7 @@ const TypeId = "~effect/http/HttpServerResponse"
  * HTTP body that can later be converted to platform-specific response types.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface HttpServerResponse extends Inspectable.Inspectable, Pipeable, ErrorReporter.Reportable {
   readonly [TypeId]: typeof TypeId
@@ -72,7 +72,7 @@ export interface HttpServerResponse extends Inspectable.Inspectable, Pipeable, E
  * Common options accepted by HTTP server response constructors.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Options {
   readonly status?: number | undefined
@@ -87,7 +87,7 @@ export interface Options {
  * Option variants used by response constructors with different body metadata
  * rules.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Options {
   /**
@@ -95,7 +95,7 @@ export declare namespace Options {
    * and content length.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface WithContent extends Omit<Options, "contentType" | "contentLength"> {}
 
@@ -104,7 +104,7 @@ export declare namespace Options {
    * deriving the content length from the body.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface WithContentType extends Omit<Options, "contentLength"> {}
 }
@@ -123,7 +123,7 @@ export const isHttpServerResponse = (u: unknown): u is HttpServerResponse => has
  * The default status is `204`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const empty = (
   options?: Options.WithContent | undefined
@@ -142,7 +142,7 @@ export const empty = (
  * `Location` header.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const redirect = (
   location: string | URL,
@@ -163,7 +163,7 @@ export const redirect = (
  * Creates an HTTP response whose body is a `Uint8Array`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const uint8Array = (
   body: Uint8Array,
@@ -196,7 +196,7 @@ const getContentType = (
  * Creates an HTTP response whose body is a string.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const text = (
   body: string,
@@ -222,7 +222,7 @@ export const text = (
  * and errors.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const html: {
   <A extends ReadonlyArray<Template.Interpolated>>(
@@ -252,7 +252,7 @@ export const html: {
  * values from the current context.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const htmlStream = <
   A extends ReadonlyArray<Template.InterpolatedWithStream>
@@ -283,7 +283,7 @@ export const htmlStream = <
  * as `HttpBodyError` failures.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const json = (
   body: unknown,
@@ -308,7 +308,7 @@ export const json = (
  * JSON serialization fails.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaJson = <A, I, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -359,7 +359,7 @@ export const jsonUnsafe = (
  * `application/x-www-form-urlencoded` content type by default.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const urlParams = (
   body: UrlParams.Input,
@@ -386,7 +386,7 @@ export const urlParams = (
  * for later platform conversion.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const raw = (
   body: unknown,
@@ -407,7 +407,7 @@ export const raw = (
  * Creates a response whose body is a Web `FormData` value.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const formData = (
   body: FormData,
@@ -428,7 +428,7 @@ export const formData = (
  * content length.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const stream = <E>(
   body: Stream.Stream<Uint8Array, E>,
@@ -462,7 +462,7 @@ const HttpPlatformKey = Context.Service<
  * options for status, headers, offset, and byte range.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const file = (
   path: string,
@@ -483,7 +483,7 @@ export const file = (
  * offset, and byte range.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fileWeb = (
   file: Body.HttpBody.FileLike,
@@ -501,7 +501,7 @@ export const fileWeb = (
  * Returns a response with the specified header set to the supplied value.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const setHeader: {
   (
@@ -522,7 +522,7 @@ export const setHeader: {
  * Returns a response with all supplied headers set on the existing header map.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const setHeaders: {
   (input: Headers.Input): (self: HttpServerResponse) => HttpServerResponse
@@ -540,7 +540,7 @@ export const setHeaders: {
  * Returns a response with the cookie of the specified name removed.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const removeCookie: {
   (name: string): (self: HttpServerResponse) => HttpServerResponse
@@ -558,7 +558,7 @@ export const removeCookie: {
  * Returns a response with its cookie collection replaced by the supplied cookies.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const replaceCookies: {
   (cookies: Cookies.Cookies): (self: HttpServerResponse) => HttpServerResponse
@@ -575,7 +575,7 @@ export const replaceCookies: {
  * invalid.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const setCookie: {
   (
@@ -616,7 +616,7 @@ export const setCookie: {
  * mutated; the effect succeeds with a response containing the updated cookie set.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const expireCookie: {
   (
@@ -724,7 +724,7 @@ export const expireCookieUnsafe: {
  * callback result as its cookie collection.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const updateCookies: {
   (
@@ -754,7 +754,7 @@ export const updateCookies: {
  * cookie collection.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const mergeCookies: {
   (cookies: Cookies.Cookies): (self: HttpServerResponse) => HttpServerResponse
@@ -772,7 +772,7 @@ export const mergeCookies: {
  * returned effect fails with `CookiesError` if any cookie cannot be encoded.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const setCookies: {
   (
@@ -870,7 +870,7 @@ export const setCookiesUnsafe: {
  * includes the corresponding headers.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const setBody: {
   (body: Body.HttpBody): (self: HttpServerResponse) => HttpServerResponse
@@ -886,7 +886,7 @@ export const setBody: {
  * When `statusText` is omitted, the existing status text is preserved.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const setStatus: {
   (
@@ -920,7 +920,7 @@ export const setStatus: {
  * responses.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toWeb = (
   response: HttpServerResponse,
@@ -1306,7 +1306,7 @@ const makeResponse = (options: {
  * from the header map. A present Web body is exposed as a stream body.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fromWeb = (response: Response): HttpServerResponse => {
   const headers = new globalThis.Headers(response.headers)

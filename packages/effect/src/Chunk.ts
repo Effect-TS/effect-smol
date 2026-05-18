@@ -228,7 +228,7 @@ const emptyArray: ReadonlyArray<never> = []
  * ```
  *
  * @category equivalence
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Chunk<A>> =>
   Equivalence.make((self, that) =>
@@ -611,7 +611,7 @@ export const get: {
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
   self.length === 0 ? empty() : self.length === 1 ? of(self[0]) : makeChunk({ _tag: "IArray", array: self })
@@ -634,7 +634,7 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromNonEmptyArrayUnsafe = <A>(self: NonEmptyReadonlyArray<A>): NonEmptyChunk<A> =>
   fromArrayUnsafe(self) as any
@@ -657,7 +657,7 @@ export const fromNonEmptyArrayUnsafe = <A>(self: NonEmptyReadonlyArray<A>): NonE
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe: {
   (index: number): <A>(self: Chunk<A>) => A
@@ -1423,7 +1423,7 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const headUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, 0)
 
@@ -1488,7 +1488,7 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const lastUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, self.length - 1)
 

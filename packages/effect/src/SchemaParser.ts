@@ -129,7 +129,7 @@ export function make<S extends Schema.Top>(schema: S) {
  * exposing issue details.
  *
  * @category Asserting
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function is<T>(schema: Schema.Schema<T>): <I>(input: I) => input is I & T {
   return _is<T>(schema.ast)
@@ -162,7 +162,7 @@ export function _issue<T>(ast: AST.AST) {
  * input does not satisfy the schema.
  *
  * @category Asserting
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function asserts<T>(schema: Schema.Schema<T>) {
   const parser = asExit(run<T, never>(AST.toType(schema.ast)))
@@ -223,7 +223,7 @@ export const decodeEffect: <S extends Schema.Top>(
  * with a `SchemaIssue.Issue` on decoding failure.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
   schema: S,
@@ -240,7 +240,7 @@ export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
  * with a `SchemaIssue.Issue` on decoding failure.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function decodePromise<S extends Schema.Decoder<unknown>>(
   schema: S,
@@ -287,7 +287,7 @@ export const decodeExit: <S extends Schema.Decoder<unknown>>(
  * or `Option.none` on failure, discarding issue details.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
   schema: S,
@@ -304,7 +304,7 @@ export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
  * or `Option.none` on failure, discarding issue details.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const decodeOption: <S extends Schema.Decoder<unknown>>(
   schema: S,
@@ -349,7 +349,7 @@ export const decodeResult: <S extends Schema.Decoder<unknown>>(
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
   schema: S,
@@ -366,7 +366,7 @@ export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const decodeSync: <S extends Schema.Decoder<unknown>>(
   schema: S,
@@ -418,7 +418,7 @@ export const encodeEffect: <S extends Schema.Top>(
  * rejects with a `SchemaIssue.Issue` on encoding failure.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
   schema: S,
@@ -434,7 +434,7 @@ export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
  * rejects with a `SchemaIssue.Issue` on encoding failure.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodePromise: <S extends Schema.Encoder<unknown>>(
   schema: S,
@@ -479,7 +479,7 @@ export const encodeExit: <S extends Schema.Encoder<unknown>>(
  * on success or `Option.none` on failure, discarding issue details.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
   schema: S,
@@ -496,7 +496,7 @@ export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
  * on success or `Option.none` on failure, discarding issue details.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodeOption: <S extends Schema.Encoder<unknown>>(
   schema: S,
@@ -543,7 +543,7 @@ export const encodeResult: <S extends Schema.Encoder<unknown>>(
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
   schema: S,
@@ -560,7 +560,7 @@ export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodeSync: <S extends Schema.Encoder<unknown>>(
   schema: S,

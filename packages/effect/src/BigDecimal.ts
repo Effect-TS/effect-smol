@@ -302,7 +302,7 @@ export const sum: {
  * ```
  *
  * @category math
- * @since 4.0.0
+ * @since 3.16.0
  */
 export const sumAll = (collection: Iterable<BigDecimal>): BigDecimal => {
   let out: BigDecimal = zero
@@ -559,7 +559,7 @@ export const divide: {
  * ```
  *
  * @category math
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const divideUnsafe: {
   (that: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -641,7 +641,7 @@ export const Order: order.Order<BigDecimal> = order.make((self, that) => {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -672,7 +672,7 @@ export const isLessThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -703,7 +703,7 @@ export const isLessThanOrEqualTo: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -734,7 +734,7 @@ export const isGreaterThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
@@ -997,7 +997,7 @@ export const remainder: {
  * ```
  *
  * @category math
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const remainderUnsafe: {
   (divisor: BigDecimal): (self: BigDecimal) => BigDecimal
@@ -1134,7 +1134,7 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fromNumber = (n: number): Option.Option<BigDecimal> => {
   if (!Number.isFinite(n)) {
@@ -1238,7 +1238,7 @@ export const fromString = (s: string): Option.Option<BigDecimal> => {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromStringUnsafe = (s: string): BigDecimal => {
   return Option.getOrThrowWith(fromString(s), () => new Error(`Invalid numerical string: ${s}`))
@@ -1309,7 +1309,7 @@ export const format = (n: BigDecimal): string => {
  * ```
  *
  * @category converting
- * @since 4.0.0
+ * @since 3.11.0
  */
 export const toExponential = (n: BigDecimal): string => {
   if (isZero(n)) {
@@ -1347,7 +1347,7 @@ export const toExponential = (n: BigDecimal): string => {
  * ```
  *
  * @category converting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const toNumberUnsafe = (n: BigDecimal): number => Number(format(n))
 
@@ -1443,7 +1443,7 @@ const isBigDecimalArgs = (args: IArguments) => isBigDecimal(args[0])
  * `half-odd`: round to the nearest neighbor; if equidistant round to the neighbor with an odd digit
  *
  * @category math
- * @since 4.0.0
+ * @since 3.16.0
  */
 export type RoundingMode =
   | "ceil"
@@ -1477,7 +1477,7 @@ export type RoundingMode =
  * ```
  *
  * @category math
- * @since 4.0.0
+ * @since 3.16.0
  */
 export const round: {
   (options: { scale?: number; mode?: RoundingMode }): (self: BigDecimal) => BigDecimal
@@ -1543,7 +1543,7 @@ export const round: {
  * ```
  *
  * @category math
- * @since 4.0.0
+ * @since 3.16.0
  */
 export const truncate: {
   (scale: number): (self: BigDecimal) => BigDecimal
@@ -1574,7 +1574,7 @@ export const truncate: {
  * ```
  *
  * @category math
- * @since 4.0.0
+ * @since 3.16.0
  */
 export const ceil: {
   (scale: number): (self: BigDecimal) => BigDecimal
@@ -1628,7 +1628,7 @@ export const digitAt: {
  * ```
  *
  * @category math
- * @since 4.0.0
+ * @since 3.16.0
  */
 export const floor: {
   (scale: number): (self: BigDecimal) => BigDecimal

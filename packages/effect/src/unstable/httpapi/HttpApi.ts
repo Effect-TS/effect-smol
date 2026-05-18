@@ -44,7 +44,7 @@ const TypeId = "~effect/httpapi/HttpApi"
  * Returns `true` when a value is an `HttpApi`.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -56,7 +56,7 @@ export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, Type
  * completed API can be registered with `HttpApiBuilder.layer`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface HttpApi<
   out Id extends string,
@@ -111,7 +111,7 @@ export interface HttpApi<
  * An `HttpApi` value with its identifier and group types erased.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -122,7 +122,7 @@ export interface Any {
  * runtime properties used by implementation helpers.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type AnyWithProps = HttpApi<string, HttpApiGroup.AnyWithProps>
 
@@ -212,7 +212,7 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
  * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never> =>
   makeProto({
@@ -228,7 +228,7 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
  * middleware, and response schemas grouped by HTTP status.
  *
  * @category Reflection
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   self: HttpApi<Id, Groups>,
@@ -316,7 +316,7 @@ const extractResponseContent = (
  * The provided schemas must have a `identifier` annotation.
  *
  * @category tags
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class AdditionalSchemas extends Context.Service<
   AdditionalSchemas,

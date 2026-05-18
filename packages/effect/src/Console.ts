@@ -130,7 +130,7 @@ export interface Console {
  * ```
  *
  * @category references
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Console: Context.Reference<Console> = effect.ConsoleRef
 

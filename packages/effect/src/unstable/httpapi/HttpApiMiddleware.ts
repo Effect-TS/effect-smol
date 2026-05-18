@@ -53,7 +53,7 @@ const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
  * Returns `true` when an HTTP API middleware service is security middleware.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isSecurity = (u: AnyService): u is AnyServiceSecurity => hasProperty(u, SecurityTypeId)
 
@@ -71,7 +71,7 @@ type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Top> ? E[numb
  * middleware's declared error schema.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type HttpApiMiddleware<Provides, E extends ErrorConstraint, Requires> = (
   httpEffect: Effect.Effect<HttpServerResponse, unhandled, Provides>,
@@ -88,7 +88,7 @@ export type HttpApiMiddleware<Provides, E extends ErrorConstraint, Requires> = (
  * endpoint response effect with the middleware's declared requirements and errors.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type HttpApiMiddlewareSecurity<
   Security extends Record<string, HttpApiSecurity.HttpApiSecurity>,
@@ -170,7 +170,7 @@ export interface AnyServiceSecurity extends AnyService {
  * Type-level identifier carried by middleware services to track provided services, required services, errors, client errors, and client requirements.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface AnyId {
   readonly [TypeId]: {
@@ -186,7 +186,7 @@ export interface AnyId {
  * Extracts the services provided by a middleware identifier.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Provides<A> = A extends { readonly [TypeId]: { readonly provides: infer P } } ? P : never
 
@@ -219,7 +219,7 @@ export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: in
  * Extracts the decoded error type declared by a middleware identifier.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Error<A> = ErrorSchema<A>["Type"]
 
@@ -319,7 +319,7 @@ export type ServiceClass<
  * clients must provide a matching client middleware.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Service = <
   Self,

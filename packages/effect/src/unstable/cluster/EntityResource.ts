@@ -39,7 +39,7 @@ import type { Sharding } from "./Sharding.ts"
  * Type identifier used to brand `EntityResource` values.
  *
  * @category Type ids
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId: TypeId = "~effect/cluster/EntityResource"
 
@@ -47,7 +47,7 @@ export const TypeId: TypeId = "~effect/cluster/EntityResource"
  * Literal type of the `EntityResource` type identifier.
  *
  * @category Type ids
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TypeId = "~effect/cluster/EntityResource"
 
@@ -58,7 +58,7 @@ export type TypeId = "~effect/cluster/EntityResource"
  * invalidates it so its close scope can be released.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface EntityResource<out A, out E = never> {
   readonly [TypeId]: TypeId
@@ -72,7 +72,7 @@ export interface EntityResource<out A, out E = never> {
  * It is not closed during restarts, due to shard movement or node shutdowns.
  *
  * @category Scope
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class CloseScope extends Context.Service<
   CloseScope,
@@ -90,7 +90,7 @@ export class CloseScope extends Context.Service<
  * be released when `close` is called.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -148,7 +148,7 @@ export const make: <A, E, R>(options: {
  * until the resource is closed or its idle time to live expires.
  *
  * @category Kubernetes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeK8sPod: (
   spec: v1.Pod,

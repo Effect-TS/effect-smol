@@ -40,7 +40,7 @@ import * as SqlRunnerStorage from "./SqlRunnerStorage.ts"
  * entities and workflows.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = (options?: {
   readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined

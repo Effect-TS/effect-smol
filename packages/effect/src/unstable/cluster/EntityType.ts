@@ -25,7 +25,7 @@ import * as Schema from "../../Schema.ts"
  * Schema for branded string names that identify entity types in the cluster.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const EntityType = Schema.String.pipe(Schema.brand("~effect/cluster/EntityType"))
 
@@ -33,7 +33,7 @@ export const EntityType = Schema.String.pipe(Schema.brand("~effect/cluster/Entit
  * Branded string type representing an entity type name.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type EntityType = typeof EntityType.Type
 

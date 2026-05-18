@@ -43,7 +43,7 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * flushed on shutdown.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: (
   options: {
@@ -104,7 +104,7 @@ export const make: (
  * By default the OTLP logger is merged with any existing loggers.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = (options: {
   readonly url: string

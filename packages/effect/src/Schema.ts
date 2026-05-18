@@ -182,7 +182,7 @@ export type ConstructorDefault = "no-default" | "with-default"
  * @see {@link Bottom.make}
  *
  * @category models
- * @since 4.0.0
+ * @since 3.13.4
  */
 export interface MakeOptions {
   /**
@@ -362,7 +362,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
  * opaque type `T` with no type parameters.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.13.3
  */
 export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [], Iso> {
   readonly "Rebuild": declare<T, Iso>
@@ -595,7 +595,7 @@ export interface Top extends
 /**
  * Namespace of type-level helpers for {@link Schema}.
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export declare namespace Schema {
   /**
@@ -612,7 +612,7 @@ export declare namespace Schema {
    * ```
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Type<S> = S extends Top ? S["Type"] : never
 }
@@ -643,7 +643,7 @@ export declare namespace Schema {
  * @see {@link Schema.Type} — extract the decoded type at the type level
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Schema<out T> extends Top {
   readonly "Type": T
@@ -670,7 +670,7 @@ export declare namespace Codec {
    * ```
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Encoded<S> = S extends Top ? S["Encoded"] : never
   /**
@@ -715,7 +715,7 @@ export declare namespace Codec {
    * Produced by {@link asserts}.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type ToAsserts<S extends Top> = <I>(input: I) => asserts input is I & S["Type"]
 }
@@ -1283,7 +1283,7 @@ export const decodeResult = Parser.decodeResult
  * application options override creation options.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const decodeUnknownPromise = Parser.decodeUnknownPromise
 
@@ -1297,7 +1297,7 @@ export const decodeUnknownPromise = Parser.decodeUnknownPromise
  * application options override creation options.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const decodePromise = Parser.decodePromise
 
@@ -1494,7 +1494,7 @@ export const encodeResult = Parser.encodeResult
  * application options override creation options.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodeUnknownPromise = Parser.encodeUnknownPromise
 
@@ -1506,7 +1506,7 @@ export const encodeUnknownPromise = Parser.encodeUnknownPromise
  * application options override creation options.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodePromise = Parser.encodePromise
 
@@ -1550,7 +1550,7 @@ export const encodeSync = Parser.encodeSync
  * schema.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const make: <S extends Top>(ast: S["ast"], options?: object) => S = InternalSchema.make
 
@@ -1585,7 +1585,7 @@ export function asClass<S extends Top>(schema: S): S & { new(_: never): {} } {
  * Tests if a value is a `Schema`.
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function isSchema(u: unknown): u is Top {
   return Predicate.hasProperty(u, TypeId) && u[TypeId] === TypeId
@@ -1670,7 +1670,7 @@ export const requiredKey = Struct_.lambda<requiredKeyLambda>((self) => self.sche
  * Equivalent to `optionalKey<UndefinedOr<S>>`. Produced by {@link optional}.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface optional<S extends Top> extends optionalKey<UndefinedOr<S>> {
   readonly "Rebuild": optional<S>
@@ -1705,7 +1705,7 @@ interface optionalLambda extends Lambda {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const optional = Struct_.lambda<optionalLambda>((self) => optionalKey(UndefinedOr(self)))
 
@@ -1720,7 +1720,7 @@ interface requiredLambda extends Lambda {
  * Only applicable to schemas already wrapped with `optional`.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const required = Struct_.lambda<requiredLambda>((self) => self.schema.members[0])
 
@@ -1930,7 +1930,7 @@ export function flip<S extends Top>(schema: S): flip<S> {
  *
  * @see {@link Literal} for the constructor function.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never, never, AST.Literal, Literal<L>> {
   readonly literal: L
@@ -1952,7 +1952,7 @@ export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never,
  * @see {@link tag} for a schema that represents a literal value that can be
  * used as a discriminator field in tagged unions and has a constructor default.
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Literal<L extends AST.LiteralValue>(literal: L): Literal<L> {
   const out = make<Literal<L>>(new AST.Literal(literal), {
@@ -1970,7 +1970,7 @@ export function Literal<L extends AST.LiteralValue>(literal: L): Literal<L> {
 /**
  * Namespace for {@link TemplateLiteral} helper types.
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export declare namespace TemplateLiteral {
   /**
@@ -2024,7 +2024,7 @@ export declare namespace TemplateLiteral {
    * forms of all template literal parts.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Encoded<Parts> = Parts extends readonly [...infer Init, infer Last] ? AppendType<Encoded<Init>, Last>
     : ``
@@ -2036,7 +2036,7 @@ export declare namespace TemplateLiteral {
  *
  * @see {@link TemplateLiteral} for the constructor function.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface TemplateLiteral<Parts extends TemplateLiteral.Parts> extends
   Bottom<
@@ -2069,7 +2069,7 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
  *
  * @see {@link TemplateLiteralParser} for a schema that also parses matched parts into a tuple.
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(parts: Parts): TemplateLiteral<Parts> {
   return make(templateLiteralFromParts(parts), { parts })
@@ -2078,7 +2078,7 @@ export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(parts
 /**
  * Namespace for {@link TemplateLiteralParser} helper types.
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export declare namespace TemplateLiteralParser {
   /**
@@ -2089,7 +2089,7 @@ export declare namespace TemplateLiteralParser {
    * contribute their decoded `Type`.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Type<Parts> = Parts extends readonly [infer Head, ...infer Tail] ? readonly [
       Head extends TemplateLiteral.LiteralPart ? Head :
@@ -2106,7 +2106,7 @@ export declare namespace TemplateLiteralParser {
  *
  * @see {@link TemplateLiteralParser} for the constructor function.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> extends
   Bottom<
@@ -2135,7 +2135,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
  *
  * @see {@link TemplateLiteral} for a validation-only version that keeps the string encoded.
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>(
   parts: Parts
@@ -2192,7 +2192,7 @@ export function Enum<A extends { [x: string]: string | number }>(enums: A): Enum
  *
  * @see {@link Never} for the schema value.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Never extends Bottom<never, never, never, never, AST.Never, Never> {}
 
@@ -2200,7 +2200,7 @@ export interface Never extends Bottom<never, never, never, never, AST.Never, Nev
  * Schema for the `never` type. Always fails validation — no value satisfies it.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Never: Never = make(AST.never)
 
@@ -2209,7 +2209,7 @@ export const Never: Never = make(AST.never)
  *
  * @see {@link Any} for the schema value.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Any extends Bottom<any, any, never, never, AST.Any, Any> {}
 
@@ -2218,7 +2218,7 @@ export interface Any extends Bottom<any, any, never, never, AST.Any, Any> {}
  *
  * @see {@link Unknown} for a safer alternative that uses `unknown`.
  * @category schemas
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Any: Any = make(AST.any)
 
@@ -2227,7 +2227,7 @@ export const Any: Any = make(AST.any)
  *
  * @see {@link Unknown} for the schema value.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Unknown extends Bottom<unknown, unknown, never, never, AST.Unknown, Unknown> {}
 
@@ -2236,7 +2236,7 @@ export interface Unknown extends Bottom<unknown, unknown, never, never, AST.Unkn
  *
  * @see {@link Any} for the `any` variant.
  * @category schemas
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Unknown: Unknown = make(AST.unknown)
 
@@ -2245,7 +2245,7 @@ export const Unknown: Unknown = make(AST.unknown)
  *
  * @see {@link Null} for the schema value.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Null extends Bottom<null, null, never, never, AST.Null, Null> {}
 
@@ -2254,7 +2254,7 @@ export interface Null extends Bottom<null, null, never, never, AST.Null, Null> {
  *
  * @see {@link NullOr} for a union with another schema.
  * @category schemas
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Null: Null = make(AST.null)
 
@@ -2263,7 +2263,7 @@ export const Null: Null = make(AST.null)
  *
  * @see {@link Undefined} for the schema value.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Undefined extends Bottom<undefined, undefined, never, never, AST.Undefined, Undefined> {}
 
@@ -2272,7 +2272,7 @@ export interface Undefined extends Bottom<undefined, undefined, never, never, AS
  *
  * @see {@link UndefinedOr} for a union with another schema.
  * @category schemas
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Undefined: Undefined = make(AST.undefined)
 
@@ -2373,7 +2373,7 @@ export const BigInt: BigInt = make(AST.bigInt)
  *
  * @see {@link Void} for the schema value.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Void extends Bottom<void, void, never, never, AST.Void, Void> {}
 
@@ -2381,7 +2381,7 @@ export interface Void extends Bottom<void, void, never, never, AST.Void, Void> {
  * Schema for the `void` type. Accepts `undefined` as the encoded value.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Void: Void = make(AST.void)
 
@@ -2446,14 +2446,14 @@ export function UniqueSymbol<const sym extends symbol>(symbol: sym): UniqueSymbo
  * - `Struct.MakeIn<F>` — constructor input (optional/defaulted fields may be omitted)
  * - `Struct.DecodingServices<F>` / `Struct.EncodingServices<F>` — required services
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export declare namespace Struct {
   /**
    * Constraint for a struct field map: an object whose values are schemas.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Fields = { readonly [x: PropertyKey]: Top }
 
@@ -2485,7 +2485,7 @@ export declare namespace Struct {
    * produce optional properties, while `mutableKey` produces writable properties.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Type<F extends Fields> = Simplify<Type_<F>>
 
@@ -2541,7 +2541,7 @@ export declare namespace Struct {
    * the encoded shape.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Encoded<F extends Fields> = Simplify<Encoded_<F>>
 
@@ -2597,7 +2597,7 @@ export declare namespace Struct {
  * `mapFields` creates a new struct schema by transforming that field map.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Struct<Fields extends Struct.Fields> extends
   Bottom<
@@ -2700,7 +2700,7 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Struct<const Fields extends Struct.Fields>(fields: Fields): Struct<Fields> {
   return makeStruct(AST.struct(fields, undefined), fields)
@@ -2885,7 +2885,7 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
  * - `Record.Type<K, V>` — decoded type of the record
  * - `Record.Encoded<K, V>` — encoded type of the record
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export declare namespace Record {
   /**
@@ -2913,7 +2913,7 @@ export declare namespace Record {
    * resulting property optionality and writability.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Type<Key extends Record.Key, Value extends Top> = Value extends
     { readonly "~type.optionality": "optional" } ?
@@ -2945,7 +2945,7 @@ export declare namespace Record {
    * the encoded record properties are optional or writable.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Encoded<Key extends Record.Key, Value extends Top> = Value extends
     { readonly "~encoded.optionality": "optional" } ?
@@ -3037,7 +3037,7 @@ export interface $Record<Key extends Record.Key, Value extends Top> extends
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Record<Key extends Record.Key, Value extends Top>(
   key: Key,
@@ -3078,7 +3078,7 @@ export declare namespace StructWithRest {
    * for a `StructWithRest` schema.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Records = ReadonlyArray<$Record<Record.Key, Top>>
 
@@ -3091,7 +3091,7 @@ export declare namespace StructWithRest {
    * schema's decoded `Type` with the decoded types of all rest record schemas.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Type<S extends Objects, Records extends StructWithRest.Records> =
     & S["Type"]
@@ -3113,7 +3113,7 @@ export declare namespace StructWithRest {
    * schema's encoded type with the encoded types of all rest record schemas.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Encoded<S extends Objects, Records extends StructWithRest.Records> =
     & S["Encoded"]
@@ -3219,7 +3219,7 @@ export function StructWithRest<
  * - `Tuple.Encoded<E>` — encoded tuple type
  * - `Tuple.MakeIn<E>` — constructor input tuple
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export declare namespace Tuple {
   /**
@@ -3227,7 +3227,7 @@ export declare namespace Tuple {
    * fixed-length `Tuple` schema.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Elements = ReadonlyArray<Top>
 
@@ -3249,7 +3249,7 @@ export declare namespace Tuple {
    * optional tuple positions.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Type<E extends Elements> = Type_<E>
 
@@ -3290,7 +3290,7 @@ export declare namespace Tuple {
    * schemas produce optional tuple positions.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Encoded<E extends Elements> = Encoded_<E>
 
@@ -3341,7 +3341,7 @@ export declare namespace Tuple {
  * Companion type for a fixed-length tuple. Produced by {@link Tuple}.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Tuple<Elements extends Tuple.Elements> extends
   Bottom<
@@ -3410,7 +3410,7 @@ function makeTuple<Elements extends Tuple.Elements>(ast: AST.Arrays, elements: E
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Elements): Tuple<Elements> {
   return makeTuple(AST.tuple(elements), elements)
@@ -3432,7 +3432,7 @@ export declare namespace TupleWithRest {
    * portion of a `TupleWithRest` schema.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type TupleType = Top & {
     readonly Type: ReadonlyArray<unknown>
@@ -3450,7 +3450,7 @@ export declare namespace TupleWithRest {
    * present, describe trailing tuple elements after the repeated rest segment.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Rest = readonly [Top, ...Array<Top>]
 
@@ -3463,7 +3463,7 @@ export declare namespace TupleWithRest {
    * as fixed tuple positions.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Type<T extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
     readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? Readonly<[
@@ -3501,7 +3501,7 @@ export declare namespace TupleWithRest {
    * additional rest schemas become required trailing tuple elements.
    *
    * @category utility types
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export type Encoded<E extends ReadonlyArray<unknown>, Rest extends TupleWithRest.Rest> = Rest extends
     readonly [infer Head extends Top, ...infer Tail extends ReadonlyArray<Top>] ? readonly [
@@ -3656,7 +3656,7 @@ export {
  * Companion type for a non-empty `ReadonlyArray`. Produced by {@link NonEmptyArray}.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface NonEmptyArray<S extends Top> extends
   Bottom<
@@ -3694,7 +3694,7 @@ interface NonEmptyArrayLambda extends Lambda {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
   make(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
@@ -3709,7 +3709,7 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
  * `ReadonlyArray<S["Type"]>`.
  *
  * @category Arrays
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, Union<readonly [S, $Array<S>]>> {
   readonly "Rebuild": ArrayEnsure<S>
@@ -3728,7 +3728,7 @@ export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, 
  * arrays and arrays with two or more elements are encoded as arrays.
  *
  * @category Arrays
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
   return Union([schema, ArraySchema(schema)]).pipe(decodeTo(
@@ -3768,7 +3768,7 @@ export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
  * Produced by {@link mutable}.
  *
  * @category transforming
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface mutable<S extends Top & { readonly "ast": AST.Arrays }> extends
   Bottom<
@@ -3814,7 +3814,7 @@ interface mutableLambda extends Lambda {
  * ```
  *
  * @category transforming
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const mutable = Struct_.lambda<mutableLambda>((schema) => {
   return make(new AST.Arrays(true, schema.ast.elements, schema.ast.rest), { schema })
@@ -3824,7 +3824,7 @@ export const mutable = Struct_.lambda<mutableLambda>((schema) => {
  * Companion type for a union of multiple schemas. Produced by {@link Union}.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Union<Members extends ReadonlyArray<Top>> extends
   Bottom<
@@ -3903,7 +3903,7 @@ function makeUnion<Members extends ReadonlyArray<Top>>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Union<const Members extends ReadonlyArray<Top>>(
   members: Members,
@@ -3977,7 +3977,7 @@ export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
  * Companion type for `S | null`. Produced by {@link NullOr}.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface NullOr<S extends Top> extends Union<readonly [S, Null]> {
   readonly "Rebuild": NullOr<S>
@@ -3992,7 +3992,7 @@ interface NullOrLambda extends Lambda {
  * Creates a union schema of `S | null`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const NullOr = Struct_.lambda<NullOrLambda>((self) => Union([self, Null]))
 
@@ -4000,7 +4000,7 @@ export const NullOr = Struct_.lambda<NullOrLambda>((self) => Union([self, Null])
  * Companion type for `S | undefined`. Produced by {@link UndefinedOr}.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface UndefinedOr<S extends Top> extends Union<readonly [S, Undefined]> {
   readonly "Rebuild": UndefinedOr<S>
@@ -4015,14 +4015,14 @@ interface UndefinedOrLambda extends Lambda {
  * Creates a union schema of `S | undefined`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const UndefinedOr = Struct_.lambda<UndefinedOrLambda>((self) => Union([self, Undefined]))
 
 /**
  * Companion type for `S | null | undefined`. Produced by {@link NullishOr}.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface NullishOr<S extends Top> extends Union<readonly [S, Null, Undefined]> {
   readonly "Rebuild": NullishOr<S>
@@ -4036,14 +4036,14 @@ interface NullishOrLambda extends Lambda {
 /**
  * Creates a union schema of `S | null | undefined`.
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const NullishOr = Struct_.lambda<NullishOrLambda>((self) => Union([self, Null, Undefined]))
 
 /**
  * Schema type wrapping a lazily-evaluated schema. Produced by {@link suspend}.
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface suspend<S extends Top> extends
   Bottom<
@@ -4086,7 +4086,7 @@ export interface suspend<S extends Top> extends
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function suspend<S extends Top>(f: () => S): suspend<S> {
   return make(new AST.Suspend(() => f().ast))
@@ -4117,7 +4117,7 @@ export function check<S extends Top>(...checks: readonly [AST.Check<S["Type"]>, 
  * type guard.
  *
  * @category filtering
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface refine<T extends S["Type"], S extends Top> extends
   Bottom<
@@ -4152,7 +4152,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * failed refinement itself.
  *
  * @category filtering
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function refine<S extends Top, T extends S["Type"]>(
   refinement: (value: S["Type"]) => value is T,
@@ -4169,7 +4169,7 @@ type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string 
  * more {@link Brand.Brand} tags.
  *
  * @category branding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface brand<S extends Top, B> extends
   Bottom<
@@ -4199,7 +4199,7 @@ export interface brand<S extends Top, B> extends
  * `Brand.Brand<B>` to prevent accidental mixing of structurally identical types.
  *
  * @category branding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function brand<B extends string>(identifier: B) {
   return <S extends Top>(schema: S): brand<S["Rebuild"], B> =>
@@ -4211,7 +4211,7 @@ export function brand<B extends string>(identifier: B) {
  * constructor's checks and brand tag to the underlying schema.
  *
  * @category branding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: Brand.Constructor<A>) {
   return <S extends Top & { readonly "Type": Brand.Brand.Unbranded<A> }>(
@@ -4469,7 +4469,7 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
  *
  * @see {@link decodeTo} for the transformation variant
  * @category transforming
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface compose<To extends Top, From extends Top> extends decodeTo<To, From> {}
 
@@ -4582,7 +4582,7 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
  * ```
  *
  * @category transforming
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function decode<S extends Top, RD = never, RE = never>(transformation: {
   readonly decode: Getter.Getter<S["Type"], S["Type"], RD>
@@ -4661,7 +4661,7 @@ export function encodeTo<To extends Top, From extends Top, RD = never, RE = neve
  * ```
  *
  * @category transforming
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function encode<S extends Top, RD = never, RE = never>(transformation: {
   readonly decode: Getter.Getter<S["Encoded"], S["Encoded"], RD>
@@ -4696,7 +4696,7 @@ export interface WithoutConstructorDefault {
  *
  * @see {@link withConstructorDefault} for the constructor
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface withConstructorDefault<S extends Top & WithoutConstructorDefault> extends
   Bottom<
@@ -4743,7 +4743,7 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function withConstructorDefault<S extends Top & WithoutConstructorDefault>(
   // `S["~type.make.in"]` instead of `S["Type"]` is intentional here because
@@ -4878,7 +4878,7 @@ export function withDecodingDefaultTypeKey<S extends Top, R = never>(
  *
  * @see {@link withDecodingDefault} for the constructor
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface withDecodingDefault<S extends Top, R = never> extends decodeTo<S, optional<toEncoded<S>>, R> {
   readonly "Rebuild": withDecodingDefault<S, R>
@@ -4914,7 +4914,7 @@ export interface withDecodingDefault<S extends Top, R = never> extends decodeTo<
  * @see {@link withDecodingDefaultKey} for the key-level variant (key absent only, not `undefined`)
  * @see {@link withDecodingDefaultType} for the variant where the default is a `Type` value
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function withDecodingDefault<S extends Top, R = never>(
   defaultValue: Effect.Effect<S["Encoded"], SchemaError, R>,
@@ -4983,7 +4983,7 @@ export function withDecodingDefaultType<S extends Top, R = never>(
  *
  * @see {@link tag} for the constructor
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefault<Literal<Tag>> {}
 
@@ -5007,7 +5007,7 @@ export interface tag<Tag extends AST.LiteralValue> extends withConstructorDefaul
  * @see {@link tagDefaultOmit} to also omit the tag during encoding
  * @see {@link TaggedStruct} for a shorthand that adds `_tag` automatically
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function tag<Tag extends AST.LiteralValue>(literal: Tag): tag<Tag> {
   return Literal(literal).pipe(withConstructorDefault(Effect.succeed(literal)))
@@ -5046,7 +5046,7 @@ export function tagDefaultOmit<Tag extends AST.LiteralValue>(literal: Tag) {
  *
  * @see {@link TaggedStruct} for the constructor
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fields> = Struct<
   Simplify<{ readonly _tag: tag<Tag> } & Fields>
@@ -5092,7 +5092,7 @@ export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fie
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function TaggedStruct<const Tag extends AST.LiteralValue, const Fields extends Struct.Fields>(
   value: Tag,
@@ -5368,7 +5368,7 @@ export function Opaque<Self, Brand = {}>() {
  *
  * @see {@link instanceOf} for the constructor
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
   readonly "Rebuild": instanceOf<T, Iso>
@@ -5390,7 +5390,7 @@ export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function instanceOf<C extends abstract new(...args: any) => any, Iso = InstanceType<C>>(
   constructor: C,
@@ -5499,7 +5499,7 @@ export const makeFilter: <T>(
  *   at the given `path`.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export type FilterIssue = string | Issue.Issue | {
   readonly path: ReadonlyArray<PropertyKey>
@@ -5525,7 +5525,7 @@ export type FilterIssue = string | Issue.Issue | {
  *   into an {@link Issue.Composite}.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export type FilterOutput =
   | undefined
@@ -7397,7 +7397,7 @@ export function isUnique<T>(annotations?: Annotations.Filter) {
  * strings with a length of at least one.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface NonEmptyString extends String {
   readonly "Rebuild": NonEmptyString
@@ -7408,7 +7408,7 @@ export interface NonEmptyString extends String {
  * character.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
 
@@ -7417,7 +7417,7 @@ export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
  * length is exactly one.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Char extends String {
   readonly "Rebuild": Char
@@ -7427,7 +7427,7 @@ export interface Char extends String {
  * A schema representing a single character.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Char: Char = String.check(isLengthBetween(1, 1))
 
@@ -7450,7 +7450,7 @@ export const Char: Char = String.check(isLengthBetween(1, 1))
  * ```
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Option<A extends Top> extends
   declareConstructor<
@@ -7482,7 +7482,7 @@ export type OptionIso<A extends Top> =
  * Creates a schema for `Option<A>`. See {@link Option} for details.
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Option<A extends Top>(value: A): Option<A> {
   const schema = declareConstructor<
@@ -7550,7 +7550,7 @@ export function Option<A extends Top>(value: A): Option<A> {
  * other values as `Some`.
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<S>>, NullOr<S>> {
   readonly "Rebuild": OptionFromNullOr<S>
@@ -7568,7 +7568,7 @@ export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<
  * - `Some` is encoded as the value
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> {
   return NullOr(schema).pipe(decodeTo(
@@ -7582,7 +7582,7 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
  * all other values as `Some`.
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface OptionFromUndefinedOr<S extends Top> extends decodeTo<Option<toType<S>>, UndefinedOr<S>> {
   readonly "Rebuild": OptionFromUndefinedOr<S>
@@ -7600,7 +7600,7 @@ export interface OptionFromUndefinedOr<S extends Top> extends decodeTo<Option<to
  * - `Some` is encoded as the value
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function OptionFromUndefinedOr<S extends Top>(schema: S): OptionFromUndefinedOr<S> {
   return UndefinedOr(schema).pipe(decodeTo(
@@ -7614,7 +7614,7 @@ export function OptionFromUndefinedOr<S extends Top>(schema: S): OptionFromUndef
  * `None` and all other values as `Some`.
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface OptionFromNullishOr<S extends Top> extends decodeTo<Option<toType<S>>, NullishOr<S>> {
   readonly "Rebuild": OptionFromNullishOr<S>
@@ -7632,7 +7632,7 @@ export interface OptionFromNullishOr<S extends Top> extends decodeTo<Option<toTy
  * - `Some` is encoded as the value
  *
  * @category Option
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function OptionFromNullishOr<S extends Top>(
   schema: S,
@@ -7878,7 +7878,7 @@ export function Result<A extends Top, E extends Top>(
  * values. The inner value is hidden from error messages.
  *
  * @category Redacted
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Redacted<S extends Top> extends
   declareConstructor<
@@ -7912,7 +7912,7 @@ export interface Redacted<S extends Top> extends
  * but it will deserialize a value into a `Redacted` instance.
  *
  * @category Redacted
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Redacted<S extends Top>(value: S, options?: {
   readonly label?: string | undefined
@@ -8193,7 +8193,7 @@ function causeReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknow
  * unexpected defects.
  *
  * @category Cause
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Cause<E extends Top, D extends Top> extends
   declareConstructor<
@@ -8222,7 +8222,7 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseReasonIs
  * and unexpected defects.
  *
  * @category Cause
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
   const schema = declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
@@ -8356,7 +8356,7 @@ export const ErrorWithStack: Error = instanceOf(globalThis.Error, {
  * `Error` values and arbitrary unknown defect values.
  *
  * @category Defect
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Defect extends
   Union<
@@ -8396,7 +8396,7 @@ const defectTransformation = new Transformation.Transformation(
  * back to Effect's formatted representation when JSON serialization fails.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Defect: Defect = Union([
   ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded())),
@@ -8437,7 +8437,7 @@ export const DefectWithStack: Defect = Union([
  * failure with a `Cause` containing typed errors and defects.
  *
  * @category Exit
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Exit<A extends Top, E extends Top, D extends Top> extends
   declareConstructor<
@@ -8476,7 +8476,7 @@ export type ExitIso<A extends Top, E extends Top, D extends Top> = {
  * failure, and unexpected defect channels.
  *
  * @category Exit
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Exit<A extends Top, E extends Top, D extends Top>(value: A, error: E, defect: D): Exit<A, E, D> {
   const schema = declareConstructor<
@@ -8606,7 +8606,7 @@ export type ReadonlyMapIso<Key extends Top, Value extends Top> = ReadonlyArray<r
  * conform to the provided schemas.
  *
  * @category ReadonlyMap
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value: Value): $ReadonlyMap<Key, Value> {
   const schema = declareConstructor<
@@ -8674,7 +8674,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
  * provided schemas.
  *
  * @category HashMap
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface HashMap<Key extends Top, Value extends Top> extends
   declareConstructor<
@@ -8703,7 +8703,7 @@ export type HashMapIso<Key extends Top, Value extends Top> = ReadonlyArray<reado
  * conform to the provided schemas.
  *
  * @category HashMap
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Value): HashMap<Key, Value> {
   const schema = declareConstructor<
@@ -8800,7 +8800,7 @@ export type ReadonlySetIso<Value extends Top> = ReadonlyArray<Value["Iso"]>
  * provided element schema.
  *
  * @category ReadonlySet
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value> {
   const schema = declareConstructor<
@@ -8868,7 +8868,7 @@ export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value
  * schema.
  *
  * @category HashSet
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface HashSet<Value extends Top> extends
   declareConstructor<
@@ -8896,7 +8896,7 @@ export type HashSetIso<Value extends Top> = ReadonlyArray<Value["Iso"]>
  * provided schema.
  *
  * @category HashSet
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
   const schema = declareConstructor<
@@ -8964,7 +8964,7 @@ export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
  * must conform to the provided schema.
  *
  * @category Chunk
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Chunk<Value extends Top> extends
   declareConstructor<
@@ -8992,7 +8992,7 @@ export type ChunkIso<Value extends Top> = ReadonlyArray<Value["Iso"]>
  * provided schema.
  *
  * @category Chunk
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
   const schema = declareConstructor<
@@ -9255,7 +9255,7 @@ export const Date: Date = instanceOf(
  * JavaScript `Date` instances.
  *
  * @category Date
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface DateFromString extends decodeTo<Date, String> {
   readonly "Rebuild": DateFromString
@@ -9273,7 +9273,7 @@ export interface DateFromString extends decodeTo<Date, String> {
  * `"Invalid Date"`.
  *
  * @category Date
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, Transformation.dateFromString))
 
@@ -9303,7 +9303,7 @@ export const DateValid: DateValid = Date.check(isDateValid())
  * Type-level representation of the schema for Effect `Duration` values.
  *
  * @category Duration
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Duration extends declare<Duration_.Duration> {
   readonly "Rebuild": Duration
@@ -9327,7 +9327,7 @@ export interface Duration extends declare<Duration_.Duration> {
  *
  * @category Duration
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Duration: Duration = declare(
   Duration_.isDuration,
@@ -9423,7 +9423,7 @@ export const DurationFromString: DurationFromString = DurationString.pipe(
  * nanosecond `bigint` values into `Duration` values.
  *
  * @category Duration
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface DurationFromNanos extends decodeTo<Duration, BigInt> {
   readonly "Rebuild": DurationFromNanos
@@ -9444,7 +9444,7 @@ const bigint0 = globalThis.BigInt(0)
  * `Duration.infinity`.
  *
  * @category Duration
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOrEqualToBigInt(bigint0)).pipe(
   decodeTo(Duration, Transformation.durationFromNanos)
@@ -9455,7 +9455,7 @@ export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOr
  * non-negative millisecond numbers into `Duration` values.
  *
  * @category Duration
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface DurationFromMillis extends decodeTo<Duration, Number> {
   readonly "Rebuild": DurationFromMillis
@@ -9475,7 +9475,7 @@ export interface DurationFromMillis extends decodeTo<Duration, Number> {
  *   representing milliseconds
  *
  * @category Duration
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThanOrEqualTo(0)).pipe(
   decodeTo(Duration, Transformation.durationFromMillis)
@@ -9485,7 +9485,7 @@ export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThan
  * Type-level representation of the schema for Effect `BigDecimal` values.
  *
  * @category BigDecimal
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {
   readonly "Rebuild": BigDecimal
@@ -9501,7 +9501,7 @@ const BigDecimalString = String.annotate({ expected: "a string that will be deco
  * - encodes `BigDecimal` as a `string`
  *
  * @category BigDecimal
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const BigDecimal: BigDecimal = declare(
   BigDecimal_.isBigDecimal,
@@ -10040,7 +10040,7 @@ export function fromURLSearchParams<S extends Top>(schema: S): fromURLSearchPara
  * `Infinity`, and `-Infinity`.
  *
  * @category Number
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Finite extends Number {
   readonly "Rebuild": Finite
@@ -10050,7 +10050,7 @@ export interface Finite extends Number {
  * A schema for finite numbers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @category Number
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Finite: Finite = Number.check(isFinite())
 
@@ -10059,7 +10059,7 @@ export const Finite: Finite = Number.check(isFinite())
  * integer numbers.
  *
  * @category Number
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Int extends Number {
   readonly "Rebuild": Int
@@ -10069,7 +10069,7 @@ export interface Int extends Number {
  * A schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @category Number
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Int: Int = Number.check(isInt())
 
@@ -10078,7 +10078,7 @@ export const Int: Int = Number.check(isInt())
  * numbers using JavaScript number coercion.
  *
  * @category Number
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface NumberFromString extends decodeTo<Finite, String> {
   readonly "Rebuild": NumberFromString
@@ -10097,7 +10097,7 @@ export interface NumberFromString extends decodeTo<Finite, String> {
  * A number is encoded as a `string`.
  *
  * @category Number
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const NumberFromString: NumberFromString = String.annotate({
   expected: "a string that will be decoded as a number"
@@ -10163,7 +10163,7 @@ export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString)
  * trailing whitespace.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Trimmed extends String {
   readonly "Rebuild": Trimmed
@@ -10173,7 +10173,7 @@ export interface Trimmed extends String {
  * A schema for strings that contains no leading or trailing whitespaces.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Trimmed: Trimmed = String.check(isTrimmed())
 
@@ -10182,7 +10182,7 @@ export const Trimmed: Trimmed = String.check(isTrimmed())
  * whitespace while decoding and encodes the trimmed string unchanged.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Trim extends decodeTo<Trimmed, String> {
   readonly "Rebuild": Trim
@@ -10198,7 +10198,7 @@ export interface Trim extends decodeTo<Trimmed, String> {
  * - The trimmed string is encoded as is.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Trim: Trim = String.annotate({
   expected: "a string that will be decoded as a trimmed string"
@@ -10209,7 +10209,7 @@ export const Trim: Trim = String.annotate({
  * base64-encoded strings and UTF-8 strings.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface StringFromBase64 extends decodeTo<String, String> {
   readonly "Rebuild": StringFromBase64
@@ -10225,7 +10225,7 @@ export interface StringFromBase64 extends decodeTo<String, String> {
  * - A `string` is encoded as a base64-encoded string.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const StringFromBase64: StringFromBase64 = String.annotate({
   expected: "a base64 encoded string that will be decoded as a UTF-8 string"
@@ -10238,7 +10238,7 @@ export const StringFromBase64: StringFromBase64 = String.annotate({
  * base64-encoded strings and UTF-8 strings.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface StringFromBase64Url extends decodeTo<String, String> {
   readonly "Rebuild": StringFromBase64Url
@@ -10254,7 +10254,7 @@ export interface StringFromBase64Url extends decodeTo<String, String> {
  * - A `string` is encoded as a base64 (URL) encoded string.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const StringFromBase64Url: StringFromBase64Url = String.annotate({
   expected: "a base64 (URL) encoded string that will be decoded as a UTF-8 string"
@@ -10267,7 +10267,7 @@ export const StringFromBase64Url: StringFromBase64Url = String.annotate({
  * strings and UTF-8 strings.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface StringFromHex extends decodeTo<String, String> {
   readonly "Rebuild": StringFromHex
@@ -10283,7 +10283,7 @@ export interface StringFromHex extends decodeTo<String, String> {
  * - A `string` is encoded as a hex string.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const StringFromHex: StringFromHex = String.annotate({
   expected: "a hex encoded string that will be decoded as a UTF-8 string"
@@ -10296,7 +10296,7 @@ export const StringFromHex: StringFromHex = String.annotate({
  * URI-component encoded strings and UTF-8 strings.
  *
  * @category String
- * @since 4.0.0
+ * @since 3.12.0
  */
 export interface StringFromUriComponent extends decodeTo<String, String> {
   readonly "Rebuild": StringFromUriComponent
@@ -10331,7 +10331,7 @@ export interface StringFromUriComponent extends decodeTo<String, String> {
  * ```
  *
  * @category String
- * @since 4.0.0
+ * @since 3.12.0
  */
 export const StringFromUriComponent: StringFromUriComponent = String.annotate({
   expected: "a URI component encoded string that will be decoded as a UTF-8 string"
@@ -10440,7 +10440,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
  * base64-encoded strings and `Uint8Array` values.
  *
  * @category Uint8Array
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
   readonly "Rebuild": Uint8ArrayFromBase64
@@ -10457,7 +10457,7 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
  * - A `Uint8Array` is encoded as a base64-encoded string.
  *
  * @category Uint8Array
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
   decodeTo(Uint8Array, Transformation.uint8ArrayFromBase64String)
@@ -10468,7 +10468,7 @@ export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
  * URL-safe base64-encoded strings and `Uint8Array` values.
  *
  * @category Uint8Array
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {
   readonly "Rebuild": Uint8ArrayFromBase64Url
@@ -10485,7 +10485,7 @@ export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {
  * - A `Uint8Array` is encoded as a base64 (URL) encoded string.
  *
  * @category Uint8Array
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate({
   expected: "a base64 (URL) encoded string that will be decoded as a Uint8Array"
@@ -10501,7 +10501,7 @@ export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate(
  * hex-encoded strings and `Uint8Array` values.
  *
  * @category Uint8Array
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {
   readonly "Rebuild": Uint8ArrayFromHex
@@ -10518,7 +10518,7 @@ export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {
  * - A `Uint8Array` is encoded as a hex encoded string.
  *
  * @category Uint8Array
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
   expected: "a hex encoded string that will be decoded as a Uint8Array"
@@ -10534,7 +10534,7 @@ export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
  * UTC ISO string JSON encoding.
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface DateTimeUtc extends declare<DateTime.Utc> {
   readonly "Rebuild": DateTimeUtc
@@ -10548,7 +10548,7 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {
  * - encodes `DateTime.Utc` as a UTC ISO string
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
@@ -10579,7 +10579,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
  * JavaScript `Date` values to `DateTime.Utc`.
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.12.0
  */
 export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
   readonly "Rebuild": DateTimeUtcFromDate
@@ -10595,7 +10595,7 @@ export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
  * - A `DateTime.Utc` is encoded as a `Date`
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.12.0
  */
 export const DateTimeUtcFromDate: DateTimeUtcFromDate = DateValid.pipe(
   decodeTo(DateTimeUtc, {
@@ -10674,7 +10674,7 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
  * `DateTime.TimeZone.Offset` values encoded as offset milliseconds.
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {
   readonly "Rebuild": TimeZoneOffset
@@ -10688,7 +10688,7 @@ export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {
  * - encodes `DateTime.TimeZone.Offset` as a number (offset in milliseconds)
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const TimeZoneOffset: TimeZoneOffset = declare(
   DateTime.isTimeZoneOffset,
@@ -10719,7 +10719,7 @@ export const TimeZoneOffset: TimeZoneOffset = declare(
  * `DateTime.TimeZone.Named` values encoded as IANA time zone identifiers.
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface TimeZoneNamed extends declare<DateTime.TimeZone.Named> {
   readonly "Rebuild": TimeZoneNamed
@@ -10735,7 +10735,7 @@ const TimeZoneNamedString = String.annotate({ expected: "an IANA time zone ident
  * - encodes `DateTime.TimeZone.Named` as a string (IANA time zone identifier)
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const TimeZoneNamed: TimeZoneNamed = declare(
   DateTime.isTimeZoneNamed,
@@ -10797,7 +10797,7 @@ export const TimeZoneNamedFromString: TimeZoneNamedFromString = TimeZoneNamedStr
  * encoded as either IANA identifiers or numeric offset strings.
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface TimeZone extends declare<DateTime.TimeZone> {
   readonly "Rebuild": TimeZone
@@ -10816,7 +10816,7 @@ const TimeZoneString = String.annotate({
  *   `+03:00`)
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const TimeZone: TimeZone = declare(
   DateTime.isTimeZone,
@@ -10881,7 +10881,7 @@ export const TimeZoneFromString: TimeZoneFromString = TimeZoneString.pipe(
  * with ISO offset or named-zone string JSON encoding.
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface DateTimeZoned extends declare<DateTime.Zoned> {
   readonly "Rebuild": DateTimeZoned
@@ -10902,7 +10902,7 @@ const DateTimeZonedString = String.annotate({
  *   `YYYY-MM-DDTHH:mm:ss.sss+HH:MM[Time/Zone]`
  *
  * @category DateTime
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const DateTimeZoned: DateTimeZoned = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isZoned(u),
@@ -10977,7 +10977,7 @@ export const DateTimeZonedFromString: DateTimeZonedFromString = DateTimeZonedStr
  * helpers such as `mapFields`, `annotate`, `check`, and `extend`.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.10.0
  */
 export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends
   Bottom<
@@ -11234,7 +11234,7 @@ type MissingSelfGeneric<Usage extends string> =
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const Class: {
   <Self = never, Brand = {}>(identifier: string): {
@@ -11289,7 +11289,7 @@ export const Class: {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const TaggedClass: {
   <Self = never, Brand = {}>(identifier?: string): {
@@ -11401,7 +11401,7 @@ export const ErrorClass: {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const TaggedErrorClass: {
   <Self = never, Brand = {}>(identifier?: string): {
@@ -12477,7 +12477,7 @@ export function resolveAnnotationsKey<S extends Top>(schema: S): Annotations.Key
  * Use {@link resolveAnnotations} to read the annotations attached to a schema at
  * runtime.
  *
- * @since 4.0.0
+ * @since 3.10.0
  */
 export declare namespace Annotations {
   /**
@@ -12519,7 +12519,7 @@ export declare namespace Annotations {
    * ```
    *
    * @category models
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export interface Annotations {
     readonly [x: string]: unknown
@@ -12642,7 +12642,7 @@ export declare namespace Annotations {
      * values.
      *
      * @category utility types
-     * @since 4.0.0
+     * @since 3.10.0
      */
     export type Type<TypeParameters extends ReadonlyArray<Top>> = {
       readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"]>
@@ -12651,7 +12651,7 @@ export declare namespace Annotations {
      * Maps declaration type-parameter schemas to codecs for their `Encoded` values.
      *
      * @category utility types
-     * @since 4.0.0
+     * @since 3.10.0
      */
     export type Encoded<TypeParameters extends ReadonlyArray<Top>> = {
       readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Encoded"]>
@@ -12706,7 +12706,7 @@ export declare namespace Annotations {
    * Filters are intentionally non-parametric to keep them covariant.
    *
    * @category models
-   * @since 4.0.0
+   * @since 3.10.0
    */
   export interface Filter extends Augment {
     /**
@@ -12821,7 +12821,7 @@ export declare namespace Annotations {
      * schemas.
      *
      * @category models
-     * @since 4.0.0
+     * @since 3.10.0
      */
     export interface Context {
       /**

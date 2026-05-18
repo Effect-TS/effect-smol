@@ -52,7 +52,7 @@ const withLogAddress = <A, E, R>(layer: Layer.Layer<A, E, R>): Layer.Layer<A, E,
  * `Sharding` and `Runners` clients and logging the socket listen address.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -74,7 +74,7 @@ export const layer: Layer.Layer<
  * without starting a runner server or receiving shard assignments.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,

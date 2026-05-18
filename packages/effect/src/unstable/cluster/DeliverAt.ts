@@ -30,7 +30,7 @@ import { hasProperty } from "../../Predicate.ts"
  * Property key used by values that provide a scheduled delivery time.
  *
  * @category symbols
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const symbol = "~effect/cluster/DeliverAt"
 
@@ -41,7 +41,7 @@ export const symbol = "~effect/cluster/DeliverAt"
  * symbol method.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DeliverAt {
   [symbol](): DateTime
@@ -52,7 +52,7 @@ export interface DeliverAt {
  * protocol.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isDeliverAt = (self: unknown): self is DeliverAt => hasProperty(self, symbol)
 
@@ -61,7 +61,7 @@ export const isDeliverAt = (self: unknown): self is DeliverAt => hasProperty(sel
  * implements `DeliverAt`, or `null` otherwise.
  *
  * @category accessors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toMillis = (self: unknown): number | null => {
   if (isDeliverAt(self)) {

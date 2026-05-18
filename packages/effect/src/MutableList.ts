@@ -81,7 +81,7 @@ import * as Arr from "./Array.ts"
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface MutableList<in out A> {
   head: MutableList.Bucket<A> | undefined
@@ -123,7 +123,7 @@ export interface MutableList<in out A> {
  * }
  * ```
  *
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace MutableList {
   /**
@@ -283,7 +283,7 @@ export type Empty = typeof Empty
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const make = <A>(): MutableList<A> => ({
   head: undefined,
@@ -328,7 +328,7 @@ const emptyBucket = <A = never>(): MutableList.Bucket<A> => ({
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const append = <A>(self: MutableList<A>, message: A): void => {
   if (!self.tail) {
@@ -371,7 +371,7 @@ export const append = <A>(self: MutableList<A>, message: A): void => {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const prepend = <A>(self: MutableList<A>, message: A): void => {
   self.head = {

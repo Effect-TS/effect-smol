@@ -57,7 +57,7 @@ export interface Request<out A, out E = never, out R = never> extends Variance<A
  * requirements.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type Any = Request<any, any, any>
 

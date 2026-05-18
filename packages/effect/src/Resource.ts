@@ -63,7 +63,7 @@ export interface Resource<in out A, in out E = never> extends Pipeable {
  * Returns `true` if the specified value is a `Resource`.
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isResource: (u: unknown) => u is Resource<unknown, unknown> = (
   u: unknown

@@ -25,7 +25,7 @@ const TypeId = "~effect/http/HttpClientError"
  * Returns `true` when a value is an `HttpClientError`.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isHttpClientError = (u: unknown): u is HttpClientError => hasProperty(u, TypeId)
 
@@ -33,7 +33,7 @@ export const isHttpClientError = (u: unknown): u is HttpClientError => hasProper
  * Error wrapper for HTTP client failures, exposing the failed request and the optional response through its `reason`.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class HttpClientError extends Data.TaggedError("HttpClientError")<{
   readonly reason: HttpClientErrorReason
@@ -276,7 +276,7 @@ export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
  * Union of HTTP client errors that occur before a response is available.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type RequestError = TransportError | EncodeError | InvalidUrlError
 
@@ -284,7 +284,7 @@ export type RequestError = TransportError | EncodeError | InvalidUrlError
  * Union of HTTP client errors that include an HTTP response.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ResponseError = StatusCodeError | DecodeError | EmptyBodyError
 

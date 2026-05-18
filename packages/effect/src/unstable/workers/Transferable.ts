@@ -28,7 +28,7 @@ import * as Getter from "../../SchemaGetter.ts"
  * so they can be passed to `postMessage` transfer lists.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Collector extends Context.Service<Collector, {
   readonly addAll: (
@@ -74,7 +74,7 @@ export const makeCollectorUnsafe = (): Collector["Service"] => {
  * transferables.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(makeCollectorUnsafe)
 
@@ -83,7 +83,7 @@ export const makeCollector: Effect.Effect<Collector["Service"]> = Effect.sync(ma
  * context, and does nothing otherwise.
  *
  * @category accessors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const addAll = (
   tranferables: Iterable<globalThis.Transferable>
@@ -133,7 +133,7 @@ export interface Transferable<S extends Schema.Top> extends
  * value, enabling worker messages to populate a `postMessage` transfer list.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schema: {
   <S extends Schema.Top>(
@@ -169,7 +169,7 @@ const passthroughLink = Schema.link()(Schema.Any, {
  * data buffer.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
   Schema.Any as any as Schema.declare<globalThis.ImageData>,
@@ -181,7 +181,7 @@ export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
  * transferable.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
   Schema.Any as any as Schema.declare<MessagePort>,
@@ -193,7 +193,7 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
  * buffer.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Uint8Array: Transferable<Schema.instanceOf<globalThis.Uint8Array<ArrayBuffer>>> = schema(
   Schema.Uint8Array as any,

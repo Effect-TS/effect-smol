@@ -837,7 +837,7 @@ export const getSomes: <K extends string, A>(
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getFailures = <K extends string, A, E>(
   self: ReadonlyRecord<K, Result<A, E>>
@@ -873,7 +873,7 @@ export const getFailures = <K extends string, A, E>(
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getSuccesses = <K extends string, A, E>(
   self: ReadonlyRecord<K, Result<A, E>>
@@ -1398,7 +1398,7 @@ export const difference: {
  * ```
  *
  * @category instances
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeEquivalence = <K extends string, A>(
   equivalence: Equivalence<A>

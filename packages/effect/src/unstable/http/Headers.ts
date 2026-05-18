@@ -52,7 +52,7 @@ export type TypeId = typeof TypeId
  * Returns `true` if the provided value is a `Headers` value.
  *
  * @category refinements
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isHeaders = (u: unknown): u is Headers => Predicate.hasProperty(u, TypeId)
 
@@ -62,7 +62,7 @@ export const isHeaders = (u: unknown): u is Headers => Predicate.hasProperty(u, 
  * `Headers` values also support redaction through the `Redactable` protocol.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Headers extends Redactable.Redactable {
   readonly [TypeId]: TypeId
@@ -161,7 +161,7 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
  * Records may contain string values, string arrays, or `undefined`; arrays are joined with `", "`, and `undefined` values are omitted.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Input =
   | Record.ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>
@@ -171,7 +171,7 @@ export type Input =
  * An empty `Headers` collection.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const empty: Headers = Object.create(Proto)
 
@@ -181,7 +181,7 @@ export const empty: Headers = Object.create(Proto)
  * Header names are normalized to lowercase. Array values in record input are joined with `", "`, and `undefined` values are omitted.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fromInput: (input?: Input) => Headers = (input) => {
   if (input === undefined) {
@@ -221,7 +221,7 @@ export const fromRecordUnsafe = (input: Record.ReadonlyRecord<string, string>): 
  * The lookup lowercases the provided header name.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const has: {
   (key: string): (self: Headers) => boolean
@@ -237,7 +237,7 @@ export const has: {
  * The lookup lowercases the provided header name and returns `Option.none()` when absent.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const get: {
   (key: string): (self: Headers) => Option.Option<string>
@@ -253,7 +253,7 @@ export const get: {
  * The header name is normalized to lowercase.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const set: {
   (key: string, value: string): (self: Headers) => Headers
@@ -273,7 +273,7 @@ export const set: {
  * Input headers are normalized with `fromInput` and override existing headers with the same lowercase name.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const setAll: {
   (headers: Input): (self: Headers) => Headers
@@ -293,7 +293,7 @@ export const setAll: {
  * Headers from the second collection override headers from the first collection with the same name.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const merge: {
   (headers: Headers): (self: Headers) => Headers
@@ -313,7 +313,7 @@ export const merge: {
  * The provided header name is normalized to lowercase before removal.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const remove: {
   (key: string): (self: Headers) => Headers
@@ -355,7 +355,7 @@ export const removeMany: {
  * String keys are normalized to lowercase before matching; regular expressions are tested against the stored header names.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const redact: {
   (

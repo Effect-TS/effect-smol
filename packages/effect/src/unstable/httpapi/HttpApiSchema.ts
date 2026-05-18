@@ -189,7 +189,7 @@ export function status(code: number | StatusLiteral) {
  * @see {@link asEmpty} for creating a no content response that can be decoded into a meaningful value on the client side.
  *
  * @category Empty
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code))
 
@@ -197,7 +197,7 @@ export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code
  * Type of the `NoContent` schema, a void schema annotated with HTTP status code 204.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface NoContent extends Schema.Void {}
 
@@ -206,7 +206,7 @@ export interface NoContent extends Schema.Void {}
  * This is used to represent empty responses with the status code 204.
  *
  * @category Empty
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const NoContent: NoContent = Empty(204)
 
@@ -214,7 +214,7 @@ export const NoContent: NoContent = Empty(204)
  * Type of the `Created` schema, a void schema annotated with HTTP status code 201.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Created extends Schema.Void {}
 
@@ -223,7 +223,7 @@ export interface Created extends Schema.Void {}
  * This is used to represent empty responses with the status code 201.
  *
  * @category Empty
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Created: Created = Empty(201)
 
@@ -231,7 +231,7 @@ export const Created: Created = Empty(201)
  * Type of the `Accepted` schema, a void schema annotated with HTTP status code 202.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Accepted extends Schema.Void {}
 
@@ -240,7 +240,7 @@ export interface Accepted extends Schema.Void {}
  * This is used to represent empty responses with the status code 202.
  *
  * @category Empty
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Accepted: Accepted = Empty(202)
 
@@ -284,7 +284,7 @@ export function asNoContent<S extends Schema.Top>(options: {
  * Runtime brand key used to mark schemas as buffered multipart payloads.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
 
@@ -292,7 +292,7 @@ export const MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
  * Type-level brand identifier used by `asMultipart`.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type MultipartTypeId = typeof MultipartTypeId
 
@@ -328,7 +328,7 @@ export function asMultipart(options?: Multipart_.withLimits.Options) {
  * Runtime brand key used to mark schemas as streaming multipart payloads.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
 
@@ -336,7 +336,7 @@ export const MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStr
  * Type-level brand identifier used by `asMultipartStream`.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type MultipartStreamTypeId = typeof MultipartStreamTypeId
 

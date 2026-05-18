@@ -1011,7 +1011,7 @@ export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: un
  * See also: {@link isObjectOrArray}, {@link isReadonlyObject}
  *
  * @category guards
- * @since 4.0.0
+ * @since 2.0.0
  */
 export function isObject(input: unknown): input is { [x: PropertyKey]: unknown } {
   return typeof input === "object" && input !== null && !Array.isArray(input)
@@ -1066,7 +1066,7 @@ export function isReadonlyObject(input: unknown): input is { readonly [x: Proper
  * See also: {@link isObject}, {@link isObjectOrArray}
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export function isObjectKeyword(input: unknown): input is object {
   return (typeof input === "object" && input !== null) || isFunction(input)

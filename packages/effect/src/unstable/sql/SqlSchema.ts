@@ -30,7 +30,7 @@ import * as Schema from "../../Schema.ts"
  * and fails with `NoSuchElementError` when the result set is empty.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {
@@ -104,7 +104,7 @@ export {
  * row, and fails with `NoSuchElementError` when no rows are returned.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
   options: {

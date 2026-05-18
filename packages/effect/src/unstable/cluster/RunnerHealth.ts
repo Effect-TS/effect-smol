@@ -38,7 +38,7 @@ import * as Runners from "./Runners.ts"
  * associated shards can and will be re-assigned to a different Runner.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RunnerHealth extends Context.Service<
   RunnerHealth,
@@ -53,7 +53,7 @@ export class RunnerHealth extends Context.Service<
  * This is useful for testing.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerNoop = Layer.succeed(RunnerHealth, {
   isAlive: () => Effect.succeed(true)
@@ -65,7 +65,7 @@ export const layerNoop = Layer.succeed(RunnerHealth, {
  * timeout as healthy.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makePing: Effect.Effect<
   RunnerHealth["Service"],
@@ -90,7 +90,7 @@ export const makePing: Effect.Effect<
  * A layer which will ping a Runner directly to check if it is healthy.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerPing: Layer.Layer<
   RunnerHealth,
@@ -105,7 +105,7 @@ export const layerPing: Layer.Layer<
  * If the Kubernetes API check fails, the runner is treated as healthy.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeK8s = Effect.fnUntraced(function*(options?: {
   readonly namespace?: string | undefined
@@ -131,7 +131,7 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
  * runner is treated as healthy.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerK8s = (
   options?: {

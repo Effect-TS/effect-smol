@@ -46,7 +46,7 @@ import * as MP from "./Multipasta.ts"
  * Type identifier used to brand multipart part values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId = "~effect/http/Multipart"
 
@@ -56,14 +56,14 @@ export const TypeId = "~effect/http/Multipart"
  * A part is either a text `Field` or a streamed `File`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Part = Field | File
 
 /**
  * Namespace containing shared multipart part model types.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Part {
   /**
@@ -73,7 +73,7 @@ export declare namespace Part {
    * by fields, files, and persisted files.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Proto extends Inspectable.Inspectable {
     readonly [TypeId]: typeof TypeId
@@ -88,7 +88,7 @@ export declare namespace Part {
  * is the decoded field content.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Field extends Part.Proto {
   readonly _tag: "Field"
@@ -101,7 +101,7 @@ export interface Field extends Part.Proto {
  * Returns `true` when a value is a multipart `Part`.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, TypeId)
 
@@ -109,7 +109,7 @@ export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, TypeId
  * Returns `true` when a value is a multipart text `Field`.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isField = (u: unknown): u is Field => isPart(u) && u._tag === "Field"
 
@@ -120,7 +120,7 @@ export const isField = (u: unknown): u is Field => isPart(u) && u._tag === "Fiel
  * file into memory and should be used only when the file size is acceptable.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface File extends Part.Proto {
   readonly _tag: "File"
@@ -135,7 +135,7 @@ export interface File extends Part.Proto {
  * Returns `true` when a value is a multipart `File`.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isFile = (u: unknown): u is File => isPart(u) && u._tag === "File"
 
@@ -146,7 +146,7 @@ export const isFile = (u: unknown): u is File => isPart(u) && u._tag === "File"
  * multipart data remains open.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface PersistedFile extends Part.Proto {
   readonly _tag: "PersistedFile"
@@ -160,7 +160,7 @@ export interface PersistedFile extends Part.Proto {
  * Returns `true` when a value is a persisted multipart file.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isPersistedFile = (u: unknown): u is PersistedFile =>
   Predicate.hasProperty(u, TypeId) && Predicate.isTagged(u, "PersistedFile")
@@ -172,7 +172,7 @@ export const isPersistedFile = (u: unknown): u is PersistedFile =>
  * `PersistedFile` values.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Persisted {
   readonly [key: string]: ReadonlyArray<PersistedFile> | ReadonlyArray<string> | string
@@ -200,7 +200,7 @@ export class MultipartErrorReason extends Data.Error<{
  * The `reason` field contains the concrete `MultipartErrorReason`.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class MultipartError extends Data.TaggedError("MultipartError")<{
   readonly reason: MultipartErrorReason
@@ -285,7 +285,7 @@ export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
  * Schema for an array of persisted multipart files.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const FilesSchema: Schema.$Array<PersistedFileSchema> = Schema.Array(PersistedFileSchema)
 
@@ -296,7 +296,7 @@ export const FilesSchema: Schema.$Array<PersistedFileSchema> = Schema.Array(Pers
  * single `PersistedFile`.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Array<PersistedFileSchema>> = FilesSchema
   .check(
@@ -318,7 +318,7 @@ export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Arra
  * with `SchemaError` when validation fails.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>
@@ -332,7 +332,7 @@ export const schemaPersisted = <A, I extends Partial<Persisted>, RD, RE>(
  * schema.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, options?: ParseOptions | undefined): {
   (
@@ -359,7 +359,7 @@ export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, opt
  * field size, file size, total body size, and field MIME type overrides.
  *
  * @category Config
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeConfig = (
   headers: Record<string, string>
@@ -387,7 +387,7 @@ export const makeConfig = (
  * parser and limit failures.
  *
  * @category Parsers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channel<
   Arr.NonEmptyReadonlyArray<Part>,
@@ -581,7 +581,7 @@ const defaultWriteFile = (path: string, file: File) =>
  * This materializes the full content in memory.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const collectUint8Array = <OE, OD, R>(
   self: Channel.Channel<Arr.NonEmptyReadonlyArray<Uint8Array>, OE, OD, unknown, unknown, unknown, R>
@@ -606,7 +606,7 @@ export const collectUint8Array = <OE, OD, R>(
  * of the scope.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toPersisted = (
   stream: Stream.Stream<Part, MultipartError>,
@@ -720,7 +720,7 @@ export const limitsServices = (options: {
 /**
  * Namespace containing multipart parser limit option types.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace withLimits {
   /**
@@ -730,7 +730,7 @@ export declare namespace withLimits {
    * size, and MIME types that should be treated as fields instead of files.
    *
    * @category fiber refs
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Options = {
     readonly maxParts?: number | undefined
@@ -747,7 +747,7 @@ export declare namespace withLimits {
  * The default is `undefined`, meaning no explicit part-count limit.
  *
  * @category references
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MaxParts = Context.Reference<number | undefined>("effect/http/Multipart/MaxParts", {
   defaultValue: () => undefined
@@ -759,7 +759,7 @@ export const MaxParts = Context.Reference<number | undefined>("effect/http/Multi
  * The default limit is 10 MiB.
  *
  * @category references
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MaxFieldSize = Context.Reference<FileSystem.SizeInput>("effect/http/Multipart/MaxFieldSize", {
   defaultValue: constant(FileSystem.Size(10 * 1024 * 1024))
@@ -771,7 +771,7 @@ export const MaxFieldSize = Context.Reference<FileSystem.SizeInput>("effect/http
  * The default is `undefined`, meaning no explicit per-file limit.
  *
  * @category references
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MaxFileSize = Context.Reference<FileSystem.SizeInput | undefined>(
   "effect/http/Multipart/MaxFileSize",
@@ -785,7 +785,7 @@ export const MaxFileSize = Context.Reference<FileSystem.SizeInput | undefined>(
  * The default treats `application/json` parts as fields.
  *
  * @category references
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const FieldMimeTypes = Context.Reference<ReadonlyArray<string>>("effect/http/Multipart/FieldMimeTypes", {
   defaultValue: constant(["application/json"])

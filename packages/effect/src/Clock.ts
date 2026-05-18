@@ -122,7 +122,7 @@ export interface Clock {
  * ```
  *
  * @category references
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Clock: Context.Reference<Clock> = effect.ClockRef
 

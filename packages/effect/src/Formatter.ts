@@ -157,7 +157,7 @@ export interface Formatter<in Value, out Format = string> {
  * See also: {@link formatJson}, {@link Formatter}
  *
  * @category formatting
- * @since 4.0.0
+ * @since 2.0.0
  */
 export function format(input: unknown, options?: {
   readonly space?: number | string | undefined

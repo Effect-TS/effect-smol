@@ -88,7 +88,7 @@ const TypeId = "~effect/platform/FileSystem"
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface FileSystem {
   readonly [TypeId]: typeof TypeId
@@ -393,7 +393,7 @@ export interface FileSystem {
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Size = Brand.Branded<bigint, "Size">
 
@@ -420,7 +420,7 @@ export type Size = Brand.Branded<bigint, "Size">
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SizeInput = bigint | number | Size
 
@@ -457,7 +457,7 @@ export type SizeInput = bigint | number | Size
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? bytes as Size : BigInt(bytes) as Size
 
@@ -488,7 +488,7 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const KiB = (n: number): Size => Size(n * 1024)
 
@@ -523,7 +523,7 @@ export const KiB = (n: number): Size => Size(n * 1024)
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MiB = (n: number): Size => Size(n * 1024 * 1024)
 
@@ -556,7 +556,7 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
 
@@ -590,7 +590,7 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TiB = (n: number): Size => Size(n * 1024 * 1024 * 1024 * 1024)
 
@@ -627,7 +627,7 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  * ```
  *
  * @category sizes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
 
@@ -671,7 +671,7 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type OpenFlag =
   | "r"
@@ -722,7 +722,7 @@ export type OpenFlag =
  * ```
  *
  * @category tag
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")
 
@@ -734,7 +734,7 @@ export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Servi
  * `writeFileString` methods based on the provided core methods.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (
   impl: Omit<FileSystem, typeof TypeId | "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
@@ -870,7 +870,7 @@ const notFound = (method: string, path: string) =>
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
   FileSystem.of({
@@ -993,7 +993,7 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  * ```
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSystem> =>
   Layer.succeed(FileSystem)(makeNoop(fileSystem))
@@ -1003,7 +1003,7 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * `isFile` to recognize them.
  *
  * @category File
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"
 
@@ -1014,7 +1014,7 @@ export const FileTypeId = "~effect/platform/FileSystem/File"
  * instance by checking for the presence of the File type identifier.
  *
  * @category File
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
 
@@ -1058,7 +1058,7 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * ```
  *
  * @category File
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface File {
   readonly [FileTypeId]: typeof FileTypeId
@@ -1077,7 +1077,7 @@ export interface File {
  * Namespace containing types associated with open file handles, including file
  * descriptors, entry kinds, and stat information.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace File {
   /**
@@ -1087,7 +1087,7 @@ export declare namespace File {
    * to identify open files. The branded type ensures type safety.
    *
    * @category File
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
 
@@ -1098,7 +1098,7 @@ export declare namespace File {
    * from regular files to special device files and symbolic links.
    *
    * @category File
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Type =
     | "File"
@@ -1151,7 +1151,7 @@ export declare namespace File {
    * ```
    *
    * @category File
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Info {
     readonly type: Type
@@ -1178,7 +1178,7 @@ export declare namespace File {
  * open files. This branded type ensures type safety when working with file descriptors.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
 
@@ -1189,7 +1189,7 @@ export const FileDescriptor = Brand.nominal<File.Descriptor>()
  * - `"current"` - Seek from the current position
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SeekMode = "start" | "current"
 
@@ -1197,14 +1197,14 @@ export type SeekMode = "start" | "current"
  * Represents file system events that can be observed when watching files or directories.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
 
 /**
  * Namespace containing the concrete event shapes emitted by `FileSystem.watch`.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace WatchEvent {
   /**
@@ -1214,7 +1214,7 @@ export declare namespace WatchEvent {
    * in the watched location.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Create {
     readonly _tag: "Create"
@@ -1228,7 +1228,7 @@ export declare namespace WatchEvent {
    * modified in the watched location.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Update {
     readonly _tag: "Update"
@@ -1242,7 +1242,7 @@ export declare namespace WatchEvent {
    * from the watched location.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Remove {
     readonly _tag: "Remove"
@@ -1286,7 +1286,7 @@ export declare namespace WatchEvent {
  * ```
  *
  * @category file watcher
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class WatchBackend extends Context.Service<WatchBackend, {
   readonly register: (path: string, stat: File.Info) => Option.Option<Stream.Stream<WatchEvent, PlatformError>>

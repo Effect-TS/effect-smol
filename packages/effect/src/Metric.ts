@@ -312,7 +312,7 @@ export interface Counter<in Input extends number | bigint> extends Metric<Input,
  * ```
  *
  * @category Counter
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface CounterState<in Input extends number | bigint> {
   readonly count: Input extends bigint ? bigint : number
@@ -483,7 +483,7 @@ export interface Frequency extends Metric<string, FrequencyState> {}
  * ```
  *
  * @category Metrics
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface FrequencyState {
   readonly occurrences: ReadonlyMap<string, number>
@@ -613,7 +613,7 @@ export interface Gauge<in Input extends number | bigint> extends Metric<Input, G
  * ```
  *
  * @category Metrics
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface GaugeState<in Input extends number | bigint> {
   readonly value: Input extends bigint ? bigint : number
@@ -789,7 +789,7 @@ export interface Histogram<Input> extends Metric<Input, HistogramState> {}
  * ```
  *
  * @category Metrics
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface HistogramState {
   readonly buckets: ReadonlyArray<[number, number]>
@@ -975,7 +975,7 @@ export interface Summary<Input> extends Metric<Input, SummaryState> {}
  * ```
  *
  * @category Metrics
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface SummaryState {
   readonly quantiles: ReadonlyArray<readonly [number, number | undefined]>
@@ -1108,7 +1108,7 @@ export declare namespace Metric {
    * ```
    *
    * @category types
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Type = "Counter" | "Frequency" | "Gauge" | "Histogram" | "Summary"
 
@@ -1184,7 +1184,7 @@ export declare namespace Metric {
    * ```
    *
    * @category types
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Attributes = AttributeSet | ReadonlyArray<[string, string]>
 
@@ -1262,7 +1262,7 @@ export declare namespace Metric {
    * ```
    *
    * @category types
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type AttributeSet = Readonly<Record<string, string>>
 
@@ -1312,7 +1312,7 @@ export declare namespace Metric {
    * ```
    *
    * @category types
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Input<A> = A extends Metric<infer _Input, infer _State> ? _Input
     : never
@@ -1372,7 +1372,7 @@ export declare namespace Metric {
    * ```
    *
    * @category types
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type State<A> = A extends Metric<infer _Input, infer _State> ? _State
     : never
@@ -1418,7 +1418,7 @@ export declare namespace Metric {
    * ```
    *
    * @category interfaces
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export interface Hooks<in Input, out State> {
     readonly get: (context: Context.Context<never>) => State
@@ -2593,7 +2593,7 @@ export const summary = (name: string, options: {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const summaryWithTimestamp = (name: string, options: {
   readonly description?: string | undefined
@@ -2750,7 +2750,7 @@ export const value = <Input, State>(
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 3.6.5
  */
 export const modify: {
   <Input>(input: Input): <State>(self: Metric<Input, State>) => Effect<void>
@@ -3118,7 +3118,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * ```
  *
  * @category Debugging
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.context(), (context) => {
   const metrics = snapshotUnsafe(context)
@@ -3215,7 +3215,7 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
  * ```
  *
  * @category Snapshotting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const snapshotUnsafe = (context: Context.Context<never>): ReadonlyArray<Metric.Snapshot> => {
   const registry = Context.get(context, MetricRegistry)
@@ -3350,7 +3350,7 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
  * ```
  *
  * @category Boundaries
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArray<number> =>
   Arr.append(Arr.filter(new Set(iterable), (n) => n > 0), Number.POSITIVE_INFINITY)
@@ -3400,7 +3400,7 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
  * ```
  *
  * @category Boundaries
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const linearBoundaries = (options: {
   readonly start: number
@@ -3459,7 +3459,7 @@ export const linearBoundaries = (options: {
  * ```
  *
  * @category Boundaries
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const exponentialBoundaries = (options: {
   readonly start: number

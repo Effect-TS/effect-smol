@@ -136,7 +136,7 @@ export interface Deferred<in out A, in out E = never> extends Deferred.Variance<
  * Checks whether a value is a `Deferred`.
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isDeferred = <A, E>(u: unknown): u is Deferred<A, E> => hasProperty(u, TypeId)
 
@@ -189,7 +189,7 @@ const DeferredProto = {
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeUnsafe = <A, E = never>(): Deferred<A, E> => {
   const self = Object.create(DeferredProto)
@@ -633,7 +633,7 @@ export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalE
  * an error, `false` otherwise.
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect !== undefined
 
@@ -747,7 +747,7 @@ export const sync: {
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const doneUnsafe = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): boolean => {
   if (self.effect) return false
@@ -801,7 +801,7 @@ export const doneUnsafe = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): bo
  * ```
  *
  * @category Synchronization Utilities
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const into: {
   <A, E>(deferred: Deferred<A, E>): <R>(self: Effect<A, E, R>) => Effect<boolean, never, R>

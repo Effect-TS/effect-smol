@@ -102,7 +102,7 @@ import type * as Toolkit from "./Toolkit.ts"
  * requests.
  *
  * @category server
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class McpServer extends Context.Service<McpServer, {
   readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
@@ -363,7 +363,7 @@ const mcpProtocolVersionHeader = "mcp-protocol-version"
  * initialized clients.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const run: (options: {
   readonly name: string
@@ -544,7 +544,7 @@ export const run: (options: {
  * services.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = (options: {
   readonly name: string
@@ -611,7 +611,7 @@ export const layer = (options: {
  * ```
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerStdio = (options: {
   readonly name: string
@@ -627,7 +627,7 @@ export const layerStdio = (options: {
  * Run the `McpServer`, registering a router with a `HttpRouter`
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerHttp = (options: {
   readonly name: string
@@ -644,7 +644,7 @@ export const layerHttp = (options: {
  * Register a `Toolkit` with the `McpServer`.
  *
  * @category tools
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
   toolkit: Toolkit.Toolkit<Tools>
@@ -720,7 +720,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
  * Register an AiToolkit with the McpServer.
  *
  * @category tools
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toolkit = <Tools extends Record<string, Tool.Any>>(
   toolkit: Toolkit.Toolkit<Tools>
@@ -738,7 +738,7 @@ export const toolkit = <Tools extends Record<string, Tool.Any>>(
  * parameter keys.
  *
  * @category utility types
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ValidateCompletions<Completions, Keys extends string> =
   & Completions
@@ -754,7 +754,7 @@ export type ValidateCompletions<Completions, Keys extends string> =
  * candidate values for that parameter.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
   readonly [
@@ -767,7 +767,7 @@ export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
  * Register a resource with the McpServer.
  *
  * @category resources
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const registerResource: {
   <E, R>(options: {
@@ -923,7 +923,7 @@ export const registerResource: {
  * Register a resource with the McpServer.
  *
  * @category resources
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const resource: {
   <E, R>(options: {
@@ -983,7 +983,7 @@ export const resource: {
  * Register a prompt with the McpServer.
  *
  * @category prompts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const registerPrompt = <
   E,
@@ -1078,7 +1078,7 @@ export const registerPrompt = <
  * Register a prompt with the McpServer.
  *
  * @category prompts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const prompt = <
   E,
@@ -1111,7 +1111,7 @@ export const prompt = <
  * with `ElicitationDeclined`, and canceled requests interrupt the effect.
  *
  * @category elicitation
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>>(options: {
   readonly message: string

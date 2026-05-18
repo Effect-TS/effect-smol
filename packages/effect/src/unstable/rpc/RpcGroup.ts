@@ -44,7 +44,7 @@ const TypeId = "~effect/rpc/RpcGroup"
  * converted into server handlers or layers.
  *
  * @category groups
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   new(_: never): {}
@@ -185,7 +185,7 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
  * RPC group.
  *
  * @category groups
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -196,7 +196,7 @@ export interface Any {
  * RPC in a union.
  *
  * @category groups
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type HandlersFrom<Rpc extends Rpc.Any> = {
   readonly [Current in Rpc as Current["_tag"]]: Rpc.ToHandlerFn<Current>
@@ -207,7 +207,7 @@ export type HandlersFrom<Rpc extends Rpc.Any> = {
  * union.
  *
  * @category groups
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type HandlerFrom<Rpc extends Rpc.Any, Tag extends Rpc["_tag"]> = Extract<Rpc, { readonly _tag: Tag }> extends
   infer Current ? Current extends Rpc.Any ? Rpc.ToHandlerFn<Current> : never : never
@@ -257,7 +257,7 @@ export type HandlerServices<Rpcs extends Rpc.Any, K extends Rpcs["_tag"], Handle
  * Extracts the union of RPC definitions from an `RpcGroup`.
  *
  * @category groups
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Rpcs<Group> = Group extends RpcGroup<infer R> ? string extends R["_tag"] ? never : R : never
 
@@ -412,7 +412,7 @@ const makeProto = <Rpcs extends Rpc.Any>(options: {
  * Creates an `RpcGroup` from one or more RPC definitions.
  *
  * @category groups
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <const Rpcs extends ReadonlyArray<Rpc.Any>>(
   ...rpcs: Rpcs

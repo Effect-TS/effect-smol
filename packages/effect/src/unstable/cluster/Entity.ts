@@ -82,7 +82,7 @@ const TypeId = "~effect/cluster/Entity"
  * can be registered as a layer using RPC handlers or a mailbox queue.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Entity<
   in out Type extends string,
@@ -220,7 +220,7 @@ export interface Entity<
  * protocol.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Any = Entity<string, Rpc.Any>
 
@@ -232,7 +232,7 @@ export type Any = Entity<string, Rpc.Any>
  * RPC result or a supported RPC wrapper.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type HandlersFrom<Rpc extends Rpc.Any> = {
   readonly [Current in Rpc as Current["_tag"]]: (
@@ -246,7 +246,7 @@ export type HandlersFrom<Rpc extends Rpc.Any> = {
  * The check is based on the internal entity type identifier.
  *
  * @category refinements
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isEntity = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -413,7 +413,7 @@ const Proto = {
  * that adhere to the provided `RpcGroup`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
   /**
@@ -438,7 +438,7 @@ export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
  * that adhere to the provided schemas.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.Any>>(
   /**
@@ -456,7 +456,7 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
  * A Context.Tag to access the current entity address.
  *
  * @category context
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class CurrentAddress extends Context.Service<
   CurrentAddress,
@@ -467,7 +467,7 @@ export class CurrentAddress extends Context.Service<
  * A Context.Tag to access the current Runner address.
  *
  * @category context
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class CurrentRunnerAddress extends Context.Service<
   CurrentRunnerAddress,
@@ -481,7 +481,7 @@ export class CurrentRunnerAddress extends Context.Service<
  * cause, or supplying an explicit `Exit`.
  *
  * @category Replier
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Replier<Rpcs extends Rpc.Any> {
   readonly succeed: <R extends Rpcs>(
@@ -508,7 +508,7 @@ export interface Replier<Rpcs extends Rpc.Any> {
 /**
  * Helper types used by the `Replier` API.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Replier {
   /**
@@ -518,7 +518,7 @@ export declare namespace Replier {
    * of success chunks. For non-streaming RPCs it is the RPC success value.
    *
    * @category Replier
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Success<R extends Rpc.Any> = Rpc.Success<R> extends Stream.Stream<infer _A, infer _E, infer _R> ?
     Stream.Stream<_A, _E | Rpc.Error<R>, _R> | Queue.Dequeue<_A, _E | Rpc.Error<R> | Cause.Done>
@@ -532,7 +532,7 @@ export declare namespace Replier {
  * that was sent, allowing handlers to resume chunk sequencing after a restart.
  *
  * @category Request
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Request<Rpc extends Rpc.Any> extends Data.Class<
   Envelope.Request<Rpc> & {
@@ -570,7 +570,7 @@ const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/clust
  * using a test sharding service instead of the cluster transport.
  *
  * @category Testing
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE, LR>(
   entity: Entity<Type, Rpcs>,
@@ -677,7 +677,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
  * disabled it releases the keep-alive latch if one is present.
  *
  * @category Keep alive
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const keepAlive: (
   enabled: boolean
@@ -731,7 +731,7 @@ export const keepAlive: (
  * survives normal entity restarts.
  *
  * @category Keep alive
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
   .annotate(Persisted, true)
@@ -744,7 +744,7 @@ export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
  * the resource no longer needs to keep the entity alive.
  *
  * @category Keep alive
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class KeepAliveLatch extends Context.Service<KeepAliveLatch, Latch.Latch>()(
   "effect/cluster/Entity/KeepAliveLatch"

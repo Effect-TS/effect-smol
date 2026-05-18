@@ -480,7 +480,7 @@ export declare namespace Service {
    * definition.
    *
    * @category services
-   * @since 3.14.0
+   * @since 4.0.0
    */
   export type Services<Options> = Layers<Options> extends Layer.Layer<infer _A, infer _E, infer _R> ? _R : never
 }

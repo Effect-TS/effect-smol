@@ -709,7 +709,7 @@ export declare namespace Contravariant {
  * otherwise returns `S`.
  *
  * @category types
- * @since 4.0.0
+ * @since 3.19.20
  */
 export type VoidIfEmpty<S> = keyof S extends never ? void : S
 

@@ -56,7 +56,7 @@ import * as Singleton from "./Singleton.ts"
  * and skipping stale scheduled runs.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <E, R>(options: {
   readonly name: string

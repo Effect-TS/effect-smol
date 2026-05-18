@@ -53,7 +53,7 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
  * groups exposed as nested objects and top-level endpoints exposed as methods.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simplify<
   & {
@@ -84,7 +84,7 @@ export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
  * Helper types used to describe generated HTTP API clients, including endpoint
  * methods, response modes, and grouped client shapes.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Client {
   /**
@@ -113,7 +113,7 @@ export declare namespace Client {
    * its typed client method.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Group<Groups extends HttpApiGroup.Any, GroupName extends Groups["identifier"], E, R> =
     [HttpApiGroup.WithName<Groups, GroupName>] extends [HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints>] ?
@@ -128,7 +128,7 @@ export declare namespace Client {
    * the endpoint schemas, middleware, and selected response mode.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Method<Endpoint, E, R> = [Endpoint] extends [
     HttpApiEndpoint.HttpApiEndpoint<
@@ -167,7 +167,7 @@ export declare namespace Client {
    * directly on the generated client object.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> =
     Extract<Groups, { readonly topLevel: true }> extends
@@ -421,7 +421,7 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
  * endpoint schemas, middleware, and optional client or response transformations.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<ApiId, Groups>,
@@ -449,7 +449,7 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
  * responses.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
@@ -479,7 +479,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
  * `HttpClient`, filtering the API to that group.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const group = <
   ApiId extends string,
@@ -517,7 +517,7 @@ export const group = <
  * supplied `HttpClient` and endpoint metadata.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const endpoint = <
   ApiId extends string,

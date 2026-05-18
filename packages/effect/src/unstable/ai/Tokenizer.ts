@@ -63,7 +63,7 @@ import * as Prompt from "./Prompt.ts"
  * ```
  *
  * @category services
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Tokenizer extends Context.Service<Tokenizer, Service>()(
   "effect/ai/Tokenizer"
@@ -92,7 +92,7 @@ export class Tokenizer extends Context.Service<Tokenizer, Service>()(
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Service {
   /**
@@ -150,7 +150,7 @@ export interface Service {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (options: {
   readonly tokenize: (content: Prompt.Prompt) => Effect.Effect<Array<number>, AiError.AiError>

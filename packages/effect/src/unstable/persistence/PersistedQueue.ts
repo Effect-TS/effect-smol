@@ -51,7 +51,7 @@ import * as Redis from "./Redis.ts"
  * Runtime type identifier for `PersistedQueue` values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
 
@@ -59,7 +59,7 @@ export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
  * Type-level identifier used to brand `PersistedQueue` values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TypeId = "~effect/persistence/PersistedQueue"
 
@@ -71,7 +71,7 @@ export type TypeId = "~effect/persistence/PersistedQueue"
  * reached.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface PersistedQueue<in out A, out R = never> {
   readonly [TypeId]: TypeId
@@ -110,7 +110,7 @@ export interface PersistedQueue<in out A, out R = never> {
  * Service for constructing named `PersistedQueue` instances from schemas.
  *
  * @category Factory
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class PersistedQueueFactory extends Context.Service<
   PersistedQueueFactory,
@@ -127,7 +127,7 @@ export class PersistedQueueFactory extends Context.Service<
  * schema.
  *
  * @category Accessors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <S extends Schema.Top>(options: {
   readonly name: string
@@ -146,7 +146,7 @@ export const make = <S extends Schema.Top>(options: {
  * `take` handler's exit.
  *
  * @category Factory
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeFactory = Effect.gen(function*() {
   const store = yield* PersistedQueueStore
@@ -202,7 +202,7 @@ export const makeFactory = Effect.gen(function*() {
  * Provides `PersistedQueueFactory` using the current `PersistedQueueStore`.
  *
  * @category Factory
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   PersistedQueueFactory,
@@ -214,7 +214,7 @@ export const layer: Layer.Layer<
  * Runtime type identifier for `PersistedQueueError`.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
 
@@ -222,7 +222,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/Pe
  * Type-level identifier used to brand `PersistedQueueError` values.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
 
@@ -230,7 +230,7 @@ export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueEr
  * Error raised by persisted queue store operations.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
   "effect/persistence/PersistedQueue/PersistedQueueError"
@@ -254,7 +254,7 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
  * the finalizer can complete or retry them based on the processing exit.
  *
  * @category Store
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class PersistedQueueStore extends Context.Service<
   PersistedQueueStore,
@@ -290,7 +290,7 @@ export class PersistedQueueStore extends Context.Service<
  * configured maximum attempts is reached.
  *
  * @category Store
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerStoreMemory: Layer.Layer<
   PersistedQueueStore

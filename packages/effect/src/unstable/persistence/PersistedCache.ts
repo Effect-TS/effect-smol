@@ -34,7 +34,7 @@ const TypeId = "~effect/persistence/PersistedCache" as const
  * Cache that combines an in-memory `Cache` with a persisted backing store.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface PersistedCache<K extends Persistable.Any, out R = never> {
   readonly [TypeId]: typeof TypeId
@@ -60,7 +60,7 @@ export interface PersistedCache<K extends Persistable.Any, out R = never> {
  * cache with its own capacity and TTL.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: <
   K extends Persistable.Any,

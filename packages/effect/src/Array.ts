@@ -776,7 +776,7 @@ export const isArray: {
  * @see {@link isArrayNonEmpty} — opposite check
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
 
@@ -796,7 +796,7 @@ export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
  * @see {@link isReadonlyArrayNonEmpty} — opposite check
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readonly [] = isArrayEmpty as any
 
@@ -817,7 +817,7 @@ export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readon
  * @see {@link isArrayEmpty} — opposite check
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isArrayNonEmpty: <A>(self: Array<A>) => self is NonEmptyArray<A> = internalArray.isArrayNonEmpty
 
@@ -838,7 +838,7 @@ export const isArrayNonEmpty: <A>(self: Array<A>) => self is NonEmptyArray<A> = 
  * @see {@link isReadonlyArrayEmpty} — opposite check
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isReadonlyArrayNonEmpty: <A>(self: ReadonlyArray<A>) => self is NonEmptyReadonlyArray<A> =
   internalArray.isArrayNonEmpty
@@ -915,7 +915,7 @@ export const get: {
  * @see {@link get} — safe version returning `Option`
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe: {
   (index: number): <A>(self: ReadonlyArray<A>) => A
@@ -2088,7 +2088,7 @@ export const intersperse: {
  * @see {@link modifyLastNonEmpty} — modify the last element
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const modifyHeadNonEmpty: {
   <A, B>(f: (a: A) => B): (self: NonEmptyReadonlyArray<A>) => NonEmptyArray<A | B>
@@ -2116,7 +2116,7 @@ export const modifyHeadNonEmpty: {
  * @see {@link setLastNonEmpty} — replace the last element
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setHeadNonEmpty: {
   <B>(b: B): <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<A | B>
@@ -2142,7 +2142,7 @@ export const setHeadNonEmpty: {
  * @see {@link modifyHeadNonEmpty} — modify the first element
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const modifyLastNonEmpty: {
   <A, B>(f: (a: A) => B): (self: NonEmptyReadonlyArray<A>) => NonEmptyArray<A | B>
@@ -2168,7 +2168,7 @@ export const modifyLastNonEmpty: {
  * @see {@link setHeadNonEmpty} — replace the first element
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setLastNonEmpty: {
   <B>(b: B): <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<A | B>
@@ -2380,7 +2380,7 @@ export const splitAt: {
  * @see {@link splitAt} — for possibly-empty arrays
  *
  * @category splitting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const splitAtNonEmpty: {
   (n: number): <A>(self: NonEmptyReadonlyArray<A>) => [beforeIndex: NonEmptyArray<A>, fromIndex: Array<A>]
@@ -3197,7 +3197,7 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  * @see {@link separate} — split into failures and successes
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
   self: T
@@ -3229,7 +3229,7 @@ export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
  * @see {@link separate} — split into failures and successes
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
   self: T
@@ -3262,7 +3262,7 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
  * @see {@link filter} — keep original elements matching a predicate
  *
  * @category filtering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const filterMap: {
   <A, B, X>(f: (input: NoInfer<A>, i: number) => Result.Result<B, X>): (self: Iterable<A>) => Array<B>
@@ -3527,7 +3527,7 @@ export const liftOption = <A extends Array<unknown>, B>(
  * @see {@link fromOption} — convert from Option
  *
  * @category converting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => a == null ? empty() : [a as NonNullable<A>]
 
@@ -3552,7 +3552,7 @@ export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => a == null ? emp
  * @see {@link liftOption} — lift an Option-returning function
  *
  * @category lifting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const liftNullishOr = <A extends Array<unknown>, B>(
   f: (...a: A) => B
@@ -3573,7 +3573,7 @@ export const liftNullishOr = <A extends Array<unknown>, B>(
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const flatMapNullishOr: {
   <A, B>(f: (a: A) => B): (self: ReadonlyArray<A>) => Array<NonNullable<B>>
@@ -3606,7 +3606,7 @@ export const flatMapNullishOr: {
  * @see {@link liftPredicate} — lift a boolean predicate
  *
  * @category lifting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const liftResult = <A extends Array<unknown>, E, B>(
   f: (...a: A) => Result.Result<B, E>
@@ -3800,7 +3800,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => Option.Option<readonly [A, B]>):
  * @see {@link makeEquivalence} — create an equivalence for arrays
  *
  * @category instances
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> = Order.Array
 
@@ -3821,7 +3821,7 @@ export const makeOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> 
  * @see {@link makeOrder} — create an ordering for arrays
  *
  * @category instances
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeEquivalence: <A>(
   isEquivalent: Equivalence.Equivalence<A>

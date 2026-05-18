@@ -36,7 +36,7 @@ import * as SqlSchema from "./SqlSchema.ts"
  * instead of removing the row.
  *
  * @category repository
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeRepository = <
   S extends Model.Any,

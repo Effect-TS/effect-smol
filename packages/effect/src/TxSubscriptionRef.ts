@@ -92,7 +92,7 @@ const TxSubscriptionRefProto: Omit<TxSubscriptionRef<any>, typeof TypeId | "ref"
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
   Effect.gen(function*() {
@@ -125,7 +125,7 @@ export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.get(self.ref)
 
@@ -151,7 +151,7 @@ export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.ge
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const modify: {
   <A, B>(
@@ -192,7 +192,7 @@ export const modify: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const set: {
   <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<void>
@@ -219,7 +219,7 @@ export const set: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const update: {
   <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<void>
@@ -248,7 +248,7 @@ export const update: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const getAndSet: {
   <A>(value: A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
@@ -276,7 +276,7 @@ export const getAndSet: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const getAndUpdate: {
   <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
@@ -304,7 +304,7 @@ export const getAndUpdate: {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const updateAndGet: {
   <A>(f: (current: A) => A): (self: TxSubscriptionRef<A>) => Effect.Effect<A>
@@ -349,7 +349,7 @@ export const updateAndGet: {
  * ```
  *
  * @category subscriptions
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const changes = <A>(
   self: TxSubscriptionRef<A>
@@ -388,7 +388,7 @@ export const changes = <A>(
  * ```
  *
  * @category subscriptions
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, never, never> =>
   Stream.unwrap(

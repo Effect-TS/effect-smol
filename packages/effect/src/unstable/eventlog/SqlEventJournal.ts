@@ -38,7 +38,7 @@ type WriteFromRemoteOptions = Parameters<EventJournal.EventJournal["Service"]["w
  * persists local and remote entries, and uses the configured `SqlClient`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (options?: {
   readonly entryTable?: string
@@ -294,7 +294,7 @@ export const make = (options?: {
  * `make`.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = (options?: {
   readonly entryTable?: string

@@ -41,7 +41,7 @@ import type { Request, RequestId } from "./RpcMessage.ts"
  * The literal type id used to identify RPC middleware service classes.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TypeId = "~effect/rpc/RpcMiddleware"
 
@@ -49,7 +49,7 @@ export type TypeId = "~effect/rpc/RpcMiddleware"
  * The runtime type id used to attach and inspect RPC middleware metadata.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId: TypeId = "~effect/rpc/RpcMiddleware"
 
@@ -59,7 +59,7 @@ export const TypeId: TypeId = "~effect/rpc/RpcMiddleware"
  * services.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RpcMiddleware<Provides, E, Requires> {
   (
@@ -79,7 +79,7 @@ export interface RpcMiddleware<Provides, E, Requires> {
  * without exposing the handler's concrete success value.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface SuccessValue {
   readonly _: unique symbol
@@ -90,7 +90,7 @@ export interface SuccessValue {
  * be inspected or modified before calling `next`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RpcMiddlewareClient<E, CE, R> {
   (options: {
@@ -105,7 +105,7 @@ export interface RpcMiddlewareClient<E, CE, R> {
  * implementation available for an RPC client.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface ForClient<Id> {
   readonly _: unique symbol
@@ -117,7 +117,7 @@ export interface ForClient<Id> {
  * provided services, errors, and requirements are not needed.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   (
@@ -182,7 +182,7 @@ export interface ServiceClass<
  * Extracts the services provided by an RPC middleware.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Provides<A> = A extends { readonly [TypeId]: { readonly provides: infer P } } ? P : never
 
@@ -270,7 +270,7 @@ export interface AnyServiceWithProps extends Context.Key<any, RpcMiddleware<any,
  * metadata.
  *
  * @category tags
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Service = <
   Self,
@@ -336,7 +336,7 @@ export const Service = <
  * invocation.
  *
  * @category client
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
   tag: Context.Key<Id, S>,

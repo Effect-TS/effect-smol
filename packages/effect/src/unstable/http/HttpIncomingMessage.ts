@@ -42,7 +42,7 @@ import * as UrlParams from "./UrlParams.ts"
  * Type identifier for `HttpIncomingMessage` values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId = "~effect/http/HttpIncomingMessage"
 
@@ -58,7 +58,7 @@ export const isHttpIncomingMessage = (u: unknown): u is HttpIncomingMessage => h
  * Common model for incoming HTTP messages, with headers, remote address, and effectful body accessors.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -75,7 +75,7 @@ export interface HttpIncomingMessage<E = unknown> extends Inspectable.Inspectabl
  * Creates a decoder that reads an incoming message's JSON body and decodes it with the supplied schema.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaBodyJson = <S extends Schema.Top>(schema: S, options?: ParseOptions | undefined) => {
   const decode = Schema.decodeEffect(Schema.toCodecJson(schema))
@@ -89,7 +89,7 @@ export const schemaBodyJson = <S extends Schema.Top>(schema: S, options?: ParseO
  * Creates a decoder that reads an incoming message's URL-encoded body parameters and decodes them with the supplied schema.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaBodyUrlParams = <
   A,
@@ -112,7 +112,7 @@ export const schemaBodyUrlParams = <
  * Creates a decoder that validates and decodes an incoming message's headers with the supplied schema.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -126,7 +126,7 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
  * Context reference for the optional maximum size allowed when reading an incoming message body.
  *
  * @category references
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const MaxBodySize = Context.Reference<FileSystem.Size | undefined>(
   "effect/http/HttpIncomingMessage/MaxBodySize",
@@ -137,7 +137,7 @@ export const MaxBodySize = Context.Reference<FileSystem.Size | undefined>(
  * Builds an inspectable object for an incoming message, redacting headers and including a synchronously readable JSON or text body when available.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const inspect = <E>(self: HttpIncomingMessage<E>, that: object): object => {
   const contentType = self.headers["content-type"] ?? ""

@@ -74,7 +74,7 @@ export type PartitionedTypeId = "~effect/PartitionedSemaphore"
  * Waiting permits are distributed across partitions in round-robin order.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.19.4
  */
 export interface PartitionedSemaphore<in K> {
   readonly [PartitionedTypeId]: PartitionedTypeId
@@ -121,7 +121,7 @@ export interface Partitioned<in K> extends PartitionedSemaphore<K> {}
  * workflow.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.19.4
  */
 export const makeUnsafe = <K = unknown>(options: {
   readonly permits: number
@@ -320,7 +320,7 @@ export const makeUnsafe = <K = unknown>(options: {
  * across waiting partitions in round-robin order.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.19.4
  */
 export const make = <K = unknown>(options: {
   readonly permits: number

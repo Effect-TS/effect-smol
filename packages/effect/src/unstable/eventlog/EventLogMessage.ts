@@ -159,7 +159,7 @@ export class SingleMessage
  * the same id once every part has arrived.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class ChunkedMessage
   extends Schema.TaggedClass<ChunkedMessage>("effect/eventlog/EventLogRemote/ChunkedMessage")("Chunked", {
@@ -256,7 +256,7 @@ export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
  * vector, and encrypted entries.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/EventLogRemote/WriteEntries")({
   publicKey: Schema.String,

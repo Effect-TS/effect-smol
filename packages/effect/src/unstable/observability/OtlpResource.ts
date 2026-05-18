@@ -29,7 +29,7 @@ import * as Schema from "../../Schema.ts"
  * OTLP resource metadata attached to exported logs, metrics, and traces.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Resource {
   /** Resource attributes */
@@ -45,7 +45,7 @@ export interface Resource {
  * provided, and converts custom attributes into OTLP attribute values.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (options: {
   readonly serviceName: string
@@ -85,7 +85,7 @@ export const make = (options: {
  * defect.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fromConfig: (
   options?: {
@@ -140,7 +140,7 @@ export const serviceNameUnsafe = (resource: Resource): string => {
  * Converts key/value entries into OTLP `KeyValue` attributes.
  *
  * @category Attributes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array<KeyValue> => {
   const attributes: Array<KeyValue> = []
@@ -160,7 +160,7 @@ export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array
  * fields, and unsupported values are formatted as strings.
  *
  * @category Attributes
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const unknownToAttributeValue = (value: unknown): AnyValue => {
   if (Array.isArray(value)) {
@@ -202,7 +202,7 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
  * An OTLP attribute represented as a string key and typed value.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface KeyValue {
   /** KeyValue key */
@@ -215,7 +215,7 @@ export interface KeyValue {
  * OTLP `AnyValue` payload for scalar, array, key/value-list, or byte values.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface AnyValue {
   /** AnyValue stringValue */
@@ -238,7 +238,7 @@ export interface AnyValue {
  * OTLP array value containing nested `AnyValue` entries.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface ArrayValue {
   /** ArrayValue values */
@@ -249,7 +249,7 @@ export interface ArrayValue {
  * OTLP key/value-list value containing nested attributes.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface KeyValueList {
   /** KeyValueList values */
@@ -260,7 +260,7 @@ export interface KeyValueList {
  * Low and high 32-bit parts of a 64-bit integer value.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface LongBits {
   low: number
@@ -271,6 +271,6 @@ export interface LongBits {
  * Accepted runtime representations for an OTLP/protobuf fixed 64-bit value.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Fixed64 = LongBits | string | number

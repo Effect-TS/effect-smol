@@ -80,7 +80,7 @@ export interface TxRef<in out A> extends Pipeable {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 
@@ -137,7 +137,7 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const modify: {
   <A, R>(f: (current: NoInfer<A>) => [returnValue: R, newValue: A]): (self: TxRef<A>) => Effect.Effect<R>
@@ -182,7 +182,7 @@ export const modify: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const update: {
   <A>(f: (current: NoInfer<A>) => A): (self: TxRef<A>) => Effect.Effect<void>
@@ -213,7 +213,7 @@ export const update: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (current) => [current, current])
 
@@ -238,7 +238,7 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const set: {
   <A>(value: A): (self: TxRef<A>) => Effect.Effect<void>

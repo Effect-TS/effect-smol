@@ -170,7 +170,7 @@ export type AnySpan = Span | ExternalSpan
  * ```
  *
  * @category tags
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const ParentSpanKey = "effect/Tracer/ParentSpan"
 
@@ -264,7 +264,7 @@ export interface SpanOptions extends SpanOptionsNoTrace, TraceOptions {}
  * sampling, and the trace level used for filtering.
  *
  * @category models
- * @since 3.1.0
+ * @since 4.0.0
  */
 export interface SpanOptionsNoTrace {
   readonly attributes?: Record<string, unknown> | undefined
@@ -283,7 +283,7 @@ export interface SpanOptionsNoTrace {
  * `captureStackTrace` can disable capture or provide a lazy stack string.
  *
  * @category models
- * @since 3.1.0
+ * @since 4.0.0
  */
 export interface TraceOptions {
   readonly captureStackTrace?: boolean | LazyArg<string | undefined> | undefined
@@ -560,7 +560,7 @@ export const TracerKey = "effect/Tracer"
  * ```
  *
  * @category references
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Tracer: Context.Reference<Tracer> = Context.Reference<Tracer>(TracerKey, {
   defaultValue: () =>

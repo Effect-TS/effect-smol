@@ -122,7 +122,7 @@ export interface Combiner<A> {
  * @see {@link Combiner} – the interface this creates
  *
  * @category constructors
- * @since 4.0.0
+ * @since 0.24.0
  */
 export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
   return { combine }
@@ -191,7 +191,7 @@ export function flip<A>(combiner: Combiner<A>): Combiner<A> {
  * @see {@link max}
  *
  * @category constructors
- * @since 4.0.0
+ * @since 0.24.0
  */
 export function min<A>(order: Order.Order<A>): Combiner<A> {
   return make((self, that) => order(self, that) === -1 ? self : that)
@@ -227,7 +227,7 @@ export function min<A>(order: Order.Order<A>): Combiner<A> {
  * @see {@link min}
  *
  * @category constructors
- * @since 4.0.0
+ * @since 0.24.0
  */
 export function max<A>(order: Order.Order<A>): Combiner<A> {
   return make((self, that) => order(self, that) === 1 ? self : that)
@@ -259,7 +259,7 @@ export function max<A>(order: Order.Order<A>): Combiner<A> {
  * @see {@link last}
  *
  * @category constructors
- * @since 4.0.0
+ * @since 0.24.0
  */
 export function first<A>(): Combiner<A> {
   return make((self, _) => self)
@@ -290,7 +290,7 @@ export function first<A>(): Combiner<A> {
  * @see {@link first}
  *
  * @category constructors
- * @since 4.0.0
+ * @since 0.24.0
  */
 export function last<A>(): Combiner<A> {
   return make((_, that) => that)
@@ -324,7 +324,7 @@ export function last<A>(): Combiner<A> {
  * @see {@link last}
  *
  * @category constructors
- * @since 4.0.0
+ * @since 0.24.0
  */
 export function constant<A>(a: A): Combiner<A> {
   return make(() => a)
@@ -359,7 +359,7 @@ export function constant<A>(a: A): Combiner<A> {
  * @see {@link make}
  *
  * @category combinators
- * @since 4.0.0
+ * @since 0.24.0
  */
 export function intercalate<A>(middle: A) {
   return (combiner: Combiner<A>): Combiner<A> =>

@@ -700,6 +700,6 @@ export const updateSomeAndGet = dual<
  * ```
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe = <A>(self: Ref<A>): A => self.ref.current

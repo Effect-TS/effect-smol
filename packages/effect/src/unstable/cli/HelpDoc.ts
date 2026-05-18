@@ -71,7 +71,7 @@ import type * as Option from "../../Option.ts"
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface HelpDoc {
   /**

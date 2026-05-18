@@ -198,7 +198,7 @@ export interface Options<out Message> {
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 1.0.0
  */
 export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate.hasProperty(u, TypeId)
 
@@ -397,7 +397,7 @@ export const withConsoleError = <Message, Output>(
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 3.8.0
  */
 export const withLeveledConsole = <Message, Output>(
   self: Logger<Message, Output>
@@ -553,7 +553,7 @@ export const make: <Message, Output>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const defaultLogger: Logger<unknown, void> = effect.defaultLogger
 
@@ -811,7 +811,7 @@ export const formatJson = map(formatStructured, Formatter.formatJson)
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const batched = dual<
   <Output>(options: {
@@ -960,7 +960,7 @@ export const consolePretty: (
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const consoleLogFmt: Logger<unknown, void> = withConsoleLog(formatLogFmt)
 
@@ -1132,7 +1132,7 @@ export const consoleJson: Logger<unknown, void> = withConsoleLog(formatJson)
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const tracerLogger: Logger<unknown, void> = effect.tracerLogger
 

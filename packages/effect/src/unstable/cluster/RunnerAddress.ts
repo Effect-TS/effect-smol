@@ -29,7 +29,7 @@ const TypeId = "~effect/cluster/RunnerAddress"
  * Network address of a cluster runner, identified by host and port.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
   host: Schema.String,
@@ -92,7 +92,7 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
  * Constructs a `RunnerAddress` from a host and port.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (host: string, port: number): RunnerAddress =>
   new RunnerAddress({ host, port }, { disableChecks: true })

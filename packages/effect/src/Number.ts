@@ -151,7 +151,7 @@ export const divide: {
  * ```
  *
  * @category math
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const divideUnsafe: {
   (that: number): (self: number) => number
@@ -230,7 +230,7 @@ export const Order: order.Order<number> = order.Number
  * ```
  *
  * @category instances
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Equivalence: Equ.Equivalence<number> = Equ.Number
 
@@ -249,7 +249,7 @@ export const Equivalence: Equ.Equivalence<number> = Equ.Number
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThan: {
   (that: number): (self: number) => boolean
@@ -271,7 +271,7 @@ export const isLessThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: number): (self: number) => boolean
@@ -293,7 +293,7 @@ export const isLessThanOrEqualTo: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThan: {
   (that: number): (self: number) => boolean
@@ -315,7 +315,7 @@ export const isGreaterThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: number): (self: number) => boolean

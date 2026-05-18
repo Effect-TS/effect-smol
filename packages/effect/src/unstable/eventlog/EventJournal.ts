@@ -39,7 +39,7 @@ import type { StoreId } from "./EventLogMessage.ts"
  * a stream of local changes, and provides per-store locking.
  *
  * @category context
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class EventJournal extends Context.Service<EventJournal, {
   /**
@@ -116,7 +116,7 @@ const TypeId = "effect/eventlog/EventJournal/EventJournalError" as const
  * The error records the journal method that failed and the underlying cause.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class EventJournalError extends Data.TaggedError("EventJournalError")<{
   readonly method: string
@@ -134,7 +134,7 @@ export class EventJournalError extends Data.TaggedError("EventJournalError")<{
  * Brand identifier used for `RemoteId` values.
  *
  * @category remote
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
 
@@ -142,7 +142,7 @@ export type RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
  * Runtime brand identifier used for `RemoteId` values.
  *
  * @category remote
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const RemoteIdTypeId: RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
 
@@ -150,7 +150,7 @@ export const RemoteIdTypeId: RemoteIdTypeId = "effect/eventlog/EventJournal/Remo
  * Branded byte identifier for a remote event journal source.
  *
  * @category remote
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type RemoteId = Uint8Array & Brand<RemoteIdTypeId>
 
@@ -158,7 +158,7 @@ export type RemoteId = Uint8Array & Brand<RemoteIdTypeId>
  * Schema for branded remote event journal identifiers.
  *
  * @category remote
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const RemoteId = Schema.Uint8Array.pipe(Schema.brand(RemoteIdTypeId))
 
@@ -177,7 +177,7 @@ export const makeRemoteIdUnsafe = (): RemoteId => Uuid.v4({}, new globalThis.Uin
  * Runtime brand identifier used for `EntryId` values.
  *
  * @category entry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const EntryIdTypeId: EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
 
@@ -185,7 +185,7 @@ export const EntryIdTypeId: EntryIdTypeId = "effect/eventlog/EventJournal/EntryI
  * Brand identifier used for `EntryId` values.
  *
  * @category entry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
 
@@ -193,7 +193,7 @@ export type EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
  * Branded byte identifier for an event journal entry.
  *
  * @category entry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type EntryId = Uint8Array<ArrayBuffer> & Brand<EntryIdTypeId>
 
@@ -201,7 +201,7 @@ export type EntryId = Uint8Array<ArrayBuffer> & Brand<EntryIdTypeId>
  * Schema for branded event journal entry identifiers.
  *
  * @category entry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const EntryId = (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(
   Schema.brand(EntryIdTypeId)
@@ -239,7 +239,7 @@ export const makeEntryIdUnsafe = (options: { msecs?: number } = {}): EntryId =>
  * Extracts the millisecond timestamp encoded in a UUID v7 `EntryId`.
  *
  * @category entry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const entryIdMillis = (entryId: EntryId): number => {
   const bytes = new Uint8Array(8)
@@ -254,7 +254,7 @@ export const entryIdMillis = (entryId: EntryId): number => {
  * payload, with helpers for array MessagePack encoding and creation timestamps.
  *
  * @category entry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Entry")({
   id: EntryId,
@@ -324,7 +324,7 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
  * It pairs the remote sequence number with the journal entry payload.
  *
  * @category entry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RemoteEntry extends Schema.Class<RemoteEntry>("effect/eventlog/EventJournal/RemoteEntry")({
   remoteSequence: Schema.Number,
@@ -338,7 +338,7 @@ export class RemoteEntry extends Schema.Class<RemoteEntry>("effect/eventlog/Even
  * are lost when the service is discarded.
  *
  * @category memory
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(function*() {
   const journal: Array<Entry> = []
@@ -476,7 +476,7 @@ export const makeMemory: Effect.Effect<EventJournal["Service"]> = Effect.gen(fun
  * lifetimes.
  *
  * @category memory
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerMemory: Layer.Layer<EventJournal> = Layer.effect(EventJournal, makeMemory)
 
@@ -488,7 +488,7 @@ export const layerMemory: Layer.Layer<EventJournal> = Layer.effect(EventJournal,
  * connection can be closed when the scope ends.
  *
  * @category indexed db
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeIndexedDb = (options?: {
   readonly database?: string
@@ -749,7 +749,7 @@ const decodeEntryIdbArray = Schema.decodeUnknownEffect(EntryIdbArray)
  * `makeIndexedDb`.
  *
  * @category indexed db
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerIndexedDb = (options?: {
   readonly database?: string

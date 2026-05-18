@@ -57,7 +57,7 @@ export interface PrimaryKey {
  * call the method or verify that it returns a string.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isPrimaryKey = (u: unknown): u is PrimaryKey => hasProperty(u, symbol)
 

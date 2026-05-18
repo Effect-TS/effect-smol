@@ -103,7 +103,7 @@ const TxHashSetProto = {
  * ```
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface TxHashSet<in out V> extends Inspectable, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -133,7 +133,7 @@ export interface TxHashSet<in out V> extends Inspectable, Pipeable {
  * })
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 export declare namespace TxHashSet {
   /**
@@ -157,7 +157,7 @@ export declare namespace TxHashSet {
    * ```
    *
    * @category type-level
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Value<T> = T extends TxHashSet<infer V> ? V : never
 }
@@ -285,7 +285,7 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHashSet<V>> =>
   Effect.gen(function*() {
@@ -315,7 +315,7 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(u, TypeId)
 
@@ -522,7 +522,7 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
  * ```
  *
  * @category mutations
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const clear = <V>(self: TxHashSet<V>): Effect.Effect<void> => TxRef.set(self.ref, HashSet.empty<V>())
 
@@ -670,7 +670,7 @@ export const difference: {
  * ```
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isSubset: {
   <V1>(that: TxHashSet<V1>): <V0>(self: TxHashSet<V0>) => Effect.Effect<boolean>
@@ -705,7 +705,7 @@ export const isSubset: {
  * ```
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const some: {
   <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -739,7 +739,7 @@ export const some: {
  * ```
  *
  * @category elements
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const every: {
   <V>(predicate: Predicate<V>): (self: TxHashSet<V>) => Effect.Effect<boolean>
@@ -778,7 +778,7 @@ export const every: {
  * ```
  *
  * @category mapping
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const map: {
   <V, U>(f: (value: V) => U): (self: TxHashSet<V>) => Effect.Effect<TxHashSet<U>>
@@ -812,7 +812,7 @@ export const map: {
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const filter: {
   <V, U extends V>(

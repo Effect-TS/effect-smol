@@ -493,7 +493,7 @@ export const isFiber = (
  * ```
  *
  * @category accessors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
 

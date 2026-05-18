@@ -153,7 +153,7 @@ export interface Inspectable {
  * protect sensitive information.
  *
  * @category converting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const toJson = (input: unknown): unknown => {
   try {

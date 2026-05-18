@@ -49,7 +49,7 @@ const {
  * database and JSON variant schemas.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Any = Schema.Top & {
   readonly fields: Schema.Struct.Fields
@@ -64,7 +64,7 @@ export type Any = Schema.Top & {
  * Database-facing variant names generated for model schemas.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type VariantsDatabase = "select" | "insert" | "update"
 
@@ -72,7 +72,7 @@ export type VariantsDatabase = "select" | "insert" | "update"
  * JSON API-facing variant names generated for model schemas.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type VariantsJson = "json" | "jsonCreate" | "jsonUpdate"
 
@@ -163,7 +163,7 @@ export {
  * Returns the variant field definitions stored on a model or variant struct.
  *
  * @category fields
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fields: <A extends VariantSchema.Struct<any>>(self: A) => A[typeof VariantSchema.TypeId] =
   VariantSchema.fields
@@ -173,7 +173,7 @@ export const fields: <A extends VariantSchema.Struct<any>>(self: A) => A[typeof 
  * overrideable default.
  *
  * @category overrideable
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Override: <A>(value: A) => A & Brand<"Override"> = VariantSchema.Override
 
@@ -213,7 +213,7 @@ export const GeneratedByDb = <S extends Schema.Top>(
  * variants.
  *
  * @category generated
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface GeneratedByApp<S extends Schema.Top> extends
   VariantSchema.Field<{
@@ -231,7 +231,7 @@ export interface GeneratedByApp<S extends Schema.Top> extends
  * the JSON create and update variants.
  *
  * @category generated
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const GeneratedByApp = <S extends Schema.Top>(schema: S): GeneratedByApp<S> =>
   Field({
@@ -246,7 +246,7 @@ export const GeneratedByApp = <S extends Schema.Top>(schema: S): GeneratedByApp<
  * and omitted from all JSON variants.
  *
  * @category sensitive
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Sensitive<S extends Schema.Top> extends
   VariantSchema.Field<{
@@ -261,7 +261,7 @@ export interface Sensitive<S extends Schema.Top> extends
  * JSON variants.
  *
  * @category sensitive
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Sensitive = <S extends Schema.Top>(schema: S): Sensitive<S> =>
   Field({
@@ -306,7 +306,7 @@ export const optionalOption = <S extends Schema.Top>(schema: S): optionalOption<
  * For the JSON variants, it will also accept missing keys.
  *
  * @category optional
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface FieldOption<S extends Schema.Top> extends
   VariantSchema.Field<{
@@ -326,7 +326,7 @@ export interface FieldOption<S extends Schema.Top> extends
  * For the JSON variants, it will also accept missing keys.
  *
  * @category optional
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const FieldOption: <Field extends VariantSchema.Field<any> | Schema.Top>(
   self: Field
@@ -386,7 +386,7 @@ export const BooleanSqlite: BooleanSqlite = Field({
  * string.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.String> {}
 
@@ -395,7 +395,7 @@ export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, S
  * format `YYYY-MM-DD`.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Date: Date = Schema.String.pipe(
   Schema.decodeTo(Schema.DateTimeUtc, {
@@ -409,7 +409,7 @@ export const Date: Date = Schema.String.pipe(
  * with the time component removed.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateWithNow = VariantSchema.Overrideable(Date, {
   defaultValue: Effect.map(DateTime.now, DateTime.removeTime)
@@ -420,7 +420,7 @@ export const DateWithNow = VariantSchema.Overrideable(Date, {
  * default of the current `DateTime.Utc`.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromString, {
   defaultValue: DateTime.now
@@ -431,7 +431,7 @@ export const DateTimeWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFrom
  * constructor default of the current `DateTime.Utc`.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromDate, {
   defaultValue: DateTime.now
@@ -442,7 +442,7 @@ export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTim
  * default of the current `DateTime.Utc`.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromMillis, {
   defaultValue: DateTime.now
@@ -453,7 +453,7 @@ export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.DateT
  * current time on insert, available for selection, and omitted from updates.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DateTimeInsert extends
   VariantSchema.Field<{
@@ -470,7 +470,7 @@ export interface DateTimeInsert extends
  * It is omitted from updates and is available for selection.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeInsert: DateTimeInsert = Field({
   select: Schema.DateTimeUtcFromString,
@@ -483,7 +483,7 @@ export const DateTimeInsert: DateTimeInsert = Field({
  * database variants, encoded as a string for JSON, and defaulted on insert.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DateTimeInsertFromDate extends
   VariantSchema.Field<{
@@ -500,7 +500,7 @@ export interface DateTimeInsertFromDate extends
  * It is omitted from updates and is available for selection.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
   select: Schema.DateTimeUtcFromDate,
@@ -513,7 +513,7 @@ export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
  * the current time on insert.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DateTimeInsertFromNumber extends
   VariantSchema.Field<{
@@ -530,7 +530,7 @@ export interface DateTimeInsertFromNumber extends
  * It is omitted from updates and is available for selection.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeInsertFromNumber: DateTimeInsertFromNumber = Field({
   select: Schema.DateTimeUtcFromMillis,
@@ -543,7 +543,7 @@ export const DateTimeInsertFromNumber: DateTimeInsertFromNumber = Field({
  * current time on both inserts and updates.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DateTimeUpdate extends
   VariantSchema.Field<{
@@ -562,7 +562,7 @@ export interface DateTimeUpdate extends
  * available for selection.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeUpdate: DateTimeUpdate = Field({
   select: Schema.DateTimeUtcFromString,
@@ -577,7 +577,7 @@ export const DateTimeUpdate: DateTimeUpdate = Field({
  * updates.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DateTimeUpdateFromDate extends
   VariantSchema.Field<{
@@ -596,7 +596,7 @@ export interface DateTimeUpdateFromDate extends
  * available for selection.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
   select: Schema.DateTimeUtcFromDate,
@@ -610,7 +610,7 @@ export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
  * the current time on both inserts and updates.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface DateTimeUpdateFromNumber extends
   VariantSchema.Field<{
@@ -629,7 +629,7 @@ export interface DateTimeUpdateFromNumber extends
  * available for selection.
  *
  * @category date & time
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({
   select: Schema.DateTimeUtcFromMillis,
@@ -643,7 +643,7 @@ export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({
  * exposed through the supplied schema in JSON variants.
  *
  * @category json
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface JsonFromString<S extends Schema.Top> extends
   VariantSchema.Field<{
@@ -662,7 +662,7 @@ export interface JsonFromString<S extends Schema.Top> extends
  * The "json" variants will use the object schema directly.
  *
  * @category json
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const JsonFromString = <S extends Schema.Top>(
   schema: S
@@ -683,7 +683,7 @@ export const JsonFromString = <S extends Schema.Top>(
  * generates a UUID by default.
  *
  * @category uuid
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface UuidV4Insert<B extends string> extends
   VariantSchema.Field<{
@@ -709,7 +709,7 @@ export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uin
  * `Uint8Array` schema.
  *
  * @category uuid
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const UuidV4WithGenerate = <B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
@@ -720,7 +720,7 @@ export const UuidV4WithGenerate = <B extends string>(
  * A field that represents a binary UUID v4 that is generated on inserts.
  *
  * @category uuid
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const UuidV4Insert = <const B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>

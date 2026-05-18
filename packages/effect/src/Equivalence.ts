@@ -893,7 +893,7 @@ export function makeReducer<A>() {
  * See also: {@link Number}, {@link mapInput}, {@link strictEqual}
  *
  * @category instances
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Date: Equivalence<Date> = mapInput(
   Number,

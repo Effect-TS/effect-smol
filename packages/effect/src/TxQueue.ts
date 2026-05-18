@@ -360,7 +360,7 @@ const TxQueueProto = {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bounded = <A = never, E = never>(
   capacity: number
@@ -405,7 +405,7 @@ export const bounded = <A = never, E = never>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> =>
   Effect.gen(function*() {
@@ -446,7 +446,7 @@ export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> 
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const dropping = <A = never, E = never>(
   capacity: number
@@ -491,7 +491,7 @@ export const dropping = <A = never, E = never>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const sliding = <A = never, E = never>(
   capacity: number
@@ -537,7 +537,7 @@ export const sliding = <A = never, E = never>(
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const offer: {
   <A, E>(value: A): (self: TxEnqueue<A, E>) => Effect.Effect<boolean>
@@ -608,7 +608,7 @@ export const offer: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const offerAll: {
   <A, E>(values: Iterable<A>): (self: TxEnqueue<A, E>) => Effect.Effect<Array<A>>
@@ -660,7 +660,7 @@ export const offerAll: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.gen(function*() {
@@ -715,7 +715,7 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A>> =>
   Effect.gen(function*() {
@@ -773,7 +773,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmptyArray<A>, E> =>
   Effect.gen(function*() {
@@ -835,7 +835,7 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeN: {
   (n: number): <A, E>(self: TxDequeue<A, E>) => Effect.Effect<Array<A>, E>
@@ -929,7 +929,7 @@ export const takeN: {
  * ```
  *
  * @category taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeBetween: {
   (min: number, max: number): <A, E>(self: TxDequeue<A, E>) => Effect.Effect<Array<A>, E>
@@ -1024,7 +1024,7 @@ export const takeBetween: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.gen(function*() {
@@ -1060,7 +1060,7 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(self.items)
 
@@ -1085,7 +1085,7 @@ export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.isEmpty(self.items)
 
@@ -1110,7 +1110,7 @@ export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.i
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
   self.capacity === Number.POSITIVE_INFINITY
@@ -1354,7 +1354,7 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, Excl
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -1462,7 +1462,7 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone(self)
 

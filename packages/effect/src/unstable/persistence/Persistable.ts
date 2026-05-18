@@ -44,7 +44,7 @@ export const symbol = "~effect/persistence/Persistable" as const
  * serialized for persistence.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Persistable<A extends Schema.Top, E extends Schema.Top> extends PrimaryKey.PrimaryKey {
   readonly [symbol]: {

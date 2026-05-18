@@ -46,7 +46,7 @@ import { ResultLengthMismatch } from "./SqlError.ts"
  * together with the resolver's result, error, and environment types.
  *
  * @category requests
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface SqlRequest<In, A, E, R> extends Request.Request<A, E | Schema.SchemaError, R> {
   readonly payload: In
@@ -93,7 +93,7 @@ export const request: {
  * the payload so equal requests can be batched and deduplicated.
  *
  * @category requests
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const SqlRequest = <In, A, E, R>(payload: In): SqlRequest<In, A, E, R> => {
   const self = Object.create(SqlRequestProto)
@@ -110,7 +110,7 @@ export const SqlRequest = <In, A, E, R>(payload: In): SqlRequest<In, A, E, R> =>
  * Results are mapped to the requests in order, so the length of the results must match the length of the requests.
  *
  * @category resolvers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>(
   options: {
@@ -158,7 +158,7 @@ export const ordered = <Req extends Schema.Top, Res extends Schema.Top, _, E, R>
  * request with `NoSuchElementError` when no result group exists.
  *
  * @category resolvers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, E, R>(
   options: {
@@ -227,7 +227,7 @@ export const grouped = <Req extends Schema.Top, Res extends Schema.Top, K, Row, 
  * ids with `NoSuchElementError`.
  *
  * @category resolvers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const findById = <Id extends Schema.Top, Res extends Schema.Top, Row, E, R>(
   options: {

@@ -531,7 +531,7 @@ export const renameKeys: {
  * @see {@link makeOrder} – create an `Order` for structs
  *
  * @category Equivalence
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeEquivalence = Equivalence.Struct
 
@@ -563,7 +563,7 @@ export const makeEquivalence = Equivalence.Struct
  * @see {@link makeEquivalence} – create an `Equivalence` for structs
  *
  * @category Ordering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeOrder = order.Struct
 

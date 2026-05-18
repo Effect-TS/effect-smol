@@ -44,7 +44,7 @@ const TypeId = "~effect/workflow/Activity"
  * engine.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Activity<
   Success extends Schema.Top = Schema.Void,
@@ -101,7 +101,7 @@ export interface Activity<
  * name, annotations, and encoded execution.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -130,7 +130,7 @@ export interface AnyWithProps {
  * encode successes and failures for durable execution.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <
   R,
@@ -215,7 +215,7 @@ const retryOnInterrupt = (
  * each attempt.
  *
  * @category error handling
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const retry: {
   <E, O extends Types.NoExcessProperties<Omit<Effect.Retry.Options<E>, "schedule">, O>>(
@@ -239,7 +239,7 @@ export const retry: {
  * to `1`.
  *
  * @category Attempts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const CurrentAttempt = Context.Reference<number>(
   "effect/workflow/Activity/CurrentAttempt",
@@ -251,7 +251,7 @@ export const CurrentAttempt = Context.Reference<number>(
  * execution ID, the supplied name, and optionally the current attempt.
  *
  * @category Idempotency
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const idempotencyKey: (
   name: string,
@@ -276,7 +276,7 @@ export const idempotencyKey: (
  * first completed success or failure using unioned success and error schemas.
  *
  * @category Racing
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(
   name: string,

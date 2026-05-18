@@ -108,7 +108,7 @@ export interface Sink<out A, in In = unknown, out L = never, out E = never, out 
  * non-empty array of leftover input that was pulled but not consumed.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type End<A, L = never> = readonly [value: A, leftover?: NonEmptyReadonlyArray<L> | undefined]
 
@@ -221,7 +221,7 @@ const SinkProto = {
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isSink = (u: unknown): u is Sink<unknown, never, unknown, unknown, unknown> => hasProperty(u, TypeId)
 
@@ -444,7 +444,7 @@ export const fromEffectEnd = <A, E, R, L = never>(
  * If the effect fails, the sink fails with the same error.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fromEffect = <A, E, R>(
   effect: Effect.Effect<A, E, R>
@@ -723,7 +723,7 @@ export const fold = <S, In, E = never, R = never>(
  * with the current state.
  *
  * @category folding
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const foldArray = <S, In, E = never, R = never>(
   s: LazyArg<S>,
@@ -1106,7 +1106,7 @@ export const flatMap: {
  * the provided `initial` state while the specified `predicate` returns `true`.
  *
  * @category reducing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const reduceWhile = <S, In>(
   initial: LazyArg<S>,
@@ -1143,7 +1143,7 @@ export const reduceWhile = <S, In>(
  * returns `true`.
  *
  * @category reducing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const reduceWhileEffect = <S, In, E, R>(
   initial: LazyArg<S>,
@@ -1248,7 +1248,7 @@ export const reduceWhileArrayEffect = <S, In, E, R>(
  * the provided `initial` state.
  *
  * @category reducing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const reduce = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S): Sink<S, In> =>
   reduceArray(initial, (s, arr) => {
@@ -1263,7 +1263,7 @@ export const reduce = <S, In>(initial: LazyArg<S>, f: (s: S, input: In) => S): S
  * the specified `initial` state.
  *
  * @category reducing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const reduceArray = <S, In>(
   initial: LazyArg<S>,
@@ -1286,7 +1286,7 @@ export const reduceArray = <S, In>(
  * starting from the specified `initial` state.
  *
  * @category reducing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const reduceEffect = <S, In, E, R>(
   initial: LazyArg<S>,
@@ -1333,7 +1333,7 @@ export const find: {
  * Creates a sink containing the first matching value.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const findEffect = <In, E, R>(
   predicate: (input: In) => Effect.Effect<boolean, E, R>
@@ -1369,7 +1369,7 @@ export const count: Sink<number, unknown> = reduceArray(() => 0, (s, arr) => s +
  * Accumulates incoming elements into an array.
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const collect = <In>(): Sink<Array<In>, In> =>
   reduceArray(Arr.empty<In>, (s, arr) => {
@@ -1671,7 +1671,7 @@ export const forEachWhile = <In, E, R>(
  * upstream stream ends, and completes with `void`.
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const forEachWhileArray = <In, E, R>(
   f: (input: NonEmptyReadonlyArray<In>) => Effect.Effect<boolean, E, R>
@@ -1772,7 +1772,7 @@ export const timed: Sink<Duration.Duration, unknown> = map(withDuration(drain), 
  * service requirements.
  *
  * @category services
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const provideContext: {
   <Provided>(
@@ -1950,7 +1950,7 @@ export const onExit: {
  * itself fails.
  *
  * @category Finalization
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const ensuring: {
   <X, E2, R2>(

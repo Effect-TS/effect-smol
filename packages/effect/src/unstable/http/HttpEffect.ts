@@ -42,7 +42,7 @@ import { appendPreResponseHandlerUnsafe, requestPreResponseHandlers } from "./in
  * Runs an HTTP server effect, sends the produced response with the supplied handler, and converts failures into HTTP responses.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toHandled = <E, R, EH, RH>(
   self: Effect.Effect<HttpServerResponse, E, R>,
@@ -182,7 +182,7 @@ const scoped = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
  * Function run with the current request and response just before the response is sent, allowing the response to be replaced or failing with `HttpServerError`.
  *
  * @category Pre-response handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type PreResponseHandler = (
   request: HttpServerRequest,
@@ -193,7 +193,7 @@ export type PreResponseHandler = (
  * Registers an additional pre-response handler for the current HTTP server request.
  *
  * @category fiber refs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Effect<void, never, HttpServerRequest> =>
   HttpServerRequest.use((request) => {
@@ -213,7 +213,7 @@ export {
  * Runs an effect after registering a pre-response handler for the current HTTP server request.
  *
  * @category fiber refs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const withPreResponseHandler: {
   (handler: PreResponseHandler): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R | HttpServerRequest>
@@ -275,7 +275,7 @@ export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided
  * Converts an HTTP server effect into a Web `Request` handler using an empty base context.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toWebHandler: <E>(
   self: Effect.Effect<HttpServerResponse, E, HttpServerRequest | Scope.Scope>,
@@ -287,7 +287,7 @@ export const toWebHandler: <E>(
  * Builds a Web `Request` handler from a layer and handler factory, returning the handler with a `dispose` function for the layer scope.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toWebHandlerLayerWith = <
   E,
@@ -349,7 +349,7 @@ export const toWebHandlerLayerWith = <
  * Builds a Web `Request` handler for an HTTP server effect using a layer to provide its services, returning the handler with a `dispose` function.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
   self: Effect.Effect<HttpServerResponse, E, R>,
@@ -376,7 +376,7 @@ export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided
  * Adapts a Web `Request` handler into an HTTP server effect for the current `HttpServerRequest`.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fromWebHandler = (
   handler: (request: Request) => Promise<Response>

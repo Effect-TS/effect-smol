@@ -139,7 +139,7 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
  * ```
  *
  * @category changes
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream.fromPubSub(self.pubsub)
 
@@ -164,7 +164,7 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream
  * ```
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.value
 

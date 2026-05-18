@@ -39,7 +39,7 @@ const FragmentTypeId = "~effect/sql/Fragment"
  * interpolated into statements.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Fragment {
   readonly [FragmentTypeId]: typeof FragmentTypeId
@@ -63,7 +63,7 @@ export const fragment = (
  * Supported SQL dialect identifiers used by statement compilers.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Dialect = "sqlite" | "pg" | "mysql" | "mssql" | "clickhouse"
 
@@ -73,7 +73,7 @@ export type Dialect = "sqlite" | "pg" | "mysql" | "mssql" | "clickhouse"
  * execution, and compilation.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Statement<A> extends Fragment, Effect.Effect<ReadonlyArray<A>, SqlError> {
   readonly raw: Effect.Effect<unknown, SqlError>
@@ -92,7 +92,7 @@ export interface Statement<A> extends Fragment, Effect.Effect<ReadonlyArray<A>, 
  * current SQL constructor, fiber, and tracing span.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Transformer = (
   self: Statement<unknown>,
@@ -116,7 +116,7 @@ export const CurrentTransformer = Context.Reference<Transformer | undefined>("ef
  * Returns `true` when a value is a SQL `Fragment`.
  *
  * @category guard
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isFragment = (u: unknown): u is Fragment => hasProperty(u, FragmentTypeId)
 
@@ -124,7 +124,7 @@ export const isFragment = (u: unknown): u is Fragment => hasProperty(u, Fragment
  * Creates a type guard for custom SQL segments with the specified custom kind.
  *
  * @category guard
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isCustom = <A extends Custom<any, any, any, any>>(
   kind: A["kind"]
@@ -135,7 +135,7 @@ export const isCustom = <A extends Custom<any, any, any, any>>(
  * Union of low-level segment types that make up a SQL `Fragment`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Segment =
   | Literal
@@ -152,7 +152,7 @@ export type Segment =
  * compiled SQL, while optional `params` are appended as bind parameters.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Literal {
   readonly _tag: "Literal"
@@ -177,7 +177,7 @@ export const literal = (value: string, params?: ReadonlyArray<unknown> | undefin
  * SQL identifier segment whose value is escaped by the active dialect compiler.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Identifier {
   readonly _tag: "Identifier"
@@ -201,7 +201,7 @@ export const identifier = (value: string): Identifier => ({
  * placeholder and bind value.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Parameter {
   readonly _tag: "Parameter"
@@ -224,7 +224,7 @@ export const parameter = (value: unknown): Parameter => ({
  * placeholder lists for `IN` clauses.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface ArrayHelper {
   readonly _tag: "ArrayHelper"
@@ -247,7 +247,7 @@ export const arrayHelper = (value: ReadonlyArray<unknown | Fragment>): ArrayHelp
  * column/value clause, with optional returning output.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RecordInsertHelper {
   readonly _tag: "RecordInsertHelper"
@@ -287,7 +287,7 @@ export const recordInsertHelper = (
  * optional returning output.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RecordUpdateHelper {
   readonly _tag: "RecordUpdateHelper"
@@ -325,7 +325,7 @@ export const recordUpdateHelper = (
  * omitting selected columns and optionally returning output.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RecordUpdateHelperSingle {
   readonly _tag: "RecordUpdateHelperSingle"
@@ -363,7 +363,7 @@ export const recordUpdateHelperSingle = (
  * `onCustom` callback.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Custom<
   T extends string = string,
@@ -383,7 +383,7 @@ export interface Custom<
  * the active compiler.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const custom = <C extends Custom<any, any, any, any>>(
   kind: C["kind"]
@@ -399,7 +399,7 @@ export const custom = <C extends Custom<any, any, any, any>>(
  * `primitiveKind`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type PrimitiveKind =
   | "string"
@@ -415,7 +415,7 @@ export type PrimitiveKind =
  * Union of helper segment types accepted by the SQL statement constructor.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Helper =
   | ArrayHelper
@@ -432,7 +432,7 @@ export type Helper =
  * SQL text directly.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Constructor {
   <A extends object = Row>(
@@ -529,7 +529,7 @@ export interface Constructor {
  * compiler, tracing attributes, and optional row transformation function.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (
   acquirer: Acquirer,
@@ -652,7 +652,7 @@ export const statement = <A = Row>(
  * list.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export function join(lit: string, addParens = true, fallback = "") {
   const literalStatement = literal(lit)
@@ -691,7 +691,7 @@ export function join(lit: string, addParens = true, fallback = "") {
  * `1=1` when the list is empty.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const and: (clauses: ReadonlyArray<string | Fragment>) => Fragment = join(" AND ", true, "1=1")
 
@@ -700,7 +700,7 @@ export const and: (clauses: ReadonlyArray<string | Fragment>) => Fragment = join
  * `1=1` when the list is empty.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const or: (clauses: ReadonlyArray<string | Fragment>) => Fragment = join(" OR ", true, "1=1")
 
@@ -709,7 +709,7 @@ export const or: (clauses: ReadonlyArray<string | Fragment>) => Fragment = join(
  * prefix, and returns an empty fragment when no values are provided.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const csv: {
   (values: ReadonlyArray<string | Fragment>): Fragment
@@ -741,7 +741,7 @@ const emptyFragment = fragment([literal("")])
  * bind parameters, with a no-transform variant.
  *
  * @category compiler
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Compiler {
   readonly dialect: Dialect
@@ -792,7 +792,7 @@ export type CompilerOptions<C extends Custom<any, any, any, any> = any> = {
  * Creates a dialect-specific SQL `Compiler` from rendering callbacks.
  *
  * @category compiler
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeCompiler = <C extends Custom<any, any, any, any> = any>(
   options: CompilerOptions<C>
@@ -1052,7 +1052,7 @@ const CompilerProto = {
  * optionally transforming identifier names before escaping.
  *
  * @category compiler
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeCompilerSqlite = (transform?: ((_: string) => string) | undefined): Compiler =>
   makeCompiler({
@@ -1079,7 +1079,7 @@ export const makeCompilerSqlite = (transform?: ((_: string) => string) | undefin
  * parts.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export function defaultEscape(c: string) {
   const re = new RegExp(c, "g")
@@ -1095,7 +1095,7 @@ export function defaultEscape(c: string) {
  * as `null` and defaulting unrecognized objects to `string`.
  *
  * @category predicates
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const primitiveKind = (value: unknown): PrimitiveKind => {
   switch (typeof value) {
@@ -1129,7 +1129,7 @@ export const primitiveKind = (value: unknown): PrimitiveKind => {
  * the supplied function and optionally recurse into nested object arrays.
  *
  * @category transforming
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const defaultTransforms = (
   transformer: (str: string) => string,

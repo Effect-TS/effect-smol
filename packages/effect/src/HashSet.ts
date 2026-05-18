@@ -124,7 +124,7 @@ export declare namespace HashSet {
    * ```
    *
    * @category type-level
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export type Value<T> = T extends HashSet<infer V> ? V : never
 }
@@ -368,7 +368,7 @@ export const size: <V>(self: HashSet<V>) => number = internal.size
  * ```
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
 

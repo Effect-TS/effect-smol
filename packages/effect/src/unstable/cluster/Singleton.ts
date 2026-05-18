@@ -22,7 +22,7 @@ import { Sharding } from "./Sharding.ts"
  * specified name and optional shard group.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <E, R>(
   name: string,

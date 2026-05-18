@@ -520,7 +520,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  * @see {@link equals} — the underlying comparison function
  *
  * @category instances
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const asEquivalence: <A>() => Equivalence<A> = () => equals
 
@@ -563,7 +563,7 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  * @see {@link equals} — the comparison function affected by this opt-out
  *
  * @category utility
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(new Proxy(obj, {}))
 
@@ -604,7 +604,7 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  * @see {@link equals} — the comparison function affected by this opt-out
  *
  * @category utility
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const byReferenceUnsafe = <T extends object>(obj: T): T => {
   byReferenceInstances.add(obj)

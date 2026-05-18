@@ -38,7 +38,7 @@ const TypeId = "~effect/cluster/ShardId"
  * key behavior based on the `group:id` string form.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface ShardId extends Equal.Equal, Hash.Hash, PrimaryKey.PrimaryKey {
   readonly [TypeId]: typeof TypeId
@@ -59,7 +59,7 @@ export const isShardId = (u: unknown): u is ShardId => hasProperty(u, TypeId)
  * `make`.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ShardId = S.declare(isShardId, {
   toCodecJson: () =>
@@ -80,7 +80,7 @@ export const ShardId = S.declare(isShardId, {
  * id.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (group: string, id: number): ShardId => {
   const key = `${group}:${id}`

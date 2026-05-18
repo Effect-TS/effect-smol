@@ -89,7 +89,7 @@ import { withRun } from "./Utils.ts"
  * and allowing that client to be disconnected.
  *
  * @category server
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RpcServer<A extends Rpc.Any> {
   readonly write: (clientId: number, message: FromClient<A>) => Effect.Effect<void>
@@ -102,7 +102,7 @@ export interface RpcServer<A extends Rpc.Any> {
  * `onFromServer`.
  *
  * @category server
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -503,7 +503,7 @@ const applyMiddleware = <A, E, R>(
  * request lifetime.
  *
  * @category server
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -782,7 +782,7 @@ export const make: <Rpcs extends Rpc.Any>(
  * current server `Protocol`.
  *
  * @category server
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = <Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -843,7 +843,7 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
  * declaring transport capabilities.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Protocol extends Context.Service<
   Protocol,
@@ -878,7 +878,7 @@ export class Protocol extends Context.Service<
  * socket connections and routing decoded RPC messages.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolSocketServer = Effect.gen(function*() {
   const server = yield* SocketServer.SocketServer
@@ -893,7 +893,7 @@ export const makeProtocolSocketServer = Effect.gen(function*() {
  * A rpc protocol that uses `SocketServer` for communication.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolSocketServer: Layer.Layer<
   Protocol,
@@ -941,7 +941,7 @@ export const makeProtocolWithHttpEffectWebsocket: Effect.Effect<
  * GET route on the current `HttpRouter`.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolWebsocket: (options: {
   readonly path: HttpRouter.PathInput
@@ -960,7 +960,7 @@ export const makeProtocolWebsocket: (options: {
  * A rpc protocol that uses websockets for communication.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolWebsocket = (options: {
   readonly path: HttpRouter.PathInput
@@ -1145,7 +1145,7 @@ const mergeUint8Arrays = (arrays: ReadonlyArray<Uint8Array>) => {
  * route on the current `HttpRouter`.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolHttp: (options: {
   readonly path: HttpRouter.PathInput
@@ -1165,7 +1165,7 @@ export const makeProtocolHttp: (options: {
  * communication.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolHttp = (options: {
   readonly path: HttpRouter.PathInput
@@ -1260,7 +1260,7 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
  * writes encoded responses to `Stdio.stdout`.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolStdio = Effect.gen(function*() {
   const stdio = yield* Stdio
@@ -1321,7 +1321,7 @@ export const makeProtocolStdio = Effect.gen(function*() {
  * writes encoded responses to `Stdio.stdout`.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolStdio: Layer.Layer<
   Protocol,
@@ -1334,7 +1334,7 @@ export const layerProtocolStdio: Layer.Layer<
  * messages to the RPC server and server responses back to workers.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolWorkerRunner: Effect.Effect<
   Protocol["Service"],
@@ -1392,7 +1392,7 @@ export const makeProtocolWorkerRunner: Effect.Effect<
  * Provides a server `Protocol` backed by the current `WorkerRunnerPlatform`.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolWorkerRunner: Layer.Layer<
   Protocol,

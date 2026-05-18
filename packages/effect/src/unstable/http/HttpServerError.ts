@@ -44,7 +44,7 @@ const TypeId = "~effect/http/HttpServerError"
  * protocol.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class HttpServerError extends Data.TaggedError("HttpServerError")<{
   readonly reason: HttpServerErrorReason
@@ -125,7 +125,7 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
  * ignored by the error reporter.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
   readonly request: Request.HttpServerRequest
@@ -193,7 +193,7 @@ export const isHttpServerError = (u: unknown): u is HttpServerError => hasProper
  * a response it produces an empty `500` response.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class ResponseError extends Data.TaggedError("ResponseError")<{
   readonly request: Request.HttpServerRequest
@@ -219,7 +219,7 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
  * Union of errors that are tied directly to an incoming server request.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type RequestError = RequestParseError | RouteNotFound | InternalError
 
@@ -237,7 +237,7 @@ export type HttpServerErrorReason = RequestError | ResponseError
  * Error wrapping a low-level failure from the HTTP server implementation.
  *
  * @category error
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class ServeError extends Data.TaggedError("ServeError")<{
   readonly cause: unknown
@@ -277,7 +277,7 @@ const formatRequestMessage = (reason: string, description: string | undefined, i
  * produce either `499` for client aborts or `503` for server aborts.
  *
  * @category error handling
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const causeResponse = <E>(
   cause: Cause.Cause<E>
@@ -332,7 +332,7 @@ export const causeResponse = <E>(
  * defaults to `500`.
  *
  * @category error handling
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const causeResponseStripped = <E>(
   cause: Cause.Cause<E>
@@ -361,7 +361,7 @@ const serverAbortError = Effect.succeed(Response.empty({ status: 503 }))
  * from the failure cause.
  *
  * @category error handling
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const exitResponse = <E>(exit: Exit.Exit<Response.HttpServerResponse, E>): Response.HttpServerResponse => {
   if (exit._tag === "Success") {

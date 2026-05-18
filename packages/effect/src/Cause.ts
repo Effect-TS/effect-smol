@@ -94,7 +94,7 @@ import type * as Types from "./Types.ts"
  * Unique brand for `Cause` values, used for runtime type checks via {@link isCause}.
  *
  * @category symbols
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const TypeId: "~effect/Cause" = core.CauseTypeId
 
@@ -102,7 +102,7 @@ export const TypeId: "~effect/Cause" = core.CauseTypeId
  * Unique brand for `Reason` values, used for runtime type checks via {@link isReason}.
  *
  * @category symbols
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
 
@@ -173,7 +173,7 @@ export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isReason: (self: unknown) => self is Reason<unknown> = core.isCauseReason
 
@@ -327,7 +327,7 @@ export declare namespace Cause {
 /**
  * Companion namespace for the {@link Reason} type.
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 export declare namespace Reason {
   /**
@@ -459,7 +459,7 @@ export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
  * @see {@link combine} — merge two existing causes
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromReasons: <E>(
   reasons: ReadonlyArray<Reason<E>>
@@ -630,7 +630,7 @@ export const makeInterruptReason: (fiberId?: number | undefined) => Interrupt = 
  * @see {@link hasInterrupts} — `true` if the cause contains *any* interrupts
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const hasInterruptsOnly: <E>(self: Cause<E>) => boolean = effect.hasInterruptsOnly
 
@@ -655,7 +655,7 @@ export const hasInterruptsOnly: <E>(self: Cause<E>) => boolean = effect.hasInter
  * ```
  *
  * @category mapping
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const map: {
   <E, E2>(f: (error: Types.NoInfer<E>) => E2): (self: Cause<E>) => Cause<E2>
@@ -737,7 +737,7 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
  * @see {@link hasInterrupts} — check for interruptions
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
 
@@ -838,7 +838,7 @@ export const findErrorOption: <E>(input: Cause<E>) => Option<E> = effect.findErr
  * @see {@link hasInterrupts} — check for interruptions
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
 
@@ -912,7 +912,7 @@ export const findDefect: <E>(self: Cause<E>) => Result.Result<unknown, Cause<E>>
  * @see {@link hasDies} — check for defects
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupts
 
@@ -963,7 +963,7 @@ export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Caus
  * @see {@link filterInterruptors} — `Filter`-based variant
  *
  * @category accessors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.causeInterruptors
 
@@ -1026,7 +1026,7 @@ export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number
  * @see {@link squash} — lossy collapse to a single thrown value
  *
  * @category rendering
- * @since 4.0.0
+ * @since 3.2.0
  */
 export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
 
@@ -1063,7 +1063,7 @@ export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePre
  * @see {@link prettyErrors} — get the individual `Error` instances
  *
  * @category rendering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
 

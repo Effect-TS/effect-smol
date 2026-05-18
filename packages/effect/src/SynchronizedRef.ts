@@ -84,7 +84,7 @@ export const make = <A>(value: A): Effect.Effect<SynchronizedRef<A>> => Effect.s
  * ref's semaphore.
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe = <A>(self: SynchronizedRef<A>): A => self.backing.ref.current
 

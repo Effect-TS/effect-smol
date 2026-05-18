@@ -277,7 +277,7 @@ export declare namespace Schedule {
    * normally do not construct or inspect it directly.
    *
    * @category models
-   * @since 2.0.0
+   * @since 4.0.0
    */
   export interface VarianceStruct<out Output, in Input, out Error, out Env> {
     readonly _Out: Covariant<Output>
@@ -734,7 +734,7 @@ export const andThen: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const andThenResult: {
   <Output2, Input2, Error2, Env2>(
@@ -863,7 +863,7 @@ export const andThenResult: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const both: {
   <Output2, Input2, Error2, Env2, Output>(
@@ -911,7 +911,7 @@ export const both: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const bothLeft: {
   <Output2, Input2, Error2, Env2>(
@@ -960,7 +960,7 @@ export const bothLeft: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const bothRight: {
   <Output2, Input2, Error2, Env2>(
@@ -1014,7 +1014,7 @@ export const bothRight: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const bothWith: {
   <Output2, Input2, Error2, Env2, Output, Output3>(
@@ -1088,7 +1088,7 @@ export const bothWith: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const collectInputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -1124,7 +1124,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const collectOutputs = <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>
@@ -1367,7 +1367,7 @@ export const collectWhile: {
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const cron: {
   (expression: Cron.Cron): Schedule<Duration.Duration, unknown, Cron.CronParseError>
@@ -1708,7 +1708,7 @@ export const either: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const eitherLeft: {
   <Output2, Input2, Error2, Env2>(
@@ -1758,7 +1758,7 @@ export const eitherLeft: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const eitherRight: {
   <Output2, Input2, Error2, Env2>(
@@ -2934,7 +2934,7 @@ export const tapOutput: {
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const take: {
   (n: number): <Output, Input, Error, Env>(
@@ -3229,7 +3229,7 @@ export {
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesInputType = <T>() =>
 <Input extends T, Output = never, Error = never, Env = never>(
@@ -3241,7 +3241,7 @@ export const satisfiesInputType = <T>() =>
  * altering the schedule's behavior.
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setInputType =
   <T>() => <Output, Error, Env>(self: Schedule<Output, T, Error, Env>): Schedule<Output, T, Error, Env> => self
@@ -3265,7 +3265,7 @@ export const setInputType =
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesOutputType = <T>() =>
 <Output extends T, Error = never, Input = unknown, Env = never>(
@@ -3297,7 +3297,7 @@ export const satisfiesOutputType = <T>() =>
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesErrorType = <T>() =>
 <Error extends T, Output = never, Input = unknown, Env = never>(
@@ -3333,7 +3333,7 @@ export const satisfiesErrorType = <T>() =>
  * ```
  *
  * @category ensuring types
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const satisfiesServicesType = <T>() =>
 <Env extends T, Output = never, Input = unknown, Error = never>(

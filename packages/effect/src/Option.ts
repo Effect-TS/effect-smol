@@ -573,7 +573,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  * @see {@link getFailure} for the opposite operation.
  *
  * @category converting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
 
@@ -604,7 +604,7 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  * @see {@link getSuccess} for the opposite operation.
  *
  * @category converting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFailure
 
@@ -756,7 +756,7 @@ export const orElseSome: {
  * @see {@link orElse} for the simpler variant without source tracking
  *
  * @category error handling
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const orElseResult: {
   <B>(that: LazyArg<Option<B>>): <A>(self: Option<A>) => Option<Result<B, A>>
@@ -843,7 +843,7 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  * @see {@link liftNullishOr} to lift a nullable-returning function
  *
  * @category converting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromNullishOr = <A>(
   a: A
@@ -961,7 +961,7 @@ export const fromNullOr = <A>(
  * @see {@link liftThrowable} for functions that throw instead
  *
  * @category converting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const liftNullishOr = <A extends ReadonlyArray<unknown>, B>(
   f: (...a: A) => B
@@ -1431,7 +1431,7 @@ export const andThen: {
  * @see {@link fromNullishOr} for single-value conversion
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const flatMapNullishOr: {
   <A, B>(f: (a: A) => B): (self: Option<A>) => Option<NonNullable<B>>
@@ -2077,7 +2077,7 @@ export const filter: {
  * ```
  *
  * @category Equivalence
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Option<A>> =>
   Equivalence.make((x, y) => isNone(x) ? isNone(y) : isNone(y) ? false : isEquivalent(x.value, y.value))
@@ -2114,7 +2114,7 @@ export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Eq
  * ```
  *
  * @category Sorting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
   order.make((self, that) => isSome(self) ? (isSome(that) ? O(self.value, that.value) : 1) : -1)

@@ -41,7 +41,7 @@ import { BadArgument } from "./PlatformError.ts"
  * Runtime type identifier used to mark implementations of the `Path` service.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId = "~effect/platform/Path"
 
@@ -86,7 +86,7 @@ export const TypeId = "~effect/platform/Path"
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Path {
   readonly [TypeId]: typeof TypeId
@@ -134,7 +134,7 @@ export interface Path {
  * })
  * ```
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Path {
   /**
@@ -174,7 +174,7 @@ export declare namespace Path {
    * ```
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Parsed {
     readonly root: string
@@ -248,7 +248,7 @@ export declare namespace Path {
  * ```
  *
  * @category tag
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Path: Context.Service<Path, Path> = Context.Service("effect/Path")
 
@@ -851,6 +851,6 @@ const posixImpl = Path.of({
  * forward-slash path semantics.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<Path> = Layer.succeed(Path)(posixImpl)

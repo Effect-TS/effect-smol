@@ -38,7 +38,7 @@ import { type Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
  * Type identifier used to mark runtime cluster envelope values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId = "~effect/cluster/Envelope"
 
@@ -49,7 +49,7 @@ export const TypeId = "~effect/cluster/Envelope"
  * or an interrupt signal.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Envelope<R extends Rpc.Any> = Request<R> | AckChunk | Interrupt
 
@@ -57,21 +57,21 @@ export type Envelope<R extends Rpc.Any> = Request<R> | AckChunk | Interrupt
  * JSON-serializable form of a cluster envelope.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Encoded = PartialRequestEncoded | AckChunkEncoded | InterruptEncoded
 
 /**
  * Helper types associated with cluster envelopes.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Envelope {
   /**
    * Envelope type for any RPC protocol.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Any = Envelope<any>
 }
@@ -83,7 +83,7 @@ export declare namespace Envelope {
  * headers, and optional tracing context.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Request<in out Rpc extends Rpc.Any> {
   readonly [TypeId]: typeof TypeId
@@ -153,7 +153,7 @@ export interface PartialRequestEncoded {
  * The `replyId` identifies the chunk reply that has been received.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class AckChunk extends Schema.Class<AckChunk>("effect/cluster/Envelope/AckChunk")({
   _tag: Schema.tag("AckChunk"),
@@ -207,7 +207,7 @@ export interface AckChunkEncoded {
  * Envelope used to interrupt an in-flight entity request.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Interrupt extends Schema.Class<Interrupt>("effect/cluster/Envelope/Interrupt")({
   _tag: Schema.tag("Interrupt"),
@@ -303,14 +303,14 @@ export const PartialArray: Schema.mutable<
 /**
  * Helper types associated with request envelopes.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Request {
   /**
    * Request envelope type for any RPC protocol.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Any = Request<any>
 }
@@ -321,7 +321,7 @@ export declare namespace Request {
  * The check is based on the envelope type identifier.
  *
  * @category refinements
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isEnvelope = (u: unknown): u is Envelope<any> => Predicate.hasProperty(u, TypeId)
 
@@ -331,7 +331,7 @@ export const isEnvelope = (u: unknown): u is Envelope<any> => Predicate.hasPrope
  * Tracing fields are included only when a `traceId` is provided.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeRequest = <Rpc extends Rpc.Any>(
   options: {
@@ -366,7 +366,7 @@ export const makeRequest = <Rpc extends Rpc.Any>(
  * identifier.
  *
  * @category serialization / deserialization
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Envelope = Schema.declare(isEnvelope, {
   identifier: "Envelope"
@@ -376,7 +376,7 @@ export const Envelope = Schema.declare(isEnvelope, {
  * Schema declaration that recognizes runtime request envelopes.
  *
  * @category serialization / deserialization
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Request = Schema.declare(
   (u): u is Request.Any => isEnvelope(u) && u._tag === "Request",
@@ -403,7 +403,7 @@ export const RequestTransform: Transformation.Transformation<
  * primary key, or `null` when the envelope is not a keyed request.
  *
  * @category primary key
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const primaryKey = <R extends Rpc.Any>(envelope: Envelope<R>): string | null => {
   if (envelope._tag !== "Request" || !PrimaryKey.isPrimaryKey(envelope.payload)) {
@@ -421,7 +421,7 @@ export const primaryKey = <R extends Rpc.Any>(envelope: Envelope<R>): string | n
  * payload primary-key ID.
  *
  * @category primary key
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const primaryKeyByAddress = (options: {
   readonly address: EntityAddress

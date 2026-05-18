@@ -324,7 +324,7 @@ export const BigInt: Order<bigint> = make((self, that) => self < that ? -1 : 1)
  * - {@link combine} - Combine orders for multi-criteria comparison
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export function flip<A>(O: Order<A>): Order<A> {
   return make((self, that) => O(that, self))
@@ -748,7 +748,7 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  * - {@link isGreaterThan} - Strict greater than
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThan = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean
@@ -786,7 +786,7 @@ export const isLessThan = <A>(O: Order<A>): {
  * - {@link isLessThan} - Strict less than
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThan = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean
@@ -824,7 +824,7 @@ export const isGreaterThan = <A>(O: Order<A>): {
  * - {@link isGreaterThan} - Strict greater than
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean
@@ -862,7 +862,7 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
  * - {@link isLessThanOrEqualTo} - Less than or equal
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean

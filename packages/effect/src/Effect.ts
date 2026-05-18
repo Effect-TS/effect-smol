@@ -137,7 +137,7 @@ import { internalCall } from "./Utils.ts"
  * Type-level identifier for `Effect` values.
  *
  * @category Type identifiers
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~effect/Effect"
 
@@ -145,7 +145,7 @@ export type TypeId = "~effect/Effect"
  * Runtime identifier used to recognize `Effect` values.
  *
  * @category Type identifiers
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = core.EffectTypeId
 
@@ -231,7 +231,7 @@ export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
  * Extracts the required services type from an `Effect`.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
   : never
@@ -257,7 +257,7 @@ export const isEffect: (u: unknown) => u is Effect<any, any, any> = core.isEffec
  * Iterator interface for Effect generators, enabling Effect values to work with generator functions.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface EffectIterator<T extends Effect<any, any, any>> {
   next(
@@ -565,7 +565,7 @@ export const all: <
  * ```
  *
  * @category Collecting
- * @since 3.0.0
+ * @since 2.0.0
  */
 export const partition: {
   <A, B, E, R>(
@@ -613,7 +613,7 @@ export const partition: {
  * ```
  *
  * @category Error Accumulation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const validate: {
   <A, B, E, R>(
@@ -1194,7 +1194,7 @@ export {
  * ```
  *
  * @category Creating Effects
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const callback: <A, E = never, R = never>(
   register: (
@@ -1247,7 +1247,7 @@ export const never: Effect<never> = internal.never
  * ```
  *
  * @category Do notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Do: Effect<{}> = internal.Do
 
@@ -1256,7 +1256,7 @@ export const Do: Effect<{}> = internal.Do
  * record used in do notation pipelines.
  *
  * @category Do notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bindTo: {
   <N extends string>(name: N): <A, E, R>(self: Effect<A, E, R>) => Effect<{ [K in N]: A }, E, R>
@@ -1291,7 +1291,7 @@ export {
  * Adds an `Effect` value to the do notation record under a given name.
  *
  * @category Do notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bind: {
   <N extends string, A extends Record<string, any>, B, E2, R2>(
@@ -1389,7 +1389,7 @@ export const gen: {
 /**
  * Type helpers for `Effect.gen` generator return signatures.
  *
- * @since 4.0.0
+ * @since 2.0.0
  */
 export namespace gen {
   /**
@@ -1662,7 +1662,7 @@ export const yieldNow: Effect<void> = internal.yieldNow
  * ```
  *
  * @category Creating Effects
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const yieldNowWith: (priority?: number) => Effect<void> = internal.yieldNowWith
 
@@ -1683,7 +1683,7 @@ export const yieldNowWith: (priority?: number) => Effect<void> = internal.yieldN
  * ```
  *
  * @category Creating Effects
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const withFiber: <A, E = never, R = never>(
   evaluate: (fiber: Fiber<unknown, unknown>) => Effect<A, E, R>
@@ -3188,7 +3188,7 @@ export const catchFilter: {
  * - `Effect.optionFromOptional`
  *
  * @category error handling
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const catchNoSuchElement: <A, E, R>(
   self: Effect<A, E, R>
@@ -3517,7 +3517,7 @@ export const tapErrorTag: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const tapCause: {
   <E, X, E2, R2>(
@@ -4319,7 +4319,7 @@ export const timeoutOption: {
  * ```
  *
  * @category Delays & Timeouts
- * @since 3.1.0
+ * @since 4.0.0
  */
 export const timeoutOrElse: {
   <A2, E2, R2>(options: {
@@ -4655,7 +4655,7 @@ export const filter: {
  * Filters and maps elements of an iterable with a `Filter`.
  *
  * @category filtering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const filterMap: {
   <A, B, X>(
@@ -5004,7 +5004,7 @@ export const match: {
  * @see {@link matchEffect} if you need to perform side effects in the handlers.
  *
  * @category Pattern Matching
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const matchEager: {
   <E, A2, A, A3>(options: {
@@ -5098,7 +5098,7 @@ export const matchCause: {
  * ```
  *
  * @category Pattern Matching
- * @since 3.8.0
+ * @since 4.0.0
  */
 export const matchCauseEager: {
   <E, A2, A, A3>(options: {
@@ -5552,7 +5552,7 @@ export const provide: {
  * ```
  *
  * @category Environment
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const provideContext: {
   <XR>(
@@ -6008,7 +6008,7 @@ export const scoped: <A, E, R>(
  * ```
  *
  * @category resource management
- * @since 2.0.0
+ * @since 3.11.0
  */
 export const scopedWith: <A, E, R>(
   f: (scope: Scope) => Effect<A, E, R>
@@ -6391,7 +6391,7 @@ export const onErrorFilter: {
  * finalizer fails. Prefer `onExit` for normal cleanup logic.
  *
  * @category resource management
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   self: Effect<A, E, R>,
@@ -8099,7 +8099,7 @@ export const forkScoped: <
  * ```
  *
  * @category Supervision & Fibers
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const forkDetach: <
   Arg extends Effect<any, any, any> | {
@@ -8166,7 +8166,7 @@ export const fiber: Effect<Fiber<unknown, unknown>> = internal.fiber
  * ```
  *
  * @category Supervision & Fibers
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fiberId: Effect<number> = internal.fiberId
 
@@ -8349,7 +8349,7 @@ export const runCallbackWith: <R>(
  * ```
  *
  * @category Running Effects
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const runCallback: <A, E>(
   effect: Effect<A, E, never>,
@@ -8742,7 +8742,7 @@ export const runSyncExitWith: <R>(
  *
  * Use these to describe generator-based signatures and traced or untraced variants.
  *
- * @since 3.12.0
+ * @since 3.11.0
  */
 export namespace fn {
   /**
@@ -10345,7 +10345,7 @@ export namespace fn {
    * Type of the traced function builder used by `Effect.fn`.
    *
    * @category models
-   * @since 3.11.0
+   * @since 4.0.0
    */
   export type Traced = {
     <Eff extends Effect<any, any, any>, AEff, Args extends Array<any>>(
@@ -12834,7 +12834,7 @@ export const fnUntraced: fn.Untraced = internal.fnUntraced
  * ```
  *
  * @category Function
- * @since 3.12.0
+ * @since 3.11.0
  */
 export const fn: fn.Traced & {
   (name: string, options?: SpanOptionsNoTrace): fn.Traced
@@ -13142,7 +13142,7 @@ export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```
  *
  * @category logging
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const withLogger = dual<
   <Output>(
@@ -13251,7 +13251,7 @@ export const annotateLogs = dual<
  * ```
  *
  * @category logging
- * @since 4.0.0
+ * @since 3.1.0
  */
 export const annotateLogsScoped: {
   (key: string, value: unknown): Effect<void, never, Scope>

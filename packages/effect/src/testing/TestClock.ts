@@ -142,7 +142,7 @@ export interface TestClock extends Clock.Clock {
  * })
  * ```
  *
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace TestClock {
   /**
@@ -523,7 +523,7 @@ export const setTime = (timestamp: number): Effect.Effect<void> =>
  * ```
  *
  * @category utils
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const withLive = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   testClockWith((testClock) => testClock.withLive(effect))

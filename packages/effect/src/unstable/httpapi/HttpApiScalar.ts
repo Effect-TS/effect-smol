@@ -34,7 +34,7 @@ import * as OpenApi from "./OpenApi.ts"
  * Theme preset identifier accepted by the Scalar API reference UI.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ScalarThemeId =
   | "alternate"
@@ -56,7 +56,7 @@ export type ScalarThemeId =
  * @see https://github.com/scalar/scalar/blob/main/documentation/configuration.md
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ScalarConfig = {
   /** A string to use one of the color presets */
@@ -194,7 +194,7 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
  * configured path, defaulting to `/docs`.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
@@ -223,7 +223,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  * version loaded from the CDN.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,

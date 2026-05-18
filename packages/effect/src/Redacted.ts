@@ -227,7 +227,7 @@ export const value: <T>(self: Redacted<T>) => T = redacted.value
  * ```
  *
  * @category unsafe
- * @since 3.3.0
+ * @since 4.0.0
  */
 export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRegistry.delete(self)
 
@@ -253,7 +253,7 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRe
  * ```
  *
  * @category equivalence
- * @since 3.3.0
+ * @since 4.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Redacted<A>> =>
   Equivalence.make((x, y) => isEquivalent(value(x), value(y)))

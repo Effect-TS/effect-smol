@@ -595,7 +595,7 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
  * standard pipe implementation backed by `pipeArguments`.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.15.0
  */
 export const Prototype: Pipeable = {
   pipe() {
@@ -611,7 +611,7 @@ export const Prototype: Pipeable = {
  * Effect-style method chaining through `.pipe(...)`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.15.0
  */
 export const Class: new() => Pipeable = (function() {
   function PipeableBase() {}
@@ -623,7 +623,7 @@ export const Class: new() => Pipeable = (function() {
  * Constructor type for classes whose instances implement `Pipeable`.
  *
  * @category models
- * @since 4.0.0
+ * @since 3.15.0
  */
 export interface PipeableConstructor {
   new(...args: ReadonlyArray<any>): Pipeable

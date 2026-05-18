@@ -51,7 +51,7 @@ import type { EventLogRemote } from "./EventLogRemote.ts"
  * entries and destroy operation.
  *
  * @category tags
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class EventLog extends Context.Service<EventLog, {
   readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
@@ -71,7 +71,7 @@ export class EventLog extends Context.Service<EventLog, {
  * handlers, remote replicas, and reactivity invalidation keys.
  *
  * @category Registry
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Registry extends Context.Service<Registry, {
   readonly registerHandlerUnsafe: (options: {
@@ -179,7 +179,7 @@ export const layerRegistry = Layer.effect(
  * encryption service to derive signing and encryption keys.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Identity extends Context.Service<Identity, {
   readonly publicKey: string
@@ -190,7 +190,7 @@ export class Identity extends Context.Service<Identity, {
  * Type-level identifier used to brand `EventLogSchema` values.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 
@@ -198,7 +198,7 @@ export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
  * Runtime property key used to identify `EventLogSchema` values.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const SchemaTypeId: SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 
@@ -206,7 +206,7 @@ export const SchemaTypeId: SchemaTypeId = "~effect/eventlog/EventLog/Schema"
  * Returns `true` when a value carries the `EventLogSchema` marker.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isEventLogSchema = (u: unknown): u is EventLogSchema<EventGroup.Any> =>
   Predicate.hasProperty(u, SchemaTypeId)
@@ -215,7 +215,7 @@ export const isEventLogSchema = (u: unknown): u is EventLogSchema<EventGroup.Any
  * Schema describing the event groups that can be written through an `EventLog`.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface EventLogSchema<Groups extends EventGroup.Any> {
   readonly [SchemaTypeId]: SchemaTypeId
@@ -226,7 +226,7 @@ export interface EventLogSchema<Groups extends EventGroup.Any> {
  * Creates an `EventLogSchema` from one or more event groups.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
   ...groups: Groups
@@ -242,7 +242,7 @@ export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
  * Type-level identifier used to brand `Handlers` values.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
 
@@ -250,7 +250,7 @@ export type HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
  * Runtime property key used to identify `Handlers` values.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const HandlersTypeId: HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
 
@@ -262,7 +262,7 @@ export const HandlersTypeId: HandlersTypeId = "~effect/eventlog/EventLog/Handler
  * services.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Handlers<
   R,
@@ -299,7 +299,7 @@ export interface Handlers<
  * Namespace containing helper types for `Handlers` values and handler-producing
  * layers.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Handlers {
   /**
@@ -307,7 +307,7 @@ export declare namespace Handlers {
    * events.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Any {
     readonly [HandlersTypeId]: unknown
@@ -318,7 +318,7 @@ export declare namespace Handlers {
    * metadata, captured context, and handler function.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Item<R> = {
     readonly event: Event.AnyWithProps
@@ -341,7 +341,7 @@ export declare namespace Handlers {
    * compile-time error string.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type ValidateReturn<A> = A extends (
     | Handlers<
@@ -364,7 +364,7 @@ export declare namespace Handlers {
    * Extracts the error type from an effect that produces `Handlers`.
    *
    * @category handlers
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Error<A> = A extends Effect.Effect<
     Handlers<
@@ -518,7 +518,7 @@ const makeHandlers = (options: {
  * event in the group is handled.
  *
  * @category handlers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const group = <Events extends Event.Any, Return>(
   group: EventGroup.EventGroup<Events>,
@@ -553,7 +553,7 @@ export const group = <Events extends Event.Any, Return>(
  * passed to the compaction effect, which may write replacement entries.
  *
  * @category compaction
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const groupCompaction = <Events extends Event.Any, R>(
   group: EventGroup.EventGroup<Events>,
@@ -649,7 +649,7 @@ export const groupCompaction = <Events extends Event.Any, R>(
  * Pass a single key list for all events or a mapping from event tag to key list.
  *
  * @category reactivity
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const groupReactivity = <Events extends Event.Any>(
   group: EventGroup.EventGroup<Events>,
@@ -928,7 +928,7 @@ const make = Effect.gen(function*() {
  * `Identity`.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal | Identity> = Layer.effect(
   EventLog,
@@ -942,7 +942,7 @@ export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal
  * Combines event-group handler layers with the `EventLog` runtime for a schema.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer = <Groups extends EventGroup.Any, E, R>(
   _schema: EventLogSchema<Groups>,
@@ -964,7 +964,7 @@ export const layer = <Groups extends EventGroup.Any, E, R>(
  * event's success and error types.
  *
  * @category client
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeClient = <Groups extends EventGroup.Any>(
   schema: EventLogSchema<Groups>

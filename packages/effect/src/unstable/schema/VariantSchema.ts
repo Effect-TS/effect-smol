@@ -33,7 +33,7 @@ import * as Struct_ from "../../Struct.ts"
  * Runtime type identifier attached to variant schema structs.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId = "~effect/schema/VariantSchema"
 
@@ -44,7 +44,7 @@ const cacheSymbol = Symbol.for(`${TypeId}/cache`)
  * `Schema.Struct` schemas.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Struct<in out A extends Field.Fields> extends Pipeable {
   readonly [TypeId]: A
@@ -56,21 +56,21 @@ export interface Struct<in out A extends Field.Fields> extends Pipeable {
  * Returns `true` when a value is a variant schema struct.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isStruct = (u: unknown): u is Struct<any> => Predicate.hasProperty(u, TypeId)
 
 /**
  * Type-level helpers for variant schema structs.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Struct {
   /**
    * Minimal structural type for any variant schema struct.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Any = { readonly [TypeId]: any }
 
@@ -79,7 +79,7 @@ export declare namespace Struct {
    * variant field, a nested struct, or `undefined`.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Fields = {
     readonly [key: string]:
@@ -94,7 +94,7 @@ export declare namespace Struct {
    * from the configured variant set.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Validate<A, Variant extends string> = {
     readonly [K in keyof A]: A[K] extends { readonly [TypeId]: infer _ } ? Validate<A[K], Variant> :
@@ -109,7 +109,7 @@ const FieldTypeId = "~effect/schema/VariantSchema/Field"
  * Pipeable collection of variant-specific schemas for a single logical field.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Field<in out A extends Field.Config> extends Pipeable {
   readonly [FieldTypeId]: typeof FieldTypeId
@@ -120,21 +120,21 @@ export interface Field<in out A extends Field.Config> extends Pipeable {
  * Returns `true` when a value is a variant schema field.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isField = (u: unknown): u is Field<any> => Predicate.hasProperty(u, FieldTypeId)
 
 /**
  * Type-level helpers for variant schema fields.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Field {
   /**
    * Minimal structural type for any variant schema field.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Any = { readonly [FieldTypeId]: typeof FieldTypeId }
 
@@ -142,7 +142,7 @@ export declare namespace Field {
    * Map from variant name to the schema used for a field in that variant.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Config = {
     readonly [key: string]: Schema.Top | undefined
@@ -153,7 +153,7 @@ export declare namespace Field {
    * variant keys.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type ConfigWithKeys<K extends string> = {
     readonly [P in K]?: Schema.Top
@@ -164,7 +164,7 @@ export declare namespace Field {
    * `undefined`.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Fields = {
     readonly [key: string]:
@@ -180,7 +180,7 @@ export declare namespace Field {
  * field schemas and recursively extracting nested structs.
  *
  * @category extractors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ExtractFields<V extends string, Fields extends Struct.Fields, IsDefault = false> = {
   readonly [
@@ -199,7 +199,7 @@ export type ExtractFields<V extends string, Fields extends Struct.Fields, IsDefa
  * schema struct.
  *
  * @category extractors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Extract<V extends string, A extends Struct<any>, IsDefault = false> = [A] extends [
   Struct<infer Fields>
@@ -256,7 +256,7 @@ const extract: {
  * Returns the original field definitions stored on a variant schema struct.
  *
  * @category accessors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const fields = <A extends Struct<any>>(self: A): A[typeof TypeId] => self[TypeId]
 
@@ -265,7 +265,7 @@ export const fields = <A extends Struct<any>>(self: A): A[typeof TypeId] => self
  * variant schema with access to the original variant fields.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Class<
   Self,
@@ -315,7 +315,7 @@ type MissingSelfGeneric<Params extends string = ""> =
  * Union schema over the default schemas of a list of variant schema structs.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
   Schema.Union<
@@ -328,14 +328,14 @@ export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
 /**
  * Type-level helpers for unions of variant schema structs.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Union {
   /**
    * Computes a union schema for each variant from a list of variant schema structs.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Variants<Members extends ReadonlyArray<Struct<any>>, Variants extends string> = {
     readonly [Variant in Variants]: Schema.Union<
@@ -351,7 +351,7 @@ export declare namespace Union {
  * variant.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = <
   const Variants extends ReadonlyArray<string>,
@@ -528,7 +528,7 @@ export const make = <
  * Brands a value as an explicit override for an `Overrideable` schema default.
  *
  * @category overrideable
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Override = <A>(value: A): A & Brand<"Override"> => value as any
 
@@ -537,7 +537,7 @@ export const Override = <A>(value: A): A & Brand<"Override"> => value as any
  * explicitly branded with `Override`.
  *
  * @category overrideable
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault> extends
   Schema.Bottom<
@@ -564,7 +564,7 @@ export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDe
  * values to be marked with `Override`.
  *
  * @category overrideable
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDefault>(
   schema: S,

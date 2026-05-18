@@ -460,7 +460,7 @@ export const fromNullishOr: {
  * @see {@link fromNullishOr} to convert from nullable values
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fromOption: {
   <E>(onNone: () => E): <A>(self: Option<A>) => Result<A, E>
@@ -731,7 +731,7 @@ export const makeEquivalence = <A, E>(
  * @see {@link match} to fold into a single value
  *
  * @category mapping
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const mapBoth: {
   <E, E2, A, A2>(options: {
@@ -811,7 +811,7 @@ export const mapError: {
  * @see {@link flatMap} when `f` returns a `Result`
  *
  * @category mapping
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const map: {
   <A, A2>(f: (ok: A) => A2): <E>(self: Result<A, E>) => Result<A2, E>
@@ -851,7 +851,7 @@ export const map: {
  * @see {@link getOrElse} to unwrap only the success with a fallback
  *
  * @category Pattern Matching
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const match: {
   <E, B, A, C = B>(options: {
@@ -898,7 +898,7 @@ export const match: {
  * @see {@link fromNullishOr} for nullable-based construction
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.4.0
  */
 export const liftPredicate: {
   <A, B extends A, E>(refinement: Refinement<A, B>, orFailWith: (a: A) => E): (a: A) => Result<B, E>
@@ -999,7 +999,7 @@ export const filterOrFail: {
  * @see {@link getOrElse} to provide a fallback for failures
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: identity, onSuccess: identity })
 
@@ -1027,7 +1027,7 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: ide
  * @see {@link match} to map both branches
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const getOrElse: {
   <E, A2>(onFailure: (err: E) => A2): <A>(self: Result<A, E>) => A2 | A
@@ -1061,7 +1061,7 @@ export const getOrElse: {
  * @see {@link getOrElse} for a custom fallback
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(constNull)
 
@@ -1088,7 +1088,7 @@ export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(const
  * @see {@link getOrElse} for a custom fallback
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOrElse(constUndefined)
 
@@ -1121,7 +1121,7 @@ export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOr
  * @see {@link getOrElse} for a non-throwing alternative
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const getOrThrowWith: {
   <E>(onFailure: (err: E) => unknown): <A>(self: Result<A, E>) => A
@@ -1156,7 +1156,7 @@ export const getOrThrowWith: {
  * @see {@link getOrElse} for a non-throwing alternative
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identity)
 
@@ -1185,7 +1185,7 @@ export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identi
  * @see {@link mapError} to transform the error without recovering
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const orElse: {
   <E, A2, E2>(that: (err: E) => Result<A2, E2>): <A>(self: Result<A, E>) => Result<A | A2, E2>
@@ -1223,7 +1223,7 @@ export const orElse: {
  * @see {@link map} when `f` does not return a `Result`
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const flatMap: {
   <A, A2, E2>(f: (a: A) => Result<A2, E2>): <E>(self: Result<A, E>) => Result<A2, E | E2>
@@ -1272,7 +1272,7 @@ export const flatMap: {
  * @see {@link map} when you always return a plain value
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const andThen: {
   <A, A2, E2>(f: (a: A) => Result<A2, E2>): <E>(self: Result<A, E>) => Result<A2, E | E2>
@@ -1386,7 +1386,7 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
  * @see {@link mapError} to transform the error without swapping
  *
  * @category utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
   isFailure(self) ? succeed(self.failure) : fail(self.success)
@@ -1418,7 +1418,7 @@ export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
  * @see {@link all} to collect multiple independent Results
  *
  * @category Generators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
   const f = args.length === 1 ? args[0] : args[1].bind(args[0])
@@ -1465,7 +1465,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
  * @see {@link gen} for an alternative generator-based syntax
  *
  * @category Do Notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Do: Result<{}> = succeed({})
 
@@ -1496,7 +1496,7 @@ export const Do: Result<{}> = succeed({})
  * @see {@link bindTo} to wrap an initial Result into a named field
  *
  * @category Do Notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bind: {
   <N extends string, A extends object, B, L2>(
@@ -1532,7 +1532,7 @@ export const bind: {
  * @see {@link bind} to add more fields
  *
  * @category Do Notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bindTo: {
   <N extends string>(name: N): <R, L>(self: Result<R, L>) => Result<Record<N, R>, L>

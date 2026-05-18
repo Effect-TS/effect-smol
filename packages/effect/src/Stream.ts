@@ -210,7 +210,7 @@ export interface Variance<out A, out E, out R> {
  * `_A`, `_E`, and `_R` are covariant markers.
  *
  * @category models
- * @since 2.0.0
+ * @since 3.4.0
  */
 export interface VarianceStruct<out A, out E, out R> {
   readonly _A: Covariant<A>
@@ -275,7 +275,7 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  * ```
  *
  * @category Type-Level
- * @since 3.4.0
+ * @since 4.0.0
  */
 export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
   : never
@@ -302,7 +302,7 @@ export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infe
  * ```
  *
  * @category guards
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, TypeId)
 
@@ -337,7 +337,7 @@ export const DefaultChunkSize: number = Channel.DefaultChunkSize
  * - `StreamHaltStrategy.HaltStrategy`
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type HaltStrategy = Channel.HaltStrategy
 
@@ -551,7 +551,7 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   effect: Effect.Effect<A, E, R>,
@@ -809,7 +809,7 @@ export const toChannel = <A, E, R>(
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const callback = <A, E = never, R = never>(
   f: (queue: Queue.Queue<A, E | Cause.Done>) => Effect.Effect<unknown, E, R | Scope.Scope>,
@@ -837,7 +837,7 @@ export const callback = <A, E = never, R = never>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const empty: Stream<never> = fromChannel(Channel.empty)
 
@@ -1325,7 +1325,7 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E, Cause.Done>> =>
   fromChannel(Channel.fromQueueArray(queue))
@@ -1360,7 +1360,7 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const fromPubSub = <A>(pubsub: PubSub.PubSub<A>): Stream<A> => fromChannel(Channel.fromPubSubArray(pubsub))
 
@@ -1770,7 +1770,7 @@ export const iterate = <A>(value: A, next: (value: A) => A): Stream<A> =>
  * // Output: [ 1, 2, 3, 4, 5 ]
  * ```
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const range = (
   min: number,
@@ -1812,7 +1812,7 @@ export const range = (
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const never: Stream<never> = fromChannel(Channel.never)
 
@@ -1986,7 +1986,7 @@ export const mapBoth: {
  * ```
  *
  * @category mapping
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const mapArray: {
   <A, B>(
@@ -2819,7 +2819,7 @@ export const timeout: {
  * unchanged.
  *
  * @category Rate Limiting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const timeoutOrElse: {
   <B, E2, R2>(options: {
@@ -3040,7 +3040,7 @@ export const flattenIterable = <A, E, R>(self: Stream<Iterable<A>, E, R>): Strea
  * ```
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const flattenTake = <A, E, E2, R>(self: Stream<Take.Take<A, E>, E2, R>): Stream<A, E | E2, R> =>
   self.channel.pipe(
@@ -3239,7 +3239,7 @@ export const mergeEffect: {
  * ```
  *
  * @category Merging
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const mergeResult: {
   <A2, E2, R2>(
@@ -3552,7 +3552,7 @@ const zipArrays = <AL, AR, A>(
  * ```
  *
  * @category zipping
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const zipWithArray: {
   <AR, ER, RR, AL, A>(
@@ -3994,7 +3994,7 @@ export const zipWithPreviousAndNext = <A, E, R>(
  * ```
  *
  * @category zipping
- * @since 2.0.0
+ * @since 3.3.0
  */
 export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
   ...streams: T
@@ -4136,7 +4136,7 @@ export const zipLatestWith: {
  * winner is chosen, that stream's later failures are propagated.
  *
  * @category Racing
- * @since 3.7.0
+ * @since 3.5.0
  *
  * **Example** (Racing multiple streams)
  *
@@ -4270,7 +4270,7 @@ export const filter: {
  * Filters and maps stream elements in one pass using a `Filter`.
  *
  * @category filtering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const filterMap: {
   <A, B, X>(
@@ -4330,7 +4330,7 @@ export const filterEffect: {
  * Effectfully filters and maps elements in a single pass.
  *
  * @category filtering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const filterMapEffect: {
   <A, B, X, EX, RX>(
@@ -4545,7 +4545,7 @@ export const partitionEffect: {
  * `bufferSize` elements ahead of the slower one.
  *
  * @category filtering
- * @since 4.0.0
+ * @since 2.0.0
  *
  * **Example** (Partitioning a stream)
  *
@@ -4788,7 +4788,7 @@ export const buffer: {
  * ```
  *
  * @category Rate Limiting
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const bufferArray: {
   (
@@ -4991,7 +4991,7 @@ export {
  * ```
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const tapError: {
   <E, A2, E2, R2>(
@@ -5174,7 +5174,7 @@ export const catchFilter: {
  * ```
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const catchTag: {
   <
@@ -5279,7 +5279,7 @@ export const catchTag: {
  * ```
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const catchTags: {
   <
@@ -6464,7 +6464,7 @@ export const takeWhileFilter: {
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const takeWhileEffect: {
   <A, E2, R2>(
@@ -7149,7 +7149,7 @@ export const combine: {
  * ```
  *
  * @category sequencing
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const combineArray: {
   <A2, E2, R2, S, E, A, A3, E3, R3>(
@@ -7288,7 +7288,7 @@ export const mapAccum: {
  * ```
  *
  * @category mapping
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const mapAccumArray: {
   <S, A, B>(
@@ -7444,7 +7444,7 @@ export const mapAccumEffect: {
  * ```
  *
  * @category mapping
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const mapAccumArrayEffect: {
   <S, A, B, E2, R2>(
@@ -8704,7 +8704,7 @@ export const broadcast: {
  * ```
  *
  * @category Broadcast
- * @since 2.0.0
+ * @since 3.8.0
  */
 export const share: {
   (
@@ -8904,7 +8904,7 @@ export const pipeThrough: {
  * ```
  *
  * @category Accumulation
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const collect = <A, E, R>(self: Stream<A, E, R>): Stream<Array<A>, E, R> => fromEffect(runCollect(self))
 
@@ -9585,7 +9585,7 @@ export const onError: {
  * ```
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 3.6.0
  */
 export const onStart: {
   <X, EX, RX>(
@@ -9655,7 +9655,7 @@ export const onFirst: {
  * ```
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 3.6.0
  */
 export const onEnd: {
   <X, EX, RX>(
@@ -9693,7 +9693,7 @@ export const onEnd: {
  * ```
  *
  * @category Finalization
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const ensuring: {
   <R2>(finalizer: Effect.Effect<unknown, never, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R | R2>
@@ -9798,7 +9798,7 @@ export const provide: {
  * ```
  *
  * @category services
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const provideContext: {
   <R2>(context: Context.Context<R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, R2>>
@@ -9844,7 +9844,7 @@ export const provideContext: {
  * ```
  *
  * @category services
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const provideService: {
   <I, S>(
@@ -9901,7 +9901,7 @@ export const provideService: {
  * ```
  *
  * @category services
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const provideServiceEffect: {
   <I, S, ES, RS>(
@@ -9959,7 +9959,7 @@ export const provideServiceEffect: {
  * ```
  *
  * @category services
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const updateContext: {
   <R, R2>(
@@ -10046,7 +10046,7 @@ export const updateService: {
  * ```
  *
  * @category tracing
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const withSpan: {
   (name: string, options?: SpanOptions): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, ParentSpan>>
@@ -10086,7 +10086,7 @@ export const withSpan: {
  * ```
  *
  * @category Do Notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Do: Stream<{}> = succeed({})
 
@@ -10155,7 +10155,7 @@ export {
  * ```
  *
  * @category Do Notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bind: {
   <N extends string, A, B, E2, R2>(
@@ -10209,7 +10209,7 @@ export const bind: {
  * ```
  *
  * @category Do Notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bindEffect: {
   <N extends string, A, B, E2, R2>(
@@ -10260,7 +10260,7 @@ export const bindEffect: {
  * ```
  *
  * @category Do Notation
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bindTo: {
   <N extends string>(name: N): <A, E, R>(self: Stream<A, E, R>) => Stream<{ [K in N]: A }, E, R>
@@ -10652,7 +10652,7 @@ export const runForEachWhile: {
  * ```
  *
  * @category destructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const runForEachArray: {
   <A, X, E2, R2>(
@@ -10821,7 +10821,7 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
  * ```
  *
  * @category destructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const toReadableStreamWith = dual<
   <A, XR>(
@@ -10984,7 +10984,7 @@ export const toReadableStreamEffect: {
  * ```
  *
  * @category destructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const toAsyncIterableWith: {
   <XR>(context: Context.Context<XR>): <A, E, R extends XR>(self: Stream<A, E, R>) => AsyncIterable<A>
@@ -11059,7 +11059,7 @@ export const toAsyncIterableWith: {
  * ```
  *
  * @category destructors
- * @since 2.0.0
+ * @since 3.15.0
  */
 export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<AsyncIterable<A>, never, R> =>
   Effect.map(
@@ -11091,7 +11091,7 @@ export const toAsyncIterableEffect = <A, E, R>(self: Stream<A, E, R>): Effect.Ef
  * ```
  *
  * @category destructors
- * @since 2.0.0
+ * @since 3.15.0
  */
 export const toAsyncIterable = <A, E>(self: Stream<A, E>): AsyncIterable<A> =>
   toAsyncIterableWith(self, Context.empty())

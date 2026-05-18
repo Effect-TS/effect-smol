@@ -34,7 +34,7 @@ import type { MachineId } from "./MachineId.ts"
  * Runtime brand identifier for cluster snowflake ids.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId = "~effect/cluster/Snowflake"
 
@@ -42,7 +42,7 @@ export const TypeId = "~effect/cluster/Snowflake"
  * Type-level representation of the cluster snowflake brand identifier.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TypeId = typeof TypeId
 
@@ -51,7 +51,7 @@ export type TypeId = typeof TypeId
  * sequence number.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Snowflake = Brand.Branded<bigint, TypeId>
 
@@ -59,7 +59,7 @@ export type Snowflake = Brand.Branded<bigint, TypeId>
  * Constructs a branded `Snowflake` from a bigint or bigint-compatible string.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const Snowflake = (input: string | bigint): Snowflake =>
   typeof input === "string" ? BigInt(input) as Snowflake : input as Snowflake
@@ -67,7 +67,7 @@ export const Snowflake = (input: string | bigint): Snowflake =>
 /**
  * Namespace containing support types for snowflake parts and generators.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Snowflake {
   /**
@@ -75,7 +75,7 @@ export declare namespace Snowflake {
    * and sequence number.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Parts {
     readonly timestamp: number
@@ -88,7 +88,7 @@ export declare namespace Snowflake {
    * synchronous `nextUnsafe` operation and an effectful machine id setter.
    *
    * @category models
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export interface Generator {
     readonly nextUnsafe: () => Snowflake
@@ -100,7 +100,7 @@ export declare namespace Snowflake {
  * Schema type for snowflake ids represented as branded bigints.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface SnowflakeFromBigInt extends Schema.brand<Schema.BigInt, TypeId> {}
 
@@ -108,7 +108,7 @@ export interface SnowflakeFromBigInt extends Schema.brand<Schema.BigInt, TypeId>
  * Schema for snowflake ids represented as branded bigints.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(Schema.brand(TypeId))
 
@@ -116,7 +116,7 @@ export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(Schem
  * Schema type for snowflake ids decoded from strings into branded bigints.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt, Schema.String> {}
 
@@ -125,7 +125,7 @@ export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt
  * them back to strings.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(
   Schema.decodeTo(SnowflakeFromBigInt, Transformation.bigintFromString)
@@ -135,7 +135,7 @@ export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(
  * Custom snowflake epoch in Unix milliseconds, set to January 1, 2025 UTC.
  *
  * @category Epoch
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const constEpochMillis: number = Date.UTC(2025, 0, 1)
 
@@ -151,7 +151,7 @@ const constBigInt4096 = BigInt(4096)
  * fields.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make = (options: {
   readonly machineId: MachineId
@@ -166,7 +166,7 @@ export const make = (options: {
  * Extracts the Unix timestamp in milliseconds from a snowflake id.
  *
  * @category Parts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const timestamp = (snowflake: Snowflake): number => Number(snowflake >> constBigInt22) + sinceUnixEpoch
 
@@ -174,7 +174,7 @@ export const timestamp = (snowflake: Snowflake): number => Number(snowflake >> c
  * Extracts the timestamp from a snowflake id as a `DateTime.Utc`.
  *
  * @category Parts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const dateTime = (snowflake: Snowflake): DateTime.Utc => DateTime.makeUnsafe(timestamp(snowflake))
 
@@ -182,7 +182,7 @@ export const dateTime = (snowflake: Snowflake): DateTime.Utc => DateTime.makeUns
  * Extracts the machine id component from a snowflake id.
  *
  * @category Parts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const machineId = (snowflake: Snowflake): MachineId =>
   Number((snowflake >> constBigInt12) % constBigInt1024) as MachineId
@@ -191,7 +191,7 @@ export const machineId = (snowflake: Snowflake): MachineId =>
  * Extracts the per-machine sequence component from a snowflake id.
  *
  * @category Parts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const sequence = (snowflake: Snowflake): number => Number(snowflake % constBigInt4096)
 
@@ -199,7 +199,7 @@ export const sequence = (snowflake: Snowflake): number => Number(snowflake % con
  * Decomposes a snowflake id into its timestamp, machine id, and sequence parts.
  *
  * @category Parts
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toParts = (snowflake: Snowflake): Snowflake.Parts => ({
   timestamp: timestamp(snowflake),
@@ -215,7 +215,7 @@ export const toParts = (snowflake: Snowflake): Snowflake.Parts => ({
  * more than 4096 ids are requested in the same millisecond.
  *
  * @category Generator
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(function*() {
   let machineId = Math.floor(Math.random() * 1024) as MachineId
@@ -259,7 +259,7 @@ export const makeGenerator: Effect.Effect<Snowflake.Generator> = Effect.gen(func
  * Context service for a stateful snowflake id generator.
  *
  * @category Generator
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Generator extends Context.Service<
   Generator,
@@ -270,6 +270,6 @@ export class Generator extends Context.Service<
  * Layer that provides the default snowflake `Generator` service.
  *
  * @category Generator
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerGenerator: Layer.Layer<Generator> = Layer.effect(Generator)(makeGenerator)

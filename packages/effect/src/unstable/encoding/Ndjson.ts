@@ -36,7 +36,7 @@ const encoder = new TextEncoder()
  * unpacking, and `cause` preserves the original error.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class NdjsonError extends Data.TaggedError("NdjsonError")<{
   readonly kind: "Pack" | "Unpack"
@@ -255,7 +255,7 @@ export const decodeSchemaString = <S extends Schema.Top>(
  * parsed as NDJSON values.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const duplex: {
   (options?: {
@@ -335,7 +335,7 @@ export const duplex: {
  * as NDJSON values.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const duplexString: {
   (options?: {
@@ -416,7 +416,7 @@ export const duplexString: {
  * received from it are parsed as NDJSON and decoded with `outputSchema`.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const duplexSchema: {
   <In extends Schema.Top, Out extends Schema.Top>(
@@ -501,7 +501,7 @@ export const duplexSchema: {
  * received from it are parsed as NDJSON and decoded with `outputSchema`.
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const duplexSchemaString: {
   <In extends Schema.Top, Out extends Schema.Top>(

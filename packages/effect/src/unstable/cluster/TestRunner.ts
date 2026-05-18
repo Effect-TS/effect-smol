@@ -33,7 +33,7 @@ import * as ShardingConfig from "./ShardingConfig.ts"
  * by an in-memory driver.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   Sharding.Sharding | Runners.Runners | MessageStorage.MessageStorage | MessageStorage.MemoryDriver

@@ -40,7 +40,7 @@ import * as ShardId from "./ShardId.ts"
  * cluster.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RunnerStorage extends Context.Service<RunnerStorage, {
   /**
@@ -100,7 +100,7 @@ export class RunnerStorage extends Context.Service<RunnerStorage, {
  * addresses, runners, machine ids, and shard ids outside the in-memory model.
  *
  * @category Encoded
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Encoded {
   /**
@@ -161,7 +161,7 @@ export interface Encoded {
  * their string or numeric storage forms.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeEncoded = (encoded: Encoded) =>
   RunnerStorage.of({
@@ -212,7 +212,7 @@ export const makeEncoded = (encoded: Encoded) =>
  * process memory.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeMemory = Effect.gen(function*() {
   const runners = MutableHashMap.empty<RunnerAddress, Runner>()
@@ -245,7 +245,7 @@ export const makeMemory = Effect.gen(function*() {
  * Layer that provides the in-memory `RunnerStorage` implementation.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerMemory: Layer.Layer<RunnerStorage> = Layer.effect(RunnerStorage)(makeMemory)
 

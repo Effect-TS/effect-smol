@@ -26,7 +26,7 @@ import * as Event from "./Event.ts"
  * Unique type identifier used to mark event log event groups.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TypeId = "~effect/eventlog/EventGroup"
 
@@ -34,7 +34,7 @@ export type TypeId = "~effect/eventlog/EventGroup"
  * Runtime type identifier used to mark event log event groups.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/EventGroup"
 
@@ -42,7 +42,7 @@ export const TypeId: TypeId = "~effect/eventlog/EventGroup"
  * Returns `true` when a value is an event log event group.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -54,7 +54,7 @@ export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, T
  * with `EventLog.group`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface EventGroup<
   out Events extends Event.Any = Event.Any
@@ -88,7 +88,7 @@ export interface EventGroup<
  * Type-erased marker for an event log event group.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Any {
   readonly [TypeId]: TypeId
@@ -98,7 +98,7 @@ export interface Any {
  * Type-erased event group with its events record available structurally.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type AnyWithProps = EventGroup<Event.Any>
 
@@ -106,7 +106,7 @@ export type AnyWithProps = EventGroup<Event.Any>
  * Derives the handler service markers required for all events in an event group.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService<_Events>
   : never
@@ -115,7 +115,7 @@ export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService
  * Extracts the union of event definitions contained in an event group.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Events<Group> = Group extends EventGroup<infer _Events> ? _Events
   : never
@@ -190,6 +190,6 @@ const makeProto = <
  * Call `.add(...)` to add event definitions and build a typed `EventGroup`.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const empty: EventGroup<never> = makeProto({ events: Record.empty() })

@@ -50,7 +50,7 @@ const constVoid = constant(Effect.void)
  * stream, and envelope requests to `Sharding` and `MessageStorage`.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
   const sharding = yield* Sharding.Sharding
@@ -162,7 +162,7 @@ const constWaitUntilRead = { waitUntilRead: true } as const
  * It also responds to `Ping` requests.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   never,
@@ -177,7 +177,7 @@ export const layer: Layer.Layer<
  * A `RunnerServer` layer that includes the `Runners` & `Sharding` clients.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerWithClients: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -201,7 +201,7 @@ export const layerWithClients: Layer.Layer<
  * application.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,

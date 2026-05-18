@@ -296,7 +296,7 @@ export type Path = ReadonlyArray<string | number>
  * @see {@link orElse} – compose providers with fallback
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface ConfigProvider extends Pipeable {
   /**
@@ -353,7 +353,7 @@ export interface ConfigProvider extends Pipeable {
  * @see {@link layerAdd} – add a fallback provider as a Layer
  *
  * @category services
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const ConfigProvider: Context.Reference<ConfigProvider> = Context.Reference<ConfigProvider>(
   "effect/ConfigProvider",
@@ -407,7 +407,7 @@ const Proto = {
  * @see {@link fromUnknown} – pre-built provider for JSON objects
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export function make(
   get: (path: Path) => Effect.Effect<Node | undefined, SourceError>,
@@ -455,7 +455,7 @@ export function make(
  * @see {@link layerAdd} – install a fallback provider via a Layer
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const orElse: {
   (that: ConfigProvider): (self: ConfigProvider) => ConfigProvider
@@ -537,7 +537,7 @@ export const mapInput: {
  * @see {@link mapInput} – for arbitrary path transformations
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((path) =>
   path.map((seg) => typeof seg === "number" ? seg : Str.constantCase(seg))
@@ -573,7 +573,7 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
  * @see {@link mapInput} – for arbitrary path transformations
  *
  * @category combinators
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const nested: {
   (prefix: string | Path): (self: ConfigProvider) => ConfigProvider
@@ -799,7 +799,7 @@ function describeUnknown(u: unknown): Node | undefined {
  * @see {@link constantCase} – bridge camelCase keys to SCREAMING_SNAKE_CASE
  *
  * @category ConfigProviders
- * @since 4.0.0
+ * @since 2.0.0
  */
 export function fromEnv(options?: { readonly env?: Record<string, string> | undefined }): ConfigProvider {
   const env = options?.env ?? {

@@ -94,7 +94,7 @@ export type Unit =
  * `"Infinity"`, and `"-Infinity"`.
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export type Input =
   | Duration
@@ -155,7 +155,7 @@ const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|m
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const fromInputUnsafe = (input: Input): Duration => {
   switch (typeof input) {
@@ -844,7 +844,7 @@ export const toWeeks = (self: Input): number =>
  * ```
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const toNanosUnsafe = (input: Input): bigint => {
   const self = fromInputUnsafe(input)
@@ -876,7 +876,7 @@ export const toNanosUnsafe = (input: Input): bigint => {
  * ```
  *
  * @category getters
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const toNanos: (self: Input) => Option.Option<bigint> = Option.liftThrowable(toNanosUnsafe)
 
@@ -1003,7 +1003,7 @@ export const match: {
  * ```
  *
  * @category pattern matching
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const matchPair: {
   <A, B, C>(
@@ -1211,7 +1211,7 @@ export const clamp: {
  * ```
  *
  * @category math
- * @since 4.0.0
+ * @since 2.4.19
  */
 export const divide: {
   (by: number): (self: Duration) => Option.Option<Duration>
@@ -1259,7 +1259,7 @@ export const divide: {
  * ```
  *
  * @category math
- * @since 2.4.19
+ * @since 4.0.0
  */
 export const divideUnsafe: {
   (by: number): (self: Duration) => Duration
@@ -1425,7 +1425,7 @@ export const sum: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThan: {
   (that: Duration): (self: Duration) => boolean
@@ -1448,7 +1448,7 @@ export const isLessThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: Duration): (self: Duration) => boolean
@@ -1468,7 +1468,7 @@ export const isLessThanOrEqualTo: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThan: {
   (that: Duration): (self: Duration) => boolean
@@ -1491,7 +1491,7 @@ export const isGreaterThan: {
  * ```
  *
  * @category predicates
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: Duration): (self: Duration) => boolean

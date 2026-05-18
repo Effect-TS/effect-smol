@@ -77,7 +77,7 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
  * Type guard to check if a value is a Queue.
  *
  * @category guards
- * @since 3.8.0
+ * @since 2.0.0
  */
 export const isQueue = <A = unknown, E = unknown>(
   u: unknown
@@ -87,7 +87,7 @@ export const isQueue = <A = unknown, E = unknown>(
  * Type guard to check if a value is an Enqueue.
  *
  * @category guards
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isEnqueue = <A = unknown, E = unknown>(
   u: unknown
@@ -97,7 +97,7 @@ export const isEnqueue = <A = unknown, E = unknown>(
  * Type guard to check if a value is a Dequeue.
  *
  * @category guards
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isDequeue = <A = unknown, E = unknown>(
   u: unknown
@@ -144,7 +144,7 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface Enqueue<in A, in E = never> extends Inspectable {
   readonly [EnqueueTypeId]: Enqueue.Variance<A, E>
@@ -160,7 +160,7 @@ export interface Enqueue<in A, in E = never> extends Inspectable {
  * Companion namespace containing type-level metadata for the `Enqueue`
  * write-only queue interface.
  *
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace Enqueue {
   /**
@@ -206,7 +206,7 @@ export declare namespace Enqueue {
  * ```
  *
  * @category models
- * @since 3.8.0
+ * @since 2.0.0
  */
 export interface Dequeue<out A, out E = never> extends Inspectable {
   readonly [DequeueTypeId]: Dequeue.Variance<A, E>
@@ -222,7 +222,7 @@ export interface Dequeue<out A, out E = never> extends Inspectable {
  * Companion namespace containing type-level metadata for the `Dequeue`
  * read-only queue interface.
  *
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace Dequeue {
   /**
@@ -232,7 +232,7 @@ export declare namespace Dequeue {
    * `E`, because values and failures are observed through this handle.
    *
    * @category models
-   * @since 3.8.0
+   * @since 4.0.0
    */
   export interface Variance<A, E> {
     _A: Types.Covariant<A>
@@ -274,7 +274,7 @@ export declare namespace Dequeue {
  * ```
  *
  * @category models
- * @since 3.8.0
+ * @since 2.0.0
  */
 export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeue<A, E> {
   readonly [TypeId]: Queue.Variance<A, E>
@@ -284,7 +284,7 @@ export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeu
  * Companion namespace containing type-level metadata and low-level state types
  * for `Queue`.
  *
- * @since 3.8.0
+ * @since 2.0.0
  */
 export declare namespace Queue {
   /**
@@ -294,7 +294,7 @@ export declare namespace Queue {
    * both produce and consume values and failures.
    *
    * @category models
-   * @since 3.8.0
+   * @since 4.0.0
    */
   export interface Variance<A, E> {
     _A: Types.Invariant<A>
@@ -388,7 +388,7 @@ const QueueProto = {
  * - `Mailbox.make`
  *
  * @category constructors
- * @since 3.8.0
+ * @since 2.0.0
  * **Example** (Creating queues)
  *
  * ```ts
@@ -598,7 +598,7 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
  * ```
  *
  * @category Offering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Effect<boolean> =>
   internalEffect.suspend(() => {
@@ -698,7 +698,7 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
  * ```
  *
  * @category Offering
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effect<Array<A>> =>
   internalEffect.suspend(() => {
@@ -1033,7 +1033,7 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * ```
  *
  * @category Completion
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   internalEffect.sync(() => {
@@ -1132,7 +1132,7 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeD
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>, E> =>
   takeBetween(self, 1, Number.POSITIVE_INFINITY) as any
@@ -1218,7 +1218,7 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeN = <A, E>(
   self: Dequeue<A, E>,
@@ -1260,7 +1260,7 @@ export const takeN = <A, E>(
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const takeBetween = <A, E>(
   self: Dequeue<A, E>,
@@ -1308,7 +1308,7 @@ export const takeBetween = <A, E>(
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
   internalEffect.suspend(
@@ -1346,7 +1346,7 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  * ```
  *
  * @category Taking
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
   internalEffect.suspend(() => {
@@ -1513,7 +1513,7 @@ export {
  * ```
  *
  * @category Size
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => sizeUnsafe(self))
 
@@ -1538,7 +1538,7 @@ export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffec
  * ```
  *
  * @category Size
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => isFullUnsafe(self))
 
@@ -1642,7 +1642,7 @@ export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(s
  * ```
  *
  * @category Completion
- * @since 3.8.0
+ * @since 4.0.0
  */
 export const into: {
   <A, E>(

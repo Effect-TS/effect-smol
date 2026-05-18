@@ -72,7 +72,7 @@ import { withRunClient } from "./Utils.ts"
  * method per RPC tag.
  *
  * @category client
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type RpcClient<Rpcs extends Rpc.Any, E = never> = Struct.Simplify<RpcClient.From<Rpcs, E>>
 
@@ -80,7 +80,7 @@ export type RpcClient<Rpcs extends Rpc.Any, E = never> = Struct.Simplify<RpcClie
  * Type-level helpers for deriving RPC client call signatures from RPC
  * definitions.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace RpcClient {
   /**
@@ -89,7 +89,7 @@ export declare namespace RpcClient {
    * `Stream` based on the RPC success schema.
    *
    * @category client
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type From<Rpcs extends Rpc.Any, E = never> = {
     readonly [Current in Rpcs as Current["_tag"]]: <
@@ -154,7 +154,7 @@ export declare namespace RpcClient {
    * returning the corresponding `Effect` or `Stream` for that RPC.
    *
    * @category client
-   * @since 4.0.0
+   * @since 1.0.0
    */
   export type Flat<Rpcs extends Rpc.Any, E = never> = <
     const Tag extends Rpcs["_tag"],
@@ -217,7 +217,7 @@ export declare namespace RpcClient {
  * `RpcGroup`.
  *
  * @category client
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type FromGroup<Group, E = never> = RpcClient<RpcGroup.Rpcs<Group>, E>
 
@@ -229,7 +229,7 @@ let requestIdCounter = BigInt(0)
  * back to the client.
  *
  * @category client
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extends boolean = false>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -639,7 +639,7 @@ let clientIdCounter = 0
  * `Protocol`, encoding requests and decoding server responses.
  *
  * @category client
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>(
   group: RpcGroup.RpcGroup<Rpcs>,
@@ -830,7 +830,7 @@ export const CurrentHeaders = Context.Reference<Headers.Headers>("effect/rpc/Rpc
  * current `CurrentHeaders` value for outgoing requests.
  *
  * @category headers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const withHeaders: {
   (headers: Headers.Input): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -846,7 +846,7 @@ export const withHeaders: {
  * receive loop and sending encoded client messages.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class Protocol extends Context.Service<Protocol, {
   readonly run: (
@@ -874,7 +874,7 @@ export class Protocol extends Context.Service<Protocol, {
  * `HttpClient` and decodes responses with the current `RpcSerialization`.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
   Protocol["Service"],
@@ -965,7 +965,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
  * URL and optionally transforming the client before use.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolHttp = (options: {
   readonly url: string
@@ -987,7 +987,7 @@ export const layerProtocolHttp = (options: {
  * policy.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolSocket = (options?: {
   readonly retryTransientErrors?: boolean | undefined
@@ -1154,7 +1154,7 @@ const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect
  * `RpcSerialization` services.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolSocket = (options?: {
   readonly retryTransientErrors?: boolean | undefined
@@ -1169,7 +1169,7 @@ export const layerProtocolSocket = (options?: {
  * to workers and supporting transferable values when the platform does.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeProtocolWorker = (
   options: {
@@ -1335,7 +1335,7 @@ export const makeProtocolWorker = (
  * platform and spawner services.
  *
  * @category protocol
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerProtocolWorker: (
   options: {

@@ -622,7 +622,7 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * ```
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const sizeUnsafe = <A>(self: PubSub<A>): number => {
   if (MutableRef.get(self.shutdownFlag)) {

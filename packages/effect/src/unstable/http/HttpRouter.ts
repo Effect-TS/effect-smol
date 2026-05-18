@@ -49,7 +49,7 @@ const TypeId = "~effect/http/HttpRouter"
  * request.
  *
  * @category HttpRouter
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface HttpRouter {
   readonly [TypeId]: typeof TypeId
@@ -106,7 +106,7 @@ export interface HttpRouter {
  * the router.
  *
  * @category HttpRouter
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const HttpRouter: Context.Service<HttpRouter, HttpRouter> = Context.Service<HttpRouter>(
   "effect/http/HttpRouter"
@@ -268,7 +268,7 @@ export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
  * matcher.
  *
  * @category RouteContext
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RouteContext extends Context.Service<RouteContext, {
   readonly params: Readonly<Record<string, string | undefined>>
@@ -279,7 +279,7 @@ export class RouteContext extends Context.Service<RouteContext, {
  * Effect that returns the path parameters captured for the current matched route.
  *
  * @category RouteContext
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const params: Effect.Effect<
   ReadonlyRecord<string, string | undefined>,
@@ -295,7 +295,7 @@ export const params: Effect.Effect<
  * fails if the body cannot be parsed or the schema decode fails.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaJson = <
   A,
@@ -349,7 +349,7 @@ export const schemaJson = <
  * cookies, path parameters, and search parameters.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaNoBody = <
   A,
@@ -399,7 +399,7 @@ export const schemaNoBody = <
  * When the same key appears in both sources, the path parameter value is used.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaParams = <A, I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -418,7 +418,7 @@ export const schemaParams = <A, I extends Readonly<Record<string, string | Reado
  * route.
  *
  * @category schemas
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const schemaPathParams = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
   schema: Schema.Codec<A, I, RD, RE>,
@@ -448,7 +448,7 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  * ```
  *
  * @category HttpRouter
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const use = <A, E, R>(
   f: (router: HttpRouter) => Effect.Effect<A, E, R>
@@ -573,7 +573,7 @@ const RouteTypeId = "~effect/http/HttpRouter/Route"
  * metadata used for prefix handling and interruptibility.
  *
  * @category Route
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Route<E = never, R = never> {
   readonly [RouteTypeId]: typeof RouteTypeId
@@ -588,7 +588,7 @@ export interface Route<E = never, R = never> {
  * Helper types for extracting the error and context types carried by `Route`
  * values.
  *
- * @since 4.0.0
+ * @since 1.0.0
  */
 export declare namespace Route {
   /**
@@ -629,7 +629,7 @@ const makeRoute = <E, R>(options: {
  * prevent the route handler from being made interruptible while it runs.
  *
  * @category Route
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const route = <E = never, R = never>(
   method: "*" | HttpMethod.HttpMethod,
@@ -660,7 +660,7 @@ export const route = <E = never, R = never>(
  * Routes must use an absolute path beginning with `/` or the wildcard `*`.
  *
  * @category PathInput
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type PathInput = `/${string}` | "*"
 
@@ -675,7 +675,7 @@ const removeTrailingSlash = (
  * `*` becomes a wildcard route under the prefix.
  *
  * @category PathInput
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const prefixPath: {
   (prefix: string): (self: string) => string
@@ -762,7 +762,7 @@ export declare namespace Request {
  * request context.
  *
  * @category Request types
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Provided =
   | HttpServerRequest.HttpServerRequest
@@ -790,7 +790,7 @@ const MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
  * the type level.
  *
  * @category Middleware
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Middleware<
   Config extends {

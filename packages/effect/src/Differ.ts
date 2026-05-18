@@ -46,7 +46,7 @@
  * value.
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface Differ<in out T, in out Patch> {
   readonly empty: Patch

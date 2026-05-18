@@ -34,7 +34,7 @@ const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
  * `send` function for non-pong responses.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface Client {
   readonly queue: Queue.Dequeue<DevToolsSchema.Request.WithoutPing>
@@ -49,7 +49,7 @@ export interface Client {
  * through the `Client` passed to the handler.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const run: <_, E, R>(
   handle: (client: Client) => Effect.Effect<_, E, R>

@@ -62,7 +62,7 @@ const TypeId = "~effect/unstable/process/ChildProcess"
  * They are executed using `exec` or `spawn`.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type Command =
   | StandardCommand
@@ -72,7 +72,7 @@ export type Command =
  * A standard command with pre-parsed command and arguments.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface StandardCommand extends
   Effect.Effect<
@@ -92,7 +92,7 @@ export interface StandardCommand extends
  * next.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface PipedCommand extends
   Effect.Effect<
@@ -172,7 +172,7 @@ export interface PipeOptions {
  * Input type for child process stdin.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type CommandInput =
   | "pipe"
@@ -185,7 +185,7 @@ export type CommandInput =
  * Output type for child process stdout/stderr.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type CommandOutput =
   | "pipe"
@@ -522,7 +522,7 @@ const Proto = {
  * Check if a value is a `Command`.
  *
  * @category guards
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, TypeId)
 
@@ -593,7 +593,7 @@ const makePipedCommand = (
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: {
   (
@@ -678,7 +678,7 @@ export const make: {
  * ```
  *
  * @category combinators
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const pipeTo: {
   (that: Command, options?: PipeOptions): (self: Command) => PipedCommand

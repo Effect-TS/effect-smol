@@ -68,7 +68,7 @@ import type * as Workflow from "./Workflow.ts"
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toRpcGroup = <
   const Workflows extends NonEmptyReadonlyArray<Workflow.Any>,
@@ -104,7 +104,7 @@ export const toRpcGroup = <
  * and resume operations.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> = Workflows extends Workflow.Workflow<
   infer _Name,
@@ -156,7 +156,7 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const toHttpApiGroup = <const Name extends string, const Workflows extends NonEmptyReadonlyArray<Workflow.Any>>(
   name: Name,
@@ -194,7 +194,7 @@ const tagToPath = (tag: string): string =>
  * discard, and resume operations.
  *
  * @category converting
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ConvertHttpApi<Workflows extends Workflow.Any> = Workflows extends Workflow.Workflow<
   infer _Name,

@@ -74,7 +74,7 @@ export const Order: order.Order<string> = order.String
  * ```
  *
  * @category instances
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Equivalence: Equ.Equivalence<string> = Equ.String
 

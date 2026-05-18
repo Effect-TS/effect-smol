@@ -567,7 +567,7 @@ export const clamp: {
  * ```
  *
  * @category constructors
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const fromDateUnsafe: (date: Date) => Utc = Internal.fromDateUnsafe
 
@@ -599,7 +599,7 @@ export const fromDateUnsafe: (date: Date) => Utc = Internal.fromDateUnsafe
  * ```
  *
  * @category constructors
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const makeUnsafe: <A extends DateTime.Input>(input: A) => DateTime.PreserveZone<A> = Internal.makeUnsafe
 
@@ -630,7 +630,7 @@ export const makeUnsafe: <A extends DateTime.Input>(input: A) => DateTime.Preser
  * ```
  *
  * @category constructors
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const makeZonedUnsafe: (input: DateTime.Input, options?: {
   readonly timeZone?: number | string | TimeZone | undefined
@@ -787,7 +787,7 @@ export const now: Effect.Effect<Utc> = Internal.now
  * ```
  *
  * @category constructors
- * @since 3.6.0
+ * @since 3.14.0
  */
 export const nowAsDate: Effect.Effect<Date> = Internal.nowAsDate
 
@@ -807,7 +807,7 @@ export const nowAsDate: Effect.Effect<Date> = Internal.nowAsDate
  * ```
  *
  * @category constructors
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const nowUnsafe: LazyArg<Utc> = Internal.nowUnsafe
 
@@ -920,7 +920,7 @@ export const setZoneOffset: {
  * ```
  *
  * @category time zones
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const zoneMakeNamedUnsafe: (zoneId: string) => TimeZone.Named = Internal.zoneMakeNamedUnsafe
 
@@ -1104,7 +1104,7 @@ export const setZoneNamed: {
  * ```
  *
  * @category time zones
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const setZoneNamedUnsafe: {
   (zoneId: string, options?: {
@@ -1213,7 +1213,7 @@ export const max: {
  * ```
  *
  * @category comparisons
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const isGreaterThan: {
   (that: DateTime): (self: DateTime) => boolean
@@ -1238,7 +1238,7 @@ export const isGreaterThan: {
  * ```
  *
  * @category comparisons
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: DateTime): (self: DateTime) => boolean
@@ -1261,7 +1261,7 @@ export const isGreaterThanOrEqualTo: {
  * ```
  *
  * @category comparisons
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const isLessThan: {
   (that: DateTime): (self: DateTime) => boolean
@@ -1286,7 +1286,7 @@ export const isLessThan: {
  * ```
  *
  * @category comparisons
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: DateTime): (self: DateTime) => boolean
@@ -1356,7 +1356,7 @@ export const isFuture: (self: DateTime) => Effect.Effect<boolean> = Internal.isF
  * ```
  *
  * @category comparisons
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const isFutureUnsafe: (self: DateTime) => boolean = Internal.isFutureUnsafe
 
@@ -1400,7 +1400,7 @@ export const isPast: (self: DateTime) => Effect.Effect<boolean> = Internal.isPas
  * ```
  *
  * @category comparisons
- * @since 3.6.0
+ * @since 4.0.0
  */
 export const isPastUnsafe: (self: DateTime) => boolean = Internal.isPastUnsafe
 

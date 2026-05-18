@@ -301,7 +301,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setUnsafe: {
   <A, E, XE extends E, XA extends A>(
@@ -441,7 +441,7 @@ export const set: {
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fiber<A, E>> {
   return self.state._tag === "Closed" ? Option.none() : Option.fromUndefinedOr(self.state.fiber)

@@ -39,7 +39,7 @@ import * as Redis from "./Redis.ts"
  * Runtime type identifier for `RateLimiter` values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/RateLimiter"
 
@@ -47,7 +47,7 @@ export const TypeId: TypeId = "~effect/persistence/RateLimiter"
  * Type-level identifier used to brand `RateLimiter` values.
  *
  * @category type IDs
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type TypeId = "~effect/persistence/RateLimiter"
 
@@ -56,7 +56,7 @@ export type TypeId = "~effect/persistence/RateLimiter"
  * token-bucket algorithms.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface RateLimiter {
   readonly [TypeId]: TypeId
@@ -75,7 +75,7 @@ export interface RateLimiter {
  * Context service tag for the `RateLimiter` service.
  *
  * @category Tags
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)
 
@@ -86,7 +86,7 @@ export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Se
  * fails or returns a delay when a limit is exceeded.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const make: Effect.Effect<
   RateLimiter,
@@ -224,7 +224,7 @@ export const make: Effect.Effect<
  * Provides `RateLimiter` using the current `RateLimiterStore`.
  *
  * @category layers
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<
   RateLimiter,
@@ -257,7 +257,7 @@ export const layer: Layer.Layer<
  * ```
  *
  * @category Accessors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeWithRateLimiter: Effect.Effect<
   ((options: {
@@ -302,7 +302,7 @@ export const makeWithRateLimiter: Effect.Effect<
  * ```
  *
  * @category Accessors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const makeSleep: Effect.Effect<
   ((options: {
@@ -333,7 +333,7 @@ export const makeSleep: Effect.Effect<
  * Runtime type identifier for `RateLimiterError`.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
@@ -341,7 +341,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateL
  * Type-level identifier used to brand `RateLimiterError` values.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
@@ -351,7 +351,7 @@ export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
  * Includes the affected key, limit, remaining token count, and retry delay.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
   "effect/persistence/RateLimiter/RateLimitExceeded"
@@ -376,7 +376,7 @@ export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
  * Error reason for failures in the backing `RateLimiterStore`.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
   "effect/persistence/RateLimiter/RateLimitStoreError"
@@ -410,7 +410,7 @@ export const RateLimiterErrorReason: Schema.Union<[
  * `reason`.
  *
  * @category errors
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorTypeId)({
   _tag: Schema.tag("RateLimiterError"),
@@ -446,7 +446,7 @@ export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorT
  * Metadata returned after consuming tokens from a rate limiter.
  *
  * @category models
- * @since 4.0.0
+ * @since 1.0.0
  */
 export interface ConsumeResult {
   /**
@@ -477,7 +477,7 @@ export interface ConsumeResult {
  * Low-level backing store for fixed-window counters and token-bucket state.
  *
  * @category RateLimiterStore
- * @since 4.0.0
+ * @since 1.0.0
  */
 export class RateLimiterStore extends Context.Service<
   RateLimiterStore,
@@ -523,7 +523,7 @@ export class RateLimiterStore extends Context.Service<
  * Provides a process-local in-memory `RateLimiterStore`.
  *
  * @category RateLimiterStore
- * @since 4.0.0
+ * @since 1.0.0
  */
 export const layerStoreMemory: Layer.Layer<
   RateLimiterStore

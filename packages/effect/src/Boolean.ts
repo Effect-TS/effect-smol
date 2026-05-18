@@ -120,7 +120,7 @@ export const Order: order.Order<boolean> = order.Boolean
  * ```
  *
  * @category instances
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Equivalence: Equ.Equivalence<boolean> = Equ.Boolean
 

@@ -299,7 +299,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const addUnsafe: {
   <A, E, XE extends E, XA extends A>(

@@ -328,7 +328,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setUnsafe: {
   <K, A, E, XE extends E, XA extends A>(
@@ -484,7 +484,7 @@ export const set: {
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => Option.Option<Fiber.Fiber<A, E>>
@@ -558,7 +558,7 @@ export const get: {
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const hasUnsafe: {
   <K>(key: K): <A, E>(self: FiberMap<K, A, E>) => boolean
