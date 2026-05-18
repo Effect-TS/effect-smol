@@ -491,10 +491,9 @@ export const withMetavar: {
  * Hides a flag from generated help output and shell completions while keeping
  * it fully parseable on the command line.
  *
- * Useful for experimental, internal, or deprecated flags that should be
- * accepted but not advertised — for example, `--experimental-foo`, debug
- * toggles, or escape hatches you are not ready to commit to the public CLI
- * surface.
+ * Useful for experimental or internal flags that should be accepted but not
+ * advertised — for example, `--experimental-foo`, debug toggles, or escape
+ * hatches that are not yet committed to the public CLI surface.
  *
  * **Example** (Hiding a flag from help)
  *
