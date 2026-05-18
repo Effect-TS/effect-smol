@@ -157,6 +157,7 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
     for (const option of config.flags) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
+        if (single.hidden) continue
         flags.push(toFlagDoc(single))
       }
     }
@@ -228,7 +229,8 @@ export const toFlagDoc = (single: Param.Single<typeof Param.flagKind, unknown>):
     aliases: formattedAliases,
     type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
     description: appendChoiceKeys(single.description, Primitive.getChoiceKeys(single.primitiveType)),
-    required: single.primitiveType._tag !== "Boolean"
+    required: single.primitiveType._tag !== "Boolean",
+    ...(single.hidden ? { hidden: true } : {})
   }
 }
 

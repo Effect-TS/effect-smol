@@ -116,6 +116,9 @@ const getSharedFlagsForCommandPath = (
           continue
         }
         seen.add(single.name)
+        if (single.hidden) {
+          continue
+        }
         sharedFlags.push(toFlagDoc(single))
       }
     }
@@ -160,6 +163,7 @@ export const getHelpForCommandPath = <Name extends string, Input, E, R, ContextI
     for (const flag of flags) {
       const singles = Param.extractSingleParams(flag.flag)
       for (const single of singles) {
+        if (single.hidden) continue
         globalFlagDocs.push({
           ...toFlagDoc(single),
           required: false

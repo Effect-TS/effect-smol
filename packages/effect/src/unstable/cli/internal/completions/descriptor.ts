@@ -85,6 +85,7 @@ export const fromCommand = (cmd: Command.Any): Completions.CommandDescriptor => 
     const singles = Param.extractSingleParams(flag)
     for (const single of singles) {
       if (single.kind !== "flag") continue
+      if (single.hidden) continue
       flags.push({
         name: single.name,
         aliases: single.aliases,

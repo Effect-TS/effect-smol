@@ -188,6 +188,14 @@ export interface FlagDoc {
    * Whether this flag is required
    */
   readonly required: boolean
+
+  /**
+   * Whether this flag is hidden from help output.
+   *
+   * Hidden flags are still fully parseable on the command line but are omitted
+   * from rendered help text and shell completions.
+   */
+  readonly hidden?: boolean | undefined
 }
 
 /**
