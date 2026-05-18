@@ -46,7 +46,6 @@
  * - {@link remove} uses JavaScript strict equality semantics, not structural
  *   equality
  *
- * @fileoverview
  * @since 4.0.0
  */
 import * as Arr from "./Array.ts"

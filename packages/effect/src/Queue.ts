@@ -387,8 +387,6 @@ const QueueProto = {
  *
  * - `Mailbox.make`
  *
- * @category constructors
- * @since 4.0.0
  * **Example** (Creating queues)
  *
  * ```ts
@@ -417,6 +415,9 @@ const QueueProto = {
  *   console.log(failed) // true
  * })
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = <A, E = never>(
   options?: {

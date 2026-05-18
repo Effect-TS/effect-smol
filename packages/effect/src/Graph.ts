@@ -2290,10 +2290,6 @@ const formatMermaidNode = (
  * //   0 -->|"builds with"| 3
  * ```
  *
- * @param graph - The graph to export (directed or undirected)
- * @param options - Optional configuration for the Mermaid output
- * @returns Mermaid diagram syntax as a string
- *
  * @category utils
  * @since 3.18.0
  */

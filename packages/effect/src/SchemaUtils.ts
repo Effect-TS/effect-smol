@@ -31,7 +31,6 @@ import * as Transformation from "./SchemaTransformation.ts"
  *
  * @category schemas
  * @since 4.0.0
- * @experimental
  */
 export function getNativeClassSchema<C extends new(...args: any) => any, S extends Schema.Struct<Schema.Struct.Fields>>(
   constructor: C,

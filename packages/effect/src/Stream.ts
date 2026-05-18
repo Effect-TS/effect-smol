@@ -2892,8 +2892,6 @@ export const timeoutOrElse: {
  * Repeats each element of the stream according to the provided schedule,
  * including the original emission.
  *
- * @category sequencing
- * @since 2.0.0
  * **Example** (Repeating stream elements)
  *
  * ```ts
@@ -2910,6 +2908,9 @@ export const timeoutOrElse: {
  * Effect.runPromise(program)
  * // Output: [ "A", "A", "B", "B", "C", "C" ]
  * ```
+ *
+ * @category sequencing
+ * @since 2.0.0
  */
 export const repeatElements: {
   <B, E2, R2>(
@@ -3166,8 +3167,6 @@ export const merge: {
  * The effect runs concurrently, fails the stream if it fails, and is interrupted
  * when the stream completes.
  *
- * @category Merging
- * @since 4.0.0
  * **Example** (Merging with a background effect)
  *
  * ```ts
@@ -3186,6 +3185,9 @@ export const merge: {
  * // Output: side task
  * // Output: [ 1, 2, 3 ]
  * ```
+ *
+ * @category Merging
+ * @since 4.0.0
  */
 export const mergeEffect: {
   <A2, E2, R2>(effect: Effect.Effect<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
@@ -6053,7 +6055,6 @@ export const retry: {
  *
  * @category error handling
  * @since 3.16.0
- * @experimental
  */
 export const withExecutionPlan: {
   <Input, R2, Provides, PolicyE>(

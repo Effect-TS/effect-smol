@@ -227,7 +227,6 @@ const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
 
 /**
  * Creates a registry for O(1) flag lookup by name or alias.
- * @throws Error if duplicate names or aliases are detected (developer error)
  * @internal
  */
 export const createFlagRegistry = (params: ReadonlyArray<FlagParam>): FlagRegistry => {

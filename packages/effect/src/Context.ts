@@ -754,9 +754,6 @@ export const getOrUndefined: {
  *
  * For a safer version see {@link getOption}.
  *
- * @param self - The `Context` to search for the service.
- * @param service - The `Service` of the service to retrieve.
- *
  * **Example** (Getting services unsafely)
  *
  * ```ts
@@ -791,9 +788,6 @@ export const getUnsafe: {
 
 /**
  * Get a service from the context that corresponds to the given key.
- *
- * @param self - The `Context` to search for the service.
- * @param service - The `Service` of the service to retrieve.
  *
  * **Example** (Getting a service from a context)
  *
@@ -888,9 +882,6 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * is a `Context.Reference` and no override is stored, returns `Option.some` of
  * the cached default value. Missing non-reference keys return `Option.none`.
  *
- * @param self - The `Context` to search for the service.
- * @param service - The `Service` of the service to retrieve.
- *
  * **Example** (Getting optional services)
  *
  * ```ts
@@ -929,9 +920,6 @@ export const getOption: {
  *
  * When both contexts contain the same service key, the service from `that`
  * overrides the service from `self`.
- *
- * @param self - The first `Context` to merge.
- * @param that - The second `Context` to merge.
  *
  * **Example** (Merging two contexts)
  *
@@ -1015,9 +1003,6 @@ export const mergeAll = <T extends Array<unknown>>(
 
 /**
  * Returns a new `Context` that contains only the specified services.
- *
- * @param self - The `Context` to prune services from.
- * @param services - The list of `Service`s to be included in the new `Context`.
  *
  * **Example** (Picking services from a context)
  *

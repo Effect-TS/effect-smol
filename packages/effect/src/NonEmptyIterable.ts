@@ -319,9 +319,6 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  * const sum = reduceNonEmpty(data, (acc, x) => acc + x, 0) // 10
  * ```
  *
- * @param self - The non-empty iterable to deconstruct
- * @returns A tuple containing the first element and an iterator for the remaining elements
- *
  * @category getters
  * @since 2.0.0
  */

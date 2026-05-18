@@ -539,8 +539,6 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  * )
  * ```
  *
- * @param cron - The cron expression to parse.
- *
  * @category constructors
  * @since 2.0.0
  */

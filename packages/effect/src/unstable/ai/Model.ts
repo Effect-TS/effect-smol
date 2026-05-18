@@ -47,10 +47,6 @@ const TypeId = "~effect/ai/Model" as const
  * constructor into the parent Effect. This is particularly useful when you
  * want to use a Model from within an Effect service.
  *
- * @template Provider - String literal type identifying the AI provider.
- * @template Provides - Services that this model provides.
- * @template Requires - Services that this model requires.
- *
  * @category models
  * @since 4.0.0
  */

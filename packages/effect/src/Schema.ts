@@ -257,8 +257,6 @@ export interface Bottom<
   rebuild(ast: this["ast"]): this["Rebuild"]
   /**
    * Constructs a value from the make input representation.
-   *
-   * @throws {Error} The issue is contained in the error cause.
    */
   make(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
   makeOption(input: this["~type.make.in"], options?: MakeOptions): Option_.Option<this["Type"]>
@@ -1054,7 +1052,6 @@ function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Targ
  *
  * @category Standard Schema
  * @since 4.0.0
- * @experimental
  */
 export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSchemaV1<S["Encoded"], S["Type"]> & S {
   const jsonSchema: StandardJSONSchemaV1.Props<S["Encoded"], S["Type"]>["jsonSchema"] = {
@@ -2836,7 +2833,6 @@ export function encodeKeys<
  *
  * @category transforming
  * @since 4.0.0
- * @experimental
  */
 export function extendTo<S extends Struct<Struct.Fields>, const Fields extends Struct.Fields>(
   /** The new fields to add */
@@ -5141,7 +5137,6 @@ type TaggedUnionUtils<
  * @see {@link toTaggedUnion} for the constructor
  * @category combinators
  * @since 4.0.0
- * @experimental
  */
 export type toTaggedUnion<
   Tag extends PropertyKey,
@@ -5171,7 +5166,6 @@ export type toTaggedUnion<
  * @see {@link TaggedUnion} for a shorthand that builds the union from scratch
  * @category combinators
  * @since 4.0.0
- * @experimental
  */
 export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
   return <const Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>>(
@@ -5229,7 +5223,6 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
  * @see {@link TaggedUnion} for the constructor
  * @category models
  * @since 4.0.0
- * @experimental
  */
 export interface TaggedUnion<Cases extends Record<string, Top>> extends
   Bottom<

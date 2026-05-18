@@ -1337,9 +1337,6 @@ export const fromSubscription = <A>(
  * arrays of values in chunks. It's useful when you want to process multiple values at once
  * for better performance.
  *
- * @param subscription - The PubSub subscription to read from
- * @param chunkSize - The maximum number of elements to read in each chunk (default: 4096)
- *
  * **Example** (Batching subscription values)
  *
  * ```ts
@@ -1445,8 +1442,6 @@ export const fromSubscriptionArray = <A>(
  * subscribing to it. The channel outputs individual values as they are published
  * to the PubSub, making it ideal for real-time streaming scenarios.
  *
- * @param pubsub - The PubSub to read from
- *
  * **Example** (Creating channels from PubSubs)
  *
  * ```ts
@@ -1541,9 +1536,6 @@ export const fromPubSub = <A>(
  * This constructor creates a channel that reads from a PubSub by automatically
  * subscribing to it and collecting values into arrays. The channel outputs
  * arrays of values in chunks, making it ideal for batch processing scenarios.
- *
- * @param pubsub - The PubSub to read from
- * @param chunkSize - The maximum number of elements to collect in each array (default: 4096)
  *
  * **Example** (Batching PubSub values)
  *

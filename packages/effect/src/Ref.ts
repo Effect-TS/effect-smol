@@ -157,9 +157,6 @@ export const makeUnsafe = <A>(value: A): Ref<A> => {
 /**
  * Creates a new Ref with the specified initial value.
  *
- * @param value - The initial value for the Ref
- * @returns An Effect that creates a new Ref
- *
  * **Example** (Creating a ref)
  *
  * ```ts

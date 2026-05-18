@@ -68,9 +68,6 @@ import type * as Fiber from "./Fiber.ts"
  * runMain(program, { teardown: customTeardown })
  * ```
  *
- * @param exit - The result of the Effect program execution
- * @param onExit - Callback to execute with the determined exit code
- *
  * @category models
  * @since 4.0.0
  */
@@ -170,8 +167,6 @@ export const defaultTeardown: Teardown = <E, A>(
  *   }
  * })
  * ```
- *
- * @param f - Function that sets up platform-specific behavior for the running Effect
  *
  * @category running
  * @since 4.0.0

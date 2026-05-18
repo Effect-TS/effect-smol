@@ -31,7 +31,6 @@
  *   right value, while `1` means it should come after
  * - Reversing an `Ordering` swaps `-1` and `1`, but leaves `0` unchanged
  *
- * @fileoverview
  * @since 2.0.0
  */
 import type { LazyArg } from "./Function.ts"
