@@ -6,6 +6,8 @@
  * - JSON files (.json)
  * - YAML files (.yaml, .yml)
  * - Inline JSON strings
+ *
+ * @since 4.0.0
  */
 
 import * as Effect from "effect/Effect"

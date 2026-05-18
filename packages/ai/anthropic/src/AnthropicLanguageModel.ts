@@ -120,6 +120,7 @@ declare module "effect/unstable/ai/Prompt" {
    * request content.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface SystemMessageOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -137,6 +138,7 @@ declare module "effect/unstable/ai/Prompt" {
    * request content.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface UserMessageOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -154,6 +156,7 @@ declare module "effect/unstable/ai/Prompt" {
    * conversation history.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface AssistantMessageOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -171,6 +174,7 @@ declare module "effect/unstable/ai/Prompt" {
    * content blocks.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolMessageOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -187,6 +191,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Use these options to control how text blocks are sent to Anthropic.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface TextPartOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -204,6 +209,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Anthropic in later turns.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ReasoningPartOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -236,6 +242,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Anthropic.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface FilePartOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -269,6 +276,7 @@ declare module "effect/unstable/ai/Prompt" {
    * tool use blocks.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolCallPartOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -298,6 +306,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Controls Anthropic prompt caching for tool result content.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolResultPartOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -314,6 +323,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Controls prompt caching for human approval requests in conversations.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolApprovalRequestPartOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -330,6 +340,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Controls prompt caching for human approval responses in conversations.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolApprovalResponsePartOptions extends ProviderOptions {
     readonly anthropic?: {
@@ -349,6 +360,7 @@ declare module "effect/unstable/ai/Response" {
    * conversations.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -376,6 +388,7 @@ declare module "effect/unstable/ai/Response" {
    * Includes the signature for streamed Claude thinking content when available.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -396,6 +409,7 @@ declare module "effect/unstable/ai/Response" {
    * Preserves Claude thinking or redacted thinking information for later turns.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningPartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -424,6 +438,7 @@ declare module "effect/unstable/ai/Response" {
    * provider.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ToolCallPartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -450,6 +465,7 @@ declare module "effect/unstable/ai/Response" {
    * results.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ToolResultPartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -471,6 +487,7 @@ declare module "effect/unstable/ai/Response" {
    * Records the cited document span by character position or page number.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -512,6 +529,7 @@ declare module "effect/unstable/ai/Response" {
    * Records cited URL text or web-search source freshness information.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -539,6 +557,7 @@ declare module "effect/unstable/ai/Response" {
    * token usage reported by Anthropic.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface FinishPartMetadata extends ProviderMetadata {
     readonly anthropic?: {
@@ -555,6 +574,7 @@ declare module "effect/unstable/ai/Response" {
    * Includes the provider request identifier when Anthropic returns one.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ErrorPartMetadata extends ProviderMetadata {
     readonly anthropic?: {

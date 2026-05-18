@@ -29,6 +29,7 @@ import * as Utils from "./Utils.ts"
  * HTTP client or HttpApi source code.
  *
  * @category services
+ * @since 4.0.0
  */
 export class OpenApiGenerator extends Context.Service<
   OpenApiGenerator,
@@ -39,6 +40,7 @@ export class OpenApiGenerator extends Context.Service<
  * Output targets supported by the OpenAPI generator.
  *
  * @category models
+ * @since 4.0.0
  */
 export type OpenApiGeneratorFormat = "httpclient" | "httpclient-type-only" | "httpapi"
 
@@ -46,6 +48,7 @@ export type OpenApiGeneratorFormat = "httpclient" | "httpclient-type-only" | "ht
  * Stable identifiers for non-fatal OpenAPI generation warnings.
  *
  * @category models
+ * @since 4.0.0
  */
 export type OpenApiGeneratorWarningCode =
   | "cookie-parameter-dropped"
@@ -63,6 +66,7 @@ export type OpenApiGeneratorWarningCode =
  * generated Effect source.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface OpenApiGeneratorWarning {
   readonly code: OpenApiGeneratorWarningCode
@@ -76,6 +80,7 @@ export interface OpenApiGeneratorWarning {
  * Options that control one OpenAPI generation run.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface OpenApiGenerateOptions {
   /**
@@ -116,6 +121,7 @@ const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
  * Constructs the OpenAPI generator service implementation.
  *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const generate = Effect.fn(
@@ -1066,6 +1072,7 @@ function getDialect(spec: OpenAPISpec): "openapi-3.0" | "openapi-3.1" {
  * Layer providing an OpenAPI generator for Schema-backed HTTP client and HttpApi output.
  *
  * @category layers
+ * @since 4.0.0
  */
 export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
@@ -1073,6 +1080,7 @@ export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effec
  * Layer providing an OpenAPI generator for type-only HTTP client output.
  *
  * @category layers
+ * @since 4.0.0
  */
 export const layerTransformerTs: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
