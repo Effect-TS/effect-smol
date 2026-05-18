@@ -282,11 +282,62 @@ export * as IdGenerator from "./IdGenerator.ts"
 export * as LanguageModel from "./LanguageModel.ts"
 
 /**
+ * The `McpSchema` module defines Effect Schema and RPC models for the Model
+ * Context Protocol (MCP). It provides the shared protocol vocabulary used by
+ * MCP clients and servers, including JSON-RPC request identifiers, metadata,
+ * capabilities, errors, resources, prompts, tools, logging, sampling,
+ * completions, roots, and elicitation.
+ *
+ * **Common tasks**
+ *
+ * - Describe MCP payloads with schemas such as {@link Resource}, {@link Tool},
+ *   {@link Prompt}, and {@link ContentBlock}
+ * - Build typed protocol handlers with request RPCs such as {@link Initialize},
+ *   {@link ListResources}, {@link ReadResource}, {@link ListTools}, and
+ *   {@link CallTool}
+ * - Work with protocol notifications such as
+ *   {@link ProgressNotification}, {@link ResourceUpdatedNotification}, and
+ *   {@link LoggingMessageNotification}
+ * - Use {@link ClientRpcs} and server RPC groups to derive encoded request,
+ *   notification, success, and failure message types
+ *
+ * **Gotchas**
+ *
+ * - MCP distinguishes absent fields from present fields whose value is
+ *   `undefined`; use {@link optional} and {@link optionalWithDefault} for
+ *   protocol fields so encoding omits undefined values consistently.
+ * - Capability objects are extensible. Known fields are modeled here, but
+ *   `experimental` and `extensions` allow implementations to advertise
+ *   additional protocol features.
+ *
  * @since 4.0.0
  */
 export * as McpSchema from "./McpSchema.ts"
 
 /**
+ * The `McpServer` module provides Effect services and layers for building
+ * Model Context Protocol servers. It keeps track of registered tools,
+ * resources, resource templates, prompts, completions, and server
+ * notifications, then exposes them through the MCP request handlers.
+ *
+ * **Common tasks**
+ *
+ * - Start a server over stdio with {@link layerStdio}
+ * - Register HTTP routes for an existing `HttpRouter` with {@link layerHttp}
+ * - Expose Effect AI toolkits as MCP tools with {@link registerToolkit}
+ * - Register resources, resource templates, and prompts with {@link resource}
+ *   and {@link prompt}
+ * - Ask the connected MCP client for structured input with {@link elicit}
+ *
+ * **Gotchas**
+ *
+ * - Registration helpers require an `McpServer` service, usually provided by
+ *   one of this module's layers.
+ * - HTTP clients must complete MCP initialization before other requests; the
+ *   server tracks initialized sessions with the `Mcp-Session-Id` header.
+ * - Resource template parameters are decoded with the schemas embedded in the
+ *   template literal.
+ *
  * @since 4.0.0
  */
 export * as McpServer from "./McpServer.ts"
@@ -420,6 +471,18 @@ export * as Prompt from "./Prompt.ts"
 export * as Response from "./Response.ts"
 
 /**
+ * The `ResponseIdTracker` module provides a small service for reusing provider
+ * response IDs across incremental language model calls. It records which prompt
+ * message objects were sent for a provider response, then prepares a later
+ * prompt by returning the recognized `previousResponseId` together with only
+ * the new messages that should be sent.
+ *
+ * Use this when integrating providers that support continuing a conversation
+ * from a prior response ID instead of resending the entire prompt. The tracker
+ * is intentionally identity-based and mutable: it only recognizes the same
+ * message objects that were previously marked, and it clears its state when a
+ * prompt can no longer be matched safely.
+ *
  * @since 4.0.0
  */
 export * as ResponseIdTracker from "./ResponseIdTracker.ts"
@@ -540,10 +603,9 @@ export * as Tool from "./Tool.ts"
  * **Example** (Creating and implementing toolkits)
  *
  * ```ts
- * import { Effect, Schema } from "effect"
+ * import { Effect, Schema, Stream } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
- * // Create individual tools
  * const GetCurrentTime = Tool.make("GetCurrentTime", {
  *   description: "Get the current timestamp",
  *   success: Schema.Number
@@ -558,17 +620,29 @@ export * as Tool from "./Tool.ts"
  *   })
  * })
  *
- * // Create a toolkit with multiple tools
  * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
  *
  * const MyToolkitLayer = MyToolkit.toLayer({
- *   GetCurrentTime: () => Effect.succeed(Date.now()),
+ *   GetCurrentTime: () => Effect.succeed(1_704_067_200_000),
  *   GetWeather: ({ location }) =>
  *     Effect.succeed({
  *       temperature: 72,
- *       condition: "sunny"
+ *       condition: `sunny in ${location}`
  *     })
  * })
+ *
+ * const program = Effect.gen(function*() {
+ *   const toolkit = yield* MyToolkit
+ *   const stream = yield* toolkit.handle("GetWeather", {
+ *     location: "San Francisco"
+ *   })
+ *   const results = yield* Stream.runCollect(stream)
+ *
+ *   return Array.from(results, ({ result }) => result)
+ * }).pipe(Effect.provide(MyToolkitLayer))
+ *
+ * console.log(Effect.runSync(program))
+ * // [{ temperature: 72, condition: "sunny in San Francisco" }]
  * ```
  *
  * @since 4.0.0

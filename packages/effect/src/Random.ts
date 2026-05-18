@@ -129,7 +129,7 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
 export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe())
 
 /**
- * Generates a random number between `min` (inclusive) and `max` (inclusive).
+ * Generates a random number between `min` (inclusive) and `max` (exclusive).
  *
  * **Example** (Generating a bounded random number)
  *
@@ -454,7 +454,7 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   /**
-   * Returns a signed, random integer in the range [-2^31, 2^31].
+   * Returns a signed, random integer in the range [-2^31, 2^31).
    */
   function nextInt32(): number {
     if (!generation--) {
@@ -465,15 +465,8 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   function nextIntUnsafe(): number {
-    // Get 32 bits (unsigned)
-    const low = nextInt32() >>> 0 // [0, 2^32-1]
-
-    // Get 21 more bits for a total of 53
-    const high = nextInt32() & 0x1FFFFF // [0, 2^21-1]
-
-    // Combine: high bits * 2^32 + low bits, then shift to signed range
-    // This gives [0, 2^53-1], subtract 2^52 to center around 0
-    return (high * 0x100000000) + low - 0x10000000000000
+    return Math.floor(nextDoubleUnsafe() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) +
+      Number.MIN_SAFE_INTEGER
   }
 
   /**
@@ -486,7 +479,7 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
     // 53-bit integer
     const combined = hi * 4294967296 + lo
 
-    return combined / 9007199254740991 // [0, 1)
+    return combined / 0x20000000000000 // [0, 1)
   }
 
   return { nextIntUnsafe, nextDoubleUnsafe }

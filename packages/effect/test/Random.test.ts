@@ -4,12 +4,12 @@ import * as Random from "effect/Random"
 
 describe("Random", () => {
   describe("next", () => {
-    it.effect("generates a number between 0 and 1", () =>
+    it.effect("generates a number between 0 inclusive and 1 exclusive", () =>
       Effect.gen(function*() {
         const value = yield* Random.next
 
         assert.isAtLeast(value, 0)
-        assert.isAtMost(value, 1)
+        assert.isBelow(value, 1)
       }))
   })
 
@@ -59,13 +59,25 @@ describe("Random", () => {
   })
 
   describe("nextBetween", () => {
-    it.effect("generates number in closed range", () =>
+    it.effect("generates number in half-open range", () =>
       Effect.gen(function*() {
         for (let i = 0; i < 100; i++) {
           const value = yield* Random.nextBetween(10, 20)
           assert.isAtLeast(value, 10)
-          assert.isAtMost(value, 20)
+          assert.isBelow(value, 20)
         }
+      }))
+
+    it.effect("does not round the bounds", () =>
+      Effect.gen(function*() {
+        const value = yield* Random.nextBetween(10.5, 20.5).pipe(
+          Effect.provideService(Random.Random, {
+            nextIntUnsafe: () => 0,
+            nextDoubleUnsafe: () => 0.75
+          })
+        )
+
+        assert.strictEqual(value, 18)
       }))
 
     it.effect("handles negative ranges", () =>
@@ -73,7 +85,7 @@ describe("Random", () => {
         const value = yield* Random.nextBetween(-10, 10)
 
         assert.isAtLeast(value, -10)
-        assert.isAtMost(value, 10)
+        assert.isBelow(value, 10)
       }))
   })
 
@@ -98,6 +110,18 @@ describe("Random", () => {
           assert.isAtLeast(value, 1)
           assert.isBelow(value, 6)
         }
+      }))
+
+    it.effect("excludes the upper bound in half-open ranges", () =>
+      Effect.gen(function*() {
+        const value = yield* Random.nextIntBetween(1, 6, { halfOpen: true }).pipe(
+          Effect.provideService(Random.Random, {
+            nextIntUnsafe: () => 0,
+            nextDoubleUnsafe: () => 1 - Number.EPSILON
+          })
+        )
+
+        assert.strictEqual(value, 5)
       }))
   })
 

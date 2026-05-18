@@ -685,7 +685,7 @@ export const JsonFromString = <S extends Schema.Top>(
  * @category uuid
  * @since 4.0.0
  */
-export interface UuidV4Insert<B extends string> extends
+export interface UuidV4BytesInsert<B extends string> extends
   VariantSchema.Field<{
     readonly select: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
     readonly insert: Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>>
@@ -711,7 +711,7 @@ export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uin
  * @category uuid
  * @since 4.0.0
  */
-export const UuidV4WithGenerate = <B extends string>(
+export const UuidV4BytesWithGenerate = <B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
 ): Schema.withConstructorDefault<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
   schema.pipe(Schema.withConstructorDefault(Effect.sync(() => Uuid.v4({}, new globalThis.Uint8Array(16)))))
@@ -722,12 +722,102 @@ export const UuidV4WithGenerate = <B extends string>(
  * @category uuid
  * @since 4.0.0
  */
-export const UuidV4Insert = <const B extends string>(
+export const UuidV4BytesInsert = <const B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+): UuidV4BytesInsert<B> =>
+  Field({
+    select: schema,
+    insert: UuidV4BytesWithGenerate(schema),
+    update: schema,
+    json: schema
+  })
+
+/**
+ * Variant field type for a branded string UUID v4 value whose insert variant
+ * generates a UUID by default.
+ *
+ * @category uuid
+ * @since 4.0.0
+ */
+export interface UuidV4Insert<B extends string> extends
+  VariantSchema.Field<{
+    readonly select: Schema.brand<Schema.String, B>
+    readonly insert: Schema.withConstructorDefault<Schema.brand<Schema.String, B>>
+    readonly update: Schema.brand<Schema.String, B>
+    readonly json: Schema.brand<Schema.String, B>
+  }>
+{}
+
+/**
+ * Adds a constructor default that generates a string UUID v4.
+ *
+ * @category uuid
+ * @since 4.0.0
+ */
+export const UuidV4WithGenerate = <B extends string>(
+  schema: Schema.brand<Schema.String, B>
+): Schema.withConstructorDefault<Schema.brand<Schema.String, B>> =>
+  schema.pipe(Schema.withConstructorDefault(Effect.sync(() => Uuid.v4())))
+
+/**
+ * A field that represents a string UUID v4 that is generated on inserts.
+ *
+ * @category uuid
+ * @since 4.0.0
+ */
+export const UuidV4Insert = <const B extends string>(
+  schema: Schema.brand<Schema.String, B>
 ): UuidV4Insert<B> =>
   Field({
     select: schema,
     insert: UuidV4WithGenerate(schema),
+    update: schema,
+    json: schema
+  })
+
+/**
+ * Variant field type for a branded string UUID v7 value whose insert variant
+ * generates a UUID by default.
+ *
+ * @category uuid
+ * @since 4.0.0
+ */
+export interface UuidV7Insert<B extends string> extends
+  VariantSchema.Field<{
+    readonly select: Schema.brand<Schema.String, B>
+    readonly insert: Schema.withConstructorDefault<Schema.brand<Schema.String, B>>
+    readonly update: Schema.brand<Schema.String, B>
+    readonly json: Schema.brand<Schema.String, B>
+  }>
+{}
+
+/**
+ * Adds a constructor default that generates a string UUID v7.
+ *
+ * @category uuid
+ * @since 4.0.0
+ */
+export const UuidV7WithGenerate = <B extends string>(
+  schema: Schema.brand<Schema.String, B>
+): Schema.withConstructorDefault<Schema.brand<Schema.String, B>> =>
+  schema.pipe(Schema.withConstructorDefault(Effect.clockWith((clock) =>
+    Effect.succeed(Uuid.v7({
+      msecs: clock.currentTimeMillisUnsafe()
+    }))
+  )))
+
+/**
+ * A field that represents a string UUID v7 that is generated on inserts.
+ *
+ * @category uuid
+ * @since 4.0.0
+ */
+export const UuidV7Insert = <const B extends string>(
+  schema: Schema.brand<Schema.String, B>
+): UuidV7Insert<B> =>
+  Field({
+    select: schema,
+    insert: UuidV7WithGenerate(schema),
     update: schema,
     json: schema
   })

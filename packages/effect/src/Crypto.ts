@@ -15,9 +15,7 @@
  * const TestCrypto = Layer.succeed(
  *   Crypto.Crypto,
  *   Crypto.make({
- *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
- *     nextIntUnsafe: () => 1,
- *     nextDoubleUnsafe: () => 0.5,
+ *     randomBytes: (size) => new Uint8Array(size),
  *     digest: (_algorithm, data) => Effect.succeed(data)
  *   })
  * )
@@ -38,9 +36,7 @@
  * const TestCrypto = Layer.succeed(
  *   Crypto.Crypto,
  *   Crypto.make({
- *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
- *     nextIntUnsafe: () => 1,
- *     nextDoubleUnsafe: () => 0.5,
+ *     randomBytes: (size) => new Uint8Array(size),
  *     digest: (_algorithm, data) => Effect.succeed(data)
  *   })
  * )
@@ -93,9 +89,7 @@ export type DigestAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
  * const TestCrypto = Layer.succeed(
  *   Crypto.Crypto,
  *   Crypto.make({
- *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
- *     nextIntUnsafe: () => 1,
- *     nextDoubleUnsafe: () => 0.5,
+ *     randomBytes: (size) => new Uint8Array(size),
  *     digest: (_algorithm, data) => Effect.succeed(data)
  *   })
  * )
@@ -120,7 +114,7 @@ export interface Crypto {
 
   /**
    * Generates a random integer in the range Number.MIN_SAFE_INTEGER to
-   * Number.MAX_SAFE_INTEGER.
+   * Number.MAX_SAFE_INTEGER (both inclusive).
    */
   nextIntUnsafe(): number
 
@@ -155,17 +149,22 @@ export interface Crypto {
 
   /**
    * Generates a cryptographically secure random integer between
-   * `Number.MIN_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER`.
+   * `Number.MIN_SAFE_INTEGER` and `Number.MAX_SAFE_INTEGER` (both inclusive).
    */
   readonly randomInt: Effect.Effect<number>
 
   /**
-   * Generates a cryptographically secure random number between `min` and `max`.
+   * Generates a cryptographically secure random number between `min`
+   * (inclusive) and `max` (exclusive).
    */
   randomBetween(min: number, max: number): Effect.Effect<number>
 
   /**
    * Generates a cryptographically secure random integer between `min` and `max`.
+   *
+   * The lower bound is rounded up with `Math.ceil` and the upper bound is
+   * rounded down with `Math.floor`. By default the range is inclusive; set
+   * `options.halfOpen: true` to exclude the upper bound.
    */
   randomIntBetween(min: number, max: number, options?: {
     readonly halfOpen?: boolean | undefined
@@ -207,9 +206,7 @@ export const Crypto: Context.Service<Crypto, Crypto> = Context.Service("effect/C
  * const TestCrypto = Layer.succeed(
  *   Crypto.Crypto,
  *   Crypto.make({
- *     randomBytes: (size) => Effect.succeed(new Uint8Array(size)),
- *     nextIntUnsafe: () => 1,
- *     nextDoubleUnsafe: () => 0.5,
+ *     randomBytes: (size) => new Uint8Array(size),
  *     digest: (_algorithm, data) => Effect.succeed(data)
  *   })
  * )
@@ -227,11 +224,12 @@ export const make = (
     ) => Effect.Effect<Uint8Array, PlatformError.PlatformError>
   }
 ): Crypto => {
-  const randomBytes: Crypto["randomBytes"] = (size) =>
-    Effect.map(validateSize("randomBytes", size), (validSize) => impl.randomBytes(validSize))
+  const randomBytesUnsafe = impl.randomBytes
+
+  const randomBytes: Crypto["randomBytes"] = (size) => Effect.map(validateSize("randomBytes", size), randomBytesUnsafe)
 
   const nextDoubleUnsafe = (): number => {
-    const bytes = impl.randomBytes(7)
+    const bytes = randomBytesUnsafe(7)
     const value = ((bytes[0] & 0x1f) * 2 ** 48) + (bytes[1] * 2 ** 40) + (bytes[2] * 2 ** 32) +
       (bytes[3] * 2 ** 24) + (bytes[4] * 2 ** 16) + (bytes[5] * 2 ** 8) + bytes[6]
     return value / 2 ** 53
@@ -249,11 +247,7 @@ export const make = (
     random: Effect.sync(() => nextDoubleUnsafe()),
     randomBoolean: Effect.sync(() => nextDoubleUnsafe() > 0.5),
     randomInt: Effect.sync(() => nextIntUnsafe()),
-    randomBetween(min, max) {
-      const minInt = Math.ceil(min)
-      const maxInt = Math.floor(max)
-      return Effect.sync(() => nextDoubleUnsafe() * (maxInt - minInt) + minInt)
-    },
+    randomBetween: (min, max) => Effect.sync(() => nextDoubleUnsafe() * (max - min) + min),
     randomIntBetween(min, max, options) {
       const extra = options?.halfOpen === true ? 0 : 1
       return Effect.sync(() => {
@@ -273,9 +267,9 @@ export const make = (
         }
         return buffer
       }),
-    randomUUIDv4: Effect.sync(() => formatUUIDv4(impl.randomBytes(16))),
+    randomUUIDv4: Effect.sync(() => formatUUIDv4(randomBytesUnsafe(16))),
     randomUUIDv7: Effect.clockWith((clock) =>
-      Effect.succeed(formatUUIDv7(clock.currentTimeMillisUnsafe(), impl.randomBytes(16)))
+      Effect.succeed(formatUUIDv7(clock.currentTimeMillisUnsafe(), randomBytesUnsafe(16)))
     )
   })
 }

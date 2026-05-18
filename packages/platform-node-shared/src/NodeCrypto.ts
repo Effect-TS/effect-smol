@@ -42,9 +42,7 @@ const digest: EffectCrypto.Crypto["digest"] = (algorithm, data) =>
  * @category constructors
  */
 export const make: EffectCrypto.Crypto = EffectCrypto.make({
-  randomBytes(size) {
-    return NodeCrypto.randomBytes(size)
-  },
+  randomBytes: NodeCrypto.randomBytes,
   digest
 })
 
