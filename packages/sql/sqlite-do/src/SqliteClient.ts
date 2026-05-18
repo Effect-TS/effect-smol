@@ -1,18 +1,30 @@
 /**
  * Connects Effect SQL to SQLite storage inside Cloudflare Durable Objects.
  *
- * This module wraps a Durable Object `SqlStorage` handle and exposes it as both
- * `SqliteClient` and the generic Effect SQL client. It serializes access,
- * supports normal and streaming queries, converts returned `ArrayBuffer` values
- * to `Uint8Array`, and provides layers for wiring the client into an Effect
- * application. `updateValues` is not supported by this driver.
+ * This module adapts a Durable Object `SqlStorage` handle into both the
+ * Durable Object-specific `SqliteClient` service and the generic Effect
+ * `SqlClient` service. Use it from inside a Durable Object to run local
+ * per-object queries, repositories, migrations, transactional read/write
+ * workflows, and tests that exercise Cloudflare's SQLite-backed storage API.
+ *
+ * Durable Object SQLite storage is scoped to one object id, so each object
+ * instance has its own database. Callers can pass the `SqlStorage` handle for
+ * normal queries, or the full `DurableObjectStorage` when `withTransaction` or
+ * migrations need Cloudflare-managed transactions. This adapter serializes
+ * Effect SQL access through one connection; a transaction holds that permit for
+ * the lifetime of its scope, so keep transactions short, avoid suspending them
+ * across unrelated work, and use them when multi-statement writes must commit
+ * atomically. `SqlStorage.exec` returns `ArrayBuffer` values
+ * for SQLite blobs, which this client normalizes to `Uint8Array`, and SQLite
+ * does not support `updateValues`.
  *
  * @since 4.0.0
  */
-import type { SqlStorage } from "@cloudflare/workers-types"
+import type { DurableObjectStorage, SqlStorage } from "@cloudflare/workers-types"
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
@@ -22,7 +34,7 @@ import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
-import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
+import { classifySqliteError, SqlError, UnknownError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
@@ -74,21 +86,89 @@ export interface SqliteClient extends Client.SqlClient {
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-do/SqliteClient")
 
 /**
- * Configuration for a Cloudflare Durable Object SQLite client, including the `SqlStorage` handle, span attributes, and query/result name transforms.
+ * Configuration for a Cloudflare Durable Object SQLite client, including either a `SqlStorage` handle or the full `DurableObjectStorage` for transaction support, span attributes, and query/result name transforms.
  *
  * @category models
  * @since 4.0.0
  */
 export interface SqliteClientConfig {
-  readonly db: SqlStorage
+  readonly db?: SqlStorage | undefined
+  readonly storage?: DurableObjectStorage | undefined
   readonly spanAttributes?: Record<string, unknown> | undefined
 
   readonly transformResultNames?: ((str: string) => string) | undefined
   readonly transformQueryNames?: ((str: string) => string) | undefined
 }
 
+const Rollback = Symbol("@effect/sql-sqlite-do/Rollback")
+
+const unsupportedTransaction = (message: string, operation: string) =>
+  new SqlError({
+    reason: new UnknownError({
+      cause: new Error(message),
+      message,
+      operation
+    })
+  })
+
+const makeUnsupportedWithTransaction = (message: string): Client.SqlClient["withTransaction"] =>
+<R, E, A>(_effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
+  Effect.fail(unsupportedTransaction(message, "transaction"))
+
+const makeStorageBackedWithTransaction = (
+  storage: DurableObjectStorage,
+  transactionService: Client.SqlClient["transactionService"],
+  connection: Connection,
+  semaphore: Semaphore.Semaphore
+): Client.SqlClient["withTransaction"] =>
+<R, E, A>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
+  Effect.withFiber((fiber) => {
+    const services = fiber.context
+    const connOption = Context.getOption(services, transactionService)
+    if (connOption._tag === "Some") {
+      return Effect.fail(
+        unsupportedTransaction(
+          "Nested transactions are not supported by Cloudflare Durable Object SQLite storage",
+          "transaction"
+        )
+      )
+    }
+
+    let exit: Exit.Exit<A, E> | undefined = undefined
+    const transaction = Effect.tryPromise<A, SqlError | typeof Rollback>({
+      try: () =>
+        storage.transaction(() =>
+          Effect.runPromiseExit(
+            Effect.provideContext(
+              effect,
+              Context.add(services, transactionService, [connection, 0] as const)
+            )
+          ).then((result) => {
+            exit = result
+            if (Exit.isFailure(result)) {
+              throw Rollback
+            }
+            return result.value
+          })
+        ),
+      catch: (cause) =>
+        cause === Rollback
+          ? Rollback
+          : new SqlError({ reason: classifyError(cause, "Failed transaction", "transaction") })
+    })
+
+    return semaphore.withPermits(1)(transaction).pipe(
+      Effect.catchAll((error) => {
+        if (error === Rollback) {
+          return exit ?? Exit.die("sqlite-do transaction exited without result")
+        }
+        return Effect.fail(error)
+      })
+    )
+  })
+
 /**
- * Creates a scoped Cloudflare Durable Object SQLite client around `SqlStorage`, serializing access and converting returned `ArrayBuffer` values to `Uint8Array`.
+ * Creates a scoped Cloudflare Durable Object SQLite client around Durable Object SQLite storage, serializing access and converting returned `ArrayBuffer` values to `Uint8Array`.
  *
  * @category constructors
  * @since 4.0.0
@@ -101,10 +181,13 @@ export const make = (
     const transformRows = options.transformResultNames
       ? Statement.defaultTransforms(options.transformResultNames).array
       : undefined
+    const db = options.storage?.sql ?? options.db
+
+    if (db === undefined) {
+      return yield* Effect.die("SqliteClient.make requires either a Durable Object storage or sql storage")
+    }
 
     const makeConnection = Effect.gen(function*() {
-      const db = options.db
-
       function* runIterator(
         sql: string,
         params: ReadonlyArray<unknown> = []
@@ -197,22 +280,26 @@ export const make = (
       )
     })
 
-    return Object.assign(
-      (yield* Client.make({
-        acquirer,
-        compiler,
-        transactionAcquirer,
-        spanAttributes: [
-          ...(options.spanAttributes ? Object.entries(options.spanAttributes) : []),
-          [ATTR_DB_SYSTEM_NAME, "sqlite"]
-        ],
-        transformRows
-      })) as SqliteClient,
-      {
-        [TypeId]: TypeId as TypeId,
-        config: options
-      }
-    )
+    const client = (yield* Client.make({
+      acquirer,
+      compiler,
+      transactionAcquirer,
+      spanAttributes: [
+        ...(options.spanAttributes ? Object.entries(options.spanAttributes) : []),
+        [ATTR_DB_SYSTEM_NAME, "sqlite"]
+      ],
+      transformRows
+    })) as SqliteClient
+
+    return Object.assign(client, {
+      [TypeId]: TypeId as TypeId,
+      config: options,
+      withTransaction: options.storage
+        ? makeStorageBackedWithTransaction(options.storage, client.transactionService, connection, semaphore)
+        : makeUnsupportedWithTransaction(
+          "Transactions require Durable Object storage; pass ctx.storage as the storage option"
+        )
+    })
   })
 
 /**
