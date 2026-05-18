@@ -1,5 +1,6 @@
 import * as BrowserCrypto from "@effect/platform-browser/BrowserCrypto"
 import { assert, describe, it } from "@effect/vitest"
+import { Layer } from "effect"
 import * as Crypto from "effect/Crypto"
 import * as Effect from "effect/Effect"
 import * as TestClock from "effect/testing/TestClock"
@@ -17,20 +18,26 @@ const getRandomValues = <T extends ArrayBufferView | null>(array: T): T => {
 }
 
 describe("BrowserCrypto", () => {
-  it.effect("generates random bytes and chunks large requests", () =>
-    Effect.gen(function*() {
-      let calls = 0
-      const service = BrowserCrypto.make({
-        getRandomValues: (array) => {
-          calls++
-          return getRandomValues(array)
-        }
-      })
+  it.effect("generates random bytes and chunks large requests", () => {
+    let calls = 0
 
+    return Effect.gen(function*() {
+      const service = yield* Crypto.Crypto
       const bytes = yield* service.randomBytes(65_537)
       assert.strictEqual(bytes.length, 65_537)
       assert.strictEqual(calls, 2)
-    }))
+    }).pipe(
+      Effect.provide(BrowserCrypto.layer.pipe(
+        Layer.provide(Layer.succeed(BrowserCrypto.WebCrypto, {
+          ...crypto,
+          getRandomValues(array) {
+            calls++
+            return getRandomValues(array)
+          }
+        }))
+      ))
+    )
+  })
 
   it.effect("generates UUIDv4 values from getRandomValues", () =>
     Effect.gen(function*() {
@@ -38,7 +45,14 @@ describe("BrowserCrypto", () => {
       const uuid = yield* crypto.randomUUIDv4
       assert.strictEqual(uuid, "00010203-0405-4607-8809-0a0b0c0d0e0f")
       assert.match(uuid, uuidV4Regex)
-    }).pipe(Effect.provideService(Crypto.Crypto, BrowserCrypto.make({ getRandomValues }))))
+    }).pipe(Effect.provide(BrowserCrypto.layer.pipe(
+      Layer.provide(Layer.succeed(BrowserCrypto.WebCrypto, {
+        ...crypto,
+        getRandomValues(array) {
+          return getRandomValues(array)
+        }
+      }))
+    ))))
 
   it.effect("generates UUIDv7 values from getRandomValues and the Clock", () =>
     Effect.gen(function*() {
@@ -47,26 +61,35 @@ describe("BrowserCrypto", () => {
       const uuid = yield* crypto.randomUUIDv7
       assert.strictEqual(uuid, "01234567-89ab-7607-8809-0a0b0c0d0e0f")
       assert.match(uuid, uuidV7Regex)
-    }).pipe(Effect.provideService(Crypto.Crypto, BrowserCrypto.make({ getRandomValues }))))
-
-  it.effect("fails when random byte generation is unavailable", () =>
-    Effect.gen(function*() {
-      const service = BrowserCrypto.make({})
-      const error = yield* Effect.flip(service.randomBytes(1))
-      assert.strictEqual(error._tag, "PlatformError")
-    }))
-
-  it.effect("computes digests with subtle crypto", () =>
-    Effect.gen(function*() {
-      const buffer = new ArrayBuffer(3)
-      new Uint8Array(buffer).set([1, 2, 3])
-      const service = BrowserCrypto.make({
-        subtle: {
-          digest: () => Promise.resolve(buffer)
+    }).pipe(Effect.provide(BrowserCrypto.layer.pipe(
+      Layer.provide(Layer.succeed(BrowserCrypto.WebCrypto, {
+        ...crypto,
+        getRandomValues(array) {
+          return getRandomValues(array)
         }
-      })
+      }))
+    ))))
 
-      const digest = yield* service.digest("SHA-256", Uint8Array.of(1))
-      assert.deepStrictEqual(digest, Uint8Array.of(1, 2, 3))
-    }))
+  it.effect("computes digests with subtle crypto", () => {
+    const buffer = new ArrayBuffer(3)
+    new Uint8Array(buffer).set([1, 2, 3])
+
+    return Effect.gen(function*() {
+      const crypto = yield* Crypto.Crypto
+      const digest = yield* crypto.digest("SHA-256", new Uint8Array(buffer))
+      assert.deepStrictEqual(digest, new Uint8Array([1, 2, 3]))
+    }).pipe(
+      Effect.provide(BrowserCrypto.layer.pipe(
+        Layer.provide(Layer.succeed(BrowserCrypto.WebCrypto, {
+          ...crypto,
+          subtle: {
+            ...crypto.subtle,
+            digest() {
+              return Promise.resolve(buffer)
+            }
+          }
+        }))
+      ))
+    )
+  })
 })
