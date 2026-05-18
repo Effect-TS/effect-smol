@@ -6257,8 +6257,9 @@ export const splitLines = <Err, Done>(): Channel<
 /**
  * Decodes incoming `Uint8Array` chunks into strings using `TextDecoder`.
  *
- * Each `Uint8Array` inside an emitted array is decoded independently. The
- * optional `encoding` and `options` are passed to `TextDecoder`.
+ * Input chunks are decoded with streaming enabled so multi-byte characters may
+ * span `Uint8Array` boundaries. The optional `encoding` and `options` are
+ * passed to `TextDecoder`.
  *
  * @category String manipulation
  * @since 4.0.0
@@ -6274,7 +6275,22 @@ export const decodeText = <Err, Done>(encoding?: string, options?: TextDecoderOp
   fromTransform((upstream, _scope) =>
     Effect.sync(() => {
       const decoder = new TextDecoder(encoding, options)
-      return Effect.map(upstream, Arr.map((line) => decoder.decode(line)))
+      let done = Option.none<Done>()
+      const pullOrFlush: Pull.Pull<Arr.NonEmptyReadonlyArray<string>, Err, Done> = Effect.suspend(() => {
+        if (done._tag === "Some") {
+          return Cause.done(done.value)
+        }
+        return Pull.matchEffect(upstream, {
+          onSuccess: (chunk) => Effect.succeed(Arr.map(chunk, (line) => decoder.decode(line, { stream: true }))),
+          onFailure: Effect.failCause,
+          onDone: (leftover) => {
+            done = Option.some(leftover)
+            const last = decoder.decode()
+            return last.length > 0 ? Effect.succeed([last] as Arr.NonEmptyReadonlyArray<string>) : Cause.done(leftover)
+          }
+        })
+      })
+      return pullOrFlush
     })
   )
 
