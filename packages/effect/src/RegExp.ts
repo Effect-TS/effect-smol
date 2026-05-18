@@ -56,7 +56,7 @@ export const isRegExp: (input: unknown) => input is RegExp = predicate.isRegExp
  * assert.deepStrictEqual(RegExp.escape("a*b"), "a\\*b")
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const escape = (string: string): string => string.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&")

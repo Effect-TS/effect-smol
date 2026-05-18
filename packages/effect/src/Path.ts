@@ -40,6 +40,7 @@ import { BadArgument } from "./PlatformError.ts"
 /**
  * Runtime type identifier used to mark implementations of the `Path` service.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/platform/Path"
@@ -84,7 +85,7 @@ export const TypeId = "~effect/platform/Path"
  * })
  * ```
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface Path {
@@ -133,7 +134,6 @@ export interface Path {
  * })
  * ```
  *
- * @category namespace
  * @since 4.0.0
  */
 export declare namespace Path {
@@ -173,7 +173,7 @@ export declare namespace Path {
    * })
    * ```
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Parsed {
@@ -850,7 +850,7 @@ const posixImpl = Path.of({
  * Use this layer when an effect requires the `Path` service and should use
  * forward-slash path semantics.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Path> = Layer.succeed(Path)(posixImpl)

@@ -109,6 +109,7 @@ import { hasProperty } from "./Predicate.ts"
  * @see {@link Equal} — the interface that uses this symbol
  * @see {@link isEqual} — type guard for `Equal` implementors
  *
+ * @category symbols
  * @since 2.0.0
  */
 export const symbol = "~effect/interfaces/Equal"

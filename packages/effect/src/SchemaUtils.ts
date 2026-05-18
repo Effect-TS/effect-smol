@@ -29,6 +29,7 @@ import * as Transformation from "./SchemaTransformation.ts"
  * Encoding uses the instance as the encoded shape, so the class should expose
  * properties compatible with the provided encoding schema.
  *
+ * @category schemas
  * @since 4.0.0
  * @experimental
  */

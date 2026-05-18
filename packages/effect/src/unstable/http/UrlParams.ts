@@ -59,7 +59,7 @@ export interface UrlParams extends Pipeable, Inspectable, Iterable<readonly [str
 /**
  * Returns `true` when a value is a `UrlParams` instance.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId)
@@ -422,7 +422,7 @@ export const remove: {
 /**
  * Error returned when constructing a `URL` from `UrlParams` fails.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
@@ -435,7 +435,7 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
  * Returns a `Result` that fails with `UrlParamsError` if the URL cannot be
  * constructed.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const makeUrl = (
@@ -463,7 +463,7 @@ export const makeUrl = (
 /**
  * Serializes `UrlParams` to a URL query string without a leading question mark.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toString = (self: UrlParams): string => new URLSearchParams(self.params as any).toString()
@@ -505,7 +505,7 @@ const baseUrl = (): string | undefined => {
  * )
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyArray<string>> => {
@@ -529,7 +529,7 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
  * Keys with one value map to a string, and keys with multiple values map to a
  * non-empty readonly array of strings.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>> =
@@ -538,7 +538,7 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
 /**
  * Schema type for decoding one URL parameter field as JSON.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
@@ -566,7 +566,7 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  * )
  * ```
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaJsonField = (field: string): schemaJsonField =>
@@ -587,7 +587,7 @@ export const schemaJsonField = (field: string): schemaJsonField =>
 /**
  * Extract a record of key-value pairs from the `UrlParams`.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface schemaRecord extends
@@ -626,7 +626,7 @@ export interface schemaRecord extends
  * )
  * ```
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaRecord: schemaRecord = UrlParamsSchema.pipe(

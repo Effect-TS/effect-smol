@@ -55,7 +55,7 @@ const make: Effect.Effect<
 /**
  * Layer that provides the Bun `HttpPlatform`, including file responses backed by `Bun.file`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = Layer.effect(Platform.HttpPlatform)(make).pipe(

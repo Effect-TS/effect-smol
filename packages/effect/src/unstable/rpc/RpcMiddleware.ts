@@ -40,7 +40,7 @@ import type { Request, RequestId } from "./RpcMessage.ts"
 /**
  * The literal type id used to identify RPC middleware service classes.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/rpc/RpcMiddleware"
@@ -48,7 +48,7 @@ export type TypeId = "~effect/rpc/RpcMiddleware"
 /**
  * The runtime type id used to attach and inspect RPC middleware metadata.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/rpc/RpcMiddleware"

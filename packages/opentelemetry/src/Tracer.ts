@@ -40,7 +40,7 @@ import { Resource } from "./Resource.ts"
 /**
  * Context service containing the OpenTelemetry `Tracer` used to create spans for Effect tracing.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class OtelTracer extends Context.Service<
@@ -51,7 +51,7 @@ export class OtelTracer extends Context.Service<
 /**
  * Context service containing the OpenTelemetry `TracerProvider` used to obtain tracers.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class OtelTracerProvider extends Context.Service<
@@ -62,7 +62,7 @@ export class OtelTracerProvider extends Context.Service<
 /**
  * Context service containing OpenTelemetry trace flags used when constructing external span contexts.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class OtelTraceFlags extends Context.Service<
@@ -73,7 +73,7 @@ export class OtelTraceFlags extends Context.Service<
 /**
  * Context service containing OpenTelemetry trace state used when constructing external span contexts.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class OtelTraceState extends Context.Service<
@@ -88,7 +88,7 @@ export class OtelTraceState extends Context.Service<
 /**
  * Creates an Effect `Tracer` implementation backed by the configured OpenTelemetry tracer.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
@@ -121,7 +121,7 @@ export const make: Effect.Effect<Tracer.Tracer, never, OtelTracer> = Effect.map(
 /**
  * Creates an Effect external span from an OpenTelemetry span context, preserving trace flags and trace state when provided.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeExternalSpan = (options: {
@@ -165,7 +165,7 @@ export const makeExternalSpan = (options: {
 /**
  * Layer that provides the current global OpenTelemetry tracer provider.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerGlobalProvider: Layer.Layer<OtelTracerProvider> = Layer.sync(
@@ -176,7 +176,7 @@ export const layerGlobalProvider: Layer.Layer<OtelTracerProvider> = Layer.sync(
 /**
  * Layer that creates an OpenTelemetry tracer from the provided tracer provider and resource metadata.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerTracer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Resource> = Layer.effect(
@@ -194,7 +194,7 @@ export const layerTracer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Re
 /**
  * Layer that creates an OpenTelemetry tracer from the global tracer provider and the current resource.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerGlobalTracer: Layer.Layer<OtelTracer, never, Resource> = layerTracer.pipe(
@@ -204,7 +204,7 @@ export const layerGlobalTracer: Layer.Layer<OtelTracer, never, Resource> = layer
 /**
  * Layer that installs an Effect tracer backed by the global OpenTelemetry tracer provider.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerGlobal: Layer.Layer<OtelTracer, never, Resource> = Layer.effect(Tracer.Tracer, make).pipe(
@@ -214,7 +214,7 @@ export const layerGlobal: Layer.Layer<OtelTracer, never, Resource> = Layer.effec
 /**
  * Layer that installs the Effect tracer using an `OtelTracer` already provided in the environment.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWithoutOtelTracer: Layer.Layer<never, never, OtelTracer> = Layer.effect(Tracer.Tracer, make)
@@ -222,7 +222,7 @@ export const layerWithoutOtelTracer: Layer.Layer<never, never, OtelTracer> = Lay
 /**
  * Layer that creates an OpenTelemetry tracer from a provider and resource, then installs it as the Effect tracer.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Resource> = layerWithoutOtelTracer.pipe(

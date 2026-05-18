@@ -66,7 +66,7 @@ export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorT
  * Service for creating scoped stores of persisted `Persistable` request
  * results.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export class Persistence extends Context.Service<Persistence, {
@@ -1066,6 +1066,7 @@ export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = la
  * Returns `null` for no TTL and uses `clock.currentTimeMillisUnsafe`, so it is
  * intended for backing-store internals.
  *
+ * @category converting
  * @since 4.0.0
  */
 export const unsafeTtlToExpires = (clock: Clock.Clock, ttl: Duration.Duration | undefined): number | null =>

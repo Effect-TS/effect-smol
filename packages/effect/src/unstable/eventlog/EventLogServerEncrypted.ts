@@ -45,7 +45,7 @@ import * as EventLogServer from "./EventLogServer.ts"
  * change streams read encrypted entries from storage and encode them for the
  * remote protocol.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
@@ -99,7 +99,7 @@ export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
  * Provides an encrypted event-log RPC server using `EventLogRemoteRpcs` and the
  * encrypted server RPC handlers.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<never, never, RpcServer.Protocol | Storage> = RpcServer.layer(EventLogRemoteRpcs).pipe(

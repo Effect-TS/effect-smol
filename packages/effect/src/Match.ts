@@ -65,7 +65,7 @@ const TypeId = internal.TypeId
  * // Output: "string: some input"
  * ```
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type Matcher<Input, Filters, RemainingApplied, Result, Provided, Return = any> =
@@ -1852,7 +1852,6 @@ type Fail = typeof Fail
  * application. These types enable the sophisticated type inference that makes
  * pattern matching both type-safe and ergonomic.
  *
- * @category types
  * @since 4.0.0
  */
 export declare namespace Types {

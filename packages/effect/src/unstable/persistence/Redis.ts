@@ -28,7 +28,7 @@ import * as Schema from "../../Schema.ts"
 /**
  * Service for sending Redis commands and evaluating cached Lua scripts.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export class Redis extends Context.Service<Redis, {
@@ -48,7 +48,7 @@ export class Redis extends Context.Service<Redis, {
  * Lua scripts are loaded through `SCRIPT LOAD`, cached, and then invoked with
  * `EVALSHA`.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(
@@ -90,7 +90,7 @@ const ErrorTypeId: ErrorTypeId = "~effect/persistence/Redis/RedisError"
 /**
  * Error raised by Redis command or script execution.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class RedisError extends Schema.ErrorClass<RedisError>(ErrorTypeId)({

@@ -161,7 +161,6 @@ export interface Refinement<in A, out B extends A> {
  *
  * See also: {@link Predicate}, {@link Refinement}
  *
- * @category type-level
  * @since 3.6.0
  */
 export declare namespace Predicate {
@@ -240,7 +239,6 @@ export declare namespace Predicate {
  *
  * See also: {@link Refinement}, {@link Predicate}
  *
- * @category type-level
  * @since 3.6.0
  */
 export declare namespace Refinement {

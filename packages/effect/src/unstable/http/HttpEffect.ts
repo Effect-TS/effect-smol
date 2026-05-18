@@ -232,7 +232,7 @@ export const withPreResponseHandler: {
 /**
  * Converts an HTTP server effect into a Web `Request` handler using the supplied base context and optional middleware.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
@@ -274,7 +274,7 @@ export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided
 /**
  * Converts an HTTP server effect into a Web `Request` handler using an empty base context.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWebHandler: <E>(
@@ -286,7 +286,7 @@ export const toWebHandler: <E>(
 /**
  * Builds a Web `Request` handler from a layer and handler factory, returning the handler with a `dispose` function for the layer scope.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWebHandlerLayerWith = <
@@ -348,7 +348,7 @@ export const toWebHandlerLayerWith = <
 /**
  * Builds a Web `Request` handler for an HTTP server effect using a layer to provide its services, returning the handler with a `dispose` function.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
@@ -375,7 +375,7 @@ export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided
 /**
  * Adapts a Web `Request` handler into an HTTP server effect for the current `HttpServerRequest`.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromWebHandler = (

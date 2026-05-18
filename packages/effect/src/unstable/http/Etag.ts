@@ -98,7 +98,7 @@ const fromFileWeb = (file: Body.HttpBody.FileLike) => {
 /**
  * Layer that provides a `Generator` which produces strong ETags from file size and modification time metadata.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Generator> = Layer.succeed(
@@ -115,7 +115,7 @@ export const layer: Layer.Layer<Generator> = Layer.succeed(
 /**
  * Layer that provides a `Generator` which produces weak ETags from file size and modification time metadata.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWeak: Layer.Layer<Generator> = Layer.succeed(

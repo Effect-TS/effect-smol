@@ -621,6 +621,7 @@ export const round: {
 /**
  * A `Reducer` for combining `number`s using addition.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerSum: Reducer.Reducer<number> = Reducer.make((a, b) => a + b, 0)
@@ -628,6 +629,7 @@ export const ReducerSum: Reducer.Reducer<number> = Reducer.make((a, b) => a + b,
 /**
  * A `Reducer` for combining `number`s using multiplication.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a * b, 1, (collection) => {
@@ -642,6 +644,7 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 /**
  * A `Reducer` for reducing `number`s by keeping the maximum value.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.max(a, b), -Infinity)
@@ -649,6 +652,7 @@ export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.m
 /**
  * A `Reducer` for reducing `number`s by keeping the minimum value.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerMin: Reducer.Reducer<number> = Reducer.make((a, b) => Math.min(a, b), Infinity)

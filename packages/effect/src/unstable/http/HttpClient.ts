@@ -56,7 +56,7 @@ const TypeId = "~effect/http/HttpClient"
 /**
  * Returns `true` if the provided value is an `HttpClient`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isHttpClient = (u: unknown): u is HttpClient => Predicate.hasProperty(u, TypeId)
@@ -800,7 +800,6 @@ export const mapRequestInputEffect: {
 /**
  * Namespace containing type-level helpers for retrying HTTP clients.
  *
- * @category error handling
  * @since 4.0.0
  */
 export declare namespace Retry {
@@ -961,7 +960,6 @@ export const retryTransient: {
 /**
  * Namespace containing configuration types for `withRateLimiter`.
  *
- * @category rate limiting
  * @since 4.0.0
  */
 export declare namespace WithRateLimiter {
@@ -1404,7 +1402,7 @@ export const followRedirects: {
 /**
  * Context reference for a predicate that disables client-side tracing for matching outgoing requests.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const TracerDisabledWhen = Context.Reference<
@@ -1416,7 +1414,7 @@ export const TracerDisabledWhen = Context.Reference<
 /**
  * Context reference that controls whether outgoing client spans are propagated to request headers.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpClient/TracerPropagationEnabled", {
@@ -1426,7 +1424,7 @@ export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpC
 /**
  * Context reference for generating the span name used for outgoing client request spans.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const SpanNameGenerator = Context.Reference<
@@ -1438,6 +1436,7 @@ export const SpanNameGenerator = Context.Reference<
 /**
  * Creates an `HttpClient` layer and merges the layer construction context into client response effects.
  *
+ * @category layers
  * @since 4.0.0
  */
 export const layerMergedContext = <E, R>(

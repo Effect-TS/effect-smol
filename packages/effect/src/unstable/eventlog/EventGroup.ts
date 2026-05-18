@@ -25,7 +25,7 @@ import * as Event from "./Event.ts"
 /**
  * Unique type identifier used to mark event log event groups.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/eventlog/EventGroup"
@@ -33,7 +33,7 @@ export type TypeId = "~effect/eventlog/EventGroup"
 /**
  * Runtime type identifier used to mark event log event groups.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/EventGroup"

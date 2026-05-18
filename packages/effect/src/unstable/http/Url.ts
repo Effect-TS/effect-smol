@@ -68,7 +68,7 @@ import * as UrlParams from "./UrlParams.ts"
  * // Output: Parsed relative URL: https://example.com/relative-path
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const fromString: {
@@ -297,7 +297,7 @@ export const setUrlParams: {
  * // Output: [ [ 'foo', 'bar' ] ]
  * ```
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(url.searchParams)

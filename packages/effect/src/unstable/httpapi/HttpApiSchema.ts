@@ -196,6 +196,7 @@ export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code
 /**
  * Type of the `NoContent` schema, a void schema annotated with HTTP status code 204.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface NoContent extends Schema.Void {}
@@ -212,6 +213,7 @@ export const NoContent: NoContent = Empty(204)
 /**
  * Type of the `Created` schema, a void schema annotated with HTTP status code 201.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface Created extends Schema.Void {}
@@ -228,6 +230,7 @@ export const Created: Created = Empty(201)
 /**
  * Type of the `Accepted` schema, a void schema annotated with HTTP status code 202.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface Accepted extends Schema.Void {}
@@ -244,6 +247,7 @@ export const Accepted: Accepted = Empty(202)
 /**
  * Schema type returned by `asNoContent`, encoding as `void` while decoding to the original schema type.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
@@ -257,7 +261,7 @@ export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schem
  * @see {@link NoContent} for a void schema with the status code 204.
  * @see {@link Empty} for creating a void schema with a specific status code.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function asNoContent<S extends Schema.Top>(options: {
@@ -279,6 +283,7 @@ export function asNoContent<S extends Schema.Top>(options: {
 /**
  * Runtime brand key used to mark schemas as buffered multipart payloads.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export const MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
@@ -286,6 +291,7 @@ export const MultipartTypeId = "~effect/httpapi/HttpApiSchema/Multipart"
 /**
  * Type-level brand identifier used by `asMultipart`.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export type MultipartTypeId = typeof MultipartTypeId
@@ -293,6 +299,7 @@ export type MultipartTypeId = typeof MultipartTypeId
 /**
  * Schema type returned by `asMultipart` for buffered multipart payloads.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["Rebuild"], MultipartTypeId> {}
@@ -302,7 +309,7 @@ export interface asMultipart<S extends Schema.Top> extends Schema.brand<S["Rebui
  *
  * @see {@link asMultipartStream} for a multipart stream payload.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function asMultipart(options?: Multipart_.withLimits.Options) {
@@ -320,6 +327,7 @@ export function asMultipart(options?: Multipart_.withLimits.Options) {
 /**
  * Runtime brand key used to mark schemas as streaming multipart payloads.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export const MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStream"
@@ -327,6 +335,7 @@ export const MultipartStreamTypeId = "~effect/httpapi/HttpApiSchema/MultipartStr
 /**
  * Type-level brand identifier used by `asMultipartStream`.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export type MultipartStreamTypeId = typeof MultipartStreamTypeId
@@ -334,6 +343,7 @@ export type MultipartStreamTypeId = typeof MultipartStreamTypeId
 /**
  * Schema type returned by `asMultipartStream` for streaming multipart payloads.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface asMultipartStream<S extends Schema.Top> extends Schema.brand<S["Rebuild"], MultipartStreamTypeId> {}
@@ -343,7 +353,7 @@ export interface asMultipartStream<S extends Schema.Top> extends Schema.brand<S[
  *
  * @see {@link asMultipart} for a buffered multipart payload.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function asMultipartStream(options?: Multipart_.withLimits.Options) {
@@ -388,7 +398,7 @@ function defaultContentType(_tag: Encoding["_tag"]): string {
 /**
  * Marks a schema as a JSON payload / response.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function asJson(options?: {
@@ -402,7 +412,7 @@ export function asJson(options?: {
  *
  * The schema's encoded side must be a record of strings.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function asFormUrlEncoded(options?: {
@@ -418,7 +428,7 @@ export function asFormUrlEncoded(options?: {
  *
  * The schema encoded side must be a string.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function asText(options?: {
@@ -433,7 +443,7 @@ export function asText(options?: {
  *
  * The schema encoded side must be a `Uint8Array`.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function asUint8Array(options?: {
@@ -448,6 +458,7 @@ export function asUint8Array(options?: {
  * The check succeeds for direct `void` schemas and schemas whose encoded or
  * transformation target is `void`.
  *
+ * @category predicates
  * @since 4.0.0
  */
 export const isNoContent = (ast: AST.AST): boolean => {

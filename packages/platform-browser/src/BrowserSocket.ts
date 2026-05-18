@@ -30,7 +30,7 @@ import * as Socket from "effect/unstable/socket/Socket"
 /**
  * Creates a `Socket` layer connected to the given URL using the browser `WebSocket` constructor.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebSocket = (url: string, options?: {
@@ -43,7 +43,7 @@ export const layerWebSocket = (url: string, options?: {
 /**
  * Layer that provides a `WebSocketConstructor` service backed by `globalThis.WebSocket`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebSocketConstructor: Layer.Layer<Socket.WebSocketConstructor> =

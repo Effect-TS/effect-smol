@@ -112,6 +112,7 @@ export declare namespace Options {
 /**
  * Returns `true` when the supplied value is an `HttpServerResponse`.
  *
+ * @category guards
  * @since 4.0.0
  */
 export const isHttpServerResponse = (u: unknown): u is HttpServerResponse => hasProperty(u, TypeId)
@@ -918,7 +919,7 @@ export const setStatus: {
  * the supplied context, and `withoutBody` can be used for responses such as HEAD
  * responses.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWeb = (
@@ -994,7 +995,7 @@ export const toWeb = (
  * An optional request can be supplied for client-response metadata and decode
  * errors.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toClientResponse = (
@@ -1213,7 +1214,7 @@ const textDecoder = new TextDecoder()
  * The response body is streamed from the client response. `Set-Cookie` headers are
  * removed from the header map and represented in the response cookie collection.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromClientResponse = (
@@ -1304,7 +1305,7 @@ const makeResponse = (options: {
  * `Set-Cookie` headers are parsed into the response cookie collection and removed
  * from the header map. A present Web body is exposed as a stream body.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromWeb = (response: Response): HttpServerResponse => {

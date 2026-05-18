@@ -26,7 +26,7 @@ import * as React from "react"
 /**
  * Type identifier for ScopedAtom.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/atom-react/ScopedAtom"
@@ -34,7 +34,7 @@ export type TypeId = "~@effect/atom-react/ScopedAtom"
 /**
  * Type identifier for ScopedAtom.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"

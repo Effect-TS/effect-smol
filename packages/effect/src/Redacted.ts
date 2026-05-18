@@ -60,7 +60,6 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
  * const isRedacted = Redacted.isRedacted(secret) // true
  * ```
  *
- * @category namespace
  * @since 3.3.0
  */
 export declare namespace Redacted {

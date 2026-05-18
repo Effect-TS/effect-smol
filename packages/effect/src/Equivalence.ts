@@ -842,7 +842,7 @@ export function Record<A>(value: Equivalence<A>): Equivalence<Record<PropertyKey
  * - {@link combineAll} - Combine multiple equivalences
  * - {@link Reducer} - Reducer type for collection operations
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export function makeReducer<A>() {

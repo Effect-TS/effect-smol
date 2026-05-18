@@ -84,7 +84,7 @@ export interface Service {
  * The payload contains streamed choices, model metadata, optional usage, and may
  * include an OpenRouter error object for a streamed response.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponseChunk.fields.data.Type
@@ -96,7 +96,7 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
 /**
  * Service identifier for the OpenRouter client.
  *
- * @category service
+ * @category services
  * @since 4.0.0
  */
 export class OpenRouterClient extends Context.Service<

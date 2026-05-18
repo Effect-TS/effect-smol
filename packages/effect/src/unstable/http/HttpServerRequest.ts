@@ -54,7 +54,7 @@ export {
 /**
  * Runtime type identifier for `HttpServerRequest` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/http/HttpServerRequest"
@@ -171,7 +171,7 @@ export const upgradeChannel = <IE = never>(): Channel.Channel<
 /**
  * Decodes a schema from the cookies of the current request.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaCookies = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
@@ -185,7 +185,7 @@ export const schemaCookies = <A, I extends Readonly<Record<string, string | unde
 /**
  * Decodes a schema from the headers of the current request.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaHeaders = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
@@ -199,7 +199,7 @@ export const schemaHeaders = <A, I extends Readonly<Record<string, string | unde
 /**
  * Decodes a schema from the parsed search parameters of the current request.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaSearchParams = <
@@ -220,7 +220,7 @@ export const schemaSearchParams = <
  * The effect can fail if the body cannot be read or parsed, or if schema decoding
  * fails.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaBodyJson = <A, I, RD, RE>(
@@ -241,7 +241,7 @@ const isMultipart = (request: HttpServerRequest) =>
  * Multipart requests are persisted and decoded as multipart data; other form
  * requests are decoded from URL-encoded body parameters.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
@@ -266,7 +266,7 @@ export const schemaBodyForm = <A, I extends Partial<Multipart.Persisted>, RD, RE
  * Reads the current request body as URL-encoded parameters and decodes them with
  * the supplied schema.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaBodyUrlParams = <
@@ -289,7 +289,7 @@ export const schemaBodyUrlParams = <
  * The effect requires the services needed to persist multipart files, including a
  * scope, file system, and path service.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, RD, RE>(
@@ -314,7 +314,7 @@ export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, R
  * URL-encoded requests, the named parameter is decoded as JSON and then decoded
  * with the supplied schema.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaBodyFormJson = <A, I, RD, RE>(
@@ -358,7 +358,7 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
  * If the client request can be converted to an absolute URL, that URL is used as
  * the original URL.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest): HttpServerRequest => {
@@ -375,7 +375,7 @@ export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest):
  * The request's current URL is stored without the scheme and host, while the
  * original Web URL remains available as `originalUrl`.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
@@ -387,7 +387,7 @@ export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
  * The converted request preserves the method, headers, body stream, and a URL
  * derived from the request when possible.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toClientRequest = (request: HttpServerRequest): HttpClientRequest.HttpClientRequest =>
@@ -971,7 +971,7 @@ const textDecoder = new TextDecoder()
  * protocol is `https` only when `x-forwarded-proto` is `https`; invalid URLs
  * return `Option.none`.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
@@ -991,7 +991,7 @@ export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
  * an absolute URL is derived from the request; invalid URLs fail with a
  * `RequestParseError`.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWebResult = (self: HttpServerRequest, options?: {
@@ -1030,7 +1030,7 @@ export const toWebResult = (self: HttpServerRequest, options?: {
  * The current context is used when streaming the request body into the Web
  * request.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toWeb = (self: HttpServerRequest, options?: {

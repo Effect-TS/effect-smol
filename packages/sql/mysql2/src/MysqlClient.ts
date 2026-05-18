@@ -145,7 +145,7 @@ const classifyError = (
 /**
  * Runtime type identifier used to mark `MysqlClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-mysql2/MysqlClient"
@@ -153,7 +153,7 @@ export const TypeId: TypeId = "~@effect/sql-mysql2/MysqlClient"
 /**
  * Type-level identifier used to mark `MysqlClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-mysql2/MysqlClient"

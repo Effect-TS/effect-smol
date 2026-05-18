@@ -185,7 +185,7 @@ export const forever = <A>(self: Iterable<A>): Iterable<A> => repeat(self, Infin
  * ]])
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): Iterable<[K, A]> => ({

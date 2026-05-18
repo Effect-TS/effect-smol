@@ -46,7 +46,7 @@ export type TypeId = "~@effect/sql-mssql/Procedure"
 /**
  * Pipeable definition of a SQL Server stored procedure, tracking its input parameters, output parameters, and result row type.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface Procedure<
@@ -66,7 +66,7 @@ export interface Procedure<
 /**
  * Stored procedure definition with concrete input values bound for execution.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface ProcedureWithValues<
@@ -86,6 +86,7 @@ export namespace Procedure {
   /**
    * Maps a record of `Parameter` metadata to the corresponding record of parameter value types.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type ParametersRecord<
@@ -100,7 +101,7 @@ export namespace Procedure {
   /**
    * Result of a SQL Server stored procedure call, containing typed output parameter values and returned rows.
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Result<
@@ -127,7 +128,7 @@ const procedureProto = {
 /**
  * Creates an empty SQL Server stored procedure definition for the given procedure name.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (name: string): Procedure<{}, {}> => {

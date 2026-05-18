@@ -96,6 +96,7 @@ import * as Rec from "./Record.ts"
  * JSON Schema keyword. Most functions in this module accept or return this
  * type.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface JsonSchema {
@@ -110,6 +111,7 @@ export interface JsonSchema {
  * - `"openapi-3.1"` — OpenAPI 3.1 (uses Draft 2020-12 as its schema dialect)
  * - `"openapi-3.0"` — OpenAPI 3.0 (uses a Draft-04/07 subset with extensions)
  *
+ * @category models
  * @since 4.0.0
  */
 export type Dialect = "draft-07" | "draft-2020-12" | "openapi-3.1" | "openapi-3.0"
@@ -117,6 +119,7 @@ export type Dialect = "draft-07" | "draft-2020-12" | "openapi-3.1" | "openapi-3.
 /**
  * The JSON Schema primitive type names.
  *
+ * @category models
  * @since 4.0.0
  */
 export type Type = "string" | "number" | "boolean" | "array" | "object" | "null" | "integer"
@@ -124,6 +127,7 @@ export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
 /**
  * A record of named JSON Schema definitions, keyed by definition name.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface Definitions extends Record<string, JsonSchema> {}
@@ -162,6 +166,7 @@ export interface Definitions extends Record<string, JsonSchema> {}
  *
  * @see {@link MultiDocument}
  * @see {@link fromSchemaDraft2020_12}
+ * @category models
  *
  * @since 4.0.0
  */
@@ -181,6 +186,7 @@ export interface Document<D extends Dialect> {
  *
  * @see {@link Document}
  * @see {@link toMultiDocumentOpenApi3_1}
+ * @category models
  *
  * @since 4.0.0
  */
@@ -193,6 +199,7 @@ export interface MultiDocument<D extends Dialect> {
 /**
  * The `$schema` meta-schema URI for JSON Schema Draft-07.
  *
+ * @category constants
  * @since 4.0.0
  */
 export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
@@ -200,6 +207,7 @@ export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
 /**
  * The `$schema` meta-schema URI for JSON Schema Draft 2020-12.
  *
+ * @category constants
  * @since 4.0.0
  */
 export const META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
@@ -242,6 +250,7 @@ const RE_COMPONENTS_SCHEMAS = /^#\/components\/schemas(?=\/|$)/
  * @see {@link fromSchemaDraft2020_12}
  * @see {@link fromSchemaOpenApi3_0}
  * @see {@link toDocumentDraft07}
+ * @category decoding
  *
  * @since 4.0.0
  */
@@ -379,6 +388,7 @@ export function fromSchemaDraft07(js: JsonSchema): Document<"draft-2020-12"> {
  *
  * @see {@link fromSchemaDraft07}
  * @see {@link fromSchemaOpenApi3_1}
+ * @category decoding
  *
  * @since 4.0.0
  */
@@ -418,6 +428,7 @@ export function fromSchemaDraft2020_12(js: JsonSchema): Document<"draft-2020-12"
  *
  * @see {@link fromSchemaOpenApi3_0}
  * @see {@link toMultiDocumentOpenApi3_1}
+ * @category decoding
  *
  * @since 4.0.0
  */
@@ -453,6 +464,7 @@ export function fromSchemaOpenApi3_1(js: JsonSchema): Document<"draft-2020-12"> 
  *
  * @see {@link fromSchemaOpenApi3_1}
  * @see {@link fromSchemaDraft07}
+ * @category decoding
  *
  * @since 4.0.0
  */
@@ -491,6 +503,7 @@ export function fromSchemaOpenApi3_0(schema: JsonSchema): Document<"draft-2020-1
  *
  * @see {@link fromSchemaDraft07}
  * @see {@link toMultiDocumentOpenApi3_1}
+ * @category encoding
  *
  * @since 4.0.0
  */
@@ -635,6 +648,7 @@ function toSchemaDraft07(schema: JsonSchema): JsonSchema {
  *
  * @see {@link toDocumentDraft07}
  * @see {@link MultiDocument}
+ * @category encoding
  *
  * @since 4.0.0
  */
@@ -852,6 +866,7 @@ function widen_type(node: Record<string, unknown>): Record<string, unknown> {
  *
  * @see {@link resolveTopLevel$ref}
  * @see {@link Definitions}
+ * @category getters
  *
  * @since 4.0.0
  */
@@ -896,6 +911,7 @@ export function resolve$ref($ref: string, definitions: Definitions): JsonSchema 
  *
  * @see {@link resolve$ref}
  * @see {@link Document}
+ * @category transforming
  *
  * @since 4.0.0
  */

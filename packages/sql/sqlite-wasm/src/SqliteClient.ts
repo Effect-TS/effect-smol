@@ -58,7 +58,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Runtime identifier attached to SQLite WASM client values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-wasm/SqliteClient"
@@ -66,7 +66,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-wasm/SqliteClient"
 /**
  * Type-level identifier for SQLite WASM client values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-wasm/SqliteClient"
@@ -140,7 +140,7 @@ const registered = new Set<string>()
 /**
  * Creates a scoped in-memory SQLite WASM client using the memory VFS, serializing access through a semaphore and exposing database `export` and `import` operations.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const makeMemory = (
@@ -305,7 +305,7 @@ export const makeMemory = (
 /**
  * Creates a scoped worker-backed SQLite WASM client, communicating with the configured worker or message port, restarting the scoped connection on worker errors, and exposing database `export` and `import` operations.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (

@@ -408,7 +408,7 @@ export const isNonEmpty = (self: string): boolean => self.length > 0
  * assert.deepStrictEqual(String.length("abc"), 3)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const length = (self: string): number => self.length
@@ -1324,6 +1324,7 @@ export const snakeCase: (self: string) => string = noCase({
 /**
  * A `Reducer` for concatenating `string`s.
  *
+ * @category concatenating
  * @since 4.0.0
  */
 export const ReducerConcat: Reducer.Reducer<string> = Reducer.make((a, b) => a + b, "")

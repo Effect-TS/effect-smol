@@ -80,7 +80,7 @@ import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
  *
  * See also: {@link format}, {@link formatJson}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Formatter<in Value, out Format = string> {
@@ -156,6 +156,7 @@ export interface Formatter<in Value, out Format = string> {
  *
  * See also: {@link formatJson}, {@link Formatter}
  *
+ * @category formatting
  * @since 4.0.0
  */
 export function format(input: unknown, options?: {
@@ -409,6 +410,7 @@ function safeToString(input: any): string {
  *
  * See also: {@link format}, {@link Formatter}
  *
+ * @category serialization
  * @since 4.0.0
  */
 export function formatJson(input: unknown, options?: {

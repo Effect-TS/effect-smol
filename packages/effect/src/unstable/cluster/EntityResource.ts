@@ -57,7 +57,7 @@ export type TypeId = "~effect/cluster/EntityResource"
  * `get` acquires or reuses the resource in the caller's scope, while `close`
  * invalidates it so its close scope can be released.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface EntityResource<out A, out E = never> {
@@ -89,7 +89,7 @@ export class CloseScope extends Context.Service<
  * By default, the `idleTimeToLive` is infinite, meaning the resource will only
  * be released when `close` is called.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: <A, E, R>(options: {

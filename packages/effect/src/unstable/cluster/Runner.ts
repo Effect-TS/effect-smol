@@ -116,7 +116,7 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
  * Constructs a `Runner` from its network address, shard groups, and relative
  * shard-assignment weight.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (props: {

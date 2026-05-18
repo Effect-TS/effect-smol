@@ -37,7 +37,6 @@ export type HttpMethod =
 /**
  * Namespace containing subtype helpers associated with `HttpMethod`.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace HttpMethod {
@@ -61,6 +60,7 @@ export declare namespace HttpMethod {
 /**
  * Returns `true` when a method can carry a request body and narrows it to `HttpMethod.WithBody`.
  *
+ * @category predicates
  * @since 4.0.0
  */
 export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
@@ -69,6 +69,7 @@ export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
 /**
  * Set containing every supported `HttpMethod` literal.
  *
+ * @category models
  * @since 4.0.0
  */
 export const all: ReadonlySet<HttpMethod> = new Set([
@@ -85,6 +86,7 @@ export const all: ReadonlySet<HttpMethod> = new Set([
 /**
  * Tuples mapping each supported HTTP method to its short request-constructor name.
  *
+ * @category models
  * @since 4.0.0
  */
 export const allShort = [

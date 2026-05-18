@@ -177,7 +177,7 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  * @see {@link Iso} — the type this function returns
  * @see {@link id} — identity iso (no conversion)
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
@@ -255,7 +255,7 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  * @see {@link Lens} — the type this function returns
  * @see {@link makeIso} — when no original `S` is needed for `set`
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> {
@@ -342,7 +342,7 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  * @see {@link Prism} — the type this function returns
  * @see {@link fromChecks} — build from `Schema` checks instead
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S): Prism<S, A> {
@@ -383,7 +383,7 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * @see {@link makePrism} — constructor with custom getter/setter
  * @see {@link Prism} — the type this function returns
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function fromChecks<T>(...checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]): Prism<T, T> {
@@ -1030,7 +1030,7 @@ export interface Optional<in out S, in out A> {
  * @see {@link makeLens} — when reading always succeeds
  * @see {@link makePrism} — when writing always succeeds
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeOptional<S, A>(

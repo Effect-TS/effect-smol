@@ -135,7 +135,7 @@ export interface Deferred<in out A, in out E = never> extends Deferred.Variance<
 /**
  * Checks whether a value is a `Deferred`.
  *
- * @category Guards
+ * @category guards
  * @since 2.0.0
  */
 export const isDeferred = <A, E>(u: unknown): u is Deferred<A, E> => hasProperty(u, TypeId)
@@ -143,7 +143,6 @@ export const isDeferred = <A, E>(u: unknown): u is Deferred<A, E> => hasProperty
 /**
  * Companion namespace containing type-level metadata for `Deferred`.
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Deferred {

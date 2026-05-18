@@ -33,7 +33,7 @@ import * as OpenApi from "./OpenApi.ts"
 /**
  * Theme preset identifier accepted by the Scalar API reference UI.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type ScalarThemeId =
@@ -55,7 +55,7 @@ export type ScalarThemeId =
  *
  * @see https://github.com/scalar/scalar/blob/main/documentation/configuration.md
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type ScalarConfig = {

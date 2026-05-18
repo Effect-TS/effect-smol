@@ -35,6 +35,7 @@ import type { FromServerEncoded } from "./RpcMessage.ts"
  * a writer, replays buffered writes with their original contexts, and restores
  * the previous writer when the run ends.
  *
+ * @category services
  * @since 4.0.0
  */
 export const withRun = <
@@ -77,6 +78,7 @@ export const withRun = <
  * buffers server responses per client until that client's `run` handler is
  * installed.
  *
+ * @category services
  * @since 4.0.0
  */
 export const withRunClient = <EX, RX>(

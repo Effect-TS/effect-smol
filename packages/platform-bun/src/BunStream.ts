@@ -40,6 +40,7 @@ export * from "@effect/platform-node-shared/NodeStream"
  * An optimized version of `Stream.fromReadableStream` that uses the Bun
  * .readMany API to read multiple values at once from a `ReadableStream`.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const fromReadableStream = <A, E>(

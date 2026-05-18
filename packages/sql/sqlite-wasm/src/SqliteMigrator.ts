@@ -33,7 +33,7 @@ export * from "effect/unstable/sql/Migrator"
 /**
  * Runs SQL migrations for a SQLite WASM database using the shared `Migrator` implementation and the current `SqlClient`.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const run: <R>(
@@ -47,7 +47,7 @@ export const run: <R>(
 /**
  * Creates a layer that runs the configured SQLite WASM migrations during layer construction and provides no services.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const layer = <R>(

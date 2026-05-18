@@ -31,6 +31,7 @@ import * as Stream from "../../Stream.ts"
  * Creates a stream from a callback-style producer with pause and resume
  * callbacks that are triggered when the internal queue applies backpressure.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const asyncPauseResume = <A, E = never, R = never>(

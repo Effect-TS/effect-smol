@@ -466,7 +466,7 @@ export const compose: {
  * }
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const absurd = <A>(_: never): A => {
@@ -1283,7 +1283,7 @@ export function flow(
  * console.log(typeof buildUser) // "function"
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const hole: <T>() => T = cast(absurd)
@@ -1312,6 +1312,7 @@ export const SK = <A, B>(_: A, b: B): B => b
  * Memoizes a function whose input is an object, caching results by object
  * identity.
  *
+ * @category utils
  * @since 4.0.0
  */
 export function memoize<A extends object, O>(f: (a: A) => O): (ast: A) => O {

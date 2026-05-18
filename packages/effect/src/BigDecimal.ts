@@ -1262,7 +1262,7 @@ export const fromStringUnsafe = (s: string): BigDecimal => {
  * assert.deepStrictEqual(format(fromStringUnsafe("-0.00000123")), "-0.00000123")
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const format = (n: BigDecimal): string => {
@@ -1308,7 +1308,7 @@ export const format = (n: BigDecimal): string => {
  * assert.deepStrictEqual(toExponential(make(123456n, -5)), "1.23456e+10")
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toExponential = (n: BigDecimal): string => {
@@ -1346,7 +1346,7 @@ export const toExponential = (n: BigDecimal): string => {
  * assert.deepStrictEqual(toNumberUnsafe(fromStringUnsafe("123.456")), 123.456)
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toNumberUnsafe = (n: BigDecimal): number => Number(format(n))

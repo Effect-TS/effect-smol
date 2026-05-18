@@ -116,7 +116,7 @@ import * as Getter from "./SchemaGetter.ts"
  * @see {@link Reviver}
  * @see {@link toSchemaDefaultReviver}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Declaration {
@@ -135,7 +135,7 @@ export interface Declaration {
  *
  * @see {@link Reference}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Suspend {
@@ -155,7 +155,7 @@ export interface Suspend {
  * @see {@link References}
  * @see {@link Document}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Reference {
@@ -166,7 +166,7 @@ export interface Reference {
 /**
  * The `null` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Null {
@@ -177,7 +177,7 @@ export interface Null {
 /**
  * The `undefined` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Undefined {
@@ -188,7 +188,7 @@ export interface Undefined {
 /**
  * The `void` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Void {
@@ -199,7 +199,7 @@ export interface Void {
 /**
  * The `never` type (no valid values).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Never {
@@ -210,7 +210,7 @@ export interface Never {
 /**
  * The `unknown` type (any value accepted).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Unknown {
@@ -221,7 +221,7 @@ export interface Unknown {
 /**
  * The `any` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Any {
@@ -239,7 +239,7 @@ export interface Any {
  * @see {@link StringMeta}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface String {
@@ -257,7 +257,7 @@ export interface String {
  *
  * @see {@link NumberMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Number {
@@ -269,7 +269,7 @@ export interface Number {
 /**
  * The `boolean` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Boolean {
@@ -282,7 +282,7 @@ export interface Boolean {
  *
  * @see {@link BigIntMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface BigInt {
@@ -294,7 +294,7 @@ export interface BigInt {
 /**
  * The `symbol` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Symbol {
@@ -305,7 +305,7 @@ export interface Symbol {
 /**
  * A specific literal value (`string`, `number`, `boolean`, or `bigint`).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Literal {
@@ -317,7 +317,7 @@ export interface Literal {
 /**
  * A specific unique `symbol` value.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface UniqueSymbol {
@@ -329,7 +329,7 @@ export interface UniqueSymbol {
 /**
  * The `object` keyword type (matches any non-primitive).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface ObjectKeyword {
@@ -340,7 +340,7 @@ export interface ObjectKeyword {
 /**
  * A TypeScript-style enum. Each entry is a `[name, value]` pair.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Enum {
@@ -353,7 +353,7 @@ export interface Enum {
  * A template literal type composed of a sequence of parts (literals, strings,
  * numbers, etc.).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface TemplateLiteral {
@@ -374,7 +374,7 @@ export interface TemplateLiteral {
  * @see {@link Element}
  * @see {@link ArraysMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Arrays {
@@ -393,7 +393,7 @@ export interface Arrays {
  *
  * @see {@link Arrays}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Element {
@@ -413,7 +413,7 @@ export interface Element {
  * @see {@link IndexSignature}
  * @see {@link ObjectsMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Objects {
@@ -433,7 +433,7 @@ export interface Objects {
  *
  * @see {@link Objects}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface PropertySignature {
@@ -452,7 +452,7 @@ export interface PropertySignature {
  *
  * @see {@link Objects}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface IndexSignature {
@@ -467,7 +467,7 @@ export interface IndexSignature {
  * - `mode` controls JSON Schema output: `"anyOf"` (default) or `"oneOf"`
  *   (mutually exclusive).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Union {
@@ -487,7 +487,7 @@ export interface Union {
  * @see {@link Document}
  * @see {@link fromAST}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type Representation =
@@ -521,7 +521,7 @@ export type Representation =
  * @see {@link Filter}
  * @see {@link FilterGroup}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type Check<M> = Filter<M> | FilterGroup<M>
@@ -532,7 +532,7 @@ export type Check<M> = Filter<M> | FilterGroup<M>
  *
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Filter<M> {
@@ -547,7 +547,7 @@ export interface Filter<M> {
  *
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface FilterGroup<M> {
@@ -563,7 +563,7 @@ export interface FilterGroup<M> {
  * @see {@link String}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -595,7 +595,7 @@ export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Number}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type NumberMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -615,7 +615,7 @@ export type NumberMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link BigInt}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -633,7 +633,7 @@ export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Arrays}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type ArraysMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -650,7 +650,7 @@ export type ArraysMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Objects}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type ObjectsMeta =
@@ -667,7 +667,7 @@ export type ObjectsMeta =
  * @see {@link Declaration}
  * @see {@link DeclarationMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -686,7 +686,7 @@ export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Declaration}
  * @see {@link DeclarationMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -699,7 +699,7 @@ export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * Metadata union for {@link Declaration} checks — either {@link DateMeta}
  * or {@link SizeMeta}.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type DeclarationMeta = DateMeta | SizeMeta
@@ -715,7 +715,7 @@ export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMe
  * @see {@link Reference}
  * @see {@link Document}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface References {
@@ -733,7 +733,7 @@ export interface References {
  * @see {@link MultiDocument}
  * @see {@link fromAST}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type Document = {
@@ -751,7 +751,7 @@ export type Document = {
  * @see {@link Document}
  * @see {@link fromASTs}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type MultiDocument = {
@@ -783,7 +783,7 @@ export type PrimitiveTree = Schema.Tree<null | number | boolean | bigint | symbo
 /**
  * Schema codec for {@link PrimitiveTree}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $PrimitiveTree: Schema.Codec<PrimitiveTree> = Schema.Tree(
@@ -803,7 +803,7 @@ const isPrimitiveTree = Schema.is($PrimitiveTree)
  * Schema codec for `Schema.Annotations.Annotations`. Filters out internal
  * annotation keys and non-primitive values during encoding.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Annotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
@@ -824,7 +824,7 @@ export const $Annotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
 /**
  * Schema codec for the {@link Null} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Null = Schema.Struct({
@@ -835,7 +835,7 @@ export const $Null = Schema.Struct({
 /**
  * Schema codec for the {@link Undefined} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Undefined = Schema.Struct({
@@ -846,7 +846,7 @@ export const $Undefined = Schema.Struct({
 /**
  * Schema codec for the {@link Void} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Void = Schema.Struct({
@@ -857,7 +857,7 @@ export const $Void = Schema.Struct({
 /**
  * Schema codec for the {@link Never} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Never = Schema.Struct({
@@ -868,7 +868,7 @@ export const $Never = Schema.Struct({
 /**
  * Schema codec for the {@link Unknown} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Unknown = Schema.Struct({
@@ -879,7 +879,7 @@ export const $Unknown = Schema.Struct({
 /**
  * Schema codec for the {@link Any} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Any = Schema.Struct({
@@ -992,7 +992,7 @@ const $IsPattern = Schema.Struct({
 /**
  * Schema codec for {@link StringMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $StringMeta = Schema.Union([
@@ -1037,7 +1037,7 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
 /**
  * Schema codec for the {@link String} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $String = Schema.Struct({
@@ -1092,7 +1092,7 @@ const $IsBetween = Schema.Struct({
 /**
  * Schema codec for {@link NumberMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $NumberMeta = Schema.Union([
@@ -1109,7 +1109,7 @@ export const $NumberMeta = Schema.Union([
 /**
  * Schema codec for the {@link Number} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Number = Schema.Struct({
@@ -1121,7 +1121,7 @@ export const $Number = Schema.Struct({
 /**
  * Schema codec for the {@link Boolean} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Boolean = Schema.Struct({
@@ -1168,7 +1168,7 @@ const $BigIntMeta = Schema.Union([
 /**
  * Schema codec for the {@link BigInt} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $BigInt = Schema.Struct({
@@ -1180,7 +1180,7 @@ export const $BigInt = Schema.Struct({
 /**
  * Schema codec for the {@link Symbol} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Symbol = Schema.Struct({
@@ -1192,7 +1192,7 @@ export const $Symbol = Schema.Struct({
  * Schema codec for the literal value types allowed in a {@link Literal} node
  * (string, finite number, boolean, or bigint).
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $LiteralValue = Schema.Union([
@@ -1205,7 +1205,7 @@ export const $LiteralValue = Schema.Union([
 /**
  * Schema codec for the {@link Literal} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Literal = Schema.Struct({
@@ -1217,7 +1217,7 @@ export const $Literal = Schema.Struct({
 /**
  * Schema codec for the {@link UniqueSymbol} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $UniqueSymbol = Schema.Struct({
@@ -1229,7 +1229,7 @@ export const $UniqueSymbol = Schema.Struct({
 /**
  * Schema codec for the {@link ObjectKeyword} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $ObjectKeyword = Schema.Struct({
@@ -1240,7 +1240,7 @@ export const $ObjectKeyword = Schema.Struct({
 /**
  * Schema codec for the {@link Enum} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Enum = Schema.Struct({
@@ -1260,7 +1260,7 @@ export const $Enum = Schema.Struct({
 /**
  * Schema codec for the {@link TemplateLiteral} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $TemplateLiteral = Schema.Struct({
@@ -1272,7 +1272,7 @@ export const $TemplateLiteral = Schema.Struct({
 /**
  * Schema codec for the {@link Element} type (positional tuple element).
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Element = Schema.Struct({
@@ -1295,7 +1295,7 @@ const $ArraysMeta = Schema.Union([
 /**
  * Schema codec for the {@link Arrays} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Arrays = Schema.Struct({
@@ -1309,7 +1309,7 @@ export const $Arrays = Schema.Struct({
 /**
  * Schema codec for the {@link PropertySignature} type.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $PropertySignature = Schema.Struct({
@@ -1323,7 +1323,7 @@ export const $PropertySignature = Schema.Struct({
 /**
  * Schema codec for the {@link IndexSignature} type.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $IndexSignature = Schema.Struct({
@@ -1355,7 +1355,7 @@ const $IsPropertyNames = Schema.Struct({
 /**
  * Schema codec for {@link ObjectsMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $ObjectsMeta = Schema.Union([
@@ -1368,7 +1368,7 @@ export const $ObjectsMeta = Schema.Union([
 /**
  * Schema codec for the {@link Objects} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Objects = Schema.Struct({
@@ -1382,7 +1382,7 @@ export const $Objects = Schema.Struct({
 /**
  * Schema codec for the {@link Union} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Union = Schema.Struct({
@@ -1395,7 +1395,7 @@ export const $Union = Schema.Struct({
 /**
  * Schema codec for the {@link Reference} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Reference = Schema.Struct({
@@ -1438,7 +1438,7 @@ const $IsBetweenDate = Schema.Struct({
 /**
  * Schema codec for {@link DateMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $DateMeta = Schema.Union([
@@ -1469,7 +1469,7 @@ const $IsSizeBetween = Schema.Struct({
 /**
  * Schema codec for {@link SizeMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $SizeMeta = Schema.Union([
@@ -1481,7 +1481,7 @@ export const $SizeMeta = Schema.Union([
 /**
  * Schema codec for {@link DeclarationMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $DeclarationMeta = Schema.Union([
@@ -1492,7 +1492,7 @@ export const $DeclarationMeta = Schema.Union([
 /**
  * Schema codec for the {@link Declaration} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Declaration = Schema.Struct({
@@ -1506,7 +1506,7 @@ export const $Declaration = Schema.Struct({
 /**
  * Schema codec for the {@link Suspend} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Suspend = Schema.Struct({
@@ -1519,6 +1519,7 @@ export const $Suspend = Schema.Struct({
 /**
  * Type-level helper for the recursive {@link $Representation} codec.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface $Representation extends Schema.Codec<Representation> {}
@@ -1527,7 +1528,7 @@ export interface $Representation extends Schema.Codec<Representation> {}
  * Schema codec for the full {@link Representation} union. This is the
  * recursive codec that can validate/encode any representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Representation: $Representation = Schema.Union([
@@ -1559,7 +1560,7 @@ export const $Representation: $Representation = Schema.Union([
  * Schema codec for {@link Document}. Use with `Schema.decodeUnknownSync` or
  * `Schema.encodeSync` to validate or serialize document data.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Document = Schema.Struct({
@@ -1570,7 +1571,7 @@ export const $Document = Schema.Struct({
 /**
  * Schema codec for {@link MultiDocument}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $MultiDocument = Schema.Struct({
@@ -1607,6 +1608,7 @@ export const $MultiDocument = Schema.Struct({
  * @see {@link Document}
  * @see {@link fromASTs}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAST
@@ -1621,6 +1623,7 @@ export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAS
  * @see {@link MultiDocument}
  * @see {@link fromAST}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalRepresentation.fromASTs
@@ -1644,6 +1647,7 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
  * @see {@link $Document}
  * @see {@link MultiDocumentFromJson}
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const DocumentFromJson: Schema.Codec<Document, Schema.Json> = Schema.toCodecJson($Document)
@@ -1655,6 +1659,7 @@ export const DocumentFromJson: Schema.Codec<Document, Schema.Json> = Schema.toCo
  * @see {@link $MultiDocument}
  * @see {@link DocumentFromJson}
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = Schema.toCodecJson($MultiDocument)
@@ -1670,6 +1675,7 @@ export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = S
  * @see {@link Document}
  * @see {@link MultiDocument}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function toMultiDocument(document: Document): MultiDocument {
@@ -1692,6 +1698,7 @@ export function toMultiDocument(document: Document): MultiDocument {
  * @see {@link toSchemaDefaultReviver}
  * @see {@link toCodeDocument}
  *
+ * @category models
  * @since 4.0.0
  */
 export type Reviver<T> = (declaration: Declaration, recur: (representation: Representation) => T) => T | undefined
@@ -1710,6 +1717,7 @@ export type Reviver<T> = (declaration: Declaration, recur: (representation: Repr
  * @see {@link toSchema}
  * @see {@link Reviver}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
@@ -2140,6 +2148,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
  * @see {@link toJsonSchemaMultiDocument}
  * @see {@link fromJsonSchemaDocument}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const toJsonSchemaDocument: (
@@ -2158,6 +2167,7 @@ export const toJsonSchemaDocument: (
  * @see {@link toJsonSchemaDocument}
  * @see {@link fromJsonSchemaMultiDocument}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const toJsonSchemaMultiDocument: (
@@ -2893,6 +2903,7 @@ function toRuntimeRegExp(regExp: RegExp): string {
  * @see {@link toJsonSchemaDocument}
  * @see {@link fromJsonSchemaMultiDocument}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">, options?: {
@@ -2922,6 +2933,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  * @see {@link toJsonSchemaMultiDocument}
  * @see {@link fromJsonSchemaDocument}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">, options?: {

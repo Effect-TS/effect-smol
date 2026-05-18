@@ -53,7 +53,7 @@ import type * as Schedule from "./Schedule.ts"
  * String literal type used as the runtime type identifier for `ExecutionPlan`
  * values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 3.16.0
  */
 export type TypeId = "~effect/ExecutionPlan"
@@ -62,7 +62,7 @@ export type TypeId = "~effect/ExecutionPlan"
  * Runtime type identifier attached to `ExecutionPlan` values and used by
  * `isExecutionPlan`.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 3.16.0
  */
 export const TypeId: TypeId = "~effect/ExecutionPlan"
@@ -72,7 +72,7 @@ export const TypeId: TypeId = "~effect/ExecutionPlan"
  *
  * This is a type guard that checks for the `ExecutionPlan.TypeId` marker.
  *
- * @category Guards
+ * @category guards
  * @since 3.16.0
  */
 export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicate.hasProperty(u, TypeId)
@@ -117,7 +117,7 @@ export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicat
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @category Models
+ * @category models
  * @since 3.16.0
  */
 export interface ExecutionPlan<
@@ -163,7 +163,7 @@ export interface ExecutionPlan<
  * from plan layers or predicates, and `requirements` tracks services needed to
  * build or run the plan.
  *
- * @category Models
+ * @category models
  * @since 3.16.0
  */
 export type ConfigBase = {
@@ -213,7 +213,7 @@ export type ConfigBase = {
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 3.16.0
  */
 export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
@@ -261,6 +261,7 @@ export declare namespace make {
    * `while` predicate for retry decisions, or attach a `Schedule` for retry
    * timing.
    *
+   * @category models
    * @since 3.16.0
    */
   export type Step = {
@@ -274,6 +275,7 @@ export declare namespace make {
    * Computes the intersection of services provided by a list of execution-plan
    * steps.
    *
+   * @category utility types
    * @since 3.16.1
    */
   export type StepProvides<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -290,6 +292,7 @@ export declare namespace make {
   /**
    * Computes the intersection of services provided by a list of execution plans.
    *
+   * @category utility types
    * @since 3.16.1
    */
   export type PlanProvides<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
@@ -301,6 +304,7 @@ export declare namespace make {
    * Computes the input type consumed by the `while` predicates and schedules in
    * a list of execution-plan steps.
    *
+   * @category utility types
    * @since 3.16.0
    */
   export type StepInput<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -317,6 +321,7 @@ export declare namespace make {
   /**
    * Computes the combined input type consumed by a list of execution plans.
    *
+   * @category utility types
    * @since 3.16.0
    */
   export type PlanInput<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends

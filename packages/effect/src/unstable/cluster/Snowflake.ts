@@ -33,6 +33,7 @@ import type { MachineId } from "./MachineId.ts"
 /**
  * Runtime brand identifier for cluster snowflake ids.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/cluster/Snowflake"
@@ -40,6 +41,7 @@ export const TypeId = "~effect/cluster/Snowflake"
 /**
  * Type-level representation of the cluster snowflake brand identifier.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = typeof TypeId
@@ -48,7 +50,7 @@ export type TypeId = typeof TypeId
  * Branded bigint identifier composed from a timestamp, machine id, and per-machine
  * sequence number.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Snowflake = Brand.Branded<bigint, TypeId>
@@ -56,7 +58,7 @@ export type Snowflake = Brand.Branded<bigint, TypeId>
 /**
  * Constructs a branded `Snowflake` from a bigint or bigint-compatible string.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export const Snowflake = (input: string | bigint): Snowflake =>
@@ -65,7 +67,6 @@ export const Snowflake = (input: string | bigint): Snowflake =>
 /**
  * Namespace containing support types for snowflake parts and generators.
  *
- * @category Models
  * @since 4.0.0
  */
 export declare namespace Snowflake {
@@ -73,7 +74,7 @@ export declare namespace Snowflake {
    * Decoded components of a snowflake id: Unix timestamp milliseconds, machine id,
    * and sequence number.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Parts {
@@ -86,7 +87,7 @@ export declare namespace Snowflake {
    * Stateful generator for runner-local snowflake ids, exposing an unsafe
    * synchronous `nextUnsafe` operation and an effectful machine id setter.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Generator {
@@ -98,7 +99,7 @@ export declare namespace Snowflake {
 /**
  * Schema type for snowflake ids represented as branded bigints.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface SnowflakeFromBigInt extends Schema.brand<Schema.BigInt, TypeId> {}
@@ -106,7 +107,7 @@ export interface SnowflakeFromBigInt extends Schema.brand<Schema.BigInt, TypeId>
 /**
  * Schema for snowflake ids represented as branded bigints.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(Schema.brand(TypeId))
@@ -114,7 +115,7 @@ export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(Schem
 /**
  * Schema type for snowflake ids decoded from strings into branded bigints.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt, Schema.String> {}
@@ -123,7 +124,7 @@ export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt
  * Schema that decodes snowflake ids from strings into branded bigints and encodes
  * them back to strings.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(

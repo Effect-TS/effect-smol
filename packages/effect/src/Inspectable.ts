@@ -152,6 +152,7 @@ export interface Inspectable {
  * For objects that don't have a `toJSON` method, it applies redaction to
  * protect sensitive information.
  *
+ * @category converting
  * @since 2.0.0
  */
 export const toJson = (input: unknown): unknown => {
@@ -178,6 +179,7 @@ export const toJson = (input: unknown): unknown => {
  * provided whitespace setting when possible, and values that cannot be
  * formatted are converted with `String`.
  *
+ * @category converting
  * @since 2.0.0
  */
 export const toStringUnknown = (u: unknown, whitespace: number | string | undefined = 2): string => {
@@ -218,6 +220,7 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
  * MyClass.prototype.constructor = MyClass
  * ```
  *
+ * @category models
  * @since 2.0.0
  */
 export const BaseProto: Inspectable = {

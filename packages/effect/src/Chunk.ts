@@ -466,7 +466,7 @@ const toArray_ = <A>(self: Chunk<A>): Array<A> => toReadonlyArray(self).slice()
  * console.log(Chunk.toArray(emptyChunk)) // []
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toArray: <S extends Chunk<any>>(
@@ -518,7 +518,7 @@ const toReadonlyArray_ = <A>(self: Chunk<A>): ReadonlyArray<A> => {
  * console.log(Chunk.toReadonlyArray(emptyChunk)) // []
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toReadonlyArray: <S extends Chunk<any>>(
@@ -1532,7 +1532,6 @@ export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = lastUnsafe
  * type WithString = Chunk.Chunk.With<typeof nonEmptyChunk, string> // Chunk.NonEmptyChunk<string>
  * ```
  *
- * @category types
  * @since 2.0.0
  */
 export declare namespace Chunk {

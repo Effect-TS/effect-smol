@@ -31,7 +31,7 @@ const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 /**
  * Service interface for browser geolocation, providing effects for the current position and streams of watched positions.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Geolocation {
@@ -51,7 +51,7 @@ export interface Geolocation {
 /**
  * Service tag for the browser `Geolocation` service.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export const Geolocation: Context.Service<Geolocation, Geolocation> = Context.Service<Geolocation>(TypeId)
@@ -59,7 +59,7 @@ export const Geolocation: Context.Service<Geolocation, Geolocation> = Context.Se
 /**
  * Tagged error wrapping a browser geolocation failure reason.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class GeolocationError extends Data.TaggedError("GeolocationError")<{
@@ -84,7 +84,7 @@ export class GeolocationError extends Data.TaggedError("GeolocationError")<{
 /**
  * Error reason for the browser geolocation `POSITION_UNAVAILABLE` failure.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")<{
@@ -98,7 +98,7 @@ export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")
 /**
  * Error reason for the browser geolocation `PERMISSION_DENIED` failure.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
@@ -112,7 +112,7 @@ export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
 /**
  * Error reason for the browser geolocation `TIMEOUT` failure.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class Timeout extends Data.TaggedError("Timeout")<{
@@ -126,7 +126,7 @@ export class Timeout extends Data.TaggedError("Timeout")<{
 /**
  * Union of browser geolocation error reasons represented by the service.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export type GeolocationErrorReason = PositionUnavailable | PermissionDenied | Timeout
@@ -173,7 +173,7 @@ const makeQueue = (
 /**
  * Layer that provides `Geolocation` using `navigator.geolocation`, with watched positions buffered in a sliding queue.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Geolocation> = Layer.succeed(

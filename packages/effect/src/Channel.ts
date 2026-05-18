@@ -1276,7 +1276,7 @@ export const fromQueueArray = <A, E>(
  * Creates a channel that forwards upstream input elements, input errors, and
  * the upstream done value unchanged.
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err, Done> =>
@@ -1766,7 +1766,7 @@ export const fromAsyncIterableArray = <A, D, E>(
  * }))
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const map: {
@@ -1795,7 +1795,7 @@ export const map: {
 /**
  * Maps the done value of this channel using the specified function.
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const mapDone: {
@@ -1819,7 +1819,7 @@ export const mapDone: {
 /**
  * Maps the done value of this channel using the specified effectful function.
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const mapDoneEffect: {
@@ -3139,7 +3139,7 @@ export const schedule: {
  * // Outputs: 1, 2, 3 (all typed as numbers)
  * ```
  *
- * @category Filtering
+ * @category filtering
  * @since 2.0.0
  */
 export const filter: {
@@ -3184,7 +3184,7 @@ export const filter: {
  * results are discarded. The source channel's errors and done value are
  * preserved.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMap: {
@@ -3221,7 +3221,7 @@ export const filterMap: {
  * for which the predicate succeeds with `false` are discarded. Predicate
  * failures fail the returned channel.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterEffect: {
@@ -3261,7 +3261,7 @@ export const filterEffect: {
  * results are discarded. Failures from the effectful filter fail the returned
  * channel.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMapEffect: {
@@ -3327,7 +3327,7 @@ export const filterMapEffect: {
  * // Outputs: [2, 4] (the arrays [1,3,5] and [7,9] are discarded)
  * ```
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterArray: {
@@ -3376,7 +3376,7 @@ export const filterArray: {
  * Successful filter results are kept as mapped values. Failed filter results
  * are removed from the array. Arrays that become empty are discarded.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMapArray: {
@@ -3418,7 +3418,7 @@ export const filterMapArray: {
  * for which the predicate succeeds with `true` are kept. Arrays that become
  * empty are discarded. Predicate failures fail the returned channel.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterArrayEffect: {
@@ -3453,7 +3453,7 @@ export const filterArrayEffect: {
  * are removed from the array. Arrays that become empty are discarded. Failures
  * from the effectful filter fail the returned channel.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMapArrayEffect: {
@@ -3519,7 +3519,7 @@ export const filterMapArrayEffect: {
  * )
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const mapAccum: {
@@ -3652,7 +3652,7 @@ export const mapAccum: {
  * // Outputs: "", "hello", "hello world", "hello world from", "hello world from effect"
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const scan: {
@@ -3726,7 +3726,7 @@ export const scan: {
  * )
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const scanEffect: {
@@ -3809,7 +3809,7 @@ export const scanEffect: {
  * // The channel recovers gracefully from errors
  * ```
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchCause: {
@@ -3915,7 +3915,7 @@ export const catchCause: {
  * Use this for observing failures, such as logging or metrics. If the observer
  * effect fails, that failure can fail the returned channel.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const tapCause: {
@@ -3988,7 +3988,7 @@ export const tapCause: {
  * Catches causes of failure that match a specific filter, allowing
  * conditional error recovery based on the type of failure.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchCauseIf: {
@@ -4102,7 +4102,7 @@ export const catchCauseIf: {
  * and the original cause. When the filter fails, the returned channel fails
  * with the residual cause produced by the filter.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchCauseFilter: {
@@ -4301,7 +4301,7 @@ const catch_: {
 
 export {
   /**
-   * @category Error handling
+   * @category error handling
    * @since 4.0.0
    */
   catch_ as catch
@@ -4314,7 +4314,7 @@ export {
  * The effect is not run for normal channel completion. If the observer effect
  * fails, that failure can fail the returned channel.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const tapError: {
@@ -4398,7 +4398,7 @@ export const tapError: {
  * are handled by `orElse` when provided. Without `orElse`, non-matching errors
  * are re-failed.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchIf: {
@@ -4630,7 +4630,7 @@ export const catchIf: {
  * filter results are handled by `orElse` when provided. Without `orElse`,
  * failed filter results are re-failed.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchFilter: {
@@ -4787,7 +4787,7 @@ export const catchFilter: {
  * errors are handled by `orElse` when provided. Without `orElse`,
  * non-matching errors are re-failed.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchTag: {
@@ -4957,7 +4957,7 @@ export const catchTag: {
  * )
  * ```
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchReason: {
@@ -5129,7 +5129,7 @@ export const catchReason: {
 /**
  * Catches multiple reasons within a tagged error using an object of handlers.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchReasons: {
@@ -5327,7 +5327,7 @@ export const catchReasons: {
  * const unwrapped = channel.pipe(Channel.unwrapReason("AiError"))
  * ```
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const unwrapReason: {
@@ -5401,7 +5401,7 @@ export const unwrapReason: {
  * value of the returned channel is created by applying the specified function
  * to the failure value of this channel.
  *
- * @category Error handling
+ * @category error handling
  * @since 2.0.0
  */
 export const mapError: {
@@ -5441,7 +5441,7 @@ export const mapError: {
  * // Any failure will now become a defect (uncaught exception)
  * ```
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const orDie = <
@@ -5461,7 +5461,7 @@ export const orDie = <
  *
  * Use the `log` option to emit the full {@link Cause} when the channel fails.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const ignore: <
@@ -5516,7 +5516,7 @@ const ignoreCause_ = <
  *
  * Use the `log` option to emit the full {@link Cause} when the channel fails.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const ignoreCause: <
@@ -6926,7 +6926,7 @@ const runWith = <
 /**
  * Create a channel from the specified services.
  *
- * @category Services
+ * @category services
  * @since 2.0.0
  */
 export const contextWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2>(
@@ -6940,7 +6940,7 @@ export const contextWith = <Env, OutElem, OutErr, OutDone, InElem, InErr, InDone
  * Provides a `Context` to the channel, removing the corresponding service
  * requirements from the returned channel.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const provideContext: {
@@ -6968,7 +6968,7 @@ export const provideContext: {
  * Provides a concrete service for a context key, removing that service
  * requirement from the returned channel.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const provideService: {
@@ -7002,7 +7002,7 @@ export const provideService: {
  * If the service effect fails, the returned channel fails. The provided service
  * removes the corresponding service requirement from the returned channel.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const provideServiceEffect: {
@@ -7037,7 +7037,7 @@ export const provideServiceEffect: {
  * builds the layer in the channel scope. Use `options.local` to build a fresh
  * layer instance for this provision.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const provide: {
@@ -7083,7 +7083,7 @@ export const provide: {
  * provide to the channel. The returned channel requires the services needed to
  * build that context.
  *
- * @category Services
+ * @category services
  * @since 2.0.0
  */
 export const updateContext: {
@@ -7113,7 +7113,7 @@ export const updateContext: {
  * The existing service is read from the context. The updated service is
  * provided to the channel under the same key.
  *
- * @category Services
+ * @category services
  * @since 2.0.0
  */
 export const updateService: {
@@ -7146,7 +7146,7 @@ export const updateService: {
  * The created span is provided as the current parent span while the channel
  * runs. The span is ended with the channel's exit value.
  *
- * @category Tracing
+ * @category tracing
  * @since 4.0.0
  */
 export const withSpan: {
@@ -7761,7 +7761,7 @@ export const runFoldEffect: {
  * // Use the Pull to manually consume elements
  * ```
  *
- * @category Destructors
+ * @category destructors
  * @since 2.0.0
  */
 export const toPull: <OutElem, OutErr, OutDone, Env>(
@@ -7810,7 +7810,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
  * })
  * ```
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
@@ -7825,7 +7825,7 @@ export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
  * queue is failed with the channel's cause. The returned effect itself
  * completes with `void`.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const runIntoQueue: {
@@ -7866,7 +7866,7 @@ export const runIntoQueue: {
  * queue is failed with the channel's cause. The returned effect itself
  * completes with `void`.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const runIntoQueueArray: {
@@ -7926,7 +7926,7 @@ export const runIntoQueueArray: {
  * // Multiple consumers can read from the queue
  * ```
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const toQueue: {
@@ -7978,7 +7978,7 @@ export const toQueue: {
  * completion and failure are signaled through the queue. The queue is shut down
  * when the surrounding scope closes.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const toQueueArray: {
@@ -8029,7 +8029,7 @@ export const toQueueArray: {
  * `shutdownOnEnd` indicates whether the PubSub should be shut down when the
  * channel ends. By default this is `true`.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const toPubSub: {
@@ -8089,7 +8089,7 @@ export const toPubSub: {
  * The channel's output values are published as individual PubSub messages. Use
  * `options.shutdownOnEnd` to shut down the PubSub when channel execution ends.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const runIntoPubSub: {
@@ -8151,7 +8151,7 @@ const makePubSub = <A>(
  * PubSub message. `shutdownOnEnd` indicates whether the PubSub should be shut
  * down when the channel ends. By default this is `true`.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const toPubSubArray: {
@@ -8213,7 +8213,7 @@ export const toPubSubArray: {
  * PubSub message. Use `options.shutdownOnEnd` to shut down the PubSub when
  * channel execution ends.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const runIntoPubSubArray: {
@@ -8253,7 +8253,7 @@ export const runIntoPubSubArray: {
  * channel ends, its final `Exit` is published so subscribers can observe
  * completion or failure.
  *
- * @category Destructors
+ * @category destructors
  * @since 4.0.0
  */
 export const toPubSubTake: {

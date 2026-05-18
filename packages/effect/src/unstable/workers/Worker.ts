@@ -154,6 +154,7 @@ export const layerSpawner: <W = unknown>(
  * buffering sent messages until the worker is ready and scoping port cleanup to
  * the worker run.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const makePlatform = <W>() =>

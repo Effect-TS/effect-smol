@@ -250,7 +250,7 @@ export class ServeError extends Data.TaggedError("ServeError")<{
  * `causeResponse` uses this annotation to map a pure client abort to a `499`
  * response instead of a server abort response.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export class ClientAbort extends Context.Service<ClientAbort, true>()("effect/http/HttpServerError/ClientAbort") {
@@ -276,6 +276,7 @@ const formatRequestMessage = (reason: string, description: string | undefined, i
  * are already `HttpServerResponse` values are used directly, and pure interrupts
  * produce either `499` for client aborts or `503` for server aborts.
  *
+ * @category error handling
  * @since 4.0.0
  */
 export const causeResponse = <E>(
@@ -330,6 +331,7 @@ export const causeResponse = <E>(
  * response is used and removed from the remaining cause. Otherwise the response
  * defaults to `500`.
  *
+ * @category error handling
  * @since 4.0.0
  */
 export const causeResponseStripped = <E>(
@@ -358,6 +360,7 @@ const serverAbortError = Effect.succeed(Response.empty({ status: 503 }))
  * Extracts the response from a successful handler exit, or derives a response
  * from the failure cause.
  *
+ * @category error handling
  * @since 4.0.0
  */
 export const exitResponse = <E>(exit: Exit.Exit<Response.HttpServerResponse, E>): Response.HttpServerResponse => {

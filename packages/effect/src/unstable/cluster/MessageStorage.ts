@@ -211,7 +211,6 @@ export const SaveResultEncoded = Data.taggedEnum<SaveResult.Encoded>()
 /**
  * Variants and helper types for `SaveResult`.
  *
- * @category SaveResult
  * @since 4.0.0
  */
 export declare namespace SaveResult {
@@ -752,7 +751,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
 /**
  * No-op `MessageStorage` service that does not persist messages or replies.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const noop: MessageStorage["Service"] = Effect.runSync(make({

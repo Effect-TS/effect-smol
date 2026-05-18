@@ -50,7 +50,7 @@ import * as EventLogSessionAuth from "./EventLogSessionAuth.ts"
  *
  * Requests without an identity fail with a forbidden `EventLogProtocolError`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerAuthMiddleware: Layer.Layer<
@@ -75,7 +75,7 @@ export const layerAuthMiddleware: Layer.Layer<
  * chunked writes, delegates write and change handling to the supplied callbacks,
  * and frames large change payloads into chunks.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerRpcHandlers = (options: {

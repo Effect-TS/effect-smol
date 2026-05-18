@@ -48,7 +48,7 @@ const toFileUrl = (path: string): Effect.Effect<URL, BadArgument> =>
  * Provides the `Path` service using Node's POSIX path implementation plus
  * file URL conversion helpers.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerPosix: Layer.Layer<Path> = Layer.succeed(Path)({
@@ -62,7 +62,7 @@ export const layerPosix: Layer.Layer<Path> = Layer.succeed(Path)({
  * Provides the `Path` service using Node's Windows path implementation plus
  * file URL conversion helpers.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWin32: Layer.Layer<Path> = Layer.succeed(Path)({
@@ -76,7 +76,7 @@ export const layerWin32: Layer.Layer<Path> = Layer.succeed(Path)({
  * Provides the default `Path` service using the host platform's Node path
  * implementation plus file URL conversion helpers.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Path> = Layer.succeed(Path)({

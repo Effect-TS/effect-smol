@@ -35,7 +35,7 @@ import type { Mutable } from "../../Types.ts"
 /**
  * This is a symbol to allow direct access of keys without conflicts.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: unique symbol = Symbol.for("~effect/http/Headers")
@@ -43,7 +43,7 @@ export const TypeId: unique symbol = Symbol.for("~effect/http/Headers")
 /**
  * Type of the unique symbol used to brand `Headers` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = typeof TypeId

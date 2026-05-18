@@ -43,7 +43,7 @@ const TypeId = "~effect/workflow/Activity"
  * result schemas, annotations, and encoded execution form for the workflow
  * engine.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Activity<
@@ -100,7 +100,7 @@ export interface Activity<
  * Type-erased activity shape for APIs that only need the activity identity,
  * name, annotations, and encoded execution.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Any {
@@ -114,7 +114,7 @@ export interface Any {
  * Type-erased activity shape that also exposes success and error schemas for
  * derived workflow APIs.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AnyWithProps {
@@ -129,7 +129,7 @@ export interface AnyWithProps {
  * Creates a workflow activity from an effect, using the provided schemas to
  * encode successes and failures for durable execution.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <
@@ -214,7 +214,7 @@ const retryOnInterrupt = (
  * Retries an effect with `Effect.retry` while updating `CurrentAttempt` for
  * each attempt.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const retry: {

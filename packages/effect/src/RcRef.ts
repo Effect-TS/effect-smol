@@ -79,7 +79,6 @@ export interface RcRef<out A, out E = never> extends Pipeable {
  * type MyVariance = RcRef.RcRef.Variance<string, Error>
  * ```
  *
- * @category models
  * @since 3.5.0
  */
 export declare namespace RcRef {

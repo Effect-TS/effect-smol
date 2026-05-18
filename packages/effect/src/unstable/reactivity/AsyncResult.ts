@@ -42,7 +42,7 @@ import type * as Types from "../../Types.ts"
 /**
  * Type-level identifier used to recognize `AsyncResult` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AsyncResult"
@@ -50,7 +50,7 @@ export type TypeId = "~effect/reactivity/AsyncResult"
 /**
  * Runtime identifier attached to `AsyncResult` values and used by `isAsyncResult`.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AsyncResult"
@@ -66,7 +66,7 @@ export type AsyncResult<A, E = never> = Initial<A, E> | Success<A, E> | Failure<
 /**
  * Returns `true` when a value is an `AsyncResult`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isAsyncResult = (u: unknown): u is AsyncResult<unknown, unknown> => hasProperty(u, TypeId)
@@ -74,7 +74,6 @@ export const isAsyncResult = (u: unknown): u is AsyncResult<unknown, unknown> =>
 /**
  * Namespace containing type-level helpers and the shared prototype shape for `AsyncResult` values.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace AsyncResult {
@@ -95,6 +94,7 @@ export declare namespace AsyncResult {
   /**
    * Extracts the success value type from an `AsyncResult`.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type Success<R> = R extends AsyncResult<infer A, infer _> ? A : never
@@ -102,6 +102,7 @@ export declare namespace AsyncResult {
   /**
    * Extracts the failure error type from an `AsyncResult`.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type Failure<R> = R extends AsyncResult<infer _, infer E> ? E : never
@@ -110,6 +111,7 @@ export declare namespace AsyncResult {
 /**
  * Rebuilds an `AsyncResult` with new success and failure types while preserving the variant of another result.
  *
+ * @category utility types
  * @since 4.0.0
  */
 export type With<R extends AsyncResult<any, any>, A, E> = R extends Initial<infer _A, infer _E> ? Initial<A, E>
@@ -917,7 +919,7 @@ class BuilderImpl<Out, A, E> {
 /**
  * Schema interface for `AsyncResult` values, retaining the schemas used for success values and failure errors.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface Schema<
@@ -937,7 +939,7 @@ export interface Schema<
 /**
  * Creates a schema for `AsyncResult` values using optional schemas for success values and failure errors.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const Schema = <

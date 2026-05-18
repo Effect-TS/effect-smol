@@ -46,7 +46,6 @@ export class InitialMessage extends Context.Service<
 /**
  * Types related to the encoded initial message exchanged with an RPC worker.
  *
- * @category initial message
  * @since 4.0.0
  */
 export declare namespace InitialMessage {

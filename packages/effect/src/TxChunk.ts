@@ -93,7 +93,7 @@ const TxChunkProto = {
  * **Return behavior**: This function returns a new TxChunk reference containing
  * the provided initial chunk. No existing TxChunk instances are modified.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  * **Example** (Creating a TxChunk from a chunk)
  *
@@ -120,7 +120,7 @@ export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
  * **Return behavior**: This function returns a new TxChunk reference that is
  * initially empty. No existing TxChunk instances are modified.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  * **Example** (Creating an empty TxChunk)
  *
@@ -152,7 +152,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  * **Return behavior**: This function returns a new TxChunk reference containing
  * elements from the provided iterable. No existing TxChunk instances are modified.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  * **Example** (Creating from an iterable)
  *
@@ -215,7 +215,7 @@ export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  * **Mutation behavior**: This function mutates the original TxChunk by updating
  * its internal state. It does not return a new TxChunk reference.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  * **Example** (Modifying while returning a value)
  *
@@ -745,7 +745,7 @@ export const prependAll: {
  * **Mutation behavior**: This function mutates the original TxChunk by appending
  * all elements from the other TxChunk. It does not return a new TxChunk reference.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  * **Example** (Concatenating TxChunks)
  *

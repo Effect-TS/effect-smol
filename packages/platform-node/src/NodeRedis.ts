@@ -34,7 +34,7 @@ import * as IoRedis from "ioredis"
  * `ioredis` client and a `use` helper that maps client failures to
  * `RedisError`.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export class NodeRedis extends Context.Service<NodeRedis, {
@@ -77,7 +77,7 @@ const make = Effect.fnUntraced(function*(
  * Provides `Redis` and `NodeRedis` services backed by an `ioredis` client
  * created with the supplied options and closed when the layer scope ends.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (
@@ -88,7 +88,7 @@ export const layer = (
  * Provides `Redis` and `NodeRedis` services from `Config`-backed ioredis
  * options, closing the client when the layer scope ends.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerConfig: (

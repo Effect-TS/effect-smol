@@ -84,7 +84,6 @@ export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
  * Helper types used to describe generated HTTP API clients, including endpoint
  * methods, response modes, and grouped client shapes.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Client {

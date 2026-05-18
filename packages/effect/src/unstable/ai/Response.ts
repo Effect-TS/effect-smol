@@ -608,7 +608,7 @@ export interface TextPartEncoded extends BasePartEncoded<"text", TextPartMetadat
  * Represents provider-specific metadata that can be associated with a
  * `TextPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextPartMetadata extends ProviderMetadata {}
@@ -668,7 +668,7 @@ export interface TextStartPartEncoded extends BasePartEncoded<"text-start", Text
  * Represents provider-specific metadata that can be associated with a
  * `TextStartPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextStartPartMetadata extends ProviderMetadata {}
@@ -735,7 +735,7 @@ export interface TextDeltaPartEncoded extends BasePartEncoded<"text-delta", Text
  * Represents provider-specific metadata that can be associated with a
  * `TextDeltaPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextDeltaPartMetadata extends ProviderMetadata {}
@@ -797,7 +797,7 @@ export interface TextEndPartEncoded extends BasePartEncoded<"text-end", TextEndP
  * Represents provider-specific metadata that can be associated with a
  * `TextEndPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface TextEndPartMetadata extends ProviderMetadata {}
@@ -868,7 +868,7 @@ export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", Reaso
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningPartMetadata extends ProviderMetadata {}
@@ -928,7 +928,7 @@ export interface ReasoningStartPartEncoded extends BasePartEncoded<"reasoning-st
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningStartPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningStartPartMetadata extends ProviderMetadata {}
@@ -995,7 +995,7 @@ export interface ReasoningDeltaPartEncoded extends BasePartEncoded<"reasoning-de
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningDeltaPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningDeltaPartMetadata extends ProviderMetadata {}
@@ -1057,7 +1057,7 @@ export interface ReasoningEndPartEncoded extends BasePartEncoded<"reasoning-end"
  * Represents provider-specific metadata that can be associated with a
  * `ReasoningEndPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ReasoningEndPartMetadata extends ProviderMetadata {}
@@ -1136,7 +1136,7 @@ export interface ToolParamsStartPartEncoded extends BasePartEncoded<"tool-params
  * Represents provider-specific metadata that can be associated with a
  * `ToolParamsStartPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolParamsStartPartMetadata extends ProviderMetadata {}
@@ -1212,7 +1212,7 @@ export interface ToolParamsDeltaPartEncoded extends BasePartEncoded<"tool-params
  * Represents provider-specific metadata that can be associated with a
  * `ToolParamsDeltaPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolParamsDeltaPartMetadata extends ProviderMetadata {}
@@ -1278,7 +1278,7 @@ export interface ToolParamsEndPartEncoded extends BasePartEncoded<"tool-params-e
  * Represents provider-specific metadata that can be associated with a
  * `ToolParamsEndPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolParamsEndPartMetadata extends ProviderMetadata {}
@@ -1387,7 +1387,7 @@ export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCa
  * Represents provider-specific metadata that can be associated with a
  * `ToolCallPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolCallPartMetadata extends ProviderMetadata {}
@@ -1594,7 +1594,7 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
  * Represents provider-specific metadata that can be associated with a
  * `ToolResultPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolResultPartMetadata extends ProviderMetadata {}
@@ -1776,7 +1776,7 @@ export interface ToolApprovalRequestPartEncoded
  * Represents provider-specific metadata that can be associated with a
  * `ToolApprovalRequestPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ToolApprovalRequestPartMetadata extends ProviderMetadata {}
@@ -1870,7 +1870,7 @@ export interface FilePartEncoded extends BasePartEncoded<"file", FilePartMetadat
  * Represents provider-specific metadata that can be associated with a
  * `FilePart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface FilePartMetadata extends ProviderMetadata {}
@@ -1964,7 +1964,7 @@ export interface DocumentSourcePartEncoded extends BasePartEncoded<"source", Doc
  * Represents provider-specific metadata that can be associated with a
  * `DocumentSourcePart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface DocumentSourcePartMetadata extends ProviderMetadata {}
@@ -2056,7 +2056,7 @@ export interface UrlSourcePartEncoded extends BasePartEncoded<"source", UrlSourc
  * Represents provider-specific metadata that can be associated with a
  * `UrlSourcePart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface UrlSourcePartMetadata extends ProviderMetadata {}
@@ -2240,7 +2240,7 @@ export interface ResponseMetadataPartEncoded
  * Represents provider-specific metadata that can be associated with a
  * `ResponseMetadataPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ResponseMetadataPartMetadata extends ProviderMetadata {}
@@ -2446,7 +2446,7 @@ export interface FinishPartEncoded extends BasePartEncoded<"finish", FinishPartM
  * Represents provider-specific metadata that can be associated with a
  * `FinishPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface FinishPartMetadata extends ProviderMetadata {}
@@ -2521,7 +2521,7 @@ export interface ErrorPartEncoded extends BasePartEncoded<"error", ErrorPartMeta
  * Represents provider-specific metadata that can be associated with a
  * `ErrorPart` through module augmentation.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ErrorPartMetadata extends ProviderMetadata {}

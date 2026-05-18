@@ -42,7 +42,7 @@ const withTracerDisabled = Effect.withTracerEnabled(false)
  * Creates a SQL-backed `MessageStorage` implementation, running its migrations
  * and using the optional table prefix.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: (options?: {
@@ -625,7 +625,7 @@ export const make: (options?: {
  * Layer that provides SQL-backed `MessageStorage` using the default table prefix
  * and the default snowflake generator.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -639,7 +639,7 @@ export const layer: Layer.Layer<
 /**
  * Layer that provides SQL-backed `MessageStorage` using a custom table prefix.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWith = (options: {

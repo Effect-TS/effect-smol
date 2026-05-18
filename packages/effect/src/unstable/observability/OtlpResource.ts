@@ -28,7 +28,7 @@ import * as Schema from "../../Schema.ts"
 /**
  * OTLP resource metadata attached to exported logs, metrics, and traces.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Resource {
@@ -44,7 +44,7 @@ export interface Resource {
  * The resource always includes `service.name`, includes `service.version` when
  * provided, and converts custom attributes into OTLP attribute values.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (options: {
@@ -84,7 +84,7 @@ export const make = (options: {
  * and `OTEL_SERVICE_VERSION`; missing required configuration is converted to a
  * defect.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const fromConfig: (
@@ -201,7 +201,7 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
 /**
  * An OTLP attribute represented as a string key and typed value.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KeyValue {
@@ -214,7 +214,7 @@ export interface KeyValue {
 /**
  * OTLP `AnyValue` payload for scalar, array, key/value-list, or byte values.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AnyValue {
@@ -237,7 +237,7 @@ export interface AnyValue {
 /**
  * OTLP array value containing nested `AnyValue` entries.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ArrayValue {
@@ -248,7 +248,7 @@ export interface ArrayValue {
 /**
  * OTLP key/value-list value containing nested attributes.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KeyValueList {
@@ -259,7 +259,7 @@ export interface KeyValueList {
 /**
  * Low and high 32-bit parts of a 64-bit integer value.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface LongBits {
@@ -270,7 +270,7 @@ export interface LongBits {
 /**
  * Accepted runtime representations for an OTLP/protobuf fixed 64-bit value.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Fixed64 = LongBits | string | number

@@ -121,7 +121,7 @@ const TypeId = "~effect/data/Result"
  * @see {@link match} to fold both branches
  * @see {@link isSuccess} / {@link isFailure} for type guards
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Result<A, E = never> = Success<A, E> | Failure<A, E>
@@ -150,7 +150,7 @@ export type Result<A, E = never> = Success<A, E> | Failure<A, E>
  * @see {@link isFailure} to narrow the type
  * @see {@link Success} for the other variant
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Failure<out A, out E> extends Pipeable, Inspectable {
@@ -204,7 +204,7 @@ export interface ResultIterator<T extends Result<any, any>> {
  * @see {@link isSuccess} to narrow the type
  * @see {@link Failure} for the other variant
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Success<out A, out E> extends Pipeable, Inspectable {
@@ -227,7 +227,7 @@ export interface Success<out A, out E> extends Pipeable, Inspectable {
  * This is an internal interface used by the Effect type system. You typically
  * do not need to reference it directly.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ResultUnify<T extends { [Unify.typeSymbol]?: any }> {
@@ -240,7 +240,7 @@ export interface ResultUnify<T extends { [Unify.typeSymbol]?: any }> {
  * This is an internal interface used by the Effect type system. You typically
  * do not need to reference it directly.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ResultUnifyIgnore {}
@@ -323,7 +323,7 @@ export declare namespace Result {
  * @see {@link fail} to create a Failure
  * @see {@link void} for a pre-built `Success<void>`
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const succeed: <A>(right: A) => Result<A> = result.succeed
@@ -355,7 +355,7 @@ export const succeed: <A>(right: A) => Result<A> = result.succeed
  * @see {@link succeed} to create a Success
  * @see {@link mapError} to transform the error
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const fail: <E>(left: E) => Result<never, E> = result.fail
@@ -381,7 +381,7 @@ export {
    *
    * @see {@link succeed}
    *
-   * @category Constructors
+   * @category constructors
    * @since 4.0.0
    */
   void_ as void
@@ -395,7 +395,7 @@ export {
  *
  * @see {@link fail}
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const failVoid: Result<never, void> = fail(void 0)
@@ -423,7 +423,7 @@ export const failVoid: Result<never, void> = fail(void 0)
  * @see {@link fromOption} to convert from an Option
  * @see {@link succeed} / {@link fail} for direct construction
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const fromNullishOr: {
@@ -459,7 +459,7 @@ export const fromNullishOr: {
  * @see {@link getSuccess} / {@link getFailure} to convert back to Option
  * @see {@link fromNullishOr} to convert from nullable values
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const fromOption: {
@@ -525,7 +525,7 @@ export {
    * @see {@link succeed} / {@link fail} for direct construction
    * @see {@link fromNullishOr} for nullable values
    *
-   * @category Constructors
+   * @category constructors
    * @since 4.0.0
    */
   try_ as try
@@ -633,7 +633,7 @@ export const isSuccess: <A, E>(self: Result<A, E>) => self is Success<A, E> = re
  * @see {@link getFailure} to extract the error instead
  * @see {@link fromOption} for the reverse conversion
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
@@ -660,7 +660,7 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  * @see {@link getSuccess} to extract the success instead
  * @see {@link fromOption} for the reverse conversion
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFailure
@@ -730,7 +730,7 @@ export const makeEquivalence = <A, E>(
  * @see {@link mapError} to transform only the error value
  * @see {@link match} to fold into a single value
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const mapBoth: {
@@ -773,7 +773,7 @@ export const mapBoth: {
  * @see {@link map} to transform only the success value
  * @see {@link mapBoth} to transform both channels
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const mapError: {
@@ -810,7 +810,7 @@ export const mapError: {
  * @see {@link mapBoth} to transform both channels
  * @see {@link flatMap} when `f` returns a `Result`
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const map: {
@@ -897,7 +897,7 @@ export const match: {
  * @see {@link filterOrFail} to validate a value that is already in a `Result`
  * @see {@link fromNullishOr} for nullable-based construction
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const liftPredicate: {
@@ -951,7 +951,7 @@ export const liftPredicate: {
  * @see {@link liftPredicate} to create a `Result` from a raw value with a predicate
  * @see {@link flatMap} for general conditional chaining
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterOrFail: {
@@ -998,7 +998,7 @@ export const filterOrFail: {
  * @see {@link match} to map each branch to a common type
  * @see {@link getOrElse} to provide a fallback for failures
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: identity, onSuccess: identity })
@@ -1026,7 +1026,7 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: ide
  * @see {@link getOrThrow} to throw on failure
  * @see {@link match} to map both branches
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOrElse: {
@@ -1060,7 +1060,7 @@ export const getOrElse: {
  * @see {@link getOrUndefined} to return `undefined` instead
  * @see {@link getOrElse} for a custom fallback
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(constNull)
@@ -1087,7 +1087,7 @@ export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(const
  * @see {@link getOrNull} to return `null` instead
  * @see {@link getOrElse} for a custom fallback
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOrElse(constUndefined)
@@ -1120,7 +1120,7 @@ export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOr
  * @see {@link getOrThrow} to throw the raw failure value
  * @see {@link getOrElse} for a non-throwing alternative
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOrThrowWith: {
@@ -1155,7 +1155,7 @@ export const getOrThrowWith: {
  * @see {@link getOrThrowWith} for custom error mapping
  * @see {@link getOrElse} for a non-throwing alternative
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identity)
@@ -1184,7 +1184,7 @@ export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identi
  * @see {@link getOrElse} to unwrap with a fallback value (not a Result)
  * @see {@link mapError} to transform the error without recovering
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const orElse: {
@@ -1222,7 +1222,7 @@ export const orElse: {
  * @see {@link andThen} for a more flexible variant that also accepts plain values
  * @see {@link map} when `f` does not return a `Result`
  *
- * @category Sequencing
+ * @category sequencing
  * @since 4.0.0
  */
 export const flatMap: {
@@ -1271,7 +1271,7 @@ export const flatMap: {
  * @see {@link flatMap} for the stricter variant (function returning Result only)
  * @see {@link map} when you always return a plain value
  *
- * @category Sequencing
+ * @category sequencing
  * @since 4.0.0
  */
 export const andThen: {
@@ -1324,7 +1324,7 @@ export const andThen: {
  * @see {@link flatMap} for chaining two Results sequentially
  * @see {@link gen} for generator-based composition of multiple Results
  *
- * @category Sequencing
+ * @category sequencing
  * @since 4.0.0
  */
 // @ts-expect-error
@@ -1385,7 +1385,7 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
  *
  * @see {@link mapError} to transform the error without swapping
  *
- * @category Utilities
+ * @category utils
  * @since 4.0.0
  */
 export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
@@ -1672,7 +1672,7 @@ export const transposeMapOption = dual<
  *
  * @see {@link succeedSome} for the `Some` counterpart
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const succeedNone = succeed(option_.none)
@@ -1695,7 +1695,7 @@ export const succeedNone = succeed(option_.none)
  *
  * @see {@link succeedNone} for the `None` counterpart
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const succeedSome = <A, E = never>(a: A): Result<Option<A>, E> => succeed(option_.some(a))
@@ -1725,7 +1725,7 @@ export const succeedSome = <A, E = never>(a: A): Result<Option<A>, E> => succeed
  *
  * @see {@link map} to transform the success value
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const tap: {

@@ -72,7 +72,7 @@ export const SessionAuthChallengeTimeToLiveMillis = 30_000
  * Payload fields that are canonicalized and signed during session
  * authentication.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface SessionAuthPayload {

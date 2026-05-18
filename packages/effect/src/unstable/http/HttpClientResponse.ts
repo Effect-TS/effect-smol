@@ -36,17 +36,17 @@ import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
-   * @category schema
+   * @category schemas
    * @since 4.0.0
    */
   schemaBodyJson,
   /**
-   * @category schema
+   * @category schemas
    * @since 4.0.0
    */
   schemaBodyUrlParams,
   /**
-   * @category schema
+   * @category schemas
    * @since 4.0.0
    */
   schemaHeaders
@@ -55,7 +55,7 @@ export {
 /**
  * Type identifier for `HttpClientResponse` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/http/HttpClientResponse"
@@ -86,7 +86,7 @@ export const fromWeb = (request: HttpClientRequest.HttpClientRequest, source: Re
 /**
  * Creates a decoder for a response's status, headers, and JSON body using the supplied schema.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaJson = <
@@ -117,7 +117,7 @@ export const schemaJson = <
 /**
  * Creates a decoder for a response's status and headers without reading a response body.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaNoBody = <

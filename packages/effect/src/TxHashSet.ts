@@ -133,7 +133,6 @@ export interface TxHashSet<in out V> extends Inspectable, Pipeable {
  * })
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace TxHashSet {
@@ -922,7 +921,7 @@ export const reduce: {
  * })
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toHashSet = <V>(self: TxHashSet<V>): Effect.Effect<HashSet.HashSet<V>> => TxRef.get(self.ref)

@@ -34,7 +34,7 @@
       "checks": {
         "description": true,
         "tags": false,
-        "category": false,
+        "category": true,
         "since": false,
         "examples": false
       },

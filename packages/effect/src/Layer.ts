@@ -435,8 +435,8 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
  * Constructs a child `MemoMap` that can reuse layers already memoized in the
  * parent while isolating any new layer allocations to the child map.
  *
- * @since 4.0.0
  * @category memo map
+ * @since 4.0.0
  */
 export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(parent)
 
@@ -475,8 +475,8 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
  * Constructs a child `MemoMap` that can reuse layers already memoized in the
  * parent while isolating any new layer allocations to the child map.
  *
- * @since 4.0.0
  * @category memo map
+ * @since 4.0.0
  */
 export const forkMemoMap = (parent: MemoMap): Effect<MemoMap> => internalEffect.sync(() => forkMemoMapUnsafe(parent))
 
@@ -1919,7 +1919,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * // Effect.runFork(application)
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E, RIn> =>
@@ -2161,7 +2161,7 @@ export const satisfiesServicesType =
  * Represents options that can be used to control the behavior of spans created
  * for layers.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface SpanOptions extends Tracer.SpanOptions {

@@ -118,7 +118,7 @@ export const getterAddAll = <A>(
  * Schema wrapper whose encode path can record transferables with a `Collector`
  * while preserving the wrapped schema's decoded type.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export interface Transferable<S extends Schema.Top> extends
@@ -132,7 +132,7 @@ export interface Transferable<S extends Schema.Top> extends
  * Wraps a schema so encoding records transferables selected from the encoded
  * value, enabling worker messages to populate a `postMessage` transfer list.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schema: {
@@ -168,7 +168,7 @@ const passthroughLink = Schema.link()(Schema.Any, {
  * Transferable schema for `ImageData` values that records the underlying pixel
  * data buffer.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
@@ -180,7 +180,7 @@ export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
  * Transferable schema for `MessagePort` values that records the port itself as
  * transferable.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
@@ -192,7 +192,7 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
  * Transferable schema for `Uint8Array` values that records the array's backing
  * buffer.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const Uint8Array: Transferable<Schema.instanceOf<globalThis.Uint8Array<ArrayBuffer>>> = schema(

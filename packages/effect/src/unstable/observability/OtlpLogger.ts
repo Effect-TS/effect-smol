@@ -42,7 +42,7 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * through the OTLP exporter, and requires `Scope` so pending records can be
  * flushed on shutdown.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: (
@@ -103,7 +103,7 @@ export const make: (
  *
  * By default the OTLP logger is merged with any existing loggers.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (options: {
@@ -127,6 +127,7 @@ export const layer = (options: {
 /**
  * OTLP logs payload serialized by `OtlpLogger`.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface LogsData {

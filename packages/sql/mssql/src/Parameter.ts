@@ -44,7 +44,7 @@ export type TypeId = "~@effect/sql-mssql/Parameter"
 /**
  * Metadata for a SQL Server stored procedure parameter, including its name, Tedious data type, options, and phantom value type.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface Parameter<out A> {
@@ -58,7 +58,7 @@ export interface Parameter<out A> {
 /**
  * Creates typed metadata for a SQL Server stored procedure parameter.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <A>(

@@ -42,7 +42,7 @@ export type MachineId = typeof MachineId.Type
 /**
  * Brands a number as a `MachineId`.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (id: number): MachineId => id as MachineId

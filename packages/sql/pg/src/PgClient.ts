@@ -64,7 +64,7 @@ import Cursor from "pg-cursor"
 /**
  * Runtime type identifier used to mark `PgClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-pg/PgClient"
@@ -72,7 +72,7 @@ export const TypeId: TypeId = "~@effect/sql-pg/PgClient"
 /**
  * Type-level identifier used to mark `PgClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-pg/PgClient"
@@ -810,7 +810,7 @@ export const layer = (
 /**
  * Creates the PostgreSQL statement compiler, using `$1` placeholders, double-quoted identifiers, PostgreSQL returning clauses, and optional JSON value transformation.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const makeCompiler = (

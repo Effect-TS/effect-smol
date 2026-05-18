@@ -50,7 +50,7 @@ import * as Reactivity from "./Reactivity.ts"
  * `AtomResultFn`s, and query helpers that return atoms or pull atoms for RPC
  * results.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AtomRpcClient<Self, Id extends string, Rpcs extends Rpc.Any> extends
@@ -137,7 +137,7 @@ declare global {
  * generation, optional custom client effect, and runtime factory used by the query
  * and mutation helpers.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const Service = <Self>() =>

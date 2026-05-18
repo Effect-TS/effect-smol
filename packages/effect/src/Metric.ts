@@ -172,7 +172,7 @@ import type { Contravariant, Covariant } from "./Types.ts"
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export interface Metric<in Input, out State> extends Pipeable {
@@ -1028,7 +1028,6 @@ export interface SummaryState {
  * })
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Metric {
@@ -1691,7 +1690,7 @@ export declare namespace Metric {
  * })
  * ```
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes" as const
@@ -1734,7 +1733,7 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
  * })
  * ```
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const CurrentMetricAttributes = Context.Reference<Metric.AttributeSet>(CurrentMetricAttributesKey, {
@@ -1750,7 +1749,7 @@ const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
  * The default registry is an empty `Map`. Metrics register their metadata and
  * hooks lazily in this map when they are read or updated.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const MetricRegistry = Context.Reference<Map<string, Metric.Metadata<any, any>>>(
@@ -2145,7 +2144,7 @@ class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, St
  * console.log(Metric.isMetric(null)) // false
  * ```
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isMetric = (u: unknown): u is Metric<unknown, never> =>
@@ -2207,7 +2206,7 @@ export const isMetric = (u: unknown): u is Metric<unknown, never> =>
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const counter: {
@@ -2292,7 +2291,7 @@ export const counter: {
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const gauge: {
@@ -2381,7 +2380,7 @@ export const gauge: {
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const frequency = (name: string, options?: {
@@ -2458,7 +2457,7 @@ export const frequency = (name: string, options?: {
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const histogram = (name: string, options: {
@@ -2545,7 +2544,7 @@ export const histogram = (name: string, options: {
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const summary = (name: string, options: {
@@ -2593,7 +2592,7 @@ export const summary = (name: string, options: {
  * )
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const summaryWithTimestamp = (name: string, options: {
@@ -2644,7 +2643,7 @@ export const summaryWithTimestamp = (name: string, options: {
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const timer = (name: string, options?: {
@@ -2701,7 +2700,7 @@ export const timer = (name: string, options?: {
  * })
  * ```
  *
- * @category Utilities
+ * @category utils
  * @since 2.0.0
  */
 export const value = <Input, State>(
@@ -2750,7 +2749,7 @@ export const value = <Input, State>(
  * })
  * ```
  *
- * @category Utilities
+ * @category utils
  * @since 2.0.0
  */
 export const modify: {
@@ -2812,7 +2811,7 @@ export const modify: {
  * })
  * ```
  *
- * @category Utilities
+ * @category utils
  * @since 2.0.0
  */
 export const update: {
@@ -2863,7 +2862,7 @@ export const update: {
  * })
  * ```
  *
- * @category Mapping
+ * @category mapping
  * @since 2.0.0
  */
 export const mapInput: {

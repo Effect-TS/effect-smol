@@ -39,7 +39,7 @@ import type * as Atom from "./Atom.ts"
 /**
  * The literal type used to identify `AtomRegistry` services and values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AtomRegistry"
@@ -47,7 +47,7 @@ export type TypeId = "~effect/reactivity/AtomRegistry"
 /**
  * The runtime type id used to identify `AtomRegistry` services and values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AtomRegistry"
@@ -148,7 +148,7 @@ export const AtomRegistry = Context.Service<AtomRegistry>(TypeId)
  *
  * The registry is disposed when the layer scope is finalized.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerOptions = (options?: {
@@ -173,7 +173,7 @@ export const layerOptions = (options?: {
 /**
  * The default layer that provides a fresh `AtomRegistry`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<AtomRegistry> = layerOptions()
@@ -188,7 +188,7 @@ export const layer: Layer.Layer<AtomRegistry> = layerOptions()
  * The stream emits the current value immediately, emits subsequent changes, and
  * unsubscribes from the registry when the stream scope closes.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toStream: {
@@ -216,7 +216,7 @@ export const toStream: {
  * Initial results are skipped, failures fail the stream with their cause, and
  * duplicate stream values are dropped with `Stream.changes`.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toStreamResult: {
@@ -240,7 +240,7 @@ export const toStreamResult: {
  * The effect waits for the result to leave `Initial`, and also waits through
  * waiting results when `suspendOnWaiting` is enabled.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const getResult: {
@@ -278,7 +278,7 @@ export const getResult: {
  * The atom is subscribed with a no-op listener and the subscription is released
  * when the scope finalizer runs.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const mount: {

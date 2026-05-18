@@ -37,7 +37,7 @@ const TypeId = "~effect/cluster/ShardId"
  * Identifier for a shard within a shard group, with equality, hashing, and primary
  * key behavior based on the `group:id` string form.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ShardId extends Equal.Equal, Hash.Hash, PrimaryKey.PrimaryKey {
@@ -49,7 +49,7 @@ export interface ShardId extends Equal.Equal, Hash.Hash, PrimaryKey.PrimaryKey {
 /**
  * Returns `true` when the value carries the `ShardId` runtime marker.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isShardId = (u: unknown): u is ShardId => hasProperty(u, TypeId)
@@ -58,7 +58,7 @@ export const isShardId = (u: unknown): u is ShardId => hasProperty(u, TypeId)
  * Schema for `ShardId` values encoded as `{ group, id }` objects and decoded via
  * `make`.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const ShardId = S.declare(isShardId, {
@@ -79,7 +79,7 @@ export const ShardId = S.declare(isShardId, {
  * Creates or reuses the cached `ShardId` for the specified shard group and numeric
  * id.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (group: string, id: number): ShardId => {
@@ -120,7 +120,7 @@ const ShardIdProto = {
 /**
  * Formats a shard identifier as `group:id`.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toString = (shardId: {
@@ -135,6 +135,7 @@ export const toString = (shardId: {
  * Throws an `Error` when the string has no colon separator or the id segment is
  * not numeric.
  *
+ * @category decoding
  * @since 4.0.0
  */
 export function fromStringEncoded(s: string): {
@@ -159,6 +160,7 @@ export function fromStringEncoded(s: string): {
  * Throws an `Error` when the string has no colon separator or the id segment is
  * not numeric.
  *
+ * @category decoding
  * @since 4.0.0
  */
 export function fromString(s: string): ShardId {

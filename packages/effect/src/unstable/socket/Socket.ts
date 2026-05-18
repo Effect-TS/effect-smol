@@ -45,7 +45,7 @@ import * as Scope from "../../Scope.ts"
 /**
  * Runtime type identifier attached to `Socket` services.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/socket/Socket"
@@ -104,7 +104,7 @@ export interface Socket {
  * Constructs a `Socket` from a raw read loop and scoped writer, deriving binary
  * and string read loops when they are not provided.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (options: {
@@ -202,7 +202,7 @@ export const isCloseEvent = (u: unknown): u is CloseEvent => Predicate.hasProper
 /**
  * Type-level identifier used to mark `SocketError` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type SocketErrorTypeId = "~effect/socket/Socket/SocketError"
@@ -210,7 +210,7 @@ export type SocketErrorTypeId = "~effect/socket/Socket/SocketError"
 /**
  * Runtime type identifier attached to `SocketError` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const SocketErrorTypeId: SocketErrorTypeId = "~effect/socket/Socket/SocketError"
@@ -541,6 +541,7 @@ export const makeChannel = <IE = never>(): Channel.Channel<
  * Default close-code classifier that treats every socket close code as an
  * error.
  *
+ * @category predicates
  * @since 4.0.0
  */
 export const defaultCloseCodeIsError = (_code: number) => true

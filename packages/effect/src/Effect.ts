@@ -163,7 +163,7 @@ export const TypeId: TypeId = core.EffectTypeId
  * To run an `Effect` value, you need a `Runtime`, which is a type that is
  * capable of executing `Effect` values.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export interface Effect<out A, out E = never, out R = never> extends Pipeable, Inspectable {
@@ -177,7 +177,7 @@ export interface Effect<out A, out E = never, out R = never> extends Pipeable, I
 /**
  * Type-level unification support for `Effect` values.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export interface EffectUnify<A extends { [Unify.typeSymbol]?: any }> {
@@ -200,7 +200,7 @@ export interface EffectTypeLambda extends TypeLambda {
 /**
  * Variance interface for Effect, encoding the type parameters' variance.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export interface Variance<A, E, R> {
@@ -212,7 +212,7 @@ export interface Variance<A, E, R> {
 /**
  * Extracts the success type from an `Effect`.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
@@ -221,7 +221,7 @@ export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
 /**
  * Extracts the error type from an `Effect`.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
@@ -230,7 +230,7 @@ export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
 /**
  * Extracts the required services type from an `Effect`.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
@@ -248,7 +248,7 @@ export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
  * console.log(Effect.isEffect("hello")) // false
  * ```
  *
- * @category Guards
+ * @category guards
  * @since 2.0.0
  */
 export const isEffect: (u: unknown) => u is Effect<any, any, any> = core.isEffect
@@ -256,7 +256,7 @@ export const isEffect: (u: unknown) => u is Effect<any, any, any> = core.isEffec
 /**
  * Iterator interface for Effect generators, enabling Effect values to work with generator functions.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export interface EffectIterator<T extends Effect<any, any, any>> {
@@ -273,14 +273,13 @@ export interface EffectIterator<T extends Effect<any, any, any>> {
  * Namespace containing type utilities for the `Effect.all` function, which handles
  * collecting multiple effects into various output structures.
  *
- * @category Models
  * @since 2.0.0
  */
 export declare namespace All {
   /**
    * Alias for any `Effect` value accepted by `Effect.all`.
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export type EffectAny = Effect<any, any, any>
@@ -288,7 +287,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` when collecting an iterable.
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export type ReturnIterable<
@@ -305,7 +304,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` when collecting a tuple.
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export type ReturnTuple<
@@ -336,7 +335,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` when collecting a record.
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export type ReturnObject<T, Discard extends boolean, Mode extends boolean = false> = [T] extends [
@@ -362,7 +361,7 @@ export declare namespace All {
   /**
    * Detects whether `Effect.all` should discard collected values.
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export type IsDiscard<A> = [Extract<A, { readonly discard: true }>] extends [
@@ -373,7 +372,7 @@ export declare namespace All {
   /**
    * Detects whether `Effect.all` should collect results in `Result` mode.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type IsResult<A> = [Extract<A, { readonly mode: "result" }>] extends [never] ? false : true
@@ -381,7 +380,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` from its input and options.
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export type Return<
@@ -1390,7 +1389,6 @@ export const gen: {
 /**
  * Type helpers for `Effect.gen` generator return signatures.
  *
- * @category Creating Effects
  * @since 4.0.0
  */
 export namespace gen {
@@ -1714,7 +1712,7 @@ export const withFiber: <A, E = never, R = never>(
  * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: 'Something went wrong' } }
  * ```
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = internal.fromResult
@@ -1741,7 +1739,7 @@ export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = i
  * // { _id: 'Exit', _tag: 'Failure', cause: { _id: 'Cause', _tag: 'Fail', failure: { _id: 'NoSuchElementError' } } }
  * ```
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromOption: <A>(
@@ -1770,7 +1768,7 @@ export const fromOption: <A>(
  * // Output: hello
  * ```
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuchElementError> = internal.fromNullishOr
@@ -1840,7 +1838,7 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  *
  * @see {@link tap} for a version that ignores the result of the effect.
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const flatMap: {
@@ -1870,7 +1868,7 @@ export const flatMap: {
  * })
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) => Effect<A, E | E2, R | R2> =
@@ -1951,7 +1949,7 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * // Output: 190
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const andThen: {
@@ -2028,7 +2026,7 @@ export const andThen: {
  * // 95
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const tap: {
@@ -2222,7 +2220,7 @@ export const exit: <A, E, R>(
  * @see {@link mapBoth} for a version that operates on both channels.
  * @see {@link flatMap} or {@link andThen} for a version that can return a new effect.
  *
- * @category Mapping
+ * @category mapping
  * @since 2.0.0
  */
 export const map: {
@@ -2248,7 +2246,7 @@ export const map: {
  * // Output: "new value"
  * ```
  *
- * @category Mapping
+ * @category mapping
  * @since 2.0.0
  */
 export const as: {
@@ -2272,7 +2270,7 @@ export const as: {
  * // { _id: 'Option', _tag: 'Some', value: 42 }
  * ```
  *
- * @category Mapping
+ * @category mapping
  * @since 2.0.0
  */
 export const asSome: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R> = internal.asSome
@@ -2294,7 +2292,7 @@ export const asSome: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
  * // undefined (void)
  * ```
  *
- * @category Mapping
+ * @category mapping
  * @since 2.0.0
  */
 export const asVoid: <A, E, R>(self: Effect<A, E, R>) => Effect<void, E, R> = internal.asVoid
@@ -2322,7 +2320,7 @@ export const asVoid: <A, E, R>(self: Effect<A, E, R>) => Effect<void, E, R> = in
  * const flipped = Effect.flip(program)
  * ```
  *
- * @category Mapping
+ * @category mapping
  * @since 2.0.0
  */
 export const flip: <A, E, R>(self: Effect<A, E, R>) => Effect<E, A, R> = internal.flip
@@ -2396,7 +2394,7 @@ export const flip: <A, E, R>(self: Effect<A, E, R>) => Effect<E, A, R> = interna
  * // [ 1, 'hello' ]
  * ```
  *
- * @category Zipping
+ * @category zipping
  * @since 2.0.0
  */
 export const zip: {
@@ -2454,7 +2452,7 @@ export const zip: {
  * // 6
  * ```
  *
- * @category Zipping
+ * @category zipping
  * @since 2.0.0
  */
 export const zipWith: {
@@ -2507,7 +2505,7 @@ export {
    *
    * - `Effect.catchAll`
    *
-   * @category Error Handling
+   * @category error handling
    * @since 4.0.0
    */
   catch_ as catch
@@ -2551,7 +2549,7 @@ export {
  * )
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const catchTag: {
@@ -2632,7 +2630,7 @@ export const catchTag: {
  * })
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const catchTags: {
@@ -2730,7 +2728,7 @@ export const catchTags: {
  * )
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchReason: {
@@ -2815,7 +2813,7 @@ export const catchReason: {
  * )
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchReasons: {
@@ -2907,7 +2905,7 @@ export const catchReasons: {
  *
  * Used by `catchReasons` and `unwrapReason` to constrain the parent error tag to reason-bearing errors.
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export type TagsWithReason<E> = {
@@ -2942,7 +2940,7 @@ export type TagsWithReason<E> = {
  * const unwrapped = program.pipe(Effect.unwrapReason("AiError"))
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const unwrapReason: {
@@ -3005,7 +3003,7 @@ export const unwrapReason: {
  * })
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchCause: {
@@ -3061,7 +3059,7 @@ export const catchCause: {
  * })
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchDefect: {
@@ -3117,7 +3115,7 @@ export const catchDefect: {
  * )
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const catchIf: {
@@ -3148,7 +3146,7 @@ export const catchIf: {
 /**
  * Recovers from specific errors using a `Filter`.
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchFilter: {
@@ -3189,7 +3187,7 @@ export const catchFilter: {
  *
  * - `Effect.optionFromOptional`
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const catchNoSuchElement: <A, E, R>(
@@ -3232,7 +3230,7 @@ export const catchNoSuchElement: <A, E, R>(
  * // Then: "Fallback response"
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchCauseIf: {
@@ -3250,7 +3248,7 @@ export const catchCauseIf: {
 /**
  * Recovers from specific failures based on a `Filter`.
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchCauseFilter: {
@@ -3297,7 +3295,7 @@ export const catchCauseFilter: {
  * )
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const mapError: {
@@ -3337,7 +3335,7 @@ export const mapError: {
  * @see {@link map} for a version that operates on the success channel.
  * @see {@link mapError} for a version that operates on the error channel.
  *
- * @category Mapping
+ * @category mapping
  * @since 2.0.0
  */
 export const mapBoth: {
@@ -3417,7 +3415,7 @@ export const orDie: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = in
  * // expected error: NetworkError
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const tapError: {
@@ -3462,7 +3460,7 @@ export const tapError: {
  * // expected error: 504
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const tapErrorTag: {
@@ -3518,7 +3516,7 @@ export const tapErrorTag: {
  * // Then: { _id: 'Exit', _tag: 'Failure', cause: ... }
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const tapCause: {
@@ -3557,7 +3555,7 @@ export const tapCause: {
  * // Then: { _id: 'Exit', _tag: 'Failure', cause: ... }
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 4.0.0
  */
 export const tapCauseIf: {
@@ -3575,7 +3573,7 @@ export const tapCauseIf: {
 /**
  * Conditionally executes a side effect based on the cause of a failed effect.
  *
- * @category Sequencing
+ * @category sequencing
  * @since 4.0.0
  */
 export const tapCauseFilter: {
@@ -3634,7 +3632,7 @@ export const tapCauseFilter: {
  * //   ... stack trace ...
  * ```
  *
- * @category Sequencing
+ * @category sequencing
  * @since 2.0.0
  */
 export const tapDefect: {
@@ -3685,14 +3683,13 @@ export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R>
 /**
  * Type helpers for retrying effects.
  *
- * @category Error Handling
  * @since 2.0.0
  */
 export declare namespace Retry {
   /**
    * Computes the result type of `Effect.retry` from the original effect and retry options.
    *
-   * @category Error Handling
+   * @category error handling
    * @since 2.0.0
    */
   export type Return<R, E, A, O extends Options<E>> = Effect<
@@ -3721,7 +3718,7 @@ export declare namespace Retry {
   /**
    * Options that control whether and how a failing effect is retried.
    *
-   * @category Error Handling
+   * @category error handling
    * @since 2.0.0
    */
   export interface Options<E> {
@@ -3776,7 +3773,7 @@ export declare namespace Retry {
  * @see {@link retryOrElse} for a version that allows you to run a fallback.
  * @see {@link repeat} if your retry condition is based on successful outcomes rather than errors.
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const retry: {
@@ -3856,7 +3853,7 @@ export const retry: {
  * // Network data
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const retryOrElse: {
@@ -3899,7 +3896,7 @@ export const retryOrElse: {
  *
  * @see {@link unsandbox} to restore the original error handling.
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const sandbox: <A, E, R>(
@@ -3949,7 +3946,7 @@ export const sandbox: <A, E, R>(
  *
  * - `Effect.ignoreLogged`
  *
- * @category Error Handling
+ * @category error handling
  * @since 2.0.0
  */
 export const ignore: <
@@ -3986,7 +3983,7 @@ export const ignore: <
  * const programLog = task.pipe(Effect.ignoreCause({ log: true, message: "Ignoring failure cause" }))
  * ```
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const ignoreCause: <
@@ -4058,7 +4055,7 @@ export const withExecutionPlan: {
  * If the `defectsOnly` option is set to `true`, only defects (unrecoverable
  * errors) will be reported, while regular failures will be ignored.
  *
- * @category Error Handling
+ * @category error handling
  * @since 4.0.0
  */
 export const withErrorReporting: <
@@ -4625,7 +4622,7 @@ export const raceFirst: {
  * // Use Effect.filterMapEffect for effectful Filter.Filter callbacks
  * ```
  *
- * @category Filtering
+ * @category filtering
  * @since 2.0.0
  */
 export const filter: {
@@ -4657,7 +4654,7 @@ export const filter: {
 /**
  * Filters and maps elements of an iterable with a `Filter`.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMap: {
@@ -4673,7 +4670,7 @@ export const filterMap: {
 /**
  * Effectfully filters and maps elements of an iterable with a `FilterEffect`.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMapEffect: {
@@ -4716,7 +4713,7 @@ export const filterMapEffect: {
  * // Result: "Number 5 is odd" (since 5 is not even)
  * ```
  *
- * @category Filtering
+ * @category filtering
  * @since 2.0.0
  */
 export const filterOrElse: {
@@ -4743,7 +4740,7 @@ export const filterOrElse: {
 /**
  * Filters an effect with a `Filter`, providing an alternative effect on failure.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMapOrElse: {
@@ -4785,7 +4782,7 @@ export const filterMapOrElse: {
  * // Result: Effect.fail("Expected even number, got 5")
  * ```
  *
- * @category Filtering
+ * @category filtering
  * @since 2.0.0
  */
 export const filterOrFail: {
@@ -4826,7 +4823,7 @@ export const filterOrFail: {
 /**
  * Filters an effect with a `Filter`, failing when the filter fails.
  *
- * @category Filtering
+ * @category filtering
  * @since 4.0.0
  */
 export const filterMapOrFail: {
@@ -5887,7 +5884,7 @@ export const provideServiceEffect: {
  * // [1, 2, 3, 4, 5]
  * ```
  *
- * @category References
+ * @category references
  * @since 2.0.0
  */
 export const withConcurrency: {
@@ -5933,7 +5930,7 @@ export const withConcurrency: {
  * // Releasing resource
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const scope: Effect<Scope, never, Scope> = internal.scope
@@ -5967,7 +5964,7 @@ export const scope: Effect<Scope, never, Scope> = internal.scope
  * // Output: "Releasing resource"
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const scoped: <A, E, R>(
@@ -6010,7 +6007,7 @@ export const scoped: <A, E, R>(
  * // Manual finalizer
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const scopedWith: <A, E, R>(
@@ -6068,7 +6065,7 @@ export const scopedWith: <A, E, R>(
  * )
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const acquireRelease: <A, E, R, R2>(
@@ -6112,7 +6109,7 @@ export const acquireRelease: <A, E, R, R2>(
  * )
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 4.0.0
  */
 export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
@@ -6188,7 +6185,7 @@ export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
  * // Closing connection to db://localhost:5432 (success)
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
@@ -6236,7 +6233,7 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * // operation result
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const addFinalizer: <R>(
@@ -6280,7 +6277,7 @@ export const addFinalizer: <R>(
  * // 42
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const ensuring: {
@@ -6317,7 +6314,7 @@ export const ensuring: {
  * // TaskError: Something went wrong
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const onError: {
@@ -6351,7 +6348,7 @@ export const onError: {
  * )
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 4.0.0
  */
 export const onErrorIf: {
@@ -6369,7 +6366,7 @@ export const onErrorIf: {
 /**
  * Runs the finalizer only when this effect fails and the cause matches the provided `Filter`.
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 4.0.0
  */
 export const onErrorFilter: {
@@ -6393,7 +6390,7 @@ export const onErrorFilter: {
  * This low-level operator preserves the source effect's result unless the
  * finalizer fails. Prefer `onExit` for normal cleanup logic.
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const onExitPrimitive: <A, E, R, XE = never, XR = never>(
@@ -6426,7 +6423,7 @@ export const onExitPrimitive: <A, E, R, XE = never, XR = never>(
  * // 42
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 2.0.0
  */
 export const onExit: {
@@ -6458,7 +6455,7 @@ export const onExit: {
  * )
  * ```
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 4.0.0
  */
 export const onExitIf: {
@@ -6476,7 +6473,7 @@ export const onExitIf: {
 /**
  * Runs the cleanup effect only when the `Exit` matches the provided `Filter`.
  *
- * @category Resource Management & Finalization
+ * @category resource management
  * @since 4.0.0
  */
 export const onExitFilter: {
@@ -6908,7 +6905,6 @@ export const abortSignal: Effect<AbortSignal, never, Scope> = internal.abortSign
 /**
  * Type helpers for repeating effects.
  *
- * @category Repetition / Recursion
  * @since 2.0.0
  */
 export declare namespace Repeat {
@@ -7322,7 +7318,7 @@ export const scheduleFrom: {
  * })
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const tracer: Effect<Tracer> = internal.tracer
@@ -7344,7 +7340,7 @@ export const tracer: Effect<Tracer> = internal.tracer
  * // const traced = Effect.withTracer(program, customTracer)
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const withTracer: {
@@ -7372,7 +7368,7 @@ export const withTracer: {
  * )
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const withTracerEnabled: {
@@ -7395,7 +7391,7 @@ export const withTracerEnabled: {
  * )
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const withTracerTiming: {
@@ -7427,7 +7423,7 @@ export const withTracerTiming: {
  * })
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const annotateSpans: {
@@ -7470,7 +7466,7 @@ export const annotateSpans: {
  * const traced = Effect.withSpan(program, "user-operation")
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const annotateCurrentSpan: {
@@ -7500,7 +7496,7 @@ export const annotateCurrentSpan: {
  * const traced = Effect.withSpan(program, "my-span")
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const currentSpan: Effect<Span, Cause.NoSuchElementError> = internal.currentSpan
@@ -7533,7 +7529,7 @@ export const currentSpan: Effect<Span, Cause.NoSuchElementError> = internal.curr
  * const traced = Effect.withSpan(program, "parent-span")
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const currentParentSpan: Effect<AnySpan, Cause.NoSuchElementError> = internal.currentParentSpan
@@ -7567,7 +7563,7 @@ export const currentParentSpan: Effect<AnySpan, Cause.NoSuchElementError> = inte
  * // Output: Current span annotations: { userId: "123", operation: "data-processing" }
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const spanAnnotations: Effect<Readonly<Record<string, unknown>>> = internal.spanAnnotations
@@ -7593,7 +7589,7 @@ export const spanAnnotations: Effect<Readonly<Record<string, unknown>>> = intern
  * })
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const spanLinks: Effect<ReadonlyArray<SpanLink>> = internal.spanLinks
@@ -7647,7 +7643,7 @@ export const spanLinks: Effect<ReadonlyArray<SpanLink>> = internal.spanLinks
  * })
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const linkSpans: {
@@ -7683,7 +7679,7 @@ export const linkSpans: {
  * })
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const makeSpan: (name: string, options?: SpanOptionsNoTrace) => Effect<Span> = internal.makeSpan
@@ -7710,7 +7706,7 @@ export const makeSpan: (name: string, options?: SpanOptionsNoTrace) => Effect<Sp
  * )
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const makeSpanScoped: (
@@ -7740,7 +7736,7 @@ export const makeSpanScoped: (
  * )
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const useSpan: {
@@ -7766,7 +7762,7 @@ export const useSpan: {
  * })
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const withSpan: {
@@ -7804,7 +7800,7 @@ export const withSpan: {
  * )
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const withSpanScoped: {
@@ -7837,7 +7833,7 @@ export const withSpanScoped: {
  * })
  * ```
  *
- * @category Tracing
+ * @category tracing
  * @since 2.0.0
  */
 export const withParentSpan: {
@@ -8746,14 +8742,13 @@ export const runSyncExitWith: <R>(
  *
  * Use these to describe generator-based signatures and traced or untraced variants.
  *
- * @category Function
  * @since 3.12.0
  */
 export namespace fn {
   /**
    * Generator return type accepted by `Effect.fn` and `Effect.fnUntraced`.
    *
-   * @category Models
+   * @category models
    * @since 3.19.0
    */
   export type Return<A, E = never, R = never> = Generator<Effect<any, E, R>, A, any>
@@ -8761,7 +8756,7 @@ export namespace fn {
   /**
    * Type of the untraced function builder used by `Effect.fnUntraced`.
    *
-   * @category Models
+   * @category models
    * @since 3.11.0
    */
   export type Untraced = {
@@ -10349,7 +10344,7 @@ export namespace fn {
   /**
    * Type of the traced function builder used by `Effect.fn`.
    *
-   * @category Models
+   * @category models
    * @since 3.11.0
    */
   export type Traced = {
@@ -12899,7 +12894,7 @@ export const clockWith: <A, E, R>(
  * })
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const logWithLevel: (level?: Severity) => (...message: ReadonlyArray<any>) => Effect<void> =
@@ -12929,7 +12924,7 @@ export const logWithLevel: (level?: Severity) => (...message: ReadonlyArray<any>
  * // 4
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const log: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel()
@@ -12959,7 +12954,7 @@ export const log: (...message: ReadonlyArray<any>) => Effect<void> = internal.lo
  * // timestamp=2023-... level=FATAL message="System shutting down"
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Fatal")
@@ -12990,7 +12985,7 @@ export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * // timestamp=2023-... level=WARN message="Using deprecated API endpoint"
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Warn")
@@ -13024,7 +13019,7 @@ export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = inte
  * // timestamp=2023-... level=ERROR message="Caught error: Something went wrong"
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const logError: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Error")
@@ -13053,7 +13048,7 @@ export const logError: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * // timestamp=2023-... level=INFO message="Application version: 1.2.3"
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Info")
@@ -13083,7 +13078,7 @@ export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = interna
  * // timestamp=2023-... level=DEBUG message="Variable state: x=10 y=20 z=30"
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Debug")
@@ -13116,7 +13111,7 @@ export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * // timestamp=2023-... level=TRACE message="Exiting function processData"
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = internal.logWithLevel("Trace")
@@ -13146,7 +13141,7 @@ export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * // Output includes both default and custom log outputs
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const withLogger = dual<
@@ -13191,7 +13186,7 @@ export const withLogger = dual<
  * // All log messages will include the userId and operation annotations
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const annotateLogs = dual<
@@ -13255,7 +13250,7 @@ export const annotateLogs = dual<
  * Effect.runPromise(program)
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 4.0.0
  */
 export const annotateLogsScoped: {
@@ -13291,7 +13286,7 @@ export const annotateLogsScoped: {
  * // All log messages will include span information showing the nested operation context
  * ```
  *
- * @category Logging
+ * @category logging
  * @since 2.0.0
  */
 export const withLogSpan = dual<
@@ -13926,7 +13921,6 @@ export const txRetry: Effect<never, never, Transaction> = flatMap(
 /**
  * Type helpers for converting callback-based functions into `Effect` functions.
  *
- * @category Effectify
  * @since 4.0.0
  */
 export declare namespace Effectify {

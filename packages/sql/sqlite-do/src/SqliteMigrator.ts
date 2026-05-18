@@ -36,7 +36,7 @@ export * from "effect/unstable/sql/Migrator"
 /**
  * Runs SQL migrations using the configured `SqlClient`, returning the migrations that were applied.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const run: <R2 = never>(
@@ -50,7 +50,7 @@ export const run: <R2 = never>(
 /**
  * Creates a layer that runs the configured SQL migrations during layer construction.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const layer = <R>(

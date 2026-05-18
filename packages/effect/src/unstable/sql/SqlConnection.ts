@@ -32,7 +32,7 @@ import type { SqlError } from "./SqlError.ts"
  * transformed rows, raw results, streams, value arrays, or unprepared
  * statements.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface Connection {
@@ -73,7 +73,7 @@ export interface Connection {
  * Scoped effect that acquires a `Connection`, may fail with `SqlError`, and
  * requires a `Scope` for release.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type Acquirer = Effect<Connection, SqlError, Scope>
@@ -89,7 +89,7 @@ export const Connection = Context.Service<Connection>("effect/sql/SqlConnection"
 /**
  * Generic SQL row shape mapping column names to unknown values.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type Row = { readonly [column: string]: unknown }

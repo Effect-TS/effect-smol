@@ -33,7 +33,7 @@ const TypeId = "~effect/platform/Terminal"
  * A `Terminal` represents a command-line interface which can read input from a
  * user and display messages to a user.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Terminal {
@@ -66,7 +66,7 @@ export interface Terminal {
  * Keyboard key metadata for terminal input, including the key name and
  * modifier state.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Key {
@@ -92,7 +92,7 @@ export interface Key {
  * A terminal input event containing an optional raw character and the parsed
  * key that was pressed.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface UserInput {
@@ -137,7 +137,7 @@ export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty
 /**
  * Context service tag for accessing a `Terminal` implementation.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("effect/platform/Terminal")
@@ -145,7 +145,7 @@ export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("ef
 /**
  * Creates a Terminal implementation
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (

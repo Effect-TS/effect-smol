@@ -282,7 +282,7 @@ const missingNode = (node: number) => new GraphError({ message: `Node ${node} do
  * Returns `true` if a value has the graph runtime type identifier, narrowing
  * it to a `Graph`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isGraph = (u: unknown): u is Graph<unknown, unknown> => hasProperty(u, TypeId)
@@ -832,7 +832,7 @@ export const findEdges: {
  * console.log(nodeData) // Option.some("NODE A")
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const updateNode = <N, E, T extends Kind = "directed">(
@@ -909,7 +909,7 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
  * console.log(nodeData) // Option.some("NODE A")
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const mapNodes = <N, E, T extends Kind = "directed">(
@@ -944,7 +944,7 @@ export const mapNodes = <N, E, T extends Kind = "directed">(
  * console.log(edgeData) // Option.some(new Graph.Edge({ source: 0, target: 1, data: 20 }))
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const mapEdges = <N, E, T extends Kind = "directed">(
@@ -982,7 +982,7 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
  * console.log(edge0) // Option.some(new Graph.Edge({ source: 1, target: 0, data: 1 }))
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const reverse = <N, E, T extends Kind = "directed">(
@@ -1049,7 +1049,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
  * console.log(Graph.nodeCount(graph)) // 2 (only "active" nodes remain)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const filterMapNodes = <N, E, T extends Kind = "directed">(
@@ -1104,7 +1104,7 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  * console.log(Graph.edgeCount(graph)) // 2 (edges with weight 5 removed)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const filterMapEdges = <N, E, T extends Kind = "directed">(
@@ -1156,7 +1156,7 @@ export const filterMapEdges = <N, E, T extends Kind = "directed">(
  * console.log(Graph.nodeCount(graph)) // 2 (only "active" nodes remain)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const filterNodes = <N, E, T extends Kind = "directed">(
@@ -1203,7 +1203,7 @@ export const filterNodes = <N, E, T extends Kind = "directed">(
  * console.log(Graph.edgeCount(graph)) // 2 (edge with weight 5 removed)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 4.0.0
  */
 export const filterEdges = <N, E, T extends Kind = "directed">(
@@ -3660,7 +3660,6 @@ export class Walker<T, N> implements Iterable<[T, N]> {
    * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
    * ```
    *
-   * @category iterators
    * @since 4.0.0
    */
   readonly visit: <U>(f: (index: T, data: N) => U) => Iterable<U>
@@ -3744,7 +3743,7 @@ export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
  * console.log(indices) // [0, 1]
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit((index, _) => index)
@@ -3768,7 +3767,7 @@ export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit
  * console.log(values) // ["A", "B"]
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit((_, data) => data)
@@ -3792,7 +3791,7 @@ export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit(
  * console.log(entries) // [[0, "A"], [1, "B"]]
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>

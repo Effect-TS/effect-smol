@@ -189,7 +189,7 @@ export class Identity extends Context.Service<Identity, {
 /**
  * Type-level identifier used to brand `EventLogSchema` values.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
@@ -197,7 +197,7 @@ export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 /**
  * Runtime property key used to identify `EventLogSchema` values.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const SchemaTypeId: SchemaTypeId = "~effect/eventlog/EventLog/Schema"
@@ -205,7 +205,7 @@ export const SchemaTypeId: SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 /**
  * Returns `true` when a value carries the `EventLogSchema` marker.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const isEventLogSchema = (u: unknown): u is EventLogSchema<EventGroup.Any> =>
@@ -214,7 +214,7 @@ export const isEventLogSchema = (u: unknown): u is EventLogSchema<EventGroup.Any
 /**
  * Schema describing the event groups that can be written through an `EventLog`.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export interface EventLogSchema<Groups extends EventGroup.Any> {
@@ -225,7 +225,7 @@ export interface EventLogSchema<Groups extends EventGroup.Any> {
 /**
  * Creates an `EventLogSchema` from one or more event groups.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
@@ -299,7 +299,6 @@ export interface Handlers<
  * Namespace containing helper types for `Handlers` values and handler-producing
  * layers.
  *
- * @category handlers
  * @since 4.0.0
  */
 export declare namespace Handlers {
@@ -423,7 +422,7 @@ const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(
  * Schema for an event-log identity with a string public key and redacted
  * base64-encoded private key bytes.
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const IdentitySchema = Schema.Struct({

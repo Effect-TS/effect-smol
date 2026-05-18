@@ -33,7 +33,7 @@ const TypeId = "~effect/persistence/PersistedCache" as const
 /**
  * Cache that combines an in-memory `Cache` with a persisted backing store.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface PersistedCache<K extends Persistable.Any, out R = never> {
@@ -59,7 +59,7 @@ export interface PersistedCache<K extends Persistable.Any, out R = never> {
  * exits with the configured persistent TTL, and also keeps a scoped in-memory
  * cache with its own capacity and TTL.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: <

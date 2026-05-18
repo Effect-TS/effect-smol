@@ -155,7 +155,6 @@ export interface SinkUnifyIgnore {
 /**
  * Namespace containing types and interfaces for Sink variance and type relationships.
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Sink {
@@ -331,6 +330,7 @@ export declare namespace make {
    * final pipeline step must return an `Effect`, whose success value becomes
    * the sink result.
    *
+   * @category models
    * @since 4.0.0
    */
   export interface Constructor<In> {
@@ -1771,7 +1771,7 @@ export const timed: Sink<Duration.Duration, unknown> = map(withDuration(drain), 
  * Services contained in the provided context are removed from the sink's
  * service requirements.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const provideContext: {
@@ -1798,7 +1798,7 @@ export const provideContext: {
  * The service identified by `key` is removed from the sink's service
  * requirements.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const provideService: {
@@ -1829,7 +1829,7 @@ export const provideService: {
  * upstream stream. If the upstream stream had already ended, the fallback sees
  * the upstream end instead.
  *
- * @category Error handling
+ * @category error handling
  * @since 2.0.0
  */
 export const orElse: {
@@ -1872,7 +1872,7 @@ export const orElse: {
  * becomes the sink result. If the handler fails, the returned sink fails with
  * that error.
  *
- * @category Error handling
+ * @category error handling
  * @since 4.0.0
  */
 export const catchCause: {
@@ -1911,7 +1911,7 @@ const catch_: {
 
 export {
   /**
-   * @category Error handling
+   * @category error handling
    * @since 4.0.0
    */
   catch_ as catch

@@ -83,7 +83,7 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
 /**
  * Represents the internal state of an RcMap, which can be either Open (active)
  * or Closed (shutdown and no longer accepting operations).
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type State<K, A, E> = State.Open<K, A, E> | State.Closed
@@ -97,7 +97,7 @@ export declare namespace State {
   /**
    * Represents the open/active state of an RcMap, containing the actual
    * resource map that stores entries.
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Open<K, A, E> {
@@ -108,7 +108,7 @@ export declare namespace State {
   /**
    * Represents the closed state of an RcMap, indicating that the map has been
    * shut down and will no longer accept new operations.
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Closed {
@@ -118,7 +118,7 @@ export declare namespace State {
   /**
    * Represents an individual entry in the RcMap, containing the resource's
    * metadata including reference count, expiration time, and lifecycle management.
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Entry<A, E> {

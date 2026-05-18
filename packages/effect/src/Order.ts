@@ -1085,7 +1085,7 @@ export const isBetween = <A>(O: Order<A>): {
  * - {@link combineAll} - Combine multiple orders
  * - {@link Reducer} - Reducer type for collection operations
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export function makeReducer<A>() {

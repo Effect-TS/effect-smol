@@ -651,7 +651,7 @@ export const multiplyAll = (collection: Iterable<bigint>): bigint => {
  * BI.toNumber(BigInt(Number.MIN_SAFE_INTEGER) - 1n) // Option.none()
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toNumber = (b: bigint): Option.Option<number> => {
@@ -677,7 +677,7 @@ export const toNumber = (b: bigint): Option.Option<number> => {
  * BigInt.fromString("a") // Option.none()
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.4.12
  */
 export const fromString = (s: string): Option.Option<bigint> => {
@@ -708,7 +708,7 @@ export const fromString = (s: string): Option.Option<bigint> => {
  * BigInt.fromNumber(Number.MIN_SAFE_INTEGER - 1) // Option.none()
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.4.12
  */
 export function fromNumber(n: number): Option.Option<bigint> {
@@ -750,6 +750,7 @@ export const remainder: {
 /**
  * A `Reducer` for combining `bigint`s using addition.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerSum: Reducer.Reducer<bigint> = Reducer.make((a, b) => a + b, bigint0)
@@ -757,6 +758,7 @@ export const ReducerSum: Reducer.Reducer<bigint> = Reducer.make((a, b) => a + b,
 /**
  * A `Reducer` for combining `bigint`s using multiplication.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a * b, bigint1, (collection) => {
@@ -771,6 +773,7 @@ export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a
 /**
  * A `Combiner` that returns the maximum `bigint`.
  *
+ * @category math
  * @since 4.0.0
  */
 export const CombinerMax: Combiner.Combiner<bigint> = Combiner.max(Order)
@@ -778,6 +781,7 @@ export const CombinerMax: Combiner.Combiner<bigint> = Combiner.max(Order)
 /**
  * A `Combiner` that returns the minimum `bigint`.
  *
+ * @category math
  * @since 4.0.0
  */
 export const CombinerMin: Combiner.Combiner<bigint> = Combiner.min(Order)

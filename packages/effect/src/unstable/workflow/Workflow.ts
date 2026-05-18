@@ -51,7 +51,7 @@ const TypeId = "~effect/workflow/Workflow"
  * plus operations for execution, polling, interruption, resumption, and
  * registration.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Workflow<
@@ -194,6 +194,7 @@ export interface Workflow<
 /**
  * Schema constraint for workflow payload schemas that expose struct fields.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface AnyStructSchema extends Schema.Top {
@@ -204,7 +205,7 @@ export interface AnyStructSchema extends Schema.Top {
  * Type-level marker for services associated with a specific workflow
  * execution name.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Execution<Name extends string> {
@@ -216,7 +217,7 @@ export interface Execution<Name extends string> {
  * Type-erased workflow shape for APIs that operate on workflows without
  * preserving their specific payload, success, or error types.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Any {
@@ -233,7 +234,7 @@ export interface Any {
  * Type-erased workflow shape that also exposes executable operations needed by
  * workflow proxy and engine helpers.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AnyWithProps extends Any {
@@ -252,7 +253,7 @@ export interface AnyWithProps extends Any {
 /**
  * Extracts the payload schema from a `Workflow`.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type PayloadSchema<W> = W extends Workflow<
@@ -267,7 +268,7 @@ export type PayloadSchema<W> = W extends Workflow<
  * Computes the schema services required by clients that execute or poll
  * workflows.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type RequirementsClient<Workflows extends Any> = Workflows extends Workflow<
@@ -285,7 +286,7 @@ export type RequirementsClient<Workflows extends Any> = Workflows extends Workfl
  * Computes the schema services required by handlers that decode workflow
  * payloads and encode workflow results.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type RequirementsHandler<Workflows extends Any> = Workflows extends Workflow<
@@ -318,7 +319,7 @@ const InstanceTag = Context.Service<
  * deterministic execution IDs derived from the workflow name and idempotency
  * key.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <
@@ -485,6 +486,7 @@ export interface CompleteEncoded<A, E> {
  * Schema constructor for `Complete` workflow results using the supplied
  * success and error schemas.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface CompleteSchema<
@@ -845,7 +847,7 @@ export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<ne
  *
  * By default, this is set to `true`, meaning that defects will be captured.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const CaptureDefects = Context.Reference<boolean>(
@@ -861,7 +863,7 @@ export const CaptureDefects = Context.Reference<boolean>(
  * The suspended execution can later be resumed with the workflow's `resume`
  * method, for example `MyWorkflow.resume(executionId)`.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const SuspendOnFailure = Context.Reference<boolean>(

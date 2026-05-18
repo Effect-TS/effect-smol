@@ -37,7 +37,7 @@ import * as Redis from "effect/unstable/persistence/Redis"
 /**
  * Service tag for Bun Redis integration, exposing the raw `RedisClient` and a `use` helper that maps client promise failures to `RedisError`.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export class BunRedis extends Context.Service<BunRedis, {
@@ -81,7 +81,7 @@ const make = Effect.fnUntraced(function*(
 /**
  * Creates scoped Bun Redis layers for `Redis.Redis` and `BunRedis`, closing the underlying client when the scope finalizes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (
@@ -91,7 +91,7 @@ export const layer = (
 /**
  * Creates scoped Bun Redis layers from configurable Redis options, closing the underlying client when the scope finalizes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerConfig = (

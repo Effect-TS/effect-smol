@@ -627,7 +627,7 @@ const make = Effect.gen(function*() {
 /**
  * Layer providing the `NodeChildProcessSpawner` implementation.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -643,7 +643,7 @@ export const layer: Layer.Layer<
 /**
  * Result of flattening a pipeline of commands.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface FlattenedPipeline {
@@ -655,7 +655,7 @@ export interface FlattenedPipeline {
  * Flattens a `Command` into an array of `StandardCommand`s along with pipe
  * options for each connection.
  *
- * @category Utilities
+ * @category utils
  * @since 4.0.0
  */
 export const flattenCommand = (

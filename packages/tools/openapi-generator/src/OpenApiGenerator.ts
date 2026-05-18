@@ -27,6 +27,8 @@ import * as Utils from "./Utils.ts"
 /**
  * Service for turning OpenAPI or Swagger specifications into generated Effect
  * HTTP client or HttpApi source code.
+ *
+ * @category services
  */
 export class OpenApiGenerator extends Context.Service<
   OpenApiGenerator,
@@ -35,11 +37,15 @@ export class OpenApiGenerator extends Context.Service<
 
 /**
  * Output targets supported by the OpenAPI generator.
+ *
+ * @category models
  */
 export type OpenApiGeneratorFormat = "httpclient" | "httpclient-type-only" | "httpapi"
 
 /**
  * Stable identifiers for non-fatal OpenAPI generation warnings.
+ *
+ * @category models
  */
 export type OpenApiGeneratorWarningCode =
   | "cookie-parameter-dropped"
@@ -55,6 +61,8 @@ export type OpenApiGeneratorWarningCode =
 /**
  * Describes a non-fatal issue encountered while mapping an OpenAPI operation to
  * generated Effect source.
+ *
+ * @category models
  */
 export interface OpenApiGeneratorWarning {
   readonly code: OpenApiGeneratorWarningCode
@@ -66,6 +74,8 @@ export interface OpenApiGeneratorWarning {
 
 /**
  * Options that control one OpenAPI generation run.
+ *
+ * @category models
  */
 export interface OpenApiGenerateOptions {
   /**
@@ -104,6 +114,8 @@ const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
 
 /**
  * Constructs the OpenAPI generator service implementation.
+ *
+ * @category constructors
  */
 export const make = Effect.gen(function*() {
   const generate = Effect.fn(
@@ -1052,11 +1064,15 @@ function getDialect(spec: OpenAPISpec): "openapi-3.0" | "openapi-3.1" {
 
 /**
  * Layer providing an OpenAPI generator for Schema-backed HTTP client and HttpApi output.
+ *
+ * @category layers
  */
 export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
 /**
  * Layer providing an OpenAPI generator for type-only HTTP client output.
+ *
+ * @category layers
  */
 export const layerTransformerTs: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 

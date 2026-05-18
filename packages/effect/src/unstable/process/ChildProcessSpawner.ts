@@ -19,7 +19,7 @@ import type { Command, KillOptions } from "./ChildProcess.ts"
 /**
  * Branded number representing the exit code reported by a child process.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type ExitCode = Brand.Branded<number, "ExitCode">
@@ -27,7 +27,7 @@ export type ExitCode = Brand.Branded<number, "ExitCode">
 /**
  * Brand constructor for child process `ExitCode` values.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const ExitCode: Brand.Constructor<ExitCode> = Brand.nominal<ExitCode>()
@@ -36,7 +36,7 @@ export const ExitCode: Brand.Constructor<ExitCode> = Brand.nominal<ExitCode>()
  * Branded number representing the operating system process identifier of a
  * child process.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type ProcessId = Brand.Branded<number, "ProcessId">
@@ -44,7 +44,7 @@ export type ProcessId = Brand.Branded<number, "ProcessId">
 /**
  * Brand constructor for child process `ProcessId` values.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const ProcessId: Brand.Constructor<ProcessId> = Brand.nominal<ProcessId>()
@@ -57,7 +57,7 @@ export const ProcessId: Brand.Constructor<ProcessId> = Brand.nominal<ProcessId>(
  * restore the default behavior where the child process keeps the parent
  * process alive.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Reref = Effect.Effect<void, PlatformError.PlatformError>
@@ -67,7 +67,7 @@ const HandleTypeId = "~effect/ChildProcessSpawner/ChildProcessHandle"
 /**
  * A handle to a running child process.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ChildProcessHandle {
@@ -176,7 +176,7 @@ const HandleProto = {
 /**
  * Constructs a new `ChildProcessHandle`.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeHandle = (params: Omit<ChildProcessHandle, typeof HandleTypeId>): ChildProcessHandle =>
@@ -186,7 +186,7 @@ export const makeHandle = (params: Omit<ChildProcessHandle, typeof HandleTypeId>
  * Creates a `ChildProcessSpawner` service from a `spawn` function, deriving
  * helpers for exit codes and output collection from that implementation.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export const make = (spawn: ChildProcessSpawner["Service"]["spawn"]): ChildProcessSpawner["Service"] => {
@@ -215,7 +215,7 @@ export const make = (spawn: ChildProcessSpawner["Service"]["spawn"]): ChildProce
 /**
  * Service tag for child process spawning.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export class ChildProcessSpawner extends Context.Service<ChildProcessSpawner, {

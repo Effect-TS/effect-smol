@@ -42,7 +42,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Runtime type identifier used to mark `LibsqlClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-libsql/LibsqlClient"
@@ -50,7 +50,7 @@ export const TypeId: TypeId = "~@effect/sql-libsql/LibsqlClient"
 /**
  * Type-level identifier used to mark `LibsqlClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-libsql/LibsqlClient"
@@ -170,7 +170,7 @@ interface LibsqlConnection extends Connection {
 /**
  * Creates a scoped libSQL SQL client with transaction support. When given connection options it creates and closes the SDK client; when given `liveClient`, the caller retains ownership.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (

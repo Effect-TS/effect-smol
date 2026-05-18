@@ -32,7 +32,7 @@ import * as Struct_ from "../../Struct.ts"
 /**
  * Runtime type identifier attached to variant schema structs.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/schema/VariantSchema"
@@ -63,7 +63,6 @@ export const isStruct = (u: unknown): u is Struct<any> => Predicate.hasProperty(
 /**
  * Type-level helpers for variant schema structs.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Struct {
@@ -128,7 +127,6 @@ export const isField = (u: unknown): u is Field<any> => Predicate.hasProperty(u,
 /**
  * Type-level helpers for variant schema fields.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Field {
@@ -330,7 +328,6 @@ export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
 /**
  * Type-level helpers for unions of variant schema structs.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Union {

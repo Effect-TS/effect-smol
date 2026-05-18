@@ -16,6 +16,8 @@ import * as UndefinedOr from "effect/UndefinedOr"
  *
  * Separators are removed, leading digits are ignored, and letters following a
  * separator or digit are upper-cased without otherwise changing letter casing.
+ *
+ * @category converting
  */
 export const camelize = (self: string): string => {
   let str = ""
@@ -43,6 +45,8 @@ export const camelize = (self: string): string => {
 /**
  * Converts an OpenAPI operation id into the exported operation identifier used
  * by generated TypeScript modules.
+ *
+ * @category converting
  */
 export const identifier = (operationId: string) => String.capitalize(camelize(operationId))
 
@@ -51,6 +55,8 @@ export const identifier = (operationId: string) => String.capitalize(camelize(op
  *
  * Returns `undefined` for non-string values and for strings containing only
  * whitespace.
+ *
+ * @category filtering
  */
 export const nonEmptyString = (a: unknown): string | undefined => {
   if (typeof a === "string") {
@@ -66,6 +72,8 @@ export const nonEmptyString = (a: unknown): string | undefined => {
  *
  * Returns an empty string when the description is absent and escapes any
  * closing comment marker so generated source remains syntactically valid.
+ *
+ * @category converting
  */
 export const toComment = UndefinedOr.match({
   onUndefined: () => "",
@@ -80,6 +88,8 @@ export const toComment = UndefinedOr.match({
  *
  * This mutates `destination` directly, which avoids allocating an intermediate
  * array when generator code needs to merge collections.
+ *
+ * @category concatenating
  */
 export const spreadElementsInto = <A>(source: Array<A>, destination: Array<A>): void => {
   for (let i = 0; i < source.length; i++) {

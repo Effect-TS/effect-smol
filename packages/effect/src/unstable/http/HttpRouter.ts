@@ -253,7 +253,7 @@ function sliceRequestUrl(request: HttpServerRequest.HttpServerRequest, prefix: s
  * The value is passed to the route matcher when an `HttpRouter` is created and
  * defaults to an empty configuration.
  *
- * @category Configuration
+ * @category configuration
  * @since 4.0.0
  */
 export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
@@ -294,7 +294,7 @@ export const params: Effect.Effect<
  * cookies, path parameters, search parameters, and parsed JSON body. The effect
  * fails if the body cannot be parsed or the schema decode fails.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaJson = <
@@ -348,7 +348,7 @@ export const schemaJson = <
  * The input passed to the schema includes the request method, URL, headers,
  * cookies, path parameters, and search parameters.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaNoBody = <
@@ -398,7 +398,7 @@ export const schemaNoBody = <
  *
  * When the same key appears in both sources, the path parameter value is used.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaParams = <A, I extends Readonly<Record<string, string | ReadonlyArray<string> | undefined>>, RD, RE>(
@@ -417,7 +417,7 @@ export const schemaParams = <A, I extends Readonly<Record<string, string | Reado
  * Decodes a schema from the path parameters captured for the current matched
  * route.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaPathParams = <A, I extends Readonly<Record<string, string | undefined>>, RD, RE>(
@@ -588,7 +588,6 @@ export interface Route<E = never, R = never> {
  * Helper types for extracting the error and context types carried by `Route`
  * values.
  *
- * @category Route
  * @since 4.0.0
  */
 export declare namespace Route {
@@ -728,7 +727,6 @@ export interface Request<Kind extends string, T> {
  * Helper types for request-level dependency markers used by router layers and
  * middleware.
  *
- * @category Request types
  * @since 4.0.0
  */
 export declare namespace Request {
@@ -1018,7 +1016,6 @@ const getMiddleware = (context: Context.Context<never>): Array<middleware.Fn> =>
 /**
  * Types used by the `middleware` constructor.
  *
- * @category Middleware
  * @since 4.0.0
  */
 export declare namespace middleware {

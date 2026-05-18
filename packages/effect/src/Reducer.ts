@@ -103,7 +103,7 @@ import type * as Combiner from "./Combiner.ts"
  * @see {@link make} – create a `Reducer` from a function and initial value
  * @see {@link Combiner.Combiner} – parent interface without `initialValue`
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface Reducer<A> extends Combiner.Combiner<A> {
@@ -156,6 +156,7 @@ export interface Reducer<A> extends Combiner.Combiner<A> {
  * @see {@link Reducer} – the interface this creates
  * @see {@link flip} – reverse the argument order
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function make<A>(
@@ -210,6 +211,7 @@ export function make<A>(
  * @see {@link make}
  * @see {@link Combiner.flip} – the same operation on a plain `Combiner`
  *
+ * @category combinators
  * @since 4.0.0
  */
 export function flip<A>(reducer: Reducer<A>): Reducer<A> {

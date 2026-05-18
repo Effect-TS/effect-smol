@@ -76,7 +76,7 @@ const TypeId = "~effect/cluster/HashRing" as const
  * Nodes are identified by their `PrimaryKey` value and can be iterated from the
  * ring.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Iterable<A> {
@@ -90,7 +90,7 @@ export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Ite
 /**
  * Checks whether a value is a `HashRing`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isHashRing = (u: unknown): u is HashRing<any> => hasProperty(u, TypeId)
@@ -101,7 +101,7 @@ export const isHashRing = (u: unknown): u is HashRing<any> => hasProperty(u, Typ
  * `baseWeight` controls how many virtual points are added for a node with
  * weight `1`; it defaults to `128` and is clamped to at least `1`.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <A extends PrimaryKey.PrimaryKey>(options?: {
@@ -134,7 +134,7 @@ const Proto = {
  * Add new nodes to the ring. If a node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const addMany: {
@@ -193,7 +193,7 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
  * Add a new node to the ring. If the node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const add: {
@@ -210,7 +210,7 @@ export const add: {
 /**
  * Removes the node from the ring. No-op's if the node does not exist.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const remove: {
@@ -230,7 +230,7 @@ export const remove: {
 /**
  * Checks whether the ring contains a node with the same `PrimaryKey` value.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const has: {
@@ -245,7 +245,7 @@ export const has: {
  * Gets the node which should handle the given input. Returns undefined if
  * the hashring has no elements with weight.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: string): A | undefined => {
@@ -262,7 +262,7 @@ export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: s
  * balance the number of shards allocated to each node. Returns undefined if
  * the hashring has no elements with weight.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const getShards = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, count: number): Array<A> | undefined => {

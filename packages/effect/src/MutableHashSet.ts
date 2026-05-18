@@ -69,7 +69,6 @@
  * ```
  *
  * @fileoverview
- * @category data-structures
  * @since 2.0.0
  */
 import { format } from "./Formatter.ts"

@@ -207,7 +207,7 @@ export type Unify<A> = Values<
  * // Type: (a: string) => (b: number) => Unify<{ result: string }>
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const unify: {

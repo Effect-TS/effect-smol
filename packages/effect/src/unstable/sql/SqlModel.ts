@@ -16,7 +16,6 @@
  * directly; MySQL performs a follow-up `select`, so generated ids, defaults,
  * and trigger-updated values must be observable from that query.
  *
- * @category models
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"

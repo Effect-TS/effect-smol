@@ -39,7 +39,7 @@ import type { Sharding } from "./Sharding.ts"
  * request payload to the corresponding entity client method, including discard
  * endpoints.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpApi = <
@@ -104,7 +104,7 @@ export const layerHttpApi = <
  * The handlers forward each prefixed proxy RPC to the target entity client using
  * the `entityId` embedded in the proxy payload.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerRpcHandlers = <
@@ -141,6 +141,7 @@ export const layerRpcHandlers = <
  *
  * Includes both the normal prefixed RPC handler and its discard variant.
  *
+ * @category services
  * @since 4.0.0
  */
 export type RpcHandlers<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs extends Rpc.Rpc<

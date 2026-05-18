@@ -115,6 +115,8 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * These options are used when translating system instructions into
    * OpenRouter chat messages.
+   *
+   * @category request
    */
   export interface SystemMessageOptions extends ProviderOptions {
     /**
@@ -133,6 +135,8 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * These options are used when translating user content into OpenRouter chat
    * messages.
+   *
+   * @category request
    */
   export interface UserMessageOptions extends ProviderOptions {
     /**
@@ -151,6 +155,8 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * Preserves reasoning metadata when assistant messages are replayed in later
    * OpenRouter requests.
+   *
+   * @category request
    */
   export interface AssistantMessageOptions extends ProviderOptions {
     /**
@@ -173,6 +179,8 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * These options are used when converting tool results into OpenRouter chat
    * messages.
+   *
+   * @category request
    */
   export interface ToolMessageOptions extends ProviderOptions {
     /**
@@ -190,6 +198,8 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenRouter-specific options for text prompt parts.
    *
    * Use these options to control how text content is sent to OpenRouter.
+   *
+   * @category request
    */
   export interface TextPartOptions extends ProviderOptions {
     /**
@@ -208,6 +218,8 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * Preserves provider reasoning blocks so reasoning-aware conversations can
    * continue across OpenRouter requests.
+   *
+   * @category request
    */
   export interface ReasoningPartOptions extends ProviderOptions {
     /**
@@ -229,6 +241,8 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenRouter-specific options for file prompt parts.
    *
    * Controls file naming and prompt caching for files sent to OpenRouter.
+   *
+   * @category request
    */
   export interface FilePartOptions extends ProviderOptions {
     /**
@@ -252,6 +266,8 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * Preserves reasoning details associated with tool calls when a conversation
    * is sent back to OpenRouter.
+   *
+   * @category request
    */
   export interface ToolCallPartOptions extends ProviderOptions {
     /**
@@ -269,6 +285,8 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenRouter-specific options for tool result prompt parts.
    *
    * Controls prompt caching for tool results sent to OpenRouter.
+   *
+   * @category request
    */
   export interface ToolResultPartOptions extends ProviderOptions {
     /**
@@ -288,6 +306,8 @@ declare module "effect/unstable/ai/Response" {
    * OpenRouter metadata attached to completed reasoning response parts.
    *
    * Preserves provider reasoning details that can be sent back in later turns.
+   *
+   * @category response
    */
   export interface ReasoningPartMetadata extends ProviderMetadata {
     /**
@@ -305,6 +325,8 @@ declare module "effect/unstable/ai/Response" {
    * OpenRouter metadata emitted when a streamed reasoning part starts.
    *
    * Carries the first reasoning detail chunk when OpenRouter exposes one.
+   *
+   * @category response
    */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
     /**
@@ -322,6 +344,8 @@ declare module "effect/unstable/ai/Response" {
    * OpenRouter metadata emitted for streamed reasoning deltas.
    *
    * Carries provider reasoning detail chunks as they arrive from OpenRouter.
+   *
+   * @category response
    */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
     /**
@@ -340,6 +364,8 @@ declare module "effect/unstable/ai/Response" {
    *
    * Associates tool calls with provider reasoning details when the model emits
    * reasoning and tool calls together.
+   *
+   * @category response
    */
   export interface ToolCallPartMetadata extends ProviderMetadata {
     /**
@@ -358,6 +384,8 @@ declare module "effect/unstable/ai/Response" {
    *
    * Includes citation text and offsets returned by providers that support URL
    * annotations.
+   *
+   * @category response
    */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
     /**
@@ -384,6 +412,8 @@ declare module "effect/unstable/ai/Response" {
    *
    * Exposes provider response details that are not represented by the common
    * Effect AI finish part fields.
+   *
+   * @category response
    */
   export interface FinishPartMetadata extends ProviderMetadata {
     /**

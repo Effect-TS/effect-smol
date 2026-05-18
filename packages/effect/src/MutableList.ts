@@ -47,7 +47,6 @@
  *   equality
  *
  * @fileoverview
- * @category data-structures
  * @since 4.0.0
  */
 import * as Arr from "./Array.ts"
@@ -124,7 +123,6 @@ export interface MutableList<in out A> {
  * }
  * ```
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace MutableList {

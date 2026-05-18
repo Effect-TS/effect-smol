@@ -106,6 +106,7 @@ import * as FastCheck from "../testing/FastCheck.ts"
  * @see {@link Decoding}
  * @see {@link Encoding}
  *
+ * @category testing
  * @since 4.0.0
  */
 export class Asserts<S extends Schema.Top> {
@@ -345,6 +346,7 @@ export class Asserts<S extends Schema.Top> {
  * @see {@link Asserts}
  * @see {@link Encoding}
  *
+ * @category testing
  * @since 4.0.0
  */
 export class Decoding<S extends Schema.Top> {

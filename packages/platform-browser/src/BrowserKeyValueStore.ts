@@ -27,7 +27,7 @@ import { IndexedDb } from "./IndexedDb.ts"
  *
  * Values are stored between sessions.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
@@ -39,7 +39,7 @@ export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyVa
  *
  * Values are stored only for the current session.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
@@ -49,8 +49,8 @@ export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = Key
 /**
  * Creates a `KeyValueStore` layer backed by IndexedDB.
  *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layerIndexedDb = (options?: {
   readonly database?: string | undefined

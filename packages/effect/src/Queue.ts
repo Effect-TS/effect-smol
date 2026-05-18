@@ -76,7 +76,7 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
 /**
  * Type guard to check if a value is a Queue.
  *
- * @category Guards
+ * @category guards
  * @since 3.8.0
  */
 export const isQueue = <A = unknown, E = unknown>(
@@ -86,7 +86,7 @@ export const isQueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is an Enqueue.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isEnqueue = <A = unknown, E = unknown>(
@@ -96,7 +96,7 @@ export const isEnqueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is a Dequeue.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isDequeue = <A = unknown, E = unknown>(
@@ -106,7 +106,7 @@ export const isDequeue = <A = unknown, E = unknown>(
 /**
  * Converts a Queue to an Enqueue (write-only interface).
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
@@ -114,7 +114,7 @@ export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
 /**
  * Convert a Queue to a Dequeue, allowing only read operations.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
@@ -143,7 +143,7 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Enqueue<in A, in E = never> extends Inspectable {
@@ -160,7 +160,6 @@ export interface Enqueue<in A, in E = never> extends Inspectable {
  * Companion namespace containing type-level metadata for the `Enqueue`
  * write-only queue interface.
  *
- * @category Models
  * @since 4.0.0
  */
 export declare namespace Enqueue {
@@ -171,7 +170,7 @@ export declare namespace Enqueue {
    * type `E`, because values and failures flow into the queue through this
    * handle.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Variance<A, E> {
@@ -206,7 +205,7 @@ export declare namespace Enqueue {
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 3.8.0
  */
 export interface Dequeue<out A, out E = never> extends Inspectable {
@@ -223,7 +222,6 @@ export interface Dequeue<out A, out E = never> extends Inspectable {
  * Companion namespace containing type-level metadata for the `Dequeue`
  * read-only queue interface.
  *
- * @category Models
  * @since 4.0.0
  */
 export declare namespace Dequeue {
@@ -233,7 +231,7 @@ export declare namespace Dequeue {
    * `Dequeue` is covariant in both the taken value type `A` and failure type
    * `E`, because values and failures are observed through this handle.
    *
-   * @category Models
+   * @category models
    * @since 3.8.0
    */
   export interface Variance<A, E> {
@@ -275,7 +273,7 @@ export declare namespace Dequeue {
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 3.8.0
  */
 export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeue<A, E> {
@@ -286,7 +284,6 @@ export interface Queue<in out A, in out E = never> extends Enqueue<A, E>, Dequeu
  * Companion namespace containing type-level metadata and low-level state types
  * for `Queue`.
  *
- * @category Models
  * @since 3.8.0
  */
 export declare namespace Queue {
@@ -296,7 +293,7 @@ export declare namespace Queue {
    * A full `Queue` is invariant in both `A` and `E` because the same handle can
    * both produce and consume values and failures.
    *
-   * @category Models
+   * @category models
    * @since 3.8.0
    */
   export interface Variance<A, E> {
@@ -312,7 +309,7 @@ export declare namespace Queue {
    * This is low-level metadata exposed by the queue model; most users should
    * inspect queues through the public operations.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type State<A, E> =
@@ -341,7 +338,7 @@ export declare namespace Queue {
    * remaining messages, plus a resume callback that completes the suspended
    * offer when the queue can accept more input.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type OfferEntry<A> =
@@ -390,7 +387,7 @@ const QueueProto = {
  *
  * - `Mailbox.make`
  *
- * @category Constructors
+ * @category constructors
  * @since 3.8.0
  * **Example** (Creating queues)
  *
@@ -466,7 +463,7 @@ export const make = <A, E = never>(
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity })
@@ -499,7 +496,7 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => make({ capacity, strategy: "sliding" })
@@ -533,7 +530,7 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
@@ -569,7 +566,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()

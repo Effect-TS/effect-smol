@@ -523,7 +523,7 @@ export const retainIf: {
  * })
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toArray = <A>(self: TxPriorityQueue<A>): Effect.Effect<Array<A>> =>

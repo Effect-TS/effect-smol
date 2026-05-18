@@ -109,7 +109,7 @@ const PartTypeId = "~effect/ai/Prompt/Part" as const
 /**
  * Type guard to check if a value is a Part.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTypeId)
@@ -982,7 +982,7 @@ const MessageTypeId = "~effect/ai/Prompt/Message" as const
 /**
  * Type guard to check if a value is a Message.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isMessage = (u: unknown): u is Message => Predicate.hasProperty(u, MessageTypeId)
@@ -2168,7 +2168,7 @@ export const setSystem: {
  * // result content: "You are a helpful assistant. You are an expert in programming."
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const prependSystem: {
@@ -2217,7 +2217,7 @@ export const prependSystem: {
  * // result content: "You are an expert in programming. You are a helpful assistant."
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const appendSystem: {

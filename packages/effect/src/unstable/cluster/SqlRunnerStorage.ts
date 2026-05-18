@@ -51,7 +51,7 @@ const withTracerDisabled = Effect.withTracerEnabled(false)
  * shard locks, using the configured table prefix and advisory locks where
  * supported and enabled.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: {
@@ -680,7 +680,7 @@ export const make = Effect.fnUntraced(function*(options: {
 /**
  * Layer that provides SQL-backed `RunnerStorage` using the default table prefix.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -692,7 +692,7 @@ export const layer: Layer.Layer<
 /**
  * Layer that provides SQL-backed `RunnerStorage` using a custom table prefix.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWith = (options: {

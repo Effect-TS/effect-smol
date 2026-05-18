@@ -30,7 +30,7 @@ export * from "effect/unstable/sql/Migrator"
 /**
  * Runs SQL migrations for a SQLite database using the shared `Migrator` implementation and the current `SqlClient`.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const run: <R2 = never>(
@@ -86,7 +86,7 @@ export const run: <R2 = never>(
 /**
  * Creates a layer that runs the configured SQLite migrations during layer construction and provides no services.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const layer = <R>(

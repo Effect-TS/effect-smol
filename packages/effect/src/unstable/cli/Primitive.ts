@@ -715,7 +715,7 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  * console.log(Primitive.getTypeName(logLevelChoice)) // "choice"
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const getTypeName = <A>(primitive: Primitive<A>): string => {

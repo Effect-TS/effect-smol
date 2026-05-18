@@ -67,7 +67,7 @@ import type * as Workflow from "./Workflow.ts"
  * )
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const toRpcGroup = <
@@ -103,6 +103,7 @@ export const toRpcGroup = <
  * Maps each workflow to the RPC definitions generated for execute, discard,
  * and resume operations.
  *
+ * @category converting
  * @since 4.0.0
  */
 export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> = Workflows extends Workflow.Workflow<
@@ -154,7 +155,7 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * )
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const toHttpApiGroup = <const Name extends string, const Workflows extends NonEmptyReadonlyArray<Workflow.Any>>(
@@ -192,6 +193,7 @@ const tagToPath = (tag: string): string =>
  * Maps each workflow to the HTTP API endpoints generated for execute,
  * discard, and resume operations.
  *
+ * @category converting
  * @since 4.0.0
  */
 export type ConvertHttpApi<Workflows extends Workflow.Any> = Workflows extends Workflow.Workflow<

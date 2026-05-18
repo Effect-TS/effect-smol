@@ -49,6 +49,7 @@ import * as RpcMiddleware from "../rpc/RpcMiddleware.ts"
  * It represents an optional struct field that supplies a default value when the
  * field is absent during decoding or construction.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface optionalWithDefault<S extends Schema.Top & Schema.WithoutConstructorDefault>
@@ -62,6 +63,7 @@ export interface optionalWithDefault<S extends Schema.Top & Schema.WithoutConstr
  * The default is used during decoding and as the constructor default for the
  * schema field.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstructorDefault>(
@@ -86,6 +88,7 @@ export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstru
  * The field may be absent, and explicit `undefined` values are omitted when
  * encoding.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const optional = <S extends Schema.Top>(schema: S): Schema.decodeTo<Schema.optional<S>, Schema.optionalKey<S>> =>

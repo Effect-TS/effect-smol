@@ -410,7 +410,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
  * Provides an `HttpServer` by creating and managing a scoped Node
  * `http.Server` with the supplied listen and shutdown options.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerServer: (
@@ -425,7 +425,7 @@ export const layerServer: (
  * Provides the Node HTTP support services used by `NodeHttpServer`, including
  * the HTTP platform, ETag generator, and core Node platform services.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpServices: Layer.Layer<
@@ -440,7 +440,7 @@ export const layerHttpServices: Layer.Layer<
  * Provides a Node `HttpServer` together with the Node HTTP platform, ETag, and
  * core platform services required to serve requests.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (
@@ -462,7 +462,7 @@ export const layer = (
  * Provides a Node `HttpServer` and HTTP support services, reading the listen
  * and shutdown options from a `Config` value.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerConfig = (

@@ -56,7 +56,6 @@ export type ReadonlyRecord<in out K extends string | symbol, out A> = {
  * type CommonKeys = Record.ReadonlyRecord.IntersectKeys<"a" | "b", "b" | "c"> // "b"
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace ReadonlyRecord {
@@ -320,7 +319,7 @@ export const fromEntries: <Entry extends readonly [string | symbol, any]>(
  * ], ["c", 3]])
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const collect: {
@@ -350,7 +349,7 @@ export const collect: {
  * assert.deepStrictEqual(Record.toEntries(x), [["a", 1], ["b", 2], ["c", 3]])
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toEntries: <K extends string, A>(self: ReadonlyRecord<K, A>) => Array<[K, A]> = collect((
@@ -1432,6 +1431,7 @@ export const singleton = <K extends string | symbol, A>(key: K, value: A): Recor
  *
  * Values for keys that exist in both records are combined using the provided `Combiner`.
  *
+ * @category combining
  * @since 4.0.0
  */
 export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Record<K, A>> {
@@ -1449,6 +1449,7 @@ export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combine
  * an empty record is empty, the default `combineAll` folds from `{}` and
  * therefore produces `{}` for ordinary non-empty inputs.
  *
+ * @category combining
  * @since 4.0.0
  */
 export function makeReducerIntersection<K extends string, A>(

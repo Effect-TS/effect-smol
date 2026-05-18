@@ -84,6 +84,7 @@ export const persisted = (
  * Returns the underlying Node readable stream for a multipart file produced by
  * the Node multipart parser.
  *
+ * @category converting
  * @since 4.0.0
  */
 export const fileToReadable = (file: Multipart.File): Readable => (file as FileImpl).file

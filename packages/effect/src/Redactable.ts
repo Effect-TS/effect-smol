@@ -131,7 +131,7 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
  * - {@link redact} - apply redaction to any value
  * - {@link isRedactable} - type guard for this interface
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Redactable {
@@ -167,6 +167,7 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  * - {@link isRedactable} - check before redacting
  * - {@link getRedacted} - lower-level variant for known redactables
  *
+ * @category destructors
  * @since 4.0.0
  */
 export function redact(u: unknown): unknown {
@@ -189,6 +190,7 @@ export function redact(u: unknown): unknown {
  * - {@link redact} - higher-level variant that handles non-redactable values
  * - {@link isRedactable} - type guard to verify before calling this
  *
+ * @category destructors
  * @since 4.0.0
  */
 export function getRedacted(redactable: Redactable): unknown {

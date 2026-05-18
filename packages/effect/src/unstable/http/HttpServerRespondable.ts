@@ -29,7 +29,7 @@ import * as Response from "./HttpServerResponse.ts"
  * Protocol key used by values that can render themselves as
  * `HttpServerResponse` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const symbol = "~effect/http/HttpServerRespondable"

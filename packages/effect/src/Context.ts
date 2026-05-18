@@ -51,7 +51,7 @@ export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
  * so yielding it inside `Effect.gen` retrieves the service from the current
  * fiber context.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Identifier> {
@@ -85,7 +85,7 @@ export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Ide
  * const context = Context.make(Database, { query: (sql) => `Result: ${sql}` })
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Service<in out Identifier, in out Shape> extends Key<Identifier, Shape> {
@@ -103,7 +103,7 @@ export interface Service<in out Identifier, in out Shape> extends Key<Identifier
  * Use this shape when declaring services as classes. The class itself is the
  * Context key, and its string `key` identifies the service at runtime.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ServiceClass<in out Self, in out Identifier extends string, in out Shape>
@@ -124,7 +124,7 @@ export declare namespace ServiceClass {
    * Runtime and type-level metadata carried by a class-style service key,
    * including its service type identifier, string key, and service shape.
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export interface Shape<Identifier extends string, Service> {
@@ -166,7 +166,7 @@ export declare namespace ServiceClass {
  * const config = Context.make(Config, { port: 8080 })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const Service: {
@@ -295,7 +295,7 @@ const ReferenceTypeId = "~effect/Context/Reference" as const
  * const logger = Context.get(context, LoggerRef) // Uses default value
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Reference<in out Shape> extends Service<never, Shape> {
@@ -343,7 +343,7 @@ export declare namespace Service {
    * ]
    * ```
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type Any = Key<never, any> | Key<any, any>
@@ -366,7 +366,7 @@ export declare namespace Service {
    * // DatabaseService is { query: (sql: string) => string }
    * ```
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type Shape<T> = T extends Key<infer _I, infer S> ? S : never
@@ -389,7 +389,7 @@ export declare namespace Service {
    * // DatabaseId is the identifier type
    * ```
    *
-   * @category Models
+   * @category models
    * @since 4.0.0
    */
   export type Identifier<T> = T extends Key<infer I, infer _S> ? I : never
@@ -423,7 +423,7 @@ const TypeId = "~effect/Context" as const
  *   .pipe(Context.add(Database, { query: (sql) => `Result: ${sql}` }))
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable {
@@ -457,7 +457,7 @@ export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable
  * const context = Context.makeUnsafe(map)
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeUnsafe = <Services = never>(mapUnsafe: ReadonlyMap<string, any>): Context<Services> => {
@@ -510,7 +510,7 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
  * assert.strictEqual(Context.isContext(Context.empty()), true)
  * ```
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isContext = (u: unknown): u is Context<never> => hasProperty(u, TypeId)
@@ -527,7 +527,7 @@ export const isContext = (u: unknown): u is Context<never> => hasProperty(u, Typ
  * assert.strictEqual(Context.isKey(Context.Service("Service")), true)
  * ```
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceTypeId)
@@ -549,7 +549,7 @@ export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceT
  * assert.strictEqual(Context.isReference(Context.Service("Key")), false)
  * ```
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, ReferenceTypeId)
@@ -566,7 +566,7 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
  * assert.strictEqual(Context.isContext(Context.empty()), true)
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const empty = (): Context<never> => emptyContext
@@ -588,7 +588,7 @@ const emptyContext = makeUnsafe(new Map())
  * assert.deepStrictEqual(Context.get(context, Port), { PORT: 8080 })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <I, S>(
@@ -709,7 +709,7 @@ export const addOrOmit: {
  * console.log(database.query("SELECT 1")) // "fallback"
  * ```
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOrElse: {
@@ -731,7 +731,7 @@ export const getOrElse: {
  * This is a raw lookup and does not resolve default values for
  * `Context.Reference` keys.
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOrUndefined: {
@@ -812,7 +812,7 @@ export const getUnsafe: {
  * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const get: {
@@ -909,7 +909,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const getOption: {
@@ -998,6 +998,7 @@ export const merge: {
  * assert.deepStrictEqual(Context.get(context, Host), { HOST: "localhost" })
  * ```
  *
+ * @category combining
  * @since 3.12.0
  */
 export const mergeAll = <T extends Array<unknown>>(
@@ -1159,7 +1160,7 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  * const customLogger = Context.get(customContext, LoggerRef)
  * ```
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const Reference: <Service>(

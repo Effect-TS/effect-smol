@@ -53,7 +53,7 @@ import type * as ShardingConfig from "./ShardingConfig.ts"
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `http` to `https`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolHttp = (options: {
@@ -84,7 +84,7 @@ export const layerClientProtocolHttp = (options: {
 /**
  * Default HTTP runner client protocol layer using path `/`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolHttpDefault: Layer.Layer<
@@ -100,7 +100,7 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `ws` to `wss`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolWebsocket = (options: {
@@ -133,7 +133,7 @@ export const layerClientProtocolWebsocket = (options: {
 /**
  * Default WebSocket runner client protocol layer using path `/`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocolWebsocketDefault: Layer.Layer<
@@ -188,7 +188,7 @@ export const toHttpEffectWebsocket: Effect.Effect<
  * Layer that provides `Sharding` and `Runners` using the configured runner RPC
  * client protocol and storage services.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClient: Layer.Layer<
@@ -203,7 +203,7 @@ export const layerClient: Layer.Layer<
  * A HTTP layer for the `Runners` services, that adds a route to the provided
  * `HttpRouter`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpOptions = (options: {
@@ -227,7 +227,7 @@ export const layerHttpOptions = (options: {
  * WebSocket layer for the `Runners` services that adds a route to the provided
  * `HttpRouter`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebsocketOptions = (options: {
@@ -253,7 +253,7 @@ export const layerWebsocketOptions = (options: {
  * It serves runner routes at `/` and configures runner clients to communicate
  * over HTTP.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttp: Layer.Layer<
@@ -276,7 +276,7 @@ export const layerHttp: Layer.Layer<
  * It configures runner clients to communicate over HTTP without serving runner
  * HTTP routes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpClientOnly: Layer.Layer<
@@ -297,7 +297,7 @@ export const layerHttpClientOnly: Layer.Layer<
  * It serves runner routes at `/` and configures runner clients to communicate
  * over WebSocket.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebsocket: Layer.Layer<
@@ -320,7 +320,7 @@ export const layerWebsocket: Layer.Layer<
  * It configures runner clients to communicate over WebSocket without serving
  * runner WebSocket routes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWebsocketClientOnly: Layer.Layer<

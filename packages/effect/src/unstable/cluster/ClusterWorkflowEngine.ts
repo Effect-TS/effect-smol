@@ -65,7 +65,7 @@ import * as Snowflake from "./Snowflake.ts"
  * Workflow executions, activities, deferred completions, resumes, interrupts,
  * and durable clock wakeups are coordinated through persisted cluster entities.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
@@ -726,7 +726,7 @@ const InterruptSignal = DurableDeferred.make("Workflow/InterruptSignal")
  * It requires cluster sharding and message storage, and also registers the
  * durable clock entity used for workflow wakeups.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<

@@ -376,7 +376,7 @@ export const ensure = <A>(self: ReadonlyArray<A> | A): Array<A> => Array.isArray
  * console.log(result) // [["a", 1], ["b", 2], ["c", 3]]
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => Array<[K, A]> = Record.toEntries
@@ -395,7 +395,7 @@ export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => 
  *
  * @see {@link getSomes} — extract `Some` values from an array of Options
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArray
@@ -2947,7 +2947,6 @@ export const of = <A>(a: A): NonEmptyArray<A> => [a]
  * Utility types for working with `ReadonlyArray` at the type level. Use these
  * to infer element types, preserve non-emptiness, and flatten nested arrays.
  *
- * @category types
  * @since 2.0.0
  */
 export declare namespace ReadonlyArray {
@@ -3527,7 +3526,7 @@ export const liftOption = <A extends Array<unknown>, B>(
  * @see {@link liftNullishOr} — lift a nullable-returning function
  * @see {@link fromOption} — convert from Option
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => a == null ? empty() : [a as NonNullable<A>]

@@ -29,7 +29,7 @@ import * as NodeStream from "./NodeStream.ts"
  * exposing headers, remote address, stream access, and cached text, JSON, URL
  * parameter, and array-buffer body decoders with caller-provided error mapping.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class

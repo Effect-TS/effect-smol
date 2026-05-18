@@ -247,7 +247,6 @@ export interface Handlers<
 /**
  * Namespace containing helper types for `HttpApiBuilder` handler collections.
  *
- * @category handlers
  * @since 4.0.0
  */
 export declare namespace Handlers {

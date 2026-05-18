@@ -37,7 +37,7 @@ import { type Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 /**
  * Type identifier used to mark runtime cluster envelope values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/cluster/Envelope"

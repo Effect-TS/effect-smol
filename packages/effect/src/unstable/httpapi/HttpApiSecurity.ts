@@ -44,7 +44,6 @@ export type HttpApiSecurity = Bearer | ApiKey | Basic
 /**
  * Helper types for HTTP API security schemes.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace HttpApiSecurity {

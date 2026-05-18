@@ -97,6 +97,7 @@ const TypeId = "~effect/Newtype"
  * @see {@link makeIso} — create an iso to wrap and unwrap
  * @see {@link value} — unwrap a newtype value
  *
+ * @category models
  * @since 4.0.0
  */
 export interface Newtype<in out Key extends string, out Carrier> {
@@ -119,6 +120,7 @@ export declare namespace Newtype {
    *
    * @see {@link Newtype} — the base tagged interface
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type Any = Newtype<any, unknown>
@@ -128,6 +130,7 @@ export declare namespace Newtype {
    *
    * - Useful in generic code that needs to inspect or constrain the key.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type Key<N extends Any> = N extends Newtype<infer Key, unknown> ? Key : never
@@ -137,6 +140,7 @@ export declare namespace Newtype {
    *
    * - Useful when you need to refer to the wrapped type in generic utilities.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type Carrier<N extends Any> = N extends Newtype<infer _Key, infer Carrier> ? Carrier : never
@@ -165,6 +169,7 @@ export declare namespace Newtype {
  *
  * @see {@link makeIso} — two-way conversion (wrap and unwrap)
  *
+ * @category getters
  * @since 4.0.0
  */
 export const value: <N extends Newtype.Any>(newtype: N) => Newtype.Carrier<N> = cast
@@ -192,6 +197,7 @@ export const value: <N extends Newtype.Any>(newtype: N) => Newtype.Carrier<N> = 
  *
  * @see {@link value} — unwrap only
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function makeIso<N extends Newtype.Any>(): Optic.Iso<N, Newtype.Carrier<N>> {
@@ -222,6 +228,7 @@ export function makeIso<N extends Newtype.Any>(): Optic.Iso<N, Newtype.Carrier<N
  *
  * @see {@link makeOrder} — lift an `Order` for the carrier
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const makeEquivalence: <N extends Newtype.Any>(
@@ -249,6 +256,7 @@ export const makeEquivalence: <N extends Newtype.Any>(
  *
  * @see {@link makeEquivalence} — lift an `Equivalence` for the carrier
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const makeOrder: <N extends Newtype.Any>(order: Order.Order<Newtype.Carrier<N>>) => Order.Order<N> = cast
@@ -276,6 +284,7 @@ export const makeOrder: <N extends Newtype.Any>(order: Order.Order<Newtype.Carri
  *
  * @see {@link makeReducer} — lift a `Reducer` for the carrier
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const makeCombiner: <N extends Newtype.Any>(
@@ -305,6 +314,7 @@ export const makeCombiner: <N extends Newtype.Any>(
  *
  * @see {@link makeCombiner} — lift a `Combiner` for the carrier
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const makeReducer: <N extends Newtype.Any>(reducer: Reducer.Reducer<Newtype.Carrier<N>>) => Reducer.Reducer<N> =

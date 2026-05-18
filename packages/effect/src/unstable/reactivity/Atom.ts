@@ -58,7 +58,7 @@ import * as Reactivity from "./Reactivity.ts"
 /**
  * Type-level identifier used to recognize `Atom` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/Atom"
@@ -66,7 +66,7 @@ export type TypeId = "~effect/reactivity/Atom"
 /**
  * Runtime identifier attached to `Atom` values and used by `isAtom`.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/Atom"
@@ -91,7 +91,7 @@ export interface Atom<A> extends Pipeable, Inspectable.Inspectable {
 /**
  * Returns `true` when a value is an `Atom`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isAtom = (u: unknown): u is Atom<any> => hasProperty(u, TypeId)
@@ -99,6 +99,7 @@ export const isAtom = (u: unknown): u is Atom<any> => hasProperty(u, TypeId)
 /**
  * Extracts the value type produced by an `Atom`.
  *
+ * @category utility types
  * @since 4.0.0
  */
 export type Type<T extends Atom<any>> = T extends Atom<infer A> ? A : never
@@ -106,6 +107,7 @@ export type Type<T extends Atom<any>> = T extends Atom<infer A> ? A : never
 /**
  * Extracts the success value type from an atom whose value is an `AsyncResult`.
  *
+ * @category utility types
  * @since 4.0.0
  */
 export type Success<T extends Atom<any>> = T extends Atom<AsyncResult.AsyncResult<infer A, infer _>> ? A : never
@@ -113,6 +115,7 @@ export type Success<T extends Atom<any>> = T extends Atom<AsyncResult.AsyncResul
 /**
  * Extracts the item type from an atom whose value is a `PullResult`.
  *
+ * @category utility types
  * @since 4.0.0
  */
 export type PullSuccess<T extends Atom<any>> = T extends Atom<PullResult<infer A, infer _>> ? A : never
@@ -120,6 +123,7 @@ export type PullSuccess<T extends Atom<any>> = T extends Atom<PullResult<infer A
 /**
  * Extracts the failure error type from an atom whose value is an `AsyncResult`.
  *
+ * @category utility types
  * @since 4.0.0
  */
 export type Failure<T extends Atom<any>> = T extends Atom<AsyncResult.AsyncResult<infer _, infer E>> ? E : never
@@ -127,6 +131,7 @@ export type Failure<T extends Atom<any>> = T extends Atom<AsyncResult.AsyncResul
 /**
  * Returns an atom type without serializable metadata, preserving `Writable` read and write types when the input atom is writable.
  *
+ * @category utility types
  * @since 4.0.0
  */
 export type WithoutSerializable<T extends Atom<any>> = T extends Writable<infer R, infer W> ? Writable<R, W>
@@ -135,7 +140,7 @@ export type WithoutSerializable<T extends Atom<any>> = T extends Writable<infer 
 /**
  * Runtime identifier attached to writable atoms and used by `isWritable`.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const WritableTypeId: WritableTypeId = "~effect/reactivity/Atom/Writable"
@@ -143,7 +148,7 @@ export const WritableTypeId: WritableTypeId = "~effect/reactivity/Atom/Writable"
 /**
  * Type-level identifier used to recognize writable atoms.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type WritableTypeId = "~effect/reactivity/Atom/Writable"
@@ -2210,7 +2215,7 @@ function updateSearchParams() {
  * The stream emits the atom's current value immediately and then emits subsequent
  * changes until the stream scope is closed.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toStream = <A>(self: Atom<A>): Stream.Stream<A, never, AtomRegistry> =>
@@ -2222,7 +2227,7 @@ export const toStream = <A>(self: Atom<A>): Stream.Stream<A, never, AtomRegistry
  * Initial results are skipped, successes are emitted as stream values, and
  * failures fail the stream with the result cause.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toStreamResult = <A, E>(self: Atom<AsyncResult.AsyncResult<A, E>>): Stream.Stream<A, E, AtomRegistry> =>
@@ -2231,7 +2236,7 @@ export const toStreamResult = <A, E>(self: Atom<AsyncResult.AsyncResult<A, E>>):
 /**
  * Reads an atom's current value from the `AtomRegistry` service.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const get = <A>(self: Atom<A>): Effect.Effect<A, never, AtomRegistry> =>
@@ -2241,7 +2246,7 @@ export const get = <A>(self: Atom<A>): Effect.Effect<A, never, AtomRegistry> =>
  * Reads a writable atom, computes a return value and next write value, writes the
  * next value, and returns the computed result.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const modify: {
@@ -2258,7 +2263,7 @@ export const modify: {
 /**
  * Writes a value to a writable atom through the `AtomRegistry` service.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const set: {
@@ -2274,7 +2279,7 @@ export const set: {
  * Updates a writable atom by reading its current value from the registry and
  * writing the value returned by the update function.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const update: {
@@ -2293,7 +2298,7 @@ export const update: {
  * when `suspendOnWaiting` is enabled. Successes succeed with the value and
  * failures fail with the result cause.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const getResult = <A, E>(
@@ -2304,7 +2309,7 @@ export const getResult = <A, E>(
 /**
  * Requests a refresh of an atom through the `AtomRegistry` service.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const refresh = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry> =>
@@ -2316,7 +2321,7 @@ export const refresh = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegist
  * Mounting keeps the atom subscribed with a no-op listener until the scope
  * finalizer releases it.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const mount = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry | Scope.Scope> =>

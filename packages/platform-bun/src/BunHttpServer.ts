@@ -90,7 +90,7 @@ export type ServeOptions<R extends string> =
 /**
  * Creates a scoped Bun `HttpServer` from `Bun.serve` options, stopping the server on scope finalization with optional graceful shutdown settings.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = Effect.fnUntraced(
@@ -247,7 +247,7 @@ const makeResponse = (
 /**
  * Layer that provides only `HttpServer` by constructing a scoped Bun server from the supplied serve options.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerServer: <R extends string>(
@@ -260,7 +260,7 @@ export const layerServer: <R extends string>(
 /**
  * Layer that provides Bun HTTP support services: `HttpPlatform`, weak ETag generation, and `BunServices`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpServices: Layer.Layer<
@@ -276,7 +276,7 @@ export const layerHttpServices: Layer.Layer<
 /**
  * Layer that provides a Bun `HttpServer` together with the Bun HTTP platform, ETag generator, and Bun services.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <R extends string>(
@@ -294,7 +294,7 @@ export const layer = <R extends string>(
 /**
  * Test layer that starts a Bun HTTP server on an ephemeral port and provides the HTTP test client dependencies.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerTest: Layer.Layer<
@@ -309,7 +309,7 @@ export const layerTest: Layer.Layer<
 /**
  * Creates the Bun HTTP server and support-services layer from configurable serve options.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerConfig = <R extends string>(

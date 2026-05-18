@@ -33,7 +33,7 @@ export * from "effect/unstable/sql/Migrator"
  * Runs SQL migrations for ClickHouse using the supplied migrator options and
  * returns the applied migration IDs and names.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const run: <R2 = never>(

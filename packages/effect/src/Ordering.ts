@@ -32,7 +32,6 @@
  * - Reversing an `Ordering` swaps `-1` and `1`, but leaves `0` unchanged
  *
  * @fileoverview
- * @category utilities
  * @since 2.0.0
  */
 import type { LazyArg } from "./Function.ts"
@@ -68,7 +67,7 @@ import * as Reducer_ from "./Reducer.ts"
  * }
  * ```
  *
- * @category model
+ * @category models
  * @since 2.0.0
  */
 export type Ordering = -1 | 0 | 1
@@ -105,7 +104,7 @@ export type Ordering = -1 | 0 | 1
  * }
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 : 0)
@@ -165,6 +164,7 @@ export const match: {
  * If any of the `Ordering`s is non-zero, the result is the first non-zero `Ordering`.
  * If all the `Ordering`s are zero, the result is zero.
  *
+ * @category ordering
  * @since 4.0.0
  */
 export const Reducer: Reducer_.Reducer<Ordering> = Reducer_.make<Ordering>(

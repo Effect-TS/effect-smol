@@ -102,7 +102,6 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  * }
  * ```
  *
- * @category namespace
  * @since 2.0.0
  */
 export declare namespace HashSet {

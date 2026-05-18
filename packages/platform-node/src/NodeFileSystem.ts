@@ -25,7 +25,7 @@ import type * as Layer from "effect/Layer"
 /**
  * Provides the `FileSystem` service backed by Node filesystem APIs.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<FileSystem> = NodeFileSystem.layer

@@ -64,7 +64,7 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
  *   name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase()
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type MetricNameMapper = (name: string) => string
@@ -72,7 +72,7 @@ export type MetricNameMapper = (name: string) => string
 /**
  * Options for formatting metrics.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface FormatOptions {
@@ -90,7 +90,7 @@ export interface FormatOptions {
 /**
  * Options for exporting Prometheus metrics over HTTP.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface HttpOptions extends FormatOptions {

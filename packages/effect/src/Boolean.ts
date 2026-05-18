@@ -316,7 +316,7 @@ export const implies: {
  * assert.deepStrictEqual(every([true, false, true]), false)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const every = (collection: Iterable<boolean>): boolean => {
@@ -341,7 +341,7 @@ export const every = (collection: Iterable<boolean>): boolean => {
  * assert.deepStrictEqual(some([false, false, false]), false)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const some = (collection: Iterable<boolean>): boolean => {
@@ -358,6 +358,7 @@ export const some = (collection: Iterable<boolean>): boolean => {
  *
  * The `initialValue` is `true`.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerAnd: Reducer.Reducer<boolean> = Reducer.make((a, b) => a && b, true)
@@ -367,6 +368,7 @@ export const ReducerAnd: Reducer.Reducer<boolean> = Reducer.make((a, b) => a && 
  *
  * The `initialValue` is `false`.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerOr: Reducer.Reducer<boolean> = Reducer.make((a, b) => a || b, false)

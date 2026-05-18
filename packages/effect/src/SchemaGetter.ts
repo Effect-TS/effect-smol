@@ -132,7 +132,7 @@ import * as Str from "./String.ts"
  * - {@link passthrough} — identity getter
  * - {@link transformOrFail} — fallible transformation
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Getter<out T, in E, R = never> extends Pipeable.Class {
@@ -188,7 +188,7 @@ export class Getter<out T, in E, R = never> extends Pipeable.Class {
  * - {@link transform} — when you need to use the input value
  * - {@link passthrough} — when you want to keep the input as-is
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function succeed<const T, E>(t: T): Getter<T, E> {
@@ -220,7 +220,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  * - {@link forbidden} — convenience for `Forbidden` issues
  * - {@link checkEffect} — fail conditionally based on input value
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, E> {
@@ -251,7 +251,7 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  * See also:
  * - {@link fail} — fail with a custom issue type
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function forbidden<T, E>(message: (oe: Option.Option<E>) => string): Getter<T, E> {
@@ -296,7 +296,7 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  * - {@link passthroughSubtype} — when `E extends T`
  * - {@link transform} — when you need to change the value
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function passthrough<T, E>(options: { readonly strict: false }): Getter<T, E>
@@ -328,7 +328,7 @@ export function passthrough<T>(): Getter<T, T> {
  * - {@link passthrough} — when types are identical
  * - {@link passthroughSubtype} — when `E extends T`
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function passthroughSupertype<T extends E, E>(): Getter<T, E>
@@ -359,7 +359,7 @@ export function passthroughSupertype<T>(): Getter<T, T> {
  * - {@link passthrough} — when types are identical
  * - {@link passthroughSupertype} — when `T extends E`
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function passthroughSubtype<T, E extends T>(): Getter<T, E>
@@ -394,7 +394,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * - {@link withDefault} — simpler default value for undefined inputs
  * - {@link onSome} — handle only present values
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function onNone<T, E extends T = T, R = never>(
@@ -427,7 +427,7 @@ export function onNone<T, E extends T = T, R = never>(
  * - {@link onNone} — provide a fallback instead of failing
  * - {@link withDefault} — substitute a default for undefined values
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function required<T, E extends T = T>(annotations?: Schema.Annotations.Key<T>): Getter<T, E> {
@@ -461,7 +461,7 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  * - {@link transform} — simpler pure transformation of present values
  * - {@link transformOrFail} — fallible transformation of present values
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function onSome<T, E, R = never>(
@@ -501,7 +501,7 @@ export function onSome<T, E, R = never>(
  * - {@link transform} — when you need to change the value, not just validate
  * - {@link fail} — unconditional failure
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function checkEffect<T, R = never>(
@@ -554,7 +554,7 @@ export function checkEffect<T, R = never>(
  * - {@link transformOptional} — when you need to handle `None` inputs
  * - {@link passthrough} — when no transformation is needed
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
@@ -592,7 +592,7 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  * - {@link transform} — when transformation cannot fail
  * - {@link onSome} — when you need full `Option` control over the output
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function transformOrFail<T, E, R = never>(
@@ -626,7 +626,7 @@ export function transformOrFail<T, E, R = never>(
  * - {@link transform} — simpler, only handles present values
  * - {@link omit} — always returns `None`
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Option<T>): Getter<T, E> {
@@ -655,7 +655,7 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  * - {@link transformOptional} — when you want conditional omission
  * - {@link forbidden} — when you want to fail instead of silently omit
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function omit<T>(): Getter<never, T> {
@@ -686,7 +686,7 @@ export function omit<T>(): Getter<never, T> {
  * - {@link onNone} — handle only absent keys (not `undefined` values)
  * - {@link required} — fail instead of providing a default
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function withDefault<T, R = never>(

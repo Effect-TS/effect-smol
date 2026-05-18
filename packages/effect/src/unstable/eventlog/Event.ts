@@ -25,7 +25,7 @@ import * as Msgpack from "../encoding/Msgpack.ts"
 /**
  * Unique type identifier used to mark event log event definitions.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/eventlog/Event"
@@ -33,7 +33,7 @@ export type TypeId = "~effect/eventlog/Event"
 /**
  * Runtime type identifier used to mark event log event definitions.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/eventlog/Event"

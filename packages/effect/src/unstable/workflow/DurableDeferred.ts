@@ -44,7 +44,7 @@ const TypeId = "~effect/workflow/DurableDeferred"
  * Named durable deferred value whose completion is persisted by the workflow
  * engine and encoded with success and error schemas.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface DurableDeferred<
@@ -63,7 +63,7 @@ export interface DurableDeferred<
  * Type-erased durable deferred shape for APIs that only need the deferred
  * identity and name.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Any {
@@ -75,7 +75,7 @@ export interface Any {
  * Type-erased durable deferred shape that also exposes success, error, and
  * exit schemas.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AnyWithProps {
@@ -90,7 +90,7 @@ export interface AnyWithProps {
  * Creates a named durable deferred with optional success and error schemas for
  * persisted completion.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <
@@ -168,7 +168,7 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
 
 export {
   /**
-   * @category Combinators
+   * @category combinators
    * @since 4.0.0
    */
   await_ as await
@@ -178,7 +178,7 @@ export {
  * Runs an effect and records its exit into the durable deferred, resuming
  * workflows that are waiting on that deferred.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const into: {
@@ -301,6 +301,7 @@ export const raceAll = <
 /**
  * Runtime brand identifier for durable deferred tokens.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
@@ -308,6 +309,7 @@ export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
 /**
  * Type-level brand identifier for `Token` values.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export type TokenTypeId = typeof TokenTypeId
@@ -505,7 +507,7 @@ export const tokenFromPayload: {
  * Completes the durable deferred identified by a token with the supplied exit,
  * encoding the result through the deferred schemas.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const done: {
@@ -557,7 +559,7 @@ export const done: {
  * Completes the durable deferred identified by a token with a successful
  * value.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const succeed: {
@@ -592,7 +594,7 @@ export const succeed: {
 /**
  * Completes the durable deferred identified by a token with a typed failure.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const fail: {
@@ -627,7 +629,7 @@ export const fail: {
 /**
  * Completes the durable deferred identified by a token with a failure cause.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const failCause: {

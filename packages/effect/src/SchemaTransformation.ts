@@ -135,7 +135,7 @@ import * as Issue from "./SchemaIssue.ts"
  * See also:
  * - {@link Transformation} — value-level bidirectional transformation
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Middleware<in out T, in out E, RDE, RDT, RET, REE> {
@@ -206,7 +206,7 @@ const TypeId = "~effect/SchemaTransformation/Transformation"
  * - {@link transformOrFail} — construct from effectful functions
  * - {@link Middleware} — effect-pipeline-level alternative
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Transformation<in out T, in out E, RD = never, RE = never> {
@@ -259,6 +259,7 @@ export class Transformation<in out T, in out E, RD = never, RE = never> {
  * - {@link Transformation}
  * - {@link make}
  *
+ * @category guards
  * @since 4.0.0
  */
 export function isTransformation(u: unknown): u is Transformation<any, any, unknown, unknown> {
@@ -293,6 +294,7 @@ export function isTransformation(u: unknown): u is Transformation<any, any, unkn
  * - {@link transformOrFail} — constructor from effectful functions
  * - {@link Transformation}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <T, E, RD = never, RE = never>(options: {
@@ -344,6 +346,7 @@ export const make = <T, E, RD = never, RE = never>(options: {
  * - {@link transformOptional} — for transformations that handle missing keys
  * - {@link make} — for transformations from existing Getters
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function transformOrFail<T, E, RD = never, RE = never>(options: {
@@ -390,6 +393,7 @@ export function transformOrFail<T, E, RD = never, RE = never>(options: {
  * - {@link transformOptional} — for transformations that handle missing keys
  * - {@link passthrough} — when no conversion is needed
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function transform<T, E>(options: {
@@ -439,6 +443,7 @@ export function transform<T, E>(options: {
  * - {@link optionFromOptionalKey} — built-in for the common optional-key-to-Option pattern
  * - {@link optionFromOptional} — built-in for optional (undefined) to Option
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function transformOptional<T, E>(options: {
@@ -745,6 +750,7 @@ const passthrough_ = new Transformation(
  * - {@link passthroughSubtype}
  * - {@link transform}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function passthrough<T, E>(options: { readonly strict: false }): Transformation<T, E>
@@ -773,6 +779,7 @@ export function passthrough<T>(): Transformation<T, T> {
  * - {@link passthrough}
  * - {@link passthroughSubtype}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function passthroughSupertype<T extends E, E>(): Transformation<T, E>
@@ -803,6 +810,7 @@ export function passthroughSupertype<T>(): Transformation<T, T> {
  * - {@link passthrough}
  * - {@link passthroughSupertype}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function passthroughSubtype<T, E extends T>(): Transformation<T, E>
@@ -939,6 +947,7 @@ export const dateFromString: Transformation<globalThis.Date, string> = new Trans
  * - {@link durationFromNanos}
  * - {@link durationFromMillis}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const durationFromString: Transformation<Duration.Duration, string> = transformOrFail<
@@ -978,6 +987,7 @@ export const durationFromString: Transformation<Duration.Duration, string> = tra
  * See also:
  * - {@link durationFromMillis}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const durationFromNanos: Transformation<Duration.Duration, bigint> = transformOrFail({
@@ -1013,6 +1023,7 @@ export const durationFromNanos: Transformation<Duration.Duration, bigint> = tran
  * See also:
  * - {@link durationFromNanos}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const durationFromMillis: Transformation<Duration.Duration, number> = transform({
@@ -1079,6 +1090,7 @@ export const errorFromErrorJsonEncoded = (options?: {
  * See also:
  * - {@link optionFromNullishOr}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null> {
@@ -1117,6 +1129,7 @@ export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null
  * - {@link optionFromOptionalKey}
  * - {@link optionFromOptional}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function optionFromUndefinedOr<T>(): Transformation<Option.Option<T>, T | undefined> {
@@ -1157,6 +1170,7 @@ export function optionFromUndefinedOr<T>(): Transformation<Option.Option<T>, T |
  * - {@link optionFromNullOr}
  * - {@link optionFromUndefinedOr}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function optionFromNullishOr<T>(
@@ -1203,6 +1217,7 @@ export function optionFromNullishOr<T>(
  * - {@link optionFromUndefinedOr}
  * - {@link transformOptional}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function optionFromOptionalKey<T>(): Transformation<Option.Option<T>, T> {
@@ -1244,6 +1259,7 @@ export function optionFromOptionalKey<T>(): Transformation<Option.Option<T>, T> 
  * - {@link optionFromUndefinedOr}
  * - {@link transformOptional}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function optionFromOptional<T>(): Transformation<Option.Option<T>, T | undefined> {
@@ -1279,6 +1295,7 @@ export function optionFromOptional<T>(): Transformation<Option.Option<T>, T | un
  * - {@link numberFromString}
  * - {@link transformOrFail}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const urlFromString: Transformation<URL, string> = transformOrFail<URL, string>({
@@ -1302,6 +1319,7 @@ export const urlFromString: Transformation<URL, string> = transformOrFail<URL, s
  *   string is not a valid BigDecimal representation.
  * - Encode: returns `BigDecimal.format(bd)`.
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string> = transformOrFail<
@@ -1343,6 +1361,7 @@ export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string>
  * - {@link fromJsonString}
  * - `Schema.Uint8ArrayFromBase64` - a ready-made schema wrapping this transformation.
  *
+ * @category encoding
  * @since 4.0.0
  */
 export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLike>, string> = new Transformation(
@@ -1375,6 +1394,7 @@ export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLi
  * - {@link uint8ArrayFromBase64String}
  * - `Schema.StringFromBase64` - a ready-made schema wrapping this transformation.
  *
+ * @category encoding
  * @since 4.0.0
  */
 export const stringFromBase64String: Transformation<string, string> = new Transformation(
@@ -1406,6 +1426,7 @@ export const stringFromBase64String: Transformation<string, string> = new Transf
  * - {@link stringFromBase64String}
  * - `Schema.StringFromBase64Url` - a ready-made schema wrapping this transformation.
  *
+ * @category encoding
  * @since 4.0.0
  */
 export const stringFromBase64UrlString: Transformation<string, string> = new Transformation(
@@ -1437,6 +1458,7 @@ export const stringFromBase64UrlString: Transformation<string, string> = new Tra
  * - {@link stringFromBase64String}
  * - `Schema.StringFromHex` - a ready-made schema wrapping this transformation.
  *
+ * @category encoding
  * @since 4.0.0
  */
 export const stringFromHexString: Transformation<string, string> = new Transformation(
@@ -1471,6 +1493,7 @@ export const stringFromHexString: Transformation<string, string> = new Transform
  * - {@link stringFromBase64String}
  * - `Schema.StringFromUriComponent` - a ready-made schema wrapping this transformation.
  *
+ * @category encoding
  * @since 4.0.0
  */
 export const stringFromUriComponent: Transformation<string, string> = new Transformation(
@@ -1501,6 +1524,7 @@ export const stringFromUriComponent: Transformation<string, string> = new Transf
  * - {@link uint8ArrayFromBase64String}
  * - {@link fromFormData}
  *
+ * @category decoding
  * @since 4.0.0
  */
 export const fromJsonString = new Transformation<unknown, string>(
@@ -1531,6 +1555,7 @@ export const fromJsonString = new Transformation<unknown, string>(
  * - {@link fromURLSearchParams}
  * - {@link fromJsonString}
  *
+ * @category decoding
  * @since 4.0.0
  */
 export const fromFormData = new Transformation<unknown, FormData>(
@@ -1561,6 +1586,7 @@ export const fromFormData = new Transformation<unknown, FormData>(
  * - {@link fromFormData}
  * - {@link fromJsonString}
  *
+ * @category decoding
  * @since 4.0.0
  */
 export const fromURLSearchParams = new Transformation<unknown, URLSearchParams>(
@@ -1575,6 +1601,7 @@ export const fromURLSearchParams = new Transformation<unknown, URLSearchParams>(
  * Decode uses `DateTime.zoneMakeOffset`; encode returns the offset's `offset`
  * field.
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const timeZoneOffsetFromNumber: Transformation<DateTime.TimeZone.Offset, number> = transform<
@@ -1592,6 +1619,7 @@ export const timeZoneOffsetFromNumber: Transformation<DateTime.TimeZone.Offset, 
  * Decode fails with `InvalidValue` when the string is not a valid IANA time-zone
  * identifier.
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, string> = transformOrFail<
@@ -1615,6 +1643,7 @@ export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, st
  * as `"+03:00"`. Decode fails with `InvalidValue` when the string cannot be
  * parsed as a time zone.
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = transformOrFail<
@@ -1638,6 +1667,7 @@ export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = tra
  * UTC, and fails with `InvalidValue` when parsing fails. Encode uses
  * `DateTime.formatIso`.
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = transformOrFail<
@@ -1662,6 +1692,7 @@ export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = trans
  * the input is not a valid zoned date-time. Encode uses
  * `DateTime.formatIsoZoned`.
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const dateTimeZonedFromString: Transformation<DateTime.Zoned, string> = transformOrFail<

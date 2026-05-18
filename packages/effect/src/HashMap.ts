@@ -149,7 +149,6 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  * const updatedInventory = updateInventory("tablet", newProduct)
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace HashMap {
@@ -577,7 +576,7 @@ export const hasBy: {
  * console.log(HashMap.size(map1)) // 1
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const set: {
@@ -854,7 +853,7 @@ export const mutate: {
  * console.log(HashMap.get(updated, "a")) // Option.some(2)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const modifyAt: {
@@ -909,7 +908,7 @@ export const modifyAt: {
  * console.log(HashMap.get(withClicks, "clicks")) // Option.some(1)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const modifyHash: {
@@ -932,7 +931,7 @@ export const modifyHash: {
  * console.log(HashMap.get(map2, "b")) // Option.some(2)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const modify: {
@@ -984,7 +983,7 @@ export const union: {
  * console.log(HashMap.has(map2, "a")) // true
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const remove: {
@@ -1008,7 +1007,7 @@ export const remove: {
  * console.log(HashMap.has(map2, "c")) // true
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const removeMany: {
@@ -1033,7 +1032,7 @@ export const removeMany: {
  * console.log(HashMap.get(map2, "c")) // Option.some(3)
  * ```
  *
- * @category transformations
+ * @category transforming
  * @since 2.0.0
  */
 export const setMany: {

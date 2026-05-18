@@ -27,7 +27,7 @@ import type { Stdio } from "effect/Stdio"
  * Provides the `Stdio` service backed by the current process arguments,
  * stdin, stdout, and stderr streams.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Stdio> = NodeStdio.layer

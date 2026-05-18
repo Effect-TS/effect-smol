@@ -42,7 +42,7 @@ if (typeof self !== "undefined" && "onconnect" in self) {
 /**
  * Creates a `WorkerRunnerPlatform` service that runs worker handlers over a `MessagePort` or `Window`.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatform["Service"] => ({
@@ -173,7 +173,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
 /**
  * Layer that provides a browser `WorkerRunnerPlatform` using the global `self` worker context.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(WorkerRunner.WorkerRunnerPlatform)(() =>
@@ -183,7 +183,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(
 /**
  * Layer that provides a `WorkerRunnerPlatform` using the supplied `MessagePort` or `Window`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerMessagePort = (port: MessagePort | Window): Layer.Layer<WorkerRunner.WorkerRunnerPlatform> =>

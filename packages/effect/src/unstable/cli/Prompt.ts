@@ -598,6 +598,7 @@ export declare namespace All {
    *
    * The resulting prompt produces an array of each prompt's output value.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type ReturnIterable<T extends Iterable<Any>> = [T] extends [Iterable<Prompt<infer A>>] ? Prompt<Array<A>>
@@ -607,6 +608,7 @@ export declare namespace All {
    * Computes the prompt returned by `Prompt.all` for a readonly tuple or array
    * of prompts, preserving tuple positions in the output type.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type ReturnTuple<T extends ReadonlyArray<unknown>> = Prompt<
@@ -618,6 +620,7 @@ export declare namespace All {
    * Computes the prompt returned by `Prompt.all` for a record of prompts,
    * preserving the record keys and replacing each prompt with its output type.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type ReturnObject<T> = [T] extends [{ [K: string]: Any }] ? Prompt<
@@ -631,6 +634,7 @@ export declare namespace All {
    * Computes the return prompt type for `Prompt.all` based on the input
    * structure.
    *
+   * @category constructors
    * @since 4.0.0
    */
   export type Return<

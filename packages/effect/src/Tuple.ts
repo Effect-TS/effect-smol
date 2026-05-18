@@ -95,7 +95,7 @@ import type { Apply, Lambda } from "./Struct.ts"
  * @see {@link get} – access a single element by index
  * @see {@link appendElement} – append an element to a tuple
  *
- * @category Constructors
+ * @category constructors
  * @since 2.0.0
  */
 export const make = <Elements extends ReadonlyArray<unknown>>(...elements: Elements): Elements => elements
@@ -121,7 +121,7 @@ type Indices<T extends ReadonlyArray<unknown>> = Exclude<Partial<T>["length"], T
  * @see {@link make} – create a tuple
  * @see {@link pick} – extract multiple elements into a new tuple
  *
- * @category Getters
+ * @category getters
  * @since 4.0.0
  */
 export const get: {
@@ -164,7 +164,7 @@ type PickTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, K>
  * @see {@link omit} – the inverse (exclude indices instead)
  * @see {@link get} – extract a single element
  *
- * @category Utilities
+ * @category utils
  * @since 4.0.0
  */
 export const pick: {
@@ -205,7 +205,7 @@ type OmitTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, Exclude<Ind
  *
  * @see {@link pick} – the inverse (keep only specified indices)
  *
- * @category Utilities
+ * @category utils
  * @since 4.0.0
  */
 export const omit: {
@@ -318,7 +318,7 @@ type Evolved<T, E> = { [I in keyof T]: I extends keyof E ? (E[I] extends (...a: 
  * @see {@link map} – apply the same transformation to all elements
  * @see {@link renameIndices} – swap element positions
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const evolve: {
@@ -400,7 +400,7 @@ export const renameIndices: {
  * @see {@link mapOmit} – apply a lambda to all indices except selected ones
  * @see {@link evolve} – apply different functions to different indices
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const map: {
@@ -449,7 +449,7 @@ export const map: {
  * @see {@link map} – apply a lambda to all elements
  * @see {@link mapOmit} – apply a lambda to all elements except selected ones
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const mapPick: {
@@ -505,7 +505,7 @@ export const mapPick: {
  * @see {@link map} – apply a lambda to all elements
  * @see {@link mapPick} – apply a lambda only to selected indices
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const mapOmit: {
@@ -614,7 +614,7 @@ export {
    *
    * @see {@link isTupleOfAtLeast} – check for a minimum length
    *
-   * @category Guards
+   * @category guards
    * @since 3.3.0
    */
   isTupleOf,
@@ -642,7 +642,7 @@ export {
    *
    * @see {@link isTupleOf} – check for an exact length
    *
-   * @category Guards
+   * @category guards
    * @since 3.3.0
    */
   isTupleOfAtLeast
@@ -673,6 +673,7 @@ export {
  *
  * @see {@link makeReducer} – like `makeCombiner` but with an initial value
  *
+ * @category combining
  * @since 4.0.0
  */
 export function makeCombiner<A extends ReadonlyArray<unknown>>(
@@ -716,6 +717,7 @@ export function makeCombiner<A extends ReadonlyArray<unknown>>(
  *
  * @see {@link makeCombiner} – like `makeReducer` but without an initial value
  *
+ * @category folding
  * @since 4.0.0
  */
 export function makeReducer<A extends ReadonlyArray<unknown>>(

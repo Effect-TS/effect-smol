@@ -30,7 +30,7 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 /**
  * Type-level identifier used to recognize `DurableQueue` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/workflow/DurableQueue"
@@ -38,7 +38,7 @@ export type TypeId = "~effect/workflow/DurableQueue"
 /**
  * Runtime identifier attached to `DurableQueue` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/workflow/DurableQueue"
@@ -47,7 +47,7 @@ export const TypeId: TypeId = "~effect/workflow/DurableQueue"
  * Durable workflow queue definition containing a payload schema, idempotency
  * key, and deferred used to await worker results.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface DurableQueue<
@@ -115,7 +115,7 @@ export interface DurableQueue<
  * )
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <

@@ -137,7 +137,6 @@ export interface TxHashMap<in out K, in out V> extends Inspectable, Pipeable {
  * })
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace TxHashMap {

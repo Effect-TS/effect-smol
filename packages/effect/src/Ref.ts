@@ -78,7 +78,6 @@ export interface Ref<in out A> extends Ref.Variance<A>, Pipeable {
 /**
  * The Ref namespace containing type definitions and utilities.
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Ref {

@@ -737,6 +737,7 @@ export const toolkit = <Tools extends Record<string, Tool.Any>>(
  * Utility type that validates a completion-handler record against the allowed
  * parameter keys.
  *
+ * @category utility types
  * @since 4.0.0
  */
 export type ValidateCompletions<Completions, Keys extends string> =
@@ -752,6 +753,7 @@ export type ValidateCompletions<Completions, Keys extends string> =
  * `Param` name when present or `paramN` otherwise, and each handler returns
  * candidate values for that parameter.
  *
+ * @category models
  * @since 4.0.0
  */
 export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {

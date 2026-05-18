@@ -93,7 +93,7 @@ const randomNext: Effect<number> = random.Random.useSync((random) => random.next
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export interface Schedule<out Output, in Input = unknown, out Error = never, out Env = never>
@@ -230,7 +230,6 @@ export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/Curr
  * })
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Schedule {
@@ -262,7 +261,7 @@ export declare namespace Schedule {
    * const serviceSchedule = Schedule.spaced("5 seconds")
    * ```
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export interface Variance<out Output, in Input, out Error, out Env> {
@@ -277,7 +276,7 @@ export declare namespace Schedule {
    * This interface exists for TypeScript inference and assignability. Users
    * normally do not construct or inspect it directly.
    *
-   * @category Models
+   * @category models
    * @since 2.0.0
    */
   export interface VarianceStruct<out Output, in Input, out Error, out Env> {
@@ -863,7 +862,7 @@ export const andThenResult: {
  * // Compare with either which provides union semantics (OR logic)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const both: {
@@ -911,7 +910,7 @@ export const both: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const bothLeft: {
@@ -960,7 +959,7 @@ export const bothLeft: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const bothRight: {
@@ -1014,7 +1013,7 @@ export const bothRight: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const bothWith: {
@@ -1088,7 +1087,7 @@ export const bothWith: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const collectInputs = <Output, Input, Error, Env>(
@@ -1124,7 +1123,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const collectOutputs = <Output, Input, Error, Env>(
@@ -1211,7 +1210,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const collectWhile: {
@@ -1657,7 +1656,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  * // Compare with intersect which provides intersection semantics (AND logic)
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const either: {
@@ -1708,7 +1707,7 @@ export const either: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const eitherLeft: {
@@ -1758,7 +1757,7 @@ export const eitherLeft: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const eitherRight: {
@@ -1813,7 +1812,7 @@ export const eitherRight: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const eitherWith: {
@@ -2251,7 +2250,7 @@ export const map: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const modifyDelay: {
@@ -2288,7 +2287,7 @@ export const modifyDelay: {
  *
  * Delays are jittered between `80%` and `120%` of the original delay.
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const jittered = <Output, Input, Error, Env>(
@@ -2326,7 +2325,7 @@ export const jittered = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const passthrough = <Output, Input, Error, Env>(
@@ -2508,7 +2507,7 @@ export const recurs = (times: number): Schedule<number> =>
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const reduce: {
@@ -2934,7 +2933,7 @@ export const tapOutput: {
  * })
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  */
 export const take: {
@@ -3103,7 +3102,7 @@ export {
    * If the `predicate` returns `true`, the schedule will continue, otherwise
    * the schedule will stop.
    *
-   * @category utilities
+   * @category utils
    * @since 2.0.0
    */
   while_ as while
@@ -3200,7 +3199,7 @@ export {
    * without modification. It effectively acts as a pass-through that simply
    * echoes its input values at each step.
    *
-   * @category Constructors
+   * @category constructors
    * @since 2.0.0
    */
   identity_ as identity

@@ -49,7 +49,7 @@ const constVoid = constant(Effect.void)
  * Layer of RPC handlers for the runner protocol, forwarding ping, notify, effect,
  * stream, and envelope requests to `Sharding` and `MessageStorage`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
@@ -161,7 +161,7 @@ const constWaitUntilRead = { waitUntilRead: true } as const
  *
  * It also responds to `Ping` requests.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -176,7 +176,7 @@ export const layer: Layer.Layer<
 /**
  * A `RunnerServer` layer that includes the `Runners` & `Sharding` clients.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWithClients: Layer.Layer<
@@ -200,7 +200,7 @@ export const layerWithClients: Layer.Layer<
  * so this layer can be used to embed a cluster client inside another effect
  * application.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientOnly: Layer.Layer<

@@ -43,7 +43,7 @@ export type NodeServices = ChildProcessSpawner | FileSystem | Path | Stdio | Ter
  * Provides the default Node implementations for child process spawning,
  * filesystem, path, stdio, and terminal services.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<NodeServices> = Layer.provideMerge(

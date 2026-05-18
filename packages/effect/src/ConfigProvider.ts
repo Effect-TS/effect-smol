@@ -112,7 +112,7 @@ import * as Str from "./String.ts"
  * @see {@link makeRecord} – construct a `Record` node
  * @see {@link makeArray} – construct an `Array` node
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Node =
@@ -154,7 +154,7 @@ export type Node =
  * @see {@link makeRecord} – for object-like containers
  * @see {@link makeArray} – for array-like containers
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeValue(value: string): Node {
@@ -183,7 +183,7 @@ export function makeValue(value: string): Node {
  * @see {@link makeValue} – for terminal leaves
  * @see {@link makeArray} – for array-like containers
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeRecord(keys: ReadonlySet<string>, value?: string): Node {
@@ -213,7 +213,7 @@ export function makeRecord(keys: ReadonlySet<string>, value?: string): Node {
  * @see {@link makeValue} – for terminal leaves
  * @see {@link makeRecord} – for object-like containers
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeArray(length: number, value?: string): Node {
@@ -246,7 +246,7 @@ export function makeArray(length: number, value?: string): Node {
  * @see {@link ConfigProvider} – the interface whose `load`/`get` may fail
  *   with this error
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export class SourceError extends Data.TaggedError("SourceError")<{
@@ -268,7 +268,7 @@ export class SourceError extends Data.TaggedError("SourceError")<{
  * const path: ConfigProvider.Path = ["database", "replicas", 0, "host"]
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Path = ReadonlyArray<string | number>
@@ -295,7 +295,7 @@ export type Path = ReadonlyArray<string | number>
  * @see {@link make} – construct a provider from a lookup function
  * @see {@link orElse} – compose providers with fallback
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ConfigProvider extends Pipeable {
@@ -352,7 +352,7 @@ export interface ConfigProvider extends Pipeable {
  * @see {@link layer} – install a provider as a Layer
  * @see {@link layerAdd} – add a fallback provider as a Layer
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const ConfigProvider: Context.Reference<ConfigProvider> = Context.Reference<ConfigProvider>(
@@ -406,7 +406,7 @@ const Proto = {
  * @see {@link fromEnv} – pre-built provider for environment variables
  * @see {@link fromUnknown} – pre-built provider for JSON objects
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function make(
@@ -454,7 +454,7 @@ export function make(
  *
  * @see {@link layerAdd} – install a fallback provider via a Layer
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const orElse: {
@@ -499,7 +499,7 @@ export const orElse: {
  * @see {@link constantCase} – a preset that converts to `CONSTANT_CASE`
  * @see {@link nested} – for prepending a prefix instead of transforming
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const mapInput: {
@@ -536,7 +536,7 @@ export const mapInput: {
  *
  * @see {@link mapInput} – for arbitrary path transformations
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((path) =>
@@ -572,7 +572,7 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
  *
  * @see {@link mapInput} – for arbitrary path transformations
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const nested: {
@@ -615,7 +615,7 @@ export const nested: {
  *
  * @see {@link layerAdd} – add a provider without replacing the existing one
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <E = never, R = never>(
@@ -654,7 +654,7 @@ export const layer = <E = never, R = never>(
  * @see {@link layer} – replace the provider entirely
  * @see {@link orElse} – compose providers without layers
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerAdd = <E = never, R = never>(
@@ -1041,6 +1041,7 @@ function searchLast(str: string, rgx: RegExp): number {
  * @see {@link fromDotEnvContents} – parse a `.env` string directly
  * @see {@link fromEnv} – read from the runtime environment
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const fromDotEnv: (options?: {

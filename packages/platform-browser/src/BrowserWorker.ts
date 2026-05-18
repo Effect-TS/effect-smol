@@ -31,7 +31,7 @@ import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerE
 /**
  * Creates browser worker layers by combining the default `WorkerPlatform` with a spawner for `Worker`, `SharedWorker`, or `MessagePort` instances.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (
@@ -45,7 +45,7 @@ export const layer = (
 /**
  * Layer that provides the browser `WorkerPlatform` for `Worker`, `SharedWorker`, and `MessagePort` communication.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(Worker.WorkerPlatform)(

@@ -30,7 +30,7 @@ import type { TraceData } from "./OtlpTracer.ts"
  * Service for serializing OTLP traces, metrics, and logs into HTTP request
  * bodies.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class OtlpSerialization extends Context.Service<OtlpSerialization, {
@@ -42,7 +42,7 @@ export class OtlpSerialization extends Context.Service<OtlpSerialization, {
 /**
  * Provides `OtlpSerialization` using OTLP/HTTP JSON bodies.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerJson = Layer.succeed(OtlpSerialization, {
@@ -55,7 +55,7 @@ export const layerJson = Layer.succeed(OtlpSerialization, {
  * Provides `OtlpSerialization` using protobuf-encoded OTLP bodies with the
  * `application/x-protobuf` content type.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerProtobuf = Layer.succeed(OtlpSerialization, {

@@ -85,6 +85,7 @@
  *
  * - {@link unescapeToken} - The inverse operation for decoding escaped tokens
  *
+ * @category encoding
  * @since 4.0.0
  */
 export function escapeToken(token: string): string {
@@ -124,6 +125,7 @@ export function escapeToken(token: string): string {
  *
  * - {@link escapeToken} - The inverse operation for encoding tokens
  *
+ * @category decoding
  * @since 4.0.0
  */
 export function unescapeToken(token: string): string {

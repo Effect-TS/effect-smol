@@ -44,7 +44,7 @@ const TypeId = "~effect/transactions/TxRef"
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface TxRef<in out A> extends Pipeable {
@@ -79,7 +79,7 @@ export interface TxRef<in out A> extends Pipeable {
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
@@ -104,7 +104,7 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
  * console.log(config.value) // { timeout: 5000, retries: 3 }
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
@@ -136,7 +136,7 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const modify: {
@@ -181,7 +181,7 @@ export const modify: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const update: {
@@ -212,7 +212,7 @@ export const update: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (current) => [current, current])
@@ -237,7 +237,7 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const set: {

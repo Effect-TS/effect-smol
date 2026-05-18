@@ -80,7 +80,6 @@ export type RpcClient<Rpcs extends Rpc.Any, E = never> = Struct.Simplify<RpcClie
  * Type-level helpers for deriving RPC client call signatures from RPC
  * definitions.
  *
- * @category client
  * @since 4.0.0
  */
 export declare namespace RpcClient {

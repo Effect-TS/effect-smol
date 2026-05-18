@@ -39,7 +39,7 @@ import * as SqlRunnerStorage from "./SqlRunnerStorage.ts"
  * A sql backed single-node cluster, that can be used for running durable
  * entities and workflows.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (options?: {

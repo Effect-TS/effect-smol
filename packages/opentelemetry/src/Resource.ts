@@ -30,7 +30,7 @@ import * as Layer from "effect/Layer"
 /**
  * Context service containing the OpenTelemetry `Resource` associated with emitted telemetry.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class Resource extends Context.Service<
@@ -41,7 +41,7 @@ export class Resource extends Context.Service<
 /**
  * Creates a `Resource` layer from service metadata and additional OpenTelemetry attributes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (config: {
@@ -57,7 +57,7 @@ export const layer = (config: {
 /**
  * Converts resource configuration into OpenTelemetry attributes, adding service name, optional service version, and telemetry SDK metadata.
  *
- * @category Configuration
+ * @category configuration
  * @since 4.0.0
  */
 export const configToAttributes = (options: {
@@ -82,7 +82,7 @@ export const configToAttributes = (options: {
 /**
  * Creates a `Resource` layer from OpenTelemetry environment variables, optionally merging additional attributes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerFromEnv = (
@@ -121,7 +121,7 @@ export const layerFromEnv = (
 /**
  * Layer that provides an empty OpenTelemetry resource.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerEmpty = Layer.succeed(

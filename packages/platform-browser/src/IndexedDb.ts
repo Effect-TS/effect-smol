@@ -87,7 +87,7 @@ export const AutoIncrement = Schema.Int.check(
 /**
  * Creates an `IndexedDb` service from an `IDBFactory` and `IDBKeyRange` constructor.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (impl: Omit<IndexedDb, typeof TypeId>): IndexedDb => IndexedDb.of({ [TypeId]: TypeId, ...impl })

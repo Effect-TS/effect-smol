@@ -346,7 +346,7 @@ export const makeUnencrypted: Effect.Effect<
  * Provides an encrypted `EventLogRemote` using the remote RPC client and the
  * default Web Crypto encryption layer.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerEncrypted: Layer.Layer<
@@ -361,7 +361,7 @@ export const layerEncrypted: Layer.Layer<
 /**
  * Provides an unencrypted `EventLogRemote` using the remote RPC client.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerUnencrypted: Layer.Layer<

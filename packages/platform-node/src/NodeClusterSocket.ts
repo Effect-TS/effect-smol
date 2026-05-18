@@ -54,12 +54,12 @@ import * as Undici from "./Undici.ts"
 
 export {
   /**
-   * @category Re-exports
+   * @category re-exports
    * @since 4.0.0
    */
   layerClientProtocol,
   /**
-   * @category Re-exports
+   * @category re-exports
    * @since 4.0.0
    */
   layerSocketServer
@@ -70,7 +70,7 @@ export {
  * serialization, message storage, runner health checks, and optional
  * client-only mode.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <
@@ -148,7 +148,7 @@ export const layer = <
  * account CA certificate when it is available and falling back to the default
  * dispatcher otherwise.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerDispatcherK8s: Layer.Layer<NodeHttpClient.Dispatcher> = Layer.effect(NodeHttpClient.Dispatcher)(
@@ -180,7 +180,7 @@ export const layerDispatcherK8s: Layer.Layer<NodeHttpClient.Dispatcher> = Layer.
  * Provides a `K8sHttpClient` backed by the Undici HTTP client and the
  * Kubernetes-aware dispatcher.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerK8sHttpClient: Layer.Layer<K8sHttpClient.K8sHttpClient> = K8sHttpClient.layer.pipe(

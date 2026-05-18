@@ -62,7 +62,7 @@ import * as BunSocket from "./BunSocket.ts"
 
 export {
   /**
-   * @category Re-exports
+   * @category re-exports
    * @since 4.0.0
    */
   layerK8sHttpClient
@@ -71,7 +71,7 @@ export {
 /**
  * Bun HTTP server layer for cluster runners, using `ShardingConfig.runnerListenAddress` or `runnerAddress` as the listen address.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerHttpServer: Layer.Layer<
@@ -93,7 +93,7 @@ export const layerHttpServer: Layer.Layer<
 /**
  * Creates Bun cluster layers for HTTP or WebSocket transport, configuring serialization, storage, runner health, and optional client-only mode.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <

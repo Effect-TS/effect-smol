@@ -58,7 +58,7 @@ export interface Service {
  * When provided, language model operations can use the tracker to send only new
  * prompt messages together with the provider's prior response ID.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class ResponseIdTracker extends Context.Service<ResponseIdTracker, Service>()("effect/ai/ResponseIdTracker") {}

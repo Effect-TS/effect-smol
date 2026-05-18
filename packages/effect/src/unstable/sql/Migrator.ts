@@ -36,7 +36,7 @@ import type { SqlError } from "./SqlError.ts"
  * Options for running SQL migrations, including the migration loader, optional
  * schema dump directory, and migrations table name.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface MigratorOptions<R = never> {
@@ -49,7 +49,7 @@ export interface MigratorOptions<R = never> {
  * Effect that resolves the available migrations for the migrator or fails with a
  * `MigrationError`.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type Loader<R = never> = Effect.Effect<
@@ -62,7 +62,7 @@ export type Loader<R = never> = Effect.Effect<
  * Tuple produced by a migration loader, containing the migration id, migration
  * name, and an effect that loads the migration implementation.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type ResolvedMigration = readonly [
@@ -75,7 +75,7 @@ export type ResolvedMigration = readonly [
  * Metadata for a migration recorded in the migrations table, including its id,
  * name, and creation timestamp.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface Migration {
@@ -107,7 +107,7 @@ export class MigrationError extends Data.TaggedError("MigrationError")<{
  * migrations in a transaction, and optionally dumps the schema after successful
  * migrations.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <RD = never>({

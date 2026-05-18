@@ -508,7 +508,6 @@ export interface Replier<Rpcs extends Rpc.Any> {
 /**
  * Helper types used by the `Replier` API.
  *
- * @category Replier
  * @since 4.0.0
  */
 export declare namespace Replier {

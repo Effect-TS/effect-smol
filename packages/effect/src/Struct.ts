@@ -178,7 +178,7 @@ export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Om
  * @see {@link keys} – list all string keys of a struct
  * @see {@link pick} – extract multiple properties into a new struct
  *
- * @category Getters
+ * @category getters
  * @since 2.0.0
  */
 export const get: {
@@ -450,7 +450,7 @@ type EntryEvolved<S, E> = {
  * @see {@link evolve} – transform values only
  * @see {@link evolveKeys} – transform keys only
  *
- * @category Utilities
+ * @category utils
  * @since 4.0.0
  */
 export const evolveEntries: {
@@ -687,7 +687,7 @@ export const lambda = <L extends (a: any) => any>(
  * @see {@link mapOmit} – apply a lambda to all keys except selected ones
  * @see {@link evolve} – apply different functions to different keys
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const map: {
@@ -734,7 +734,7 @@ export const map: {
  * @see {@link map} – apply a lambda to all keys
  * @see {@link mapOmit} – apply a lambda to all keys except selected ones
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const mapPick: {
@@ -788,7 +788,7 @@ export const mapPick: {
  * @see {@link map} – apply a lambda to all keys
  * @see {@link mapPick} – apply a lambda only to selected keys
  *
- * @category Mapping
+ * @category mapping
  * @since 4.0.0
  */
 export const mapOmit: {
@@ -868,6 +868,7 @@ function buildStruct<
  *
  * @see {@link makeReducer} – like `makeCombiner` but with an initial value
  *
+ * @category combining
  * @since 4.0.0
  */
 export function makeCombiner<A>(
@@ -920,6 +921,7 @@ export function makeCombiner<A>(
  *
  * @see {@link makeCombiner} – like `makeReducer` but without an initial value
  *
+ * @category folding
  * @since 4.0.0
  */
 export function makeReducer<A>(
@@ -950,7 +952,7 @@ export function makeReducer<A>(
  * console.log(record) // { a: "value", b: "value" }
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function Record<const Keys extends ReadonlyArray<string | symbol>, Value>(

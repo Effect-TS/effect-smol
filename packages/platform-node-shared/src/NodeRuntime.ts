@@ -26,7 +26,7 @@ import * as Runtime from "effect/Runtime"
  * `SIGINT` or `SIGTERM` and invoking the configured teardown to determine the
  * process exit code.
  *
- * @category Run main
+ * @category running
  * @since 4.0.0
  */
 export const runMain: {

@@ -142,7 +142,6 @@ export interface TestClock extends Clock.Clock {
  * })
  * ```
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace TestClock {

@@ -114,7 +114,6 @@ export interface Zoned extends DateTime.Proto {
  * Companion namespace containing the public helper types used by `DateTime`
  * constructors, parts APIs, formatting, and date/time arithmetic.
  *
- * @category models
  * @since 3.6.0
  */
 export declare namespace DateTime {
@@ -299,7 +298,6 @@ export type TimeZone = TimeZone.Offset | TimeZone.Named
  * Companion namespace containing the public variant and protocol types for
  * `TimeZone`.
  *
- * @category models
  * @since 3.6.0
  */
 export declare namespace TimeZone {
@@ -1428,7 +1426,7 @@ export const isPastUnsafe: (self: DateTime) => boolean = Internal.isPastUnsafe
  * console.log(utcDate.toISOString()) // "2024-01-01T12:00:00.000Z"
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 3.6.0
  */
 export const toDateUtc: (self: DateTime) => Date = Internal.toDateUtc
@@ -1453,7 +1451,7 @@ export const toDateUtc: (self: DateTime) => Date = Internal.toDateUtc
  * console.log(DateTime.toDate(zoned).toISOString())
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 3.6.0
  */
 export const toDate: (self: DateTime) => Date = Internal.toDate
@@ -1477,7 +1475,7 @@ export const toDate: (self: DateTime) => Date = Internal.toDate
  * console.log(offset) // 0 (London is UTC+0 in winter)
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 3.6.0
  */
 export const zonedOffset: (self: Zoned) => number = Internal.zonedOffset
@@ -1500,7 +1498,7 @@ export const zonedOffset: (self: Zoned) => number = Internal.zonedOffset
  * console.log(offsetString) // "+03:00"
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 3.6.0
  */
 export const zonedOffsetIso: (self: Zoned) => string = Internal.zonedOffsetIso
@@ -1521,7 +1519,7 @@ export const zonedOffsetIso: (self: Zoned) => string = Internal.zonedOffsetIso
  * console.log(epochMillis) // 1704067200000
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 3.6.0
  */
 export const toEpochMillis: (self: DateTime) => number = Internal.toEpochMillis
@@ -1545,7 +1543,7 @@ export const toEpochMillis: (self: DateTime) => number = Internal.toEpochMillis
  * )
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 3.6.0
  */
 export const removeTime: (self: DateTime) => Utc = Internal.removeTime

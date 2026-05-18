@@ -66,7 +66,7 @@ const policy = Schedule.forever.pipe(
  * after unhandled failures, and flushes during scope finalization up to
  * `shutdownTimeout`.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: (

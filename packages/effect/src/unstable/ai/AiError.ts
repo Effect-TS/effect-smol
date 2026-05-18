@@ -182,7 +182,6 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
    * const aiError = AiError.NetworkError.fromRequestError(platformError)
    * ```
    *
-   * @category constructors
    * @since 4.0.0
    */
   static fromRequestError(error: HttpClientError.RequestError): NetworkError {
@@ -276,7 +275,7 @@ export type ProviderMetadata = typeof ProviderMetadata.Type
 /**
  * Provider-specific metadata attached to `RateLimitError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface RateLimitErrorMetadata extends ProviderMetadata {}
@@ -284,7 +283,7 @@ export interface RateLimitErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `QuotaExhaustedError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
@@ -292,7 +291,7 @@ export interface QuotaExhaustedErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `AuthenticationError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface AuthenticationErrorMetadata extends ProviderMetadata {}
@@ -300,7 +299,7 @@ export interface AuthenticationErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `ContentPolicyError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
@@ -308,7 +307,7 @@ export interface ContentPolicyErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `InvalidRequestError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
@@ -316,7 +315,7 @@ export interface InvalidRequestErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `InternalProviderError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface InternalProviderErrorMetadata extends ProviderMetadata {}
@@ -324,7 +323,7 @@ export interface InternalProviderErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `InvalidOutputError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
@@ -332,7 +331,7 @@ export interface InvalidOutputErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `StructuredOutputError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
@@ -340,7 +339,7 @@ export interface StructuredOutputErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `UnsupportedSchemaError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
@@ -348,7 +347,7 @@ export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 /**
  * Provider-specific metadata attached to `UnknownError`.
  *
- * @category provider options
+ * @category configuration
  * @since 4.0.0
  */
 export interface UnknownErrorMetadata extends ProviderMetadata {}
@@ -765,7 +764,6 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
    * const parseError = AiError.InvalidOutputError.fromSchemaError(schemaError)
    * ```
    *
-   * @category constructors
    * @since 4.0.0
    */
   static fromSchemaError(error: Schema.SchemaError): InvalidOutputError {
@@ -843,7 +841,6 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
    * const parseError = AiError.StructuredOutputError.fromSchemaError(schemaError, rawText)
    * ```
    *
-   * @category constructors
    * @since 4.0.0
    */
   static fromSchemaError(error: Schema.SchemaError, responseText: string): StructuredOutputError {

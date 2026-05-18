@@ -51,7 +51,7 @@ import type * as Prompt from "./Prompt.ts"
  * The tool type guards use this marker, together with more specific markers,
  * to distinguish user-defined, provider-defined, and dynamic tools.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/ai/Tool"
@@ -59,7 +59,7 @@ export const TypeId: TypeId = "~effect/ai/Tool"
 /**
  * Type-level representation of the Effect AI tool runtime type identifier.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/ai/Tool"
@@ -70,7 +70,7 @@ export type TypeId = "~effect/ai/Tool"
  * `isProviderDefined` uses this marker to distinguish tools that are built into
  * an AI provider from user-defined and dynamic tools.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const ProviderDefinedTypeId: ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
@@ -79,7 +79,7 @@ export const ProviderDefinedTypeId: ProviderDefinedTypeId = "~effect/ai/Tool/Pro
  * Type-level representation of the provider-defined tool runtime type
  * identifier.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
@@ -90,7 +90,7 @@ export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
  * `isDynamic` uses this marker to distinguish tools whose schema may be
  * provided at runtime from user-defined and provider-defined tools.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const DynamicTypeId: DynamicTypeId = "~effect/ai/Tool/Dynamic"
@@ -98,7 +98,7 @@ export const DynamicTypeId: DynamicTypeId = "~effect/ai/Tool/Dynamic"
 /**
  * Type-level representation of the dynamic tool runtime type identifier.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type DynamicTypeId = "~effect/ai/Tool/Dynamic"
@@ -1483,7 +1483,7 @@ export const providerDefined = <
  * naming conflicts (i.e. `"web_search"`) to instead use custom names (i.e.
  * `"OpenAiWebSearch"`).
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export class NameMapper<Tools extends ReadonlyArray<Any>> {
@@ -1555,7 +1555,7 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * console.log(description) // "This is an example tool"
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined => {
@@ -1604,7 +1604,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * // }
  * ```
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
@@ -1624,7 +1624,7 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
  * `Schema.toJsonSchemaDocument` and any generated definitions are attached as
  * `$defs`.
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
@@ -1798,7 +1798,7 @@ export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Str
 /**
  * Returns the strict mode setting for a tool, or `undefined` if not set.
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const getStrictMode = <T extends Any>(tool: T): boolean | undefined => Context.get(tool.annotations, Strict)
@@ -1883,7 +1883,7 @@ function filter(obj: any) {
  * **Unsafe**: This function will throw an error if an insecure property is
  * found in the parsed JSON or if the provided JSON text is not parseable.
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const unsafeSecureJsonParse = (text: string): unknown => {
@@ -1903,6 +1903,7 @@ export const unsafeSecureJsonParse = (text: string): unknown => {
  * It is a record schema with string keys and `never` values, so the generated
  * parameter schema accepts an empty object shape with no properties.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never> {}
@@ -1910,6 +1911,7 @@ export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never>
 /**
  * A schema for tools that accept no parameters.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const EmptyParams: EmptyParams = Schema.Record(Schema.String, Schema.Never)

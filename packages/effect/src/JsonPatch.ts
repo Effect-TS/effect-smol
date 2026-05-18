@@ -104,7 +104,7 @@ import type * as Schema from "./Schema.ts"
  * - {@link get} - Computes operations automatically from value differences
  * - {@link apply} - Applies operations to transform documents
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type JsonPatchOperation =
@@ -173,7 +173,7 @@ export type JsonPatchOperation =
  * - {@link get} - Generates patches from value differences
  * - {@link apply} - Executes patches to transform documents
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type JsonPatch = ReadonlyArray<JsonPatchOperation>
@@ -223,6 +223,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * - {@link apply} - Applies the generated patch to a document
  * - {@link JsonPatchOperation} - The operation types in the patch
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function get(oldValue: Schema.Json, newValue: Schema.Json): JsonPatch {
@@ -330,6 +331,7 @@ export function get(oldValue: Schema.Json, newValue: Schema.Json): JsonPatch {
  * - {@link get} - Generates patches from value differences
  * - {@link JsonPatchOperation} - The operation types being applied
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function apply(patch: JsonPatch, oldValue: Schema.Json): Schema.Json {

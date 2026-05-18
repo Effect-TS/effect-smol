@@ -29,7 +29,7 @@ import type * as Pull from "./Pull.ts"
  * Represents one pull result: either a non-empty batch of values, a failure
  * `Exit`, or a successful `Exit` that signals completion with a `Done` value.
  *
- * @category Models
+ * @category models
  * @since 2.0.0
  */
 export type Take<A, E = never, Done = void> = NonEmptyReadonlyArray<A> | Exit.Exit<Done, E>
@@ -38,7 +38,7 @@ export type Take<A, E = never, Done = void> = NonEmptyReadonlyArray<A> | Exit.Ex
  * Converts a `Take` into a `Pull`, succeeding with value batches, failing with
  * failure exits, and translating successful exits into pull completion.
  *
- * @category Conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toPull = <A, E, Done>(take: Take<A, E, Done>): Pull.Pull<NonEmptyReadonlyArray<A>, E, Done> =>

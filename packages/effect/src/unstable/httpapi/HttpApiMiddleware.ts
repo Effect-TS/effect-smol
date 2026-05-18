@@ -272,7 +272,7 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
  * It combines a `Context.Service` class with the middleware metadata used by
  * endpoints, builders, and generated clients.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export type ServiceClass<
@@ -318,7 +318,7 @@ export type ServiceClass<
  * typed error schemas, security schemes, client errors, and whether generated
  * clients must provide a matching client middleware.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const Service = <

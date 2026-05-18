@@ -42,7 +42,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Runtime type identifier used to mark Bun `SqliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
@@ -50,7 +50,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
 /**
  * Type-level identifier used to mark Bun `SqliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
@@ -106,7 +106,7 @@ interface SqliteConnection extends Connection {
 /**
  * Creates a scoped Bun SQLite client for a database file, enabling WAL by default and serializing access. Streaming queries are not implemented.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (

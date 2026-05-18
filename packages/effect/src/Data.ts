@@ -229,7 +229,6 @@ type UntaggedChildren<A> = true extends ChildrenAreTagged<A>
  *   values ({@link TaggedEnum.Value})
  * - Full constructor objects ({@link TaggedEnum.Constructor})
  *
- * @category types
  * @since 2.0.0
  */
 export declare namespace TaggedEnum {
@@ -267,6 +266,7 @@ export declare namespace TaggedEnum {
    * @see {@link Kind} — apply concrete types to a `WithGenerics` definition
    * @see {@link taggedEnum} — runtime constructors
    *
+   * @category models
    * @since 2.0.0
    */
   export interface WithGenerics<Count extends number> {
@@ -306,6 +306,7 @@ export declare namespace TaggedEnum {
    *
    * @see {@link WithGenerics} — define the generic shape
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Kind<
@@ -345,6 +346,7 @@ export declare namespace TaggedEnum {
    *
    * @see {@link Value} — extracts the full variant type (including `_tag`)
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Args<
@@ -374,6 +376,7 @@ export declare namespace TaggedEnum {
    *
    * @see {@link Args} — extracts fields without `_tag`
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Value<
@@ -460,6 +463,7 @@ export declare namespace TaggedEnum {
    * The constructor returns the full variant type `A`. If no fields remain
    * after excluding `Tag` keys, the constructor argument type becomes `void`.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type ConstructorFrom<A, Tag extends keyof A = never> = (
@@ -474,6 +478,7 @@ export declare namespace TaggedEnum {
    *
    * @see {@link Constructor} — the non-generic equivalent
    *
+   * @category models
    * @since 3.2.0
    */
   export interface GenericMatchers<Z extends WithGenerics<number>> {

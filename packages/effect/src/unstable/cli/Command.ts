@@ -431,7 +431,7 @@ export interface ParsedTokens {
 /**
  * Returns `true` if the provided value is a `Command`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty(u, TypeId)

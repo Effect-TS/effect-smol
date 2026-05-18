@@ -66,7 +66,7 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type AggregationTemporality = "cumulative" | "delta"
@@ -78,7 +78,7 @@ export type AggregationTemporality = "cumulative" | "delta"
  * serializes them with the selected aggregation temporality, and flushes during
  * scope finalization up to `shutdownTimeout`.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: (options: {
@@ -460,7 +460,7 @@ export const make: (options: {
 /**
  * Layer that starts the OTLP metrics exporter created by `make`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (options: {
@@ -479,6 +479,7 @@ export const layer = (options: {
 /**
  * OTLP metrics payload serialized by `OtlpMetrics`.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface MetricsData {

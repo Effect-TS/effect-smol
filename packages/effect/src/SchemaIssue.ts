@@ -117,6 +117,7 @@ const TypeId = "~effect/SchemaIssue/Issue"
  *
  * @see {@link Issue}
  *
+ * @category guards
  * @since 4.0.0
  */
 export function isIssue(u: unknown): u is Issue {
@@ -137,7 +138,7 @@ export function isIssue(u: unknown): u is Issue {
  * @see {@link Issue} — the full union including composite nodes
  * @see {@link LeafHook} — formatter hook that operates on `Leaf` values
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type Leaf =
@@ -169,7 +170,7 @@ export type Leaf =
  * @see {@link isIssue} — type guard
  * @see {@link getActual} — extract the actual value from any issue
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type Issue =
@@ -219,7 +220,7 @@ class Base {
  * @see {@link Leaf} — terminal issue types that commonly appear as the inner `issue`
  * @see {@link CheckHook} — formatter hook for `Filter` issues
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Filter extends Base {
@@ -277,7 +278,7 @@ export class Filter extends Base {
  * @see {@link Filter} — failure from a refinement check (not a transformation)
  * @see {@link Composite} — multiple issues from a single schema node
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Encoding extends Base {
@@ -335,7 +336,7 @@ export class Encoding extends Base {
  * @see {@link getActual} — returns `Option.none()` for `Pointer`
  * @see {@link Composite} — groups multiple issues under one schema node
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Pointer extends Base {
@@ -382,7 +383,7 @@ export class Pointer extends Base {
  * @see {@link Pointer} — wraps this issue with the missing key's path
  * @see {@link UnexpectedKey} — the opposite case (extra key present)
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class MissingKey extends Base {
@@ -422,7 +423,7 @@ export class MissingKey extends Base {
  * @see {@link MissingKey} — the opposite case (required key absent)
  * @see {@link Pointer} — wraps this issue with the unexpected key's path
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class UnexpectedKey extends Base {
@@ -471,7 +472,7 @@ export class UnexpectedKey extends Base {
  * @see {@link AnyOf} — used for union no-match errors (similar but different semantics)
  * @see {@link Pointer} — adds path context to individual issues
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Composite extends Base {
@@ -544,7 +545,7 @@ export class Composite extends Base {
  *
  * @see {@link InvalidValue} — the input has the right type but fails a value constraint
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class InvalidType extends Base {
@@ -608,7 +609,7 @@ export class InvalidType extends Base {
  * @see {@link InvalidType} — the input has the wrong type entirely
  * @see {@link Filter} — composite wrapper when a schema filter produces this issue
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class InvalidValue extends Base {
@@ -669,7 +670,7 @@ export class InvalidValue extends Base {
  *
  * @see {@link InvalidValue} — for value-constraint failures (not operation failures)
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class Forbidden extends Base {
@@ -718,7 +719,7 @@ export class Forbidden extends Base {
  * @see {@link OneOf} — the opposite: *too many* members matched
  * @see {@link Composite} — groups multiple issues under a non-union schema
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class AnyOf extends Base {
@@ -776,7 +777,7 @@ export class AnyOf extends Base {
  *
  * @see {@link AnyOf} — the opposite: *no* members matched
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export class OneOf extends Base {
@@ -847,6 +848,7 @@ export class OneOf extends Base {
  * @see {@link Issue}
  * @see {@link isIssue}
  *
+ * @category getters
  * @since 4.0.0
  */
 export function getActual(issue: Issue): Option.Option<unknown> {

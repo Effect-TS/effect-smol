@@ -122,6 +122,7 @@ export declare namespace Brand {
   /**
    * A utility type to extract a branded type from a `Constructor`.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type FromConstructor<C> = C extends Constructor<infer B> ? B : never
@@ -129,6 +130,7 @@ export declare namespace Brand {
   /**
    * A utility type to extract the unbranded value type from a brand.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Unbranded<B extends Brand<any>> = B extends infer U & Brands<B> ? U : B
@@ -136,6 +138,7 @@ export declare namespace Brand {
   /**
    * A utility type to extract the keys of a branded type.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Keys<B extends Brand<any>> = keyof B[typeof TypeId]
@@ -143,6 +146,7 @@ export declare namespace Brand {
   /**
    * A utility type to extract the brands from a branded type.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Brands<B extends Brand<any>> = Types.UnionToIntersection<
@@ -152,6 +156,7 @@ export declare namespace Brand {
   /**
    * A utility type that checks that all brands have the same base type.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type EnsureCommonBase<
@@ -169,7 +174,7 @@ export declare namespace Brand {
 /**
  * A type alias for creating branded types more concisely.
  *
- * @category alias
+ * @category utility types
  * @since 2.0.0
  */
 export type Branded<A, Key extends string> = A & Brand<Key>
@@ -218,6 +223,7 @@ export function make<A extends Brand<any>>(
  * failure. Use the returned `option`, `result`, or `is` methods for
  * non-throwing validation.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function check<A extends Brand<any>>(

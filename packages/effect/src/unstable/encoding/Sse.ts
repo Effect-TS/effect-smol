@@ -39,7 +39,7 @@ import * as Transformation from "../../SchemaTransformation.ts"
  * SSE `retry` directives are emitted as `Retry` failures so callers can
  * reconnect with the requested delay.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decode = <IE, Done>(): Channel.Channel<
@@ -88,7 +88,7 @@ export const decode = <IE, Done>(): Channel.Channel<
  * The schema receives the untagged event shape containing `id`, `event`, and
  * string `data`.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeSchema = <
@@ -125,7 +125,7 @@ export const decodeSchema = <
  * The output preserves the SSE `event` name and optional `id` while replacing
  * `data` with the decoded value.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
@@ -159,7 +159,7 @@ export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
  * Call `feed` with text chunks to parse `Event` and `Retry` values through the
  * callback, and call `reset` to clear any buffered event state.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function makeParser(onParse: (event: AnyEvent) => void): Parser {
@@ -325,7 +325,7 @@ function hasBom(buffer: string) {
  *
  * `feed` accepts additional text chunks and `reset` clears buffered parser state.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export interface Parser {
@@ -339,7 +339,7 @@ export interface Parser {
  * If the upstream channel fails with `Retry`, the retry directive is written and
  * the encoder completes.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encode = <IE, Done>(): Channel.Channel<
@@ -371,7 +371,7 @@ export const encode = <IE, Done>(): Channel.Channel<
  * Values are schema-encoded to the untagged SSE event shape, transformed to
  * `Event`, and then written as Server-Sent Events text.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeSchema = <
@@ -400,7 +400,7 @@ export const encodeSchema = <
  * Encoder capable of rendering an `Event` or `Retry` value as Server-Sent
  * Events text.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export interface Encoder {
@@ -412,7 +412,7 @@ export interface Encoder {
  *
  * It contains the event name, optional event ID, and string data payload.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Event {
@@ -427,7 +427,7 @@ export interface Event {
  *
  * The shape contains `id`, `event`, and string `data` fields.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export const EventEncoded: Schema.Struct<{
@@ -446,7 +446,7 @@ export const EventEncoded: Schema.Struct<{
  * The schema adds `_tag: "Event"` to the event name, optional event ID, and
  * string data payload.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export const Event: Schema.Struct<{
@@ -465,7 +465,7 @@ export const Event: Schema.Struct<{
  * Schema transformation between the untagged SSE event shape and the tagged
  * `Event` model.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export const transformEvent = Transformation.transform<{
@@ -492,7 +492,7 @@ export const transformEvent = Transformation.transform<{
  *
  * It contains the event name, optional event ID, and string data payload.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface EventEncoded {
@@ -509,7 +509,7 @@ const RetryTypeId = "~effect/encoding/Sse/Retry" as const
  * Decoders surface this value as a failure to request reconnection after
  * `duration`; encoders serialize an upstream `Retry` failure as a `retry:` line.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export class Retry extends Data.TaggedClass("Retry")<{
@@ -544,7 +544,7 @@ export class Retry extends Data.TaggedClass("Retry")<{
  * Union of SSE values that can be rendered by an `Encoder`: regular events and
  * retry directives.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type AnyEvent = Event | Retry
@@ -555,7 +555,7 @@ export type AnyEvent = Event | Retry
  * It renders `Event` values as `id`, `event`, and `data` lines and renders
  * `Retry` values as `retry:` directives.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encoder: Encoder = {

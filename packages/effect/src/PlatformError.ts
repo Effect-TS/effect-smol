@@ -41,7 +41,7 @@ const TypeId = "~effect/platform/PlatformError"
  * The error records the module and method that rejected the argument, with an
  * optional description and cause. It is usually wrapped in `PlatformError`.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export class BadArgument extends Data.TaggedError("BadArgument")<{
@@ -66,7 +66,7 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
  * The tags group lower-level platform errors into a stable set such as
  * `NotFound`, `PermissionDenied`, `TimedOut`, and `Unknown`.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type SystemErrorTag =
@@ -120,7 +120,7 @@ export class SystemError extends Data.Error<{
  * The `reason` field contains the underlying `BadArgument` or `SystemError`.
  * When that reason has a cause, the cause is preserved on the wrapper.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export class PlatformError extends Data.TaggedError("PlatformError")<{

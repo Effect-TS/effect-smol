@@ -150,7 +150,7 @@ export class Runners extends Context.Service<Runners, {
  * message persistence, duplicate request handling, optional local serialization
  * simulation, and polling for persisted replies.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal">) => Effect.Effect<
@@ -440,7 +440,7 @@ export const makeNoop: Effect.Effect<
  * Layer that provides the no-op `Runners` service, using the default snowflake
  * generator.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerNoop: Layer.Layer<
@@ -663,7 +663,7 @@ export const makeRpc: Effect.Effect<
  * Layer that provides an RPC-backed `Runners` service using `RpcClientProtocol`,
  * message storage, sharding configuration, and the default snowflake generator.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerRpc: Layer.Layer<

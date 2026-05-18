@@ -53,7 +53,7 @@ import * as Statement from "effect/unstable/sql/Statement"
 /**
  * Runtime type identifier used to mark `PgliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-pglite/PgliteClient"
@@ -61,7 +61,7 @@ export const TypeId: TypeId = "~@effect/sql-pglite/PgliteClient"
 /**
  * Type-level identifier used to mark `PgliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-pglite/PgliteClient"
@@ -102,7 +102,6 @@ export type PgliteClientConfig = PgliteClientConfig.Create | PgliteClientConfig.
 /**
  * Namespace containing the configuration variants for `PgliteClient`.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace PgliteClientConfig {
@@ -154,7 +153,7 @@ export declare namespace PgliteClientConfig {
 /**
  * Creates a scoped PGlite SQL client. When no live client is supplied it creates and closes a PGlite instance; when `liveClient` is supplied, the caller retains ownership.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (
@@ -182,7 +181,7 @@ export const make = (
 /**
  * Builds a `PgliteClient` around an existing PGlite instance, adding SQL client operations, LISTEN/NOTIFY, dump helpers, and serialized access.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const fromClient = (
@@ -380,7 +379,7 @@ export const layer = (
 /**
  * Creates the PGlite statement compiler, using PostgreSQL `$1` placeholders, double-quoted identifiers, returning clauses, and optional JSON value transformation.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const makeCompiler = (

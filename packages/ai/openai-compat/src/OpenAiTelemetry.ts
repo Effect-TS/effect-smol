@@ -102,6 +102,7 @@ export type WellKnownServiceTier = "auto" | "default"
  * Options accepted by `addGenAIAnnotations`, combining standard GenAI telemetry
  * attributes with optional OpenAI-compatible request and response attributes.
  *
+ * @category models
  * @since 4.0.0
  * @since models
  */
@@ -125,6 +126,7 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
  *
  * **NOTE**: This method will mutate the `Span` **in-place**.
  *
+ * @category tracing
  * @since 4.0.0
  * @since utilities
  */

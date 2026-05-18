@@ -68,7 +68,6 @@ export type InterpolatedWithStream = Interpolated | Stream.Stream<Primitive, any
 /**
  * Namespace containing type-level helpers for template interpolations.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Interpolated {

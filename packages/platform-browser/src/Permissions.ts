@@ -30,7 +30,7 @@ const ErrorTypeId = "~@effect/platform-browser/Permissions/PermissionsError"
  * Wrapper on the Permission API (`navigator.permissions`) with methods for
  * querying status of permissions.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Permissions {
@@ -111,7 +111,7 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
 /**
  * Service tag for the browser `Permissions` service.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export const Permissions: Context.Service<Permissions, Permissions> = Context.Service<Permissions>(TypeId)
@@ -119,7 +119,7 @@ export const Permissions: Context.Service<Permissions, Permissions> = Context.Se
 /**
  * A layer that directly interfaces with the `navigator.permissions` api
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Permissions> = Layer.succeed(

@@ -304,6 +304,7 @@ export const makeWithTransaction = <I, S>(options: {
  * Phantom identifier for the scoped transaction connection service associated
  * with a SQL client.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface TransactionConnection {
@@ -320,6 +321,7 @@ export declare namespace TransactionConnection {
    * Service payload stored during a transaction, containing the active
    * connection and nested transaction depth.
    *
+   * @category services
    * @since 4.0.0
    */
   export type Service = readonly [conn: Connection.Connection, depth: number]
@@ -329,6 +331,7 @@ export declare namespace TransactionConnection {
  * Creates a unique context service tag for the active transaction connection of
  * a specific SQL client.
  *
+ * @category tags
  * @since 4.0.0
  */
 export const TransactionConnection = (
@@ -340,6 +343,7 @@ export const TransactionConnection = (
  * Context reference used by SQL integrations to opt in to safe integer
  * handling; defaults to `false`.
  *
+ * @category references
  * @since 4.0.0
  */
 export const SafeIntegers = Context.Reference<boolean>("effect/sql/SqlClient/SafeIntegers", {

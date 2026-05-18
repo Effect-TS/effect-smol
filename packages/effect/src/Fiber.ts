@@ -165,7 +165,6 @@ export interface Fiber<out A, out E = never> extends Pipeable {
  * })
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Fiber {

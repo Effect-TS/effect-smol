@@ -299,7 +299,7 @@ export type HttpClientErrorReason = RequestError | ResponseError
 /**
  * Serializable schema representation of an `HttpClientError`, preserving the specific error kind and cause.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export class HttpClientErrorSchema extends Schema.ErrorClass<HttpClientErrorSchema>(TypeId)({

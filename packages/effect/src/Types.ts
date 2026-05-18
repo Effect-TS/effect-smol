@@ -571,7 +571,6 @@ export type Invariant<A> = (_: A) => A
 /**
  * Namespace for {@link Invariant}-related utilities.
  *
- * @category models
  * @since 3.9.0
  */
 export declare namespace Invariant {
@@ -627,7 +626,6 @@ export type Covariant<A> = (_: never) => A
 /**
  * Namespace for {@link Covariant}-related utilities.
  *
- * @category models
  * @since 3.9.0
  */
 export declare namespace Covariant {
@@ -683,7 +681,6 @@ export type Contravariant<A> = (_: A) => void
 /**
  * Namespace for {@link Contravariant}-related utilities.
  *
- * @category models
  * @since 3.9.0
  */
 export declare namespace Contravariant {

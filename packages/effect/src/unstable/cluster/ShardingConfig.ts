@@ -180,7 +180,7 @@ export const defaults: ShardingConfig["Service"] = {
  * Creates a `ShardingConfig` layer by merging the provided partial options over
  * `defaults`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer<ShardingConfig> =>
@@ -317,7 +317,7 @@ export const configFromEnv = config.pipe(
  * Layer that loads `ShardingConfig` from environment variables and, when options
  * are provided, overlays those options on top of the loaded values.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerFromEnv = (options?: Partial<ShardingConfig["Service"]> | undefined): Layer.Layer<

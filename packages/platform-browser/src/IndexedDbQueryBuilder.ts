@@ -170,7 +170,6 @@ export type KeyPathNumber<TableSchema extends IndexedDbTable.AnySchemaStruct> =
 /**
  * Namespace containing the typed IndexedDB query model interfaces and helper types.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace IndexedDbQuery {

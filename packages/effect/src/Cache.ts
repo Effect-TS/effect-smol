@@ -125,7 +125,7 @@ const TypeId = "~effect/Cache"
  * })
  * ```
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Cache<in out Key, in out A, in out E = never, out R = never> extends Pipeable {
@@ -146,7 +146,7 @@ export interface Cache<in out Key, in out A, in out E = never, out R = never> ex
  * users should interact with entries through the `Cache` combinators rather
  * than constructing them directly.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Entry<A, E> {
@@ -185,7 +185,7 @@ export interface Entry<A, E> {
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeWith = <
@@ -277,7 +277,7 @@ export const makeWith = <
  * })
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <
@@ -404,7 +404,7 @@ const defaultTimeToLive = <A, E>(_: Exit.Exit<A, E>, _key: unknown): Duration.Du
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const get: {
@@ -557,7 +557,7 @@ const checkCapacity = <K, A, E, R>(self: Cache<K, A, E, R>) => {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const getOption: {
@@ -595,7 +595,7 @@ const getImpl = <Key, A, E, R>(
  * Retrieves the value associated with the specified key from the cache, only if
  * it contains a resolved successful value.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const getSuccess: {
@@ -707,7 +707,7 @@ export const getSuccess: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const set: {
@@ -817,7 +817,7 @@ export const set: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const has: {
@@ -874,7 +874,7 @@ export const has: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const invalidate: {
@@ -947,7 +947,7 @@ export const invalidate: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const invalidateWhen: {
@@ -1061,7 +1061,7 @@ export const invalidateWhen: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const refresh: {
@@ -1133,7 +1133,7 @@ export const refresh: {
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<void> =>
@@ -1176,7 +1176,7 @@ export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.E
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<number> =>
@@ -1209,7 +1209,7 @@ export const size = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<num
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<Key>> =>
@@ -1252,7 +1252,7 @@ export const keys = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Ite
  * })
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<A>> =>
@@ -1263,7 +1263,7 @@ export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<I
  * only returns entries with successfully resolved values, filtering out any
  * failed lookups or expired entries.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const entries = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<Iterable<[Key, A]>> =>

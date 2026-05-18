@@ -46,7 +46,7 @@ export type BunServices = ChildProcessSpawner | FileSystem | Path | Terminal | S
  * Provides the default Bun implementations for child process spawning,
  * filesystem, path, stdio, and terminal services.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<BunServices> = BunChildProcessSpawner.layer.pipe(

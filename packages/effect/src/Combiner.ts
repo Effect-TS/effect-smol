@@ -88,7 +88,7 @@ import type * as Order from "./Order.ts"
  *
  * @see {@link make} – create a `Combiner` from a function
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface Combiner<A> {
@@ -121,6 +121,7 @@ export interface Combiner<A> {
  *
  * @see {@link Combiner} – the interface this creates
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
@@ -153,6 +154,7 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
  *
  * @see {@link make}
  *
+ * @category combinators
  * @since 4.0.0
  */
 export function flip<A>(combiner: Combiner<A>): Combiner<A> {
@@ -188,6 +190,7 @@ export function flip<A>(combiner: Combiner<A>): Combiner<A> {
  *
  * @see {@link max}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function min<A>(order: Order.Order<A>): Combiner<A> {
@@ -223,6 +226,7 @@ export function min<A>(order: Order.Order<A>): Combiner<A> {
  *
  * @see {@link min}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function max<A>(order: Order.Order<A>): Combiner<A> {
@@ -254,6 +258,7 @@ export function max<A>(order: Order.Order<A>): Combiner<A> {
  *
  * @see {@link last}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function first<A>(): Combiner<A> {
@@ -284,6 +289,7 @@ export function first<A>(): Combiner<A> {
  *
  * @see {@link first}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function last<A>(): Combiner<A> {
@@ -317,6 +323,7 @@ export function last<A>(): Combiner<A> {
  * @see {@link first}
  * @see {@link last}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function constant<A>(a: A): Combiner<A> {
@@ -351,6 +358,7 @@ export function constant<A>(a: A): Combiner<A> {
  *
  * @see {@link make}
  *
+ * @category combinators
  * @since 4.0.0
  */
 export function intercalate<A>(middle: A) {

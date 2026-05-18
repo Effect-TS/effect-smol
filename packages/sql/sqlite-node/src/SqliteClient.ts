@@ -41,7 +41,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Runtime type identifier used to mark Node `SqliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-node/SqliteClient"
@@ -49,7 +49,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 /**
  * Type-level identifier used to mark Node `SqliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-node/SqliteClient"
@@ -117,7 +117,7 @@ interface SqliteConnection extends Connection {
 /**
  * Creates a scoped node SQLite client from the supplied configuration, using a single serialized connection with WAL enabled by default and exposing SQLite-specific `export`, `backup`, and `loadExtension` operations.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (

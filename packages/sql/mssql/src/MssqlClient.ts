@@ -158,7 +158,7 @@ const classifyError = (
 /**
  * Runtime type identifier used to mark `MssqlClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: unique symbol = Symbol.for("@effect/sql-mssql/MssqlClient")
@@ -166,7 +166,7 @@ export const TypeId: unique symbol = Symbol.for("@effect/sql-mssql/MssqlClient")
 /**
  * Type-level identifier used to mark `MssqlClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = typeof TypeId
@@ -695,6 +695,7 @@ function numberToParamName(n: number) {
 /**
  * Default mapping from Effect SQL primitive value kinds to Tedious SQL Server parameter data types.
  *
+ * @category configuration
  * @since 4.0.0
  */
 export const defaultParameterTypes: Record<Statement.PrimitiveKind, DataType> = {

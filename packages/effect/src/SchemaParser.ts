@@ -186,7 +186,7 @@ export function asserts<T>(schema: Schema.Schema<T>) {
  * `Effect`. Parse options may be provided when creating the decoder and overridden
  * when applying it.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function decodeUnknownEffect<S extends Schema.Top>(
@@ -207,7 +207,7 @@ export function decodeUnknownEffect<S extends Schema.Top>(
  * `SchemaIssue.Issue`, preserving any decoding service requirements in the
  * returned `Effect`.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeEffect: <S extends Schema.Top>(
@@ -222,7 +222,7 @@ export const decodeEffect: <S extends Schema.Top>(
  * The returned function resolves with the decoded `Type` on success and rejects
  * with a `SchemaIssue.Issue` on decoding failure.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
@@ -239,7 +239,7 @@ export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
  * The returned function resolves with the decoded `Type` on success and rejects
  * with a `SchemaIssue.Issue` on decoding failure.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function decodePromise<S extends Schema.Decoder<unknown>>(
@@ -255,7 +255,7 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
  * The returned function produces `Exit.Success` with the decoded `Type` or
  * `Exit.Failure` with a `SchemaIssue.Issue`.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
@@ -272,7 +272,7 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
  * The returned function produces `Exit.Success` with the decoded `Type` or
  * `Exit.Failure` with a `SchemaIssue.Issue`.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeExit: <S extends Schema.Decoder<unknown>>(
@@ -286,7 +286,7 @@ export const decodeExit: <S extends Schema.Decoder<unknown>>(
  * The returned function produces `Option.some` with the decoded `Type` on success
  * or `Option.none` on failure, discarding issue details.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
@@ -303,7 +303,7 @@ export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
  * The returned function produces `Option.some` with the decoded `Type` on success
  * or `Option.none` on failure, discarding issue details.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeOption: <S extends Schema.Decoder<unknown>>(
@@ -317,7 +317,7 @@ export const decodeOption: <S extends Schema.Decoder<unknown>>(
  * The returned function produces `Result.succeed` with the decoded `Type` on
  * success or `Result.fail` with a `SchemaIssue.Issue` on decoding failure.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
@@ -334,7 +334,7 @@ export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
  * The returned function produces `Result.succeed` with the decoded `Type` on
  * success or `Result.fail` with a `SchemaIssue.Issue` on decoding failure.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeResult: <S extends Schema.Decoder<unknown>>(
@@ -348,7 +348,7 @@ export const decodeResult: <S extends Schema.Decoder<unknown>>(
  * The returned function returns the decoded `Type` on success and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
@@ -365,7 +365,7 @@ export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
  * The returned function returns the decoded `Type` on success and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
  *
- * @category Decoding
+ * @category decoding
  * @since 4.0.0
  */
 export const decodeSync: <S extends Schema.Decoder<unknown>>(
@@ -381,7 +381,7 @@ export const decodeSync: <S extends Schema.Decoder<unknown>>(
  * `Effect`. Parse options may be provided when creating the encoder and overridden
  * when applying it.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function encodeUnknownEffect<S extends Schema.Top>(
@@ -402,7 +402,7 @@ export function encodeUnknownEffect<S extends Schema.Top>(
  * `SchemaIssue.Issue`, preserving any encoding service requirements in the
  * returned `Effect`.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeEffect: <S extends Schema.Top>(
@@ -417,7 +417,7 @@ export const encodeEffect: <S extends Schema.Top>(
  * The returned function resolves with the schema's `Encoded` value on success and
  * rejects with a `SchemaIssue.Issue` on encoding failure.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
@@ -433,7 +433,7 @@ export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
  * The returned function resolves with the schema's `Encoded` value on success and
  * rejects with a `SchemaIssue.Issue` on encoding failure.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodePromise: <S extends Schema.Encoder<unknown>>(
@@ -447,7 +447,7 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
  * The returned function produces `Exit.Success` with the schema's `Encoded` value
  * or `Exit.Failure` with a `SchemaIssue.Issue`.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
@@ -464,7 +464,7 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
  * The returned function produces `Exit.Success` with the schema's `Encoded` value
  * or `Exit.Failure` with a `SchemaIssue.Issue`.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeExit: <S extends Schema.Encoder<unknown>>(
@@ -478,7 +478,7 @@ export const encodeExit: <S extends Schema.Encoder<unknown>>(
  * The returned function produces `Option.some` with the schema's `Encoded` value
  * on success or `Option.none` on failure, discarding issue details.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
@@ -495,7 +495,7 @@ export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
  * The returned function produces `Option.some` with the schema's `Encoded` value
  * on success or `Option.none` on failure, discarding issue details.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeOption: <S extends Schema.Encoder<unknown>>(
@@ -510,7 +510,7 @@ export const encodeOption: <S extends Schema.Encoder<unknown>>(
  * value on success or `Result.fail` with a `SchemaIssue.Issue` on encoding
  * failure.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
@@ -528,7 +528,7 @@ export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
  * value on success or `Result.fail` with a `SchemaIssue.Issue` on encoding
  * failure.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeResult: <S extends Schema.Encoder<unknown>>(
@@ -542,7 +542,7 @@ export const encodeResult: <S extends Schema.Encoder<unknown>>(
  * The returned function returns the schema's `Encoded` value on success and throws
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
@@ -559,7 +559,7 @@ export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
  * The returned function returns the schema's `Encoded` value on success and throws
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
  *
- * @category Encoding
+ * @category encoding
  * @since 4.0.0
  */
 export const encodeSync: <S extends Schema.Encoder<unknown>>(

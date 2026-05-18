@@ -62,6 +62,7 @@ export declare namespace HttpMiddleware {
   /**
    * Callable type representing middleware already specialized to a particular transformed app type.
    *
+   * @category models
    * @since 4.0.0
    */
   export interface Applied<A extends Effect.Effect<HttpServerResponse, any, any>, E, R> {

@@ -43,7 +43,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Runtime type identifier used to mark Cloudflare Durable Object `SqliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-do/SqliteClient"
@@ -51,7 +51,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-do/SqliteClient"
 /**
  * Type-level identifier used to mark Cloudflare Durable Object `SqliteClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-do/SqliteClient"
@@ -95,7 +95,7 @@ export interface SqliteClientConfig {
 /**
  * Creates a scoped Cloudflare Durable Object SQLite client around `SqlStorage`, serializing access and converting returned `ArrayBuffer` values to `Uint8Array`.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (

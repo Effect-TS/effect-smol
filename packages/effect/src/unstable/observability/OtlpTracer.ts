@@ -49,7 +49,7 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * Spans are batched using the configured interval and batch size, serialized
  * with `OtlpSerialization`, and flushed when the surrounding `Scope` closes.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make: (
@@ -129,7 +129,7 @@ export const make: (
 /**
  * Provides `Tracer.Tracer` using the OTLP tracer created by `make`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: (options: {
@@ -306,6 +306,7 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
 /**
  * Root OTLP traces payload containing spans grouped by resource.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface TraceData {
@@ -315,6 +316,7 @@ export interface TraceData {
 /**
  * Group of OTLP scope spans associated with a single resource.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface ResourceSpan {
@@ -326,6 +328,7 @@ export interface ResourceSpan {
 /**
  * Group of OTLP spans emitted by a single instrumentation scope.
  *
+ * @category models
  * @since 4.0.0
  */
 export interface ScopeSpan {

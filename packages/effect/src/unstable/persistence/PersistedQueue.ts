@@ -50,7 +50,7 @@ import * as Redis from "./Redis.ts"
 /**
  * Runtime type identifier for `PersistedQueue` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
@@ -58,7 +58,7 @@ export const TypeId: TypeId = "~effect/persistence/PersistedQueue"
 /**
  * Type-level identifier used to brand `PersistedQueue` values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/persistence/PersistedQueue"
@@ -70,7 +70,7 @@ export type TypeId = "~effect/persistence/PersistedQueue"
  * marking it complete on success or retrying it until the maximum attempts is
  * reached.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface PersistedQueue<in out A, out R = never> {
@@ -213,7 +213,7 @@ export const layer: Layer.Layer<
 /**
  * Runtime type identifier for `PersistedQueueError`.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -221,7 +221,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/Pe
 /**
  * Type-level identifier used to brand `PersistedQueueError` values.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -229,7 +229,7 @@ export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueEr
 /**
  * Error raised by persisted queue store operations.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(

@@ -46,7 +46,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Unique runtime identifier used to tag `D1Client` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-d1/D1Client"
@@ -54,7 +54,7 @@ export const TypeId: TypeId = "~@effect/sql-d1/D1Client"
 /**
  * Type-level literal for the `D1Client` runtime identifier.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-d1/D1Client"
@@ -100,7 +100,7 @@ export interface D1ClientConfig {
 /**
  * Creates a scoped Cloudflare D1 SQL client. Prepared statements are cached, while transactions and streaming queries are not supported by this driver.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (

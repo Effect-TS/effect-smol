@@ -680,7 +680,6 @@ export class Persistence extends Context.Service<Persistence, Persistence.Servic
 /**
  * Namespace containing the service contract for chat persistence.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Persistence {

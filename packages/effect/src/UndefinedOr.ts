@@ -35,6 +35,7 @@ import * as Reducer from "./Reducer.ts"
 /**
  * Maps a defined value with `f`, or returns `undefined` unchanged.
  *
+ * @category mapping
  * @since 4.0.0
  */
 export const map: {
@@ -48,6 +49,7 @@ export const map: {
  * Runs `onDefined` with the value when it is present, or evaluates
  * `onUndefined` when the value is `undefined`.
  *
+ * @category pattern matching
  * @since 4.0.0
  */
 export const match: {
@@ -71,6 +73,7 @@ export const match: {
  * Returns the defined value, or throws the value produced by `onUndefined`
  * when the input is `undefined`.
  *
+ * @category getters
  * @since 4.0.0
  */
 export const getOrThrowWith: {
@@ -87,6 +90,7 @@ export const getOrThrowWith: {
  * Returns the defined value, or throws a default `Error` when the input is
  * `undefined`.
  *
+ * @category getters
  * @since 4.0.0
  */
 export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
@@ -100,6 +104,7 @@ export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
  * The returned function passes through successful results and discards thrown
  * errors by representing them as `undefined`.
  *
+ * @category converting
  * @since 4.0.0
  */
 export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
@@ -130,6 +135,7 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  * - `undefined` + `b` = `b` (second value wins)
  * - `a` + `b` = `a + b` (values combined)
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | undefined> {
@@ -150,6 +156,7 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
  * @see {@link makeReducerFailFast} if you have a `Reducer` and want to lift it
  * to `UndefinedOr` values.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | undefined> {
@@ -170,6 +177,7 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  * @see {@link makeCombinerFailFast} if you only have a `Combiner` and want to
  * lift it to `UndefinedOr` values.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function makeReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | undefined> {

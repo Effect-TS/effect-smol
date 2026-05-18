@@ -24,7 +24,7 @@ import * as Hash from "../../Hash.ts"
 /**
  * The literal type used to identify `AtomRef` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/reactivity/AtomRef"
@@ -32,7 +32,7 @@ export type TypeId = "~effect/reactivity/AtomRef"
 /**
  * The runtime type id used to identify `AtomRef` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/reactivity/AtomRef"

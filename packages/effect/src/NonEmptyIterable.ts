@@ -208,7 +208,7 @@ export declare const nonEmpty: unique symbol
  * ) // 3
  * ```
  *
- * @category model
+ * @category models
  * @since 2.0.0
  */
 export interface NonEmptyIterable<out A> extends Iterable<A> {

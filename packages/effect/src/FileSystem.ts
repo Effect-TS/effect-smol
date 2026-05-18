@@ -87,7 +87,7 @@ const TypeId = "~effect/platform/FileSystem"
  * })
  * ```
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface FileSystem {
@@ -670,7 +670,7 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * })
  * ```
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type OpenFlag =
@@ -733,7 +733,7 @@ export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Servi
  * default implementations for `exists`, `readFileString`, `stream`, `sink`, and
  * `writeFileString` methods based on the provided core methods.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (
@@ -869,7 +869,7 @@ const notFound = (method: string, path: string) =>
  * )
  * ```
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
@@ -1077,7 +1077,6 @@ export interface File {
  * Namespace containing types associated with open file handles, including file
  * descriptors, entry kinds, and stat information.
  *
- * @category File
  * @since 4.0.0
  */
 export declare namespace File {
@@ -1178,7 +1177,7 @@ export declare namespace File {
  * File descriptors are integer handles that the operating system uses to identify
  * open files. This branded type ensures type safety when working with file descriptors.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
@@ -1189,7 +1188,7 @@ export const FileDescriptor = Brand.nominal<File.Descriptor>()
  * - `"start"` - Seek from the beginning of the file
  * - `"current"` - Seek from the current position
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type SeekMode = "start" | "current"
@@ -1197,7 +1196,7 @@ export type SeekMode = "start" | "current"
 /**
  * Represents file system events that can be observed when watching files or directories.
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
@@ -1205,7 +1204,6 @@ export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remo
 /**
  * Namespace containing the concrete event shapes emitted by `FileSystem.watch`.
  *
- * @category model
  * @since 4.0.0
  */
 export declare namespace WatchEvent {
@@ -1215,7 +1213,7 @@ export declare namespace WatchEvent {
    * This event is triggered when a new file or directory is created
    * in the watched location.
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Create {
@@ -1229,7 +1227,7 @@ export declare namespace WatchEvent {
    * This event is triggered when an existing file or directory is
    * modified in the watched location.
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Update {
@@ -1243,7 +1241,7 @@ export declare namespace WatchEvent {
    * This event is triggered when a file or directory is deleted
    * from the watched location.
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Remove {

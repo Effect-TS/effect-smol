@@ -43,7 +43,7 @@ import * as Workflow from "./Workflow.ts"
  * executing workflows and coordinating activities, durable deferreds,
  * interrupts, resumes, and clocks.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class WorkflowEngine extends Context.Service<
@@ -224,7 +224,7 @@ export class WorkflowEngine extends Context.Service<
  * definition, long-lived scope, suspension state, interruption state, and
  * activity coordination state.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export class WorkflowInstance extends Context.Service<
@@ -365,7 +365,7 @@ export interface Encoded {
  * implementation. This is unsafe because the implementation must correctly
  * persist, resume, and encode workflow state.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
@@ -559,7 +559,7 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
  * and local development, but is not suitable for production use as it does not
  * provide durability guarantees.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEngine)(

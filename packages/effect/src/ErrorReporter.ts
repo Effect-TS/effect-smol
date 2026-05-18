@@ -87,7 +87,7 @@ export const TypeId: TypeId = "~effect/ErrorReporter"
  * modules. Use {@link make} to create a reporter — it handles deduplication
  * and per-error annotation extraction automatically.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ErrorReporter {
@@ -120,7 +120,7 @@ export interface ErrorReporter {
  * )
  * ```
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (
@@ -169,7 +169,7 @@ export const make = (
  * reference directly only when you need low-level control (e.g. reading the
  * current reporters or swapping them inside a `FiberRef`).
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>> = references.CurrentErrorReporters
@@ -215,7 +215,7 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
  * )
  * ```
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <
@@ -284,7 +284,7 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
  * The global `Error` interface is augmented with `Reportable`, so these
  * properties are available on `Error` instances at the type level.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export interface Reportable {
@@ -305,7 +305,7 @@ declare global {
  * from being forwarded to reporters. This is useful for expected failures such
  * as HTTP 404 responses.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export type ignore = "~effect/ErrorReporter/ignore"
@@ -328,7 +328,7 @@ export type ignore = "~effect/ErrorReporter/ignore"
  * }
  * ```
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const ignore: ignore = "~effect/ErrorReporter/ignore"
@@ -337,7 +337,7 @@ export const ignore: ignore = "~effect/ErrorReporter/ignore"
  * Returns `true` if the given value has the `ErrorReporter.ignore` annotation
  * set to `true`.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const isIgnored = (u: unknown): boolean =>
@@ -349,7 +349,7 @@ export const isIgnored = (u: unknown): boolean =>
  * When set to a valid `LogLevel.Severity`, the reporter callback receives this
  * value as `severity`. Missing or invalid values fall back to `"Info"`.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export type severity = "~effect/ErrorReporter/severity"
@@ -370,7 +370,7 @@ export type severity = "~effect/ErrorReporter/severity"
  * }
  * ```
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const severity: severity = "~effect/ErrorReporter/severity"
@@ -379,7 +379,7 @@ export const severity: severity = "~effect/ErrorReporter/severity"
  * Reads the `ErrorReporter.severity` annotation from an error object,
  * falling back to `"Info"` when the annotation is unset or invalid.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const getSeverity = (error: object): Severity => {
@@ -397,7 +397,7 @@ export const getSeverity = (error: object): Severity => {
  * include contextual information such as user IDs, request IDs, or other
  * domain-specific debugging data.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export type attributes = "~effect/ErrorReporter/attributes"
@@ -423,7 +423,7 @@ export type attributes = "~effect/ErrorReporter/attributes"
  * }
  * ```
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const attributes: attributes = "~effect/ErrorReporter/attributes"
@@ -432,7 +432,7 @@ export const attributes: attributes = "~effect/ErrorReporter/attributes"
  * Reads the `ErrorReporter.attributes` annotation from an error object,
  * returning an empty record when unset.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const getAttributes = (error: object): ReadonlyRecord<string, unknown> => {

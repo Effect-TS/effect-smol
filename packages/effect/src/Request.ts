@@ -206,6 +206,7 @@ const requestVariance = Equal.byReferenceUnsafe({
  * `Request.TaggedClass`. Most users should use those constructors instead of
  * interacting with the prototype directly.
  *
+ * @category models
  * @since 4.0.0
  */
 export const RequestPrototype: Request<any, any, any> = {

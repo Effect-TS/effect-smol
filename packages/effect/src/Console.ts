@@ -176,7 +176,7 @@ export const consoleWith = <A, E, R>(f: (console: Console) => Effect.Effect<A, E
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -203,7 +203,7 @@ export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const clear: Effect.Effect<void> = consoleWith((console) =>
@@ -230,7 +230,7 @@ export const clear: Effect.Effect<void> = consoleWith((console) =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const count = (label?: string): Effect.Effect<void> =>
@@ -259,7 +259,7 @@ export const count = (label?: string): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const countReset = (label?: string): Effect.Effect<void> =>
@@ -288,7 +288,7 @@ export const countReset = (label?: string): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -316,7 +316,7 @@ export const debug = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const dir = (item: any, options?: any): Effect.Effect<void> =>
@@ -344,7 +344,7 @@ export const dir = (item: any, options?: any): Effect.Effect<void> =>
  * // <user id="1">Ada</user>
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -374,7 +374,7 @@ export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -407,7 +407,7 @@ export const error = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const group = (
@@ -449,7 +449,7 @@ export const group = (
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -476,7 +476,7 @@ export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -508,7 +508,7 @@ export const log = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const table = (tabularData: any, properties?: ReadonlyArray<string>): Effect.Effect<void> =>
@@ -541,7 +541,7 @@ export const table = (tabularData: any, properties?: ReadonlyArray<string>): Eff
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const time = (label?: string | undefined): Effect.Effect<void, never, Scope> =>
@@ -581,7 +581,7 @@ export const time = (label?: string | undefined): Effect.Effect<void, never, Sco
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -608,7 +608,7 @@ export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Eff
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -637,7 +637,7 @@ export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
@@ -671,7 +671,7 @@ export const warn = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const withGroup = dual<
@@ -729,7 +729,7 @@ export const withGroup = dual<
  * })
  * ```
  *
- * @category accessor
+ * @category accessors
  * @since 2.0.0
  */
 export const withTime = dual<

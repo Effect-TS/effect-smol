@@ -44,7 +44,7 @@ const TypeId = "~effect/persistence/KeyValueStore" as const
 /**
  * Effectful key/value store service for string and binary values.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KeyValueStore {
@@ -112,7 +112,7 @@ export interface KeyValueStore {
  * Primitive operations are required, while helpers such as `has`, `isEmpty`,
  * and `modify` can be supplied to override the defaults.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type MakeOptions = Partial<KeyValueStore> & {
@@ -151,7 +151,7 @@ export type MakeOptions = Partial<KeyValueStore> & {
  * Implementation callbacks for adapting a string-only backing store into a
  * `KeyValueStore`.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
@@ -187,7 +187,7 @@ const ErrorTypeId = "~effect/persistence/KeyValueStore/KeyValueStoreError" as co
  * Error raised by key/value store operations, including the failed method,
  * optional key, message, and cause.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{

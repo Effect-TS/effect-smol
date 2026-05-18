@@ -31,7 +31,7 @@ import * as BunStream from "./BunStream.ts"
 /**
  * Parses a Bun `Request` body as multipart data and returns a stream of multipart parts.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const stream = (source: Request): Stream.Stream<Multipart.Part, Multipart.MultipartError> =>
@@ -52,7 +52,7 @@ const emptyReadbleStream = new ReadableStream({
 /**
  * Parses and persists multipart data from a Bun `Request`, requiring file-system, path, and scope services.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const persisted = (

@@ -491,6 +491,7 @@ export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effe
  * you are implementing lower-level scope machinery and can correctly run the
  * returned effect.
  *
+ * @category unsafe
  * @since 4.0.0
  */
 export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void, never, never> | undefined =

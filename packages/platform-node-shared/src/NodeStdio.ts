@@ -29,7 +29,7 @@ import { fromReadable } from "./NodeStream.ts"
  * and `process.stderr`; stdin remains open and stdout/stderr are not ended by
  * default.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Stdio.Stdio> = Layer.succeed(

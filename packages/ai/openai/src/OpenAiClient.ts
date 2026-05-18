@@ -91,7 +91,7 @@ export interface Service {
 /**
  * Service identifier for the OpenAI client.
  *
- * @category service
+ * @category services
  * @since 4.0.0
  */
 export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(

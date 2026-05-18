@@ -139,7 +139,6 @@ export interface RequestResolver<in A extends Request.Any> extends RequestResolv
 /**
  * Namespace containing type-level helpers associated with `RequestResolver`.
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace RequestResolver {

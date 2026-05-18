@@ -534,7 +534,7 @@ export interface Pipeable {
  * receive JavaScript's `arguments` object. With no functions it returns the
  * original value; otherwise it feeds each result into the next function.
  *
- * @category utilities
+ * @category utils
  * @since 2.0.0
  * **Example** (Implementing a pipe method)
  *
@@ -594,6 +594,7 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
  * Classes or object prototypes can reuse this value when they need the
  * standard pipe implementation backed by `pipeArguments`.
  *
+ * @category models
  * @since 4.0.0
  */
 export const Prototype: Pipeable = {

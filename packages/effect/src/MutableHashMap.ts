@@ -21,7 +21,6 @@
  * - Size: O(1)
  * - Iteration: O(n)
  *
- * @category data-structures
  * @since 2.0.0
  */
 import type { NonEmptyArray } from "./Array.ts"
@@ -700,6 +699,7 @@ export const size = <K, V>(self: MutableHashMap<K, V>): number => self.backing.s
 /**
  * Returns `true` when the `MutableHashMap` contains no key-value pairs.
  *
+ * @category predicates
  * @since 2.0.0
  */
 export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backing.size === 0
@@ -710,6 +710,7 @@ export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backi
  * Iteration follows the backing map's order. The callback receives the value
  * first and the key second, matching `Map.prototype.forEach`.
  *
+ * @category traversing
  * @since 2.0.0
  */
 export const forEach: {

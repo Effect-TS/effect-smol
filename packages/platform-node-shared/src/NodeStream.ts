@@ -192,7 +192,7 @@ export const pipeThroughSimple: {
  * Effect context to run the stream and destroying the readable if the stream
  * fails.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
@@ -205,7 +205,7 @@ export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R
  * Converts a service-free Effect `Stream` into a Node `Readable` using an
  * empty Effect context.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
@@ -219,7 +219,7 @@ export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E,
  * failing through `onError` on stream errors or when `maxBytes` is exceeded
  * and destroying the stream on interruption or failure.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toString = <E = Cause.UnknownError>(
@@ -272,7 +272,7 @@ export const toString = <E = Cause.UnknownError>(
  * `onError` on stream errors or when `maxBytes` is exceeded and destroying the
  * stream on interruption or failure.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toArrayBuffer = <E = Cause.UnknownError>(
@@ -322,7 +322,7 @@ export const toArrayBuffer = <E = Cause.UnknownError>(
  * Consumes a Node readable stream into a `Uint8Array`, using the same error
  * mapping and `maxBytes` handling as `toArrayBuffer`.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toUint8Array = <E = Cause.UnknownError>(

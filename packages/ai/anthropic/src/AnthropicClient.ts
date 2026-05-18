@@ -132,7 +132,7 @@ export type MessageStreamEvent =
 /**
  * Service identifier for the Anthropic client.
  *
- * @category service
+ * @category services
  * @since 4.0.0
  */
 export class AnthropicClient extends Context.Service<AnthropicClient, Service>()(

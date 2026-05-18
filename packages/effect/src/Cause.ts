@@ -282,7 +282,6 @@ export const isInterruptReason: <E>(self: Reason<E>) => self is Interrupt = core
 /**
  * Companion namespace for the {@link Cause} interface.
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Cause {
@@ -328,7 +327,6 @@ export declare namespace Cause {
 /**
  * Companion namespace for the {@link Reason} type.
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace Reason {
@@ -1237,7 +1235,6 @@ export interface Done<A = void> {
 /**
  * Companion namespace for the {@link Done} interface.
  *
- * @category errors
  * @since 4.0.0
  */
 export declare namespace Done {
@@ -1245,6 +1242,7 @@ export declare namespace Done {
    * Extracts the value type `A` from a `Done<A>` that may be nested in an
    * error union.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type Extract<E> = E extends Done<infer L> ? L : never
@@ -1252,6 +1250,7 @@ export declare namespace Done {
   /**
    * Filters a type union to only keep `Done` members.
    *
+   * @category filtering
    * @since 4.0.0
    */
   export type Only<E> = E extends Done<infer L> ? Done<L> : never

@@ -29,7 +29,7 @@ import * as Schema from "../../Schema.ts"
  * Builds a query function that encodes the request, decodes all result rows,
  * and fails with `NoSuchElementError` when the result set is empty.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
@@ -53,7 +53,7 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 /**
  * Run a sql query with a request schema and a result schema.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const findNonEmpty = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
@@ -93,7 +93,7 @@ export {
   /**
    * Run a sql query with a request schema and discard the result.
    *
-   * @category constructor
+   * @category constructors
    * @since 4.0.0
    */
   void_ as void
@@ -103,7 +103,7 @@ export {
  * Builds a query function that encodes the request, decodes the first result
  * row, and fails with `NoSuchElementError` when no rows are returned.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
@@ -136,7 +136,7 @@ export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
  * Builds a query function that encodes the request, decodes the first result row
  * as `Option.some`, and returns `Option.none` when no rows are returned.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const findOneOption = <Req extends Schema.Top, Res extends Schema.Top, E, R>(

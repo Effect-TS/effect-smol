@@ -55,7 +55,7 @@ import * as Singleton from "./Singleton.ts"
  * scheduling step and optional controls for shard group, next-run calculation,
  * and skipping stale scheduled runs.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <E, R>(options: {

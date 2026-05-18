@@ -71,6 +71,7 @@ export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
  * waiting for `drain` when needed, failing on writable errors, and ending the
  * writable on upstream completion unless disabled.
  *
+ * @category converting
  * @since 4.0.0
  */
 export const pullIntoWritable = <A, IE, E>(options: {

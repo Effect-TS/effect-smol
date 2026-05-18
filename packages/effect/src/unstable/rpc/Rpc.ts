@@ -1047,7 +1047,6 @@ export interface Custom {
 /**
  * Helper types for defining RPC custom constructors.
  *
- * @category Custom constructors
  * @since 4.0.0
  */
 export declare namespace Custom {

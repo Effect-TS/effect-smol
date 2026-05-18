@@ -1562,7 +1562,7 @@ export const equals: {
  * // }
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 3.8.0
  */
 export const parts = (self: Duration): {
@@ -1626,7 +1626,7 @@ export const parts = (self: Duration): {
  * Duration.format(Duration.millis(1001)) // "1s 1ms"
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const format = (self: Duration): string => {
@@ -1675,6 +1675,7 @@ export const format = (self: Duration): string => {
 /**
  * A `Reducer` for summing `Duration`s.
  *
+ * @category math
  * @since 4.0.0
  */
 export const ReducerSum: Reducer.Reducer<Duration> = Reducer.make(sum, zero)
@@ -1682,6 +1683,7 @@ export const ReducerSum: Reducer.Reducer<Duration> = Reducer.make(sum, zero)
 /**
  * A `Combiner` that returns the maximum `Duration`.
  *
+ * @category math
  * @since 4.0.0
  */
 export const CombinerMax: Combiner.Combiner<Duration> = Combiner.max(Order)
@@ -1689,6 +1691,7 @@ export const CombinerMax: Combiner.Combiner<Duration> = Combiner.max(Order)
 /**
  * A `Combiner` that returns the minimum `Duration`.
  *
+ * @category math
  * @since 4.0.0
  */
 export const CombinerMin: Combiner.Combiner<Duration> = Combiner.min(Order)

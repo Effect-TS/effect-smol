@@ -96,7 +96,7 @@ const classifyError = (
 /**
  * Unique runtime identifier used to tag `ClickhouseClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
@@ -104,7 +104,7 @@ export const TypeId: TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
 /**
  * Type-level literal for the `ClickhouseClient` runtime identifier.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
@@ -402,7 +402,7 @@ export const make = (
  * Fiber reference read by the low-level ClickHouse connection to choose query
  * or command execution for statements; defaults to `query`.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const ClientMethod = Context.Reference<"query" | "command" | "insert">(
@@ -416,7 +416,7 @@ export const ClientMethod = Context.Reference<"query" | "command" | "insert">(
  * Fiber reference for the ClickHouse `query_id` applied to queries and
  * inserts; a random UUID is generated when no query ID is set.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const QueryId = Context.Reference<string | undefined>(
@@ -428,7 +428,7 @@ export const QueryId = Context.Reference<string | undefined>(
  * Fiber reference containing ClickHouse settings to attach to queries,
  * commands, and inserts.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const ClickhouseSettings: Context.Reference<

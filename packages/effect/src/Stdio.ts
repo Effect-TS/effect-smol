@@ -27,7 +27,7 @@ import * as Stream from "./Stream.ts"
 /**
  * String literal type used as the unique brand for the `Stdio` service.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/Stdio"
@@ -35,7 +35,7 @@ export type TypeId = "~effect/Stdio"
 /**
  * Runtime identifier stored on `Stdio` service implementations.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Stdio"
@@ -47,7 +47,7 @@ export const TypeId: TypeId = "~effect/Stdio"
  * error, and a stream of standard input bytes. I/O operations can fail with
  * `PlatformError`.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Stdio {
@@ -64,7 +64,7 @@ export interface Stdio {
 /**
  * Context service tag for the `Stdio` service.
  *
- * @category Services
+ * @category services
  * @since 4.0.0
  */
 export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeId)
@@ -73,7 +73,7 @@ export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeI
  * Creates a `Stdio` service implementation from the provided fields and
  * attaches the `Stdio` type identifier.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
@@ -88,7 +88,7 @@ export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
  * standard output and error are draining sinks, and standard input is an empty
  * stream.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerTest = (impl: Partial<Stdio>): Layer.Layer<Stdio> =>

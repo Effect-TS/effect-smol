@@ -15,6 +15,7 @@ import { hasProperty } from "./Predicate.ts"
 /**
  * The unique identifier used to identify objects that implement the `PrimaryKey` interface.
  *
+ * @category symbols
  * @since 2.0.0
  */
 export const symbol = "~effect/interfaces/PrimaryKey"

@@ -103,7 +103,7 @@ export const makeWrite = <Groups extends EventGroup.Any>(
  * for conflicts, run through registered handlers, and persisted; change streams
  * include compacted backlog entries when compactors are registered.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerRpcHandlers: Layer.Layer<

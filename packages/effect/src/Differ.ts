@@ -45,7 +45,7 @@
  * combines patches, and applies a patch to an old value to produce an updated
  * value.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Differ<in out T, in out Patch> {

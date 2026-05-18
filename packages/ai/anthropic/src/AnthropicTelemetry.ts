@@ -103,7 +103,7 @@ const addAnthropicResponseAttributes = Telemetry.addSpanAttributes("gen_ai.anthr
  *
  * **NOTE**: This method will mutate the `Span` **in-place**.
  *
- * @category utilities
+ * @category utils
  * @since 4.0.0
  */
 export const addGenAIAnnotations: {

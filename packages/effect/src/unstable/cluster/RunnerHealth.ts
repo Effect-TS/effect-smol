@@ -64,7 +64,7 @@ export const layerNoop = Layer.succeed(RunnerHealth, {
  * failed pings on a short schedule and treating a successful ping within the
  * timeout as healthy.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makePing: Effect.Effect<
@@ -104,7 +104,7 @@ export const layerPing: Layer.Layer<
  *
  * If the Kubernetes API check fails, the runner is treated as healthy.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeK8s = Effect.fnUntraced(function*(options?: {

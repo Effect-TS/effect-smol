@@ -52,7 +52,7 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
 /**
  * Schema interface for validating and encoding `Cookies` collections.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRecord<string, Cookie>> {}
@@ -63,7 +63,7 @@ export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRe
  * JSON encoding uses `Set-Cookie` header strings, while isomorphic encoding uses
  * a readonly record of cookie values.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const CookiesSchema: CookiesSchema = Schema.declare(
@@ -128,7 +128,7 @@ export interface Cookie extends Inspectable.Inspectable {
 /**
  * Returns `true` when a value is a `Cookie`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, CookieTypeId)
@@ -136,7 +136,7 @@ export const isCookie = (u: unknown): u is Cookie => Predicate.hasProperty(u, Co
 /**
  * Schema interface for validating `Cookie` values.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface CookieSchema extends Schema.declare<Cookie> {}
@@ -144,7 +144,7 @@ export interface CookieSchema extends Schema.declare<Cookie> {}
 /**
  * Schema for `Cookie` values.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const CookieSchema: CookieSchema = Schema.declare(
@@ -863,7 +863,7 @@ export const toRecord = (self: Cookies): Record<string, string> => {
 /**
  * Schema transformation between `Cookies` and a record of decoded string values keyed by cookie name.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaRecord = CookiesSchema.pipe(
