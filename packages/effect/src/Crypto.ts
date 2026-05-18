@@ -8,7 +8,8 @@
  * and message digests. The base `Random` service is not cryptographically
  * secure unless you replace it with a cryptographically secure implementation.
  *
- * @example
+ * **Example** (Providing a test Crypto service)
+ *
  * ```ts
  * import { Console, Crypto, Effect, Layer } from "effect"
  *
@@ -29,7 +30,8 @@
  * Effect.runPromise(Effect.provide(program, TestCrypto))
  * ```
  *
- * @example
+ * **Example** (Generating random bytes)
+ *
  * ```ts
  * import { Crypto, Effect, Layer } from "effect"
  *
@@ -63,15 +65,16 @@ const TypeId = "~effect/platform/Crypto"
  * SHA-1 is included for interoperability with existing protocols. Do not use
  * SHA-1 for new security-sensitive designs.
  *
- * @example
+ * **Example** (Using a digest algorithm)
+ *
  * ```ts
  * import { Crypto } from "effect"
  *
  * const algorithm: Crypto.DigestAlgorithm = "SHA-256"
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type DigestAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
 
@@ -82,7 +85,8 @@ export type DigestAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
  * The random generator helpers are derived by the `make` constructor from
  * the random methods on this service.
  *
- * @example
+ * **Example** (Using cryptographic operations)
+ *
  * ```ts
  * import { Crypto, Effect, Layer } from "effect"
  *
@@ -106,8 +110,8 @@ export type DigestAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
  * Effect.runPromise(Effect.provide(program, TestCrypto))
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Crypto {
   readonly [TypeId]: typeof TypeId
@@ -190,8 +194,8 @@ export interface Crypto {
 /**
  * The service identifier for the platform `Crypto` service.
  *
- * @since 4.0.0
  * @category services
+ * @since 4.0.0
  */
 export const Crypto: Context.Service<Crypto, Crypto> = Context.Service("effect/Crypto")
 
@@ -199,7 +203,8 @@ export const Crypto: Context.Service<Crypto, Crypto> = Context.Service("effect/C
  * Creates a `Crypto` service from the primitive implementation, deriving the
  * random generator helpers and UUID generation from those primitives.
  *
- * @example
+ * **Example** (Creating a Crypto service)
+ *
  * ```ts
  * import { Crypto, Effect, Layer } from "effect"
  *
@@ -212,8 +217,8 @@ export const Crypto: Context.Service<Crypto, Crypto> = Context.Service("effect/C
  * )
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   impl: {

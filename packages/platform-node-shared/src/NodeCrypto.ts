@@ -38,8 +38,8 @@ const digest: EffectCrypto.Crypto["digest"] = (algorithm, data) =>
 /**
  * The default Node.js Crypto service implementation.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 1.0.0
  */
 export const make: EffectCrypto.Crypto = EffectCrypto.make({
   randomBytes: NodeCrypto.randomBytes,
@@ -49,7 +49,7 @@ export const make: EffectCrypto.Crypto = EffectCrypto.make({
 /**
  * A layer that provides the Node.js Crypto service implementation.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<EffectCrypto.Crypto> = Layer.succeed(EffectCrypto.Crypto, make)

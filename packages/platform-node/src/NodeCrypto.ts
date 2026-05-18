@@ -10,7 +10,7 @@ import type * as Layer from "effect/Layer"
 /**
  * A layer that provides the Node.js Crypto service implementation.
  *
+ * @category layers
  * @since 1.0.0
- * @category layer
  */
 export const layer: Layer.Layer<Crypto.Crypto> = NodeCrypto.layer

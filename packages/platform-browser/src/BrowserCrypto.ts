@@ -12,8 +12,8 @@ import * as PlatformError from "effect/PlatformError"
 /**
  * Browser Web Crypto APIs used by the Crypto service implementation.
  *
- * @since 1.0.0
  * @category models
+ * @since 1.0.0
  */
 export const WebCrypto = Context.Reference<Crypto>("@effect/platform-browser/Crypto/WebCrypto", {
   defaultValue: () => globalThis.crypto
@@ -22,8 +22,8 @@ export const WebCrypto = Context.Reference<Crypto>("@effect/platform-browser/Cry
 /**
  * A layer that directly interfaces with the Web Crypto API.
  *
- * @since 1.0.0
  * @category layers
+ * @since 1.0.0
  */
 export const layer: Layer.Layer<EffectCrypto.Crypto> = Layer.effect(
   EffectCrypto.Crypto,
