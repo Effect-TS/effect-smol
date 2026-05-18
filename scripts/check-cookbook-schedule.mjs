@@ -104,6 +104,10 @@ function normalizeOutput(text) {
   return stripAnsi(text).trimEnd()
 }
 
+function hasVariableOutputMarker(example) {
+  return example.code.split("\n").some((line) => line.trim() === "// Output may vary:")
+}
+
 function expectedOutput(example) {
   const lines = example.code.split("\n")
   const outputLine = lines.findIndex((line) => line.trim() === "// Output:")
@@ -208,6 +212,11 @@ try {
   const runnableExamples = generatedFiles.filter((example) => example.runnable)
   const deterministicExamples = runnableExamples.filter((example) => example.deterministic)
   for (const example of runnableExamples) {
+    if (!example.deterministic && !hasVariableOutputMarker(example)) {
+      console.error(`${example.file}:${example.startLine} is runnable but has neither deterministic metadata nor // Output may vary:`)
+      process.exit(1)
+    }
+
     const status = runExample(example)
     if (status !== 0) {
       process.exit(status)
