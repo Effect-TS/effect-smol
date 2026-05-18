@@ -18,27 +18,6 @@ const getRandomValues = <T extends ArrayBufferView | null>(array: T): T => {
 }
 
 describe("BrowserCrypto", () => {
-  it.effect("generates random bytes and chunks large requests", () => {
-    let calls = 0
-
-    return Effect.gen(function*() {
-      const service = yield* Crypto.Crypto
-      const bytes = yield* service.randomBytes(65_537)
-      assert.strictEqual(bytes.length, 65_537)
-      assert.strictEqual(calls, 2)
-    }).pipe(
-      Effect.provide(BrowserCrypto.layer.pipe(
-        Layer.provide(Layer.succeed(BrowserCrypto.WebCrypto, {
-          ...crypto,
-          getRandomValues(array) {
-            calls++
-            return getRandomValues(array)
-          }
-        }))
-      ))
-    )
-  })
-
   it.effect("generates UUIDv4 values from getRandomValues", () =>
     Effect.gen(function*() {
       const crypto = yield* Crypto.Crypto

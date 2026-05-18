@@ -71,7 +71,7 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
 
 /**
- * Generates a random number between 0 (inclusive) and 1 (inclusive).
+ * Generates a random number between 0 (inclusive) and 1 (exclusive).
  *
  * **Example** (Generating a random number)
  *
