@@ -254,12 +254,10 @@ export const make = (
     randomBetween,
     randomIntBetween,
     randomShuffle,
-    randomUUIDv4: Effect.suspend(() => Effect.map(impl.randomBytes(16), formatUUIDv4)),
-    randomUUIDv7: Effect.suspend(() =>
-      Effect.flatMap(
-        Clock.currentTimeMillis,
-        (timestamp) => Effect.map(impl.randomBytes(16), (bytes) => formatUUIDv7(timestamp, bytes))
-      )
+    randomUUIDv4: Effect.map(impl.randomBytes(16), formatUUIDv4),
+    randomUUIDv7: Effect.flatMap(
+      Clock.currentTimeMillis,
+      (timestamp) => Effect.map(impl.randomBytes(16), (bytes) => formatUUIDv7(timestamp, bytes))
     )
   })
 }
