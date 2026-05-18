@@ -41,7 +41,7 @@ const TypeId = "~effect/httpapi/HttpApiGroup"
  * group interface.
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
@@ -52,7 +52,7 @@ export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u,
  * The endpoints can be implemented later using the `HttpApiBuilder.group` api.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface HttpApiGroup<
   out Id extends string,
@@ -126,7 +126,7 @@ export interface HttpApiGroup<
  * group name for service derivation.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ApiGroup<ApiId extends string, Name extends string> {
   readonly _: unique symbol
@@ -139,7 +139,7 @@ export interface ApiGroup<ApiId extends string, Name extends string> {
  * top-level flag are not needed.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -153,7 +153,7 @@ export interface Any {
  * identifier, key, top-level status, endpoints, and annotations.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnyWithProps = HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, boolean>
 
@@ -161,7 +161,7 @@ export type AnyWithProps = HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, bo
  * Derives the API-specific `ApiGroup` service identity for an HTTP API group.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ToService<ApiId extends string, A> = A extends HttpApiGroup<infer Name, infer _Endpoints, infer _TopLevel> ?
   ApiGroup<ApiId, Name>
@@ -171,7 +171,7 @@ export type ToService<ApiId extends string, A> = A extends HttpApiGroup<infer Na
  * Selects the group with the specified identifier from a union of groups.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type WithName<Group, Name extends string> = Extract<Group, { readonly identifier: Name }>
 
@@ -179,7 +179,7 @@ export type WithName<Group, Name extends string> = Extract<Group, { readonly ide
  * Extracts the identifier literal from an `HttpApiGroup`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Name
   : never
@@ -188,7 +188,7 @@ export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoin
  * Extracts the endpoint union contained in an `HttpApiGroup`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Endpoints<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Endpoints
   : never
@@ -248,7 +248,7 @@ export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpo
  * Selects the endpoints in a group whose `name` matches the provided endpoint name.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type EndpointsWithName<Group extends Any, Name extends string> = Endpoints<WithName<Group, Name>>
 
@@ -374,7 +374,7 @@ const makeProto = <
  * The endpoints can be implemented later using the `HttpApiBuilder.group` api.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = <const Id extends string, const TopLevel extends boolean = false>(identifier: Id, options?: {
   readonly topLevel?: TopLevel | undefined

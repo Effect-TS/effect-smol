@@ -38,7 +38,7 @@ import * as HttpClientResponse from "../http/HttpClientResponse.ts"
  * Service tag for the HTTP client used to call the Kubernetes API.
  *
  * @category Tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class K8sHttpClient extends Context.Service<
   K8sHttpClient,
@@ -53,7 +53,7 @@ export class K8sHttpClient extends Context.Service<
  * transient failures.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   K8sHttpClient,
@@ -84,7 +84,7 @@ export const layer: Layer.Layer<
  * map keyed by pod IP address.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeGetPods: (
   options?: {
@@ -131,7 +131,7 @@ export const makeGetPods: (
  * scope closes.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeCreatePod = Effect.gen(function*() {
   const client = yield* K8sHttpClient
@@ -235,7 +235,7 @@ export const makeCreatePod = Effect.gen(function*() {
  * Schema for the subset of Kubernetes Pod status used by cluster helpers.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpClient/PodStatus")({
   phase: Schema.String,
@@ -254,7 +254,7 @@ export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpC
  * The model exposes readiness helpers derived from the pod status conditions.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Pod extends Schema.Class<Pod>("@effect/cluster/K8sHttpClient/Pod")({
   status: PodStatus

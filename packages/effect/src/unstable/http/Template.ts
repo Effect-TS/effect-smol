@@ -25,7 +25,7 @@ import * as Stream from "../../Stream.ts"
  * Primitive value that can be interpolated into an HTTP template.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type PrimitiveValue = string | number | bigint | boolean | null | undefined
 
@@ -36,7 +36,7 @@ export type PrimitiveValue = string | number | bigint | boolean | null | undefin
  * results.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Primitive = PrimitiveValue | ReadonlyArray<PrimitiveValue>
 
@@ -47,7 +47,7 @@ export type Primitive = PrimitiveValue | ReadonlyArray<PrimitiveValue>
  * that produce primitive values.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Interpolated =
   | Primitive
@@ -61,14 +61,14 @@ export type Interpolated =
  * values over time.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type InterpolatedWithStream = Interpolated | Stream.Stream<Primitive, any, any>
 
 /**
  * Namespace containing type-level helpers for template interpolations.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace Interpolated {
   /**
@@ -77,7 +77,7 @@ export declare namespace Interpolated {
    * Plain values and `Option` interpolations contribute no context.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type Context<A> = A extends infer T ? T extends Option.Option<infer _> ? never
     : T extends Effect.Effect<infer _A, infer _E, infer R> ? R
@@ -91,7 +91,7 @@ export declare namespace Interpolated {
    * Plain values and `Option` interpolations contribute no error type.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type Error<A> = A extends infer T ? T extends Option.Option<infer _> ? never
     : T extends Stream.Stream<infer _A, infer E, infer _R> ? E
@@ -107,7 +107,7 @@ export declare namespace Interpolated {
  * interpolations are evaluated and rendered before the final string is produced.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function make<A extends ReadonlyArray<Interpolated>>(
   strings: TemplateStringsArray,
@@ -166,7 +166,7 @@ export function make<A extends ReadonlyArray<Interpolated>>(
  * output.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function stream<A extends ReadonlyArray<InterpolatedWithStream>>(
   strings: TemplateStringsArray,

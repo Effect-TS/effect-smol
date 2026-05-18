@@ -40,7 +40,7 @@ const TypeId = "~effect/cluster/Runner"
  * in, and a relative `weight` used when assigning shards across runners.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Runner extends Schema.Class<Runner>(TypeId)({
   address: RunnerAddress,
@@ -117,7 +117,7 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
  * shard-assignment weight.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (props: {
   readonly address: RunnerAddress

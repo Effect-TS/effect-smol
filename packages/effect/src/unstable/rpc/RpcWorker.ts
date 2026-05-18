@@ -31,7 +31,7 @@ import type { Protocol } from "./RpcServer.ts"
  * paired with any transferables that should be posted with it.
  *
  * @category initial message
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InitialMessage extends Context.Service<
   InitialMessage,
@@ -46,7 +46,7 @@ export class InitialMessage extends Context.Service<
 /**
  * Types related to the encoded initial message exchanged with an RPC worker.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace InitialMessage {
   /**
@@ -54,7 +54,7 @@ export declare namespace InitialMessage {
    * encoding.
    *
    * @category initial message
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Encoded {
     readonly _tag: "InitialMessage"
@@ -69,7 +69,7 @@ const ProtocolTag: typeof Protocol = Context.Service("@effect/rpc/RpcServer/Prot
  * the encoded value together with collected transferables.
  *
  * @category initial message
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeInitialMessage = <S extends Schema.Top, E, R2>(
   schema: S,
@@ -94,7 +94,7 @@ export const makeInitialMessage = <S extends Schema.Top, E, R2>(
  * capturing the layer context and dying if schema encoding fails.
  *
  * @category initial message
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerInitialMessage = <S extends Schema.Top, R2>(
   schema: S,
@@ -113,7 +113,7 @@ export const layerInitialMessage = <S extends Schema.Top, R2>(
  * failing if no initial message is available or decoding fails.
  *
  * @category initial message
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const initialMessage = <S extends Schema.Top>(
   schema: S

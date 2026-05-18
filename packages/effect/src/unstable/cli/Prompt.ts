@@ -54,7 +54,7 @@ const TypeId = "~effect/cli/Prompt"
  * access files or paths when a prompt uses them.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Prompt<Output> extends Effect.Effect<Output, Terminal.QuitError, Environment> {
   readonly [TypeId]: {
@@ -74,7 +74,7 @@ export const isPrompt = (u: unknown): u is Prompt<unknown> => Predicate.hasPrope
  * Represents the services available to a custom `Prompt`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
 
@@ -83,7 +83,7 @@ export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal
  * user input received during the current frame.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Action<State, Output> = Data.TaggedEnum<{
   readonly Beep: {}
@@ -98,7 +98,7 @@ export type Action<State, Output> = Data.TaggedEnum<{
  * `NextFrame`, and `Submit` action cases.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ActionDefinition extends Data.TaggedEnum.WithGenerics<2> {
   readonly taggedEnum: Action<this["A"], this["B"]>
@@ -112,7 +112,7 @@ export interface ActionDefinition extends Data.TaggedEnum.WithGenerics<2> {
  *   - Clear the terminal screen before the next frame
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Handlers<State, Output> {
   /**
@@ -157,7 +157,7 @@ export interface Handlers<State, Output> {
  * yes/no value.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ConfirmOptions {
   /**
@@ -203,7 +203,7 @@ export interface ConfirmOptions {
  * format mask, validation, and locale labels.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface DateOptions {
   /**
@@ -278,7 +278,7 @@ export interface DateOptions {
  * additional validation.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface IntegerOptions {
   /**
@@ -317,7 +317,7 @@ export interface IntegerOptions {
  * the prompt can be configured with a display precision.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FloatOptions extends IntegerOptions {
   /**
@@ -331,7 +331,7 @@ export interface FloatOptions extends IntegerOptions {
  * input on a delimiter.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ListOptions extends TextOptions {
   /**
@@ -347,7 +347,7 @@ export interface ListOptions extends TextOptions {
  * and filtering of displayed entries.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface FileOptions {
   /**
@@ -388,7 +388,7 @@ export interface FileOptions {
  * choices.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SelectOptions<A> {
   /**
@@ -432,7 +432,7 @@ export interface AutoCompleteOptions<A> extends SelectOptions<A> {
  * minimum or maximum selection counts.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface MultiSelectOptions {
   /**
@@ -462,7 +462,7 @@ export interface MultiSelectOptions {
  * prompts.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SelectChoice<A> {
   /**
@@ -493,7 +493,7 @@ export interface SelectChoice<A> {
  * text, and effectful validation before submission.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TextOptions {
   /**
@@ -516,7 +516,7 @@ export interface TextOptions {
  * inactive boolean states.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ToggleOptions {
   /**
@@ -590,7 +590,7 @@ export type Any = Prompt<unknown>
 /**
  * Namespace containing return-type helpers for `Prompt.all`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace All {
   /**
@@ -599,7 +599,7 @@ export declare namespace All {
    * The resulting prompt produces an array of each prompt's output value.
    *
    * @category utility types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type ReturnIterable<T extends Iterable<Any>> = [T] extends [Iterable<Prompt<infer A>>] ? Prompt<Array<A>>
     : never
@@ -609,7 +609,7 @@ export declare namespace All {
    * of prompts, preserving tuple positions in the output type.
    *
    * @category utility types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type ReturnTuple<T extends ReadonlyArray<unknown>> = Prompt<
     T[number] extends never ? []
@@ -621,7 +621,7 @@ export declare namespace All {
    * preserving the record keys and replacing each prompt with its output type.
    *
    * @category utility types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type ReturnObject<T> = [T] extends [{ [K: string]: Any }] ? Prompt<
       {
@@ -635,7 +635,7 @@ export declare namespace All {
    * structure.
    *
    * @category constructors
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type Return<
     Arg extends Iterable<Any> | Record<string, Any>
@@ -676,7 +676,7 @@ export declare namespace All {
  * ```
  *
  * @category collecting & elements
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const all: <
   const Arg extends Iterable<Prompt<any>> | Record<string, Prompt<any>>
@@ -717,7 +717,7 @@ const annotateErrorLine = (line: string): string => Ansi.annotate(line, Ansi.com
  * value.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
   const opts: Required<ConfirmOptions> = {
@@ -767,7 +767,7 @@ export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
  *      the `Terminal`
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const custom = <State, Output>(
   initialState: State | Effect.Effect<State, never, Environment>,
@@ -787,7 +787,7 @@ export const custom = <State, Output>(
  * validates the final `Date` before submission.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const date = (options: DateOptions): Prompt<Date> => {
   const opts: Required<DateOptions> = {
@@ -823,7 +823,7 @@ export const date = (options: DateOptions): Prompt<Date> => {
  * type.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const file = (options: FileOptions = {}): Prompt<string> => {
   const opts: FileOptionsReq = {
@@ -855,7 +855,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
  * prompt.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const flatMap: {
   <Output, Output2>(
@@ -883,7 +883,7 @@ export const flatMap: {
  * precision, and additional validation before submission.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const float = (options: FloatOptions): Prompt<number> => {
   const opts: FloatOptionsReq = {
@@ -919,7 +919,7 @@ export const float = (options: FloatOptions): Prompt<number> => {
  * submitted value wrapped in `Redacted`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const hidden = (
   options: TextOptions
@@ -932,7 +932,7 @@ export const hidden = (
  * additional validation before submission.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const integer = (options: IntegerOptions): Prompt<number> => {
   const opts: IntegerOptionsReq = {
@@ -968,7 +968,7 @@ export const integer = (options: IntegerOptions): Prompt<number> => {
  * submitted input on the configured delimiter.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const list = (options: ListOptions): Prompt<Array<string>> =>
   text(options).pipe(
@@ -979,7 +979,7 @@ export const list = (options: ListOptions): Prompt<Array<string>> =>
  * Transforms the output value produced by a prompt.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const map: {
   <Output, Output2>(
@@ -999,7 +999,7 @@ export const map: {
  * value wrapped in `Redacted`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const password = (
   options: TextOptions
@@ -1013,7 +1013,7 @@ export const password = (
  * or the prompt is quit.
  *
  * @category execution
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const run: <Output>(
   self: Prompt<Output>
@@ -1056,7 +1056,7 @@ const getSelectInitialIndex = <A>(choices: ReadonlyArray<SelectChoice<A>>): numb
  * At most one choice may be marked as selected by default.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
   const opts: SelectOptionsReq<A> = {
@@ -1127,7 +1127,7 @@ export const autoComplete = <const A>(options: AutoCompleteOptions<A>): Prompt<A
  * minimum or maximum selection counts.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const multiSelect = <const A>(
   options: SelectOptions<A> & MultiSelectOptions
@@ -1159,7 +1159,7 @@ export const multiSelect = <const A>(
  * anything to the screen.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const succeed = <A>(value: A): Prompt<A> => {
   const op = Object.create(proto)
@@ -1173,7 +1173,7 @@ export const succeed = <A>(value: A): Prompt<A> => {
  * string after validation.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const text = (
   options: TextOptions
@@ -1184,7 +1184,7 @@ export const text = (
  * states and returns the selected boolean value.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toggle = (options: ToggleOptions): Prompt<boolean> => {
   const opts: ToggleOptionsReq = {

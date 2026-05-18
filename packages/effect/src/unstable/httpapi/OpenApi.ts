@@ -53,7 +53,7 @@ import type { HttpApiSecurity } from "./HttpApiSecurity.ts"
  * OpenAPI annotation for overriding generated identifiers, including operation ids.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Identifier extends Context.Service<Identifier, string>()("effect/httpapi/OpenApi/Identifier") {}
 
@@ -61,7 +61,7 @@ export class Identifier extends Context.Service<Identifier, string>()("effect/ht
  * OpenAPI annotation for setting the API title or group tag name.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Title extends Context.Service<Title, string>()("effect/httpapi/OpenApi/Title") {}
 
@@ -69,7 +69,7 @@ export class Title extends Context.Service<Title, string>()("effect/httpapi/Open
  * OpenAPI annotation for setting the generated API version.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Version extends Context.Service<Version, string>()("effect/httpapi/OpenApi/Version") {}
 
@@ -77,7 +77,7 @@ export class Version extends Context.Service<Version, string>()("effect/httpapi/
  * OpenAPI annotation for setting generated descriptions on APIs, groups, endpoints, or security schemes.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Description extends Context.Service<Description, string>()("effect/httpapi/OpenApi/Description") {}
 
@@ -85,7 +85,7 @@ export class Description extends Context.Service<Description, string>()("effect/
  * OpenAPI annotation for setting the generated API license metadata.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class License extends Context.Service<License, OpenAPISpecLicense>()("effect/httpapi/OpenApi/License") {}
 
@@ -93,7 +93,7 @@ export class License extends Context.Service<License, OpenAPISpecLicense>()("eff
  * OpenAPI annotation for adding external documentation metadata to groups or endpoints.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ExternalDocs
   extends Context.Service<ExternalDocs, OpenAPISpecExternalDocs>()("effect/httpapi/OpenApi/ExternalDocs")
@@ -103,7 +103,7 @@ export class ExternalDocs
  * OpenAPI annotation for setting the generated API server list.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Servers
   extends Context.Service<Servers, ReadonlyArray<OpenAPISpecServer>>()("effect/httpapi/OpenApi/Servers")
@@ -113,7 +113,7 @@ export class Servers
  * OpenAPI annotation for setting the format metadata, such as a bearer token format on security schemes.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Format extends Context.Service<Format, string>()("effect/httpapi/OpenApi/Format") {}
 
@@ -121,7 +121,7 @@ export class Format extends Context.Service<Format, string>()("effect/httpapi/Op
  * OpenAPI annotation for setting generated summary text.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Summary extends Context.Service<Summary, string>()("effect/httpapi/OpenApi/Summary") {}
 
@@ -129,7 +129,7 @@ export class Summary extends Context.Service<Summary, string>()("effect/httpapi/
  * OpenAPI annotation for marking a generated endpoint operation as deprecated.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Deprecated extends Context.Service<Deprecated, boolean>()("effect/httpapi/OpenApi/Deprecated") {}
 
@@ -137,7 +137,7 @@ export class Deprecated extends Context.Service<Deprecated, boolean>()("effect/h
  * OpenAPI annotation for shallowly merging additional fields into a generated OpenAPI object.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Override extends Context.Service<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override") {}
 
@@ -145,7 +145,7 @@ export class Override extends Context.Service<Override, Record<string, unknown>>
  * OpenAPI annotation reference that excludes an annotated group or endpoint from the generated specification.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Exclude = Context.Reference<boolean>("effect/httpapi/OpenApi/Exclude", {
   defaultValue: constFalse
@@ -158,7 +158,7 @@ export const Exclude = Context.Reference<boolean>("effect/httpapi/OpenApi/Exclud
  * endpoint operation.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Transform extends Context.Service<
   Transform,
@@ -188,7 +188,7 @@ const servicesPartial = <Tags extends Record<string, Context.Key<any, any> | Con
  * Builds a `Context` containing OpenAPI annotations from the supplied options.
  *
  * @category annotations
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const annotations: (
   options: {
@@ -258,7 +258,7 @@ function processAnnotation<Services, S, I>(
  * `HttpApi` instance is processed multiple times.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>
@@ -739,7 +739,7 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
  * specification, only the output of `fromApi`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpec {
   openapi: "3.1.0"
@@ -755,7 +755,7 @@ export interface OpenAPISpec {
  * OpenAPI `info` object generated by `fromApi`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecInfo {
   title: string
@@ -769,7 +769,7 @@ export interface OpenAPISpecInfo {
  * OpenAPI tag object generated for an HTTP API group.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecTag {
   name: string
@@ -781,7 +781,7 @@ export interface OpenAPISpecTag {
  * OpenAPI external documentation metadata.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecExternalDocs {
   url: string
@@ -792,7 +792,7 @@ export interface OpenAPISpecExternalDocs {
  * OpenAPI license metadata used in the generated `info` object.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecLicense {
   name: string
@@ -804,7 +804,7 @@ export interface OpenAPISpecLicense {
  * OpenAPI server object used in the generated `servers` array.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecServer {
   url: string
@@ -816,7 +816,7 @@ export interface OpenAPISpecServer {
  * OpenAPI variable definition for templated server URLs.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecServerVariable {
   default: string
@@ -828,7 +828,7 @@ export interface OpenAPISpecServerVariable {
  * Generated OpenAPI `paths` object, keyed by route path.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAPISpecPaths = Record<string, OpenAPISpecPathItem>
 
@@ -836,7 +836,7 @@ export type OpenAPISpecPaths = Record<string, OpenAPISpecPathItem>
  * Lowercase HTTP method names used as keys in generated OpenAPI path items.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAPISpecMethodName =
   | "get"
@@ -852,7 +852,7 @@ export type OpenAPISpecMethodName =
  * Generated OpenAPI path item mapping HTTP methods to operations for a single route path.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAPISpecPathItem = {
   [K in OpenAPISpecMethodName]?: OpenAPISpecOperation
@@ -862,7 +862,7 @@ export type OpenAPISpecPathItem = {
  * Generated OpenAPI parameter object for path, query, header, or cookie parameters.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecParameter {
   name: string
@@ -876,7 +876,7 @@ export interface OpenAPISpecParameter {
  * Generated OpenAPI responses object, keyed by HTTP status code.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAPISpecResponses = Record<number, OpenApiSpecResponse>
 
@@ -884,7 +884,7 @@ export type OpenAPISpecResponses = Record<number, OpenApiSpecResponse>
  * Generated OpenAPI content object, keyed by media type.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenApiSpecContent = {
   [K in string]: OpenApiSpecMediaType
@@ -894,7 +894,7 @@ export type OpenApiSpecContent = {
  * Generated OpenAPI response object for an endpoint success or error schema.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenApiSpecResponse {
   description: string
@@ -905,7 +905,7 @@ export interface OpenApiSpecResponse {
  * Generated OpenAPI media type object containing the JSON Schema for a request or response body.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenApiSpecMediaType {
   schema: JsonSchema.JsonSchema
@@ -915,7 +915,7 @@ export interface OpenApiSpecMediaType {
  * Generated OpenAPI request body object for endpoint payloads.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecRequestBody {
   content: OpenApiSpecContent
@@ -926,7 +926,7 @@ export interface OpenAPISpecRequestBody {
  * Generated OpenAPI components containing shared schemas and security schemes.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPIComponents {
   schemas: JsonSchema.Definitions
@@ -937,7 +937,7 @@ export interface OpenAPIComponents {
  * Generated OpenAPI HTTP security scheme, such as bearer or basic authentication.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPIHTTPSecurityScheme {
   readonly type: "http"
@@ -951,7 +951,7 @@ export interface OpenAPIHTTPSecurityScheme {
  * Generated OpenAPI API key security scheme.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPIApiKeySecurityScheme {
   readonly type: "apiKey"
@@ -964,7 +964,7 @@ export interface OpenAPIApiKeySecurityScheme {
  * Union of security scheme objects emitted in generated OpenAPI components.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAPISecurityScheme =
   | OpenAPIHTTPSecurityScheme
@@ -974,7 +974,7 @@ export type OpenAPISecurityScheme =
  * Generated OpenAPI security requirement, keyed by security scheme name.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type OpenAPISecurityRequirement = Record<string, Array<string>>
 
@@ -982,7 +982,7 @@ export type OpenAPISecurityRequirement = Record<string, Array<string>>
  * Generated OpenAPI operation object for an HTTP API endpoint.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OpenAPISpecOperation {
   operationId: string

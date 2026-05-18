@@ -70,7 +70,7 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
  * @param options.path Optional mount path (default "/docs").
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,

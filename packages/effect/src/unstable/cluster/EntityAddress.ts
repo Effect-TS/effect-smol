@@ -32,7 +32,7 @@ const TypeId = "~effect/cluster/EntityAddress"
  * Represents the unique address of an entity within the cluster.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class EntityAddress extends Schema.Class<EntityAddress>(TypeId)({
   shardId: ShardId,

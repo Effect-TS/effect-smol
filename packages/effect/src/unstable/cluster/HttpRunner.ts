@@ -54,7 +54,7 @@ import type * as ShardingConfig from "./ShardingConfig.ts"
  * the generated URL from `http` to `https`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerClientProtocolHttp = (options: {
   readonly path: string
@@ -85,7 +85,7 @@ export const layerClientProtocolHttp = (options: {
  * Default HTTP runner client protocol layer using path `/`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerClientProtocolHttpDefault: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -101,7 +101,7 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
  * the generated URL from `ws` to `wss`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerClientProtocolWebsocket = (options: {
   readonly path: string
@@ -134,7 +134,7 @@ export const layerClientProtocolWebsocket = (options: {
  * Default WebSocket runner client protocol layer using path `/`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerClientProtocolWebsocketDefault: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -149,7 +149,7 @@ export const layerClientProtocolWebsocketDefault: Layer.Layer<
  * cluster runner RPC group.
  *
  * @category Http App
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toHttpEffect: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
@@ -170,7 +170,7 @@ export const toHttpEffect: Effect.Effect<
  * cluster runner RPC group.
  *
  * @category Http App
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toHttpEffectWebsocket: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
@@ -189,7 +189,7 @@ export const toHttpEffectWebsocket: Effect.Effect<
  * client protocol and storage services.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerClient: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -204,7 +204,7 @@ export const layerClient: Layer.Layer<
  * `HttpRouter`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttpOptions = (options: {
   readonly path: HttpRouter.PathInput
@@ -228,7 +228,7 @@ export const layerHttpOptions = (options: {
  * `HttpRouter`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebsocketOptions = (options: {
   readonly path: HttpRouter.PathInput
@@ -254,7 +254,7 @@ export const layerWebsocketOptions = (options: {
  * over HTTP.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttp: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -277,7 +277,7 @@ export const layerHttp: Layer.Layer<
  * HTTP routes.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttpClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -298,7 +298,7 @@ export const layerHttpClientOnly: Layer.Layer<
  * over WebSocket.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebsocket: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -321,7 +321,7 @@ export const layerWebsocket: Layer.Layer<
  * runner WebSocket routes.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebsocketClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,

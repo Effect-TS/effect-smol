@@ -3810,7 +3810,7 @@ export const scanEffect: {
  * ```
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const catchCause: {
   <OutErr, OutElem1, OutErr1, OutDone1, InElem1, InErr1, InDone1, Env1>(

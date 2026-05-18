@@ -91,7 +91,7 @@ import type * as Tool from "./Tool.ts"
  * ```
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Chat extends Context.Service<Chat, Service>()(
   "effect/ai/Chat"
@@ -101,7 +101,7 @@ export class Chat extends Context.Service<Chat, Service>()(
  * Represents the interface that the `Chat` service provides.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Service {
   /**
@@ -488,7 +488,7 @@ const makeUnsafe = (history: Ref.Ref<Prompt.Prompt>) => {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const empty: Effect.Effect<Service> = Effect.sync(() => makeUnsafe(Ref.makeUnsafe(Prompt.empty)))
 
@@ -550,7 +550,7 @@ export const empty: Effect.Effect<Service> = Effect.sync(() => makeUnsafe(Ref.ma
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromPrompt = (prompt: Prompt.RawInput) =>
   Effect.sync(() => makeUnsafe(Ref.makeUnsafe(Prompt.make(prompt))))
@@ -599,7 +599,7 @@ export const fromPrompt = (prompt: Prompt.RawInput) =>
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromExport = (data: unknown): Effect.Effect<
   Service,
@@ -641,7 +641,7 @@ export const fromExport = (data: unknown): Effect.Effect<
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromJson = (data: string): Effect.Effect<
   Service,
@@ -657,7 +657,7 @@ export const fromJson = (data: string): Effect.Effect<
  * does not exist in the backing persistence store.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ChatNotFoundError extends Schema.ErrorClass<ChatNotFoundError>(
   "effect/ai/Chat/ChatNotFoundError"
@@ -680,7 +680,7 @@ export class Persistence extends Context.Service<Persistence, Persistence.Servic
 /**
  * Namespace containing the service contract for chat persistence.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace Persistence {
   /**
@@ -688,7 +688,7 @@ export declare namespace Persistence {
    * creating and retrieving chats that have been saved to a persistence store.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Service {
     /**
@@ -720,7 +720,7 @@ export declare namespace Persistence {
  * backing persistence store.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Persisted extends Service {
   /**
@@ -741,7 +741,7 @@ export interface Persisted extends Service {
  * backing persistence should load chats from.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makePersisted = Effect.fnUntraced(function*(options: {
   readonly storeId: string
@@ -894,7 +894,7 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
  * backing persistence should load chats from.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerPersisted = (options: {
   readonly storeId: string

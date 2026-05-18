@@ -33,7 +33,7 @@ import type { SqlError } from "./SqlError.ts"
  * statements.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Connection {
   readonly execute: (
@@ -74,7 +74,7 @@ export interface Connection {
  * requires a `Scope` for release.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Acquirer = Effect<Connection, SqlError, Scope>
 
@@ -82,7 +82,7 @@ export type Acquirer = Effect<Connection, SqlError, Scope>
  * Context service tag for a low-level SQL `Connection`.
  *
  * @category tag
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Connection = Context.Service<Connection>("effect/sql/SqlConnection")
 
@@ -90,6 +90,6 @@ export const Connection = Context.Service<Connection>("effect/sql/SqlConnection"
  * Generic SQL row shape mapping column names to unknown values.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Row = { readonly [column: string]: unknown }

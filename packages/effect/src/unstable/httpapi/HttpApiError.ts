@@ -47,7 +47,7 @@ const serviceUnavailableResponse = HttpServerResponse.empty({ status: 503 })
  * a server response, it renders as an empty response with status 400.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class BadRequest extends Schema.ErrorClass<BadRequest>("effect/HttpApiError/BadRequest")({
   _tag: Schema.tag("BadRequest")
@@ -78,7 +78,7 @@ export const BadRequestNoContent = BadRequest.pipe(HttpApiSchema.asNoContent({
  * a server response, it renders as an empty response with status 401.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Unauthorized extends Schema.ErrorClass<Unauthorized>("effect/HttpApiError/Unauthorized")({
   _tag: Schema.tag("Unauthorized")
@@ -108,7 +108,7 @@ export const UnauthorizedNoContent = Unauthorized.pipe(HttpApiSchema.asNoContent
  * server response, it renders as an empty response with status 403.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Forbidden extends Schema.ErrorClass<Forbidden>("effect/HttpApiError/Forbidden")({
   _tag: Schema.tag("Forbidden")
@@ -138,7 +138,7 @@ export const ForbiddenNoContent = Forbidden.pipe(HttpApiSchema.asNoContent({
  * server response, it renders as an empty response with status 404.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class NotFound extends Schema.ErrorClass<NotFound>("effect/HttpApiError/NotFound")({
   _tag: Schema.tag("NotFound")
@@ -168,7 +168,7 @@ export const NotFoundNoContent = NotFound.pipe(HttpApiSchema.asNoContent({
  * directly as a server response, it renders as an empty response with status 405.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class MethodNotAllowed extends Schema.ErrorClass<MethodNotAllowed>("effect/HttpApiError/MethodNotAllowed")({
   _tag: Schema.tag("MethodNotAllowed")
@@ -198,7 +198,7 @@ export const MethodNotAllowedNoContent = MethodNotAllowed.pipe(HttpApiSchema.asN
  * as a server response, it renders as an empty response with status 406.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class NotAcceptable extends Schema.ErrorClass<NotAcceptable>("effect/HttpApiError/NotAcceptable")({
   _tag: Schema.tag("NotAcceptable")
@@ -228,7 +228,7 @@ export const NotAcceptableNoContent = NotAcceptable.pipe(HttpApiSchema.asNoConte
  * as a server response, it renders as an empty response with status 408.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class RequestTimeout extends Schema.ErrorClass<RequestTimeout>("effect/HttpApiError/RequestTimeout")({
   _tag: Schema.tag("RequestTimeout")
@@ -258,7 +258,7 @@ export const RequestTimeoutNoContent = RequestTimeout.pipe(HttpApiSchema.asNoCon
  * server response, it renders as an empty response with status 409.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Conflict extends Schema.ErrorClass<Conflict>("effect/HttpApiError/Conflict")({
   _tag: Schema.tag("Conflict")
@@ -288,7 +288,7 @@ export const ConflictNoContent = Conflict.pipe(HttpApiSchema.asNoContent({
  * server response, it renders as an empty response with status 410.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Gone extends Schema.ErrorClass<Gone>("effect/HttpApiError/Gone")({
   _tag: Schema.tag("Gone")
@@ -318,7 +318,7 @@ export const GoneNoContent = Gone.pipe(HttpApiSchema.asNoContent({
  * directly as a server response, it renders as an empty response with status 500.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InternalServerError
   extends Schema.ErrorClass<InternalServerError>("effect/HttpApiError/InternalServerError")({
@@ -349,7 +349,7 @@ export const InternalServerErrorNoContent = InternalServerError.pipe(HttpApiSche
  * as a server response, it renders as an empty response with status 501.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class NotImplemented extends Schema.ErrorClass<NotImplemented>("effect/HttpApiError/NotImplemented")({
   _tag: Schema.tag("NotImplemented")
@@ -378,7 +378,7 @@ export const NotImplementedNoContent = NotImplemented.pipe(HttpApiSchema.asNoCon
  * directly as a server response, it renders as an empty response with status 503.
  *
  * @category Built-in errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ServiceUnavailable
   extends Schema.ErrorClass<ServiceUnavailable>("effect/HttpApiError/ServiceUnavailable")({

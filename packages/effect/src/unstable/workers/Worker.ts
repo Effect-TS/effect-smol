@@ -53,7 +53,7 @@ export class WorkerPlatform extends Context.Service<WorkerPlatform, {
  * errors.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Worker<O = unknown, I = unknown> {
   readonly send: (
@@ -111,7 +111,7 @@ export type PlatformMessage = readonly [ready: 0] | readonly [data: 1, unknown]
  * worker instances.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Spawner {
   readonly _: unique symbol
@@ -121,7 +121,7 @@ export interface Spawner {
  * Context service tag for the worker `SpawnerFn`.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Spawner: Context.Service<
   Spawner,
@@ -133,7 +133,7 @@ export const Spawner: Context.Service<
  * numeric worker id.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SpawnerFn<W = unknown> {
   (id: number): W
@@ -143,7 +143,7 @@ export interface SpawnerFn<W = unknown> {
  * Creates a layer that provides a worker `Spawner` service from a `SpawnerFn`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerSpawner: <W = unknown>(
   spawner: SpawnerFn<W>
@@ -155,7 +155,7 @@ export const layerSpawner: <W = unknown>(
  * the worker run.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makePlatform = <W>() =>
 <

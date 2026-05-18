@@ -27,7 +27,7 @@ import * as AiError from "./AiError.ts"
  * Service tag for embedding model operations.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class EmbeddingModel extends Context.Service<EmbeddingModel, Service>()(
   "effect/unstable/ai/EmbeddingModel"
@@ -119,7 +119,7 @@ export class EmbeddingRequest extends Request.TaggedClass("EmbeddingRequest")<
  * Service interface for embedding operations.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Service {
   readonly resolver: RequestResolver.RequestResolver<EmbeddingRequest>
@@ -138,7 +138,7 @@ const invalidProviderResponse = (description: string): AiError.AiError =>
  * Creates an EmbeddingModel service from a provider embedMany implementation.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: (params: {
   readonly embedMany: (options: ProviderOptions) => Effect.Effect<ProviderResponse, AiError.AiError>

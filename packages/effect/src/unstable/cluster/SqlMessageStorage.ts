@@ -43,7 +43,7 @@ const withTracerDisabled = Effect.withTracerEnabled(false)
  * and using the optional table prefix.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: (options?: {
   readonly prefix?: string | undefined
@@ -626,7 +626,7 @@ export const make: (options?: {
  * and the default snowflake generator.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   MessageStorage.MessageStorage,
@@ -640,7 +640,7 @@ export const layer: Layer.Layer<
  * Layer that provides SQL-backed `MessageStorage` using a custom table prefix.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWith = (options: {
   readonly prefix?: string | undefined

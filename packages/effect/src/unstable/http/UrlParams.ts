@@ -49,7 +49,7 @@ const TypeId = "~effect/http/UrlParams"
  * values for the same key.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UrlParams extends Pipeable, Inspectable, Iterable<readonly [string, string]> {
   readonly [TypeId]: typeof TypeId
@@ -71,7 +71,7 @@ export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId
  * a native `URLSearchParams` value.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Input =
   | CoercibleRecordInput
@@ -88,7 +88,7 @@ type CoercibleRecordInput = CoercibleRecord & {
  * `undefined` values are skipped when constructing from input.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Coercible = string | number | bigint | boolean | null | undefined
 
@@ -108,7 +108,7 @@ type CoercibleRecordField<A> = A extends Coercible ? A
  * parameters.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type CoercibleRecord<A extends object = any> = {
   readonly [K in keyof A]: CoercibleRecordField<A[K]>
@@ -155,7 +155,7 @@ export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParam
  * nested records use bracket notation, and `undefined` values are omitted.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromInput = (input: Input): UrlParams => {
   const parsed = fromInputNested(input)
@@ -257,7 +257,7 @@ export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
  * An empty `UrlParams` value.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const empty: UrlParams = make([])
 
@@ -267,7 +267,7 @@ export const empty: UrlParams = make([])
  * Returns an empty array when the key is absent.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getAll: {
   (key: string): (self: UrlParams) => ReadonlyArray<string>
@@ -289,7 +289,7 @@ export const getAll: {
  * Returns `Option.none` when the key is absent.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getFirst: {
   (key: string): (self: UrlParams) => Option.Option<string>
@@ -308,7 +308,7 @@ export const getFirst: {
  * Returns `Option.none` when the key is absent.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getLast: {
   (key: string): (self: UrlParams) => Option.Option<string>
@@ -325,7 +325,7 @@ export const getLast: {
  * the end.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const set: {
   (key: string, value: Coercible): (self: UrlParams) => UrlParams
@@ -361,7 +361,7 @@ export const transform: {
  * unmentioned existing parameters are preserved.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setAll: {
   (input: Input): (self: UrlParams) => UrlParams
@@ -384,7 +384,7 @@ export const setAll: {
  * Appends a query parameter value without removing existing values for the key.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const append: {
   (key: string, value: Coercible): (self: UrlParams) => UrlParams
@@ -401,7 +401,7 @@ export const append: {
  * Existing parameters are preserved.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const appendAll: {
   (input: Input): (self: UrlParams) => UrlParams
@@ -412,7 +412,7 @@ export const appendAll: {
  * Removes all query parameter values for the specified key.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const remove: {
   (key: string): (self: UrlParams) => UrlParams
@@ -436,7 +436,7 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
  * constructed.
  *
  * @category converting
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeUrl = (
   url: string,
@@ -464,7 +464,7 @@ export const makeUrl = (
  * Serializes `UrlParams` to a URL query string without a leading question mark.
  *
  * @category converting
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toString = (self: UrlParams): string => new URLSearchParams(self.params as any).toString()
 
@@ -506,7 +506,7 @@ const baseUrl = (): string | undefined => {
  * ```
  *
  * @category converting
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyArray<string>> => {
   const out: Record<string, string | Arr.NonEmptyArray<string>> = {}
@@ -588,7 +588,7 @@ export const schemaJsonField = (field: string): schemaJsonField =>
  * Extract a record of key-value pairs from the `UrlParams`.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface schemaRecord extends
   Schema.decodeTo<
@@ -627,7 +627,7 @@ export interface schemaRecord extends
  * ```
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const schemaRecord: schemaRecord = UrlParamsSchema.pipe(
   Schema.decodeTo(

@@ -66,7 +66,7 @@ import * as Snowflake from "./Snowflake.ts"
  * and durable clock wakeups are coordinated through persisted cluster entities.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const sharding = yield* Sharding.Sharding
@@ -727,7 +727,7 @@ const InterruptSignal = DurableDeferred.make("Workflow/InterruptSignal")
  * durable clock entity used for workflow wakeups.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   WorkflowEngine.WorkflowEngine,

@@ -86,7 +86,7 @@ export interface Key<out Identifier, out Shape> extends Effect<Shape, never, Ide
  * ```
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface Service<in out Identifier, in out Shape> extends Key<Identifier, Shape> {
   of(this: void, self: Shape): Shape
@@ -167,7 +167,7 @@ export declare namespace ServiceClass {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const Service: {
   <Identifier, Shape = Identifier>(key: string): Service<Identifier, Shape>

@@ -43,7 +43,7 @@ import * as Stream from "../../Stream.ts"
  * streams that rerun when keys are invalidated.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Reactivity extends Context.Service<
   Reactivity,
@@ -79,7 +79,7 @@ export class Reactivity extends Context.Service<
  * matching keys are invalidated.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.sync(() => {
   const handlers = new Map<number | string, Set<() => void>>()
@@ -226,7 +226,7 @@ class PendingInvalidation extends Context.Service<PendingInvalidation, Set<strin
  * If the effect fails, the keys are not invalidated.
  *
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const mutation: {
   (
@@ -248,7 +248,7 @@ export const mutation: {
  * keys are invalidated. The registration is removed when the current scope closes.
  *
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const query: {
   (
@@ -273,7 +273,7 @@ export const query: {
  * The effect runs initially and reruns whenever the keys are invalidated.
  *
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const stream: {
   (
@@ -299,7 +299,7 @@ export const stream: {
  * the enclosing reactivity batch completes.
  *
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const invalidate = (
   keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
@@ -309,7 +309,7 @@ export const invalidate = (
  * The default layer that provides an in-memory `Reactivity` service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Reactivity> = Layer.effect(Reactivity)(make)
 

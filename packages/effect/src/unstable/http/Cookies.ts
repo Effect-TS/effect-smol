@@ -34,7 +34,7 @@ const TypeId = "~effect/http/Cookies"
  * Returns `true` when a value is a `Cookies` collection.
  *
  * @category refinements
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isCookies = (u: unknown): u is Cookies => Predicate.hasProperty(u, TypeId)
 
@@ -42,7 +42,7 @@ export const isCookies = (u: unknown): u is Cookies => Predicate.hasProperty(u, 
  * Immutable collection of HTTP cookies keyed by cookie name.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Cookies extends Pipeable, Inspectable.Inspectable {
   readonly [TypeId]: typeof TypeId
@@ -105,7 +105,7 @@ const CookieTypeId = "~effect/http/Cookies/Cookie"
  * attributes such as domain, path, expiration, security, and same-site settings.
  *
  * @category cookie
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Cookie extends Inspectable.Inspectable {
   readonly [CookieTypeId]: typeof CookieTypeId
@@ -187,7 +187,7 @@ export class CookiesErrorReason extends Data.Error<{
  * Inspect `reason` to determine the specific validation failure.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class CookiesError extends Data.TaggedError("CookieError")<{
   readonly reason: CookiesErrorReason
@@ -236,7 +236,7 @@ const Proto: Omit<Cookies, "cookies"> = {
  * Creates a `Cookies` collection from an existing readonly record of cookies keyed by cookie name.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromReadonlyRecord = (cookies: Record.ReadonlyRecord<string, Cookie>): Cookies => {
   const self = Object.create(Proto)
@@ -248,7 +248,7 @@ export const fromReadonlyRecord = (cookies: Record.ReadonlyRecord<string, Cookie
  * Create a Cookies object from an Iterable
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromIterable = (cookies: Iterable<Cookie>): Cookies => {
   const record: Record<string, Cookie> = {}
@@ -262,7 +262,7 @@ export const fromIterable = (cookies: Iterable<Cookie>): Cookies => {
  * Create a Cookies object from a set of Set-Cookie headers
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromSetCookie = (headers: Iterable<string> | string): Cookies => {
   const arrayHeaders = typeof headers === "string" ? [headers] : headers
@@ -412,7 +412,7 @@ function parseSetCookie(header: string): Cookie | undefined {
  * An empty Cookies object
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const empty: Cookies = fromIterable([])
 
@@ -420,7 +420,7 @@ export const empty: Cookies = fromIterable([])
  * Returns `true` when the `Cookies` collection contains no cookies.
  *
  * @category refinements
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isEmpty = (self: Cookies): boolean => Record.isEmptyRecord(self.cookies)
 
@@ -446,7 +446,7 @@ const CookieProto = {
  * Returns a `CookiesError` in the `Result` failure channel when validation fails.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function makeCookie(
   name: string,
@@ -499,7 +499,7 @@ export const makeCookieUnsafe = (
  * Add a cookie to a Cookies object
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setCookie: {
   (cookie: Cookie): (self: Cookies) => Cookies
@@ -518,7 +518,7 @@ export const setCookie: {
  * Add multiple cookies to a Cookies object
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setAllCookie: {
   (cookies: Iterable<Cookie>): (self: Cookies) => Cookies
@@ -535,7 +535,7 @@ export const setAllCookie: {
  * Combine two Cookies objects, removing duplicates from the first
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const merge: {
   (that: Cookies): (self: Cookies) => Cookies
@@ -550,7 +550,7 @@ export const merge: {
  * Remove a cookie by name
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const remove: {
   (name: string): (self: Cookies) => Cookies
@@ -561,7 +561,7 @@ export const remove: {
  * Get a cookie from a Cookies object
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const get: {
   (name: string): (self: Cookies) => Option.Option<Cookie>
@@ -577,7 +577,7 @@ export const get: {
  * Returns `Option.none()` when the cookie is not present.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getValue: {
   (name: string): (self: Cookies) => Option.Option<string>
@@ -593,7 +593,7 @@ export const getValue: {
  * The cookie fields are validated first; invalid input returns a `CookiesError` in the `Result` failure channel.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const set: {
   (
@@ -712,7 +712,7 @@ export const expireCookieUnsafe: {
  * If any tuple is invalid, returns the first `CookiesError` and leaves the original collection unchanged.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setAll: {
   (
@@ -763,7 +763,7 @@ export const setAllUnsafe: {
  * Adapted from https://github.com/fastify/fastify-cookie under MIT License
  *
  * @category encoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function serializeCookie(self: Cookie): string {
   let str = self.name + "=" + self.valueEncoded
@@ -839,7 +839,7 @@ export function serializeCookie(self: Cookie): string {
  * Serialize a Cookies object into a Cookie header
  *
  * @category encoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toCookieHeader = (self: Cookies): string =>
   Object.values(self.cookies).map((cookie) => `${cookie.name}=${cookie.valueEncoded}`).join("; ")
@@ -848,7 +848,7 @@ export const toCookieHeader = (self: Cookies): string =>
  * Converts a `Cookies` collection to a record of decoded cookie values keyed by cookie name.
  *
  * @category encoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toRecord = (self: Cookies): Record<string, string> => {
   const record: Record<string, string> = {}
@@ -880,7 +880,7 @@ export const schemaRecord = CookiesSchema.pipe(
  * Serializes a `Cookies` collection into an array of `Set-Cookie` header values.
  *
  * @category encoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toSetCookieHeaders = (self: Cookies): Array<string> => Object.values(self.cookies).map(serializeCookie)
 
@@ -890,7 +890,7 @@ export const toSetCookieHeaders = (self: Cookies): Array<string> => Object.value
  * Adapted from https://github.com/fastify/fastify-cookie under MIT License
  *
  * @category decoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function parseHeader(header: string): Record<string, string> {
   const result: Record<string, string> = {}

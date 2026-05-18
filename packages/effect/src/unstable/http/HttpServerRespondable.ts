@@ -30,7 +30,7 @@ import * as Response from "./HttpServerResponse.ts"
  * `HttpServerResponse` values.
  *
  * @category type IDs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const symbol = "~effect/http/HttpServerRespondable"
 
@@ -41,7 +41,7 @@ export const symbol = "~effect/http/HttpServerRespondable"
  * the value.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Respondable {
   [symbol](): Effect.Effect<HttpServerResponse, unknown>
@@ -51,7 +51,7 @@ export interface Respondable {
  * Returns `true` when the supplied value implements the `Respondable` protocol.
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isRespondable = (u: unknown): u is Respondable => hasProperty(u, symbol)
 
@@ -65,7 +65,7 @@ const notFound = Response.empty({ status: 404 })
  * from the response conversion are converted to defects.
  *
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toResponse = (self: Respondable): Effect.Effect<HttpServerResponse> => {
   if (Response.isHttpServerResponse(self)) {
@@ -82,7 +82,7 @@ export const toResponse = (self: Respondable): Effect.Effect<HttpServerResponse>
  * become `400` responses, and no-such-element errors become `404` responses.
  *
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toResponseOrElse = (u: unknown, orElse: HttpServerResponse): Effect.Effect<HttpServerResponse> => {
   if (Response.isHttpServerResponse(u)) {
@@ -105,7 +105,7 @@ export const toResponseOrElse = (u: unknown, orElse: HttpServerResponse): Effect
  * Only `HttpServerResponse` and `Respondable` values receive special handling.
  *
  * @category accessors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toResponseOrElseDefect = (u: unknown, orElse: HttpServerResponse): Effect.Effect<HttpServerResponse> => {
   if (Response.isHttpServerResponse(u)) {

@@ -40,7 +40,7 @@ import * as OtlpTracer from "./OtlpTracer.ts"
  * `baseUrl` and requires an `OtlpSerialization` implementation.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly baseUrl: string
@@ -98,7 +98,7 @@ export const layer = (options: {
  * serialization.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerJson: (options: {
   readonly baseUrl: string
@@ -124,7 +124,7 @@ export const layerJson: (options: {
  * serialization.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerProtobuf: (options: {
   readonly baseUrl: string

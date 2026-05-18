@@ -38,7 +38,7 @@ import type * as RpcMessage from "./RpcMessage.ts"
  * message framing.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class RpcSerialization extends Context.Service<RpcSerialization, {
   makeUnsafe(): Parser
@@ -51,7 +51,7 @@ export class RpcSerialization extends Context.Service<RpcSerialization, {
  * chunks into protocol messages and encode messages for transport.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Parser {
   readonly decode: (data: Uint8Array | string) => ReadonlyArray<unknown>
@@ -64,7 +64,7 @@ export interface Parser {
  * themselves.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const json: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/json",
@@ -86,7 +86,7 @@ export const json: RpcSerialization["Service"] = RpcSerialization.of({
  * with a trailing newline.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
   contentType: "application/ndjson",
@@ -129,7 +129,7 @@ export const ndjson: RpcSerialization["Service"] = RpcSerialization.of({
  * additional message framing.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const jsonRpc = (options?: {
   readonly contentType?: string | undefined
@@ -163,7 +163,7 @@ export const jsonRpc = (options?: {
  * messages.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ndJsonRpc = (options?: {
   readonly contentType?: string | undefined
@@ -447,7 +447,7 @@ type JsonRpcMessage = JsonRpcRequest | JsonRpcResponse
  * Create a MessagePack serialization with custom msgpackr options.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeMsgPack = (options?: Msgpackr.Options | undefined): RpcSerialization["Service"] =>
   RpcSerialization.of({
@@ -490,7 +490,7 @@ export const makeMsgPack = (options?: Msgpackr.Options | undefined): RpcSerializ
  * message framing.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: true })
 
@@ -501,7 +501,7 @@ export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: tr
  * {@link layerNdjson}.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerJson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSerialization)(json)
 
@@ -512,7 +512,7 @@ export const layerJson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSeriali
  * use {@link layerJson}.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerNdjson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSerialization)(ndjson)
 
@@ -520,7 +520,7 @@ export const layerNdjson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSeria
  * A rpc serialization layer that uses JSON-RPC for serialization.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerJsonRpc = (options?: {
   readonly contentType?: string | undefined
@@ -531,7 +531,7 @@ export const layerJsonRpc = (options?: {
  * new lines.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerNdJsonRpc = (options?: {
   readonly contentType?: string | undefined
@@ -544,6 +544,6 @@ export const layerNdJsonRpc = (options?: {
  * also has better support for binary data.
  *
  * @category serialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerMsgPack: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSerialization)(msgPack)

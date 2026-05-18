@@ -46,7 +46,7 @@ import type { Snowflake } from "./Snowflake.ts"
  * incoming control envelope.
  *
  * @category incoming
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Incoming<R extends Rpc.Any> = IncomingRequest<R> | IncomingEnvelope
 
@@ -56,7 +56,7 @@ export type Incoming<R extends Rpc.Any> = IncomingRequest<R> | IncomingEnvelope
  * It is either a request with a decoded payload or an incoming control envelope.
  *
  * @category incoming
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type IncomingLocal<R extends Rpc.Any> = IncomingRequestLocal<R> | IncomingEnvelope
 
@@ -67,7 +67,7 @@ export type IncomingLocal<R extends Rpc.Any> = IncomingRequestLocal<R> | Incomin
  * control envelopes are wrapped as incoming envelopes.
  *
  * @category incoming
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>): IncomingLocal<R> => {
   if (self._tag === "OutgoingEnvelope") {
@@ -92,7 +92,7 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
  * replies.
  *
  * @category incoming
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequest")<{
   readonly envelope: Envelope.PartialRequest
@@ -107,7 +107,7 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
  * replying with decoded replies.
  *
  * @category outgoing
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequestLocal")<{
   readonly envelope: Envelope.Request<R>
@@ -120,7 +120,7 @@ export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("I
  * Incoming control envelope carrying an `AckChunk` or `Interrupt`.
  *
  * @category incoming
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
   readonly _tag: "IncomingEnvelope"
@@ -133,7 +133,7 @@ export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
  * An outgoing message is either an entity request or a control envelope.
  *
  * @category outgoing
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 
@@ -144,7 +144,7 @@ export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
  * the reply callback, dynamic annotations, and an optional encoded request cache.
  *
  * @category outgoing
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("OutgoingRequest")<{
   readonly envelope: Envelope.Request<R>
@@ -169,7 +169,7 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
  * in-flight request.
  *
  * @category outgoing
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class OutgoingEnvelope extends Data.TaggedClass("OutgoingEnvelope")<{
   readonly envelope: Envelope.AckChunk | Envelope.Interrupt
@@ -205,7 +205,7 @@ const neverRpc = Rpc.make("Never", {
  * payload schema, reusing the cached encoded request when available.
  *
  * @category serialization / deserialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const serialize = <Rpc extends Rpc.Any>(
   message: Outgoing<Rpc>
@@ -226,7 +226,7 @@ export const serialize = <Rpc extends Rpc.Any>(
  * Schema encoding failures are converted to `MalformedMessage`.
  *
  * @category serialization / deserialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const serializeEnvelope = <Rpc extends Rpc.Any>(
   message: Outgoing<Rpc>
@@ -243,7 +243,7 @@ export const serializeEnvelope = <Rpc extends Rpc.Any>(
  * The result is a `PartialRequest` suitable for storage or transport.
  *
  * @category serialization / deserialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const serializeRequest = <Rpc extends Rpc.Any>(
   self: OutgoingRequest<Rpc>
@@ -267,7 +267,7 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
  * context.
  *
  * @category serialization / deserialization
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const deserializeLocal = <Rpc extends Rpc.Any>(
   self: Outgoing<Rpc>,

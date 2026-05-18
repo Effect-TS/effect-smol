@@ -47,7 +47,7 @@ const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
  * Error raised by persistence and backing-store operations.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorTypeId)({
   _tag: Schema.tag("PersistenceError"),
@@ -114,7 +114,7 @@ export interface PersistenceStore {
  * Service for creating raw backing stores for persistence store ids.
  *
  * @category BackingPersistence
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class BackingPersistence extends Context.Service<BackingPersistence, {
   readonly make: (storeId: string) => Effect.Effect<BackingPersistenceStore, never, Scope.Scope>
@@ -125,7 +125,7 @@ export class BackingPersistence extends Context.Service<BackingPersistence, {
  * TTLs.
  *
  * @category BackingPersistence
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface BackingPersistenceStore {
   readonly get: (key: string) => Effect.Effect<object | undefined, PersistenceError>
@@ -1024,7 +1024,7 @@ export const layerKvs: Layer.Layer<Persistence, never, KeyValueStore.KeyValueSto
  * Provides `Persistence` backed by process-local in-memory storage.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<Persistence> = layer.pipe(
   Layer.provide(layerBackingMemory)
@@ -1067,7 +1067,7 @@ export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = la
  * intended for backing-store internals.
  *
  * @category converting
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const unsafeTtlToExpires = (clock: Clock.Clock, ttl: Duration.Duration | undefined): number | null =>
   ttl ? clock.currentTimeMillisUnsafe() + Duration.toMillis(ttl) : null

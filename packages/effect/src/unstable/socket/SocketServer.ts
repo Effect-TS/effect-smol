@@ -33,7 +33,7 @@ import type * as Socket from "./Socket.ts"
  * loop that handles each accepted `Socket`.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class SocketServer extends Context.Service<SocketServer, {
   readonly address: Address
@@ -46,7 +46,7 @@ export class SocketServer extends Context.Service<SocketServer, {
  * Runtime type identifier attached to `SocketServerError` values.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
 
@@ -54,7 +54,7 @@ export const ErrorTypeId: ErrorTypeId = "@effect/platform/SocketServer/SocketSer
  * Type-level identifier used to mark `SocketServerError` values.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
 
@@ -99,7 +99,7 @@ export type SocketServerErrorReason = SocketServerOpenError | SocketServerUnknow
  * cause.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class SocketServerError extends Data.TaggedError("SocketServerError")<{
   readonly reason: SocketServerErrorReason
@@ -133,7 +133,7 @@ export class SocketServerError extends Data.TaggedError("SocketServerError")<{
  * Socket server address, either a TCP host and port or a Unix socket path.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Address = UnixAddress | TcpAddress
 
@@ -141,7 +141,7 @@ export type Address = UnixAddress | TcpAddress
  * TCP socket server address with hostname and port.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TcpAddress {
   readonly _tag: "TcpAddress"
@@ -153,7 +153,7 @@ export interface TcpAddress {
  * Unix socket server address identified by a filesystem path.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UnixAddress {
   readonly _tag: "UnixAddress"

@@ -4847,7 +4847,7 @@ export const bufferArray: {
  * ```
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const catchCause: {
   <E, A2, E2, R2>(
@@ -4898,7 +4898,7 @@ export const catchCause: {
  * ```
  *
  * @category error handling
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const tapCause: {
   <E, A2, E2, R2>(
@@ -10130,7 +10130,7 @@ export {
    * ```
    *
    * @category Do Notation
-   * @since 4.0.0
+   * @since 2.0.0
    */
   let_ as let
 }

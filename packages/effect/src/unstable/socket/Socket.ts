@@ -46,7 +46,7 @@ import * as Scope from "../../Scope.ts"
  * Runtime type identifier attached to `Socket` services.
  *
  * @category type IDs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId = "~effect/socket/Socket"
 
@@ -54,7 +54,7 @@ export const TypeId = "~effect/socket/Socket"
  * Returns `true` when a value is a `Socket`.
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, TypeId)
 
@@ -62,7 +62,7 @@ export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, Ty
  * Context service tag for the current `Socket` implementation.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Socket: Context.Service<Socket, Socket> = Context.Service<Socket>("effect/socket/Socket")
 
@@ -71,7 +71,7 @@ export const Socket: Context.Service<Socket, Socket> = Context.Service<Socket>("
  * and obtaining a scoped writer for outgoing frames and close events.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Socket {
   readonly [TypeId]: typeof TypeId
@@ -164,7 +164,7 @@ const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
  * Socket close event value carrying a close code and optional reason.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class CloseEvent {
   /**
@@ -195,7 +195,7 @@ export class CloseEvent {
  * Returns `true` when a value is a `CloseEvent`.
  *
  * @category refinements
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isCloseEvent = (u: unknown): u is CloseEvent => Predicate.hasProperty(u, CloseEventTypeId)
 
@@ -203,7 +203,7 @@ export const isCloseEvent = (u: unknown): u is CloseEvent => Predicate.hasProper
  * Type-level identifier used to mark `SocketError` values.
  *
  * @category type IDs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SocketErrorTypeId = "~effect/socket/Socket/SocketError"
 
@@ -211,7 +211,7 @@ export type SocketErrorTypeId = "~effect/socket/Socket/SocketError"
  * Runtime type identifier attached to `SocketError` values.
  *
  * @category type IDs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SocketErrorTypeId: SocketErrorTypeId = "~effect/socket/Socket/SocketError"
 
@@ -219,7 +219,7 @@ export const SocketErrorTypeId: SocketErrorTypeId = "~effect/socket/Socket/Socke
  * Returns `true` when a value is a `SocketError`.
  *
  * @category refinements
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isSocketError = (u: unknown): u is SocketError => Predicate.hasProperty(u, SocketErrorTypeId)
 
@@ -288,7 +288,7 @@ export class SocketOpenError extends Schema.ErrorClass<SocketOpenError>("effect/
  * close reason.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class SocketCloseError extends Schema.ErrorClass<SocketCloseError>("effect/socket/Socket/SocketCloseError")({
   _tag: Schema.tag("SocketCloseError"),
@@ -346,7 +346,7 @@ export type SocketErrorReason =
  * preserving the underlying reason.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class SocketError extends Schema.TaggedErrorClass<SocketError>(SocketErrorTypeId)("SocketError", {
   _tag: Schema.tag("SocketError"),
@@ -390,7 +390,7 @@ export class SocketError extends Schema.TaggedErrorClass<SocketError>(SocketErro
  * or binary frames and writing outgoing frame batches to the socket.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toChannelMap = <IE, A>(
   self: Socket,
@@ -448,7 +448,7 @@ export const toChannelMap = <IE, A>(
  * as UTF-8 bytes.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toChannel = <IE>(
   self: Socket
@@ -468,7 +468,7 @@ export const toChannel = <IE>(
  * optional text encoding.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toChannelString: {
   (encoding?: string | undefined): <IE>(self: Socket) => Channel.Channel<
@@ -507,7 +507,7 @@ export const toChannelString: {
  * type.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toChannelWith = <IE = never>() =>
 (
@@ -525,7 +525,7 @@ export const toChannelWith = <IE = never>() =>
  * environment.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeChannel = <IE = never>(): Channel.Channel<
   NonEmptyReadonlyArray<Uint8Array>,
@@ -542,7 +542,7 @@ export const makeChannel = <IE = never>(): Channel.Channel<
  * error.
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const defaultCloseCodeIsError = (_code: number) => true
 
@@ -551,7 +551,7 @@ export const defaultCloseCodeIsError = (_code: number) => true
  * WebSocket-backed socket run is handling events.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>()(
   "~effect/socket/Socket/WebSocket"
@@ -562,7 +562,7 @@ export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>(
  * optional protocols.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class WebSocketConstructor extends Context.Service<
   WebSocketConstructor,
@@ -573,7 +573,7 @@ export class WebSocketConstructor extends Context.Service<
  * Layer that provides `WebSocketConstructor` using `globalThis.WebSocket`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocketConstructorGlobal: Layer.Layer<WebSocketConstructor> = Layer.succeed(WebSocketConstructor)(
   (url, protocols) => new globalThis.WebSocket(url, protocols)
@@ -585,7 +585,7 @@ export const layerWebSocketConstructorGlobal: Layer.Layer<WebSocketConstructor> 
  * closes fail the run.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeWebSocket = (url: string | Effect.Effect<string>, options?: {
   readonly closeCodeIsError?: ((code: number) => boolean) | undefined
@@ -610,7 +610,7 @@ export const makeWebSocket = (url: string | Effect.Effect<string>, options?: {
  * open, read, and close events into `SocketError` values.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromWebSocket = <RO>(
   acquire: Effect.Effect<globalThis.WebSocket, SocketError, RO>,
@@ -753,7 +753,7 @@ export const fromWebSocket = <RO>(
  * `WebSocketConstructor` service.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeWebSocketChannel = <IE = never>(
   url: string,
@@ -778,7 +778,7 @@ export const makeWebSocketChannel = <IE = never>(
  * effect.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocket: (
   url: string | Effect.Effect<string>,
@@ -804,7 +804,7 @@ export const SendQueueCapacity = Context.Reference<number>("~effect/socket/Socke
  * a `Socket`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface InputTransformStream {
   readonly readable: ReadableStream<Uint8Array> | ReadableStream<string> | ReadableStream<Uint8Array | string>
@@ -818,7 +818,7 @@ export interface InputTransformStream {
  * `CloseEvent` values.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromTransformStream = <R>(acquire: Effect.Effect<InputTransformStream, SocketError, R>, options?: {
   readonly closeCodeIsError?: (code: number) => boolean

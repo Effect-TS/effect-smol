@@ -89,7 +89,7 @@ import * as Snowflake from "./Snowflake.ts"
  * storage for persisted work.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Sharding extends Context.Service<Sharding, {
   /**
@@ -1462,7 +1462,7 @@ const make = Effect.gen(function*() {
  * snowflake generator, and the entity reaper.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   Sharding,

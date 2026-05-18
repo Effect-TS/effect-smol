@@ -52,7 +52,7 @@ const withTracerDisabled = Effect.withTracerEnabled(false)
  * supported and enabled.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: {
   readonly prefix?: string | undefined
@@ -681,7 +681,7 @@ export const make = Effect.fnUntraced(function*(options: {
  * Layer that provides SQL-backed `RunnerStorage` using the default table prefix.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   RunnerStorage.RunnerStorage,
@@ -693,7 +693,7 @@ export const layer: Layer.Layer<
  * Layer that provides SQL-backed `RunnerStorage` using a custom table prefix.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWith = (options: {
   readonly prefix?: string | undefined

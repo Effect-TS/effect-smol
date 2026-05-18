@@ -56,7 +56,7 @@ import * as Snowflake from "./Snowflake.ts"
  * operations.
  *
  * @category context
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class MessageStorage extends Context.Service<MessageStorage, {
   /**
@@ -187,7 +187,7 @@ export class MessageStorage extends Context.Service<MessageStorage, {
  * received for the duplicated request.
  *
  * @category SaveResult
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Duplicate<R>
 
@@ -195,7 +195,7 @@ export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Dupl
  * Tagged enum constructor for creating and matching `SaveResult` values.
  *
  * @category SaveResult
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SaveResult = Data.taggedEnum<SaveResult.Constructor>()
 
@@ -204,14 +204,14 @@ export const SaveResult = Data.taggedEnum<SaveResult.Constructor>()
  * drivers.
  *
  * @category SaveResult
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SaveResultEncoded = Data.taggedEnum<SaveResult.Encoded>()
 
 /**
  * Variants and helper types for `SaveResult`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace SaveResult {
   /**
@@ -221,7 +221,7 @@ export declare namespace SaveResult {
    * reply.
    *
    * @category SaveResult
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type Encoded = SaveResult.Success | SaveResult.DuplicateEncoded
 
@@ -229,7 +229,7 @@ export declare namespace SaveResult {
    * Variant indicating that the message was saved as a new storage entry.
    *
    * @category SaveResult
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Success {
     readonly _tag: "Success"
@@ -242,7 +242,7 @@ export declare namespace SaveResult {
    * available.
    *
    * @category SaveResult
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Duplicate<R extends Rpc.Any> {
     readonly _tag: "Duplicate"
@@ -257,7 +257,7 @@ export declare namespace SaveResult {
    * available.
    *
    * @category SaveResult
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface DuplicateEncoded {
     readonly _tag: "Duplicate"
@@ -269,7 +269,7 @@ export declare namespace SaveResult {
    * Generic tagged enum constructor type for `SaveResult`.
    *
    * @category SaveResult
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Constructor extends Data.TaggedEnum.WithGenerics<1> {
     readonly taggedEnum: SaveResult<this["A"] extends Rpc.Any ? this["A"] : never>
@@ -283,7 +283,7 @@ export declare namespace SaveResult {
  * delivery, read unprocessed messages, and provide transaction wrapping.
  *
  * @category Encoded
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Encoded = {
   /**
@@ -404,7 +404,7 @@ export type Encoded = {
  * driver-specific pagination cursor.
  *
  * @category Encoded
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type EncodedUnprocessedOptions<A> = {
   readonly existingShards: Array<number>
@@ -419,7 +419,7 @@ export type EncodedUnprocessedOptions<A> = {
  * driver-specific pagination cursor.
  *
  * @category Encoded
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type EncodedRepliesOptions<A> = {
   readonly existingRequests: Array<string>
@@ -434,7 +434,7 @@ export type EncodedRepliesOptions<A> = {
  * replies are saved, and fail them when a request or shard is unregistered.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (
   storage: Omit<
@@ -542,7 +542,7 @@ export const make = (
  * defect replies.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeEncoded: (encoded: Encoded) => Effect.Effect<
   MessageStorage["Service"],
@@ -752,7 +752,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
  * No-op `MessageStorage` service that does not persist messages or replies.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const noop: MessageStorage["Service"] = Effect.runSync(make({
   saveRequest: () => Effect.succeed(SaveResult.Success()),
@@ -777,7 +777,7 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
  * and optional delivery time.
  *
  * @category Memory
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MemoryEntry = {
   readonly envelope: Envelope.Encoded
@@ -804,7 +804,7 @@ export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/Mess
  * and the journal.
  *
  * @category Memory
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
   make: Effect.gen(function*() {
@@ -1020,7 +1020,7 @@ export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluste
  * Layer that provides the no-op `MessageStorage` service.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerNoop: Layer.Layer<MessageStorage> = Layer.succeed(MessageStorage, noop)
 
@@ -1028,7 +1028,7 @@ export const layerNoop: Layer.Layer<MessageStorage> = Layer.succeed(MessageStora
  * Layer that provides in-memory message storage and its backing `MemoryDriver`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<
   MessageStorage | MemoryDriver,

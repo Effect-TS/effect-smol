@@ -50,7 +50,7 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * with `OtlpSerialization`, and flushed when the surrounding `Scope` closes.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: (
   options: {
@@ -130,7 +130,7 @@ export const make: (
  * Provides `Tracer.Tracer` using the OTLP tracer created by `make`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: (options: {
   readonly url: string

@@ -51,7 +51,7 @@ const TypeId = "~effect/httpapi/HttpApiEndpoint"
  * endpoint interface.
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isHttpApiEndpoint = (u: unknown): u is HttpApiEndpoint<any, any, any> => Predicate.hasProperty(u, TypeId)
 
@@ -72,7 +72,7 @@ export type PayloadMap = ReadonlyMap<string, {
  * the underlying `HttpRouter`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface HttpApiEndpoint<
   out Name extends string,
@@ -217,7 +217,7 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
  * and middleware types are not needed.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Any extends Pipeable {
   readonly [TypeId]: any
@@ -231,7 +231,7 @@ export interface Any extends Pipeable {
  * method, path, schemas, annotations, and middleware sets.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface AnyWithProps
   extends HttpApiEndpoint<string, HttpMethod, string, Schema.Top, Schema.Top, Schema.Top, Schema.Top, any, any>
@@ -241,7 +241,7 @@ export interface AnyWithProps
  * Extracts the name literal from an `HttpApiEndpoint`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -262,7 +262,7 @@ export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
  * Extracts the success schema associated with an endpoint.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -283,7 +283,7 @@ export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * Extracts the error schema associated with an endpoint.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -346,7 +346,7 @@ export type Query<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * Extracts the schema used for an endpoint's request payload.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -367,7 +367,7 @@ export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * Extracts the schema used for an endpoint's request headers.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -480,7 +480,7 @@ export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApi
  * Multipart stream payloads are exposed as streams of parts.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -515,7 +515,7 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * leaving payload handling to the raw request.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -546,7 +546,7 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * endpoint. Multipart payloads are supplied as `FormData`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ClientRequest<
   Params extends Schema.Top,
@@ -682,7 +682,7 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
  * and returning either the endpoint success value or a custom `HttpServerResponse`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Handler<Endpoint extends Any, E, R> = (
   request: Types.Simplify<Request<Endpoint>>
@@ -693,7 +693,7 @@ export type Handler<Endpoint extends Any, E, R> = (
  * decoded payload so the handler can read the raw `HttpServerRequest` directly.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlerRaw<Endpoint extends Any, E, R> = (
   request: Types.Simplify<RequestRaw<Endpoint>>
@@ -703,7 +703,7 @@ export type HandlerRaw<Endpoint extends Any, E, R> = (
  * Selects the endpoint with the specified name from a union of endpoints.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type WithName<Endpoints extends Any, Name extends string> = Extract<Endpoints, { readonly name: Name }>
 
@@ -711,7 +711,7 @@ export type WithName<Endpoints extends Any, Name extends string> = Extract<Endpo
  * Removes endpoints with the specified name from a union of endpoints.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ExcludeName<Endpoints extends Any, Name extends string> = Exclude<Endpoints, { readonly name: Name }>
 
@@ -720,7 +720,7 @@ export type ExcludeName<Endpoints extends Any, Name extends string> = Exclude<En
  * endpoint union.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = Handler<
   WithName<Endpoints, Name>,
@@ -733,7 +733,7 @@ export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = 
  * endpoint union.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R> = HandlerRaw<
   WithName<Endpoints, Name>,
@@ -746,7 +746,7 @@ export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R>
  * in an endpoint union.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SuccessWithName<Endpoints extends Any, Name extends string> = Success<
   WithName<Endpoints, Name>
@@ -809,7 +809,7 @@ export type ExcludeProvidedWithName<Endpoints extends Any, Name extends string, 
  * service requirement union.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ExcludeProvided<Endpoint extends Any, R> = Exclude<
   R,
@@ -856,7 +856,7 @@ export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput>
  * existing error schema union.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint extends HttpApiEndpoint<
   infer _Name,
@@ -1077,7 +1077,7 @@ export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
  * `disableCodecs` is enabled.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = <Method extends HttpMethod>(method: Method): {
   <
@@ -1311,7 +1311,7 @@ function transformPayload(schema: Schema.Top, method: HttpMethod): Schema.Top {
  * Creates a `GET` endpoint declaration.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const get = make("GET")
 
@@ -1319,7 +1319,7 @@ export const get = make("GET")
  * Creates a `POST` endpoint declaration.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const post = make("POST")
 
@@ -1327,7 +1327,7 @@ export const post = make("POST")
  * Creates a `PUT` endpoint declaration.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const put = make("PUT")
 
@@ -1335,7 +1335,7 @@ export const put = make("PUT")
  * Creates a `PATCH` endpoint declaration.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const patch = make("PATCH")
 
@@ -1353,7 +1353,7 @@ export {
  * Creates a `HEAD` endpoint declaration.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const head = make("HEAD")
 
@@ -1361,6 +1361,6 @@ export const head = make("HEAD")
  * Creates an `OPTIONS` endpoint declaration.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const options = make("OPTIONS")

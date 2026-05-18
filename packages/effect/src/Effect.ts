@@ -1282,7 +1282,7 @@ export {
    * Adds a computed plain value to the do notation record.
    *
    * @category Do notation
-   * @since 4.0.0
+   * @since 2.0.0
    */
   let_ as let
 }

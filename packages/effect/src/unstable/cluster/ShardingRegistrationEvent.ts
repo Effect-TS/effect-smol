@@ -23,7 +23,7 @@ import type { SingletonAddress } from "./SingletonAddress.ts"
  * Represents events that can occur when a runner registers entities or singletons.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ShardingRegistrationEvent =
   | EntityRegistered
@@ -33,7 +33,7 @@ export type ShardingRegistrationEvent =
  * Represents an event that occurs when a new entity is registered with a runner.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface EntityRegistered {
   readonly _tag: "EntityRegistered"
@@ -45,7 +45,7 @@ export interface EntityRegistered {
  * runner.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SingletonRegistered {
   readonly _tag: "SingletonRegistered"

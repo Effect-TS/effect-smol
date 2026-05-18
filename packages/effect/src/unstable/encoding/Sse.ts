@@ -160,7 +160,7 @@ export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
  * callback, and call `reset` to clear any buffered event state.
  *
  * @category decoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export function makeParser(onParse: (event: AnyEvent) => void): Parser {
   // Processing state
@@ -326,7 +326,7 @@ function hasBom(buffer: string) {
  * `feed` accepts additional text chunks and `reset` clears buffered parser state.
  *
  * @category decoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Parser {
   feed(chunk: string): void
@@ -401,7 +401,7 @@ export const encodeSchema = <
  * Events text.
  *
  * @category encoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Encoder {
   write(event: AnyEvent): string
@@ -413,7 +413,7 @@ export interface Encoder {
  * It contains the event name, optional event ID, and string data payload.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Event {
   readonly _tag: "Event"
@@ -428,7 +428,7 @@ export interface Event {
  * The shape contains `id`, `event`, and string `data` fields.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const EventEncoded: Schema.Struct<{
   readonly id: Schema.UndefinedOr<Schema.String>
@@ -447,7 +447,7 @@ export const EventEncoded: Schema.Struct<{
  * string data payload.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Event: Schema.Struct<{
   readonly _tag: Schema.tag<"Event">
@@ -493,7 +493,7 @@ export const transformEvent = Transformation.transform<{
  * It contains the event name, optional event ID, and string data payload.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface EventEncoded {
   readonly event: string
@@ -510,7 +510,7 @@ const RetryTypeId = "~effect/encoding/Sse/Retry" as const
  * `duration`; encoders serialize an upstream `Retry` failure as a `retry:` line.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Retry extends Data.TaggedClass("Retry")<{
   readonly duration: Duration.Duration
@@ -545,7 +545,7 @@ export class Retry extends Data.TaggedClass("Retry")<{
  * retry directives.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AnyEvent = Event | Retry
 
@@ -556,7 +556,7 @@ export type AnyEvent = Event | Retry
  * `Retry` values as `retry:` directives.
  *
  * @category encoding
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const encoder: Encoder = {
   write(event: AnyEvent): string {

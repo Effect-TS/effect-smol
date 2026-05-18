@@ -927,7 +927,7 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
  * ```
  *
  * @category reason
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class UnknownError extends Schema.ErrorClass<UnknownError>(
   "effect/ai/AiError/UnknownError"
@@ -1447,7 +1447,7 @@ const TypeId = "~effect/unstable/ai/AiError/AiError" as const
  * ```
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class AiError extends Schema.ErrorClass<AiError>(
   "effect/ai/AiError/AiError"
@@ -1514,7 +1514,7 @@ export type AiErrorEncoded = typeof AiError["Encoded"]
  * ```
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, TypeId)
 

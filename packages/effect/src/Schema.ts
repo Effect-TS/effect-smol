@@ -395,7 +395,7 @@ export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [
  * @see {@link declareConstructor} for creating schemas for parametric types.
  *
  * @category constructors
- * @since 4.0.0
+ * @since 3.10.0
  */
 export function declare<T, Iso = T>(
   is: (u: unknown) => u is T,
@@ -1111,7 +1111,7 @@ export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
  * ```
  *
  * @category guards
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const is = Parser.is
 
@@ -1234,7 +1234,7 @@ export const decodeExit: <S extends Decoder<unknown>>(
  * application options override creation options.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const decodeUnknownOption = Parser.decodeUnknownOption
 
@@ -1246,7 +1246,7 @@ export const decodeUnknownOption = Parser.decodeUnknownOption
  * application options override creation options.
  *
  * @category decoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const decodeOption = Parser.decodeOption
 
@@ -1445,7 +1445,7 @@ export const encodeExit: <S extends Encoder<unknown>>(
  * application options override creation options.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodeUnknownOption = Parser.encodeUnknownOption
 
@@ -1457,7 +1457,7 @@ export const encodeUnknownOption = Parser.encodeUnknownOption
  * application options override creation options.
  *
  * @category encoding
- * @since 4.0.0
+ * @since 3.10.0
  */
 export const encodeOption = Parser.encodeOption
 

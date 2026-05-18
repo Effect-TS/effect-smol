@@ -27,7 +27,7 @@ import type * as Body from "./HttpBody.ts"
  * Represents an HTTP entity tag, either weak or strong.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Etag = Weak | Strong
 
@@ -37,7 +37,7 @@ export type Etag = Weak | Strong
  * The `value` is the raw tag value without the surrounding quotes or `W/` prefix.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Weak {
   readonly _tag: "Weak"
@@ -50,7 +50,7 @@ export interface Weak {
  * The `value` is the raw tag value without the surrounding quotes.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Strong {
   readonly _tag: "Strong"
@@ -61,7 +61,7 @@ export interface Strong {
  * Formats an `Etag` as an HTTP header value, including quotes and the `W/` prefix for weak tags.
  *
  * @category convertions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toString = (self: Etag): string => {
   switch (self._tag) {
@@ -76,7 +76,7 @@ export const toString = (self: Etag): string => {
  * Service for generating ETags from filesystem file information or Web `File`-like metadata.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Generator extends Context.Service<Generator, {
   readonly fromFileInfo: (info: FileSystem.File.Info) => Effect.Effect<Etag>
@@ -99,7 +99,7 @@ const fromFileWeb = (file: Body.HttpBody.FileLike) => {
  * Layer that provides a `Generator` which produces strong ETags from file size and modification time metadata.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Generator> = Layer.succeed(
   Generator
@@ -116,7 +116,7 @@ export const layer: Layer.Layer<Generator> = Layer.succeed(
  * Layer that provides a `Generator` which produces weak ETags from file size and modification time metadata.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWeak: Layer.Layer<Generator> = Layer.succeed(
   Generator

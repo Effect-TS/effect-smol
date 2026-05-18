@@ -151,7 +151,7 @@ export class MixedScheduler implements Scheduler {
   /**
    * Creates a dispatcher that schedules work through this scheduler.
    *
-   * @since 2.0.0
+   * @since 4.0.0
    */
   makeDispatcher() {
     return new MixedSchedulerDispatcher(this.setImmediate)

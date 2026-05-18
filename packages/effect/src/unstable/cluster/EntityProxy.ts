@@ -70,7 +70,7 @@ const clientErrors = [
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
   entity: Entity.Entity<Type, Rpcs>
@@ -110,7 +110,7 @@ export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
  * payload includes `entityId`, and whose errors include cluster client errors.
  *
  * @category converting
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ConvertRpcs<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs extends Rpc.Rpc<
   infer _Tag,
@@ -195,7 +195,7 @@ const entityIdPath = {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const toHttpApiGroup = <const Name extends string, Type extends string, Rpcs extends Rpc.Any>(
   name: Name,
@@ -239,7 +239,7 @@ const tagToPath = (tag: string): string =>
  * discard endpoint at `/<tag>/:entityId/discard`, including cluster client errors.
  *
  * @category converting
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ConvertHttpApi<Rpcs extends Rpc.Any> = Rpcs extends Rpc.Rpc<
   infer _Tag,

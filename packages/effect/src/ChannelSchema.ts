@@ -57,7 +57,7 @@ import * as Schema from "./Schema.ts"
  * required by the schema become channel requirements.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const encode = <S extends Schema.Top>(
   schema: S
@@ -84,7 +84,7 @@ export const encode = <S extends Schema.Top>(
  * provided schema.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const encodeUnknown: <S extends Schema.Top>(
   schema: S
@@ -106,7 +106,7 @@ export const encodeUnknown: <S extends Schema.Top>(
  * required by the schema become channel requirements.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const decode = <S extends Schema.Top>(
   schema: S
@@ -132,7 +132,7 @@ export const decode = <S extends Schema.Top>(
  * services.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const decodeUnknown: <S extends Schema.Top>(
   schema: S
@@ -156,7 +156,7 @@ export const decodeUnknown: <S extends Schema.Top>(
  * failures are surfaced as `SchemaError`.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const duplex: {
   <In extends Schema.Top, Out extends Schema.Top>(options: {
@@ -240,7 +240,7 @@ export const duplex: {
  * surfaces schema failures as `SchemaError`.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const duplexUnknown: {
   <In extends Schema.Top, Out extends Schema.Top>(options: {

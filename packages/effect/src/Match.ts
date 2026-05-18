@@ -66,7 +66,7 @@ const TypeId = internal.TypeId
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Matcher<Input, Filters, RemainingApplied, Result, Provided, Return = any> =
   | TypeMatcher<Input, Filters, RemainingApplied, Result, Return>
@@ -97,7 +97,7 @@ export type Matcher<Input, Filters, RemainingApplied, Result, Provided, Return =
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TypeMatcher<in Input, out Filters, out Remaining, out Result, out Return = any> extends Pipeable {
   readonly _tag: "TypeMatcher"
@@ -137,7 +137,7 @@ export interface TypeMatcher<in Input, out Filters, out Remaining, out Result, o
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Provided, out Return = any>
   extends Pipeable
@@ -162,7 +162,7 @@ export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Prov
  * how values are tested and transformed.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Case = When | Not
 
@@ -190,7 +190,7 @@ export type Case = When | Not
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface When {
   readonly _tag: "When"
@@ -222,7 +222,7 @@ export interface When {
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Not {
   readonly _tag: "Not"
@@ -268,7 +268,7 @@ export interface Not {
  * @see {@link value} for creating a matcher from a specific value.
  *
  * @category Creating a matcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const type: <I>() => Matcher<I, Types.Without<never>, I, never, never> = internal.type
 
@@ -310,7 +310,7 @@ export const type: <I>() => Matcher<I, Types.Without<never>, I, never, never> = 
  * @see {@link type} for creating a matcher from a specific type.
  *
  * @category Creating a matcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const value: <const I>(
   i: I
@@ -341,7 +341,7 @@ export const value: <const I>(
  * ```
  *
  * @category Creating a matcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const valueTags: {
   <
@@ -400,7 +400,7 @@ export const valueTags: {
  * ```
  *
  * @category Creating a matcher
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const typeTags: {
   <I, Ret>(): <
@@ -453,7 +453,7 @@ export const typeTags: {
  * ```
  *
  * @category utils
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
   self: Matcher<I, F, R, A, Pr, _>
@@ -508,7 +508,7 @@ export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
  * @see {@link orElse} Provides a fallback when no patterns match.
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const when: <
   R,
@@ -570,7 +570,7 @@ export const when: <
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const whenOr: <
   R,
@@ -628,7 +628,7 @@ export const whenOr: <
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const whenAnd: <
   R,
@@ -677,7 +677,7 @@ export const whenAnd: <
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const discriminator: <D extends string>(
   field: D
@@ -727,7 +727,7 @@ export const discriminator: <D extends string>(
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const discriminatorStartsWith: <D extends string>(
   field: D
@@ -780,7 +780,7 @@ export const discriminatorStartsWith: <D extends string>(
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const discriminators: <D extends string>(
   field: D
@@ -835,7 +835,7 @@ export const discriminators: <D extends string>(
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const discriminatorsExhaustive: <D extends string>(
   field: D
@@ -892,7 +892,7 @@ export const discriminatorsExhaustive: <D extends string>(
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const tag: <
   R,
@@ -941,7 +941,7 @@ export const tag: <
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const tagStartsWith: <
   R,
@@ -995,7 +995,7 @@ export const tagStartsWith: <
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const tags: <
   R,
@@ -1049,7 +1049,7 @@ export const tags: <
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const tagsExhaustive: <
   R,
@@ -1096,7 +1096,7 @@ export const tagsExhaustive: <
  * ```
  *
  * @category Defining patterns
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const not: <
   R,
@@ -1145,7 +1145,7 @@ export const not: <
  * ```
  *
  * @category Predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptyString
 
@@ -1185,7 +1185,7 @@ export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptySt
  * ```
  *
  * @category Predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const is: <
   Literals extends ReadonlyArray<string | number | bigint | boolean | null>
@@ -1215,7 +1215,7 @@ export const is: <
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const string: Predicate.Refinement<unknown, string> = Predicate.isString
 
@@ -1248,7 +1248,7 @@ export const string: Predicate.Refinement<unknown, string> = Predicate.isString
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
 
@@ -1287,7 +1287,7 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
  * ```
  *
  * @category Predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const any: SafeRefinement<unknown, any> = internal.any
 
@@ -1328,7 +1328,7 @@ export const any: SafeRefinement<unknown, any> = internal.any
  * ```
  *
  * @category Predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const defined: <A>(u: A) => u is A & {} = internal.defined
 
@@ -1361,7 +1361,7 @@ export const defined: <A>(u: A) => u is A & {} = internal.defined
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const boolean: Predicate.Refinement<unknown, boolean> = Predicate.isBoolean
 
@@ -1416,7 +1416,7 @@ export {
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const bigint: Predicate.Refinement<unknown, bigint> = Predicate.isBigInt
 
@@ -1452,7 +1452,7 @@ export const bigint: Predicate.Refinement<unknown, bigint> = Predicate.isBigInt
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
 
@@ -1486,7 +1486,7 @@ export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
 
@@ -1523,7 +1523,7 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }> = Predicate.isObject
 
@@ -1572,7 +1572,7 @@ export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }
  * ```
  *
  * @category Predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const instanceOf: <A extends abstract new(...args: any) => any>(
   constructor: A
@@ -1608,7 +1608,7 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
  * ```
  *
  * @category predicates
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
   constructor: A
@@ -1645,7 +1645,7 @@ export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
  * ```
  *
  * @category Completion
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
   f: F
@@ -1687,7 +1687,7 @@ export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
  * ```
  *
  * @category completion
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const orElseAbsurd: <I, R, RA, A, Pr, Ret>(
   self: Matcher<I, R, RA, A, Pr, Ret>
@@ -1771,7 +1771,7 @@ export const result: <I, F, R, A, Pr, Ret>(
  * ```
  *
  * @category Completion
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const option: <I, F, R, A, Pr, Ret>(
   self: Matcher<I, F, R, A, Pr, Ret>
@@ -1800,7 +1800,7 @@ export const option: <I, F, R, A, Pr, Ret>(
  * ```
  *
  * @category Completion
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const exhaustive: <I, F, A, Pr, Ret>(
   self: Matcher<I, F, never, A, Pr, Ret>
@@ -1835,7 +1835,7 @@ const SafeRefinementId = "~effect/match/Match/SafeRefinement"
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SafeRefinement<in A, out R = A> {
   readonly [SafeRefinementId]: (a: A) => R
@@ -1852,7 +1852,7 @@ type Fail = typeof Fail
  * application. These types enable the sophisticated type inference that makes
  * pattern matching both type-safe and ergonomic.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace Types {
   /**
@@ -1882,7 +1882,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type WhenMatch<R, P> =
     // check for any
@@ -1922,7 +1922,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type NotMatch<R, P> = Exclude<R, ExtractMatch<R, PForNotMatch<P>>>
 
@@ -1950,7 +1950,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type PForMatch<P> = [ResolvePred<P>] extends [infer X] ? X
     : never
@@ -1976,7 +1976,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type PForExclude<P> = [SafeRefinementR<ToSafeRefinement<P>>] extends [infer X] ? X
     : never
@@ -2050,7 +2050,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type PatternBase<A> = A extends ReadonlyArray<infer _T> ? ReadonlyArray<any> | PatternPrimitive<A>
     : A extends Record<string, any> ? Partial<
@@ -2066,7 +2066,7 @@ export declare namespace Types {
    * can be composed into more complex matching logic.
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type PatternPrimitive<A> = PredicateA<A> | A | SafeRefinement<any>
 
@@ -2091,7 +2091,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Without<out X> {
     readonly _tag: "Without"
@@ -2119,7 +2119,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Only<out X> {
     readonly _tag: "Only"
@@ -2148,7 +2148,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type AddWithout<A, X> = [A] extends [Without<infer WX>] ? Without<X | WX>
     : [A] extends [Only<infer OX>] ? Only<Exclude<OX, X>>
@@ -2175,7 +2175,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type AddOnly<A, X> = [A] extends [Without<infer WX>] ? [X] extends [WX] ? never
     : Only<X>
@@ -2210,7 +2210,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type ApplyFilters<I, A> = A extends Only<infer X> ? X
     : A extends Without<infer X> ? Exclude<I, X>
@@ -2245,7 +2245,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type Tags<D extends string, P> = P extends Record<D, infer X> ? X : never
 
@@ -2275,7 +2275,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type ArrayToIntersection<A extends ReadonlyArray<any>> = T.UnionToIntersection<
     A[number]
@@ -2311,7 +2311,7 @@ export declare namespace Types {
    * ```
    *
    * @category types
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type ExtractMatch<I, P> = [ExtractAndNarrow<I, P>] extends [infer EI] ? EI
     : never

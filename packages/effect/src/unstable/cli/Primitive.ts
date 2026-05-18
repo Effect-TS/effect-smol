@@ -55,7 +55,7 @@ const TypeId = "~effect/cli/Primitive"
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Primitive<out A> extends Primitive.Variance<A> {
   readonly _tag: string
@@ -65,14 +65,14 @@ export interface Primitive<out A> extends Primitive.Variance<A> {
 /**
  * Namespace containing type-level helpers for `Primitive`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace Primitive {
   /**
    * Type-level variance marker for the value parsed by a `Primitive`.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Variance<out A> {
     readonly [TypeId]: {
@@ -145,7 +145,7 @@ const makeSchemaPrimitive = <T, E>(
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const boolean: Primitive<boolean> = makeSchemaPrimitive(
   "Boolean",
@@ -174,7 +174,7 @@ export const boolean: Primitive<boolean> = makeSchemaPrimitive(
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const float: Primitive<number> = makeSchemaPrimitive(
   "Float",
@@ -203,7 +203,7 @@ export const float: Primitive<number> = makeSchemaPrimitive(
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const integer: Primitive<number> = makeSchemaPrimitive(
   "Integer",
@@ -232,7 +232,7 @@ export const integer: Primitive<number> = makeSchemaPrimitive(
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const date: Primitive<Date> = makeSchemaPrimitive(
   "Date",
@@ -293,7 +293,7 @@ export const string: Primitive<string> = makePrimitive("String", (value) => Effe
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const choice = <A>(
   choices: ReadonlyArray<readonly [string, A]>
@@ -328,7 +328,7 @@ export const choice = <A>(
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type PathType = "file" | "directory" | "either"
 
@@ -716,7 +716,7 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  * ```
  *
  * @category utils
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const getTypeName = <A>(primitive: Primitive<A>): string => {
   switch (primitive._tag) {

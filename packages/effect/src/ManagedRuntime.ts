@@ -69,7 +69,7 @@ export declare namespace ManagedRuntime {
    * Extracts the services available from a `ManagedRuntime`.
    *
    * @category type-level
-   * @since 4.0.0
+   * @since 3.4.0
    */
   export type Services<T extends ManagedRuntime<never, any>> = [T] extends [ManagedRuntime<infer R, infer _E>] ? R
     : never

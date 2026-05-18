@@ -37,7 +37,7 @@ export type TypeId = typeof TypeId
  * Returns `true` when a value is a `WorkerError`.
  *
  * @category guards
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isWorkerError = (u: unknown): u is WorkerError => hasProperty(u, TypeId)
 
@@ -133,7 +133,7 @@ export const WorkerErrorReason: Schema.Union<[
  * exposing its message and cause.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class WorkerError extends Schema.ErrorClass<WorkerError>(TypeId)({
   _tag: Schema.tag("WorkerError"),

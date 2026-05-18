@@ -24,7 +24,7 @@ import * as DevToolsClient from "./DevToolsClient.ts"
  * Layer that installs the devtools tracer using an existing `Socket`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerSocket: Layer.Layer<never, never, Socket.Socket> = DevToolsClient.layerTracer
 
@@ -33,7 +33,7 @@ export const layerSocket: Layer.Layer<never, never, Socket.Socket> = DevToolsCli
  * specified URL, defaulting to `ws://localhost:34437`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerWebSocket = (
   url = "ws://localhost:34437"
@@ -47,7 +47,7 @@ export const layerWebSocket = (
  * global WebSocket constructor, defaulting to `ws://localhost:34437`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (url = "ws://localhost:34437"): Layer.Layer<never> =>
   layerWebSocket(url).pipe(

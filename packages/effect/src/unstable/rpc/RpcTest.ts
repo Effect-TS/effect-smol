@@ -29,7 +29,7 @@ import * as RpcServer from "./RpcServer.ts"
  * from the environment and using the no-serialization test transport.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeClient: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>(
   group: RpcGroup.RpcGroup<Rpcs>,

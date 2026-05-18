@@ -35,7 +35,7 @@ const TypeId = "~effect/http/HttpBody"
  * Returns `true` if the provided value is an `HttpBody`.
  *
  * @category refinements
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const isHttpBody = (u: unknown): u is HttpBody => Predicate.hasProperty(u, TypeId)
 
@@ -45,14 +45,14 @@ export const isHttpBody = (u: unknown): u is HttpBody => Predicate.hasProperty(u
  * Supported variants include empty bodies, raw bodies, byte arrays, `FormData`, and streams of bytes.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type HttpBody = Empty | Raw | Uint8Array | FormData | Stream
 
 /**
  * Namespace containing type-level members associated with `HttpBody`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace HttpBody {
   /**
@@ -61,7 +61,7 @@ export declare namespace HttpBody {
    * It carries the variant tag plus optional `contentType` and `contentLength` metadata.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Proto extends Inspectable.Inspectable {
     readonly [TypeId]: typeof TypeId
@@ -74,7 +74,7 @@ export declare namespace HttpBody {
    * Minimal Web `File`-like shape used by HTTP helpers that need file metadata.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface FileLike {
     readonly name: string
@@ -91,7 +91,7 @@ const HttpBodyErrorTypeId = "~effect/http/HttpBody/HttpBodyError"
  * Error produced while constructing an HTTP body from JSON or schema-encoded input.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
   readonly reason: ErrorReason
@@ -111,7 +111,7 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
  * `JsonError` represents a `JSON.stringify` failure; `SchemaError` represents a schema encoding issue.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ErrorReason = {
   readonly _tag: "JsonError"
@@ -139,7 +139,7 @@ abstract class Proto implements HttpBody.Proto {
  * HTTP body variant representing the absence of request content.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Empty extends Proto {
   readonly _tag = "Empty"
@@ -155,7 +155,7 @@ export class Empty extends Proto {
  * Singleton empty HTTP body.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const empty: Empty = new Empty()
 
@@ -163,7 +163,7 @@ export const empty: Empty = new Empty()
  * HTTP body variant containing an arbitrary runtime body value with optional content metadata.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Raw extends Proto {
   readonly _tag = "Raw"
@@ -196,7 +196,7 @@ export class Raw extends Proto {
  * Creates a raw HTTP body from an arbitrary value and optional `contentType` and `contentLength` metadata.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const raw = (
   body: unknown,
@@ -212,7 +212,7 @@ export const raw = (
  * It stores the bytes, content type, and byte length.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Uint8Array extends Proto {
   readonly _tag = "Uint8Array"
@@ -248,7 +248,7 @@ export class Uint8Array extends Proto {
  * The content type defaults to `application/octet-stream`, and the content length is the byte array length.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const uint8Array = (body: globalThis.Uint8Array, contentType?: string): Uint8Array =>
   new Uint8Array(body, contentType ?? "application/octet-stream", body.length)
@@ -261,7 +261,7 @@ const encoder = new TextEncoder()
  * The content type defaults to `text/plain`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const text = (body: string, contentType?: string): Uint8Array =>
   uint8Array(encoder.encode(body), contentType ?? "text/plain")
@@ -283,7 +283,7 @@ export const jsonUnsafe = (body: unknown, contentType?: string): Uint8Array =>
  * `JSON.stringify` failures are captured as `HttpBodyError` values, and the content type defaults to `application/json`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Array, HttpBodyError> =>
   Effect.try({
@@ -297,7 +297,7 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
  * Schema encoding issues and JSON serialization failures are returned as `HttpBodyError` values.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const jsonSchema = <S extends Schema.Top>(
   schema: S,
@@ -315,7 +315,7 @@ export const jsonSchema = <S extends Schema.Top>(
  * Creates an `application/x-www-form-urlencoded` HTTP body from `UrlParams`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string): Uint8Array =>
   text(UrlParams.toString(urlParams), contentType ?? "application/x-www-form-urlencoded")
@@ -326,7 +326,7 @@ export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string):
  * The content type and content length are left unset so the runtime can supply multipart boundaries.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class FormData extends Proto {
   readonly _tag = "FormData"
@@ -353,7 +353,7 @@ export class FormData extends Proto {
  * Wraps a Web `FormData` value as an HTTP body.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const formData = (body: globalThis.FormData): FormData => new FormData(body)
 
@@ -363,7 +363,7 @@ export const formData = (body: globalThis.FormData): FormData => new FormData(bo
  * Each field may be a single coercible value or an array of coercible values.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FormDataInput = Record<string, FormDataCoercible | ReadonlyArray<FormDataCoercible>>
 
@@ -373,7 +373,7 @@ export type FormDataInput = Record<string, FormDataCoercible | ReadonlyArray<For
  * `File` and `Blob` values are appended directly, primitive values are converted to strings, and `null` or `undefined` values are skipped.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FormDataCoercible = string | number | boolean | globalThis.File | globalThis.Blob | null | undefined
 
@@ -394,7 +394,7 @@ const appendFormDataValue = (formData: globalThis.FormData, key: string, value: 
  * Array fields append each item under the same key; primitive values are stringified, `File` and `Blob` values are appended directly, and nullish values are skipped.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const formDataRecord = (entries: FormDataInput): FormData => {
   const data = new globalThis.FormData()
@@ -414,7 +414,7 @@ export const formDataRecord = (entries: FormDataInput): FormData => {
  * HTTP body variant backed by a stream of `Uint8Array` chunks.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class Stream extends Proto {
   readonly _tag = "Stream"
@@ -448,7 +448,7 @@ export class Stream extends Proto {
  * The content type defaults to `application/octet-stream`; content length is optional.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const stream = (
   body: Stream_.Stream<globalThis.Uint8Array, unknown>,
@@ -462,7 +462,7 @@ export const stream = (
  * The effect requires `FileSystem`, stats the file to set the content length, and can fail with `PlatformError`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const file = (
   path: string,

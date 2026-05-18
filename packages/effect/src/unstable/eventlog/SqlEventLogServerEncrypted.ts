@@ -40,7 +40,7 @@ import * as EventLogServerEncrypted from "./EventLogServerEncrypted.ts"
  * needed.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -314,7 +314,7 @@ const decodeSessionAuthBindings = (
  * Provides encrypted server `Storage` using the SQL-backed implementation.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -331,7 +331,7 @@ export const layerStorage = (options?: {
  * Crypto `EventLogEncryption` layer.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerStorageSubtle = (options?: {
   readonly entryTablePrefix?: string

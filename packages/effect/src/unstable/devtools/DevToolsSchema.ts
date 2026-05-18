@@ -29,7 +29,7 @@ import * as SchemaTransformation from "../../SchemaTransformation.ts"
  * ended.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SpanStatusStarted = Schema.Struct({
   _tag: Schema.tag("Started"),
@@ -40,7 +40,7 @@ export const SpanStatusStarted = Schema.Struct({
  * Type of a span status representing a span that has started but not yet ended.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SpanStatusStarted = Schema.Schema.Type<typeof SpanStatusStarted>
 
@@ -50,7 +50,7 @@ export type SpanStatusStarted = Schema.Schema.Type<typeof SpanStatusStarted>
  * `Exit.asVoid`.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SpanStatusEnded = Schema.Struct({
   _tag: Schema.tag("Ended"),
@@ -72,7 +72,7 @@ export const SpanStatusEnded = Schema.Struct({
  * and exit status.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SpanStatusEnded = Schema.Schema.Type<typeof SpanStatusEnded>
 
@@ -80,7 +80,7 @@ export type SpanStatusEnded = Schema.Schema.Type<typeof SpanStatusEnded>
  * Schema for devtools span status, either started or ended.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SpanStatus = Schema.Union([SpanStatusStarted, SpanStatusEnded])
 
@@ -88,7 +88,7 @@ export const SpanStatus = Schema.Union([SpanStatusStarted, SpanStatusEnded])
  * Type of a devtools span status, either started or ended.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SpanStatus = Schema.Schema.Type<typeof SpanStatus>
 
@@ -97,7 +97,7 @@ export type SpanStatus = Schema.Schema.Type<typeof SpanStatus>
  * devtools span tree.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ExternalSpan {
   readonly _tag: "ExternalSpan"
@@ -111,7 +111,7 @@ export interface ExternalSpan {
  * sampling flag.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ExternalSpan: Schema.Codec<ExternalSpan> = Schema.Struct({
   _tag: Schema.tag("ExternalSpan"),
@@ -125,7 +125,7 @@ export const ExternalSpan: Schema.Codec<ExternalSpan> = Schema.Struct({
  * attributes, status, sampling flag, and optional parent span.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Span {
   readonly _tag: "Span"
@@ -142,7 +142,7 @@ export interface Span {
  * Schema for an Effect span telemetry payload sent to devtools.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Span: Schema.Codec<Span> = Schema.Struct({
   _tag: Schema.tag("Span"),
@@ -160,7 +160,7 @@ export const Span: Schema.Codec<Span> = Schema.Struct({
  * start time, and optional attributes.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SpanEvent = Schema.Struct({
   _tag: Schema.tag("SpanEvent"),
@@ -175,7 +175,7 @@ export const SpanEvent = Schema.Struct({
  * Type of a named event emitted by a span and sent to devtools.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type SpanEvent = Schema.Schema.Type<typeof SpanEvent>
 
@@ -184,7 +184,7 @@ export type SpanEvent = Schema.Schema.Type<typeof SpanEvent>
  * `ExternalSpan` context.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ParentSpan = Span | ExternalSpan
 
@@ -193,7 +193,7 @@ export type ParentSpan = Span | ExternalSpan
  * `ExternalSpan` context.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const ParentSpan = Schema.Union([Span, ExternalSpan])
 
@@ -201,7 +201,7 @@ export const ParentSpan = Schema.Union([Span, ExternalSpan])
  * Schema for the devtools heartbeat request sent by the client.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Ping = Schema.Struct({
   _tag: Schema.tag("Ping")
@@ -211,7 +211,7 @@ export const Ping = Schema.Struct({
  * Type of the devtools heartbeat request sent by the client.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Ping = Schema.Schema.Type<typeof Ping>
 
@@ -219,7 +219,7 @@ export type Ping = Schema.Schema.Type<typeof Ping>
  * Schema for the devtools heartbeat response.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Pong = Schema.Struct({
   _tag: Schema.tag("Pong")
@@ -229,7 +229,7 @@ export const Pong = Schema.Struct({
  * Type of the devtools heartbeat response.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Pong = Schema.Schema.Type<typeof Pong>
 
@@ -237,7 +237,7 @@ export type Pong = Schema.Schema.Type<typeof Pong>
  * Schema for a devtools request asking the client to send a metrics snapshot.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const MetricsRequest = Schema.Struct({
   _tag: Schema.tag("MetricsRequest")
@@ -247,7 +247,7 @@ export const MetricsRequest = Schema.Struct({
  * Type of a devtools request asking the client to send a metrics snapshot.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MetricsRequest = Schema.Schema.Type<typeof MetricsRequest>
 
@@ -255,7 +255,7 @@ export type MetricsRequest = Schema.Schema.Type<typeof MetricsRequest>
  * Schema for a metric label key/value pair in a devtools metrics snapshot.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const MetricLabel = Schema.Struct({
   key: Schema.String,
@@ -266,7 +266,7 @@ export const MetricLabel = Schema.Struct({
  * Type of a metric label key/value pair in a devtools metrics snapshot.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MetricLabel = Schema.Schema.Type<typeof MetricLabel>
 
@@ -284,7 +284,7 @@ const metric = <Type extends string, State extends Schema.Top>(type: Type, state
  * are incremental.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Counter = metric(
   "Counter",
@@ -301,7 +301,7 @@ export const Counter = metric(
  * incremental updates.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Counter = Schema.Schema.Type<typeof Counter>
 
@@ -311,7 +311,7 @@ export type Counter = Schema.Schema.Type<typeof Counter>
  * The metric state records occurrence counts by string key.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Frequency = metric(
   "Frequency",
@@ -326,7 +326,7 @@ export const Frequency = metric(
  * The state maps observed string values to occurrence counts.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Frequency = Schema.Schema.Type<typeof Frequency>
 
@@ -336,7 +336,7 @@ export type Frequency = Schema.Schema.Type<typeof Frequency>
  * The metric state contains the current numeric or bigint value.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Gauge = metric(
   "Gauge",
@@ -351,7 +351,7 @@ export const Gauge = metric(
  * The state contains the current numeric or bigint value.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Gauge = Schema.Schema.Type<typeof Gauge>
 
@@ -362,7 +362,7 @@ export type Gauge = Schema.Schema.Type<typeof Gauge>
  * maximum, and sum.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Histogram = metric(
   "Histogram",
@@ -382,7 +382,7 @@ export const Histogram = metric(
  * sum.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Histogram = Schema.Schema.Type<typeof Histogram>
 
@@ -393,7 +393,7 @@ export type Histogram = Schema.Schema.Type<typeof Histogram>
  * maximum, and sum.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Summary = metric(
   "Summary",
@@ -413,7 +413,7 @@ export const Summary = metric(
  * and sum.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Summary = Schema.Schema.Type<typeof Summary>
 
@@ -424,7 +424,7 @@ export type Summary = Schema.Schema.Type<typeof Summary>
  * summaries.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Metric = Schema.Union([Counter, Frequency, Gauge, Histogram, Summary])
 
@@ -434,7 +434,7 @@ export const Metric = Schema.Union([Counter, Frequency, Gauge, Histogram, Summar
  * The union covers counters, frequencies, gauges, histograms, and summaries.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Metric = Schema.Schema.Type<typeof Metric>
 
@@ -443,7 +443,7 @@ export type Metric = Schema.Schema.Type<typeof Metric>
  * snapshots.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const MetricsSnapshot = Schema.Struct({
   _tag: Schema.tag("MetricsSnapshot"),
@@ -454,7 +454,7 @@ export const MetricsSnapshot = Schema.Struct({
  * Type of a devtools protocol message containing the current metric snapshots.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type MetricsSnapshot = Schema.Schema.Type<typeof MetricsSnapshot>
 
@@ -464,7 +464,7 @@ export type MetricsSnapshot = Schema.Schema.Type<typeof MetricsSnapshot>
  * Requests include heartbeat pings, spans, span events, and metric snapshots.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Request = Schema.Union([Ping, Span, SpanEvent, MetricsSnapshot])
 
@@ -474,14 +474,14 @@ export const Request = Schema.Union([Ping, Span, SpanEvent, MetricsSnapshot])
  * Requests include heartbeat pings, spans, span events, and metric snapshots.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Request = Schema.Schema.Type<typeof Request>
 
 /**
  * Namespace containing helper types for devtools protocol requests.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace Request {
   /**
@@ -491,7 +491,7 @@ export declare namespace Request {
    * to client handlers.
    *
    * @category schemas
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type WithoutPing = Exclude<Request, { readonly _tag: "Ping" }>
 }
@@ -502,7 +502,7 @@ export declare namespace Request {
  * Responses include heartbeat pongs and requests for metric snapshots.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Response = Schema.Union([Pong, MetricsRequest])
 
@@ -512,14 +512,14 @@ export const Response = Schema.Union([Pong, MetricsRequest])
  * Responses include heartbeat pongs and requests for metric snapshots.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Response = Schema.Schema.Type<typeof Response>
 
 /**
  * Namespace containing helper types for devtools protocol responses.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace Response {
   /**
@@ -529,7 +529,7 @@ export declare namespace Response {
    * from client handlers.
    *
    * @category schemas
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export type WithoutPong = Exclude<Response, { readonly _tag: "Pong" }>
 }

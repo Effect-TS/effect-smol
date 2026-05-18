@@ -37,7 +37,7 @@ import type { SqlError } from "./SqlError.ts"
  * schema dump directory, and migrations table name.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface MigratorOptions<R = never> {
   readonly loader: Loader<R>
@@ -50,7 +50,7 @@ export interface MigratorOptions<R = never> {
  * `MigrationError`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type Loader<R = never> = Effect.Effect<
   ReadonlyArray<ResolvedMigration>,
@@ -63,7 +63,7 @@ export type Loader<R = never> = Effect.Effect<
  * name, and an effect that loads the migration implementation.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type ResolvedMigration = readonly [
   id: number,
@@ -76,7 +76,7 @@ export type ResolvedMigration = readonly [
  * name, and creation timestamp.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Migration {
   readonly id: number
@@ -88,7 +88,7 @@ export interface Migration {
  * Error raised while loading, validating, locking, or running SQL migrations.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class MigrationError extends Data.TaggedError("MigrationError")<{
   readonly _tag: "MigrationError"
@@ -108,7 +108,7 @@ export class MigrationError extends Data.TaggedError("MigrationError")<{
  * migrations.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = <RD = never>({
   dumpSchema = () => Effect.void
@@ -345,7 +345,7 @@ const isConstraintConflict = (error: SqlError): boolean =>
  * migrations by id.
  *
  * @category loaders
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromGlob = (
   migrations: Record<string, () => Promise<any>>
@@ -369,7 +369,7 @@ export const fromGlob = (
  * as `_<id>_<name>Js` or `_<id>_<name>Ts` and sorting migrations by id.
  *
  * @category loaders
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   pipe(
@@ -391,7 +391,7 @@ export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
  * `<id>_<name>`, sorted by migration id.
  *
  * @category loaders
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknown, Client.SqlClient>>): Loader =>
   pipe(

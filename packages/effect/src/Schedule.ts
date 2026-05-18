@@ -863,7 +863,7 @@ export const andThenResult: {
  * ```
  *
  * @category utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const both: {
   <Output2, Input2, Error2, Env2, Output>(
@@ -911,7 +911,7 @@ export const both: {
  * ```
  *
  * @category utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bothLeft: {
   <Output2, Input2, Error2, Env2>(
@@ -960,7 +960,7 @@ export const bothLeft: {
  * ```
  *
  * @category utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bothRight: {
   <Output2, Input2, Error2, Env2>(
@@ -1014,7 +1014,7 @@ export const bothRight: {
  * ```
  *
  * @category utils
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const bothWith: {
   <Output2, Input2, Error2, Env2, Output, Output3>(
@@ -3103,7 +3103,7 @@ export {
    * the schedule will stop.
    *
    * @category utils
-   * @since 2.0.0
+   * @since 4.0.0
    */
   while_ as while
 }

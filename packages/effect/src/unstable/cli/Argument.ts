@@ -83,7 +83,7 @@ export const string = (name: string): Argument<string> => Param.string(Param.arg
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const integer = (name: string): Argument<number> => Param.integer(Param.argumentKind, name)
 
@@ -100,7 +100,7 @@ export const integer = (name: string): Argument<number> => Param.integer(Param.a
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const file = (name: string, options?: {
   readonly mustExist?: boolean | undefined
@@ -118,7 +118,7 @@ export const file = (name: string, options?: {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const directory = (name: string, options?: {
   readonly mustExist?: boolean | undefined
@@ -136,7 +136,7 @@ export const directory = (name: string, options?: {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const float = (name: string): Argument<number> => Param.float(Param.argumentKind, name)
 
@@ -152,7 +152,7 @@ export const float = (name: string): Argument<number> => Param.float(Param.argum
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const date = (name: string): Argument<Date> => Param.date(Param.argumentKind, name)
 
@@ -168,7 +168,7 @@ export const date = (name: string): Argument<Date> => Param.date(Param.argumentK
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const choice = <const Choices extends ReadonlyArray<string>>(
   name: string,
@@ -187,7 +187,7 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const path = (name: string, options?: {
   pathType?: "file" | "directory" | "either"
@@ -206,7 +206,7 @@ export const path = (name: string, options?: {
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const redacted = (name: string): Argument<Redacted.Redacted<string>> => Param.redacted(Param.argumentKind, name)
 
@@ -222,7 +222,7 @@ export const redacted = (name: string): Argument<Redacted.Redacted<string>> => P
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fileText = (name: string): Argument<string> => Param.fileText(Param.argumentKind, name)
 
@@ -242,7 +242,7 @@ export const fileText = (name: string): Argument<string> => Param.fileText(Param
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fileParse = (
   name: string,
@@ -267,7 +267,7 @@ export const fileParse = (
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fileSchema = <A>(
   name: string,
@@ -288,7 +288,7 @@ export const fileSchema = <A>(
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const none: Argument<never> = Param.none(Param.argumentKind)
 
@@ -308,7 +308,7 @@ export const none: Argument<never> = Param.none(Param.argumentKind)
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const optional = <A>(arg: Argument<A>): Argument<Option.Option<A>> => Param.optional(arg)
 
@@ -326,7 +326,7 @@ export const optional = <A>(arg: Argument<A>): Argument<Option.Option<A>> => Par
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withDescription: {
   <A>(description: string): (self: Argument<A>) => Argument<A>
@@ -345,7 +345,7 @@ export const withDescription: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withDefault: {
   <const B>(
@@ -372,7 +372,7 @@ export const withDefault: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withFallbackConfig: {
   <B>(config: Config.Config<B>): <A>(self: Argument<A>) => Argument<A | B>
@@ -447,7 +447,7 @@ export const variadic: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const map: {
   <A, B>(f: (a: A) => B): (self: Argument<A>) => Argument<B>
@@ -477,7 +477,7 @@ export const map: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const mapEffect: {
   <A, B>(
@@ -510,7 +510,7 @@ export const mapEffect: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const mapTryCatch: {
   <A, B>(
@@ -536,7 +536,7 @@ export const mapTryCatch: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const atLeast: {
   <A>(min: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
@@ -555,7 +555,7 @@ export const atLeast: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const atMost: {
   <A>(max: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
@@ -574,7 +574,7 @@ export const atMost: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const between: {
   <A>(min: number, max: number): (self: Argument<A>) => Argument<ReadonlyArray<A>>
@@ -596,7 +596,7 @@ export const between: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): (self: Argument<A>) => Argument<B>

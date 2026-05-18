@@ -42,7 +42,7 @@ import type { WorkflowEngine } from "./WorkflowEngine.ts"
  * resume endpoints to the supplied workflows.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerHttpApi = <
   ApiId extends string,
@@ -109,7 +109,7 @@ export const layerHttpApi = <
  * and resume RPCs to workflow operations.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerRpcHandlers = <
   const Workflows extends NonEmptyReadonlyArray<Workflow.Any>,
@@ -157,7 +157,7 @@ export const layerRpcHandlers = <
  * execute, discard, and resume RPCs.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type RpcHandlers<Workflows extends Workflow.Any, Prefix extends string> = Workflows extends Workflow.Workflow<
   infer _Name,

@@ -388,7 +388,7 @@ const QueueProto = {
  * - `Mailbox.make`
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  * **Example** (Creating queues)
  *
  * ```ts

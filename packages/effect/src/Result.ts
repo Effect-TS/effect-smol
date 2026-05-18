@@ -382,7 +382,7 @@ export {
    * @see {@link succeed}
    *
    * @category constructors
-   * @since 4.0.0
+   * @since 3.13.0
    */
   void_ as void
 }
@@ -526,7 +526,7 @@ export {
    * @see {@link fromNullishOr} for nullable values
    *
    * @category constructors
-   * @since 4.0.0
+   * @since 2.0.0
    */
   try_ as try
 }
@@ -1325,7 +1325,7 @@ export const andThen: {
  * @see {@link gen} for generator-based composition of multiple Results
  *
  * @category sequencing
- * @since 4.0.0
+ * @since 2.0.0
  */
 // @ts-expect-error
 export const all: <const I extends Iterable<Result<any, any>> | Record<string, Result<any, any>>>(
@@ -1578,7 +1578,7 @@ export {
    * @see {@link bind} for Result-producing fields
    *
    * @category Do Notation
-   * @since 4.0.0
+   * @since 2.0.0
    */
   let_ as let
 }

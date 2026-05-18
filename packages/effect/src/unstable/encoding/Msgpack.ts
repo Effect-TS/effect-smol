@@ -41,7 +41,7 @@ const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
  * unpacking, and `cause` preserves the original error.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class MsgPackError extends Data.TaggedError("MsgPackError")<{
   readonly kind: "Pack" | "Unpack"
@@ -199,7 +199,7 @@ export const decodeSchema = <S extends Schema.Top>(
  * channel, and incoming bytes are unpacked into values.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const duplex = <R, IE, OE, OutDone, InDone>(
   self: Channel.Channel<
@@ -234,7 +234,7 @@ export const duplex = <R, IE, OE, OutDone, InDone>(
  * `outputSchema`.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const duplexSchema: {
   <In extends Schema.Top, Out extends Schema.Top>(
@@ -315,7 +315,7 @@ export const duplexSchema: {
  * encodes the target type back to bytes.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.instanceOf<Uint8Array<ArrayBuffer>>> {}
 
@@ -362,7 +362,7 @@ export const transformation: Transformation.Transformation<
  * provided schema, and encodes values back to MessagePack bytes.
  *
  * @category schemas
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const schema = <S extends Schema.Top>(schema: S): schema<S> =>
   (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>).pipe(

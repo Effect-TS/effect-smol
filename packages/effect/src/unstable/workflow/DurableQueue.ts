@@ -31,7 +31,7 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
  * Type-level identifier used to recognize `DurableQueue` values.
  *
  * @category type IDs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type TypeId = "~effect/workflow/DurableQueue"
 
@@ -39,7 +39,7 @@ export type TypeId = "~effect/workflow/DurableQueue"
  * Runtime identifier attached to `DurableQueue` values.
  *
  * @category type IDs
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/workflow/DurableQueue"
 
@@ -48,7 +48,7 @@ export const TypeId: TypeId = "~effect/workflow/DurableQueue"
  * key, and deferred used to await worker results.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface DurableQueue<
   Payload extends Schema.Top,
@@ -116,7 +116,7 @@ export interface DurableQueue<
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = <
   Payload extends Schema.Top | Schema.Struct.Fields,
@@ -177,7 +177,7 @@ const getQueueSchema = <Payload extends Schema.Top>(
  * Add an item to the queue and wait for a worker to process it.
  *
  * @category Processing
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const process: <
   Payload extends Schema.Top,
@@ -253,7 +253,7 @@ const defaultRetrySchedule = Schedule.exponential(500, 1.5).pipe(
  * Create a worker effect that processes items from the durable queue.
  *
  * @category Worker
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeWorker: <
   Payload extends Schema.Top,
@@ -340,7 +340,7 @@ export const makeWorker: <
  * Create a layer that runs workers for the durable queue.
  *
  * @category Worker
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const worker: <
   Payload extends Schema.Top,

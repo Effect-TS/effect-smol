@@ -37,7 +37,7 @@ const TypeId = "~effect/cluster/ClusterError"
  * that it is not assigned to it.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class EntityNotAssignedToRunner
   extends Schema.ErrorClass<EntityNotAssignedToRunner>(`${TypeId}/EntityNotAssignedToRunner`)({
@@ -67,7 +67,7 @@ export class EntityNotAssignedToRunner
  * deserialized by an entity.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${TypeId}/MalformedMessage`)({
   _tag: Schema.tag("MalformedMessage"),
@@ -106,7 +106,7 @@ export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${Typ
  * cluster's mailbox storage.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class PersistenceError extends Schema.ErrorClass<PersistenceError>(`${TypeId}/PersistenceError`)({
   _tag: Schema.tag("PersistenceError"),
@@ -134,7 +134,7 @@ export class PersistenceError extends Schema.ErrorClass<PersistenceError>(`${Typ
  * manager.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class RunnerNotRegistered extends Schema.ErrorClass<RunnerNotRegistered>(`${TypeId}/RunnerNotRegistered`)({
   _tag: Schema.tag("RunnerNotRegistered"),
@@ -152,7 +152,7 @@ export class RunnerNotRegistered extends Schema.ErrorClass<RunnerNotRegistered>(
  * Represents an error that occurs when a Runner is unresponsive.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class RunnerUnavailable extends Schema.ErrorClass<RunnerUnavailable>(`${TypeId}/RunnerUnavailable`)({
   _tag: Schema.tag("RunnerUnavailable"),
@@ -179,7 +179,7 @@ export class RunnerUnavailable extends Schema.ErrorClass<RunnerUnavailable>(`${T
  * Represents an error that occurs when the entities mailbox is full.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class MailboxFull extends Schema.ErrorClass<MailboxFull>(`${TypeId}/MailboxFull`)({
   _tag: Schema.tag("MailboxFull"),
@@ -207,7 +207,7 @@ export class MailboxFull extends Schema.ErrorClass<MailboxFull>(`${TypeId}/Mailb
  * request.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class AlreadyProcessingMessage
   extends Schema.ErrorClass<AlreadyProcessingMessage>(`${TypeId}/AlreadyProcessingMessage`)({

@@ -103,7 +103,7 @@ import * as Param from "./Param.ts"
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Command<in out Name extends string, in Input, out ContextInput = {}, out E = never, out R = never>
   extends
@@ -158,7 +158,7 @@ export interface Command<in out Name extends string, in Input, out ContextInput 
  * Companion namespace containing type-level helpers and configuration shapes
  * used by `Command`.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace Command {
   /**
@@ -222,7 +222,7 @@ export declare namespace Command {
    * ```
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface Config {
     readonly [key: string]:
@@ -249,7 +249,7 @@ export declare namespace Command {
   /**
    * Utilities for working with command configurations.
    *
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export namespace Config {
     /**
@@ -493,7 +493,7 @@ export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: {
   <Name extends string>(name: Name): Command<Name, {}, {}, never, never>
@@ -548,7 +548,7 @@ export const make: {
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withHandler: {
   <A, R, E>(
@@ -654,7 +654,7 @@ const normalizeSubcommandEntries = (
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withSubcommands: {
   <const Subcommands extends ReadonlyArray<Command.SubcommandEntry>>(
@@ -939,7 +939,7 @@ type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> 
  * ```
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const withDescription: {
   (description: string): <const Name extends string, Input, E, R, ContextInput>(
@@ -1133,7 +1133,7 @@ const mapHandler = <Name extends string, Input, E, R, ContextInput, E2, R2>(
  * ```
  *
  * @category providing services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const provide: {
   <Input, LR, LE, LA>(
@@ -1166,7 +1166,7 @@ export const provide: {
  * optionally depends on the command-line input to be constructed.
  *
  * @category providing services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const provideSync: {
   <I, S, Input>(
@@ -1197,7 +1197,7 @@ export const provideSync: {
  * that optionally depends on the command-line input to be created.
  *
  * @category providing services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const provideEffect: {
   <I, S, Input, R2, E2>(
@@ -1227,7 +1227,7 @@ export const provideEffect: {
  * input to be created, prior to executing the handler of a command.
  *
  * @category providing services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const provideEffectDiscard: {
   <_, Input, E2, R2>(
@@ -1327,7 +1327,7 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
  * ```
  *
  * @category command execution
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const run: {
   (config: {

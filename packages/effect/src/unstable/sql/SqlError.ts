@@ -391,7 +391,7 @@ export const SqlErrorReason: Schema.Union<[
  * values are derived from its `SqlErrorReason`.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlError")("SqlError", {
   reason: SqlErrorReason
@@ -580,7 +580,7 @@ export const classifySqliteError = (
  * of result rows than requests.
  *
  * @category errors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class ResultLengthMismatch
   extends Schema.TaggedErrorClass<ResultLengthMismatch>("effect/sql/ResultLengthMismatch")("ResultLengthMismatch", {

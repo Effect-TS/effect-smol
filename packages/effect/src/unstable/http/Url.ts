@@ -69,7 +69,7 @@ import * as UrlParams from "./UrlParams.ts"
  * ```
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromString: {
   (url: string, base?: string | URL | undefined): Result.Result<URL, Cause.IllegalArgumentError>
@@ -101,7 +101,7 @@ export const fromString: {
  * ```
  *
  * @category Modifiers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const mutate: {
   (f: (url: URL) => void): (self: URL) => URL
@@ -126,7 +126,7 @@ const immutableURLSetter = <P extends keyof URL, A = never>(property: P): {
  * Updates the hash fragment of the URL.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setHash: {
   (hash: string): (url: URL) => URL
@@ -137,7 +137,7 @@ export const setHash: {
  * Updates the host (domain and port) of the URL.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setHost: {
   (host: string): (url: URL) => URL
@@ -148,7 +148,7 @@ export const setHost: {
  * Updates the domain of the URL without modifying the port.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setHostname: {
   (hostname: string): (url: URL) => URL
@@ -159,7 +159,7 @@ export const setHostname: {
  * Replaces the entire URL string.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setHref: {
   (href: string): (url: URL) => URL
@@ -170,7 +170,7 @@ export const setHref: {
  * Updates the password used for authentication.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setPassword: {
   (password: string | Redacted.Redacted): (url: URL) => URL
@@ -186,7 +186,7 @@ export const setPassword: {
  * Updates the path of the URL.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setPathname: {
   (pathname: string): (url: URL) => URL
@@ -197,7 +197,7 @@ export const setPathname: {
  * Updates the port of the URL.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setPort: {
   (port: string | number): (url: URL) => URL
@@ -208,7 +208,7 @@ export const setPort: {
  * Updates the protocol (e.g., `http`, `https`).
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setProtocol: {
   (protocol: string): (url: URL) => URL
@@ -219,7 +219,7 @@ export const setProtocol: {
  * Updates the query string of the URL.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setSearch: {
   (search: string): (url: URL) => URL
@@ -230,7 +230,7 @@ export const setSearch: {
  * Updates the username used for authentication.
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setUsername: {
   (username: string): (url: URL) => URL
@@ -264,7 +264,7 @@ export const setUsername: {
  * ```
  *
  * @category Setters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const setUrlParams: {
   (urlParams: UrlParams.UrlParams): (url: URL) => URL
@@ -298,7 +298,7 @@ export const setUrlParams: {
  * ```
  *
  * @category getters
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(url.searchParams)
 
@@ -326,7 +326,7 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * ```
  *
  * @category Modifiers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const modifyUrlParams: {
   (f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): (url: URL) => URL

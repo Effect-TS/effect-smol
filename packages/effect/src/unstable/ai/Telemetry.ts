@@ -48,7 +48,7 @@ import type * as Response from "./Response.ts"
  * {@see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/}
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type GenAITelemetryAttributes = Struct.Simplify<
   & AttributesWithPrefix<BaseAttributes, "gen_ai">
@@ -63,7 +63,7 @@ export type GenAITelemetryAttributes = Struct.Simplify<
  * All telemetry attributes which are part of the GenAI specification.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AllAttributes =
   & BaseAttributes
@@ -78,7 +78,7 @@ export type AllAttributes =
  * namespaced by `gen_ai`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface BaseAttributes {
   /**
@@ -93,7 +93,7 @@ export interface BaseAttributes {
  * namespaced by `gen_ai.operation`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface OperationAttributes {
   readonly name?: (string & {}) | WellKnownOperationName | null | undefined
@@ -104,7 +104,7 @@ export interface OperationAttributes {
  * namespaced by `gen_ai.token`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TokenAttributes {
   readonly type?: string | null | undefined
@@ -115,7 +115,7 @@ export interface TokenAttributes {
  * namespaced by `gen_ai.usage`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UsageAttributes {
   readonly inputTokens?: number | null | undefined
@@ -127,7 +127,7 @@ export interface UsageAttributes {
  * namespaced by `gen_ai.request`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface RequestAttributes {
   /**
@@ -179,7 +179,7 @@ export interface RequestAttributes {
  * namespaced by `gen_ai.response`.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface ResponseAttributes {
   /**
@@ -205,7 +205,7 @@ export interface ResponseAttributes {
  * otherwise, a custom value **MAY** be used.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type WellKnownOperationName = "chat" | "embeddings" | "text_completion"
 
@@ -216,7 +216,7 @@ export type WellKnownOperationName = "chat" | "embeddings" | "text_completion"
  * otherwise, a custom value **MAY** be used.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type WellKnownSystem =
   | "anthropic"
@@ -261,7 +261,7 @@ export type WellKnownSystem =
  * ```
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type AttributesWithPrefix<Attributes extends Record<string, any>, Prefix extends string> = {
   [Name in keyof Attributes as `${Prefix}.${FormatAttributeName<Name>}`]: Attributes[Name]
@@ -284,7 +284,7 @@ export type AttributesWithPrefix<Attributes extends Record<string, any>, Prefix 
  * ```
  *
  * @category utility types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type FormatAttributeName<T extends string | number | symbol> = T extends string ?
   T extends `${infer First}${infer Rest}`
@@ -321,7 +321,7 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
  * ```
  *
  * @category utils
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const addSpanAttributes = (
   /**
@@ -391,7 +391,7 @@ const addSpanUsageAttributes = addSpanAttributes("gen_ai.usage", String.camelToS
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type GenAITelemetryAttributeOptions = BaseAttributes & {
   /**
@@ -442,7 +442,7 @@ export type GenAITelemetryAttributeOptions = BaseAttributes & {
  * ```
  *
  * @category utils
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const addGenAIAnnotations: {
   (options: GenAITelemetryAttributeOptions): (span: Span) => void
@@ -479,7 +479,7 @@ export const addGenAIAnnotations: {
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SpanTransformer {
   (
@@ -497,7 +497,7 @@ export interface SpanTransformer {
  * operations.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class CurrentSpanTransformer extends Context.Service<CurrentSpanTransformer, SpanTransformer>()(
   "effect/ai/Telemetry/CurrentSpanTransformer"

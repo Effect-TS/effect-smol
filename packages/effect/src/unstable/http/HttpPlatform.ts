@@ -39,7 +39,7 @@ import * as Response from "./HttpServerResponse.ts"
  * Service for platform-specific HTTP response helpers, including file-backed server responses.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class HttpPlatform extends Context.Service<HttpPlatform, {
   readonly fileResponse: (
@@ -64,7 +64,7 @@ export class HttpPlatform extends Context.Service<HttpPlatform, {
  * Creates an `HttpPlatform` service from platform-specific file response constructors, using `FileSystem` and `Etag.Generator`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: (impl: {
   readonly fileResponse: (
@@ -149,7 +149,7 @@ export const make: (impl: {
  * headers such as `etag` and `last-modified`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = Layer.effect(HttpPlatform)(
   Effect.flatMap(FileSystem.FileSystem, (fs) =>

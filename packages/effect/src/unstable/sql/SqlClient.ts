@@ -46,7 +46,7 @@ const TypeId = "~effect/sql/SqlClient"
  * connection reservation, transaction handling, and reactive query helpers.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqlClient extends Constructor {
   readonly [TypeId]: typeof TypeId
@@ -98,14 +98,14 @@ export interface SqlClient extends Constructor {
  * Context service tag for the `SqlClient` service.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SqlClient = Context.Service<SqlClient>("effect/sql/SqlClient")
 
 /**
  * Namespace containing types associated with the `SqlClient` service.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export namespace SqlClient {
   /**
@@ -114,7 +114,7 @@ export namespace SqlClient {
    * and optional reactive query integration.
    *
    * @category models
-   * @since 1.0.0
+   * @since 4.0.0
    */
   export interface MakeOptions {
     readonly acquirer: Connection.Acquirer
@@ -143,7 +143,7 @@ let clientIdCounter = 0
  * integration.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) {
   const transactionService = options.transactionService ?? TransactionConnection(clientIdCounter++)
@@ -226,7 +226,7 @@ export const make = Effect.fnUntraced(function*(options: SqlClient.MakeOptions) 
  * failure or interruption.
  *
  * @category transactions
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeWithTransaction = <I, S>(options: {
   readonly transactionService: Context.Key<I, readonly [conn: S, counter: number]>
@@ -305,7 +305,7 @@ export const makeWithTransaction = <I, S>(options: {
  * with a SQL client.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface TransactionConnection {
   readonly _: unique symbol
@@ -314,7 +314,7 @@ export interface TransactionConnection {
 /**
  * Namespace containing types associated with transaction connection services.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export declare namespace TransactionConnection {
   /**
@@ -332,7 +332,7 @@ export declare namespace TransactionConnection {
  * a specific SQL client.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const TransactionConnection = (
   clientId: number
@@ -344,7 +344,7 @@ export const TransactionConnection = (
  * handling; defaults to `false`.
  *
  * @category references
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SafeIntegers = Context.Reference<boolean>("effect/sql/SqlClient/SafeIntegers", {
   defaultValue: () => false

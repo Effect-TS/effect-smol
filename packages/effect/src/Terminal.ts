@@ -34,7 +34,7 @@ const TypeId = "~effect/platform/Terminal"
  * user and display messages to a user.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Terminal {
   readonly [TypeId]: typeof TypeId
@@ -67,7 +67,7 @@ export interface Terminal {
  * modifier state.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface Key {
   /**
@@ -93,7 +93,7 @@ export interface Key {
  * key that was pressed.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface UserInput {
   /**
@@ -138,7 +138,7 @@ export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty
  * Context service tag for accessing a `Terminal` implementation.
  *
  * @category services
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("effect/platform/Terminal")
 

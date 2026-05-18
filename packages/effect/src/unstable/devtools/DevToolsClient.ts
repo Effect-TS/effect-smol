@@ -123,7 +123,7 @@ const toMetricsSnapshot = (
  * requests.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make: Effect.Effect<
   DevToolsClient["Service"],
@@ -140,7 +140,7 @@ export const make: Effect.Effect<
  * Layer that provides `DevToolsClient` using the current `Socket`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<DevToolsClient, never, Socket.Socket> = Layer.effect(DevToolsClient, make)
 
@@ -182,7 +182,7 @@ const makeTracerEffect = Effect.gen(function*() {
  * starts, span events, and span ends to `DevToolsClient`.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = makeTracerEffect.pipe(
   Effect.annotateLogs({
@@ -196,7 +196,7 @@ export const makeTracer: Effect.Effect<Tracer.Tracer, never, DevToolsClient> = m
  * the devtools tracer.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerTracer: Layer.Layer<never, never, Socket.Socket> = Layer.effect(Tracer.Tracer, makeTracer).pipe(
   Layer.provide(layer)

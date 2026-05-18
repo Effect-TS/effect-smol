@@ -57,7 +57,7 @@ import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecret
  * number, and run effects only after the supplied identity has authenticated.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class EventLogRemote extends Context.Service<EventLogRemote, {
   readonly id: RemoteId

@@ -45,7 +45,7 @@ const TypeId = "~effect/persistence/KeyValueStore" as const
  * Effectful key/value store service for string and binary values.
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface KeyValueStore {
   readonly [TypeId]: typeof TypeId
@@ -208,7 +208,7 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
  * Context service tag for the `KeyValueStore` service.
  *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const KeyValueStore: Context.Service<
   KeyValueStore,
@@ -222,7 +222,7 @@ export const KeyValueStore: Context.Service<
  * `modifyUint8Array` unless they are provided in the options.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (options: MakeOptions): KeyValueStore =>
   KeyValueStore.of({
@@ -264,7 +264,7 @@ export const make = (options: MakeOptions): KeyValueStore =>
  * base64 values and falls back to UTF-8 encoding for non-base64 strings.
  *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeStringOnly = (
   options: MakeStringOptions
@@ -293,7 +293,7 @@ export const makeStringOnly = (
  * key.
  *
  * @category combinators
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const prefix: {
   (prefix: string): (self: KeyValueStore) => KeyValueStore
@@ -313,7 +313,7 @@ export const prefix: {
  * Provides a process-local in-memory `KeyValueStore` backed by a `Map`.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)(() => {
   const store = new Map<string, string | Uint8Array>()
@@ -343,7 +343,7 @@ export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)
  * The directory is created if needed, and each key is encoded as a file name.
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerFileSystem = (
   directory: string
@@ -676,7 +676,7 @@ const SchemaStoreTypeId = "~effect/persistence/KeyValueStore/SchemaStore" as con
  * Schema-aware view of a `KeyValueStore` that stores values as encoded JSON.
  *
  * @category SchemaStore
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SchemaStore<S extends Schema.Top> {
   readonly [SchemaStoreTypeId]: typeof SchemaStoreTypeId
@@ -791,7 +791,7 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerStorage = (
   evaluate: LazyArg<Storage>

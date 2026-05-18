@@ -350,7 +350,7 @@ export class MissingArgument extends Schema.ErrorClass<MissingArgument>(`${TypeI
  * ```
  *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export class InvalidValue extends Schema.ErrorClass<InvalidValue>(`${TypeId}/InvalidValue`)({
   _tag: Schema.tag("InvalidValue"),
