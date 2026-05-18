@@ -1573,7 +1573,7 @@ three times total.
 Use `Schedule.during` for a best-effort elapsed window, usually with spacing so
 the loop does not spin.
 
-```ts runnable deterministic
+```ts runnable
 import { Console, Effect, Ref, Schedule } from "effect"
 
 const program = Effect.gen(function*() {
@@ -1593,7 +1593,7 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
-// Output:
+// Output may vary: elapsed timing can cross the budget boundary differently under load
 // windowed run 1
 // windowed run 2
 // windowed run 3
@@ -6773,7 +6773,7 @@ schedules to continue, so the repeat stops when the budget is exhausted.
 
 ##### Example
 
-```ts runnable deterministic
+```ts runnable
 import { Console, Effect, Schedule } from "effect"
 
 let polls = 0
@@ -6794,7 +6794,7 @@ const program = Effect.gen(function*() {
 })
 
 Effect.runPromise(program)
-// Output:
+// Output may vary: elapsed timing can cross the budget boundary differently under load
 // poll 1
 // poll 2
 // poll 3
@@ -12739,7 +12739,19 @@ const program = Effect.forEach(
 )
 
 Effect.runPromise(program)
-// Output may vary:
+// Output may vary: jitter and concurrent clients can change ordering
+// client-a attempt 1
+// client-b attempt 1
+// client-c attempt 1
+// client-c attempt 2
+// client-b attempt 2
+// client-a attempt 2
+// client-b attempt 3
+// client-b loaded the resource
+// client-c attempt 3
+// client-c loaded the resource
+// client-a attempt 3
+// client-a loaded the resource
 ```
 
 The first attempt for each client runs immediately. If a client fails, the
@@ -12851,7 +12863,19 @@ const program = Effect.forEach(
 )
 
 Effect.runPromise(program)
-// Output may vary:
+// Output may vary: jitter and concurrent clients can change ordering
+// browser-a call 1
+// browser-b call 1
+// browser-c call 1
+// browser-a call 2
+// browser-b call 2
+// browser-c call 2
+// browser-a call 3
+// browser-a done
+// browser-b call 3
+// browser-b done
+// browser-c call 3
+// browser-c done
 ```
 
 Each client has the same retry policy, but each recurrence samples its own
@@ -12965,7 +12989,19 @@ const program = Effect.forEach(
 )
 
 Effect.runPromise(program)
-// Output may vary:
+// Output may vary: jitter and concurrent clients can change ordering
+// instance-a refresh attempt 1
+// instance-b refresh attempt 1
+// instance-c refresh attempt 1
+// instance-a refresh attempt 2
+// instance-c refresh attempt 2
+// instance-b refresh attempt 2
+// instance-c refresh attempt 3
+// instance-c recovered
+// instance-a refresh attempt 3
+// instance-a recovered
+// instance-b refresh attempt 3
+// instance-b recovered
 ```
 
 Each instance keeps the same general backoff shape, but its individual delays
@@ -13190,7 +13226,19 @@ const program = Effect.all([
 ], { concurrency: "unbounded", discard: true })
 
 Effect.runPromise(program).then(() => undefined, console.error)
-// Output may vary:
+// Output may vary: jitter and concurrent workers can change ordering
+// node-a: heartbeat attempt 1
+// node-b: heartbeat attempt 1
+// node-c: heartbeat attempt 1
+// node-a: heartbeat attempt 2
+// node-b: heartbeat attempt 2
+// node-c: heartbeat attempt 2
+// node-a: heartbeat attempt 3
+// node-a: heartbeat accepted
+// node-b: heartbeat attempt 3
+// node-b: heartbeat accepted
+// node-c: heartbeat attempt 3
+// node-c: heartbeat accepted
 ```
 
 Each node starts immediately and retries transient cluster errors with the same
@@ -18212,7 +18260,16 @@ const waitForJob = (jobId: string) =>
   )
 
 Effect.runPromise(waitForJob("job-1")).then(console.log, console.error)
-// Output may vary:
+// Output may vary: elapsed timing can cross the polling budget boundary differently under load
+// poll 1: queued
+// poll 2: running
+// poll 3: succeeded
+// final status: succeeded
+// {
+//   state: 'succeeded',
+//   jobId: 'job-1',
+//   artifactUrl: '/exports/job-1.csv'
+// }
 ```
 
 `waitForJob` performs the first status request immediately. If that first
@@ -18342,7 +18399,15 @@ const loadStartupConfig = fetchStartupConfig.pipe(
 )
 
 Effect.runPromise(loadStartupConfig).then(console.log, console.error)
-// Output may vary:
+// Output may vary: elapsed timing can cross the monitoring budget boundary differently under load
+// fetch config attempt 1
+// fetch config attempt 2
+// fetch config attempt 3
+// loaded config for https://api.example.test
+// {
+//   apiBaseUrl: 'https://api.example.test',
+//   featureFlags: [ 'new-profile' ]
+// }
 ```
 
 ##### Variants
@@ -20971,7 +21036,7 @@ latest status, `Schedule.while` to continue only for non-terminal states, and
 
 ##### Example
 
-```ts runnable deterministic
+```ts runnable
 import { Console, Effect, Schedule } from "effect"
 
 type FulfillmentStatus =
@@ -21020,7 +21085,7 @@ const program = readFulfillmentStatus.pipe(
 )
 
 Effect.runPromise(program)
-// Output:
+// Output may vary: elapsed timing can cross the user-facing polling budget boundary differently under load
 // fulfillment status: received
 // fulfillment status: picking
 // fulfillment status: shipped
@@ -21498,7 +21563,13 @@ const program = callDependency.pipe(
 )
 
 Effect.runPromise(program)
-// Output may vary:
+// Output may vary: measured elapsed time and selected delays depend on runtime timing
+// dependency attempt 1
+// retry=1 elapsed=0ms next=10ms
+// dependency attempt 2
+// retry=2 elapsed=11ms next=20ms
+// dependency attempt 3
+// dependency result: ok
 ```
 
 The next delay explains immediate pressure on the dependency. The elapsed value

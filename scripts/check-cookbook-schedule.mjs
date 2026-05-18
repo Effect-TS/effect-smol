@@ -1,5 +1,6 @@
 import * as ChildProcess from "node:child_process"
 import * as Fs from "node:fs"
+import * as Os from "node:os"
 import * as Path from "node:path"
 
 const files = process.argv.slice(2)
@@ -104,8 +105,35 @@ function normalizeOutput(text) {
   return stripAnsi(text).trimEnd()
 }
 
+function variableOutputLine(example) {
+  return example.code.split("\n").findIndex((line) => line.trim().startsWith("// Output may vary:"))
+}
+
 function hasVariableOutputMarker(example) {
-  return example.code.split("\n").some((line) => line.trim() === "// Output may vary:")
+  return variableOutputLine(example) !== -1
+}
+
+function variableOutputSample(example) {
+  const lines = example.code.split("\n")
+  const outputLine = variableOutputLine(example)
+
+  if (outputLine === -1) {
+    return []
+  }
+
+  const output = []
+  for (const line of lines.slice(outputLine + 1)) {
+    const match = /^\/\/ ?(.*)$/.exec(line)
+    if (match === null) {
+      if (line.trim() === "") {
+        continue
+      }
+      break
+    }
+    output.push(match[1])
+  }
+
+  return output
 }
 
 function expectedOutput(example) {
@@ -132,35 +160,94 @@ function expectedOutput(example) {
 }
 
 function runExample(example) {
-  const result = ChildProcess.spawnSync("node", [example.generatedFile], {
-    encoding: "utf8",
-    shell: process.platform === "win32"
+  return new Promise((resolve, reject) => {
+    const child = ChildProcess.spawn("node", [example.generatedFile], {
+      shell: process.platform === "win32"
+    })
+    const stdout = []
+    const stderr = []
+
+    child.stdout.on("data", (chunk) => {
+      stdout.push(chunk)
+    })
+    child.stderr.on("data", (chunk) => {
+      stderr.push(chunk)
+    })
+    child.on("error", reject)
+    child.on("close", (status) => {
+      const actualStdout = Buffer.concat(stdout).toString("utf8")
+      const actualStderr = Buffer.concat(stderr).toString("utf8")
+      const normalizedStdout = normalizeOutput(actualStdout)
+
+      if ((status ?? 1) !== 0) {
+        resolve({
+          status: status ?? 1,
+          message: [
+            `${example.file}:${example.startLine} failed while running`,
+            actualStdout,
+            actualStderr
+          ].filter((part) => part.length > 0).join("\n")
+        })
+        return
+      }
+
+      if (example.deterministic) {
+        const expected = expectedOutput(example)
+        if (normalizedStdout !== normalizeOutput(expected)) {
+          resolve({
+            status: 1,
+            message: [
+              `${example.file}:${example.startLine} output did not match // Output:`,
+              "Expected:",
+              expected,
+              "Actual:",
+              normalizedStdout
+            ].join("\n")
+          })
+          return
+        }
+      } else if (hasVariableOutputMarker(example) && normalizedStdout.length === 0) {
+        resolve({
+          status: 1,
+          message: `${example.file}:${example.startLine} is marked // Output may vary: but produced no stdout`
+        })
+        return
+      }
+
+      resolve({ status: 0, message: "" })
+    })
   })
+}
 
-  if (result.error !== undefined) {
-    throw result.error
+async function runExamples(examples) {
+  const concurrency = Math.max(1, Math.min(Os.availableParallelism(), examples.length))
+  let next = 0
+  let completed = 0
+  const results = []
+
+  if (examples.length > 0) {
+    console.error(`Running ${examples.length} runnable example(s) with concurrency ${concurrency}`)
   }
 
-  if ((result.status ?? 1) !== 0) {
-    console.error(`${example.file}:${example.startLine} failed while running`)
-    if (result.stdout.length > 0) {
-      console.error(result.stdout)
+  function reportProgress() {
+    if (completed === examples.length || completed % 10 === 0) {
+      console.error(`Ran ${completed}/${examples.length} runnable example(s)`)
     }
-    if (result.stderr.length > 0) {
-      console.error(result.stderr)
+  }
+
+  async function worker(workerId) {
+    while (next < examples.length) {
+      const index = next++
+      const example = examples[index]
+      console.error(`Worker ${workerId}: ${example.file}:${example.startLine}`)
+      results[index] = await runExample(example)
+      completed++
+      reportProgress()
     }
   }
 
-  if (example.deterministic && normalizeOutput(result.stdout) !== normalizeOutput(expectedOutput(example))) {
-    console.error(`${example.file}:${example.startLine} output did not match // Output:`)
-    console.error("Expected:")
-    console.error(expectedOutput(example))
-    console.error("Actual:")
-    console.error(normalizeOutput(result.stdout))
-    return 1
-  }
-
-  return result.status ?? 1
+  await Promise.all(Array.from({ length: concurrency }, (_, index) => worker(index + 1)))
+  return results
 }
 
 Fs.rmSync(outputDirectory, { recursive: true, force: true })
@@ -216,11 +303,19 @@ try {
       console.error(`${example.file}:${example.startLine} is runnable but has neither deterministic metadata nor // Output may vary:`)
       process.exit(1)
     }
-
-    const status = runExample(example)
-    if (status !== 0) {
-      process.exit(status)
+    if (!example.deterministic && variableOutputSample(example).length === 0) {
+      console.error(`${example.file}:${example.startLine} has // Output may vary: but no sample output lines`)
+      process.exit(1)
     }
+  }
+
+  const results = await runExamples(runnableExamples)
+  const failed = results.filter((result) => result.status !== 0)
+  for (const result of failed) {
+    console.error(result.message)
+  }
+  if (failed.length > 0) {
+    process.exit(1)
   }
 
   console.log(
