@@ -36,7 +36,7 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
  *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
+ * import { HttpStaticServer } from "effect/unstable/http"
  *
  * const program = Effect.gen(function*() {
  *   const app = yield* HttpStaticServer.make({ root: "./public" })
@@ -189,9 +189,7 @@ export const make: (options: {
  *
  * ```ts
  * import { Layer } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
+ * import { HttpRouter, HttpServerResponse, HttpStaticServer } from "effect/unstable/http"
  *
  * const ApiLayer = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"))
  *

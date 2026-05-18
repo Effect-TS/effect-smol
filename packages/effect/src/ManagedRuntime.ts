@@ -192,7 +192,7 @@ export interface ManagedRuntime<in R, out ER> {
  * **Example** (Creating a managed runtime)
  *
  * ```ts
- * import { Effect, Layer, ManagedRuntime, Context } from "effect"
+ * import { Context, Effect, Layer, ManagedRuntime } from "effect"
  *
  * class Notifications extends Context.Service<Notifications, {
  *   readonly notify: (message: string) => Effect.Effect<void>

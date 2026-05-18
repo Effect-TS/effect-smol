@@ -58,7 +58,7 @@ type IdleTimeToLiveInput<K> = Duration.Input | ((key: K) => Duration.Input)
  * **Example** (Managing keyed layers)
  *
  * ```ts
- * import { Effect, Layer, LayerMap, Context } from "effect"
+ * import { Context, Effect, Layer, LayerMap } from "effect"
  *
  * // Define a service key
  * const DatabaseService = Context.Service<{
@@ -121,7 +121,7 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  * **Example** (Creating a layer map)
  *
  * ```ts
- * import { Effect, Layer, LayerMap, Context } from "effect"
+ * import { Context, Effect, Layer, LayerMap } from "effect"
  *
  * // Define a service key
  * const DatabaseService = Context.Service<{
@@ -208,7 +208,7 @@ export const make: <
  * **Example** (Creating a layer map from a record)
  *
  * ```ts
- * import { Effect, Layer, LayerMap, Context } from "effect"
+ * import { Context, Effect, Layer, LayerMap } from "effect"
  *
  * // Define service keys
  * const DevDatabase = Context.Service<{
@@ -328,7 +328,7 @@ export interface TagClass<
  * **Example** (Defining a layer map service)
  *
  * ```ts
- * import { Console, Effect, Layer, LayerMap, Context } from "effect"
+ * import { Console, Context, Effect, Layer, LayerMap } from "effect"
  *
  * // Define a service key
  * const Greeter = Context.Service<{

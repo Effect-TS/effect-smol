@@ -9,8 +9,8 @@
  * **Example** (Creating a provider-specific model)
  *
  * ```ts
- * import type { Layer } from "effect"
  * import { Effect } from "effect"
+ * import type { Layer } from "effect"
  * import { LanguageModel, Model } from "effect/unstable/ai"
  *
  * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
@@ -130,8 +130,8 @@ const Proto = {
  * **Example** (Providing model metadata)
  *
  * ```ts
- * import type { Layer } from "effect"
  * import { Effect } from "effect"
+ * import type { Layer } from "effect"
  * import { LanguageModel, Model } from "effect/unstable/ai"
  *
  * declare const bedrockLayer: Layer.Layer<LanguageModel.LanguageModel>

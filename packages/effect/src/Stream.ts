@@ -175,11 +175,10 @@ export interface StreamUnifyIgnore {
  * **Example** (Using the stream type lambda)
  *
  * ```ts
- * import type { Kind } from "effect/HKT"
- * import type { StreamTypeLambda } from "effect/Stream"
+ * import type { HKT, Stream } from "effect"
  *
  * // Create a Stream type using the type lambda
- * type NumberStream = Kind<StreamTypeLambda, never, string, never, number>
+ * type NumberStream = HKT.Kind<Stream.StreamTypeLambda, never, string, never, number>
  * // Equivalent to: Stream<number, string, never>
  * ```
  *
@@ -397,7 +396,7 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * **Example** (Accessing a service as a stream)
  *
  * ```ts
- * import { Effect, Context, Stream } from "effect"
+ * import { Context, Effect, Stream } from "effect"
  *
  * class Greeter extends Context.Service<Greeter, {
  *   readonly greet: (name: string) => string
@@ -432,7 +431,7 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
  * **Example** (Accessing an optional service as a stream)
  *
  * ```ts
- * import { Effect, Option, Context, Stream } from "effect"
+ * import { Context, Effect, Option, Stream } from "effect"
  *
  * class Greeter extends Context.Service<Greeter, {
  *   readonly greet: (name: string) => string
@@ -1146,7 +1145,7 @@ export const fromIterable = <A>(
  * **Example** (Creating a stream from an iterable effect)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class UserRepo extends Context.Service<UserRepo, {
  *   readonly list: Effect.Effect<ReadonlyArray<string>>
@@ -1684,8 +1683,7 @@ export const unfold = <S, A, E, R>(
  * **Example** (Paginating stream state)
  *
  * ```ts
- * import { Console, Effect, Stream } from "effect"
- * import * as Option from "effect/Option"
+ * import { Console, Effect, Option, Stream } from "effect"
  *
  * const stream = Stream.paginate(0, (n: number) =>
  *   Effect.succeed(
@@ -6026,7 +6024,7 @@ export const retry: {
  * **Example** (Applying an execution plan)
  *
  * ```ts
- * import { Console, Effect, ExecutionPlan, Layer, Context, Stream } from "effect"
+ * import { Console, Context, Effect, ExecutionPlan, Layer, Stream } from "effect"
  *
  * class Service extends Context.Service<Service>()("Service", {
  *   make: Effect.succeed({
@@ -6883,7 +6881,7 @@ export const rechunk: {
  * **Example** (Emitting sliding windows)
  *
  * ```ts
- * import { Console, Effect, Stream, pipe } from "effect"
+ * import { Console, Effect, pipe, Stream } from "effect"
  *
  * Effect.gen(function*() {
  *   const result = yield* pipe(
@@ -9714,7 +9712,7 @@ export const ensuring: {
  * **Example** (Providing stream requirements)
  *
  * ```ts
- * import { Console, Effect, Layer, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Layer, Stream } from "effect"
  *
  * class Env extends Context.Service<Env, { readonly name: string }>()("Env") {}
  *
@@ -9771,7 +9769,7 @@ export const provide: {
  * **Example** (Providing multiple services to the stream using a context)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Config extends Context.Service<Config, { readonly prefix: string }>()("Config") {}
  * class Greeter extends Context.Service<Greeter, { greet: (name: string) => string }>()("Greeter") {}
@@ -9816,7 +9814,7 @@ export const provideContext: {
  * **Example** (Providing a stream service)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Greeter extends Context.Service<Greeter, {
  *   greet: (name: string) => string
@@ -9870,7 +9868,7 @@ export const provideService: {
  * **Example** (Providing a stream service effectfully)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class ApiConfig extends Context.Service<ApiConfig, { readonly baseUrl: string }>()("ApiConfig") {}
  *
@@ -9928,7 +9926,7 @@ export const provideServiceEffect: {
  * **Example** (Updating the stream context)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Logger extends Context.Service<Logger, { prefix: string }>()("Logger") {}
  * class Config extends Context.Service<Config, { name: string }>()("Config") {}
@@ -9982,7 +9980,7 @@ export const updateContext: {
  * **Example** (Updating a stream service)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Counter extends Context.Service<Counter, { count: number }>()("Counter") {}
  *
@@ -10068,7 +10066,7 @@ export const withSpan: {
  * **Example** (Starting stream do notation)
  *
  * ```ts
- * import { Console, Effect, Stream, pipe } from "effect"
+ * import { Console, Effect, pipe, Stream } from "effect"
  *
  * const program = pipe(
  *   Stream.Do,

@@ -56,8 +56,7 @@ const TypeId = "~effect/PubSub"
  * **Example** (Publishing and subscribing to messages)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a bounded PubSub with capacity 10
@@ -226,8 +225,7 @@ const SubscriptionTypeId = "~effect/PubSub/Subscription"
  * **Example** (Taking messages from a subscription)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -276,8 +274,7 @@ export interface Subscription<out A> extends Pipeable {
  * **Example** (Creating a PubSub with a custom strategy)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create custom PubSub with specific atomic implementation and strategy
@@ -327,8 +324,7 @@ export const make = <A>(
  * **Example** (Creating a bounded PubSub)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create bounded PubSub with capacity 100
@@ -365,8 +361,7 @@ export const bounded = <A>(
  * **Example** (Dropping messages when full)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create dropping PubSub that drops new messages when full
@@ -417,8 +412,7 @@ export const dropping = <A>(
  * **Example** (Sliding old messages when full)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create sliding PubSub that evicts old messages when full
@@ -465,8 +459,7 @@ export const sliding = <A>(
  * **Example** (Creating an unbounded PubSub)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create unbounded PubSub
@@ -542,8 +535,7 @@ export const makeAtomicUnbounded = <A>(options?: {
  * **Example** (Getting PubSub capacity)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(100)
@@ -571,8 +563,7 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  * **Example** (Getting PubSub size)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -639,8 +630,7 @@ export const sizeUnsafe = <A>(self: PubSub<A>): number => {
  * **Example** (Checking whether a PubSub is full)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(2)
@@ -676,8 +666,7 @@ export const isFull = <A>(self: PubSub<A>): Effect.Effect<boolean> =>
  * **Example** (Checking whether a PubSub is empty)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -752,8 +741,7 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
  * **Example** (Checking whether a PubSub is shutdown)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -847,8 +835,7 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
  * **Example** (Publishing a message)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -940,8 +927,7 @@ export const publishUnsafe: {
  * **Example** (Publishing multiple messages)
  *
  * ```ts
- * import { Effect, Fiber } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, Fiber, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -1211,8 +1197,7 @@ const pollForItem = <A>(self: Subscription<A>) => {
  * **Example** (Taking up to a maximum number of messages)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -1346,8 +1331,7 @@ const takeRemainderLoop = <A>(
  * **Example** (Checking remaining messages)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -2399,8 +2383,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
  * **Example** (Using a dropping strategy)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create PubSub with dropping strategy
@@ -2477,8 +2460,7 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
  * **Example** (Using a sliding strategy)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as PubSub from "effect/PubSub"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create PubSub with sliding strategy

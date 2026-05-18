@@ -43,12 +43,7 @@ const clientErrors = [
  *
  * ```ts
  * import { Layer, Schema } from "effect"
- * import {
- *   ClusterSchema,
- *   Entity,
- *   EntityProxy,
- *   EntityProxyServer
- * } from "effect/unstable/cluster"
+ * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
  * import { Rpc, RpcServer } from "effect/unstable/rpc"
  *
  * export const Counter = Entity.make("Counter", [
@@ -161,12 +156,7 @@ const entityIdPath = {
  *
  * ```ts
  * import { Layer, Schema } from "effect"
- * import {
- *   ClusterSchema,
- *   Entity,
- *   EntityProxy,
- *   EntityProxyServer
- * } from "effect/unstable/cluster"
+ * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
  * import { Rpc } from "effect/unstable/rpc"
  *

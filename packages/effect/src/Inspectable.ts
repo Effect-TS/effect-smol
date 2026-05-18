@@ -11,8 +11,7 @@
  * **Example** (Creating inspectable values)
  *
  * ```ts
- * import { Inspectable } from "effect"
- * import { format } from "effect/Formatter"
+ * import { Formatter, Inspectable } from "effect"
  *
  * class User extends Inspectable.Class {
  *   constructor(
@@ -33,7 +32,7 @@
  *
  * const user = new User("Alice", "alice@example.com")
  * console.log(user.toString()) // Pretty printed JSON
- * console.log(format(user)) // Same as toString()
+ * console.log(Formatter.format(user)) // Same as toString()
  * ```
  *
  * @since 2.0.0
@@ -108,8 +107,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  * **Example** (Implementing inspectable objects)
  *
  * ```ts
- * import { Inspectable } from "effect"
- * import { format } from "effect/Formatter"
+ * import { Formatter, Inspectable } from "effect"
  *
  * class Result implements Inspectable.Inspectable {
  *   constructor(
@@ -118,7 +116,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  *   ) {}
  *
  *   toString(): string {
- *     return format(this.toJSON())
+ *     return Formatter.format(this.toJSON())
  *   }
  *
  *   toJSON() {

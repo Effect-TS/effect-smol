@@ -45,16 +45,15 @@ export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
  * **Example** (Providing and reading a scoped atom)
  *
  * ```ts
- * import * as Atom from "effect/unstable/reactivity/Atom"
+ * import * as AtomReact from "@effect/atom-react"
+ * import { Atom } from "effect/unstable/reactivity"
  * import * as React from "react"
- * import * as ScopedAtom from "@effect/atom-react/ScopedAtom"
- * import { useAtomValue } from "@effect/atom-react"
  *
- * const Counter = ScopedAtom.make(() => Atom.make(0))
+ * const Counter = AtomReact.make(() => Atom.make(0))
  *
  * function View() {
  *   const atom = Counter.use()
- *   const value = useAtomValue(atom)
+ *   const value = AtomReact.useAtomValue(atom)
  *   return React.createElement("div", null, value)
  * }
  *
@@ -80,16 +79,15 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
  * **Example** (Creating a scoped atom with input)
  *
  * ```ts
- * import * as Atom from "effect/unstable/reactivity/Atom"
+ * import * as AtomReact from "@effect/atom-react"
+ * import { Atom } from "effect/unstable/reactivity"
  * import * as React from "react"
- * import * as ScopedAtom from "@effect/atom-react/ScopedAtom"
- * import { useAtomValue } from "@effect/atom-react"
  *
- * const User = ScopedAtom.make((name: string) => Atom.make(name))
+ * const User = AtomReact.make((name: string) => Atom.make(name))
  *
  * function UserName() {
  *   const atom = User.use()
- *   const value = useAtomValue(atom)
+ *   const value = AtomReact.useAtomValue(atom)
  *   return React.createElement("span", null, value)
  * }
  *

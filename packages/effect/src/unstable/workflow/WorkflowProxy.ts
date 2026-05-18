@@ -39,11 +39,7 @@ import type * as Workflow from "./Workflow.ts"
  * ```ts
  * import { Layer, Schema } from "effect"
  * import { RpcServer } from "effect/unstable/rpc"
- * import {
- *   Workflow,
- *   WorkflowProxy,
- *   WorkflowProxyServer
- * } from "effect/unstable/workflow"
+ * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
  *
  * const EmailWorkflow = Workflow.make({
  *   name: "EmailWorkflow",
@@ -123,11 +119,7 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * ```ts
  * import { Layer, Schema } from "effect"
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
- * import {
- *   Workflow,
- *   WorkflowProxy,
- *   WorkflowProxyServer
- * } from "effect/unstable/workflow"
+ * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
  *
  * const EmailWorkflow = Workflow.make({
  *   name: "EmailWorkflow",

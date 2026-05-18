@@ -304,10 +304,7 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
  * **Example** (Schema for a parametric `Box<A>` type)
  *
  * ```ts
- * import { Effect, Schema } from "effect"
- * import * as SchemaParser from "effect/SchemaParser"
- * import * as Issue from "effect/SchemaIssue"
- * import * as Option from "effect/Option"
+ * import { Effect, Option, Schema, SchemaIssue as Issue, SchemaParser } from "effect"
  *
  * interface Box<A> {
  *   readonly value: A
@@ -7438,8 +7435,7 @@ export const Char: Char = String.check(isLengthBetween(1, 1))
  * **Example** (Option schema)
  *
  * ```ts
- * import { Schema } from "effect"
- * import { Option } from "effect"
+ * import { Option, Schema } from "effect"
  *
  * const schema = Schema.Option(Schema.Number)
  *
@@ -9318,8 +9314,7 @@ export interface Duration extends declare<Duration_.Duration> {
  * **Example** (Duration schema)
  *
  * ```ts
- * import { Schema } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Schema } from "effect"
  *
  * Schema.decodeUnknownSync(Schema.Duration)(Duration.seconds(5))
  * // => Duration(5s)

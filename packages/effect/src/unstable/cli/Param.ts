@@ -280,7 +280,7 @@ const Proto = {
  * **Example** (Checking for params)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -302,7 +302,7 @@ export const isParam = (u: unknown): u is Param<any, ParamKind> => Predicate.has
  * **Example** (Checking for single params)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -366,7 +366,7 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
  * **Example** (Creating string parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -398,7 +398,7 @@ export const string = <const Kind extends ParamKind>(
  * **Example** (Creating boolean parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -431,7 +431,7 @@ export const boolean = <const Kind extends ParamKind>(
  * **Example** (Creating integer parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -463,7 +463,7 @@ export const integer = <const Kind extends ParamKind>(
  * **Example** (Creating float parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -495,7 +495,7 @@ export const float = <const Kind extends ParamKind>(
  * **Example** (Creating date parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -529,7 +529,7 @@ export const date = <const Kind extends ParamKind>(
  * **Example** (Creating valued choices)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -569,7 +569,7 @@ export const choiceWithValue = <
  * **Example** (Creating string choices)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -598,7 +598,7 @@ export const choice = <
  * **Example** (Creating path parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -644,7 +644,7 @@ export const path = <Kind extends ParamKind>(
  * **Example** (Creating directory parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -682,7 +682,7 @@ export const directory = <Kind extends ParamKind>(
  * **Example** (Creating file parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -718,7 +718,7 @@ export const file = <Kind extends ParamKind>(
  * **Example** (Creating redacted parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -750,7 +750,7 @@ export const redacted = <Kind extends ParamKind>(
  * **Example** (Reading file text)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -782,7 +782,7 @@ export const fileText = <Kind extends ParamKind>(kind: Kind, name: string): Para
  * **Example** (Parsing file contents)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -817,7 +817,7 @@ export const fileParse = <Kind extends ParamKind>(
  *
  * ```ts
  * import { Schema } from "effect"
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  * // @internal - this module is not exported publicly
  *
  * // Parse JSON config file
@@ -863,7 +863,7 @@ export const fileSchema = <Kind extends ParamKind, A>(
  * **Example** (Parsing key-value pairs)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -901,7 +901,7 @@ export const keyValuePair = <Kind extends ParamKind>(
  * **Example** (Creating sentinel parameters)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -938,7 +938,7 @@ const FLAG_DASH_REGEXP = /^-+/
  * **Example** (Adding parameter aliases)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -977,7 +977,7 @@ export const withAlias: {
  * **Example** (Adding help descriptions)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1007,7 +1007,7 @@ export const withDescription: {
  * **Example** (Mapping parsed values)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1055,11 +1055,10 @@ const transform = <Kind extends ParamKind, A, B>(
  * **Example** (Mapping parsed values effectfully)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Effect } from "effect"
+ * import { CliError, Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
- * import { Effect } from "effect"
- * import { CliError } from "effect/unstable/cli"
  *
  * const validatedEmail = Param.string(Param.flagKind, "email").pipe(
  *   Param.mapEffect((email) =>
@@ -1108,7 +1107,7 @@ export const mapEffect: {
  * **Example** (Mapping thrown errors)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1173,7 +1172,7 @@ export const mapTryCatch: {
  * **Example** (Making parameters optional)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // Create an optional port option
  * // - When not provided: returns Option.none()
@@ -1227,7 +1226,7 @@ export const optional = <Kind extends ParamKind, A>(
  * **Example** (Providing default values)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1365,7 +1364,7 @@ export type VariadicParamOptions = {
  * **Example** (Accepting multiple values)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1419,7 +1418,7 @@ export const variadic = <Kind extends ParamKind, A>(
  * **Example** (Bounding repeated values)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1467,7 +1466,7 @@ export const between: {
  * **Example** (Limiting repeated values)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1502,7 +1501,7 @@ export const atMost: {
  * **Example** (Requiring repeated values)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1539,7 +1538,7 @@ export const atLeast: {
  *
  * ```ts
  * import { Option } from "effect"
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  * // @internal - this module is not exported publicly
  *
  * const positiveInt = Param.integer(Param.flagKind, "count").pipe(
@@ -1591,7 +1590,7 @@ export const filterMap: {
  * **Example** (Filtering parsed values)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1631,7 +1630,7 @@ export const filter: {
  * **Example** (Setting metavars)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1667,7 +1666,7 @@ export const withMetavar: {
  *
  * ```ts
  * import { Schema } from "effect"
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  * // @internal - this module is not exported publicly
  *
  * const isEmail = Schema.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
@@ -1710,7 +1709,7 @@ export const withSchema: {
  * **Example** (Falling back to another parameter)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *
@@ -1749,7 +1748,7 @@ export const orElse: {
  * **Example** (Returning fallback results)
  *
  * ```ts
- * import * as Param from "effect/unstable/cli/Param"
+ * import { Param } from "effect/unstable/cli"
  *
  * // @internal - this module is not exported publicly
  *

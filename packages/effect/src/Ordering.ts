@@ -115,14 +115,13 @@ export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 :
  * **Example** (Pattern matching on orderings)
  *
  * ```ts
- * import { Ordering } from "effect"
- * import { constant } from "effect/Function"
+ * import { Function, Ordering } from "effect"
  * import * as assert from "node:assert"
  *
  * const toMessage = Ordering.match({
- *   onLessThan: constant("less than"),
- *   onEqual: constant("equal"),
- *   onGreaterThan: constant("greater than")
+ *   onLessThan: Function.constant("less than"),
+ *   onEqual: Function.constant("equal"),
+ *   onGreaterThan: Function.constant("greater than")
  * })
  *
  * assert.deepStrictEqual(toMessage(-1), "less than")

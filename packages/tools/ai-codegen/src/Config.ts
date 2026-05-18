@@ -36,7 +36,7 @@ export const SpecSourceConfig = Schema.Struct({
  *
  * ```ts
  * import * as Config from "@effect/ai-codegen/Config"
- * import * as Schema from "effect/Schema"
+ * import { Schema } from "effect"
  *
  * const config = Schema.decodeUnknownSync(Config.CodegenConfig)({
  *   spec: "https://example.com/openapi.json",

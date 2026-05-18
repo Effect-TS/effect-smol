@@ -80,8 +80,8 @@ export class Tokenizer extends Context.Service<Tokenizer, Service>()(
  *
  * ```ts
  * import { Effect } from "effect"
- * import type { Tokenizer } from "effect/unstable/ai"
  * import { Prompt } from "effect/unstable/ai"
+ * import type { Tokenizer } from "effect/unstable/ai"
  *
  * const customTokenizer: Tokenizer.Service = {
  *   tokenize: (input) =>

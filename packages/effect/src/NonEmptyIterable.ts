@@ -31,7 +31,7 @@
  * **Example** (Requiring a non-empty iterable)
  *
  * ```ts
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { NonEmptyIterable } from "effect"
  *
  * // NonEmptyIterable is a type that represents any iterable with at least one element
  * function processNonEmpty<A>(data: NonEmptyIterable.NonEmptyIterable<A>): A {
@@ -117,7 +117,7 @@
  *
  * ```ts
  * import { Array, pipe } from "effect"
- * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import type { NonEmptyIterable } from "effect"
  *
  * // Many Array functions work with NonEmptyIterable
  * declare const nonEmptyData: NonEmptyIterable.NonEmptyIterable<number>
@@ -167,9 +167,7 @@ export declare const nonEmpty: unique symbol
  * **Example** (Working with non-empty iterables)
  *
  * ```ts
- * import { Array } from "effect"
- * import * as Chunk from "effect/Chunk"
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { Array, Chunk, NonEmptyIterable } from "effect"
  *
  * // Function that requires non-empty data
  * function getFirst<A>(data: NonEmptyIterable.NonEmptyIterable<A>): A {
@@ -225,9 +223,7 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  * **Example** (Extracting first and remaining elements)
  *
  * ```ts
- * import { Array } from "effect"
- * import * as Chunk from "effect/Chunk"
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { Array, Chunk, NonEmptyIterable } from "effect"
  *
  * // Helper to make iterator iterable for Array.from
  * const iteratorToIterable = <T>(iterator: Iterator<T>): Iterable<T> => ({

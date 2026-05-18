@@ -93,7 +93,7 @@ const TypeId = internal.HashMapTypeId
  * **Example** (Using basic HashMap operations)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * // Create a HashMap
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
@@ -124,7 +124,7 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  * **Example** (Extracting HashMap types)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * // Create a concrete HashMap for type extraction
  * const inventory = HashMap.make(
@@ -160,8 +160,7 @@ export declare namespace HashMap {
    * **Example** (Updating values from Options)
    *
    * ```ts
-   * import * as HashMap from "effect/HashMap"
-   * import * as Option from "effect/Option"
+   * import { HashMap, Option } from "effect"
    *
    * const map = HashMap.make(["a", 1], ["b", 2])
    *
@@ -184,7 +183,7 @@ export declare namespace HashMap {
    * **Example** (Extracting key types)
    *
    * ```ts
-   * import * as HashMap from "effect/HashMap"
+   * import { HashMap } from "effect"
    *
    * // Create a HashMap to extract key type from
    * const userMap = HashMap.make(
@@ -210,7 +209,7 @@ export declare namespace HashMap {
    * **Example** (Extracting value types)
    *
    * ```ts
-   * import * as HashMap from "effect/HashMap"
+   * import { HashMap } from "effect"
    *
    * // Create a HashMap with user data
    * const userMap = HashMap.make(
@@ -240,7 +239,7 @@ export declare namespace HashMap {
    * **Example** (Extracting entry types)
    *
    * ```ts
-   * import * as HashMap from "effect/HashMap"
+   * import { HashMap } from "effect"
    *
    * // Create a product catalog HashMap
    * const catalog = HashMap.make(
@@ -272,7 +271,7 @@ export declare namespace HashMap {
  * **Example** (Checking HashMap values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  * const notMap = { a: 1 }
@@ -296,7 +295,7 @@ export const isHashMap: {
  * **Example** (Creating an empty HashMap)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.empty<string, number>()
  * console.log(HashMap.isEmpty(map)) // true
@@ -314,7 +313,7 @@ export const empty: <K = never, V = never>() => HashMap<K, V> = internal.empty
  * **Example** (Creating a HashMap from entries)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * console.log(HashMap.size(map)) // 3
@@ -337,7 +336,7 @@ export const make: <Entries extends ReadonlyArray<readonly [any, any]>>(
  * **Example** (Creating a HashMap from an iterable)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const entries = [["a", 1], ["b", 2], ["c", 3]] as const
  * const map = HashMap.fromIterable(entries)
@@ -356,7 +355,7 @@ export const fromIterable: <K, V>(entries: Iterable<readonly [K, V]>) => HashMap
  * **Example** (Checking for empty HashMaps)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const emptyMap = HashMap.empty<string, number>()
  * const nonEmptyMap = HashMap.make(["a", 1])
@@ -377,7 +376,7 @@ export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
  * **Example** (Looking up values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -403,8 +402,7 @@ export const get: {
  * **Example** (Looking up values with a hash)
  *
  * ```ts
- * import { Hash } from "effect"
- * import * as HashMap from "effect/HashMap"
+ * import { Hash, HashMap } from "effect"
  *
  * // Useful when implementing custom equality for complex keys
  * const userMap = HashMap.make(
@@ -443,8 +441,7 @@ export const getHash: {
  * **Example** (Unsafely looking up values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
+ * import { HashMap, Option } from "effect"
  *
  * const config = HashMap.make(
  *   ["api_url", "https://api.example.com"],
@@ -480,7 +477,7 @@ export const getUnsafe: {
  * **Example** (Checking for keys)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -507,8 +504,7 @@ export const has: {
  * **Example** (Checking keys with a hash)
  *
  * ```ts
- * import { Hash } from "effect"
- * import * as HashMap from "effect/HashMap"
+ * import { Hash, HashMap } from "effect"
  *
  * // Create a map with case-sensitive keys
  * const userMap = HashMap.make(
@@ -542,7 +538,7 @@ export const hasHash: {
  * **Example** (Checking entries by predicate)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const hm = HashMap.make([1, "a"])
  * HashMap.hasBy(hm, (value, key) => value === "a" && key === 1) // -> true
@@ -564,7 +560,7 @@ export const hasBy: {
  * **Example** (Setting a value)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1])
  * const map2 = HashMap.set(map1, "b", 2)
@@ -590,7 +586,7 @@ export const set: {
  * **Example** (Iterating keys)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const keys = Array.from(HashMap.keys(map))
@@ -608,7 +604,7 @@ export const keys: <K, V>(self: HashMap<K, V>) => IterableIterator<K> = internal
  * **Example** (Iterating values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const values = Array.from(HashMap.values(map))
@@ -626,7 +622,7 @@ export const values: <K, V>(self: HashMap<K, V>) => IterableIterator<V> = intern
  * **Example** (Converting values to an array)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const employees = HashMap.make(
  *   ["alice", { department: "engineering", salary: 90000 }],
@@ -658,7 +654,7 @@ export const toValues = <K, V>(self: HashMap<K, V>): Array<V> => Array.from(valu
  * **Example** (Iterating entries)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * // Create a configuration map
  * const config = HashMap.make(
@@ -691,7 +687,7 @@ export const entries: <K, V>(self: HashMap<K, V>) => IterableIterator<[K, V]> = 
  * **Example** (Converting entries to an array)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const gameScores = HashMap.make(
  *   ["alice", 1250],
@@ -725,7 +721,7 @@ export const toEntries = <K, V>(self: HashMap<K, V>): Array<[K, V]> => Array.fro
  * **Example** (Getting the size)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const emptyMap = HashMap.empty<string, number>()
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
@@ -748,7 +744,7 @@ export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
  * **Example** (Beginning batch mutation)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1])
  *
@@ -776,7 +772,7 @@ export const beginMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = inter
  * **Example** (Ending batch mutation)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * // Start with an existing map
  * const original = HashMap.make(["x", 10], ["y", 20])
@@ -812,7 +808,7 @@ export const endMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = interna
  * **Example** (Applying batched mutations)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1])
  * const map2 = HashMap.mutate(map1, (mutable) => {
@@ -840,8 +836,7 @@ export const mutate: {
  * **Example** (Updating values with Options)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
+ * import { HashMap, Option } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -872,9 +867,7 @@ export const modifyAt: {
  * **Example** (Updating values with a hash)
  *
  * ```ts
- * import { Hash } from "effect"
- * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
+ * import { Hash, HashMap, Option } from "effect"
  *
  * // Useful when working with precomputed hashes for performance
  * const counters = HashMap.make(["downloads", 100], ["views", 250])
@@ -922,7 +915,7 @@ export const modifyHash: {
  * **Example** (Modifying existing values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const map2 = HashMap.modify(map1, "a", (value) => value * 3)
@@ -948,7 +941,7 @@ export const modify: {
  * **Example** (Combining HashMaps)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const map2 = HashMap.make(["b", 20], ["c", 3])
@@ -973,7 +966,7 @@ export const union: {
  * **Example** (Removing a key)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const map2 = HashMap.remove(map1, "b")
@@ -997,7 +990,7 @@ export const remove: {
  * **Example** (Removing multiple keys)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.removeMany(map1, ["b", "d"])
@@ -1021,7 +1014,7 @@ export const removeMany: {
  * **Example** (Setting multiple entries)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const newEntries = [["c", 3], ["d", 4], ["a", 10]] as const // "a" will be overwritten
@@ -1046,7 +1039,7 @@ export const setMany: {
  * **Example** (Mapping values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const map2 = HashMap.map(map1, (value, key) => `${key}:${value * 2}`)
@@ -1071,7 +1064,7 @@ export const map: {
  * **Example** (FlatMapping values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
  * const map2 = HashMap.flatMap(
@@ -1098,7 +1091,7 @@ export const flatMap: {
  * **Example** (Iterating with side effects)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  * const collected: Array<[string, number]> = []
@@ -1124,7 +1117,7 @@ export const forEach: {
  * **Example** (Reducing values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const sum = HashMap.reduce(map, 0, (acc, value) => acc + value)
@@ -1146,7 +1139,7 @@ export const reduce: {
  * **Example** (Filtering entries)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.filter(map1, (value) => value % 2 === 0)
@@ -1171,8 +1164,7 @@ export const filter: {
  * **Example** (Compacting Option values)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
+ * import { HashMap, Option } from "effect"
  *
  * const map1 = HashMap.make(
  *   ["a", Option.some(1)],
@@ -1198,8 +1190,7 @@ export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = int
  * **Example** (Filtering and mapping Results)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
- * import * as Result from "effect/Result"
+ * import { HashMap, Result } from "effect"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
  * const map2 = HashMap.filterMap(
@@ -1227,8 +1218,7 @@ export const filterMap: {
  * **Example** (Finding the first matching entry)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
+ * import { HashMap, Option } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  * const result = HashMap.findFirst(map, (value, key) => key === "b" && value > 1)
@@ -1250,7 +1240,7 @@ export const findFirst: {
  * **Example** (Checking for any matching entry)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  *
@@ -1272,7 +1262,7 @@ export const some: {
  * **Example** (Checking all entries)
  *
  * ```ts
- * import * as HashMap from "effect/HashMap"
+ * import { HashMap } from "effect"
  *
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
  *

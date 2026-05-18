@@ -71,9 +71,7 @@ const TypeId = "~effect/Sink"
  * **Example** (Running a sink with a stream)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as Sink from "effect/Sink"
- * import * as Stream from "effect/Stream"
+ * import { Effect, Sink, Stream } from "effect"
  *
  * // Create a simple sink that always succeeds with a value
  * const sink: Sink.Sink<number> = Sink.succeed(42)

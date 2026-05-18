@@ -616,7 +616,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * **Example** (Capturing a runtime for fiber handles)
  *
  * ```ts
- * import { Effect, FiberHandle, Context } from "effect"
+ * import { Context, Effect, FiberHandle } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol

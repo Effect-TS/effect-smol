@@ -152,7 +152,7 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  * **Example** (Sharing layer construction with a memo map)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -211,7 +211,7 @@ const memoMapReuse = <RIn, E, ROut>(
  * **Example** (Checking whether a value is a layer)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -262,7 +262,7 @@ const fromBuildUnsafe = <ROut, E, RIn>(
  * **Example** (Constructing a layer from a build function)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -304,7 +304,7 @@ export const fromBuild = <ROut, E, RIn>(
  * **Example** (Memoizing layer construction)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -406,7 +406,7 @@ class MemoMapImpl implements MemoMap {
  * **Example** (Creating a memo map unsafely)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -446,7 +446,7 @@ export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(p
  * **Example** (Creating a memo map in an effect)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -503,7 +503,7 @@ export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("
  * **Example** (Building layers with an explicit memo map)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -571,7 +571,7 @@ export const buildWithMemoMap: {
  * **Example** (Building a layer into a context)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -617,7 +617,7 @@ export const build = <RIn, E, ROut>(
  * **Example** (Building a layer with an explicit scope)
  *
  * ```ts
- * import { Effect, Layer, Scope, Context } from "effect"
+ * import { Context, Effect, Layer, Scope } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -669,7 +669,7 @@ export const buildWithScope: {
  * **Example** (Providing services from values)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -726,7 +726,7 @@ export const succeed: {
  * **Example** (Providing multiple services from a context)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -781,7 +781,7 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  * **Example** (Lazily providing a service)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -815,7 +815,7 @@ export const sync: {
  * **Example** (Lazily providing a context)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -850,7 +850,7 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  * **Example** (Creating a layer from an effect)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -897,7 +897,7 @@ const effectImpl = <I, S, E, R>(
  * **Example** (Creating a layer from an effectful context)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<
  *   Database,
@@ -957,7 +957,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  * **Example** (Choosing a layer lazily)
  *
  * ```ts
- * import { Layer, Context } from "effect"
+ * import { Context, Layer } from "effect"
  *
  * class Config extends Context.Service<Config, string>()("Config") {}
  *
@@ -986,7 +986,7 @@ export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E,
  * **Example** (Unwrapping an effectful layer)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -1035,7 +1035,7 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  * **Example** (Merging independent layers)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -1075,7 +1075,7 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  * **Example** (Merging two layers)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -1159,7 +1159,7 @@ const provideWith = (
  * **Example** (Providing layer dependencies)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -1258,7 +1258,7 @@ export const provide: {
  * **Example** (Providing dependencies while retaining services)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -1366,7 +1366,7 @@ export const provideMerge: {
  * **Example** (Creating services from layer output)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Config extends Context.Service<Config, {
  *   readonly dbUrl: string
@@ -1545,7 +1545,7 @@ export const tapCause: {
  * **Example** (Converting layer failures to defects)
  *
  * ```ts
- * import { Data, Effect, Layer, Context } from "effect"
+ * import { Context, Data, Effect, Layer } from "effect"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
  *   message: string
@@ -1617,7 +1617,7 @@ export {
  * **Example** (Recovering from tagged layer errors)
  *
  * ```ts
- * import { Data, Effect, Layer, Context } from "effect"
+ * import { Context, Data, Effect, Layer } from "effect"
  *
  * class ConfigError extends Data.TaggedError("ConfigError") {}
  *
@@ -1699,7 +1699,7 @@ export const catchTag: {
  * **Example** (Recovering from layer failures by cause)
  *
  * ```ts
- * import { Data, Effect, Layer, Context } from "effect"
+ * import { Context, Data, Effect, Layer } from "effect"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
  *   message: string
@@ -1798,7 +1798,7 @@ export const updateService: {
  * **Example** (Creating non-shared layer instances)
  *
  * ```ts
- * import { Effect, Layer, Ref, Context } from "effect"
+ * import { Context, Effect, Layer, Ref } from "effect"
  *
  * class Counter extends Context.Service<Counter, {
  *   readonly id: number
@@ -1874,7 +1874,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * **Example** (Launching an application layer)
  *
  * ```ts
- * import { Console, Effect, Layer, Context } from "effect"
+ * import { Console, Context, Effect, Layer } from "effect"
  *
  * class HttpServer extends Context.Service<HttpServer, {
  *   readonly start: () => Effect.Effect<string>
@@ -1960,7 +1960,7 @@ type AnyEffectOrStream =
  * **Example** (Mocking services for tests)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class UserService extends Context.Service<UserService, {
  *   readonly config: { apiUrl: string }
@@ -2185,7 +2185,8 @@ export interface SpanOptions extends Tracer.SpanOptions {
  * **Example** (Tracing layer construction with a span)
  *
  * ```ts
- * import { Console, Effect, Layer, Context, type Tracer } from "effect"
+ * import { Console, Context, Effect, Layer } from "effect"
+ * import type { Tracer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -2247,7 +2248,7 @@ export const span = (
  * **Example** (Using an existing parent span)
  *
  * ```ts
- * import { Console, Effect, Layer, Context, Tracer } from "effect"
+ * import { Console, Context, Effect, Layer, Tracer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -2289,7 +2290,7 @@ export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
  * **Example** (Wrapping a layer with a span)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -2392,7 +2393,7 @@ export const withSpan: {
  * **Example** (Attaching layers to an existing parent span)
  *
  * ```ts
- * import { Effect, Layer, Context, Tracer } from "effect"
+ * import { Context, Effect, Layer, Tracer } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>

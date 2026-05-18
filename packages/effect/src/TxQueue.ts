@@ -144,8 +144,8 @@ export interface TxQueueState extends Inspectable {
  * **Example** (Offering values through enqueue handles)
  *
  * ```ts
- * import type { Cause } from "effect"
  * import { Effect, TxQueue } from "effect"
+ * import type { Cause } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Queue without error channel

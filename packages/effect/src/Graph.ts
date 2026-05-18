@@ -541,8 +541,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
  * **Example** (Getting node data)
  *
  * ```ts
- * import { Graph } from "effect"
- * import * as Option from "effect/Option"
+ * import { Graph, Option } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -1028,8 +1027,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
  * **Example** (Filtering and mapping nodes)
  *
  * ```ts
- * import { Graph } from "effect"
- * import * as Option from "effect/Option"
+ * import { Graph, Option } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "active")
@@ -1083,8 +1081,7 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  * **Example** (Filtering and mapping edges)
  *
  * ```ts
- * import { Graph } from "effect"
- * import * as Option from "effect/Option"
+ * import { Graph, Option } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -1760,7 +1757,7 @@ export const neighborsDirected: {
  * **Example** (Configuring GraphViz labels)
  *
  * ```ts
- * import type * as Graph from "effect/Graph"
+ * import type { Graph } from "effect"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.GraphVizOptions<string, number> = {
@@ -1892,7 +1889,7 @@ export const toGraphViz: {
  * **Example** (Selecting Mermaid node shapes)
  *
  * ```ts
- * import type * as Graph from "effect/Graph"
+ * import type { Graph } from "effect"
  *
  * // Shape selector function for different node types
  * const shapeSelector = (nodeData: string): Graph.MermaidNodeShape => {
@@ -1933,7 +1930,7 @@ export type MermaidNodeShape =
  * **Example** (Configuring Mermaid directions)
  *
  * ```ts
- * import type * as Graph from "effect/Graph"
+ * import type { Graph } from "effect"
  *
  * // Horizontal workflow diagram
  * const horizontalOptions: Graph.MermaidOptions<string, string> = {
@@ -1974,7 +1971,7 @@ export type MermaidDirection =
  * **Example** (Selecting Mermaid diagram types)
  *
  * ```ts
- * import type * as Graph from "effect/Graph"
+ * import type { Graph } from "effect"
  *
  * // Force flowchart format (even for undirected graphs)
  * const flowchartOptions: Graph.MermaidOptions<string, string> = {
@@ -2012,7 +2009,7 @@ export type MermaidDiagramType =
  * **Example** (Configuring Mermaid output)
  *
  * ```ts
- * import type * as Graph from "effect/Graph"
+ * import type { Graph } from "effect"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.MermaidOptions<string, number> = {
@@ -2130,7 +2127,7 @@ const formatMermaidNode = (
  * **Example** (Exporting a directed Mermaid diagram)
  *
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import { Graph } from "effect"
  *
  * // Basic directed graph export
  * const graph = Graph.directed<string, number>((mutable) => {
@@ -2154,7 +2151,7 @@ const formatMermaidNode = (
  * **Example** (Exporting an undirected Mermaid diagram)
  *
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import { Graph } from "effect"
  *
  * // Undirected graph with custom labels and direction
  * const socialGraph = Graph.undirected<{ name: string }, string>((mutable) => {
@@ -2182,7 +2179,7 @@ const formatMermaidNode = (
  * **Example** (Customizing Mermaid node shapes)
  *
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import { Graph } from "effect"
  *
  * // Advanced styling with node shapes for flowchart
  * const workflow = Graph.directed<{ type: string; name: string }, string>(
@@ -2234,7 +2231,7 @@ const formatMermaidNode = (
  * **Example** (Visualizing dependency graphs)
  *
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import { Graph } from "effect"
  *
  * // Real-world example: Software dependency graph
  * interface Dependency {

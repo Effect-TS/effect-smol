@@ -602,7 +602,7 @@ export const make = <I, S>(
  * **Example** (Adding a service to a context)
  *
  * ```ts
- * import { pipe, Context } from "effect"
+ * import { Context, pipe } from "effect"
  * import * as assert from "node:assert"
  *
  * const Port = Context.Service<{ PORT: number }>("Port")
@@ -798,7 +798,7 @@ export const getUnsafe: {
  * **Example** (Getting a service from a context)
  *
  * ```ts
- * import { pipe, Context } from "effect"
+ * import { Context, pipe } from "effect"
  * import * as assert from "node:assert"
  *
  * const Port = Context.Service<{ PORT: number }>("Port")
@@ -894,7 +894,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * **Example** (Getting optional services)
  *
  * ```ts
- * import { Option, Context } from "effect"
+ * import { Context, Option } from "effect"
  * import * as assert from "node:assert"
  *
  * const Port = Context.Service<{ PORT: number }>("Port")
@@ -1022,7 +1022,7 @@ export const mergeAll = <T extends Array<unknown>>(
  * **Example** (Picking services from a context)
  *
  * ```ts
- * import { Option, pipe, Context } from "effect"
+ * import { Context, Option, pipe } from "effect"
  * import * as assert from "node:assert"
  *
  * const Port = Context.Service<{ PORT: number }>("Port")
@@ -1063,7 +1063,7 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  * **Example** (Omitting services from a context)
  *
  * ```ts
- * import { Option, pipe, Context } from "effect"
+ * import { Context, Option, pipe } from "effect"
  * import * as assert from "node:assert"
  *
  * const Port = Context.Service<{ PORT: number }>("Port")

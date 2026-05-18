@@ -104,10 +104,10 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
  * **Example** (Creating a range)
  *
  * ```ts
- * import { range } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Array.from(range(1, 3)), [1, 2, 3])
+ * assert.deepStrictEqual(Array.from(Iterable.range(1, 3)), [1, 2, 3])
  * ```
  *
  * @category constructors
@@ -130,10 +130,10 @@ export const range = (start: number, end?: number): Iterable<number> => {
  * **Example** (Repeating a value)
  *
  * ```ts
- * import { replicate } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Array.from(replicate("a", 3)), ["a", "a", "a"])
+ * assert.deepStrictEqual(Array.from(Iterable.replicate("a", 3)), ["a", "a", "a"])
  * ```
  *
  * @category constructors
@@ -175,11 +175,11 @@ export const forever = <A>(self: Iterable<A>): Iterable<A> => repeat(self, Infin
  * **Example** (Converting a record to entries)
  *
  * ```ts
- * import { fromRecord } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
  * const x = { a: 1, b: 2, c: 3 }
- * assert.deepStrictEqual(Array.from(fromRecord(x)), [["a", 1], ["b", 2], [
+ * assert.deepStrictEqual(Array.from(Iterable.fromRecord(x)), [["a", 1], ["b", 2], [
  *   "c",
  *   3
  * ]])
@@ -391,11 +391,11 @@ export const scan: {
  * **Example** (Checking for emptiness)
  *
  * ```ts
- * import { isEmpty } from "effect/Iterable"
+ * import { Iterable } from "effect"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(isEmpty([]), true)
- * assert.deepStrictEqual(isEmpty([1, 2, 3]), false)
+ * assert.deepStrictEqual(Iterable.isEmpty([]), true)
+ * assert.deepStrictEqual(Iterable.isEmpty([1, 2, 3]), false)
  * ```
  *
  * @category guards
@@ -447,8 +447,7 @@ export const size = <A>(self: Iterable<A>): number => {
  * **Example** (Getting the first element)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import { Iterable, Option } from "effect"
  *
  * const numbers = [1, 2, 3]
  * console.log(Iterable.head(numbers)) // Option.some(1)
@@ -672,8 +671,7 @@ export const drop: {
  * **Example** (Finding the first match)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import { Iterable, Option } from "effect"
  *
  * const numbers = [1, 3, 4, 6, 8]
  * const firstEven = Iterable.findFirst(numbers, (x) => x % 2 === 0)
@@ -1560,8 +1558,7 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  * **Example** (Filtering and transforming Result values)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  *
  * // Parse strings to numbers, keeping only valid ones
  * const strings = ["1", "2", "invalid", "4", "not-a-number"]
@@ -1629,8 +1626,7 @@ export const filterMap: {
  * **Example** (Filtering and transforming until failure)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  *
  * // Parse numbers until we hit an invalid one
  * const strings = ["1", "2", "3", "invalid", "4", "5"]
@@ -1689,8 +1685,7 @@ export const filterMapWhile: {
  * **Example** (Extracting Some values)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Option from "effect/Option"
+ * import { Iterable, Option } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
@@ -1731,8 +1726,7 @@ export const getSomes = <A>(self: Iterable<Option<A>>): Iterable<A> => {
  * **Example** (Extracting failures)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
@@ -1777,8 +1771,7 @@ export const getFailures = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<L> =
  * **Example** (Extracting successes)
  *
  * ```ts
- * import { Iterable } from "effect"
- * import * as Result from "effect/Result"
+ * import { Iterable, Result } from "effect"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(

@@ -22,7 +22,7 @@
  * **Example** (Checking an array reversal property)
  *
  * ```ts
- * import * as FastCheck from "effect/testing/FastCheck"
+ * import { FastCheck } from "effect/testing"
  *
  * // Property: reverse of reverse should equal original
  * const reverseProp = FastCheck.property(
@@ -41,7 +41,7 @@
  * **Example** (Checking string concatenation properties)
  *
  * ```ts
- * import * as FastCheck from "effect/testing/FastCheck"
+ * import { FastCheck } from "effect/testing"
  *
  * // Test string concatenation properties
  * const concatProp = FastCheck.property(
@@ -61,7 +61,7 @@
  * **Example** (Generating record data for properties)
  *
  * ```ts
- * import * as FastCheck from "effect/testing/FastCheck"
+ * import { FastCheck } from "effect/testing"
  *
  * // Generate random data for testing
  * const personArbitrary = FastCheck.record({

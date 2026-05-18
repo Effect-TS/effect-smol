@@ -117,11 +117,10 @@ export type Equivalence<in A> = (self: A, that: A) => boolean
  * **Example** (Type-level usage)
  *
  * ```ts
- * import type { Equivalence } from "effect"
- * import type { Kind } from "effect/HKT"
+ * import type { Equivalence, HKT } from "effect"
  *
  * // Used internally for type-level computations
- * type NumberEquivalence = Kind<
+ * type NumberEquivalence = HKT.Kind<
  *   Equivalence.EquivalenceTypeLambda,
  *   never,
  *   never,

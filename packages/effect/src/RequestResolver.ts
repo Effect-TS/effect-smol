@@ -88,8 +88,8 @@ const TypeId = "~effect/RequestResolver"
  * **Example** (Defining a request resolver)
  *
  * ```ts
- * import type { Request } from "effect"
  * import { Effect, Exit, RequestResolver } from "effect"
+ * import type { Request } from "effect"
  *
  * interface GetUserRequest extends Request.Request<string, Error> {
  *   readonly _tag: "GetUserRequest"
@@ -462,8 +462,8 @@ export const fromEffect = <A extends Request.Any>(
  * **Example** (Handling tagged request batches)
  *
  * ```ts
- * import type { Request } from "effect"
  * import { Effect, RequestResolver } from "effect"
+ * import type { Request } from "effect"
  *
  * interface GetUser extends Request.Request<string, Error> {
  *   readonly _tag: "GetUser"

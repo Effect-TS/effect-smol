@@ -925,8 +925,7 @@ export const tag: <
  * **Example** (Matching tag prefixes)
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Match } from "effect"
+ * import { Match, pipe } from "effect"
  *
  * const match = pipe(
  *   Match.type<{ _tag: "A" } | { _tag: "B" } | { _tag: "A.A" } | {}>(),

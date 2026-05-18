@@ -309,8 +309,7 @@ export const getAndUpdate = dual<
  * **Example** (Conditionally updating and returning the previous value)
  *
  * ```ts
- * import { Effect, Ref } from "effect"
- * import * as Option from "effect/Option"
+ * import { Effect, Option, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -457,8 +456,7 @@ export const modify = dual<
  * **Example** (Conditionally modifying a value)
  *
  * ```ts
- * import { Effect, Ref } from "effect"
- * import * as Option from "effect/Option"
+ * import { Effect, Option, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -589,8 +587,7 @@ export const updateAndGet = dual<
  * **Example** (Conditionally updating a value)
  *
  * ```ts
- * import { Effect, Ref } from "effect"
- * import * as Option from "effect/Option"
+ * import { Effect, Option, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -640,8 +637,7 @@ export const updateSome = dual<
  * **Example** (Conditionally updating and returning the current value)
  *
  * ```ts
- * import { Effect, Ref } from "effect"
- * import * as Option from "effect/Option"
+ * import { Effect, Option, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)

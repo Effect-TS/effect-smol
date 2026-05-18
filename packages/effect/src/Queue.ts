@@ -846,8 +846,7 @@ export const failCause: {
  * **Example** (Failing queues with a cause synchronously)
  *
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)

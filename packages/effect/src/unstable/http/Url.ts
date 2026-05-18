@@ -41,8 +41,8 @@ import * as UrlParams from "./UrlParams.ts"
  * **Example**
  *
  * ```ts
- * import { Url } from "effect/unstable/http"
  * import { Result } from "effect"
+ * import { Url } from "effect/unstable/http"
  *
  * // Parse an absolute URL
  * //

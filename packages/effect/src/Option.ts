@@ -1969,8 +1969,7 @@ export const partitionMap: {
  * **Example** (Filtering and transforming)
  *
  * ```ts
- * import { Option } from "effect"
- * import * as Result from "effect/Result"
+ * import { Option, Result } from "effect"
  *
  * console.log(Option.filterMap(
  *   Option.some(2),
@@ -2098,8 +2097,7 @@ export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Eq
  * **Example** (Ordering Options)
  *
  * ```ts
- * import { Option } from "effect"
- * import * as N from "effect/Number"
+ * import { Number as N, Option } from "effect"
  *
  * const ord = Option.makeOrder(N.Order)
  *

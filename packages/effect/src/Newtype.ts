@@ -215,7 +215,7 @@ export function makeIso<N extends Newtype.Any>(): Optic.Iso<N, Newtype.Carrier<N
  * **Example** (comparing newtypes)
  *
  * ```ts
- * import { Newtype, Equivalence } from "effect"
+ * import { Equivalence, Newtype } from "effect"
  *
  * interface Label extends Newtype.Newtype<"Label", string> {}
  *
@@ -270,7 +270,7 @@ export const makeOrder: <N extends Newtype.Any>(order: Order.Order<Newtype.Carri
  * **Example** (combining newtypes)
  *
  * ```ts
- * import { Newtype, Combiner } from "effect"
+ * import { Combiner, Newtype } from "effect"
  *
  * interface Amount extends Newtype.Newtype<"Amount", number> {}
  *

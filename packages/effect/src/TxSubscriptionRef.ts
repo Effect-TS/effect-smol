@@ -27,7 +27,7 @@ const TypeId = "~effect/transactions/TxSubscriptionRef"
  * **Example** (Subscribing to transactional changes)
  *
  * ```ts
- * import { Effect, TxSubscriptionRef, TxQueue } from "effect"
+ * import { Effect, TxQueue, TxSubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* TxSubscriptionRef.make(0)
@@ -329,7 +329,7 @@ export const updateAndGet: {
  * **Example** (Subscribing to changes)
  *
  * ```ts
- * import { Effect, TxSubscriptionRef, TxQueue } from "effect"
+ * import { Effect, TxQueue, TxSubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* TxSubscriptionRef.make(0)

@@ -723,8 +723,7 @@ export const findFirstFilter: {
  * **Example** (Applying Effects to Iterable Elements)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const result = Effect.forEach(
  *   [1, 2, 3, 4, 5],
@@ -745,8 +744,7 @@ export const findFirstFilter: {
  * **Example** (Using discard to Ignore Results)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Apply effects but discard the results
  * const result = Effect.forEach(
@@ -1235,8 +1233,7 @@ export const never: Effect<never> = internal.never
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { pipe } from "effect/Function"
+ * import { Effect, pipe } from "effect"
  *
  * const program = pipe(
  *   Effect.Do,
@@ -1995,8 +1992,7 @@ export const andThen: {
  * **Example** (Logging a step in a pipeline)
  *
  * ```ts
- * import { Data, Effect, pipe } from "effect"
- * import { Console } from "effect"
+ * import { Console, Data, Effect, pipe } from "effect"
  *
  * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
@@ -4014,7 +4010,7 @@ export const ignoreCause: <
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, ExecutionPlan, Layer, Context } from "effect"
+ * import { Context, Effect, ExecutionPlan, Layer } from "effect"
  *
  * const Endpoint = Context.Service<{ url: string }>("Endpoint")
  *
@@ -5352,7 +5348,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Option, Context } from "effect"
+ * import { Console, Context, Effect, Option } from "effect"
  *
  * const Logger = Context.Service<{
  *   log: (msg: string) => void
@@ -5393,7 +5389,7 @@ export const context: <R = never>() => Effect<Context.Context<R>, never, R> = in
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Option, Context } from "effect"
+ * import { Console, Context, Effect, Option } from "effect"
  *
  * const Logger = Context.Service<{
  *   log: (msg: string) => void
@@ -5440,7 +5436,7 @@ export const contextWith: <R, A, E, R2>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -5526,7 +5522,7 @@ export const provide: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * // Define service keys
  * const Logger = Context.Service<{
@@ -5570,7 +5566,7 @@ export const provideContext: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -5602,7 +5598,7 @@ export const service: <I, S>(service: Context.Key<I, S>) => Effect<S, never, I> 
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Option, Context } from "effect"
+ * import { Context, Effect, Option } from "effect"
  *
  * // Define a service key
  * const Logger = Context.Service<{
@@ -5637,7 +5633,7 @@ export const serviceOption: <I, S>(key: Context.Key<I, S>) => Effect<Option<S>> 
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * // Define services
  * const Logger = Context.Service<{
@@ -5687,7 +5683,7 @@ export const updateContext: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Context } from "effect"
+ * import { Console, Context, Effect } from "effect"
  *
  * // Define a counter service
  * const Counter = Context.Service<{ count: number }>("Counter")
@@ -5737,7 +5733,7 @@ export const updateService: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Context } from "effect"
+ * import { Console, Context, Effect } from "effect"
  *
  * // Define a service for configuration
  * const Config = Context.Service<{
@@ -5799,7 +5795,7 @@ export const provideService: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Context } from "effect"
+ * import { Console, Context, Effect } from "effect"
  *
  * // Define a database connection service
  * interface DatabaseConnection {
@@ -6093,7 +6089,7 @@ export const acquireRelease: <A, E, R, R2>(
  *
  * ```ts
  * import sqlite from "node:sqlite";
- * import { Effect } from "effect";
+ * import { Effect } from "effect"
  *
  * const program = Effect.scoped(
  *   Effect.gen(function* () {
@@ -6297,7 +6293,7 @@ export const ensuring: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Cause, Data, Console, Effect } from "effect"
+ * import { Cause, Console, Data, Effect } from "effect"
  *
  * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
  *
@@ -7023,9 +7019,7 @@ export const forever: <
  *
  * ```ts
  * // Success Example
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * const action = Console.log("success")
  * const policy = Schedule.addDelay(Schedule.recurs(2), () => Effect.succeed("100 millis"))
@@ -7038,8 +7032,7 @@ export const forever: <
  *
  * ```ts
  * // Failure Example
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * let count = 0
  *
@@ -7101,8 +7094,7 @@ export const repeat: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
- * import * as Option from "effect/Option"
+ * import { Console, Effect, Option, Schedule } from "effect"
  *
  * let attempt = 0
  * const task = Effect.gen(function*() {
@@ -8204,10 +8196,7 @@ export interface RunOptions {
  * **Example** (Running an Effect in the Background)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Fiber } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Fiber, Schedule } from "effect"
  *
  * //      ┌─── Effect<number, never, never>
  * //      ▼
@@ -8237,7 +8226,7 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface Logger {
  *   log: (message: string) => void
@@ -8273,7 +8262,7 @@ export const runForkWith: <R>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Exit, Context } from "effect"
+ * import { Console, Context, Effect, Exit } from "effect"
  *
  * interface Logger {
  *   log: (message: string) => Effect.Effect<void>
@@ -8404,7 +8393,7 @@ export const runPromise: <A, E>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface Config {
  *   apiUrl: string
@@ -8489,7 +8478,7 @@ export const runPromiseExit: <A, E>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Exit, Context } from "effect"
+ * import { Context, Effect, Exit } from "effect"
  *
  * interface Database {
  *   query: (sql: string) => string
@@ -8589,7 +8578,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface MathService {
  *   add: (a: number, b: number) => number
@@ -8696,7 +8685,7 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Exit, Context } from "effect"
+ * import { Context, Effect, Exit } from "effect"
  *
  * // Define a logger service
  * const Logger = Context.Service<{
