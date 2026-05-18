@@ -1,4 +1,21 @@
 /**
+ * Utilities for inspecting, decoding, and filtering HTTP client responses.
+ *
+ * An `HttpClientResponse` pairs the platform `Response` with the request that
+ * produced it, exposing status, headers, cookies, and effectful views of the
+ * response body. Use this module after an `HttpClient` call to branch on status
+ * with `matchStatus` or `filterStatus`, decode JSON or URL-encoded bodies with
+ * schemas, stream bytes, or adapt a Web `Response` with `fromWeb`.
+ *
+ * Response bodies come from the underlying Web response and should be decoded
+ * deliberately: `json` parses an empty text body as `null`, body readers fail
+ * with `HttpClientError` when decoding fails, and the raw stream fails when no
+ * body is present. Headers are represented by the HTTP `Headers` module's
+ * single-value, lowercase map, while response cookies are parsed separately from
+ * `Set-Cookie` headers. Status values are not considered errors by themselves;
+ * use the provided filters or matchers when only specific status codes are
+ * acceptable.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -19,31 +36,35 @@ import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
-   * @since 4.0.0
    * @category schema
+   * @since 4.0.0
    */
   schemaBodyJson,
   /**
-   * @since 4.0.0
    * @category schema
+   * @since 4.0.0
    */
   schemaBodyUrlParams,
   /**
-   * @since 4.0.0
    * @category schema
+   * @since 4.0.0
    */
   schemaHeaders
 } from "./HttpIncomingMessage.ts"
 
 /**
- * @since 4.0.0
+ * Type identifier for `HttpClientResponse` values.
+ *
  * @category Type IDs
+ * @since 4.0.0
  */
 export const TypeId = "~effect/http/HttpClientResponse"
 
 /**
- * @since 4.0.0
+ * Model of an HTTP client response, including the original request, status, cookies, headers, and body accessors.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMessage<Error.HttpClientError>, Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -54,15 +75,19 @@ export interface HttpClientResponse extends HttpIncomingMessage.HttpIncomingMess
 }
 
 /**
- * @since 4.0.0
+ * Wraps a Web `Response` and its original `HttpClientRequest` as an `HttpClientResponse`.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const fromWeb = (request: HttpClientRequest.HttpClientRequest, source: Response): HttpClientResponse =>
   new WebHttpClientResponse(request, source)
 
 /**
- * @since 4.0.0
+ * Creates a decoder for a response's status, headers, and JSON body using the supplied schema.
+ *
  * @category schema
+ * @since 4.0.0
  */
 export const schemaJson = <
   A,
@@ -90,8 +115,10 @@ export const schemaJson = <
 }
 
 /**
- * @since 4.0.0
+ * Creates a decoder for a response's status and headers without reading a response body.
+ *
  * @category schema
+ * @since 4.0.0
  */
 export const schemaNoBody = <
   A,
@@ -114,16 +141,20 @@ export const schemaNoBody = <
 }
 
 /**
- * @since 4.0.0
+ * Converts an effect producing an `HttpClientResponse` into a stream of response body bytes.
+ *
  * @category accessors
+ * @since 4.0.0
  */
 export const stream = <E, R>(
   effect: Effect.Effect<HttpClientResponse, E, R>
 ): Stream.Stream<Uint8Array, Error.HttpClientError | E, R> => Stream.unwrap(Effect.map(effect, (self) => self.stream))
 
 /**
- * @since 4.0.0
+ * Pattern matches on a response status, checking exact status handlers before status-class handlers and `orElse`.
+ *
  * @category pattern matching
+ * @since 4.0.0
  */
 export const matchStatus: {
   <
@@ -172,8 +203,10 @@ export const matchStatus: {
 })
 
 /**
- * @since 4.0.0
+ * Succeeds with the response when its status satisfies the predicate, otherwise fails with `HttpClientError`.
+ *
  * @category filters
+ * @since 4.0.0
  */
 export const filterStatus: {
   (
@@ -197,8 +230,10 @@ export const filterStatus: {
 )
 
 /**
- * @since 4.0.0
+ * Succeeds with the response only when its status is in the 2xx range, otherwise fails with `HttpClientError`.
+ *
  * @category filters
+ * @since 4.0.0
  */
 export const filterStatusOk = (self: HttpClientResponse): Effect.Effect<HttpClientResponse, Error.HttpClientError> =>
   self.status >= 200 && self.status < 300 ? Effect.succeed(self) : Effect.fail(

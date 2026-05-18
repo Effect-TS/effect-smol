@@ -928,6 +928,7 @@ describe("NodeChildProcessSpawner", () => {
             Effect.provide(NodeServices)
           )
 
+          // @effect-diagnostics-next-line floatingEffect:off
           yield* Scope.provide(scope)(handle.unref).pipe(Effect.provide(NodeServices))
           yield* Scope.close(scope, Exit.void)
           yield* TestClock.withLive(Effect.sleep("100 millis"))
@@ -967,6 +968,7 @@ describe("NodeChildProcessSpawner", () => {
             })
           })).pipe(Effect.provide(NodeServices))
 
+          // @effect-diagnostics-next-line floatingEffect:off
           yield* Scope.provide(scope)(handle.unref).pipe(Effect.provide(NodeServices))
           yield* Scope.close(scope, Exit.void)
 
@@ -984,6 +986,7 @@ describe("NodeChildProcessSpawner", () => {
             return yield* ChildProcess.make({ cwd })`./parent-exits-early.sh`
           })).pipe(Effect.provide(NodeServices))
 
+          // @effect-diagnostics-next-line floatingEffect:off
           yield* Scope.provide(scope)(handle.unref).pipe(Effect.provide(NodeServices))
           yield* Scope.close(scope, Exit.void)
 
@@ -1018,6 +1021,7 @@ describe("NodeChildProcessSpawner", () => {
             )
           })).pipe(Effect.provide(NodeServices))
 
+          // @effect-diagnostics-next-line floatingEffect:off
           yield* Scope.provide(scope)(handle.unref).pipe(Effect.provide(NodeServices))
           yield* Scope.close(scope, Exit.void)
           yield* TestClock.withLive(Effect.sleep("100 millis"))

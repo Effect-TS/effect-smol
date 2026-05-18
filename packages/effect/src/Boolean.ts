@@ -14,7 +14,8 @@ import * as Reducer from "./Reducer.ts"
 /**
  * Reference to the global Boolean constructor.
  *
- * @example
+ * **Example** (Coercing values to booleans)
+ *
  * ```ts
  * import * as Boolean from "effect/Boolean"
  *
@@ -36,7 +37,8 @@ export const Boolean = globalThis.Boolean
 /**
  * Tests if a value is a `boolean`.
  *
- * @example
+ * **Example** (Checking for booleans)
+ *
  * ```ts
  * import { isBoolean } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -54,7 +56,8 @@ export const isBoolean: (input: unknown) => input is boolean = predicate.isBoole
  * This function returns the result of either of the given functions depending on the value of the boolean parameter.
  * It is useful when you have to run one of two functions depending on the boolean value.
  *
- * @example
+ * **Example** (Pattern matching on booleans)
+ *
  * ```ts
  * import * as Boolean from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -89,7 +92,8 @@ export const match: {
  * Provides an `Order` instance for `boolean` that allows comparing and sorting boolean values.
  * In this ordering, `false` is considered less than `true`.
  *
- * @example
+ * **Example** (Comparing booleans)
+ *
  * ```ts
  * import * as Boolean from "effect/Boolean"
  *
@@ -106,7 +110,8 @@ export const Order: order.Order<boolean> = order.Boolean
 /**
  * An `Equivalence` instance for booleans using strict equality (`===`).
  *
- * @example
+ * **Example** (Comparing booleans for equivalence)
+ *
  * ```ts
  * import { Boolean } from "effect"
  *
@@ -122,7 +127,8 @@ export const Equivalence: Equ.Equivalence<boolean> = Equ.Boolean
 /**
  * Negates the given boolean: `!self`
  *
- * @example
+ * **Example** (Negating booleans)
+ *
  * ```ts
  * import { not } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -139,7 +145,8 @@ export const not = (self: boolean): boolean => !self
 /**
  * Combines two boolean using AND: `self && that`.
  *
- * @example
+ * **Example** (Combining booleans with AND)
+ *
  * ```ts
  * import { and } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -161,7 +168,8 @@ export const and: {
 /**
  * Combines two boolean using NAND: `!(self && that)`.
  *
- * @example
+ * **Example** (Combining booleans with NAND)
+ *
  * ```ts
  * import { nand } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -183,7 +191,8 @@ export const nand: {
 /**
  * Combines two boolean using OR: `self || that`.
  *
- * @example
+ * **Example** (Combining booleans with OR)
+ *
  * ```ts
  * import { or } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -205,7 +214,8 @@ export const or: {
 /**
  * Combines two booleans using NOR: `!(self || that)`.
  *
- * @example
+ * **Example** (Combining booleans with NOR)
+ *
  * ```ts
  * import { nor } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -227,7 +237,8 @@ export const nor: {
 /**
  * Combines two booleans using XOR: `(!self && that) || (self && !that)`.
  *
- * @example
+ * **Example** (Combining booleans with XOR)
+ *
  * ```ts
  * import { xor } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -249,7 +260,8 @@ export const xor: {
 /**
  * Combines two booleans using EQV (aka XNOR): `!xor(self, that)`.
  *
- * @example
+ * **Example** (Checking boolean equivalence)
+ *
  * ```ts
  * import { eqv } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -271,7 +283,8 @@ export const eqv: {
 /**
  * Combines two booleans using an implication: `(!self || that)`.
  *
- * @example
+ * **Example** (Checking boolean implication)
+ *
  * ```ts
  * import { implies } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -293,7 +306,8 @@ export const implies: {
 /**
  * This utility function is used to check if all the elements in a collection of boolean values are `true`.
  *
- * @example
+ * **Example** (Checking every boolean)
+ *
  * ```ts
  * import { every } from "effect/Boolean"
  * import * as assert from "node:assert"
@@ -317,7 +331,8 @@ export const every = (collection: Iterable<boolean>): boolean => {
 /**
  * This utility function is used to check if at least one of the elements in a collection of boolean values is `true`.
  *
- * @example
+ * **Example** (Checking some booleans)
+ *
  * ```ts
  * import { some } from "effect/Boolean"
  * import * as assert from "node:assert"

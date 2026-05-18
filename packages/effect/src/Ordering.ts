@@ -1,29 +1,39 @@
 /**
+ * The `Ordering` module provides the standard representation for the result of
+ * comparing two values. An `Ordering` is one of three numeric literals: `-1`
+ * when the first value is less than the second, `0` when both values compare as
+ * equal, and `1` when the first value is greater than the second.
+ *
+ * **Mental model**
+ *
+ * - `Ordering` describes the relationship between two compared values, not the
+ *   values themselves
+ * - Negative means "less than", zero means "equal", and positive means "greater
+ *   than"
+ * - Unlike JavaScript comparators, this type is normalized to exactly `-1`, `0`,
+ *   or `1`
+ * - `0` is neutral when combining comparisons; the first non-zero ordering
+ *   determines the result
+ *
+ * **Common tasks**
+ *
+ * - Interpret a comparison result with {@link match}
+ * - Reverse ascending and descending order with {@link reverse}
+ * - Combine multiple comparison criteria with {@link Reducer}
+ * - Build custom comparison functions for sorting, ordered collections, and
+ *   domain-specific ordering rules
+ *
+ * **Gotchas**
+ *
+ * - Do not cast arbitrary comparator results such as `a.localeCompare(b)`
+ *   directly unless they have been normalized to `-1`, `0`, or `1`
+ * - In comparator-style APIs, `-1` means the left value should come before the
+ *   right value, while `1` means it should come after
+ * - Reversing an `Ordering` swaps `-1` and `1`, but leaves `0` unchanged
+ *
  * @fileoverview
- * The Ordering module provides utilities for working with comparison results and ordering operations.
- * An Ordering represents the result of comparing two values, expressing whether the first value is
- * less than (-1), equal to (0), or greater than (1) the second value.
- *
- * This module is fundamental for building comparison functions, sorting algorithms, and implementing
- * ordered data structures. It provides composable operations for combining multiple comparison results
- * and pattern matching on ordering outcomes.
- *
- * Key Features:
- * - Type-safe representation of comparison results (-1, 0, 1)
- * - Composable operations for combining multiple orderings
- * - Pattern matching utilities for handling different ordering cases
- * - Ordering reversal and combination functions
- * - Integration with Effect's functional programming patterns
- *
- * Common Use Cases:
- * - Implementing custom comparison functions
- * - Building complex sorting criteria
- * - Combining multiple comparison results
- * - Creating ordered data structures
- * - Pattern matching on comparison outcomes
- *
- * @since 2.0.0
  * @category utilities
+ * @since 2.0.0
  */
 import type { LazyArg } from "./Function.ts"
 import { dual } from "./Function.ts"
@@ -36,7 +46,8 @@ import * as Reducer_ from "./Reducer.ts"
  * - `0` indicates the values are equal
  * - `1` indicates the first value is greater than the second
  *
- * @example
+ * **Example** (Defining comparison results)
+ *
  * ```ts
  * import type { Ordering } from "effect"
  *
@@ -66,7 +77,8 @@ export type Ordering = -1 | 0 | 1
  * Inverts the ordering of the input Ordering.
  * This is useful for creating descending sort orders from ascending ones.
  *
- * @example
+ * **Example** (Reversing comparison order)
+ *
  * ```ts
  * import { Ordering } from "effect"
  *
@@ -101,7 +113,8 @@ export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 :
 /**
  * Depending on the `Ordering` parameter given to it, returns a value produced by one of the 3 functions provided as parameters.
  *
- * @example
+ * **Example** (Pattern matching on orderings)
+ *
  * ```ts
  * import { Ordering } from "effect"
  * import { constant } from "effect/Function"

@@ -70,7 +70,6 @@
  * - {@link gen} for generator-based syntax
  *
  * @since 2.0.0
- * @module
  */
 import * as Combiner from "./Combiner.ts"
 import * as Equal from "./Equal.ts"
@@ -105,23 +104,6 @@ const TypeId = "~effect/data/Option"
  * - Representing initial values that may not yet exist
  * - Returning from partial functions (not defined for all inputs)
  * - Managing optional fields in data structures
- *
- * **Example** (Creating and matching Options)
- *
- * ```ts
- * import { Option } from "effect"
- *
- * const someValue: Option.Option<number> = Option.some(42)
- * const noneValue: Option.Option<number> = Option.none()
- *
- * const result = Option.match(someValue, {
- *   onNone: () => "No value",
- *   onSome: (value) => `Value is ${value}`
- * })
- *
- * console.log(result)
- * // Output: "Value is 42"
- * ```
  *
  * @see {@link some} for creating a `Some`
  * @see {@link none} for creating a `None`
@@ -164,8 +146,11 @@ export interface None<out A> extends Pipeable, Inspectable {
 }
 
 /**
+ * Iterator protocol used to yield an `Option` inside {@link gen}, returning the
+ * contained value type back to the generator.
+ *
+ * @category Generators
  * @since 4.0.0
- * @category Models
  */
 export interface OptionIterator<T extends Option<any>> {
   next(
@@ -208,8 +193,11 @@ export interface Some<out A> extends Pipeable, Inspectable {
 }
 
 /**
- * Internal unification interface for `Option` types. Used by the Effect
- * library's type system for type-level operations.
+ * Type-level unification support for `Option` values.
+ *
+ * This is used by Effect's `Unify` machinery to preserve the contained value
+ * type when generic code returns or combines `Option` values. Users normally
+ * do not need to reference this interface directly.
  *
  * @category Models
  * @since 2.0.0
@@ -221,19 +209,6 @@ export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
 /**
  * Namespace containing utility types for `Option`.
  *
- * **Example** (Extracting the value type)
- *
- * ```ts
- * import type { Option } from "effect"
- *
- * declare const myOption: Option.Option<string>
- *
- * //      ┌─── string
- * //      ▼
- * type MyType = Option.Option.Value<typeof myOption>
- * ```
- *
- * @category Namespaces
  * @since 2.0.0
  */
 export declare namespace Option {
@@ -252,14 +227,17 @@ export declare namespace Option {
    * type MyType = Option.Option.Value<typeof myOption>
    * ```
    *
-   * @since 2.0.0
    * @category Type-level Utils
+   * @since 2.0.0
    */
   export type Value<T extends Option<any>> = [T] extends [Option<infer _A>] ? _A : never
 }
 
 /**
- * Internal interface for type unification ignore behavior.
+ * Marker interface used by Effect's `Unify` machinery for `Option` values.
+ *
+ * This supports type-level unification behavior for `Option`. Users normally
+ * do not need to reference this interface directly.
  *
  * @category Models
  * @since 2.0.0
@@ -571,14 +549,14 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
 /**
  * Converts a `Result` into an `Option`, keeping only the success value.
  *
- * **When to use**
+ * **When to Use**
  *
- * - Discarding the error channel when you only care about success
+ * - Discarding the failure channel when you only care about success
  *
- * **Behavior**
+ * **Details**
  *
- * - `Ok` → `Some` with the success value
- * - `Err` → `None` (error is discarded)
+ * - `Success` becomes `Some` with the success value
+ * - `Failure` becomes `None` and the failure value is discarded
  *
  * **Example** (Extracting the success side)
  *
@@ -600,16 +578,16 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
 export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuccess
 
 /**
- * Converts a `Result` into an `Option`, keeping only the error value.
+ * Converts a `Result` into an `Option`, keeping only the failure value.
  *
- * **When to use**
+ * **When to Use**
  *
- * - Extracting the error when you don't need the success channel
+ * - Extracting the failure when you do not need the success value
  *
- * **Behavior**
+ * **Details**
  *
- * - `Err` → `Some` with the error value
- * - `Ok` → `None` (success value is discarded)
+ * - `Failure` becomes `Some` with the failure value
+ * - `Success` becomes `None` and the success value is discarded
  *
  * **Example** (Extracting the failure side)
  *
@@ -2597,6 +2575,7 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
  *
  * @see {@link makeReducerFailFast} for fail-fast semantics
  *
+ * @category Reducer
  * @since 4.0.0
  */
 export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Option<A>> {
@@ -2636,6 +2615,7 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
  *
  * @see {@link makeReducerFailFast} to get a full `Reducer`
  *
+ * @category Combiner
  * @since 4.0.0
  */
 export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<Option<A>> {
@@ -2676,6 +2656,7 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  * @see {@link makeCombinerFailFast} for just the combiner
  * @see {@link makeReducer} for non-fail-fast semantics
  *
+ * @category Reducer
  * @since 4.0.0
  */
 export function makeReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<Option<A>> {

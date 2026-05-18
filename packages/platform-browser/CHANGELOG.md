@@ -1,5 +1,18 @@
 # @effect/platform-browser
 
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- [#2196](https://github.com/Effect-TS/effect-smol/pull/2196) [`b7abd0e`](https://github.com/Effect-TS/effect-smol/commit/b7abd0e5c236500a00de3a871c151cc50c3ec40b) Thanks @juemrami! - Adds an IndexedDB backed implementation of `KeyValueStore` as `BrowserKeyValueStore.layerIndexedDb`. This backend allows for non-blocking `KeyValueStore` operations, unlike the existing `Storage` api backed implementations.
+
+- [#2183](https://github.com/Effect-TS/effect-smol/pull/2183) [`e32343a`](https://github.com/Effect-TS/effect-smol/commit/e32343adf3e449cb9452908655c83757843d1907) Thanks @tim-smart! - use Cause.NoSuchElementError for idb .first queries
+
+- [#2182](https://github.com/Effect-TS/effect-smol/pull/2182) [`ae40463`](https://github.com/Effect-TS/effect-smol/commit/ae404636ab75fc47d0167c22a20564777c12cf59) Thanks @tim-smart! - cache base idb query builders
+
+- Updated dependencies [[`a42ef66`](https://github.com/Effect-TS/effect-smol/commit/a42ef6632abbddfa820995ae310ccc84ae8d9b6f), [`35594f8`](https://github.com/Effect-TS/effect-smol/commit/35594f811cafe471acd490114b103a1f8392c8d8), [`8bddd62`](https://github.com/Effect-TS/effect-smol/commit/8bddd628cb623f9533d345082583ff51cead6836), [`4be4c8d`](https://github.com/Effect-TS/effect-smol/commit/4be4c8d60862aa963869ee2ed9ffa048ffac0527), [`0c9d3ab`](https://github.com/Effect-TS/effect-smol/commit/0c9d3ab43eb721a370ed8306260cbac218c27e87), [`b156acc`](https://github.com/Effect-TS/effect-smol/commit/b156accd2691b4a051f823affdece7c39923ce85), [`d16c034`](https://github.com/Effect-TS/effect-smol/commit/d16c03434ee3e6dcd3bfc82b65d99e881d89025b), [`b559d68`](https://github.com/Effect-TS/effect-smol/commit/b559d68845f848a10153395778f035682d399075), [`a3de5d9`](https://github.com/Effect-TS/effect-smol/commit/a3de5d9215e5cc4a62e2666efbd7c1bf595eb84f), [`7e6c12e`](https://github.com/Effect-TS/effect-smol/commit/7e6c12ec9b3a5945f6c26e272cc8f6390541ad3e), [`098167a`](https://github.com/Effect-TS/effect-smol/commit/098167a220fe07da6f14455818733ab1b269c9dd)]:
+  - effect@4.0.0-beta.67
+
 ## 4.0.0-beta.66
 
 ### Patch Changes

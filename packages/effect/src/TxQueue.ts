@@ -31,7 +31,8 @@ import type * as Types from "./Types.ts"
  * - **Closing**: No new offers accepted, serving remaining items until empty
  * - **Done**: Terminal state with completion cause, no further operations possible
  *
- * @example
+ * **Example** (Inspecting queue lifecycle states)
+ *
  * ```ts
  * import type { TxQueue } from "effect"
  *
@@ -47,8 +48,8 @@ import type * as Types from "./Types.ts"
  * }
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type State<_A, E> =
   | {
@@ -70,31 +71,15 @@ const TypeId = "~effect/transactions/TxQueue"
 /**
  * Namespace containing type definitions for TxEnqueue variance annotations.
  *
- * @example
- * ```ts
- * import type { TxQueue } from "effect"
- *
- * // Use variance types for type-level operations
- * declare const variance: TxQueue.TxEnqueue.Variance<number, Error>
- * ```
- *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TxEnqueue {
   /**
    * Variance annotation interface for TxEnqueue contravariance.
    *
-   * @example
-   * ```ts
-   * import type { TxQueue } from "effect"
-   *
-   * // Demonstrates contravariant type behavior for both A and E
-   * declare const variance: TxQueue.TxEnqueue.Variance<string, Error>
-   * ```
-   *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<in A, in E> {
     readonly _A: Types.Contravariant<A>
@@ -105,31 +90,15 @@ export declare namespace TxEnqueue {
 /**
  * Namespace containing type definitions for TxDequeue variance annotations.
  *
- * @example
- * ```ts
- * import type { TxQueue } from "effect"
- *
- * // Use variance types for type-level operations
- * declare const variance: TxQueue.TxDequeue.Variance<number, Error>
- * ```
- *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TxDequeue {
   /**
    * Variance annotation interface for TxDequeue covariance.
    *
-   * @example
-   * ```ts
-   * import type { TxQueue } from "effect"
-   *
-   * // Demonstrates covariant type behavior for both A and E
-   * declare const variance: TxQueue.TxDequeue.Variance<string, Error>
-   * ```
-   *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<out A, out E> {
     readonly _A: Types.Covariant<A>
@@ -140,31 +109,15 @@ export declare namespace TxDequeue {
 /**
  * Namespace containing type definitions for TxQueue variance annotations.
  *
- * @example
- * ```ts
- * import type { TxQueue } from "effect"
- *
- * // Use variance types for type-level operations
- * declare const variance: TxQueue.TxQueue.Variance<number, Error>
- * ```
- *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export declare namespace TxQueue {
   /**
    * Variance annotation interface for TxQueue invariance.
    *
-   * @example
-   * ```ts
-   * import type { TxQueue } from "effect"
-   *
-   * // Demonstrates invariant type behavior for both A and E
-   * declare const variance: TxQueue.TxQueue.Variance<string, Error>
-   * ```
-   *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Variance<in out A, in out E> {
     readonly _A: Types.Invariant<A>
@@ -177,8 +130,8 @@ export declare namespace TxQueue {
  * This interface contains the core properties needed for queue state inspection
  * operations like size, capacity, and completion status.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxQueueState extends Inspectable {
   readonly strategy: "bounded" | "unbounded" | "dropping" | "sliding"
@@ -191,7 +144,8 @@ export interface TxQueueState extends Inspectable {
  * A TxEnqueue represents the write-only interface of a transactional queue, providing
  * operations for adding elements (enqueue operations) and inspecting queue state.
  *
- * @example
+ * **Example** (Offering values through enqueue handles)
+ *
  * ```ts
  * import type { Cause } from "effect"
  * import { Effect, TxQueue } from "effect"
@@ -216,8 +170,8 @@ export interface TxQueueState extends Inspectable {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxEnqueue<in A, in E = never> extends TxQueueState {
   readonly [EnqueueTypeId]: TxEnqueue.Variance<A, E>
@@ -227,18 +181,20 @@ export interface TxEnqueue<in A, in E = never> extends TxQueueState {
  * A TxDequeue represents the read-only interface of a transactional queue, providing
  * operations for consuming elements (dequeue operations) and inspecting queue state.
  *
- * @example
+ * **Example** (Taking values through dequeue handles)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Queue without error channel
  *   const queue = yield* TxQueue.bounded<number>(10)
+ *   yield* TxQueue.offer(queue, 42)
  *   const item = yield* TxQueue.take(queue)
+ *   console.log(item) // 42
  *
  *   // Queue with error channel - errors propagate through E-channel
  *   const faultTolerantQueue = yield* TxQueue.bounded<number, string>(10)
- *   yield* TxQueue.offer(faultTolerantQueue, 42)
  *   yield* TxQueue.fail(faultTolerantQueue, "processing failed")
  *
  *   // All dequeue operations now fail with the error directly
@@ -247,8 +203,8 @@ export interface TxEnqueue<in A, in E = never> extends TxQueueState {
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxDequeue<out A, out E = never> extends TxQueueState {
   readonly [DequeueTypeId]: TxDequeue.Variance<A, E>
@@ -258,7 +214,8 @@ export interface TxDequeue<out A, out E = never> extends TxQueueState {
  * A TxQueue represents a transactional queue data structure that provides both
  * enqueue and dequeue operations with Software Transactional Memory (STM) semantics.
  *
- * @example
+ * **Example** (Combining enqueue and dequeue operations)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -275,13 +232,14 @@ export interface TxDequeue<out A, out E = never> extends TxQueueState {
  *   const faultTolerantQueue = yield* TxQueue.bounded<number, string>(10)
  *
  *   // Operations can handle queue-level failures
- *   yield* TxQueue.shutdown(faultTolerantQueue)
- *   const result = yield* Effect.flip(TxQueue.take(faultTolerantQueue)) // never
+ *   yield* TxQueue.fail(faultTolerantQueue, "queue failed")
+ *   const result = yield* Effect.flip(TxQueue.take(faultTolerantQueue))
+ *   console.log(result) // "queue failed"
  * })
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, TxDequeue<A, E> {
   readonly [TypeId]: TxQueue.Variance<A, E>
@@ -290,7 +248,8 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
 /**
  * Checks if the given value is a TxEnqueue.
  *
- * @example
+ * **Example** (Checking enqueue handles)
+ *
  * ```ts
  * import { TxQueue } from "effect"
  *
@@ -302,15 +261,16 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueue<A, E> => hasProperty(u, EnqueueTypeId)
 
 /**
  * Checks if the given value is a TxDequeue.
  *
- * @example
+ * **Example** (Checking dequeue handles)
+ *
  * ```ts
  * import { TxQueue } from "effect"
  *
@@ -322,15 +282,16 @@ export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueu
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeue<A, E> => hasProperty(u, DequeueTypeId)
 
 /**
  * Checks if the given value is a TxQueue.
  *
- * @example
+ * **Example** (Checking queue handles)
+ *
  * ```ts
  * import { TxQueue } from "effect"
  *
@@ -342,8 +303,8 @@ export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeu
  * }
  * ```
  *
- * @since 4.0.0
  * @category guards
+ * @since 4.0.0
  */
 export const isTxQueue = <A = unknown, E = unknown>(u: unknown): u is TxQueue<A, E> => hasProperty(u, TypeId)
 
@@ -380,7 +341,8 @@ const TxQueueProto = {
  * **Return behavior**: This function returns a new TxQueue reference with
  * the specified capacity. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating bounded queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -400,8 +362,8 @@ const TxQueueProto = {
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const bounded = <A = never, E = never>(
   capacity: number
@@ -424,7 +386,8 @@ export const bounded = <A = never, E = never>(
  * **Return behavior**: This function returns a new TxQueue reference with
  * unlimited capacity. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating unbounded queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -444,8 +407,8 @@ export const bounded = <A = never, E = never>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> =>
   Effect.gen(function*() {
@@ -466,7 +429,8 @@ export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> 
  * **Return behavior**: This function returns a new TxQueue reference with
  * dropping strategy. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating dropping queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -484,8 +448,8 @@ export const unbounded = <A = never, E = never>(): Effect.Effect<TxQueue<A, E>> 
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const dropping = <A = never, E = never>(
   capacity: number
@@ -508,7 +472,8 @@ export const dropping = <A = never, E = never>(
  * **Return behavior**: This function returns a new TxQueue reference with
  * sliding strategy. No existing TxQueue instances are modified.
  *
- * @example
+ * **Example** (Creating sliding queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -528,8 +493,8 @@ export const dropping = <A = never, E = never>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const sliding = <A = never, E = never>(
   capacity: number
@@ -551,12 +516,17 @@ export const sliding = <A = never, E = never>(
 // =============================================================================
 
 /**
- * Offers an item to the queue.
+ * Offers an item to the queue and returns whether it was accepted.
+ *
+ * Open unbounded queues always accept; open bounded queues retry while full;
+ * dropping queues return `false` when full; sliding queues evict the oldest item
+ * when full. Closing or done queues return `false`.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * the item according to the queue's strategy. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Offering a value)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -569,8 +539,8 @@ export const sliding = <A = never, E = never>(
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const offer: {
   <A, E>(value: A): (self: TxEnqueue<A, E>) => Effect.Effect<boolean>
@@ -615,16 +585,20 @@ export const offer: {
 )
 
 /**
- * Offers multiple items to the queue.
+ * Offers multiple items to the queue, returning the items that were not
+ * accepted.
  *
- * Returns an array of items that were rejected (not added to the queue).
+ * Each item follows `offer` semantics: bounded queues retry while full,
+ * dropping queues reject new items when full, sliding queues evict old items to
+ * accept new items, and closing or done queues reject all items.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by adding
  * items according to the queue's strategy. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Offering multiple values)
+ *
  * ```ts
- * import { Chunk, Effect, TxQueue } from "effect"
+ * import { Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -636,8 +610,8 @@ export const offer: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const offerAll: {
   <A, E>(values: Iterable<A>): (self: TxEnqueue<A, E>) => Effect.Effect<Array<A>>
@@ -660,12 +634,16 @@ export const offerAll: {
 )
 
 /**
- * Takes an item from the queue.
+ * Takes the next item from the queue, retrying the transaction while the queue
+ * is empty.
+ *
+ * If the queue is done, the effect fails with the queue's completion cause.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * the first item. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Taking a value)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -684,8 +662,8 @@ export const offerAll: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.gen(function*() {
@@ -721,7 +699,8 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
 /**
  * Tries to take an item from the queue without blocking.
  *
- * @example
+ * **Example** (Polling without blocking)
+ *
  * ```ts
  * import { Effect, Option, TxQueue } from "effect"
  *
@@ -738,8 +717,8 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A>> =>
   Effect.gen(function*() {
@@ -769,7 +748,8 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * all items. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Taking all queued values)
+ *
  * ```ts
  * import { Array, Effect, TxQueue } from "effect"
  *
@@ -795,8 +775,8 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmptyArray<A>, E> =>
   Effect.gen(function*() {
@@ -827,39 +807,38 @@ export const takeAll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Arr.NonEmpty
   }).pipe(Effect.tx)
 
 /**
- * Takes exactly N items from the queue in a single atomic transaction.
+ * Takes up to `n` items from the queue in a single transaction.
  *
- * This function waits (retries the transaction) until N items are available, then takes
- * exactly N items. The only exception is when N exceeds the queue's capacity - in that
- * case, it takes up to the queue's capacity and returns immediately.
- *
- * **Behavior**:
- * - **Normal case**: Waits for exactly N items to be available
- * - **Bounded queue with N > capacity**: Takes up to capacity items immediately
- * - **Closing queue**: Takes available items and transitions to Done state
+ * For an open queue, waits until `min(n, capacity)` items are available, then
+ * removes that many items. If `n` is less than or equal to zero, returns an
+ * empty array without modifying the queue. If the queue is closing, drains the
+ * currently available items and transitions to `Done`. If the queue is already
+ * done, the effect fails with the queue's completion cause.
  *
  * **Mutation behavior**: This function mutates the original TxQueue by removing
  * the taken items. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Taking a fixed number of values)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number>(5)
- *   yield* TxQueue.offerAll(queue, [1, 2, 3])
+ *   yield* TxQueue.offerAll(queue, [1, 2, 3, 4])
  *
- *   // This will wait until 4 items are available
- *   // (will retry transaction until more items are offered)
  *   const items = yield* TxQueue.takeN(queue, 4)
+ *   console.log(items) // [1, 2, 3, 4]
  *
  *   // This requests more than capacity (5), so takes all available (up to 5)
- *   const all = yield* TxQueue.takeN(queue, 10) // Takes at most 5 items
+ *   yield* TxQueue.offerAll(queue, [5, 6, 7, 8, 9])
+ *   const all = yield* TxQueue.takeN(queue, 10)
+ *   console.log(all) // [5, 6, 7, 8, 9]
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const takeN: {
   (n: number): <A, E>(self: TxDequeue<A, E>) => Effect.Effect<Array<A>, E>
@@ -922,10 +901,16 @@ export const takeN: {
 )
 
 /**
- * Takes a variable number of items between a specified minimum and maximum from the queue.
- * Waits for at least the minimum number of items to be available.
+ * Takes between `min` and `max` currently available items, waiting for `min` on
+ * an open queue.
  *
- * @example
+ * If the queue is closing, drains the currently available items even when fewer
+ * than `min` are available and transitions to `Done`. Invalid ranges
+ * (`min <= 0`, `max <= 0`, or `min > max`) return an empty array. If the queue
+ * is already done, the effect fails with the queue's completion cause.
+ *
+ * **Example** (Taking batches within bounds)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -946,8 +931,8 @@ export const takeN: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category taking
+ * @since 4.0.0
  */
 export const takeBetween: {
   (min: number, max: number): <A, E>(self: TxDequeue<A, E>) => Effect.Effect<Array<A>, E>
@@ -1006,10 +991,14 @@ export const takeBetween: {
 )
 
 /**
- * Views the next item without removing it. If the queue is in a failed state,
- * the error is propagated through the E-channel.
+ * Waits transactionally for the next item and returns it without removing it.
  *
- * @example
+ * If the queue is open but empty, the transaction retries until an item is
+ * available or the queue completes. If the queue is done, the queue's
+ * completion cause is propagated through the error channel.
+ *
+ * **Example** (Peeking without removing values)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1037,8 +1026,8 @@ export const takeBetween: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
   Effect.gen(function*() {
@@ -1059,7 +1048,8 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
 /**
  * Gets the current size of the queue.
  *
- * @example
+ * **Example** (Reading queue size)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1072,15 +1062,16 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(self.items)
 
 /**
  * Checks if the queue is empty.
  *
- * @example
+ * **Example** (Checking whether a queue is empty)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1096,15 +1087,16 @@ export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.isEmpty(self.items)
 
 /**
  * Checks if the queue is at capacity.
  *
- * @example
+ * **Example** (Checking whether a queue is full)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1120,8 +1112,8 @@ export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.i
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
   self.capacity === Number.POSITIVE_INFINITY
@@ -1129,12 +1121,15 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
     : Effect.map(size(self), (currentSize) => currentSize >= self.capacity)
 
 /**
- * Interrupts the queue, transitioning it to a closing state.
+ * Gracefully interrupts the queue with the current fiber's interruption cause.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by marking
- * it for graceful closure. It does not return a new TxQueue reference.
+ * If the queue still contains items, it enters the closing state so buffered
+ * items can be drained before consumers observe the interruption. If it is
+ * empty, it transitions directly to done. Returns `false` if the queue was
+ * already closing or done.
  *
- * @example
+ * **Example** (Interrupting queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1148,19 +1143,20 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.withFiber((fiber) => failCause(self, Cause.interrupt(fiber.id)))
 
 /**
- * Fails the queue with the specified error.
+ * Fails the queue with the specified error, discarding any buffered items.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by marking
- * it as failed. It does not return a new TxQueue reference.
+ * The queue transitions directly to done with `Cause.fail(error)`. Returns
+ * `false` if the queue was already closing or done.
  *
- * @example
+ * **Example** (Failing queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1173,8 +1169,8 @@ export const interrupt = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const fail: {
   <E>(error: E): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
@@ -1198,12 +1194,14 @@ export const fail: {
 )
 
 /**
- * Completes the queue with the specified exit value.
+ * Completes the queue with the specified cause.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by marking
- * it as completed. It does not return a new TxQueue reference.
+ * If the queue is empty, it transitions directly to done. If it still contains
+ * items, it enters the closing state so buffered items can be drained before the
+ * cause is observed. Returns `false` if the queue was already closing or done.
  *
- * @example
+ * **Example** (Failing queues with causes)
+ *
  * ```ts
  * import { Cause, Effect, TxQueue } from "effect"
  *
@@ -1217,8 +1215,8 @@ export const fail: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const failCause: {
   <E>(cause: Cause.Cause<E>): <A>(self: TxEnqueue<A, E>) => Effect.Effect<boolean>
@@ -1246,22 +1244,20 @@ export const failCause: {
 )
 
 /**
- * Ends a queue by signaling completion with a Done error.
+ * Ends a queue by signaling completion with a `Cause.Done` error.
  *
- * This function provides a clean way to signal the end of a queue by calling
- * `failCause` with `Cause.Done`. This is a convenience function for
- * queues that are typed to accept `Cause.Done` in their error channel.
- * When a queue is ended, all subsequent operations (take, peek, etc.) will fail with
- * `Cause.Done`, propagating through the E-channel.
+ * This is a convenience wrapper around `failCause` for queues whose error
+ * channel can contain `Cause.Done`. If buffered items remain, the queue enters
+ * the closing state and those items may still be consumed before later `take` or
+ * `peek` operations fail with `Cause.Done`.
  *
- * @example
+ * **Example** (Ending queues)
+ *
  * ```ts
  * import { Cause, Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number, Cause.Done>(10)
- *   yield* TxQueue.offer(queue, 1)
- *   yield* TxQueue.offer(queue, 2)
  *
  *   // Signal the end of the queue
  *   const result = yield* TxQueue.end(queue)
@@ -1276,20 +1272,22 @@ export const failCause: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boolean> =>
   failCause(self, Cause.fail(Cause.Done()))
 
 /**
- * Clears all elements from the queue without affecting its state.
- * Returns the cleared elements, or an empty array if the queue is done with Done or interrupt.
+ * Removes and returns all currently buffered elements without changing the
+ * queue state.
  *
- * **Mutation behavior**: This function mutates the original TxQueue by removing
- * all elements. It does not return a new TxQueue reference.
+ * If the queue is already done with a `Cause.Done` error, returns an empty
+ * array. If the queue is done for any other cause, including interruption or
+ * failure, that cause is propagated.
  *
- * @example
+ * **Example** (Clearing queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1308,8 +1306,8 @@ export const end = <A, E>(self: TxEnqueue<A, E | Cause.Done>): Effect.Effect<boo
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, ExcludeDone<E>> =>
   Effect.gen(function*() {
@@ -1336,7 +1334,8 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, Excl
  * **Mutation behavior**: This function mutates the original TxQueue by clearing
  * its contents and marking it as shutdown. It does not return a new TxQueue reference.
  *
- * @example
+ * **Example** (Shutting down queues)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1357,8 +1356,8 @@ export const clear = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<Array<A>, Excl
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   Effect.gen(function*() {
@@ -1369,7 +1368,8 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is in the open state.
  *
- * @example
+ * **Example** (Checking open state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1385,8 +1385,8 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Open")
@@ -1394,7 +1394,8 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is in the closing state.
  *
- * @example
+ * **Example** (Checking closing state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1411,8 +1412,8 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Closing")
@@ -1420,7 +1421,8 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is done (completed or failed).
  *
- * @example
+ * **Example** (Checking done state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1436,8 +1438,8 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Done")
@@ -1445,7 +1447,8 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
 /**
  * Checks if the queue is shutdown (legacy compatibility).
  *
- * @example
+ * **Example** (Checking shutdown state)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1461,15 +1464,16 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone(self)
 
 /**
  * Waits for the queue to complete (either successfully or with failure).
  *
- * @example
+ * **Example** (Awaiting queue completion)
+ *
  * ```ts
  * import { Effect, TxQueue } from "effect"
  *
@@ -1485,8 +1489,8 @@ export const isShutdown = (self: TxQueueState): Effect.Effect<boolean> => isDone
  * })
  * ```
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const awaitCompletion = (self: TxQueueState): Effect.Effect<void> =>
   Effect.gen(function*() {

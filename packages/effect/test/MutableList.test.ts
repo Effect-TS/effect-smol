@@ -35,4 +35,24 @@ describe("MutableList", () => {
     deepStrictEqual(MutableList.takeAll(list), [1, 2])
     strictEqual(MutableList.take(list), MutableList.Empty)
   })
+
+  it("filter updates length to the number of retained elements", () => {
+    const list = MutableList.make<number>()
+    MutableList.appendAll(list, [1, 2, 3, 4, 5])
+
+    MutableList.filter(list, (n) => n % 2 === 0)
+
+    deepStrictEqual(MutableList.toArrayN(list, 2), [2, 4])
+    strictEqual(list.length, 2)
+  })
+
+  it("remove updates length after deleting matching values", () => {
+    const list = MutableList.make<string>()
+    MutableList.appendAll(list, ["apple", "banana", "apple", "cherry", "apple"])
+
+    MutableList.remove(list, "apple")
+
+    deepStrictEqual(MutableList.toArrayN(list, 2), ["banana", "cherry"])
+    strictEqual(list.length, 2)
+  })
 })

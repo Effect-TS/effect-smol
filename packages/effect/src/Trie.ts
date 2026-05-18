@@ -26,7 +26,12 @@ import type { Covariant, NoInfer } from "./Types.ts"
 const TypeId = TR.TrieTypeId
 
 /**
- * @example
+ * An immutable string-keyed map optimized for prefix lookup. Iteration yields
+ * `[key, value]` pairs in key order, and update operations such as insert and
+ * remove return new `Trie` values.
+ *
+ * **Example** (Using a trie for prefix search)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  *
@@ -59,8 +64,8 @@ const TypeId = TR.TrieTypeId
  * console.log(Trie.size(trie)) // 4
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pipeable, Inspectable {
   readonly [TypeId]: {
@@ -71,7 +76,8 @@ export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pi
 /**
  * Creates an empty `Trie`.
  *
- * @example
+ * **Example** (Creating an empty trie)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -82,15 +88,16 @@ export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pi
  * assert.deepStrictEqual(Array.from(trie), [])
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const empty: <V = never>() => Trie<V> = TR.empty
 
 /**
  * Creates a new `Trie` from an iterable collection of key/value pairs (e.g. `Array<[string, V]>`).
  *
- * @example
+ * **Example** (Creating a trie from entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -116,15 +123,16 @@ export const empty: <V = never>() => Trie<V> = TR.empty
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const fromIterable: <V>(entries: Iterable<readonly [string, V]>) => Trie<V> = TR.fromIterable
 
 /**
  * Constructs a new `Trie` from the specified entries (`[string, V]`).
  *
- * @example
+ * **Example** (Constructing a trie from entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -139,8 +147,8 @@ export const fromIterable: <V>(entries: Iterable<readonly [string, V]>) => Trie<
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make: <Entries extends Array<readonly [string, any]>>(
   ...entries: Entries
@@ -149,7 +157,8 @@ export const make: <Entries extends Array<readonly [string, any]>>(
 /**
  * Insert a new entry in the `Trie`.
  *
- * @example
+ * **Example** (Inserting entries)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -170,8 +179,8 @@ export const make: <Entries extends Array<readonly [string, any]>>(
  * ]])
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const insert: {
   <V>(key: string, value: V): (self: Trie<V>) => Trie<V>
@@ -183,7 +192,8 @@ export const insert: {
  *
  * The keys are returned in alphabetical order, regardless of insertion order.
  *
- * @example
+ * **Example** (Reading keys in alphabetical order)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -198,8 +208,8 @@ export const insert: {
  * assert.deepStrictEqual(result, ["abc", "bca", "cab"])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
 
@@ -208,7 +218,8 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
  *
  * Values are ordered based on their key in alphabetical order, regardless of insertion order.
  *
- * @example
+ * **Example** (Reading values by key order)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -223,8 +234,8 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
  * assert.deepStrictEqual(result, [2, 0, 1])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
 
@@ -233,7 +244,8 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
  *
  * The entries are returned by keys in alphabetical order, regardless of insertion order.
  *
- * @example
+ * **Example** (Reading entries in alphabetical order)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -247,17 +259,18 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
  * assert.deepStrictEqual(result, [["call", 0], ["me", 1]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.entries
 
 /**
- * Returns an `Array<[K, V]>` of the entries within the `Trie`.
+ * Returns an `Array<[string, V]>` of the entries within the `Trie`.
  *
  * Equivalent to `Array.from(Trie.entries(trie))`.
  *
- * @example
+ * **Example** (Converting entries to an array)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -271,8 +284,8 @@ export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.e
  * assert.deepStrictEqual(result, [["call", 0], ["me", 1]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const toEntries = <V>(self: Trie<V>): Array<[string, V]> => Array.from(entries(self))
 
@@ -280,7 +293,8 @@ export const toEntries = <V>(self: Trie<V>): Array<[string, V]> => Array.from(en
  * Returns an `IterableIterator` of the keys within the `Trie`
  * that have `prefix` as prefix (`prefix` included if it exists).
  *
- * @example
+ * **Example** (Finding keys with a prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -296,8 +310,8 @@ export const toEntries = <V>(self: Trie<V>): Array<[string, V]> => Array.from(en
  * assert.deepStrictEqual(result, ["she", "shells"])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const keysWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => IterableIterator<string>
@@ -308,7 +322,8 @@ export const keysWithPrefix: {
  * Returns an `IterableIterator` of the values within the `Trie`
  * that have `prefix` as prefix (`prefix` included if it exists).
  *
- * @example
+ * **Example** (Finding values with a prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -326,8 +341,8 @@ export const keysWithPrefix: {
  * assert.deepStrictEqual(result, [0, 1])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const valuesWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => IterableIterator<V>
@@ -338,7 +353,8 @@ export const valuesWithPrefix: {
  * Returns an `IterableIterator` of the entries within the `Trie`
  * that have `prefix` as prefix (`prefix` included if it exists).
  *
- * @example
+ * **Example** (Finding entries with a prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -354,8 +370,8 @@ export const valuesWithPrefix: {
  * assert.deepStrictEqual(result, [["she", 0], ["shells", 1]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const entriesWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => IterableIterator<[string, V]>
@@ -363,10 +379,11 @@ export const entriesWithPrefix: {
 } = TR.entriesWithPrefix
 
 /**
- * Returns `Array<[K, V]>` of the entries within the `Trie`
- * that have `prefix` as prefix (`prefix` included if it exists).
+ * Returns an `Array<[string, V]>` of the entries within the `Trie` whose keys
+ * start with `prefix`, including the entry for `prefix` itself when it exists.
  *
- * @example
+ * **Example** (Converting prefixed entries to an array)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -382,8 +399,8 @@ export const entriesWithPrefix: {
  * assert.deepStrictEqual(result, [["she", 3], ["shells", 0]])
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const toEntriesWithPrefix: {
   (prefix: string): <V>(self: Trie<V>) => Array<[string, V]>
@@ -394,7 +411,8 @@ export const toEntriesWithPrefix: {
  * Returns the longest key/value in the `Trie`
  * that is a prefix of that `key` if it exists, `None` otherwise.
  *
- * @example
+ * **Example** (Finding the longest prefix)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -415,8 +433,8 @@ export const toEntriesWithPrefix: {
  * }
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const longestPrefixOf: {
   (key: string): <V>(self: Trie<V>) => Option<[string, V]>
@@ -426,7 +444,8 @@ export const longestPrefixOf: {
 /**
  * Returns the size of the `Trie` (number of entries in the `Trie`).
  *
- * @example
+ * **Example** (Getting the size)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -439,15 +458,16 @@ export const longestPrefixOf: {
  * assert.equal(Trie.size(trie), 2)
  * ```
  *
- * @since 2.0.0
  * @category getters
+ * @since 2.0.0
  */
 export const size: <V>(self: Trie<V>) => number = TR.size
 
 /**
  * Safely lookup the value for the specified key in the `Trie`.
  *
- * @example
+ * **Example** (Looking up values safely)
+ *
  * ```ts
  * import * as Option from "effect/Option"
  * import * as Trie from "effect/Trie"
@@ -470,8 +490,8 @@ export const size: <V>(self: Trie<V>) => number = TR.size
  * assert.deepStrictEqual(Trie.get(trie, "mea"), Option.none())
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const get: {
   (key: string): <V>(self: Trie<V>) => Option<V>
@@ -481,7 +501,8 @@ export const get: {
 /**
  * Check if the given key exists in the `Trie`.
  *
- * @example
+ * **Example** (Checking key membership)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -503,8 +524,8 @@ export const get: {
  * assert.equal(Trie.has(trie, "mea"), false)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const has: {
   (key: string): <V>(self: Trie<V>) => boolean
@@ -512,9 +533,10 @@ export const has: {
 } = TR.has
 
 /**
- * Checks if the `Trie` contains any entries.
+ * Returns `true` when the `Trie` contains no entries.
  *
- * @example
+ * **Example** (Checking whether a trie is empty)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -526,8 +548,8 @@ export const has: {
  * assert.equal(Trie.isEmpty(trie1), false)
  * ```
  *
- * @since 2.0.0
  * @category elements
+ * @since 2.0.0
  */
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
@@ -537,7 +559,8 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
  * `getUnsafe` will throw if the key is not found. Use `get` instead to safely
  * get a value from the `Trie`.
  *
- * @example
+ * **Example** (Looking up values unsafely)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -550,8 +573,8 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
  * assert.throws(() => Trie.getUnsafe(trie, "mae"))
  * ```
  *
- * @since 2.0.0
  * @category unsafe
+ * @since 2.0.0
  */
 export const getUnsafe: {
   (key: string): <V>(self: Trie<V>) => V
@@ -561,7 +584,8 @@ export const getUnsafe: {
 /**
  * Remove the entry for the specified key in the `Trie`.
  *
- * @example
+ * **Example** (Removing entries)
+ *
  * ```ts
  * import * as Option from "effect/Option"
  * import * as Trie from "effect/Trie"
@@ -582,8 +606,8 @@ export const getUnsafe: {
  * assert.deepStrictEqual(Trie.get(trie2, "call"), Option.none())
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const remove: {
   (key: string): <V>(self: Trie<V>) => Trie<V>
@@ -593,7 +617,8 @@ export const remove: {
 /**
  * Reduce a state over the entries of the `Trie`.
  *
- * @example
+ * **Example** (Reducing entries)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -624,8 +649,8 @@ export const remove: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const reduce: {
   <Z, V>(zero: Z, f: (accumulator: Z, value: V, key: string) => Z): (self: Trie<V>) => Z
@@ -635,7 +660,8 @@ export const reduce: {
 /**
  * Maps over the entries of the `Trie` using the specified function.
  *
- * @example
+ * **Example** (Mapping entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -663,8 +689,8 @@ export const reduce: {
  * assert.equal(Equal.equals(Trie.map(trie, (_, k) => k.length), trieMapK), true)
  * ```
  *
- * @since 2.0.0
  * @category folding
+ * @since 2.0.0
  */
 export const map: {
   <A, V>(f: (value: V, key: string) => A): (self: Trie<V>) => Trie<A>
@@ -674,7 +700,8 @@ export const map: {
 /**
  * Filters entries out of a `Trie` using the specified predicate.
  *
- * @example
+ * **Example** (Filtering entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -702,8 +729,8 @@ export const map: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filter: {
   <A, B extends A>(f: (a: NoInfer<A>, k: string) => a is B): (self: Trie<A>) => Trie<B>
@@ -716,7 +743,8 @@ export const filter: {
  * Maps over the entries of the `Trie` using the specified filter and keeps
  * only successful results.
  *
- * @example
+ * **Example** (Filtering and mapping entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Result from "effect/Result"
@@ -757,8 +785,8 @@ export const filter: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const filterMap: {
   <A, B, X>(f: (input: A, key: string) => Result<B, X>): (self: Trie<A>) => Trie<B>
@@ -768,7 +796,8 @@ export const filterMap: {
 /**
  * Filters out `None` values from a `Trie` of `Options`s.
  *
- * @example
+ * **Example** (Compacting optional values)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Option from "effect/Option"
@@ -789,15 +818,16 @@ export const filterMap: {
  * assert.equal(Equal.equals(Trie.compact(trie), trieMapV), true)
  * ```
  *
- * @since 2.0.0
  * @category filtering
+ * @since 2.0.0
  */
 export const compact: <A>(self: Trie<Option<A>>) => Trie<A> = TR.compact
 
 /**
  * Applies the specified function to the entries of the `Trie`.
  *
- * @example
+ * **Example** (Iterating over entries)
+ *
  * ```ts
  * import * as Trie from "effect/Trie"
  * import * as assert from "node:assert"
@@ -816,8 +846,8 @@ export const compact: <A>(self: Trie<Option<A>>) => Trie<A> = TR.compact
  * assert.equal(value, 17)
  * ```
  *
- * @since 2.0.0
  * @category traversing
+ * @since 2.0.0
  */
 export const forEach: {
   <V>(f: (value: V, key: string) => void): (self: Trie<V>) => void
@@ -827,7 +857,8 @@ export const forEach: {
 /**
  * Updates the value of the specified key within the `Trie` if it exists.
  *
- * @example
+ * **Example** (Modifying an existing value)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Option from "effect/Option"
@@ -848,8 +879,8 @@ export const forEach: {
  * assert.equal(Equal.equals(trie.pipe(Trie.modify("me", (v) => v)), trie), true)
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const modify: {
   <V>(key: string, f: (v: V) => V): (self: Trie<V>) => Trie<V>
@@ -859,7 +890,8 @@ export const modify: {
 /**
  * Removes all entries in the `Trie` which have the specified keys.
  *
- * @example
+ * **Example** (Removing multiple entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -880,8 +912,8 @@ export const modify: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const removeMany: {
   (keys: Iterable<string>): <V>(self: Trie<V>) => Trie<V>
@@ -891,7 +923,8 @@ export const removeMany: {
 /**
  * Insert multiple entries in the `Trie` at once.
  *
- * @example
+ * **Example** (Inserting multiple entries)
+ *
  * ```ts
  * import * as Equal from "effect/Equal"
  * import * as Trie from "effect/Trie"
@@ -916,8 +949,8 @@ export const removeMany: {
  * )
  * ```
  *
- * @since 2.0.0
  * @category mutations
+ * @since 2.0.0
  */
 export const insertMany: {
   <V>(iter: Iterable<[string, V]>): (self: Trie<V>) => Trie<V>

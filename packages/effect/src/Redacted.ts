@@ -18,7 +18,16 @@ import type { Covariant } from "./Types.ts"
 const TypeId = "~effect/data/Redacted"
 
 /**
- * @example
+ * A wrapper for sensitive values whose string, JSON, and inspection output is
+ * redacted.
+ *
+ * The underlying value is still stored in memory and can be recovered with
+ * `Redacted.value` until the wrapper is wiped or becomes unreachable. Use
+ * `Redacted` to reduce accidental disclosure in logs and diagnostics, not as a
+ * cryptographic protection mechanism.
+ *
+ * **Example** (Creating redacted values)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
@@ -29,15 +38,18 @@ const TypeId = "~effect/data/Redacted"
  * // TypeScript will infer the types as Redacted<string>
  * ```
  *
- * @since 3.3.0
  * @category models
+ * @since 3.3.0
  */
 export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Equal, Pipeable {
   readonly label: string | undefined
 }
 
 /**
- * @example
+ * Namespace containing type-level members associated with `Redacted` values.
+ *
+ * **Example** (Using namespace utilities)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
@@ -48,24 +60,18 @@ export interface Redacted<out A = string> extends Redacted.Variance<A>, Equal.Eq
  * const isRedacted = Redacted.isRedacted(secret) // true
  * ```
  *
- * @since 3.3.0
  * @category namespace
+ * @since 3.3.0
  */
 export declare namespace Redacted {
   /**
-   * @example
-   * ```ts
-   * import { Redacted } from "effect"
+   * Type-level variance marker for `Redacted`.
    *
-   * // Variance interface ensures type safety for covariant type parameter
-   * const stringSecret = Redacted.make("secret")
-   * const numberSecret = Redacted.make(42)
+   * This interface records the covariant value type carried by a `Redacted`
+   * value and is not normally referenced directly by users.
    *
-   * // TypeScript will infer the types with proper variance
-   * ```
-   *
-   * @since 3.3.0
    * @category models
+   * @since 3.3.0
    */
   export interface Variance<out A> {
     readonly [TypeId]: {
@@ -74,23 +80,37 @@ export declare namespace Redacted {
   }
 
   /**
-   * @example
+   * Extracts the underlying value type from a `Redacted` type.
+   *
+   * **Example** (Extracting the redacted value type)
+   *
    * ```ts
    * import { Redacted } from "effect"
    *
-   * // Extract the value type from a Redacted instance
-   * const secret = Redacted.make("my-secret")
-   * const extractedValue: string = Redacted.value(secret)
+   * type ApiKey = Redacted.Redacted<{ readonly token: string }>
+   * type ApiKeyValue = Redacted.Redacted.Value<ApiKey>
+   *
+   * const rotate = (value: ApiKeyValue): ApiKeyValue => ({
+   *   token: `${value.token}:rotated`
+   * })
+   *
+   * console.log(rotate({ token: "secret" })) // { token: "secret:rotated" }
    * ```
    *
-   * @since 3.3.0
    * @category type-level
+   * @since 3.3.0
    */
   export type Value<T extends Redacted<any>> = [T] extends [Redacted<infer _A>] ? _A : never
 }
 
 /**
- * @example
+ * Returns `true` if a value is a `Redacted` wrapper.
+ *
+ * When this function returns `true`, TypeScript narrows the value to
+ * `Redacted<unknown>`.
+ *
+ * **Example** (Checking for redacted values)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
@@ -101,24 +121,28 @@ export declare namespace Redacted {
  * console.log(Redacted.isRedacted(plainString)) // false
  * ```
  *
- * @since 3.3.0
  * @category refinements
+ * @since 3.3.0
  */
 export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u, TypeId)
 
 /**
- * This function creates a `Redacted<A>` instance from a given value `A`,
- * securely hiding its content.
+ * Creates a `Redacted` wrapper for a sensitive value.
  *
- * @example
+ * The wrapper redacts string, JSON, and inspection output to reduce accidental
+ * disclosure. The original value remains retrievable with `Redacted.value`
+ * until the wrapper is wiped or becomes unreachable.
+ *
+ * **Example** (Creating a redacted value)
+ *
  * ```ts
  * import { Redacted } from "effect"
  *
  * const API_KEY = Redacted.make("1234567890")
  * ```
  *
- * @since 3.3.0
  * @category constructors
+ * @since 3.3.0
  */
 export const make = <T>(value: T, options?: {
   readonly label?: string | undefined
@@ -161,7 +185,8 @@ const Proto = {
  * Retrieves the original value from a `Redacted` instance. Use this function
  * with caution, as it exposes the sensitive data.
  *
- * @example
+ * **Example** (Retrieving a redacted value)
+ *
  * ```ts
  * import { Redacted } from "effect"
  * import * as assert from "node:assert"
@@ -171,17 +196,21 @@ const Proto = {
  * assert.equal(Redacted.value(API_KEY), "1234567890")
  * ```
  *
- * @since 3.3.0
  * @category getters
+ * @since 3.3.0
  */
 export const value: <T>(self: Redacted<T>) => T = redacted.value
 
 /**
- * Erases the underlying value of a `Redacted` instance, rendering it unusable.
- * This function is intended to ensure that sensitive data does not remain in
- * memory longer than necessary.
+ * Deletes the stored value for a `Redacted` wrapper, making future
+ * `Redacted.value` calls on that wrapper fail.
  *
- * @example
+ * This unsafe operation does not zero memory and does not affect other
+ * references to the original value. It only removes the value from the
+ * internal redacted registry.
+ *
+ * **Example** (Wiping a redacted value)
+ *
  * ```ts
  * import { Redacted } from "effect"
  * import * as assert from "node:assert"
@@ -198,8 +227,8 @@ export const value: <T>(self: Redacted<T>) => T = redacted.value
  * )
  * ```
  *
- * @since 3.3.0
  * @category unsafe
+ * @since 3.3.0
  */
 export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRegistry.delete(self)
 
@@ -208,7 +237,8 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRe
  * equivalence relation for the underlying values `A`. This function is useful
  * for comparing `Redacted` instances without exposing their contents.
  *
- * @example
+ * **Example** (Comparing redacted values)
+ *
  * ```ts
  * import { Equivalence, Redacted } from "effect"
  * import * as assert from "node:assert"

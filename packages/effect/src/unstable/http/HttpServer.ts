@@ -1,4 +1,22 @@
 /**
+ * Service and helpers for running Effect HTTP applications on a concrete server
+ * runtime.
+ *
+ * This module defines the `HttpServer` service tag used by platform integrations
+ * to expose a listening server, plus accessors for serving an
+ * `HttpServerResponse` effect, formatting and logging server addresses, and
+ * building test clients against a running server. It is intended for low-level
+ * server runtimes, router integrations, HTTP API tests, and applications that
+ * need to start serving from a provided `Layer`.
+ *
+ * The server supplies `HttpServerRequest` for each request, so application
+ * effects should rely on the server for request-scoped data while still
+ * providing their other services through the surrounding environment. `serve`
+ * returns a `Layer` whose listener lifetime is managed by the layer scope; use
+ * `serveEffect` when composing directly in an effect with an explicit `Scope`.
+ * Test clients only support TCP addresses, and rewrite `0.0.0.0` to
+ * `127.0.0.1` for local requests.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -17,8 +35,13 @@ import type { HttpServerRequest } from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 
 /**
- * @since 4.0.0
+ * Service tag for an HTTP server runtime.
+ *
+ * The service can serve an HTTP response effect and exposes the address where the
+ * server is listening.
+ *
  * @category models
+ * @since 4.0.0
  */
 export class HttpServer extends Context.Service<HttpServer, {
   readonly serve: {
@@ -41,14 +64,20 @@ export class HttpServer extends Context.Service<HttpServer, {
 }>()("effect/http/HttpServer") {}
 
 /**
- * @since 4.0.0
+ * Address where an HTTP server is listening.
+ *
+ * The address is either a TCP host and port or a Unix domain socket path.
+ *
  * @category address
+ * @since 4.0.0
  */
 export type Address = UnixAddress | TcpAddress
 
 /**
- * @since 4.0.0
+ * TCP address for an HTTP server, identified by hostname and port.
+ *
  * @category address
+ * @since 4.0.0
  */
 export interface TcpAddress {
   readonly _tag: "TcpAddress"
@@ -57,8 +86,10 @@ export interface TcpAddress {
 }
 
 /**
- * @since 4.0.0
+ * Unix domain socket address for an HTTP server.
+ *
  * @category address
+ * @since 4.0.0
  */
 export interface UnixAddress {
   readonly _tag: "UnixAddress"
@@ -66,8 +97,11 @@ export interface UnixAddress {
 }
 
 /**
- * @since 4.0.0
+ * Constructs an `HttpServer` service from a serving implementation and listening
+ * address.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   options: {
@@ -80,8 +114,15 @@ export const make = (
 ): HttpServer["Service"] => options
 
 /**
- * @since 4.0.0
+ * Creates a layer that starts serving an HTTP response effect with the current
+ * `HttpServer`.
+ *
+ * The request service is supplied by the server for each request; the returned
+ * layer still requires the server, a scope, and any non-request dependencies of
+ * the response effect or middleware.
+ *
  * @category accessors
+ * @since 4.0.0
  */
 export const serve: {
   (): <E, R>(
@@ -120,8 +161,15 @@ export const serve: {
   ) as any)
 
 /**
- * @since 4.0.0
+ * Effect that starts serving an HTTP response effect with the current
+ * `HttpServer`.
+ *
+ * The request service is supplied by the server for each request; the effect
+ * requires a scope and any non-request dependencies of the response effect or
+ * middleware.
+ *
  * @category accessors
+ * @since 4.0.0
  */
 export const serveEffect: {
   (): <E, R>(
@@ -157,8 +205,13 @@ export const serveEffect: {
 > => HttpServer.use((server) => server.serve(effect, middleware!)) as any)
 
 /**
- * @since 4.0.0
+ * Formats a server address as a display string.
+ *
+ * TCP addresses are formatted as `http://host:port`; Unix socket addresses are
+ * formatted as `unix://path`.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const formatAddress = (address: Address): string => {
   switch (address._tag) {
@@ -170,8 +223,11 @@ export const formatAddress = (address: Address): string => {
 }
 
 /**
- * @since 4.0.0
+ * Reads the current server address, formats it with `formatAddress`, and passes
+ * the formatted address to the supplied effectful function.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const addressFormattedWith = <A, E, R>(
   f: (address: string) => Effect.Effect<A, E, R>
@@ -182,16 +238,20 @@ export const addressFormattedWith = <A, E, R>(
   )
 
 /**
- * @since 4.0.0
+ * Logs the formatted address of the current HTTP server.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const logAddress: Effect.Effect<void, never, HttpServer> = addressFormattedWith((_) =>
   Effect.log(`Listening on ${_}`)
 )
 
 /**
- * @since 4.0.0
+ * Adds address logging to a layer that provides an `HttpServer`.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const withLogAddress = <A, E, R>(
   layer: Layer.Layer<A, E, R>
@@ -201,8 +261,13 @@ export const withLogAddress = <A, E, R>(
   )
 
 /**
- * @since 4.0.0
+ * Builds an `HttpClient` that sends requests to the current test HTTP server.
+ *
+ * For TCP servers, requests are prefixed with the server URL and `0.0.0.0` is
+ * rewritten to `127.0.0.1`. Unix socket addresses are not supported.
+ *
  * @category Testing
+ * @since 4.0.0
  */
 export const makeTestClient: Effect.Effect<
   HttpClient.HttpClient,
@@ -221,8 +286,10 @@ export const makeTestClient: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
+ * Layer that provides the test `HttpClient` created by `makeTestClient`.
+ *
  * @category Testing
+ * @since 4.0.0
  */
 export const layerTestClient: Layer.Layer<
   HttpClient.HttpClient,
@@ -231,8 +298,14 @@ export const layerTestClient: Layer.Layer<
 > = Layer.effect(HttpClient.HttpClient)(makeTestClient)
 
 /**
- * @since 4.0.0
+ * Testing layer that provides the platform services commonly needed by HTTP
+ * server tests.
+ *
+ * It includes `HttpPlatform`, `Path`, a weak ETag generator, and a no-op
+ * `FileSystem`.
+ *
  * @category Testing
+ * @since 4.0.0
  */
 export const layerServices: Layer.Layer<
   | Path.Path

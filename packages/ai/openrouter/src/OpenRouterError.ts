@@ -4,14 +4,14 @@
  * Provides OpenRouter-specific metadata fields for AI error types through
  * module augmentation, enabling typed access to OpenRouter error details.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 /**
  * OpenRouter-specific error metadata fields.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type OpenRouterErrorMetadata = {
   /**
@@ -31,8 +31,8 @@ export type OpenRouterErrorMetadata = {
 /**
  * OpenRouter-specific rate limit metadata fields.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type OpenRouterRateLimitMetadata = OpenRouterErrorMetadata & {
   readonly limit: string | null
@@ -42,43 +42,164 @@ export type OpenRouterRateLimitMetadata = OpenRouterErrorMetadata & {
 }
 
 declare module "effect/unstable/ai/AiError" {
+  /**
+   * OpenRouter metadata attached to `RateLimitError` values.
+   *
+   * Captures OpenRouter error details together with rate limit header
+   * information from responses where the provider rejected the request because
+   * a limit was reached.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface RateLimitErrorMetadata {
+    /**
+     * OpenRouter-specific details for the rate limit response.
+     */
     readonly openrouter?: OpenRouterRateLimitMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `QuotaExhaustedError` values.
+   *
+   * Preserves provider error details for failures caused by exhausted account,
+   * billing, or usage quota.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface QuotaExhaustedErrorMetadata {
+    /**
+     * OpenRouter-specific details for the quota exhaustion response.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `AuthenticationError` values.
+   *
+   * Preserves provider error details for failed API key, authorization, or
+   * permission checks.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface AuthenticationErrorMetadata {
+    /**
+     * OpenRouter-specific details for the authentication failure.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `ContentPolicyError` values.
+   *
+   * Preserves provider error details when OpenRouter rejects input or output
+   * because it violates a content policy.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface ContentPolicyErrorMetadata {
+    /**
+     * OpenRouter-specific details for the content policy response.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `InvalidRequestError` values.
+   *
+   * Preserves provider error details for malformed requests, unsupported
+   * parameters, or other request validation failures reported by OpenRouter.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface InvalidRequestErrorMetadata {
+    /**
+     * OpenRouter-specific details for the invalid request response.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `InternalProviderError` values.
+   *
+   * Preserves provider error details for OpenRouter-side failures such as
+   * transient server errors or overload responses.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface InternalProviderErrorMetadata {
+    /**
+     * OpenRouter-specific details for the internal provider response.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `InvalidOutputError` values.
+   *
+   * Preserves provider error details when an OpenRouter response cannot be
+   * parsed or validated as the expected output.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface InvalidOutputErrorMetadata {
+    /**
+     * OpenRouter-specific details for the invalid output response.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `StructuredOutputError` values.
+   *
+   * Preserves provider error details when OpenRouter returns content that does
+   * not satisfy the requested structured output schema.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface StructuredOutputErrorMetadata {
+    /**
+     * OpenRouter-specific details for the structured output failure.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `UnsupportedSchemaError` values.
+   *
+   * Preserves provider error details when an unsupported schema failure is
+   * associated with an OpenRouter response.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface UnsupportedSchemaErrorMetadata {
+    /**
+     * OpenRouter-specific details for the unsupported schema failure.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 
+  /**
+   * OpenRouter metadata attached to `UnknownError` values.
+   *
+   * Preserves provider error details for OpenRouter failures that do not map
+   * cleanly to a more specific AI error category.
+   *
+   * @category provider options
+   * @since 4.0.0
+   */
   export interface UnknownErrorMetadata {
+    /**
+     * OpenRouter-specific details for the unclassified provider failure.
+     */
     readonly openrouter?: OpenRouterErrorMetadata | null
   }
 }

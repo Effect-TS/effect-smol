@@ -1,4 +1,31 @@
 /**
+ * The `AtomHttpApi` module adapts typed `HttpApi` clients to the unstable atom
+ * reactivity runtime. Use it to define a `Context.Service` whose generated HTTP
+ * API client is available directly and whose endpoints can also be invoked as
+ * atoms: `query` creates an atom of `AsyncResult` for reads, while `mutation`
+ * creates an `AtomResultFn` for writes.
+ *
+ * It is intended for applications that want server state to participate in atom
+ * caching, invalidation, and hydration. Queries can be associated with
+ * `reactivityKeys` so they refresh when those keys are invalidated, mutations can
+ * invalidate the same keys after the request succeeds, and `timeToLive` controls
+ * whether idle query atoms expire, stay alive for a duration, or are kept alive.
+ *
+ * Serialization is schema-based and intentionally limited to decoded values.
+ * Mutation atoms are serializable only in `"decoded-only"` mode, while query
+ * atoms are serializable only in `"decoded-only"` mode when a stable
+ * `serializationKey` is supplied. Choose serialization keys that uniquely
+ * identify the endpoint request, keep reactivity keys stable across client and
+ * server registries during hydration, and avoid serializing response modes that
+ * expose raw `HttpClientResponse` values.
+ *
+ * The service wraps `HttpApiClient.make`, so the same `HttpApi` definition,
+ * schemas, base URL, middleware services, and HTTP client layer must be available
+ * wherever the atom runtime is constructed. Use `transformClient` and
+ * `transformResponse` for cross-cutting client behavior, and remember that
+ * schema or low-level HTTP client failures are raised as defects while endpoint
+ * and middleware failures remain typed errors.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -22,8 +49,13 @@ import * as Atom from "./Atom.ts"
 import * as Reactivity from "./Reactivity.ts"
 
 /**
- * @since 4.0.0
+ * A `Context.Service` for an HTTP API client integrated with atom reactivity.
+ *
+ * It exposes the generated HTTP API client, an atom runtime, mutation helpers that
+ * return `AtomResultFn`s, and query helpers that return atoms of endpoint results.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpApiGroup.Any>
   extends Context.Service<Self, HttpApiClient.Client<Groups, never, never>>
@@ -139,8 +171,15 @@ declare global {
 }
 
 /**
- * @since 4.0.0
+ * Creates a `Context.Service` class for an HTTP API client backed by an atom
+ * runtime.
+ *
+ * The options provide the API definition, HTTP client layer, optional client and
+ * response transforms, base URL, and runtime factory used by the query and
+ * mutation helpers.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const Service = <Self>() =>
 <const Id extends string, ApiId extends string, Groups extends HttpApiGroup.Any>(

@@ -15,7 +15,8 @@ import * as Reducer from "./Reducer.ts"
 /**
  * The global `Number` constructor.
  *
- * @example
+ * **Example** (Coercing values to numbers)
+ *
  * ```ts
  * import * as N from "effect/Number"
  *
@@ -34,7 +35,8 @@ export const Number = globalThis.Number
 /**
  * Tests if a value is a `number`.
  *
- * @example
+ * **Example** (Checking for numbers)
+ *
  * ```ts
  * import { isNumber } from "effect/Number"
  * import * as assert from "node:assert"
@@ -51,7 +53,8 @@ export const isNumber: (input: unknown) => input is number = predicate.isNumber
 /**
  * Provides an addition operation on `number`s.
  *
- * @example
+ * **Example** (Adding numbers)
+ *
  * ```ts
  * import { sum } from "effect/Number"
  * import * as assert from "node:assert"
@@ -70,7 +73,8 @@ export const sum: {
 /**
  * Provides a multiplication operation on `number`s.
  *
- * @example
+ * **Example** (Multiplying numbers)
+ *
  * ```ts
  * import { multiply } from "effect/Number"
  * import * as assert from "node:assert"
@@ -89,7 +93,8 @@ export const multiply: {
 /**
  * Provides a subtraction operation on `number`s.
  *
- * @example
+ * **Example** (Subtracting numbers)
+ *
  * ```ts
  * import { subtract } from "effect/Number"
  * import * as assert from "node:assert"
@@ -110,7 +115,7 @@ export const subtract: {
  *
  * Returns `Option.none()` if the divisor is `0`.
  *
- * **Example**
+ * **Example** (Dividing numbers safely)
  *
  * ```ts
  * import { Number } from "effect"
@@ -135,13 +140,14 @@ export const divide: {
  *
  * Throws a `RangeError` if the divisor is `0`.
  *
- * **Example**
+ * **Example** (Dividing numbers unsafely)
  *
  * ```ts
  * import { Number } from "effect"
  *
- * Number.divideUnsafe(6, 3) // 2
- * Number.divideUnsafe(6, 0) // throws RangeError("Division by zero")
+ * console.log(Number.divideUnsafe(6, 3)) // 2
+ *
+ * // Passing 0 as the divisor throws a RangeError("Division by zero").
  * ```
  *
  * @category math
@@ -159,7 +165,8 @@ export const divideUnsafe: {
 /**
  * Returns the result of adding `1` to a given number.
  *
- * @example
+ * **Example** (Incrementing a number)
+ *
  * ```ts
  * import { increment } from "effect/Number"
  * import * as assert from "node:assert"
@@ -175,7 +182,8 @@ export const increment = (n: number): number => n + 1
 /**
  * Decrements a number by `1`.
  *
- * @example
+ * **Example** (Decrementing a number)
+ *
  * ```ts
  * import { decrement } from "effect/Number"
  * import * as assert from "node:assert"
@@ -191,7 +199,8 @@ export const decrement = (n: number): number => n - 1
 /**
  * An `Order` instance for `number` values.
  *
- * @example
+ * **Example** (Comparing numbers)
+ *
  * ```ts
  * import * as Number from "effect/Number"
  *
@@ -210,7 +219,8 @@ export const Order: order.Order<number> = order.Number
  *
  * `NaN` is considered equal to `NaN`.
  *
- * @example
+ * **Example** (Comparing numbers for equivalence)
+ *
  * ```ts
  * import { Number } from "effect"
  *
@@ -227,7 +237,8 @@ export const Equivalence: Equ.Equivalence<number> = Equ.Number
 /**
  * Returns `true` if the first argument is less than the second, otherwise `false`.
  *
- * @example
+ * **Example** (Checking less-than comparisons)
+ *
  * ```ts
  * import { isLessThan } from "effect/Number"
  * import * as assert from "node:assert"
@@ -248,7 +259,8 @@ export const isLessThan: {
 /**
  * Returns a function that checks if a given `number` is less than or equal to the provided one.
  *
- * @example
+ * **Example** (Checking less-than-or-equal comparisons)
+ *
  * ```ts
  * import { isLessThanOrEqualTo } from "effect/Number"
  * import * as assert from "node:assert"
@@ -269,7 +281,8 @@ export const isLessThanOrEqualTo: {
 /**
  * Returns `true` if the first argument is greater than the second, otherwise `false`.
  *
- * @example
+ * **Example** (Checking greater-than comparisons)
+ *
  * ```ts
  * import { isGreaterThan } from "effect/Number"
  * import * as assert from "node:assert"
@@ -290,7 +303,8 @@ export const isGreaterThan: {
 /**
  * Returns a function that checks if a given `number` is greater than or equal to the provided one.
  *
- * @example
+ * **Example** (Checking greater-than-or-equal comparisons)
+ *
  * ```ts
  * import { isGreaterThanOrEqualTo } from "effect/Number"
  * import * as assert from "node:assert"
@@ -311,7 +325,8 @@ export const isGreaterThanOrEqualTo: {
 /**
  * Checks if a `number` is between a `minimum` and `maximum` value (inclusive).
  *
- * @example
+ * **Example** (Checking inclusive ranges)
+ *
  * ```ts
  * import * as Number from "effect/Number"
  * import * as assert from "node:assert"
@@ -344,7 +359,8 @@ export const between: {
  * - If the `number` is greater than the `maximum` value, the function returns the `maximum` value.
  * - Otherwise, it returns the original `number`.
  *
- * @example
+ * **Example** (Clamping to a range)
+ *
  * ```ts
  * import * as Number from "effect/Number"
  * import * as assert from "node:assert"
@@ -373,7 +389,8 @@ export const clamp: {
 /**
  * Returns the minimum between two `number`s.
  *
- * @example
+ * **Example** (Finding the minimum)
+ *
  * ```ts
  * import { min } from "effect/Number"
  * import * as assert from "node:assert"
@@ -392,7 +409,8 @@ export const min: {
 /**
  * Returns the maximum between two `number`s.
  *
- * @example
+ * **Example** (Finding the maximum)
+ *
  * ```ts
  * import { max } from "effect/Number"
  * import * as assert from "node:assert"
@@ -411,7 +429,8 @@ export const max: {
 /**
  * Determines the sign of a given `number`.
  *
- * @example
+ * **Example** (Determining the sign)
+ *
  * ```ts
  * import { sign } from "effect/Number"
  * import * as assert from "node:assert"
@@ -429,7 +448,8 @@ export const sign = (n: number): Ordering => Order(n, 0)
 /**
  * Takes an `Iterable` of `number`s and returns their sum as a single `number`.
  *
- * @example
+ * **Example** (Summing an iterable)
+ *
  * ```ts
  * import { sumAll } from "effect/Number"
  * import * as assert from "node:assert"
@@ -451,7 +471,8 @@ export const sumAll = (collection: Iterable<number>): number => {
 /**
  * Takes an `Iterable` of `number`s and returns their multiplication as a single `number`.
  *
- * @example
+ * **Example** (Multiplying an iterable)
+ *
  * ```ts
  * import { multiplyAll } from "effect/Number"
  * import * as assert from "node:assert"
@@ -478,7 +499,8 @@ export const multiplyAll = (collection: Iterable<number>): number => {
  *
  * It always takes the sign of the dividend.
  *
- * @example
+ * **Example** (Calculating remainders)
+ *
  * ```ts
  * import { remainder } from "effect/Number"
  * import * as assert from "node:assert"
@@ -517,7 +539,8 @@ function decimalCount(n: number): number {
 /**
  * Returns the next power of 2 from the given number.
  *
- * @example
+ * **Example** (Finding the next power of two)
+ *
  * ```ts
  * import { nextPow2 } from "effect/Number"
  * import * as assert from "node:assert"
@@ -538,7 +561,7 @@ export const nextPow2 = (n: number): number => {
  * Tries to parse a `number` from a `string` using the `Number()` function.
  * The following special string values are supported: "NaN", "Infinity", "-Infinity".
  *
- * **Example**
+ * **Example** (Parsing numbers from strings)
  *
  * ```ts
  * import { Number } from "effect"
@@ -574,7 +597,8 @@ export const parse = (s: string): Option.Option<number> => {
 /**
  * Returns the number rounded with the given precision.
  *
- * @example
+ * **Example** (Rounding with precision)
+ *
  * ```ts
  * import { round } from "effect/Number"
  * import * as assert from "node:assert"
@@ -616,14 +640,14 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 })
 
 /**
- * A `Combiner` that returns the maximum `number`.
+ * A `Reducer` for reducing `number`s by keeping the maximum value.
  *
  * @since 4.0.0
  */
 export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.max(a, b), -Infinity)
 
 /**
- * A `Combiner` that returns the minimum `number`.
+ * A `Reducer` for reducing `number`s by keeping the minimum value.
  *
  * @since 4.0.0
  */

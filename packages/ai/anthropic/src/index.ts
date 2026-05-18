@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 // @barrel: Auto-generated exports. Do not edit manually.
@@ -10,12 +10,12 @@
  * Provides a type-safe, Effect-based client for Anthropic operations including
  * messages and streaming responses.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AnthropicClient from "./AnthropicClient.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AnthropicConfig from "./AnthropicConfig.ts"
 
@@ -25,12 +25,12 @@ export * as AnthropicConfig from "./AnthropicConfig.ts"
  * Provides Anthropic-specific metadata fields for AI error types through module
  * augmentation, enabling typed access to Anthropic error details.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AnthropicError from "./AnthropicError.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AnthropicLanguageModel from "./AnthropicLanguageModel.ts"
 
@@ -41,7 +41,7 @@ export * as AnthropicLanguageModel from "./AnthropicLanguageModel.ts"
  * semantic conventions, extending the base GenAI attributes with Anthropic-specific
  * request and response metadata.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AnthropicTelemetry from "./AnthropicTelemetry.ts"
 
@@ -51,11 +51,11 @@ export * as AnthropicTelemetry from "./AnthropicTelemetry.ts"
  * Provides tools that are natively supported by Anthropic's API, including
  * Bash, Code Execution, Computer Use, Memory, and Text Editor functionality.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as AnthropicTool from "./AnthropicTool.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as Generated from "./Generated.ts"

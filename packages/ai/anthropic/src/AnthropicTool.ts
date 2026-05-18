@@ -4,7 +4,7 @@
  * Provides tools that are natively supported by Anthropic's API, including
  * Bash, Code Execution, Computer Use, Memory, and Text Editor functionality.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Schema from "effect/Schema"
 import * as Tool from "effect/unstable/ai/Tool"
@@ -13,8 +13,8 @@ import * as Generated from "./Generated.ts"
 /**
  * Union of all Anthropic provider-defined tools.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AnthropicTool =
   | ReturnType<typeof Bash_20241022>
@@ -44,8 +44,8 @@ export type AnthropicTool =
  * Allows the model to execute bash commands in a sandboxed environment.
  * Requires the "computer-use-2024-10-22" beta header.
  *
- * @since 1.0.0
  * @category Bash
+ * @since 4.0.0
  */
 export const Bash_20241022 = Tool.providerDefined({
   id: "anthropic.bash_20241022",
@@ -65,8 +65,8 @@ export const Bash_20241022 = Tool.providerDefined({
  * Allows the model to execute bash commands in a sandboxed environment.
  * Requires the "computer-use-2025-01-24" beta header.
  *
- * @since 1.0.0
  * @category Bash
+ * @since 4.0.0
  */
 export const Bash_20250124 = Tool.providerDefined({
   id: "anthropic.bash_20250124",
@@ -89,10 +89,10 @@ export const Bash_20250124 = Tool.providerDefined({
 // -----------------------------------------------------------------------------
 
 /**
- * Programmatic tool call execution parameter.
+ * Schema for a code execution request that asks Anthropic to run source code as a programmatic tool call.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecutionProgrammaticToolCall = Schema.Struct({
   type: Schema.Literal("programmatic-tool-call"),
@@ -102,16 +102,18 @@ export const CodeExecutionProgrammaticToolCall = Schema.Struct({
   code: Schema.String
 })
 /**
- * @since 1.0.0
+ * Input payload for a programmatic code execution tool call, including the source code to execute.
+ *
  * @category Code Execution
+ * @since 4.0.0
  */
 export type CodeExecutionProgrammaticToolCall = typeof CodeExecutionProgrammaticToolCall.Type
 
 /**
- * Bash code execution parameter.
+ * Schema for a code execution request that runs a bash command.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecutionBashCommand = Schema.Struct({
   type: Schema.Literal("bash_code_execution"),
@@ -121,16 +123,18 @@ export const CodeExecutionBashCommand = Schema.Struct({
   command: Schema.String
 })
 /**
- * @since 1.0.0
+ * Input payload for a bash command executed through Anthropic code execution.
+ *
  * @category Code Execution
+ * @since 4.0.0
  */
 export type CodeExecutionBashCommand = typeof CodeExecutionBashCommand.Type
 
 /**
  * Text editor view command for code execution.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecutionTextEditorView = Schema.Struct({
   type: Schema.Literal("text_editor_code_execution"),
@@ -141,16 +145,18 @@ export const CodeExecutionTextEditorView = Schema.Struct({
   path: Schema.String
 })
 /**
- * @since 1.0.0
+ * Input payload for viewing a file through the text editor code execution tool.
+ *
  * @category Code Execution
+ * @since 4.0.0
  */
 export type CodeExecutionTextEditorView = typeof CodeExecutionTextEditorView.Type
 
 /**
  * Text editor create command for code execution.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecutionTextEditorCreate = Schema.Struct({
   type: Schema.Literal("text_editor_code_execution"),
@@ -165,16 +171,18 @@ export const CodeExecutionTextEditorCreate = Schema.Struct({
   file_text: Schema.optional(Schema.NullOr(Schema.String))
 })
 /**
- * @since 1.0.0
+ * Input payload for creating a file through the text editor code execution tool, optionally including initial file text.
+ *
  * @category Code Execution
+ * @since 4.0.0
  */
 export type CodeExecutionTextEditorCreate = typeof CodeExecutionTextEditorCreate.Type
 
 /**
  * Text editor str_replace command for code execution.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecutionTextEditorStrReplace = Schema.Struct({
   type: Schema.Literal("text_editor_code_execution"),
@@ -193,8 +201,10 @@ export const CodeExecutionTextEditorStrReplace = Schema.Struct({
   new_str: Schema.String
 })
 /**
- * @since 1.0.0
+ * Input payload for replacing text in a file through the text editor code execution tool.
+ *
  * @category Code Execution
+ * @since 4.0.0
  */
 export type CodeExecutionTextEditorStrReplace = typeof CodeExecutionTextEditorStrReplace.Type
 
@@ -211,10 +221,10 @@ const CodeExecution_20250522_Parameters = Schema.Union([
 // -----------------------------------------------------------------------------
 
 /**
- * Simple code execution parameter.
+ * Schema for the 2025-08-25 code execution tool input, containing the code to execute.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecution_20250825_Parameters = Schema.Struct({
   /**
@@ -223,8 +233,10 @@ export const CodeExecution_20250825_Parameters = Schema.Struct({
   code: Schema.String
 })
 /**
- * @since 1.0.0
+ * Input payload for the 2025-08-25 Anthropic code execution tool.
+ *
  * @category Code Execution
+ * @since 4.0.0
  */
 export type CodeExecution_20250825_Parameters = typeof CodeExecution_20250825_Parameters.Type
 
@@ -239,8 +251,8 @@ export type CodeExecution_20250825_Parameters = typeof CodeExecution_20250825_Pa
  * for multiple execution types including programmatic tool calls, bash
  * execution, and text editor operations.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecution_20250522 = Tool.providerDefined({
   id: "anthropic.code_execution_20250522",
@@ -256,8 +268,8 @@ export const CodeExecution_20250522 = Tool.providerDefined({
  *
  * Allows the model to execute code in a sandboxed environment.
  *
- * @since 1.0.0
  * @category Code Execution
+ * @since 4.0.0
  */
 export const CodeExecution_20250825 = Tool.providerDefined({
   id: "anthropic.code_execution_20250825",
@@ -289,52 +301,60 @@ export const CodeExecution_20250825 = Tool.providerDefined({
 /**
  * An `[x, y]` pixel position.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const Coordinate = Schema.Tuple([Schema.Number, Schema.Number])
 /**
- * @since 1.0.0
+ * An `[x, y]` screen coordinate in pixels.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type Coordinate = typeof Coordinate.Type
 
 /**
  * A `[x1, y1, x2, y2]` position defining top-left and bottom-right corners.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const Region = Schema.Tuple([Schema.Number, Schema.Number, Schema.Number, Schema.Number])
 /**
- * @since 1.0.0
+ * An `[x1, y1, x2, y2]` screen region in pixels, from top-left to bottom-right.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type Region = typeof Region.Type
 
 /**
  * The direction of the scroll for scroll actions.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ScrollDirection = Schema.Literals(["up", "down", "left", "right"])
 /**
- * @since 1.0.0
+ * Direction used by computer-use scroll actions: `"up"`, `"down"`, `"left"`, or `"right"`.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ScrollDirection = typeof ScrollDirection.Type
 
 /**
  * Modifier keys that can be held during click/scroll actions.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ModifierKey = Schema.Literals(["alt", "ctrl", "meta", "shift"])
 /**
- * @since 1.0.0
+ * Modifier key that can be held during computer-use click or scroll actions.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ModifierKey = typeof ModifierKey.Type
 
@@ -373,8 +393,8 @@ const ComputerUse_20251124_Args = Schema.Struct({
 /**
  * Press a key or key combination (e.g. `"Return"`, `"ctrl+c"`, `"ctrl+s"`).
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseKeyAction = Schema.Struct({
   action: Schema.Literal("key"),
@@ -384,16 +404,18 @@ export const ComputerUseKeyAction = Schema.Struct({
   text: Schema.String
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for pressing a key or key combination.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseKeyAction = typeof ComputerUseKeyAction.Type
 
 /**
  * Perform a left click at the current mouse position or the specified coordinates.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseLeftClickAction = Schema.Struct({
   action: Schema.Literal("left_click"),
@@ -404,16 +426,18 @@ export const ComputerUseLeftClickAction = Schema.Struct({
   coordinate: Schema.optional(Coordinate)
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for performing a left click, optionally at a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseLeftClickAction = typeof ComputerUseLeftClickAction.Type
 
 /**
  * Move the mouse cursor to the specified coordinates.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseMouseMoveAction = Schema.Struct({
   action: Schema.Literal("mouse_move"),
@@ -423,31 +447,35 @@ export const ComputerUseMouseMoveAction = Schema.Struct({
   coordinate: Coordinate
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for moving the mouse cursor to a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseMouseMoveAction = typeof ComputerUseMouseMoveAction.Type
 
 /**
  * Capture the current display.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseScreenshotAction = Schema.Struct({
   action: Schema.Literal("screenshot")
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for capturing the current display.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseScreenshotAction = typeof ComputerUseScreenshotAction.Type
 
 /**
  * Type a text string.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const TypeAction = Schema.Struct({
   action: Schema.Literal("type"),
@@ -457,8 +485,10 @@ export const TypeAction = Schema.Struct({
   text: Schema.String
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for typing a text string.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type TypeAction = typeof TypeAction.Type
 
@@ -477,8 +507,8 @@ const ComputerUse_20241022_Actions = Schema.Union([
 /**
  * Perform a double click.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseDoubleClickAction = Schema.Struct({
   action: Schema.Literal("double_click"),
@@ -489,16 +519,18 @@ export const ComputerUseDoubleClickAction = Schema.Struct({
   coordinate: Schema.optional(Coordinate)
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for performing a double click, optionally at a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseDoubleClickAction = typeof ComputerUseDoubleClickAction.Type
 
 /**
- * Holds a key while performing other actions.
+ * Hold a key for a specified duration during computer-use execution.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseHoldKeyAction = Schema.Struct({
   action: Schema.Literal("hold_key"),
@@ -512,16 +544,18 @@ export const ComputerUseHoldKeyAction = Schema.Struct({
   duration: Schema.Number
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for holding a key for a specified duration.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseHoldKeyAction = typeof ComputerUseHoldKeyAction.Type
 
 /**
  * Click and drag from start coordinate to end coordinate.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseLeftClickDragAction = Schema.Struct({
   action: Schema.Literal("left_click_drag"),
@@ -535,8 +569,10 @@ export const ComputerUseLeftClickDragAction = Schema.Struct({
   coordinate: Coordinate
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for dragging from a start coordinate to an end coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseLeftClickDragAction = typeof ComputerUseLeftClickDragAction.Type
 
@@ -545,8 +581,8 @@ export type ComputerUseLeftClickDragAction = typeof ComputerUseLeftClickDragActi
  *
  * Used for fine-grained click control.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseLeftMouseDownAction = Schema.Struct({
   action: Schema.Literal("left_mouse_down"),
@@ -557,8 +593,10 @@ export const ComputerUseLeftMouseDownAction = Schema.Struct({
   coordinate: Schema.optional(Coordinate)
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for pressing and holding the left mouse button, optionally at a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseLeftMouseDownAction = typeof ComputerUseLeftMouseDownAction.Type
 
@@ -567,8 +605,8 @@ export type ComputerUseLeftMouseDownAction = typeof ComputerUseLeftMouseDownActi
  *
  * Used for fine-grained click control.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseLeftMouseUpAction = Schema.Struct({
   action: Schema.Literal("left_mouse_up"),
@@ -579,16 +617,18 @@ export const ComputerUseLeftMouseUpAction = Schema.Struct({
   coordinate: Schema.optional(Coordinate)
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for releasing the left mouse button, optionally at a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseLeftMouseUpAction = typeof ComputerUseLeftMouseUpAction.Type
 
 /**
  * Perform a middle click.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseMiddleClickAction = Schema.Struct({
   action: Schema.Literal("middle_click"),
@@ -599,16 +639,18 @@ export const ComputerUseMiddleClickAction = Schema.Struct({
   coordinate: Schema.optional(Coordinate)
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for performing a middle click, optionally at a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseMiddleClickAction = typeof ComputerUseMiddleClickAction.Type
 
 /**
  * Perform a right click.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseRightClickAction = Schema.Struct({
   action: Schema.Literal("right_click"),
@@ -619,16 +661,18 @@ export const ComputerUseRightClickAction = Schema.Struct({
   coordinate: Schema.optional(Coordinate)
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for performing a right click, optionally at a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseRightClickAction = typeof ComputerUseRightClickAction.Type
 
 /**
  * Scroll a given amount in a specified direction.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseScrollAction = Schema.Struct({
   action: Schema.Literal("scroll"),
@@ -647,16 +691,18 @@ export const ComputerUseScrollAction = Schema.Struct({
   scroll_amount: Schema.Number
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for scrolling by a specified amount in a specified direction, optionally from a coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseScrollAction = typeof ComputerUseScrollAction.Type
 
 /**
  * Perform a triple click.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseTripleClickAction = Schema.Struct({
   action: Schema.Literal("triple_click"),
@@ -667,16 +713,18 @@ export const ComputerUseTripleClickAction = Schema.Struct({
   coordinate: Schema.optional(Coordinate)
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for performing a triple click, optionally at a specific coordinate.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseTripleClickAction = typeof ComputerUseTripleClickAction.Type
 
 /**
  * Pause between performing actions.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseWaitAction = Schema.Struct({
   action: Schema.Literal("wait"),
@@ -686,8 +734,10 @@ export const ComputerUseWaitAction = Schema.Struct({
   duration: Schema.Number
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for pausing for a specified duration.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseWaitAction = typeof ComputerUseWaitAction.Type
 
@@ -714,8 +764,8 @@ const ComputerUse_20250124_Actions = Schema.Union([
  *
  * Requires `enableZoom: true` in the tool definition.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUseZoomAction = Schema.Struct({
   action: Schema.Literal("zoom"),
@@ -726,8 +776,13 @@ export const ComputerUseZoomAction = Schema.Struct({
   region: Region
 })
 /**
- * @since 1.0.0
+ * Computer-use action payload for zooming into a specific screen region.
+ *
+ * **Notes**
+ * The enclosing computer-use tool must be configured with `enableZoom: true`.
+ *
  * @category Computer Use
+ * @since 4.0.0
  */
 export type ComputerUseZoomAction = typeof ComputerUseZoomAction.Type
 
@@ -747,8 +802,8 @@ const ComputerUse_20251124_Actions = Schema.Union([
  *
  * Basic actions only: screenshot, left_click, type, key, mouse_move.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUse_20241022 = Tool.providerDefined({
   id: "anthropic.computer_use_20241022",
@@ -769,8 +824,8 @@ export const ComputerUse_20241022 = Tool.providerDefined({
  * right_click, middle_click, double_click, triple_click, left_mouse_down,
  * left_mouse_up, hold_key, wait.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUse_20250124 = Tool.providerDefined({
   id: "anthropic.computer_20250124",
@@ -790,8 +845,8 @@ export const ComputerUse_20250124 = Tool.providerDefined({
  * Includes all actions from computer_20250124 plus the zoom action for
  * detailed screen region inspection. Requires `enableZoom: true` in args.
  *
- * @since 1.0.0
  * @category Computer Use
+ * @since 4.0.0
  */
 export const ComputerUse_20251124 = Tool.providerDefined({
   id: "anthropic.computer_20251124",
@@ -814,18 +869,20 @@ export const ComputerUse_20251124 = Tool.providerDefined({
 /**
  * A `[start, end]` line range for viewing file contents.
  *
- * Lines are 1-indexed. Use -1 for end to read to end of file.
+ * Lines are 1-indexed. Use -1 for end to read to end of file:
  *
- * @example [1, 50]    // View lines 1-50
- * @example [100, -1]  // View from line 100 to end of file
+ * - `[1, 50]`: View lines 1-50
+ * - `[100, -1]`: View from line 100 to end of file
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const ViewRange = Schema.Tuple([Schema.Number, Schema.Number])
 /**
- * @since 1.0.0
+ * A `[start, end]` 1-indexed line range for viewing file contents, using `-1` as the end value to read through the end of the file.
+ *
  * @category Memory
+ * @since 4.0.0
  */
 export type ViewRange = typeof ViewRange.Type
 
@@ -836,8 +893,8 @@ export type ViewRange = typeof ViewRange.Type
 /**
  * Creates a new file.
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const MemoryCreateCommand = Schema.Struct({
   command: Schema.Literal("create"),
@@ -847,16 +904,18 @@ export const MemoryCreateCommand = Schema.Struct({
   path: Schema.String
 })
 /**
- * @since 1.0.0
+ * Memory tool command payload for creating a new file at a path.
+ *
  * @category Memory
+ * @since 4.0.0
  */
 export type MemoryCreateCommand = typeof MemoryCreateCommand.Type
 
 /**
  * Delete a file or directory.
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const MemoryDeleteCommand = Schema.Struct({
   command: Schema.Literal("delete"),
@@ -866,16 +925,18 @@ export const MemoryDeleteCommand = Schema.Struct({
   path: Schema.String
 })
 /**
- * @since 1.0.0
+ * Memory tool command payload for deleting a file or directory at a path.
+ *
  * @category Memory
+ * @since 4.0.0
  */
 export type MemoryDeleteCommand = typeof MemoryDeleteCommand.Type
 
 /**
  * Insert text at a specific line.
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const MemoryInsertCommand = Schema.Struct({
   command: Schema.Literal("insert"),
@@ -893,16 +954,18 @@ export const MemoryInsertCommand = Schema.Struct({
   insert_text: Schema.String
 })
 /**
- * @since 1.0.0
+ * Memory tool command payload for inserting text at a specific line in a file.
+ *
  * @category Memory
+ * @since 4.0.0
  */
 export type MemoryInsertCommand = typeof MemoryInsertCommand.Type
 
 /**
  * Rename or move a file or directory.
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const MemoryRenameCommand = Schema.Struct({
   command: Schema.Literal("rename"),
@@ -916,16 +979,18 @@ export const MemoryRenameCommand = Schema.Struct({
   new_path: Schema.String
 })
 /**
- * @since 1.0.0
+ * Memory tool command payload for renaming or moving a file or directory.
+ *
  * @category Memory
+ * @since 4.0.0
  */
 export type MemoryRenameCommand = typeof MemoryRenameCommand.Type
 
 /**
  * Replace text in a file.
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const MemoryStrReplaceCommand = Schema.Struct({
   command: Schema.Literal("str_replace"),
@@ -943,16 +1008,18 @@ export const MemoryStrReplaceCommand = Schema.Struct({
   new_str: Schema.String
 })
 /**
- * @since 1.0.0
+ * Memory tool command payload for replacing text in a file.
+ *
  * @category Memory
+ * @since 4.0.0
  */
 export type MemoryStrReplaceCommand = typeof MemoryStrReplaceCommand.Type
 
 /**
  * Shows directory contents or file contents with optional line ranges.
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const MemoryViewCommand = Schema.Struct({
   command: Schema.Literal("view"),
@@ -966,8 +1033,10 @@ export const MemoryViewCommand = Schema.Struct({
   view_range: Schema.optional(ViewRange)
 })
 /**
- * @since 1.0.0
+ * Memory tool command payload for viewing a file or directory, optionally with a file line range.
+ *
  * @category Memory
+ * @since 4.0.0
  */
 export type MemoryViewCommand = typeof MemoryViewCommand.Type
 
@@ -990,8 +1059,8 @@ const Memory_20250818_Commands = Schema.Union([
  * Provides commands for creating, viewing, editing, renaming, and deleting
  * files within the model's memory space.
  *
- * @since 1.0.0
  * @category Memory
+ * @since 4.0.0
  */
 export const Memory_20250818 = Tool.providerDefined({
   id: "anthropic.memory_20250818",
@@ -1015,8 +1084,8 @@ export const Memory_20250818 = Tool.providerDefined({
  * When used on a file: Returns the file contents, optionally limited to a line range.
  * When used on a directory: Lists all files and subdirectories.
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditorViewCommand = Schema.Struct({
   command: Schema.Literal("view"),
@@ -1031,8 +1100,10 @@ export const TextEditorViewCommand = Schema.Struct({
   view_range: Schema.optional(ViewRange)
 })
 /**
- * @since 1.0.0
+ * Text editor command payload for viewing file contents or listing directory contents.
+ *
  * @category Text Editor
+ * @since 4.0.0
  */
 export type TextEditorViewCommand = typeof TextEditorViewCommand.Type
 
@@ -1041,8 +1112,8 @@ export type TextEditorViewCommand = typeof TextEditorViewCommand.Type
  *
  * Will fail if the file already exists. Parent directories must exist.
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditorCreateCommand = Schema.Struct({
   command: Schema.Literal("create"),
@@ -1056,8 +1127,13 @@ export const TextEditorCreateCommand = Schema.Struct({
   file_text: Schema.String
 })
 /**
- * @since 1.0.0
+ * Text editor command payload for creating a new file with the specified content.
+ *
+ * **Notes**
+ * The command fails if the file already exists or if parent directories are missing.
+ *
  * @category Text Editor
+ * @since 4.0.0
  */
 export type TextEditorCreateCommand = typeof TextEditorCreateCommand.Type
 
@@ -1067,8 +1143,8 @@ export type TextEditorCreateCommand = typeof TextEditorCreateCommand.Type
  * The `old_str` must match exactly (including whitespace and indentation)
  * and must be unique in the file.
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditorStrReplaceCommand = Schema.Struct({
   command: Schema.Literal("str_replace"),
@@ -1086,8 +1162,10 @@ export const TextEditorStrReplaceCommand = Schema.Struct({
   new_str: Schema.String
 })
 /**
- * @since 1.0.0
+ * Text editor command payload for replacing one exact, unique string in a file.
+ *
  * @category Text Editor
+ * @since 4.0.0
  */
 export type TextEditorStrReplaceCommand = typeof TextEditorStrReplaceCommand.Type
 
@@ -1096,8 +1174,8 @@ export type TextEditorStrReplaceCommand = typeof TextEditorStrReplaceCommand.Typ
  *
  * Inserts the new text AFTER the specified line number.
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditorInsertCommand = Schema.Struct({
   command: Schema.Literal("insert"),
@@ -1115,8 +1193,10 @@ export const TextEditorInsertCommand = Schema.Struct({
   new_str: Schema.String
 })
 /**
- * @since 1.0.0
+ * Text editor command payload for inserting text after a specific line number in a file.
+ *
  * @category Text Editor
+ * @since 4.0.0
  */
 export type TextEditorInsertCommand = typeof TextEditorInsertCommand.Type
 
@@ -1128,8 +1208,8 @@ export type TextEditorInsertCommand = typeof TextEditorInsertCommand.Type
  * NOTE: This command is available in text_editor_20241022 and text_editor_20250124,
  * but NOT in text_editor_20250728 (Claude 4 models).
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditorUndoEditCommand = Schema.Struct({
   command: Schema.Literal("undo_edit"),
@@ -1139,8 +1219,13 @@ export const TextEditorUndoEditCommand = Schema.Struct({
   path: Schema.String
 })
 /**
- * @since 1.0.0
+ * Text editor command payload for undoing the most recent edit to a file.
+ *
+ * **Notes**
+ * Available for `text_editor_20241022` and `text_editor_20250124`, but not for Claude 4 text editor versions.
+ *
  * @category Text Editor
+ * @since 4.0.0
  */
 export type TextEditorUndoEditCommand = typeof TextEditorUndoEditCommand.Type
 
@@ -1180,8 +1265,8 @@ const TextEditor_StrReplaceBasedEdit_Args = Schema.Struct({
  *
  * Requires the "computer-use-2024-10-22" beta header.
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditor_20241022 = Tool.providerDefined({
   id: "anthropic.text_editor_20241022",
@@ -1195,8 +1280,11 @@ export const TextEditor_20241022 = Tool.providerDefined({
 /**
  * Text editor tool for Claude Sonnet 3.7 (deprecated model).
  *
- * @since 1.0.0
+ * **Notes**
+ * Requires the "computer-use-2025-01-24" beta header.
+ *
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditor_20250124 = Tool.providerDefined({
   id: "anthropic.text_editor_20250124",
@@ -1208,12 +1296,13 @@ export const TextEditor_20250124 = Tool.providerDefined({
 })
 
 /**
- * Text editor tool for Claude 4 models.
+ * Text editor tool for Claude 4 models using Anthropic's `str_replace_based_edit_tool`.
  *
- * NOTE: This version does NOT support the `undo_edit` command.
+ * **Notes**
+ * Requires the "computer-use-2025-01-24" beta header. This version does not support the `undo_edit` command.
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditor_20250429 = Tool.providerDefined({
   id: "anthropic.text_editor_20250429",
@@ -1230,8 +1319,8 @@ export const TextEditor_20250429 = Tool.providerDefined({
  *
  * NOTE: This version does NOT support the `undo_edit` command.
  *
- * @since 1.0.0
  * @category Text Editor
+ * @since 4.0.0
  */
 export const TextEditor_20250728 = Tool.providerDefined({
   id: "anthropic.text_editor_20250728",
@@ -1257,8 +1346,8 @@ export const TextEditor_20250728 = Tool.providerDefined({
  * Providing location helps return more relevant results for location-dependent
  * queries like weather, local businesses, events, etc.
  *
- * @since 1.0.0
  * @category Web Search
+ * @since 4.0.0
  */
 export const WebSearchUserLocation = Schema.Struct({
   /**
@@ -1290,8 +1379,8 @@ export const WebSearchUserLocation = Schema.Struct({
 /**
  * Configuration arguments for the web search tool.
  *
- * @since 1.0.0
  * @category Web Search
+ * @since 4.0.0
  */
 export const WebSearch_20250305_Args = Schema.Struct({
   /**
@@ -1316,8 +1405,10 @@ export const WebSearch_20250305_Args = Schema.Struct({
   userLocation: Schema.optional(WebSearchUserLocation)
 })
 /**
- * @since 1.0.0
+ * Configuration arguments for the Anthropic web search tool, including usage limits, domain filters, and optional user location.
+ *
  * @category Web Search
+ * @since 4.0.0
  */
 export type WebSearch_20250305_Args = typeof WebSearch_20250305_Args.Type
 
@@ -1328,8 +1419,8 @@ export type WebSearch_20250305_Args = typeof WebSearch_20250305_Args.Type
 /**
  * Input parameters for a web search.
  *
- * @since 1.0.0
  * @category Web Search
+ * @since 4.0.0
  */
 export const WebSearchParameters = Schema.Struct({
   /**
@@ -1338,8 +1429,13 @@ export const WebSearchParameters = Schema.Struct({
   query: Schema.String
 })
 /**
- * @since 1.0.0
+ * Type of the parameters Claude supplies when invoking the Anthropic web search tool.
+ *
+ * **Details**
+ * Contains the generated search query used by `WebSearch_20250305`.
+ *
  * @category Web Search
+ * @since 4.0.0
  */
 export type WebSearchParameters = typeof WebSearchParameters.Type
 
@@ -1355,8 +1451,8 @@ export type WebSearchParameters = typeof WebSearchParameters.Type
  *
  * Generally available (no beta header required).
  *
- * @since 1.0.0
  * @category Web Search
+ * @since 4.0.0
  */
 export const WebSearch_20250305 = Tool.providerDefined({
   id: "anthropic.web_search_20250305",
@@ -1379,8 +1475,8 @@ export const WebSearch_20250305 = Tool.providerDefined({
 /**
  * Citation configuration for web fetch.
  *
- * @since 1.0.0
  * @category Web Fetch
+ * @since 4.0.0
  */
 export const WebFetchCitationsConfig = Schema.Struct({
   /**
@@ -1389,8 +1485,10 @@ export const WebFetchCitationsConfig = Schema.Struct({
   enabled: Schema.Boolean
 })
 /**
- * @since 1.0.0
+ * Configuration payload for enabling or disabling citations on web fetch results.
+ *
  * @category Web Fetch
+ * @since 4.0.0
  */
 export type WebFetchCitationsConfig = typeof WebFetchCitationsConfig.Type
 
@@ -1401,8 +1499,8 @@ export type WebFetchCitationsConfig = typeof WebFetchCitationsConfig.Type
 /**
  * Configuration arguments for the web fetch tool.
  *
- * @since 1.0.0
  * @category Web Fetch
+ * @since 4.0.0
  */
 export const WebFetch_20250910_Args = Schema.Struct({
   /**
@@ -1431,8 +1529,10 @@ export const WebFetch_20250910_Args = Schema.Struct({
   maxContentTokens: Schema.optional(Schema.Number)
 })
 /**
- * @since 1.0.0
+ * Configuration arguments for the Anthropic web fetch tool, including usage limits, domain filters, citation settings, and token limits.
+ *
  * @category Web Fetch
+ * @since 4.0.0
  */
 export type WebFetch_20250910_Args = typeof WebFetch_20250910_Args.Type
 
@@ -1443,8 +1543,8 @@ export type WebFetch_20250910_Args = typeof WebFetch_20250910_Args.Type
 /**
  * Input parameters for a web fetch.
  *
- * @since 1.0.0
  * @category Web Fetch
+ * @since 4.0.0
  */
 export const WebFetchParameters = Schema.Struct({
   /**
@@ -1454,8 +1554,10 @@ export const WebFetchParameters = Schema.Struct({
   url: Schema.String
 })
 /**
- * @since 1.0.0
+ * Type of the parameters Claude supplies when invoking the Anthropic web fetch tool.
+ *
  * @category Web Fetch
+ * @since 4.0.0
  */
 export type WebFetchParameters = typeof WebFetchParameters.Type
 
@@ -1471,8 +1573,8 @@ export type WebFetchParameters = typeof WebFetchParameters.Type
  *
  * Requires the "web-fetch-2025-09-10" beta header.
  *
- * @since 1.0.0
  * @category Web Fetch
+ * @since 4.0.0
  */
 export const WebFetch_20250910 = Tool.providerDefined({
   id: "anthropic.web_fetch_20250910",
@@ -1498,8 +1600,8 @@ export const WebFetch_20250910 = Tool.providerDefined({
  * Claude constructs regex patterns using Python's `re.search()` syntax.
  * Maximum query length: 200 characters.
  *
- * @since 1.0.0
  * @category Tool Search
+ * @since 4.0.0
  */
 export const ToolSearchRegexParameters = Schema.Struct({
   /**
@@ -1508,16 +1610,18 @@ export const ToolSearchRegexParameters = Schema.Struct({
   query: Schema.String
 })
 /**
- * @since 1.0.0
+ * Type of the parameters Claude supplies when invoking regex-based Anthropic tool search.
+ *
  * @category Tool Search
+ * @since 4.0.0
  */
 export type ToolSearchRegexParameters = typeof ToolSearchRegexParameters.Type
 
 /**
  * Input parameters for BM25/natural language tool search.
  *
- * @since 1.0.0
  * @category Tool Search
+ * @since 4.0.0
  */
 export const ToolSearchBM25Parameters = Schema.Struct({
   /**
@@ -1526,8 +1630,10 @@ export const ToolSearchBM25Parameters = Schema.Struct({
   query: Schema.String
 })
 /**
- * @since 1.0.0
+ * Type of the parameters Claude supplies when invoking BM25 natural-language Anthropic tool search.
+ *
  * @category Tool Search
+ * @since 4.0.0
  */
 export type ToolSearchBM25Parameters = typeof ToolSearchBM25Parameters.Type
 
@@ -1544,8 +1650,8 @@ export type ToolSearchBM25Parameters = typeof ToolSearchBM25Parameters.Type
  *
  * Requires the "advanced-tool-use-2025-11-20" beta header.
  *
- * @since 1.0.0
  * @category Tool Search
+ * @since 4.0.0
  */
 export const ToolSearchRegex_20251119 = Tool.providerDefined({
   id: "anthropic.tool_search_tool_regex_20251119",
@@ -1565,8 +1671,8 @@ export const ToolSearchRegex_20251119 = Tool.providerDefined({
  *
  * Requires the "advanced-tool-use-2025-11-20" beta header.
  *
- * @since 1.0.0
  * @category Tool Search
+ * @since 4.0.0
  */
 export const ToolSearchBM25_20251119 = Tool.providerDefined({
   id: "anthropic.tool_search_tool_bm25_20251119",

@@ -1,4 +1,38 @@
 /**
+ * The `Filter` module provides composable functions for accepting, rejecting,
+ * narrowing, and transforming values. A `Filter<Input, Pass, Fail>` receives an
+ * input and returns a `Result`: success means the value passed the filter, while
+ * failure means the value was filtered out.
+ *
+ * **Mental model**
+ *
+ * - A filter is a typed predicate that can also transform the successful value
+ * - Predicate-based filters pass the original input when the predicate returns `true`
+ * - Refinement-based filters narrow the successful type, for example from `unknown` to `string`
+ * - Custom filters return `Result.succeed(pass)` or `Result.fail(fail)` directly
+ * - Filters compose with logical and sequential combinators instead of throwing exceptions
+ * - `FilterEffect` is the effectful form for filters that need asynchronous work, errors, or services
+ *
+ * **Common tasks**
+ *
+ * - Build filters: {@link make}, {@link makeEffect}, {@link fromPredicate}, {@link fromPredicateOption}
+ * - Narrow unknown values: {@link string}, {@link number}, {@link boolean}, {@link bigint}, {@link symbol}, {@link date}
+ * - Match shapes and variants: {@link instanceOf}, {@link tagged}, {@link reason}, {@link has}
+ * - Match exact values: {@link equals}, {@link equalsStrict}
+ * - Combine alternatives: {@link or}
+ * - Require multiple filters: {@link zip}, {@link zipWith}, {@link andLeft}, {@link andRight}
+ * - Run filters in sequence: {@link compose}, {@link composePassthrough}
+ * - Convert results: {@link toPredicate}, {@link toOption}, {@link toResult}
+ * - Adjust failure values: {@link mapFail}
+ *
+ * **Gotchas**
+ *
+ * - A failed filter is data in the `Result` failure channel; it is not an exception
+ * - `compose` preserves intermediate failure values, while {@link composePassthrough} fails with the original input
+ * - `equalsStrict` uses JavaScript `===`; use {@link equals} for structural equality
+ * - `fromPredicateOption` fails with the original input when the returned `Option` is `None`
+ * - Prefer refinement predicates when you want TypeScript to narrow the successful value type
+ *
  * @since 4.0.0
  */
 import type { Effect } from "./Effect.ts"
@@ -15,7 +49,8 @@ import type { EqualsWith, ExcludeTag, ExtractReason, ExtractTag, ReasonTags, Tag
  * A filter takes an input value and either returns a boxed pass value or
  * the special `fail` type to indicate the value should be filtered out.
  *
- * @example
+ * **Example** (Defining a positive number filter)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -26,8 +61,8 @@ import type { EqualsWith, ExcludeTag, ExtractReason, ExtractTag, ReasonTags, Tag
  * console.log(positiveFilter(-3)) // Result.fail(-3)
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface Filter<in Input, out Pass = Input, out Fail = Input> {
   (input: Input): Result.Result<Pass, Fail>
@@ -39,7 +74,8 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  * Similar to a regular Filter, but the filtering operation itself can be effectful,
  * allowing for asynchronous operations, error handling, and dependency injection.
  *
- * @example
+ * **Example** (Defining an effectful user filter)
+ *
  * ```ts
  * import { Effect, Filter, Result } from "effect"
  *
@@ -60,8 +96,8 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  *   })
  * ```
  *
- * @since 4.0.0
  * @category Models
+ * @since 4.0.0
  */
 export interface FilterEffect<
   in Input,
@@ -83,7 +119,8 @@ export interface FilterEffect<
  * This is the primary constructor for creating custom filters. The function
  * should return either `Result.succeed(value)` or `Result.fail(value)`.
  *
- * @example
+ * **Example** (Creating custom filters)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -96,8 +133,8 @@ export interface FilterEffect<
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = <Input, Pass, Fail>(
   f: (input: Input) => Result.Result<Pass, Fail>
@@ -110,7 +147,8 @@ export const make = <Input, Pass, Fail>(
  * effectful computations, such as async operations, error handling, or
  * accessing services from the environment.
  *
- * @example
+ * **Example** (Creating effectful filters)
+ *
  * ```ts
  * import { Effect, Filter, Result } from "effect"
  *
@@ -123,16 +161,19 @@ export const make = <Input, Pass, Fail>(
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const makeEffect = <Input, Pass, Fail, E, R>(
   f: (input: Input) => Effect<Result.Result<Pass, Fail>, E, R>
 ): FilterEffect<Input, Pass, Fail, E, R> => f as any
 
 /**
- * @since 4.0.0
+ * Transforms the failure value produced by a `Filter`, leaving successful
+ * results unchanged.
+ *
  * @category Mapping
+ * @since 4.0.0
  */
 export const mapFail: {
   <Fail, Fail2>(f: (fail: Fail) => Fail2): <Input, Pass>(self: Filter<Input, Pass, Fail>) => Filter<Input, Pass, Fail2>
@@ -159,8 +200,8 @@ export {
    * Creates a Filter that tries to apply a function and returns `fail` on
    * error.
    *
-   * @since 4.0.0
    * @category Constructors
+   * @since 4.0.0
    */
   try_ as try
 }
@@ -172,7 +213,8 @@ export {
  * When the predicate returns true, the input value is passed through unchanged.
  * When it returns false, the `fail` type is returned.
  *
- * @example
+ * **Example** (Creating filters from predicates)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -186,8 +228,8 @@ export {
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const fromPredicate: {
   <A, B extends A>(refinement: Predicate.Refinement<A, B>): Filter<A, B, EqualsWith<A, B, A, Exclude<A, B>>>
@@ -196,10 +238,12 @@ export const fromPredicate: {
   predicate(input) ? Result.succeed(input as B) : Result.fail(input)
 
 /**
- * Creates a Filter from a function that returns an Option.
+ * Creates a `Filter` from a function that returns an `Option`.
  *
- * @since 4.0.0
+ * `Some(value)` passes with `value`. `None` fails with the original input.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>): Filter<A, B> => (input) => {
   const o = predicate(input)
@@ -209,8 +253,8 @@ export const fromPredicateOption = <A, B>(predicate: (a: A) => Option.Option<B>)
 /**
  * Converts a Filter into a predicate function.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toPredicate = <A, Pass, Fail>(
   self: Filter<A, Pass, Fail>
@@ -220,7 +264,8 @@ export const toPredicate = <A, Pass, Fail>(
 /**
  * A predefined filter that only passes through string values.
  *
- * @example
+ * **Example** (Filtering strings)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -228,22 +273,28 @@ export const toPredicate = <A, Pass, Fail>(
  * console.log(Filter.string(42)) // fail
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const string: Filter<unknown, string> = fromPredicate(Predicate.isString)
 
 /**
- * @since 4.0.0
+ * Creates a `Filter` that passes only values strictly equal to the specified
+ * value using JavaScript `===` comparison.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const equalsStrict =
   <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
     (u as unknown) === value ? Result.succeed(value) : Result.fail(u as any)
 
 /**
- * @since 4.0.0
+ * Creates a `Filter` that passes inputs whose `has(key)` method returns
+ * `true` for the specified key.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const has =
   <K>(key: K) => <Input extends { readonly has: (key: K) => boolean }>(input: Input): Result.Result<Input, Input> =>
@@ -252,8 +303,8 @@ export const has =
 /**
  * Creates a filter that only passes instances of the given constructor.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const instanceOf =
   <K extends new(...args: any) => any>(constructor: K) =>
@@ -263,7 +314,8 @@ export const instanceOf =
 /**
  * A predefined filter that only passes through number values.
  *
- * @example
+ * **Example** (Filtering numbers)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -271,48 +323,48 @@ export const instanceOf =
  * console.log(Filter.number("42")) // fail
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const number: Filter<unknown, number> = fromPredicate(Predicate.isNumber)
 
 /**
  * A predefined filter that only passes through boolean values.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const boolean: Filter<unknown, boolean> = fromPredicate(Predicate.isBoolean)
 
 /**
  * A predefined filter that only passes through BigInt values.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const bigint: Filter<unknown, bigint> = fromPredicate(Predicate.isBigInt)
 
 /**
  * A predefined filter that only passes through Symbol values.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const symbol: Filter<unknown, symbol> = fromPredicate(Predicate.isSymbol)
 
 /**
  * A predefined filter that only passes through Date objects.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const date: Filter<unknown, Date> = fromPredicate(Predicate.isDate)
 
 /**
  * Creates a filter that checks if an input is tagged with a specific tag.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const tagged: {
   <Input>(): <const Tag extends Tags<Input>>(tag: Tag) => Filter<Input, ExtractTag<Input, Tag>, ExcludeTag<Input, Tag>>
@@ -334,8 +386,8 @@ const taggedImpl =
 /**
  * Creates a filter that extracts a reason from a tagged error.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const reason: {
   <Input>(): <const Tag extends Tags<Input>, const ReasonTag extends ReasonTags<ExtractTag<Input, Tag>>>(
@@ -369,8 +421,8 @@ const reasonImpl =
 /**
  * Creates a filter that only passes values equal to the specified value using structural equality.
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const equals =
   <const A, Input = unknown>(value: A): Filter<Input, A, EqualsWith<Input, A, A, Exclude<Input, A>>> => (u) =>
@@ -379,8 +431,8 @@ export const equals =
 /**
  * Combines two filters with logical OR semantics.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const or: {
   <Input2, Pass2, Fail2>(
@@ -405,8 +457,8 @@ export const or: {
  * Both filters must succeed (not return `fail`) for the combination to succeed.
  * If both filters pass, their outputs are combined using the provided function.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const zipWith: {
   <PassL, InputR, PassR, FailR, A>(
@@ -437,7 +489,8 @@ export const zipWith: {
  * Both filters must succeed for the combination to succeed. If both pass,
  * their outputs are combined into a tuple.
  *
- * @example
+ * **Example** (Zipping filters)
+ *
  * ```ts
  * import { Filter } from "effect"
  *
@@ -447,8 +500,8 @@ export const zipWith: {
  * const positiveAndEven = Filter.zip(positiveNumbers, evenNumbers)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const zip: {
   <InputR, PassR, FailR>(
@@ -469,7 +522,8 @@ export const zip: {
 /**
  * Combines two filters but only returns the result of the left filter.
  *
- * @example
+ * **Example** (Keeping the left filter result)
+ *
  * ```ts
  * import { Filter } from "effect"
  *
@@ -479,8 +533,8 @@ export const zip: {
  * const positiveEven = Filter.andLeft(positiveNumbers, evenNumbers)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const andLeft: {
   <InputR, PassR, FailR>(
@@ -500,7 +554,8 @@ export const andLeft: {
 /**
  * Combines two filters but only returns the result of the right filter.
  *
- * @example
+ * **Example** (Keeping the right filter result)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -512,8 +567,8 @@ export const andLeft: {
  * const positiveDoubled = Filter.andRight(positiveNumbers, doubleNumbers)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const andRight: {
   <InputR, PassR, FailR>(
@@ -533,7 +588,8 @@ export const andRight: {
 /**
  * Composes two filters sequentially, feeding the output of the first into the second.
  *
- * @example
+ * **Example** (Composing filters)
+ *
  * ```ts
  * import { Filter, Result } from "effect"
  *
@@ -545,8 +601,8 @@ export const andRight: {
  * const stringToUpper = Filter.compose(stringFilter, nonEmptyUpper)
  * ```
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const compose: {
   <PassL, PassR, FailR>(
@@ -567,14 +623,14 @@ export const compose: {
 })
 
 /**
- * Composes two filters sequentially, allowing the output of the first to be
- * passed to the second.
+ * Composes two filters sequentially, passing the successful output of the
+ * first filter to the second.
  *
- * This is similar to `compose`, but it will always fail with the original
- * input.
+ * If either filter fails, the returned filter fails with the original input
+ * instead of the intermediate failure value.
  *
- * @since 4.0.0
  * @category Combinators
+ * @since 4.0.0
  */
 export const composePassthrough: {
   <InputL, PassL, PassR, FailR>(
@@ -597,8 +653,11 @@ export const composePassthrough: {
 })
 
 /**
- * @since 4.0.0
+ * Converts a `Filter` into a function that returns `Some` for passed values
+ * and `None` for filtered-out values.
+ *
  * @category Conversions
+ * @since 4.0.0
  */
 export const toOption = <A, Pass, Fail>(
   self: Filter<A, Pass, Fail>
@@ -609,8 +668,11 @@ export const toOption = <A, Pass, Fail>(
 }
 
 /**
- * @since 4.0.0
+ * Converts a `Filter` into a function that returns the underlying
+ * `Result.Result` for each input.
+ *
  * @category Conversions
+ * @since 4.0.0
  */
 export const toResult = <A, Pass, Fail>(
   self: Filter<A, Pass, Fail>

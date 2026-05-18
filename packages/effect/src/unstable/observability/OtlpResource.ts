@@ -1,4 +1,23 @@
 /**
+ * Helpers and data types for describing the OTLP resource attached to exported
+ * logs, metrics, and traces.
+ *
+ * A resource identifies the service that produced telemetry and carries
+ * process- or deployment-level attributes that should be shared across every
+ * signal sent by the Effect OTLP logger, metrics exporter, and tracer. Use this
+ * module when building explicit resource metadata, reading the standard OTEL
+ * resource environment variables, or converting application metadata into OTLP
+ * `KeyValue` / `AnyValue` shapes before serialization.
+ *
+ * `service.name` is required because the signal exporters also use it as the
+ * instrumentation scope name. Explicit resource options take precedence over
+ * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
+ * `OTEL_SERVICE_VERSION`; `service.name` and `service.version` are normalized
+ * through the service metadata inputs and re-added as canonical OTLP
+ * attributes rather than left in the custom attribute map. Attribute values are
+ * converted to OTLP scalar or array values where possible, with unsupported
+ * runtime values formatted as strings.
+ *
  * @since 4.0.0
  */
 import * as Config from "../../Config.ts"
@@ -7,8 +26,10 @@ import { format } from "../../Formatter.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * @since 4.0.0
+ * OTLP resource metadata attached to exported logs, metrics, and traces.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface Resource {
   /** Resource attributes */
@@ -18,8 +39,13 @@ export interface Resource {
 }
 
 /**
- * @since 4.0.0
+ * Creates an OTLP resource from service metadata and additional attributes.
+ *
+ * The resource always includes `service.name`, includes `service.version` when
+ * provided, and converts custom attributes into OTLP attribute values.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const make = (options: {
   readonly serviceName: string
@@ -51,8 +77,15 @@ export const make = (options: {
 }
 
 /**
- * @since 4.0.0
+ * Creates an OTLP resource from explicit options and OpenTelemetry
+ * configuration.
+ *
+ * Explicit options override `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`,
+ * and `OTEL_SERVICE_VERSION`; missing required configuration is converted to a
+ * defect.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const fromConfig: (
   options?: {
@@ -66,10 +99,10 @@ export const fromConfig: (
   readonly attributes?: Record<string, unknown> | undefined
 }) {
   const attributes = {
-    ...yield* Config.schema(
+    ...(yield* Config.schema(
       Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
       "OTEL_RESOURCE_ATTRIBUTES"
-    ),
+    )),
     ...options?.attributes
   }
   const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
@@ -86,8 +119,12 @@ export const fromConfig: (
 }, Effect.orDie)
 
 /**
- * @since 4.0.0
+ * Returns the `service.name` attribute from an OTLP resource.
+ *
+ * Throws if the resource does not contain a string `service.name` attribute.
+ *
  * @category Attributes
+ * @since 4.0.0
  */
 export const serviceNameUnsafe = (resource: Resource): string => {
   const serviceNameAttribute = resource.attributes.find(
@@ -100,8 +137,10 @@ export const serviceNameUnsafe = (resource: Resource): string => {
 }
 
 /**
- * @since 4.0.0
+ * Converts key/value entries into OTLP `KeyValue` attributes.
+ *
  * @category Attributes
+ * @since 4.0.0
  */
 export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array<KeyValue> => {
   const attributes: Array<KeyValue> = []
@@ -115,8 +154,13 @@ export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array
 }
 
 /**
- * @since 4.0.0
+ * Converts an arbitrary JavaScript value into an OTLP `AnyValue`.
+ *
+ * Arrays are converted recursively, primitive values use their matching OTLP
+ * fields, and unsupported values are formatted as strings.
+ *
  * @category Attributes
+ * @since 4.0.0
  */
 export const unknownToAttributeValue = (value: unknown): AnyValue => {
   if (Array.isArray(value)) {
@@ -155,8 +199,10 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
 }
 
 /**
- * @since 4.0.0
+ * An OTLP attribute represented as a string key and typed value.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface KeyValue {
   /** KeyValue key */
@@ -166,8 +212,10 @@ export interface KeyValue {
 }
 
 /**
- * @since 4.0.0
+ * OTLP `AnyValue` payload for scalar, array, key/value-list, or byte values.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface AnyValue {
   /** AnyValue stringValue */
@@ -187,8 +235,10 @@ export interface AnyValue {
 }
 
 /**
- * @since 4.0.0
+ * OTLP array value containing nested `AnyValue` entries.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface ArrayValue {
   /** ArrayValue values */
@@ -196,8 +246,10 @@ export interface ArrayValue {
 }
 
 /**
- * @since 4.0.0
+ * OTLP key/value-list value containing nested attributes.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface KeyValueList {
   /** KeyValueList values */
@@ -205,8 +257,10 @@ export interface KeyValueList {
 }
 
 /**
- * @since 4.0.0
+ * Low and high 32-bit parts of a 64-bit integer value.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface LongBits {
   low: number
@@ -214,7 +268,9 @@ export interface LongBits {
 }
 
 /**
- * @since 4.0.0
+ * Accepted runtime representations for an OTLP/protobuf fixed 64-bit value.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export type Fixed64 = LongBits | string | number
