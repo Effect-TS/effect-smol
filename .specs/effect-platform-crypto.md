@@ -4,7 +4,7 @@
 
 Add a platform-agnostic `Crypto` service to `effect`. The service provides cryptographic random bytes, cryptographically secure random generators, UUIDv4 generation, and digest operations through an Effect service interface, with platform-specific implementations supplied by runtime packages such as `@effect/platform-node`, `@effect/platform-bun`, and `@effect/platform-browser`.
 
-The service replaces `Random.nextUUIDv4`. UUIDv4 generation is a module-level `Crypto.randomUUIDv4` helper that formats 16 bytes from `Crypto.randomBytes`; it is not a method on the service interface.
+The service replaces `Random.nextUUIDv4`. UUIDv4 generation is exposed on the `Crypto` service and derived by the `make` constructor from the primitive `randomBytes` implementation.
 
 ## Background and Research
 
@@ -25,18 +25,17 @@ Important conventions from that implementation:
 - Platform errors should use `PlatformError` where possible.
 - Library implementation code should avoid `async` / `await` and `try` / `catch`, using Effect APIs instead.
 
-The current base `Random` service is not cryptographically secure because its default implementation is based on `Math.random`. `Crypto` extends the `Random` service shape so platform crypto implementations can expose cryptographically secure random number generation through `Crypto` module helpers.
+The current base `Random` service is not cryptographically secure because its default implementation is based on `Math.random`. `Crypto` extends the `Random` service shape so platform crypto implementations can expose cryptographically secure random number generation through `Crypto` service methods.
 
 ## User Requirements and Clarifications
 
 - Add a platform-agnostic `Crypto` Effect service.
 - `Crypto` must extend the `Random` service.
 - Include a UUIDv4 generator so users can stop using `Random.nextUUIDv4`.
-- `randomUUIDv4` must be module-scoped, not a service method.
-- `randomUUIDv4` must format bytes from `Crypto.randomBytes(16)` and follow UUIDv4 version/variant requirements.
-- Use `Data.TaggedEnum` for `DigestAlgorithm`.
-- Do not place `DigestAlgorithm` in a namespace.
-- Export cryptographically secure counterparts to the `Random` module generators with clearer names: `random`, `randomBoolean`, `randomInt`, `randomBetween`, `randomIntBetween`, `randomShuffle`, and `randomUUIDv4`.
+- `randomUUIDv4` must be a service method derived by `make`, not a primitive required from platform implementations.
+- `randomUUIDv4` must format bytes from the service's `randomBytes(16)` and follow UUIDv4 version/variant requirements.
+- Define `DigestAlgorithm` as a string literal union.
+- Add cryptographically secure counterparts to the `Random` module generators as service methods with clearer names: `random`, `randomBoolean`, `randomInt`, `randomBetween`, `randomIntBetween`, `randomShuffle`, and `randomUUIDv4`.
 - Keep the initial `Crypto` surface limited to random bytes, random generators, UUIDv4 generation, and digests.
 
 ## Proposed Public API
@@ -45,21 +44,13 @@ Add `packages/effect/src/Crypto.ts`.
 
 ```ts
 import * as Context from "./Context.ts"
-import * as Data from "./Data.ts"
 import type * as Effect from "./Effect.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import type * as Random from "./Random.ts"
 
 const TypeId = "~effect/platform/Crypto"
 
-export type DigestAlgorithm = Data.TaggedEnum<{
-  readonly Sha1: {}
-  readonly Sha256: {}
-  readonly Sha384: {}
-  readonly Sha512: {}
-}>
-
-export const DigestAlgorithm = Data.taggedEnum<DigestAlgorithm>()
+export type DigestAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
 
 export interface Crypto extends Random.Random {
   readonly [TypeId]: typeof TypeId
@@ -72,28 +63,23 @@ export interface Crypto extends Random.Random {
     algorithm: DigestAlgorithm,
     data: Uint8Array
   ) => Effect.Effect<Uint8Array, PlatformError>
+
+  readonly random: Effect.Effect<number>
+  readonly randomBoolean: Effect.Effect<boolean>
+  readonly randomInt: Effect.Effect<number>
+  readonly randomBetween: (min: number, max: number) => Effect.Effect<number>
+  readonly randomIntBetween: (
+    min: number,
+    max: number,
+    options?: { readonly halfOpen?: boolean | undefined }
+  ) => Effect.Effect<number>
+  readonly randomShuffle: <A>(elements: Iterable<A>) => Effect.Effect<Array<A>>
+  readonly randomUUIDv4: Effect.Effect<string, PlatformError>
 }
 
 export const Crypto: Context.Service<Crypto, Crypto> = Context.Service("effect/platform/Crypto")
 
-export const make: (impl: Omit<Crypto, typeof TypeId>) => Crypto
-
-export const randomBytes: (size: number) => Effect.Effect<Uint8Array, PlatformError, Crypto>
-export const random: Effect.Effect<number, never, Crypto>
-export const randomBoolean: Effect.Effect<boolean, never, Crypto>
-export const randomInt: Effect.Effect<number, never, Crypto>
-export const randomBetween: (min: number, max: number) => Effect.Effect<number, never, Crypto>
-export const randomIntBetween: (
-  min: number,
-  max: number,
-  options?: { readonly halfOpen?: boolean | undefined }
-) => Effect.Effect<number, never, Crypto>
-export const randomShuffle: <A>(elements: Iterable<A>) => Effect.Effect<Array<A>, never, Crypto>
-export const randomUUIDv4: Effect.Effect<string, PlatformError, Crypto>
-export const digest: (
-  algorithm: DigestAlgorithm,
-  data: Uint8Array
-) => Effect.Effect<Uint8Array, PlatformError, Crypto>
+export const make: (impl: Omit<Crypto, typeof TypeId | "random" | "randomBoolean" | "randomInt" | "randomBetween" | "randomIntBetween" | "randomShuffle" | "randomUUIDv4">) => Crypto
 ```
 
 ## Functional Requirements
@@ -102,17 +88,17 @@ export const digest: (
 
 1. Add `packages/effect/src/Crypto.ts`.
 2. Define `TypeId` as `"~effect/platform/Crypto"`.
-3. Define `DigestAlgorithm` as a top-level `Data.TaggedEnum`, not inside a namespace.
-4. Export `DigestAlgorithm = Data.taggedEnum<DigestAlgorithm>()`.
-5. Use PascalCase variants `Sha1`, `Sha256`, `Sha384`, and `Sha512`.
+3. Define `DigestAlgorithm` as a top-level string literal union.
+4. Use Web Crypto algorithm names `"SHA-1"`, `"SHA-256"`, `"SHA-384"`, and `"SHA-512"`.
+5. Do not require platform implementations to provide derived random generator helpers.
 6. Define `Crypto` as an extension of `Random.Random` with `randomBytes` and `digest`.
-7. Do not include `randomUUIDv4` on the `Crypto` service interface.
+7. Include `randomUUIDv4` and the random generator helpers on the `Crypto` service interface.
 8. Define the service tag with `Context.Service("effect/platform/Crypto")`.
-9. Add top-level accessors that retrieve the service from context and delegate to it.
-10. Add cryptographically secure random generator helpers matching the `Random` module capabilities with clearer names.
-11. Add module-level `randomUUIDv4` derived from `randomBytes(16)`.
+9. Do not add top-level accessors; users should retrieve the service and call its methods.
+10. Add cryptographically secure random generator helpers matching the `Random` module capabilities with clearer names to the service interface.
+11. Derive service `randomUUIDv4` from `randomBytes(16)`.
 12. Keep the core module platform-agnostic; it must not import `node:crypto` or rely directly on `globalThis.crypto`.
-13. If a `make` helper is added, make it a simple full-implementation constructor that only attaches the service type identifier.
+13. The `make` helper should accept the primitive implementation and derive random helper methods, similar to `ChildProcessSpawner.make`.
 
 ### Random Generator Requirements
 
@@ -202,7 +188,7 @@ No browser aggregate service module currently exists. Do not introduce one solel
 1. Remove `Random.nextUUIDv4`.
 2. Update `Random` module documentation to remove UUID examples.
 3. Update `packages/effect/test/Random.test.ts` to remove UUID-specific tests.
-4. Add tests and documentation showing `Crypto.randomUUIDv4` as the replacement.
+4. Add tests and documentation showing `Crypto.Crypto` service `randomUUIDv4` as the replacement.
 5. Document that the base `Random` service is not cryptographically secure and should not be used for security-sensitive values.
 
 ## Documentation Requirements
@@ -214,7 +200,7 @@ The documentation must explain:
 1. `Crypto` is for cryptographic randomness and cryptographic operations.
 2. The base `Random` service is not cryptographically secure.
 3. `Random.withSeed` provides deterministic replacement for repeatability; predictable seeds are not cryptographically secure.
-4. UUID generation should use module-level `Crypto.randomUUIDv4`, not `Random.nextUUIDv4`.
+4. UUID generation should use the `Crypto` service's `randomUUIDv4`, not `Random.nextUUIDv4`.
 5. Platform implementations must be provided through layers.
 6. SHA-1 is available only for compatibility and should be avoided for new security-sensitive designs.
 
@@ -226,11 +212,11 @@ Add `packages/effect/test/Crypto.test.ts`.
 
 Test cases:
 
-1. `DigestAlgorithm` constructors create the expected tagged enum values.
-2. `randomBytes` accessor delegates to the provided service.
-3. Random generator accessors delegate to the `Random` methods on the provided `Crypto` service.
+1. `DigestAlgorithm` supports the expected string literal values.
+2. `randomBytes` delegates to the provided service.
+3. Random generator methods derive from the `Random` methods on the provided `Crypto` service.
 4. `randomUUIDv4` formats bytes from the provided service's `randomBytes` method.
-5. `digest` accessor delegates to the service.
+5. `digest` delegates to the service.
 6. A custom `Crypto` service can be provided via `Effect.provideService`.
 
 ### Node Tests
@@ -242,7 +228,7 @@ Test cases:
 1. `randomBytes(0)` returns an empty `Uint8Array`.
 2. `randomBytes(32)` returns 32 bytes.
 3. Invalid sizes fail with `PlatformError`.
-4. Module-level `randomUUIDv4` returns a valid UUIDv4 string when provided with the Node layer.
+4. Service `randomUUIDv4` returns a valid UUIDv4 string when provided with the Node layer.
 5. Two UUIDs generated from Node cryptographic random bytes are not equal in a basic smoke test.
 6. SHA-256 digest of a known input matches the known vector.
 
@@ -253,7 +239,7 @@ Add `packages/platform-browser/test/BrowserCrypto.test.ts`.
 Test cases:
 
 1. `randomBytes` delegates to `getRandomValues` and handles chunking.
-2. Module-level `randomUUIDv4` formats bytes from browser `getRandomValues`.
+2. Service `randomUUIDv4` formats bytes from browser `getRandomValues`.
 3. Missing crypto capabilities fail with `PlatformError`.
 4. SHA-256 digest matches a known vector if `crypto.subtle` is available.
 
@@ -284,8 +270,8 @@ The changeset must state:
 
 - A new platform-agnostic `Crypto` service was added.
 - `Crypto` extends `Random` and exposes cryptographically secure random generator helpers.
-- `Crypto.randomUUIDv4` formats bytes from the platform `Crypto` service.
-- `DigestAlgorithm` is represented as a `Data.TaggedEnum`.
+- `Crypto` service `randomUUIDv4` formats bytes from the platform `Crypto` service.
+- `DigestAlgorithm` is represented as a string literal union.
 - Users should migrate away from `Random.nextUUIDv4` for UUID generation.
 
 ## Validation Plan
@@ -305,13 +291,13 @@ Run validation in this order:
 ## Acceptance Criteria
 
 1. `Crypto` is available from `effect/Crypto`.
-2. `DigestAlgorithm` is a top-level `Data.TaggedEnum`, not a namespace member.
+2. `DigestAlgorithm` is a top-level string literal union.
 3. `Crypto` extends the base `Random` service type.
-4. `Crypto.randomUUIDv4` derives UUIDs from `Crypto.randomBytes(16)` and formats UUIDv4 version/variant bits correctly.
-5. The service interface does not contain `randomUUIDv4`.
+4. Service `randomUUIDv4` derives UUIDs from service `randomBytes(16)` and formats UUIDv4 version/variant bits correctly.
+5. The service interface contains `randomUUIDv4` as a derived method.
 6. `randomBytes` validates sizes and returns cryptographically secure random bytes.
 7. `digest` supports SHA-1, SHA-256, SHA-384, and SHA-512 through `DigestAlgorithm` values.
-8. The `Crypto` module exports `random`, `randomBoolean`, `randomInt`, `randomBetween`, `randomIntBetween`, `randomShuffle`, and `randomUUIDv4`.
+8. The `Crypto` service exposes `random`, `randomBoolean`, `randomInt`, `randomBetween`, `randomIntBetween`, `randomShuffle`, and `randomUUIDv4`.
 9. Platform failures are represented as `PlatformError` values.
 10. Core and platform tests pass.
 11. JSDoc examples compile with docgen.
@@ -325,10 +311,10 @@ Run validation in this order:
 2. Risk: Browser `getRandomValues` is unavailable in some environments.
    - Mitigation: Fail with a structured `PlatformError` for effectful operations.
 3. Risk: `DigestAlgorithm` string inputs invite typos or inconsistent algorithm spelling.
-   - Mitigation: Use a top-level `Data.TaggedEnum` and centralize platform mapping.
+   - Mitigation: Use a top-level string literal union with Web Crypto algorithm names and centralize platform mapping.
 4. Risk: Existing users rely on deterministic UUIDs from `Random.nextUUIDv4` in tests.
    - Mitigation: Document that deterministic IDs should be provided through a fake `Crypto` service or an explicit test service.
 
 ## Open Questions
 
-None. The user clarified that `Random.nextUUIDv4` should be removed, `DigestAlgorithm` variants should use PascalCase, and the initial crypto surface should remain limited.
+None. The user clarified that `Random.nextUUIDv4` should be removed and the initial crypto surface should remain limited. PR review clarified that `DigestAlgorithm` should be a string literal union and that random helpers should live on the service interface.

@@ -42,19 +42,6 @@ const getCrypto = (method: string): Effect.Effect<CryptoBackend, PlatformError.P
       }))
   )
 
-const toSubtleAlgorithm = (algorithm: EffectCrypto.DigestAlgorithm): string => {
-  switch (algorithm._tag) {
-    case "Sha1":
-      return "SHA-1"
-    case "Sha256":
-      return "SHA-256"
-    case "Sha384":
-      return "SHA-384"
-    case "Sha512":
-      return "SHA-512"
-  }
-}
-
 const makeWith = (
   getBackend: (method: string) => Effect.Effect<CryptoBackend, PlatformError.PlatformError>,
   getUnsafeBackend: () => CryptoBackend | undefined
@@ -126,7 +113,7 @@ const makeWith = (
       const subtle = crypto.subtle
       return Effect.map(
         Effect.tryPromise({
-          try: () => subtle.digest(toSubtleAlgorithm(algorithm), new Uint8Array(data)),
+          try: () => subtle.digest(algorithm, new Uint8Array(data)),
           catch: (cause) =>
             PlatformError.systemError({
               module: "Crypto",

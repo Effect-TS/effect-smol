@@ -6,33 +6,31 @@ const testCrypto = Crypto.make({
   randomBytes: (size) => Effect.succeed(Uint8Array.from({ length: size }, (_, i) => i)),
   nextIntUnsafe: () => 123,
   nextDoubleUnsafe: () => 0.75,
-  digest: (algorithm, data) => Effect.succeed(Uint8Array.of(data.length, algorithm._tag.length))
+  digest: (algorithm, data) => Effect.succeed(Uint8Array.of(data.length, algorithm.length))
 })
 
 describe("Crypto", () => {
-  describe("DigestAlgorithm", () => {
-    it("constructs tagged enum values", () => {
-      assert.strictEqual(Crypto.DigestAlgorithm.Sha1()._tag, "Sha1")
-      assert.strictEqual(Crypto.DigestAlgorithm.Sha256()._tag, "Sha256")
-      assert.strictEqual(Crypto.DigestAlgorithm.Sha384()._tag, "Sha384")
-      assert.strictEqual(Crypto.DigestAlgorithm.Sha512()._tag, "Sha512")
-    })
+  it("supports string literal digest algorithms", () => {
+    const algorithm: Crypto.DigestAlgorithm = "SHA-256"
+    assert.strictEqual(algorithm, "SHA-256")
   })
 
   it.effect("randomBytes delegates to the service", () =>
     Effect.gen(function*() {
-      const bytes = yield* Crypto.randomBytes(4)
+      const crypto = yield* Crypto.Crypto
+      const bytes = yield* crypto.randomBytes(4)
       assert.deepStrictEqual(bytes, Uint8Array.of(0, 1, 2, 3))
     }).pipe(Effect.provideService(Crypto.Crypto, testCrypto)))
 
   it.effect("random generators delegate to the service", () =>
     Effect.gen(function*() {
-      const random = yield* Crypto.random
-      const randomInt = yield* Crypto.randomInt
-      const randomBoolean = yield* Crypto.randomBoolean
-      const randomBetween = yield* Crypto.randomBetween(10, 20)
-      const randomIntBetween = yield* Crypto.randomIntBetween(1, 6)
-      const randomShuffle = yield* Crypto.randomShuffle([1, 2, 3])
+      const crypto = yield* Crypto.Crypto
+      const random = yield* crypto.random
+      const randomInt = yield* crypto.randomInt
+      const randomBoolean = yield* crypto.randomBoolean
+      const randomBetween = yield* crypto.randomBetween(10, 20)
+      const randomIntBetween = yield* crypto.randomIntBetween(1, 6)
+      const randomShuffle = yield* crypto.randomShuffle([1, 2, 3])
 
       assert.strictEqual(random, 0.75)
       assert.strictEqual(randomInt, 123)
@@ -44,14 +42,16 @@ describe("Crypto", () => {
 
   it.effect("randomUUIDv4 formats UUID bytes from randomBytes", () =>
     Effect.gen(function*() {
-      const uuid = yield* Crypto.randomUUIDv4
+      const crypto = yield* Crypto.Crypto
+      const uuid = yield* crypto.randomUUIDv4
       assert.strictEqual(uuid, "00010203-0405-4607-8809-0a0b0c0d0e0f")
     }).pipe(Effect.provideService(Crypto.Crypto, testCrypto)))
 
   it.effect("digest delegates to the service", () =>
     Effect.gen(function*() {
-      const digest = yield* Crypto.digest(Crypto.DigestAlgorithm.Sha256(), Uint8Array.of(1, 2, 3))
-      assert.deepStrictEqual(digest, Uint8Array.of(3, "Sha256".length))
+      const crypto = yield* Crypto.Crypto
+      const digest = yield* crypto.digest("SHA-256", Uint8Array.of(1, 2, 3))
+      assert.deepStrictEqual(digest, Uint8Array.of(3, "SHA-256".length))
     }).pipe(Effect.provideService(Crypto.Crypto, testCrypto)))
 
   it.effect("can access a provided custom Crypto service", () =>

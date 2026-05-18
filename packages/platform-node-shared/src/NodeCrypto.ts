@@ -19,14 +19,14 @@ const validateSize = (method: string, size: number): Effect.Effect<number, Platf
     }))
 
 const toHashAlgorithm = (algorithm: EffectCrypto.DigestAlgorithm): string => {
-  switch (algorithm._tag) {
-    case "Sha1":
+  switch (algorithm) {
+    case "SHA-1":
       return "sha1"
-    case "Sha256":
+    case "SHA-256":
       return "sha256"
-    case "Sha384":
+    case "SHA-384":
       return "sha384"
-    case "Sha512":
+    case "SHA-512":
       return "sha512"
   }
 }

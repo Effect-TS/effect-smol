@@ -32,7 +32,8 @@ describe("BrowserCrypto", () => {
 
   it.effect("generates UUIDv4 values from getRandomValues", () =>
     Effect.gen(function*() {
-      const uuid = yield* Crypto.randomUUIDv4
+      const crypto = yield* Crypto.Crypto
+      const uuid = yield* crypto.randomUUIDv4
       assert.strictEqual(uuid, "00010203-0405-4607-8809-0a0b0c0d0e0f")
       assert.match(uuid, uuidV4Regex)
     }).pipe(Effect.provideService(Crypto.Crypto, BrowserCrypto.make({ getRandomValues }))))
@@ -54,7 +55,7 @@ describe("BrowserCrypto", () => {
         }
       })
 
-      const digest = yield* service.digest(Crypto.DigestAlgorithm.Sha256(), Uint8Array.of(1))
+      const digest = yield* service.digest("SHA-256", Uint8Array.of(1))
       assert.deepStrictEqual(digest, Uint8Array.of(1, 2, 3))
     }))
 })

@@ -791,7 +791,8 @@ export * as Cron from "./Cron.ts"
  * )
  *
  * const program = Effect.gen(function*() {
- *   const id = yield* Crypto.randomUUIDv4
+ *   const crypto = yield* Crypto.Crypto
+ *   const id = yield* crypto.randomUUIDv4
  *   yield* Console.log(`Created id: ${id}`)
  * })
  *
@@ -812,7 +813,10 @@ export * as Cron from "./Cron.ts"
  *   })
  * )
  *
- * const program = Crypto.randomBytes(32)
+ * const program = Effect.gen(function*() {
+ *   const crypto = yield* Crypto.Crypto
+ *   return yield* crypto.randomBytes(32)
+ * })
  *
  * Effect.runPromise(Effect.provide(program, TestCrypto))
  * ```
