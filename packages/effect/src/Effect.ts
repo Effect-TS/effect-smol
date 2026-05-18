@@ -1168,12 +1168,6 @@ export {
  * Use `Effect.callback` when integrating APIs that complete through callbacks
  * instead of returning a `Promise`.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.async`
- *
  * **Example** (Usage)
  *
  * ```ts
@@ -1899,12 +1893,6 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * Failures or requirements from either effect are preserved in the returned
  * effect.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.zipRight`
- *
  * **Example** (Applying a Discount Based on Fetched Amount)
  *
  * ```ts
@@ -1982,12 +1970,6 @@ export const andThen: {
  * next part of the chain. Note that if the side effect fails, the entire chain
  * will fail too.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.zipLeft`
- *
  * **Example** (Logging a step in a pipeline)
  *
  * ```ts
@@ -2063,12 +2045,6 @@ export const tap: {
  *
  * The resulting effect cannot fail directly because all recoverable failures
  * are represented inside the `Result` type.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.either`
  *
  * **Example** (Usage)
  *
@@ -2493,12 +2469,6 @@ export {
    * from unrecoverable defects.
    *
    * @see {@link catchCause} for a version that can recover from both recoverable and unrecoverable errors.
-   *
-   * **Previously Known As**
-   *
-   * This API replaces the following from Effect 3.x:
-   *
-   * - `Effect.catchAll`
    *
    * @category error handling
    * @since 4.0.0
@@ -2973,12 +2943,6 @@ export const unwrapReason: {
  * they often indicate serious issues. However, in some cases, such as
  * dynamically loaded plugins, controlled recovery might be needed.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.catchAllCause`
- *
  * **Example** (Usage)
  *
  * ```ts
@@ -3030,12 +2994,6 @@ export const catchCause: {
  * they often indicate serious issues. In some cases, such as dynamically loaded
  * plugins, controlled recovery may be needed.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.catchAllDefect`
- *
  * **Example** (Usage)
  *
  * ```ts
@@ -3076,13 +3034,6 @@ export const catchDefect: {
  * `Refinement` for type narrowing or a `Predicate` for simple boolean
  * matching. Non-matching errors re-fail with the original cause. Defects and
  * interrupts are not caught.
- *
- * **Previously Known As**
- *
- * This API replaces the following:
- *
- * - `Effect.catchSome` (Effect 3.x)
- * - `Effect.catchIf`
  *
  * **Example** (Usage)
  *
@@ -3176,12 +3127,6 @@ export const catchFilter: {
  * Effect.runPromise(none).then(console.log) // { _id: 'Option', _tag: 'None' }
  * ```
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.optionFromOptional`
- *
  * @category error handling
  * @since 4.0.0
  */
@@ -3195,12 +3140,6 @@ export const catchNoSuchElement: <A, E, R>(
  * This function allows you to conditionally catch and recover from failures
  * that match a specific predicate. This is useful when you want to handle
  * only certain types of errors while letting others propagate.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.catchSomeCause`
  *
  * **Example** (Usage)
  *
@@ -3487,12 +3426,6 @@ export const tapErrorTag: {
  * Use this to log or inspect typed failures, defects, and interruptions. When
  * the operation succeeds, the original cause is preserved. If the operation
  * fails, its error is also represented in the returned effect.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.tapErrorCause`
  *
  * **Example** (Usage)
  *
@@ -3934,12 +3867,6 @@ export const sandbox: <A, E, R>(
  * const program = task.pipe(Effect.ignore({ log: true }))
  * const programWarn = task.pipe(Effect.ignore({ log: "Warn", message: "Ignoring task failure" }))
  * ```
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.ignoreLogged`
  *
  * @category error handling
  * @since 2.0.0

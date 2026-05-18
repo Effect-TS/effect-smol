@@ -23,6 +23,7 @@ import type {
  * Root OpenAPI metadata preserved for generated client and HttpApi output.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOpenApiMetadata {
   readonly title: string
@@ -37,6 +38,7 @@ export interface ParsedOpenApiMetadata {
  * Tag metadata used to group and annotate generated operations.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOpenApiTag {
   readonly name: string
@@ -48,6 +50,7 @@ export interface ParsedOpenApiTag {
  * Supported security scheme extracted from an OpenAPI components section.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOpenApiSecurityScheme {
   readonly name: string
@@ -62,6 +65,7 @@ export interface ParsedOpenApiSecurityScheme {
  * Normalized OpenAPI document consumed by the generator renderers.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOpenApi {
   readonly metadata: ParsedOpenApiMetadata
@@ -74,6 +78,7 @@ export interface ParsedOpenApi {
  * Documentation and lifecycle metadata associated with an operation.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOperationMetadata {
   readonly summary: string | undefined
@@ -86,6 +91,7 @@ export interface ParsedOperationMetadata {
  * Resolved OpenAPI parameter grouped by where it appears in the request.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOperationParameter {
   readonly name: string
@@ -99,6 +105,7 @@ export interface ParsedOperationParameter {
  * Summary of the request body declaration before per-media schemas are rendered.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOperationRequestBody {
   readonly required: boolean
@@ -109,6 +116,7 @@ export interface ParsedOperationRequestBody {
  * Encoding strategy the generator can use for a request or response media type.
  *
  * @category models
+ * @since 4.0.0
  */
 export type ParsedOperationMediaTypeEncoding =
   | "json"
@@ -121,6 +129,7 @@ export type ParsedOperationMediaTypeEncoding =
  * Media type whose schema can be represented in generated Effect code.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOperationMediaTypeSchema {
   readonly contentType: string
@@ -132,6 +141,7 @@ export interface ParsedOperationMediaTypeSchema {
  * Parsed response metadata together with generated schema references.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOperationResponse {
   readonly status: string
@@ -146,6 +156,7 @@ export interface ParsedOperationResponse {
  * Resolved security requirement applied to a parsed operation.
  *
  * @category models
+ * @since 4.0.0
  */
 export type ParsedOperationSecurityRequirement = Readonly<OpenAPISecurityRequirement>
 
@@ -153,6 +164,7 @@ export type ParsedOperationSecurityRequirement = Readonly<OpenAPISecurityRequire
  * Normalized operation model shared by all OpenAPI generator backends.
  *
  * @category models
+ * @since 4.0.0
  */
 export interface ParsedOperation {
   readonly id: string
@@ -201,6 +213,7 @@ export interface ParsedOperation {
  * Creates a mutable operation accumulator populated with parser defaults.
  *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeDeepMutable = (options: {
   readonly id: string

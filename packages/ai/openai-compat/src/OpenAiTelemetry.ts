@@ -104,7 +104,6 @@ export type WellKnownServiceTier = "auto" | "default"
  *
  * @category models
  * @since 4.0.0
- * @since models
  */
 export type OpenAiTelemetryAttributeOptions = Telemetry.GenAITelemetryAttributeOptions & {
   openai?: {
@@ -128,7 +127,6 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
  *
  * @category tracing
  * @since 4.0.0
- * @since utilities
  */
 export const addGenAIAnnotations: {
   (options: OpenAiTelemetryAttributeOptions): (span: Span) => void

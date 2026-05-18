@@ -114,10 +114,6 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
  * })
  * ```
  *
- * @param permits - The initial number of permits (must be non-negative)
- * @returns Effect that succeeds with a new TxSemaphore
- * @throws Defect if permits is negative
- *
  * @category constructors
  * @since 2.0.0
  */
@@ -156,9 +152,6 @@ export const make = (permits: number): Effect.Effect<TxSemaphore> =>
  * })
  * ```
  *
- * @param self - The TxSemaphore to inspect
- * @returns Effect that succeeds with the current number of available permits
- *
  * @category combinators
  * @since 2.0.0
  */
@@ -184,9 +177,6 @@ export const available = (self: TxSemaphore): Effect.Effect<number> => TxRef.get
  *   yield* Console.log(`Capacity after acquire: ${stillSame}`) // 10
  * })
  * ```
- *
- * @param self - The TxSemaphore to inspect
- * @returns Effect that succeeds with the semaphore's maximum capacity
  *
  * @category combinators
  * @since 4.0.0
@@ -217,9 +207,6 @@ export const capacity = (self: TxSemaphore): Effect.Effect<number> => Effect.suc
  *   yield* Console.log(`Available permits: ${available}`) // 0
  * })
  * ```
- *
- * @param self - The TxSemaphore from which to acquire a permit
- * @returns Effect that succeeds when a permit is acquired
  *
  * @category combinators
  * @since 2.0.0
@@ -257,10 +244,6 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
  *   yield* Console.log(`Available permits: ${available}`) // 2
  * })
  * ```
- *
- * @param self - The TxSemaphore from which to acquire permits
- * @param n - The number of permits to acquire (must be positive)
- * @returns Effect that succeeds when the permits are acquired
  *
  * @category combinators
  * @since 2.0.0
@@ -300,9 +283,6 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * })
  * ```
  *
- * @param self - The TxSemaphore from which to try acquiring a permit
- * @returns Effect that succeeds with true if permit acquired, false otherwise
- *
  * @category combinators
  * @since 4.0.0
  */
@@ -335,10 +315,6 @@ export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
  *   yield* Console.log(`Second try (2 permits): ${second}`) // false
  * })
  * ```
- *
- * @param self - The TxSemaphore from which to try acquiring permits
- * @param n - The number of permits to try acquiring (must be positive)
- * @returns Effect that succeeds with true if permits acquired, false otherwise
  *
  * @category combinators
  * @since 4.0.0
@@ -382,9 +358,6 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
  * })
  * ```
  *
- * @param self - The TxSemaphore to which to release a permit
- * @returns Effect that succeeds when the permit is released
- *
  * @category combinators
  * @since 2.0.0
  */
@@ -416,10 +389,6 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
  *   yield* Console.log(`After release: ${available}`) // 4
  * })
  * ```
- *
- * @param self - The TxSemaphore to which to release permits
- * @param n - The number of permits to release (must be positive)
- * @returns Effect that succeeds when the permits are released
  *
  * @category combinators
  * @since 2.0.0
@@ -465,10 +434,6 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  *   // Permit is automatically released here
  * })
  * ```
- *
- * @param self - The TxSemaphore to acquire a permit from
- * @param effect - The effect to execute with the permit
- * @returns Effect that succeeds with the result of the provided effect
  *
  * @category combinators
  * @since 2.0.0
@@ -525,11 +490,6 @@ export const withPermit: {
  *   // All 3 permits are automatically released here
  * })
  * ```
- *
- * @param self - The TxSemaphore to acquire permits from
- * @param n - The number of permits to acquire (must be positive)
- * @param effect - The effect to execute with the permits
- * @returns Effect that succeeds with the result of the provided effect
  *
  * @category combinators
  * @since 2.0.0
@@ -588,9 +548,6 @@ export const withPermits: {
  *   yield* Console.log("Scope closed, permit released")
  * })
  * ```
- *
- * @param self - The TxSemaphore to acquire a permit from
- * @returns Effect that succeeds when the permit is acquired (within scope)
  *
  * @category combinators
  * @since 2.0.0

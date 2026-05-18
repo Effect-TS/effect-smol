@@ -80,6 +80,8 @@ export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicat
 /**
  * A `ExecutionPlan` can be used with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`, allowing you to provide different resources for each step of execution until the effect succeeds or the plan is exhausted.
  *
+ * **Example** (Defining fallback execution steps)
+ *
  * ```ts
  * import { Effect, ExecutionPlan, Schedule } from "effect"
  * import type { Layer } from "effect"
@@ -175,6 +177,8 @@ export type ConfigBase = {
 
 /**
  * Create an `ExecutionPlan`, which can be used with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`, allowing you to provide different resources for each step of execution until the effect succeeds or the plan is exhausted.
+ *
+ * **Example** (Creating an execution plan)
  *
  * ```ts
  * import { Effect, ExecutionPlan, Schedule } from "effect"

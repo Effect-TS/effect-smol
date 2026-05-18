@@ -117,6 +117,7 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenRouter chat messages.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface SystemMessageOptions extends ProviderOptions {
     /**
@@ -137,6 +138,7 @@ declare module "effect/unstable/ai/Prompt" {
    * messages.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface UserMessageOptions extends ProviderOptions {
     /**
@@ -157,6 +159,7 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenRouter requests.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface AssistantMessageOptions extends ProviderOptions {
     /**
@@ -181,6 +184,7 @@ declare module "effect/unstable/ai/Prompt" {
    * messages.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolMessageOptions extends ProviderOptions {
     /**
@@ -200,6 +204,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Use these options to control how text content is sent to OpenRouter.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface TextPartOptions extends ProviderOptions {
     /**
@@ -220,6 +225,7 @@ declare module "effect/unstable/ai/Prompt" {
    * continue across OpenRouter requests.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ReasoningPartOptions extends ProviderOptions {
     /**
@@ -243,6 +249,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Controls file naming and prompt caching for files sent to OpenRouter.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface FilePartOptions extends ProviderOptions {
     /**
@@ -268,6 +275,7 @@ declare module "effect/unstable/ai/Prompt" {
    * is sent back to OpenRouter.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolCallPartOptions extends ProviderOptions {
     /**
@@ -287,6 +295,7 @@ declare module "effect/unstable/ai/Prompt" {
    * Controls prompt caching for tool results sent to OpenRouter.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolResultPartOptions extends ProviderOptions {
     /**
@@ -308,6 +317,7 @@ declare module "effect/unstable/ai/Response" {
    * Preserves provider reasoning details that can be sent back in later turns.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningPartMetadata extends ProviderMetadata {
     /**
@@ -327,6 +337,7 @@ declare module "effect/unstable/ai/Response" {
    * Carries the first reasoning detail chunk when OpenRouter exposes one.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
     /**
@@ -346,6 +357,7 @@ declare module "effect/unstable/ai/Response" {
    * Carries provider reasoning detail chunks as they arrive from OpenRouter.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
     /**
@@ -366,6 +378,7 @@ declare module "effect/unstable/ai/Response" {
    * reasoning and tool calls together.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ToolCallPartMetadata extends ProviderMetadata {
     /**
@@ -386,6 +399,7 @@ declare module "effect/unstable/ai/Response" {
    * annotations.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
     /**
@@ -414,6 +428,7 @@ declare module "effect/unstable/ai/Response" {
    * Effect AI finish part fields.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface FinishPartMetadata extends ProviderMetadata {
     /**

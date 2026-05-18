@@ -50,9 +50,6 @@ import type { NoInfer } from "./Types.ts"
  * with each index starting from 0. If no length is specified, the iterable will
  * be infinite. This is useful for generating sequences, patterns, or any indexed data.
  *
- * @param f - Function that receives the index and returns the element
- * @param options - Configuration object with optional length
- *
  * **Example** (Generating values by index)
  *
  * ```ts
@@ -1357,8 +1354,6 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
  * This is useful for wrapping a single value in an iterable context,
  * allowing it to be used with other iterable operations.
  *
- * @param a - The single element to wrap in an iterable
- *
  * **Example** (Wrapping a single value)
  *
  * ```ts
@@ -1395,9 +1390,6 @@ export const of = <A>(a: A): Iterable<A> => [a]
  * It applies a transformation function to each element, creating a new iterable
  * with the transformed values. The operation is lazy - elements are only
  * transformed when the iterable is consumed.
- *
- * @param self - The source iterable to transform
- * @param f - Function that transforms each element (receives value and index)
  *
  * **Example** (Mapping elements)
  *
@@ -1815,9 +1807,6 @@ export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0>
  * This function creates a new iterable containing only the elements for which
  * the predicate function returns true. Like map, this operation is lazy and
  * elements are only tested when the iterable is consumed.
- *
- * @param self - The source iterable to filter
- * @param predicate - Function that tests each element (receives value and index)
  *
  * **Example** (Filtering elements)
  *

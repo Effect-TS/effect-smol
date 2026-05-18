@@ -841,12 +841,6 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  * The Effect is executed in the scope of the layer, allowing for proper
  * resource management.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Layer.scoped`
- *
  * **Example** (Creating a layer from an effect)
  *
  * ```ts
@@ -923,12 +917,6 @@ export const effectContext = <A, E, R>(
  *
  * This is useful when you want to run an Effect for its side effects during
  * layer construction, but don't need to provide any services.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Layer.scopedDiscard`
  *
  * **Example** (Running an effect during layer construction)
  *
@@ -1508,12 +1496,6 @@ export const tapError: {
  * defects, and interruption information. If the callback succeeds, the layer
  * fails again with the original cause; if the callback fails, that failure is
  * added to the layer's error type.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Layer.tapErrorCause`
  *
  * @category sequencing
  * @since 4.0.0

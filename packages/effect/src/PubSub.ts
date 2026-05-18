@@ -317,9 +317,7 @@ export const make = <A>(
  * Pass an options object to configure both `capacity` and an optional replay
  * buffer for late subscribers.
  *
- * @param capacity - The maximum number of messages the PubSub can hold, or an options object
  *                   with capacity and optional replay buffer size
- * @returns An Effect that creates a bounded PubSub
  *
  * **Example** (Creating a bounded PubSub)
  *

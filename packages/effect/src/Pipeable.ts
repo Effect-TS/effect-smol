@@ -29,8 +29,6 @@
  * left to right, returning the final result. Many Effect data types implement
  * this so operations can be chained without nesting function calls.
  *
- * @category models
- * @since 2.0.0
  * **Example** (Chaining operations with pipe)
  *
  * ```ts
@@ -43,6 +41,9 @@
  *   Effect.tap((x) => Effect.log(`Result: ${x}`))
  * )
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export interface Pipeable {
   pipe<A>(this: A): A
@@ -534,8 +535,6 @@ export interface Pipeable {
  * receive JavaScript's `arguments` object. With no functions it returns the
  * original value; otherwise it feeds each result into the next function.
  *
- * @category utils
- * @since 2.0.0
  * **Example** (Implementing a pipe method)
  *
  * ```ts
@@ -555,6 +554,9 @@ export interface Pipeable {
  * )
  * console.log(result) // 21
  * ```
+ *
+ * @category utils
+ * @since 2.0.0
  */
 export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
   switch (args.length) {

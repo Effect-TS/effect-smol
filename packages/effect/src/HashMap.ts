@@ -1270,9 +1270,6 @@ export const some: {
  * console.log(HashMap.every(map, (value) => value > 1)) // false
  * ```
  *
- * @param self - The hashmap to check.
- * @param predicate - The condition to test entries (value, key).
- *
  * @category elements
  * @since 3.14.0
  */

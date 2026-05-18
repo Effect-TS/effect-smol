@@ -93,8 +93,6 @@ const TxChunkProto = {
  * **Return behavior**: This function returns a new TxChunk reference containing
  * the provided initial chunk. No existing TxChunk instances are modified.
  *
- * @category constructors
- * @since 4.0.0
  * **Example** (Creating a TxChunk from a chunk)
  *
  * ```ts
@@ -110,6 +108,9 @@ const TxChunkProto = {
  *   console.log(Chunk.toReadonlyArray(result)) // [1, 2, 3]
  * })
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
   Effect.map(TxRef.make(initial), (ref) => makeUnsafe(ref))
@@ -120,8 +121,6 @@ export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
  * **Return behavior**: This function returns a new TxChunk reference that is
  * initially empty. No existing TxChunk instances are modified.
  *
- * @category constructors
- * @since 4.0.0
  * **Example** (Creating an empty TxChunk)
  *
  * ```ts
@@ -142,6 +141,9 @@ export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
  *   console.log(isStillEmpty) // false
  * })
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
   Effect.map(TxRef.make(Chunk.empty<A>()), (ref) => makeUnsafe(ref))
@@ -152,8 +154,6 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  * **Return behavior**: This function returns a new TxChunk reference containing
  * elements from the provided iterable. No existing TxChunk instances are modified.
  *
- * @category constructors
- * @since 4.0.0
  * **Example** (Creating from an iterable)
  *
  * ```ts
@@ -179,6 +179,9 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  *   console.log(Chunk.toReadonlyArray(updated)) // [0, 1, 2, 3, 4, 5, 6]
  * })
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>> =>
   Effect.map(TxRef.make(Chunk.fromIterable(iterable)), (ref) => makeUnsafe(ref))
@@ -215,8 +218,6 @@ export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  * **Mutation behavior**: This function mutates the original TxChunk by updating
  * its internal state. It does not return a new TxChunk reference.
  *
- * @category combinators
- * @since 4.0.0
  * **Example** (Modifying while returning a value)
  *
  * ```ts
@@ -237,6 +238,9 @@ export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  *   console.log(Chunk.toReadonlyArray(newChunk)) // [1, 2, 3, 4]
  * })
  * ```
+ *
+ * @category combinators
+ * @since 4.0.0
  */
 export const modify: {
   <A, R>(
@@ -745,8 +749,6 @@ export const prependAll: {
  * **Mutation behavior**: This function mutates the original TxChunk by appending
  * all elements from the other TxChunk. It does not return a new TxChunk reference.
  *
- * @category combinators
- * @since 4.0.0
  * **Example** (Concatenating TxChunks)
  *
  * ```ts
@@ -767,6 +769,9 @@ export const prependAll: {
  *   console.log(Chunk.toReadonlyArray(original)) // [4, 5, 6]
  * })
  * ```
+ *
+ * @category combinators
+ * @since 4.0.0
  */
 export const concat: {
   <A>(other: TxChunk<A>): (self: TxChunk<A>) => Effect.Effect<void>

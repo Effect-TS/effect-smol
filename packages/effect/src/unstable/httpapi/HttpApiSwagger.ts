@@ -67,8 +67,6 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
  * The route serves the OpenAPI specification generated from the API at the
  * configured path, defaulting to `/docs`.
  *
- * @param options.path Optional mount path (default "/docs").
- *
  * @category layers
  * @since 4.0.0
  */

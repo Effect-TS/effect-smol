@@ -1494,9 +1494,6 @@ export type AiErrorEncoded = typeof AiError["Encoded"]
 /**
  * Type guard to check if a value is an `AiError`.
  *
- * @param u - The value to check
- * @returns `true` if the value is an `AiError`, `false` otherwise
- *
  * **Example** (Checking for an AI error)
  *
  * ```ts
@@ -1520,9 +1517,6 @@ export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, 
 
 /**
  * Type guard to check if a value is an `AiErrorReason`.
- *
- * @param u - The value to check
- * @returns `true` if the value is an `AiErrorReason`, `false` otherwise
  *
  * **Example** (Checking for an AI error reason)
  *

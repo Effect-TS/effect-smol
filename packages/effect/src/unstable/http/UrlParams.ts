@@ -485,7 +485,7 @@ const baseUrl = (): string | undefined => {
  * as `string` (if only one value for a key) or a `NonEmptyArray<string>`
  * (when more than one value for a key)
  *
- * **Example**
+ * **Example** (Converting parameters to a record)
  *
  * ```ts
  * import { UrlParams } from "effect/unstable/http"
@@ -547,6 +547,8 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  * Extract a JSON value from the first occurrence of the given `field` in the
  * `UrlParams`.
  *
+ * **Example** (Decoding JSON parameter fields)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { UrlParams } from "effect/unstable/http"
@@ -605,7 +607,7 @@ export interface schemaRecord extends
  * Keys with one value decode to a string, and keys with multiple values decode to
  * a non-empty readonly array of strings.
  *
- * **Example**
+ * **Example** (Decoding URL parameters to a record)
  *
  * ```ts
  * import { Schema } from "effect"

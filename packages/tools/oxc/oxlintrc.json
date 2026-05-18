@@ -34,10 +34,10 @@
       ],
       "checks": {
         "description": true,
-        "tags": false,
+        "tags": true,
         "category": true,
-        "since": false,
-        "examples": false,
+        "since": true,
+        "examples": true,
         "links": true
       },
       "examples": {
