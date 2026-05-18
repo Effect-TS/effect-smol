@@ -8487,27 +8487,6 @@ export const aggregateWithin: {
     )
   }))))
 
-const makePubSub = <A>(
-  options: {
-    readonly capacity: "unbounded"
-    readonly replay?: number | undefined
-  } | {
-    readonly capacity: number
-    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
-    readonly replay?: number | undefined
-  }
-) =>
-  Effect.acquireRelease(
-    options.capacity === "unbounded"
-      ? PubSub.unbounded<A>(options)
-      : options.strategy === "dropping"
-      ? PubSub.dropping<A>(options)
-      : options.strategy === "sliding"
-      ? PubSub.sliding<A>(options)
-      : PubSub.bounded<A>(options),
-    PubSub.shutdown
-  )
-
 /**
  * Fan out the stream, producing a fixed-size tuple of streams that each emit
  * the same elements as the source stream.
@@ -8546,70 +8525,59 @@ const makePubSub = <A>(
  * @since 4.0.0
  */
 export const broadcastN: {
-  <N extends number>(
-    options:
-      & {
-        readonly n: N
-      }
-      & ({
-        readonly capacity: "unbounded"
-        readonly replay?: number | undefined
-      } | {
-        readonly capacity: number
-        readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-        readonly replay?: number | undefined
-      })
+  <const N extends number>(
+    options: {
+      readonly n: N
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly n: N
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
-  <A, E, R, N extends number>(
+  <A, E, R, const N extends number>(
     self: Stream<A, E, R>,
-    options:
-      & {
-        readonly n: N
-      }
-      & ({
-        readonly capacity: "unbounded"
-        readonly replay?: number | undefined
-      } | {
-        readonly capacity: number
-        readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-        readonly replay?: number | undefined
-      })
+    options: {
+      readonly n: N
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly n: N
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
   ): Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
 } = dual(
   2,
-  Effect.fnUntraced(function*<A, E, R, N extends number>(
+  Effect.fnUntraced(function*<A, E, R, const N extends number>(
     self: Stream<A, E, R>,
-    options:
-      & {
-        readonly n: N
-      }
-      & ({
-        readonly capacity: "unbounded"
-        readonly replay?: number | undefined
-      } | {
-        readonly capacity: number
-        readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-        readonly replay?: number | undefined
-      })
+    options: {
+      readonly n: N
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly n: N
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
   ) {
     const pubsub = yield* makePubSub<Take.Take<A, E>>(options)
+    const streams = new Array(options.n)
     const parentScope = yield* Scope.Scope
-    const streams = yield* Effect.all(
-      Array.from({ length: options.n }, () => {
-        const scope = Scope.forkUnsafe(parentScope)
-        return PubSub.subscribe(pubsub).pipe(
-          Effect.provideService(Scope.Scope, scope),
-          Effect.map((subscription) =>
-            fromChannel(
-              Channel.onExit(
-                Channel.fromEffectTake(PubSub.take(subscription)),
-                (exit) => Scope.close(scope, exit)
-              )
-            )
-          )
-        )
-      })
-    )
+    for (let i = 0; i < options.n; i++) {
+      const scope = Scope.forkUnsafe(parentScope)
+      const subscription = yield* PubSub.subscribe(pubsub).pipe(
+        Effect.provideService(Scope.Scope, scope)
+      )
+      streams[i] = Channel.fromEffectTake(PubSub.take(subscription)).pipe(
+        Channel.onExit((exit) => Scope.close(scope, exit)),
+        fromChannel
+      )
+    }
     yield* Channel.runForEach(self.channel, (value) => PubSub.publish(pubsub, value)).pipe(
       Effect.onExit((exit) => PubSub.publish(pubsub, exit)),
       Effect.forkScoped
@@ -8617,6 +8585,27 @@ export const broadcastN: {
     return streams as TupleOf<N, Stream<A, E>>
   })
 )
+
+const makePubSub = <A>(
+  options: {
+    readonly capacity: "unbounded"
+    readonly replay?: number | undefined
+  } | {
+    readonly capacity: number
+    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    readonly replay?: number | undefined
+  }
+) =>
+  Effect.acquireRelease(
+    options.capacity === "unbounded"
+      ? PubSub.unbounded<A>(options)
+      : options.strategy === "dropping"
+      ? PubSub.dropping<A>(options)
+      : options.strategy === "sliding"
+      ? PubSub.sliding<A>(options)
+      : PubSub.bounded<A>(options),
+    PubSub.shutdown
+  )
 
 /**
  * Creates a PubSub-backed stream that multicasts the source to all subscribers.
