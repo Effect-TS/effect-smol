@@ -229,8 +229,7 @@ export const toFlagDoc = (single: Param.Single<typeof Param.flagKind, unknown>):
     aliases: formattedAliases,
     type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
     description: appendChoiceKeys(single.description, Primitive.getChoiceKeys(single.primitiveType)),
-    required: single.primitiveType._tag !== "Boolean",
-    ...(single.hidden ? { hidden: true } : {})
+    required: single.primitiveType._tag !== "Boolean"
   }
 }
 

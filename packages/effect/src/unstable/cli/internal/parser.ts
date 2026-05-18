@@ -517,6 +517,7 @@ const createUnrecognizedFlagError = (
   const validNames: Array<string> = []
 
   for (const p of params) {
+    if (p.hidden) continue
     validNames.push(p.name)
     if (Primitive.isBoolean(p.primitiveType)) {
       validNames.push(`no-${p.name}`)

@@ -131,6 +131,22 @@ describe("Command help output", () => {
       expect(captured).toBe("value")
     }).pipe(Effect.provide(TestLayer)))
 
+  it.effect("hidden flag name does not leak through unrecognized-flag suggestions", () =>
+    Effect.gen(function*() {
+      const command = Command.make("tool", {
+        secret: Flag.string("experimental-foo").pipe(Flag.withHidden)
+      }, () => Effect.void)
+      const run = Command.runWith(command, { version: "1.0.0" })
+
+      yield* run(["--experimental-fo", "value"]).pipe(
+        Effect.catchTag("ShowHelp", () => Effect.void)
+      )
+
+      const errorText = (yield* TestConsole.errorLines).join("\n")
+      const helpText = (yield* TestConsole.logLines).join("\n")
+      expect(errorText + helpText).not.toContain("experimental-foo")
+    }).pipe(Effect.provide(TestLayer)))
+
   it.effect("command help renders examples", () =>
     Effect.gen(function*() {
       const command = Command.make("login").pipe(
