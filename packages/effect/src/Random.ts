@@ -67,14 +67,6 @@ export const Random: Context.Reference<{
   nextDoubleUnsafe(): number
 }> = random.Random
 
-/**
- * The random service type.
- *
- * @since 4.0.0
- * @category Random Number Generators
- */
-export type Random = typeof Random["Service"]
-
 const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
 

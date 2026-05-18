@@ -58,7 +58,6 @@
 import * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import type { PlatformError } from "./PlatformError.ts"
-import type * as Random from "./Random.ts"
 
 const TypeId = "~effect/platform/Crypto"
 
@@ -115,8 +114,11 @@ export type DigestAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
  * @since 4.0.0
  * @category models
  */
-export interface Crypto extends Random.Random {
+export interface Crypto {
   readonly [TypeId]: typeof TypeId
+
+  nextIntUnsafe(): number
+  nextDoubleUnsafe(): number
 
   /**
    * Generates cryptographically secure random bytes.
@@ -203,16 +205,12 @@ export const Crypto: Context.Service<Crypto, Crypto> = Context.Service("effect/p
  * @category constructors
  */
 export const make = (
-  impl: Omit<
+  impl: Pick<
     Crypto,
-    | typeof TypeId
-    | "random"
-    | "randomBoolean"
-    | "randomInt"
-    | "randomBetween"
-    | "randomIntBetween"
-    | "randomShuffle"
-    | "randomUUIDv4"
+    | "nextIntUnsafe"
+    | "nextDoubleUnsafe"
+    | "randomBytes"
+    | "digest"
   >
 ): Crypto => {
   const random: Crypto["random"] = Effect.sync(() => impl.nextDoubleUnsafe())
