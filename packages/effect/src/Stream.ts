@@ -8487,28 +8487,24 @@ export const aggregateWithin: {
     )
   }))))
 
-type BroadcastNOptions = {
-  readonly capacity: "unbounded"
-  readonly replay?: number | undefined
-} | {
-  readonly capacity: number
-  readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-  readonly replay?: number | undefined
-}
-
-const makeBroadcastNPubSub = <A, E>(
-  options: number | BroadcastNOptions
-): Effect.Effect<PubSub.PubSub<Take.Take<A, E>>, never, Scope.Scope> =>
+const makePubSub = <A>(
+  options: {
+    readonly capacity: "unbounded"
+    readonly replay?: number | undefined
+  } | {
+    readonly capacity: number
+    readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
+    readonly replay?: number | undefined
+  }
+) =>
   Effect.acquireRelease(
-    typeof options === "number"
-      ? PubSub.bounded<Take.Take<A, E>>(options)
-      : options.capacity === "unbounded"
-      ? PubSub.unbounded<Take.Take<A, E>>(options)
+    options.capacity === "unbounded"
+      ? PubSub.unbounded<A>(options)
       : options.strategy === "dropping"
-      ? PubSub.dropping<Take.Take<A, E>>(options)
+      ? PubSub.dropping<A>(options)
       : options.strategy === "sliding"
-      ? PubSub.sliding<Take.Take<A, E>>(options)
-      : PubSub.bounded<Take.Take<A, E>>(options),
+      ? PubSub.sliding<A>(options)
+      : PubSub.bounded<A>(options),
     PubSub.shutdown
   )
 
@@ -8552,21 +8548,44 @@ const makeBroadcastNPubSub = <A, E>(
 export const broadcastN: {
   <N extends number>(
     n: N,
-    maximumLag: number | BroadcastNOptions
+    maximumLag: number | {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
   <A, E, R, N extends number>(
     self: Stream<A, E, R>,
     n: N,
-    maximumLag: number | BroadcastNOptions
+    maximumLag: number | {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
   ): Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
 } = dual(
   3,
   Effect.fnUntraced(function*<A, E, R, N extends number>(
     self: Stream<A, E, R>,
     n: N,
-    maximumLag: number | BroadcastNOptions
+    maximumLag: number | {
+      readonly capacity: "unbounded"
+      readonly replay?: number | undefined
+    } | {
+      readonly capacity: number
+      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+      readonly replay?: number | undefined
+    }
   ) {
-    const pubsub = yield* makeBroadcastNPubSub<A, E>(maximumLag)
+    const pubsub = yield* makePubSub<Take.Take<A, E>>(
+      typeof maximumLag === "number" ? { capacity: maximumLag } : maximumLag
+    )
     const parentScope = yield* Scope.Scope
     const streams = yield* Effect.all(
       Array.from({ length: n }, () => {
