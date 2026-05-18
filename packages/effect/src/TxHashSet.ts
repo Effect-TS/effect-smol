@@ -10,7 +10,7 @@
  * - Mutate an existing set with {@link add}, {@link remove}, and {@link clear}
  * - Query membership and size with {@link has}, {@link size}, and {@link isEmpty}
  * - Derive new sets with {@link map}, {@link filter}, {@link union}, {@link intersection}, and {@link difference}
- * - Fold or collect values with {@link reduce}, {@link toArray}, and {@link toHashSet}
+ * - Fold or collect values with {@link reduce} and {@link toHashSet}
  *
  * **Gotchas**
  *

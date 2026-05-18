@@ -833,7 +833,7 @@ export const whileLoop: <A, E, R>(options: {
  * This defect is not a standard error but indicates a flaw in the logic that
  * was expected to be error-free. You can think of it similar to an unexpected
  * crash in the program, which can be further managed or logged using tools like
- * {@link catchAllDefect}.
+ * {@link catchDefect}.
  *
  * **Interruptions**
  *
@@ -1111,7 +1111,7 @@ export const suspend: <A, E, R>(
  * This defect is not a standard error but indicates a flaw in the logic that
  * was expected to be error-free. You can think of it similar to an unexpected
  * crash in the program, which can be further managed or logged using tools like
- * {@link catchAllDefect}.
+ * {@link catchDefect}.
  *
  * @see {@link try_ | try} for a version that can handle failures.
  *
@@ -1405,7 +1405,7 @@ export namespace gen {
  *
  * Use this function to explicitly signal an error in an `Effect`. The error
  * will keep propagating unless it is handled. You can handle the error with
- * functions like {@link catchAll} or {@link catchTag}.
+ * functions like {@link catchTag} or {@link catchTags}.
  *
  * @see {@link succeed} to create an effect that represents a successful value.
  *
@@ -1519,8 +1519,7 @@ export const failCauseSync: <E>(
  * The error channel of the resulting effect is of type `never`, indicating that
  * it cannot recover from this failure.
  *
- * @see {@link dieSync} for a variant that throws a specified error, evaluated lazily.
- * @see {@link dieMessage} for a variant that throws a `RuntimeException` with a message.
+ * @see {@link die} for a variant that dies with an already computed defect.
  *
  * **Example** (Terminating on Division by Zero with a Specified Error)
  *
@@ -3270,7 +3269,7 @@ export const catchCauseFilter: {
  *
  * @see {@link map} for a version that operates on the success channel.
  * @see {@link mapBoth} for a version that operates on both channels.
- * @see {@link orElseFail} if you want to replace the error with a new one.
+ * @see {@link mapError} if you want to replace the error with a new one.
  *
  * **Example** (Usage)
  *
@@ -3353,7 +3352,7 @@ export const mapBoth: {
  * Use `orDie` when a typed failure represents an unrecoverable bug or invalid
  * state and should not be handled as a recoverable error.
  *
- * @see {@link orDieWith} if you need to customize the error.
+ * @see {@link mapError} to transform the error before converting it into a defect with {@link orDie}.
  *
  * **Example** (Propagating an Error as a Defect)
  *
@@ -3890,7 +3889,7 @@ export const retryOrElse: {
  * // Output: "Caught cause: Something went wrong"
  * ```
  *
- * @see {@link unsandbox} to restore the original error handling.
+ * @see {@link sandbox} to expose failures as full causes.
  *
  * @category error handling
  * @since 2.0.0
@@ -4176,9 +4175,7 @@ export const firstSuccessOf: <Eff extends Effect<any, any, any>>(
  * your program waits for a task to finish, ensuring that it doesn't hang
  * indefinitely if the task takes too long.
  *
- * @see {@link timeoutFail} for a version that raises a custom error.
- * @see {@link timeoutFailCause} for a version that raises a custom defect.
- * @see {@link timeoutTo} for a version that allows specifying both success and timeout handlers.
+ * @see {@link timeoutOrElse} for a version that allows specifying both success and timeout handlers.
  *
  * **Example** (Usage)
  *
@@ -4235,9 +4232,7 @@ export const timeout: {
  * source effect fails before the timeout, that failure is preserved.
  *
  * @see {@link timeout} for a version that raises a `TimeoutException`.
- * @see {@link timeoutFail} for a version that raises a custom error.
- * @see {@link timeoutFailCause} for a version that raises a custom defect.
- * @see {@link timeoutTo} for a version that allows specifying both success and timeout handlers.
+ * @see {@link timeoutOrElse} for a version that allows specifying both success and timeout handlers.
  *
  * **Example** (Usage)
  *
@@ -4878,8 +4873,7 @@ export const filterMapOrFail: {
  * // { _id: 'Option', _tag: 'Some', value: undefined }
  * ```
  *
- * @see {@link whenEffect} for a version that allows the condition to be an effect.
- * @see {@link unless} for a version that executes the effect when the condition is `false`.
+ * @see {@link when} for conditional execution with a boolean condition.
  *
  * @category Conditional Operators
  * @since 2.0.0
@@ -6083,7 +6077,7 @@ export const acquireRelease: <A, E, R, R2>(
  * JavaScript disposal protocal instead of requiring an explicit release
  * function.
  *
- * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/using}
+ * @see [JavaScript `using` declarations](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/using)
  *
  * **Example** (Usage)
  *

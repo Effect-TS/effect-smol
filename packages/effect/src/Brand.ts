@@ -186,7 +186,7 @@ export type Branded<A, Key extends string> = A & Brand<Key>
  * but with different meanings.
  *
  * If you also want to perform some validation, see {@link make} or
- * {@link check} or {@link refine}.
+ * {@link check}.
  *
  * @category constructors
  * @since 2.0.0

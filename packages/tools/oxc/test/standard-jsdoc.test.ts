@@ -1,4 +1,7 @@
 import rule from "@effect/oxc/oxlint/rules/standard-jsdoc"
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
 import { describe, expect, it } from "vitest"
 import { createTestContext } from "./utils.ts"
 
@@ -40,12 +43,13 @@ function runRuleWithSource(
   source: string,
   entries: Array<{ readonly visitor: string; readonly node: TestNode }>,
   programBody?: Array<TestNode>,
-  ruleOptions: Array<unknown> = []
+  ruleOptions: Array<unknown> = [],
+  contextOptions: { readonly filename?: string; readonly cwd?: string } = {}
 ) {
   const { context, errors } = createTestContext({
     sourceCode: source,
-    filename: "/repo/packages/sample/src/Foo.ts",
-    cwd: "/repo",
+    filename: contextOptions.filename ?? "/repo/packages/sample/src/Foo.ts",
+    cwd: contextOptions.cwd ?? "/repo",
     ruleOptions
   })
   const visitors = rule.create(context as never)
@@ -82,6 +86,43 @@ const categoryOnlyOptions = [{
     examples: false
   }
 }]
+
+const linksOnlyOptions = [{
+  tsconfig: "tsconfig.json",
+  checks: {
+    description: false,
+    tags: false,
+    category: false,
+    since: false,
+    examples: false,
+    links: true
+  }
+}]
+
+function createTypescriptProject(source: string, files: Record<string, string> = {}) {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "standard-jsdoc-"))
+  const filename = path.join(cwd, "src", "Foo.ts")
+  fs.mkdirSync(path.dirname(filename), { recursive: true })
+  fs.writeFileSync(
+    path.join(cwd, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: {
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        strict: true,
+        target: "ES2022"
+      },
+      include: ["src/**/*.ts"]
+    })
+  )
+  fs.writeFileSync(filename, source)
+  for (const [file, text] of Object.entries(files)) {
+    const filePath = path.join(cwd, "src", file)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, text)
+  }
+  return { cwd, filename }
+}
 
 describe("standard-jsdoc", () => {
   it("accepts a documented public value and module", () => {
@@ -297,11 +338,11 @@ export const value = 1
     ])
   })
 
-  it("allows @see tags with a link and trailing explanation", () => {
+  it("allows @see tags with a value", () => {
     const source = `/**
  * A value.
  *
- * @see {@link other} for more details
+ * @see other for more details
  * @category constructors
  * @since 1.0.0
  */
@@ -312,6 +353,112 @@ export const value = 1
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
     expect(errors).toHaveLength(0)
+  })
+
+  it("reports empty @see tags", () => {
+    const source = `/**
+ * A value.
+ *
+ * @see
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors.map((error) => error.message)).toEqual(["@see must include a value"])
+  })
+
+  it("validates resolved TypeScript JSDoc inline links", () => {
+    const source = `export interface Foo {}
+
+/**
+ * A value referencing {@link Foo | the Foo API}.
+ */
+export const value = 1
+`
+    const { cwd, filename } = createTypescriptProject(source)
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(
+      source,
+      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
+      undefined,
+      linksOnlyOptions,
+      { cwd, filename }
+    )
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("resolves same-module exports and program module exports", () => {
+    const source = `/**
+ * A value referencing {@link later} and {@link Other.helper}.
+ */
+export const value = 1
+
+export const later = 2
+`
+    const { cwd, filename } = createTypescriptProject(source, {
+      "Other.ts": "export const helper = 1\n"
+    })
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(
+      source,
+      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
+      undefined,
+      linksOnlyOptions,
+      { cwd, filename }
+    )
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("reports unresolved TypeScript JSDoc inline links", () => {
+    const source = `/**
+ * A value referencing {@link Missing}.
+ */
+export const value = 1
+`
+    const { cwd, filename } = createTypescriptProject(source)
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(
+      source,
+      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
+      undefined,
+      linksOnlyOptions,
+      { cwd, filename }
+    )
+
+    expect(errors.map((error) => error.message)).toEqual(["Unresolved JSDoc inline link: {@link Missing}"])
+  })
+
+  it("reports malformed and URL JSDoc inline links", () => {
+    const source = `/**
+ * A value referencing {@link} and {@link https://example.com}.
+ */
+export const value = 1
+`
+    const { cwd, filename } = createTypescriptProject(source)
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(
+      source,
+      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
+      undefined,
+      linksOnlyOptions,
+      { cwd, filename }
+    )
+
+    expect(errors.map((error) => error.message)).toEqual([
+      "Malformed JSDoc inline link: {@link}",
+      "JSDoc inline link must target a TypeScript symbol: {@link https://example.com}"
+    ])
   })
 
   it("allows directive comments between JSDoc and an exported declaration", () => {

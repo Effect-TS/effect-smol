@@ -1,5 +1,6 @@
 import * as path from "node:path"
 import type { CreateRule, ESTree, Visitor } from "oxlint"
+import * as ts from "typescript"
 
 type ExamplePolicy = "required" | "optional" | "forbidden"
 
@@ -9,11 +10,13 @@ interface RuleChecks {
   readonly category?: boolean
   readonly since?: boolean
   readonly examples?: boolean
+  readonly links?: boolean
 }
 
 interface RuleOptions {
   readonly include?: Array<string>
   readonly exclude?: Array<string>
+  readonly tsconfig?: string
   readonly checks?: RuleChecks
   readonly examples?: {
     readonly values?: ExamplePolicy
@@ -67,7 +70,21 @@ const moduleTags = new Set(["deprecated", "see", "since"])
 const onePerBlockTags = new Set(["deprecated", "default", "category", "since", "internal"])
 
 const stableSemverRegex = /^\d+\.\d+\.\d+$/
-const seeRegex = /(?:\{@link\s+[^}]+\}|https?:\/\/\S+)/
+const urlRegex = /^https?:\/\//
+
+interface ProgramCacheEntry {
+  readonly program?: ts.Program
+  readonly modulesByName?: ReadonlyMap<string, ts.Symbol>
+  readonly error?: string
+  reported: boolean
+}
+
+interface ParsedConfigResult {
+  readonly parsed?: ts.ParsedCommandLine
+  readonly error?: string
+}
+
+const programCache = new Map<string, ProgramCacheEntry>()
 
 function normalizePathName(filePath: string): string {
   return filePath.replaceAll(path.sep, "/")
@@ -349,8 +366,240 @@ function resolveChecks(checks: RuleChecks | undefined): Required<RuleChecks> {
     tags: checks?.tags ?? true,
     category: checks?.category ?? true,
     since: checks?.since ?? true,
-    examples: checks?.examples ?? true
+    examples: checks?.examples ?? true,
+    links: checks?.links ?? true
   }
+}
+
+function formatDiagnostic(diagnostic: ts.Diagnostic): string {
+  return ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
+}
+
+function parseTsConfig(tsconfigPath: string): ParsedConfigResult {
+  const config = ts.readConfigFile(tsconfigPath, ts.sys.readFile)
+  if (config.error !== undefined) {
+    return { error: `Unable to read TypeScript config ${tsconfigPath}: ${formatDiagnostic(config.error)}` }
+  }
+
+  const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, path.dirname(tsconfigPath))
+  if (parsed.errors.length > 0) {
+    return {
+      error: `Unable to parse TypeScript config ${tsconfigPath}: ${parsed.errors.map(formatDiagnostic).join("; ")}`
+    }
+  }
+
+  return { parsed }
+}
+
+function collectTsConfigFiles(
+  tsconfigPath: string,
+  seen: Set<string>,
+  fileNames: Set<string>
+): ParsedConfigResult {
+  if (seen.has(tsconfigPath)) {
+    return {}
+  }
+  seen.add(tsconfigPath)
+
+  const result = parseTsConfig(tsconfigPath)
+  if (result.error !== undefined || result.parsed === undefined) {
+    return result
+  }
+
+  for (const fileName of result.parsed.fileNames) {
+    fileNames.add(fileName)
+  }
+  for (const reference of result.parsed.projectReferences ?? []) {
+    const referenceResult = collectTsConfigFiles(ts.resolveProjectReferencePath(reference), seen, fileNames)
+    if (referenceResult.error !== undefined) {
+      return referenceResult
+    }
+  }
+
+  return result
+}
+
+function getProgram(tsconfigPath: string): ProgramCacheEntry {
+  const cached = programCache.get(tsconfigPath)
+  if (cached !== undefined) {
+    return cached
+  }
+
+  const fileNames = new Set<string>()
+  const result = collectTsConfigFiles(tsconfigPath, new Set(), fileNames)
+  if (result.error !== undefined || result.parsed === undefined) {
+    const entry = { error: result.error ?? `Unable to parse TypeScript config ${tsconfigPath}`, reported: false }
+    programCache.set(tsconfigPath, entry)
+    return entry
+  }
+
+  const program = ts.createProgram(Array.from(fileNames), result.parsed.options)
+  const entry = {
+    program,
+    ...createProgramSymbolIndex(program),
+    reported: false
+  }
+  programCache.set(tsconfigPath, entry)
+  return entry
+}
+
+function createProgramSymbolIndex(program: ts.Program) {
+  const checker = program.getTypeChecker()
+  const modulesByName = new Map<string, ts.Symbol>()
+
+  for (const sourceFile of program.getSourceFiles()) {
+    if (sourceFile.isDeclarationFile) {
+      continue
+    }
+
+    const moduleSymbol = checker.getSymbolAtLocation(sourceFile)
+    if (moduleSymbol === undefined) {
+      continue
+    }
+
+    const moduleName = path.basename(sourceFile.fileName, path.extname(sourceFile.fileName))
+    modulesByName.set(moduleName, moduleSymbol)
+    modulesByName.set(`${moduleName}_`, moduleSymbol)
+  }
+
+  return { modulesByName }
+}
+
+function getExport(symbol: ts.Symbol, name: string, checker: ts.TypeChecker, location: ts.Node): ts.Symbol | undefined {
+  const target = (symbol.flags & ts.SymbolFlags.Alias) === 0 ? symbol : checker.getAliasedSymbol(symbol)
+  if (target.exports?.has(name as ts.__String)) {
+    return target.exports.get(name as ts.__String)
+  }
+  if (target.members?.has(name as ts.__String)) {
+    return target.members.get(name as ts.__String)
+  }
+  return checker.getTypeOfSymbolAtLocation(target, location).getProperty(name) ??
+    checker.getDeclaredTypeOfSymbol(target).getProperty(name)
+}
+
+function resolveDottedSymbol(
+  root: ts.Symbol | undefined,
+  parts: ReadonlyArray<string>,
+  checker: ts.TypeChecker,
+  location: ts.Node
+): ts.Symbol | undefined {
+  let current = root
+  for (const part of parts) {
+    if (current === undefined) {
+      return undefined
+    }
+    current = getExport(current, part, checker, location)
+  }
+  return current
+}
+
+function resolveJSDocLinkSymbol(
+  link: ts.JSDocLink,
+  target: string,
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+  entry: ProgramCacheEntry
+): ts.Symbol | undefined {
+  if (link.name !== undefined) {
+    const symbol = checker.getSymbolAtLocation(link.name)
+    if (symbol !== undefined) {
+      return symbol
+    }
+  }
+
+  const parts = target.split(".")
+  if (parts.some((part) => part === "")) {
+    return undefined
+  }
+  const [root, ...members] = parts
+  if (root === undefined) {
+    return undefined
+  }
+
+  const sourceModule = checker.getSymbolAtLocation(sourceFile)
+  const lexical = checker.resolveName(root, sourceFile, ts.SymbolFlags.All, false)
+  const candidates = [
+    lexical,
+    sourceModule === undefined ? undefined : getExport(sourceModule, root, checker, sourceFile),
+    entry.modulesByName?.get(root)
+  ]
+
+  return candidates
+    .map((candidate) => resolveDottedSymbol(candidate, members, checker, sourceFile))
+    .find((symbol) => symbol !== undefined)
+}
+
+function isInlineLinkStart(source: string, index: number): boolean {
+  if (!source.startsWith("{@link", index)) {
+    return false
+  }
+  const next = source[index + "{@link".length]
+  return next === undefined || /\s|}/.test(next)
+}
+
+function hasInlineLink(block: JSDocBlock): boolean {
+  return block.lines.some((line) => {
+    let index = line.indexOf("{@link")
+    while (index !== -1) {
+      if (isInlineLinkStart(line, index)) {
+        return true
+      }
+      index = line.indexOf("{@link", index + 1)
+    }
+    return false
+  })
+}
+
+function extractInlineLinkTarget(linkText: string): string {
+  const content = linkText.slice("{@link".length, linkText.endsWith("}") ? -1 : undefined).trim()
+  const pipeIndex = content.indexOf("|")
+  const beforeLabel = pipeIndex === -1 ? content : content.slice(0, pipeIndex).trim()
+  return beforeLabel.split(/\s+/)[0] ?? ""
+}
+
+function malformedInlineLinks(block: JSDocBlock): Array<string> {
+  const source = block.lines.join("\n")
+  const malformed: Array<string> = []
+  let index = source.indexOf("{@link")
+  while (index !== -1) {
+    if (!isInlineLinkStart(source, index)) {
+      index = source.indexOf("{@link", index + 1)
+      continue
+    }
+
+    const end = source.indexOf("}", index + "{@link".length)
+    const text = end === -1 ? source.slice(index).split(/\r?\n/, 1)[0] : source.slice(index, end + 1)
+    if (end === -1 || extractInlineLinkTarget(text) === "") {
+      malformed.push(text)
+    }
+    index = source.indexOf("{@link", end === -1 ? index + 1 : end + 1)
+  }
+  return malformed
+}
+
+function collectJSDocLinks(sourceFile: ts.SourceFile, block: JSDocBlock): Array<ts.JSDocLink> {
+  const links: Array<ts.JSDocLink> = []
+
+  function inspectJSDoc(node: ts.Node) {
+    for (const jsdoc of (node as { readonly jsDoc?: ReadonlyArray<ts.JSDoc> }).jsDoc ?? []) {
+      if (jsdoc.pos !== block.range[0] || jsdoc.end !== block.range[1]) {
+        continue
+      }
+      ts.forEachChild(jsdoc, function visit(child) {
+        if (ts.isJSDocLink(child)) {
+          links.push(child)
+        }
+        ts.forEachChild(child, visit)
+      })
+    }
+  }
+
+  function visit(node: ts.Node) {
+    inspectJSDoc(node)
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return links
 }
 
 const rule: CreateRule = {
@@ -371,6 +620,9 @@ const rule: CreateRule = {
             type: "array",
             items: { type: "string" }
           },
+          tsconfig: {
+            type: "string"
+          },
           checks: {
             type: "object",
             properties: {
@@ -378,7 +630,8 @@ const rule: CreateRule = {
               tags: { type: "boolean" },
               category: { type: "boolean" },
               since: { type: "boolean" },
-              examples: { type: "boolean" }
+              examples: { type: "boolean" },
+              links: { type: "boolean" }
             },
             additionalProperties: false
           },
@@ -407,6 +660,7 @@ const rule: CreateRule = {
     const valueExamplePolicy = options.examples?.values ?? "optional"
     const typeExamplePolicy = options.examples?.types ?? "forbidden"
     const checks = resolveChecks(options.checks)
+    const tsconfigPath = path.resolve(cwd, options.tsconfig ?? "tsconfig.json")
     let moduleBlock: JSDocBlock | undefined
     let hasPublicExport = false
     let firstPublicExport: AstNode | undefined
@@ -465,6 +719,54 @@ const rule: CreateRule = {
       if (checks.examples && (block.examples.hasExampleHeading || block.examples.hasTsFence)) {
         report(node, "JSDoc blocks with @internal must not contain examples")
       }
+      validateLinks(node, block)
+    }
+
+    function validateLinks(node: AstNode, block: JSDocBlock) {
+      if (!checks.links || !hasInlineLink(block)) {
+        return
+      }
+
+      for (const link of malformedInlineLinks(block)) {
+        report(node, `Malformed JSDoc inline link: ${link}`)
+      }
+
+      const entry = getProgram(tsconfigPath)
+      if (entry.error !== undefined) {
+        if (!entry.reported) {
+          entry.reported = true
+          report(node, entry.error)
+        }
+        return
+      }
+
+      const program = entry.program
+      if (program === undefined) {
+        return
+      }
+
+      const sourceFile = program.getSourceFile(context.filename)
+      if (sourceFile === undefined) {
+        if (!entry.reported) {
+          entry.reported = true
+          report(node, `Unable to validate JSDoc links: ${context.filename} is not included in ${tsconfigPath}`)
+        }
+        return
+      }
+
+      const checker = program.getTypeChecker()
+      for (const link of collectJSDocLinks(sourceFile, block)) {
+        const text = link.getText(sourceFile)
+        const target = extractInlineLinkTarget(text)
+        if (target === "") {
+          continue
+        }
+        if (urlRegex.test(target)) {
+          report(node, `JSDoc inline link must target a TypeScript symbol: ${text}`)
+        } else if (resolveJSDocLinkSymbol(link, target, sourceFile, checker, entry) === undefined) {
+          report(node, `Unresolved JSDoc inline link: ${text}`)
+        }
+      }
     }
 
     function validateTags(node: AstNode, block: JSDocBlock, allowedTags: ReadonlySet<string>, kind: JSDocKind) {
@@ -512,8 +814,8 @@ const rule: CreateRule = {
           report(node, "@deprecated must include a message")
         } else if (tag.name === "default" && tag.value.trim() === "") {
           report(node, "@default must include a value")
-        } else if (tag.name === "see" && !seeRegex.test(tag.value.trim())) {
-          report(node, "@see must include an inline {@link ...} tag or an http(s) URL")
+        } else if (tag.name === "see" && tag.value.trim() === "") {
+          report(node, "@see must include a value")
         } else if (tag.name === "since" && !stableSemverRegex.test(tag.value.trim())) {
           report(node, "@since must be a stable semver version like 1.2.3")
         }
@@ -563,6 +865,7 @@ const rule: CreateRule = {
         report(node, "Public JSDoc must include @since")
       }
       validateExamples(node, block, bucket === "value" ? valueExamplePolicy : typeExamplePolicy)
+      validateLinks(node, block)
     }
 
     function validateMemberBlock(node: AstNode, block: JSDocBlock) {
@@ -576,6 +879,7 @@ const rule: CreateRule = {
         report(node, "Member JSDoc must include a description")
       }
       validateExamples(node, block, "forbidden")
+      validateLinks(node, block)
     }
 
     function validateModuleBlock(block: JSDocBlock) {
@@ -588,6 +892,7 @@ const rule: CreateRule = {
         report(node, "Module JSDoc must include @since")
       }
       validateExamples(node, block, "optional")
+      validateLinks(node, block)
     }
 
     function validateMemberIfPresent(node: AstNode) {
