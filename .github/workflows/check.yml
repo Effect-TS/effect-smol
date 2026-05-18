@@ -104,7 +104,9 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
+          name: bundle-stats
           path: stats.txt
+          if-no-files-found: error
 
   test:
     name: Test
