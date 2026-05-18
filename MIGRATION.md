@@ -60,6 +60,10 @@ minimal Effect program bundles to ~6.3 KB (minified + gzipped). With Schema,
 
 ## Migration Guides
 
+### Imports
+
+- [v3 to v4 Import Map](./migration/v3-to-v4-import-map.md)
+
 ### Core
 
 - [Services: `Context.Tag` → `Context.Service`](./migration/services.md)
