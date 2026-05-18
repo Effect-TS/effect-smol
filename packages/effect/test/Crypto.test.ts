@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import * as Crypto from "effect/Crypto"
 import * as Effect from "effect/Effect"
+import * as TestClock from "effect/testing/TestClock"
 
 const testCrypto = Crypto.make({
   randomBytes: (size) => Effect.succeed(Uint8Array.from({ length: size }, (_, i) => i)),
@@ -45,6 +46,14 @@ describe("Crypto", () => {
       const crypto = yield* Crypto.Crypto
       const uuid = yield* crypto.randomUUIDv4
       assert.strictEqual(uuid, "00010203-0405-4607-8809-0a0b0c0d0e0f")
+    }).pipe(Effect.provideService(Crypto.Crypto, testCrypto)))
+
+  it.effect("randomUUIDv7 formats UUID bytes with the Clock timestamp", () =>
+    Effect.gen(function*() {
+      yield* TestClock.setTime(0x0123456789ab)
+      const crypto = yield* Crypto.Crypto
+      const uuid = yield* crypto.randomUUIDv7
+      assert.strictEqual(uuid, "01234567-89ab-7607-8809-0a0b0c0d0e0f")
     }).pipe(Effect.provideService(Crypto.Crypto, testCrypto)))
 
   it.effect("digest delegates to the service", () =>

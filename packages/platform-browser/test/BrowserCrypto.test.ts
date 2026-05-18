@@ -2,8 +2,10 @@ import * as BrowserCrypto from "@effect/platform-browser/BrowserCrypto"
 import { assert, describe, it } from "@effect/vitest"
 import * as Crypto from "effect/Crypto"
 import * as Effect from "effect/Effect"
+import * as TestClock from "effect/testing/TestClock"
 
 const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const uuidV7Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 const getRandomValues = <T extends ArrayBufferView | null>(array: T): T => {
   if (array instanceof Uint8Array) {
@@ -36,6 +38,15 @@ describe("BrowserCrypto", () => {
       const uuid = yield* crypto.randomUUIDv4
       assert.strictEqual(uuid, "00010203-0405-4607-8809-0a0b0c0d0e0f")
       assert.match(uuid, uuidV4Regex)
+    }).pipe(Effect.provideService(Crypto.Crypto, BrowserCrypto.make({ getRandomValues }))))
+
+  it.effect("generates UUIDv7 values from getRandomValues and the Clock", () =>
+    Effect.gen(function*() {
+      yield* TestClock.setTime(0x0123456789ab)
+      const crypto = yield* Crypto.Crypto
+      const uuid = yield* crypto.randomUUIDv7
+      assert.strictEqual(uuid, "01234567-89ab-7607-8809-0a0b0c0d0e0f")
+      assert.match(uuid, uuidV7Regex)
     }).pipe(Effect.provideService(Crypto.Crypto, BrowserCrypto.make({ getRandomValues }))))
 
   it.effect("fails when random byte generation is unavailable", () =>

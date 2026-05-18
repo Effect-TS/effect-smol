@@ -2,8 +2,10 @@ import * as NodeCrypto from "@effect/platform-node/NodeCrypto"
 import { assert, describe, it } from "@effect/vitest"
 import * as Crypto from "effect/Crypto"
 import * as Effect from "effect/Effect"
+import * as TestClock from "effect/testing/TestClock"
 
 const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const uuidV7Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 const hex = (bytes: Uint8Array): string => Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")
 
@@ -37,6 +39,15 @@ describe("NodeCrypto", () => {
       assert.match(uuid1, uuidV4Regex)
       assert.match(uuid2, uuidV4Regex)
       assert.notStrictEqual(uuid1, uuid2)
+    }).pipe(Effect.provide(NodeCrypto.layer)))
+
+  it.effect("generates UUIDv7 values", () =>
+    Effect.gen(function*() {
+      yield* TestClock.setTime(0x0123456789ab)
+      const crypto = yield* Crypto.Crypto
+      const uuid = yield* crypto.randomUUIDv7
+      assert.match(uuid, uuidV7Regex)
+      assert.strictEqual(uuid.slice(0, 13), "01234567-89ab")
     }).pipe(Effect.provide(NodeCrypto.layer)))
 
   it.effect("computes SHA-256 digests", () =>

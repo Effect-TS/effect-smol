@@ -772,7 +772,7 @@ export * as Cron from "./Cron.ts"
  * `@effect/platform-bun`, and `@effect/platform-browser` provide concrete
  * implementations backed by the host platform's cryptography APIs.
  *
- * Use `Crypto` for cryptographic randomness, UUIDv4 generation, random values,
+ * Use `Crypto` for cryptographic randomness, UUID generation, random values,
  * and message digests. The base `Random` service is not cryptographically
  * secure unless you replace it with a cryptographically secure implementation.
  *
