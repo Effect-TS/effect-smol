@@ -33,6 +33,8 @@ import { dual } from "./Function.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
+ * Maps a defined value with `f`, or returns `undefined` unchanged.
+ *
  * @since 4.0.0
  */
 export const map: {
@@ -41,6 +43,11 @@ export const map: {
 } = dual(2, (self, f) => (self === undefined ? undefined : f(self)))
 
 /**
+ * Pattern matches on an `A | undefined` value.
+ *
+ * Runs `onDefined` with the value when it is present, or evaluates
+ * `onUndefined` when the value is `undefined`.
+ *
  * @since 4.0.0
  */
 export const match: {
@@ -61,6 +68,9 @@ export const match: {
 )
 
 /**
+ * Returns the defined value, or throws the value produced by `onUndefined`
+ * when the input is `undefined`.
+ *
  * @since 4.0.0
  */
 export const getOrThrowWith: {
@@ -74,6 +84,9 @@ export const getOrThrowWith: {
 })
 
 /**
+ * Returns the defined value, or throws a default `Error` when the input is
+ * `undefined`.
+ *
  * @since 4.0.0
  */
 export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
@@ -81,6 +94,12 @@ export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
 )
 
 /**
+ * Converts a throwing function into one that returns `undefined` when it
+ * throws.
+ *
+ * The returned function passes through successful results and discards thrown
+ * errors by representing them as `undefined`.
+ *
  * @since 4.0.0
  */
 export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
@@ -122,20 +141,11 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
 }
 
 /**
- * Creates a `Combiner` for `UndefinedOr<A>` that only combines values when both
- * operands are not `undefined`, failing fast if either is `undefined`.
+ * Creates a `Combiner` for `A | undefined` that combines values only when both
+ * operands are defined.
  *
- * This `Combiner` is useful for scenarios where you need both values to be
- * present to perform an operation, such as:
- * - Mathematical operations that require two operands
- * - Data validation that needs both fields
- * - Operations that can't proceed with partial data
- *
- * **Behavior:**
- * - `undefined` + `undefined` = `undefined`
- * - `a` + `undefined` = `undefined` (fails fast)
- * - `undefined` + `b` = `undefined` (fails fast)
- * - `a` + `b` = `a + b` (values combined)
+ * If either operand is `undefined`, the combined result is `undefined`. When
+ * both operands are defined, the wrapped combiner combines the two values.
  *
  * @see {@link makeReducerFailFast} if you have a `Reducer` and want to lift it
  * to `UndefinedOr` values.
@@ -150,19 +160,12 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
 }
 
 /**
- * Creates a `Reducer` for `UndefinedOr<A>` by wrapping an existing `Reducer` with
- * fail-fast semantics for `UndefinedOr` values.
+ * Creates a `Reducer` for `A | undefined` by wrapping an existing reducer with
+ * fail-fast semantics.
  *
- * This function lifts a regular `Reducer` into the `UndefinedOr` context, allowing
- * you to use existing `Reducer`s with `UndefinedOr` values while maintaining the
- * fail-fast behavior where any `undefined` value causes the entire reduction to fail.
- *
- * The initial value is `some(reducer.initialValue)`, ensuring the `Reducer`
- * starts with a valid `UndefinedOr` value.
- *
- * **Behavior:**
- * - Fails fast (returns `undefined`) if any operand is `undefined`
- * - Uses the underlying reducer's combine logic when both values are present
+ * The initial value is the wrapped reducer's `initialValue`. Combining two
+ * defined values delegates to the wrapped reducer; if the accumulator or next
+ * value is `undefined`, the reduction returns `undefined`.
  *
  * @see {@link makeCombinerFailFast} if you only have a `Combiner` and want to
  * lift it to `UndefinedOr` values.

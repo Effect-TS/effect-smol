@@ -1,4 +1,21 @@
 /**
+ * Utilities for parsing and rendering Server-Sent Events text streams.
+ *
+ * This module is useful at HTTP streaming boundaries that speak the EventSource
+ * wire format, such as live updates, notifications, progress feeds, and other
+ * unidirectional server-to-client event streams. It provides low-level parser
+ * and encoder primitives, channel combinators for streaming chunks through
+ * Effect pipelines, and schema-aware helpers for validating or transforming the
+ * `id`, `event`, and string `data` fields at the edge of an application.
+ *
+ * SSE is line-oriented text rather than a framed binary protocol. Incoming
+ * chunks may split fields across arbitrary boundaries, events are dispatched by
+ * a blank line, repeated `data:` lines are joined with newlines, and `retry:`
+ * directives are control messages rather than regular events. The decoder
+ * handles UTF-8 byte order marks, CRLF and LF line endings, default `message`
+ * events, and retry directives so callers can reconnect with the requested
+ * delay while preserving the last event ID when available.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
@@ -16,8 +33,14 @@ import * as Schema from "../../Schema.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 
 /**
- * @since 4.0.0
+ * Creates a channel that parses Server-Sent Events text chunks into `Event`
+ * values.
+ *
+ * SSE `retry` directives are emitted as `Retry` failures so callers can
+ * reconnect with the requested delay.
+ *
  * @category Decoding
+ * @since 4.0.0
  */
 export const decode = <IE, Done>(): Channel.Channel<
   NonEmptyReadonlyArray<Event>,
@@ -60,8 +83,13 @@ export const decode = <IE, Done>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
+ * Creates an SSE decoder channel that decodes each parsed event with a schema.
+ *
+ * The schema receives the untagged event shape containing `id`, `event`, and
+ * string `data`.
+ *
  * @category Decoding
+ * @since 4.0.0
  */
 export const decodeSchema = <
   Type extends {
@@ -91,8 +119,14 @@ export const decodeSchema = <
   )
 
 /**
- * @since 4.0.0
+ * Creates an SSE decoder channel that JSON-decodes each event `data` field with
+ * a schema.
+ *
+ * The output preserves the SSE `event` name and optional `id` while replacing
+ * `data` with the decoded value.
+ *
  * @category Decoding
+ * @since 4.0.0
  */
 export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
   schema: Schema.Decoder<Type, DecodingServices>
@@ -120,12 +154,13 @@ export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
 }
 
 /**
- * Create a SSE parser.
+ * Creates a stateful Server-Sent Events parser.
  *
- * Adapted from https://github.com/rexxars/eventsource-parser under MIT license.
+ * Call `feed` with text chunks to parse `Event` and `Retry` values through the
+ * callback, and call `reset` to clear any buffered event state.
  *
- * @since 4.0.0
  * @category Decoding
+ * @since 4.0.0
  */
 export function makeParser(onParse: (event: AnyEvent) => void): Parser {
   // Processing state
@@ -286,8 +321,12 @@ function hasBom(buffer: string) {
 }
 
 /**
- * @since 4.0.0
+ * Stateful Server-Sent Events parser returned by `makeParser`.
+ *
+ * `feed` accepts additional text chunks and `reset` clears buffered parser state.
+ *
  * @category Decoding
+ * @since 4.0.0
  */
 export interface Parser {
   feed(chunk: string): void
@@ -295,8 +334,13 @@ export interface Parser {
 }
 
 /**
- * @since 4.0.0
+ * Creates a channel that encodes `Event` values as Server-Sent Events text.
+ *
+ * If the upstream channel fails with `Retry`, the retry directive is written and
+ * the encoder completes.
+ *
  * @category Encoding
+ * @since 4.0.0
  */
 export const encode = <IE, Done>(): Channel.Channel<
   NonEmptyReadonlyArray<string>,
@@ -322,8 +366,13 @@ export const encode = <IE, Done>(): Channel.Channel<
   )
 
 /**
- * @since 4.0.0
+ * Creates an SSE encoder channel for values accepted by a schema.
+ *
+ * Values are schema-encoded to the untagged SSE event shape, transformed to
+ * `Event`, and then written as Server-Sent Events text.
+ *
  * @category Encoding
+ * @since 4.0.0
  */
 export const encodeSchema = <
   S extends Schema.Encoder<
@@ -348,16 +397,23 @@ export const encodeSchema = <
   )
 
 /**
- * @since 4.0.0
+ * Encoder capable of rendering an `Event` or `Retry` value as Server-Sent
+ * Events text.
+ *
  * @category Encoding
+ * @since 4.0.0
  */
 export interface Encoder {
   write(event: AnyEvent): string
 }
 
 /**
- * @since 4.0.0
+ * Tagged model for a Server-Sent Events message.
+ *
+ * It contains the event name, optional event ID, and string data payload.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface Event {
   readonly _tag: "Event"
@@ -367,8 +423,12 @@ export interface Event {
 }
 
 /**
- * @since 4.0.0
+ * Schema for the untagged Server-Sent Events payload shape.
+ *
+ * The shape contains `id`, `event`, and string `data` fields.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export const EventEncoded: Schema.Struct<{
   readonly id: Schema.UndefinedOr<Schema.String>
@@ -381,8 +441,13 @@ export const EventEncoded: Schema.Struct<{
 })
 
 /**
- * @since 4.0.0
+ * Schema for the tagged Server-Sent Events message model.
+ *
+ * The schema adds `_tag: "Event"` to the event name, optional event ID, and
+ * string data payload.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export const Event: Schema.Struct<{
   readonly _tag: Schema.tag<"Event">
@@ -397,8 +462,11 @@ export const Event: Schema.Struct<{
 })
 
 /**
- * @since 4.0.0
+ * Schema transformation between the untagged SSE event shape and the tagged
+ * `Event` model.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export const transformEvent = Transformation.transform<{
   readonly id?: string | undefined
@@ -420,8 +488,12 @@ export const transformEvent = Transformation.transform<{
 })
 
 /**
- * @since 4.0.0
+ * Untagged Server-Sent Events payload shape.
+ *
+ * It contains the event name, optional event ID, and string data payload.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export interface EventEncoded {
   readonly event: string
@@ -432,24 +504,35 @@ export interface EventEncoded {
 const RetryTypeId = "~effect/encoding/Sse/Retry" as const
 
 /**
- * @since 4.0.0
+ * Server-Sent Events retry directive.
+ *
+ * Decoders surface this value as a failure to request reconnection after
+ * `duration`; encoders serialize an upstream `Retry` failure as a `retry:` line.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export class Retry extends Data.TaggedClass("Retry")<{
   readonly duration: Duration.Duration
   readonly lastEventId: string | undefined
 }> {
   /**
+   * Marks this value as an SSE retry directive for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [RetryTypeId]: typeof RetryTypeId = RetryTypeId
   /**
+   * Returns `true` when the value is an SSE retry directive.
+   *
    * @since 4.0.0
    */
   static is(u: unknown): u is Retry {
     return hasProperty(u, RetryTypeId)
   }
   /**
+   * Separates SSE retry directives from regular event values.
+   *
    * @since 4.0.0
    */
   static filter<A>(u: A): Result.Result<Retry, Exclude<A, Retry>> {
@@ -458,14 +541,22 @@ export class Retry extends Data.TaggedClass("Retry")<{
 }
 
 /**
- * @since 4.0.0
+ * Union of SSE values that can be rendered by an `Encoder`: regular events and
+ * retry directives.
+ *
  * @category Models
+ * @since 4.0.0
  */
 export type AnyEvent = Event | Retry
 
 /**
- * @since 4.0.0
+ * Default Server-Sent Events encoder.
+ *
+ * It renders `Event` values as `id`, `event`, and `data` lines and renders
+ * `Retry` values as `retry:` directives.
+ *
  * @category Encoding
+ * @since 4.0.0
  */
 export const encoder: Encoder = {
   write(event: AnyEvent): string {

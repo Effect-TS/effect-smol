@@ -1,4 +1,41 @@
 /**
+ * The `ExecutionPlan` module provides a way to describe ordered fallback
+ * strategies for effects and streams that need different resources across
+ * repeated attempts. An `ExecutionPlan` is a non-empty list of steps, where
+ * each step supplies a `Context` or `Layer` and may control retries with an
+ * attempt limit, a `Schedule`, or a `while` predicate.
+ *
+ * **Mental model**
+ *
+ * - A plan is evaluated step by step until the wrapped effect or stream
+ *   succeeds, or until every step has been exhausted
+ * - Each step provides the services used while that step is active
+ * - `attempts` limits how many times a step may be tried
+ * - `schedule` controls retry timing and receives the failure input
+ * - `while` can stop retrying a step based on the failure input
+ * - `CurrentMetadata` exposes the current 1-based attempt and 0-based step
+ *   index to code running under a plan
+ *
+ * **Common tasks**
+ *
+ * - Build a plan with {@link make}
+ * - Run an effect with a plan using `Effect.withExecutionPlan`
+ * - Run a stream with a plan using `Stream.withExecutionPlan`
+ * - Combine plans in order with {@link merge}
+ * - Capture required services up front with `captureRequirements`
+ * - Inspect the current attempt and step with {@link CurrentMetadata}
+ *
+ * **Gotchas**
+ *
+ * - Plans must contain at least one step
+ * - `attempts` must be greater than zero when provided
+ * - If `attempts` is omitted, a step is attempted once unless a `schedule` is
+ *   provided
+ * - A `while` predicate returning `false` skips the remaining retries for that
+ *   step and moves the plan forward
+ * - Layer, schedule, and predicate requirements are tracked in the plan type
+ *   until they are provided or captured
+ *
  * @since 3.16.0
  */
 import type { NonEmptyReadonlyArray } from "./Array.ts"
@@ -13,20 +50,30 @@ import * as Predicate from "./Predicate.ts"
 import type * as Schedule from "./Schedule.ts"
 
 /**
- * @since 3.16.0
+ * String literal type used as the runtime type identifier for `ExecutionPlan`
+ * values.
+ *
  * @category Type IDs
+ * @since 3.16.0
  */
 export type TypeId = "~effect/ExecutionPlan"
 
 /**
- * @since 3.16.0
+ * Runtime type identifier attached to `ExecutionPlan` values and used by
+ * `isExecutionPlan`.
+ *
  * @category Type IDs
+ * @since 3.16.0
  */
 export const TypeId: TypeId = "~effect/ExecutionPlan"
 
 /**
- * @since 3.16.0
+ * Returns `true` if a value is an `ExecutionPlan`.
+ *
+ * This is a type guard that checks for the `ExecutionPlan.TypeId` marker.
+ *
  * @category Guards
+ * @since 3.16.0
  */
 export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicate.hasProperty(u, TypeId)
 
@@ -70,8 +117,8 @@ export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicat
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @since 3.16.0
  * @category Models
+ * @since 3.16.0
  */
 export interface ExecutionPlan<
   Config extends {
@@ -109,8 +156,15 @@ export interface ExecutionPlan<
 }
 
 /**
- * @since 3.16.0
+ * Base type-level configuration carried by an `ExecutionPlan`.
+ *
+ * `provides` tracks services supplied by plan steps, `input` tracks the error
+ * input consumed by schedules and `while` predicates, `error` tracks failures
+ * from plan layers or predicates, and `requirements` tracks services needed to
+ * build or run the plan.
+ *
  * @category Models
+ * @since 3.16.0
  */
 export type ConfigBase = {
   provides: any
@@ -159,8 +213,8 @@ export type ConfigBase = {
  * const withPlan: Effect.Effect<void> = Effect.withExecutionPlan(effect, ThePlan)
  * ```
  *
- * @since 3.16.0
  * @category Constructors
+ * @since 3.16.0
  */
 export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
   ...steps: Steps & { [K in keyof Steps]: make.Step }
@@ -195,10 +249,18 @@ export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
   }) as any)
 
 /**
+ * Namespace containing type helpers used by `ExecutionPlan.make`.
+ *
  * @since 3.16.0
  */
 export declare namespace make {
   /**
+   * Input shape for a single execution-plan step.
+   *
+   * Each step provides a `Context` or `Layer` and may limit attempts, add a
+   * `while` predicate for retry decisions, or attach a `Schedule` for retry
+   * timing.
+   *
    * @since 3.16.0
    */
   export type Step = {
@@ -209,6 +271,9 @@ export declare namespace make {
   }
 
   /**
+   * Computes the intersection of services provided by a list of execution-plan
+   * steps.
+   *
    * @since 3.16.1
    */
   export type StepProvides<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -223,6 +288,8 @@ export declare namespace make {
     Out
 
   /**
+   * Computes the intersection of services provided by a list of execution plans.
+   *
    * @since 3.16.1
    */
   export type PlanProvides<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
@@ -231,6 +298,9 @@ export declare namespace make {
     Out
 
   /**
+   * Computes the input type consumed by the `while` predicates and schedules in
+   * a list of execution-plan steps.
+   *
    * @since 3.16.0
    */
   export type StepInput<Steps extends ReadonlyArray<any>, Out = unknown> = Steps extends
@@ -245,6 +315,8 @@ export declare namespace make {
     Out
 
   /**
+   * Computes the combined input type consumed by a list of execution plans.
+   *
    * @since 3.16.0
    */
   export type PlanInput<Plans extends ReadonlyArray<any>, Out = unknown> = Plans extends
@@ -285,8 +357,13 @@ const makeProto = <Provides, In, PlanE, PlanR>(
 }
 
 /**
- * @since 3.16.0
+ * Combines multiple execution plans by concatenating their steps in order.
+ *
+ * The resulting plan tries every step from the first plan, then every step from
+ * the next plan, and so on.
+ *
  * @category Combining
+ * @since 3.16.0
  */
 export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<any>>>(
   ...plans: Plans
@@ -298,8 +375,13 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
 }> => makeProto(plans.flatMap((plan) => plan.steps) as any)
 
 /**
- * @since 4.0.0
+ * Metadata describing the currently running execution-plan attempt.
+ *
+ * `attempt` is the current 1-based attempt number, and `stepIndex` is the
+ * 0-based index of the plan step currently being evaluated.
+ *
  * @category Metadata
+ * @since 4.0.0
  */
 export interface Metadata {
   readonly attempt: number
@@ -307,8 +389,11 @@ export interface Metadata {
 }
 
 /**
- * @since 4.0.0
+ * `Context.Reference` containing metadata for the currently running
+ * execution-plan attempt.
+ *
  * @category Metadata
+ * @since 4.0.0
  */
 export const CurrentMetadata = Context.Reference<Metadata>("effect/ExecutionPlan/CurrentMetadata", {
   defaultValue: constant({

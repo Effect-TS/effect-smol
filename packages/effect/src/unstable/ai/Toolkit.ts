@@ -3,12 +3,12 @@
  * `Tool`s which can be used to enhance the capabilities of a large language
  * model beyond simple text generation.
  *
- * @example
+ * **Example** (Creating and implementing toolkits)
+ *
  * ```ts
- * import { Effect, Schema } from "effect"
+ * import { Effect, Schema, Stream } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
- * // Create individual tools
  * const GetCurrentTime = Tool.make("GetCurrentTime", {
  *   description: "Get the current timestamp",
  *   success: Schema.Number
@@ -23,20 +23,32 @@
  *   })
  * })
  *
- * // Create a toolkit with multiple tools
  * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
  *
  * const MyToolkitLayer = MyToolkit.toLayer({
- *   GetCurrentTime: () => Effect.succeed(Date.now()),
+ *   GetCurrentTime: () => Effect.succeed(1_704_067_200_000),
  *   GetWeather: ({ location }) =>
  *     Effect.succeed({
  *       temperature: 72,
- *       condition: "sunny"
+ *       condition: `sunny in ${location}`
  *     })
  * })
+ *
+ * const program = Effect.gen(function*() {
+ *   const toolkit = yield* MyToolkit
+ *   const stream = yield* toolkit.handle("GetWeather", {
+ *     location: "San Francisco"
+ *   })
+ *   const results = yield* Stream.runCollect(stream)
+ *
+ *   return Array.from(results, ({ result }) => result)
+ * }).pipe(Effect.provide(MyToolkitLayer))
+ *
+ * console.log(Effect.runSync(program))
+ * // [{ temperature: 72, condition: "sunny in San Francisco" }]
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
@@ -59,41 +71,32 @@ const TypeId = "~effect/ai/Toolkit" as const
  * Represents a collection of tools which can be used to enhance the
  * capabilities of a large language model.
  *
- * @example
+ * **Example** (Defining AI toolkits)
+ *
  * ```ts
- * import { Effect, Schema } from "effect"
+ * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
- * // Create individual tools
- * const GetCurrentTime = Tool.make("GetCurrentTime", {
- *   description: "Get the current timestamp",
- *   success: Schema.Number
+ * const SearchDocs = Tool.make("SearchDocs", {
+ *   description: "Search project documentation",
+ *   parameters: Schema.Struct({ query: Schema.String }),
+ *   success: Schema.Array(Schema.String)
  * })
  *
- * const GetWeather = Tool.make("GetWeather", {
- *   description: "Get weather for a location",
- *   parameters: Schema.Struct({ location: Schema.String }),
- *   success: Schema.Struct({
- *     temperature: Schema.Number,
- *     condition: Schema.String
- *   })
+ * const SummarizeText = Tool.make("SummarizeText", {
+ *   description: "Summarize text",
+ *   parameters: Schema.Struct({ text: Schema.String }),
+ *   success: Schema.String
  * })
  *
- * // Create a toolkit with multiple tools
- * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
+ * const AiToolkit = Toolkit.make(SearchDocs, SummarizeText)
  *
- * const MyToolkitLayer = MyToolkit.toLayer({
- *   GetCurrentTime: () => Effect.succeed(Date.now()),
- *   GetWeather: ({ location }) =>
- *     Effect.succeed({
- *       temperature: 72,
- *       condition: "sunny"
- *     })
- * })
+ * console.log(Object.keys(AiToolkit.tools))
+ * // ["SearchDocs", "SummarizeText"]
  * ```
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
   Effect.Effect<
@@ -139,8 +142,8 @@ export interface Toolkit<in out Tools extends Record<string, Tool.Any>> extends
 /**
  * Context provided to tool handlers during execution.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HandlerContext<Tool extends Tool.Any> {
   /**
@@ -155,8 +158,8 @@ export interface HandlerContext<Tool extends Tool.Any> {
 /**
  * Represents any `Toolkit` instance, used for generic constraints.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
@@ -167,8 +170,8 @@ export interface Any {
  * A utility type which can be used to extract the tool definitions from a
  * toolkit.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type Tools<T> = T extends Toolkit<infer Tools> ? Tools : never
 
@@ -176,8 +179,8 @@ export type Tools<T> = T extends Toolkit<infer Tools> ? Tools : never
  * A utility type which transforms either a record or an array of tools into
  * a record where keys are tool names and values are the tool instances.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
   { readonly [Name in keyof Tools]: Tools[Name] }
@@ -190,8 +193,8 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
  * Handlers can return either the tool's custom failure type, an `AiErrorReason`
  * (which will be wrapped in `AiError`), or a full `AiError`.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
   readonly [Name in keyof Tools as Tool.RequiresHandler<Tools[Name]> extends true ? Name : never]: (
@@ -207,8 +210,8 @@ export type HandlersFrom<Tools extends Record<string, Tool.Any>> = {
 /**
  * A toolkit instance with registered handlers ready for tool execution.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
   /**
@@ -246,8 +249,8 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
  * A utility type which can be used to extract the tools from a toolkit with
  * handlers.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type WithHandlerTools<T> = T extends WithHandler<infer Tools> ? Tools : never
 
@@ -461,8 +464,8 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
  * Useful as a starting point for building toolkits or as a default value. Can
  * be extended using the merge function to add tools.
  *
- * @since 1.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const empty: Toolkit<{}> = makeProto({})
 
@@ -473,7 +476,8 @@ export const empty: Toolkit<{}> = makeProto({})
  * tools and organizes them into a toolkit that can be provided to AI language
  * models.
  *
- * @example
+ * **Example** (Creating a toolkit)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
@@ -495,8 +499,8 @@ export const empty: Toolkit<{}> = makeProto({})
  * const toolkit = Toolkit.make(GetCurrentTime, GetWeather)
  * ```
  *
- * @since 1.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <Tools extends ReadonlyArray<Tool.Any>>(
   ...tools: Tools
@@ -505,16 +509,16 @@ export const make = <Tools extends ReadonlyArray<Tool.Any>>(
 /**
  * A utility type which flattens a record type for improved IDE display.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type SimplifyRecord<T> = { [K in keyof T]: T[K] } & {}
 
 /**
  * A utility type which merges a union of tool records into a single record.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type MergeRecords<U> = {
   readonly [K in Extract<U extends unknown ? keyof U : never, string>]: Extract<
@@ -527,8 +531,8 @@ export type MergeRecords<U> = {
  * A utility type which merges the tools from multiple toolkits into a single
  * record.
  *
- * @since 1.0.0
  * @category utility types
+ * @since 4.0.0
  */
 export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
   MergeRecords<Tools<Toolkits[number]>>
@@ -541,7 +545,8 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
  * If there are naming conflicts, tools from later toolkits will override
  * tools from earlier ones.
  *
- * @example
+ * **Example** (Merging toolkits)
+ *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
@@ -559,8 +564,8 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
  * const combined = Toolkit.merge(mathToolkit, utilityToolkit)
  * ```
  *
- * @since 1.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const merge = <const Toolkits extends ReadonlyArray<Any>>(
   /**

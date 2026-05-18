@@ -1,4 +1,20 @@
 /**
+ * Provides an `HttpClient` implementation backed by the Web Fetch API.
+ *
+ * Use this module when an application should run HTTP requests through the
+ * platform's `fetch` implementation, such as browser code, edge runtimes, or
+ * Node.js environments that provide `globalThis.fetch`. The `Fetch` reference
+ * allows tests and custom runtimes to supply a different fetch function, while
+ * `RequestInit` can provide defaults such as credentials, redirect behavior,
+ * cache mode, or other platform-specific fetch options.
+ *
+ * The client translates Effect HTTP requests into fetch calls and wraps Web
+ * `Response` values as `HttpClientResponse`s. Fetch implementations control
+ * details such as CORS, cookies, redirect handling, and abort semantics, so
+ * behavior can vary by platform. Stream request bodies are sent as Web streams
+ * with `duplex: "half"` for runtimes that require it, and `content-length` is
+ * omitted so fetch can manage body framing itself.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -11,16 +27,24 @@ import * as HttpClientError from "./HttpClientError.ts"
 import * as HttpClientResponse from "./HttpClientResponse.ts"
 
 /**
- * @since 4.0.0
+ * Context reference for the `fetch` implementation used by the fetch-based HTTP client.
+ *
+ * Defaults to `globalThis.fetch`.
+ *
  * @category tags
+ * @since 4.0.0
  */
 export const Fetch = Context.Reference<typeof globalThis.fetch>("effect/http/FetchHttpClient/Fetch", {
   defaultValue: () => globalThis.fetch
 })
 
 /**
- * @since 4.0.0
+ * Service containing default `RequestInit` options for the fetch-based HTTP client.
+ *
+ * Request-specific method, headers, body, and abort signal are supplied by the client when a request is executed.
+ *
  * @category tags
+ * @since 4.0.0
  */
 export class RequestInit extends Context.Service<RequestInit, globalThis.RequestInit>()(
   "effect/http/FetchHttpClient/RequestInit"
@@ -68,7 +92,9 @@ const fetch: HttpClient.HttpClient = HttpClient.make((request, url, signal, fibe
 })
 
 /**
- * @since 4.0.0
+ * Layer that provides an `HttpClient` implementation backed by the configured `Fetch` function.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedContext(Effect.succeed(fetch))

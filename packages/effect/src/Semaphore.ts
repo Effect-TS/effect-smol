@@ -1,4 +1,23 @@
 /**
+ * The `Semaphore` module provides a counting semaphore for coordinating
+ * concurrent access to shared or limited resources. A semaphore tracks a fixed
+ * number of permits: effects acquire permits before entering a critical section
+ * and release them when they leave.
+ *
+ * Use semaphores to bound parallel work, protect rate-limited services, or
+ * serialize access to resources that cannot safely handle unlimited
+ * concurrency. Prefer {@link withPermit} and {@link withPermits} when possible,
+ * because they release permits automatically when the protected effect exits.
+ * Use {@link take} and {@link release} for lower-level protocols that need
+ * manual control.
+ *
+ * **Gotchas**
+ *
+ * - Pending acquisitions wait until enough permits are available.
+ * - {@link withPermitsIfAvailable} does not wait; it returns `Option.none` when
+ *   the requested permits cannot be acquired immediately.
+ * - Manual `take` / `release` usage must keep permit counts balanced.
+ *
  * @since 2.0.0
  */
 import type * as Effect from "./Effect.ts"
@@ -9,9 +28,14 @@ import * as internal from "./internal/effect.ts"
 import type * as Option from "./Option.ts"
 
 /**
- * @category models
- * @since 2.0.0
- * @example
+ * A counting semaphore that coordinates concurrent access with permits.
+ *
+ * Effects can acquire permits, wait until enough permits are available,
+ * release permits, or run with permits that are automatically released when
+ * the effect exits.
+ *
+ * **Example** (Controlling concurrent access)
+ *
  * ```ts
  * import { Effect, Semaphore } from "effect"
  *
@@ -24,6 +48,9 @@ import type * as Option from "./Option.ts"
  *   )
  * })
  * ```
+ *
+ * @category models
+ * @since 2.0.0
  */
 export interface Semaphore {
   /**
@@ -93,7 +120,11 @@ export interface Semaphore {
 }
 
 /**
- * Unsafely creates a new Semaphore.
+ * Synchronously creates a `Semaphore` initialized with the specified total
+ * number of permits.
+ *
+ * Use this low-level constructor when an immediate semaphore value is required;
+ * otherwise prefer the effectful `make` constructor.
  *
  * **Previously Known As**
  *
@@ -101,7 +132,8 @@ export interface Semaphore {
  *
  * - `Effect.makeSemaphoreUnsafe`
  *
- * @example
+ * **Example** (Creating an unsafe semaphore)
+ *
  * ```ts
  * import { Effect, Semaphore } from "effect"
  *
@@ -126,8 +158,8 @@ export interface Semaphore {
  * ], { concurrency: "unbounded" })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const makeUnsafe = (permits: number): Semaphore => new SemaphoreImpl(permits)
 
@@ -236,7 +268,10 @@ class SemaphoreImpl implements Semaphore {
 }
 
 /**
- * Creates a new Semaphore.
+ * Creates a `Semaphore` initialized with the specified total number of permits.
+ *
+ * Use the returned semaphore to limit concurrency with `withPermit` or
+ * `withPermits`, or to manually `take` and `release` permits.
  *
  * **Previously Known As**
  *
@@ -244,7 +279,8 @@ class SemaphoreImpl implements Semaphore {
  *
  * - `Effect.makeSemaphore`
  *
- * @example
+ * **Example** (Creating a semaphore)
+ *
  * ```ts
  * import { Effect, Semaphore } from "effect"
  *
@@ -265,16 +301,16 @@ class SemaphoreImpl implements Semaphore {
  * })
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const make = (permits: number): Effect.Effect<Semaphore> => internal.sync(() => new SemaphoreImpl(permits))
 
 /**
  * Adjusts the number of permits available in the semaphore.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const resize: {
   (permits: number): (self: Semaphore) => Effect.Effect<void>
@@ -285,8 +321,8 @@ export const resize: {
  * Runs an effect with the given number of permits and releases the permits when
  * the effect completes.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withPermits: {
   (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -300,8 +336,8 @@ export const withPermits: {
  * Runs an effect with a single permit and releases the permit when the effect
  * completes.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withPermit: {
   (self: Semaphore): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -315,8 +351,8 @@ export const withPermit: {
  * Runs an effect only if the specified number of permits are immediately
  * available.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const withPermitsIfAvailable: {
   (self: Semaphore, permits: number): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<Option.Option<A>, E, R>
@@ -334,8 +370,8 @@ export const withPermitsIfAvailable: {
  * Acquires the specified number of permits and returns the resulting available
  * permits, suspending the task if they are not yet available.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const take: {
   (permits: number): (self: Semaphore) => Effect.Effect<number>
@@ -346,8 +382,8 @@ export const take: {
  * Releases the specified number of permits and returns the resulting available
  * permits.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const release: {
   (permits: number): (self: Semaphore) => Effect.Effect<number>
@@ -358,7 +394,7 @@ export const release: {
  * Releases all permits held by this semaphore and returns the resulting
  * available permits.
  *
- * @since 4.0.0
  * @category combinators
+ * @since 4.0.0
  */
 export const releaseAll = (self: Semaphore): Effect.Effect<number> => self.releaseAll

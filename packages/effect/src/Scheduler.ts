@@ -1,4 +1,23 @@
 /**
+ * The `Scheduler` module defines the runtime scheduling services used by
+ * Effect fibers. A scheduler decides how runnable tasks are enqueued, when they
+ * are dispatched, and whether a fiber should yield after consuming its
+ * operation budget.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link Scheduler} to provide a custom runtime scheduler
+ * - Use {@link MixedScheduler} for the default priority-aware scheduler
+ * - Use {@link MaxOpsBeforeYield} to tune fairness for CPU-bound fibers
+ * - Use {@link PreventSchedulerYield} only when a runtime should bypass yield checks
+ *
+ * **Gotchas**
+ *
+ * - Scheduler priorities affect the order of queued runtime tasks, not the
+ *   semantic result of an `Effect`
+ * - Disabling scheduler yields can improve throughput for controlled workloads,
+ *   but it can also let long-running fibers monopolize the JavaScript thread
+ *
  * @since 2.0.0
  */
 import * as Context from "./Context.ts"
@@ -14,8 +33,8 @@ import type * as Fiber from "./Fiber.ts"
  * - Determining when fibers should yield control
  * - Managing the execution flow of Effects
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Scheduler {
   readonly executionMode: "sync" | "async"
@@ -24,8 +43,16 @@ export interface Scheduler {
 }
 
 /**
- * @since 4.0.0
+ * A dispatcher created by a `Scheduler` for enqueuing tasks and forcing queued
+ * tasks to run.
+ *
+ * **Details**
+ * `scheduleTask` queues a task with a priority. `flush` drains pending work
+ * synchronously, which is useful when callers need deterministic completion of
+ * already scheduled tasks.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface SchedulerDispatcher {
   scheduleTask(task: () => void, priority: number): void
@@ -33,8 +60,14 @@ export interface SchedulerDispatcher {
 }
 
 /**
- * @since 4.0.0
+ * Context reference for the scheduler used by the Effect runtime.
+ *
+ * **Details**
+ * The default value creates a `MixedScheduler`. Provide this service to
+ * customize execution mode, task dispatching, or yield behavior.
+ *
  * @category references
+ * @since 4.0.0
  */
 export const Scheduler: Context.Reference<Scheduler> = Context.Reference<Scheduler>("effect/Scheduler", {
   defaultValue: () => new MixedScheduler()
@@ -91,8 +124,8 @@ class PriorityBuckets {
  * - Automatic yielding based on operation count
  * - Optimized for high-throughput scenarios
  *
- * @since 2.0.0
  * @category schedulers
+ * @since 2.0.0
  */
 export class MixedScheduler implements Scheduler {
   readonly executionMode: "sync" | "async"
@@ -107,6 +140,8 @@ export class MixedScheduler implements Scheduler {
   }
 
   /**
+   * Returns whether the fiber has reached its operation budget and should yield.
+   *
    * @since 2.0.0
    */
   shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
@@ -114,6 +149,8 @@ export class MixedScheduler implements Scheduler {
   }
 
   /**
+   * Creates a dispatcher that schedules work through this scheduler.
+   *
    * @since 2.0.0
    */
   makeDispatcher() {
@@ -185,8 +222,8 @@ class MixedSchedulerDispatcher implements SchedulerDispatcher {
  * The default value is 2048 operations, which provides a good balance between
  * performance and fairness in concurrent execution.
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const MaxOpsBeforeYield = Context.Reference<number>("effect/Scheduler/MaxOpsBeforeYield", {
   defaultValue: () => 2048
@@ -197,8 +234,8 @@ export const MaxOpsBeforeYield = Context.Reference<number>("effect/Scheduler/Max
  * yield checks. When set to `true`, the fiber run loop won't call
  * `Scheduler.shouldYield`.
  *
- * @since 4.0.0
  * @category references
+ * @since 4.0.0
  */
 export const PreventSchedulerYield = Context.Reference<boolean>("effect/Scheduler/PreventSchedulerYield", {
   defaultValue: () => false

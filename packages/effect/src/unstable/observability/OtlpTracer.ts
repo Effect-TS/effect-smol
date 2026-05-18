@@ -1,4 +1,26 @@
 /**
+ * Exports Effect spans to an OpenTelemetry Protocol (OTLP) traces endpoint.
+ *
+ * This module creates a `Tracer.Tracer` backed by the shared OTLP/HTTP batch
+ * exporter, so Effect spans created with tracing APIs can be delivered to an
+ * OpenTelemetry Collector, vendor OTLP intake, or local development collector.
+ * Use `make` when you need to install the tracer manually, or `layer` when an
+ * application should provide it through the Effect environment.
+ *
+ * Pass a concrete traces endpoint, typically `/v1/traces`, or use the
+ * higher-level `Otlp` module when you want `baseUrl` path construction for all
+ * observability signals. The tracer exports only ended sampled spans, converts
+ * span attributes, events, links, status, parent identifiers, and failure
+ * causes into OTLP trace data, and groups every batch under the configured
+ * resource. Resource options are resolved through `OtlpResource`, so ensure a
+ * stable `service.name` is available through options or standard OTEL resource
+ * environment variables because it is also used as the instrumentation scope
+ * name. Tune `exportInterval`, `maxBatchSize`, and `shutdownTimeout` for the
+ * target backend and process shutdown behavior, provide `headers` for
+ * authentication or routing, choose an `OtlpSerialization` layer accepted by
+ * the endpoint, and use `context` only when a backend needs custom evaluation
+ * around the active span.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
@@ -21,8 +43,14 @@ import * as OtlpResource from "./OtlpResource.ts"
 import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
- * @since 4.0.0
+ * Creates a `Tracer` that exports ended sampled spans to an OTLP traces
+ * endpoint.
+ *
+ * Spans are batched using the configured interval and batch size, serialized
+ * with `OtlpSerialization`, and flushed when the surrounding `Scope` closes.
+ *
  * @category Constructors
+ * @since 4.0.0
  */
 export const make: (
   options: {
@@ -99,8 +127,10 @@ export const make: (
 })
 
 /**
- * @since 4.0.0
+ * Provides `Tracer.Tracer` using the OTLP tracer created by `make`.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layer: (options: {
   readonly url: string
@@ -274,6 +304,8 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
 }
 
 /**
+ * Root OTLP traces payload containing spans grouped by resource.
+ *
  * @since 4.0.0
  */
 export interface TraceData {
@@ -281,6 +313,8 @@ export interface TraceData {
 }
 
 /**
+ * Group of OTLP scope spans associated with a single resource.
+ *
  * @since 4.0.0
  */
 export interface ResourceSpan {
@@ -290,6 +324,8 @@ export interface ResourceSpan {
 }
 
 /**
+ * Group of OTLP spans emitted by a single instrumentation scope.
+ *
  * @since 4.0.0
  */
 export interface ScopeSpan {

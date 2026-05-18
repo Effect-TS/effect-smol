@@ -5,7 +5,7 @@
  * semantic conventions, extending the base GenAI attributes with OpenAI-specific
  * request and response metadata.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 import { dual } from "effect/Function"
 import * as String from "effect/String"
@@ -19,8 +19,8 @@ import * as Telemetry from "effect/unstable/ai/Telemetry"
  *
  * {@see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/}
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type OpenAiTelemetryAttributes = Simplify<
   & Telemetry.GenAITelemetryAttributes
@@ -32,8 +32,8 @@ export type OpenAiTelemetryAttributes = Simplify<
  * All telemetry attributes which are part of the GenAI specification,
  * including the OpenAi-specific attributes.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AllAttributes = Telemetry.AllAttributes & RequestAttributes & ResponseAttributes
 
@@ -41,8 +41,8 @@ export type AllAttributes = Telemetry.AllAttributes & RequestAttributes & Respon
  * Telemetry attributes which are part of the GenAI specification and are
  * namespaced by `gen_ai.openai.request`.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface RequestAttributes {
   /**
@@ -59,8 +59,8 @@ export interface RequestAttributes {
  * Telemetry attributes which are part of the GenAI specification and are
  * namespaced by `gen_ai.openai.response`.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ResponseAttributes {
   /**
@@ -81,8 +81,8 @@ export interface ResponseAttributes {
  * If one of them applies, then the respective value **MUST** be used;
  * otherwise, a custom value **MAY** be used.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type WellKnownResponseFormat = "json_object" | "json_schema" | "text"
 
@@ -93,13 +93,16 @@ export type WellKnownResponseFormat = "json_object" | "json_schema" | "text"
  * If one of them applies, then the respective value **MUST** be used;
  * otherwise, a custom value **MAY** be used.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type WellKnownServiceTier = "auto" | "default"
 
 /**
- * @since 1.0.0
+ * Options accepted by `addGenAIAnnotations`, combining standard GenAI
+ * telemetry attributes with optional OpenAI request and response attributes.
+ *
+ * @since 4.0.0
  * @since models
  */
 export type OpenAiTelemetryAttributeOptions = Telemetry.GenAITelemetryAttributeOptions & {
@@ -122,7 +125,7 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
  *
  * **NOTE**: This method will mutate the `Span` **in-place**.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @since utilities
  */
 export const addGenAIAnnotations: {

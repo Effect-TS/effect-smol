@@ -1,4 +1,27 @@
 /**
+ * The `HttpApi` module defines the top-level contract for an Effect HTTP API.
+ * An `HttpApi` names an API and collects one or more `HttpApiGroup`s, whose
+ * endpoints describe the request inputs, response schemas, middleware, and
+ * annotations that later drive server builders, clients, and OpenAPI
+ * generation.
+ *
+ * Use this module when you want to compose a domain API from endpoint groups,
+ * combine APIs from multiple modules, apply a shared path prefix or middleware,
+ * attach annotations, or reflect over the final route shape. Implementations are
+ * provided separately with `HttpApiBuilder.group`, and the completed API is
+ * registered with `HttpApiBuilder.layer`.
+ *
+ * A few composition details are worth keeping in mind: group identifiers are
+ * used as keys, so adding another group with the same identifier replaces the
+ * previous one; `prefix` and `middleware` are applied to the groups and
+ * endpoints already present when they are called; and `addHttpApi` merges the
+ * added API's annotations into its groups. During reflection, success and error
+ * schemas are grouped by the HTTP status recorded on their `HttpApiSchema`
+ * annotations, endpoints without an explicit success schema default to
+ * `NoContent`, and middleware error schemas are included with endpoint errors.
+ * Extra schemas supplied through `AdditionalSchemas` must have an `identifier`
+ * annotation so they can be emitted as OpenAPI components.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
@@ -18,19 +41,22 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
 const TypeId = "~effect/httpapi/HttpApi"
 
 /**
- * @since 4.0.0
+ * Returns `true` when a value is an `HttpApi`.
+ *
  * @category guards
+ * @since 4.0.0
  */
 export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
- * An `HttpApi` is a collection of `HttpApiEndpoint`s. You can use an `HttpApi` to
- * represent a portion of your domain.
+ * An `HttpApi` is a collection of HTTP API groups and endpoints that represents a
+ * portion of your domain.
  *
- * The endpoints can be implemented later using the `HttpApiBuilder.make` api.
+ * Endpoint implementations can be provided with `HttpApiBuilder.group`, and the
+ * completed API can be registered with `HttpApiBuilder.layer`.
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface HttpApi<
   out Id extends string,
@@ -82,16 +108,21 @@ export interface HttpApi<
 }
 
 /**
- * @since 4.0.0
+ * An `HttpApi` value with its identifier and group types erased.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
 }
 
 /**
- * @since 4.0.0
+ * An `HttpApi` with broad identifier and group types while retaining the concrete
+ * runtime properties used by implementation helpers.
+ *
  * @category models
+ * @since 4.0.0
  */
 export type AnyWithProps = HttpApi<string, HttpApiGroup.AnyWithProps>
 
@@ -175,14 +206,13 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
 }
 
 /**
- * An `HttpApi` is a collection of `HttpApiEndpoint`s. You can use an `HttpApi` to
- * represent a portion of your domain.
+ * Creates an empty `HttpApi` with the supplied identifier.
  *
- * You can then use `HttpApiBuilder.layer(api)` to implement the endpoints of the
- * `HttpApi`.
+ * Add groups with `add` or `addHttpApi`, provide endpoint implementations with
+ * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never> =>
   makeProto({
@@ -192,8 +222,13 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
   })
 
 /**
- * @since 4.0.0
+ * Walks the groups and endpoints in an `HttpApi`.
+ *
+ * The callbacks receive each group or endpoint with merged annotations, endpoint
+ * middleware, and response schemas grouped by HTTP status.
+ *
  * @category Reflection
+ * @since 4.0.0
  */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   self: HttpApi<Id, Groups>,
@@ -280,8 +315,8 @@ const extractResponseContent = (
  * Adds additional schemas to components/schemas.
  * The provided schemas must have a `identifier` annotation.
  *
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class AdditionalSchemas extends Context.Service<
   AdditionalSchemas,

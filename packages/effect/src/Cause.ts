@@ -93,16 +93,16 @@ import type * as Types from "./Types.ts"
 /**
  * Unique brand for `Cause` values, used for runtime type checks via {@link isCause}.
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export const TypeId: "~effect/Cause" = core.CauseTypeId
 
 /**
  * Unique brand for `Reason` values, used for runtime type checks via {@link isReason}.
  *
- * @since 2.0.0
  * @category symbols
+ * @since 2.0.0
  */
 export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
 
@@ -134,8 +134,8 @@ export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
  *
  * @see {@link Reason} — the union type stored in `reasons`
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Cause<out E> extends Pipeable, Inspectable, Equal {
   readonly [TypeId]: typeof TypeId
@@ -205,8 +205,8 @@ export const isReason: (self: unknown) => self is Reason<unknown> = core.isCause
  * @see {@link Die} — untyped defect reason
  * @see {@link Interrupt} — interruption reason
  *
- * @since 4.0.0
  * @category models
+ * @since 4.0.0
  */
 export type Reason<E> = Fail<E> | Die | Interrupt
 
@@ -282,8 +282,8 @@ export const isInterruptReason: <E>(self: Reason<E>) => self is Interrupt = core
 /**
  * Companion namespace for the {@link Cause} interface.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Cause {
   /**
@@ -298,8 +298,8 @@ export declare namespace Cause {
    * type E = Cause.Cause.Error<Cause.Cause<string>>
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Error<T> = T extends Cause<infer E> ? E : never
 
@@ -312,8 +312,8 @@ export declare namespace Cause {
    * - `annotations` — tracing metadata attached by the runtime
    * - `annotate()` — returns a copy with additional annotations
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface ReasonProto<Tag extends string> extends Inspectable, Equal {
     readonly [ReasonTypeId]: typeof ReasonTypeId
@@ -328,8 +328,8 @@ export declare namespace Cause {
 /**
  * Companion namespace for the {@link Reason} type.
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export declare namespace Reason {
   /**
@@ -344,8 +344,8 @@ export declare namespace Reason {
    * type E = Cause.Reason.Error<Cause.Reason<string>>
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Error<T> = T extends Reason<infer E> ? E : never
 }
@@ -372,8 +372,8 @@ export declare namespace Reason {
  * @see {@link die} — create a `Cause` containing a single `Die`
  * @see {@link isDieReason} — type guard
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Die extends Cause.ReasonProto<"Die"> {
   readonly defect: unknown
@@ -400,8 +400,8 @@ export interface Die extends Cause.ReasonProto<"Die"> {
  * @see {@link fail} — create a `Cause` containing a single `Fail`
  * @see {@link isFailReason} — type guard
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
   readonly error: E
@@ -428,8 +428,8 @@ export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
  * @see {@link interrupt} — create a `Cause` containing a single `Interrupt`
  * @see {@link isInterruptReason} — type guard
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
   readonly fiberId: number | undefined
@@ -744,9 +744,10 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
 export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
 
 /**
- * Returns the first {@link Fail} reason from a cause, including its
- * annotations. Returns `Filter.fail` with the remaining cause when no
- * `Fail` is found.
+ * Returns a `Result` whose success value is the first {@link Fail} reason in
+ * the cause, including its annotations. If the cause has no `Fail` reason, the
+ * failure value is the original cause narrowed to `Cause<never>`, because it
+ * contains no typed error reasons.
  *
  * Use {@link findError} if you only need the unwrapped error value `E`.
  *
@@ -770,8 +771,10 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
 export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never>> = effect.findFail
 
 /**
- * Returns the first typed error value `E` from a cause.
- * Returns `Filter.fail` with the remaining cause when no `Fail` is found.
+ * Returns a `Result` whose success value is the first typed error value `E`
+ * from a {@link Fail} reason in the cause. If the cause has no `Fail` reason,
+ * the failure value is the original cause narrowed to `Cause<never>`, because
+ * it contains no typed error reasons.
  *
  * Use {@link findFail} if you need the full {@link Fail} reason (including
  * annotations). Use {@link findErrorOption} if you prefer an `Option`.
@@ -799,8 +802,8 @@ export const findError: <E>(self: Cause<E>) => Result.Result<E, Cause<never>> = 
  * Returns the first typed error value `E` from a cause wrapped in
  * `Option.some`, or `Option.none` if no {@link Fail} reason exists.
  *
- * This is a convenience wrapper around {@link findError} for code that
- * already works with `Option` instead of `Filter`.
+ * This is the `Option`-returning variant of {@link findError} for code that
+ * does not need the original cause returned in a failed `Result`.
  *
  * **Example** (extracting an error as Option)
  *
@@ -842,9 +845,9 @@ export const findErrorOption: <E>(input: Cause<E>) => Option<E> = effect.findErr
 export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
 
 /**
- * Returns the first {@link Die} reason from a cause, including its
- * annotations. Returns `Filter.fail` with the original cause when no
- * `Die` is found.
+ * Returns a `Result` whose success value is the first {@link Die} reason in
+ * the cause, including its annotations. If the cause has no `Die` reason, the
+ * failure value is the original cause.
  *
  * Use {@link findDefect} if you only need the unwrapped defect value.
  *
@@ -868,9 +871,9 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
 export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effect.findDie
 
 /**
- * Returns the first defect value (`unknown`) from a cause.
- * Returns `Filter.fail` with the original cause when no {@link Die} reason
- * is found.
+ * Returns a `Result` whose success value is the first defect value from a
+ * {@link Die} reason in the cause. If the cause has no `Die` reason, the
+ * failure value is the original cause.
  *
  * Use {@link findDie} if you need the full `Die` reason (including
  * annotations).
@@ -916,9 +919,9 @@ export const findDefect: <E>(self: Cause<E>) => Result.Result<unknown, Cause<E>>
 export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupts
 
 /**
- * Returns the first {@link Interrupt} reason from a cause, including its
- * annotations. Returns `Filter.fail` with the original cause when no
- * `Interrupt` is found.
+ * Returns a `Result` whose success value is the first {@link Interrupt} reason
+ * in the cause, including its annotations. If the cause has no `Interrupt`
+ * reason, the failure value is the original cause.
  *
  * **Example** (extracting the first interrupt)
  *
@@ -939,11 +942,13 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
 export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Cause<E>> = effect.findInterrupt
 
 /**
- * Collects the fiber IDs of all {@link Interrupt} reasons in the cause into
- * a `ReadonlySet`. Returns an empty set when the cause has no interrupts.
+ * Collects the defined fiber IDs from all {@link Interrupt} reasons in the
+ * cause into a `ReadonlySet`. Interrupt reasons without a `fiberId` are
+ * ignored. Returns an empty set when the cause has no interrupting fiber IDs.
  *
- * This always succeeds (no `Filter.fail`). Use {@link filterInterruptors}
- * for the `Filter`-based variant.
+ * This always succeeds. Use {@link filterInterruptors} when you want a
+ * `Result` that fails with the original cause if there are no `Interrupt`
+ * reasons.
  *
  * **Example** (collecting interruptors)
  *
@@ -965,12 +970,12 @@ export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Caus
 export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.causeInterruptors
 
 /**
- * Extracts the set of interrupting fiber IDs from a cause.
- * Returns `Filter.fail` with the original cause when no {@link Interrupt}
- * reason is found.
+ * Returns a `Result` whose success value is the set of defined fiber IDs from
+ * the cause's {@link Interrupt} reasons. If the cause has no `Interrupt`
+ * reason, the failure value is the original cause.
  *
- * Use {@link interruptors} if you always want a `Set` (possibly empty)
- * without `Filter` wrapping.
+ * Use {@link interruptors} if you always want a `Set` without `Result`
+ * wrapping.
  *
  * **Example** (extracting interruptors with Filter)
  *
@@ -1022,8 +1027,8 @@ export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number
  * @see {@link pretty} — renders the cause as a single string
  * @see {@link squash} — lossy collapse to a single thrown value
  *
- * @since 4.0.0
  * @category rendering
+ * @since 4.0.0
  */
 export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
 
@@ -1059,20 +1064,20 @@ export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePre
  *
  * @see {@link prettyErrors} — get the individual `Error` instances
  *
- * @since 4.0.0
  * @category rendering
+ * @since 4.0.0
  */
 export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
 
 /**
  * Base interface for error classes that can be yielded directly inside
- * `Effect.gen` (via `Symbol.iterator`) or converted to a failing Effect
- * via ``.
+ * `Effect.gen`. Yielding one of these errors fails the generator with that
+ * error as the typed failure value.
  *
  * All built-in error classes in this module ({@link NoSuchElementError},
  * {@link TimeoutError}, {@link IllegalArgumentError},
- * {@link ExceededCapacityError}, {@link UnknownError}) extend this
- * interface.
+ * {@link ExceededCapacityError}, {@link AsyncFiberError}, and
+ * {@link UnknownError}) implement this interface.
  *
  * **Example** (yielding an error in Effect.gen)
  *
@@ -1086,8 +1091,8 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
  * })
  * ```
  *
- * @since 2.0.0
  * @category errors
+ * @since 2.0.0
  */
 export interface YieldableError extends Error, Pipeable, Inspectable {
   readonly [Effect.TypeId]: Effect.Variance<never, this, never>
@@ -1114,17 +1119,22 @@ export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = cor
 /**
  * Unique brand for {@link NoSuchElementError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core.NoSuchElementErrorTypeId
 
 /**
- * An error indicating that a requested element does not exist.
+ * An error indicating that an expected value was absent.
  *
- * Thrown by APIs like `Array.head`, `Option.getOrThrow`, `Map.get`, etc.
- * when no element matches. Implements {@link YieldableError} so it can be
+ * Used by APIs that convert absence into an exception or effect failure, such
+ * as `Option.getOrThrow`. Implements {@link YieldableError} so it can be
  * yielded directly in `Effect.gen`.
+ *
+ * **Notes**
+ *
+ * Safe lookup APIs that return `Option` should document the `None` case rather
+ * than describing it as a thrown `NoSuchElementError`.
  *
  * **Example** (creating and checking)
  *
@@ -1139,8 +1149,8 @@ export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core
  * @see {@link isNoSuchElementError} — type guard
  * @see {@link NoSuchElementError:var | NoSuchElementError constructor}
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface NoSuchElementError extends YieldableError {
   readonly [NoSuchElementErrorTypeId]: typeof NoSuchElementErrorTypeId
@@ -1184,8 +1194,8 @@ export const isDone: (u: unknown) => u is Done<any> = core.isDone
 /**
  * Unique brand for {@link Done} values.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
 
@@ -1215,8 +1225,8 @@ export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
  * @see {@link isDone} — type guard
  * @see {@link done} — create a failing Effect with `Done`
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface Done<A = void> {
   readonly [DoneTypeId]: typeof DoneTypeId
@@ -1227,8 +1237,8 @@ export interface Done<A = void> {
 /**
  * Companion namespace for the {@link Done} interface.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export declare namespace Done {
   /**
@@ -1271,8 +1281,8 @@ export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core
 /**
  * Unique brand for {@link TimeoutError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const TimeoutErrorTypeId: "~effect/Cause/TimeoutError" = effect.TimeoutErrorTypeId
 
@@ -1311,8 +1321,8 @@ export const isTimeoutError: (u: unknown) => u is TimeoutError = effect.isTimeou
  *
  * @see {@link isTimeoutError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface TimeoutError extends YieldableError {
   readonly [TimeoutErrorTypeId]: typeof TimeoutErrorTypeId
@@ -1339,8 +1349,8 @@ export const TimeoutError: new(message?: string) => TimeoutError = effect.Timeou
 /**
  * Unique brand for {@link IllegalArgumentError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const IllegalArgumentErrorTypeId: "~effect/Cause/IllegalArgumentError" = effect.IllegalArgumentErrorTypeId
 
@@ -1379,8 +1389,8 @@ export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError =
  *
  * @see {@link isIllegalArgumentError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface IllegalArgumentError extends YieldableError {
   readonly [IllegalArgumentErrorTypeId]: typeof IllegalArgumentErrorTypeId
@@ -1424,8 +1434,8 @@ export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError
 /**
  * Unique brand for {@link ExceededCapacityError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" = effect.ExceededCapacityErrorTypeId
 
@@ -1447,8 +1457,8 @@ export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" 
  *
  * @see {@link isExceededCapacityError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface ExceededCapacityError extends YieldableError {
   readonly [ExceededCapacityErrorTypeId]: typeof ExceededCapacityErrorTypeId
@@ -1475,12 +1485,14 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
 /**
  * Unique brand for {@link AsyncFiberError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
 
 /**
+ * Tests if an arbitrary value is an {@link AsyncFiberError}.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -1489,8 +1501,8 @@ export const isAsyncFiberError: (u: unknown) => u is AsyncFiberError = effect.is
 /**
  * An error that occurs when trying to run an async fiber with Effect.runSync.
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface AsyncFiberError extends YieldableError {
   readonly [AsyncFiberErrorTypeId]: typeof AsyncFiberErrorTypeId
@@ -1509,8 +1521,8 @@ export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberE
 /**
  * Unique brand for {@link UnknownError}.
  *
- * @since 4.0.0
  * @category symbols
+ * @since 4.0.0
  */
 export const UnknownErrorTypeId: "~effect/Cause/UnknownError" = effect.UnknownErrorTypeId
 
@@ -1550,8 +1562,8 @@ export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknow
  *
  * @see {@link isUnknownError} — type guard
  *
- * @since 4.0.0
  * @category errors
+ * @since 4.0.0
  */
 export interface UnknownError extends YieldableError {
   readonly [UnknownErrorTypeId]: typeof UnknownErrorTypeId

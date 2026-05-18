@@ -1,4 +1,28 @@
 /**
+ * The `HttpApiSecurity` module defines the security scheme values used by
+ * declarative HTTP APIs.
+ *
+ * Use these constructors when an API group or endpoint needs authentication
+ * middleware for bearer tokens, API keys, or HTTP Basic credentials. The values
+ * are intentionally small declarations: `HttpApiMiddleware.Service` attaches
+ * them to middleware, `HttpApiBuilder` decodes the matching credential shape from
+ * each request, and OpenAPI generation emits the corresponding
+ * `components.securitySchemes` and operation security requirements.
+ *
+ * Common uses include modeling `Authorization: Bearer ...` tokens, Basic
+ * username/password credentials, and API keys passed through headers, query
+ * parameters, or cookies. Bearer tokens and API-key values are exposed to
+ * middleware as `Redacted` values; Basic credentials expose the username with a
+ * redacted password. Cookie API keys can also be written to responses with
+ * `HttpApiBuilder.securitySetCookie`.
+ *
+ * A security scheme does not authenticate by itself: middleware must reject empty
+ * or invalid credentials. Bearer and Basic schemes read the `Authorization`
+ * header, while API-key headers use HTTP header name normalization and API-key
+ * query or cookie names are matched exactly. OpenAPI annotations such as
+ * descriptions and bearer formats affect generated documentation only; they do
+ * not change runtime decoding.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -10,19 +34,25 @@ import type { Covariant } from "../../Types.ts"
 const TypeId = "~effect/httpapi/HttpApiSecurity"
 
 /**
- * @since 4.0.0
+ * Union of security schemes supported by the HTTP API OpenAPI model.
+ *
  * @category models
+ * @since 4.0.0
  */
 export type HttpApiSecurity = Bearer | ApiKey | Basic
 
 /**
- * @since 4.0.0
+ * Helper types for HTTP API security schemes.
+ *
  * @category models
+ * @since 4.0.0
  */
 export declare namespace HttpApiSecurity {
   /**
-   * @since 4.0.0
+   * Common prototype for security schemes, carrying the credential type and OpenAPI annotations.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface Proto<out A> extends Pipeable {
     readonly [TypeId]: {
@@ -32,23 +62,29 @@ export declare namespace HttpApiSecurity {
   }
 
   /**
-   * @since 4.0.0
+   * Extracts the credential type produced by a security scheme.
+   *
    * @category models
+   * @since 4.0.0
    */
   export type Type<A extends HttpApiSecurity> = A extends Proto<infer Out> ? Out : never
 }
 
 /**
- * @since 4.0.0
+ * Bearer token security scheme whose decoded credential is a redacted token.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Bearer extends HttpApiSecurity.Proto<Redacted> {
   readonly _tag: "Bearer"
 }
 
 /**
- * @since 4.0.0
+ * API key security scheme identifying the key name and whether it is read from a header, query parameter, or cookie.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface ApiKey extends HttpApiSecurity.Proto<Redacted> {
   readonly _tag: "ApiKey"
@@ -57,16 +93,20 @@ export interface ApiKey extends HttpApiSecurity.Proto<Redacted> {
 }
 
 /**
- * @since 4.0.0
+ * HTTP Basic authentication security scheme whose decoded credential is `Credentials`.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Basic extends HttpApiSecurity.Proto<Credentials> {
   readonly _tag: "Basic"
 }
 
 /**
- * @since 4.0.0
+ * Decoded credentials for HTTP Basic authentication.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Credentials {
   readonly username: string
@@ -86,8 +126,8 @@ const Proto = {
  * You can implement some api middleware for this security scheme using
  * `HttpApiBuilder.middlewareSecurity`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const bearer: Bearer = Object.assign(Object.create(Proto), {
   _tag: "Bearer",
@@ -105,8 +145,8 @@ export const bearer: Bearer = Object.assign(Object.create(Proto), {
  *
  * The default value for `in` is "header".
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const apiKey = (options: {
   readonly key: string
@@ -120,8 +160,13 @@ export const apiKey = (options: {
   })
 
 /**
- * @since 4.0.0
+ * Creates an HTTP Basic authentication security scheme.
+ *
+ * You can implement API middleware for this security scheme with
+ * `HttpApiBuilder.middlewareSecurity`.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const basic: Basic = Object.assign(Object.create(Proto), {
   _tag: "Basic",
@@ -129,8 +174,10 @@ export const basic: Basic = Object.assign(Object.create(Proto), {
 })
 
 /**
- * @since 4.0.0
+ * Merges OpenAPI annotations into a security scheme.
+ *
  * @category annotations
+ * @since 4.0.0
  */
 export const annotateMerge: {
   <I>(annotations: Context.Context<I>): <A extends HttpApiSecurity>(self: A) => A
@@ -145,8 +192,10 @@ export const annotateMerge: {
 )
 
 /**
- * @since 4.0.0
+ * Adds an OpenAPI annotation value to a security scheme.
+ *
  * @category annotations
+ * @since 4.0.0
  */
 export const annotate: {
   <I, S>(service: Context.Key<I, S>, value: S): <A extends HttpApiSecurity>(self: A) => A

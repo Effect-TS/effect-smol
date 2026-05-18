@@ -1,4 +1,31 @@
 /**
+ * The `HttpApiBuilder` module connects declarative `HttpApi` definitions to
+ * runnable HTTP server routes.
+ *
+ * Use this module when you have described an API with `HttpApi`,
+ * `HttpApiGroup`, and `HttpApiEndpoint` values and need to provide the
+ * server-side implementation. `group` creates a layer for implementing every
+ * endpoint in one API group, `layer` registers the implemented groups with an
+ * `HttpRouter` and can expose the generated OpenAPI specification, and
+ * `endpoint` builds the effect for a single endpoint when custom composition is
+ * needed.
+ *
+ * The builder performs the runtime work implied by endpoint metadata: it decodes
+ * path parameters, headers, query parameters, and request payloads with
+ * `Schema`, applies endpoint middleware and security middleware, invokes the
+ * registered handler, and encodes successful or declared error results into
+ * `HttpServerResponse` values. Handlers can return an `HttpServerResponse`
+ * directly to bypass success encoding, and `handleRaw` can be used when payload
+ * decoding should be handled manually.
+ *
+ * A few implementation details are worth keeping in mind. Every group in the
+ * API must be provided with `HttpApiBuilder.group` before `layer` is evaluated,
+ * otherwise registration fails with a defect that names the missing group and
+ * the available group services. Payload decoding is selected by request media type;
+ * unsupported content types produce a `415` response before the handler runs.
+ * Schema failures are wrapped as `HttpApiSchemaError`, while ordinary handler
+ * failures are encoded with the endpoint's declared error schemas.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -46,8 +73,8 @@ import * as OpenApi from "./OpenApi.ts"
 /**
  * Register an `HttpApi` with a `HttpRouter`.
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
@@ -101,8 +128,8 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  *
  * You can implement endpoints using the `handlers.handle` api.
  *
- * @since 4.0.0
  * @category handlers
+ * @since 4.0.0
  */
 export const group = <
   ApiId extends string,
@@ -142,22 +169,30 @@ export const group = <
   })) as any
 
 /**
- * @since 4.0.0
+ * Type identifier symbol used to brand `Handlers` values.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
 
 /**
- * @since 4.0.0
+ * Type of the `Handlers` type identifier symbol.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export type HandlersTypeId = typeof HandlersTypeId
 
 /**
- * Represents a handled `HttpApi`.
+ * Mutable handler collection for one `HttpApi` group.
  *
- * @since 4.0.0
+ * Each call to `handle` or `handleRaw` registers an endpoint implementation and
+ * removes that endpoint from the type-level set of endpoints still requiring
+ * handlers.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export interface Handlers<
   R,
@@ -210,21 +245,30 @@ export interface Handlers<
 }
 
 /**
- * @since 4.0.0
+ * Namespace containing helper types for `HttpApiBuilder` handler collections.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export declare namespace Handlers {
   /**
-   * @since 4.0.0
+   * A `Handlers` value with its context and endpoint types erased.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export interface Any {
     readonly [HandlersTypeId]: any
   }
 
   /**
-   * @since 4.0.0
+   * Record stored for a registered endpoint handler.
+   *
+   * It keeps the endpoint metadata, handler function, whether raw request handling
+   * is used, and whether the handler should run uninterruptibly.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type Item<R> = {
     readonly endpoint: HttpApiEndpoint.AnyWithProps
@@ -234,8 +278,11 @@ export declare namespace Handlers {
   }
 
   /**
-   * @since 4.0.0
+   * Creates a handler collection for a group where every endpoint in the group is
+   * still awaiting an implementation.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type FromGroup<Group extends HttpApiGroup.Any> = Handlers<
     never,
@@ -243,8 +290,12 @@ export declare namespace Handlers {
   >
 
   /**
-   * @since 4.0.0
+   * Validates the return value of a group handler builder, preserving successful
+   * handler collections and producing a descriptive type error when endpoints remain
+   * unhandled.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type ValidateReturn<A> = A extends (
     | Handlers<
@@ -264,8 +315,11 @@ export declare namespace Handlers {
     `Must return the implemented handlers`
 
   /**
-   * @since 4.0.0
+   * Extracts the error channel from an effect that produces a `Handlers`
+   * collection, returning `never` for non-effectful handler collections.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type Error<A> = A extends Effect.Effect<
     Handlers<
@@ -278,8 +332,11 @@ export declare namespace Handlers {
     never
 
   /**
-   * @since 4.0.0
+   * Extracts the services required by a handler collection, including both handler
+   * requirements and the environment required to construct the handlers.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type Context<A> = A extends Handlers<
     infer _R,
@@ -297,8 +354,11 @@ export declare namespace Handlers {
 }
 
 /**
- * @since 4.0.0
+ * Builds the server-side HTTP effect for a single endpoint in an API group using
+ * the endpoint metadata, middleware, codecs, and supplied handler.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export const endpoint = <
   ApiId extends string,
@@ -351,8 +411,11 @@ export const endpoint = <
   })
 
 /**
- * @since 4.0.0
+ * Decodes credentials for an HTTP API security scheme from the current request,
+ * supporting bearer, API key, and basic authentication inputs.
+ *
  * @category security
+ * @since 4.0.0
  */
 export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>(
   self: Security
@@ -415,8 +478,11 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
 }
 
 /**
- * @since 4.0.0
+ * Registers a pre-response handler that sets an API-key cookie on the outgoing
+ * response, defaulting the cookie to `secure` and `httpOnly` unless overridden.
+ *
  * @category security
+ * @since 4.0.0
  */
 export const securitySetCookie = (
   self: HttpApiSecurity.ApiKey,

@@ -20,6 +20,29 @@
     }],
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
+    "effect/standard-jsdoc": ["error", {
+      "include": [
+        "packages/**/src/*.ts",
+        "packages/**/src/**/*.ts"
+      ],
+      "exclude": [
+        "packages/**/src/index.ts",
+        "packages/**/src/*Generated.ts",
+        "packages/**/src/internal/**",
+        "packages/**/src/**/internal/**"
+      ],
+      "checks": {
+        "description": true,
+        "tags": false,
+        "category": false,
+        "since": false,
+        "examples": false
+      },
+      "examples": {
+        "values": "optional",
+        "types": "optional"
+      }
+    }],
     // Tune native rules
     // Import rules
     "typescript/consistent-type-imports": ["error", {

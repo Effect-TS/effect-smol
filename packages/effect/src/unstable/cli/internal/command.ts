@@ -283,7 +283,11 @@ const parseParams: (parsedArgs: Param.ParsedArgs, params: ReadonlyArray<Param.An
 })
 
 /**
- * Checks for duplicate flag names between parent and child commands.
+ * Checks that inherited parent context flags do not reuse names declared by
+ * child command flags.
+ *
+ * When `contextConfig` is supplied, it is used as the inherited flag set;
+ * otherwise the parent's current context config is checked.
  */
 export const checkForDuplicateFlags = <Name extends string, Input, ContextInput, E, R>(
   parent: Command<Name, Input, ContextInput, E, R>,

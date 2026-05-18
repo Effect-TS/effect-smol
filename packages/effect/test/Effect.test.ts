@@ -2645,7 +2645,7 @@ describe("Effect", () => {
           return 42
         })
 
-        // @effect-diagnostics-next-line multipleEffectProvide:off
+        // @effect-diagnostics multipleEffectProvide:off
         yield* Effect.void.pipe(
           Effect.provide(layer, { local: true }), // local always builds the layer
           Effect.provide(layer),

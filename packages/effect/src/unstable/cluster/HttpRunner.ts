@@ -1,4 +1,27 @@
 /**
+ * The `HttpRunner` module wires cluster runner RPCs to HTTP transports. It
+ * provides client protocol layers for contacting runners over HTTP or
+ * WebSocket, server-side HTTP effects for exposing runner RPC handlers, and
+ * complete layers that install those routes into an `HttpRouter`.
+ *
+ * **Common tasks**
+ *
+ * - Serve runner RPC routes with {@link layerHttp} or {@link layerWebsocket}
+ * - Configure client-only runner communication with {@link layerHttpClientOnly}
+ *   or {@link layerWebsocketClientOnly}
+ * - Use custom route paths with {@link layerHttpOptions},
+ *   {@link layerWebsocketOptions}, {@link layerClientProtocolHttp}, or
+ *   {@link layerClientProtocolWebsocket}
+ *
+ * **Transport gotchas**
+ *
+ * - Client protocol paths are appended to each runner address when building the
+ *   target URL
+ * - `https: true` switches HTTP clients from `http` to `https`, and WebSocket
+ *   clients from `ws` to `wss`
+ * - The default complete layers serve and connect at `/`; use the `Options`
+ *   variants when your runner routes live under a different path
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -24,8 +47,14 @@ import * as Sharding from "./Sharding.ts"
 import type * as ShardingConfig from "./ShardingConfig.ts"
 
 /**
- * @since 4.0.0
+ * Provides a runner RPC client protocol that connects to runner addresses over
+ * HTTP.
+ *
+ * The configured path is appended to each runner address, and `https` switches
+ * the generated URL from `http` to `https`.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolHttp = (options: {
   readonly path: string
@@ -53,8 +82,10 @@ export const layerClientProtocolHttp = (options: {
   )
 
 /**
- * @since 4.0.0
+ * Default HTTP runner client protocol layer using path `/`.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolHttpDefault: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -63,8 +94,14 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
 > = layerClientProtocolHttp({ path: "/" })
 
 /**
- * @since 4.0.0
+ * Provides a runner RPC client protocol that connects to runner addresses over
+ * WebSocket.
+ *
+ * The configured path is appended to each runner address, and `https` switches
+ * the generated URL from `ws` to `wss`.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolWebsocket = (options: {
   readonly path: string
@@ -94,8 +131,10 @@ export const layerClientProtocolWebsocket = (options: {
   )
 
 /**
- * @since 4.0.0
+ * Default WebSocket runner client protocol layer using path `/`.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClientProtocolWebsocketDefault: Layer.Layer<
   Runners.RpcClientProtocol,
@@ -104,8 +143,13 @@ export const layerClientProtocolWebsocketDefault: Layer.Layer<
 > = layerClientProtocolWebsocket({ path: "/" })
 
 /**
- * @since 4.0.0
+ * Builds an HTTP effect that serves runner RPCs over the HTTP protocol.
+ *
+ * The returned effect is produced from `RunnerServer.layerHandlers` and the
+ * cluster runner RPC group.
+ *
  * @category Http App
+ * @since 4.0.0
  */
 export const toHttpEffect: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
@@ -120,8 +164,13 @@ export const toHttpEffect: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
+ * Builds an HTTP effect that serves runner RPCs over WebSocket.
+ *
+ * The returned effect is produced from `RunnerServer.layerHandlers` and the
+ * cluster runner RPC group.
+ *
  * @category Http App
+ * @since 4.0.0
  */
 export const toHttpEffectWebsocket: Effect.Effect<
   Effect.Effect<HttpServerResponse, never, Scope | HttpServerRequest>,
@@ -136,8 +185,11 @@ export const toHttpEffectWebsocket: Effect.Effect<
 })
 
 /**
- * @since 4.0.0
+ * Layer that provides `Sharding` and `Runners` using the configured runner RPC
+ * client protocol and storage services.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerClient: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -151,8 +203,8 @@ export const layerClient: Layer.Layer<
  * A HTTP layer for the `Runners` services, that adds a route to the provided
  * `HttpRouter`.
  *
- * @since 4.0.0
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttpOptions = (options: {
   readonly path: HttpRouter.PathInput
@@ -172,8 +224,11 @@ export const layerHttpOptions = (options: {
   )
 
 /**
- * @since 4.0.0
+ * WebSocket layer for the `Runners` services that adds a route to the provided
+ * `HttpRouter`.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWebsocketOptions = (options: {
   readonly path: HttpRouter.PathInput
@@ -193,8 +248,13 @@ export const layerWebsocketOptions = (options: {
   )
 
 /**
- * @since 4.0.0
+ * Complete HTTP runner layer.
+ *
+ * It serves runner routes at `/` and configures runner clients to communicate
+ * over HTTP.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttp: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -211,8 +271,13 @@ export const layerHttp: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
+ * Client-only HTTP runner layer.
+ *
+ * It configures runner clients to communicate over HTTP without serving runner
+ * HTTP routes.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerHttpClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -227,8 +292,13 @@ export const layerHttpClientOnly: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
+ * Complete WebSocket runner layer.
+ *
+ * It serves runner routes at `/` and configures runner clients to communicate
+ * over WebSocket.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWebsocket: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
@@ -245,8 +315,13 @@ export const layerWebsocket: Layer.Layer<
 )
 
 /**
- * @since 4.0.0
+ * Client-only WebSocket runner layer.
+ *
+ * It configures runner clients to communicate over WebSocket without serving
+ * runner WebSocket routes.
+ *
  * @category Layers
+ * @since 4.0.0
  */
 export const layerWebsocketClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,

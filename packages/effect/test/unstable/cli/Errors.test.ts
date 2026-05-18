@@ -1,3 +1,4 @@
+// @effect-diagnostics floatingEffect:skip-file
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, FileSystem, Layer, Path, Stdio } from "effect"
 import { CliError, CliOutput, Command, Flag } from "effect/unstable/cli"

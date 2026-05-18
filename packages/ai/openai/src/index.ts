@@ -1,11 +1,11 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as Generated from "./Generated.ts"
 
@@ -15,17 +15,17 @@ export * as Generated from "./Generated.ts"
  * Provides a type-safe, Effect-based client for OpenAI operations including
  * completions, embeddings, and streaming responses.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiClient from "./OpenAiClient.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiClientGenerated from "./OpenAiClientGenerated.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiConfig from "./OpenAiConfig.ts"
 
@@ -34,7 +34,7 @@ export * as OpenAiConfig from "./OpenAiConfig.ts"
  *
  * Provides an EmbeddingModel implementation for OpenAI's embeddings API.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiEmbeddingModel from "./OpenAiEmbeddingModel.ts"
 
@@ -44,7 +44,7 @@ export * as OpenAiEmbeddingModel from "./OpenAiEmbeddingModel.ts"
  * Provides OpenAI-specific metadata fields for AI error types through module
  * augmentation, enabling typed access to OpenAI error details.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiError from "./OpenAiError.ts"
 
@@ -54,14 +54,14 @@ export * as OpenAiError from "./OpenAiError.ts"
  * Provides a LanguageModel implementation for OpenAI's responses API,
  * supporting text generation, structured output, tool calling, and streaming.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiLanguageModel from "./OpenAiLanguageModel.ts"
 
 /**
  * Minimal local OpenAI schemas used by the handwritten Responses client path.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiSchema from "./OpenAiSchema.ts"
 
@@ -72,7 +72,7 @@ export * as OpenAiSchema from "./OpenAiSchema.ts"
  * semantic conventions, extending the base GenAI attributes with OpenAI-specific
  * request and response metadata.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiTelemetry from "./OpenAiTelemetry.ts"
 
@@ -82,6 +82,6 @@ export * as OpenAiTelemetry from "./OpenAiTelemetry.ts"
  * Provides tools that are natively supported by OpenAI's API, including
  * code interpreter, file search, and web search functionality.
  *
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as OpenAiTool from "./OpenAiTool.ts"

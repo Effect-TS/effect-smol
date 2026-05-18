@@ -14,7 +14,7 @@
     "check": "tspc -b tsconfig.json",
     "check:tsgo": "tsgo -b tsconfig.json",
     "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tspc -b tsconfig.json",
-    "lint": "oxlint && dprint check",
+    "lint": "oxlint -f unix && dprint check",
     "lint-fix": "oxlint --fix && dprint fmt",
     "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "ai-docgen": "effect-ai-docgen ai-docs/src -o LLMS.md",
@@ -22,7 +22,8 @@
     "analyze-jsdoc": "node scripts/analyze-jsdoc.mjs",
     "test-types": "tstyche",
     "changeset-version": "changeset version",
-    "changeset-publish": "pnpm codemod && pnpm build && changeset publish"
+    "changeset-publish": "pnpm codemod && pnpm build && changeset publish",
+    "prepare": "effect-tsgo patch"
   },
   "devDependencies": {
     "@babel/cli": "^7.28.6",
@@ -35,6 +36,7 @@
     "@effect/bundle": "workspace:^",
     "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e57e5f5",
     "@effect/language-service": "^0.85.1",
+    "@effect/tsgo": "^0.7.2",
     "@effect/oxc": "workspace:^",
     "@effect/utils": "workspace:^",
     "@effect/vitest": "workspace:^",

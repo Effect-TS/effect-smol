@@ -1,4 +1,26 @@
 /**
+ * The `EntityProxy` module derives external RPC and HTTP API surfaces from a
+ * clustered {@link Entity.Entity}. It is used when callers should communicate
+ * with entities through ordinary RPC clients or HTTP routes while the cluster
+ * runtime keeps responsibility for locating, routing, and delivering messages
+ * to the entity instance identified by `entityId`.
+ *
+ * **Common tasks**
+ *
+ * - Derive an `RpcGroup` from an entity with {@link toRpcGroup}
+ * - Derive an `HttpApiGroup` from an entity with {@link toHttpApiGroup}
+ * - Expose both request/response calls and discard variants for fire-and-forget
+ *   delivery
+ *
+ * **Gotchas**
+ *
+ * - Proxy RPC payloads wrap the original RPC payload with an `entityId`; HTTP
+ *   endpoints place the same identifier in the route path.
+ * - Generated RPC names are prefixed with the entity type, while HTTP endpoint
+ *   paths are based on lower-cased RPC tags.
+ * - Proxy errors include cluster delivery errors such as mailbox saturation,
+ *   duplicate in-flight messages, and persistence failures.
+ *
  * @since 4.0.0
  */
 import * as Schema from "../../Schema.ts"
@@ -47,8 +69,8 @@ const clientErrors = [
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
   entity: Entity.Entity<Type, Rpcs>
@@ -82,6 +104,11 @@ export const toRpcGroup = <Type extends string, Rpcs extends Rpc.Any>(
 }
 
 /**
+ * Type-level conversion used by `toRpcGroup`.
+ *
+ * For each entity RPC it creates a prefixed request RPC and a discard RPC whose
+ * payload includes `entityId`, and whose errors include cluster client errors.
+ *
  * @since 4.0.0
  */
 export type ConvertRpcs<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs extends Rpc.Rpc<
@@ -166,8 +193,8 @@ const entityIdPath = {
  * )
  * ```
  *
- * @since 4.0.0
  * @category Constructors
+ * @since 4.0.0
  */
 export const toHttpApiGroup = <const Name extends string, Type extends string, Rpcs extends Rpc.Any>(
   name: Name,
@@ -205,6 +232,11 @@ const tagToPath = (tag: string): string =>
     .toLowerCase()
 
 /**
+ * Type-level conversion used by `toHttpApiGroup`.
+ *
+ * For each entity RPC it creates a POST endpoint at `/<tag>/:entityId` and a
+ * discard endpoint at `/<tag>/:entityId/discard`, including cluster client errors.
+ *
  * @since 4.0.0
  */
 export type ConvertHttpApi<Rpcs extends Rpc.Any> = Rpcs extends Rpc.Rpc<

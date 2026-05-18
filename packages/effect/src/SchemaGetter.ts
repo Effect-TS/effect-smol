@@ -306,11 +306,11 @@ export function passthrough<T>(): Getter<T, T> {
 }
 
 /**
- * Returns the identity getter, typed for when the decoded type `T` is a supertype of `E`.
+ * Returns the identity getter typed for the relationship `T extends E`.
  *
- * Use this when:
- * - The decoded type is wider than the encoded type (e.g. `string` from a string literal).
- * - You need type-safe passthrough without `{ strict: false }`.
+ * Use this when no runtime conversion is needed but the getter should be typed
+ * as producing a decoded/output type that is narrower than the encoded/input
+ * type.
  *
  * Behavior:
  * - Same singleton as {@link passthrough} — no allocation, optimized in composition.
@@ -1044,15 +1044,20 @@ type StringifyJsonOptions = {
 }
 
 /**
- * Stringifies a value to JSON.
+ * Stringifies a present value using `JSON.stringify`.
  *
  * Use this when:
- * - A decoded value needs to be serialized to a JSON string during encoding.
+ * - A decoded value needs to be serialized to JSON text during encoding.
  *
  * Behavior:
  * - Skips `None` inputs.
- * - On stringify failure (e.g. circular references), fails with `Issue.InvalidValue`.
- * - Supports optional `replacer` and `space` options (same as `JSON.stringify`).
+ * - On thrown stringify failures, such as circular references, fails with
+ *   `Issue.InvalidValue`.
+ * - Supports optional `replacer` and `space` options, matching
+ *   `JSON.stringify`.
+ * - If `JSON.stringify` returns `undefined`, such as for `undefined`,
+ *   functions, symbols, or a replacer that removes the root value, that
+ *   `undefined` result is returned rather than converted into an `Issue`.
  *
  * **Example** (Stringify JSON)
  *
@@ -1456,10 +1461,12 @@ export function decodeHexString<E extends string>(): Getter<string, E> {
 }
 
 /**
- * Encodes a string using `encodeURIComponent`.
+ * Encodes a present string using `encodeURIComponent`.
  *
  * Behavior:
- * - Pure, never fails.
+ * - Skips `None` inputs.
+ * - May throw a `URIError` for malformed surrogate pairs; this exception is not
+ *   converted into an `Issue`.
  *
  * **Example** (Encode a URI component)
  *
@@ -1515,13 +1522,19 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
 }
 
 /**
- * Parses a `DateTime.Input` value (string, number, or Date) into a `DateTime.Utc`.
+ * Parses a `DateTime.Input` value into a `DateTime.Utc`.
+ *
+ * Accepted input includes existing `DateTime` values, partial date/time parts,
+ * instant objects, zoned instant objects, JavaScript `Date` instances, epoch
+ * milliseconds, and date strings.
  *
  * Use this when:
  * - An encoded value represents a date/time and should be decoded to a `DateTime.Utc`.
  *
  * Behavior:
- * - Fails with `Issue.InvalidValue` if the input cannot be parsed as a valid DateTime.
+ * - Converts successfully parsed values to UTC.
+ * - Fails with `Issue.InvalidValue` if the input cannot be parsed as a valid
+ *   `DateTime`.
  *
  * **Example** (Parse DateTime)
  *
