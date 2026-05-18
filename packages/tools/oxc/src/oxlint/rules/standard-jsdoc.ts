@@ -878,7 +878,7 @@ const rule: CreateRule = {
       if (checks.description && !block.hasDescription) {
         report(node, "Member JSDoc must include a description")
       }
-      validateExamples(node, block, "forbidden")
+      validateExamples(node, block, "optional")
       validateLinks(node, block)
     }
 

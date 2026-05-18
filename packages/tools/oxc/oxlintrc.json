@@ -37,7 +37,7 @@
         "tags": true,
         "category": true,
         "since": true,
-        "examples": false,
+        "examples": true,
         "links": true
       },
       "examples": {

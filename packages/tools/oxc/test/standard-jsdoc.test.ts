@@ -576,6 +576,37 @@ export interface Options {
     expect(errors).toHaveLength(0)
   })
 
+  it("allows canonical examples when member docs are present", () => {
+    const source = `/**
+ * Options.
+ *
+ * @category models
+ * @since 1.0.0
+ */
+export interface Options {
+  /**
+   * Outer options.
+   *
+   * **Example** (Reading the outer option)
+   *
+   * \`\`\`ts
+   * declare const options: Options
+   * options.outer
+   * \`\`\`
+   */
+  readonly outer: string
+}
+`
+    const outer = node(source, "readonly outer", "TSPropertySignature")
+    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
+      body: { body: [outer] }
+    })
+    const exportNode = exportNamed(source, "export interface Options", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
   it("forbids @category when member docs are present", () => {
     const source = `/**
  * Options.
