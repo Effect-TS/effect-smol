@@ -5,15 +5,21 @@ import { SqlClient, SqlModel, SqlResolver } from "effect/unstable/sql"
 import { MysqlContainer } from "./utils.ts"
 
 class User extends Model.Class<User>("User")({
-  id: Model.Generated(Schema.Int),
+  id: Schema.Int.pipe(
+    Model.FieldExcept(["insert"])
+  ),
   name: Schema.String,
   age: Schema.Int
 }) {}
 
 class SoftDeleteUser extends Model.Class<SoftDeleteUser>("SoftDeleteUser")({
-  id: Model.Generated(Schema.Int),
+  id: Schema.Int.pipe(
+    Model.FieldExcept(["insert"])
+  ),
   name: Schema.String,
-  deletedAt: Model.Generated(Schema.NullOr(Schema.String))
+  deletedAt: Schema.NullOr(Schema.String).pipe(
+    Model.FieldOnly(["select", "update"])
+  )
 }) {}
 
 describe("SqlModel", () => {
