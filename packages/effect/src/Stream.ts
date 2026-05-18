@@ -8513,7 +8513,7 @@ const makePubSub = <A>(
  * the same elements as the source stream.
  *
  * The source stream starts after all downstream streams have been subscribed.
- * With the default suspend strategy, the source can only advance `maximumLag`
+ * With the default suspend strategy, the source can only advance `capacity`
  * chunks ahead of the slowest downstream stream. If a downstream stream is
  * interrupted, it unsubscribes from the broadcast so it no longer contributes
  * backpressure.
@@ -8526,7 +8526,7 @@ const makePubSub = <A>(
  * const program = Effect.scoped(
  *   Effect.gen(function*() {
  *     const [left, right] = yield* Stream.make(1, 2, 3).pipe(
- *       Stream.broadcastN(2, 8)
+ *       Stream.broadcastN({ n: 2, capacity: 8 })
  *     )
  *
  *     const values = yield* Effect.all([
@@ -8547,48 +8547,55 @@ const makePubSub = <A>(
  */
 export const broadcastN: {
   <N extends number>(
-    n: N,
-    maximumLag: number | {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      & {
+        readonly n: N
+      }
+      & ({
+        readonly capacity: "unbounded"
+        readonly replay?: number | undefined
+      } | {
+        readonly capacity: number
+        readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+        readonly replay?: number | undefined
+      })
   ): <A, E, R>(self: Stream<A, E, R>) => Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
   <A, E, R, N extends number>(
     self: Stream<A, E, R>,
-    n: N,
-    maximumLag: number | {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      & {
+        readonly n: N
+      }
+      & ({
+        readonly capacity: "unbounded"
+        readonly replay?: number | undefined
+      } | {
+        readonly capacity: number
+        readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+        readonly replay?: number | undefined
+      })
   ): Effect.Effect<TupleOf<N, Stream<A, E>>, never, Scope.Scope | R>
 } = dual(
-  3,
+  2,
   Effect.fnUntraced(function*<A, E, R, N extends number>(
     self: Stream<A, E, R>,
-    n: N,
-    maximumLag: number | {
-      readonly capacity: "unbounded"
-      readonly replay?: number | undefined
-    } | {
-      readonly capacity: number
-      readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
-      readonly replay?: number | undefined
-    }
+    options:
+      & {
+        readonly n: N
+      }
+      & ({
+        readonly capacity: "unbounded"
+        readonly replay?: number | undefined
+      } | {
+        readonly capacity: number
+        readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
+        readonly replay?: number | undefined
+      })
   ) {
-    const pubsub = yield* makePubSub<Take.Take<A, E>>(
-      typeof maximumLag === "number" ? { capacity: maximumLag } : maximumLag
-    )
+    const pubsub = yield* makePubSub<Take.Take<A, E>>(options)
     const parentScope = yield* Scope.Scope
     const streams = yield* Effect.all(
-      Array.from({ length: n }, () => {
+      Array.from({ length: options.n }, () => {
         const scope = Scope.forkUnsafe(parentScope)
         return PubSub.subscribe(pubsub).pipe(
           Effect.provideService(Scope.Scope, scope),

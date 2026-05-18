@@ -4592,7 +4592,7 @@ describe("Stream", () => {
     it.effect("fans out to a fixed number of streams", () =>
       Effect.scoped(Effect.gen(function*() {
         const [left, right] = yield* Stream.make(1, 2, 3).pipe(
-          Stream.broadcastN(2, 4)
+          Stream.broadcastN({ n: 2, capacity: 4 })
         )
 
         const result = yield* Effect.all([
@@ -4606,7 +4606,7 @@ describe("Stream", () => {
     it.effect("propagates failures to all downstream streams", () =>
       Effect.scoped(Effect.gen(function*() {
         const [left, right] = yield* Stream.fail("boom").pipe(
-          Stream.broadcastN(2, 4)
+          Stream.broadcastN({ n: 2, capacity: 4 })
         )
 
         const result = yield* Effect.all([
