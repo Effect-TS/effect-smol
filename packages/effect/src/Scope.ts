@@ -276,12 +276,6 @@ export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Clos
  * Provides a `Scope` to an `Effect`, removing the `Scope` requirement from its context.
  * This allows you to run effects that require a scope by explicitly providing one.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Scope.extend`
- *
  * **Example** (Providing a scope)
  *
  * ```ts

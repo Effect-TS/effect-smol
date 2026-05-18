@@ -126,12 +126,6 @@ export interface Semaphore {
  * Use this low-level constructor when an immediate semaphore value is required;
  * otherwise prefer the effectful `make` constructor.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.makeSemaphoreUnsafe`
- *
  * **Example** (Creating an unsafe semaphore)
  *
  * ```ts
@@ -272,12 +266,6 @@ class SemaphoreImpl implements Semaphore {
  *
  * Use the returned semaphore to limit concurrency with `withPermit` or
  * `withPermits`, or to manually `take` and `release` permits.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.makeSemaphore`
  *
  * **Example** (Creating a semaphore)
  *
