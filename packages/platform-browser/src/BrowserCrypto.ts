@@ -1,4 +1,6 @@
 /**
+ * Browser platform implementation of the Crypto service.
+ *
  * @since 1.0.0
  */
 import * as EffectCrypto from "effect/Crypto"
@@ -9,6 +11,8 @@ import * as PlatformError from "effect/PlatformError"
 const randomValuesMaxLength = 65_536
 
 /**
+ * Browser Web Crypto APIs used by the Crypto service implementation.
+ *
  * @since 1.0.0
  * @category models
  */
@@ -17,40 +21,25 @@ export interface CryptoBackend {
   readonly subtle?: Pick<SubtleCrypto, "digest"> | undefined
 }
 
-const badArgument = (method: string, description: string) =>
-  PlatformError.badArgument({
-    module: "Crypto",
-    method,
-    description
-  })
-
-const unavailable = (method: string, description: string) =>
-  PlatformError.systemError({
-    module: "Crypto",
-    method,
-    _tag: "Unknown",
-    description
-  })
-
-const systemError = (method: string, description: string, cause: unknown) =>
-  PlatformError.systemError({
-    module: "Crypto",
-    method,
-    _tag: "Unknown",
-    description,
-    cause
-  })
-
 const validateSize = (method: string, size: number): Effect.Effect<number, PlatformError.PlatformError> =>
   Number.isSafeInteger(size) && size >= 0
     ? Effect.succeed(size)
-    : Effect.fail(badArgument(method, "size must be a non-negative safe integer"))
+    : Effect.fail(PlatformError.badArgument({
+      module: "Crypto",
+      method,
+      description: "size must be a non-negative safe integer"
+    }))
 
 const getCrypto = (method: string): Effect.Effect<CryptoBackend, PlatformError.PlatformError> =>
   Effect.suspend(() =>
     typeof globalThis.crypto === "object" && globalThis.crypto !== null
       ? Effect.succeed(globalThis.crypto)
-      : Effect.fail(unavailable(method, "globalThis.crypto is not available"))
+      : Effect.fail(PlatformError.systemError({
+        module: "Crypto",
+        method,
+        _tag: "Unknown",
+        description: "globalThis.crypto is not available"
+      }))
   )
 
 const toSubtleAlgorithm = (algorithm: EffectCrypto.DigestAlgorithm): string => {
@@ -72,11 +61,8 @@ const makeWith = (
 ): EffectCrypto.Crypto => {
   const unsafeRandomBytes = (size: number): Uint8Array => {
     const crypto = getUnsafeBackend()
-    if (typeof crypto?.getRandomValues !== "function") {
-      throw new Error("crypto.getRandomValues is not available")
-    }
     const bytes = new Uint8Array(size)
-    crypto.getRandomValues(bytes)
+    crypto!.getRandomValues!(bytes)
     return bytes
   }
 
@@ -96,7 +82,12 @@ const makeWith = (
       (validSize) =>
         Effect.flatMap(getBackend("randomBytes"), (crypto) => {
           if (typeof crypto.getRandomValues !== "function") {
-            return Effect.fail(unavailable("randomBytes", "crypto.getRandomValues is not available"))
+            return Effect.fail(PlatformError.systemError({
+              module: "Crypto",
+              method: "randomBytes",
+              _tag: "Unknown",
+              description: "crypto.getRandomValues is not available"
+            }))
           }
           const getRandomValues = crypto.getRandomValues
           return Effect.try({
@@ -110,7 +101,14 @@ const makeWith = (
               }
               return bytes
             },
-            catch: (cause) => systemError("randomBytes", "Could not generate cryptographic random bytes", cause)
+            catch: (cause) =>
+              PlatformError.systemError({
+                module: "Crypto",
+                method: "randomBytes",
+                _tag: "Unknown",
+                description: "Could not generate cryptographic random bytes",
+                cause
+              })
           })
         })
     )
@@ -118,13 +116,25 @@ const makeWith = (
   const digest: EffectCrypto.Crypto["digest"] = (algorithm, data) =>
     Effect.flatMap(getBackend("digest"), (crypto) => {
       if (typeof crypto.subtle?.digest !== "function") {
-        return Effect.fail(unavailable("digest", "crypto.subtle.digest is not available"))
+        return Effect.fail(PlatformError.systemError({
+          module: "Crypto",
+          method: "digest",
+          _tag: "Unknown",
+          description: "crypto.subtle.digest is not available"
+        }))
       }
       const subtle = crypto.subtle
       return Effect.map(
         Effect.tryPromise({
           try: () => subtle.digest(toSubtleAlgorithm(algorithm), new Uint8Array(data)),
-          catch: (cause) => systemError("digest", "Could not compute digest", cause)
+          catch: (cause) =>
+            PlatformError.systemError({
+              module: "Crypto",
+              method: "digest",
+              _tag: "Unknown",
+              description: "Could not compute digest",
+              cause
+            })
         }),
         (buffer) => new Uint8Array(buffer)
       )
@@ -139,6 +149,8 @@ const makeWith = (
 }
 
 /**
+ * Creates a Crypto service from the supplied browser crypto backend.
+ *
  * @since 1.0.0
  * @category constructors
  */

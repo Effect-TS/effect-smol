@@ -68,6 +68,8 @@ export const Random: Context.Reference<{
 }> = random.Random
 
 /**
+ * The random service type.
+ *
  * @since 4.0.0
  * @category Random Number Generators
  */
