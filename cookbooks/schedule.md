@@ -187,6 +187,7 @@ latest input into the schedule output, then `Schedule.map` changes the output
 into a log-friendly label:
 
 <!-- no-check: focuses on the schedule-builder shape rather than a standalone copy-paste example -->
+
 ```ts no-check
 import { Console, Effect, Schedule } from "effect"
 
@@ -5219,6 +5220,7 @@ to attach a reasonable-looking `Schedule` to an effect only because the failure
 looks temporary:
 
 <!-- no-check: intentionally unsafe anti-pattern; do not treat as a runnable cookbook example -->
+
 ```ts no-check
 import { Console, Effect, Schedule } from "effect"
 
@@ -21618,7 +21620,7 @@ longer running or the budget is exhausted. Then inspect the final value.
 
 ##### Example
 
-```ts runnable deterministic
+```ts runnable
 import { Console, Effect, Schedule } from "effect"
 
 type JobStatus =
@@ -21670,7 +21672,7 @@ const program = checkJobStatus.pipe(
 )
 
 Effect.runPromise(program)
-// Output:
+// Output may vary: elapsed timing can cross the polling budget boundary differently under load
 // job status: Running
 // job status: Running
 // job status: Running

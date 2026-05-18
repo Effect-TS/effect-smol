@@ -13,7 +13,7 @@
     "coverage": "vitest --coverage",
     "check": "tspc -b tsconfig.json",
     "check:tsgo": "tsgo -b tsconfig.json",
-    "check:cookbook:schedule": "node scripts/check-cookbook-schedule.mjs cookbooks/schedule.md",
+    "check:cookbook:schedule": "node scripts/check-cookbook-schedule.ts cookbooks/schedule.md",
     "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tspc -b tsconfig.json",
     "jsdocs": "effect-jsdocs",
     "datasets": "node .data/datasets.ts --input .data/jsdocs.json --output .data/jsdocs-agent --force",
