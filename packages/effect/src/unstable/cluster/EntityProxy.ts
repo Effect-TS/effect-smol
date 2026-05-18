@@ -41,6 +41,8 @@ const clientErrors = [
 /**
  * Derives an `RpcGroup` from an `Entity`.
  *
+ * **Example** (Deriving RPC endpoints from an entity)
+ *
  * ```ts
  * import { Layer, Schema } from "effect"
  * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
@@ -153,6 +155,8 @@ const entityIdPath = {
 
 /**
  * Derives an `HttpApiGroup` from an `Entity`.
+ *
+ * **Example** (Deriving HTTP API endpoints from an entity)
  *
  * ```ts
  * import { Layer, Schema } from "effect"

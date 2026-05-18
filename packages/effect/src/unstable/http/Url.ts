@@ -38,7 +38,7 @@ import * as UrlParams from "./UrlParams.ts"
  * `base`. This is especially useful when dealing with URLs that might not be
  * fully qualified.
  *
- * **Example**
+ * **Example** (Parsing absolute and relative URLs)
  *
  * ```ts
  * import { Result } from "effect"
@@ -84,7 +84,7 @@ export const fromString: {
  * This function clones the original `URL` object and applies a callback to the
  * clone, allowing multiple updates at once.
  *
- * **Example**
+ * **Example** (Mutating URL credentials)
  *
  * ```ts
  * import { Url } from "effect/unstable/http"
@@ -246,7 +246,7 @@ export const setUsername: {
  * object using the provided `UrlParams`. It creates a new `URL` object with the
  * updated parameters, leaving the original object unchanged.
  *
- * **Example**
+ * **Example** (Replacing query parameters)
  *
  * ```ts
  * import { Url, UrlParams } from "effect/unstable/http"
@@ -283,7 +283,7 @@ export const setUrlParams: {
  * them as `UrlParams`. The resulting structure can be easily manipulated or
  * inspected.
  *
- * **Example**
+ * **Example** (Reading query parameters)
  *
  * ```ts
  * import { Url } from "effect/unstable/http"
@@ -312,7 +312,7 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * writing the updated parameters back to the URL. It returns a new `URL` object
  * with the modified parameters, ensuring immutability.
  *
- * **Example**
+ * **Example** (Modifying query parameters)
  *
  * ```ts
  * import { Url, UrlParams } from "effect/unstable/http"

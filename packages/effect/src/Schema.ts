@@ -1935,6 +1935,7 @@ export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never,
  * Creates a schema for a single literal value (string, number, bigint, boolean, or null).
  *
  * **Example** (String literal)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2054,6 +2055,7 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
  * a literal string/number/bigint or a schema whose encoded type is a string, number, or bigint.
  *
  * **Example** (URL path pattern)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2120,6 +2122,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
  * one element per schema part.
  *
  * **Example** (Parse path parameters)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2155,6 +2158,7 @@ export interface Enum<A extends { [x: string]: string | number }>
  * Creates a schema from a TypeScript enum object. Validates that the input is one of the enum's values.
  *
  * **Example** (Direction enum)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2412,6 +2416,7 @@ export interface UniqueSymbol<sym extends symbol>
  * Creates a schema for a specific symbol. Only that exact symbol satisfies the schema.
  *
  * **Example** (Specific symbol)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -3933,6 +3938,7 @@ export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
  * Creates a union schema from an array of literal values.
  *
  * **Example** (Status codes)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -4064,6 +4070,7 @@ export interface suspend<S extends Top> extends
  * preventing infinite recursion during schema definition.
  *
  * **Example** (Recursive tree schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -4090,6 +4097,7 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
  * changing the TypeScript type.
  *
  * **Example** (Adding checks to a schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -6910,6 +6918,7 @@ export const isBetweenBigDecimal = makeIsBetween({
  * length.
  *
  * **Example** (Minimum length check)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -9565,7 +9574,7 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
  * - Any value is encoded as a JSON string using `JSON.stringify`.
  * - If the value is not a valid JSON value, encoding fails.
  *
- * **Example**
+ * **Example** (Decoding unknown JSON strings)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -9600,7 +9609,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * The resulting schema first parses the input string as JSON, and then runs the
  * provided schema on the parsed result.
  *
- * **Example**
+ * **Example** (Decoding JSON strings with a schema)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -9618,7 +9627,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * resulting schema will be a JSON Schema with a `contentSchema` property that
  * contains the JSON Schema for the given schema.
  *
- * **Example**
+ * **Example** (Emitting JSON Schema for a JSON string decoder)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -10300,7 +10309,7 @@ export interface StringFromUriComponent extends decodeTo<String, String> {
  * Encoding:
  * - A `string` is encoded as a URI component encoded string.
  *
- * **Example**
+ * **Example** (Decoding URI component strings)
  *
  * ```ts
  * import { Schema } from "effect"

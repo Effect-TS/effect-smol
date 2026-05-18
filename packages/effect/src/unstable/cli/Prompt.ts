@@ -640,7 +640,7 @@ export declare namespace All {
  * Supports either a tuple / iterable of prompts or a record / struct of prompts
  * as an argument.
  *
- * **Example**
+ * **Example** (Collecting prompt results)
  *
  * ```ts
  * import { Effect } from "effect"
@@ -1062,7 +1062,7 @@ export const select = <const A>(options: SelectOptions<A>): Prompt<A> => {
 /**
  * Creates a prompt that lets users filter select choices by typing.
  *
- * **Example**
+ * **Example** (Filtering choices with autocomplete)
  *
  * ```ts
  * import { Prompt } from "effect/unstable/cli"

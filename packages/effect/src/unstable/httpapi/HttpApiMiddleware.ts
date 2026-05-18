@@ -394,6 +394,8 @@ function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Top> {
  * the supplied `transform` function to convert them into the middleware's declared
  * error schema.
  *
+ * **Example** (Mapping schema errors to custom errors)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { HttpApiMiddleware } from "effect/unstable/httpapi"

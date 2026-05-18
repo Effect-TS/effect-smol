@@ -66,6 +66,8 @@ export interface DurableQueue<
  * A `DurableQueue` wraps a `PersistedQueue`, providing a way to wait for items
  * to finish processing using a `DurableDeferred`.
  *
+ * **Example** (Defining a durable queue with workers)
+ *
  * ```ts
  * import { Effect, Schema } from "effect"
  * import { DurableQueue, Workflow } from "effect/unstable/workflow"

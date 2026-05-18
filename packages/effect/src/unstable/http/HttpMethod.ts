@@ -103,7 +103,7 @@ export const allShort = [
 /**
  * Tests if a value is a `HttpMethod`.
  *
- * **Example**
+ * **Example** (Checking HTTP method values)
  *
  * ```ts
  * import { HttpMethod } from "effect/unstable/http"

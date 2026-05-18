@@ -435,6 +435,8 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  * Use it to register routes or middleware with the router during layer
  * construction.
  *
+ * **Example** (Registering routes during layer construction)
+ *
  * ```ts
  * import { Effect, Layer } from "effect"
  * import { HttpRouter } from "effect/unstable/http"
@@ -455,6 +457,8 @@ export const use = <A, E, R>(
 
 /**
  * Create a layer that adds a single route to the HTTP router.
+ *
+ * **Example** (Adding a GET route)
  *
  * ```ts
  * import { Effect } from "effect"
@@ -485,6 +489,8 @@ export const add = <E = never, R = never>(
 
 /**
  * Create a layer that adds multiple routes to the HTTP router.
+ *
+ * **Example** (Adding multiple routes)
  *
  * ```ts
  * import { Effect } from "effect"
@@ -837,6 +843,8 @@ export interface Middleware<
  * If you want to create a middleware that applies globally to all routes, pass
  * the `global` option as `true`.
  *
+ * **Example** (Applying route and global middleware)
+ *
  * ```ts
  * import { Context, Effect, Layer } from "effect"
  * import { HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/unstable/http"
@@ -1131,6 +1139,8 @@ export const cors = (
 
 /**
  * A middleware that disables the logger for some routes.
+ *
+ * **Example** (Disabling route logging)
  *
  * ```ts
  * import { Effect, Layer } from "effect"
