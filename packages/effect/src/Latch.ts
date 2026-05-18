@@ -31,7 +31,7 @@
  * - Prefer the effectful APIs unless synchronous allocation or mutation is
  *   required
  *
- * @since 3.8.0
+ * @since 4.0.0
  */
 import type * as Effect from "./Effect.ts"
 import * as internal from "./internal/effect.ts"
@@ -62,7 +62,7 @@ import * as internal from "./internal/effect.ts"
  * ```
  *
  * @category models
- * @since 3.8.0
+ * @since 4.0.0
  */
 export interface Latch {
   /** open the latch, releasing all fibers waiting on it */
@@ -116,7 +116,7 @@ export interface Latch {
  * ```
  *
  * @category constructors
- * @since 3.8.0
+ * @since 4.0.0
  */
 export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLatchUnsafe
 
@@ -156,7 +156,7 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
  * ```
  *
  * @category constructors
- * @since 3.8.0
+ * @since 4.0.0
  */
 export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = internal.makeLatch
 

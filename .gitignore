@@ -40,3 +40,6 @@ scratchpad/**/*
 
 # OpenCode local tooling
 .opencode/
+
+# Repositories
+.repos/

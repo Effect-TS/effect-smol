@@ -18,7 +18,7 @@
  *   the requested permits cannot be acquired immediately.
  * - Manual `take` / `release` usage must keep permit counts balanced.
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 import type * as Effect from "./Effect.ts"
 import type { Fiber } from "./Fiber.ts"
@@ -50,7 +50,7 @@ import type * as Option from "./Option.ts"
  * ```
  *
  * @category models
- * @since 2.0.0
+ * @since 4.0.0
  */
 export interface Semaphore {
   /**
@@ -159,7 +159,7 @@ export interface Semaphore {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeUnsafe = (permits: number): Semaphore => new SemaphoreImpl(permits)
 
@@ -302,7 +302,7 @@ class SemaphoreImpl implements Semaphore {
  * ```
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const make = (permits: number): Effect.Effect<Semaphore> => internal.sync(() => new SemaphoreImpl(permits))
 
