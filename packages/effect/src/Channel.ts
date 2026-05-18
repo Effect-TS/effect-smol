@@ -6275,22 +6275,8 @@ export const decodeText = <Err, Done>(encoding?: string, options?: TextDecoderOp
   fromTransform((upstream, _scope) =>
     Effect.sync(() => {
       const decoder = new TextDecoder(encoding, options)
-      let done = Option.none<Done>()
-      const pullOrFlush: Pull.Pull<Arr.NonEmptyReadonlyArray<string>, Err, Done> = Effect.suspend(() => {
-        if (done._tag === "Some") {
-          return Cause.done(done.value)
-        }
-        return Pull.matchEffect(upstream, {
-          onSuccess: (chunk) => Effect.succeed(Arr.map(chunk, (line) => decoder.decode(line, { stream: true }))),
-          onFailure: Effect.failCause,
-          onDone: (leftover) => {
-            done = Option.some(leftover)
-            const last = decoder.decode()
-            return last.length > 0 ? Effect.succeed([last] as Arr.NonEmptyReadonlyArray<string>) : Cause.done(leftover)
-          }
-        })
-      })
-      return pullOrFlush
+      const streamOptions = { stream: true }
+      return Effect.map(upstream, Arr.map((line) => decoder.decode(line, streamOptions)))
     })
   )
 
