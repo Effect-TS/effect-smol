@@ -38,7 +38,7 @@ const runCommand = Effect.fnUntraced(
 )
 
 describe("Command help output", () => {
-  it.effect("root command help", () =>
+  it.effect("renders root command help", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["--help"])
 
@@ -171,7 +171,7 @@ describe("Command help output", () => {
       expect(helpText).not.toContain("<subcommand>")
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("command help renders examples", () =>
+  it.effect("renders command examples", () =>
     Effect.gen(function*() {
       const command = Command.make("login").pipe(
         Command.withDescription("Authenticate with Supabase"),
@@ -216,7 +216,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("file operation command with positional args", () =>
+  it.effect("renders file command positional arguments", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["copy", "--help"])
 
@@ -247,7 +247,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("variadic arguments command", () =>
+  it.effect("renders variadic arguments", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["remove", "--help"])
 
@@ -277,7 +277,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("deeply nested subcommand", () =>
+  it.effect("renders deeply nested subcommand help", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "users", "list", "--help"])
 
@@ -305,7 +305,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("command with mixed positional args", () =>
+  it.effect("renders mixed required and optional positional arguments", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "users", "create", "--help"])
 
@@ -336,7 +336,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("intermediate subcommand with options", () =>
+  it.effect("renders intermediate subcommand shared flags and children", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "config", "--help"])
 
@@ -366,7 +366,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("variadic with minimum count", () =>
+  it.effect("renders variadic arguments with a minimum count", () =>
     Effect.gen(function*() {
       const helpText = yield* runCommand(["admin", "config", "set", "--help"])
 
@@ -426,7 +426,7 @@ describe("Command help output", () => {
       expect(chatHelp.some((line) => String(line).includes("--topic"))).toBe(true)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("grouped subcommands", () =>
+  it.effect("renders grouped subcommands", () =>
     Effect.gen(function*() {
       const ungrouped = Command.make("ungrouped").pipe(
         Command.withDescription("This command is not in a group")
@@ -490,7 +490,7 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("subcommand aliases in listings", () =>
+  it.effect("renders subcommand aliases in listings", () =>
     Effect.gen(function*() {
       const plan = Command.make("plan").pipe(
         Command.withAlias("p"),

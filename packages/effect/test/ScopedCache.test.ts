@@ -65,7 +65,7 @@ describe("ScopedCache", () => {
           assert.strictEqual(result, 42)
         }))
 
-      it.effect("cache is created within a scope and cleaned up when scope closes", () =>
+      it.effect("cache resources are released and future gets interrupt when scope closes", () =>
         Effect.gen(function*() {
           const cache = yield* Effect.scoped(
             Effect.gen(function*() {

@@ -456,7 +456,7 @@ describe("Cache", () => {
           assert.strictEqual(lookupCount(), 0)
         }))
 
-      it.effect("set enfores capacity", () =>
+      it.effect("set enforces capacity", () =>
         Effect.gen(function*() {
           const cache = yield* Cache.make<string, number>({
             capacity: 2,

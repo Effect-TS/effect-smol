@@ -94,7 +94,7 @@ describe("Command errors", () => {
         assert.instanceOf(parsedInput.errors![1], CliError.UnrecognizedOption)
       }).pipe(Effect.provide(TestLayer)))
 
-    it.effect("accumulates UnknownSubcommand error", () =>
+    it.effect("accumulates UnknownSubcommand error with suggestions", () =>
       Effect.gen(function*() {
         const sub = Command.make("deploy")
         const command = Command.make("app").pipe(

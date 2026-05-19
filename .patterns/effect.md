@@ -1,6 +1,6 @@
 # Effect Library Development Patterns
 
-### NEVER: try-catch in Effect.gen
+## NEVER: try-catch in Effect.gen
 
 **REASON**: Effect generators handle errors through the Effect type system, not JavaScript exceptions.
 
@@ -28,7 +28,7 @@ Effect.gen(function*() {
 })
 ```
 
-### return yield* Pattern for Errors
+## return yield* Pattern for Errors
 
 **CRITICAL**: Always use `return yield*` when yielding terminal effects.
 
@@ -57,7 +57,24 @@ Effect.gen(function*() {
 })
 ```
 
-#### When to Use What
+## `Effect.gen` and `Effect.fnUntraced`
+
+Prefer `Effect.fnUntraced` over functions that only return `Effect.gen`.
+
+```typescript
+// ❌ AVOID - Function only wraps Effect.gen
+const fn = (param: string) =>
+  Effect.gen(function*() {
+    // ...
+  })
+
+// ✅ PREFER - Reusable untraced Effect function
+const fn = Effect.fnUntraced(function*(param: string) {
+  // ...
+})
+```
+
+## When to Use What
 
 **Use `Effect.gen`** when:
 
@@ -71,3 +88,15 @@ Effect.gen(function*() {
 - Performance is critical (hot paths)
 - Function is called many times per operation
 - Tracing overhead is unacceptable
+
+## `Context.Service`
+
+Prefer the class syntax when working with `Context.Service`.
+
+```typescript
+import { Context } from "effect"
+
+class MyService extends Context.Service<MyService, {
+  readonly doSomething: (input: string) => number
+}>()("MyService") {}
+```
