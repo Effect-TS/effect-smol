@@ -488,6 +488,30 @@ export const withMetavar: {
 } = dual(2, <A>(self: Flag<A>, metavar: string) => Param.withMetavar(self, metavar))
 
 /**
+ * Hides a flag from generated help output and shell completions while keeping
+ * it fully parseable on the command line.
+ *
+ * Useful for experimental or internal flags that should be accepted but not
+ * advertised — for example, `--experimental-foo`, debug toggles, or escape
+ * hatches that are not yet committed to the public CLI surface.
+ *
+ * **Example** (Hiding a flag from help)
+ *
+ * ```ts
+ * import { Flag } from "effect/unstable/cli"
+ *
+ * // Flag still parses --experimental-foo, but it does not appear in --help.
+ * const experimental = Flag.boolean("experimental-foo").pipe(
+ *   Flag.withHidden
+ * )
+ * ```
+ *
+ * @category metadata
+ * @since 4.0.0
+ */
+export const withHidden = <A>(self: Flag<A>): Flag<A> => Param.withHidden(self)
+
+/**
  * Makes a flag optional, returning an Option type that can be None if not provided.
  *
  * **Example** (Making flags optional)

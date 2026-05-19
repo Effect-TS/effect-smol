@@ -13,8 +13,8 @@
  * **Example** (Spawning and piping commands)
  *
  * ```ts
- * import { NodeServices } from "@effect/platform-node"
  * import { Effect, Stream } from "effect"
+ * import { NodeServices } from "@effect/platform-node"
  * import { ChildProcess } from "effect/unstable/process"
  *
  * // Build a command

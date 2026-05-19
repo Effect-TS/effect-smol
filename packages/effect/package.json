@@ -99,8 +99,8 @@
     "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
-    "test": "vitest",
-    "coverage": "vitest --coverage"
+    "test": "vitest --sequence.concurrent=false",
+    "coverage": "vitest --run --coverage --sequence.concurrent=false"
   },
   "devDependencies": {
     "@types/ini": "^4.1.1",

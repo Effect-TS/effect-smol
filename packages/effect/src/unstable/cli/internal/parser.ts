@@ -517,6 +517,9 @@ const createUnrecognizedFlagError = (
   const validNames: Array<string> = []
 
   for (const p of params) {
+    // Exclude hidden flags so a near-miss typo cannot reveal a flag name
+    // that was intentionally kept out of --help.
+    if (p.hidden) continue
     validNames.push(p.name)
     if (Primitive.isBoolean(p.primitiveType)) {
       validNames.push(`no-${p.name}`)
