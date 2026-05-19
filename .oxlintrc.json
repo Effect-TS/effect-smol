@@ -21,5 +21,10 @@
       "eslint/no-console": "off",
       "effect/no-import-from-barrel-package": "off"
     }
+  }, {
+    "files": ["packages/effect/src/**"],
+    "rules": {
+      "effect/no-at-prefix-in-tag-string": "error"
+    }
   }]
 }

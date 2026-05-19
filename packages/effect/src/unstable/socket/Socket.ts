@@ -567,7 +567,7 @@ export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>(
 export class WebSocketConstructor extends Context.Service<
   WebSocketConstructor,
   (url: string, protocols?: string | Array<string> | undefined) => globalThis.WebSocket
->()("@effect/platform/Socket/WebSocketConstructor") {}
+>()("effect/platform/Socket/WebSocketConstructor") {}
 
 /**
  * Layer that provides `WebSocketConstructor` using `globalThis.WebSocket`.

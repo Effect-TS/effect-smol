@@ -8,6 +8,9 @@
   },
   "rules": {
     // Effect custom rules
+    // no-at-prefix-in-tag-string: enabled only for packages/effect/src via root overrides;
+    // other packages still use the legacy "@<pkg>/..." tag prefix convention.
+    "effect/no-at-prefix-in-tag-string": "off",
     "effect/no-bigint-literals": "error",
     "effect/no-import-from-barrel-package": ["error", {
       "checkPatterns": [

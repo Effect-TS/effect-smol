@@ -78,7 +78,7 @@ import * as Random from "../../Random.ts"
  * @since 4.0.0
  */
 export class IdGenerator extends Context.Service<IdGenerator, Service>()(
-  "@effect/ai/IdGenerator"
+  "effect/ai/IdGenerator"
 ) {}
 
 /**

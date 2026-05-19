@@ -40,7 +40,7 @@ export class SocketServer extends Context.Service<SocketServer, {
   readonly run: <R, E, _>(
     handler: (socket: Socket.Socket) => Effect.Effect<_, E, R>
   ) => Effect.Effect<never, SocketServerError, R>
-}>()("@effect/platform/SocketServer") {}
+}>()("effect/platform/SocketServer") {}
 
 /**
  * Runtime type identifier attached to `SocketServerError` values.
