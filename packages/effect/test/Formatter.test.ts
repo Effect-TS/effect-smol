@@ -234,7 +234,7 @@ describe("Formatter", () => {
       strictEqual(formatJson(obj), `{"a":1}`)
     })
 
-    it("should preserve shared references", () => {
+    it("preserves repeated non-circular references", () => {
       const shared = { a: 1 }
       strictEqual(formatJson({ left: shared, right: shared }), `{"left":{"a":1},"right":{"a":1}}`)
     })

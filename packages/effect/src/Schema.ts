@@ -702,17 +702,6 @@ export declare namespace Codec {
    * @since 4.0.0
    */
   export type EncodingServices<S> = S extends Top ? S["EncodingServices"] : never
-  /**
-   * Converts a schema type into an assertion function signature. The resulting
-   * function narrows its argument to `I & S["Type"]`. Only schemas with
-   * `DecodingServices: never` (i.e. no required services) can be used here.
-   *
-   * Produced by {@link asserts}.
-   *
-   * @category utility types
-   * @since 3.10.0
-   */
-  export type ToAsserts<S extends Top> = <I>(input: I) => asserts input is I & S["Type"]
 }
 
 /**
@@ -1122,21 +1111,16 @@ export const is = Parser.is
  * ```ts
  * import { Schema } from "effect"
  *
- * const assertString: (u: unknown) => asserts u is string = Schema.asserts(
- *   Schema.String
- * )
+ * const input: unknown = "hello"
  *
- * // This will pass silently (no return value)
- * try {
- *   assertString("hello")
- *   console.log("String assertion passed")
- * } catch (error) {
- *   console.log("String assertion failed")
- * }
+ * // This will pass silently (no return value) and narrow input to string
+ * Schema.asserts(Schema.String, input)
+ * console.log(input.toUpperCase())
  *
  * // This will throw an error
  * try {
- *   assertString(123)
+ *   const invalid: unknown = 123
+ *   Schema.asserts(Schema.String, invalid)
  * } catch (error) {
  *   console.log("Non-string assertion failed as expected")
  * }
@@ -1145,7 +1129,7 @@ export const is = Parser.is
  * @category guards
  * @since 4.0.0
  */
-export const asserts = Parser.asserts
+export const asserts: <S extends Top, I>(schema: S, input: I) => asserts input is I & S["Type"] = Parser.asserts
 
 /**
  * Decodes an `unknown` input against a schema, returning an `Effect` that

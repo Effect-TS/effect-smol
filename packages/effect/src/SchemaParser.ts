@@ -155,26 +155,23 @@ export function _issue<T>(ast: AST.AST) {
 }
 
 /**
- * Creates an assertion function that narrows an input to the schema's decoded type
- * side.
+ * Asserts that an input satisfies the schema's decoded type side.
  *
  * The assertion returns normally when validation succeeds and throws when the
  * input does not satisfy the schema.
  *
  * @category Asserting
- * @since 3.10.0
+ * @since 4.0.0
  */
-export function asserts<T>(schema: Schema.Schema<T>) {
-  const parser = asExit(run<T, never>(AST.toType(schema.ast)))
-  return <I>(input: I): asserts input is I & T => {
-    const exit = parser(input, AST.defaultParseOptions)
-    if (Exit.isFailure(exit)) {
-      const issue = Cause.findError(exit.cause)
-      if (Result.isFailure(issue)) {
-        throw Cause.squash(issue.failure)
-      }
-      throw new Error(issue.success.toString(), { cause: issue.success })
+export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts input is I & S["Type"] {
+  const parser = asExit(run<S["Type"], never>(AST.toType(schema.ast)))
+  const exit = parser(input, AST.defaultParseOptions)
+  if (Exit.isFailure(exit)) {
+    const issue = Cause.findError(exit.cause)
+    if (Result.isFailure(issue)) {
+      throw Cause.squash(issue.failure)
     }
+    throw new Error(issue.success.toString(), { cause: issue.success })
   }
 }
 

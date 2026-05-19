@@ -19,7 +19,6 @@
     "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "ai-docgen": "effect-ai-docgen ai-docs/src -o LLMS.md",
     "ai-docgen:watch": "pnpm ai-docgen --watch",
-    "analyze-jsdoc": "node scripts/analyze-jsdoc.mjs",
     "test-types": "tstyche",
     "changeset-version": "changeset version",
     "changeset-publish": "pnpm codemod && pnpm build && changeset publish",
