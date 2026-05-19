@@ -3,7 +3,7 @@ import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { MutableList } from "effect"
 
 describe("MutableList", () => {
-  it("appendAll with an empty array keeps an empty list empty", () => {
+  it("appendAll returns 0 and leaves an empty list empty", () => {
     const list = MutableList.make<number>()
 
     strictEqual(MutableList.appendAll(list, []), 0)
@@ -13,7 +13,7 @@ describe("MutableList", () => {
     strictEqual(MutableList.take(list), MutableList.Empty)
   })
 
-  it("appendAll with an empty array does not break subsequent appends", () => {
+  it("appendAll with empty iterables preserves later append order", () => {
     const list = MutableList.make<number>()
 
     MutableList.appendAll(list, [])
@@ -36,7 +36,7 @@ describe("MutableList", () => {
     strictEqual(MutableList.take(list), MutableList.Empty)
   })
 
-  it("filter updates length to the number of retained elements", () => {
+  it("filter keeps matching values in place and updates length", () => {
     const list = MutableList.make<number>()
     MutableList.appendAll(list, [1, 2, 3, 4, 5])
 
@@ -46,7 +46,7 @@ describe("MutableList", () => {
     strictEqual(list.length, 2)
   })
 
-  it("remove updates length after deleting matching values", () => {
+  it("remove deletes all strictly equal values and updates length", () => {
     const list = MutableList.make<string>()
     MutableList.appendAll(list, ["apple", "banana", "apple", "cherry", "apple"])
 
