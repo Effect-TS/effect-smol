@@ -144,11 +144,10 @@ export interface NonEmptyChunk<out A> extends Chunk<A>, NonEmptyIterable<A> {}
  * **Example** (Applying the Chunk type lambda)
  *
  * ```ts
- * import type { ChunkTypeLambda } from "effect/Chunk"
- * import type { Kind } from "effect/HKT"
+ * import type { Chunk, HKT } from "effect"
  *
  * // Create a Chunk type using the type lambda
- * type NumberChunk = Kind<ChunkTypeLambda, never, never, never, number>
+ * type NumberChunk = HKT.Kind<Chunk.ChunkTypeLambda, never, never, never, number>
  * // Equivalent to: Chunk<number>
  * ```
  *
@@ -215,8 +214,7 @@ const emptyArray: ReadonlyArray<never> = []
  * **Example** (Comparing chunks for equivalence)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Equivalence from "effect/Equivalence"
+ * import { Chunk, Equivalence } from "effect"
  *
  * const chunk1 = Chunk.make(1, 2, 3)
  * const chunk2 = Chunk.make(1, 2, 3)
@@ -622,8 +620,7 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
  * **Example** (Creating non-empty chunks without copying arrays)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Array from "effect/Array"
+ * import { Array, Chunk } from "effect"
  *
  * const nonEmptyArray = Array.make(1, 2, 3, 4, 5)
  * const chunk = Chunk.fromNonEmptyArrayUnsafe(nonEmptyArray)
@@ -1011,8 +1008,7 @@ export const appendAll: {
  * **Example** (Filtering and mapping values)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Result from "effect/Result"
+ * import { Chunk, Result } from "effect"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "world")
  * const numbers = Chunk.filterMap(chunk, (str) => {
@@ -1087,8 +1083,7 @@ export const filter: {
  * **Example** (Filtering and mapping while values match)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Result from "effect/Result"
+ * import { Chunk, Result } from "effect"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "4")
  * const result = Chunk.filterMapWhile(chunk, (s) => {
@@ -1131,8 +1126,7 @@ export const filterMapWhile: {
  * **Example** (Compacting optional values)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
+ * import { Chunk, Option } from "effect"
  *
  * const chunk = Chunk.make(Option.some(1), Option.none(), Option.some(3))
  * const result = Chunk.compact(chunk)
@@ -1785,8 +1779,7 @@ export const partition: {
  * **Example** (Separating failures and successes)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Result from "effect/Result"
+ * import { Chunk, Result } from "effect"
  *
  * const chunk = Chunk.make(
  *   Result.succeed(1),
@@ -1839,8 +1832,7 @@ export const size = <A>(self: Chunk<A>): number => self.length
  * **Example** (Sorting chunks)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Order from "effect/Order"
+ * import { Chunk, Order } from "effect"
  *
  * const numbers = Chunk.make(3, 1, 4, 1, 5, 9, 2, 6)
  * const sorted = Chunk.sort(numbers, Order.Number)
@@ -1873,8 +1865,7 @@ export const sort: {
  * **Example** (Sorting chunks by a derived value)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Order from "effect/Order"
+ * import { Chunk, Order } from "effect"
  *
  * const people = Chunk.make(
  *   { name: "Alice", age: 30 },
@@ -2644,8 +2635,7 @@ export const findFirstIndex: {
  * **Example** (Finding the last matching element)
  *
  * ```ts
- * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
+ * import { Chunk, Option } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findLast(chunk, (n) => n < 4)

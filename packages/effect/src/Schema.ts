@@ -257,8 +257,6 @@ export interface Bottom<
   rebuild(ast: this["ast"]): this["Rebuild"]
   /**
    * Constructs a value from the make input representation.
-   *
-   * @throws {Error} The issue is contained in the error cause.
    */
   make(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
   makeOption(input: this["~type.make.in"], options?: MakeOptions): Option_.Option<this["Type"]>
@@ -304,10 +302,7 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
  * **Example** (Schema for a parametric `Box<A>` type)
  *
  * ```ts
- * import { Effect, Schema } from "effect"
- * import * as SchemaParser from "effect/SchemaParser"
- * import * as Issue from "effect/SchemaIssue"
- * import * as Option from "effect/Option"
+ * import { Effect, Option, Schema, SchemaIssue as Issue, SchemaParser } from "effect"
  *
  * interface Box<A> {
  *   readonly value: A
@@ -707,17 +702,6 @@ export declare namespace Codec {
    * @since 4.0.0
    */
   export type EncodingServices<S> = S extends Top ? S["EncodingServices"] : never
-  /**
-   * Converts a schema type into an assertion function signature. The resulting
-   * function narrows its argument to `I & S["Type"]`. Only schemas with
-   * `DecodingServices: never` (i.e. no required services) can be used here.
-   *
-   * Produced by {@link asserts}.
-   *
-   * @category utility types
-   * @since 3.10.0
-   */
-  export type ToAsserts<S extends Top> = <I>(input: I) => asserts input is I & S["Type"]
 }
 
 /**
@@ -1057,7 +1041,6 @@ function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Targ
  *
  * @category Standard Schema
  * @since 4.0.0
- * @experimental
  */
 export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSchemaV1<S["Encoded"], S["Type"]> & S {
   const jsonSchema: StandardJSONSchemaV1.Props<S["Encoded"], S["Type"]>["jsonSchema"] = {
@@ -1128,21 +1111,16 @@ export const is = Parser.is
  * ```ts
  * import { Schema } from "effect"
  *
- * const assertString: (u: unknown) => asserts u is string = Schema.asserts(
- *   Schema.String
- * )
+ * const input: unknown = "hello"
  *
- * // This will pass silently (no return value)
- * try {
- *   assertString("hello")
- *   console.log("String assertion passed")
- * } catch (error) {
- *   console.log("String assertion failed")
- * }
+ * // This will pass silently (no return value) and narrow input to string
+ * Schema.asserts(Schema.String, input)
+ * console.log(input.toUpperCase())
  *
  * // This will throw an error
  * try {
- *   assertString(123)
+ *   const invalid: unknown = 123
+ *   Schema.asserts(Schema.String, invalid)
  * } catch (error) {
  *   console.log("Non-string assertion failed as expected")
  * }
@@ -1151,7 +1129,7 @@ export const is = Parser.is
  * @category guards
  * @since 4.0.0
  */
-export const asserts = Parser.asserts
+export const asserts: <S extends Top, I>(schema: S, input: I) => asserts input is I & S["Type"] = Parser.asserts
 
 /**
  * Decodes an `unknown` input against a schema, returning an `Effect` that
@@ -1941,6 +1919,7 @@ export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never,
  * Creates a schema for a single literal value (string, number, bigint, boolean, or null).
  *
  * **Example** (String literal)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2060,6 +2039,7 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
  * a literal string/number/bigint or a schema whose encoded type is a string, number, or bigint.
  *
  * **Example** (URL path pattern)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2126,6 +2106,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
  * one element per schema part.
  *
  * **Example** (Parse path parameters)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2161,6 +2142,7 @@ export interface Enum<A extends { [x: string]: string | number }>
  * Creates a schema from a TypeScript enum object. Validates that the input is one of the enum's values.
  *
  * **Example** (Direction enum)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2418,6 +2400,7 @@ export interface UniqueSymbol<sym extends symbol>
  * Creates a schema for a specific symbol. Only that exact symbol satisfies the schema.
  *
  * **Example** (Specific symbol)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -2839,7 +2822,6 @@ export function encodeKeys<
  *
  * @category transforming
  * @since 4.0.0
- * @experimental
  */
 export function extendTo<S extends Struct<Struct.Fields>, const Fields extends Struct.Fields>(
   /** The new fields to add */
@@ -3940,6 +3922,7 @@ export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
  * Creates a union schema from an array of literal values.
  *
  * **Example** (Status codes)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -4071,6 +4054,7 @@ export interface suspend<S extends Top> extends
  * preventing infinite recursion during schema definition.
  *
  * **Example** (Recursive tree schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -4097,6 +4081,7 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
  * changing the TypeScript type.
  *
  * **Example** (Adding checks to a schema)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -5144,7 +5129,6 @@ type TaggedUnionUtils<
  * @see {@link toTaggedUnion} for the constructor
  * @category combinators
  * @since 4.0.0
- * @experimental
  */
 export type toTaggedUnion<
   Tag extends PropertyKey,
@@ -5174,7 +5158,6 @@ export type toTaggedUnion<
  * @see {@link TaggedUnion} for a shorthand that builds the union from scratch
  * @category combinators
  * @since 4.0.0
- * @experimental
  */
 export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
   return <const Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>>(
@@ -5232,7 +5215,6 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
  * @see {@link TaggedUnion} for the constructor
  * @category models
  * @since 4.0.0
- * @experimental
  */
 export interface TaggedUnion<Cases extends Record<string, Top>> extends
   Bottom<
@@ -6920,6 +6902,7 @@ export const isBetweenBigDecimal = makeIsBetween({
  * length.
  *
  * **Example** (Minimum length check)
+ *
  * ```ts
  * import { Schema } from "effect"
  *
@@ -7438,8 +7421,7 @@ export const Char: Char = String.check(isLengthBetween(1, 1))
  * **Example** (Option schema)
  *
  * ```ts
- * import { Schema } from "effect"
- * import { Option } from "effect"
+ * import { Option, Schema } from "effect"
  *
  * const schema = Schema.Option(Schema.Number)
  *
@@ -9318,8 +9300,7 @@ export interface Duration extends declare<Duration_.Duration> {
  * **Example** (Duration schema)
  *
  * ```ts
- * import { Schema } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Schema } from "effect"
  *
  * Schema.decodeUnknownSync(Schema.Duration)(Duration.seconds(5))
  * // => Duration(5s)
@@ -9577,7 +9558,7 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
  * - Any value is encoded as a JSON string using `JSON.stringify`.
  * - If the value is not a valid JSON value, encoding fails.
  *
- * **Example**
+ * **Example** (Decoding unknown JSON strings)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -9612,7 +9593,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * The resulting schema first parses the input string as JSON, and then runs the
  * provided schema on the parsed result.
  *
- * **Example**
+ * **Example** (Decoding JSON strings with a schema)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -9630,7 +9611,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * resulting schema will be a JSON Schema with a `contentSchema` property that
  * contains the JSON Schema for the given schema.
  *
- * **Example**
+ * **Example** (Emitting JSON Schema for a JSON string decoder)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -10312,7 +10293,7 @@ export interface StringFromUriComponent extends decodeTo<String, String> {
  * Encoding:
  * - A `string` is encoded as a URI component encoded string.
  *
- * **Example**
+ * **Example** (Decoding URI component strings)
  *
  * ```ts
  * import { Schema } from "effect"

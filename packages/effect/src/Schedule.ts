@@ -1871,8 +1871,6 @@ export const eitherWith: {
  * This schedule never stops and outputs the cumulative time that has passed since the schedule
  * started executing. Useful for tracking execution time or implementing time-based logic.
  *
- * @returns A schedule that outputs the elapsed duration and never stops
- *
  * **Example** (Measuring elapsed schedule time)
  *
  * ```ts

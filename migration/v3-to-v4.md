@@ -1,13 +1,14 @@
-# v3 to v4 Import Map
+# v3 to v4 Import and API Rename Maps
 
 Mapped modules: 290
 No counterpart: 43
+API renames: 53
 
-This file is intended for migration agents. The primary map is expressed in
-terms of user-facing import specifiers, not repository file paths.
+This file is intended for migration agents. It contains user-facing import
+specifier mappings and API rename mappings.
 
-Use the import map when rewriting user code. The map intentionally avoids
-repository file paths so it can be used directly against import declarations.
+Use the import map when rewriting import declarations. Use the API renames when
+rewriting renamed symbols.
 
 ## Import Map
 
@@ -356,4 +357,65 @@ effect/unstable/reactivity/AtomRegistry (barrel: effect/unstable/reactivity)
 effect/unstable/reactivity/AtomRpc (barrel: effect/unstable/reactivity)
 effect/unstable/reactivity/Hydration (barrel: effect/unstable/reactivity)
 effect/unstable/rpc/Utils (barrel: effect/unstable/rpc)
+```
+
+## API Renames
+
+Each line is `v3 API -> v4 API`. Use these mappings when rewriting renamed
+symbols from v3 source code to v4.
+
+```text
+Effect.async -> Effect.callback
+Effect.zipRight -> Effect.andThen
+Effect.zipLeft -> Effect.tap
+Effect.either -> Effect.result
+Effect.catchAll -> Effect.catch
+Effect.catchAllCause -> Effect.catchCause
+Effect.catchAllDefect -> Effect.catchDefect
+Effect.catchSome -> Effect.catchIf
+Effect.catchIf -> Effect.catchIf
+Effect.optionFromOptional -> Effect.catchNoSuchElement
+Effect.catchSomeCause -> Effect.catchCauseIf
+Effect.tapErrorCause -> Effect.tapCause
+Effect.ignoreLogged -> Effect.ignore
+Effect.makeLatchUnsafe -> Latch.makeUnsafe
+Effect.makeLatch -> Latch.make
+Layer.scoped -> Layer.effect
+Layer.scopedDiscard -> Layer.effectDiscard
+Layer.tapErrorCause -> Layer.tapCause
+Mailbox -> Queue.Queue
+Mailbox.make -> Queue.make
+Either -> Result.Result
+Either.right -> Result.succeed
+Either.left -> Result.fail
+Scope.extend -> Scope.provide
+Effect.makeSemaphoreUnsafe -> Semaphore.makeUnsafe
+Effect.makeSemaphore -> Semaphore.make
+Stream.Context -> Stream.Services
+StreamHaltStrategy.HaltStrategy -> Stream.HaltStrategy
+Stream.repeatEffect -> Stream.fromEffectRepeat
+Stream.repeatEffectWithSchedule -> Stream.fromEffectSchedule
+Stream.async -> Stream.callback
+Stream.asyncEffect -> Stream.callback
+Stream.asyncPush -> Stream.callback
+Stream.asyncScoped -> Stream.callback
+Stream.repeatEffectChunk -> Stream.fromIterableEffectRepeat
+Stream.fromChunk -> Stream.fromArray
+Stream.fromChunks -> Stream.fromArrays
+Stream.mapChunks -> Stream.mapArray
+Stream.mapChunksEffect -> Stream.mapArrayEffect
+Stream.either -> Stream.result
+Stream.flattenChunks -> Stream.flattenArray
+Stream.flattenIterables -> Stream.flattenIterable
+Stream.mergeEither -> Stream.mergeResult
+Stream.zipWithChunks -> Stream.zipWithArray
+Stream.bufferChunks -> Stream.bufferArray
+Stream.catchAllCause -> Stream.catchCause
+Stream.tapErrorCause -> Stream.tapCause
+Stream.catchAll -> Stream.catch
+Stream.catchSome -> Stream.catchIf
+Stream.catchSomeCause -> Stream.catchCauseIf
+Stream.combineChunks -> Stream.combineArray
+provideSomeLayer -> Stream.provide
+provideSomeContext -> Stream.provide
 ```

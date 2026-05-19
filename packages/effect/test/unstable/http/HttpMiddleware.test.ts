@@ -8,7 +8,7 @@ import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
 
 describe("HttpMiddleware", () => {
   describe("logger", () => {
-    it.effect("logs only the request path in http.url", () =>
+    it.effect("annotates method, path, and status without query or hash", () =>
       Effect.gen(function*() {
         const annotations: Array<Record<string, unknown>> = []
         const logger = Logger.make<unknown, void>((options) => {

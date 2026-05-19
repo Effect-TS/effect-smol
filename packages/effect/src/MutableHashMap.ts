@@ -47,7 +47,7 @@ const TypeId = "~effect/collections/MutableHashMap"
  * **Example** (Using a mutable hash map)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * // Create a mutable hash map with string keys and number values
  * const map: MutableHashMap.MutableHashMap<string, number> = MutableHashMap
@@ -115,7 +115,7 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
  * **Example** (Creating an empty map)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
  *
@@ -142,7 +142,7 @@ export const empty = <K, V>(): MutableHashMap<K, V> => {
  * **Example** (Creating a map from entries)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -170,7 +170,7 @@ export const make: <Entries extends Array<readonly [any, any]>>(
  * **Example** (Creating a map from an iterable)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const entries = [
  *   ["apple", 1],
@@ -208,7 +208,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
  * **Example** (Getting a value)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -256,7 +256,7 @@ const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !
  * **Example** (Reading keys)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["apple", 1],
@@ -282,7 +282,7 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
  * **Example** (Reading values)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["apple", 1],
@@ -328,7 +328,7 @@ const getFromBucket = <K, V>(
  * **Example** (Checking for a key)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -358,7 +358,7 @@ export const has: {
  * **Example** (Setting key-value pairs)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
  *
@@ -435,7 +435,7 @@ const getRefKey = <K>(
  * **Example** (Modifying existing values)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(["count", 5], ["total", 100])
  *
@@ -502,8 +502,7 @@ export const modify: {
  * **Example** (Updating or removing a key)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
- * import * as Option from "effect/Option"
+ * import { MutableHashMap, Option } from "effect"
  *
  * const map = MutableHashMap.make(["count", 5])
  *
@@ -572,7 +571,7 @@ export const modifyAt: {
  * **Example** (Removing a key)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -639,7 +638,7 @@ export const remove: {
  * **Example** (Clearing all entries)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -675,7 +674,7 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
  * **Example** (Checking map size)
  *
  * ```ts
- * import * as MutableHashMap from "effect/MutableHashMap"
+ * import { MutableHashMap } from "effect"
  *
  * const map = MutableHashMap.empty<string, number>()
  * console.log(MutableHashMap.size(map)) // 0

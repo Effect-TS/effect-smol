@@ -157,8 +157,7 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
  * **Example** (Declaring variance for a TypeLambda)
  *
  * ```ts
- * import type { Utils } from "effect"
- * import type * as Option from "effect/Option"
+ * import type { Option, Utils } from "effect"
  *
  * declare const variance: Utils.Variance<
  *   Option.OptionTypeLambda,

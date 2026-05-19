@@ -792,7 +792,7 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
  * **Example** (Capturing a runtime)
  *
  * ```ts
- * import { Effect, FiberMap, Context } from "effect"
+ * import { Context, Effect, FiberMap } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol

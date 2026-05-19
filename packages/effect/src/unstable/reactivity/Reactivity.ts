@@ -17,9 +17,8 @@
  * store them. Registrations are tied to the surrounding scope, failures from a
  * query fail the queue or stream, and invalidations that arrive while a query is
  * already running schedule a single follow-up run. Use stable key values, be
- * aware that the default layer is process-local, and wrap related work in
- * {@link Reactivity.withBatch} when many invalidations should be coalesced until
- * the batch exits.
+ * aware that the default layer is process-local, and use the {@link Reactivity}
+ * service when many invalidations should be coalesced until the batch exits.
  *
  * @since 4.0.0
  */

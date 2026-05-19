@@ -9,8 +9,8 @@
  * **Example** (Creating a provider-specific model)
  *
  * ```ts
- * import type { Layer } from "effect"
  * import { Effect } from "effect"
+ * import type { Layer } from "effect"
  * import { LanguageModel, Model } from "effect/unstable/ai"
  *
  * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
@@ -46,10 +46,6 @@ const TypeId = "~effect/ai/Model" as const
  * A Model can also be used as an Effect to "lift" dependencies of the Model
  * constructor into the parent Effect. This is particularly useful when you
  * want to use a Model from within an Effect service.
- *
- * @template Provider - String literal type identifying the AI provider.
- * @template Provides - Services that this model provides.
- * @template Requires - Services that this model requires.
  *
  * @category models
  * @since 4.0.0
@@ -130,8 +126,8 @@ const Proto = {
  * **Example** (Providing model metadata)
  *
  * ```ts
- * import type { Layer } from "effect"
  * import { Effect } from "effect"
+ * import type { Layer } from "effect"
  * import { LanguageModel, Model } from "effect/unstable/ai"
  *
  * declare const bedrockLayer: Layer.Layer<LanguageModel.LanguageModel>

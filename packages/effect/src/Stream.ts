@@ -175,11 +175,10 @@ export interface StreamUnifyIgnore {
  * **Example** (Using the stream type lambda)
  *
  * ```ts
- * import type { Kind } from "effect/HKT"
- * import type { StreamTypeLambda } from "effect/Stream"
+ * import type { HKT, Stream } from "effect"
  *
  * // Create a Stream type using the type lambda
- * type NumberStream = Kind<StreamTypeLambda, never, string, never, number>
+ * type NumberStream = HKT.Kind<Stream.StreamTypeLambda, never, string, never, number>
  * // Equivalent to: Stream<number, string, never>
  * ```
  *
@@ -257,10 +256,6 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
 /**
  * Extract the services type from a Stream type.
  *
- * **Previously Known As:**
- *
- * This type alias was named `Context` in Effect 3.x.
- *
  * **Example** (Extracting the services type from a Stream type)
  *
  * ```ts
@@ -330,12 +325,6 @@ export const DefaultChunkSize: number = Channel.DefaultChunkSize
 /**
  * Describes how merged streams decide when to halt.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `StreamHaltStrategy.HaltStrategy`
- *
  * @category models
  * @since 4.0.0
  */
@@ -397,7 +386,7 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * **Example** (Accessing a service as a stream)
  *
  * ```ts
- * import { Effect, Context, Stream } from "effect"
+ * import { Context, Effect, Stream } from "effect"
  *
  * class Greeter extends Context.Service<Greeter, {
  *   readonly greet: (name: string) => string
@@ -432,7 +421,7 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
  * **Example** (Accessing an optional service as a stream)
  *
  * ```ts
- * import { Effect, Option, Context, Stream } from "effect"
+ * import { Context, Effect, Option, Stream } from "effect"
  *
  * class Greeter extends Context.Service<Greeter, {
  *   readonly greet: (name: string) => string
@@ -493,12 +482,6 @@ export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream
 /**
  * Creates a stream from an effect producing a value of type `A` which repeats forever.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.repeatEffect`
- *
  * **Example** (Repeating an effect forever)
  *
  * ```ts
@@ -525,12 +508,6 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
 /**
  * Creates a stream from an effect producing a value of type `A`, which is
  * repeated using the specified schedule.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.repeatEffectWithSchedule`
  *
  * **Example** (Repeating an effect with a schedule)
  *
@@ -773,15 +750,6 @@ export const toChannel = <A, E, R>(
  * By default it uses an "unbounded" buffer size.
  * You can customize the buffer size and strategy by passing an object as the
  * second argument with the `bufferSize` and `strategy` fields.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.async`
- * - `Stream.asyncEffect`
- * - `Stream.asyncPush`
- * - `Stream.asyncScoped`
  *
  * **Example** (Creating a stream from a callback that can emit values into a queue)
  *
@@ -1146,7 +1114,7 @@ export const fromIterable = <A>(
  * **Example** (Creating a stream from an iterable effect)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class UserRepo extends Context.Service<UserRepo, {
  *   readonly list: Effect.Effect<ReadonlyArray<string>>
@@ -1181,12 +1149,6 @@ export const fromIterableEffect = <A, E, R>(iterable: Effect.Effect<Iterable<A>,
 /**
  * Creates a stream by repeatedly running an effect that yields an iterable of values.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.repeatEffectChunk`
- *
  * **Example** (Repeating an iterable effect)
  *
  * ```ts
@@ -1213,12 +1175,6 @@ export const fromIterableEffectRepeat = <A, E, R>(
 
 /**
  * Creates a stream from an array of values.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.fromChunk`
  *
  * **Example** (Creating a stream from an array of values)
  *
@@ -1268,12 +1224,6 @@ export const fromArrayEffect = <A, E, R>(
 
 /**
  * Creates a stream from an arbitrary number of arrays.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.fromChunks`
  *
  * **Example** (Creating a stream from an arbitrary number of arrays)
  *
@@ -1684,8 +1634,7 @@ export const unfold = <S, A, E, R>(
  * **Example** (Paginating stream state)
  *
  * ```ts
- * import { Console, Effect, Stream } from "effect"
- * import * as Option from "effect/Option"
+ * import { Console, Effect, Option, Stream } from "effect"
  *
  * const stream = Stream.paginate(0, (n: number) =>
  *   Effect.succeed(
@@ -1961,12 +1910,6 @@ export const mapBoth: {
 /**
  * Transforms each emitted chunk using the provided function, which receives the chunk and its index.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.mapChunks`
- *
  * **Example** (Mapping stream chunks)
  *
  * ```ts
@@ -2119,12 +2062,6 @@ export const flattenEffect: <
 /**
  * Effectfully maps over non-empty array chunks emitted by the stream.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.mapChunksEffect`
- *
  * **Example** (Effectfully mapping stream chunks)
  *
  * ```ts
@@ -2165,12 +2102,6 @@ export const mapArrayEffect: {
  * Lifts failures and successes into a `Result`, yielding a stream that cannot fail.
  *
  * The stream ends after the first failure, emitting a `Result.fail` value.
- *
- * **Previously Known As:**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.either`
  *
  * **Example** (Converting failures to results)
  *
@@ -2595,12 +2526,6 @@ export const flatten: <
 /**
  * Flattens a stream of non-empty arrays into a stream of elements.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.flattenChunks`
- *
  * **Example** (Flattening a stream of non-empty arrays into a stream of elements)
  *
  * ```ts
@@ -2894,8 +2819,6 @@ export const timeoutOrElse: {
  * Repeats each element of the stream according to the provided schedule,
  * including the original emission.
  *
- * @category sequencing
- * @since 2.0.0
  * **Example** (Repeating stream elements)
  *
  * ```ts
@@ -2912,6 +2835,9 @@ export const timeoutOrElse: {
  * Effect.runPromise(program)
  * // Output: [ "A", "A", "B", "B", "C", "C" ]
  * ```
+ *
+ * @category sequencing
+ * @since 2.0.0
  */
 export const repeatElements: {
   <B, E2, R2>(
@@ -2987,12 +2913,6 @@ export const forever = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => from
 
 /**
  * Submerges the iterables emitted by this stream into the stream's structure.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.flattenIterables`
  *
  * **Example** (Flattening iterable values)
  *
@@ -3168,8 +3088,6 @@ export const merge: {
  * The effect runs concurrently, fails the stream if it fails, and is interrupted
  * when the stream completes.
  *
- * @category Merging
- * @since 4.0.0
  * **Example** (Merging with a background effect)
  *
  * ```ts
@@ -3188,6 +3106,9 @@ export const merge: {
  * // Output: side task
  * // Output: [ 1, 2, 3 ]
  * ```
+ *
+ * @category Merging
+ * @since 4.0.0
  */
 export const mergeEffect: {
   <A2, E2, R2>(effect: Effect.Effect<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
@@ -3204,12 +3125,6 @@ export const mergeEffect: {
 /**
  * Merges this stream and the specified stream together, tagging values from the
  * left stream as `Result.succeed` and values from the right stream as `Result.fail`.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.mergeEither`
  *
  * **Example** (Merging streams into results)
  *
@@ -3520,12 +3435,6 @@ const zipArrays = <AL, AR, A>(
  * Zips two streams by applying a function to non-empty arrays of elements.
  *
  * The function returns output plus leftover arrays that carry into the next pull.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.zipWithChunks`
  *
  * **Example** (Zipping stream chunks)
  *
@@ -4765,12 +4674,6 @@ export const buffer: {
  * buffer is full. This combinator preserves chunking and is best with
  * power-of-2 capacities.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.bufferChunks`
- *
  * **Example** (Buffering stream chunks)
  *
  * ```ts
@@ -4816,12 +4719,6 @@ export const bufferArray: {
  * Switches over to the stream produced by the provided function in case this
  * one fails. Allows recovery from all causes of failure, including
  * interruption if the stream is uninterruptible.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.catchAllCause`
  *
  * **Example** (Catching stream causes)
  *
@@ -4869,12 +4766,6 @@ export const catchCause: {
 /**
  * Runs an effect when the stream fails without changing its values or error,
  * unless the tap effect itself fails.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.tapErrorCause`
  *
  * **Example** (Tapping stream causes)
  *
@@ -4933,12 +4824,6 @@ const catch_: {
 export {
   /**
    * Switches over to the stream produced by the provided function if this one fails.
-   *
-   * **Previously Known As**
-   *
-   * This API replaces the following from Effect 3.x:
-   *
-   * - `Stream.catchAll`
    *
    * **Example** (Catching stream failures)
    *
@@ -5016,12 +4901,6 @@ export const tapError: {
  * When a failure matches the filter, the stream switches to the recovery
  * stream. Non-matching failures propagate downstream, so the error type is
  * preserved unless the filter narrows it.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.catchSome`
  *
  * **Example** (Catching matching failures)
  *
@@ -5660,12 +5539,6 @@ export const mapError: {
  * Recovers from stream failures by filtering the `Cause` and switching to a recovery stream.
  * Non-matching causes are re-emitted as failures.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.catchSomeCause`
- *
  * **Example** (Catching matching causes)
  *
  * ```ts
@@ -6026,7 +5899,7 @@ export const retry: {
  * **Example** (Applying an execution plan)
  *
  * ```ts
- * import { Console, Effect, ExecutionPlan, Layer, Context, Stream } from "effect"
+ * import { Console, Context, Effect, ExecutionPlan, Layer, Stream } from "effect"
  *
  * class Service extends Context.Service<Service>()("Service", {
  *   make: Effect.succeed({
@@ -6055,7 +5928,6 @@ export const retry: {
  *
  * @category error handling
  * @since 3.16.0
- * @experimental
  */
 export const withExecutionPlan: {
   <Input, R2, Provides, PolicyE>(
@@ -6883,7 +6755,7 @@ export const rechunk: {
  * **Example** (Emitting sliding windows)
  *
  * ```ts
- * import { Console, Effect, Stream, pipe } from "effect"
+ * import { Console, Effect, pipe, Stream } from "effect"
  *
  * Effect.gen(function*() {
  *   const result = yield* pipe(
@@ -7115,12 +6987,6 @@ export const combine: {
  * conceptually "offer" it to the destination stream. `f` can maintain some
  * internal state to control the combining process, with the initial state
  * being specified by `s`.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.combineChunks`
  *
  * **Example** (Combining stream chunks with state)
  *
@@ -9709,12 +9575,10 @@ export const ensuring: {
  * service requirements. Use `options.local` to build the layer every time; by
  * default, layers are shared between provide calls.
  *
- * **Previously Known As:** `provideSomeLayer`, `provideSomeContext`.
- *
  * **Example** (Providing stream requirements)
  *
  * ```ts
- * import { Console, Effect, Layer, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Layer, Stream } from "effect"
  *
  * class Env extends Context.Service<Env, { readonly name: string }>()("Env") {}
  *
@@ -9771,7 +9635,7 @@ export const provide: {
  * **Example** (Providing multiple services to the stream using a context)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Config extends Context.Service<Config, { readonly prefix: string }>()("Config") {}
  * class Greeter extends Context.Service<Greeter, { greet: (name: string) => string }>()("Greeter") {}
@@ -9816,7 +9680,7 @@ export const provideContext: {
  * **Example** (Providing a stream service)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Greeter extends Context.Service<Greeter, {
  *   greet: (name: string) => string
@@ -9870,7 +9734,7 @@ export const provideService: {
  * **Example** (Providing a stream service effectfully)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class ApiConfig extends Context.Service<ApiConfig, { readonly baseUrl: string }>()("ApiConfig") {}
  *
@@ -9928,7 +9792,7 @@ export const provideServiceEffect: {
  * **Example** (Updating the stream context)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Logger extends Context.Service<Logger, { prefix: string }>()("Logger") {}
  * class Config extends Context.Service<Config, { name: string }>()("Config") {}
@@ -9982,7 +9846,7 @@ export const updateContext: {
  * **Example** (Updating a stream service)
  *
  * ```ts
- * import { Console, Effect, Context, Stream } from "effect"
+ * import { Console, Context, Effect, Stream } from "effect"
  *
  * class Counter extends Context.Service<Counter, { count: number }>()("Counter") {}
  *
@@ -10068,7 +9932,7 @@ export const withSpan: {
  * **Example** (Starting stream do notation)
  *
  * ```ts
- * import { Console, Effect, Stream, pipe } from "effect"
+ * import { Console, Effect, pipe, Stream } from "effect"
  *
  * const program = pipe(
  *   Stream.Do,

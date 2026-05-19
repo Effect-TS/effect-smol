@@ -199,7 +199,7 @@ export declare namespace Command {
    *
    * ```ts
    * import { Argument, Flag } from "effect/unstable/cli"
-   * import type * as CliCommand from "effect/unstable/cli/Command"
+   * import type { Command as CliCommand } from "effect/unstable/cli"
    *
    * // Simple flat configuration
    * const simpleConfig: CliCommand.Command.Config = {
@@ -262,7 +262,7 @@ export declare namespace Command {
      *
      * ```ts
      * import { Flag } from "effect/unstable/cli"
-     * import type * as CliCommand from "effect/unstable/cli/Command"
+     * import type { Command as CliCommand } from "effect/unstable/cli"
      *
      * const config = {
      *   name: Flag.string("name"),

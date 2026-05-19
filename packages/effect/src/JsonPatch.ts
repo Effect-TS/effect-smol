@@ -33,7 +33,7 @@
  * **Example** (Computing and applying a patch)
  *
  * ```ts
- * import * as JsonPatch from "effect/JsonPatch"
+ * import { JsonPatch } from "effect"
  *
  * const oldValue = { name: "Alice", age: 30 }
  * const newValue = { name: "Alice", age: 31, city: "NYC" }
@@ -78,7 +78,7 @@ import type * as Schema from "./Schema.ts"
  * **Example** (All operation types)
  *
  * ```ts
- * import * as JsonPatch from "effect/JsonPatch"
+ * import { JsonPatch } from "effect"
  *
  * const addOp: JsonPatch.JsonPatchOperation = {
  *   op: "add",
@@ -155,7 +155,7 @@ export type JsonPatchOperation =
  * **Example** (Multi-operation patch)
  *
  * ```ts
- * import * as JsonPatch from "effect/JsonPatch"
+ * import { JsonPatch } from "effect"
  *
  * const patch: JsonPatch.JsonPatch = [
  *   { op: "add", path: "/items/-", value: "apple" },
@@ -205,7 +205,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * **Example** (Computing object diff)
  *
  * ```ts
- * import * as JsonPatch from "effect/JsonPatch"
+ * import { JsonPatch } from "effect"
  *
  * const oldValue = { users: [{ id: 1, name: "Alice" }], count: 1 }
  * const newValue = { users: [{ id: 1, name: "Bob" }, { id: 2, name: "Charlie" }], count: 2 }
@@ -314,7 +314,7 @@ export function get(oldValue: Schema.Json, newValue: Schema.Json): JsonPatch {
  * **Example** (Applying a patch)
  *
  * ```ts
- * import * as JsonPatch from "effect/JsonPatch"
+ * import { JsonPatch } from "effect"
  *
  * const document = { items: [1, 2, 3], total: 6 }
  * const patch: JsonPatch.JsonPatch = [

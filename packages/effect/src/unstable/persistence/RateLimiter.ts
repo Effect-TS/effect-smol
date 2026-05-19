@@ -235,6 +235,8 @@ export const layer: Layer.Layer<
 /**
  * Access a function that applies rate limiting to an effect.
  *
+ * **Example** (Applying rate limits to effects)
+ *
  * ```ts
  * import { Effect } from "effect"
  * import { RateLimiter } from "effect/unstable/persistence"
@@ -281,6 +283,8 @@ export const makeWithRateLimiter: Effect.Effect<
 
 /**
  * Access a function that sleeps when the rate limit is exceeded.
+ *
+ * **Example** (Sleeping until rate limit permits)
  *
  * ```ts
  * import { Effect } from "effect"

@@ -41,14 +41,11 @@ const clientErrors = [
 /**
  * Derives an `RpcGroup` from an `Entity`.
  *
+ * **Example** (Deriving RPC endpoints from an entity)
+ *
  * ```ts
  * import { Layer, Schema } from "effect"
- * import {
- *   ClusterSchema,
- *   Entity,
- *   EntityProxy,
- *   EntityProxyServer
- * } from "effect/unstable/cluster"
+ * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
  * import { Rpc, RpcServer } from "effect/unstable/rpc"
  *
  * export const Counter = Entity.make("Counter", [
@@ -159,14 +156,11 @@ const entityIdPath = {
 /**
  * Derives an `HttpApiGroup` from an `Entity`.
  *
+ * **Example** (Deriving HTTP API endpoints from an entity)
+ *
  * ```ts
  * import { Layer, Schema } from "effect"
- * import {
- *   ClusterSchema,
- *   Entity,
- *   EntityProxy,
- *   EntityProxyServer
- * } from "effect/unstable/cluster"
+ * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
  * import { Rpc } from "effect/unstable/rpc"
  *

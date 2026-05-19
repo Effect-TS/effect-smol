@@ -302,8 +302,8 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
  * **Example** (Adding prefixed span attributes)
  *
  * ```ts
- * import type { Tracer } from "effect"
  * import { String } from "effect"
+ * import type { Tracer } from "effect"
  * import { Telemetry } from "effect/unstable/ai"
  *
  * const addCustomAttributes = Telemetry.addSpanAttributes(

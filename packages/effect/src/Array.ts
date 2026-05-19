@@ -3335,7 +3335,7 @@ export const filter: {
  * ```
  *
  * @see {@link filter} — keep only matching elements
- * @see {@link partitionMap} — partition using a Result-returning function
+ * @see {@link separate} — split an iterable of `Result` values
  *
  * @category filtering
  * @since 2.0.0

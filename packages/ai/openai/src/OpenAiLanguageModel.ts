@@ -114,6 +114,7 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenAI-specific options for file prompt parts.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface FilePartOptions extends ProviderOptions {
     /**
@@ -131,6 +132,7 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenAI-specific options for reasoning prompt parts.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ReasoningPartOptions extends ProviderOptions {
     /**
@@ -154,6 +156,7 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenAI-specific options for assistant tool-call prompt parts.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolCallPartOptions extends ProviderOptions {
     /**
@@ -179,6 +182,7 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenAI-specific options for tool-result prompt parts.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface ToolResultPartOptions extends ProviderOptions {
     /**
@@ -204,6 +208,7 @@ declare module "effect/unstable/ai/Prompt" {
    * OpenAI-specific options for text prompt parts.
    *
    * @category request
+   * @since 4.0.0
    */
   export interface TextPartOptions extends ProviderOptions {
     /**
@@ -231,6 +236,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata attached to a complete text response part.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface TextPartMetadata extends ProviderMetadata {
     /**
@@ -262,6 +268,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata emitted when a streamed text part starts.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface TextStartPartMetadata extends ProviderMetadata {
     /**
@@ -279,6 +286,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata emitted when a streamed text part ends.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface TextEndPartMetadata extends ProviderMetadata {
     /**
@@ -300,6 +308,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata attached to a complete reasoning response part.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningPartMetadata extends ProviderMetadata {
     /**
@@ -321,6 +330,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata emitted when a streamed reasoning part starts.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
     /**
@@ -342,6 +352,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata emitted for a streamed reasoning delta.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
     /**
@@ -359,6 +370,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata emitted when a streamed reasoning part ends.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ReasoningEndPartMetadata extends ProviderMetadata {
     /**
@@ -380,6 +392,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata attached to tool-call response parts.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface ToolCallPartMetadata extends ProviderMetadata {
     /**
@@ -397,6 +410,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata attached to document source citations.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
     /**
@@ -452,6 +466,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata attached to URL source citations.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
     /**
@@ -477,6 +492,7 @@ declare module "effect/unstable/ai/Response" {
    * OpenAI metadata attached to finish response parts.
    *
    * @category response
+   * @since 4.0.0
    */
   export interface FinishPartMetadata extends ProviderMetadata {
     /**

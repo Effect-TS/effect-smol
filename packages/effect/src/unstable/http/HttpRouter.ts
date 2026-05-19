@@ -435,10 +435,11 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  * Use it to register routes or middleware with the router during layer
  * construction.
  *
+ * **Example** (Registering routes during layer construction)
+ *
  * ```ts
- * import { Effect } from "effect"
- * import * as Layer from "effect/Layer"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
+ * import { Effect, Layer } from "effect"
+ * import { HttpRouter } from "effect/unstable/http"
  *
  * const MyRoute = Layer.effectDiscard(Effect.gen(function*() {
  *   const router = yield* HttpRouter.HttpRouter
@@ -457,10 +458,11 @@ export const use = <A, E, R>(
 /**
  * Create a layer that adds a single route to the HTTP router.
  *
+ * **Example** (Adding a GET route)
+ *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+ * import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
  *
  * const Route = HttpRouter.add(
  *   "GET",
@@ -488,10 +490,11 @@ export const add = <E = never, R = never>(
 /**
  * Create a layer that adds multiple routes to the HTTP router.
  *
+ * **Example** (Adding multiple routes)
+ *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+ * import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
  *
  * const Routes = HttpRouter.addAll([
  *   HttpRouter.route(
@@ -840,13 +843,11 @@ export interface Middleware<
  * If you want to create a middleware that applies globally to all routes, pass
  * the `global` option as `true`.
  *
+ * **Example** (Applying route and global middleware)
+ *
  * ```ts
- * import { Effect } from "effect"
- * import * as Layer from "effect/Layer"
- * import * as Context from "effect/Context"
- * import * as HttpMiddleware from "effect/unstable/http/HttpMiddleware"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+ * import { Context, Effect, Layer } from "effect"
+ * import { HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/unstable/http"
  *
  * // Here we are defining a CORS middleware
  * const CorsMiddleware = HttpRouter.middleware(HttpMiddleware.cors()).layer
@@ -1139,11 +1140,11 @@ export const cors = (
 /**
  * A middleware that disables the logger for some routes.
  *
+ * **Example** (Disabling route logging)
+ *
  * ```ts
- * import { Effect } from "effect"
- * import * as Layer from "effect/Layer"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
+ * import { Effect, Layer } from "effect"
+ * import { HttpRouter, HttpServerResponse } from "effect/unstable/http"
  *
  * const Route = HttpRouter.add(
  *   "GET",

@@ -8,7 +8,7 @@
  * transparency for stateful entities, singleton workloads that should run once
  * per shard group, or durable message processing backed by cluster storage.
  * Registered entity handlers are started on demand for shards owned by the
- * current runner, while clients produced by {@link Sharding.makeClient} route
+ * current runner, while clients produced by the {@link Sharding} service route
  * requests through the sharding service instead of calling handlers directly.
  *
  * **Gotchas**

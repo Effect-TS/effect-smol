@@ -24,7 +24,7 @@
  *
  * ```ts
  * import { Effect, Metric } from "effect"
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import { PrometheusMetrics } from "effect/unstable/observability"
  *
  * const program = Effect.gen(function*() {
  *   // Create and update metrics
@@ -57,7 +57,7 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
  * **Example** (Mapping metric names)
  *
  * ```ts
- * import type * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import type { PrometheusMetrics } from "effect/unstable/observability"
  *
  * // Convert camelCase to snake_case
  * const mapper: PrometheusMetrics.MetricNameMapper = (name) =>
@@ -107,7 +107,7 @@ export interface HttpOptions extends FormatOptions {
  *
  * ```ts
  * import { Effect, Metric } from "effect"
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import { PrometheusMetrics } from "effect/unstable/observability"
  *
  * const program = Effect.gen(function*() {
  *   const counter = Metric.counter("api_requests_total", {
@@ -188,7 +188,7 @@ export const formatUnsafe = (
  * **Example** (Serving metrics over HTTP)
  *
  * ```ts
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import { PrometheusMetrics } from "effect/unstable/observability"
  *
  * // Create a layer that adds /metrics endpoint to the router
  * const PrometheusLayer = PrometheusMetrics.layerHttp()

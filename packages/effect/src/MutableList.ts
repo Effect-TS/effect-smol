@@ -46,7 +46,6 @@
  * - {@link remove} uses JavaScript strict equality semantics, not structural
  *   equality
  *
- * @fileoverview
  * @since 4.0.0
  */
 import * as Arr from "./Array.ts"
@@ -59,7 +58,7 @@ import * as Arr from "./Array.ts"
  * **Example** (Creating and consuming a mutable list)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * // Create a mutable list
  * const list: MutableList.MutableList<number> = MutableList.make()
@@ -96,7 +95,7 @@ export interface MutableList<in out A> {
  * **Example** (Typing queue processors)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * // Type annotation using the namespace
  * const processQueue = (queue: MutableList.MutableList<string>) => {
@@ -137,7 +136,7 @@ export declare namespace MutableList {
    * **Example** (Inspecting buckets)
    *
    * ```ts
-   * import * as MutableList from "effect/MutableList"
+   * import { MutableList } from "effect"
    *
    * const list = MutableList.make<number>()
    * MutableList.append(list, 1)
@@ -177,7 +176,7 @@ export declare namespace MutableList {
  * **Example** (Checking for empty results)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  *
@@ -216,7 +215,7 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * **Example** (Handling empty results type-safely)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  *
@@ -265,7 +264,7 @@ export type Empty = typeof Empty
  * **Example** (Creating an empty mutable list)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  *
@@ -305,7 +304,7 @@ const emptyBucket = <A = never>(): MutableList.Bucket<A> => ({
  * **Example** (Appending elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  *
@@ -348,7 +347,7 @@ export const append = <A>(self: MutableList<A>, message: A): void => {
  * **Example** (Prepending elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  *
@@ -391,7 +390,7 @@ export const prepend = <A>(self: MutableList<A>, message: A): void => {
  * **Example** (Prepending multiple elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 4)
@@ -427,7 +426,7 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  * **Example** (Prepending arrays with optional mutation)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 4)
@@ -465,7 +464,7 @@ export const prependAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArra
  * **Example** (Appending multiple elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 1)
@@ -510,7 +509,7 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  * **Example** (Appending arrays with optional mutation)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 1)
@@ -562,7 +561,7 @@ export const appendAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArray
  * **Example** (Clearing a mutable list)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5])
@@ -602,7 +601,7 @@ export const clear = <A>(self: MutableList<A>): void => {
  * **Example** (Taking batches)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -707,7 +706,7 @@ export const takeNVoid = <A>(self: MutableList<A>, n: number): void => {
  * **Example** (Draining all elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["apple", "banana", "cherry"])
@@ -752,7 +751,7 @@ export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.l
  * **Example** (Taking one element)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["first", "second", "third"])
@@ -852,7 +851,7 @@ export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, sel
  * **Example** (Filtering in place)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -919,7 +918,7 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  * **Example** (Removing matching values)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["apple", "banana", "apple", "cherry", "apple"])

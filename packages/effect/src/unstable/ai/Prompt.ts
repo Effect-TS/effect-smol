@@ -1010,8 +1010,6 @@ export interface BaseMessage<Role extends string, Options extends ProviderOption
 /**
  * Base interface for encoded message types.
  *
- * @template Role - String literal type for the message role
- *
  * @category models
  * @since 4.0.0
  */

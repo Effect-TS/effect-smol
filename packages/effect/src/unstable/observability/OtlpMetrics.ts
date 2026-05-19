@@ -51,7 +51,7 @@ import { OtlpSerialization } from "./OtlpSerialization.ts"
  * **Example** (Configuring aggregation temporality)
  *
  * ```ts
- * import * as OtlpMetrics from "effect/unstable/observability/OtlpMetrics"
+ * import { OtlpMetrics } from "effect/unstable/observability"
  *
  * // Use delta temporality for backends that prefer it (e.g., Datadog, Dynatrace)
  * const metricsLayer = OtlpMetrics.layer({

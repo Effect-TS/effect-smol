@@ -56,7 +56,7 @@ const TypeId = internal.HashSetTypeId
  * **Example** (Creating and updating a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * // Create a HashSet
  * const set = HashSet.make("apple", "banana", "cherry")
@@ -88,7 +88,7 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  * **Example** (Extracting value types from a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * // Create a concrete HashSet for type extraction
  * const fruits = HashSet.make("apple", "banana", "cherry")
@@ -113,7 +113,7 @@ export declare namespace HashSet {
    * **Example** (Extracting a HashSet value type)
    *
    * ```ts
-   * import * as HashSet from "effect/HashSet"
+   * import { HashSet } from "effect"
    *
    * const numbers = HashSet.make(1, 2, 3, 4, 5)
    *
@@ -135,7 +135,7 @@ export declare namespace HashSet {
  * **Example** (Creating an empty HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.empty<string>()
  *
@@ -158,7 +158,7 @@ export const empty: <V = never>() => HashSet<V> = internal.empty
  * **Example** (Creating a HashSet from values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const fruits = HashSet.make("apple", "banana", "cherry")
  * console.log(HashSet.size(fruits)) // 3
@@ -183,7 +183,7 @@ export const make: <Values extends ReadonlyArray<any>>(
  * **Example** (Creating a HashSet from an iterable)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const fromArray = HashSet.fromIterable(["a", "b", "c", "b", "a"])
  * console.log(HashSet.size(fromArray)) // 3
@@ -206,7 +206,7 @@ export const fromIterable: <V>(values: Iterable<V>) => HashSet<V> = internal.fro
  * **Example** (Checking for a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.make(1, 2, 3)
  * const array = [1, 2, 3]
@@ -230,7 +230,7 @@ export const isHashSet: {
  * **Example** (Adding values to a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.make("a", "b")
  * const withC = HashSet.add(set, "c")
@@ -261,10 +261,9 @@ export const add: {
  * **Example** (Checking HashSet membership)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { Equal, Hash, HashSet } from "effect"
  *
  * // Works with any type that implements Equal
- * import { Equal, Hash } from "effect"
  *
  * const set = HashSet.make("apple", "banana", "cherry")
  *
@@ -304,7 +303,7 @@ export const has: {
  * **Example** (Removing values from a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.make("a", "b", "c")
  * const withoutB = HashSet.remove(set, "b")
@@ -335,7 +334,7 @@ export const remove: {
  * **Example** (Getting the HashSet size)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const empty = HashSet.empty<string>()
  * console.log(HashSet.size(empty)) // 0
@@ -358,7 +357,7 @@ export const size: <V>(self: HashSet<V>) => number = internal.size
  * **Example** (Checking whether a HashSet is empty)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const empty = HashSet.empty<string>()
  * console.log(HashSet.isEmpty(empty)) // true
@@ -378,7 +377,7 @@ export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
  * **Example** (Combining HashSets)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set1 = HashSet.make("a", "b")
  * const set2 = HashSet.make("b", "c")
@@ -405,7 +404,7 @@ export const union: {
  * **Example** (Finding common HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set1 = HashSet.make("a", "b", "c")
  * const set2 = HashSet.make("b", "c", "d")
@@ -432,7 +431,7 @@ export const intersection: {
  * **Example** (Finding HashSet differences)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set1 = HashSet.make("a", "b", "c")
  * const set2 = HashSet.make("b", "d")
@@ -459,7 +458,7 @@ export const difference: {
  * **Example** (Checking subset relationships)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const small = HashSet.make("a", "b")
  * const large = HashSet.make("a", "b", "c", "d")
@@ -488,7 +487,7 @@ export const isSubset: {
  * **Example** (Mapping HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3)
  * const doubled = HashSet.map(numbers, (n) => n * 2)
@@ -519,7 +518,7 @@ export const map: {
  * **Example** (Filtering HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5, 6)
  * const evens = HashSet.filter(numbers, (n) => n % 2 === 0)
@@ -553,7 +552,7 @@ export const filter: {
  * **Example** (Testing whether some values match)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5)
  *
@@ -581,7 +580,7 @@ export const some: {
  * **Example** (Testing whether every value matches)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(2, 4, 6, 8)
  *
@@ -609,7 +608,7 @@ export const every: {
  * **Example** (Reducing HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5)
  * const sum = HashSet.reduce(numbers, 0, (acc, n) => acc + n)

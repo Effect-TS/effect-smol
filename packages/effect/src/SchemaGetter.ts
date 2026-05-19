@@ -209,7 +209,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  * **Example** (Always-failing getter)
  *
  * ```ts
- * import { SchemaGetter, SchemaIssue, Option } from "effect"
+ * import { Option, SchemaGetter, SchemaIssue } from "effect"
  *
  * const rejectAll = SchemaGetter.fail<string, string>(
  *   (oe) => new SchemaIssue.InvalidValue(oe, { message: "not allowed" })
@@ -382,7 +382,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * **Example** (Default timestamp for missing field)
  *
  * ```ts
- * import { SchemaGetter, Effect, Option } from "effect"
+ * import { Effect, Option, SchemaGetter } from "effect"
  *
  * const withTimestamp = SchemaGetter.onNone<number>(() =>
  *   Effect.succeed(Option.some(Date.now()))
@@ -449,7 +449,7 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  * **Example** (Transform only present values)
  *
  * ```ts
- * import { SchemaGetter, Effect, Option } from "effect"
+ * import { Effect, Option, SchemaGetter } from "effect"
  *
  * const parseIfPresent = SchemaGetter.onSome<number, string>(
  *   (s) => Effect.succeed(Option.some(Number(s)))
@@ -490,7 +490,7 @@ export function onSome<T, E, R = never>(
  * **Example** (Effectful validation)
  *
  * ```ts
- * import { SchemaGetter, Effect } from "effect"
+ * import { Effect, SchemaGetter } from "effect"
  *
  * const nonNegative = SchemaGetter.checkEffect<number>((n) =>
  *   Effect.succeed(n >= 0 ? undefined : "must be non-negative")
@@ -576,7 +576,7 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  * **Example** (Parsing with failure)
  *
  * ```ts
- * import { SchemaGetter, SchemaIssue, Effect, Option } from "effect"
+ * import { Effect, Option, SchemaGetter, SchemaIssue } from "effect"
  *
  * const safeParseInt = SchemaGetter.transformOrFail<number, string>(
  *   (s) => {
@@ -615,7 +615,7 @@ export function transformOrFail<T, E, R = never>(
  * **Example** (Filter out empty strings)
  *
  * ```ts
- * import { SchemaGetter, Option } from "effect"
+ * import { Option, SchemaGetter } from "effect"
  *
  * const skipEmpty = SchemaGetter.transformOptional<string, string>((o) =>
  *   Option.filter(o, (s) => s.length > 0)
@@ -1840,7 +1840,7 @@ export function makeTreeRecord<A>(
  * **Example** (Flatten object to bracket paths)
  *
  * ```ts
- * import { SchemaGetter, Predicate } from "effect"
+ * import { Predicate, SchemaGetter } from "effect"
  *
  * const collectStrings = SchemaGetter.collectBracketPathEntries(Predicate.isString)
  * const entries = collectStrings({ user: { name: "Alice", tags: ["admin", "editor"] } })

@@ -32,15 +32,15 @@
  * **Example** (Building and parsing a JSON Pointer)
  *
  * ```ts
- * import { escapeToken, unescapeToken } from "effect/JsonPointer"
+ * import { JsonPointer } from "effect"
  *
  * // Build a JSON Pointer from path segments
  * const segments = ["users", "name/alias", "value"]
- * const pointer = "/" + segments.map(escapeToken).join("/")
+ * const pointer = "/" + segments.map(JsonPointer.escapeToken).join("/")
  * // "/users/name~1alias/value"
  *
  * // Parse a JSON Pointer back to segments
- * const tokens = pointer.split("/").slice(1).map(unescapeToken)
+ * const tokens = pointer.split("/").slice(1).map(JsonPointer.unescapeToken)
  * // ["users", "name/alias", "value"]
  * ```
  *
@@ -74,11 +74,11 @@
  * **Example** (Escaping special characters)
  *
  * ```ts
- * import { escapeToken } from "effect/JsonPointer"
+ * import { JsonPointer } from "effect"
  *
- * escapeToken("a/b") // "a~1b"
- * escapeToken("c~d") // "c~0d"
- * escapeToken("path/to~key") // "path~1to~0key"
+ * JsonPointer.escapeToken("a/b") // "a~1b"
+ * JsonPointer.escapeToken("c~d") // "c~0d"
+ * JsonPointer.escapeToken("path/to~key") // "path~1to~0key"
  * ```
  *
  * ## See also
@@ -114,11 +114,11 @@ export function escapeToken(token: string): string {
  * **Example** (Unescaping special characters)
  *
  * ```ts
- * import { unescapeToken } from "effect/JsonPointer"
+ * import { JsonPointer } from "effect"
  *
- * unescapeToken("a~1b") // "a/b"
- * unescapeToken("c~0d") // "c~d"
- * unescapeToken("path~1to~0key") // "path/to~key"
+ * JsonPointer.unescapeToken("a~1b") // "a/b"
+ * JsonPointer.unescapeToken("c~0d") // "c~d"
+ * JsonPointer.unescapeToken("path~1to~0key") // "path/to~key"
  * ```
  *
  * ## See also

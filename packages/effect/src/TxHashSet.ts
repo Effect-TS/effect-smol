@@ -10,7 +10,7 @@
  * - Mutate an existing set with {@link add}, {@link remove}, and {@link clear}
  * - Query membership and size with {@link has}, {@link size}, and {@link isEmpty}
  * - Derive new sets with {@link map}, {@link filter}, {@link union}, {@link intersection}, and {@link difference}
- * - Fold or collect values with {@link reduce}, {@link toArray}, and {@link toHashSet}
+ * - Fold or collect values with {@link reduce} and {@link toHashSet}
  *
  * **Gotchas**
  *
@@ -267,8 +267,7 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * **Example** (Creating a transactional hash set from a HashSet)
  *
  * ```ts
- * import { Effect, TxHashSet } from "effect"
- * import * as HashSet from "effect/HashSet"
+ * import { Effect, HashSet, TxHashSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const hashSet = HashSet.make("x", "y", "z")
@@ -299,8 +298,7 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
  * **Example** (Checking for a TxHashSet)
  *
  * ```ts
- * import { Effect, TxHashSet } from "effect"
- * import * as HashSet from "effect/HashSet"
+ * import { Effect, HashSet, TxHashSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txSet = yield* TxHashSet.make(1, 2, 3)
@@ -904,8 +902,7 @@ export const reduce: {
  * **Example** (Taking a HashSet snapshot)
  *
  * ```ts
- * import { Effect, TxHashSet } from "effect"
- * import * as HashSet from "effect/HashSet"
+ * import { Effect, HashSet, TxHashSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txSet = yield* TxHashSet.make("x", "y", "z")

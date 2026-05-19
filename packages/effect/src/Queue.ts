@@ -245,12 +245,6 @@ export declare namespace Dequeue {
  *
  * It also supports signaling that it is done or failed.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Mailbox`
- *
  * **Example** (Offering and taking queue values)
  *
  * ```ts
@@ -381,14 +375,6 @@ const QueueProto = {
  * `"sliding"` to control what happens when the queue is full. The returned
  * queue can be offered to, taken from, failed, ended, interrupted, or shut down.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Mailbox.make`
- *
- * @category constructors
- * @since 4.0.0
  * **Example** (Creating queues)
  *
  * ```ts
@@ -417,6 +403,9 @@ const QueueProto = {
  *   console.log(failed) // true
  * })
  * ```
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = <A, E = never>(
   options?: {
@@ -846,8 +835,7 @@ export const failCause: {
  * **Example** (Failing queues with a cause synchronously)
  *
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, string>(10)

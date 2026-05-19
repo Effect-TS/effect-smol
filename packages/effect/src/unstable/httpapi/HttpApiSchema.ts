@@ -186,7 +186,7 @@ export function status(code: number | StatusLiteral) {
  * Creates a void schema with the given HTTP status code.
  * This is used to represent empty responses with a specific status code.
  *
- * @see {@link asEmpty} for creating a no content response that can be decoded into a meaningful value on the client side.
+ * @see {@link NoContent} for the predefined 204 no content schema.
  *
  * @category Empty
  * @since 4.0.0

@@ -21,6 +21,7 @@
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
     "effect/standard-jsdoc": ["error", {
+      "tsconfig": "tsconfig.packages.json",
       "include": [
         "packages/**/src/*.ts",
         "packages/**/src/**/*.ts"
@@ -33,10 +34,11 @@
       ],
       "checks": {
         "description": true,
-        "tags": false,
+        "tags": true,
         "category": true,
-        "since": false,
-        "examples": false
+        "since": true,
+        "examples": true,
+        "links": true
       },
       "examples": {
         "values": "optional",

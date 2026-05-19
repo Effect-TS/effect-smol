@@ -723,8 +723,7 @@ export const findFirstFilter: {
  * **Example** (Applying Effects to Iterable Elements)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const result = Effect.forEach(
  *   [1, 2, 3, 4, 5],
@@ -745,8 +744,7 @@ export const findFirstFilter: {
  * **Example** (Using discard to Ignore Results)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Apply effects but discard the results
  * const result = Effect.forEach(
@@ -835,7 +833,7 @@ export const whileLoop: <A, E, R>(options: {
  * This defect is not a standard error but indicates a flaw in the logic that
  * was expected to be error-free. You can think of it similar to an unexpected
  * crash in the program, which can be further managed or logged using tools like
- * {@link catchAllDefect}.
+ * {@link catchDefect}.
  *
  * **Interruptions**
  *
@@ -1113,7 +1111,7 @@ export const suspend: <A, E, R>(
  * This defect is not a standard error but indicates a flaw in the logic that
  * was expected to be error-free. You can think of it similar to an unexpected
  * crash in the program, which can be further managed or logged using tools like
- * {@link catchAllDefect}.
+ * {@link catchDefect}.
  *
  * @see {@link try_ | try} for a version that can handle failures.
  *
@@ -1169,12 +1167,6 @@ export {
  *
  * Use `Effect.callback` when integrating APIs that complete through callbacks
  * instead of returning a `Promise`.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.async`
  *
  * **Example** (Usage)
  *
@@ -1235,8 +1227,7 @@ export const never: Effect<never> = internal.never
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { pipe } from "effect/Function"
+ * import { Effect, pipe } from "effect"
  *
  * const program = pipe(
  *   Effect.Do,
@@ -1408,7 +1399,7 @@ export namespace gen {
  *
  * Use this function to explicitly signal an error in an `Effect`. The error
  * will keep propagating unless it is handled. You can handle the error with
- * functions like {@link catchAll} or {@link catchTag}.
+ * functions like {@link catchTag} or {@link catchTags}.
  *
  * @see {@link succeed} to create an effect that represents a successful value.
  *
@@ -1522,8 +1513,7 @@ export const failCauseSync: <E>(
  * The error channel of the resulting effect is of type `never`, indicating that
  * it cannot recover from this failure.
  *
- * @see {@link dieSync} for a variant that throws a specified error, evaluated lazily.
- * @see {@link dieMessage} for a variant that throws a `RuntimeException` with a message.
+ * @see {@link die} for a variant that dies with an already computed defect.
  *
  * **Example** (Terminating on Division by Zero with a Specified Error)
  *
@@ -1903,12 +1893,6 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * Failures or requirements from either effect are preserved in the returned
  * effect.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.zipRight`
- *
  * **Example** (Applying a Discount Based on Fetched Amount)
  *
  * ```ts
@@ -1986,17 +1970,10 @@ export const andThen: {
  * next part of the chain. Note that if the side effect fails, the entire chain
  * will fail too.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.zipLeft`
- *
  * **Example** (Logging a step in a pipeline)
  *
  * ```ts
- * import { Data, Effect, pipe } from "effect"
- * import { Console } from "effect"
+ * import { Console, Data, Effect, pipe } from "effect"
  *
  * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
  *
@@ -2068,12 +2045,6 @@ export const tap: {
  *
  * The resulting effect cannot fail directly because all recoverable failures
  * are represented inside the `Result` type.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.either`
  *
  * **Example** (Usage)
  *
@@ -2498,12 +2469,6 @@ export {
    * from unrecoverable defects.
    *
    * @see {@link catchCause} for a version that can recover from both recoverable and unrecoverable errors.
-   *
-   * **Previously Known As**
-   *
-   * This API replaces the following from Effect 3.x:
-   *
-   * - `Effect.catchAll`
    *
    * @category error handling
    * @since 4.0.0
@@ -2978,12 +2943,6 @@ export const unwrapReason: {
  * they often indicate serious issues. However, in some cases, such as
  * dynamically loaded plugins, controlled recovery might be needed.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.catchAllCause`
- *
  * **Example** (Usage)
  *
  * ```ts
@@ -3035,12 +2994,6 @@ export const catchCause: {
  * they often indicate serious issues. In some cases, such as dynamically loaded
  * plugins, controlled recovery may be needed.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.catchAllDefect`
- *
  * **Example** (Usage)
  *
  * ```ts
@@ -3081,13 +3034,6 @@ export const catchDefect: {
  * `Refinement` for type narrowing or a `Predicate` for simple boolean
  * matching. Non-matching errors re-fail with the original cause. Defects and
  * interrupts are not caught.
- *
- * **Previously Known As**
- *
- * This API replaces the following:
- *
- * - `Effect.catchSome` (Effect 3.x)
- * - `Effect.catchIf`
  *
  * **Example** (Usage)
  *
@@ -3181,12 +3127,6 @@ export const catchFilter: {
  * Effect.runPromise(none).then(console.log) // { _id: 'Option', _tag: 'None' }
  * ```
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.optionFromOptional`
- *
  * @category error handling
  * @since 4.0.0
  */
@@ -3200,12 +3140,6 @@ export const catchNoSuchElement: <A, E, R>(
  * This function allows you to conditionally catch and recover from failures
  * that match a specific predicate. This is useful when you want to handle
  * only certain types of errors while letting others propagate.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.catchSomeCause`
  *
  * **Example** (Usage)
  *
@@ -3274,7 +3208,7 @@ export const catchCauseFilter: {
  *
  * @see {@link map} for a version that operates on the success channel.
  * @see {@link mapBoth} for a version that operates on both channels.
- * @see {@link orElseFail} if you want to replace the error with a new one.
+ * @see {@link mapError} if you want to replace the error with a new one.
  *
  * **Example** (Usage)
  *
@@ -3357,7 +3291,7 @@ export const mapBoth: {
  * Use `orDie` when a typed failure represents an unrecoverable bug or invalid
  * state and should not be handled as a recoverable error.
  *
- * @see {@link orDieWith} if you need to customize the error.
+ * @see {@link mapError} to transform the error before converting it into a defect with {@link orDie}.
  *
  * **Example** (Propagating an Error as a Defect)
  *
@@ -3492,12 +3426,6 @@ export const tapErrorTag: {
  * Use this to log or inspect typed failures, defects, and interruptions. When
  * the operation succeeds, the original cause is preserved. If the operation
  * fails, its error is also represented in the returned effect.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.tapErrorCause`
  *
  * **Example** (Usage)
  *
@@ -3894,7 +3822,7 @@ export const retryOrElse: {
  * // Output: "Caught cause: Something went wrong"
  * ```
  *
- * @see {@link unsandbox} to restore the original error handling.
+ * @see {@link sandbox} to expose failures as full causes.
  *
  * @category error handling
  * @since 2.0.0
@@ -3939,12 +3867,6 @@ export const sandbox: <A, E, R>(
  * const program = task.pipe(Effect.ignore({ log: true }))
  * const programWarn = task.pipe(Effect.ignore({ log: "Warn", message: "Ignoring task failure" }))
  * ```
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.ignoreLogged`
  *
  * @category error handling
  * @since 2.0.0
@@ -4014,7 +3936,7 @@ export const ignoreCause: <
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, ExecutionPlan, Layer, Context } from "effect"
+ * import { Context, Effect, ExecutionPlan, Layer } from "effect"
  *
  * const Endpoint = Context.Service<{ url: string }>("Endpoint")
  *
@@ -4180,9 +4102,7 @@ export const firstSuccessOf: <Eff extends Effect<any, any, any>>(
  * your program waits for a task to finish, ensuring that it doesn't hang
  * indefinitely if the task takes too long.
  *
- * @see {@link timeoutFail} for a version that raises a custom error.
- * @see {@link timeoutFailCause} for a version that raises a custom defect.
- * @see {@link timeoutTo} for a version that allows specifying both success and timeout handlers.
+ * @see {@link timeoutOrElse} for a version that allows specifying both success and timeout handlers.
  *
  * **Example** (Usage)
  *
@@ -4239,9 +4159,7 @@ export const timeout: {
  * source effect fails before the timeout, that failure is preserved.
  *
  * @see {@link timeout} for a version that raises a `TimeoutException`.
- * @see {@link timeoutFail} for a version that raises a custom error.
- * @see {@link timeoutFailCause} for a version that raises a custom defect.
- * @see {@link timeoutTo} for a version that allows specifying both success and timeout handlers.
+ * @see {@link timeoutOrElse} for a version that allows specifying both success and timeout handlers.
  *
  * **Example** (Usage)
  *
@@ -4882,8 +4800,7 @@ export const filterMapOrFail: {
  * // { _id: 'Option', _tag: 'Some', value: undefined }
  * ```
  *
- * @see {@link whenEffect} for a version that allows the condition to be an effect.
- * @see {@link unless} for a version that executes the effect when the condition is `false`.
+ * @see {@link when} for conditional execution with a boolean condition.
  *
  * @category Conditional Operators
  * @since 2.0.0
@@ -5352,7 +5269,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Option, Context } from "effect"
+ * import { Console, Context, Effect, Option } from "effect"
  *
  * const Logger = Context.Service<{
  *   log: (msg: string) => void
@@ -5393,7 +5310,7 @@ export const context: <R = never>() => Effect<Context.Context<R>, never, R> = in
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Option, Context } from "effect"
+ * import { Console, Context, Effect, Option } from "effect"
  *
  * const Logger = Context.Service<{
  *   log: (msg: string) => void
@@ -5440,7 +5357,7 @@ export const contextWith: <R, A, E, R2>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Layer, Context } from "effect"
+ * import { Context, Effect, Layer } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -5526,7 +5443,7 @@ export const provide: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * // Define service keys
  * const Logger = Context.Service<{
@@ -5570,7 +5487,7 @@ export const provideContext: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface Database {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -5602,7 +5519,7 @@ export const service: <I, S>(service: Context.Key<I, S>) => Effect<S, never, I> 
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Option, Context } from "effect"
+ * import { Context, Effect, Option } from "effect"
  *
  * // Define a service key
  * const Logger = Context.Service<{
@@ -5637,7 +5554,7 @@ export const serviceOption: <I, S>(key: Context.Key<I, S>) => Effect<Option<S>> 
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * // Define services
  * const Logger = Context.Service<{
@@ -5687,7 +5604,7 @@ export const updateContext: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Context } from "effect"
+ * import { Console, Context, Effect } from "effect"
  *
  * // Define a counter service
  * const Counter = Context.Service<{ count: number }>("Counter")
@@ -5737,7 +5654,7 @@ export const updateService: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Context } from "effect"
+ * import { Console, Context, Effect } from "effect"
  *
  * // Define a service for configuration
  * const Config = Context.Service<{
@@ -5799,7 +5716,7 @@ export const provideService: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Context } from "effect"
+ * import { Console, Context, Effect } from "effect"
  *
  * // Define a database connection service
  * interface DatabaseConnection {
@@ -6087,13 +6004,13 @@ export const acquireRelease: <A, E, R, R2>(
  * JavaScript disposal protocal instead of requiring an explicit release
  * function.
  *
- * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/using}
+ * @see [JavaScript `using` declarations](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/using)
  *
  * **Example** (Usage)
  *
  * ```ts
  * import sqlite from "node:sqlite";
- * import { Effect } from "effect";
+ * import { Effect } from "effect"
  *
  * const program = Effect.scoped(
  *   Effect.gen(function* () {
@@ -6297,7 +6214,7 @@ export const ensuring: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Cause, Data, Console, Effect } from "effect"
+ * import { Cause, Console, Data, Effect } from "effect"
  *
  * class TaskError extends Data.TaggedError("TaskError")<{ readonly message: string }> {}
  *
@@ -7023,9 +6940,7 @@ export const forever: <
  *
  * ```ts
  * // Success Example
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * const action = Console.log("success")
  * const policy = Schedule.addDelay(Schedule.recurs(2), () => Effect.succeed("100 millis"))
@@ -7038,8 +6953,7 @@ export const forever: <
  *
  * ```ts
  * // Failure Example
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * let count = 0
  *
@@ -7101,8 +7015,7 @@ export const repeat: {
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Schedule } from "effect"
- * import * as Option from "effect/Option"
+ * import { Console, Effect, Option, Schedule } from "effect"
  *
  * let attempt = 0
  * const task = Effect.gen(function*() {
@@ -8204,10 +8117,7 @@ export interface RunOptions {
  * **Example** (Running an Effect in the Background)
  *
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Fiber } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Fiber, Schedule } from "effect"
  *
  * //      ┌─── Effect<number, never, never>
  * //      ▼
@@ -8237,7 +8147,7 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface Logger {
  *   log: (message: string) => void
@@ -8273,7 +8183,7 @@ export const runForkWith: <R>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Console, Effect, Exit, Context } from "effect"
+ * import { Console, Context, Effect, Exit } from "effect"
  *
  * interface Logger {
  *   log: (message: string) => Effect.Effect<void>
@@ -8404,7 +8314,7 @@ export const runPromise: <A, E>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface Config {
  *   apiUrl: string
@@ -8489,7 +8399,7 @@ export const runPromiseExit: <A, E>(
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Exit, Context } from "effect"
+ * import { Context, Effect, Exit } from "effect"
  *
  * interface Database {
  *   query: (sql: string) => string
@@ -8589,7 +8499,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Context } from "effect"
+ * import { Context, Effect } from "effect"
  *
  * interface MathService {
  *   add: (a: number, b: number) => number
@@ -8696,7 +8606,7 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  * **Example** (Usage)
  *
  * ```ts
- * import { Effect, Exit, Context } from "effect"
+ * import { Context, Effect, Exit } from "effect"
  *
  * // Define a logger service
  * const Logger = Context.Service<{

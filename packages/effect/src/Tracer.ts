@@ -95,8 +95,8 @@ export interface EffectPrimitive<X> {
  * **Example** (Creating span statuses)
  *
  * ```ts
- * import type { Tracer } from "effect"
  * import { Exit } from "effect"
+ * import type { Tracer } from "effect"
  *
  * const startTime = 1_000_000_000n
  * const endTime = 1_500_000_000n
@@ -203,8 +203,8 @@ export class ParentSpan extends Context.Service<ParentSpan, AnySpan>()(ParentSpa
  * **Example** (Creating an external span value)
  *
  * ```ts
- * import type { Tracer } from "effect"
  * import { Context } from "effect"
+ * import type { Tracer } from "effect"
  *
  * // Create an external span from another tracing system
  * const externalSpan: Tracer.ExternalSpan = {
@@ -237,8 +237,8 @@ export interface ExternalSpan {
  * **Example** (Configuring span options)
  *
  * ```ts
- * import type { Tracer } from "effect"
  * import { Effect } from "effect"
+ * import type { Tracer } from "effect"
  *
  * // Create an effect with span options
  * const options: Tracer.SpanOptions = {
@@ -296,8 +296,8 @@ export interface TraceOptions {
  * **Example** (Configuring span kinds)
  *
  * ```ts
- * import type { Tracer } from "effect"
  * import { Effect } from "effect"
+ * import type { Tracer } from "effect"
  *
  * // Different span kinds for different operations
  * const serverSpan = Effect.withSpan("handle-request", {
@@ -328,8 +328,8 @@ export type SpanKind = "internal" | "server" | "client" | "producer" | "consumer
  * **Example** (Working with spans)
  *
  * ```ts
- * import type { Tracer } from "effect"
  * import { Context, Exit, Option } from "effect"
+ * import type { Tracer } from "effect"
  *
  * const attributes = new Map<string, unknown>()
  * const links: Array<Tracer.SpanLink> = []

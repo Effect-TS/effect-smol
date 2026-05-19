@@ -489,8 +489,7 @@ const format = (
  * **Example** (Creating loggers from functions)
  *
  * ```ts
- * import { Effect, Logger } from "effect"
- * import { CurrentLogAnnotations } from "effect/References"
+ * import { Effect, Logger, References } from "effect"
  *
  * // Simple text logger
  * const textLogger = Logger.make((options) =>
@@ -503,7 +502,7 @@ const format = (
  *   level: options.logLevel,
  *   message: options.message,
  *   fiberId: options.fiber.id,
- *   annotations: options.fiber.getRef(CurrentLogAnnotations)
+ *   annotations: options.fiber.getRef(References.CurrentLogAnnotations)
  * }))
  *
  * // Custom filtering logger
@@ -1213,8 +1212,8 @@ export const layer = <
  * **Example** (Writing JSON logs to a file)
  *
  * ```ts
- * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
  * import { Effect, Layer, Logger } from "effect"
+ * import { NodeFileSystem, NodeRuntime } from "@effect/platform-node"
  *
  * const fileLogger = Logger.formatJson.pipe(
  *   Logger.toFile("/tmp/log.txt")
@@ -1234,8 +1233,8 @@ export const layer = <
  * **Example** (Writing logs to files)
  *
  * ```ts
- * import { NodeFileSystem } from "@effect/platform-node"
  * import { Duration, Effect, Logger } from "effect"
+ * import { NodeFileSystem } from "@effect/platform-node"
  *
  * // Basic file logging. The scope keeps the file open while logs are emitted
  * // and flushes pending entries when it closes.

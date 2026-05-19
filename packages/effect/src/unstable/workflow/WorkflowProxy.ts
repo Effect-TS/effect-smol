@@ -36,14 +36,12 @@ import type * as Workflow from "./Workflow.ts"
 /**
  * Derives an `RpcGroup` from a list of workflows.
  *
+ * **Example** (Deriving RPC endpoints from workflows)
+ *
  * ```ts
  * import { Layer, Schema } from "effect"
  * import { RpcServer } from "effect/unstable/rpc"
- * import {
- *   Workflow,
- *   WorkflowProxy,
- *   WorkflowProxyServer
- * } from "effect/unstable/workflow"
+ * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
  *
  * const EmailWorkflow = Workflow.make({
  *   name: "EmailWorkflow",
@@ -120,14 +118,12 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
 /**
  * Derives an `HttpApiGroup` from a list of workflows.
  *
+ * **Example** (Deriving HTTP API endpoints from workflows)
+ *
  * ```ts
  * import { Layer, Schema } from "effect"
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
- * import {
- *   Workflow,
- *   WorkflowProxy,
- *   WorkflowProxyServer
- * } from "effect/unstable/workflow"
+ * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
  *
  * const EmailWorkflow = Workflow.make({
  *   name: "EmailWorkflow",

@@ -129,7 +129,7 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
  * **Example** (Unifying protocol types)
  *
  * ```ts
- * import type * as Unify from "effect/Unify"
+ * import type { Unify } from "effect"
  *
  * // Example of types that can be unified
  * type UnifiableA = {

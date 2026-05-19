@@ -16,12 +16,11 @@
  * **Common tasks**
  *
  * - Create simple sinks: {@link succeed}, {@link fail}, {@link fromEffect}
- * - Fold input: {@link fold}, {@link foldEffect}, {@link foldLeft}
- * - Collect values: {@link collectAll}, {@link collectAllN}, {@link collectAllWhile}
+ * - Fold input: {@link fold}
+ * - Collect values: {@link collect}
  * - Count or drain input: {@link count}, {@link drain}
  * - Transform results: {@link map}, {@link mapEffect}, {@link as}
- * - Combine sinks: {@link zip}, {@link zipWith}, {@link race}
- * - Filter and refine input: {@link filterInput}, {@link filterInputEffect}
+ * - Adapt input before consumption: {@link mapInput}, {@link mapInputEffect}
  *
  * **Gotchas**
  *
@@ -71,9 +70,7 @@ const TypeId = "~effect/Sink"
  * **Example** (Running a sink with a stream)
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as Sink from "effect/Sink"
- * import * as Stream from "effect/Stream"
+ * import { Effect, Sink, Stream } from "effect"
  *
  * // Create a simple sink that always succeeds with a value
  * const sink: Sink.Sink<number> = Sink.succeed(42)

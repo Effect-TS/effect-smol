@@ -59,7 +59,7 @@ export declare namespace OpenAiConfig {
    * resolve the underlying HTTP client.
    *
    * @category models
-   * @since 1.0.
+   * @since 4.0.0
    */
   export interface Service {
     readonly transformClient?: ((client: HttpClient) => HttpClient) | undefined

@@ -147,8 +147,8 @@ export interface ChildProcessHandle {
    * **Example** (Temporarily unreferencing a child process)
    *
    * ```ts
-   * import { NodeServices } from "@effect/platform-node"
    * import { Effect } from "effect"
+   * import { NodeServices } from "@effect/platform-node"
    * import { ChildProcess } from "effect/unstable/process"
    *
    * const program = Effect.gen(function*() {

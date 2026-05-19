@@ -18,6 +18,7 @@ import * as UndefinedOr from "effect/UndefinedOr"
  * separator or digit are upper-cased without otherwise changing letter casing.
  *
  * @category converting
+ * @since 4.0.0
  */
 export const camelize = (self: string): string => {
   let str = ""
@@ -47,6 +48,7 @@ export const camelize = (self: string): string => {
  * by generated TypeScript modules.
  *
  * @category converting
+ * @since 4.0.0
  */
 export const identifier = (operationId: string) => String.capitalize(camelize(operationId))
 
@@ -57,6 +59,7 @@ export const identifier = (operationId: string) => String.capitalize(camelize(op
  * whitespace.
  *
  * @category filtering
+ * @since 4.0.0
  */
 export const nonEmptyString = (a: unknown): string | undefined => {
   if (typeof a === "string") {
@@ -74,6 +77,7 @@ export const nonEmptyString = (a: unknown): string | undefined => {
  * closing comment marker so generated source remains syntactically valid.
  *
  * @category converting
+ * @since 4.0.0
  */
 export const toComment = UndefinedOr.match({
   onUndefined: () => "",
@@ -90,6 +94,7 @@ export const toComment = UndefinedOr.match({
  * array when generator code needs to merge collections.
  *
  * @category concatenating
+ * @since 4.0.0
  */
 export const spreadElementsInto = <A>(source: Array<A>, destination: Array<A>): void => {
   for (let i = 0; i < source.length; i++) {

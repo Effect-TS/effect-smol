@@ -27,7 +27,7 @@
  * **Example** (Filter by a predicate)
  *
  * ```ts
- * import * as Predicate from "effect/Predicate"
+ * import { Predicate } from "effect"
  *
  * const isPositive = (n: number) => n > 0
  * const data = [2, -1, 3]

@@ -533,7 +533,7 @@ describe("Effect", () => {
         expect(release).toHaveBeenCalledTimes(1)
       }))
 
-    it.effect("relases async disposables", ({ expect }) =>
+    it.effect("releases async disposables", ({ expect }) =>
       Effect.gen(function*() {
         const acquire = Effect.sync((): AsyncDisposable => ({ [Symbol.asyncDispose]: release }))
         const release = vi.fn(async () => void 0)

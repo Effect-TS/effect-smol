@@ -95,12 +95,6 @@ const TypeId = "~effect/data/Result"
  *
  * `E` defaults to `never`, so `Result<number>` means a result that cannot fail.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Either`
- *
  * **Example** (Creating and matching a Result)
  *
  * ```ts
@@ -303,12 +297,6 @@ export declare namespace Result {
  * - The error type `E` defaults to `never`
  * - Does not mutate input; allocates a new `Success` wrapper
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Either.right`
- *
  * **Example** (Wrapping a value)
  *
  * ```ts
@@ -334,12 +322,6 @@ export const succeed: <A>(right: A) => Result<A> = result.succeed
  * - Use when you want to represent a failed computation
  * - The success type `A` defaults to `never`
  * - Does not mutate input; allocates a new `Failure` wrapper
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Either.left`
  *
  * **Example** (Creating a failure)
  *

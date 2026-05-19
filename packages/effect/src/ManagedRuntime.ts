@@ -187,12 +187,10 @@ export interface ManagedRuntime<in R, out ER> {
  * subsequent runs. Resources acquired by the layer are owned by the runtime and
  * are released when `dispose` or `disposeEffect` is run.
  *
- * @category runtime class
- * @since 2.0.0
  * **Example** (Creating a managed runtime)
  *
  * ```ts
- * import { Effect, Layer, ManagedRuntime, Context } from "effect"
+ * import { Context, Effect, Layer, ManagedRuntime } from "effect"
  *
  * class Notifications extends Context.Service<Notifications, {
  *   readonly notify: (message: string) => Effect.Effect<void>
@@ -214,6 +212,9 @@ export interface ManagedRuntime<in R, out ER> {
  * runtime.runPromise(program)
  * // Hello, world!
  * ```
+ *
+ * @category runtime class
+ * @since 2.0.0
  */
 export const make = <R, ER>(
   layer: Layer.Layer<R, ER, never>,

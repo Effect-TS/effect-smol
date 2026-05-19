@@ -87,12 +87,6 @@ export interface Latch {
  * The latch starts closed by default; pass `true` to create it open. Use this
  * only when synchronous allocation is required, otherwise prefer `make`.
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.makeLatchUnsafe`
- *
  * **Example** (Creating a latch unsafely)
  *
  * ```ts
@@ -124,12 +118,6 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
  * Creates a `Latch` inside `Effect`.
  *
  * The latch starts closed by default; pass `true` to create it open.
- *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Effect.makeLatch`
  *
  * **Example** (Creating a latch)
  *

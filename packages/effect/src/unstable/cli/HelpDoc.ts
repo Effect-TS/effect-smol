@@ -35,8 +35,8 @@ import type * as Option from "../../Option.ts"
  * **Example** (Defining command help documentation)
  *
  * ```ts
- * import { Option as O, Context } from "effect"
- * import type * as HelpDoc from "effect/unstable/cli/HelpDoc"
+ * import { Context, Option as O } from "effect"
+ * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const deployCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Deploy your application to the cloud",
@@ -196,7 +196,7 @@ export interface FlagDoc {
  * **Example** (Documenting subcommands)
  *
  * ```ts
- * import { Option as O, Context } from "effect"
+ * import { Context, Option as O } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const deploySubcommand: HelpDoc.SubcommandDoc = {
@@ -276,7 +276,7 @@ export interface SubcommandGroupDoc {
  * **Example** (Documenting positional arguments)
  *
  * ```ts
- * import { Option as O, Context } from "effect"
+ * import { Context, Option as O } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const sourceArg: HelpDoc.ArgDoc = {

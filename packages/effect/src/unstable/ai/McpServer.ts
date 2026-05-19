@@ -561,8 +561,8 @@ export const layer = (options: {
  * **Example** (Running an MCP server over stdio)
  *
  * ```ts
- * import { NodeRuntime, NodeStdio } from "@effect/platform-node"
  * import { Effect, Layer, Logger, Schema } from "effect"
+ * import { NodeRuntime, NodeStdio } from "@effect/platform-node"
  * import { McpSchema, McpServer } from "effect/unstable/ai"
  *
  * const idParam = McpSchema.param("id", Schema.Number)

@@ -69,8 +69,8 @@ export interface Formatter {
    *
    * ```ts
    * import { Option as O } from "effect"
-   * import type { HelpDoc } from "effect/unstable/cli"
    * import { CliOutput } from "effect/unstable/cli"
+   * import type { HelpDoc } from "effect/unstable/cli"
    *
    * const helpDoc: HelpDoc = {
    *   usage: "myapp [options] <file>",
@@ -111,7 +111,7 @@ export interface Formatter {
    * **Example** (Formatting CLI errors)
    *
    * ```ts
-   * import * as Data from "effect/Data"
+   * import { Data } from "effect"
    * import { CliOutput } from "effect/unstable/cli"
    *
    * class InvalidOption extends Data.TaggedError("InvalidOption")<{
@@ -134,7 +134,7 @@ export interface Formatter {
    * **Example** (Formatting error sections)
    *
    * ```ts
-   * import * as Data from "effect/Data"
+   * import { Data } from "effect"
    * import { CliOutput } from "effect/unstable/cli"
    *
    * class ValidationError extends Data.TaggedError("ValidationError")<{
@@ -217,7 +217,7 @@ export interface Formatter {
  * **Example** (Accessing the output formatter)
  *
  * ```ts
- * import * as Effect from "effect/Effect"
+ * import { Effect } from "effect"
  * import { CliOutput } from "effect/unstable/cli"
  *
  * // Access the formatter service
@@ -249,8 +249,7 @@ export const Formatter: Context.Reference<Formatter> = Context.Reference(
  * **Example** (Providing a custom formatter)
  *
  * ```ts
- * import * as Console from "effect/Console"
- * import * as Effect from "effect/Effect"
+ * import { Console, Effect } from "effect"
  * import { CliOutput } from "effect/unstable/cli"
  *
  * // Create a custom formatter without colors
