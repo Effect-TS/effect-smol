@@ -205,7 +205,7 @@ export * as OtlpTracer from "./OtlpTracer.ts"
  *
  * ```ts
  * import { Effect, Metric } from "effect"
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import { PrometheusMetrics } from "effect/unstable/observability"
  *
  * const program = Effect.gen(function*() {
  *   // Create and update metrics

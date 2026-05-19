@@ -122,7 +122,6 @@ export * as SqlError from "./SqlError.ts"
  * directly; MySQL performs a follow-up `select`, so generated ids, defaults,
  * and trigger-updated values must be observable from that query.
  *
- * @category models
  * @since 4.0.0
  */
 export * as SqlModel from "./SqlModel.ts"
