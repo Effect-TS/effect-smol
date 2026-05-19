@@ -85,6 +85,9 @@ export const fromCommand = (cmd: Command.Any): Completions.CommandDescriptor => 
     const singles = Param.extractSingleParams(flag)
     for (const single of singles) {
       if (single.kind !== "flag") continue
+      // Omit hidden flags from completion scripts so tab-completion in the
+      // shell does not advertise flags that are absent from --help.
+      if (single.hidden) continue
       flags.push({
         name: single.name,
         aliases: single.aliases,

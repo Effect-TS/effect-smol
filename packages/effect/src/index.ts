@@ -894,7 +894,8 @@ export * as Cron from "./Cron.ts"
  * and message digests. The base `Random` service is not cryptographically
  * secure unless you replace it with a cryptographically secure implementation.
  *
- * @example
+ * **Example** (Providing a test Crypto service)
+ *
  * ```ts
  * import { Console, Crypto, Effect, Layer } from "effect"
  *
@@ -915,7 +916,8 @@ export * as Cron from "./Cron.ts"
  * Effect.runPromise(Effect.provide(program, TestCrypto))
  * ```
  *
- * @example
+ * **Example** (Generating random bytes)
+ *
  * ```ts
  * import { Crypto, Effect, Layer } from "effect"
  *
@@ -1219,7 +1221,7 @@ export * as Duration from "./Duration.ts"
  * - **Testable**: Built-in support for testing with controlled environments
  * - **Interruptible**: Effects can be safely interrupted and cancelled
  *
- * **Example** (Usage)
+ * **Example** (Creating and running effects)
  *
  * ```ts
  * import { Console, Effect } from "effect"
@@ -1238,7 +1240,7 @@ export * as Duration from "./Duration.ts"
  * Effect.runPromise(program).then(console.log) // 13
  * ```
  *
- * **Example** (Usage)
+ * **Example** (Handling typed failures)
  *
  * ```ts
  * import { Data, Effect } from "effect"
@@ -2290,8 +2292,7 @@ export * as HKT from "./HKT.ts"
  * **Example** (Creating inspectable values)
  *
  * ```ts
- * import { Inspectable } from "effect"
- * import { format } from "effect/Formatter"
+ * import { Formatter, Inspectable } from "effect"
  *
  * class User extends Inspectable.Class {
  *   constructor(
@@ -2312,7 +2313,7 @@ export * as HKT from "./HKT.ts"
  *
  * const user = new User("Alice", "alice@example.com")
  * console.log(user.toString()) // Pretty printed JSON
- * console.log(format(user)) // Same as toString()
+ * console.log(Formatter.format(user)) // Same as toString()
  * ```
  *
  * @since 2.0.0
@@ -2388,7 +2389,7 @@ export * as Iterable from "./Iterable.ts"
  * **Example** (Computing and applying a patch)
  *
  * ```ts
- * import * as JsonPatch from "effect/JsonPatch"
+ * import { JsonPatch } from "effect"
  *
  * const oldValue = { name: "Alice", age: 30 }
  * const newValue = { name: "Alice", age: 31, city: "NYC" }
@@ -2443,15 +2444,15 @@ export * as JsonPatch from "./JsonPatch.ts"
  * **Example** (Building and parsing a JSON Pointer)
  *
  * ```ts
- * import { escapeToken, unescapeToken } from "effect/JsonPointer"
+ * import { JsonPointer } from "effect"
  *
  * // Build a JSON Pointer from path segments
  * const segments = ["users", "name/alias", "value"]
- * const pointer = "/" + segments.map(escapeToken).join("/")
+ * const pointer = "/" + segments.map(JsonPointer.escapeToken).join("/")
  * // "/users/name~1alias/value"
  *
  * // Parse a JSON Pointer back to segments
- * const tokens = pointer.split("/").slice(1).map(unescapeToken)
+ * const tokens = pointer.split("/").slice(1).map(JsonPointer.unescapeToken)
  * // ["users", "name/alias", "value"]
  * ```
  *
@@ -2585,7 +2586,7 @@ export * as JsonSchema from "./JsonSchema.ts"
  * - Prefer the effectful APIs unless synchronous allocation or mutation is
  *   required
  *
- * @since 3.8.0
+ * @since 4.0.0
  */
 export * as Latch from "./Latch.ts"
 
@@ -2959,7 +2960,6 @@ export * as Metric from "./Metric.ts"
  * - Size: O(1)
  * - Iteration: O(n)
  *
- * @category data-structures
  * @since 2.0.0
  */
 export * as MutableHashMap from "./MutableHashMap.ts"
@@ -3034,8 +3034,6 @@ export * as MutableHashMap from "./MutableHashMap.ts"
  * // Output: ["apple", "cherry"]
  * ```
  *
- * @fileoverview
- * @category data-structures
  * @since 2.0.0
  */
 export * as MutableHashSet from "./MutableHashSet.ts"
@@ -3088,8 +3086,6 @@ export * as MutableHashSet from "./MutableHashSet.ts"
  * - {@link remove} uses JavaScript strict equality semantics, not structural
  *   equality
  *
- * @fileoverview
- * @category data-structures
  * @since 4.0.0
  */
 export * as MutableList from "./MutableList.ts"
@@ -3126,7 +3122,6 @@ export * as MutableList from "./MutableList.ts"
  * - `compareAndSet` compares with Effect equality semantics, not only JavaScript reference equality
  * - For state that must participate in `Effect` workflows, interruption, or fiber coordination, prefer higher-level Effect data types
  *
- * @category data-structures
  * @since 2.0.0
  */
 export * as MutableRef from "./MutableRef.ts"
@@ -3231,7 +3226,7 @@ export * as Newtype from "./Newtype.ts"
  * **Example** (Requiring a non-empty iterable)
  *
  * ```ts
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { NonEmptyIterable } from "effect"
  *
  * // NonEmptyIterable is a type that represents any iterable with at least one element
  * function processNonEmpty<A>(data: NonEmptyIterable.NonEmptyIterable<A>): A {
@@ -3317,7 +3312,7 @@ export * as Newtype from "./Newtype.ts"
  *
  * ```ts
  * import { Array, pipe } from "effect"
- * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import type { NonEmptyIterable } from "effect"
  *
  * // Many Array functions work with NonEmptyIterable
  * declare const nonEmptyData: NonEmptyIterable.NonEmptyIterable<number>
@@ -3609,8 +3604,6 @@ export * as Order from "./Order.ts"
  *   right value, while `1` means it should come after
  * - Reversing an `Ordering` swaps `-1` and `1`, but leaves `0` unchanged
  *
- * @fileoverview
- * @category utilities
  * @since 2.0.0
  */
 export * as Ordering from "./Ordering.ts"
@@ -3811,7 +3804,7 @@ export * as Pool from "./Pool.ts"
  * **Example** (Filter by a predicate)
  *
  * ```ts
- * import * as Predicate from "effect/Predicate"
+ * import { Predicate } from "effect"
  *
  * const isPositive = (n: number) => n > 0
  * const data = [2, -1, 3]
@@ -5159,7 +5152,7 @@ export * as ScopedRef from "./ScopedRef.ts"
  *   the requested permits cannot be acquired immediately.
  * - Manual `take` / `release` usage must keep permit counts balanced.
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 export * as Semaphore from "./Semaphore.ts"
 
@@ -5181,12 +5174,11 @@ export * as Semaphore from "./Semaphore.ts"
  * **Common tasks**
  *
  * - Create simple sinks: {@link succeed}, {@link fail}, {@link fromEffect}
- * - Fold input: {@link fold}, {@link foldEffect}, {@link foldLeft}
- * - Collect values: {@link collectAll}, {@link collectAllN}, {@link collectAllWhile}
+ * - Fold input: {@link fold}
+ * - Collect values: {@link collect}
  * - Count or drain input: {@link count}, {@link drain}
  * - Transform results: {@link map}, {@link mapEffect}, {@link as}
- * - Combine sinks: {@link zip}, {@link zipWith}, {@link race}
- * - Filter and refine input: {@link filterInput}, {@link filterInputEffect}
+ * - Adapt input before consumption: {@link mapInput}, {@link mapInputEffect}
  *
  * **Gotchas**
  *
@@ -5649,7 +5641,7 @@ export * as TxHashMap from "./TxHashMap.ts"
  * - Mutate an existing set with {@link add}, {@link remove}, and {@link clear}
  * - Query membership and size with {@link has}, {@link size}, and {@link isEmpty}
  * - Derive new sets with {@link map}, {@link filter}, {@link union}, {@link intersection}, and {@link difference}
- * - Fold or collect values with {@link reduce}, {@link toArray}, and {@link toHashSet}
+ * - Fold or collect values with {@link reduce} and {@link toHashSet}
  *
  * **Gotchas**
  *

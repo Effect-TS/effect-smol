@@ -157,6 +157,9 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
     for (const option of config.flags) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
+        // Hidden flags still parse on the command line but are omitted from
+        // generated --help output.
+        if (single.hidden) continue
         flags.push(toFlagDoc(single))
       }
     }
