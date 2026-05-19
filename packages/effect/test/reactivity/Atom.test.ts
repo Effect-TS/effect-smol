@@ -2319,6 +2319,232 @@ describe.sequential("Atom", () => {
     assert.strictEqual(runs, 2)
   })
 
+  describe("persistedSwr", () => {
+    const cacheKey = "persisted-swr-cache"
+    const schema = AsyncResult.Schema({ success: Schema.Number, error: Schema.String })
+
+    const layerMemory = (storage: Map<string, string>) =>
+      Layer.succeed(
+        KeyValueStore.KeyValueStore,
+        KeyValueStore.makeStringOnly({
+          get: (key) => Effect.sync(() => storage.get(key)),
+          set: (key, value) => Effect.sync(() => storage.set(key, value)),
+          remove: (key) => Effect.sync(() => storage.delete(key)),
+          clear: Effect.sync(() => storage.clear()),
+          size: Effect.sync(() => storage.size)
+        })
+      )
+
+    const seedStorage = (
+      storage: Map<string, string>,
+      result: AsyncResult.AsyncResult<number, string>
+    ) => {
+      storage.set(cacheKey, JSON.stringify(Schema.encodeSync(schema)(result)))
+    }
+
+    const makeSetup = (storage: Map<string, string>) => {
+      const runtime = Atom.runtime(layerMemory(storage))
+      const makeSelf = (source: Atom.Atom<AsyncResult.AsyncResult<number, string>>) =>
+        source.pipe(Atom.serializable({ key: `inner-serializable-${cacheKey}`, schema }))
+      const makePersistedSwr = (
+        self: Atom.Atom<AsyncResult.AsyncResult<number, string>>,
+        staleTime = 10_000
+      ) => self.pipe(Atom.persistedSwr({ key: cacheKey, runtime, schema, staleTime }))
+      return { makeSelf, makePersistedSwr }
+    }
+
+    test("returns fresh persisted value without fetching", async () => {
+      const storage = new Map<string, string>()
+      const { makeSelf, makePersistedSwr } = makeSetup(storage)
+      seedStorage(storage, AsyncResult.success(1, { timestamp: Date.now() }))
+
+      let runs = 0
+      const source = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
+      const atom = makePersistedSwr(makeSelf(source))
+
+      const r = AtomRegistry.make()
+      const unmount = r.mount(atom)
+
+      const result = r.get(atom)
+      await Effect.runPromise(Effect.yieldNow)
+
+      assert(AsyncResult.isSuccess(result))
+      assert.strictEqual(result.value, 1)
+      assert.strictEqual(runs, 0)
+
+      unmount()
+    })
+
+    test("prefers valid registry value over fresh persisted and syncs store", async () => {
+      const storage = new Map<string, string>()
+      const { makeSelf, makePersistedSwr } = makeSetup(storage)
+      const now = Date.now()
+      seedStorage(storage, AsyncResult.success(1, { timestamp: now - 5_000 }))
+
+      let runs = 0
+      const source = Atom.make(Effect.sync(() => {
+        runs++
+        return 2
+      })).pipe(Atom.keepAlive)
+      const self = makeSelf(source)
+      const atom = makePersistedSwr(self)
+
+      const r = AtomRegistry.make()
+      r.mount(self)
+      const live = r.get(self)
+      assert(AsyncResult.isSuccess(live))
+      assert.strictEqual(live.value, 2)
+      assert.strictEqual(runs, 1)
+
+      const unmount = r.mount(atom)
+      const result = r.get(atom)
+      await Effect.runPromise(Effect.yieldNow)
+
+      assert(AsyncResult.isSuccess(result))
+      assert.strictEqual(result.value, 2)
+      assert.strictEqual(runs, 1)
+
+      const stored = storage.get(cacheKey)
+      assert(stored !== undefined)
+      const parsed = JSON.parse(stored) as { readonly value: number }
+      assert.strictEqual(parsed.value, 2)
+
+      unmount()
+    })
+
+    test("revalidates when persisted is stale and registry has no live value", async () => {
+      const storage = new Map<string, string>()
+      const { makeSelf, makePersistedSwr } = makeSetup(storage)
+      seedStorage(storage, AsyncResult.success(1, { timestamp: Date.now() - 2_000 }))
+
+      let runs = 0
+      const source = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
+      const atom = makePersistedSwr(makeSelf(source), 1_000)
+
+      const r = AtomRegistry.make()
+      const unmount = r.mount(atom)
+
+      r.get(atom)
+      await Effect.runPromise(Effect.yieldNow)
+
+      assert.strictEqual(runs, 1)
+
+      unmount()
+    })
+
+    test("does not revalidate when live registry value is already displayed", async () => {
+      const storage = new Map<string, string>()
+      const { makeSelf, makePersistedSwr } = makeSetup(storage)
+      seedStorage(storage, AsyncResult.success(1, { timestamp: Date.now() - 2_000 }))
+
+      let runs = 0
+      const source = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
+      const self = makeSelf(source)
+      const atom = makePersistedSwr(self, 1_000)
+
+      const r = AtomRegistry.make()
+      r.mount(self)
+      const live = r.get(self)
+      assert(AsyncResult.isSuccess(live))
+      assert.strictEqual(live.value, 1)
+      assert.strictEqual(runs, 1)
+
+      const unmount = r.mount(atom)
+      const result = r.get(atom)
+      await Effect.runPromise(Effect.yieldNow)
+
+      assert(AsyncResult.isSuccess(result))
+      assert.strictEqual(result.value, 1)
+      assert.strictEqual(runs, 1)
+
+      unmount()
+    })
+
+    test("invalidatePersisted clears fresh persisted cache and refetches", async () => {
+      const storage = new Map<string, string>()
+      let removed = false
+      const kvsLayer = Layer.succeed(
+        KeyValueStore.KeyValueStore,
+        KeyValueStore.makeStringOnly({
+          get: (key) => Effect.sync(() => storage.get(key)),
+          set: (key, value) => Effect.sync(() => storage.set(key, value)),
+          remove: (key) =>
+            Effect.sync(() => {
+              removed = true
+              storage.delete(key)
+            }),
+          clear: Effect.sync(() => storage.clear()),
+          size: Effect.sync(() => storage.size)
+        })
+      )
+      const runtime = Atom.runtime(kvsLayer)
+      const makeSelf = (source: Atom.Atom<AsyncResult.AsyncResult<number, string>>) =>
+        source.pipe(Atom.serializable({ key: `inner-serializable-${cacheKey}`, schema }))
+      const makePersistedSwr = (
+        self: Atom.Atom<AsyncResult.AsyncResult<number, string>>,
+        staleTime = 10_000
+      ) => self.pipe(Atom.persistedSwr({ key: cacheKey, runtime, schema, staleTime }))
+
+      seedStorage(storage, AsyncResult.success(1, { timestamp: Date.now() }))
+
+      let runs = 0
+      const source = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
+      const atom = makePersistedSwr(makeSelf(source))
+
+      const r = AtomRegistry.make()
+      const unmount = r.mount(atom)
+
+      const initial = r.get(atom)
+      assert(AsyncResult.isSuccess(initial))
+      assert.strictEqual(initial.value, 1)
+      assert.strictEqual(runs, 0)
+
+      await Effect.runPromise(
+        Atom.invalidatePersisted(atom).pipe(
+          Effect.provideService(AtomRegistry.AtomRegistry, r),
+          Effect.provide(kvsLayer)
+        )
+      )
+      await Effect.runPromise(Effect.yieldNow)
+
+      assert(removed)
+      assert.strictEqual(runs, 1)
+      const result = r.get(atom)
+      assert(AsyncResult.isSuccess(result))
+      assert.strictEqual(result.value, 1)
+
+      unmount()
+    })
+
+    test("refresh keeps KVS when fresh", async () => {
+      const storage = new Map<string, string>()
+      const { makeSelf, makePersistedSwr } = makeSetup(storage)
+      seedStorage(storage, AsyncResult.success(1, { timestamp: Date.now() }))
+      const originalStored = storage.get(cacheKey)
+
+      let runs = 0
+      const source = Atom.make(Effect.sync(() => ++runs)).pipe(Atom.keepAlive)
+      const atom = makePersistedSwr(makeSelf(source))
+
+      const r = AtomRegistry.make()
+      const unmount = r.mount(atom)
+
+      assert.strictEqual(runs, 0)
+
+      await Effect.runPromise(
+        Atom.refresh(atom).pipe(
+          Effect.provideService(AtomRegistry.AtomRegistry, r)
+        )
+      )
+      await Effect.runPromise(Effect.yieldNow)
+
+      assert.strictEqual(runs, 1)
+      assert.strictEqual(storage.get(cacheKey), originalStored)
+
+      unmount()
+    })
+  })
+
   describe("kvs", () => {
     it("memoizes defaultValue while loading empty storage", async () => {
       let calls = 0
