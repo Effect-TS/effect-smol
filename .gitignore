@@ -40,3 +40,4 @@ scratchpad/**/*
 
 # Repositories
 .repos/
+bench/results/
