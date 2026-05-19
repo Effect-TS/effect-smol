@@ -6459,7 +6459,12 @@ export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R
 export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, Scope.Scope>> =>
-  fromTransformBracket((upstream, scope, forkedScope) => Scope.provide(toTransform(self)(upstream, scope), forkedScope))
+  fromTransformBracket((upstream, scope, forkedScope) =>
+    Effect.map(
+      Scope.provide(toTransform(self)(upstream, scope), forkedScope),
+      Scope.provide(forkedScope)
+    )
+  )
 
 /**
  * Runs an input handler against the upstream pull while the wrapped channel
