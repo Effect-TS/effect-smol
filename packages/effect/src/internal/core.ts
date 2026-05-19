@@ -56,6 +56,65 @@ export const contAll = `${EffectTypeId}/ensureCont` as const
 /** @internal */
 export type contAll = typeof contAll
 
+// ----------------------------------------------------------------------------
+// Unified op-tag dispatch (Candidate B-v1: pure switch, no registry indirection)
+//
+// All 14 internal computation primitives share ONE prototype
+// (SharedComputationProto in effect.ts). Success / Failure exit primitives
+// share ANOTHER prototype (SharedExitProto below). The dispatch site
+// `(current)[evaluate](this)` in runLoop therefore observes at most TWO
+// hidden classes => stays within polymorphic IC threshold (V8 <=4, JSC
+// similar) instead of going megamorphic over 14+ distinct prototypes.
+//
+// Critically (in contrast to candidate B-v0): the per-op evaluator bodies
+// are inlined in a `switch (this[opTag])` directly on the shared proto's
+// `[evaluate]` method. There is no per-call registry-array load and no
+// per-call accessor getter for [contA] / [contE] / [contAll]. Continuation
+// handlers are stored as instance own-properties with a fixed add-order so
+// every instance shares a single hidden class.
+// ----------------------------------------------------------------------------
+
+/** @internal */
+export const opTag = Symbol.for("effect/runtime/opTag")
+/** @internal */
+export type opTag = typeof opTag
+
+// Dense integer ops. Order matches the historical primitives so existing
+// reading paths remain consistent. Reserve 0 for "unknown" sentinel.
+/** @internal */
+export const OP_Sync = 1
+/** @internal */
+export const OP_Suspend = 2
+/** @internal */
+export const OP_Yield = 3
+/** @internal */
+export const OP_Async = 4
+/** @internal */
+export const OP_AsyncFinalizer = 5
+/** @internal */
+export const OP_Iterator = 6
+/** @internal */
+export const OP_OnSuccess = 7
+/** @internal */
+export const OP_OnFailure = 8
+/** @internal */
+export const OP_OnSuccessAndFailure = 9
+/** @internal */
+export const OP_Exit = 10
+/** @internal */
+export const OP_OnExit = 11
+/** @internal */
+export const OP_SetInterruptible = 12
+/** @internal */
+export const OP_While = 13
+/** @internal */
+export const OP_WithFiber = 14
+// Exits live on a separate shared proto:
+/** @internal */
+export const OP_Success = 15
+/** @internal */
+export const OP_Failure = 16
+
 /** @internal */
 export const Yield = Symbol.for("effect/Effect/Yield")
 /** @internal */
@@ -383,6 +442,47 @@ function defaultEvaluate(_fiber: FiberImpl): Primitive | Yield {
   return exitDie(`Effect.evaluate: Not implemented`) as any
 }
 
+// ---------------------------------------------------------------------------
+// V1.3 — per-instance [evaluate].
+//
+// V1 used a shared [evaluate] on SharedComputationProto that switched on
+// this[opTag] and dispatched through module-level `let` slots. The switch +
+// indirection cost an extra branch + an indirect call through a mutable
+// binding per run-loop step. V1.3 stores the evaluator as an own-property
+// on each instance, set at construction time, so the run loop reads
+// `current[evaluate]` directly at proto-chain level 0 and calls it.
+//
+// Trade-off: call IC at the dispatch site goes from 1 target (monomorphic)
+// to N targets (polymorphic-by-op). JSC's polymorphic call IC handles small
+// N cheaply; the switch's load + mutable-let indirection was per-step cost
+// the IC could never amortize.
+// ---------------------------------------------------------------------------
+
+type EvalFn = (this: any, fiber: FiberImpl) => Primitive | Yield
+type ContAFn = (this: any, value: any, fiber: FiberImpl, exit?: Exit.Exit<any, any>) => Primitive | Yield
+type ContEFn = (
+  this: any,
+  cause: Cause.Cause<any>,
+  fiber: FiberImpl,
+  exit?: Exit.Exit<any, any>
+) => Primitive | Yield
+type ContAllFn = (this: any, fiber: FiberImpl) => void | ((value: any, fiber: FiberImpl) => void)
+
+// Stack-push evaluator: OnSuccess, OnFailure, and OnSuccessAndFailure all
+// share this body. Their semantic distinction lives in their continuation
+// handlers ([contA] / [contE] / [contAll]), not in their evaluator. Sharing
+// one function reference also collapses three distinct call-IC targets at
+// the dispatch site down to one.
+const evaluateStackPush: EvalFn = function(this: any, fiber: FiberImpl): Primitive {
+  fiber._stack.push(this)
+  return this[args]
+}
+
+/** @internal */
+export const SharedComputationProto: object = {
+  ...EffectProto
+}
+
 /** @internal */
 export const makePrimitiveProto = <Op extends string>(options: {
   readonly op: Op
@@ -419,6 +519,7 @@ export const makePrimitive = <
   Single extends boolean = true
 >(options: {
   readonly op: string
+  readonly opTag: number
   readonly single?: Single
   readonly [evaluate]?: (
     this: Primitive & {
@@ -449,41 +550,126 @@ export const makePrimitive = <
     fiber: FiberImpl
   ) => void | ((value: any, fiber: FiberImpl) => void)
 }): Fn => {
-  const Proto = makePrimitiveProto(options as any)
+  const opTagValue = options.opTag
+  const opName = options.op
+  const single = options.single !== false
+  const evalFn: EvalFn = (options[evaluate] as EvalFn | undefined) ?? defaultEvaluate
+  const cA = options[contA] as ContAFn | undefined
+  const cE = options[contE] as ContEFn | undefined
+  const cAll = options[contAll] as ContAllFn | undefined
+  // Unified instance factory. Property add-order is FIXED across all 14
+  // internal computation primitives to keep a single hidden class:
+  //   [identifier], [opTag], [args], [contA], [contE], [contAll], [evaluate]
+  // Handlers default to undefined; ops with a handler overwrite the slot
+  // *after* the undefined assignment (same slot, same shape).
   return function() {
-    const self = Object.create(Proto)
-    self[args] = options.single === false ? arguments : arguments[0]
+    const self = Object.create(SharedComputationProto)
+    self[identifier] = opName
+    self[opTag] = opTagValue
+    self[args] = single ? arguments[0] : arguments
+    self[contA] = undefined
+    self[contE] = undefined
+    self[contAll] = undefined
+    self[evaluate] = evalFn
+    if (cA !== undefined) self[contA] = cA
+    if (cE !== undefined) self[contE] = cE
+    if (cAll !== undefined) self[contAll] = cAll
     return self
   } as Fn
 }
 
+/**
+ * @internal
+ *
+ * Allocate a fresh OnSuccess primitive without going through `makePrimitive`.
+ * Used by hot factories (`flatMap`, `catchCause`, `matchCauseEffect`) that need
+ * to attach a user-supplied callback per-instance. Property add-order matches
+ * `makePrimitive` exactly so all SharedComputationProto instances share one
+ * hidden class.
+ */
+export const makeOnSuccess = <A>(
+  self: Effect.Effect<A, any, any>,
+  onSuccess: (value: A) => Effect.Effect<any, any, any>
+): Primitive => {
+  const out: any = Object.create(SharedComputationProto)
+  out[identifier] = "OnSuccess"
+  out[opTag] = OP_OnSuccess
+  out[args] = self
+  out[contA] = onSuccess
+  out[contE] = undefined
+  out[contAll] = undefined
+  out[evaluate] = evaluateStackPush
+  return out
+}
+
+/**
+ * @internal
+ *
+ * Allocate a fresh OnFailure primitive without going through `makePrimitive`.
+ * Matches the canonical add-order so all instances share one hidden class.
+ */
+export const makeOnFailure = <E>(
+  self: Effect.Effect<any, E, any>,
+  onFailure: (cause: Cause.Cause<E>) => Effect.Effect<any, any, any>
+): Primitive => {
+  const out: any = Object.create(SharedComputationProto)
+  out[identifier] = "OnFailure"
+  out[opTag] = OP_OnFailure
+  out[args] = self
+  out[contA] = undefined
+  out[contE] = onFailure
+  out[contAll] = undefined
+  out[evaluate] = evaluateStackPush
+  return out
+}
+
+/**
+ * @internal
+ *
+ * Allocate a fresh OnSuccessAndFailure primitive without going through
+ * `makePrimitive`. Matches the canonical add-order.
+ */
+export const makeOnSuccessAndFailure = <A, E>(
+  self: Effect.Effect<A, E, any>,
+  onSuccess: (value: A) => Effect.Effect<any, any, any>,
+  onFailure: (cause: Cause.Cause<E>) => Effect.Effect<any, any, any>
+): Primitive => {
+  const out: any = Object.create(SharedComputationProto)
+  out[identifier] = "OnSuccessAndFailure"
+  out[opTag] = OP_OnSuccessAndFailure
+  out[args] = self
+  out[contA] = onSuccess
+  out[contE] = onFailure
+  out[contAll] = undefined
+  out[evaluate] = evaluateStackPush
+  return out
+}
+
+
+// ---------------------------------------------------------------------------
+// SharedExitProto: ONE prototype shared by both Success and Failure instances.
+//
+// Both exits expose `value` (Success) AND `cause` (Failure) on the shared
+// proto as getters returning this[args]. The selector is purely conventional;
+// the instance shape is identical. `_tag` is the discriminant.
+// ---------------------------------------------------------------------------
+
+let EVAL_Success: EvalFn = defaultEvaluate
+let EVAL_Failure: EvalFn = defaultEvaluate
+
 /** @internal */
-export const makeExit = <
-  Fn extends (...args: Array<any>) => any,
-  Prop extends string
->(options: {
-  readonly op: "Success" | "Failure"
-  readonly prop: Prop
-  readonly [evaluate]: (
-    this: Exit.Exit<unknown, unknown> & { [args]: Parameters<Fn>[0] },
-    fiber: FiberImpl<unknown, unknown>
-  ) => Primitive | Yield
-}): Fn => {
-  const Proto = {
-    ...makePrimitiveProto(options),
+export const SharedExitProto: object = (() => {
+  const proto: any = {
+    ...EffectProto,
     [ExitTypeId]: ExitTypeId,
-    _tag: options.op,
-    get [options.prop](): any {
-      return (this as any)[args]
-    },
     toString(this: any) {
-      return `${options.op}(${format(this[args])})`
+      return `${this._tag}(${format(this[args])})`
     },
     toJSON(this: any) {
       return {
         _id: "Exit",
-        _tag: options.op,
-        [options.prop]: this[args]
+        _tag: this._tag,
+        [this._tag === "Success" ? "value" : "cause"]: this[args]
       }
     },
     [Equal.symbol](this: any, that: any): boolean {
@@ -494,25 +680,46 @@ export const makeExit = <
       )
     },
     [Hash.symbol](this: any): number {
-      return Hash.combine(Hash.string(options.op), Hash.hash(this[args]))
+      return Hash.combine(Hash.string(this._tag), Hash.hash(this[args]))
     }
   }
-  return function(value: unknown) {
-    const self = Object.create(Proto)
-    self[args] = value
-    return self
-  } as Fn
-}
+  // Both `value` and `cause` accessors live on the shared proto, each reading
+  // from this[args]. The non-matching name is harmless: Success.cause and
+  // Failure.value both return the underlying payload, but callers consult
+  // _tag before reading.
+  Object.defineProperty(proto, "value", {
+    get(this: any) {
+      return this[args]
+    },
+    enumerable: true,
+    configurable: true
+  })
+  Object.defineProperty(proto, "cause", {
+    get(this: any) {
+      return this[args]
+    },
+    enumerable: true,
+    configurable: true
+  })
+  return proto
+})()
 
 /** @internal */
-export const exitSucceed: <A>(a: A) => Exit.Exit<A> = makeExit({
-  op: "Success",
-  prop: "value",
-  [evaluate](fiber) {
+export const exitSucceed: <A>(a: A) => Exit.Exit<A> = (() => {
+  EVAL_Success = function(this: any, fiber) {
     const cont = fiber.getCont(contA)
     return cont ? cont[contA](this[args], fiber, this) : fiber.yieldWith(this)
   }
-})
+  return function(value: unknown): Exit.Exit<any> {
+    const self: any = Object.create(SharedExitProto)
+    self[identifier] = "Success"
+    self[opTag] = OP_Success
+    self[args] = value
+    self._tag = "Success"
+    self[evaluate] = EVAL_Success
+    return self
+  } as any
+})()
 
 /** @internal */
 export const StackTraceKey = {
@@ -525,10 +732,8 @@ export const InterruptorStackTrace = {
 } as Context.Service<Cause.InterruptorStackTrace, StackFrame>
 
 /** @internal */
-export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = makeExit({
-  op: "Failure",
-  prop: "cause",
-  [evaluate](fiber) {
+export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = (() => {
+  EVAL_Failure = function(this: any, fiber) {
     let cause = this[args]
     let annotated = false
     if (fiber.currentStackFrame) {
@@ -543,7 +748,16 @@ export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = 
       ? cont[contE](cause, fiber, annotated ? undefined : this)
       : fiber.yieldWith(annotated ? this : exitFailCause(cause))
   }
-})
+  return function(cause: unknown): Exit.Exit<never, any> {
+    const self: any = Object.create(SharedExitProto)
+    self[identifier] = "Failure"
+    self[opTag] = OP_Failure
+    self[args] = cause
+    self._tag = "Failure"
+    self[evaluate] = EVAL_Failure
+    return self
+  } as any
+})()
 
 /** @internal */
 export const exitFail = <E>(e: E): Exit.Exit<never, E> => exitFailCause(causeFail(e))
@@ -556,6 +770,7 @@ export const withFiber: <A, E = never, R = never>(
   evaluate: (fiber: FiberImpl<unknown, unknown>) => Effect.Effect<A, E, R>
 ) => Effect.Effect<A, E, R> = makePrimitive({
   op: "WithFiber",
+  opTag: OP_WithFiber,
   [evaluate](fiber) {
     return this[args](fiber)
   }

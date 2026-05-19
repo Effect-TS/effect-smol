@@ -72,9 +72,21 @@ import {
   isFailReason,
   isInterruptReason,
   isNoSuchElementError,
+  makeOnFailure,
+  makeOnSuccess,
+  makeOnSuccessAndFailure,
   makePrimitive,
-  makePrimitiveProto,
   NoSuchElementError,
+  OP_Async,
+  OP_AsyncFinalizer,
+  OP_Exit,
+  OP_Iterator,
+  OP_OnExit,
+  OP_SetInterruptible,
+  OP_Suspend,
+  OP_Sync,
+  OP_While,
+  OP_Yield,
   ReasonBase,
   StackTraceKey as CauseStackTrace,
   TaggedError,
@@ -874,6 +886,7 @@ export const fail: <E>(error: E) => Effect.Effect<never, E> = exitFail
 /** @internal */
 export const sync: <A>(thunk: LazyArg<A>) => Effect.Effect<A> = makePrimitive({
   op: "Sync",
+  opTag: OP_Sync,
   [evaluate](fiber): Primitive | Yield {
     const value = this[args]()
     const cont = fiber.getCont(contA)
@@ -886,6 +899,7 @@ export const suspend: <A, E, R>(
   evaluate: LazyArg<Effect.Effect<A, E, R>>
 ) => Effect.Effect<A, E, R> = makePrimitive({
   op: "Suspend",
+  opTag: OP_Suspend,
   [evaluate](_fiber) {
     return this[args]()
   }
@@ -910,6 +924,7 @@ export const fromNullishOr = <A>(value: A): Effect.Effect<NonNullable<A>, Cause.
 /** @internal */
 export const yieldNowWith: (priority?: number) => Effect.Effect<void> = makePrimitive({
   op: "Yield",
+  opTag: OP_Yield,
   [evaluate](fiber) {
     let resumed = false
     fiber.currentDispatcher.scheduleTask(() => {
@@ -1018,6 +1033,7 @@ const callbackOptions: <A, E = never, R = never>(
   withSignal: boolean
 ) => Effect.Effect<A, E, R> = makePrimitive({
   op: "Async",
+  opTag: OP_Async,
   single: false,
   [evaluate](fiber) {
     const register = internalCall(() => this[args][0].bind(fiber.currentScheduler))
@@ -1056,6 +1072,7 @@ const asyncFinalizer: (
   onInterrupt: () => Effect.Effect<void, any, any>
 ) => Primitive = makePrimitive({
   op: "AsyncFinalizer",
+  opTag: OP_AsyncFinalizer,
   [contAll](fiber) {
     if (fiber.interruptible) {
       fiber.interruptible = false
@@ -1268,6 +1285,7 @@ const fromIteratorUnsafe: (
   initial?: undefined
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",
+  opTag: OP_Iterator,
   single: false,
   [contA](value, fiber) {
     const iter = this[args][0]
@@ -1584,19 +1602,9 @@ export const flatMap: {
     self: Effect.Effect<A, E, R>,
     f: (a: A) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<B, E | E2, R | R2> => {
-    const onSuccess = Object.create(OnSuccessProto)
-    onSuccess[args] = self
-    onSuccess[contA] = f.length !== 1 ? (a: A) => f(a) : f
-    return onSuccess
+    return makeOnSuccess(self, f.length !== 1 ? (a: A) => f(a) : f) as any
   }
 )
-const OnSuccessProto = makePrimitiveProto({
-  op: "OnSuccess",
-  [evaluate](this: any, fiber: FiberImpl): Primitive {
-    fiber._stack.push(this)
-    return this[args]
-  }
-})
 
 /** @internal */
 export const matchCauseEffectEager: {
@@ -2371,19 +2379,9 @@ export const catchCause: {
     self: Effect.Effect<A, E, R>,
     f: (cause: NoInfer<Cause.Cause<E>>) => Effect.Effect<B, E2, R2>
   ): Effect.Effect<A | B, E2, R | R2> => {
-    const onFailure = Object.create(OnFailureProto)
-    onFailure[args] = self
-    onFailure[contE] = f.length !== 1 ? (cause: Cause.Cause<E>) => f(cause) : f
-    return onFailure
+    return makeOnFailure(self, f.length !== 1 ? (cause: Cause.Cause<E>) => f(cause) : f) as any
   }
 )
-const OnFailureProto = makePrimitiveProto({
-  op: "OnFailure",
-  [evaluate](this: any, fiber: FiberImpl): Primitive {
-    fiber._stack.push(this as any)
-    return this[args]
-  }
-})
 
 /** @internal */
 export const catchCauseIf: {
@@ -3319,22 +3317,13 @@ export const matchCauseEffect: {
       readonly onSuccess: (a: A) => Effect.Effect<A3, E3, R3>
     }
   ): Effect.Effect<A2 | A3, E2 | E3, R2 | R3 | R> => {
-    const primitive = Object.create(OnSuccessAndFailureProto)
-    primitive[args] = self
-    primitive[contA] = options.onSuccess.length !== 1 ? (a: A) => options.onSuccess(a) : options.onSuccess
-    primitive[contE] = options.onFailure.length !== 1
-      ? (cause: Cause.Cause<E>) => options.onFailure(cause)
-      : options.onFailure
-    return primitive
+    return makeOnSuccessAndFailure(
+      self,
+      options.onSuccess.length !== 1 ? (a: A) => options.onSuccess(a) : options.onSuccess,
+      options.onFailure.length !== 1 ? (cause: Cause.Cause<E>) => options.onFailure(cause) : options.onFailure
+    ) as any
   }
 )
-const OnSuccessAndFailureProto = makePrimitiveProto({
-  op: "OnSuccessAndFailure",
-  [evaluate](this: any, fiber: FiberImpl): Primitive {
-    fiber._stack.push(this)
-    return this[args]
-  }
-})
 
 /** @internal */
 export const matchCause: {
@@ -3496,6 +3485,7 @@ export const exit = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<Exit.
 const exitPrimitive: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<Exit.Exit<A, E>, never, R> =
   makePrimitive({
     op: "Exit",
+    opTag: OP_Exit,
     [evaluate](fiber): Primitive {
       fiber._stack.push(this)
       return this[args] as any
@@ -3842,6 +3832,7 @@ export const onExitPrimitive: <A, E, R, XE = never, XR = never>(
   interruptible?: boolean
 ) => Effect.Effect<A, E | XE, R | XR> = makePrimitive({
   op: "OnExit",
+  opTag: OP_OnExit,
   single: false,
   [evaluate](fiber: FiberImpl) {
     fiber._stack.push(this)
@@ -4148,6 +4139,7 @@ export const uninterruptible = <A, E, R>(
 
 const setInterruptible: (interruptible: boolean) => Primitive = makePrimitive({
   op: "SetInterruptible",
+  opTag: OP_SetInterruptible,
   [contAll](fiber) {
     fiber.interruptible = this[args]
     if (fiber._interruptedCause && fiber.interruptible) {
@@ -4423,6 +4415,7 @@ export const whileLoop: <A, E, R>(options: {
   readonly step: (a: A) => void
 }) => Effect.Effect<void, E, R> = makePrimitive({
   op: "While",
+  opTag: OP_While,
   [contA](value, fiber) {
     this[args].step(value)
     if (this[args].while()) {
