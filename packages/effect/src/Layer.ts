@@ -3,17 +3,28 @@
  * application. Services can be injected into effects via
  * `Effect.provideService`. Effects can require services via `Effect.service`.
  *
- * Layer can be thought of as recipes for producing bundles of services, given
- * their dependencies (other services).
+ * A layer is a recipe for producing services from their dependencies:
  *
- * Construction of services can be effectful and utilize resources that must be
- * acquired and safely released when the services are done being utilized.
+ * - `ROut` is what the layer provides.
+ * - `E` is what can fail while building the layer.
+ * - `RIn` is what the layer needs in order to build.
  *
- * By default layers are shared, meaning that if the same layer is used twice
- * the layer will only be allocated a single time.
+ * Normal application code should ask for services. Layer code should create
+ * services. The application entry point should provide the final layer once.
+ * Keeping this boundary clear makes programs easier to reuse with production,
+ * test, or mock implementations.
+ *
+ * Construction of services can be effectful and can acquire resources that must
+ * be safely released when the services are no longer used. For example, a layer
+ * can open a database pool during acquisition and close it in a finalizer.
+ *
+ * Layers are lazy: they do not build anything until they are provided to a
+ * program or explicitly built. By default layers are shared, meaning that if the
+ * same layer value is used twice, it is allocated only once and both users share
+ * the same service instance.
  *
  * Because of their excellent composition properties, layers are the idiomatic
- * way in Effect-TS to create services that depend on other services.
+ * way in Effect to create services that depend on other services.
  *
  * @since 2.0.0
  */
@@ -1020,6 +1031,10 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  * All layers are built concurrently, and their outputs are merged into a single layer.
  * This is useful when you need to combine multiple independent layers.
  *
+ * If multiple merged layers depend on the same layer value, that dependency is
+ * shared by default. Reuse a named layer value when you want services to share
+ * the same resource, such as one database pool.
+ *
  * **Example** (Merging independent layers)
  *
  * ```ts
@@ -1140,9 +1155,12 @@ const provideWith = (
   )
 
 /**
- * Feeds the output services of this builder into the input of the specified
- * builder, resulting in a new builder with the inputs of this builder as
- * well as any leftover inputs, and the outputs of the specified builder.
+ * Feeds the output services of the dependency layer into the requirements of
+ * this layer, returning a layer that only provides the services from this layer.
+ *
+ * In `serviceLayer.pipe(Layer.provide(dependencyLayer))`, the dependency layer is
+ * built first and is used to satisfy the requirements of `serviceLayer`. Use this
+ * when callers should receive only the service being built, not its dependencies.
  *
  * **Example** (Providing layer dependencies)
  *
@@ -1239,9 +1257,13 @@ export const provide: {
 ) => provideWith(self, that, identity))
 
 /**
- * Feeds the output services of this layer into the input of the specified
- * layer, resulting in a new layer with the inputs of this layer, and the
- * outputs of both layers.
+ * Feeds the output services of the dependency layer into the requirements of
+ * this layer, returning a layer that provides both sets of services.
+ *
+ * Use this when callers need access to both the service being built and the
+ * dependency used to build it, such as a health check that needs both a
+ * repository and its database. Prefer `provide` when the dependency should stay
+ * private.
  *
  * **Example** (Providing dependencies while retaining services)
  *
@@ -1777,6 +1799,11 @@ export const updateService: {
 
 /**
  * Creates a fresh version of this layer that will not be shared.
+ *
+ * Use `fresh` when two parts of an application must receive separate instances
+ * of a resource, such as two independent client sessions. Do not use it just to
+ * work around confusing composition: by default, sharing the same layer value is
+ * usually the desired behavior.
  *
  * **Example** (Creating non-shared layer instances)
  *

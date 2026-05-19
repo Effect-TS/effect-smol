@@ -2595,17 +2595,28 @@ export * as Latch from "./Latch.ts"
  * application. Services can be injected into effects via
  * `Effect.provideService`. Effects can require services via `Effect.service`.
  *
- * Layer can be thought of as recipes for producing bundles of services, given
- * their dependencies (other services).
+ * A layer is a recipe for producing services from their dependencies:
  *
- * Construction of services can be effectful and utilize resources that must be
- * acquired and safely released when the services are done being utilized.
+ * - `ROut` is what the layer provides.
+ * - `E` is what can fail while building the layer.
+ * - `RIn` is what the layer needs in order to build.
  *
- * By default layers are shared, meaning that if the same layer is used twice
- * the layer will only be allocated a single time.
+ * Normal application code should ask for services. Layer code should create
+ * services. The application entry point should provide the final layer once.
+ * Keeping this boundary clear makes programs easier to reuse with production,
+ * test, or mock implementations.
+ *
+ * Construction of services can be effectful and can acquire resources that must
+ * be safely released when the services are no longer used. For example, a layer
+ * can open a database pool during acquisition and close it in a finalizer.
+ *
+ * Layers are lazy: they do not build anything until they are provided to a
+ * program or explicitly built. By default layers are shared, meaning that if the
+ * same layer value is used twice, it is allocated only once and both users share
+ * the same service instance.
  *
  * Because of their excellent composition properties, layers are the idiomatic
- * way in Effect-TS to create services that depend on other services.
+ * way in Effect to create services that depend on other services.
  *
  * @since 2.0.0
  */
