@@ -507,7 +507,7 @@ describe("Metric", () => {
   })
 
   describe("track", () => {
-    it.effect("updates on success", () =>
+    it.effect("maps exits while preserving the instrumented effect result", () =>
       Effect.gen(function*() {
         const id = nextId()
         const counter = Metric.counter(id).pipe(

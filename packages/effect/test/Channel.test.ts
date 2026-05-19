@@ -142,7 +142,7 @@ describe("Channel", () => {
         assert.deepStrictEqual(result, [2, 3, 4])
       }))
 
-    it.effect("mapEffect - propagates interruption", () =>
+    it.effect("mapEffect interrupts the running effect when the channel is interrupted", () =>
       Effect.gen(function*() {
         let interrupted = false
         const latch = yield* Latch.make(false)
@@ -315,7 +315,7 @@ describe("Channel", () => {
   })
 
   describe("switchMap", () => {
-    it.effect("interrupts the previous channel", () =>
+    it.effect("interrupts previous channels and runs their finalizers", () =>
       Effect.gen(function*() {
         const result = yield* Channel.fromIterable([1, 2, 3]).pipe(
           Channel.switchMap((n) => n === 3 ? Channel.empty : Channel.never),
