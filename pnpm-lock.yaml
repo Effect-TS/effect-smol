@@ -264,6 +264,12 @@ importers:
         specifier: workspace:^
         version: link:../../effect
 
+  packages/ai/perplexity:
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
   packages/atom/react:
     devDependencies:
       '@testing-library/dom':
