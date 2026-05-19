@@ -23,7 +23,7 @@ Use the narrowest validation that still covers the change:
 | Change type                 | Validation                                                                                                  |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Code changes                | `pnpm lint-fix`, targeted `pnpm test <test_file.ts>`, `pnpm check:tsgo`                                     |
-| Tests-only changes          | `pnpm lint-fix`, targeted `pnpm test <test_file.ts>`                                                        |
+| Tests-only changes          | `pnpm lint-fix`, targeted `pnpm test <test_file.ts>`, `pnpm check:tsgo`                                     |
 | Type-level/API type changes | Targeted `pnpm test-types <filename>`, plus `pnpm check:tsgo` when source types changed                     |
 | JSDoc/example changes       | From the changed package directory, run `pnpm docgen`; also run `pnpm check:tsgo` when source types changed |
 | Docs-only changes           | `pnpm lint-fix`; no tests required unless examples or code changed                                          |

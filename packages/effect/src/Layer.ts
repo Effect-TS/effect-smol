@@ -1675,8 +1675,9 @@ export const catchTag: {
  *
  * **Details**
  * The handler receives the full `Cause` of the failed layer, including typed
- * errors, defects, and interruption information, and returns the fallback layer
- * to build instead.
+ * errors, unexpected defects, and interruption information, and returns the fallback layer
+ * to build instead. Finalizers for resources acquired by the failed layer are
+ * still run before the fallback layer is acquired.
  *
  * **Example** (Recovering from layer failures by cause)
  *
@@ -1850,8 +1851,12 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
   fromBuildUnsafe((_, scope) => self.build(makeMemoMapUnsafe(), scope))
 
 /**
- * Builds this layer and uses it until it is interrupted. This is useful when
- * your entire application is a layer, such as an HTTP server.
+ * Builds this layer and keeps it alive until the returned effect is interrupted.
+ * This is useful when your entire application is a layer, such as an HTTP
+ * server.
+ *
+ * When the returned effect is interrupted, the layer scope is closed and all
+ * finalizers registered during layer acquisition are run.
  *
  * **Example** (Launching an application layer)
  *
@@ -1914,7 +1919,7 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
  * while keeping non-Effect properties required. This allows you to provide
  * only the methods you need to test while leaving others unimplemented.
  *
- * @category Testing
+ * @category testing
  * @since 3.17.0
  */
 export type PartialEffectful<A extends object> = Types.Simplify<
@@ -1936,8 +1941,14 @@ type AnyEffectOrStream =
 
 /**
  * Creates a mock layer for testing purposes. You can provide a partial
- * implementation of the service, and any methods not provided will
- * throw an unimplemented defect when called.
+ * implementation of the service. Any missing members that are `Effect`s,
+ * `Stream`s, `Channel`s, or functions returning them will fail with an
+ * unimplemented defect when used.
+ *
+ * Missing members are represented by a value that can be used as an `Effect`,
+ * `Stream`, `Channel`, or as a function returning an `Effect`. This lets the
+ * mock preserve the shape of common service methods while still failing loudly
+ * when an unimplemented member is exercised.
  *
  * **Example** (Mocking services for tests)
  *
@@ -1978,7 +1989,7 @@ type AnyEffectOrStream =
  * )
  * ```
  *
- * @category Testing
+ * @category testing
  * @since 3.17.0
  */
 export const mock: {
@@ -2162,7 +2173,9 @@ export interface SpanOptions extends Tracer.SpanOptions {
  *
  * This allows you to create a traced scope for layer construction, making all
  * operations within the layer constructor part of the same trace span. The span
- * is automatically closed when the layer's scope is closed.
+ * is automatically ended when the layer's scope is closed. If `onEnd` is
+ * provided, it is run at the same time with the span and whether the layer
+ * scope completed successfully or failed.
  *
  * **Example** (Tracing layer construction with a span)
  *
@@ -2371,6 +2384,11 @@ export const withSpan: {
  * **Details**
  * Use this to attach layer construction to an existing trace hierarchy. This API
  * does not create or end the supplied parent span.
+ *
+ * When the supplied span is a native `Span`, layer construction also receives
+ * diagnostic information that helps associate failures with the layer call site.
+ * External spans are only installed as the parent span and do not add this
+ * diagnostic call-site information.
  *
  * **Example** (Attaching layers to an existing parent span)
  *
