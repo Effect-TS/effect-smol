@@ -432,7 +432,7 @@ export const withFallbackPrompt: {
 export const variadic: {
   (options?: Param.VariadicParamOptions | undefined): <A>(self: Argument<A>) => Argument<ReadonlyArray<A>>
   <A>(self: Argument<A>, options?: Param.VariadicParamOptions | undefined): Argument<ReadonlyArray<A>>
-} = dual(2, <A>(
+} = dual((args) => Param.isParam(args[0]), <A>(
   self: Argument<A>,
   options?: Param.VariadicParamOptions | undefined
 ): Argument<ReadonlyArray<A>> => Param.variadic(self, options))
