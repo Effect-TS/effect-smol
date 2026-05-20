@@ -96,6 +96,23 @@ const TypeId = `~effect/Fiber/${version}`
  * Effects concurrently while maintaining structured concurrency and
  * cancellation safety.
  *
+ * **When to use**
+ *
+ * Use `Fiber` values when you need to observe, join, interrupt, or otherwise
+ * coordinate work that has already been forked.
+ *
+ * **Details**
+ *
+ * A fiber exposes both safe Effect-based operations, such as {@link await},
+ * {@link join}, and {@link interrupt}, and low-level runtime fields used by
+ * the scheduler and runtime internals.
+ *
+ * **Gotchas**
+ *
+ * Prefer the exported functions in this module over calling `interruptUnsafe`
+ * or `pollUnsafe` directly. The unsafe methods are immediate runtime hooks and
+ * do not provide the same Effect-based sequencing guarantees.
+ *
  * **Example** (Awaiting a forked fiber)
  *
  * ```ts
@@ -143,6 +160,11 @@ export interface Fiber<out A, out E = never> extends Pipeable {
 /**
  * The Fiber namespace contains utility types and functions for working with fibers.
  * It provides type-level utilities for fiber operations and variance encoding.
+ *
+ * **Details**
+ *
+ * The namespace currently exposes type-level support used by the `Fiber`
+ * interface. Runtime operations are exported as module-level functions.
  *
  * **Example** (Working with fiber types)
  *
@@ -196,6 +218,21 @@ export {
   /**
    * Waits for a fiber to complete and returns its exit value.
    *
+   * **When to use**
+   *
+   * Use `Fiber.await` when you need to inspect whether the fiber succeeded,
+   * failed, died, or was interrupted without propagating the failure.
+   *
+   * **Details**
+   *
+   * The returned Effect always succeeds with an `Exit` describing the fiber's
+   * outcome.
+   *
+   * **Gotchas**
+   *
+   * This does not flatten the fiber result into the current Effect. Use
+   * {@link join} when you want fiber failures to fail the current Effect.
+   *
    * **Example** (Awaiting a fiber exit)
    *
    * ```ts
@@ -216,6 +253,20 @@ export {
 /**
  * Waits for all fibers in the provided iterable to complete and returns
  * an array of their exit values.
+ *
+ * **When to use**
+ *
+ * Use when you need every fiber outcome as data, including failures and
+ * interruptions.
+ *
+ * **Details**
+ *
+ * The returned array is ordered like the input iterable.
+ *
+ * **Gotchas**
+ *
+ * Failures are captured as `Exit.Failure` values. Use {@link joinAll} when you
+ * want the first failed fiber to fail the returned Effect.
  *
  * **Example** (Awaiting multiple fiber exits)
  *
@@ -248,6 +299,16 @@ export const awaitAll: <A extends Fiber<any, any>>(
  * Joins a fiber, blocking until it completes. If the fiber succeeds,
  * returns its value. If it fails, the error is propagated.
  *
+ * **When to use**
+ *
+ * Use `Fiber.join` when the forked fiber is part of the current workflow and
+ * its failure should fail the current Effect.
+ *
+ * **Gotchas**
+ *
+ * Joining a failed fiber propagates the fiber's Cause. Use {@link await} when
+ * you need to inspect the `Exit` instead of failing.
+ *
  * **Example** (Joining a fiber)
  *
  * ```ts
@@ -260,6 +321,8 @@ export const awaitAll: <A extends Fiber<any, any>>(
  * })
  * ```
  *
+ * @see {@link await} for inspecting the fiber outcome as an Exit
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -268,11 +331,23 @@ export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 /**
  * Waits for all fibers to succeed and returns their values in input order.
  *
+ * **When to use**
+ *
+ * Use when every fiber must succeed and you want the successful values rather
+ * than the `Exit` values.
+ *
  * **Details**
  *
  * If any fiber fails, the returned `Effect` fails with that fiber's cause and
  * stops waiting for additional results. This does not interrupt the remaining
  * fibers.
+ *
+ * **Gotchas**
+ *
+ * A failure stops waiting, but it does not interrupt any other fibers. Use
+ * {@link interruptAll} separately when remaining fibers should be stopped.
+ *
+ * @see {@link awaitAll} for collecting every fiber outcome as an Exit
  *
  * @category combinators
  * @since 2.0.0
@@ -291,6 +366,19 @@ export const joinAll: <A extends Iterable<Fiber<any, any>>>(
  * Interrupts a fiber, causing it to stop executing and clean up any
  * acquired resources.
  *
+ * **When to use**
+ *
+ * Use when a forked fiber is no longer needed and should be cancelled.
+ *
+ * **Details**
+ *
+ * The returned Effect completes only after the interrupted fiber has completed.
+ *
+ * **Gotchas**
+ *
+ * Interruption is cooperative. A fiber can continue running while it is inside
+ * uninterruptible work or finalizers.
+ *
  * **Example** (Interrupting a fiber)
  *
  * ```ts
@@ -305,6 +393,9 @@ export const joinAll: <A extends Iterable<Fiber<any, any>>>(
  * })
  * ```
  *
+ * @see {@link interruptAs} for specifying the interrupting fiber ID
+ * @see {@link await} for observing the interrupted fiber's Exit
+ *
  * @category interruption
  * @since 2.0.0
  */
@@ -313,6 +404,20 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
 /**
  * Interrupts a fiber with a specific fiber ID as the interruptor. This allows
  * tracking which fiber initiated the interruption.
+ *
+ * **When to use**
+ *
+ * Use when runtime diagnostics or tracing should attribute the interruption to
+ * a specific fiber ID.
+ *
+ * **Details**
+ *
+ * The returned Effect completes only after the interrupted fiber has completed.
+ *
+ * **Gotchas**
+ *
+ * The supplied ID affects the recorded interruptor. It does not make
+ * interruption synchronous or force uninterruptible regions to stop early.
  *
  * **Example** (Interrupting a fiber as another fiber)
  *
@@ -329,6 +434,8 @@ export const interrupt: <A, E>(self: Fiber<A, E>) => Effect<void> = effect.fiber
  *   console.log("Fiber interrupted by fiber #123")
  * })
  * ```
+ *
+ * @see {@link interrupt} for using the current fiber as the interruptor
  *
  * @category interruption
  * @since 2.0.0
@@ -348,6 +455,20 @@ export const interruptAs: {
 /**
  * Interrupts all fibers in the provided iterable, causing them to stop executing
  * and clean up any acquired resources.
+ *
+ * **When to use**
+ *
+ * Use when a group of forked fibers is no longer needed.
+ *
+ * **Details**
+ *
+ * The current fiber is recorded as the interruptor. The returned Effect
+ * completes only after all interrupted fibers have completed.
+ *
+ * **Gotchas**
+ *
+ * Interruption is cooperative for each fiber. The returned Effect can wait for
+ * uninterruptible work and finalizers in any interrupted fiber.
  *
  * **Example** (Interrupting multiple fibers)
  *
@@ -388,6 +509,8 @@ export const interruptAs: {
  * })
  * ```
  *
+ * @see {@link interruptAllAs} for specifying the interrupting fiber ID
+ *
  * @category interruption
  * @since 2.0.0
  */
@@ -399,6 +522,16 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  * Interrupts all fibers in the provided iterable using the specified fiber ID as the
  * interrupting fiber. This allows you to control which fiber is considered the source
  * of the interruption, which can be useful for debugging and tracing.
+ *
+ * **Details**
+ *
+ * The returned Effect completes only after all interrupted fibers have
+ * completed.
+ *
+ * **Gotchas**
+ *
+ * The supplied ID affects the recorded interruptor. It does not make
+ * interruption synchronous or force uninterruptible regions to stop early.
  *
  * **Example** (Interrupting multiple fibers as another fiber)
  *
@@ -434,6 +567,8 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  * })
  * ```
  *
+ * @see {@link interruptAll} for using the current fiber as the interruptor
+ *
  * @category interruption
  * @since 2.0.0
  */
@@ -445,6 +580,15 @@ export const interruptAllAs: {
 /**
  * Tests if a value is a Fiber. This is a type guard that can be used to
  * determine if an unknown value is a Fiber instance.
+ *
+ * **When to use**
+ *
+ * Use at boundaries where an unknown value may be a runtime fiber.
+ *
+ * **Details**
+ *
+ * The check looks for the internal Fiber type ID marker and does not inspect
+ * the fiber's current state.
  *
  * **Example** (Checking for fibers)
  *
@@ -481,6 +625,16 @@ export const isFiber = (
  * Returns the current fiber if called from within a fiber context,
  * otherwise returns `undefined`.
  *
+ * **When to use**
+ *
+ * Use for low-level runtime integrations that need access to the currently
+ * executing fiber.
+ *
+ * **Gotchas**
+ *
+ * This is a synchronous accessor, not an Effect. It returns `undefined` outside
+ * an active fiber runtime context.
+ *
  * **Example** (Getting the current fiber)
  *
  * ```ts
@@ -502,12 +656,23 @@ export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFi
 /**
  * Links a fiber to a `Scope` and returns the same fiber.
  *
+ * **When to use**
+ *
+ * Use when a manually managed fiber should be interrupted when a Scope closes.
+ *
  * **Details**
  *
  * When the scope is closed, the fiber is interrupted. If the scope is already
  * closed, the fiber is interrupted immediately.
  *
- * @category Scope
+ * **Gotchas**
+ *
+ * This does not wait for the fiber to complete. It only registers the
+ * interruption finalizer and returns the same fiber.
+ *
+ * @see {@link interrupt} for interrupting and waiting for completion
+ *
+ * @category resource management
  * @since 4.0.0
  */
 export const runIn: {
