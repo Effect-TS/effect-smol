@@ -268,15 +268,36 @@ export interface ParsedStandardJSDocFile {
 }
 
 /**
+ * Barrel import metadata for a public module included in the standard JSDoc dump.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type ParsedStandardJSDocBarrelImport =
+  | {
+    readonly type: "namespace"
+    readonly module: string
+    readonly name: string
+  }
+  | {
+    readonly type: "flat"
+    readonly module: string
+  }
+
+/**
  * Import specifiers for a public module included in the standard JSDoc dump.
  *
  * @category models
  * @since 4.0.0
  */
 export interface ParsedStandardJSDocImports {
-  readonly name: string
-  readonly barrel: string
   readonly module: string
+  readonly barrel: ParsedStandardJSDocBarrelImport | null
+}
+
+interface ParsedBarrelExports {
+  readonly namespace: ReadonlyMap<string, string>
+  readonly flat: ReadonlySet<string>
 }
 
 /**
@@ -340,12 +361,6 @@ interface PackageExportMatch {
   readonly prefixLength: number
 }
 
-interface BarrelExportMatch {
-  readonly barrel: string
-  readonly expectedExport: string
-  readonly actualName?: string
-}
-
 interface ParsedConfigResult {
   readonly parsed?: ts.ParsedCommandLine
   readonly error?: string
@@ -353,7 +368,7 @@ interface ParsedConfigResult {
 
 const programCache = new Map<string, ProgramCacheEntry>()
 const packageMetadataCache = new Map<string, Result<PackageMetadata, string>>()
-const barrelNamespaceExportCache = new Map<string, Result<ReadonlyMap<string, string>, string>>()
+const barrelExportCache = new Map<string, Result<ParsedBarrelExports, string>>()
 const dumpStateKey = Symbol.for("@effect/oxc/standard-jsdoc/dump-state")
 
 interface StandardJSDocDumpState {
@@ -546,9 +561,9 @@ function readPackageMetadata(root: string): Result<PackageMetadata, string> {
   return result
 }
 
-function parseBarrelNamespaceExports(indexPath: string): Result<ReadonlyMap<string, string>, string> {
+function parseBarrelExports(indexPath: string): Result<ParsedBarrelExports, string> {
   const normalizedIndexPath = path.resolve(indexPath)
-  const cached = barrelNamespaceExportCache.get(normalizedIndexPath)
+  const cached = barrelExportCache.get(normalizedIndexPath)
   if (cached !== undefined) {
     return cached
   }
@@ -560,24 +575,28 @@ function parseBarrelNamespaceExports(indexPath: string): Result<ReadonlyMap<stri
       _tag: "Failure",
       error: `unable to read barrel file ${normalizedIndexPath}: ${String(error)}`
     } as const
-    barrelNamespaceExportCache.set(normalizedIndexPath, result)
+    barrelExportCache.set(normalizedIndexPath, result)
     return result
   }
   const sourceFile = ts.createSourceFile(normalizedIndexPath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
-  const exports = new Map<string, string>()
+  const namespace = new Map<string, string>()
+  const flat = new Set<string>()
   for (const statement of sourceFile.statements) {
     if (
       ts.isExportDeclaration(statement) &&
-      statement.exportClause !== undefined &&
-      ts.isNamespaceExport(statement.exportClause) &&
       statement.moduleSpecifier !== undefined &&
       ts.isStringLiteralLike(statement.moduleSpecifier)
     ) {
-      exports.set(normalizePathName(statement.moduleSpecifier.text), statement.exportClause.name.text)
+      const moduleSpecifier = normalizePathName(statement.moduleSpecifier.text)
+      if (statement.exportClause === undefined) {
+        flat.add(moduleSpecifier)
+      } else if (ts.isNamespaceExport(statement.exportClause)) {
+        namespace.set(moduleSpecifier, statement.exportClause.name.text)
+      }
     }
   }
-  const result = { _tag: "Success", value: exports } as const
-  barrelNamespaceExportCache.set(normalizedIndexPath, result)
+  const result = { _tag: "Success", value: { namespace, flat } } as const
+  barrelExportCache.set(normalizedIndexPath, result)
   return result
 }
 
@@ -586,7 +605,13 @@ function getPackageExportMatch(exports: unknown, subpath: string): PackageExport
     return subpath === "." ? { key: ".", value: exports, star: null, specificity: 1, prefixLength: 1 } : undefined
   }
   if (Object.hasOwn(exports, subpath)) {
-    return { key: subpath, value: exports[subpath], star: null, specificity: Number.MAX_SAFE_INTEGER, prefixLength: subpath.length }
+    return {
+      key: subpath,
+      value: exports[subpath],
+      star: null,
+      specificity: Number.MAX_SAFE_INTEGER,
+      prefixLength: subpath.length
+    }
   }
   const matches: Array<PackageExportMatch> = []
   for (const [key, value] of Object.entries(exports)) {
@@ -649,47 +674,35 @@ function packageSpecifier(packageName: string, subpath: string): string {
 
 function resolveBarrelImport(
   metadata: PackageMetadata,
-  filename: string,
-  moduleName: string
-): Result<BarrelExportMatch, string> {
+  filename: string
+): Result<ParsedStandardJSDocBarrelImport | null, string> {
   let directory = path.dirname(filename)
-  const mismatches: Array<string> = []
   while (isPathInside(metadata.sourceRoot, directory)) {
     const indexPath = path.join(directory, "index.ts")
     if (indexPath !== filename && fs.existsSync(indexPath)) {
       const expectedExport = `./${normalizePathName(path.relative(directory, filename))}`
-      const parsed = parseBarrelNamespaceExports(indexPath)
+      const parsed = parseBarrelExports(indexPath)
       if (parsed._tag === "Failure") {
         return parsed
       }
-      const actualName = parsed.value.get(expectedExport)
       const barrelSubpath = normalizePathName(path.relative(metadata.sourceRoot, directory))
       const exportSubpath = barrelSubpath === "" ? "." : `./${barrelSubpath}`
       const exportTarget = barrelSubpath === "" ? "./src/index.ts" : `./src/${barrelSubpath}/index.ts`
-      if (actualName !== undefined) {
-        if (actualName !== moduleName) {
-          return {
-            _tag: "Failure",
-            error: `barrel ${normalizePathName(path.relative(metadata.root, indexPath))} exports ${expectedExport} as ${actualName}; expected ${moduleName}`
-          }
-        }
-        if (isPackageSubpathExported(metadata.exports, exportSubpath, exportTarget)) {
+      if (isPackageSubpathExported(metadata.exports, exportSubpath, exportTarget)) {
+        const moduleSpecifier = packageSpecifier(metadata.name, barrelSubpath)
+        const namespace = parsed.value.namespace.get(expectedExport)
+        if (namespace !== undefined) {
           return {
             _tag: "Success",
-            value: {
-              barrel: packageSpecifier(metadata.name, barrelSubpath),
-              expectedExport,
-              actualName
-            }
+            value: { type: "namespace", module: moduleSpecifier, name: namespace }
           }
         }
-        mismatches.push(
-          `${normalizePathName(path.relative(metadata.root, indexPath))} re-exports ${expectedExport}, but ${exportSubpath} is not exposed by package.json exports`
-        )
-      } else {
-        mismatches.push(
-          `${normalizePathName(path.relative(metadata.root, indexPath))} is missing export * as ${moduleName} from "${expectedExport}"`
-        )
+        if (parsed.value.flat.has(expectedExport)) {
+          return {
+            _tag: "Success",
+            value: { type: "flat", module: moduleSpecifier }
+          }
+        }
       }
     }
     if (directory === metadata.sourceRoot) {
@@ -697,10 +710,7 @@ function resolveBarrelImport(
     }
     directory = path.dirname(directory)
   }
-  return {
-    _tag: "Failure",
-    error: mismatches[0] ?? `no barrel file found for ${normalizePathName(path.relative(metadata.root, filename))}`
-  }
+  return { _tag: "Success", value: null }
 }
 
 function resolveStandardJSDocImports(
@@ -742,20 +752,20 @@ function resolveStandardJSDocImports(
   if (!isPackageSubpathExported(metadata.value.exports, moduleExportSubpath, moduleExportTarget)) {
     return {
       _tag: "Failure",
-      error: `package.json exports do not expose ${packageSpecifier(metadata.value.name, moduleSubpath)} for ${relativeFilename}`
+      error: `package.json exports do not expose ${
+        packageSpecifier(metadata.value.name, moduleSubpath)
+      } for ${relativeFilename}`
     }
   }
-  const name = path.basename(absoluteFilename, ".ts")
-  const barrel = resolveBarrelImport(metadata.value, absoluteFilename, name)
+  const barrel = resolveBarrelImport(metadata.value, absoluteFilename)
   if (barrel._tag === "Failure") {
     return barrel
   }
   return {
     _tag: "Success",
     value: {
-      name,
-      barrel: barrel.value.barrel,
-      module: packageSpecifier(metadata.value.name, moduleSubpath)
+      module: packageSpecifier(metadata.value.name, moduleSubpath),
+      barrel: barrel.value
     }
   }
 }

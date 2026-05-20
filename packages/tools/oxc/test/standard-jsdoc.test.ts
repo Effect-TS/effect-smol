@@ -92,10 +92,12 @@ function createPublicPackageProject(source: string, files: Record<string, string
     })
   )
   fs.writeFileSync(filename, source)
-  for (const [file, text] of Object.entries({
-    "index.ts": `export * as Foo from "./Foo.ts"\n`,
-    ...files
-  })) {
+  for (
+    const [file, text] of Object.entries({
+      "index.ts": `export * as Foo from "./Foo.ts"\n`,
+      ...files
+    })
+  ) {
     const filePath = path.join(cwd, "src", file)
     fs.mkdirSync(path.dirname(filePath), { recursive: true })
     fs.writeFileSync(filePath, text)
@@ -789,7 +791,7 @@ export const value = 1
     expect(errors).toHaveLength(0)
   })
 
-  it("reports included files that are missing a matching barrel export", () => {
+  it("accepts dumped files that have flat barrel exports", () => {
     const source = `/**
  * A value.
  *
@@ -799,7 +801,7 @@ export const value = 1
 export const value = 1
 `
     const { cwd, filename } = createPublicPackageProject(source, {
-      "index.ts": `export * as Bar from "./Foo.ts"\n`
+      "index.ts": `export * from "./Foo.ts"\n`
     })
     const declarator = node(source, "value", "VariableDeclarator", {
       id: { type: "Identifier", name: "value" }
@@ -820,8 +822,84 @@ export const value = 1
       { cwd, filename }
     )
 
+    expect(errors).toHaveLength(0)
+  })
+
+  it("accepts dumped files that only have direct module imports", () => {
+    const source = `/**
+ * A value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const { cwd, filename } = createPublicPackageProject(source, {
+      "index.ts": `export * from "external"\n`
+    })
+    const declarator = node(source, "value", "VariableDeclarator", {
+      id: { type: "Identifier", name: "value" }
+    })
+    const declaration = node(source, "export const value", "VariableDeclaration", {
+      declarations: [declarator]
+    })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const program = { type: "Program", range: [0, source.length], body: [exportNode] } as TestNode
+    const errors = runRuleWithSource(
+      source,
+      [
+        { visitor: "Program", node: program },
+        { visitor: "ExportNamedDeclaration", node: exportNode },
+        { visitor: "Program:exit", node: program }
+      ],
+      [],
+      { cwd, filename }
+    )
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("reports included files that are not public package subpaths", () => {
+    const source = `/**
+ * A value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const { cwd, filename } = createPublicPackageProject(source)
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        name: "@effect/sample",
+        type: "module",
+        exports: {
+          ".": "./src/index.ts"
+        }
+      })
+    )
+    const declarator = node(source, "value", "VariableDeclarator", {
+      id: { type: "Identifier", name: "value" }
+    })
+    const declaration = node(source, "export const value", "VariableDeclaration", {
+      declarations: [declarator]
+    })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const program = { type: "Program", range: [0, source.length], body: [exportNode] } as TestNode
+    const errors = runRuleWithSource(
+      source,
+      [
+        { visitor: "Program", node: program },
+        { visitor: "ExportNamedDeclaration", node: exportNode },
+        { visitor: "Program:exit", node: program }
+      ],
+      [],
+      { cwd, filename }
+    )
+
     expect(errors.map((error) => error.message)).toEqual([
-      `Unable to resolve standard-jsdoc imports: barrel src/index.ts exports ./Foo.ts as Bar; expected Foo. Add the missing barrel/package export or exclude this file from standard-jsdoc.`
+      `Unable to resolve standard-jsdoc imports: package.json exports do not expose @effect/sample/Foo for src/Foo.ts. Add the missing barrel/package export or exclude this file from standard-jsdoc.`
     ])
   })
 })
