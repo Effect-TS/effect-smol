@@ -1807,11 +1807,14 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  * **Example** (Syntax)
  *
  * ```ts
- * const flatMappedEffect = pipe(myEffect, Effect.flatMap(transformation))
- * // or
- * const flatMappedEffect = Effect.flatMap(myEffect, transformation)
- * // or
- * const flatMappedEffect = myEffect.pipe(Effect.flatMap(transformation))
+ * import { Effect, pipe } from "effect"
+ *
+ * const myEffect = Effect.succeed(1)
+ * const transformation = (n: number) => Effect.succeed(n + 1)
+ *
+ * const flatMappedWithPipe = pipe(myEffect, Effect.flatMap(transformation))
+ * const flatMappedWithDataFirst = Effect.flatMap(myEffect, transformation)
+ * const flatMappedWithMethod = myEffect.pipe(Effect.flatMap(transformation))
  * ```
  *
  * **Example** (Sequencing dependent effects)
@@ -1902,11 +1905,14 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * **Example** (Syntax)
  *
  * ```ts
- * const transformedEffect = pipe(myEffect, Effect.andThen(anotherEffect))
- * // or
- * const transformedEffect = Effect.andThen(myEffect, anotherEffect)
- * // or
- * const transformedEffect = myEffect.pipe(Effect.andThen(anotherEffect))
+ * import { Effect, pipe } from "effect"
+ *
+ * const myEffect = Effect.succeed(1)
+ * const anotherEffect = Effect.succeed("done")
+ *
+ * const transformedWithPipe = pipe(myEffect, Effect.andThen(anotherEffect))
+ * const transformedWithDataFirst = Effect.andThen(myEffect, anotherEffect)
+ * const transformedWithMethod = myEffect.pipe(Effect.andThen(anotherEffect))
  * ```
  *
  * **Example** (Sequencing a discount calculation after fetching a total)
@@ -2178,11 +2184,14 @@ export const exit: <A, E, R>(
  * **Example** (Syntax)
  *
  * ```ts
- * const mappedEffect = pipe(myEffect, Effect.map(transformation))
- * // or
- * const mappedEffect = Effect.map(myEffect, transformation)
- * // or
- * const mappedEffect = myEffect.pipe(Effect.map(transformation))
+ * import { Effect, pipe } from "effect"
+ *
+ * const myEffect = Effect.succeed(1)
+ * const transformation = (n: number) => n + 1
+ *
+ * const mappedWithPipe = pipe(myEffect, Effect.map(transformation))
+ * const mappedWithDataFirst = Effect.map(myEffect, transformation)
+ * const mappedWithMethod = myEffect.pipe(Effect.map(transformation))
  * ```
  *
  * **Example** (Adding a service charge)

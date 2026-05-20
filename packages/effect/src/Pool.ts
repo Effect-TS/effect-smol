@@ -205,21 +205,30 @@ export const make = <A, E, R>(options: {
  *
  * ```ts
  * import { Duration, Effect, Pool } from "effect"
- * import { createConnection } from "mysql2"
+ *
+ * interface Connection {
+ *   readonly execute: (sql: string) => Effect.Effect<ReadonlyArray<string>>
+ *   readonly close: Effect.Effect<void>
+ * }
  *
  * const acquireDBConnection = Effect.acquireRelease(
- *   Effect.sync(() => createConnection("mysql://...")),
- *   (connection) => Effect.sync(() => connection.end(() => {}))
+ *   Effect.succeed({
+ *     execute: (sql) => Effect.succeed([`executed: ${sql}`]),
+ *     close: Effect.void
+ *   } satisfies Connection),
+ *   (connection) => connection.close
  * )
  *
- * const connectionPool = Effect.flatMap(
- *   Pool.makeWithTTL({
- *     acquire: acquireDBConnection,
- *     min: 10,
- *     max: 20,
- *     timeToLive: Duration.seconds(60)
- *   }),
- *   (pool) => pool.get
+ * const program = Effect.scoped(
+ *   Effect.flatMap(
+ *     Pool.makeWithTTL({
+ *       acquire: acquireDBConnection,
+ *       min: 10,
+ *       max: 20,
+ *       timeToLive: Duration.seconds(60)
+ *     }),
+ *     (pool) => Effect.flatMap(Pool.get(pool), (connection) => connection.execute("select 1"))
+ *   )
  * )
  * ```
  *

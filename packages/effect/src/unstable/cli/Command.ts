@@ -1039,8 +1039,10 @@ export const withAlias: {
  * Hides a subcommand from parent help output, shell completions, and
  * "did you mean?" suggestions while keeping it fully invocable by exact name.
  *
- * Useful for experimental or internal subcommands that should be accepted
- * but not advertised on the public CLI surface.
+ * **When to use**
+ *
+ * Use this for experimental or internal subcommands that should be accepted but
+ * not advertised on the public CLI surface.
  *
  * **Example** (Hiding a subcommand)
  *
