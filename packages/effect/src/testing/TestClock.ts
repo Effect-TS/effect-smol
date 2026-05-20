@@ -330,7 +330,7 @@ export const make = Effect.fnUntraced(function*(
 
   const runSemaphore = yield* Semaphore.make(1)
   const run = Effect.fnUntraced(function*(step: (currentTimestamp: number) => number) {
-    yield* Fiber.await(yield* Effect.forkScoped(Effect.yieldNow))
+    yield* Fiber.await(yield* Effect.forkChild(Effect.yieldNow))
     const endTimestamp = step(currentTimestamp)
     while (Arr.isArrayNonEmpty(sleeps)) {
       if (Arr.lastNonEmpty(sleeps).timestamp > endTimestamp) break
