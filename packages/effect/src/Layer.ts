@@ -759,13 +759,14 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
   fromBuildUnsafe(constant(internalEffect.succeed(context)))
 
 /**
- * A Layer that provides no services, cannot fail, and has no requirements.
+ * An empty layer that provides no services, cannot fail, has no requirements,
+ * and performs no construction or finalization work.
  *
  * **When to use**
  *
- * Layers can also be used for construction or lifecycle work that does not
- * provide services. In that setting, `Layer.empty` is the no-op branch for when
- * that work is disabled.
+ * Use `Layer.empty` as the no-op branch when conditionally composing layers.
+ * If you need to run an effect during layer construction while still providing
+ * no services, use `effectDiscard`.
  *
  * **Example** (Disabling optional lifecycle work)
  *
@@ -778,6 +779,8 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
  *   ? Layer.effectDiscard(Console.log("application starting"))
  *   : Layer.empty
  * ```
+ *
+ * @see {@link effectDiscard} for running an effect while providing no services
  *
  * @category constructors
  * @since 2.0.0
