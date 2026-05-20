@@ -52,6 +52,7 @@ Use a normal multiline JSDoc comment in TypeScript source:
 ## Writing rules
 
 - Use sober, practical prose.
+- Write all public JSDoc prose in English.
 - Do not use jargon when a plain word works.
 - Do not be clever.
 - Do not add filler sections.
