@@ -123,7 +123,7 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
  * })
  * ```
  *
- * @category Metadata
+ * @category metadata
  * @since 4.0.0
  */
 export interface InputMetadata<Input> {
@@ -166,7 +166,7 @@ export interface InputMetadata<Input> {
  * // Output: 2, attempt: 3, elapsed: 200ms
  * ```
  *
- * @category Metadata
+ * @category metadata
  * @since 4.0.0
  */
 export interface Metadata<Output = unknown, Input = unknown> extends InputMetadata<Input> {
@@ -184,7 +184,7 @@ export interface Metadata<Output = unknown, Input = unknown> extends InputMetada
  * input and output values, zero duration, and zeroed timing fields before any
  * schedule step has produced metadata.
  *
- * @category Metadata
+ * @category metadata
  * @since 4.0.0
  */
 export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/CurrentMetadata", {
@@ -523,7 +523,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
 
 /**
  * Returns a new `Schedule` that adds the delay computed by the specified
- * effectful function to the the next recurrence of the schedule.
+ * effectful function to the next recurrence of the schedule.
  *
  * **Example** (Adding extra delay to a schedule)
  *
@@ -804,6 +804,12 @@ export const andThenResult: {
  * to recur, using the maximum of the two durations between recurrences and
  * outputting a tuple of the outputs of both schedules.
  *
+ * **When to use**
+ *
+ * Use `both` when the combined schedule should continue only while both
+ * schedules still recur. Use `either` when either schedule should be enough to
+ * continue.
+ *
  * **Example** (Combining time and attempt limits)
  *
  * ```ts
@@ -865,6 +871,8 @@ export const andThenResult: {
  * // Both provides intersection semantics (AND logic)
  * // Compare with either which provides union semantics (OR logic)
  * ```
+ *
+ * @see {@link either} for continuing while either schedule still recurs
  *
  * @category utils
  * @since 2.0.0
@@ -1389,7 +1397,7 @@ export const cron: {
 }
 
 /**
- * Returns a new schedule that outputs the delay between each occurence.
+ * Returns a new schedule that outputs the delay between each occurrence.
  *
  * **Example** (Extracting schedule delays)
  *
@@ -1415,7 +1423,7 @@ export const cron: {
  *   )
  * })
  *
- * // Monitor delays from a fibonacci schedule
+ * // Monitor delays from a Fibonacci schedule
  * const fibonacciDelays = Schedule.delays(
  *   Schedule.fibonacci("200 millis").pipe(Schedule.take(8))
  * )
@@ -1487,10 +1495,28 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
 /**
  * Returns a schedule that recurs once after the specified duration.
  *
+ * **When to use**
+ *
+ * Use `duration` when you need one delayed recurrence. Use `during` to keep
+ * recurring until a duration has elapsed.
+ *
  * **Details**
  *
  * The schedule outputs the configured duration for its first recurrence and
  * then completes.
+ *
+ * **Example** (Recurring once after a duration)
+ *
+ * ```ts
+ * import { Console, Effect, Schedule } from "effect"
+ *
+ * const program = Effect.repeat(
+ *   Console.log("runs again after one second"),
+ *   Schedule.duration("1 second")
+ * )
+ * ```
+ *
+ * @see {@link during} for recurring until a duration has elapsed
  *
  * @category constructors
  * @since 2.0.0
@@ -1507,6 +1533,11 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
 /**
  * Returns a new `Schedule` that will always recur, but only during the
  * specified `duration` of time.
+ *
+ * **When to use**
+ *
+ * Use `during` to bound a repeating or retrying schedule by elapsed time. Use
+ * `duration` when you need one delayed recurrence.
  *
  * **Example** (Repeating work during a duration)
  *
@@ -1586,6 +1617,8 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  * )
  * ```
  *
+ * @see {@link duration} for one delayed recurrence
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1599,6 +1632,11 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  * Combines two `Schedule`s by recurring if either of the two schedules wants
  * to recur, using the minimum of the two durations between recurrences and
  * outputting a tuple of the outputs of both schedules.
+ *
+ * **When to use**
+ *
+ * Use `either` when the combined schedule should continue while at least one
+ * schedule still recurs. Use `both` when both schedules must continue.
  *
  * **Example** (Combining schedules with either semantics)
  *
@@ -1661,8 +1699,10 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  * })
  *
  * // Either provides union semantics (OR logic)
- * // Compare with intersect which provides intersection semantics (AND logic)
+ * // Compare with both, which provides intersection semantics (AND logic)
  * ```
+ *
+ * @see {@link both} for continuing only while both schedules still recur
  *
  * @category utils
  * @since 2.0.0
@@ -1969,21 +2009,21 @@ export const exponential = (
 
 /**
  * A schedule that always recurs, increasing delays by summing the preceding
- * two delays (similar to the fibonacci sequence). Returns the current
+ * two delays (similar to the Fibonacci sequence). Returns the current
  * duration between recurrences.
  *
- * **Example** (Retrying with fibonacci backoff)
+ * **Example** (Retrying with Fibonacci backoff)
  *
  * ```ts
  * import { Console, Data, Effect, Schedule } from "effect"
  *
  * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
- * // Basic fibonacci schedule starting with 100ms
+ * // Basic Fibonacci schedule starting with 100ms
  * const fibSchedule = Schedule.fibonacci("100 millis")
  * // Delays: 100ms, 100ms, 200ms, 300ms, 500ms, 800ms, 1300ms, ...
  *
- * // Retry with fibonacci backoff for gradual increase
+ * // Retry with Fibonacci backoff for gradual increase
  * const retryWithFib = Effect.gen(function*() {
  *   let attempt = 0
  *
@@ -2007,7 +2047,7 @@ export const exponential = (
  *   yield* Console.log(`Final result: ${result}`)
  * })
  *
- * // Heartbeat with fibonacci intervals (starts fast, gets slower)
+ * // Heartbeat with Fibonacci intervals (starts fast, gets slower)
  * const adaptiveHeartbeat = Effect.gen(function*() {
  *   yield* Console.log("Heartbeat")
  *   return "pulse"
@@ -2053,10 +2093,15 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  * Returns a `Schedule` that recurs on the specified fixed `interval` and
  * outputs the number of repetitions of the schedule so far.
  *
- * **Details**
+ * **When to use**
  *
- * If the action run between updates takes longer than the interval, then the
- * action will be run immediately, but re-runs will not "pile up".
+ * Use `fixed` when recurrences should stay aligned to a regular cadence. Use
+ * `spaced` when each delay should start after the previous action completes.
+ *
+ * **Gotchas**
+ *
+ * If the action run between recurrences takes longer than the interval, the
+ * next recurrence happens immediately, but missed intervals are not replayed.
  *
  * ```text
  * |-----interval-----|-----interval-----|-----interval-----|
@@ -2068,7 +2113,7 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  * ```ts
  * import { Console, Effect, Schedule } from "effect"
  *
- * // Fixed interval schedule - runs exactly every 1 second
+ * // Fixed interval schedule - recurs on a one-second cadence
  * const everySecond = Schedule.fixed("1 second")
  *
  * // Health check that runs at fixed intervals
@@ -2110,6 +2155,8 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  *   yield* spacedSchedule
  * })
  * ```
+ *
+ * @see {@link spaced} for delaying after each action completes
  *
  * @category constructors
  * @since 2.0.0
@@ -2232,7 +2279,7 @@ export const map: {
 
 /**
  * Returns a new `Schedule` that modifies the delay of the next recurrence
- * of the schedule using the specified effectual function.
+ * of the schedule using the specified effectful function.
  *
  * **Example** (Modifying delays from schedule output)
  *
@@ -2354,6 +2401,17 @@ export const passthrough = <Output, Input, Error, Env>(
  * Returns a `Schedule` which can only be stepped the specified number of
  * `times` before it terminates.
  *
+ * **When to use**
+ *
+ * Use `recurs` for a counter schedule with no additional delay. Use `take` to
+ * limit an existing schedule while preserving its output and delay behavior.
+ *
+ * **Gotchas**
+ *
+ * `recurs(n)` counts schedule recurrences, not the first evaluation of the
+ * effect being repeated or retried. For retrying, this means one initial
+ * attempt plus at most `n` retries.
+ *
  * **Example** (Limiting recurrences)
  *
  * ```ts
@@ -2387,11 +2445,11 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * // Combining recurs with other schedules for sophisticated retry logic
  * const complexRetry = Schedule.exponential("100 millis").pipe(
- *   Schedule.both(Schedule.recurs(3)) // At most 3 attempts
+ *   Schedule.both(Schedule.recurs(3)) // At most 3 retries
  * )
  *
- * // Repeat an effect exactly 10 times
- * const exactlyTenTimes = Effect.gen(function*() {
+ * // Allow ten recurrences after the initial run
+ * const tenRecurrences = Effect.gen(function*() {
  *   yield* Console.log("Executing task...")
  *   return "completed"
  * }).pipe(
@@ -2403,6 +2461,8 @@ export const passthrough = <Output, Input, Error, Env>(
  *   Schedule.tapOutput((count) => Console.log(`Execution #${count + 1}`))
  * )
  * ```
+ *
+ * @see {@link take} for limiting an existing schedule
  *
  * @category constructors
  * @since 2.0.0
@@ -2566,6 +2626,12 @@ export const reduce: {
  * Returns a schedule that recurs continuously, each repetition spaced the
  * specified duration from the last run.
  *
+ * **When to use**
+ *
+ * Use `spaced` when each delay should start after the previous action
+ * completes. Use `fixed` when recurrences should stay aligned to a regular
+ * cadence.
+ *
  * **Example** (Repeating with fixed spacing)
  *
  * ```ts
@@ -2608,6 +2674,8 @@ export const reduce: {
  *   yield* Console.log("Completed executions")
  * })
  * ```
+ *
+ * @see {@link fixed} for recurrence aligned to a regular cadence
  *
  * @category constructors
  * @since 2.0.0
@@ -2926,6 +2994,18 @@ export const tapOutput: {
  * from the schedule. Once the specified number of outputs is reached, the
  * schedule will stop.
  *
+ * **When to use**
+ *
+ * Use `take` to limit an existing schedule while preserving its output and
+ * delay behavior. Use `recurs` when you only need an immediate counter
+ * schedule.
+ *
+ * **Gotchas**
+ *
+ * `take(n)` limits schedule outputs. When used with repeat or retry, the
+ * effect is evaluated once before the schedule is stepped, so the total number
+ * of evaluations can be one greater than the number of outputs taken.
+ *
  * **Example** (Taking a limited number of recurrences)
  *
  * ```ts
@@ -2933,9 +3013,9 @@ export const tapOutput: {
  *
  * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
  *
- * // Limit an infinite schedule to run only 5 times
+ * // Limit an infinite schedule to five recurrences
  * const limitedHeartbeat = Schedule.spaced("1 second").pipe(
- *   Schedule.take(5) // Will stop after 5 executions
+ *   Schedule.take(5) // Will stop after 5 schedule outputs
  * )
  *
  * const heartbeatProgram = Effect.gen(function*() {
@@ -2981,7 +3061,7 @@ export const tapOutput: {
  *
  * // Combine take with other schedule operations
  * const samplingSchedule = Schedule.fixed("500 millis").pipe(
- *   Schedule.take(10), // Sample exactly 10 times
+ *   Schedule.take(10), // Take at most 10 schedule outputs
  *   Schedule.map((count) => Effect.succeed(`Sample #${count + 1}`))
  * )
  *
@@ -2998,6 +3078,8 @@ export const tapOutput: {
  *   )
  * })
  * ```
+ *
+ * @see {@link recurs} for creating a count-limited schedule
  *
  * @category utils
  * @since 4.0.0
@@ -3278,29 +3360,38 @@ export {
 }
 
 /**
- * Ensures that the provided schedule respects a specified input type.
+ * Ensures that a schedule's input type extends a given type `T`.
+ *
+ * **When to use**
+ *
+ * Use `satisfiesInputType` to check an existing schedule input type. Use
+ * `setInputType` to adapt a schedule that does not depend on its input values.
+ *
+ * **Details**
+ *
+ * This helper is checked at compile time and does not change the schedule's
+ * runtime behavior.
  *
  * **Example** (Constraining schedule input types)
  *
  * ```ts
  * import { Schedule } from "effect"
  *
- * // Ensure schedule accepts string inputs
- * const stringSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.satisfiesInputType<string>()
- * )
+ * declare const StringInputSchedule: Schedule.Schedule<number, string>
+ * declare const NumberInputSchedule: Schedule.Schedule<number, number>
  *
- * // Ensure schedule accepts number inputs
- * const numberSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.satisfiesInputType<number>()
- * )
+ * const satisfiesStringInput = Schedule.satisfiesInputType<string>()
  *
- * // Type-level constraint - this would be a compile error:
- * // Schedule.recurs(3).pipe(Schedule.satisfiesInputType<CustomType>())
- * // where CustomType doesn't match the schedule's input type
+ * // This works because the schedule input type is string.
+ * const validSchedule = satisfiesStringInput(StringInputSchedule)
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidSchedule = satisfiesStringInput(NumberInputSchedule)
  * ```
  *
- * @category ensuring types
+ * @see {@link setInputType} for adapting an input-agnostic schedule
+ *
+ * @category utility types
  * @since 4.0.0
  */
 export const satisfiesInputType = <T>() =>
@@ -3309,34 +3400,62 @@ export const satisfiesInputType = <T>() =>
 ): Schedule<Output, Input, Error, Env> => self
 
 /**
- * Sets the input type of the provided schedule to a specified type, without
- * altering the schedule's behavior.
+ * Sets the input type of the provided schedule without altering its behavior.
  *
- * @category ensuring types
+ * **When to use**
+ *
+ * Use `setInputType` to adapt a schedule that does not depend on its input
+ * values. Use `satisfiesInputType` to check an existing schedule input type.
+ *
+ * **Details**
+ *
+ * This helper is checked at compile time and does not change the schedule's
+ * runtime behavior.
+ *
+ * **Example** (Setting a schedule input type)
+ *
+ * ```ts
+ * import { Schedule } from "effect"
+ *
+ * const schedule = Schedule.recurs(3).pipe(
+ *   Schedule.setInputType<string>()
+ * )
+ * ```
+ *
+ * @see {@link satisfiesInputType} for checking an existing input type
+ *
+ * @category utility types
  * @since 4.0.0
  */
 export const setInputType =
   <T>() => <Output, Error, Env>(self: Schedule<Output, T, Error, Env>): Schedule<Output, T, Error, Env> => self
 
 /**
- * Ensures that the provided schedule respects a specified output type.
+ * Ensures that a schedule's output type extends a given type `T`.
+ *
+ * **Details**
+ *
+ * This helper is checked at compile time and does not change the schedule's
+ * runtime behavior.
  *
  * **Example** (Constraining schedule output types)
  *
  * ```ts
- * import { Effect, Schedule } from "effect"
+ * import { Schedule } from "effect"
  *
- * // satisfiesOutputType is a type-level function for compile-time constraints
- * // It ensures that a schedule's output type matches the specified type
+ * declare const StringOutputSchedule: Schedule.Schedule<string>
+ * declare const NumberOutputSchedule: Schedule.Schedule<number>
  *
- * // Example with string output
- * const stringSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => Effect.succeed("hello")),
- *   Schedule.satisfiesOutputType<string>()
- * )
+ * const satisfiesStringOutput = Schedule.satisfiesOutputType<string>()
+ *
+ * // This works because the schedule output type is string.
+ * const validSchedule = satisfiesStringOutput(StringOutputSchedule)
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidSchedule = satisfiesStringOutput(NumberOutputSchedule)
  * ```
  *
- * @category ensuring types
+ * @category utility types
  * @since 4.0.0
  */
 export const satisfiesOutputType = <T>() =>
@@ -3345,7 +3464,12 @@ export const satisfiesOutputType = <T>() =>
 ): Schedule<Output, Input, Error, Env> => self
 
 /**
- * Ensures that the provided schedule respects a specified error type.
+ * Ensures that a schedule's error type extends a given type `T`.
+ *
+ * **Details**
+ *
+ * This helper is checked at compile time and does not change the schedule's
+ * runtime behavior.
  *
  * **Example** (Constraining schedule error types)
  *
@@ -3357,18 +3481,19 @@ export const satisfiesOutputType = <T>() =>
  *   message: string
  * }> {}
  *
- * // Ensure schedule handles CustomError types
- * const errorSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.satisfiesErrorType<CustomError>()
- * )
+ * declare const CustomErrorSchedule: Schedule.Schedule<number, unknown, CustomError>
+ * declare const StringErrorSchedule: Schedule.Schedule<number, unknown, string>
  *
- * // Ensure schedule handles never errors (no errors)
- * const safeSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.satisfiesErrorType<never>()
- * )
+ * const satisfiesCustomError = Schedule.satisfiesErrorType<CustomError>()
+ *
+ * // This works because the schedule error type is CustomError.
+ * const validSchedule = satisfiesCustomError(CustomErrorSchedule)
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidSchedule = satisfiesCustomError(StringErrorSchedule)
  * ```
  *
- * @category ensuring types
+ * @category utility types
  * @since 4.0.0
  */
 export const satisfiesErrorType = <T>() =>
@@ -3377,34 +3502,35 @@ export const satisfiesErrorType = <T>() =>
 ): Schedule<Output, Input, Error, Env> => self
 
 /**
- * Ensures that the provided schedule respects a specified context type.
+ * Ensures that a schedule's context type extends a given type `T`.
+ *
+ * **Details**
+ *
+ * This helper is checked at compile time and does not change the schedule's
+ * runtime behavior.
  *
  * **Example** (Constraining schedule service types)
  *
  * ```ts
- * import { Effect, Schedule } from "effect"
+ * import { Schedule } from "effect"
  *
- * // Define service interfaces (type-level only)
  * interface Logger {
  *   readonly log: (message: string) => void
  * }
  *
- * interface Database {
- *   readonly query: (sql: string) => Effect.Effect<ReadonlyArray<unknown>>
- * }
+ * declare const LoggerSchedule: Schedule.Schedule<number, unknown, never, Logger>
+ * declare const NumberSchedule: Schedule.Schedule<number, unknown, never, number>
  *
- * // Ensure schedule requires Logger service
- * const loggerSchedule = Schedule.spaced("1 second").pipe(
- *   Schedule.satisfiesServicesType<Logger>()
- * )
+ * const satisfiesLogger = Schedule.satisfiesServicesType<Logger>()
  *
- * // Ensure schedule requires both Logger and Database services
- * const multiServiceSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.satisfiesServicesType<Logger | Database>()
- * )
+ * // This works because the schedule context type is Logger.
+ * const validSchedule = satisfiesLogger(LoggerSchedule)
+ *
+ * // This would cause a TypeScript compilation error:
+ * // const invalidSchedule = satisfiesLogger(NumberSchedule)
  * ```
  *
- * @category ensuring types
+ * @category utility types
  * @since 4.0.0
  */
 export const satisfiesServicesType = <T>() =>
