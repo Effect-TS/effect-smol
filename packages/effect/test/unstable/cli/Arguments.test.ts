@@ -179,7 +179,6 @@ describe("Command arguments", () => {
     Effect.gen(function*() {
       let result: { readonly files: ReadonlyArray<string> } | undefined
 
-      // Regression: dual(2,...) with optional arg treats the piped self as options, returning {} instead of an array.
       const testCommand = Command.make("test", {
         files: Argument.string("files").pipe(Argument.variadic)
       }, (parsedConfig) =>
