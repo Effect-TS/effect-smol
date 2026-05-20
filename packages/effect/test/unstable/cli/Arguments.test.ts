@@ -175,6 +175,46 @@ describe("Command arguments", () => {
       assert.deepStrictEqual(result.files, ["file1.txt", "file2.txt", "file3.txt"])
     }).pipe(Effect.provide(TestLayer)))
 
+  it("should handle variadic in pipe form without options", () =>
+    Effect.gen(function*() {
+      let result: { readonly files: ReadonlyArray<string> } | undefined
+
+      // Regression: dual(2,...) with optional arg treats the piped self as options, returning {} instead of an array.
+      const testCommand = Command.make("test", {
+        files: Argument.string("files").pipe(Argument.variadic)
+      }, (parsedConfig) =>
+        Effect.sync(() => {
+          result = parsedConfig
+        }))
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })([
+        "a",
+        "b",
+        "c"
+      ])
+
+      assert.isDefined(result)
+      assert.isTrue(Array.isArray(result!.files), "files should be an array, not a function/object")
+      assert.deepStrictEqual(result!.files, ["a", "b", "c"])
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle variadic in pipe form with options", () =>
+    Effect.gen(function*() {
+      let result: { readonly files: ReadonlyArray<string> } | undefined
+
+      const testCommand = Command.make("test", {
+        files: Argument.string("files").pipe(Argument.variadic({ min: 1, max: 3 }))
+      }, (parsedConfig) =>
+        Effect.sync(() => {
+          result = parsedConfig
+        }))
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["x", "y"])
+
+      assert.isDefined(result)
+      assert.deepStrictEqual(result!.files, ["x", "y"])
+    }).pipe(Effect.provide(TestLayer)))
+
   it("should handle choiceWithValue", () =>
     Effect.gen(function*() {
       const resultRef = yield* Ref.make<any>(null)
