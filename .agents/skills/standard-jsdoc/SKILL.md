@@ -5,6 +5,17 @@ description: Write, insert, or update Effect public API JSDoc so it satisfies th
 
 Use this skill to write well-formed JSDoc for Effect public APIs.
 
+## Workflow
+
+When updating public API JSDoc:
+
+1. Inspect the declaration, implementation, nearby tests, and nearby JSDoc before editing.
+2. Decide whether the task is a single API fix or a module refinement pass.
+3. Rewrite comments into the required documentation shape while preserving correct facts and examples.
+4. Run the `@see` audit.
+5. Run the `**Gotchas**` audit.
+6. Run the narrowest relevant validation.
+
 ## Required documentation shape
 
 Use a normal multiline JSDoc comment in TypeScript source:
@@ -52,7 +63,9 @@ Use a normal multiline JSDoc comment in TypeScript source:
 - Include an optional section only when it has useful, non-empty content.
 - `**When to use**` is important when the API has close alternatives, trade-offs, or `@see` tags. If `@see` tags are present, inspect the referenced APIs and add `**When to use**` when it helps readers choose between them.
 - Add `@see` only for APIs that are similar to the documented API but intended for different situations or usage patterns. Do not add `@see` for loosely related helpers, dependencies, implementation details, or general background links.
+- If an API has close alternatives and no `@see` tags, inspect the alternatives before deciding whether `@see` would help readers choose the right API.
 - Before deciding whether to include `**Gotchas**`, inspect the implementation and nearby tests for edge cases, footguns, preconditions, surprising behavior, or important failure modes. Add `**Gotchas**` only when you find a real gotcha worth documenting.
+- If a `Details` section explains behavior that changes how the API must be used safely or correctly, treat it as a `**Gotchas**` candidate and make an explicit keep-or-move decision.
 - Use exactly one blank line between the short description, sections, examples, and tags.
 - Do not use Markdown headings such as `# Heading` or ad hoc bold headings such as `**Notes**`; only the standard headings are allowed.
 - Examples must use `**Example** (Title)`, optional prose, and exactly one non-empty `ts` code fence.
@@ -115,13 +128,40 @@ When fixing or updating existing docs:
 8. Remove `@see` tags that do not point to similar APIs with meaningfully different usage patterns.
 9. Remove sections that would be empty.
 
+## Module refinement
+
+When asked to refine an existing module:
+
+1. First scan the module for local documentation patterns, repeated API families, and category conventions.
+2. Keep the change focused on documentation quality unless the user also asked for rule or source changes.
+3. Prefer improving existing comments over rewriting every comment into a new voice.
+4. Preserve examples unless they are wrong, stale, or fail the required documentation shape.
+5. Apply the `@see` and `**Gotchas**` audits across the module before finishing.
+
+## See audit
+
+When refining an existing public API module, always do a dedicated `@see` pass:
+
+1. Inspect existing `@see` tags and referenced APIs before keeping, changing, or removing them.
+2. Look for close alternatives in the same module or API family when the documented API is one of several ways to do similar work.
+3. Keep or add `@see` only when the linked API is a real alternative a reader may choose instead of the documented API.
+4. Do not use `@see` for implementation dependencies, broad concepts, result types, helper APIs used only inside examples, or APIs that are merely compatible.
+5. When `@see` tags are kept or added, include `**When to use**` guidance if the difference between the APIs is not obvious from the short description.
+
+## Gotchas audit
+
+When refining an existing public API module, always do a dedicated `**Gotchas**` pass:
+
+1. Scan existing prose for caveat language: warnings, exceptions, limitations, preconditions, special cases, or behavior that is easy to misuse.
+2. Inspect the implementation and nearby tests for behavior that is not obvious from the type signature or short description.
+3. Move real caveats from `**Details**` into `**Gotchas**` when they describe edge cases, footguns, preconditions, surprising behavior, or important failure modes.
+4. Add `**Gotchas**` only when the caveat is concrete and useful to a reader choosing or using the API.
+5. If no gotchas are added during a refinement pass, state that a gotchas audit was performed and why no caveats were worth documenting.
+
 ## Validation
 
-After changing JSDoc governed by the rule, run the narrowest relevant validation:
+Run the narrowest validation that matches the change:
 
-```sh
-pnpm test packages/tools/oxc/test/standard-jsdoc.test.ts
-pnpm check:tsgo
-```
-
-If the changed package has generated docs, also run `pnpm docgen` from that package directory.
+- For JSDoc or example changes in a package with generated docs, run `pnpm docgen` from that package directory.
+- Run `pnpm lint` because the linter includes the custom rule that checks public API JSDoc.
+- Do not run broad validation for prose-only skill edits.
