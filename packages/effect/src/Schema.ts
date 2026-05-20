@@ -8145,17 +8145,16 @@ export interface Redacted<S extends Top> extends
  *   - The default JSON serializer will deserialize into a `Redacted` instance with the label
  *   - The arbitrary generator will produce a `Redacted` instance with the label
  *   - The formatter will return the label
- *
- * Default JSON serializer:
- *
- * The default JSON serializer will fail when attempting to serialize a `Redacted` value,
- * but it will deserialize a value into a `Redacted` instance.
+ * - `disallowJsonEncode`: When set to `true`, when attempting to encode a `Redacted` instance
+ *   into JSON, it will fail with an error. This is useful when the wrapped schema is
+ *   sensitive and should not be exposed in JSON.
  *
  * @category Redacted
  * @since 3.10.0
  */
 export function Redacted<S extends Top>(value: S, options?: {
   readonly label?: string | undefined
+  readonly disallowJsonEncode?: boolean | undefined
 }): Redacted<S> {
   const decodeLabel = typeof options?.label === "string"
     ? Parser.decodeUnknownEffect(Literal(options.label))
@@ -8204,10 +8203,12 @@ export function Redacted<S extends Top>(value: S, options?: {
           redact(value),
           {
             decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
-            encode: Getter.forbidden((oe) =>
-              "Cannot serialize Redacted" +
-              (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
-            )
+            encode: options?.disallowJsonEncode ?
+              Getter.forbidden((oe) =>
+                "Cannot serialize Redacted" +
+                (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
+              ) :
+              Getter.transform(Redacted_.value)
           }
         ),
       toArbitrary: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label })),
@@ -8252,15 +8253,24 @@ export function redact<S extends Top>(schema: S): middlewareDecoding<S, S["Decod
  */
 export function RedactedFromValue<S extends Top>(value: S, options?: {
   readonly label?: string | undefined
+  readonly disallowEncode?: boolean | undefined
 }): RedactedFromValue<S> {
   return redact(value).pipe(
-    decodeTo(Redacted(toType(value), options), {
-      decode: Getter.transform((t) => Redacted_.make(t, { label: options?.label })),
-      encode: Getter.forbidden((oe) =>
-        "Cannot encode Redacted" +
-        (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
-      )
-    })
+    decodeTo(
+      Redacted(toType(value), {
+        label: options?.label,
+        disallowJsonEncode: options?.disallowEncode
+      }),
+      {
+        decode: Getter.transform((t) => Redacted_.make(t, { label: options?.label })),
+        encode: options?.disallowEncode ?
+          Getter.forbidden((oe) =>
+            "Cannot encode Redacted" +
+            (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
+          ) :
+          Getter.transform(Redacted_.value)
+      }
+    )
   )
 }
 
