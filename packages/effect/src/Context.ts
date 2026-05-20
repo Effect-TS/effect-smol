@@ -27,7 +27,7 @@ import type * as Types from "./Types.ts"
  * String literal type used as the runtime type identifier for `Context`
  * service keys.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export type ServiceTypeId = "~effect/Context/Service"
@@ -36,7 +36,7 @@ export type ServiceTypeId = "~effect/Context/Service"
  * Runtime type identifier attached to `Context` service keys and used by
  * `isKey` to recognize them.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
@@ -137,12 +137,23 @@ export declare namespace ServiceClass {
 /**
  * Creates a `Context` service key.
  *
+ * **When to use**
+ *
+ * Use `Service` for dependencies that must be provided by the surrounding
+ * context. Use `Reference` when a dependency should have a default value.
+ *
  * **Details**
  *
  * Call `Context.Service("Key")` for a function-style key, or use the two-stage
  * form `Context.Service<Self, Shape>()("Key")` for class-style service
  * declarations. The returned key can be yielded as an Effect and passed to
  * `Context.make`, `Context.add`, and the Context getter functions.
+ *
+ * **Gotchas**
+ *
+ * The string key is the runtime identity of the service. Reusing the same key
+ * string for unrelated services makes them occupy the same slot in a
+ * `Context`.
  *
  * **Example** (Creating service keys)
  *
@@ -165,6 +176,8 @@ export declare namespace ServiceClass {
  * })
  * const config = Context.make(Config, { port: 8080 })
  * ```
+ *
+ * @see {@link Reference} for service keys with default values
  *
  * @category constructors
  * @since 4.0.0
@@ -599,6 +612,16 @@ export const make = <I, S>(
 /**
  * Adds a service to a given `Context`.
  *
+ * **When to use**
+ *
+ * Use `add` when you always have a service value to store. Use `addOrOmit`
+ * when the value is optional and a missing value should remove the service.
+ *
+ * **Details**
+ *
+ * If the context already contains the same service key, the new service
+ * replaces the previous one.
+ *
  * **Example** (Adding a service to a context)
  *
  * ```ts
@@ -619,7 +642,9 @@ export const make = <I, S>(
  * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @category Adders
+ * @see {@link addOrOmit} for adding or removing a service from an `Option`
+ *
+ * @category adders
  * @since 2.0.0
  */
 export const add: {
@@ -644,12 +669,35 @@ export const add: {
 /**
  * Adds or removes a service depending on an `Option`.
  *
+ * **When to use**
+ *
+ * Use `addOrOmit` when service presence is already represented as an `Option`.
+ * Use `add` when you always want to store a service value.
+ *
  * **Details**
  *
  * When `service` is `Option.some`, the value is stored for the key. When it is
  * `Option.none`, the key is removed from the returned `Context`.
  *
- * @category Adders
+ * **Example** (Adding optional services)
+ *
+ * ```ts
+ * import { Context, Option } from "effect"
+ *
+ * const Port = Context.Service<{ PORT: number }>("Port")
+ *
+ * const withPort = Context.empty().pipe(
+ *   Context.addOrOmit(Port, Option.some({ PORT: 8080 }))
+ * )
+ *
+ * const withoutPort = withPort.pipe(
+ *   Context.addOrOmit(Port, Option.none())
+ * )
+ * ```
+ *
+ * @see {@link add} for always storing a service value
+ *
+ * @category adders
  * @since 4.0.0
  */
 export const addOrOmit: {
@@ -679,10 +727,20 @@ export const addOrOmit: {
  * Gets the service for a key, or evaluates the fallback when a non-reference
  * key is absent.
  *
+ * **When to use**
+ *
+ * Use `getOrElse` when you want a fallback value for a missing regular
+ * service. Use `getOption` when you need to distinguish presence from absence.
+ *
  * **Details**
  *
  * If the key is a `Context.Reference` and no override is stored in the
  * context, its cached default value is returned instead of the fallback.
+ *
+ * **Gotchas**
+ *
+ * The fallback is not evaluated for missing `Context.Reference` keys because
+ * references resolve to their default value.
  *
  * **Example** (Falling back for missing services)
  *
@@ -709,6 +767,8 @@ export const addOrOmit: {
  * console.log(database.query("SELECT 1")) // "fallback"
  * ```
  *
+ * @see {@link getOption} for returning `Option.none` when a non-reference key is missing
+ *
  * @category getters
  * @since 3.7.0
  */
@@ -726,10 +786,17 @@ export const getOrElse: {
  * Returns the service currently stored for a key, or `undefined` when the key
  * is absent.
  *
- * **Details**
+ * **When to use**
+ *
+ * Use `getOrUndefined` for raw map-style lookup. Use `getOption` when you want
+ * the usual `Context.Reference` default-value behavior.
+ *
+ * **Gotchas**
  *
  * This is a raw lookup and does not resolve default values for
  * `Context.Reference` keys.
+ *
+ * @see {@link getOption} for a reference-aware optional lookup
  *
  * @category getters
  * @since 4.0.0
@@ -746,13 +813,17 @@ export const getOrUndefined: {
  * Gets the service for a key, throwing if an absent non-reference key cannot be
  * resolved.
  *
+ * **When to use**
+ *
+ * Use `getUnsafe` only when the context type cannot prove that the service is
+ * present. Use `get` when the service requirement is tracked in the context
+ * type, or `getOption` when absence is expected.
+ *
  * **Details**
  *
  * If the key is a `Context.Reference` and no override is stored in the
  * context, its cached default value is returned. For absent non-reference keys,
  * this function throws a runtime error.
- *
- * For a safer version see {@link getOption}.
  *
  * **Example** (Getting services unsafely)
  *
@@ -768,6 +839,9 @@ export const getOrUndefined: {
  * assert.deepStrictEqual(Context.getUnsafe(context, Port), { PORT: 8080 })
  * assert.throws(() => Context.getUnsafe(context, Timeout))
  * ```
+ *
+ * @see {@link get} for type-checked service access
+ * @see {@link getOption} for optional service access
  *
  * @category unsafe
  * @since 4.0.0
@@ -789,6 +863,11 @@ export const getUnsafe: {
 /**
  * Get a service from the context that corresponds to the given key.
  *
+ * **When to use**
+ *
+ * Use `get` when the context type proves that the service is present. Use
+ * `getOption` or `getOrElse` when a service may be absent.
+ *
  * **Example** (Getting a service from a context)
  *
  * ```ts
@@ -805,6 +884,9 @@ export const getUnsafe: {
  *
  * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
+ *
+ * @see {@link getOption} for optional service access
+ * @see {@link getOrElse} for fallback values
  *
  * @category getters
  * @since 2.0.0
@@ -876,6 +958,11 @@ const serviceNotFoundError = (service: Key<any, any>) => {
 /**
  * Gets the service for a key wrapped in an `Option`.
  *
+ * **When to use**
+ *
+ * Use `getOption` when service absence is expected and should be represented
+ * as data. Use `getOrElse` when you want to provide a fallback value directly.
+ *
  * **Details**
  *
  * Returns `Option.some` when the service is stored in the context. If the key
@@ -900,6 +987,8 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
+ * @see {@link getOrElse} for returning a fallback value directly
+ *
  * @category getters
  * @since 2.0.0
  */
@@ -915,6 +1004,11 @@ export const getOption: {
 
 /**
  * Merges two `Context`s into one.
+ *
+ * **When to use**
+ *
+ * Use `merge` when combining two contexts. Use `mergeAll` when combining a
+ * variadic list of contexts.
  *
  * **Details**
  *
@@ -939,7 +1033,9 @@ export const getOption: {
  * assert.deepStrictEqual(Context.get(context, Timeout), { TIMEOUT: 5000 })
  * ```
  *
- * @category Utils
+ * @see {@link mergeAll} for merging more than two contexts at once
+ *
+ * @category combining
  * @since 2.0.0
  */
 export const merge: {
@@ -955,6 +1051,11 @@ export const merge: {
 
 /**
  * Merges any number of `Context`s into one.
+ *
+ * **When to use**
+ *
+ * Use `mergeAll` when the number of contexts is variadic. Use `merge` when
+ * combining exactly two contexts.
  *
  * **Details**
  *
@@ -986,6 +1087,8 @@ export const merge: {
  * assert.deepStrictEqual(Context.get(context, Host), { HOST: "localhost" })
  * ```
  *
+ * @see {@link merge} for merging two contexts
+ *
  * @category combining
  * @since 3.12.0
  */
@@ -1003,6 +1106,11 @@ export const mergeAll = <T extends Array<unknown>>(
 
 /**
  * Returns a new `Context` that contains only the specified services.
+ *
+ * **When to use**
+ *
+ * Use `pick` when you want to keep a small allowlist of services. Use `omit`
+ * when it is easier to name the services to remove.
  *
  * **Example** (Picking services from a context)
  *
@@ -1027,7 +1135,9 @@ export const mergeAll = <T extends Array<unknown>>(
  * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
- * @category Utils
+ * @see {@link omit} for removing selected services
+ *
+ * @category filtering
  * @since 2.0.0
  */
 export const pick = <S extends ReadonlyArray<Key<any, any>>>(
@@ -1044,6 +1154,11 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
 
 /**
  * Returns a new `Context` with the specified service keys removed.
+ *
+ * **When to use**
+ *
+ * Use `omit` when you want to remove a small denylist of services. Use `pick`
+ * when it is easier to name the services to keep.
  *
  * **Example** (Omitting services from a context)
  *
@@ -1068,7 +1183,9 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  * assert.deepStrictEqual(Context.getOption(context, Timeout), Option.none())
  * ```
  *
- * @category Utils
+ * @see {@link pick} for keeping selected services
+ *
+ * @category filtering
  * @since 2.0.0
  */
 export const omit = <S extends ReadonlyArray<Key<any, any>>>(
@@ -1085,7 +1202,7 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
  * Perform a series of mutations on a `Context`. Prevents unnecessary copying
  * of the underlying map when multiple mutations are needed.
  *
- * @category Utils
+ * @category utils
  * @since 4.0.0
  */
 export const mutate: {
@@ -1117,12 +1234,19 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
 /**
  * Creates a context key with a default value.
  *
+ * **When to use**
+ *
+ * Use `Reference` when a service should be available even if it is not
+ * explicitly stored in the `Context`. Use `Service` when the service must be
+ * provided by the surrounding context.
+ *
  * **Details**
  *
  * `Context.Reference` allows you to create a key that can hold a value. You
  * can provide a default value for the service, which will automatically be used
  * when the context is accessed, or override it with a custom implementation
- * when needed.
+ * when needed. The default value is computed lazily and cached on the
+ * reference.
  *
  * **Example** (Creating references with default values)
  *
@@ -1144,6 +1268,8 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  * })
  * const customLogger = Context.get(customContext, LoggerRef)
  * ```
+ *
+ * @see {@link Service} for required services without default values
  *
  * @category references
  * @since 3.11.0
