@@ -36,9 +36,16 @@ import type * as Fiber from "./Fiber.ts"
 /**
  * Represents a teardown function that handles program completion and determines the exit code.
  *
+ * **When to use**
+ *
+ * Use when integrating {@link makeRunMain} with a host platform that needs to
+ * translate an Effect `Exit` into a process, worker, or application exit code.
+ *
  * **Details**
  *
- * A teardown function is called when an Effect program completes, either successfully or with a failure. It determines the appropriate exit code and can perform cleanup before invoking the supplied `onExit` callback.
+ * A teardown function is called when an Effect program completes, either
+ * successfully or with a failure. It determines the appropriate exit code and
+ * can perform cleanup before invoking the supplied `onExit` callback.
  *
  * **Example** (Customizing teardown behavior)
  *
@@ -79,9 +86,25 @@ export interface Teardown {
 /**
  * The default teardown function that determines exit codes from an Effect exit.
  *
+ * **When to use**
+ *
+ * Use as the standard teardown for main programs when you want conventional
+ * process exit codes and support for {@link errorExitCode}.
+ *
  * **Details**
  *
- * This teardown function follows standard Unix conventions: exit code `0` for successful completion, exit code `1` for failures unless the squashed error has a `Runtime.errorExitCode` marker, and exit code `130` for interruption-only failures.
+ * This teardown follows these exit-code rules:
+ *
+ * - `0` for successful completion.
+ * - `130` for interruption-only failures.
+ * - The squashed error's {@link errorExitCode} value for other failures when
+ *   present.
+ * - `1` for other failures.
+ *
+ * **Gotchas**
+ *
+ * The `130` code is used only when the Cause contains interruptions and no
+ * other failure reasons. Mixed causes use the squashed error path instead.
  *
  * **Example** (Using default teardown)
  *
@@ -104,7 +127,9 @@ export interface Teardown {
  * // Output: Exit code: 130
  * ```
  *
- * @category Teardown
+ * @see {@link errorExitCode} for customizing failure exit codes
+ *
+ * @category running
  * @since 4.0.0
  */
 export const defaultTeardown: Teardown = <E, A>(
@@ -119,9 +144,26 @@ export const defaultTeardown: Teardown = <E, A>(
 /**
  * Creates a platform-specific main program runner that handles Effect execution lifecycle.
  *
+ * **When to use**
+ *
+ * Use when building a runtime adapter for a host platform. Most applications
+ * should use a platform-provided runner, such as `NodeRuntime.runMain`, rather
+ * than constructing one directly.
+ *
  * **Details**
  *
  * The runner executes Effect programs as main entry points. The provided function receives a forked fiber and a teardown callback so it can install platform-specific signal handling, fiber observers, and final exit behavior.
+ *
+ * `disableErrorReporting` disables the automatic log emitted for unreported
+ * non-interruption failures. It does not change exit-code calculation or the
+ * custom teardown callback.
+ *
+ * **Gotchas**
+ *
+ * The setup function is responsible for observing the fiber and eventually
+ * invoking teardown. `makeRunMain` also tries to keep the host process alive
+ * with a long interval while the main fiber is running; if the host blocks
+ * timers, the runner still starts but cannot use that keep-alive fallback.
  *
  * **Example** (Creating platform runners)
  *
@@ -224,10 +266,9 @@ declare global {
 }
 
 /**
- * Type-level key for the `Runtime.errorExitCode` property that can be attached
- * to an `Error` to customize the process exit code used by `runMain`.
+ * Type-level key for the `Runtime.errorExitCode` marker.
  *
- * @category Exit code management
+ * @category symbols
  * @since 4.0.0
  */
 export type errorExitCode = "~effect/Runtime/errorExitCode"
@@ -235,6 +276,22 @@ export type errorExitCode = "~effect/Runtime/errorExitCode"
 /**
  * Allows associating an exit code with an error for determining the process
  * exit code on failure.
+ *
+ * **When to use**
+ *
+ * Use on error classes whose failures should map to a specific process exit
+ * code when handled by {@link defaultTeardown}.
+ *
+ * **Details**
+ *
+ * Attach this marker as a readonly property on an error object. When the main
+ * program fails, {@link defaultTeardown} squashes the Cause and reads the marker
+ * from the resulting error value.
+ *
+ * **Gotchas**
+ *
+ * The marker is read from the squashed failure value. If a Cause contains
+ * multiple failures, the selected squashed error determines the exit code.
  *
  * **Example** (Setting a process exit code)
  *
@@ -250,7 +307,9 @@ export type errorExitCode = "~effect/Runtime/errorExitCode"
  * NodeRuntime.runMain(Effect.fail(new MyError()))
  * ```
  *
- * @category Exit code management
+ * @see {@link errorReported} for controlling automatic error logging
+ *
+ * @category symbols
  * @since 4.0.0
  */
 export const errorExitCode: errorExitCode = "~effect/Runtime/errorExitCode"
@@ -264,7 +323,14 @@ export const errorExitCode: errorExitCode = "~effect/Runtime/errorExitCode"
  * an object. Otherwise returns `1`, the default failure exit code used by
  * `defaultTeardown`.
  *
- * @category Exit code management
+ * **Gotchas**
+ *
+ * Non-object values, missing markers, and non-number marker values all return
+ * `1`.
+ *
+ * @see {@link errorExitCode} for the marker read by this function
+ *
+ * @category accessors
  * @since 4.0.0
  */
 export const getErrorExitCode = (u: unknown): number => {
@@ -278,10 +344,9 @@ export const getErrorExitCode = (u: unknown): number => {
 }
 
 /**
- * Type-level key for the `Runtime.errorReported` property that controls default
- * `runMain` error logging for an `Error`.
+ * Type-level key for the `Runtime.errorReported` marker.
  *
- * @category Error reporting management
+ * @category symbols
  * @since 4.0.0
  */
 export type errorReported = "~effect/Runtime/errorReported"
@@ -289,11 +354,21 @@ export type errorReported = "~effect/Runtime/errorReported"
 /**
  * Runtime marker that controls default `runMain` error logging for an error.
  *
+ * **When to use**
+ *
+ * Use on error classes that are already reported by application code and
+ * should not be logged again by the default main runner.
+ *
  * **Details**
  *
  * Set `[Runtime.errorReported]` to `false` on an error object to suppress the
  * runtime log because the error has already been reported. Omitted or
  * non-boolean values are treated as `true`, so failures are logged by default.
+ *
+ * **Gotchas**
+ *
+ * This marker controls only automatic error logging. It does not change the
+ * failure Cause or the process exit code.
  *
  * **Example** (Suppressing error reporting)
  *
@@ -310,7 +385,9 @@ export type errorReported = "~effect/Runtime/errorReported"
  * NodeRuntime.runMain(Effect.fail(new MyError()))
  * ```
  *
- * @category Error reporting management
+ * @see {@link errorExitCode} for controlling failure exit codes
+ *
+ * @category symbols
  * @since 4.0.0
  */
 export const errorReported: errorReported = "~effect/Runtime/errorReported"
@@ -323,7 +400,14 @@ export const errorReported: errorReported = "~effect/Runtime/errorReported"
  * Returns a boolean `[Runtime.errorReported]` property when it is present on an
  * object. Otherwise returns `true`, so failures are logged by default.
  *
- * @category Error reporting management
+ * **Gotchas**
+ *
+ * Non-object values, missing markers, and non-boolean marker values all return
+ * `true`.
+ *
+ * @see {@link errorReported} for the marker read by this function
+ *
+ * @category accessors
  * @since 4.0.0
  */
 export const getErrorReported = (u: unknown): boolean => {
