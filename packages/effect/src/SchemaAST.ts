@@ -1763,10 +1763,10 @@ export class Objects extends Base {
         readonly options: ParseOptions
         readonly out: Record<PropertyKey, unknown>
         issues: Array<Issue.Issue> | undefined
-      }, [key: PropertyKey, is: IndexSignature]>()({
+      }, [key: PropertyKey, is: IndexSignature, validateOnly: boolean]>()({
         onItem: Effect.fnUntracedEager(function*(
           s,
-          [key, is]
+          [key, is, validateOnly]
         ) {
           const parserKey = recur(indexSignatureParameterFromString(is.parameter))
           const effKey = parserKey(Option.some(key), s.options)
@@ -1788,7 +1788,7 @@ export class Objects extends Base {
             const eff = wrapPropertyKeyIssue(s, ast, key, exitValue)
             if (eff) yield* eff
             return
-          } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
+          } else if (!validateOnly && exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
             const k2 = exitKey.value.value
             const v2 = exitValue.value.value
             if (is.merge && is.merge.decode && Object.hasOwn(s.out, k2)) {
@@ -1869,13 +1869,13 @@ export class Objects extends Base {
       // handle index signatures
       // ---------------------------------------------
       if (parseIndexes) {
-        const keyPairs = Arr.empty<[PropertyKey, IndexSignature]>()
+        const keyPairs = Arr.empty<[PropertyKey, IndexSignature, boolean]>()
         for (let i = 0; i < indexCount; i++) {
           const is = ast.indexSignatures[i]
           const keys = getIndexSignatureKeys(input, is.parameter)
           for (let j = 0; j < keys.length; j++) {
             const key = keys[j]
-            keyPairs.push([key, is])
+            keyPairs.push([key, is, expectedKeysSet.has(key)])
           }
         }
         const eff = parseIndexes(state, keyPairs, concurrency)

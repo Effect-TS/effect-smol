@@ -3997,6 +3997,28 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Expected bgt(1), got {"a":1,"b":1}`
       )
     })
+
+    it("named property signatures take precedence over overlapping index signature", async () => {
+      const NumberSchema = Schema.StructWithRest(
+        Schema.Struct({ count: Schema.NumberFromString }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      )
+      const numberDecoding = new TestSchema.Asserts(NumberSchema).decoding()
+      await numberDecoding.succeed({ count: "42" }, { count: 42 })
+      await numberDecoding.succeed({ count: "42", extra: "x" }, { count: 42, extra: "x" })
+
+      const OptionSchema = Schema.StructWithRest(
+        Schema.Struct({ id: Schema.String.pipe(Schema.OptionFromOptionalKey) }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      )
+      const optionDecoding = new TestSchema.Asserts(OptionSchema).decoding()
+      await optionDecoding.succeed({ id: "abc" }, { id: Option.some("abc") })
+      await optionDecoding.succeed({}, { id: Option.none() })
+      await optionDecoding.succeed(
+        { id: "abc", extra: 1 },
+        { id: Option.some("abc"), extra: 1 }
+      )
+    })
   })
 
   describe("NullOr", () => {
