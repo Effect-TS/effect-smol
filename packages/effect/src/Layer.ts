@@ -174,7 +174,7 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
  *   const memoMap = yield* Layer.makeMemoMap
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database)({
+ *   const dbLayer = Layer.succeed(Database, {
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
  *   const context = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
@@ -228,7 +228,7 @@ const memoMapReuse = <RIn, E, ROut>(
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>()("Database") {}
  *
- * const dbLayer = Layer.succeed(Database)({
+ * const dbLayer = Layer.succeed(Database, {
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  * })
  * const notALayer = { someProperty: "value" }
@@ -428,7 +428,7 @@ class MemoMapImpl implements MemoMap {
  *   const memoMap = Layer.makeMemoMapUnsafe()
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database)({
+ *   const dbLayer = Layer.succeed(Database, {
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
  *   const context = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
@@ -468,7 +468,7 @@ export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(p
  *   const memoMap = yield* Layer.makeMemoMap
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.succeed(Database)({
+ *   const dbLayer = Layer.succeed(Database, {
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
  *   const context = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
@@ -530,13 +530,13 @@ export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("
  *   const scope = yield* Effect.scope
  *
  *   // Build database layer with memoization
- *   const dbLayer = Layer.succeed(Database)({
+ *   const dbLayer = Layer.succeed(Database, {
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
  *   const dbContext = yield* Layer.buildWithMemoMap(dbLayer, memoMap, scope)
  *
  *   // Build logger layer with same memoization (reuses memo if same layer)
- *   const loggerLayer = Layer.succeed(Logger)({
+ *   const loggerLayer = Layer.succeed(Logger, {
  *     log: Effect.fn("Logger.log")((msg: string) => Effect.sync(() => console.log(msg)))
  *   })
  *   const loggerContext = yield* Layer.buildWithMemoMap(
@@ -590,7 +590,7 @@ export const buildWithMemoMap: {
  *
  * // Build a layer to get its services
  * const program = Effect.gen(function*() {
- *   const dbLayer = Layer.succeed(Database)({
+ *   const dbLayer = Layer.succeed(Database, {
  *     query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  *   })
  *
@@ -638,7 +638,7 @@ export const build = <RIn, E, ROut>(
  * const program = Effect.gen(function*() {
  *   const scope = yield* Effect.scope
  *
- *   const dbLayer = Layer.effect(Database)(Effect.gen(function*() {
+ *   const dbLayer = Layer.effect(Database, Effect.gen(function*() {
  *     console.log("Initializing database...")
  *     yield* Scope.addFinalizer(
  *       scope,
@@ -677,7 +677,7 @@ export const buildWithScope: {
 /**
  * Constructs a layer from the specified value.
  *
- * **Example** (Providing services from values)
+ * **Example** (Creating a layer from a service implementation)
  *
  * ```ts
  * import { Context, Effect, Layer } from "effect"
@@ -686,33 +686,12 @@ export const buildWithScope: {
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>()("Database") {}
  *
- * class Logger extends Context.Service<Logger, {
- *   readonly log: (msg: string) => Effect.Effect<void>
- * }>()("Logger") {}
- *
- * // Create layers from concrete service implementations
- * const databaseLayer = Layer.succeed(Database)({
+ * const DatabaseLive = Layer.succeed(Database, {
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Query result: ${sql}`))
  * })
- *
- * const loggerLayer = Layer.succeed(Logger)({
- *   log: Effect.fn("Logger.log")((msg: string) => Effect.sync(() => console.log(`[LOG] ${msg}`)))
- * })
- *
- * // Use the layers in a program
- * const program = Effect.gen(function*() {
- *   const database = yield* Database
- *   const logger = yield* Logger
- *
- *   yield* logger.log("Starting database query")
- *   const result = yield* database.query("SELECT * FROM users")
- *   yield* logger.log(`Query completed: ${result}`)
- *
- *   return result
- * }).pipe(
- *   Effect.provide(Layer.mergeAll(databaseLayer, loggerLayer))
- * )
  * ```
+ *
+ * @see {@link sync} for constructing layers from lazy values
  *
  * @category constructors
  * @since 2.0.0
@@ -765,17 +744,24 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
   fromBuildUnsafe(constant(internalEffect.succeed(context)))
 
 /**
- * A Layer that constructs an empty Context.
+ * A Layer that provides no services, cannot fail, and has no requirements.
  *
- * This layer provides no services and can be used as a neutral element
- * in layer composition or as a starting point for building layers.
+ * **When to Use**
  *
- * **Example** (Creating an empty layer)
+ * Layers can also be used for construction or lifecycle work that does not
+ * provide services. In that setting, `Layer.empty` is the no-op branch for when
+ * that work is disabled.
+ *
+ * **Example** (Disabling optional lifecycle work)
  *
  * ```ts
- * import { Layer } from "effect"
+ * import { Console, Layer } from "effect"
  *
- * const emptyLayer = Layer.empty
+ * declare const flag: boolean
+ *
+ * const StartupLogLive = flag
+ *   ? Layer.effectDiscard(Console.log("application starting"))
+ *   : Layer.empty
  * ```
  *
  * @category constructors
@@ -798,10 +784,12 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>()("Database") {}
  *
- * const layer = Layer.sync(Database)(() => ({
+ * const layer = Layer.sync(Database, () => ({
  *   query: (sql: string) => Effect.succeed(`Query: ${sql}`)
  * }))
  * ```
+ *
+ * @see {@link succeed} for constructing layers from static values
  *
  * @category constructors
  * @since 2.0.0
@@ -861,7 +849,7 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>()("Database") {}
  *
- * const layer = Layer.effect(Database)(
+ * const layer = Layer.effect(Database,
  *   Effect.sync(() => ({
  *     query: (sql: string) => Effect.succeed(`Query: ${sql}`)
  *   }))
@@ -964,8 +952,8 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
  *
  * const layer = Layer.suspend(() =>
  *   useProd
- *     ? Layer.succeed(Config)("https://api.example.com")
- *     : Layer.succeed(Config)("http://localhost:3000")
+ *     ? Layer.succeed(Config, "https://api.example.com")
+ *     : Layer.succeed(Config, "http://localhost:3000")
  * )
  * ```
  *
@@ -992,7 +980,7 @@ export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E,
  * }>()("Database") {}
  *
  * const layerEffect = Effect.succeed(
- *   Layer.succeed(Database)({ query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result")) })
+ *   Layer.succeed(Database, { query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result")) })
  * )
  *
  * const unwrappedLayer = Layer.unwrap(layerEffect)
@@ -1048,10 +1036,10 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  *   readonly log: (msg: string) => Effect.Effect<void>
  * }>()("Logger") {}
  *
- * const dbLayer = Layer.succeed(Database)({
+ * const dbLayer = Layer.succeed(Database, {
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  * })
- * const loggerLayer = Layer.succeed(Logger)({
+ * const loggerLayer = Layer.succeed(Logger, {
  *   log: Effect.fn("Logger.log")((msg: string) => Effect.sync(() => console.log(msg)))
  * })
  *
@@ -1088,10 +1076,10 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  *   readonly log: (msg: string) => Effect.Effect<void>
  * }>()("Logger") {}
  *
- * const dbLayer = Layer.succeed(Database)({
+ * const dbLayer = Layer.succeed(Database, {
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed("result"))
  * })
- * const loggerLayer = Layer.succeed(Logger)({
+ * const loggerLayer = Layer.succeed(Logger, {
  *   log: Effect.fn("Logger.log")((msg: string) => Effect.sync(() => console.log(msg)))
  * })
  *
@@ -1183,16 +1171,16 @@ const provideWith = (
  * }>()("Logger") {}
  *
  * // Create dependency layers
- * const databaseLayer = Layer.succeed(Database)({
+ * const databaseLayer = Layer.succeed(Database, {
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`DB: ${sql}`))
  * })
  *
- * const loggerLayer = Layer.succeed(Logger)({
+ * const loggerLayer = Layer.succeed(Logger, {
  *   log: Effect.fn("Logger.log")((msg: string) => Effect.sync(() => console.log(`[LOG] ${msg}`)))
  * })
  *
  * // UserService depends on Database and Logger
- * const userServiceLayer = Layer.effect(UserService)(Effect.gen(function*() {
+ * const userServiceLayer = Layer.effect(UserService, Effect.gen(function*() {
  *   const database = yield* Database
  *   const logger = yield* Logger
  *
@@ -1286,16 +1274,16 @@ export const provide: {
  * }>()("UserService") {}
  *
  * // Create dependency layers
- * const databaseLayer = Layer.succeed(Database)({
+ * const databaseLayer = Layer.succeed(Database, {
  *   query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`DB: ${sql}`))
  * })
  *
- * const loggerLayer = Layer.succeed(Logger)({
+ * const loggerLayer = Layer.succeed(Logger, {
  *   log: Effect.fn("Logger.log")((msg: string) => Effect.sync(() => console.log(`[LOG] ${msg}`)))
  * })
  *
  * // UserService depends on Database and Logger
- * const userServiceLayer = Layer.effect(UserService)(Effect.gen(function*() {
+ * const userServiceLayer = Layer.effect(UserService, Effect.gen(function*() {
  *   const database = yield* Database
  *   const logger = yield* Logger
  *
@@ -1392,7 +1380,7 @@ export const provideMerge: {
  * }>()("Logger") {}
  *
  * // Base config layer
- * const configLayer = Layer.succeed(Config)({
+ * const configLayer = Layer.succeed(Config, {
  *   dbUrl: "postgres://localhost:5432/mydb",
  *   logLevel: "debug"
  * })
@@ -1403,7 +1391,7 @@ export const provideMerge: {
  *     const config = Context.get(context, Config)
  *
  *     // Create database layer based on config
- *     const dbLayer = Layer.succeed(Database)({
+ *     const dbLayer = Layer.succeed(Database, {
  *       query: Effect.fn("Database.query")((sql: string) =>
  *         Effect.succeed(
  *           `Querying ${config.dbUrl}: ${sql}`
@@ -1411,7 +1399,7 @@ export const provideMerge: {
  *     })
  *
  *     // Create logger layer based on config
- *     const loggerLayer = Layer.succeed(Logger)({
+ *     const loggerLayer = Layer.succeed(Logger, {
  *       log: Effect.fn("Logger.log")((msg: string) =>
  *         config.logLevel === "debug"
  *           ? Effect.sync(() => console.log(`[DEBUG] ${msg}`))
@@ -1560,7 +1548,7 @@ export const tapCause: {
  * }>()("Database") {}
  *
  * // Layer that can fail during construction
- * const flakyDatabaseLayer = Layer.effect(Database)(Effect.gen(function*() {
+ * const flakyDatabaseLayer = Layer.effect(Database, Effect.gen(function*() {
  *   console.log("connecting")
  *   return yield* new DatabaseError({ message: "Connection failed" })
  * }))
@@ -1629,9 +1617,9 @@ export {
  *   readonly apiUrl: string
  * }>()("Config") {}
  *
- * const configLayer = Layer.effect(Config)(Effect.fail(new ConfigError()))
+ * const configLayer = Layer.effect(Config, Effect.fail(new ConfigError()))
  *
- * const fallbackLayer = Layer.succeed(Config)({ apiUrl: "http://localhost" })
+ * const fallbackLayer = Layer.succeed(Config, { apiUrl: "http://localhost" })
  *
  * const recovered = configLayer.pipe(
  *   Layer.catchTag("ConfigError", () => fallbackLayer)
@@ -1714,13 +1702,13 @@ export const catchTag: {
  *   readonly query: (sql: string) => Effect.Effect<string>
  * }>()("Database") {}
  *
- * const primaryDatabaseLayer = Layer.effect(Database)(
+ * const primaryDatabaseLayer = Layer.effect(Database,
  *   Effect.fail(new DatabaseError({ message: "Primary DB unreachable" }))
  * )
  *
  * const databaseWithFallback = primaryDatabaseLayer.pipe(
  *   Layer.catchCause(() => {
- *     return Layer.succeed(Database)({
+ *     return Layer.succeed(Database, {
  *       query: Effect.fn("Database.query")((sql: string) => Effect.succeed(`Memory: ${sql}`))
  *     })
  *   })
@@ -1822,12 +1810,12 @@ export const updateService: {
  *   readonly counterId: number
  * }>()("Right") {}
  *
- * const leftLayer = Layer.effect(Left)(Effect.gen(function*() {
+ * const leftLayer = Layer.effect(Left, Effect.gen(function*() {
  *   const counter = yield* Counter
  *   return { counterId: counter.id }
  * }))
  *
- * const rightLayer = Layer.effect(Right)(Effect.gen(function*() {
+ * const rightLayer = Layer.effect(Right, Effect.gen(function*() {
  *   const counter = yield* Counter
  *   return { counterId: counter.id }
  * }))
@@ -1841,7 +1829,7 @@ export const updateService: {
  * const program = Effect.gen(function*() {
  *   const nextId = yield* Ref.make(0)
  *
- *   const counterLayer = Layer.effect(Counter)(Effect.gen(function*() {
+ *   const counterLayer = Layer.effect(Counter, Effect.gen(function*() {
  *     const id = yield* Ref.updateAndGet(nextId, (n) => n + 1)
  *     console.log("constructed Counter")
  *     return { id }
@@ -1900,7 +1888,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  * }>()("Logger") {}
  *
  * // Server layer that starts an HTTP server
- * const serverLayer = Layer.effect(HttpServer)(Effect.gen(function*() {
+ * const serverLayer = Layer.effect(HttpServer, Effect.gen(function*() {
  *   yield* Console.log("Starting HTTP server...")
  *
  *   return {
@@ -1915,7 +1903,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  *   }
  * }))
  *
- * const loggerLayer = Layer.succeed(Logger)({
+ * const loggerLayer = Layer.succeed(Logger, {
  *   log: Effect.fn("Logger.log")((msg: string) => Console.log(`[LOG] ${msg}`))
  * })
  *
