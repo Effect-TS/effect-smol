@@ -237,13 +237,14 @@ const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
 
 /**
- * Get the current OpenTelemetry span.
+ * Gets the current OpenTelemetry span.
  *
- * Works with both the official OpenTelemetry API (via `Tracer.layer`,
- * `NodeSdk.layer`, etc.) and the lightweight OTLP module (`OtlpTracer.layer`).
+ * **Details**
  *
- * When using OTLP, the returned span is a wrapper that conforms to the
- * OpenTelemetry `Span` interface.
+ * This accessor works with both the official OpenTelemetry API, such as
+ * `Tracer.layer` and `NodeSdk.layer`, and the lightweight OTLP module, such as
+ * `OtlpTracer.layer`. When using OTLP, the returned span is a wrapper that
+ * conforms to the OpenTelemetry `Span` interface.
  *
  * @category accessors
  * @since 4.0.0
@@ -343,12 +344,14 @@ const convertOtelTimeInput = (input: Otel.TimeInput | undefined, clock: Clock.Cl
 }
 
 /**
- * Set the effect's parent span from the given opentelemetry `SpanContext`.
+ * Sets an effect's parent span from the given OpenTelemetry `SpanContext`.
  *
- * This is handy when you set up OpenTelemetry outside of Effect and want to
- * attach to a parent span.
+ * **When to use**
  *
- * @category Propagation
+ * Use this when OpenTelemetry instrumentation outside Effect has already
+ * produced a parent span context and an effect should continue that trace.
+ *
+ * @category propagation
  * @since 4.0.0
  */
 export const withSpanContext: {
