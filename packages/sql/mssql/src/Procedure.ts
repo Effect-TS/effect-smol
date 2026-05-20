@@ -82,7 +82,7 @@ export interface ProcedureWithValues<
  *
  * @since 4.0.0
  */
-export namespace Procedure {
+export declare namespace Procedure {
   /**
    * Maps a record of `Parameter` metadata to the corresponding record of parameter value types.
    *

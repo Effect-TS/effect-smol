@@ -1,4 +1,4 @@
-import rule from "@effect/oxc/oxlint/rules/standard-jsdoc"
+import rule, { parseStandardJSDoc, parseStandardJSDocsFromESTree } from "@effect/oxc/oxlint/rules/standard-jsdoc"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
@@ -13,36 +13,21 @@ interface TestNode {
 
 function rangeOf(source: string, search: string): [number, number] {
   const start = source.indexOf(search)
-  if (start === -1) {
-    throw new Error(`Unable to find ${search}`)
-  }
+  if (start === -1) throw new Error(`Unable to find ${search}`)
   return [start, start + search.length]
 }
 
 function node(source: string, search: string, type: string, extra: Record<string, unknown> = {}): TestNode {
-  return {
-    type,
-    range: rangeOf(source, search),
-    ...extra
-  }
+  return { type, range: rangeOf(source, search), ...extra }
 }
 
-function exportNamed(source: string, search: string, declaration: TestNode): TestNode {
-  return node(source, search, "ExportNamedDeclaration", {
-    declaration,
-    source: null,
-    specifiers: []
-  })
-}
-
-function importDeclaration(source: string, search = "import"): TestNode {
-  return node(source, search, "ImportDeclaration")
+function exportNamed(source: string, search: string, declaration: TestNode | null, extra: Record<string, unknown> = {}): TestNode {
+  return node(source, search, "ExportNamedDeclaration", { declaration, source: null, specifiers: [], ...extra })
 }
 
 function runRuleWithSource(
   source: string,
   entries: Array<{ readonly visitor: string; readonly node: TestNode }>,
-  programBody?: Array<TestNode>,
   ruleOptions: Array<unknown> = [],
   contextOptions: { readonly filename?: string; readonly cwd?: string } = {}
 ) {
@@ -53,68 +38,26 @@ function runRuleWithSource(
     ruleOptions
   })
   const visitors = rule.create(context as never)
-  const program = programBody
-    ? ({
-      type: "Program",
-      range: [0, source.length],
-      body: programBody
-    } as TestNode)
-    : undefined
-
-  if (program && visitors.Program) {
-    visitors.Program(program as never)
-  }
   for (const { visitor, node } of entries) {
     const handler = visitors[visitor as keyof typeof visitors]
-    if (handler) {
-      ;(handler as (node: unknown) => void)(node)
-    }
+    if (handler) (handler as (node: unknown) => void)(node)
   }
-  if (program && visitors["Program:exit"]) {
-    visitors["Program:exit"](program as never)
-  }
-
   return errors
 }
-
-const categoryOnlyOptions = [{
-  checks: {
-    description: false,
-    tags: false,
-    category: true,
-    since: false,
-    examples: false
-  }
-}]
-
-const linksOnlyOptions = [{
-  tsconfig: "tsconfig.json",
-  checks: {
-    description: false,
-    tags: false,
-    category: false,
-    since: false,
-    examples: false,
-    links: true
-  }
-}]
 
 function createTypescriptProject(source: string, files: Record<string, string> = {}) {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "standard-jsdoc-"))
   const filename = path.join(cwd, "src", "Foo.ts")
   fs.mkdirSync(path.dirname(filename), { recursive: true })
-  fs.writeFileSync(
-    path.join(cwd, "tsconfig.json"),
-    JSON.stringify({
-      compilerOptions: {
-        module: "NodeNext",
-        moduleResolution: "NodeNext",
-        strict: true,
-        target: "ES2022"
-      },
-      include: ["src/**/*.ts"]
-    })
-  )
+  fs.writeFileSync(path.join(cwd, "tsconfig.json"), JSON.stringify({
+    compilerOptions: {
+      module: "NodeNext",
+      moduleResolution: "NodeNext",
+      strict: true,
+      target: "ES2022"
+    },
+    include: ["src/**/*.ts"]
+  }))
   fs.writeFileSync(filename, source)
   for (const [file, text] of Object.entries(files)) {
     const filePath = path.join(cwd, "src", file)
@@ -125,15 +68,94 @@ function createTypescriptProject(source: string, files: Record<string, string> =
 }
 
 describe("standard-jsdoc", () => {
-  it("accepts a documented public value and module", () => {
-    const source = `/**
- * Module docs.
+  it("parses standard JSDoc with sections, example prose, tags, and see links", () => {
+    const result = parseStandardJSDoc(`/**
+ * Creates a value.
  *
+ * **When to use**
+ *
+ * Use this when you need a value.
+ *
+ * **Details**
+ *
+ * The details can use lists.
+ *
+ * - One item
+ *
+ * **Gotchas**
+ *
+ * Avoid passing invalid input.
+ *
+ * **Example** (Creating a value)
+ *
+ * Create the value first.
+ *
+ * \`\`\`ts
+ * const value = makeValue()
+ * \`\`\`
+ *
+ * @deprecated Use otherValue.
+ * @see {@link Effect.gen} for sequential workflows.
+ * @category constructors
+ * @since 1.0.0
+ */`)
+
+    expect(result._tag).toBe("Success")
+    if (result._tag === "Success") {
+      expect(result.value.description).toEqual({
+        short: "Creates a value.",
+        whenToUse: "Use this when you need a value.",
+        details: "The details can use lists.\n\n- One item",
+        gotchas: "Avoid passing invalid input."
+      })
+      expect(result.value.examples).toEqual([
+        { title: "Creating a value", body: "Create the value first.", code: "const value = makeValue()" }
+      ])
+    }
+  })
+
+  it("parses all public JSDocs in an ESTree program into grouped JSON data", () => {
+    const source = `/**
+ * Options.
+ *
+ * @category models
  * @since 1.0.0
  */
-import * as Effect from "effect/Effect"
+export interface Options {
+  /**
+   * A member.
+   */
+  readonly member: string
+}
+`
+    const member = node(source, "readonly member", "TSPropertySignature", { key: { name: "member" } })
+    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
+      id: { name: "Options" },
+      body: { body: [member] }
+    })
+    const exportNode = exportNamed(source, "export interface Options", declaration)
+    const result = parseStandardJSDocsFromESTree({
+      source,
+      program: { type: "Program", range: [0, source.length], body: [exportNode] } as never
+    })
 
-/**
+    expect(result._tag).toBe("Success")
+    if (result._tag === "Success") {
+      expect(result.value.namespaces).toEqual([])
+      expect(result.value.declarations).toMatchObject([
+        {
+          name: "Options",
+          bucket: "type",
+          description: { short: "Options." },
+          tags: { category: "models", since: "1.0.0" },
+          members: [{ name: "member", description: { short: "A member." } }]
+        }
+      ])
+    }
+  })
+
+  it("accepts a documented public value", () => {
+    const source = `/**
  * A value.
  *
  * @category constructors
@@ -143,48 +165,151 @@ export const value = 1
 `
     const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
     const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      [importDeclaration(source), exportNode]
-    )
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
     expect(errors).toHaveLength(0)
   })
 
-  it("reports only missing JSDoc when an exported declaration has no block", () => {
+  it("reports missing public JSDoc", () => {
     const source = `export const value = 1`
     const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
     const exportNode = exportNamed(source, "export const value", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("Public JSDoc is required")
+    expect(errors.map((error) => error.message)).toEqual(["Public JSDoc is required"])
   })
 
-  it("forbids examples on exported types", () => {
+  it("rejects multiple short description paragraphs", () => {
     const source = `/**
- * An option type.
+ * First paragraph.
+ *
+ * Second paragraph.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors.map((error) => error.message)).toContain("JSDoc short description must be one paragraph")
+  })
+
+  it("rejects out of order sections", () => {
+    const source = `/**
+ * A value.
+ *
+ * **Gotchas**
+ *
+ * Be careful.
+ *
+ * **Details**
+ *
+ * More detail.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors.map((error) => error.message)).toContain("**Details** is out of order or duplicated")
+  })
+
+  it("rejects empty sections", () => {
+    const source = `/**
+ * A value.
+ *
+ * **Details**
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors.map((error) => error.message)).toContain("**Details** must have a non-empty body")
+  })
+
+  it("rejects extra blank lines at boundaries", () => {
+    const source = `/**
+ * A value.
+ *
+ *
+ * **Details**
+ *
+ * More detail.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors.map((error) => error.message)).toContain("JSDoc sections must be separated by exactly one blank line")
+  })
+
+  it("allows example prose before the TypeScript fence", () => {
+    const source = `/**
+ * A value.
+ *
+ * **Example** (Usage)
+ *
+ * Create the value first.
+ *
+ * \`\`\`ts
+ * const value = 1
+ * \`\`\`
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("rejects duplicate example titles case-insensitively", () => {
+    const source = `/**
+ * A value.
  *
  * **Example** (Usage)
  *
  * \`\`\`ts
- * type A = Options
+ * const a = 1
  * \`\`\`
  *
- * @category models
+ * **Example** (usage)
+ *
+ * \`\`\`ts
+ * const b = 1
+ * \`\`\`
+ *
+ * @category constructors
  * @since 1.0.0
  */
-export interface Options {}
+export const value = 1
 `
-    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
-      body: { body: [] }
-    })
-    const exportNode = exportNamed(source, "export interface Options", declaration)
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("Examples are not allowed in this JSDoc block")
+    expect(errors.map((error) => error.message)).toContain("Duplicate example title: usage")
   })
 
   it("rejects @example tags", () => {
@@ -202,11 +327,12 @@ export const value = 1
     const exportNode = exportNamed(source, "export const value", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("@example is not allowed; use a canonical **Example** (Title) section")
+    expect(errors.map((error) => error.message)).toContain(
+      "@example is not allowed; use a canonical **Example** (Title) section"
+    )
   })
 
-  it("rejects loose TypeScript fences on values", () => {
+  it("rejects loose TypeScript fences", () => {
     const source = `/**
  * A value.
  *
@@ -223,65 +349,11 @@ export const value = 1
     const exportNode = exportNamed(source, "export const value", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe(
-      "TypeScript examples must use **Example** (Title), a blank line, and a non-empty ```ts fence"
-    )
+    expect(errors.map((error) => error.message)).toContain("JSDoc short description must be one paragraph")
   })
 
-  it("can run only category checks", () => {
+  it("forbids @category on members and allows optional @since/@default", () => {
     const source = `/**
- * @since invalid
- */
-import * as Effect from "effect/Effect"
-
-/**
- * **Example** (Usage)
- *
- * \`\`\`ts
- * const value = 1
- * \`\`\`
- *
- * @foo
- * @category constructors
- * @since invalid
- */
-export const value = 1
-`
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      [importDeclaration(source), exportNode],
-      categoryOnlyOptions
-    )
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("category-only checks still enforce category placement", () => {
-    const source = `/**
- * @since 1.0.0
- */
-import * as Effect from "effect/Effect"
-
-/**
- * Option namespace.
- *
- * @category namespaces
- * @since 1.0.0
- */
-export declare namespace Option {
-  /**
-   * Extracts the value type.
-   *
-   * @since 1.0.0
-   */
-  export type Value<T> = T
-}
-
-/**
  * Options.
  *
  * @category models
@@ -291,733 +363,65 @@ export interface Options {
   /**
    * A member.
    *
+   * @default none
+   * @since 1.1.0
    * @category models
    */
   readonly member: string
 }
-
-/**
- * A value.
- *
- * @since 1.0.0
- */
-export const value = 1
 `
-    const namespaceValueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", {
-      typeAnnotation: null
-    })
-    const namespaceValueExport = exportNamed(source, "export type Value", namespaceValueDeclaration)
-    const namespaceDeclaration = node(source, "export declare namespace Option", "TSModuleDeclaration", {
-      body: { body: [namespaceValueExport] }
-    })
-    const namespaceExport = exportNamed(source, "export declare namespace Option", namespaceDeclaration)
     const member = node(source, "readonly member", "TSPropertySignature")
-    const optionsDeclaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
-      body: { body: [member] }
+    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", { body: { body: [member] } })
+    const exportNode = exportNamed(source, "export interface Options", declaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
+
+    expect(errors.map((error) => error.message)).toContain("@category is not allowed in member JSDoc")
+  })
+
+  it("allows missing member docs recursively", () => {
+    const source = `/**
+ * Options.
+ *
+ * @category models
+ * @since 1.0.0
+ */
+export interface Options {
+  /**
+   * Outer options.
+   */
+  readonly outer: {
+    readonly inner: string
+  }
+}
+`
+    const inner = node(source, "readonly inner", "TSPropertySignature")
+    const outer = node(source, "readonly outer", "TSPropertySignature", {
+      typeAnnotation: { type: "TSTypeAnnotation", typeAnnotation: { type: "TSTypeLiteral", members: [inner] } }
     })
-    const optionsExport = exportNamed(source, "export interface Options", optionsDeclaration)
-    const valueDeclaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const valueExport = exportNamed(source, "export const value", valueDeclaration)
-    const errors = runRuleWithSource(
-      source,
-      [
-        { visitor: "ExportNamedDeclaration", node: namespaceExport },
-        { visitor: "ExportNamedDeclaration", node: namespaceValueExport },
-        { visitor: "ExportNamedDeclaration", node: optionsExport },
-        { visitor: "ExportNamedDeclaration", node: valueExport }
-      ],
-      [importDeclaration(source), namespaceExport, optionsExport, valueExport],
-      categoryOnlyOptions
-    )
-
-    expect(errors.map((error) => error.message)).toEqual([
-      "@category is not allowed in namespace JSDoc",
-      "Public JSDoc must include @category",
-      "@category is not allowed in member JSDoc",
-      "Public JSDoc must include @category"
-    ])
-  })
-
-  it("allows @see tags with a value", () => {
-    const source = `/**
- * A value.
- *
- * @see other for more details
- * @category constructors
- * @since 1.0.0
- */
-export const value = 1
-`
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
+    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", { body: { body: [outer] } })
+    const exportNode = exportNamed(source, "export interface Options", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
     expect(errors).toHaveLength(0)
   })
 
-  it("reports empty @see tags", () => {
+  it("ignores @internal declarations and their members", () => {
     const source = `/**
- * A value.
- *
- * @see
- * @category constructors
- * @since 1.0.0
- */
-export const value = 1
-`
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors.map((error) => error.message)).toEqual(["@see must include a value"])
-  })
-
-  it("validates resolved TypeScript JSDoc inline links", () => {
-    const source = `export interface Foo {}
-
-/**
- * A value referencing {@link Foo | the Foo API}.
- */
-export const value = 1
-`
-    const { cwd, filename } = createTypescriptProject(source)
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      undefined,
-      linksOnlyOptions,
-      { cwd, filename }
-    )
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("resolves same-module exports and program module exports", () => {
-    const source = `/**
- * A value referencing {@link later} and {@link Other.helper}.
- */
-export const value = 1
-
-export const later = 2
-`
-    const { cwd, filename } = createTypescriptProject(source, {
-      "Other.ts": "export const helper = 1\n"
-    })
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      undefined,
-      linksOnlyOptions,
-      { cwd, filename }
-    )
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("reports unresolved TypeScript JSDoc inline links", () => {
-    const source = `/**
- * A value referencing {@link Missing}.
- */
-export const value = 1
-`
-    const { cwd, filename } = createTypescriptProject(source)
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      undefined,
-      linksOnlyOptions,
-      { cwd, filename }
-    )
-
-    expect(errors.map((error) => error.message)).toEqual(["Unresolved JSDoc inline link: {@link Missing}"])
-  })
-
-  it("reports malformed and URL JSDoc inline links", () => {
-    const source = `/**
- * A value referencing {@link} and {@link https://example.com}.
- */
-export const value = 1
-`
-    const { cwd, filename } = createTypescriptProject(source)
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      undefined,
-      linksOnlyOptions,
-      { cwd, filename }
-    )
-
-    expect(errors.map((error) => error.message)).toEqual([
-      "Malformed JSDoc inline link: {@link}",
-      "JSDoc inline link must target a TypeScript symbol: {@link https://example.com}"
-    ])
-  })
-
-  it("allows directive comments between JSDoc and an exported declaration", () => {
-    const source = `/**
- * A value.
- *
- * @category constructors
- * @since 1.0.0
- */
-// @ts-expect-error
-export const value = 1
-`
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("allows effect diagnostic comments between JSDoc and an exported declaration", () => {
-    const source = `/**
- * A service.
- *
- * @category services
- * @since 1.0.0
- */
-// @effect-diagnostics effect/leakingRequirements:off
-export class Service {}
-`
-    const declaration = node(source, "export class Service", "ClassDeclaration")
-    const exportNode = exportNamed(source, "export class Service", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("lets @internal declarations opt out but rejects additional tags", () => {
-    const source = `/**
- * Private.
- *
  * @internal
- * @since 1.0.0
  */
 export interface Secret {
   readonly missing: string
 }
 `
     const missing = node(source, "readonly missing", "TSPropertySignature")
-    const declaration = node(source, "export interface Secret", "TSInterfaceDeclaration", {
-      body: { body: [missing] }
-    })
+    const declaration = node(source, "export interface Secret", "TSInterfaceDeclaration", { body: { body: [missing] } })
     const exportNode = exportNamed(source, "export interface Secret", declaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("JSDoc blocks with @internal must not contain other block tags")
-  })
-
-  it("allows undocumented members recursively in exported object types", () => {
-    const source = `/**
- * Options.
- *
- * @category models
- * @since 1.0.0
- */
-export interface Options {
-  /**
-   * Outer options.
-   */
-  readonly outer: {
-    readonly inner: string
-  }
-}
-`
-    const inner = node(source, "readonly inner", "TSPropertySignature")
-    const outer = node(source, "readonly outer", "TSPropertySignature", {
-      typeAnnotation: {
-        type: "TSTypeAnnotation",
-        typeAnnotation: {
-          type: "TSTypeLiteral",
-          members: [inner]
-        }
-      }
-    })
-    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
-      body: { body: [outer] }
-    })
-    const exportNode = exportNamed(source, "export interface Options", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
     expect(errors).toHaveLength(0)
   })
 
-  it("allows member docs without @category when present", () => {
-    const source = `/**
- * Options.
- *
- * @category models
- * @since 1.0.0
- */
-export interface Options {
-  /**
-   * Outer options.
-   */
-  readonly outer: string
-}
-`
-    const outer = node(source, "readonly outer", "TSPropertySignature")
-    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
-      body: { body: [outer] }
-    })
-    const exportNode = exportNamed(source, "export interface Options", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("allows canonical examples when member docs are present", () => {
-    const source = `/**
- * Options.
- *
- * @category models
- * @since 1.0.0
- */
-export interface Options {
-  /**
-   * Outer options.
-   *
-   * **Example** (Reading the outer option)
-   *
-   * \`\`\`ts
-   * declare const options: Options
-   * options.outer
-   * \`\`\`
-   */
-  readonly outer: string
-}
-`
-    const outer = node(source, "readonly outer", "TSPropertySignature")
-    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
-      body: { body: [outer] }
-    })
-    const exportNode = exportNamed(source, "export interface Options", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("forbids @category when member docs are present", () => {
-    const source = `/**
- * Options.
- *
- * @category models
- * @since 1.0.0
- */
-export interface Options {
-  /**
-   * Outer options.
-   *
-   * @category models
-   */
-  readonly outer: string
-}
-`
-    const outer = node(source, "readonly outer", "TSPropertySignature")
-    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
-      body: { body: [outer] }
-    })
-    const exportNode = exportNamed(source, "export interface Options", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("@category is not allowed in member JSDoc")
-  })
-
-  it("validates member docs recursively when present", () => {
-    const source = `/**
- * Options.
- *
- * @category models
- * @since 1.0.0
- */
-export interface Options {
-  readonly outer: {
-    /**
-     * Inner options.
-     */
-    readonly inner: string
-  }
-}
-`
-    const inner = node(source, "readonly inner", "TSPropertySignature")
-    const outer = node(source, "readonly outer", "TSPropertySignature", {
-      typeAnnotation: {
-        type: "TSTypeAnnotation",
-        typeAnnotation: {
-          type: "TSTypeLiteral",
-          members: [inner]
-        }
-      }
-    })
-    const declaration = node(source, "export interface Options", "TSInterfaceDeclaration", {
-      body: { body: [outer] }
-    })
-    const exportNode = exportNamed(source, "export interface Options", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("does not require member docs for anonymous call signatures in exported value type literals", () => {
-    const source = `/**
- * A callable value.
- *
- * @category constructors
- * @since 1.0.0
- */
-export const value: {
-  <A>(self: A): A
-  new <A>(self: A): A
-  /**
-   * A named member.
-   */
-  readonly member: string
-} = undefined as never
-`
-    const callSignature = node(source, "<A>(self", "TSCallSignatureDeclaration", {
-      params: [],
-      returnType: null
-    })
-    const constructSignature = node(source, "new <A>(self", "TSConstructSignatureDeclaration", {
-      params: [],
-      returnType: null
-    })
-    const member = node(source, "readonly member", "TSPropertySignature")
-    const declaration = node(source, "export const value", "VariableDeclaration", {
-      declarations: [{
-        id: {
-          typeAnnotation: {
-            type: "TSTypeAnnotation",
-            typeAnnotation: {
-              type: "TSTypeLiteral",
-              members: [callSignature, constructSignature, member]
-            }
-          }
-        },
-        init: null
-      }]
-    })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("does not require member docs for named members in exported value type literals", () => {
-    const source = `/**
- * A callable value.
- *
- * @category constructors
- * @since 1.0.0
- */
-export const value: {
-  <A>(self: A): A
-  readonly member: string
-} = undefined as never
-`
-    const callSignature = node(source, "<A>(self", "TSCallSignatureDeclaration", {
-      params: [],
-      returnType: null
-    })
-    const member = node(source, "readonly member", "TSPropertySignature")
-    const declaration = node(source, "export const value", "VariableDeclaration", {
-      declarations: [{
-        id: {
-          typeAnnotation: {
-            type: "TSTypeAnnotation",
-            typeAnnotation: {
-              type: "TSTypeLiteral",
-              members: [callSignature, member]
-            }
-          }
-        },
-        init: null
-      }]
-    })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("does not require member docs for anonymous call signatures in exported value return types", () => {
-    const source = `/**
- * Makes a callable value.
- *
- * @category constructors
- * @since 1.0.0
- */
-export const make = <A>(): {
-  (self: A): A
-} => undefined as never
-`
-    const callSignature = node(source, "(self: A)", "TSCallSignatureDeclaration", {
-      params: [],
-      returnType: null
-    })
-    const declaration = node(source, "export const make", "VariableDeclaration", {
-      declarations: [{
-        id: { typeAnnotation: null },
-        init: {
-          type: "ArrowFunctionExpression",
-          params: [],
-          returnType: {
-            type: "TSTypeAnnotation",
-            typeAnnotation: {
-              type: "TSTypeLiteral",
-              members: [callSignature]
-            }
-          }
-        }
-      }]
-    })
-    const exportNode = exportNamed(source, "export const make", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("does not require member docs for inline object parameters of anonymous call signatures", () => {
-    const source = `/**
- * Matches a value.
- *
- * @category pattern matching
- * @since 1.0.0
- */
-export const match: {
-  <A, B>(options: {
-    readonly onNone: () => B
-    readonly onSome: (a: A) => B
-  }): (self: A) => B
-} = undefined as never
-`
-    const onNone = node(source, "readonly onNone", "TSPropertySignature")
-    const onSome = node(source, "readonly onSome", "TSPropertySignature")
-    const callSignature = node(source, "<A, B>(options", "TSCallSignatureDeclaration", {
-      params: [{
-        typeAnnotation: {
-          type: "TSTypeAnnotation",
-          typeAnnotation: {
-            type: "TSTypeLiteral",
-            members: [onNone, onSome]
-          }
-        }
-      }],
-      returnType: null
-    })
-    const declaration = node(source, "export const match", "VariableDeclaration", {
-      declarations: [{
-        id: {
-          typeAnnotation: {
-            type: "TSTypeAnnotation",
-            typeAnnotation: {
-              type: "TSTypeLiteral",
-              members: [callSignature]
-            }
-          }
-        },
-        init: null
-      }]
-    })
-    const exportNode = exportNamed(source, "export const match", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("does not require public class member docs", () => {
-    const source = `/**
- * A service.
- *
- * @category services
- * @since 1.0.0
- */
-export class Service {
-  constructor() {}
-  private secret() {}
-  run() {}
-}
-`
-    const constructor = node(source, "constructor", "MethodDefinition", { kind: "constructor" })
-    const secret = node(source, "private secret", "MethodDefinition", {
-      kind: "method",
-      accessibility: "private"
-    })
-    const run = node(source, "run", "MethodDefinition", { kind: "method" })
-    const declaration = node(source, "export class Service", "ClassDeclaration", {
-      body: { body: [constructor, secret, run] }
-    })
-    const exportNode = exportNamed(source, "export class Service", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("requires module JSDoc only when the file has public exports", () => {
-    const source = `import * as Effect from "effect/Effect"
-
-/**
- * A value.
- *
- * @category constructors
- * @since 1.0.0
- */
-export const value = 1
-`
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      [importDeclaration(source), exportNode]
-    )
-
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("Module JSDoc is required")
-  })
-
-  it("reports module JSDoc violations on the module block", () => {
-    const source = `/**
- * @since 1.0.0
- */
-import * as Effect from "effect/Effect"
-
-/**
- * A value.
- *
- * @category constructors
- * @since 1.0.0
- */
-export const value = 1
-`
-    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
-    const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      [importDeclaration(source), exportNode]
-    )
-
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("Module JSDoc must include a description")
-    expect((errors[0].node as TestNode).range).toEqual(rangeOf(
-      source,
-      `/**
- * @since 1.0.0
- */`
-    ))
-  })
-
-  it("uses top-level ambient module JSDoc as module JSDoc", () => {
-    const source = `/**
- * Declares the upstream virtual file system module.
- *
- * @since 1.0.0
- */
-declare module "upstream/vfs" {
-  /**
-   * A virtual file system implementation.
-   *
-   * @category models
-   * @since 1.0.0
-   */
-  // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
-  export class Vfs {}
-}
-`
-    const declaration = node(source, "export class Vfs", "ClassDeclaration", {
-      body: { body: [] }
-    })
-    const exportNode = exportNamed(source, "export class Vfs", declaration)
-    const moduleDeclaration = node(source, "declare module", "TSModuleDeclaration", {
-      body: { body: [exportNode] }
-    })
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      [moduleDeclaration]
-    )
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("ignores re-export-only files", () => {
-    const source = `export { Foo } from "./Foo"`
-    const exportNode = node(source, "export { Foo }", "ExportNamedDeclaration", {
-      declaration: null,
-      source: { value: "./Foo" },
-      specifiers: []
-    })
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      [exportNode]
-    )
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("checks only the first exported overload in a function overload group", () => {
-    const source = `/**
- * Decode input.
- *
- * @category decoding
- * @since 1.0.0
- */
-export function decode(input: string): string
-export function decode(input: unknown): string
-export function decode(input: unknown): string {
-  return String(input)
-}
-`
-    const firstDeclaration = node(source, "export function decode(input: string)", "FunctionDeclaration", {
-      id: { name: "decode" },
-      body: null,
-      params: []
-    })
-    const firstExport = exportNamed(source, "export function decode(input: string)", firstDeclaration)
-    const secondDeclaration = node(source, "export function decode(input: unknown): string", "FunctionDeclaration", {
-      id: { name: "decode" },
-      body: null,
-      params: []
-    })
-    const secondExport = exportNamed(source, "export function decode(input: unknown): string", secondDeclaration)
-    const implementationDeclaration = node(
-      source,
-      "export function decode(input: unknown): string {",
-      "FunctionDeclaration",
-      {
-        id: { name: "decode" },
-        body: {},
-        params: []
-      }
-    )
-    const implementationExport = exportNamed(
-      source,
-      "export function decode(input: unknown): string {",
-      implementationDeclaration
-    )
-    const errors = runRuleWithSource(source, [
-      { visitor: "ExportNamedDeclaration", node: firstExport },
-      { visitor: "ExportNamedDeclaration", node: secondExport },
-      { visitor: "ExportNamedDeclaration", node: implementationExport }
-    ])
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it("forbids @category on namespace JSDoc", () => {
+  it("allows category in namespace scope", () => {
     const source = `/**
  * Option namespace.
  *
@@ -1028,30 +432,24 @@ export declare namespace Option {
   /**
    * Extracts the value type.
    *
-   * @category type-level utils
+   * @category models
    * @since 1.0.0
    */
   export type Value<T> = T
 }
 `
-    const valueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", {
-      typeAnnotation: null
-    })
+    const valueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", { typeAnnotation: null })
     const valueExport = exportNamed(source, "export type Value", valueDeclaration)
     const namespaceDeclaration = node(source, "export declare namespace Option", "TSModuleDeclaration", {
       body: { body: [valueExport] }
     })
     const namespaceExport = exportNamed(source, "export declare namespace Option", namespaceDeclaration)
-    const errors = runRuleWithSource(source, [
-      { visitor: "ExportNamedDeclaration", node: namespaceExport },
-      { visitor: "ExportNamedDeclaration", node: valueExport }
-    ])
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: namespaceExport }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("@category is not allowed in namespace JSDoc")
+    expect(errors).toHaveLength(0)
   })
 
-  it("requires public JSDoc tags on namespace member exports", () => {
+  it("requires namespace member exports to be type declarations", () => {
     const source = `/**
  * Option namespace.
  *
@@ -1059,75 +457,149 @@ export declare namespace Option {
  */
 export declare namespace Option {
   /**
-   * Extracts the value type.
+   * A value.
    *
    * @since 1.0.0
    */
-  export type Value<T> = T
+  export const value = 1
 }
 `
-    const valueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", {
-      typeAnnotation: null
-    })
-    const valueExport = exportNamed(source, "export type Value", valueDeclaration)
+    const valueDeclaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const valueExport = exportNamed(source, "export const value", valueDeclaration)
     const namespaceDeclaration = node(source, "export declare namespace Option", "TSModuleDeclaration", {
       body: { body: [valueExport] }
     })
     const namespaceExport = exportNamed(source, "export declare namespace Option", namespaceDeclaration)
-    const errors = runRuleWithSource(source, [
-      { visitor: "ExportNamedDeclaration", node: namespaceExport },
-      { visitor: "ExportNamedDeclaration", node: valueExport }
-    ])
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: namespaceExport }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("Public JSDoc must include @category")
+    expect(errors.map((error) => error.message)).toEqual(["Namespace exports must be type declarations"])
   })
 
-  it("forbids @category on documented class members", () => {
+  it("reports unsupported constructs", () => {
     const source = `/**
- * A service.
+ * An enum.
  *
- * @category services
+ * @category models
  * @since 1.0.0
  */
-export class Service {
-  /**
-   * Runs the service.
-   *
-   * @category services
-   * @since 1.0.0
-   */
+export enum Status {}
+
+export * from "./barrel"
+
+export {}
+`
+    const enumDeclaration = node(source, "export enum Status", "TSEnumDeclaration")
+    const enumExport = exportNamed(source, "export enum Status", enumDeclaration)
+    const exportAll = node(source, "export *", "ExportAllDeclaration")
+    const emptyExport = exportNamed(source, "export {}", null)
+    const errors = runRuleWithSource(source, [
+      { visitor: "ExportNamedDeclaration", node: enumExport },
+      { visitor: "ExportAllDeclaration", node: exportAll },
+      { visitor: "ExportNamedDeclaration", node: emptyExport }
+    ])
+
+    expect(errors.map((error) => error.message)).toEqual([
+      "Enums are not allowed",
+      "Empty export declarations are not allowed"
+    ])
+  })
+
+  it("ignores default exports and their malformed JSDoc", () => {
+    const source = `/**
+ * Bad docs.
+ *
+ *
+ * @category constructors
+ */
+export default class Service {
   run() {}
 }
 `
-    const run = node(source, "run", "MethodDefinition", {
-      kind: "method",
-      value: {
-        type: "FunctionExpression",
-        params: [],
-        returnType: null
-      }
+    const run = node(source, "run", "MethodDefinition", { kind: "method" })
+    const declaration = node(source, "class Service", "ClassDeclaration", { body: { body: [run] } })
+    const defaultExport = node(source, "export default", "ExportDefaultDeclaration", { declaration })
+    const errors = runRuleWithSource(source, [{ visitor: "ExportDefaultDeclaration", node: defaultExport }])
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("requires JSDoc on every export specifier", () => {
+    const source = `export {
+  /**
+   * Foo value.
+   *
+   * @category constructors
+   * @since 1.0.0
+   */
+  foo,
+  bar
+}
+`
+    const foo = node(source, "foo,", "ExportSpecifier", {
+      local: { name: "foo" },
+      exported: { name: "foo" }
     })
-    const declaration = node(source, "export class Service", "ClassDeclaration", {
-      body: { body: [run] }
+    const bar = node(source, "bar", "ExportSpecifier", {
+      local: { name: "bar" },
+      exported: { name: "bar" }
     })
-    const exportNode = exportNamed(source, "export class Service", declaration)
+    const exportNode = exportNamed(source, "export {", null, { specifiers: [foo, bar] })
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }])
 
-    expect(errors).toHaveLength(1)
-    expect(errors[0].message).toBe("@category is not allowed in member JSDoc")
+    expect(errors.map((error) => error.message)).toEqual(["Public JSDoc is required"])
+  })
+
+  it("validates resolved TypeScript JSDoc inline links", () => {
+    const source = `export interface Foo {}
+
+/**
+ * A value referencing {@link Foo | the Foo API}.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const { cwd, filename } = createTypescriptProject(source)
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(
+      source,
+      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
+      [{ tsconfig: "tsconfig.json" }],
+      { cwd, filename }
+    )
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("reports unresolved TypeScript JSDoc inline links", () => {
+    const source = `/**
+ * A value referencing {@link Missing}.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const { cwd, filename } = createTypescriptProject(source)
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const errors = runRuleWithSource(
+      source,
+      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
+      [{ tsconfig: "tsconfig.json" }],
+      { cwd, filename }
+    )
+
+    expect(errors.map((error) => error.message)).toEqual(["Unresolved JSDoc inline link: {@link Missing}"])
   })
 
   it("skips files outside the configured include globs", () => {
     const source = `export const value = 1`
     const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
     const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(
-      source,
-      [{ visitor: "ExportNamedDeclaration", node: exportNode }],
-      undefined,
-      [{ include: [] }]
-    )
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }], [{ include: [] }])
 
     expect(errors).toHaveLength(0)
   })

@@ -32,18 +32,6 @@
         "packages/**/src/internal/**",
         "packages/**/src/**/internal/**"
       ],
-      "checks": {
-        "description": true,
-        "tags": true,
-        "category": true,
-        "since": true,
-        "examples": true,
-        "links": true
-      },
-      "examples": {
-        "values": "optional",
-        "types": "optional"
-      }
     }],
     // Tune native rules
     // Import rules
