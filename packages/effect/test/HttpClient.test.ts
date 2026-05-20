@@ -1,6 +1,6 @@
 import { expect, it } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Context, Effect, Layer, Option, Ref, Schema, Stream, Struct, Tracer } from "effect"
+import { Context, Effect, Layer, Option, Ref, Schema, Stream, Struct, type Tracer } from "effect"
 import { TestClock } from "effect/testing"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
