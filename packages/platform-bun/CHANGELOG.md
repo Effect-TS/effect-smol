@@ -1,5 +1,13 @@
 # @effect/platform-bun
 
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- Updated dependencies [[`af7782d`](https://github.com/Effect-TS/effect-smol/commit/af7782d3008d08b043f3a3f261516001514b2b4e), [`5805569`](https://github.com/Effect-TS/effect-smol/commit/5805569ef5ac47db49924fa34abf03fbdc1675f3), [`7212d70`](https://github.com/Effect-TS/effect-smol/commit/7212d701a3eee7b3553ff502e2c066126e52e839)]:
+  - effect@4.0.0-beta.70
+  - @effect/platform-node-shared@4.0.0-beta.70
+
 ## 4.0.0-beta.69
 
 ### Patch Changes

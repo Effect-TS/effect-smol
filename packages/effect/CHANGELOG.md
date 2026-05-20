@@ -1,5 +1,25 @@
 # effect
 
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- [#2228](https://github.com/Effect-TS/effect-smol/pull/2228) [`af7782d`](https://github.com/Effect-TS/effect-smol/commit/af7782d3008d08b043f3a3f261516001514b2b4e) Thanks @avallete! - Add `Command.withHidden` to hide subcommands from `--help` output, shell completions, and "did you mean?" suggestions, while keeping them fully invocable by exact name.
+
+  Useful for experimental or internal subcommands that should be accepted but not advertised on the public CLI surface.
+
+  ```ts
+  import { Command } from "effect/unstable/cli";
+
+  const experimental = Command.make("experimental").pipe(Command.withHidden);
+
+  const root = Command.make("mycli").pipe(
+    Command.withSubcommands([experimental]),
+  );
+  ```
+
+- [#2244](https://github.com/Effect-TS/effect-smol/pull/2244) [`7212d70`](https://github.com/Effect-TS/effect-smol/commit/7212d701a3eee7b3553ff502e2c066126e52e839) Thanks @tim-smart! - Fix TestClock adjustment when its layer is provided to programs run without an ambient Scope.
+
 ## 4.0.0-beta.69
 
 ### Patch Changes
