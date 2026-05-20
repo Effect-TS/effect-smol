@@ -268,6 +268,18 @@ export interface ParsedStandardJSDocFile {
 }
 
 /**
+ * Import specifiers for a public module included in the standard JSDoc dump.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ParsedStandardJSDocImports {
+  readonly name: string
+  readonly barrel: string
+  readonly module: string
+}
+
+/**
  * Parsed public JSDoc data paired with the normalized source file path.
  *
  * @category models
@@ -275,6 +287,7 @@ export interface ParsedStandardJSDocFile {
  */
 export interface ParsedStandardJSDocFileDumpEntry extends ParsedStandardJSDocFile {
   readonly file: string
+  readonly imports: ParsedStandardJSDocImports
 }
 
 interface AstNode {
@@ -312,26 +325,60 @@ interface ProgramCacheEntry {
   reported: boolean
 }
 
+interface PackageMetadata {
+  readonly root: string
+  readonly sourceRoot: string
+  readonly name: string
+  readonly exports: unknown
+}
+
+interface PackageExportMatch {
+  readonly key: string
+  readonly value: unknown
+  readonly star: string | null
+  readonly specificity: number
+  readonly prefixLength: number
+}
+
+interface BarrelExportMatch {
+  readonly barrel: string
+  readonly expectedExport: string
+  readonly actualName?: string
+}
+
 interface ParsedConfigResult {
   readonly parsed?: ts.ParsedCommandLine
   readonly error?: string
 }
 
 const programCache = new Map<string, ProgramCacheEntry>()
+const packageMetadataCache = new Map<string, Result<PackageMetadata, string>>()
+const barrelNamespaceExportCache = new Map<string, Result<ReadonlyMap<string, string>, string>>()
 const dumpStateKey = Symbol.for("@effect/oxc/standard-jsdoc/dump-state")
 
 interface StandardJSDocDumpState {
   readonly entries: Array<ParsedStandardJSDocFileDumpEntry>
   registered: boolean
   cwd: string
+  errorCount: number
 }
 
 function getDumpState(cwd: string): StandardJSDocDumpState {
-  const global = globalThis as typeof globalThis & { [dumpStateKey]?: StandardJSDocDumpState }
+  const normalizedCwd = path.resolve(cwd)
+  const global = globalThis as typeof globalThis & { [dumpStateKey]?: Map<string, StandardJSDocDumpState> }
   if (global[dumpStateKey] === undefined) {
-    global[dumpStateKey] = { entries: [], registered: false, cwd }
+    global[dumpStateKey] = new Map()
   }
-  return global[dumpStateKey]
+  let state = global[dumpStateKey].get(normalizedCwd)
+  if (state === undefined) {
+    state = { entries: [], registered: false, cwd: normalizedCwd, errorCount: 0 }
+    global[dumpStateKey].set(normalizedCwd, state)
+  }
+  return state
+}
+
+function recordDumpError(cwd: string) {
+  getDumpState(cwd).errorCount++
 }
 
 function registerDump(cwd: string, entry: ParsedStandardJSDocFileDumpEntry) {
@@ -341,8 +388,11 @@ function registerDump(cwd: string, entry: ParsedStandardJSDocFileDumpEntry) {
     return
   }
   state.registered = true
-  state.cwd = cwd
+  state.cwd = path.resolve(cwd)
   process.once("exit", () => {
+    if (state.errorCount > 0) {
+      return
+    }
     const dataDirectory = path.join(state.cwd, ".data")
     const files = [...state.entries].sort((a, b) => a.file < b.file ? -1 : a.file > b.file ? 1 : 0)
     fs.mkdirSync(dataDirectory, { recursive: true })
@@ -370,6 +420,10 @@ function diagnostic(code: string, message: string): StandardJSDocDiagnostic {
 
 function normalizePathName(filePath: string): string {
   return filePath.replaceAll(path.sep, "/")
+}
+
+function normalizePackagePath(filePath: string): string {
+  return normalizePathName(filePath).replace(/^\.\//, "./")
 }
 
 function escapeRegExp(value: string): string {
@@ -421,6 +475,288 @@ export function createStandardJSDocFileMatcher(options: {
       return false
     }
     return true
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function findPackageRoot(filename: string): string | undefined {
+  let directory = path.dirname(path.resolve(filename))
+  while (true) {
+    const packageJsonPath = path.join(directory, "package.json")
+    if (fs.existsSync(packageJsonPath)) {
+      return directory
+    }
+    const parent = path.dirname(directory)
+    if (parent === directory) {
+      return undefined
+    }
+    directory = parent
+  }
+}
+
+function readPackageMetadata(root: string): Result<PackageMetadata, string> {
+  const normalizedRoot = path.resolve(root)
+  const cached = packageMetadataCache.get(normalizedRoot)
+  if (cached !== undefined) {
+    return cached
+  }
+  const packageJsonPath = path.join(normalizedRoot, "package.json")
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
+  } catch (error) {
+    const result = {
+      _tag: "Failure",
+      error: `unable to read package.json at ${packageJsonPath}: ${String(error)}`
+    } as const
+    packageMetadataCache.set(normalizedRoot, result)
+    return result
+  }
+  if (!isRecord(parsed)) {
+    const result = { _tag: "Failure", error: `package.json at ${packageJsonPath} must be an object` } as const
+    packageMetadataCache.set(normalizedRoot, result)
+    return result
+  }
+  if (typeof parsed.name !== "string" || parsed.name.length === 0) {
+    const result = {
+      _tag: "Failure",
+      error: `package.json at ${packageJsonPath} must include a non-empty name`
+    } as const
+    packageMetadataCache.set(normalizedRoot, result)
+    return result
+  }
+  if (parsed.exports === undefined) {
+    const result = { _tag: "Failure", error: `package.json at ${packageJsonPath} must include exports` } as const
+    packageMetadataCache.set(normalizedRoot, result)
+    return result
+  }
+  const result = {
+    _tag: "Success",
+    value: {
+      root: normalizedRoot,
+      sourceRoot: path.join(normalizedRoot, "src"),
+      name: parsed.name,
+      exports: parsed.exports
+    }
+  } as const
+  packageMetadataCache.set(normalizedRoot, result)
+  return result
+}
+
+function parseBarrelNamespaceExports(indexPath: string): Result<ReadonlyMap<string, string>, string> {
+  const normalizedIndexPath = path.resolve(indexPath)
+  const cached = barrelNamespaceExportCache.get(normalizedIndexPath)
+  if (cached !== undefined) {
+    return cached
+  }
+  let source: string
+  try {
+    source = fs.readFileSync(normalizedIndexPath, "utf8")
+  } catch (error) {
+    const result = {
+      _tag: "Failure",
+      error: `unable to read barrel file ${normalizedIndexPath}: ${String(error)}`
+    } as const
+    barrelNamespaceExportCache.set(normalizedIndexPath, result)
+    return result
+  }
+  const sourceFile = ts.createSourceFile(normalizedIndexPath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  const exports = new Map<string, string>()
+  for (const statement of sourceFile.statements) {
+    if (
+      ts.isExportDeclaration(statement) &&
+      statement.exportClause !== undefined &&
+      ts.isNamespaceExport(statement.exportClause) &&
+      statement.moduleSpecifier !== undefined &&
+      ts.isStringLiteralLike(statement.moduleSpecifier)
+    ) {
+      exports.set(normalizePathName(statement.moduleSpecifier.text), statement.exportClause.name.text)
+    }
+  }
+  const result = { _tag: "Success", value: exports } as const
+  barrelNamespaceExportCache.set(normalizedIndexPath, result)
+  return result
+}
+
+function getPackageExportMatch(exports: unknown, subpath: string): PackageExportMatch | undefined {
+  if (!isRecord(exports)) {
+    return subpath === "." ? { key: ".", value: exports, star: null, specificity: 1, prefixLength: 1 } : undefined
+  }
+  if (Object.hasOwn(exports, subpath)) {
+    return { key: subpath, value: exports[subpath], star: null, specificity: Number.MAX_SAFE_INTEGER, prefixLength: subpath.length }
+  }
+  const matches: Array<PackageExportMatch> = []
+  for (const [key, value] of Object.entries(exports)) {
+    const starIndex = key.indexOf("*")
+    if (!key.startsWith(".") || starIndex === -1) {
+      continue
+    }
+    const prefix = key.slice(0, starIndex)
+    const suffix = key.slice(starIndex + 1)
+    if (!subpath.startsWith(prefix) || !subpath.endsWith(suffix)) {
+      continue
+    }
+    matches.push({
+      key,
+      value,
+      star: subpath.slice(prefix.length, subpath.length - suffix.length),
+      specificity: prefix.length + suffix.length,
+      prefixLength: prefix.length
+    })
+  }
+  return matches.sort((a, b) =>
+    b.specificity - a.specificity || b.prefixLength - a.prefixLength || b.key.length - a.key.length
+  )[0]
+}
+
+function packageExportTargetMatches(value: unknown, star: string | null, expectedTarget: string): boolean {
+  if (typeof value === "string") {
+    const target = normalizePackagePath(star === null ? value : value.replaceAll("*", star))
+    return target === expectedTarget
+  }
+  if (value === null || value === undefined) {
+    return false
+  }
+  if (Array.isArray(value)) {
+    return value.some((item) => packageExportTargetMatches(item, star, expectedTarget))
+  }
+  if (isRecord(value)) {
+    return Object.values(value).some((item) => packageExportTargetMatches(item, star, expectedTarget))
+  }
+  return false
+}
+
+function isPackageSubpathExported(
+  packageExports: unknown,
+  subpath: string,
+  expectedTarget: string
+): boolean {
+  const match = getPackageExportMatch(packageExports, subpath)
+  return match !== undefined && packageExportTargetMatches(match.value, match.star, expectedTarget)
+}
+
+function isPathInside(parent: string, child: string): boolean {
+  const relative = path.relative(parent, child)
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
+}
+
+function packageSpecifier(packageName: string, subpath: string): string {
+  return subpath === "" ? packageName : `${packageName}/${subpath}`
+}
+
+function resolveBarrelImport(
+  metadata: PackageMetadata,
+  filename: string,
+  moduleName: string
+): Result<BarrelExportMatch, string> {
+  let directory = path.dirname(filename)
+  const mismatches: Array<string> = []
+  while (isPathInside(metadata.sourceRoot, directory)) {
+    const indexPath = path.join(directory, "index.ts")
+    if (indexPath !== filename && fs.existsSync(indexPath)) {
+      const expectedExport = `./${normalizePathName(path.relative(directory, filename))}`
+      const parsed = parseBarrelNamespaceExports(indexPath)
+      if (parsed._tag === "Failure") {
+        return parsed
+      }
+      const actualName = parsed.value.get(expectedExport)
+      const barrelSubpath = normalizePathName(path.relative(metadata.sourceRoot, directory))
+      const exportSubpath = barrelSubpath === "" ? "." : `./${barrelSubpath}`
+      const exportTarget = barrelSubpath === "" ? "./src/index.ts" : `./src/${barrelSubpath}/index.ts`
+      if (actualName !== undefined) {
+        if (actualName !== moduleName) {
+          return {
+            _tag: "Failure",
+            error: `barrel ${normalizePathName(path.relative(metadata.root, indexPath))} exports ${expectedExport} as ${actualName}; expected ${moduleName}`
+          }
+        }
+        if (isPackageSubpathExported(metadata.exports, exportSubpath, exportTarget)) {
+          return {
+            _tag: "Success",
+            value: {
+              barrel: packageSpecifier(metadata.name, barrelSubpath),
+              expectedExport,
+              actualName
+            }
+          }
+        }
+        mismatches.push(
+          `${normalizePathName(path.relative(metadata.root, indexPath))} re-exports ${expectedExport}, but ${exportSubpath} is not exposed by package.json exports`
+        )
+      } else {
+        mismatches.push(
+          `${normalizePathName(path.relative(metadata.root, indexPath))} is missing export * as ${moduleName} from "${expectedExport}"`
+        )
+      }
+    }
+    if (directory === metadata.sourceRoot) {
+      break
+    }
+    directory = path.dirname(directory)
+  }
+  return {
+    _tag: "Failure",
+    error: mismatches[0] ?? `no barrel file found for ${normalizePathName(path.relative(metadata.root, filename))}`
+  }
+}
+
+function resolveStandardJSDocImports(
+  cwd: string,
+  filename: string
+): Result<ParsedStandardJSDocImports, string> {
+  const absoluteFilename = path.resolve(filename)
+  const packageRoot = findPackageRoot(absoluteFilename)
+  const relativeFilename = normalizePathName(path.relative(cwd, absoluteFilename))
+  if (packageRoot === undefined) {
+    return { _tag: "Failure", error: `no package.json found for ${relativeFilename}` }
+  }
+  const metadata = readPackageMetadata(packageRoot)
+  if (metadata._tag === "Failure") {
+    return metadata
+  }
+  const relativeToSourceRoot = normalizePathName(path.relative(metadata.value.sourceRoot, absoluteFilename))
+  if (!isPathInside(metadata.value.sourceRoot, absoluteFilename)) {
+    return {
+      _tag: "Failure",
+      error: `${relativeFilename} is not under ${normalizePathName(path.relative(cwd, metadata.value.sourceRoot))}`
+    }
+  }
+  if (path.basename(absoluteFilename) === "index.ts") {
+    return {
+      _tag: "Failure",
+      error: `${relativeFilename} is a barrel file; exclude it from standard-jsdoc`
+    }
+  }
+  if (path.extname(absoluteFilename) !== ".ts" || absoluteFilename.endsWith(".d.ts")) {
+    return {
+      _tag: "Failure",
+      error: `${relativeFilename} is not a TypeScript source module`
+    }
+  }
+  const moduleSubpath = relativeToSourceRoot.slice(0, -".ts".length)
+  const moduleExportSubpath = `./${moduleSubpath}`
+  const moduleExportTarget = `./src/${relativeToSourceRoot}`
+  if (!isPackageSubpathExported(metadata.value.exports, moduleExportSubpath, moduleExportTarget)) {
+    return {
+      _tag: "Failure",
+      error: `package.json exports do not expose ${packageSpecifier(metadata.value.name, moduleSubpath)} for ${relativeFilename}`
+    }
+  }
+  const name = path.basename(absoluteFilename, ".ts")
+  const barrel = resolveBarrelImport(metadata.value, absoluteFilename, name)
+  if (barrel._tag === "Failure") {
+    return barrel
+  }
+  return {
+    _tag: "Success",
+    value: {
+      name,
+      barrel: barrel.value.barrel,
+      module: packageSpecifier(metadata.value.name, moduleSubpath)
+    }
   }
 }
 
@@ -1662,6 +1998,7 @@ const rule: CreateRule = {
     const checkedNamespaceMemberExports = new Set<string>()
 
     function report(node: AstNode, message: string) {
+      recordDumpError(cwd)
       context.report({ node: node as ESTree.Node, message })
     }
 
@@ -1998,8 +2335,17 @@ const rule: CreateRule = {
         }
         const result = parseStandardJSDocsFromESTree({ source, program: programNode })
         if (result._tag === "Success" && (result.value.declarations.length > 0 || result.value.namespaces.length > 0)) {
+          const imports = resolveStandardJSDocImports(cwd, context.filename)
+          if (imports._tag === "Failure") {
+            report(
+              programNode as unknown as AstNode,
+              `Unable to resolve standard-jsdoc imports: ${imports.error}. Add the missing barrel/package export or exclude this file from standard-jsdoc.`
+            )
+            return
+          }
           registerDump(cwd, {
             file: normalizePathName(path.relative(cwd, context.filename)),
+            imports: imports.value,
             ...result.value
           })
         }

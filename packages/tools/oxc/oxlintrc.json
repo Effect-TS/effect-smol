@@ -27,6 +27,7 @@
         "packages/**/src/**/*.ts"
       ],
       "exclude": [
+        "packages/tools/**",
         "packages/**/src/index.ts",
         "packages/**/src/*Generated.ts",
         "packages/**/src/internal/**",

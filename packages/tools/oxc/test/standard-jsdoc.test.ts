@@ -75,6 +75,34 @@ function createTypescriptProject(source: string, files: Record<string, string> =
   return { cwd, filename }
 }
 
+function createPublicPackageProject(source: string, files: Record<string, string> = {}) {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "standard-jsdoc-"))
+  const filename = path.join(cwd, "src", "Foo.ts")
+  fs.mkdirSync(path.dirname(filename), { recursive: true })
+  fs.writeFileSync(
+    path.join(cwd, "package.json"),
+    JSON.stringify({
+      name: "@effect/sample",
+      type: "module",
+      exports: {
+        ".": "./src/index.ts",
+        "./*": "./src/*.ts",
+        "./internal/*": null
+      }
+    })
+  )
+  fs.writeFileSync(filename, source)
+  for (const [file, text] of Object.entries({
+    "index.ts": `export * as Foo from "./Foo.ts"\n`,
+    ...files
+  })) {
+    const filePath = path.join(cwd, "src", file)
+    fs.mkdirSync(path.dirname(filePath), { recursive: true })
+    fs.writeFileSync(filePath, text)
+  }
+  return { cwd, filename }
+}
+
 describe("standard-jsdoc", () => {
   it("parses standard JSDoc with sections, example prose, tags, and see links", () => {
     const result = parseStandardJSDoc(`/**
@@ -727,5 +755,73 @@ export const value = 1
     }])
 
     expect(errors).toHaveLength(0)
+  })
+
+  it("accepts dumped files that have barrel and direct module imports", () => {
+    const source = `/**
+ * A value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const { cwd, filename } = createPublicPackageProject(source)
+    const declarator = node(source, "value", "VariableDeclarator", {
+      id: { type: "Identifier", name: "value" }
+    })
+    const declaration = node(source, "export const value", "VariableDeclaration", {
+      declarations: [declarator]
+    })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const program = { type: "Program", range: [0, source.length], body: [exportNode] } as TestNode
+    const errors = runRuleWithSource(
+      source,
+      [
+        { visitor: "Program", node: program },
+        { visitor: "ExportNamedDeclaration", node: exportNode },
+        { visitor: "Program:exit", node: program }
+      ],
+      [],
+      { cwd, filename }
+    )
+
+    expect(errors).toHaveLength(0)
+  })
+
+  it("reports included files that are missing a matching barrel export", () => {
+    const source = `/**
+ * A value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const { cwd, filename } = createPublicPackageProject(source, {
+      "index.ts": `export * as Bar from "./Foo.ts"\n`
+    })
+    const declarator = node(source, "value", "VariableDeclarator", {
+      id: { type: "Identifier", name: "value" }
+    })
+    const declaration = node(source, "export const value", "VariableDeclaration", {
+      declarations: [declarator]
+    })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const program = { type: "Program", range: [0, source.length], body: [exportNode] } as TestNode
+    const errors = runRuleWithSource(
+      source,
+      [
+        { visitor: "Program", node: program },
+        { visitor: "ExportNamedDeclaration", node: exportNode },
+        { visitor: "Program:exit", node: program }
+      ],
+      [],
+      { cwd, filename }
+    )
+
+    expect(errors.map((error) => error.message)).toEqual([
+      `Unable to resolve standard-jsdoc imports: barrel src/index.ts exports ./Foo.ts as Bar; expected Foo. Add the missing barrel/package export or exclude this file from standard-jsdoc.`
+    ])
   })
 })
