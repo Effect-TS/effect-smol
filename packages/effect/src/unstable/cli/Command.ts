@@ -152,6 +152,13 @@ export interface Command<in out Name extends string, in Input, out ContextInput 
    * Custom annotations associated with this command.
    */
   readonly annotations: Context.Context<never>
+
+  /**
+   * Whether this command is hidden from parent help output, shell
+   * completions, and unknown-subcommand suggestions. Hidden commands still
+   * parse and execute normally when invoked by exact name.
+   */
+  readonly hidden: boolean
 }
 
 /**
@@ -319,6 +326,7 @@ export declare namespace Command {
       readonly commands: NonEmptyReadonlyArray<Command.Any>
     }>
     readonly annotations: Context.Context<never>
+    readonly hidden: boolean
   }
 
   /**
@@ -998,6 +1006,37 @@ export const withAlias: {
   self: Command<Name, Input, ContextInput, E, R>,
   alias: string
 ) => makeCommand({ ...toImpl(self), alias }))
+
+/**
+ * Hides a subcommand from parent help output, shell completions, and
+ * "did you mean?" suggestions while keeping it fully invocable by exact name.
+ *
+ * Useful for experimental or internal subcommands that should be accepted
+ * but not advertised on the public CLI surface.
+ *
+ * **Example** (Hiding a subcommand)
+ *
+ * ```ts
+ * import { Command } from "effect/unstable/cli"
+ *
+ * // `experimental` still runs when invoked as `mycli experimental`,
+ * // but it does not appear under SUBCOMMANDS in `mycli --help`.
+ * const experimental = Command.make("experimental").pipe(
+ *   Command.withHidden
+ * )
+ *
+ * const root = Command.make("mycli").pipe(
+ *   Command.withSubcommands([experimental])
+ * )
+ * ```
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const withHidden = <const Name extends string, Input, E, R, ContextInput>(
+  self: Command<Name, Input, ContextInput, E, R>
+): Command<Name, Input, ContextInput, E, R> =>
+  makeCommand({ ...toImpl(self), hidden: true }) as Command<Name, Input, ContextInput, E, R>
 
 /**
  * Adds a custom annotation to a command.

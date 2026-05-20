@@ -147,6 +147,81 @@ describe("Command help output", () => {
       expect(errorText + helpText).not.toContain("experimental-foo")
     }).pipe(Effect.provide(TestLayer)))
 
+  it.effect("hides subcommands marked with withHidden from help output", () =>
+    Effect.gen(function*() {
+      const visible = Command.make("visible").pipe(
+        Command.withDescription("A visible subcommand")
+      )
+      const secret = Command.make("experimental-foo").pipe(
+        Command.withDescription("Should not appear"),
+        Command.withHidden
+      )
+      const root = Command.make("tool").pipe(
+        Command.withSubcommands([visible, secret])
+      )
+      const run = Command.runWith(root, { version: "1.0.0" })
+
+      yield* run(["--help"])
+
+      const helpText = (yield* TestConsole.logLines).join("\n")
+      expect(helpText).toContain("visible")
+      expect(helpText).not.toContain("experimental-foo")
+      expect(helpText).not.toContain("Should not appear")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("hidden subcommand still parses on the command line", () =>
+    Effect.gen(function*() {
+      let invoked = false
+      const secret = Command.make("experimental-foo").pipe(
+        Command.withHidden,
+        Command.withHandler(() =>
+          Effect.sync(() => {
+            invoked = true
+          })
+        )
+      )
+      const root = Command.make("tool").pipe(
+        Command.withSubcommands([secret])
+      )
+      const run = Command.runWith(root, { version: "1.0.0" })
+
+      yield* run(["experimental-foo"])
+
+      expect(invoked).toBe(true)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("hidden subcommand name does not leak through unknown-subcommand suggestions", () =>
+    Effect.gen(function*() {
+      const secret = Command.make("experimental-foo").pipe(Command.withHidden)
+      const root = Command.make("tool").pipe(
+        Command.withSubcommands([secret])
+      )
+      const run = Command.runWith(root, { version: "1.0.0" })
+
+      yield* run(["experimental-fo"]).pipe(
+        Effect.catchTag("ShowHelp", () => Effect.void)
+      )
+
+      const errorText = (yield* TestConsole.errorLines).join("\n")
+      const helpText = (yield* TestConsole.logLines).join("\n")
+      expect(errorText + helpText).not.toContain("experimental-foo")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("subcommand group with only hidden commands disappears entirely", () =>
+    Effect.gen(function*() {
+      const secret = Command.make("experimental-foo").pipe(Command.withHidden)
+      const root = Command.make("tool").pipe(
+        Command.withSubcommands([secret])
+      )
+      const run = Command.runWith(root, { version: "1.0.0" })
+
+      yield* run(["--help"])
+
+      const helpText = (yield* TestConsole.logLines).join("\n")
+      expect(helpText).not.toContain("SUBCOMMANDS")
+      expect(helpText).not.toContain("<subcommand>")
+    }).pipe(Effect.provide(TestLayer)))
+
   it.effect("renders command examples", () =>
     Effect.gen(function*() {
       const command = Command.make("login").pipe(

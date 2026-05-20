@@ -116,6 +116,9 @@ export const fromCommand = (cmd: Command.Any): Completions.CommandDescriptor => 
   const subcommands: Array<Completions.CommandDescriptor> = []
   for (const group of cmd.subcommands) {
     for (const subcommand of group.commands) {
+      // Omit hidden subcommands from completion scripts so tab-completion in
+      // the shell does not advertise commands that are absent from --help.
+      if (subcommand.hidden) continue
       subcommands.push(fromCommand(subcommand))
     }
   }

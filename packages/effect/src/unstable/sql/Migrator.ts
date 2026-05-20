@@ -341,8 +341,8 @@ const isConstraintConflict = (error: SqlError): boolean =>
 
 /**
  * Creates a migration loader from a glob record of dynamic import functions,
- * parsing files named `<id>_<name>.js` or `<id>_<name>.ts` and sorting
- * migrations by id.
+ * parsing files named `<id>_<name>.js`, `<id>_<name>.ts`,
+ * `<id>_<name>.mjs`, or `<id>_<name>.mts` and sorting migrations by id.
  *
  * @category loaders
  * @since 4.0.0
@@ -352,7 +352,7 @@ export const fromGlob = (
 ): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.flatMapNullishOr((_) => _.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/)),
+    Arr.flatMapNullishOr((_) => _.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts|mjs|mts)$/)),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -366,7 +366,8 @@ export const fromGlob = (
 
 /**
  * Creates a migration loader from a Babel-style glob record, parsing keys such
- * as `_<id>_<name>Js` or `_<id>_<name>Ts` and sorting migrations by id.
+ * as `_<id>_<name>Js`, `_<id>_<name>Ts`, `_<id>_<name>Mjs`, or
+ * `_<id>_<name>Mts` and sorting migrations by id.
  *
  * @category loaders
  * @since 4.0.0
@@ -374,7 +375,7 @@ export const fromGlob = (
 export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.flatMapNullishOr((_) => _.match(/^_(\d+)_([^.]+?)(Js|Ts)?$/)),
+    Arr.flatMapNullishOr((_) => _.match(/^_(\d+)_([^.]+?)(Js|Ts|Mjs|Mts)?$/)),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -410,7 +411,8 @@ export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknow
 
 /**
  * Creates a migration loader that reads a directory with `FileSystem`, imports
- * files named `<id>_<name>.js` or `<id>_<name>.ts`, and sorts migrations by id.
+ * files named `<id>_<name>.js`, `<id>_<name>.ts`,
+ * `<id>_<name>.mjs`, or `<id>_<name>.mts`, and sorts migrations by id.
  *
  * @category loaders
  * @since 4.0.0
@@ -427,7 +429,7 @@ export const fromFileSystem: (directory: string) => Loader<FileSystem> = Effect.
       })
   )
   return files
-    .map((file) => Option.fromNullishOr(file.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/)))
+    .map((file) => Option.fromNullishOr(file.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts|mjs|mts)$/)))
     .flatMap(
       Option.match({
         onNone: () => [],

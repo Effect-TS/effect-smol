@@ -1,5 +1,27 @@
 # effect
 
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- [#2227](https://github.com/Effect-TS/effect-smol/pull/2227) [`70ea04a`](https://github.com/Effect-TS/effect-smol/commit/70ea04aa96a2a7859d738d414e1f0e3ed081a27a) Thanks @avallete! - Add `Flag.withHidden` (and `Param.withHidden`) to hide flags from `--help` output and shell completions while keeping them fully parseable on the command line.
+
+  Useful for experimental, internal, or deprecated flags that should be accepted but not advertised, e.g. `--experimental-foo`, debug toggles, or escape hatches that are not yet committed to the public CLI surface.
+
+  ```ts
+  import { Flag } from "effect/unstable/cli";
+
+  const experimental = Flag.boolean("experimental-foo").pipe(Flag.withHidden);
+  ```
+
+- [#2240](https://github.com/Effect-TS/effect-smol/pull/2240) [`d0ea8b0`](https://github.com/Effect-TS/effect-smol/commit/d0ea8b03f7d73ae076c1db12666141e480d11178) Thanks @tim-smart! - pass workflow parent on discard
+
+- [#2237](https://github.com/Effect-TS/effect-smol/pull/2237) [`a57674b`](https://github.com/Effect-TS/effect-smol/commit/a57674b64845e9e75a456cf907bfdcb858859118) Thanks @notkadez! - Fix `Stream.scoped` and `Channel.scoped` so pull effects run with the scoped resource scope.
+
+- [#2239](https://github.com/Effect-TS/effect-smol/pull/2239) [`59aa334`](https://github.com/Effect-TS/effect-smol/commit/59aa334fbd0a504dda3c36f6d2ef1be7449b4b8b) Thanks @tim-smart! - fix RpcWorker Protocol service key
+
+- [#2242](https://github.com/Effect-TS/effect-smol/pull/2242) [`8f4208e`](https://github.com/Effect-TS/effect-smol/commit/8f4208ee83bc7bdaa6793b5429847b45aab72470) Thanks @tim-smart! - Accept `.mjs` and `.mts` migration files in SQL migrator loaders.
+
 ## 4.0.0-beta.68
 
 ### Patch Changes

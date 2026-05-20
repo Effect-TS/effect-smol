@@ -203,6 +203,41 @@ describe("Stream", () => {
         )
         assert.deepStrictEqual(result, [[1, 2], [3, 4], [5]])
       }))
+
+    it.effect("scoped - provides scope to fromEffect pull effects", () =>
+      Effect.gen(function*() {
+        const releases = yield* Ref.make(0)
+        const result = yield* Stream.fromEffect(
+          Effect.acquireRelease(
+            Effect.succeed("resource"),
+            () => Ref.update(releases, (n) => n + 1)
+          )
+        ).pipe(
+          Stream.scoped,
+          Stream.runCollect
+        )
+
+        assert.deepStrictEqual(result, ["resource"])
+        assert.strictEqual(yield* Ref.get(releases), 1)
+      }))
+
+    it.effect("scoped - provides scope to sequential mapEffect pull effects", () =>
+      Effect.gen(function*() {
+        const releases = yield* Ref.make(0)
+        const result = yield* Stream.fromIterable([1, 2]).pipe(
+          Stream.mapEffect((n) =>
+            Effect.acquireRelease(
+              Effect.succeed(n * 2),
+              () => Ref.update(releases, (count) => count + 1)
+            )
+          ),
+          Stream.scoped,
+          Stream.runCollect
+        )
+
+        assert.deepStrictEqual(result, [2, 4])
+        assert.strictEqual(yield* Ref.get(releases), 2)
+      }))
   })
 
   describe("encoding", () => {

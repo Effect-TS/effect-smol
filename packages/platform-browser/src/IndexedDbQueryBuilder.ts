@@ -1136,13 +1136,18 @@ const applyModifyAll = Effect.fnUntraced(
       Array<globalThis.IDBValidKey>,
       IndexedDbQueryError
     >((resume) => {
+      if (encodedValues.length === 0) {
+        return resume(Effect.succeed([]))
+      }
+
       const database = query.from.database
       const transaction = getOrCreateTransaction(database.current, [query.from.table.tableName], "readwrite", {
         durability: query.from.table.durability
       })
       const objectStore = transaction.objectStore(query.from.table.tableName)
 
-      const results: Array<globalThis.IDBValidKey> = []
+      const results: Array<globalThis.IDBValidKey> = new Array(encodedValues.length)
+      let remaining = encodedValues.length
 
       if (query.operation === "add") {
         for (let i = 0; i < encodedValues.length; i++) {
@@ -1163,7 +1168,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else if (query.operation === "put") {
@@ -1185,7 +1194,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else {
@@ -1201,10 +1214,6 @@ const applyModifyAll = Effect.fnUntraced(
             })
           )
         )
-      }
-
-      objectStore.transaction.oncomplete = () => {
-        resume(Effect.succeed(results))
       }
     })
   },
