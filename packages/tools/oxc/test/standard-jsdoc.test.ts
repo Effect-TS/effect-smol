@@ -162,6 +162,65 @@ export interface Options {
     }
   })
 
+  it("parses exported variable declaration names", () => {
+    const source = `/**
+ * Creates a value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const makeValue = () => 1
+`
+    const declarator = node(source, "makeValue", "VariableDeclarator", {
+      id: { type: "Identifier", name: "makeValue" }
+    })
+    const declaration = node(source, "export const makeValue", "VariableDeclaration", {
+      declarations: [declarator]
+    })
+    const exportNode = exportNamed(source, "export const makeValue", declaration)
+    const result = parseStandardJSDocsFromESTree({
+      source,
+      program: { type: "Program", range: [0, source.length], body: [exportNode] } as never
+    })
+
+    expect(result._tag).toBe("Success")
+    if (result._tag === "Success") {
+      expect(result.value.declarations).toMatchObject([
+        {
+          name: "makeValue",
+          bucket: "value",
+          description: { short: "Creates a value." },
+          tags: { category: "constructors", since: "1.0.0" }
+        }
+      ])
+    }
+  })
+
+  it("fails instead of dumping an empty declaration name", () => {
+    const source = `/**
+ * Creates a value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const value = 1
+`
+    const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
+    const exportNode = exportNamed(source, "export const value", declaration)
+    const result = parseStandardJSDocsFromESTree({
+      source,
+      program: { type: "Program", range: [0, source.length], body: [exportNode] } as never
+    })
+
+    expect(result._tag).toBe("Failure")
+    if (result._tag === "Failure") {
+      expect(result.error.diagnostics).toContainEqual({
+        code: "missing-name",
+        message: "Root declaration name could not be determined"
+      })
+    }
+  })
+
   it("accepts a documented public value", () => {
     const source = `/**
  * A value.
@@ -446,15 +505,71 @@ export declare namespace Option {
   export type Value<T> = T
 }
 `
-    const valueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", { typeAnnotation: null })
+    const valueDeclaration = node(source, "export type Value", "TSTypeAliasDeclaration", {
+      id: { name: "Value" },
+      typeAnnotation: null
+    })
     const valueExport = exportNamed(source, "export type Value", valueDeclaration)
     const namespaceDeclaration = node(source, "export declare namespace Option", "TSModuleDeclaration", {
+      id: { type: "Identifier", name: "Option" },
       body: { body: [valueExport] }
     })
     const namespaceExport = exportNamed(source, "export declare namespace Option", namespaceDeclaration)
     const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: namespaceExport }])
+    const result = parseStandardJSDocsFromESTree({
+      source,
+      program: { type: "Program", range: [0, source.length], body: [namespaceExport] } as never
+    })
 
     expect(errors).toHaveLength(0)
+    expect(result._tag).toBe("Success")
+    if (result._tag === "Success") {
+      expect(result.value.namespaces).toMatchObject([
+        {
+          tags: { category: "namespaces", since: "1.0.0" },
+          declarations: [{ tags: { category: "models", since: "1.0.0" } }]
+        }
+      ])
+    }
+  })
+
+  it("allows nested namespace declarations inside ambient namespaces", () => {
+    const source = `/**
+ * Outer namespace.
+ *
+ * @since 1.0.0
+ */
+export declare namespace Outer {
+  /**
+   * Inner namespace.
+   *
+   * @since 1.0.0
+   */
+  export namespace Inner {
+  }
+}
+`
+    const innerDeclaration = node(source, "export namespace Inner", "TSModuleDeclaration", {
+      id: { type: "Identifier", name: "Inner" },
+      body: { body: [] }
+    })
+    const innerExport = exportNamed(source, "export namespace Inner", innerDeclaration)
+    const outerDeclaration = node(source, "export declare namespace Outer", "TSModuleDeclaration", {
+      id: { type: "Identifier", name: "Outer" },
+      body: { body: [innerExport] }
+    })
+    const outerExport = exportNamed(source, "export declare namespace Outer", outerDeclaration)
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: outerExport }])
+    const result = parseStandardJSDocsFromESTree({
+      source,
+      program: { type: "Program", range: [0, source.length], body: [outerExport] } as never
+    })
+
+    expect(errors).toHaveLength(0)
+    expect(result._tag).toBe("Success")
+    if (result._tag === "Success") {
+      expect(result.value.namespaces[0]?.namespaces[0]?.name).toBe("Inner")
+    }
   })
 
   it("requires namespace member exports to be type declarations", () => {

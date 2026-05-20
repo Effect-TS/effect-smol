@@ -13004,7 +13004,7 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export declare namespace TypeParameters {
+  export namespace TypeParameters {
     /**
      * Maps declaration type-parameter schemas to codecs for their decoded `Type`
      * values.
@@ -13122,7 +13122,7 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export declare namespace ToArbitrary {
+  export namespace ToArbitrary {
     /**
      * fast-check string constraints plus optional regular-expression pattern strings
      * used when deriving string arbitraries from schema checks.
@@ -13232,7 +13232,7 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export declare namespace ToFormatter {
+  export namespace ToFormatter {
     /**
      * Hook signature for declaration schema formatter annotations.
      *
@@ -13257,7 +13257,7 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export declare namespace ToEquivalence {
+  export namespace ToEquivalence {
     /**
      * Hook signature for declaration schema equivalence annotations.
      *

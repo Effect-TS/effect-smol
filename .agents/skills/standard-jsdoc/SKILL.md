@@ -71,7 +71,7 @@ Root declarations:
 Namespaces and declarations inside namespaces:
 
 - Require `@since` with stable semver like `1.2.3`.
-- May use `@category`.
+- May use optional `@category`.
 - May use `@deprecated` with a non-empty message.
 - May use repeated non-empty `@see` tags.
 - Must not use `@default`.

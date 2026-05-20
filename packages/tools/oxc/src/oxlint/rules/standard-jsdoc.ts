@@ -32,8 +32,7 @@ const result = example()
 @deprecated Optional replacement guidance.
 @default Optional member default value. Members only.
 @see Optional related API or text. May include {@link Symbol}.
-@category Required for root declarations only.
-@category Required for root declarations and allowed in namespace docs.
+@category Required for root declarations; optional for namespaces and declarations inside namespaces.
 @since Required for root declarations, namespaces, and namespace declarations. Use stable semver like 1.2.3.
 
 Rules:
@@ -87,7 +86,7 @@ type Result<A, E> =
  * Result type returned by the standard JSDoc parser helpers.
  *
  * @category utility types
- * @since 0.0.0
+ * @since 4.0.0
  */
 export type StandardJSDocResult<A, E> = Result<A, E>
 
@@ -95,7 +94,7 @@ export type StandardJSDocResult<A, E> = Result<A, E>
  * Diagnostic emitted when a JSDoc block does not follow the standard shape.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface StandardJSDocDiagnostic {
   readonly code: string
@@ -106,7 +105,7 @@ export interface StandardJSDocDiagnostic {
  * Parse error containing all diagnostics collected for a JSDoc block or file.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface StandardJSDocParseError {
   readonly diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
@@ -116,7 +115,7 @@ export interface StandardJSDocParseError {
  * Parsed `@see` tag text and any inline links it contains.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedSeeTag {
   readonly text: string
@@ -127,7 +126,7 @@ export interface ParsedSeeTag {
  * Parsed inline JSDoc link target and optional display text.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedInlineLink {
   readonly raw: string
@@ -139,7 +138,7 @@ export interface ParsedInlineLink {
  * Parsed standard JSDoc description sections.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedDescription {
   readonly short: string
@@ -152,7 +151,7 @@ export interface ParsedDescription {
  * Parsed example section from a standard JSDoc block.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedExample {
   readonly title: string
@@ -164,7 +163,7 @@ export interface ParsedExample {
  * Parsed tags required for a root public declaration.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedDeclarationTags {
   readonly category: string
@@ -177,9 +176,10 @@ export interface ParsedDeclarationTags {
  * Parsed tags allowed for namespace JSDoc.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedNamespaceTags {
+  readonly category: string | null
   readonly since: string
   readonly deprecated: string | null
   readonly see: ReadonlyArray<ParsedSeeTag>
@@ -189,7 +189,7 @@ export interface ParsedNamespaceTags {
  * Parsed tags allowed for documented members.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedMemberTags {
   readonly since: string | null
@@ -202,7 +202,7 @@ export interface ParsedMemberTags {
  * Parsed documented member within a declaration or another member.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedMember {
   readonly name: string
@@ -216,7 +216,7 @@ export interface ParsedMember {
  * Parsed root declaration exported from a checked file.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedRootDeclaration {
   readonly name: string
@@ -231,7 +231,7 @@ export interface ParsedRootDeclaration {
  * Parsed type declaration exported from inside a namespace.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedNamespaceDeclaration {
   readonly name: string
@@ -245,7 +245,7 @@ export interface ParsedNamespaceDeclaration {
  * Parsed namespace and its documented exported type declarations.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedNamespace {
   readonly name: string
@@ -260,7 +260,7 @@ export interface ParsedNamespace {
  * Parsed public JSDoc data collected from one checked file.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedStandardJSDocFile {
   readonly declarations: ReadonlyArray<ParsedRootDeclaration>
@@ -271,7 +271,7 @@ export interface ParsedStandardJSDocFile {
  * Parsed public JSDoc data paired with the normalized source file path.
  *
  * @category models
- * @since 0.0.0
+ * @since 4.0.0
  */
 export interface ParsedStandardJSDocFileDumpEntry extends ParsedStandardJSDocFile {
   readonly file: string
@@ -344,10 +344,11 @@ function registerDump(cwd: string, entry: ParsedStandardJSDocFileDumpEntry) {
   state.cwd = cwd
   process.once("exit", () => {
     const dataDirectory = path.join(state.cwd, ".data")
+    const files = [...state.entries].sort((a, b) => a.file < b.file ? -1 : a.file > b.file ? 1 : 0)
     fs.mkdirSync(dataDirectory, { recursive: true })
     fs.writeFileSync(
       path.join(dataDirectory, "standard-jsdoc.json"),
-      `${JSON.stringify({ files: state.entries }, null, 2)}\n`
+      `${JSON.stringify({ files }, null, 2)}\n`
     )
   })
 }
@@ -400,7 +401,7 @@ function globToRegExp(glob: string): RegExp {
  * Creates a predicate that checks whether a filename is included by the configured standard JSDoc globs.
  *
  * @category constructors
- * @since 0.0.0
+ * @since 4.0.0
  */
 export function createStandardJSDocFileMatcher(options: {
   readonly cwd: string
@@ -492,14 +493,14 @@ function findLeadingJSDoc(source: string, node: AstNode, ignoredRange?: [number,
  *   " * A value.",
  *   " *",
  *   " * @category models",
- *   " * @since 0.0.0",
+ *   " * @since 4.0.0",
  *   " *" + "/"
  * ].join("\n")
  * const result = parseStandardJSDoc(rawBlock)
  * ```
  *
  * @category parsing
- * @since 0.0.0
+ * @since 4.0.0
  */
 export function parseStandardJSDoc(raw: string): Result<ParsedCoreJSDoc, StandardJSDocParseError> {
   const block = parseJSDocBlock(raw, [0, raw.length])
@@ -1037,8 +1038,10 @@ function buildTags(
     return { _tag: "Success", value: { since, default: defaultValue, deprecated, see: see.map(parseSeeTag) } }
   }
 
+  const category = values.get("category")?.[0] ?? null
+  if (category === "") diagnostics.push(diagnostic("empty-tag", "@category must include a value"))
   if (diagnostics.length > 0 || since === null) return { _tag: "Failure", error: { diagnostics } }
-  return { _tag: "Success", value: { since, deprecated, see: see.map(parseSeeTag) } }
+  return { _tag: "Success", value: { category, since, deprecated, see: see.map(parseSeeTag) } }
 }
 
 function formatDiagnostic(diagnostic: ts.Diagnostic): string {
@@ -1220,7 +1223,7 @@ function collectJSDocLinks(sourceFile: ts.SourceFile, block: JSDocBlock): Array<
  * The parser returns root declarations and declared namespaces in the same grouped shape used by the rule dump output. It reports diagnostics for unsupported public constructs, missing required public JSDoc, malformed standard sections, invalid tags, and namespace exports that do not follow the supported type-only shape.
  *
  * @category parsing
- * @since 0.0.0
+ * @since 4.0.0
  */
 export function parseStandardJSDocsFromESTree(input: {
   readonly source: string
@@ -1292,8 +1295,12 @@ export function parseStandardJSDocsFromESTree(input: {
       if (documented === undefined) {
         continue
       }
+      const name = getRequiredNodeName(member, diagnostics, "Documented member")
+      if (name === undefined) {
+        continue
+      }
       out.push({
-        name: getNodeName(member),
+        name,
         description: documented.core.description,
         examples: documented.core.examples,
         tags: documented.tags as ParsedMemberTags,
@@ -1405,16 +1412,24 @@ export function parseStandardJSDocsFromESTree(input: {
       if (nestedDocumented === undefined) {
         continue
       }
+      const name = getRequiredNodeName(nestedDeclaration, diagnostics, "Namespace declaration")
+      if (name === undefined) {
+        continue
+      }
       namespaceDeclarations.push({
-        name: getNodeName(nestedDeclaration),
+        name,
         description: nestedDocumented.core.description,
         examples: nestedDocumented.core.examples,
         tags: nestedDocumented.tags as ParsedNamespaceTags,
         members: parseDeclarationMembers(nestedDeclaration)
       })
     }
+    const name = getRequiredNodeName(declaration, diagnostics, "Namespace")
+    if (name === undefined) {
+      return undefined
+    }
     return {
-      name: getNodeName(declaration),
+      name,
       description: documented.core.description,
       examples: documented.core.examples,
       tags: documented.tags as ParsedNamespaceTags,
@@ -1452,8 +1467,12 @@ export function parseStandardJSDocsFromESTree(input: {
       if (documented === undefined) {
         continue
       }
+      const name = getRequiredNodeName(declaration, diagnostics, "Root declaration")
+      if (name === undefined) {
+        continue
+      }
       declarations.push({
-        name: getNodeName(declaration),
+        name,
         bucket,
         description: documented.core.description,
         examples: documented.core.examples,
@@ -1469,8 +1488,12 @@ export function parseStandardJSDocsFromESTree(input: {
         if (documented === undefined) {
           continue
         }
+        const name = getRequiredExportedSpecifierName(specifier, diagnostics)
+        if (name === undefined) {
+          continue
+        }
         declarations.push({
-          name: getExportedSpecifierName(specifier),
+          name,
           bucket: statement.exportKind === "type" || specifier.exportKind === "type" ? "type" : "value",
           description: documented.core.description,
           examples: documented.core.examples,
@@ -1504,7 +1527,39 @@ function getStandaloneDeclarationBucket(declaration: AstNode): ExportBucket | un
 
 function isDeclareNamespaceForSource(source: string, node: AstNode): boolean {
   return node.declare === true ||
-    /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
+    /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80))) ||
+    isInsideDeclareNamespaceForSource(source, node.range[0])
+}
+
+function isInsideDeclareNamespaceForSource(source: string, index: number): boolean {
+  const prefix = stripCommentsForNamespaceScan(source.slice(0, index))
+  const matches = Array.from(prefix.matchAll(/\bdeclare\s+(?:namespace|module|global)\b/g)).reverse()
+  for (const match of matches) {
+    const declarationIndex = match.index
+    const openBraceIndex = prefix.indexOf("{", declarationIndex)
+    if (openBraceIndex === -1) {
+      continue
+    }
+    let depth = 0
+    for (let position = openBraceIndex; position < prefix.length; position++) {
+      const character = prefix[position]
+      if (character === "{") {
+        depth++
+      } else if (character === "}") {
+        depth--
+      }
+    }
+    if (depth > 0) {
+      return true
+    }
+  }
+  return false
+}
+
+function stripCommentsForNamespaceScan(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, (comment) => " ".repeat(comment.length))
+    .replace(/\/\/[^\n\r]*/g, (comment) => " ".repeat(comment.length))
 }
 
 function isAmbientModuleLikeForSource(source: string, node: AstNode): boolean {
@@ -1523,11 +1578,54 @@ function shouldParseMember(member: AstNode): boolean {
 }
 
 function getNodeName(node: AstNode): string {
-  return node.id?.name ?? node.key?.name ?? node.key?.value ?? node.local?.name ?? node.exported?.name ?? ""
+  const direct = node.name ?? node.id?.name ?? node.key?.name ?? node.key?.value ?? node.local?.name ??
+    node.exported?.name
+  if (typeof direct === "string" && direct.length > 0) {
+    return direct
+  }
+  if (node.type === "VariableDeclaration") {
+    return ((node.declarations ?? []) as ReadonlyArray<AstNode>).map(getNodeName).filter((name) => name.length > 0)
+      .join(", ")
+  }
+  if (node.type === "VariableDeclarator") {
+    return getNodeName(node.id)
+  }
+  if (node.type === "AssignmentPattern") {
+    return getNodeName(node.left)
+  }
+  if (node.type === "RestElement") {
+    return getNodeName(node.argument)
+  }
+  return ""
 }
 
 function getExportedSpecifierName(node: AstNode): string {
   return node.exported?.name ?? node.exported?.value ?? node.local?.name ?? ""
+}
+
+function getRequiredNodeName(
+  node: AstNode,
+  diagnostics: Array<StandardJSDocDiagnostic>,
+  label: string
+): string | undefined {
+  const name = getNodeName(node)
+  if (name.length > 0) {
+    return name
+  }
+  diagnostics.push(diagnostic("missing-name", `${label} name could not be determined`))
+  return undefined
+}
+
+function getRequiredExportedSpecifierName(
+  node: AstNode,
+  diagnostics: Array<StandardJSDocDiagnostic>
+): string | undefined {
+  const name = getExportedSpecifierName(node)
+  if (name.length > 0) {
+    return name
+  }
+  diagnostics.push(diagnostic("missing-name", "Export specifier name could not be determined"))
+  return undefined
 }
 
 const rule: CreateRule = {
@@ -1800,8 +1898,7 @@ const rule: CreateRule = {
     }
 
     function isDeclareNamespace(node: AstNode): boolean {
-      return node.declare === true ||
-        /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
+      return isDeclareNamespaceForSource(source, node)
     }
 
     function isAmbientModuleLike(node: AstNode): boolean {

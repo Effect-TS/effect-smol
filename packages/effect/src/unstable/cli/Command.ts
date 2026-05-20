@@ -266,7 +266,7 @@ export declare namespace Command {
    *
    * @since 4.0.0
    */
-  export declare namespace Config {
+  export namespace Config {
     /**
      * Infers the TypeScript type from a Command.Config structure.
      *
