@@ -3,6 +3,10 @@ import { Argument, Flag, Prompt } from "effect/unstable/cli"
 import { describe, expect, it } from "tstyche"
 
 describe("Param", () => {
+  it("variadic direct-call form preserves generic type parameter", () => {
+    expect(Argument.variadic(Argument.string("name"))).type.toBe<Argument.Argument<ReadonlyArray<string>>>()
+  })
+
   it("accepts effectful fallback prompts for flags and arguments", () => {
     const prompt = Effect.succeed(Prompt.text({ message: "Name" }))
     const integerPrompt = Effect.succeed(Prompt.integer({ message: "Count" }))

@@ -177,7 +177,7 @@ describe("Command arguments", () => {
 
   it("should handle variadic in pipe form without options", () =>
     Effect.gen(function*() {
-      let result: { readonly files: ReadonlyArray<string> } | undefined
+      let result: { readonly files: ReadonlyArray<unknown> } | undefined
 
       const testCommand = Command.make("test", {
         files: Argument.string("files").pipe(Argument.variadic)
