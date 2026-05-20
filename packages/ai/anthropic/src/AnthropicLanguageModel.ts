@@ -5,7 +5,7 @@
  * and converts Anthropic responses and streams back into Effect AI response
  * parts with Anthropic-specific metadata.
  *
- * **Common tasks**
+ * **When to use**
  *
  * - Create an Anthropic-backed model with {@link model}
  * - Build or provide a `LanguageModel.LanguageModel` layer with {@link layer}
@@ -74,6 +74,8 @@ export type Model = typeof Generated.Model.Type
 /**
  * Configuration options for the Anthropic language model.
  *
+ * **Details**
+ *
  * This service can be used to provide default configuration values or to
  * override configuration on a per-request basis.
  *
@@ -100,6 +102,8 @@ export class Config extends Context.Service<
       /**
        * Whether to use strict JSON schema validation for tool calls.
        *
+       * **Details**
+       *
        * Only applies to models that support structured outputs. Defaults to
        * `true` when structured outputs are supported.
        */
@@ -115,6 +119,8 @@ export class Config extends Context.Service<
 declare module "effect/unstable/ai/Prompt" {
   /**
    * Anthropic-specific options for system messages.
+   *
+   * **Details**
    *
    * These options are used when translating system messages into Anthropic
    * request content.
@@ -134,6 +140,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * Anthropic-specific options for user messages.
    *
+   * **Details**
+   *
    * These options are used when translating user messages into Anthropic
    * request content.
    *
@@ -151,6 +159,8 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * Anthropic-specific options for assistant messages.
+   *
+   * **Details**
    *
    * These options are used when replaying assistant messages in Anthropic
    * conversation history.
@@ -170,6 +180,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * Anthropic-specific options for tool messages.
    *
+   * **Details**
+   *
    * These options are used when converting tool results into Anthropic user
    * content blocks.
    *
@@ -188,6 +200,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * Anthropic-specific options for text prompt parts.
    *
+   * **When to use**
+   *
    * Use these options to control how text blocks are sent to Anthropic.
    *
    * @category request
@@ -204,6 +218,8 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * Anthropic-specific options for reasoning prompt parts.
+   *
+   * **Details**
    *
    * Preserves Claude thinking metadata when reasoning content is sent back to
    * Anthropic in later turns.
@@ -238,6 +254,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * Anthropic-specific options for file prompt parts.
    *
+   * **Details**
+   *
    * Controls document metadata, citations, and prompt caching for files sent to
    * Anthropic.
    *
@@ -263,6 +281,8 @@ declare module "effect/unstable/ai/Prompt" {
        * Additional context about the document that will be forwarded to the
        * large language model, but will not be used towards cited content.
        *
+       * **When to use**
+       *
        * Useful for storing additional document metadata as text or stringified JSON.
        */
       readonly documentContext?: string | null
@@ -271,6 +291,8 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * Anthropic-specific options for tool call prompt parts.
+   *
+   * **Details**
    *
    * Carries Anthropic tool caller metadata, MCP metadata, and cache control for
    * tool use blocks.
@@ -303,6 +325,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * Anthropic-specific options for tool result prompt parts.
    *
+   * **Details**
+   *
    * Controls Anthropic prompt caching for tool result content.
    *
    * @category request
@@ -320,6 +344,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * Anthropic-specific options for tool approval request prompt parts.
    *
+   * **Details**
+   *
    * Controls prompt caching for human approval requests in conversations.
    *
    * @category request
@@ -336,6 +362,8 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * Anthropic-specific options for tool approval response prompt parts.
+   *
+   * **Details**
    *
    * Controls prompt caching for human approval responses in conversations.
    *
@@ -355,6 +383,8 @@ declare module "effect/unstable/ai/Prompt" {
 declare module "effect/unstable/ai/Response" {
   /**
    * Anthropic metadata attached when a reasoning block begins.
+   *
+   * **Details**
    *
    * Includes Claude thinking metadata needed to continue reasoning-aware
    * conversations.
@@ -385,6 +415,8 @@ declare module "effect/unstable/ai/Response" {
   /**
    * Anthropic metadata attached to streaming reasoning deltas.
    *
+   * **Details**
+   *
    * Includes the signature for streamed Claude thinking content when available.
    *
    * @category response
@@ -405,6 +437,8 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * Anthropic metadata attached to completed reasoning parts.
+   *
+   * **Details**
    *
    * Preserves Claude thinking or redacted thinking information for later turns.
    *
@@ -434,6 +468,8 @@ declare module "effect/unstable/ai/Response" {
   /**
    * Anthropic metadata attached to tool call response parts.
    *
+   * **Details**
+   *
    * Identifies Anthropic caller details and MCP tool metadata emitted by the
    * provider.
    *
@@ -461,6 +497,8 @@ declare module "effect/unstable/ai/Response" {
   /**
    * Anthropic metadata attached to tool result response parts.
    *
+   * **Details**
+   *
    * Identifies MCP tool metadata associated with provider-executed tool
    * results.
    *
@@ -483,6 +521,8 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * Anthropic metadata for document citations in model responses.
+   *
+   * **Details**
    *
    * Records the cited document span by character position or page number.
    *
@@ -526,6 +566,8 @@ declare module "effect/unstable/ai/Response" {
   /**
    * Anthropic metadata for URL and web citations in model responses.
    *
+   * **Details**
+   *
    * Records cited URL text or web-search source freshness information.
    *
    * @category response
@@ -553,6 +595,8 @@ declare module "effect/unstable/ai/Response" {
   /**
    * Anthropic metadata attached to the finish part of a response.
    *
+   * **Details**
+   *
    * Includes container state, context management information, stop details, and
    * token usage reported by Anthropic.
    *
@@ -570,6 +614,8 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * Anthropic metadata attached to error response parts.
+   *
+   * **Details**
    *
    * Includes the provider request identifier when Anthropic returns one.
    *
@@ -1136,6 +1182,8 @@ export type AnthropicUserDefinedTool = typeof Generated.BetaTool.Encoded
 
 /**
  * Represents a provider-defined tool that can be passed to the Anthropic API.
+ *
+ * **Details**
  *
  * These include Anthropic's built-in tools like computer use, code execution,
  * web search, and text editing.

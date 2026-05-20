@@ -37,6 +37,8 @@ export const symbol = "~effect/http/HttpServerRespondable"
 /**
  * Protocol for values that can be converted into an `HttpServerResponse`.
  *
+ * **Details**
+ *
  * Implement the protocol method to describe the response that should be sent for
  * the value.
  *
@@ -61,6 +63,8 @@ const notFound = Response.empty({ status: 404 })
 /**
  * Converts a `Respondable` value into an `HttpServerResponse`.
  *
+ * **Details**
+ *
  * If the value is already an HTTP server response it is returned directly; errors
  * from the response conversion are converted to defects.
  *
@@ -77,6 +81,8 @@ export const toResponse = (self: Respondable): Effect.Effect<HttpServerResponse>
 /**
  * Attempts to convert an unknown value into an `HttpServerResponse`, falling back
  * to the supplied response when no conversion is available.
+ *
+ * **Details**
  *
  * `HttpServerResponse` and `Respondable` values are used directly, schema errors
  * become `400` responses, and no-such-element errors become `404` responses.
@@ -101,6 +107,8 @@ export const toResponseOrElse = (u: unknown, orElse: HttpServerResponse): Effect
 /**
  * Attempts to convert an unknown defect into an `HttpServerResponse`, falling
  * back to the supplied response when no conversion is available.
+ *
+ * **Details**
  *
  * Only `HttpServerResponse` and `Respondable` values receive special handling.
  *

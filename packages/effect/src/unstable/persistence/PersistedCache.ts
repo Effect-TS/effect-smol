@@ -55,6 +55,8 @@ export interface PersistedCache<K extends Persistable.Any, out R = never> {
 /**
  * Creates a persisted cache for `Persistable` request keys.
  *
+ * **Details**
+ *
  * The cache reads persisted exits before running the lookup, stores lookup
  * exits with the configured persistent TTL, and also keeps a scoped in-memory
  * cache with its own capacity and TTL.

@@ -50,6 +50,8 @@ import type * as ShardingConfig from "./ShardingConfig.ts"
  * Provides a runner RPC client protocol that connects to runner addresses over
  * HTTP.
  *
+ * **Details**
+ *
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `http` to `https`.
  *
@@ -96,6 +98,8 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
 /**
  * Provides a runner RPC client protocol that connects to runner addresses over
  * WebSocket.
+ *
+ * **Details**
  *
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `ws` to `wss`.
@@ -145,6 +149,8 @@ export const layerClientProtocolWebsocketDefault: Layer.Layer<
 /**
  * Builds an HTTP effect that serves runner RPCs over the HTTP protocol.
  *
+ * **Details**
+ *
  * The returned effect is produced from `RunnerServer.layerHandlers` and the
  * cluster runner RPC group.
  *
@@ -165,6 +171,8 @@ export const toHttpEffect: Effect.Effect<
 
 /**
  * Builds an HTTP effect that serves runner RPCs over WebSocket.
+ *
+ * **Details**
  *
  * The returned effect is produced from `RunnerServer.layerHandlers` and the
  * cluster runner RPC group.
@@ -250,6 +258,8 @@ export const layerWebsocketOptions = (options: {
 /**
  * Complete HTTP runner layer.
  *
+ * **Details**
+ *
  * It serves runner routes at `/` and configures runner clients to communicate
  * over HTTP.
  *
@@ -273,6 +283,8 @@ export const layerHttp: Layer.Layer<
 /**
  * Client-only HTTP runner layer.
  *
+ * **Details**
+ *
  * It configures runner clients to communicate over HTTP without serving runner
  * HTTP routes.
  *
@@ -293,6 +305,8 @@ export const layerHttpClientOnly: Layer.Layer<
 
 /**
  * Complete WebSocket runner layer.
+ *
+ * **Details**
  *
  * It serves runner routes at `/` and configures runner clients to communicate
  * over WebSocket.
@@ -316,6 +330,8 @@ export const layerWebsocket: Layer.Layer<
 
 /**
  * Client-only WebSocket runner layer.
+ *
+ * **Details**
  *
  * It configures runner clients to communicate over WebSocket without serving
  * runner WebSocket routes.

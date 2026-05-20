@@ -56,10 +56,7 @@ import { type ChildProcessHandle, ChildProcessSpawner } from "./ChildProcessSpaw
 const TypeId = "~effect/unstable/process/ChildProcess"
 
 /**
- * A command that can be executed as a child process.
- *
- * Commands are built using `make` and can be combined using `pipeTo`.
- * They are executed using `exec` or `spawn`.
+ * A command that can be built using `make`, combined using `pipeTo`, and executed using `exec` or `spawn`.
  *
  * @category models
  * @since 4.0.0
@@ -110,6 +107,8 @@ export interface PipedCommand extends
 /**
  * Specifies which stream to pipe from the source subprocess.
  *
+ * **Details**
+ *
  * - `"stdout"`: Pipe stdout from the source (default)
  * - `"stderr"`: Pipe stderr from the source
  * - `"all"`: Pipe both stdout and stderr interleaved
@@ -122,6 +121,8 @@ export type PipeFromOption = "stdout" | "stderr" | "all" | `fd${number}`
 
 /**
  * Specifies which input to pipe to on the destination subprocess.
+ *
+ * **Details**
  *
  * - `"stdin"`: Pipe to stdin of the destination (default)
  * - `` `fd${number}` ``: Pipe to a custom file descriptor (e.g., `"fd3"`)
@@ -152,6 +153,8 @@ export interface PipeOptions {
   /**
    * Which stream to pipe from the source subprocess.
    *
+   * **Details**
+   *
    * - `"stdout"` (default): Pipe stdout from the source
    * - `"stderr"`: Pipe stderr from the source
    * - `"all"`: Pipe both stdout and stderr interleaved
@@ -161,6 +164,8 @@ export interface PipeOptions {
 
   /**
    * Which input to pipe to on the destination subprocess.
+   *
+   * **Details**
    *
    * - `"stdin"` (default): Pipe to stdin of the destination
    * - `"fd3"`, `"fd4"`, etc.: Pipe to a custom file descriptor
@@ -267,18 +272,14 @@ export type Encoding =
  */
 export interface KillOptions {
   /**
-   * The default signal used to terminate the child process.
-   *
-   * Defaults to `"SIGTERM"`.
+   * The default signal used to terminate the child process. Defaults to `"SIGTERM"`.
    */
   readonly killSignal?: Signal | undefined
   /**
    * The duration of time to wait after the child process has been terminated
    * before forcefully killing the child process by sending it the `"SIGKILL"`
-   * signal.
-   *
-   * Defaults to `undefined`, which means that no timeout will be enforced by
-   * default.
+   * signal. Defaults to `undefined`, which means that no timeout will be
+   * enforced by default.
    */
   readonly forceKillAfter?: Duration.Input | undefined
 }
@@ -293,6 +294,8 @@ export interface StdinConfig {
   /**
    * The configuration for the standard input stream of the child process.
    *
+   * **Details**
+   *
    * Can be a string indicating how the operating system should configure the
    * pipe established between the child process `stdin` and the parent process.
    *
@@ -304,15 +307,11 @@ export interface StdinConfig {
   readonly stream: CommandInput
   /**
    * Whether or not the child process `stdin` should be closed after the input
-   * stream is finished.
-   *
-   * Defaults to `true`.
+   * stream is finished. Defaults to `true`.
    */
   readonly endOnDone?: boolean | undefined
   /**
-   * The buffer encoding to use to decode string chunks.
-   *
-   * Defaults to `utf-8`.
+   * The buffer encoding to use to decode string chunks. Defaults to `utf-8`.
    */
   readonly encoding?: Encoding | undefined
 }
@@ -325,7 +324,9 @@ export interface StdinConfig {
  */
 export interface StdoutConfig {
   /**
-   * The configuration for the standard ouput stream of the child process.
+   * The configuration for the standard output stream of the child process.
+   *
+   * **Details**
    *
    * Can be a string indicating how the operating system should configure the
    * pipe established between the child process `stdout` and the parent process.
@@ -346,7 +347,9 @@ export interface StdoutConfig {
  */
 export interface StderrConfig {
   /**
-   * The configuration for the standard ouput stream of the child process.
+   * The configuration for the standard error stream of the child process.
+   *
+   * **Details**
    *
    * Can be a string indicating how the operating system should configure the
    * pipe established between the child process `stderr` and the parent process.
@@ -407,6 +410,8 @@ export interface CommandOptions extends KillOptions {
   /**
    * The environment of the child process.
    *
+   * **Details**
+   *
    * If `extendEnv` is set to `true`, the value of `env` will be merged with
    * the value of `globalThis.process.env`, prioritizing the values in `env`
    * when conflicts exist.
@@ -417,6 +422,8 @@ export interface CommandOptions extends KillOptions {
    * as the values in `globalThis.process.env`, prioritizing the values in `env`
    * when conflicts exist.
    *
+   * **Details**
+   *
    * If set to `false`, only the value of `env` is used.
    */
   readonly extendEnv?: boolean | undefined
@@ -424,8 +431,12 @@ export interface CommandOptions extends KillOptions {
    * If set to `true`, runs the command inside of a shell, defaulting to `/bin/sh`
    * on UNIX systems and `cmd.exe` on Windows.
    *
+   * **Details**
+   *
    * Can also be set to a string representing the absolute path to a shell to
    * use on the system.
+   *
+   * **Gotchas**
    *
    * It is generally disadvised to use this option.
    */
@@ -433,6 +444,8 @@ export interface CommandOptions extends KillOptions {
   /**
    * If set to `true`, the child process will run independently of the parent
    * process.
+   *
+   * **Details**
    *
    * The specific behavior of this option depends upon the platform. For
    * example, the NodeJS documentation outlines the differences between Windows
@@ -458,6 +471,8 @@ export interface CommandOptions extends KillOptions {
   /**
    * Additional file descriptors to expose to the child process beyond `stdin` /
    * `stdout` / `stderr`.
+   *
+   * **Details**
    *
    * Keys must be in the format `"fd3"`, `"fd4"`, etc. with a file descriptor
    * index >= 3.
@@ -569,6 +584,8 @@ const makePipedCommand = (
 /**
  * Create a command from a template literal, options + template, or array form.
  *
+ * **Details**
+ *
  * This function supports three calling conventions:
  * 1. Template literal: `make\`npm run build\``
  * 2. Options + template literal: `make({ cwd: "/app" })\`npm run build\``
@@ -653,6 +670,8 @@ export const make: {
 /**
  * Pipe the output of one command to the input of another.
  *
+ * **Details**
+ *
  * By default, pipes `stdout` from the source to `stdin` of the destination.
  * Use the `options` parameter to customize which streams are connected.
  *
@@ -690,6 +709,8 @@ export const pipeTo: {
 
 /**
  * Prefix a command with another command.
+ *
+ * **Details**
  *
  * For pipelines, only the leftmost command is prefixed.
  *
@@ -757,6 +778,8 @@ const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
 /**
  * Set the current working directory for a command.
  *
+ * **Details**
+ *
  * For pipelines, applies to each command in the pipeline.
  *
  * **Example** (Setting command working directories)
@@ -792,6 +815,8 @@ export const setCwd: {
 /**
  * Adds environment variables to a command, merging them with any existing
  * command environment and overriding duplicate keys.
+ *
+ * **Details**
  *
  * For pipelines, applies to each command in the pipeline.
  *

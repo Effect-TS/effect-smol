@@ -104,6 +104,8 @@ import type { Contravariant, Covariant } from "./Types.ts"
  * A `Metric<Input, State>` represents a concurrent metric which accepts update
  * values of type `Input` and are aggregated to a value of type `State`.
  *
+ * **Details**
+ *
  * For example, a counter metric would have type `Metric<number, number>`,
  * representing the fact that the metric can be updated with numbers (the amount
  * to increment or decrement the counter by), and the state of the counter is a
@@ -190,6 +192,8 @@ export interface Metric<in Input, out State> extends Pipeable {
 
 /**
  * A Counter metric that tracks cumulative values that typically only increase.
+ *
+ * **When to use**
  *
  * Counters are useful for tracking monotonically increasing values like request counts,
  * bytes processed, errors encountered, or any value that accumulates over time.
@@ -321,6 +325,8 @@ export interface CounterState<in Input extends number | bigint> {
 
 /**
  * A Frequency metric interface that counts occurrences of discrete string values.
+ *
+ * **When to use**
  *
  * Frequency metrics are ideal for tracking categorical data where you want to count
  * how many times specific string values occur, such as HTTP status codes, user actions,
@@ -492,6 +498,8 @@ export interface FrequencyState {
 /**
  * A Gauge metric that tracks instantaneous values that can go up or down.
  *
+ * **When to use**
+ *
  * Gauges are useful for tracking current state values like memory usage, CPU load,
  * active connections, queue sizes, or any value that represents a current level.
  *
@@ -621,6 +629,8 @@ export interface GaugeState<in Input extends number | bigint> {
 
 /**
  * A Histogram metric that records observations in configurable buckets to analyze value distributions.
+ *
+ * **When to use**
  *
  * Histograms are ideal for measuring request durations, response sizes, and other continuous values
  * where you need to understand the distribution of values rather than just aggregates.
@@ -801,6 +811,8 @@ export interface HistogramState {
 
 /**
  * A Summary metric that calculates quantiles over a sliding time window of observations.
+ *
+ * **When to use**
  *
  * Summaries provide statistical insights into value distributions by tracking specific quantiles
  * (percentiles) such as median (50th), 95th percentile, 99th percentile, etc. They're ideal for
@@ -1700,6 +1712,7 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
  * context.
  *
  * **Details**
+ *
  * The default value is an empty attribute set. Metric reads and updates merge
  * these contextual attributes with the metric's own attributes to select the
  * metric series being accessed.
@@ -1746,6 +1759,7 @@ const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
  * `Context.Reference` for the metric registry in the current context.
  *
  * **Details**
+ *
  * The default registry is an empty `Map`. Metrics register their metadata and
  * hooks lazily in this map when they are read or updated.
  *
@@ -2126,6 +2140,8 @@ class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, St
 /**
  * Returns `true` if the specified value is a `Metric`, otherwise returns `false`.
  *
+ * **When to use**
+ *
  * This function is useful for runtime type checking and ensuring that a value
  * conforms to the Metric interface before performing metric operations.
  *
@@ -2155,7 +2171,7 @@ export const isMetric = (u: unknown): u is Metric<unknown, never> =>
  * time. Counters can be incremented and decremented and provide a running total
  * of changes.
  *
- * **Options**
+ * **Details**
  *
  * - `description` - A description of the `Counter`.
  * - `attributes`  - The attributes to associate with the `Counter`.
@@ -2234,10 +2250,12 @@ export const counter: {
  * Represents a `Gauge` metric that tracks and reports a single numerical value
  * at a specific moment.
  *
+ * **When to use**
+ *
  * Gauges are most suitable for metrics that represent instantaneous values,
  * such as memory usage or CPU load.
  *
- * **Options**
+ * **Details**
  *
  * - `description` - A description of the `Gauge`.
  * - `attributes`  - The attributes to associate with the `Gauge`.
@@ -2311,10 +2329,12 @@ export const gauge: {
  * Creates a `Frequency` metric which can be used to count the number of
  * occurrences of a string.
  *
+ * **When to use**
+ *
  * Frequency metrics are most suitable for counting the number of times a
  * specific event or incident occurs.
  *
- * **Options**
+ * **Details**
  *
  * - `description` - A description of the `Frequency`.
  * - `attributes`  - The attributes to associate with the `Frequency`.
@@ -2392,10 +2412,12 @@ export const frequency = (name: string, options?: {
 /**
  * Represents a `Histogram` metric that records observations into buckets.
  *
+ * **When to use**
+ *
  * Histogram metrics are most suitable for measuring the distribution of values
  * within a range.
  *
- * **Options**
+ * **Details**
  *
  * - `description` - A description of the `Histogram`.
  * - `attributes`  - The attributes to associate with the `Histogram`.
@@ -2470,10 +2492,12 @@ export const histogram = (name: string, options: {
  * Creates a `Summary` metric that records observations and calculates quantiles
  * which takes a value as input and uses the current time.
  *
+ * **When to use**
+ *
  * Summary metrics are most suitable for providing statistical information about
  * a set of values, including quantiles.
  *
- * **Options**
+ * **Details**
  *
  * - `description` - An description of the `Summary`.
  * - `attributes`  - The attributes to associate with the `Summary`.
@@ -2564,11 +2588,15 @@ export const summary = (name: string, options: {
  * Creates a `Summary` metric that records observations with explicit
  * timestamps and calculates quantiles.
  *
- * Summary metrics are most suitable for statistical information about a set of
- * values. Inputs to this metric are `[value, timestamp]` pairs; the current
- * clock is used when reading quantiles against the configured `maxAge`.
+ * **When to use**
  *
- * **Options**
+ * Summary metrics are most suitable for statistical information about a set of
+ * values.
+ *
+ * **Details**
+ *
+ * Inputs to this metric are `[value, timestamp]` pairs; the current clock is
+ * used when reading quantiles against the configured `maxAge`.
  *
  * - `description` - An description of the `Summary`.
  * - `attributes`  - The attributes to associate with the `Summary`.
@@ -2606,6 +2634,8 @@ export const summaryWithTimestamp = (name: string, options: {
 /**
  * Creates a timer metric, based on a `Histogram`, which keeps track of
  * durations in milliseconds.
+ *
+ * **Details**
  *
  * The unit of time will automatically be added to the metric as a tag (i.e.
  * `"time_unit: milliseconds"`).
@@ -2663,6 +2693,7 @@ export const timer = (name: string, options?: {
  * Retrieves the current state of the specified `Metric`.
  *
  * **Details**
+ *
  * The returned state depends on the metric type:
  *
  * - Counter: `CounterState<number | bigint>` with `count` and `incremental`
@@ -2714,7 +2745,10 @@ export const value = <Input, State>(
 /**
  * Modifies the metric with the specified input.
  *
+ * **Details**
+ *
  * The behavior of `modify` depends on the metric type:
+ *
  * - **Counter**: Adds the input value to the current count
  * - **Gauge**: Adds the input value to the current gauge value
  * - **Frequency**: Same as `update` - increments the occurrence count for the input string
@@ -2767,7 +2801,10 @@ export const modify: {
 /**
  * Updates the metric with the specified input.
  *
+ * **Details**
+ *
  * The behavior of `update` depends on the metric type:
+ *
  * - **Counter**: Adds the input value to the current count (same as `modify`)
  * - **Gauge**: Sets the gauge to the specified value (replaces current value)
  * - **Frequency**: Increments the occurrence count for the input string by 1
@@ -2939,6 +2976,8 @@ export const withConstantInput: {
 /**
  * Returns a new metric that applies the specified attributes to all operations.
  *
+ * **Details**
+ *
  * Attributes are key-value pairs that provide additional context for metrics,
  * enabling filtering, grouping, and more detailed analysis. Each combination
  * of attribute values creates a separate metric series.
@@ -3014,6 +3053,8 @@ export const withAttributes: {
 /**
  * Captures a snapshot of all registered metrics in the current context.
  *
+ * **Details**
+ *
  * Returns an array of metric snapshots, each containing the metric's metadata
  * (name, description, type) and current state (values, counts, etc.).
  *
@@ -3068,6 +3109,8 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
 /**
  * Returns a human-readable string representation of all currently registered
  * metrics in a tabular format.
+ *
+ * **Details**
  *
  * This debugging utility captures a snapshot of all metrics and formats them
  * in an easy-to-read table showing names, descriptions, types, attributes,
@@ -3158,6 +3201,8 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
 /**
  * Synchronously captures a snapshot of all registered metrics using the provided
  * service context.
+ *
+ * **Details**
  *
  * This is the "unsafe" version that bypasses Effect's safety guarantees and requires
  * manual handling of the services context. Use the safe `snapshot` function for normal
@@ -3290,6 +3335,8 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
  * A helper method to create histogram bucket boundaries from an iterable set
  * of values.
  *
+ * **Details**
+ *
  * Processes any iterable of numbers by removing duplicates, filtering out
  * non-positive values, and automatically appending positive infinity as the
  * final boundary.
@@ -3360,6 +3407,7 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
  * positive infinity.
  *
  * **Details**
+ *
  * Generates `count - 1` finite boundaries using `start + width + index` for
  * each zero-based index, then applies the same normalization as
  * `boundariesFromIterable`: non-positive values are removed, duplicates are
@@ -3412,6 +3460,8 @@ export const linearBoundaries = (options: {
 /**
  * A helper method to create histogram bucket boundaries with exponentially
  * increasing values.
+ *
+ * **Details**
  *
  * Creates boundaries that grow exponentially, useful for metrics that span
  * multiple orders of magnitude. Each boundary is calculated as start * factor^i.
@@ -3574,6 +3624,7 @@ export interface FiberRuntimeMetricsService {
  * `Context.Reference` for the optional fiber runtime metrics service.
  *
  * **Details**
+ *
  * When provided, the runtime can notify the service about child-fiber start and
  * end events. When the reference is `undefined`, automatic fiber runtime metric
  * collection is disabled.
@@ -3689,6 +3740,8 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
 /**
  * A Layer that enables automatic collection of fiber runtime metrics across
  * an entire Effect application.
+ *
+ * **When to use**
  *
  * Unlike the function version which wraps individual Effects, this layer provides
  * runtime metrics collection to all Effects in the application context. This is
@@ -3830,6 +3883,8 @@ export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(und
 /**
  * Enables automatic collection of fiber runtime metrics for the provided Effect.
  *
+ * **Details**
+ *
  * When enabled, automatically tracks fiber lifecycle metrics including active fibers,
  * started fibers, successful completions, and failures. These metrics provide valuable
  * insights into the concurrency patterns and health of your Effect application.
@@ -3914,6 +3969,8 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
 
 /**
  * Disables automatic collection of fiber runtime metrics for the provided Effect.
+ *
+ * **When to use**
  *
  * This is useful when you want to selectively disable runtime metrics for specific
  * parts of your application while keeping them enabled elsewhere, or when you need

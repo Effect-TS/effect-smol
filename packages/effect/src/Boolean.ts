@@ -356,6 +356,8 @@ export const some = (collection: Iterable<boolean>): boolean => {
 /**
  * A `Reducer` for combining `boolean`s using AND.
  *
+ * **Details**
+ *
  * The `initialValue` is `true`.
  *
  * @category math
@@ -365,6 +367,8 @@ export const ReducerAnd: Reducer.Reducer<boolean> = Reducer.make((a, b) => a && 
 
 /**
  * A `Reducer` for combining `boolean`s using OR.
+ *
+ * **Details**
  *
  * The `initialValue` is `false`.
  *

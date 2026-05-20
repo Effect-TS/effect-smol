@@ -21,6 +21,8 @@ import * as Layer from "../Layer.ts"
  * It captures all console output for testing purposes while maintaining full
  * compatibility with the standard Console API.
  *
+ * **Details**
+ *
  * This interface extends the standard Console interface and adds methods to
  * retrieve logged messages for verification in tests.
  *

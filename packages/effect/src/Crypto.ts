@@ -62,6 +62,8 @@ const TypeId = "~effect/platform/Crypto"
 /**
  * Digest algorithms supported by the platform `Crypto` service.
  *
+ * **Gotchas**
+ *
  * SHA-1 is included for interoperability with existing protocols. Do not use
  * SHA-1 for new security-sensitive designs.
  *
@@ -80,6 +82,8 @@ export type DigestAlgorithm = "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512"
 
 /**
  * Platform-agnostic cryptographic operations.
+ *
+ * **Details**
  *
  * `Crypto` implementations must use cryptographically secure platform APIs.
  * The random generator helpers are derived by the `make` constructor from
@@ -165,6 +169,8 @@ export interface Crypto {
 
   /**
    * Generates a cryptographically secure random integer between `min` and `max`.
+   *
+   * **Details**
    *
    * The lower bound is rounded up with `Math.ceil` and the upper bound is
    * rounded down with `Math.floor`. By default the range is inclusive; set

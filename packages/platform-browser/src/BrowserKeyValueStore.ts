@@ -23,9 +23,7 @@ import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
 import { IndexedDb } from "./IndexedDb.ts"
 
 /**
- * Creates a `KeyValueStore` layer that uses the browser's `localStorage` api.
- *
- * Values are stored between sessions.
+ * Creates a `KeyValueStore` layer that uses the browser's `localStorage` API and stores values between browser sessions.
  *
  * @category layers
  * @since 4.0.0
@@ -35,9 +33,7 @@ export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyVa
 )
 
 /**
- * Creates a `KeyValueStore` layer that uses the browser's `sessionStorage` api.
- *
- * Values are stored only for the current session.
+ * Creates a `KeyValueStore` layer that uses the browser's `sessionStorage` API and stores values only for the current session.
  *
  * @category layers
  * @since 4.0.0

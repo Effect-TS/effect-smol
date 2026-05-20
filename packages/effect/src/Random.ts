@@ -39,6 +39,8 @@ import * as Predicate from "./Predicate.ts"
 /**
  * Represents a service for generating pseudo-random numbers.
  *
+ * **Gotchas**
+ *
  * The default implementation is based on `Math.random` and is not
  * cryptographically secure. Replace the service with a cryptographically secure
  * implementation before using these generators for security-sensitive values.
@@ -151,6 +153,8 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
 /**
  * Generates a random integer between `min` and `max`.
  *
+ * **Details**
+ *
  * The lower bound is rounded up with `Math.ceil` and the upper bound is
  * rounded down with `Math.floor`. By default the range is inclusive; set
  * `options.halfOpen: true` to exclude the upper bound.
@@ -215,9 +219,14 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
 /**
  * Seeds the pseudo-random number generator with the specified value.
  *
+ * **Details**
+ *
  * Using the same seed produces the same random sequence, which is useful for
- * tests and reproducible simulations. Use an unpredictable seed when uniqueness
- * or unpredictability matters.
+ * tests and reproducible simulations.
+ *
+ * **Gotchas**
+ *
+ * Use an unpredictable seed when uniqueness or unpredictability matters.
  *
  * **Example** (Seeding random generation)
  *

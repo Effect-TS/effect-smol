@@ -31,7 +31,7 @@
         "packages/**/src/*Generated.ts",
         "packages/**/src/internal/**",
         "packages/**/src/**/internal/**"
-      ],
+      ]
     }],
     // Tune native rules
     // Import rules

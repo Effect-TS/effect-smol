@@ -57,6 +57,8 @@ import * as Random from "../../Random.ts"
 /**
  * The `IdGenerator` service tag for dependency injection.
  *
+ * **Details**
+ *
  * This tag is used to provide and access ID generation functionality throughout
  * the application. It follows Effect's standard service pattern for type-safe
  * dependency injection.
@@ -83,6 +85,8 @@ export class IdGenerator extends Context.Service<IdGenerator, Service>()(
 
 /**
  * The service interface for ID generation.
+ *
+ * **Details**
  *
  * Defines the contract that all ID generator implementations must fulfill.
  * The service provides a single method for generating unique identifiers
@@ -183,6 +187,8 @@ const makeGenerator = ({
 /**
  * Default ID generator service implementation.
  *
+ * **Details**
+ *
  * Uses the standard configuration with "id" prefix and generates IDs in the
  * format "id_XXXXXXXXXXXXXXXX" where X represents random alphanumeric
  * characters.
@@ -217,6 +223,8 @@ export const defaultIdGenerator: Service = {
 
 /**
  * Creates a custom ID generator service with the specified options.
+ *
+ * **Details**
  *
  * Validates the configuration to ensure the separator is not part of the
  * alphabet, which would cause ambiguity in parsing generated IDs.
@@ -290,6 +298,8 @@ export const make = Effect.fnUntraced(function*({
 /**
  * Creates a Layer that provides the IdGenerator service with custom
  * configuration.
+ *
+ * **When to use**
  *
  * This is the recommended way to provide ID generation capabilities to your
  * application. The layer will fail during construction if the configuration is

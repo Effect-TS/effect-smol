@@ -253,8 +253,10 @@ export const directory = (name: string, options?: {
 }): Flag<string> => Param.directory(Param.flagKind, name, options)
 
 /**
- * Creates a string flag whose parsed value is wrapped in `Redacted.Redacted`
- * so stringification and logging redact the value.
+ * Creates a string flag whose parsed value is wrapped in `Redacted.Redacted` so
+ * stringification and logging redact the value.
+ *
+ * **Gotchas**
  *
  * Values supplied on the command line may still be visible to the operating
  * system or shell history.
@@ -301,6 +303,8 @@ export const fileText = (name: string): Flag<string> => Param.fileText(Param.fla
 
 /**
  * Creates a flag that reads and parses the content of the specified file.
+ *
+ * **Details**
  *
  * The parser that is utilized will depend on the specified `format`, or the
  * extension of the file passed on the command-line if no `format` is specified.
@@ -355,10 +359,15 @@ export const fileSchema = <A>(
 
 /**
  * Creates a flag that parses key=value pairs.
- * Useful for options that accept configuration values.
  *
- * Note: Requires at least one key=value pair. Multiple pairs are merged
- * into a single record.
+ * **When to use**
+ *
+ * Use this for options that accept configuration values.
+ *
+ * **Details**
+ *
+ * Requires at least one key=value pair. Multiple pairs are merged into a single
+ * record.
  *
  * **Example** (Parsing key-value pairs)
  *
@@ -459,8 +468,10 @@ export const withDescription: {
 /**
  * Sets a custom metavar (placeholder name) for the flag in help documentation.
  *
- * The metavar is displayed in usage text to indicate what value the user should provide.
- * For example, `--output FILE` shows `FILE` as the metavar.
+ * **Details**
+ *
+ * The metavar is displayed in usage text to indicate what value the user should
+ * provide. For example, `--output FILE` shows `FILE` as the metavar.
  *
  * **Example** (Setting metavars)
  *
@@ -491,9 +502,11 @@ export const withMetavar: {
  * Hides a flag from generated help output and shell completions while keeping
  * it fully parseable on the command line.
  *
- * Useful for experimental or internal flags that should be accepted but not
- * advertised — for example, `--experimental-foo`, debug toggles, or escape
- * hatches that are not yet committed to the public CLI surface.
+ * **When to use**
+ *
+ * Use this for experimental or internal flags that should be accepted but not
+ * advertised, such as `--experimental-foo`, debug toggles, or escape hatches
+ * that are not yet committed to the public CLI surface.
  *
  * **Example** (Hiding a flag from help)
  *

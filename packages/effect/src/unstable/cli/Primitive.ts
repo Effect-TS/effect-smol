@@ -119,6 +119,8 @@ const makeSchemaPrimitive = <T, E>(
 /**
  * Creates a primitive that parses boolean values from string input.
  *
+ * **Details**
+ *
  * Recognizes various forms of true/false values:
  * - True values: "true", "1", "y", "yes", "on"
  * - False values: "false", "0", "n", "no", "off"
@@ -408,6 +410,8 @@ export const path = (
 /**
  * Creates a primitive that wraps string input in `Redacted`.
  *
+ * **Details**
+ *
  * The wrapped value is hidden when formatted or inspected, while the original
  * string remains available through the `Redacted` API when explicitly needed.
  *
@@ -526,6 +530,8 @@ const fileParsers: Record<string, (content: string) => unknown> = {
 /**
  * Creates a primitive that reads a file and parses its content as structured
  * data.
+ *
+ * **Details**
  *
  * The parser is selected from `options.format` when provided, otherwise from
  * the file extension. Supported formats include INI, JSON, TOML, YAML, and YML.
@@ -671,6 +677,8 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
 /**
  * A sentinel primitive that always fails to parse a value.
  *
+ * **When to use**
+ *
  * Used for flags that don't accept values.
  *
  * **Example** (Rejecting option values)
@@ -694,6 +702,8 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
 
 /**
  * Gets a human-readable type name for a primitive.
+ *
+ * **When to use**
  *
  * Used for generating help documentation.
  *

@@ -41,6 +41,8 @@
 /**
  * Describes how to compute, combine, and apply patches for values of type `T`.
  *
+ * **Details**
+ *
  * A `Differ` provides an empty patch, computes the patch between two values,
  * combines patches, and applies a patch to an old value to produce an updated
  * value.

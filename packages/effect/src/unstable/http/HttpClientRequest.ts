@@ -211,6 +211,8 @@ const del: (url: string | URL, options?: Options.NoUrl) => HttpClientRequest = m
 
 export {
   /**
+   * Creates a `DELETE` request for the specified URL.
+   *
    * @category constructors
    * @since 4.0.0
    */

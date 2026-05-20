@@ -66,9 +66,11 @@ const TypeId = "~effect/time/Cron"
 /**
  * Represents a cron schedule with time constraints and timezone information.
  *
- * A Cron instance defines when a scheduled task should run, supporting
- * seconds, minutes, hours, days, months, and weekdays constraints.
- * It also supports timezone-aware scheduling.
+ * **Details**
+ *
+ * A `Cron` instance defines when a scheduled task should run, supporting
+ * seconds, minutes, hours, days, months, and weekday constraints. It also
+ * supports timezone-aware scheduling.
  *
  * **Example** (Creating a cron schedule)
  *
@@ -229,6 +231,8 @@ const CronProto = {
 /**
  * Checks if a given value is a Cron instance.
  *
+ * **Details**
+ *
  * This function is a type guard that determines whether the provided
  * value is a valid Cron instance by checking for the presence of the
  * Cron type identifier.
@@ -258,6 +262,8 @@ export const isCron = (u: unknown): u is Cron => hasProperty(u, TypeId)
 
 /**
  * Creates a Cron instance from time constraints.
+ *
+ * **Details**
  *
  * Constructs a cron schedule by specifying which seconds, minutes, hours,
  * days, months, and weekdays the schedule should match. Empty arrays mean
@@ -456,9 +462,10 @@ const CronParseErrorTypeId = "~effect/time/Cron/CronParseError"
 /**
  * Represents an error that occurs when parsing a cron expression fails.
  *
- * This error provides detailed information about what went wrong during
- * the parsing process, including the error message and optionally the
- * input that caused the error.
+ * **Details**
+ *
+ * This error provides information about what went wrong during parsing,
+ * including the error message and optionally the input that caused the error.
  *
  * **Example** (Handling cron parse failures)
  *
@@ -485,6 +492,8 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 
 /**
  * Checks if a given value is a CronParseError instance.
+ *
+ * **Details**
  *
  * This function is a type guard that determines whether the provided
  * value is a CronParseError by checking for the presence of the
@@ -513,6 +522,8 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
 /**
  * Parses a cron expression into a `Cron` instance, returning a `Result` instead
  * of throwing.
+ *
+ * **Details**
  *
  * The expression may contain five fields, where seconds default to `0`, or six
  * fields including seconds. Fields support `*`, comma-separated values, ranges,
@@ -572,11 +583,12 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
 }
 
 /**
- * Parses a cron expression into a Cron instance, throwing on failure.
+ * Parses a cron expression into a `Cron` instance, throwing on failure.
  *
- * This function provides a convenience method for parsing cron expressions
- * when you're confident the input is valid and want to avoid handling
- * the Result type.
+ * **When to use**
+ *
+ * Use this when the input is expected to be valid and you want to avoid
+ * handling the `Result` type.
  *
  * **Example** (Parsing cron expressions unsafely)
  *
@@ -600,6 +612,8 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
 
 /**
  * Returns `true` when a date/time matches a `Cron` schedule.
+ *
+ * **Details**
  *
  * Seconds, minutes, hours, months, and the optional timezone are checked
  * directly. For day constraints, an empty `days` or `weekdays` set means that
@@ -669,9 +683,11 @@ const daysInMonth = (date: Date): number =>
 /**
  * Returns the next scheduled date/time for the given Cron instance.
  *
- * This function calculates the next date and time when the cron schedule
- * should trigger, starting from the specified date (or current time if
- * not provided).
+ * **Details**
+ *
+ * Searches for the next date and time when the cron schedule should trigger,
+ * starting after the specified date/time or after the current time when no
+ * date is provided.
  *
  * **Example** (Finding the next occurrence)
  *
@@ -864,9 +880,11 @@ const stepCron = (cron: Cron, now: DateTime.DateTime.Input | undefined, directio
 /**
  * Returns an infinite iterator that yields dates matching the Cron schedule.
  *
- * This function creates an iterator that generates an infinite sequence
- * of dates when the cron schedule should trigger, starting from the
- * specified date.
+ * **Details**
+ *
+ * The iterator generates an infinite sequence of dates when the cron schedule
+ * should trigger, starting after the specified date/time or after the current
+ * time when no date is provided.
  *
  * **Example** (Iterating scheduled occurrences)
  *
@@ -895,6 +913,8 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
 /**
  * An `Equivalence` instance for comparing the field restrictions of two `Cron`
  * schedules.
+ *
+ * **Details**
  *
  * This comparison checks seconds, minutes, hours, days, months, and weekdays.
  * It does not compare the optional timezone.
@@ -941,6 +961,8 @@ const restrictionsEquals = (self: ReadonlySet<number>, that: ReadonlySet<number>
 
 /**
  * Checks whether two `Cron` instances have the same field restrictions.
+ *
+ * **Details**
  *
  * The comparison checks seconds, minutes, hours, days, months, and weekdays.
  * It does not compare the optional timezone.

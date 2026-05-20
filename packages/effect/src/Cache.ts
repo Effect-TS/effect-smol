@@ -140,7 +140,7 @@ export interface Cache<in out Key, in out A, in out E = never, out R = never> ex
  * Represents a low-level cache entry containing a deferred lookup result and
  * an optional expiration timestamp.
  *
- * **Notes**
+ * **Details**
  *
  * An `expiresAt` value of `undefined` means the entry does not expire. Most
  * users should interact with entries through the `Cache` combinators rather
@@ -156,6 +156,8 @@ export interface Entry<A, E> {
 
 /**
  * Creates a cache with dynamic time-to-live based on the result and key.
+ *
+ * **Details**
  *
  * The timeToLive function receives both the exit result and the key, allowing
  * for flexible TTL policies based on success/failure state and key characteristics.
@@ -220,6 +222,8 @@ export const makeWith = <
 
 /**
  * Creates a cache with a fixed time-to-live for all entries.
+ *
+ * **Details**
  *
  * This is the basic cache constructor where all entries share the same TTL.
  * The lookup function will be called when a key is not found or has expired.
@@ -977,6 +981,8 @@ export const invalidateWhen: {
 /**
  * Forces a refresh of the value associated with the specified key in the cache.
  *
+ * **Details**
+ *
  * It will always invoke the lookup function to construct a new value,
  * overwriting any existing value for that key.
  *
@@ -1143,6 +1149,8 @@ export const invalidateAll = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.E
 
 /**
  * Retrieves the approximate number of entries in the cache.
+ *
+ * **Details**
  *
  * Note that expired entries are counted until they are accessed and removed.
  * The size reflects the current number of entries stored, not the number

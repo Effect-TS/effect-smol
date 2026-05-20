@@ -208,6 +208,8 @@ export const makeEncoded = (encoded: Encoded) =>
 /**
  * Creates an in-memory `RunnerStorage` implementation for tests and local use.
  *
+ * **Details**
+ *
  * Registered runners are treated as healthy and shard acquisition is kept only in
  * process memory.
  *

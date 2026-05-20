@@ -35,6 +35,8 @@ export interface DehydratedAtom {
 /**
  * A dehydrated serializable atom value.
  *
+ * **Details**
+ *
  * It stores the atom serialization key, encoded value, dehydration timestamp, and
  * an optional promise used when an `AsyncResult.Initial` value is encoded as a
  * future non-initial value.
@@ -52,6 +54,8 @@ export interface DehydratedAtomValue extends DehydratedAtom {
 /**
  * Encodes the serializable atoms currently stored in a registry into dehydrated
  * state.
+ *
+ * **Details**
  *
  * Only atoms marked with `Atom.serializable` are included. `encodeInitialAs`
  * controls whether `AsyncResult.Initial` values are ignored, encoded as values, or
@@ -114,6 +118,8 @@ export const toValues = (state: ReadonlyArray<DehydratedAtom>): Array<Dehydrated
 
 /**
  * Loads dehydrated atom state into a registry.
+ *
+ * **Details**
  *
  * Encoded values are preloaded by serialization key. Entries with a
  * `resultPromise` update the matching registry node, or preload the resolved value,

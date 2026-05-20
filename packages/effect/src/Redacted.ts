@@ -21,6 +21,8 @@ const TypeId = "~effect/data/Redacted"
  * A wrapper for sensitive values whose string, JSON, and inspection output is
  * redacted.
  *
+ * **Gotchas**
+ *
  * The underlying value is still stored in memory and can be recovered with
  * `Redacted.value` until the wrapper is wiped or becomes unreachable. Use
  * `Redacted` to reduce accidental disclosure in logs and diagnostics, not as a
@@ -66,6 +68,8 @@ export declare namespace Redacted {
   /**
    * Type-level variance marker for `Redacted`.
    *
+   * **Details**
+   *
    * This interface records the covariant value type carried by a `Redacted`
    * value and is not normally referenced directly by users.
    *
@@ -105,6 +109,8 @@ export declare namespace Redacted {
 /**
  * Returns `true` if a value is a `Redacted` wrapper.
  *
+ * **Details**
+ *
  * When this function returns `true`, TypeScript narrows the value to
  * `Redacted<unknown>`.
  *
@@ -127,6 +133,8 @@ export const isRedacted = (u: unknown): u is Redacted<unknown> => hasProperty(u,
 
 /**
  * Creates a `Redacted` wrapper for a sensitive value.
+ *
+ * **Details**
  *
  * The wrapper redacts string, JSON, and inspection output to reduce accidental
  * disclosure. The original value remains retrievable with `Redacted.value`
@@ -203,6 +211,8 @@ export const value: <T>(self: Redacted<T>) => T = redacted.value
 /**
  * Deletes the stored value for a `Redacted` wrapper, making future
  * `Redacted.value` calls on that wrapper fail.
+ *
+ * **Gotchas**
  *
  * This unsafe operation does not zero memory and does not affect other
  * references to the original value. It only removes the value from the

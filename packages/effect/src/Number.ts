@@ -111,9 +111,7 @@ export const subtract: {
 } = dual(2, (self: number, that: number): number => self - that)
 
 /**
- * Provides a division operation on `number`s.
- *
- * Returns `Option.none()` if the divisor is `0`.
+ * Provides a division operation on `number`s, returning `Option.none()` if the divisor is `0`.
  *
  * **Example** (Dividing numbers safely)
  *
@@ -136,9 +134,7 @@ export const divide: {
 )
 
 /**
- * Provides an unsafe division operation on `number`s.
- *
- * Throws a `RangeError` if the divisor is `0`.
+ * Provides an unsafe division operation on `number`s that throws a `RangeError` if the divisor is `0`.
  *
  * **Example** (Dividing numbers unsafely)
  *
@@ -215,9 +211,7 @@ export const decrement = (n: number): number => n - 1
 export const Order: order.Order<number> = order.Number
 
 /**
- * An `Equivalence` instance for numbers.
- *
- * `NaN` is considered equal to `NaN`.
+ * An `Equivalence` instance for numbers where `NaN` is considered equal to `NaN`.
  *
  * **Example** (Comparing numbers for equivalence)
  *
@@ -354,6 +348,8 @@ export const between: {
 
 /**
  * Restricts the given `number` to be within the range specified by the `minimum` and `maximum` values.
+ *
+ * **Details**
  *
  * - If the `number` is less than the `minimum` value, the function returns the `minimum` value.
  * - If the `number` is greater than the `maximum` value, the function returns the `maximum` value.
@@ -495,9 +491,7 @@ export const multiplyAll = (collection: Iterable<number>): number => {
 }
 
 /**
- * Returns the remainder left over when one operand is divided by a second operand.
- *
- * It always takes the sign of the dividend.
+ * Returns the remainder left over when one operand is divided by a second operand, always taking the sign of the dividend.
  *
  * **Example** (Calculating remainders)
  *

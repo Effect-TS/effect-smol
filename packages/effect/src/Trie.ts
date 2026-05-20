@@ -188,6 +188,8 @@ export const insert: {
 /**
  * Returns an `IterableIterator` of the keys within the `Trie`.
  *
+ * **Details**
+ *
  * The keys are returned in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading keys in alphabetical order)
@@ -213,6 +215,8 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
 
 /**
  * Returns an `IterableIterator` of the values within the `Trie`.
+ *
+ * **Details**
  *
  * Values are ordered based on their key in alphabetical order, regardless of insertion order.
  *
@@ -240,6 +244,8 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
 /**
  * Returns an `IterableIterator` of the entries within the `Trie`.
  *
+ * **Details**
+ *
  * The entries are returned by keys in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading entries in alphabetical order)
@@ -264,6 +270,8 @@ export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.e
 
 /**
  * Returns an `Array<[string, V]>` of the entries within the `Trie`.
+ *
+ * **Details**
  *
  * Equivalent to `Array.from(Trie.entries(trie))`.
  *
@@ -551,10 +559,12 @@ export const has: {
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
 /**
- * Unsafely lookup the value for the specified key in the `Trie`.
+ * Unsafely looks up the value for the specified key in the `Trie`.
  *
- * `getUnsafe` will throw if the key is not found. Use `get` instead to safely
- * get a value from the `Trie`.
+ * **Gotchas**
+ *
+ * `getUnsafe` throws if the key is not found. Use `get` instead to safely get
+ * a value from the `Trie`.
  *
  * **Example** (Looking up values unsafely)
  *

@@ -137,6 +137,8 @@ export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
 /**
  * Re-runs this resource's acquisition effect and updates the current value.
  *
+ * **Details**
+ *
  * Refreshing replaces the value stored in the resource's scoped reference and
  * releases resources associated with the previous value. If acquisition fails,
  * the returned effect fails with the acquisition error.

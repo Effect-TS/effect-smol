@@ -53,6 +53,8 @@ import * as Schema from "./Schema.ts"
  * Creates a channel that encodes non-empty chunks of schema values into the
  * schema's encoded representation.
  *
+ * **Details**
+ *
  * Encoding failures are emitted as `SchemaError`, and any encoding services
  * required by the schema become channel requirements.
  *
@@ -79,6 +81,8 @@ export const encode = <S extends Schema.Top>(
  * Creates an `encode` channel variant whose encoded output chunks are typed as
  * `unknown`.
  *
+ * **When to use**
+ *
  * Use this at channel boundaries where the encoded representation is
  * intentionally untyped, while still encoding typed input chunks with the
  * provided schema.
@@ -101,6 +105,8 @@ export const encodeUnknown: <S extends Schema.Top>(
 /**
  * Creates a channel that decodes non-empty chunks from the schema's encoded
  * representation into schema values.
+ *
+ * **Details**
  *
  * Decoding failures are emitted as `SchemaError`, and any decoding services
  * required by the schema become channel requirements.
@@ -127,6 +133,8 @@ export const decode = <S extends Schema.Top>(
 /**
  * Creates a `decode` channel variant for schema-decoding channel boundaries.
  *
+ * **Details**
+ *
  * The channel decodes non-empty encoded chunks into schema values, emits
  * `SchemaError` when decoding fails, and requires the schema's decoding
  * services.
@@ -149,6 +157,8 @@ export const decodeUnknown: <S extends Schema.Top>(
 /**
  * Wraps a channel so callers work with typed input and output chunks while the
  * wrapped channel uses encoded chunks.
+ *
+ * **Details**
  *
  * Values sent into the resulting channel are encoded with `inputSchema` before
  * reaching the wrapped channel. Values emitted by the wrapped channel are
@@ -234,6 +244,8 @@ export const duplex: {
 
 /**
  * Like `duplex`, but for channels whose encoded side is not statically typed.
+ *
+ * **Details**
  *
  * The resulting channel accepts typed input chunks, encodes them with
  * `inputSchema`, decodes unknown output chunks with `outputSchema`, and

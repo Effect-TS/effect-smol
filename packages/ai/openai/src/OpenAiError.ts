@@ -31,6 +31,8 @@ export type OpenAiErrorMetadata = {
 /**
  * OpenAI-specific rate limit metadata fields.
  *
+ * **Details**
+ *
  * Extends base error metadata with rate limit specific information from
  * OpenAI's rate limit headers.
  *
@@ -60,6 +62,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenAI metadata attached to `RateLimitError` values.
    *
+   * **Details**
+   *
    * Captures OpenAI error details together with rate limit header information
    * from responses where the provider rejected the request because a limit was
    * reached.
@@ -77,6 +81,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenAI metadata attached to `QuotaExhaustedError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for failures caused by exhausted account,
    * billing, or usage quota.
    *
@@ -92,6 +98,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenAI metadata attached to `AuthenticationError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details for failed API key, authorization, or
    * permission checks.
@@ -109,6 +117,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenAI metadata attached to `ContentPolicyError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when OpenAI rejects input or output because
    * it violates a content policy.
    *
@@ -124,6 +134,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenAI metadata attached to `InvalidRequestError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details for malformed requests, unsupported
    * parameters, or other request validation failures reported by OpenAI.
@@ -141,6 +153,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenAI metadata attached to `InternalProviderError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for OpenAI-side failures such as transient
    * server errors.
    *
@@ -156,6 +170,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenAI metadata attached to `InvalidOutputError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details when an OpenAI response cannot be parsed or
    * validated as the expected output.
@@ -173,6 +189,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenAI metadata attached to `StructuredOutputError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when OpenAI returns content that does not
    * satisfy the requested structured output schema.
    *
@@ -189,6 +207,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenAI metadata attached to `UnsupportedSchemaError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when an unsupported schema failure is
    * associated with an OpenAI response.
    *
@@ -204,6 +224,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenAI metadata attached to `UnknownError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details for OpenAI failures that do not map cleanly
    * to a more specific AI error category.

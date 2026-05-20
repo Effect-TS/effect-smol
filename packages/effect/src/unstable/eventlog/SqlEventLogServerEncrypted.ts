@@ -35,6 +35,8 @@ import * as EventLogServerEncrypted from "./EventLogServerEncrypted.ts"
 /**
  * Creates encrypted event-log server `Storage` backed by SQL.
  *
+ * **Details**
+ *
  * It persists the server remote id, session authentication bindings, and encrypted
  * entries in dialect-specific tables, creating per-identity/store entry tables as
  * needed.

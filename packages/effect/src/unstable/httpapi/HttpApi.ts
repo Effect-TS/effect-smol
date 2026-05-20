@@ -52,6 +52,8 @@ export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, Type
  * An `HttpApi` is a collection of HTTP API groups and endpoints that represents a
  * portion of your domain.
  *
+ * **When to use**
+ *
  * Endpoint implementations can be provided with `HttpApiBuilder.group`, and the
  * completed API can be registered with `HttpApiBuilder.layer`.
  *
@@ -86,11 +88,11 @@ export interface HttpApi<
   prefix<const Prefix extends PathInput>(prefix: Prefix): HttpApi<Id, HttpApiGroup.AddPrefix<Groups, Prefix>>
 
   /**
-   * Add a middleware to a `HttpApi`. It will be applied to all endpoints in the
-   * `HttpApi`.
+   * Adds a middleware to every endpoint currently in the `HttpApi`.
    *
-   * Note that this will only add the middleware to the endpoints **before** this
-   * api is called.
+   * **Gotchas**
+   *
+   * Endpoints added after this method is called do not receive the middleware.
    */
   middleware<I extends HttpApiMiddleware.AnyId, S>(
     middleware: Context.Key<I, S>
@@ -208,6 +210,8 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
 /**
  * Creates an empty `HttpApi` with the supplied identifier.
  *
+ * **When to use**
+ *
  * Add groups with `add` or `addHttpApi`, provide endpoint implementations with
  * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
  *
@@ -223,6 +227,8 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
 
 /**
  * Walks the groups and endpoints in an `HttpApi`.
+ *
+ * **Details**
  *
  * The callbacks receive each group or endpoint with merged annotations, endpoint
  * middleware, and response schemas grouped by HTTP status.

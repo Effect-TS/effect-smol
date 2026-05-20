@@ -53,6 +53,8 @@ export const ProcessId: Brand.Constructor<ProcessId> = Brand.nominal<ProcessId>(
  * An `Effect` that adds an unrefed child process back into the parent
  * process's reference count.
  *
+ * **Details**
+ *
  * This value is returned by `ChildProcessHandle.unref` and can be run later to
  * restore the default behavior where the child process keeps the parent
  * process alive.
@@ -89,6 +91,8 @@ export interface ChildProcessHandle {
   /**
    * Kills the child process with the provided signal.
    *
+   * **Details**
+   *
    * If no signal option is provided, the signal defaults to `SIGTERM`.
    */
   readonly kill: (options?: KillOptions | undefined) => Effect.Effect<void, PlatformError.PlatformError>
@@ -99,15 +103,19 @@ export interface ChildProcessHandle {
   /**
    * The standard output stream for the child process.
    *
-   * Note: Using alongside `all` may cause interleaving of output and unexpected
-   * results.
+   * **Gotchas**
+   *
+   * Using this stream alongside `all` may cause interleaving of output and
+   * unexpected results.
    */
   readonly stdout: Stream.Stream<Uint8Array, PlatformError.PlatformError>
   /**
    * The standard error stream for the child process.
    *
-   * Note: Using alongside `all` may cause interleaving of output and unexpected
-   * results.
+   * **Gotchas**
+   *
+   * Using this stream alongside `all` may cause interleaving of output and
+   * unexpected results.
    */
   readonly stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError>
   /**
@@ -119,6 +127,8 @@ export interface ChildProcessHandle {
    * Get an input `Sink` for writing to a file descriptor configured via
    * `ChildProcessOptions.additionalFds`.
    *
+   * **Details**
+   *
    * If a file descriptor is accessed that was not configured, returns a drain
    * `Sink`.
    */
@@ -127,6 +137,8 @@ export interface ChildProcessHandle {
    * Get an output `Stream` for reading from a file descriptor configured via
    * `ChildProcessOptions.additionalFds`.
    *
+   * **Details**
+   *
    * If a file descriptor is accessed that was not configured, returns an empty
    * `Stream`.
    */
@@ -134,12 +146,16 @@ export interface ChildProcessHandle {
   /**
    * Allows the parent process to exit independently of this child process.
    *
+   * **Details**
+   *
    * Running this `Effect` removes this child process from the parent process's
    * reference count, so the parent process is allowed to exit without waiting
    * for the child process to finish.
    *
    * The returned `Reref` effect adds the child process back into the parent
    * process's reference count when run, restoring the default behavior.
+   *
+   * **Gotchas**
    *
    * This is the only supported way to re-reference a child process after it
    * has been unrefed.

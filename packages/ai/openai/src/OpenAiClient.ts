@@ -42,6 +42,7 @@ import * as OpenAiSchema from "./OpenAiSchema.ts"
  * Effect service interface for the handwritten OpenAI client.
  *
  * **Details**
+ *
  * Provides the configured HTTP client plus helpers for Responses API calls, streaming Responses events, and embeddings. Transport and schema decoding failures are mapped to `AiError`.
  *
  * @category models
@@ -586,13 +587,14 @@ const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
 /**
  * Uses OpenAI's websocket mode for all responses within the provided effect.
  *
- * Note: This only works with the following WebSocket constructor layers:
+ * **Gotchas**
+ *
+ * This only works with the following WebSocket constructor layers:
  *
  * - `NodeSocket.layerWebSocketConstructorWS`
  * - `BunSocket.layerWebSocketConstructor`
  *
- * This is because it needs to use non-standard options for setting the
- * Authorization header.
+ * This is because it needs to use non-standard options for setting the Authorization header.
  *
  * @category Websocket mode
  * @since 4.0.0
@@ -614,13 +616,14 @@ export const withWebSocketMode = <A, E, R>(
 /**
  * Uses OpenAI's websocket mode for all responses that use the Layer.
  *
- * Note: This only works with the following WebSocket constructor layers:
+ * **Gotchas**
+ *
+ * This only works with the following WebSocket constructor layers:
  *
  * - `NodeSocket.layerWebSocketConstructorWS`
  * - `BunSocket.layerWebSocketConstructor`
  *
- * This is because it needs to use non-standard options for setting the
- * Authorization header.
+ * This is because it needs to use non-standard options for setting the Authorization header.
  *
  * @category Websocket mode
  * @since 4.0.0

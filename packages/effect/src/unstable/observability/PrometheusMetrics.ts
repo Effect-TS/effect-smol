@@ -141,8 +141,10 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
 /**
  * Synchronously format all metrics in the registry to Prometheus exposition format.
  *
- * This is a low-level function that requires access to the context.
- * Most users should use `format` instead.
+ * **When to use**
+ *
+ * Use this low-level function when you already have access to the context. Most
+ * users should use `format` instead.
  *
  * @category Formatting
  * @since 4.0.0
@@ -180,6 +182,8 @@ export const formatUnsafe = (
 /**
  * Creates a Layer that registers a `/metrics` HTTP endpoint for Prometheus
  * scraping.
+ *
+ * **Details**
  *
  * This layer automatically adds a GET route to your HTTP router that serves
  * metrics in Prometheus exposition format. By default, the endpoint is

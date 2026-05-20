@@ -26,6 +26,8 @@ import * as Headers from "./Headers.ts"
 /**
  * Function type for decoding tracing headers into an external span.
  *
+ * **Details**
+ *
  * Returns `Option.none` when the headers do not contain a supported or valid trace
  * context.
  *
@@ -38,6 +40,8 @@ export interface FromHeaders {
 
 /**
  * Encodes a span into HTTP trace propagation headers.
+ *
+ * **Details**
  *
  * The generated headers include both compact B3 (`b3`) and W3C `traceparent`
  * formats.
@@ -59,6 +63,8 @@ export const toHeaders = (span: Tracer.Span): Headers.Headers =>
 /**
  * Decodes an external span from HTTP trace propagation headers.
  *
+ * **Details**
+ *
  * W3C `traceparent` is tried first, followed by compact B3 (`b3`) and then
  * multi-header B3 (`x-b3-*`).
  *
@@ -79,6 +85,8 @@ export const fromHeaders = (headers: Headers.Headers): Option.Option<Tracer.Exte
 
 /**
  * Decodes an external span from the compact B3 `b3` header.
+ *
+ * **Details**
  *
  * Returns `Option.none` when the header is missing or does not contain trace and
  * span identifiers.
@@ -104,6 +112,8 @@ export const b3: FromHeaders = (headers) => {
 /**
  * Decodes an external span from multi-header B3 propagation headers.
  *
+ * **Details**
+ *
  * The decoder reads `x-b3-traceid`, `x-b3-spanid`, and optional `x-b3-sampled`
  * headers.
  *
@@ -126,6 +136,8 @@ const w3cSpanId = /^[0-9a-f]{16}$/i
 
 /**
  * Decodes an external span from the W3C `traceparent` header.
+ *
+ * **Details**
  *
  * Only version `00` headers with valid trace and span identifiers are accepted.
  *

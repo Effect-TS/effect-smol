@@ -20,6 +20,8 @@ import { identity } from "./Function.ts"
 /**
  * A unique symbol used to identify unification behavior in Effect types.
  *
+ * **Details**
+ *
  * This symbol is used internally by the Effect type system to enable automatic
  * unification of Effect types in unions and complex type operations.
  *
@@ -30,6 +32,8 @@ export declare const unifySymbol: unique symbol
 
 /**
  * The type of the unifySymbol.
+ *
+ * **Details**
  *
  * This type represents the unique symbol used for identifying unification
  * behavior in Effect types. It's typically used in type-level operations
@@ -43,6 +47,8 @@ export type unifySymbol = typeof unifySymbol
 /**
  * A unique symbol used to identify the type information for unification.
  *
+ * **Details**
+ *
  * This symbol is used internally by the Effect type system to store type
  * information that can be used during type unification operations.
  *
@@ -53,6 +59,8 @@ export declare const typeSymbol: unique symbol
 
 /**
  * The type of the typeSymbol.
+ *
+ * **Details**
  *
  * This type represents the unique symbol used for storing type information
  * in types that support unification. It's used in type-level operations
@@ -66,6 +74,8 @@ export type typeSymbol = typeof typeSymbol
 /**
  * A unique symbol used to specify types that should be ignored during unification.
  *
+ * **Details**
+ *
  * This symbol is used internally by the Effect type system to mark types
  * that should be excluded from the unification process, allowing for more
  * precise type handling in complex scenarios.
@@ -77,6 +87,8 @@ export declare const ignoreSymbol: unique symbol
 
 /**
  * The type of the ignoreSymbol.
+ *
+ * **Details**
  *
  * This type represents the unique symbol used for marking types that should
  * be ignored during unification operations. It's used in type-level operations
@@ -120,6 +132,8 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
 
 /**
  * Unifies types that implement the unification protocol.
+ *
+ * **Details**
  *
  * This type performs automatic type unification for types that contain
  * the unification symbols (`unifySymbol`, `typeSymbol`, `ignoreSymbol`).
@@ -177,6 +191,8 @@ export type Unify<A> = Values<
 
 /**
  * Applies `Unify` to a value or function return type at compile time.
+ *
+ * **Details**
  *
  * This is an identity function at runtime. For functions, the returned function
  * has the same runtime behavior while its return type is normalized with the

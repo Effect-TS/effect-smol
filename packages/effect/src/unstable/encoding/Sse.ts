@@ -33,8 +33,9 @@ import * as Schema from "../../Schema.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 
 /**
- * Creates a channel that parses Server-Sent Events text chunks into `Event`
- * values.
+ * Creates a channel that parses Server-Sent Events text chunks into `Event` values.
+ *
+ * **Details**
  *
  * SSE `retry` directives are emitted as `Retry` failures so callers can
  * reconnect with the requested delay.
@@ -85,6 +86,8 @@ export const decode = <IE, Done>(): Channel.Channel<
 /**
  * Creates an SSE decoder channel that decodes each parsed event with a schema.
  *
+ * **Details**
+ *
  * The schema receives the untagged event shape containing `id`, `event`, and
  * string `data`.
  *
@@ -119,8 +122,9 @@ export const decodeSchema = <
   )
 
 /**
- * Creates an SSE decoder channel that JSON-decodes each event `data` field with
- * a schema.
+ * Creates an SSE decoder channel that JSON-decodes each event `data` field with a schema.
+ *
+ * **Details**
  *
  * The output preserves the SSE `event` name and optional `id` while replacing
  * `data` with the decoded value.
@@ -155,6 +159,8 @@ export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
 
 /**
  * Creates a stateful Server-Sent Events parser.
+ *
+ * **Details**
  *
  * Call `feed` with text chunks to parse `Event` and `Retry` values through the
  * callback, and call `reset` to clear any buffered event state.
@@ -323,6 +329,8 @@ function hasBom(buffer: string) {
 /**
  * Stateful Server-Sent Events parser returned by `makeParser`.
  *
+ * **Details**
+ *
  * `feed` accepts additional text chunks and `reset` clears buffered parser state.
  *
  * @category decoding
@@ -335,6 +343,8 @@ export interface Parser {
 
 /**
  * Creates a channel that encodes `Event` values as Server-Sent Events text.
+ *
+ * **Details**
  *
  * If the upstream channel fails with `Retry`, the retry directive is written and
  * the encoder completes.
@@ -367,6 +377,8 @@ export const encode = <IE, Done>(): Channel.Channel<
 
 /**
  * Creates an SSE encoder channel for values accepted by a schema.
+ *
+ * **Details**
  *
  * Values are schema-encoded to the untagged SSE event shape, transformed to
  * `Event`, and then written as Server-Sent Events text.
@@ -408,9 +420,7 @@ export interface Encoder {
 }
 
 /**
- * Tagged model for a Server-Sent Events message.
- *
- * It contains the event name, optional event ID, and string data payload.
+ * Tagged model for a Server-Sent Events message containing the event name, optional event ID, and string data payload.
  *
  * @category models
  * @since 4.0.0
@@ -423,9 +433,7 @@ export interface Event {
 }
 
 /**
- * Schema for the untagged Server-Sent Events payload shape.
- *
- * The shape contains `id`, `event`, and string `data` fields.
+ * Schema for the untagged Server-Sent Events payload shape containing `id`, `event`, and string `data` fields.
  *
  * @category models
  * @since 4.0.0
@@ -441,10 +449,7 @@ export const EventEncoded: Schema.Struct<{
 })
 
 /**
- * Schema for the tagged Server-Sent Events message model.
- *
- * The schema adds `_tag: "Event"` to the event name, optional event ID, and
- * string data payload.
+ * Schema for the tagged Server-Sent Events message model that adds `_tag: "Event"` to the event name, optional event ID, and string data payload.
  *
  * @category models
  * @since 4.0.0
@@ -488,9 +493,7 @@ export const transformEvent = Transformation.transform<{
 })
 
 /**
- * Untagged Server-Sent Events payload shape.
- *
- * It contains the event name, optional event ID, and string data payload.
+ * Untagged Server-Sent Events payload shape containing the event name, optional event ID, and string data payload.
  *
  * @category models
  * @since 4.0.0
@@ -505,6 +508,8 @@ const RetryTypeId = "~effect/encoding/Sse/Retry" as const
 
 /**
  * Server-Sent Events retry directive.
+ *
+ * **Details**
  *
  * Decoders surface this value as a failure to request reconnection after
  * `duration`; encoders serialize an upstream `Retry` failure as a `retry:` line.
@@ -551,6 +556,8 @@ export type AnyEvent = Event | Retry
 
 /**
  * Default Server-Sent Events encoder.
+ *
+ * **Details**
  *
  * It renders `Event` values as `id`, `event`, and `data` lines and renders
  * `Retry` values as `retry:` directives.

@@ -438,7 +438,7 @@ export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable
  * Creates a `Context` from an existing service map without validating or
  * copying it.
  *
- * **Notes**
+ * **Gotchas**
  *
  * This is unsafe because later mutation of the provided map can affect the
  * created `Context`. Prefer `empty`, `make`, `add`, or `merge` for normal
@@ -726,7 +726,7 @@ export const getOrElse: {
  * Returns the service currently stored for a key, or `undefined` when the key
  * is absent.
  *
- * **Notes**
+ * **Details**
  *
  * This is a raw lookup and does not resolve default values for
  * `Context.Reference` keys.

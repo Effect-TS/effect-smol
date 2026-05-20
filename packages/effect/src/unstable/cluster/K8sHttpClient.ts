@@ -48,6 +48,8 @@ export class K8sHttpClient extends Context.Service<
 /**
  * Layer that configures `K8sHttpClient` for the in-cluster Kubernetes API.
  *
+ * **Details**
+ *
  * It targets `https://kubernetes.default.svc/api`, adds the service-account
  * bearer token when available, requires successful HTTP statuses, and retries
  * transient failures.
@@ -79,6 +81,8 @@ export const layer: Layer.Layer<
 
 /**
  * Creates a cached effect that fetches running Kubernetes pods.
+ *
+ * **Details**
  *
  * The request can be limited by namespace and label selector, and the result is a
  * map keyed by pod IP address.
@@ -126,6 +130,8 @@ export const makeGetPods: (
 /**
  * Creates a scoped function that ensures a Kubernetes pod exists and waits until
  * it is ready.
+ *
+ * **Details**
  *
  * The pod defaults to the `default` namespace and is deleted when the surrounding
  * scope closes.
@@ -250,6 +256,8 @@ export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpC
 
 /**
  * Schema for Kubernetes Pod values used by cluster helpers.
+ *
+ * **Details**
  *
  * The model exposes readiness helpers derived from the pod status conditions.
  *

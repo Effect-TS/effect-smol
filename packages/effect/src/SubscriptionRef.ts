@@ -32,6 +32,8 @@ const TypeId = "~effect/SubscriptionRef"
  * A mutable reference whose updates are serialized and published to
  * subscribers.
  *
+ * **When to use**
+ *
  * Use `changes` to observe the current value and subsequent updates as a
  * stream.
  *
@@ -108,6 +110,8 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
  * Creates a stream that emits the current value and all subsequent changes to
  * the `SubscriptionRef`.
  *
+ * **Details**
+ *
  * The stream will first emit the current value, then emit all future changes
  * as they occur.
  *
@@ -146,8 +150,10 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream
 /**
  * Unsafely retrieves the current value of the `SubscriptionRef`.
  *
+ * **Gotchas**
+ *
  * This function directly accesses the underlying reference without any
- * synchronization. It should only be used when you're certain there are no
+ * synchronization. It should only be used when you are certain there are no
  * concurrent modifications.
  *
  * **Example** (Reading the current value unsafely)

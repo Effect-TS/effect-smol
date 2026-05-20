@@ -51,6 +51,8 @@ import * as Singleton from "./Singleton.ts"
 /**
  * Creates a layer that runs a cron job through the cluster sharding system.
  *
+ * **Details**
+ *
  * The job is scheduled as persisted entity messages, with an initial singleton
  * scheduling step and optional controls for shard group, next-run calculation,
  * and skipping stale scheduled runs.
@@ -69,7 +71,10 @@ export const make = <E, R>(options: {
   readonly shardGroup?: string | undefined
 
   /**
-   * Whether to run the next cron job based from the time of the previous run.
+   * Controls whether the next cron job is based on the time of the previous
+   * run.
+   *
+   * **Details**
    *
    * Defaults to `false`, meaning the next run will be calculated from the
    * current time.
@@ -80,8 +85,12 @@ export const make = <E, R>(options: {
    * If set, the cron job will skip execution if the scheduled time is older
    * than this duration.
    *
+   * **When to use**
+   *
    * This is useful to prevent running jobs that were scheduled too far in the
    * past.
+   *
+   * **Details**
    *
    * Defaults to "1 day".
    */

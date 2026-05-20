@@ -41,6 +41,8 @@ export type AnthropicTool =
 /**
  * Anthropic Bash tool (2024-10-22 version).
  *
+ * **Details**
+ *
  * Allows the model to execute bash commands in a sandboxed environment.
  * Requires the "computer-use-2024-10-22" beta header.
  *
@@ -61,6 +63,8 @@ export const Bash_20241022 = Tool.providerDefined({
 
 /**
  * Anthropic Bash tool (2025-01-24 version).
+ *
+ * **Details**
  *
  * Allows the model to execute bash commands in a sandboxed environment.
  * Requires the "computer-use-2025-01-24" beta header.
@@ -247,6 +251,8 @@ export type CodeExecution_20250825_Parameters = typeof CodeExecution_20250825_Pa
 /**
  * Anthropic Code Execution tool (2025-05-22 version).
  *
+ * **Details**
+ *
  * Allows the model to execute code in a sandboxed environment with support
  * for multiple execution types including programmatic tool calls, bash
  * execution, and text editor operations.
@@ -265,6 +271,8 @@ export const CodeExecution_20250522 = Tool.providerDefined({
 
 /**
  * Anthropic Code Execution tool (2025-08-25 version).
+ *
+ * **Details**
  *
  * Allows the model to execute code in a sandboxed environment.
  *
@@ -579,7 +587,9 @@ export type ComputerUseLeftClickDragAction = typeof ComputerUseLeftClickDragActi
 /**
  * Press the left mouse button down (without releasing).
  *
- * Used for fine-grained click control.
+ * **When to use**
+ *
+ * Use this for fine-grained click control.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -603,7 +613,9 @@ export type ComputerUseLeftMouseDownAction = typeof ComputerUseLeftMouseDownActi
 /**
  * Release the left mouse button.
  *
- * Used for fine-grained click control.
+ * **When to use**
+ *
+ * Use this for fine-grained click control.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -762,6 +774,8 @@ const ComputerUse_20250124_Actions = Schema.Union([
 /**
  * Zoom into a specific region of the screen at full resolution.
  *
+ * **Details**
+ *
  * Requires `enableZoom: true` in the tool definition.
  *
  * @category Computer Use
@@ -778,7 +792,8 @@ export const ComputerUseZoomAction = Schema.Struct({
 /**
  * Computer-use action payload for zooming into a specific screen region.
  *
- * **Notes**
+ * **Details**
+ *
  * The enclosing computer-use tool must be configured with `enableZoom: true`.
  *
  * @category Computer Use
@@ -798,8 +813,9 @@ const ComputerUse_20251124_Actions = Schema.Union([
 /**
  * Computer use tool for Claude 3.5 Sonnet v2 (deprecated).
  *
- * Requires the "computer-use-2024-10-22" beta header.
+ * **Details**
  *
+ * Requires the "computer-use-2024-10-22" beta header.
  * Basic actions only: screenshot, left_click, type, key, mouse_move.
  *
  * @category Computer Use
@@ -818,8 +834,9 @@ export const ComputerUse_20241022 = Tool.providerDefined({
 /**
  * Computer use tool for Claude 4 models and Claude Sonnet 3.7.
  *
- * Requires the "computer-use-2025-01-24" beta header.
+ * **Details**
  *
+ * Requires the "computer-use-2025-01-24" beta header.
  * Includes basic actions plus enhanced actions: scroll, left_click_drag,
  * right_click, middle_click, double_click, triple_click, left_mouse_down,
  * left_mouse_up, hold_key, wait.
@@ -840,8 +857,9 @@ export const ComputerUse_20250124 = Tool.providerDefined({
 /**
  * Computer use tool for Claude Opus 4.5 only.
  *
- * Requires the "computer-use-2025-11-24" beta header.
+ * **Details**
  *
+ * Requires the "computer-use-2025-11-24" beta header.
  * Includes all actions from computer_20250124 plus the zoom action for
  * detailed screen region inspection. Requires `enableZoom: true` in args.
  *
@@ -869,10 +887,11 @@ export const ComputerUse_20251124 = Tool.providerDefined({
 /**
  * A `[start, end]` line range for viewing file contents.
  *
- * Lines are 1-indexed. Use -1 for end to read to end of file:
+ * **Details**
  *
- * - `[1, 50]`: View lines 1-50
- * - `[100, -1]`: View from line 100 to end of file
+ * Lines are 1-indexed. Use -1 for end to read to the end of the file. For
+ * example, `[1, 50]` views lines 1-50 and `[100, -1]` views from line 100 to
+ * the end of the file.
  *
  * @category Memory
  * @since 4.0.0
@@ -1056,6 +1075,8 @@ const Memory_20250818_Commands = Schema.Union([
 /**
  * Memory tool for persistent file operations across conversations.
  *
+ * **Details**
+ *
  * Provides commands for creating, viewing, editing, renaming, and deleting
  * files within the model's memory space.
  *
@@ -1081,8 +1102,10 @@ export const Memory_20250818 = Tool.providerDefined({
 /**
  * View the contents of a file or list directory contents.
  *
- * When used on a file: Returns the file contents, optionally limited to a line range.
- * When used on a directory: Lists all files and subdirectories.
+ * **Details**
+ *
+ * When used on a file, returns the file contents, optionally limited to a line
+ * range. When used on a directory, lists all files and subdirectories.
  *
  * @category Text Editor
  * @since 4.0.0
@@ -1110,7 +1133,9 @@ export type TextEditorViewCommand = typeof TextEditorViewCommand.Type
 /**
  * Create a new file with specified content.
  *
- * Will fail if the file already exists. Parent directories must exist.
+ * **Gotchas**
+ *
+ * Fails if the file already exists. Parent directories must exist.
  *
  * @category Text Editor
  * @since 4.0.0
@@ -1129,7 +1154,8 @@ export const TextEditorCreateCommand = Schema.Struct({
 /**
  * Text editor command payload for creating a new file with the specified content.
  *
- * **Notes**
+ * **Gotchas**
+ *
  * The command fails if the file already exists or if parent directories are missing.
  *
  * @category Text Editor
@@ -1139,6 +1165,8 @@ export type TextEditorCreateCommand = typeof TextEditorCreateCommand.Type
 
 /**
  * Replace a specific string in a file with a new string.
+ *
+ * **Gotchas**
  *
  * The `old_str` must match exactly (including whitespace and indentation)
  * and must be unique in the file.
@@ -1172,6 +1200,8 @@ export type TextEditorStrReplaceCommand = typeof TextEditorStrReplaceCommand.Typ
 /**
  * Insert text at a specific line number in a file.
  *
+ * **Details**
+ *
  * Inserts the new text AFTER the specified line number.
  *
  * @category Text Editor
@@ -1203,10 +1233,14 @@ export type TextEditorInsertCommand = typeof TextEditorInsertCommand.Type
 /**
  * Undo the last edit made to a file.
  *
+ * **Details**
+ *
  * Reverts the most recent str_replace, insert, or create operation on the file.
  *
- * NOTE: This command is available in text_editor_20241022 and text_editor_20250124,
- * but NOT in text_editor_20250728 (Claude 4 models).
+ * **Gotchas**
+ *
+ * This command is available in text_editor_20241022 and text_editor_20250124,
+ * but not in text_editor_20250728 (Claude 4 models).
  *
  * @category Text Editor
  * @since 4.0.0
@@ -1221,7 +1255,8 @@ export const TextEditorUndoEditCommand = Schema.Struct({
 /**
  * Text editor command payload for undoing the most recent edit to a file.
  *
- * **Notes**
+ * **Gotchas**
+ *
  * Available for `text_editor_20241022` and `text_editor_20250124`, but not for Claude 4 text editor versions.
  *
  * @category Text Editor
@@ -1263,6 +1298,8 @@ const TextEditor_StrReplaceBasedEdit_Args = Schema.Struct({
 /**
  * Text editor tool for Claude 3.5 Sonnet (deprecated).
  *
+ * **Details**
+ *
  * Requires the "computer-use-2024-10-22" beta header.
  *
  * @category Text Editor
@@ -1280,7 +1317,8 @@ export const TextEditor_20241022 = Tool.providerDefined({
 /**
  * Text editor tool for Claude Sonnet 3.7 (deprecated model).
  *
- * **Notes**
+ * **Details**
+ *
  * Requires the "computer-use-2025-01-24" beta header.
  *
  * @category Text Editor
@@ -1298,8 +1336,13 @@ export const TextEditor_20250124 = Tool.providerDefined({
 /**
  * Text editor tool for Claude 4 models using Anthropic's `str_replace_based_edit_tool`.
  *
- * **Notes**
- * Requires the "computer-use-2025-01-24" beta header. This version does not support the `undo_edit` command.
+ * **Details**
+ *
+ * Requires the "computer-use-2025-01-24" beta header.
+ *
+ * **Gotchas**
+ *
+ * This version does not support the `undo_edit` command.
  *
  * @category Text Editor
  * @since 4.0.0
@@ -1317,7 +1360,9 @@ export const TextEditor_20250429 = Tool.providerDefined({
 /**
  * Text editor tool for Claude 4 models.
  *
- * NOTE: This version does NOT support the `undo_edit` command.
+ * **Gotchas**
+ *
+ * This version does not support the `undo_edit` command.
  *
  * @category Text Editor
  * @since 4.0.0
@@ -1342,6 +1387,8 @@ export const TextEditor_20250728 = Tool.providerDefined({
 
 /**
  * User location for localizing search results.
+ *
+ * **When to use**
  *
  * Providing location helps return more relevant results for location-dependent
  * queries like weather, local businesses, events, etc.
@@ -1432,6 +1479,7 @@ export const WebSearchParameters = Schema.Struct({
  * Type of the parameters Claude supplies when invoking the Anthropic web search tool.
  *
  * **Details**
+ *
  * Contains the generated search query used by `WebSearch_20250305`.
  *
  * @category Web Search
@@ -1446,9 +1494,10 @@ export type WebSearchParameters = typeof WebSearchParameters.Type
 /**
  * Web search tool for Claude models.
  *
+ * **Details**
+ *
  * Enables Claude to search the web for real-time information. This is a
  * server-side tool executed by Anthropic's infrastructure.
- *
  * Generally available (no beta header required).
  *
  * @category Web Search
@@ -1568,9 +1617,10 @@ export type WebFetchParameters = typeof WebFetchParameters.Type
 /**
  * Web fetch tool for Claude models.
  *
+ * **Details**
+ *
  * Allows Claude to retrieve full content from web pages and PDF documents.
  * This is a server-side tool executed by Anthropic's infrastructure.
- *
  * Requires the "web-fetch-2025-09-10" beta header.
  *
  * @category Web Fetch
@@ -1596,6 +1646,8 @@ export const WebFetch_20250910 = Tool.providerDefined({
 
 /**
  * Input parameters for regex-based tool search.
+ *
+ * **Details**
  *
  * Claude constructs regex patterns using Python's `re.search()` syntax.
  * Maximum query length: 200 characters.
@@ -1644,10 +1696,11 @@ export type ToolSearchBM25Parameters = typeof ToolSearchBM25Parameters.Type
 /**
  * Regex-based tool search for Claude models.
  *
+ * **Details**
+ *
  * Claude constructs regex patterns using Python's `re.search()` syntax to
  * find tools. The regex is matched against tool names, descriptions,
  * argument names, and argument descriptions.
- *
  * Requires the "advanced-tool-use-2025-11-20" beta header.
  *
  * @category Tool Search
@@ -1665,10 +1718,11 @@ export const ToolSearchRegex_20251119 = Tool.providerDefined({
 /**
  * BM25/natural language tool search for Claude models.
  *
+ * **Details**
+ *
  * Claude uses natural language queries to search for tools using the
  * BM25 algorithm. The search is performed against tool names, descriptions,
  * argument names, and argument descriptions.
- *
  * Requires the "advanced-tool-use-2025-11-20" beta header.
  *
  * @category Tool Search

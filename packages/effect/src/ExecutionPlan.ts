@@ -68,9 +68,8 @@ export type TypeId = "~effect/ExecutionPlan"
 export const TypeId: TypeId = "~effect/ExecutionPlan"
 
 /**
- * Returns `true` if a value is an `ExecutionPlan`.
- *
- * This is a type guard that checks for the `ExecutionPlan.TypeId` marker.
+ * Returns `true` if a value is an `ExecutionPlan` by checking for the
+ * `ExecutionPlan.TypeId` marker.
  *
  * @category guards
  * @since 3.16.0
@@ -159,6 +158,8 @@ export interface ExecutionPlan<
 
 /**
  * Base type-level configuration carried by an `ExecutionPlan`.
+ *
+ * **Details**
  *
  * `provides` tracks services supplied by plan steps, `input` tracks the error
  * input consumed by schedules and `while` predicates, `error` tracks failures
@@ -260,6 +261,8 @@ export const make = <const Steps extends NonEmptyReadonlyArray<make.Step>>(
 export declare namespace make {
   /**
    * Input shape for a single execution-plan step.
+   *
+   * **Details**
    *
    * Each step provides a `Context` or `Layer` and may limit attempts, add a
    * `while` predicate for retry decisions, or attach a `Schedule` for retry
@@ -368,6 +371,8 @@ const makeProto = <Provides, In, PlanE, PlanR>(
 /**
  * Combines multiple execution plans by concatenating their steps in order.
  *
+ * **Details**
+ *
  * The resulting plan tries every step from the first plan, then every step from
  * the next plan, and so on.
  *
@@ -385,6 +390,8 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
 
 /**
  * Metadata describing the currently running execution-plan attempt.
+ *
+ * **Details**
  *
  * `attempt` is the current 1-based attempt number, and `stepIndex` is the
  * 0-based index of the plan step currently being evaluated.

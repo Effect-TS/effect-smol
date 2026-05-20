@@ -145,6 +145,8 @@ export const make: (impl: {
  * Provides the default `HttpPlatform` implementation for serving file paths and
  * `File`-like values as streamed HTTP responses.
  *
+ * **Details**
+ *
  * The layer uses the `FileSystem` and weak ETag services to add file metadata
  * headers such as `etag` and `last-modified`.
  *

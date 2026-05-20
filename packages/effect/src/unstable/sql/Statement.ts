@@ -471,9 +471,11 @@ export interface Constructor {
   ) => RecordUpdateHelperSingle
 
   /**
-   * Update multiple rows
+   * Update multiple rows.
    *
-   * **Note:** Not supported in sqlite
+   * **Gotchas**
+   *
+   * Not supported in sqlite.
    */
   readonly updateValues: (
     value: ReadonlyArray<Record<string, unknown>>,
@@ -491,9 +493,11 @@ export interface Constructor {
   readonly or: (clauses: ReadonlyArray<string | Fragment>) => Fragment
 
   /**
-   * Create comma seperated values, with an optional prefix
+   * Create comma seperated values, with an optional prefix.
    *
-   * Useful for `ORDER BY` and `GROUP BY` clauses
+   * **When to use**
+   *
+   * Useful for `ORDER BY` and `GROUP BY` clauses.
    */
   readonly csv: {
     (values: ReadonlyArray<string | Fragment>): Fragment

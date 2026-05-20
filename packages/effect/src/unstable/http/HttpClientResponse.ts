@@ -36,16 +36,22 @@ import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
+   * Creates a decoder that reads a response JSON body and decodes it with the supplied schema.
+   *
    * @category schemas
    * @since 4.0.0
    */
   schemaBodyJson,
   /**
+   * Creates a decoder that reads response URL-encoded body parameters and decodes them with the supplied schema.
+   *
    * @category schemas
    * @since 4.0.0
    */
   schemaBodyUrlParams,
   /**
+   * Creates a decoder that validates and decodes response headers with the supplied schema.
+   *
    * @category schemas
    * @since 4.0.0
    */

@@ -51,6 +51,8 @@ import * as Snowflake from "./Snowflake.ts"
 /**
  * Service for cluster mailbox persistence and reply delivery.
  *
+ * **Details**
+ *
  * It stores outgoing requests, control envelopes, and replies; reads unprocessed
  * messages; manages reply handlers; and provides transaction wrapping for storage
  * operations.
@@ -88,8 +90,12 @@ export class MessageStorage extends Context.Service<MessageStorage, {
   /**
    * Retrieves the replies for the specified requests.
    *
+   * **Details**
+   *
+   * This returns:
+   *
    * - Un-acknowledged chunk replies
-   * - WithExit replies
+   * - `WithExit` replies
    */
   readonly repliesFor: <R extends Rpc.Any>(
     requests: Iterable<Message.OutgoingRequest<R>>
@@ -133,12 +139,13 @@ export class MessageStorage extends Context.Service<MessageStorage, {
   /**
    * Retrieves the unprocessed messages for the specified shards.
    *
+   * **Details**
+   *
    * A message is unprocessed when:
    *
-   * - Requests that have no WithExit replies
-   *   - Or they have no unacknowledged chunk replies
-   * - The latest AckChunk envelope
-   * - All Interrupt's for unprocessed requests
+   * - Requests that have no `WithExit` replies or no unacknowledged chunk replies
+   * - The latest `AckChunk` envelope
+   * - All `Interrupt` envelopes for unprocessed requests
    */
   readonly unprocessedMessages: (
     shardIds: Iterable<ShardId.ShardId>
@@ -183,6 +190,8 @@ export class MessageStorage extends Context.Service<MessageStorage, {
 /**
  * Result of saving a request or envelope into message storage.
  *
+ * **Details**
+ *
  * A duplicate result carries the original request ID and the last reply already
  * received for the duplicated request.
  *
@@ -217,6 +226,8 @@ export declare namespace SaveResult {
   /**
    * Encoded storage-driver form of `SaveResult`.
    *
+   * **Details**
+   *
    * Duplicate results contain an encoded last received reply instead of a decoded
    * reply.
    *
@@ -238,6 +249,8 @@ export declare namespace SaveResult {
   /**
    * Variant indicating that the request duplicates an existing stored request.
    *
+   * **Details**
+   *
    * It carries the original request ID and the latest decoded reply, when one is
    * available.
    *
@@ -252,6 +265,8 @@ export declare namespace SaveResult {
 
   /**
    * Encoded duplicate-save variant returned by lower-level storage drivers.
+   *
+   * **Details**
    *
    * It carries the original request ID and the latest encoded reply, when one is
    * available.
@@ -278,6 +293,8 @@ export declare namespace SaveResult {
 
 /**
  * Low-level storage-driver contract for encoded envelopes and replies.
+ *
+ * **Details**
  *
  * Implementations persist encoded messages, track primary keys and delayed
  * delivery, read unprocessed messages, and provide transaction wrapping.
@@ -317,8 +334,12 @@ export type Encoded = {
   /**
    * Retrieves the replies for the specified requests.
    *
+   * **Details**
+   *
+   * This returns:
+   *
    * - Un-acknowledged chunk replies
-   * - WithExit replies
+   * - `WithExit` replies
    */
   readonly repliesFor: (requestIds: Arr.NonEmptyArray<string>) => Effect.Effect<
     Array<Reply.Encoded>,
@@ -336,12 +357,13 @@ export type Encoded = {
   /**
    * Retrieves the unprocessed messages for the given shards.
    *
+   * **Details**
+   *
    * A message is unprocessed when:
    *
-   * - Requests that have no WithExit replies
-   *   - Or they have no unacknowledged chunk replies
-   * - The latest AckChunk envelope
-   * - All Interrupt's for unprocessed requests
+   * - Requests that have no `WithExit` replies or no unacknowledged chunk replies
+   * - The latest `AckChunk` envelope
+   * - All `Interrupt` envelopes for unprocessed requests
    */
   readonly unprocessedMessages: (
     shardIds: Arr.NonEmptyArray<string>,
@@ -400,6 +422,8 @@ export type Encoded = {
 /**
  * Cursor options for reading encoded unprocessed messages across shard sets.
  *
+ * **Details**
+ *
  * The fields distinguish existing shards from newly assigned shards and carry the
  * driver-specific pagination cursor.
  *
@@ -415,6 +439,8 @@ export type EncodedUnprocessedOptions<A> = {
 /**
  * Cursor options for reading encoded replies across request sets.
  *
+ * **Details**
+ *
  * The fields distinguish existing requests from new requests and carry the
  * driver-specific pagination cursor.
  *
@@ -429,6 +455,8 @@ export type EncodedRepliesOptions<A> = {
 
 /**
  * Wraps a concrete message storage implementation with reply-handler management.
+ *
+ * **Details**
  *
  * The returned service can register waiting reply handlers, notify them when
  * replies are saved, and fail them when a request or shard is unregistered.
@@ -536,6 +564,8 @@ export const make = (
 
 /**
  * Builds a `MessageStorage` service from an encoded storage driver.
+ *
+ * **Details**
  *
  * The adapter handles envelope and reply encoding and decoding, primary-key
  * generation, delayed delivery checks, duplicate decoding, and malformed-message
@@ -773,6 +803,8 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
 /**
  * In-memory storage entry for a request envelope.
  *
+ * **Details**
+ *
  * It stores the encoded envelope, last acknowledged chunk, accumulated replies,
  * and optional delivery time.
  *
@@ -798,6 +830,8 @@ export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/Mess
 
 /**
  * In-memory message storage driver with inspectable backing state.
+ *
+ * **Details**
  *
  * It provides a `MessageStorage` service, the encoded driver implementation, and
  * maps used to track requests, primary keys, unprocessed envelopes, reply IDs,

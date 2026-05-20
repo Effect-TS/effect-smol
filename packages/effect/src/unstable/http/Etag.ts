@@ -34,6 +34,8 @@ export type Etag = Weak | Strong
 /**
  * Weak HTTP entity tag.
  *
+ * **Details**
+ *
  * The `value` is the raw tag value without the surrounding quotes or `W/` prefix.
  *
  * @category models
@@ -46,6 +48,8 @@ export interface Weak {
 
 /**
  * Strong HTTP entity tag.
+ *
+ * **Details**
  *
  * The `value` is the raw tag value without the surrounding quotes.
  *

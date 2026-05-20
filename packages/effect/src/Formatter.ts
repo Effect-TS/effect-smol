@@ -56,16 +56,15 @@ import * as Predicate from "./Predicate.ts"
 import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
 
 /**
- * A callable interface representing a function that converts a `Value` into a
- * `Format` (defaults to `string`).
+ * A callable interface representing a function that converts a `Value` into a `Format`, which defaults to `string`.
  *
- * When to use:
- * - You want to type a formatting / rendering function generically.
- * - You are building a pipeline that accepts pluggable formatters.
+ * **When to use**
  *
- * Behavior:
- * - Pure callable type; carries no runtime implementation.
- * - Contravariant in `Value`, covariant in `Format`.
+ * Use `Formatter` when you want to type a formatting or rendering function generically, or when you are building a pipeline that accepts pluggable formatters.
+ *
+ * **Details**
+ *
+ * This is a pure callable type and carries no runtime implementation. It is contravariant in `Value` and covariant in `Format`.
  *
  * **Example** (Define a custom formatter)
  *
@@ -78,8 +77,8 @@ import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
  * // HELLO
  * ```
  *
- * See also: {@link format}, {@link formatJson}
- *
+ * @see {@link format}
+ * @see {@link formatJson}
  * @category models
  * @since 4.0.0
  */
@@ -90,14 +89,16 @@ export interface Formatter<in Value, out Format = string> {
 /**
  * Converts any JavaScript value into a human-readable string.
  *
- * When to use:
+ * **When to use**
+ *
  * - Pretty-printing values for debugging, logging, or error messages.
  * - You need to handle `BigInt`, `Symbol`, `Set`, `Map`, `Date`, `RegExp`,
  *   or class instances that `JSON.stringify` cannot represent.
  * - You want circular references shown as `"[Circular]"` instead of
  *   throwing.
  *
- * Behavior:
+ * **Details**
+ *
  * - Does not mutate input.
  * - Output is **not** valid JSON; use {@link formatJson} when you need
  *   parseable JSON.
@@ -113,8 +114,6 @@ export interface Formatter<in Value, out Format = string> {
  * - Arrays/objects with 0–1 entries are inline; larger ones are
  *   pretty-printed when `space` is set.
  * - Circular references are replaced with `"[Circular]"`.
- *
- * Options:
  * - `space` — indentation unit (number of spaces, or a string like
  *   `"\t"`). Defaults to `0` (compact).
  * - `ignoreToString` — skip calling `toString()`. Defaults to `false`.
@@ -154,8 +153,8 @@ export interface Formatter<in Value, out Format = string> {
  * // {"name":"loop","self":[Circular]}
  * ```
  *
- * See also: {@link formatJson}, {@link Formatter}
- *
+ * @see {@link formatJson}
+ * @see {@link Formatter}
  * @category formatting
  * @since 2.0.0
  */
@@ -288,12 +287,14 @@ function safeToString(input: any): string {
 /**
  * Safely stringifies a value to JSON, silently dropping circular references.
  *
- * When to use:
+ * **When to use**
+ *
  * - You need valid JSON output (unlike {@link format}).
  * - The input may contain circular references and you want them silently
  *   omitted rather than throwing a `TypeError`.
  *
- * Behavior:
+ * **Details**
+ *
  * - Does not mutate input.
  * - Uses `JSON.stringify` internally with a replacer that tracks the
  *   current object ancestry.
@@ -303,8 +304,6 @@ function safeToString(input: any): string {
  * - Types not supported by JSON (`BigInt`, `Symbol`, `undefined`,
  *   functions) follow standard `JSON.stringify` behavior (omitted or
  *   `null` in arrays).
- *
- * Options:
  * - `space` — indentation unit (number of spaces, or a string like
  *   `"\t"`). Defaults to `0` (compact).
  *
@@ -340,8 +339,8 @@ function safeToString(input: any): string {
  * // }
  * ```
  *
- * See also: {@link format}, {@link Formatter}
- *
+ * @see {@link format}
+ * @see {@link Formatter}
  * @category serialization
  * @since 4.0.0
  */

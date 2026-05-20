@@ -35,10 +35,9 @@ import { hasProperty } from "../../Predicate.ts"
 export const symbol = "~effect/cluster/DeliverAt"
 
 /**
- * Interface for payloads that specify when a cluster message should be delivered.
- *
- * Implementations return the target delivery `DateTime` through the `DeliverAt`
- * symbol method.
+ * Interface for payloads that specify when a cluster message should be delivered
+ * by returning the target delivery `DateTime` through the `DeliverAt` symbol
+ * method.
  *
  * @category models
  * @since 4.0.0

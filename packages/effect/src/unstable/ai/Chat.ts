@@ -71,6 +71,8 @@ import type * as Tool from "./Tool.ts"
 /**
  * The `Chat` service tag for dependency injection.
  *
+ * **Details**
+ *
  * This tag provides access to chat functionality throughout your application,
  * enabling persistent conversational AI interactions with full context
  * management.
@@ -107,6 +109,8 @@ export interface Service {
   /**
    * Reference to the chat history.
    *
+   * **Details**
+   *
    * Provides direct access to the conversation history for advanced use cases
    * like custom history manipulation or inspection.
    *
@@ -128,6 +132,8 @@ export interface Service {
 
   /**
    * Exports the chat history into a structured format.
+   *
+   * **Details**
    *
    * Returns the complete conversation history as a structured object
    * that can be stored, transmitted, or processed by other systems.
@@ -153,6 +159,8 @@ export interface Service {
 
   /**
    * Exports the chat history as a JSON string.
+   *
+   * **Details**
    *
    * Provides a convenient way to serialize the entire conversation
    * for storage or transmission in JSON format.
@@ -180,6 +188,8 @@ export interface Service {
 
   /**
    * Generate text using a language model for the specified prompt.
+   *
+   * **Details**
    *
    * If a toolkit is specified, the language model will have access to tools
    * for function calling and enhanced capabilities. Both input and output
@@ -247,6 +257,8 @@ export interface Service {
   /**
    * Generate text using a language model with streaming output.
    *
+   * **Details**
+   *
    * Returns a stream of response parts that are emitted as soon as they're
    * available from the model. Supports tool calling and maintains chat history.
    *
@@ -310,6 +322,8 @@ export interface Service {
 
   /**
    * Generate a structured object using a language model and schema.
+   *
+   * **Details**
    *
    * Forces the model to return data that conforms to the specified schema,
    * enabling structured data extraction and type-safe responses. The
@@ -465,6 +479,8 @@ const makeUnsafe = (history: Ref.Ref<Prompt.Prompt>) => {
 /**
  * Creates a new Chat service with empty conversation history.
  *
+ * **When to use**
+ *
  * This is the most common way to start a fresh chat session without
  * any initial context or system prompts.
  *
@@ -494,6 +510,8 @@ export const empty: Effect.Effect<Service> = Effect.sync(() => makeUnsafe(Ref.ma
 
 /**
  * Creates a new Chat service from an initial prompt.
+ *
+ * **Details**
  *
  * This is the primary constructor for creating chat instances. It initializes
  * a new conversation with the provided prompt as the starting context.
@@ -558,6 +576,8 @@ export const fromPrompt = (prompt: Prompt.RawInput) =>
 /**
  * Creates a Chat service from previously exported chat data.
  *
+ * **Details**
+ *
  * Restores a chat session from structured data that was previously exported
  * using the `export` method. Useful for persisting and restoring conversation
  * state.
@@ -608,6 +628,8 @@ export const fromExport = (data: unknown): Effect.Effect<
 
 /**
  * Creates a Chat service from previously exported JSON chat data.
+ *
+ * **Details**
  *
  * Restores a chat session from JSON string that was previously exported
  * using the `exportJson` method. This is the most convenient way to
@@ -715,6 +737,8 @@ export declare namespace Persistence {
 /**
  * Represents a `Chat` that is backed by persistence.
  *
+ * **Details**
+ *
  * When calling a text generation method (e.g. `generateText`), the previous
  * chat history as well as the relevent response parts will be saved to the
  * backing persistence store.
@@ -736,6 +760,8 @@ export interface Persisted extends Service {
 
 /**
  * Creates a new chat persistence service.
+ *
+ * **Details**
  *
  * The provided store identifier will be used to indicate which "store" the
  * backing persistence should load chats from.
@@ -888,7 +914,9 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
 })
 
 /**
- * Creates a `Layer` new chat persistence service.
+ * Creates a `Layer` for a new chat persistence service.
+ *
+ * **Details**
  *
  * The provided store identifier will be used to indicate which "store" the
  * backing persistence should load chats from.

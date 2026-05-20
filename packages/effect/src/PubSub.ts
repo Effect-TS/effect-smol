@@ -99,7 +99,7 @@ export interface PubSub<in out A> extends Pipeable {
  *
  * @since 2.0.0
  */
-export namespace PubSub {
+export declare namespace PubSub {
   /**
    * Low-level atomic PubSub interface that handles the core message storage and retrieval.
    *
@@ -135,7 +135,7 @@ export namespace PubSub {
   /**
    * Tracks the pollers currently waiting on each backing subscription.
    *
-   * **Notes**
+   * **Details**
    *
    * This type is part of the low-level `PubSub.Strategy` contract. Most
    * application code should use `subscribe`, `take`, and the other `PubSub`
@@ -312,12 +312,12 @@ export const make = <A>(
  * Creates a bounded `PubSub` that applies backpressure when it reaches
  * capacity.
  *
+ * **Details**
+ *
  * Published messages are retained until all current subscribers have taken
  * them. When the capacity is full, publishers suspend until space is available.
  * Pass an options object to configure both `capacity` and an optional replay
  * buffer for late subscribers.
- *
- *                   with capacity and optional replay buffer size
  *
  * **Example** (Creating a bounded PubSub)
  *
@@ -353,6 +353,8 @@ export const bounded = <A>(
 /**
  * Creates a bounded `PubSub` with the dropping strategy. The `PubSub` will drop new
  * messages if the `PubSub` is at capacity.
+ *
+ * **Details**
  *
  * For best performance use capacities that are powers of two.
  *
@@ -404,6 +406,8 @@ export const dropping = <A>(
 /**
  * Creates a bounded `PubSub` with the sliding strategy. The `PubSub` will add new
  * messages and drop old messages if the `PubSub` is at capacity.
+ *
+ * **Details**
  *
  * For best performance use capacities that are powers of two.
  *
@@ -555,6 +559,8 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  * Returns the current number of messages retained by the `PubSub` for active
  * subscribers.
  *
+ * **Details**
+ *
  * If the `PubSub` has been shut down, the returned effect succeeds with `0`.
  * The size is not a count of waiting subscribers or suspended publishers.
  *
@@ -593,7 +599,7 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * Synchronously returns the current number of messages retained by the `PubSub`
  * for active subscribers.
  *
- * **Notes**
+ * **Details**
  *
  * Returns `0` after shutdown. Because this is an unsafe synchronous snapshot,
  * prefer `size` in effectful code.
@@ -622,6 +628,8 @@ export const sizeUnsafe = <A>(self: PubSub<A>): number => {
 
 /**
  * Returns `true` when the `PubSub` has reached its configured capacity.
+ *
+ * **Details**
  *
  * For unbounded PubSubs this is normally `false`.
  *
@@ -695,6 +703,8 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
 /**
  * Shuts down the `PubSub`, interrupting suspended publishers and subscribers
  * and finalizing active subscriptions.
+ *
+ * **Details**
  *
  * After shutdown, `publish` and `publishAll` succeed with `false`,
  * `publishUnsafe` returns `false`, and subscription operations such as `take`
@@ -825,6 +835,8 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
 /**
  * Attempts to publish a message synchronously without applying the PubSub
  * strategy's effectful surplus handling.
+ *
+ * **Details**
  *
  * Returns `false` if the `PubSub` is shut down or the message cannot be
  * accepted immediately, for example when a bounded PubSub is full. Prefer
@@ -1321,6 +1333,8 @@ const takeRemainderLoop = <A>(
 
 /**
  * Synchronously checks how many messages can be taken from a subscription.
+ *
+ * **Details**
  *
  * Returns `Option.some(count)` while the subscription is active, including
  * replay-buffered messages, and `Option.none()` after the subscription has

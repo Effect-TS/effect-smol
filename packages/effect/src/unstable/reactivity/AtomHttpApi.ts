@@ -51,6 +51,8 @@ import * as Reactivity from "./Reactivity.ts"
 /**
  * A `Context.Service` for an HTTP API client integrated with atom reactivity.
  *
+ * **Details**
+ *
  * It exposes the generated HTTP API client, an atom runtime, mutation helpers that
  * return `AtomResultFn`s, and query helpers that return atoms of endpoint results.
  *
@@ -173,6 +175,8 @@ declare global {
 /**
  * Creates a `Context.Service` class for an HTTP API client backed by an atom
  * runtime.
+ *
+ * **Details**
  *
  * The options provide the API definition, HTTP client layer, optional client and
  * response transforms, base URL, and runtime factory used by the query and

@@ -110,9 +110,11 @@ export interface Closeable extends Scope {
  *
  * @since 4.0.0
  */
-export namespace State {
+export declare namespace State {
   /**
    * Represents an open scope with no registered finalizers yet.
+   *
+   * **Details**
    *
    * Adding the first finalizer transitions the scope to `Open`; closing an
    * empty scope transitions directly to `Closed` without producing a finalizer
@@ -306,6 +308,8 @@ export const provide: {
 /**
  * Registers an exit-aware finalizer on a scope.
  *
+ * **Details**
+ *
  * If the scope is open, the finalizer runs when the scope closes and receives
  * the scope's exit value. If the scope is already closed, the finalizer runs
  * immediately with the stored exit value.
@@ -346,6 +350,8 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
 /**
  * Registers a finalizer effect on a scope.
  *
+ * **Details**
+ *
  * If the scope is open, the finalizer runs when the scope closes, regardless of
  * whether the scope closes successfully or with an error. If the scope is
  * already closed, the finalizer runs immediately.
@@ -378,6 +384,8 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
 
 /**
  * Creates a closeable child scope registered with a parent scope.
+ *
+ * **Details**
  *
  * Closing the parent closes the child with the same exit value, and closing the
  * child detaches it from the parent. The optional finalizer strategy configures
@@ -416,6 +424,8 @@ export const fork: (
 
 /**
  * Synchronously creates a closeable child scope registered with a parent scope.
+ *
+ * **Details**
  *
  * Closing the parent closes the child with the same exit value, and closing the
  * child detaches it from the parent. The optional finalizer strategy configures
@@ -480,6 +490,8 @@ export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effe
 /**
  * Unsafely transitions a scope to `Closed` with the provided exit value.
  *
+ * **Details**
+ *
  * Returns an effect that runs registered finalizers, or `undefined` when the
  * scope was already closed or no finalizers need to run. Prefer `close` unless
  * you are implementing lower-level scope machinery and can correctly run the
@@ -494,6 +506,8 @@ export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void,
 /**
  * Runs an effect with the provided closeable scope in its context and closes
  * that scope when the effect exits.
+ *
+ * **Details**
  *
  * The scope is closed with the same exit value as the effect, so registered
  * finalizers can observe whether the effect succeeded, failed, or was

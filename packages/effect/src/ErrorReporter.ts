@@ -80,11 +80,13 @@ export const TypeId: TypeId = "~effect/ErrorReporter"
 
 /**
  * An `ErrorReporter` receives reported failures and forwards them to an
- * external system (logging service, error tracker, etc.).
+ * external system such as a logging service or error tracker.
+ *
+ * **Details**
  *
  * Reporting is triggered by `Effect.withErrorReporting`,
  * `ErrorReporter.report`, or built-in boundaries in the HTTP and RPC server
- * modules. Use {@link make} to create a reporter — it handles deduplication
+ * modules. Use {@link make} to create a reporter; it handles deduplication
  * and per-error annotation extraction automatically.
  *
  * @category models
@@ -101,6 +103,8 @@ export interface ErrorReporter {
 
 /**
  * Creates an `ErrorReporter` from a callback.
+ *
+ * **Details**
  *
  * The returned reporter automatically deduplicates causes and individual
  * errors (the same object is never reported twice), skips interruptions,
@@ -165,6 +169,8 @@ export const make = (
  * A `Context.Reference` holding the set of active `ErrorReporter`s for the
  * current fiber. Defaults to an empty set (no reporting).
  *
+ * **When to use**
+ *
  * Prefer {@link layer} to configure reporters via the `Layer` API. Use this
  * reference directly only when you need low-level control (e.g. reading the
  * current reporters or swapping them inside a `FiberRef`).
@@ -177,12 +183,12 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
 /**
  * Creates a `Layer` that registers one or more `ErrorReporter`s.
  *
- * Reporters can be plain `ErrorReporter` values or effectful
- * `Effect<ErrorReporter>` values that are resolved when the layer is built.
+ * **Details**
  *
- * By default the provided reporters **replace** any previously registered
- * reporters. Set `mergeWithExisting: true` to add them alongside existing
- * ones.
+ * Reporters can be plain `ErrorReporter` values or effectful
+ * `Effect<ErrorReporter>` values that are resolved when the layer is built. By
+ * default the provided reporters **replace** any previously registered
+ * reporters. Set `mergeWithExisting: true` to add them alongside existing ones.
  *
  * **Example** (Providing error reporters)
  *
@@ -245,8 +251,10 @@ export const layer = <
   )
 
 /**
- * Manually report a `Cause` to all registered `ErrorReporter`s on the
+ * Manually reports a `Cause` to all registered `ErrorReporter`s on the
  * current fiber.
+ *
+ * **When to use**
  *
  * This is useful when you want to report an error for observability without
  * actually failing the fiber.
@@ -276,13 +284,14 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
 /**
  * Interface that object errors can implement to control reporting behavior.
  *
- * All three annotation properties are optional:
- * - `[ErrorReporter.ignore]` - when `true`, the error is not reported
- * - `[ErrorReporter.severity]` - overrides the default `"Info"` severity
- * - `[ErrorReporter.attributes]` - extra key/value pairs forwarded to reporters
+ * **Details**
  *
- * The global `Error` interface is augmented with `Reportable`, so these
- * properties are available on `Error` instances at the type level.
+ * All three annotation properties are optional: `[ErrorReporter.ignore]`
+ * prevents reporting when set to `true`, `[ErrorReporter.severity]` overrides
+ * the default `"Info"` severity, and `[ErrorReporter.attributes]` adds extra
+ * key/value pairs forwarded to reporters. The global `Error` interface is
+ * augmented with `Reportable`, so these properties are available on `Error`
+ * instances at the type level.
  *
  * @category annotations
  * @since 4.0.0
@@ -301,6 +310,8 @@ declare global {
  * String property key used to mark an object error as ignored by error
  * reporting.
  *
+ * **Details**
+ *
  * Set this property to `true` on an error class or object error to prevent it
  * from being forwarded to reporters. This is useful for expected failures such
  * as HTTP 404 responses.
@@ -313,6 +324,8 @@ export type ignore = "~effect/ErrorReporter/ignore"
 /**
  * Runtime property key used to mark an object error as ignored by error
  * reporting.
+ *
+ * **Details**
  *
  * Set `error[ErrorReporter.ignore]` to `true` to prevent the error from being
  * forwarded to reporters. This is useful for expected failures such as HTTP 404
@@ -346,6 +359,8 @@ export const isIgnored = (u: unknown): boolean =>
 /**
  * String property key used to override the severity level of an object error.
  *
+ * **Details**
+ *
  * When set to a valid `LogLevel.Severity`, the reporter callback receives this
  * value as `severity`. Missing or invalid values fall back to `"Info"`.
  *
@@ -356,6 +371,8 @@ export type severity = "~effect/ErrorReporter/severity"
 
 /**
  * Runtime property key used to override the severity level of an object error.
+ *
+ * **Details**
  *
  * Set `error[ErrorReporter.severity]` to a valid `LogLevel.Severity` value.
  * Missing or invalid values fall back to `"Info"`.
@@ -393,6 +410,8 @@ export const getSeverity = (error: object): Severity => {
  * String property key used to attach extra key/value metadata to an object
  * error report.
  *
+ * **Details**
+ *
  * Reporters receive these attributes alongside the error, making it easy to
  * include contextual information such as user IDs, request IDs, or other
  * domain-specific debugging data.
@@ -405,6 +424,8 @@ export type attributes = "~effect/ErrorReporter/attributes"
 /**
  * Runtime property key used to attach extra key/value metadata to an object
  * error report.
+ *
+ * **Details**
  *
  * Set `error[ErrorReporter.attributes]` to a record of metadata that should be
  * forwarded to reporters alongside the error.

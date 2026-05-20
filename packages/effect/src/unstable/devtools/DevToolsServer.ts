@@ -30,6 +30,8 @@ const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
 /**
  * Handle for a connected devtools client.
  *
+ * **Details**
+ *
  * It exposes a queue of non-ping requests received from the socket and a
  * `send` function for non-pong responses.
  *
@@ -43,6 +45,8 @@ export interface Client {
 
 /**
  * Runs the devtools socket server.
+ *
+ * **Details**
  *
  * Each connection is decoded as NDJSON devtools protocol messages, `Ping`
  * requests are answered with `Pong`, and all other requests are delivered

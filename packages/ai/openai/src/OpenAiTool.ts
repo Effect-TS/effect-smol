@@ -28,11 +28,9 @@ export type OpenAiTool =
   | ReturnType<typeof WebSearchPreview>
 
 /**
- * OpenAI Apply Patch tool.
- *
- * Allows the model to apply diffs by creating, deleting, or updating files.
- * This is a local tool that runs in your environment and requires a handler
- * to execute file operations.
+ * OpenAI Apply Patch tool that allows the model to apply diffs by creating,
+ * deleting, or updating files. This local tool runs in your environment and
+ * requires a handler to execute file operations.
  *
  * @category tools
  * @since 4.0.0
@@ -53,9 +51,8 @@ export const ApplyPatch = Tool.providerDefined({
 })
 
 /**
- * OpenAI Code Interpreter tool.
- *
- * Allows the model to execute Python code in a sandboxed environment.
+ * OpenAI Code Interpreter tool that allows the model to execute Python code in
+ * a sandboxed environment.
  *
  * @category tools
  * @since 4.0.0
@@ -77,9 +74,8 @@ export const CodeInterpreter = Tool.providerDefined({
 })
 
 /**
- * OpenAI File Search tool.
- *
- * Enables the model to search through uploaded files and vector stores.
+ * OpenAI File Search tool that enables the model to search through uploaded
+ * files and vector stores.
  *
  * @category tools
  * @since 4.0.0
@@ -102,9 +98,8 @@ export const FileSearch = Tool.providerDefined({
 })
 
 /**
- * OpenAI Image Generation tool.
- *
- * Enables the model to generate images using the GPT image models.
+ * OpenAI Image Generation tool that enables the model to generate images using
+ * the GPT image models.
  *
  * @category tools
  * @since 4.0.0
@@ -131,10 +126,9 @@ export const ImageGeneration = Tool.providerDefined({
 })
 
 /**
- * OpenAI Local Shell tool.
- *
- * Enables the model to run a command with a local shell. This is a local tool
- * that runs in your environment and requires a handler to execute commands.
+ * OpenAI Local Shell tool that enables the model to run a command with a local
+ * shell. This local tool runs in your environment and requires a handler to
+ * execute commands.
  *
  * @category tools
  * @since 4.0.0
@@ -153,10 +147,8 @@ export const LocalShell = Tool.providerDefined({
 })
 
 /**
- * OpenAI MCP tool.
- *
- * Gives the model access to additional tools via remote Model Context Protocol
- * (MCP) servers
+ * OpenAI MCP tool that gives the model access to additional tools via remote
+ * Model Context Protocol (MCP) servers.
  *
  * @category tools
  * @since 4.0.0
@@ -186,11 +178,9 @@ export const Mcp = Tool.providerDefined({
 })
 
 /**
- * OpenAI Function Shell tool.
- *
- * Enables the model to execute one or more shell commands in a managed
- * environment. This is a local tool that runs in your environment and requires
- * a handler to execute commands.
+ * OpenAI Function Shell tool that enables the model to execute one or more shell
+ * commands in a managed environment. This local tool runs in your environment
+ * and requires a handler to execute commands.
  *
  * @category tools
  * @since 4.0.0
@@ -209,9 +199,8 @@ export const Shell = Tool.providerDefined({
 })
 
 /**
- * OpenAI Web Search tool.
- *
- * Enables the model to search the web for information.
+ * OpenAI Web Search tool that enables the model to search the web for
+ * information.
  *
  * @category tools
  * @since 4.0.0
@@ -235,9 +224,8 @@ export const WebSearch = Tool.providerDefined({
 })
 
 /**
- * OpenAI Web Search Preview tool.
- *
- * Preview version of the web search tool with additional features.
+ * OpenAI Web Search Preview tool, a preview version of the web search tool with
+ * additional features.
  *
  * @category tools
  * @since 4.0.0

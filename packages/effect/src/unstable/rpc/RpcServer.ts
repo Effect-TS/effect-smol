@@ -803,10 +803,12 @@ export const layer = <Rpcs extends Rpc.Any>(
 > => Layer.effectDiscard(Effect.forkScoped(make(group, options)))
 
 /**
- * Create a RPC server that registers a HTTP route with a `HttpRouter`.
+ * Creates a RPC server that registers a HTTP route with a `HttpRouter`.
  *
- * It defaults to using websockets for communication, but can be configured to
- * use HTTP.
+ * **Details**
+ *
+ * Defaults to using websockets for communication, but can be configured to use
+ * HTTP.
  *
  * @category protocol
  * @since 4.0.0

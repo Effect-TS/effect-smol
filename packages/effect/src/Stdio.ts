@@ -43,9 +43,11 @@ export const TypeId: TypeId = "~effect/Stdio"
 /**
  * Service interface for process standard I/O.
  *
- * It provides command-line arguments, sinks for standard output and standard
- * error, and a stream of standard input bytes. I/O operations can fail with
- * `PlatformError`.
+ * **Details**
+ *
+ * The service provides command-line arguments, sinks for standard output and
+ * standard error, and a stream of standard input bytes. I/O operations can fail
+ * with `PlatformError`.
  *
  * @category models
  * @since 4.0.0
@@ -83,6 +85,8 @@ export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
 
 /**
  * Creates a test layer for `Stdio`.
+ *
+ * **Details**
  *
  * Any provided fields override defaults. By default, arguments are empty,
  * standard output and error are draining sinks, and standard input is an empty

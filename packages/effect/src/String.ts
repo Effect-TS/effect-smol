@@ -218,6 +218,8 @@ export const uncapitalize = <T extends string>(self: T): Uncapitalize<T> => {
 /**
  * Replaces matches in a string using `String.prototype.replace`.
  *
+ * **Details**
+ *
  * String search values and non-global regular expressions replace the first
  * match; global regular expressions replace every match.
  *
@@ -870,6 +872,8 @@ export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: str
 /**
  * Keep the specified number of characters from the start of a string.
  *
+ * **Details**
+ *
  * If `n` is larger than the available number of characters, the string will
  * be returned whole.
  *
@@ -896,6 +900,8 @@ export const takeLeft: {
 
 /**
  * Keep the specified number of characters from the end of a string.
+ *
+ * **Details**
  *
  * If `n` is larger than the available number of characters, the string will
  * be returned whole.

@@ -17,8 +17,7 @@ import * as Telemetry from "effect/unstable/ai/Telemetry"
  * The attributes used to describe telemetry in the context of Generative
  * Artificial Intelligence (GenAI) Models requests and responses.
  *
- * {@see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/}
- *
+ * @see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/
  * @category models
  * @since 4.0.0
  */
@@ -75,8 +74,10 @@ export interface ResponseAttributes {
 }
 
 /**
- * The `gen_ai.openai.request.response_format` attribute has the following
- * list of well-known values.
+ * The `gen_ai.openai.request.response_format` attribute has a list of
+ * well-known values.
+ *
+ * **Details**
  *
  * If one of them applies, then the respective value **MUST** be used;
  * otherwise, a custom value **MAY** be used.
@@ -87,8 +88,10 @@ export interface ResponseAttributes {
 export type WellKnownResponseFormat = "json_object" | "json_schema" | "text"
 
 /**
- * The `gen_ai.openai.request.service_tier` attribute has the following
- * list of well-known values.
+ * The `gen_ai.openai.request.service_tier` attribute has a list of
+ * well-known values.
+ *
+ * **Details**
  *
  * If one of them applies, then the respective value **MUST** be used;
  * otherwise, a custom value **MAY** be used.
@@ -123,7 +126,9 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
  * Applies the specified OpenAi GenAI telemetry attributes to the provided
  * `Span`.
  *
- * **NOTE**: This method will mutate the `Span` **in-place**.
+ * **Gotchas**
+ *
+ * This method will mutate the `Span` **in-place**.
  *
  * @category tracing
  * @since 4.0.0

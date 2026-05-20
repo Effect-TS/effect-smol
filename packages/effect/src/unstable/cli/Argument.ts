@@ -41,10 +41,12 @@ import type * as Primitive from "./Primitive.ts"
 /**
  * Represents a positional command-line argument.
  *
- * Note: `boolean` is intentionally omitted from Argument constructors.
- * Positional boolean arguments are ambiguous in CLI design since there's
- * no flag name to negate (e.g., `--no-verbose`). Use Flag.boolean instead,
- * or use Argument.choice with explicit "true"/"false" strings if needed.
+ * **Gotchas**
+ *
+ * `boolean` is intentionally omitted from Argument constructors. Positional
+ * boolean arguments are ambiguous in CLI design since there is no flag name to
+ * negate (for example, `--no-verbose`). Use Flag.boolean instead, or use
+ * Argument.choice with explicit "true" / "false" strings if needed.
  *
  * @category models
  * @since 4.0.0
@@ -228,6 +230,8 @@ export const fileText = (name: string): Argument<string> => Param.fileText(Param
 
 /**
  * Creates a positional argument that reads a file and parses its content.
+ *
+ * **Details**
  *
  * The parser is chosen from the explicit `format` option or, when omitted, the
  * file extension. The parsed value is `unknown`; use `fileSchema` when the
@@ -633,6 +637,8 @@ export const choiceWithValue = <const Choices extends ReadonlyArray<readonly [st
 
 /**
  * Sets a custom metavar (placeholder name) for the argument in help documentation.
+ *
+ * **Details**
  *
  * The metavar is displayed in usage text to indicate what value the user should provide.
  * For example, `<FILE>` shows `FILE` as the metavar.

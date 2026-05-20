@@ -40,6 +40,8 @@ export const TypeId: TypeId = "~effect/reactivity/AtomRef"
 /**
  * A read-only reactive reference.
  *
+ * **Details**
+ *
  * It exposes a stable key, the current value, subscriptions to value changes, and
  * `map` for creating derived read-only references. Equality and hashing are based
  * on the current value.
@@ -58,6 +60,8 @@ export interface ReadonlyRef<A> extends Equal.Equal {
 /**
  * A mutable reactive reference.
  *
+ * **Details**
+ *
  * It supports replacing the whole value, updating it from the current value, and
  * creating mutable references to nested properties.
  *
@@ -72,6 +76,8 @@ export interface AtomRef<A> extends ReadonlyRef<A> {
 
 /**
  * A reactive collection of mutable item references.
+ *
+ * **Details**
  *
  * The collection can push, insert, and remove item refs, and `toArray` returns the
  * current raw item values.
@@ -96,6 +102,8 @@ export const make = <A>(value: A): AtomRef<A> => new AtomRefImpl(value)
 
 /**
  * Creates a reactive collection from an iterable of initial item values.
+ *
+ * **Details**
  *
  * Each item is wrapped in an `AtomRef`, and changes to item refs notify the
  * collection subscribers.

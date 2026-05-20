@@ -156,10 +156,9 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
 const constWaitUntilRead = { waitUntilRead: true } as const
 
 /**
- * The `RunnerServer` recieves messages from other Runners and forwards them to the
- * `Sharding` layer.
- *
- * It also responds to `Ping` requests.
+ * Creates the runner RPC server layer, which receives messages from other
+ * runners, forwards them to the `Sharding` layer, and responds to `Ping`
+ * requests.
  *
  * @category layers
  * @since 4.0.0
@@ -194,11 +193,12 @@ export const layerWithClients: Layer.Layer<
 )
 
 /**
- * A `Runners` layer that is client only.
+ * Creates a client-only `Runners` layer.
  *
- * It will not register with the ShardManager and recieve shard assignments,
- * so this layer can be used to embed a cluster client inside another effect
- * application.
+ * **When to use**
+ *
+ * Use this layer to embed a cluster client inside another Effect application
+ * without registering with the ShardManager or receiving shard assignments.
  *
  * @category layers
  * @since 4.0.0

@@ -23,6 +23,8 @@ export const symbol = "~effect/interfaces/PrimaryKey"
 /**
  * An interface for objects that can provide a string-based primary key.
  *
+ * **Details**
+ *
  * Objects implementing this interface must provide a method that returns
  * a unique string identifier.
  *
@@ -52,6 +54,8 @@ export interface PrimaryKey {
 
 /**
  * Checks whether a value implements the `PrimaryKey` protocol.
+ *
+ * **Details**
  *
  * This is a structural guard for the `PrimaryKey.symbol` property. It does not
  * call the method or verify that it returns a string.

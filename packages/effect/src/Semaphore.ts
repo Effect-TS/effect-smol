@@ -30,6 +30,8 @@ import type * as Option from "./Option.ts"
 /**
  * A counting semaphore that coordinates concurrent access with permits.
  *
+ * **Details**
+ *
  * Effects can acquire permits, wait until enough permits are available,
  * release permits, or run with permits that are automatically released when
  * the effect exits.
@@ -122,6 +124,8 @@ export interface Semaphore {
 /**
  * Synchronously creates a `Semaphore` initialized with the specified total
  * number of permits.
+ *
+ * **When to use**
  *
  * Use this low-level constructor when an immediate semaphore value is required;
  * otherwise prefer the effectful `make` constructor.
@@ -263,6 +267,8 @@ class SemaphoreImpl implements Semaphore {
 
 /**
  * Creates a `Semaphore` initialized with the specified total number of permits.
+ *
+ * **When to use**
  *
  * Use the returned semaphore to limit concurrency with `withPermit` or
  * `withPermits`, or to manually `take` and `release` permits.

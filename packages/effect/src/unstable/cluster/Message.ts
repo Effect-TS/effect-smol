@@ -42,6 +42,8 @@ import type { Snowflake } from "./Snowflake.ts"
 /**
  * Message read by a runner from storage or transport.
  *
+ * **Details**
+ *
  * An incoming message is either a persisted request with an encoded payload or an
  * incoming control envelope.
  *
@@ -53,6 +55,8 @@ export type Incoming<R extends Rpc.Any> = IncomingRequest<R> | IncomingEnvelope
 /**
  * Locally decoded incoming message for in-process delivery.
  *
+ * **Details**
+ *
  * It is either a request with a decoded payload or an incoming control envelope.
  *
  * @category incoming
@@ -62,6 +66,8 @@ export type IncomingLocal<R extends Rpc.Any> = IncomingRequestLocal<R> | Incomin
 
 /**
  * Converts an outgoing message into a locally deliverable incoming message.
+ *
+ * **Details**
  *
  * Request messages keep their decoded payload and response callback, while
  * control envelopes are wrapped as incoming envelopes.
@@ -88,6 +94,8 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
  * Incoming persisted request whose payload has not yet been decoded with the RPC
  * schema.
  *
+ * **Details**
+ *
  * It carries the last reply that was sent and a callback for persisting encoded
  * replies.
  *
@@ -102,6 +110,8 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
 
 /**
  * Incoming request for local delivery with a decoded payload.
+ *
+ * **Details**
  *
  * It includes dynamic annotations, the last sent reply, and a callback for
  * replying with decoded replies.
@@ -130,6 +140,8 @@ export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
 /**
  * Message produced for storage or transport.
  *
+ * **Details**
+ *
  * An outgoing message is either an entity request or a control envelope.
  *
  * @category outgoing
@@ -139,6 +151,8 @@ export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 
 /**
  * Outgoing entity request with decoded payload and RPC metadata.
+ *
+ * **Details**
  *
  * It carries the service context used for serialization, the last received reply,
  * the reply callback, dynamic annotations, and an optional encoded request cache.
@@ -164,6 +178,8 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
 
 /**
  * Outgoing control envelope paired with RPC metadata.
+ *
+ * **When to use**
  *
  * Use `OutgoingEnvelope.interrupt` to construct an interrupt envelope for an
  * in-flight request.
@@ -201,6 +217,8 @@ const neverRpc = Rpc.make("Never", {
 /**
  * Serializes an outgoing message into a partial envelope.
  *
+ * **Details**
+ *
  * Control envelopes pass through unchanged. Requests are encoded with their RPC
  * payload schema, reusing the cached encoded request when available.
  *
@@ -223,6 +241,8 @@ export const serialize = <Rpc extends Rpc.Any>(
 /**
  * Serializes an outgoing message into its JSON envelope representation.
  *
+ * **Details**
+ *
  * Schema encoding failures are converted to `MalformedMessage`.
  *
  * @category serialization / deserialization
@@ -239,6 +259,8 @@ export const serializeEnvelope = <Rpc extends Rpc.Any>(
 /**
  * Encodes the payload of an `OutgoingRequest` with the request's RPC payload
  * schema and service context.
+ *
+ * **Details**
  *
  * The result is a `PartialRequest` suitable for storage or transport.
  *
@@ -261,6 +283,8 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
 
 /**
  * Decodes a partial envelope back into a locally deliverable incoming message.
+ *
+ * **Details**
  *
  * Control envelopes pass through directly. Request envelopes require the original
  * `OutgoingRequest` so the payload can be decoded with the correct RPC schema and

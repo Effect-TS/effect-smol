@@ -29,6 +29,8 @@ const TypeId = "~effect/RcRef"
 /**
  * A reference counted reference that manages resource lifecycle.
  *
+ * **Details**
+ *
  * An RcRef wraps a resource that can be acquired and released multiple times.
  * The resource is lazily acquired on the first call to `get` and automatically
  * released when the last reference is released.
@@ -85,7 +87,7 @@ export declare namespace RcRef {
   /**
    * Type-level variance marker for `RcRef`.
    *
-   * **Notes**
+   * **Details**
    *
    * This interface records the covariant value and error types carried by an
    * `RcRef`. It is used by Effect's type machinery and is not normally

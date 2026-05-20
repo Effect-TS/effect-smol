@@ -29,8 +29,11 @@ import * as Stream from "effect/Stream"
 /**
  * Creates a `Stream` from `window.addEventListener`.
  *
+ * **Details**
+ *
  * By default, the underlying buffer is unbounded in size. You can customize the
- * buffer size an object as the second argument with the `bufferSize` field.
+ * buffer size by passing an object as the second argument with the `bufferSize`
+ * field.
  *
  * @category Streams
  * @since 4.0.0
@@ -48,8 +51,11 @@ export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
 /**
  * Creates a `Stream` from `document.addEventListener`.
  *
+ * **Details**
+ *
  * By default, the underlying buffer is unbounded in size. You can customize the
- * buffer size an object as the second argument with the `bufferSize` field.
+ * buffer size by passing an object as the second argument with the `bufferSize`
+ * field.
  *
  * @category Streams
  * @since 4.0.0

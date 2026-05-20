@@ -1343,6 +1343,8 @@ const del = make("DELETE")
 
 export {
   /**
+   * Creates a `DELETE` endpoint declaration.
+   *
    * @category constructors
    * @since 4.0.0
    */

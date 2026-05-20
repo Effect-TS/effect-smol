@@ -39,6 +39,8 @@ export type OpenAiErrorMetadata = {
 /**
  * OpenAI-specific rate limit metadata fields.
  *
+ * **Details**
+ *
  * Extends base error metadata with rate limit specific information from
  * OpenAI's rate limit headers.
  *

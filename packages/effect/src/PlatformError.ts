@@ -38,6 +38,8 @@ const TypeId = "~effect/platform/PlatformError"
 /**
  * Error data for an invalid argument passed to a platform API.
  *
+ * **Details**
+ *
  * The error records the module and method that rejected the argument, with an
  * optional description and cause. It is usually wrapped in `PlatformError`.
  *
@@ -63,6 +65,8 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
 /**
  * Normalized category for failures reported by platform or system operations.
  *
+ * **Details**
+ *
  * The tags group lower-level platform errors into a stable set such as
  * `NotFound`, `PermissionDenied`, `TimedOut`, and `Unknown`.
  *
@@ -84,6 +88,8 @@ export type SystemErrorTag =
 
 /**
  * Error data for a platform or system operation failure.
+ *
+ * **Details**
  *
  * The error records a normalized `_tag`, the module and method that failed,
  * and optional details such as the syscall, path or descriptor, description,
@@ -117,6 +123,8 @@ export class SystemError extends Data.Error<{
  * Tagged error used by platform APIs to report either invalid arguments or
  * system-level failures.
  *
+ * **Details**
+ *
  * The `reason` field contains the underlying `BadArgument` or `SystemError`.
  * When that reason has a cause, the cause is preserved on the wrapper.
  *
@@ -149,6 +157,8 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
 /**
  * Creates a `PlatformError` whose reason is a `SystemError`.
  *
+ * **When to use**
+ *
  * Use this helper when adapting an operating-system or platform failure into
  * the normalized platform error model.
  *
@@ -167,6 +177,8 @@ export const systemError = (options: {
 
 /**
  * Creates a `PlatformError` whose reason is a `BadArgument`.
+ *
+ * **When to use**
  *
  * Use this helper when a platform API rejects caller input before performing
  * the underlying operation.

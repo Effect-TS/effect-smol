@@ -53,6 +53,8 @@ import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecret
 /**
  * Service representing a remote event-log replica.
  *
+ * **Details**
+ *
  * It can write local entries to the remote, stream remote changes from a sequence
  * number, and run effects only after the supplied identity has authenticated.
  *
@@ -137,6 +139,8 @@ export class EventLogRemoteClient extends Context.Service<
 /**
  * Creates an `EventLogRemote` from custom write encoding and change decoding
  * functions.
+ *
+ * **Details**
  *
  * The remote performs the hello/authentication handshake, retries after forbidden
  * responses by re-authenticating, chunks large writes, and registers itself with

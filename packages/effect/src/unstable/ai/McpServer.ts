@@ -98,6 +98,8 @@ import type * as Toolkit from "./Toolkit.ts"
  * Service that stores and serves an MCP server's registered tools, resources,
  * prompts, completions, and outgoing notifications.
  *
+ * **Details**
+ *
  * Handlers use this service to register capabilities and resolve incoming MCP
  * requests.
  *
@@ -357,6 +359,8 @@ const mcpProtocolVersionHeader = "mcp-protocol-version"
 
 /**
  * Runs an MCP server over the current `RpcServer.Protocol`.
+ *
+ * **Details**
  *
  * The server performs initialization and session handling, serves registered
  * tools, resources, and prompts, and forwards queued server notifications to
@@ -749,6 +753,8 @@ export type ValidateCompletions<Completions, Keys extends string> =
 /**
  * Completion-handler map for a resource URI template.
  *
+ * **Details**
+ *
  * Each schema interpolation contributes a parameter key, using an explicit
  * `Param` name when present or `paramN` otherwise, and each handler returns
  * candidate values for that parameter.
@@ -1106,6 +1112,8 @@ export const prompt = <
 /**
  * Requests structured input from the current MCP client and decodes the
  * accepted response with `schema`.
+ *
+ * **Details**
  *
  * Accepted content is decoded with the supplied schema, declined requests fail
  * with `ElicitationDeclined`, and canceled requests interrupt the effect.

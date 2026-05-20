@@ -40,6 +40,8 @@ const TypeId = "~effect/collections/MutableHashMap"
  * A mutable hash map that stores key-value pairs and supports both referential
  * and Effect structural equality.
  *
+ * **Details**
+ *
  * Operations mutate the map in place. Keys that implement `Equal` / `Hash` can
  * be looked up structurally; other keys use normal JavaScript reference or
  * primitive equality.
@@ -201,6 +203,8 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
 
 /**
  * Looks up a key in the `MutableHashMap`.
+ *
+ * **Details**
  *
  * Returns `Some(value)` when an equal key is present and `None` when the key is
  * absent.
@@ -705,6 +709,8 @@ export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backi
 
 /**
  * Runs a callback for each key-value pair in the `MutableHashMap`.
+ *
+ * **Details**
  *
  * Iteration follows the backing map's order. The callback receives the value
  * first and the key second, matching `Map.prototype.forEach`.

@@ -46,6 +46,8 @@ import * as RpcMiddleware from "../rpc/RpcMiddleware.ts"
 /**
  * Schema type returned by `optionalWithDefault`.
  *
+ * **Details**
+ *
  * It represents an optional struct field that supplies a default value when the
  * field is absent during decoding or construction.
  *
@@ -59,6 +61,8 @@ export interface optionalWithDefault<S extends Schema.Top & Schema.WithoutConstr
 /**
  * Marks a struct field as optional and supplies `defaultValue` when the field
  * is absent.
+ *
+ * **Details**
  *
  * The default is used during decoding and as the constructor default for the
  * schema field.
@@ -84,6 +88,8 @@ export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstru
 
 /**
  * Creates an optional MCP struct-field schema from a required schema.
+ *
+ * **Details**
  *
  * The field may be absent, and explicit `undefined` values are omitted when
  * encoding.
@@ -146,6 +152,8 @@ export type ProgressToken = typeof ProgressToken.Type
 /**
  * Schema for optional MCP request metadata.
  *
+ * **Details**
+ *
  * Request metadata may include a progress token that asks the receiver to send
  * out-of-band progress notifications for the request.
  *
@@ -168,6 +176,8 @@ export class RequestMeta extends Schema.Opaque<RequestMeta>()(Schema.Struct({
 /**
  * Schema for optional MCP result metadata.
  *
+ * **Details**
+ *
  * The `_meta` field is reserved for protocol, extension, or implementation
  * metadata attached to a result.
  *
@@ -184,6 +194,8 @@ export class ResultMeta extends Schema.Opaque<ResultMeta>()(Schema.Struct({
 
 /**
  * Schema for optional MCP notification metadata.
+ *
+ * **Details**
  *
  * The `_meta` field is reserved for protocol, extension, or implementation
  * metadata attached to a notification.
@@ -210,6 +222,8 @@ export const Cursor: typeof Schema.String = Schema.String
 /**
  * Type represented by the MCP cursor schema.
  *
+ * **Details**
+ *
  * A cursor is an opaque string token used to continue paginated requests.
  *
  * @category common
@@ -219,6 +233,8 @@ export type Cursor = typeof Cursor.Type
 
 /**
  * Schema for MCP request metadata used by paginated requests.
+ *
+ * **Details**
  *
  * It includes the base request metadata fields plus an optional cursor
  * indicating where the server should continue listing results.
@@ -238,6 +254,8 @@ export class PaginatedRequestMeta extends Schema.Opaque<PaginatedRequestMeta>()(
 /**
  * Schema for MCP result metadata returned by paginated operations.
  *
+ * **Details**
+ *
  * It includes the base result metadata fields plus an optional `nextCursor`,
  * which indicates that more results may be available.
  *
@@ -255,6 +273,7 @@ export class PaginatedResultMeta extends Schema.Opaque<PaginatedResultMeta>()(Sc
 
 /**
  * The sender or recipient of messages and data in a conversation.
+ *
  * @category common
  * @since 4.0.0
  */
@@ -262,6 +281,8 @@ export const Role: Schema.Literals<["user", "assistant"]> = Schema.Literals(["us
 
 /**
  * Type represented by the MCP role schema.
+ *
+ * **Details**
  *
  * Valid roles are `"user"` and `"assistant"`.
  *
@@ -412,6 +433,8 @@ export class ServerCapabilities extends Schema.Opaque<ServerCapabilities>()(Sche
 /**
  * Base schema for MCP and JSON-RPC error objects.
  *
+ * **Details**
+ *
  * It contains the numeric error `code`, a concise `message`, and optional
  * sender-defined `data`.
  *
@@ -475,9 +498,8 @@ export const INTERNAL_ERROR_CODE = -32603 as const
 export const PARSE_ERROR_CODE = -32700 as const
 
 /**
- * MCP/JSON-RPC error for invalid JSON that could not be parsed.
- *
- * This error uses the standard parse error code `-32700`.
+ * MCP/JSON-RPC error for invalid JSON that could not be parsed. This error
+ * uses the standard parse error code `-32700`.
  *
  * @category errors
  * @since 4.0.0
@@ -489,9 +511,8 @@ export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSche
 }) {}
 
 /**
- * MCP/JSON-RPC error for a request object that is not valid.
- *
- * This error uses the standard invalid request code `-32600`.
+ * MCP/JSON-RPC error for a request object that is not valid. This error uses
+ * the standard invalid request code `-32600`.
  *
  * @category errors
  * @since 4.0.0
@@ -504,7 +525,6 @@ export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai
 
 /**
  * MCP/JSON-RPC error for a method that does not exist or is not available.
- *
  * This error uses the standard method not found code `-32601`.
  *
  * @category errors
@@ -517,9 +537,8 @@ export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai
 }) {}
 
 /**
- * MCP/JSON-RPC error for invalid method parameters.
- *
- * This error uses the standard invalid params code `-32602`.
+ * MCP/JSON-RPC error for invalid method parameters. This error uses the
+ * standard invalid params code `-32602`.
  *
  * @category errors
  * @since 4.0.0
@@ -531,9 +550,8 @@ export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/M
 }) {}
 
 /**
- * MCP/JSON-RPC error for unexpected internal server failures.
- *
- * This error uses the standard internal error code `-32603` and includes
+ * MCP/JSON-RPC error for unexpected internal server failures. This error uses
+ * the standard internal error code `-32603` and includes
  * `InternalError.notImplemented` for unimplemented handlers.
  *
  * @category errors
@@ -660,6 +678,8 @@ export class InitializedNotification extends Rpc.make("notifications/initialized
 /**
  * Notification sent by either peer to cancel a previously issued request in
  * the same direction.
+ *
+ * **Details**
  *
  * The payload identifies the request to cancel and may include a
  * human-readable reason.
@@ -1006,6 +1026,8 @@ export class Unsubscribe extends Rpc.make("resources/unsubscribe", {
 /**
  * Notification sent by the server when a subscribed resource URI has changed.
  *
+ * **Details**
+ *
  * The URI may identify a sub-resource of the resource that the client
  * originally subscribed to.
  *
@@ -1139,6 +1161,8 @@ export class AudioContent extends Schema.Opaque<AudioContent>()(Schema.Struct({
 /**
  * The contents of a resource, embedded into a prompt or tool call result.
  *
+ * **Details**
+ *
  * It is up to the client how best to render embedded resources for the benefit
  * of the LLM and/or the user.
  *
@@ -1155,9 +1179,13 @@ export class EmbeddedResource extends Schema.Opaque<EmbeddedResource>()(Schema.S
 })) {}
 
 /**
- * A resource that the server is capable of reading, included in a prompt or tool call result.
+ * A resource that the server is capable of reading, included in a prompt or
+ * tool call result.
  *
- * Note: resource links returned by tools are not guaranteed to appear in the results of `resources/list` requests.
+ * **Gotchas**
+ *
+ * Resource links returned by tools are not guaranteed to appear in the results
+ * of `resources/list` requests.
  *
  * @category prompts
  * @since 4.0.0
@@ -1184,6 +1212,8 @@ export const ContentBlock = Schema.Union([
 
 /**
  * Describes a message returned as part of a prompt.
+ *
+ * **Details**
  *
  * This is similar to `SamplingMessage`, but also supports the embedding of
  * resources from the MCP server.
@@ -1281,9 +1311,13 @@ export class PromptListChangedNotification extends Rpc.make("notifications/promp
 /**
  * Additional properties describing a Tool to clients.
  *
+ * **Details**
+ *
  * NOTE: all properties in ToolAnnotations are **hints**. They are not
  * guaranteed to provide a faithful description of tool behavior (including
  * descriptive properties like `title`).
+ *
+ * **Gotchas**
  *
  * Clients should never make tool use decisions based on ToolAnnotations
  * received from untrusted servers.
@@ -1396,14 +1430,14 @@ export class ListTools extends Rpc.make("tools/list", {
 /**
  * The server's response to a tool call.
  *
+ * **Details**
+ *
  * Any errors that originate from the tool SHOULD be reported inside the result
  * object, with `isError` set to true, _not_ as an MCP protocol-level error
  * response. Otherwise, the LLM would not be able to see that an error occurred
- * and self-correct.
- *
- * However, any errors in _finding_ the tool, an error indicating that the
- * server does not support tool calls, or any other exceptional conditions,
- * should be reported as an MCP error response.
+ * and self-correct. However, any errors in _finding_ the tool, an error
+ * indicating that the server does not support tool calls, or any other
+ * exceptional conditions, should be reported as an MCP error response.
  *
  * @category tools
  * @since 4.0.0
@@ -1456,10 +1490,9 @@ export class ToolListChangedNotification extends Rpc.make("notifications/tools/l
 // =============================================================================
 
 /**
- * The severity of a log message.
- *
- * These map to syslog message severities, as specified in RFC-5424:
- * https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1
+ * The severity of a log message, mapped to syslog message severities as
+ * specified in RFC 5424 section 6.2.1:
+ * https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1.
  *
  * @category logging
  * @since 4.0.0
@@ -1485,10 +1518,9 @@ export const LoggingLevel: Schema.Literals<[
 ])
 
 /**
- * The severity of a log message.
- *
- * These map to syslog message severities, as specified in RFC-5424:
- * https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1
+ * Type represented by the MCP logging level schema, mapped to syslog message
+ * severities as specified in RFC 5424 section 6.2.1:
+ * https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1.
  *
  * @category logging
  * @since 4.0.0
@@ -1516,6 +1548,8 @@ export class SetLevel extends Rpc.make("logging/setLevel", {
 
 /**
  * Server notification carrying a log message for the client.
+ *
+ * **Details**
  *
  * The notification includes the severity level, optional logger name, and
  * JSON-serializable log data.
@@ -1560,6 +1594,8 @@ export class SamplingMessage extends Schema.Opaque<SamplingMessage>()(Schema.Str
 /**
  * Hints to use for model selection.
  *
+ * **Details**
+ *
  * Keys not declared here are currently left unspecified by the spec and are up
  * to the client to interpret.
  *
@@ -1583,13 +1619,18 @@ export class ModelHint extends Schema.Opaque<ModelHint>()(Schema.Struct({
 })) {}
 
 /**
- * The server's preferences for model selection, requested of the client during sampling.
+ * The server's preferences for model selection, requested of the client during
+ * sampling.
+ *
+ * **Details**
  *
  * Because LLMs can vary along multiple dimensions, choosing the "best" model is
- * rarely straightforward.  Different models excel in different areas—some are
+ * rarely straightforward. Different models excel in different areas, some are
  * faster but less capable, others are more capable but more expensive, and so
  * on. This interface allows servers to express their priorities across multiple
  * dimensions to help clients make an appropriate selection for their use case.
+ *
+ * **Gotchas**
  *
  * These preferences are always advisory. The client MAY ignore them. It is also
  * up to the client to decide how to interpret these preferences and how to
@@ -1855,8 +1896,9 @@ export class ListRootsResult extends Schema.Class<ListRootsResult>(
  * Sent from the server to request a list of root URIs from the client. Roots
  * allow servers to ask for specific directories or files to operate on. A
  * common example for roots is providing a set of repositories or directories a
- * server should operate
- * on.
+ * server should operate on.
+ *
+ * **Details**
  *
  * This request is typically used when the server needs to understand the file
  * system structure or access specific locations that the client has permission
@@ -1946,6 +1988,8 @@ export const ElicitResult = Schema.Union([
  * Request sent by the server asking the client to collect structured input
  * from the user.
  *
+ * **Details**
+ *
  * The client responds with accepted content, an explicit decline, or a
  * cancellation.
  *
@@ -1973,6 +2017,8 @@ export class Elicit extends Rpc.make("elicitation/create", {
  * Error raised when an MCP elicitation request is declined or fails before
  * accepted content is returned.
  *
+ * **Details**
+ *
  * The error stores the original elicitation request and, when available, the
  * underlying cause.
  *
@@ -1993,6 +2039,8 @@ export class ElicitationDeclined
 
 /**
  * Service available while handling an MCP client request.
+ *
+ * **Details**
  *
  * It exposes the current client id, the client's initialize payload, and a
  * scoped RPC client for server-initiated requests back to that client.
@@ -2120,6 +2168,8 @@ export type FailureEncoded<Group extends RpcGroup.Any> = RpcGroup.Rpcs<
 
 /**
  * RPC group for requests that MCP clients send to the server.
+ *
+ * **Details**
  *
  * The group includes initialization, resource, prompt, tool, logging,
  * completion, and ping requests, and installs `McpServerClientMiddleware` for
@@ -2303,6 +2353,8 @@ export function isParam(schema: Schema.Top): schema is Param<string, Schema.Top>
 
 /**
  * Schema wrapper used for resource URI template parameters.
+ *
+ * **Details**
  *
  * A `Param` behaves like the wrapped schema while carrying the parameter name
  * used for template compilation and completion lookup.

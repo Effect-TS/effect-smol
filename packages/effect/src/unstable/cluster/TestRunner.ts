@@ -29,8 +29,9 @@ import * as ShardingConfig from "./ShardingConfig.ts"
 /**
  * An in-memory cluster that can be used for testing purposes.
  *
- * MessageStorage is backed by an in-memory driver, and RunnerStorage is backed
- * by an in-memory driver.
+ * **Details**
+ *
+ * `MessageStorage` and `RunnerStorage` are backed by in-memory drivers.
  *
  * @category layers
  * @since 4.0.0

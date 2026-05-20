@@ -59,6 +59,8 @@ const Proto = {
 /**
  * Creates a `SynchronizedRef` synchronously from an initial value.
  *
+ * **When to use**
+ *
  * This bypasses `Effect` construction; prefer `make` in effectful code.
  *
  * @category constructors

@@ -46,6 +46,8 @@ import type { EventLogRemote } from "./EventLogRemote.ts"
 /**
  * Service for writing typed event-log events through registered handlers.
  *
+ * **Details**
+ *
  * `write` encodes the event payload, runs the matching handler, commits the entry
  * only when the handler succeeds, and exposes access to the underlying journal
  * entries and destroy operation.
@@ -175,6 +177,8 @@ export const layerRegistry = Layer.effect(
 /**
  * Event-log identity containing a public key and redacted private key material.
  *
+ * **Details**
+ *
  * The identity is used by remote replication for authentication and by the
  * encryption service to derive signing and encryption keys.
  *
@@ -257,6 +261,8 @@ export const HandlersTypeId: HandlersTypeId = "~effect/eventlog/EventLog/Handler
 /**
  * Builder for the handlers associated with an `EventGroup`.
  *
+ * **Details**
+ *
  * The `Events` type parameter tracks the event tags that still need handlers, and
  * each call to `handle` records a handler while accumulating any required
  * services.
@@ -337,6 +343,8 @@ export declare namespace Handlers {
   /**
    * Validates that a handler builder returned all required handlers.
    *
+   * **Details**
+   *
    * If any event tag remains unhandled, the type evaluates to an explanatory
    * compile-time error string.
    *
@@ -402,6 +410,8 @@ export declare namespace Handlers {
  * Context reference for the store id used by event-log writes and remote
  * replication.
  *
+ * **Details**
+ *
  * Defaults to the branded store id `"default"`.
  *
  * @category models
@@ -441,6 +451,8 @@ const IdentityStringSchema = Schema.StringFromBase64Url.pipe(
 
 /**
  * Decodes a base64url identity string produced by `encodeIdentityString`.
+ *
+ * **Gotchas**
  *
  * Invalid input throws a schema decoding error.
  *
@@ -514,6 +526,8 @@ const makeHandlers = (options: {
 /**
  * Creates a layer that registers handlers for every event in an event group.
  *
+ * **Details**
+ *
  * The callback receives a `Handlers` builder; its return type is checked so every
  * event in the group is handled.
  *
@@ -548,6 +562,8 @@ export const group = <Events extends Event.Any, Return>(
 
 /**
  * Registers a compaction handler for an event group.
+ *
+ * **Details**
  *
  * During remote replay, matching entries are decoded, grouped by primary key, and
  * passed to the compaction effect, which may write replacement entries.
@@ -646,6 +662,8 @@ export const groupCompaction = <Events extends Event.Any, R>(
  * Registers reactivity keys to invalidate when events from a group are written or
  * replayed.
  *
+ * **Details**
+ *
  * Pass a single key list for all events or a mapping from event tag to key list.
  *
  * @category reactivity
@@ -674,6 +692,8 @@ export const groupReactivity = <Events extends Event.Any>(
 
 /**
  * Builds the effect used to replay entries received from a remote event log.
+ *
+ * **Details**
  *
  * The returned handler decodes the entry and conflicts with the registered event
  * schema, runs the matching handler with the supplied identity and store id, logs
@@ -959,6 +979,8 @@ export const layer = <Groups extends EventGroup.Any, E, R>(
 /**
  * Creates a typed client function for writing events defined by an
  * `EventLogSchema`.
+ *
+ * **Details**
  *
  * The returned function delegates to the `EventLog` service and preserves each
  * event's success and error types.

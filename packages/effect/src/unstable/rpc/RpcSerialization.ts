@@ -497,6 +497,8 @@ export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: tr
 /**
  * A rpc serialization layer that uses JSON for serialization.
  *
+ * **When to use**
+ *
  * Use this if your protocol supports framing for messages, otherwise use
  * {@link layerNdjson}.
  *
@@ -507,6 +509,8 @@ export const layerJson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSeriali
 
 /**
  * A rpc serialization layer that uses NDJSON for serialization.
+ *
+ * **When to use**
  *
  * Use this if your protocol does not support framing for messages, otherwise
  * use {@link layerJson}.
@@ -539,6 +543,8 @@ export const layerNdJsonRpc = (options?: {
 
 /**
  * A rpc serialization layer that uses MessagePack for serialization.
+ *
+ * **Details**
  *
  * MessagePack has a more compact binary format compared to JSON and NDJSON. It
  * also has better support for binary data.

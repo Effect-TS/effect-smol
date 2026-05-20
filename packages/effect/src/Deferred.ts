@@ -86,9 +86,11 @@ const TypeId = "~effect/Deferred"
  * once, with the ability for an arbitrary number of fibers to suspend (by
  * calling `Deferred.await`) and automatically resume when the variable is set.
  *
- * `Deferred` can be used for building primitive actions whose completions
- * require the coordinated action of multiple fibers, and for building
- * higher-level concurrent or asynchronous structures.
+ * **When to use**
+ *
+ * Use `Deferred` for primitive actions whose completions require the
+ * coordinated action of multiple fibers, and for building higher-level
+ * concurrent or asynchronous structures.
  *
  * **Example** (Creating a Deferred for inter-fiber communication)
  *
@@ -149,6 +151,8 @@ export declare namespace Deferred {
   /**
    * Type-level variance marker for the value and error channels of `Deferred`.
    *
+   * **Details**
+   *
    * This interface is part of the public type structure and is not intended to
    * be constructed directly.
    *
@@ -175,6 +179,8 @@ const DeferredProto = {
 
 /**
  * Synchronously creates an empty `Deferred` outside the `Effect` runtime.
+ *
+ * **When to use**
  *
  * Prefer `Deferred.make` in effectful code so allocation is represented in
  * `Effect`; use this only when direct synchronous allocation is required.
@@ -256,18 +262,19 @@ export {
 }
 
 /**
- * Completes the `Deferred` with the supplied `Effect` without running or
- * memoizing it.
+ * Runs the supplied `Effect` and attempts to complete the `Deferred` with its
+ * memoized result.
  *
- * Awaiting fibers run the stored effect when they await, so repeated awaits can
- * repeat the effect. Returns `false` if the `Deferred` has already been
- * completed.
+ * **When to use**
  *
  * Use `Deferred.complete` when the effect should be evaluated once and the
- * resulting `Exit` memoized.
+ * resulting `Exit` memoized. Use `Deferred.completeWith` when you need to store
+ * an effect directly without memoizing its result.
  *
- * Note that `Deferred.completeWith` will be much faster, so consider using
- * that if you do not need to memoize the result of the specified effect.
+ * **Details**
+ *
+ * The returned effect succeeds with `true` when this call completed the
+ * `Deferred`, or `false` if it was already completed.
  *
  * **Example** (Completing a Deferred from an effect)
  *
@@ -356,6 +363,8 @@ export const done: {
 /**
  * Attempts to complete the `Deferred` with the specified error.
  *
+ * **Details**
+ *
  * Fibers waiting on the `Deferred` fail with that error only if this call
  * completes it. The returned effect succeeds with `true` when this call
  * completed the `Deferred`, or `false` if it was already completed.
@@ -383,6 +392,8 @@ export const fail: {
 /**
  * Computes an error when the returned effect is run, then attempts to complete
  * the `Deferred` with that error.
+ *
+ * **Details**
  *
  * Fibers waiting on the `Deferred` fail with the computed error only if this
  * call completes it. The returned effect succeeds with `true` when this call
@@ -414,6 +425,8 @@ export const failSync: {
 
 /**
  * Attempts to complete the `Deferred` with the specified `Cause`.
+ *
+ * **Details**
  *
  * Fibers waiting on the `Deferred` observe that cause only if this call
  * completes it. The returned effect succeeds with `true` when this call
@@ -449,6 +462,8 @@ export const failCause: {
  * Computes a `Cause` when the returned effect is run, then attempts to
  * complete the `Deferred` with that cause.
  *
+ * **Details**
+ *
  * Fibers waiting on the `Deferred` observe the computed cause only if this
  * call completes it. The returned effect succeeds with `true` when this call
  * completed the `Deferred`, or `false` if it was already completed.
@@ -483,6 +498,8 @@ export const failCauseSync: {
 /**
  * Attempts to complete the `Deferred` with a defect.
  *
+ * **Details**
+ *
  * Fibers waiting on the `Deferred` die with that defect only if this call
  * completes it. The returned effect succeeds with `true` when this call
  * completed the `Deferred`, or `false` if it was already completed.
@@ -513,6 +530,8 @@ export const die: {
 /**
  * Computes a defect when the returned effect is run, then attempts to complete
  * the `Deferred` with that defect.
+ *
+ * **Details**
  *
  * Fibers waiting on the `Deferred` die with the computed defect only if this
  * call completes it. The returned effect succeeds with `true` when this call
@@ -548,6 +567,8 @@ export const dieSync: {
 /**
  * Attempts to complete the `Deferred` with interruption by the current fiber.
  *
+ * **Details**
+ *
  * Fibers waiting on the `Deferred` are interrupted with the current fiber id
  * only if this call completes it. The returned effect succeeds with `true`
  * when this call completed the `Deferred`, or `false` if it was already
@@ -574,6 +595,8 @@ export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
 /**
  * Attempts to complete the `Deferred` with interruption by the specified
  * `FiberId`.
+ *
+ * **Details**
  *
  * Fibers waiting on the `Deferred` are interrupted with that fiber id only if
  * this call completes it. The returned effect succeeds with `true` when this
@@ -668,6 +691,8 @@ export function poll<A, E>(self: Deferred<A, E>): Effect<Option.Option<Effect<A,
 /**
  * Attempts to complete the `Deferred` with the specified value.
  *
+ * **Details**
+ *
  * Fibers waiting on the `Deferred` receive the value only if this call
  * completes it. The returned effect succeeds with `true` when this call
  * completed the `Deferred`, or `false` if it was already completed.
@@ -697,6 +722,8 @@ export const succeed: {
 /**
  * Computes a value when the returned effect is run, then attempts to complete
  * the `Deferred` with that value.
+ *
+ * **Details**
  *
  * Fibers waiting on the `Deferred` receive the computed value only if this call
  * completes it. The returned effect succeeds with `true` when this call
@@ -731,6 +758,8 @@ export const sync: {
 /**
  * Synchronously attempts to complete the `Deferred` with the specified
  * completion effect.
+ *
+ * **Details**
  *
  * This mutates the `Deferred` directly and should be reserved for low-level
  * code; prefer the effectful completion APIs when possible. Returns `true` if

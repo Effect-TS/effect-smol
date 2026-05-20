@@ -32,6 +32,8 @@ export type EncodingErrorTypeId = typeof EncodingErrorTypeId
  * Error returned when an encoding or decoding operation cannot process its
  * input.
  *
+ * **Details**
+ *
  * The error records whether the failure happened during encoding or decoding,
  * which encoding module reported it, the original input, and a human-readable
  * message.
@@ -55,6 +57,8 @@ export class EncodingError extends Data.TaggedError("EncodingError")<{
 
 /**
  * Checks whether a value is an `EncodingError`.
+ *
+ * **Details**
  *
  * Returns `true` when the value carries the `EncodingErrorTypeId` marker and
  * narrows the value to `EncodingError`.
@@ -92,6 +96,8 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
 
 /**
  * Decodes a base64 (RFC4648) string into bytes.
+ *
+ * **Details**
  *
  * Returns `Result.succeed` with a `Uint8Array` when decoding succeeds, or
  * `Result.fail` with an `EncodingError` when the input is not valid base64.
@@ -166,6 +172,8 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingErr
 /**
  * Decodes a base64 (RFC4648) string into a UTF-8 string.
  *
+ * **Details**
+ *
  * Returns `Result.succeed` with the decoded text when decoding succeeds, or
  * `Result.fail` with an `EncodingError` when the input is not valid base64.
  *
@@ -212,6 +220,8 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
 
 /**
  * Decodes a URL-safe base64 string into bytes.
+ *
+ * **Details**
  *
  * Returns `Result.succeed` with a `Uint8Array` when decoding succeeds, or
  * `Result.fail` with an `EncodingError` when the input is not valid URL-safe
@@ -267,6 +277,8 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, Encoding
 /**
  * Decodes a URL-safe base64 string into a UTF-8 string.
  *
+ * **Details**
+ *
  * Returns `Result.succeed` with the decoded text when decoding succeeds, or
  * `Result.fail` with an `EncodingError` when the input is not valid URL-safe
  * base64.
@@ -315,6 +327,8 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
 
 /**
  * Decodes a hexadecimal string into bytes.
+ *
+ * **Details**
  *
  * Returns `Result.succeed` with a `Uint8Array` when decoding succeeds, or
  * `Result.fail` with an `EncodingError` when the input has an odd length or
@@ -371,6 +385,8 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError>
 
 /**
  * Decodes a hexadecimal string into a UTF-8 string.
+ *
+ * **Details**
  *
  * Returns `Result.succeed` with the decoded text when decoding succeeds, or
  * `Result.fail` with an `EncodingError` when the input is not valid hex.

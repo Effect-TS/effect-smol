@@ -83,6 +83,7 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
 /**
  * Represents the internal state of an RcMap, which can be either Open (active)
  * or Closed (shutdown and no longer accepting operations).
+ *
  * @category models
  * @since 4.0.0
  */
@@ -97,6 +98,7 @@ export declare namespace State {
   /**
    * Represents the open/active state of an RcMap, containing the actual
    * resource map that stores entries.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -108,6 +110,7 @@ export declare namespace State {
   /**
    * Represents the closed state of an RcMap, indicating that the map has been
    * shut down and will no longer accept new operations.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -118,6 +121,7 @@ export declare namespace State {
   /**
    * Represents an individual entry in the RcMap, containing the resource's
    * metadata including reference count, expiration time, and lifecycle management.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -159,9 +163,9 @@ const makeUnsafe = <K, A, E>(options: {
  * by a key. The resources are lazily acquired on the first call to `get` and
  * released when the last reference is released.
  *
- * Complex keys can extend `Equal` and `Hash` to allow lookups by value.
+ * **Details**
  *
- * **Options**
+ * Complex keys can extend `Equal` and `Hash` to allow lookups by value.
  *
  * - `capacity`: The maximum number of resources that can be held in the map.
  * - `idleTimeToLive`: When the reference count reaches zero, the resource will be released after this duration.

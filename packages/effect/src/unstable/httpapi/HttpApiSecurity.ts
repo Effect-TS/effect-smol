@@ -120,10 +120,12 @@ const Proto = {
 }
 
 /**
- * Create an Bearer token security scheme.
+ * Creates a Bearer token security scheme.
  *
- * You can implement some api middleware for this security scheme using
- * `HttpApiBuilder.middlewareSecurity`.
+ * **When to use**
+ *
+ * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
+ * security scheme.
  *
  * @category constructors
  * @since 4.0.0
@@ -134,15 +136,17 @@ export const bearer: Bearer = Object.assign(Object.create(Proto), {
 })
 
 /**
- * Create an API key security scheme.
+ * Creates an API key security scheme.
  *
- * You can implement some api middleware for this security scheme using
- * `HttpApiBuilder.middlewareSecurity`.
+ * **When to use**
  *
- * To set the correct cookie in a handler, you can use
- * `HttpApiBuilder.securitySetCookie`.
+ * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
+ * security scheme.
  *
- * The default value for `in` is "header".
+ * **Details**
+ *
+ * Use `HttpApiBuilder.securitySetCookie` to set the correct cookie in a
+ * handler. By default, `in` is `"header"`.
  *
  * @category constructors
  * @since 4.0.0
@@ -161,8 +165,10 @@ export const apiKey = (options: {
 /**
  * Creates an HTTP Basic authentication security scheme.
  *
- * You can implement API middleware for this security scheme with
- * `HttpApiBuilder.middlewareSecurity`.
+ * **When to use**
+ *
+ * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
+ * security scheme.
  *
  * @category constructors
  * @since 4.0.0

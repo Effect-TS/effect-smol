@@ -83,28 +83,64 @@ type Result<A, E> =
   | { readonly _tag: "Success"; readonly value: A }
   | { readonly _tag: "Failure"; readonly error: E }
 
+/**
+ * Result type returned by the standard JSDoc parser helpers.
+ *
+ * @category utility types
+ * @since 0.0.0
+ */
 export type StandardJSDocResult<A, E> = Result<A, E>
 
+/**
+ * Diagnostic emitted when a JSDoc block does not follow the standard shape.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface StandardJSDocDiagnostic {
   readonly code: string
   readonly message: string
 }
 
+/**
+ * Parse error containing all diagnostics collected for a JSDoc block or file.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface StandardJSDocParseError {
   readonly diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
 }
 
+/**
+ * Parsed `@see` tag text and any inline links it contains.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedSeeTag {
   readonly text: string
   readonly links: ReadonlyArray<ParsedInlineLink>
 }
 
+/**
+ * Parsed inline JSDoc link target and optional display text.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedInlineLink {
   readonly raw: string
   readonly target: string
   readonly text: string | null
 }
 
+/**
+ * Parsed standard JSDoc description sections.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedDescription {
   readonly short: string
   readonly whenToUse: string | null
@@ -112,12 +148,24 @@ export interface ParsedDescription {
   readonly gotchas: string | null
 }
 
+/**
+ * Parsed example section from a standard JSDoc block.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedExample {
   readonly title: string
   readonly body: string | null
   readonly code: string
 }
 
+/**
+ * Parsed tags required for a root public declaration.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedDeclarationTags {
   readonly category: string
   readonly since: string
@@ -125,12 +173,24 @@ export interface ParsedDeclarationTags {
   readonly see: ReadonlyArray<ParsedSeeTag>
 }
 
+/**
+ * Parsed tags allowed for namespace JSDoc.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedNamespaceTags {
   readonly since: string
   readonly deprecated: string | null
   readonly see: ReadonlyArray<ParsedSeeTag>
 }
 
+/**
+ * Parsed tags allowed for documented members.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedMemberTags {
   readonly since: string | null
   readonly default: string | null
@@ -138,6 +198,12 @@ export interface ParsedMemberTags {
   readonly see: ReadonlyArray<ParsedSeeTag>
 }
 
+/**
+ * Parsed documented member within a declaration or another member.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedMember {
   readonly name: string
   readonly description: ParsedDescription
@@ -146,6 +212,12 @@ export interface ParsedMember {
   readonly members: ReadonlyArray<ParsedMember>
 }
 
+/**
+ * Parsed root declaration exported from a checked file.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedRootDeclaration {
   readonly name: string
   readonly bucket: ExportBucket
@@ -155,6 +227,12 @@ export interface ParsedRootDeclaration {
   readonly members: ReadonlyArray<ParsedMember>
 }
 
+/**
+ * Parsed type declaration exported from inside a namespace.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedNamespaceDeclaration {
   readonly name: string
   readonly description: ParsedDescription
@@ -163,6 +241,12 @@ export interface ParsedNamespaceDeclaration {
   readonly members: ReadonlyArray<ParsedMember>
 }
 
+/**
+ * Parsed namespace and its documented exported type declarations.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedNamespace {
   readonly name: string
   readonly description: ParsedDescription
@@ -172,11 +256,23 @@ export interface ParsedNamespace {
   readonly namespaces: ReadonlyArray<ParsedNamespace>
 }
 
+/**
+ * Parsed public JSDoc data collected from one checked file.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedStandardJSDocFile {
   readonly declarations: ReadonlyArray<ParsedRootDeclaration>
   readonly namespaces: ReadonlyArray<ParsedNamespace>
 }
 
+/**
+ * Parsed public JSDoc data paired with the normalized source file path.
+ *
+ * @category models
+ * @since 0.0.0
+ */
 export interface ParsedStandardJSDocFileDumpEntry extends ParsedStandardJSDocFile {
   readonly file: string
 }
@@ -300,6 +396,12 @@ function globToRegExp(glob: string): RegExp {
   return new RegExp(`${source}$`)
 }
 
+/**
+ * Creates a predicate that checks whether a filename is included by the configured standard JSDoc globs.
+ *
+ * @category constructors
+ * @since 0.0.0
+ */
 export function createStandardJSDocFileMatcher(options: {
   readonly cwd: string
   readonly include?: ReadonlyArray<string>
@@ -376,42 +478,28 @@ function findLeadingJSDoc(source: string, node: AstNode, ignoredRange?: [number,
 }
 
 /**
- * Standard JSDoc description template enforced by this rule:
- *
- * Short description paragraph.
- *
- * **When to use**
- *
- * Optional non-empty body.
+ * Parses one raw JSDoc block into the standard description, example, and tag structure.
  *
  * **Details**
  *
- * Optional non-empty body.
+ * The block must have one short description paragraph, optional `When to use`, `Details`, and `Gotchas` sections in that order, then any example sections before tags. Example titles must be unique after trimming and lowercasing, each example must contain exactly one non-empty TypeScript code fence, and boundaries between sections, examples, and tags must use exactly one blank line.
  *
- * **Gotchas**
- *
- * Optional non-empty body.
- *
- * **Example** (Title)
- *
- * Optional prose.
+ * **Example** (Parsing a block)
  *
  * ```ts
- * non-empty TypeScript code
+ * const rawBlock = [
+ *   "/" + "**",
+ *   " * A value.",
+ *   " *",
+ *   " * @category models",
+ *   " * @since 0.0.0",
+ *   " *" + "/"
+ * ].join("\n")
+ * const result = parseStandardJSDoc(rawBlock)
  * ```
  *
- * @category ...
- * @since ...
- *
- * Rules:
- * - The short description is required and must be one paragraph.
- * - `When to use`, `Details`, and `Gotchas` are optional singleton sections in that order.
- * - Present sections must have non-empty bodies.
- * - Examples are repeatable after standard sections and before tags.
- * - Example titles must be non-empty and unique case-insensitively after trimming.
- * - Each example must contain optional prose and exactly one non-empty TypeScript fence.
- * - Tags terminate the structured description area.
- * - Boundaries use exactly one blank line.
+ * @category parsing
+ * @since 0.0.0
  */
 export function parseStandardJSDoc(raw: string): Result<ParsedCoreJSDoc, StandardJSDocParseError> {
   const block = parseJSDocBlock(raw, [0, raw.length])
@@ -502,10 +590,14 @@ function parseCoreJSDoc(lines: Array<string>, tags: Array<JSDocTag>): Result<Par
   if (content.at(-1)?.trim() === "" && tags.length > 0) {
     // exactly one blank before tags is validated by ensuring the last content line is blank and the previous is not blank
     if (content.length < 2 || content[content.length - 2]?.trim() === "") {
-      diagnostics.push(diagnostic("invalid-spacing", "JSDoc tags must be separated from description content by exactly one blank line"))
+      diagnostics.push(
+        diagnostic("invalid-spacing", "JSDoc tags must be separated from description content by exactly one blank line")
+      )
     }
   } else if (tags.length > 0 && content.length > 0) {
-    diagnostics.push(diagnostic("invalid-spacing", "JSDoc tags must be separated from description content by exactly one blank line"))
+    diagnostics.push(
+      diagnostic("invalid-spacing", "JSDoc tags must be separated from description content by exactly one blank line")
+    )
   }
 
   if (content[0]?.trim() === "") {
@@ -532,7 +624,9 @@ function parseCoreJSDoc(lines: Array<string>, tags: Array<JSDocTag>): Result<Par
   }
 }
 
-function uniqueDiagnostics(diagnostics: ReadonlyArray<StandardJSDocDiagnostic>): ReadonlyArray<StandardJSDocDiagnostic> {
+function uniqueDiagnostics(
+  diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
+): ReadonlyArray<StandardJSDocDiagnostic> {
   const seen = new Set<string>()
   return diagnostics.filter((item) => {
     const key = `${item.code}:${item.message}`
@@ -653,7 +747,9 @@ function parseDescriptionContent(lines: Array<string>): ParsedContentResult {
       index++
       continue
     }
-    diagnostics.push(diagnostic("invalid-description", "JSDoc description content must appear under a standard section heading"))
+    diagnostics.push(
+      diagnostic("invalid-description", "JSDoc description content must appear under a standard section heading")
+    )
     index++
   }
 
@@ -681,14 +777,16 @@ function parseSection(lines: Array<string>, headingIndex: number): {
 } {
   const diagnostics: Array<StandardJSDocDiagnostic> = []
   if (lines[headingIndex + 1]?.trim() !== "") {
-    diagnostics.push(diagnostic("invalid-spacing", `${lines[headingIndex].trim()} must be followed by exactly one blank line`))
+    diagnostics.push(
+      diagnostic("invalid-spacing", `${lines[headingIndex].trim()} must be followed by exactly one blank line`)
+    )
   }
   let index = headingIndex + 2
   const bodyStart = index
   let inFence = false
   while (index < lines.length) {
     const trimmed = lines[index].trim()
-    if (trimmed.startsWith("```") ) {
+    if (trimmed.startsWith("```")) {
       if (trimmed === "```ts") {
         diagnostics.push(diagnostic("loose-ts-fence", "TypeScript examples must use **Example** (Title) sections"))
       }
@@ -700,7 +798,10 @@ function parseSection(lines: Array<string>, headingIndex: number): {
     if (!inFence && trimmed !== "" && isForbiddenMarkdownHeading(trimmed, false)) {
       diagnostics.push(diagnostic("invalid-heading", "Markdown headings are not allowed in JSDoc descriptions"))
     }
-    if (!inFence && isBoldOnlyLine(trimmed) && !standardHeadings.includes(trimmed as StandardHeading) && !trimmed.startsWith("**Example**")) {
+    if (
+      !inFence && isBoldOnlyLine(trimmed) && !standardHeadings.includes(trimmed as StandardHeading) &&
+      !trimmed.startsWith("**Example**")
+    ) {
       diagnostics.push(diagnostic("unknown-heading", `Unknown JSDoc section heading: ${trimmed}`))
     }
     index++
@@ -739,7 +840,7 @@ function parseExample(lines: Array<string>, headingIndex: number): {
       fenceIndex = index
       break
     }
-    if (trimmed.startsWith("```") ) {
+    if (trimmed.startsWith("```")) {
       diagnostics.push(diagnostic("malformed-example", "Examples may only contain one TypeScript code fence"))
     }
     if (trimmed === "" && isHeadingLine(lines[index + 1])) {
@@ -759,7 +860,9 @@ function parseExample(lines: Array<string>, headingIndex: number): {
   const bodyLines = lines.slice(bodyStart, fenceIndex)
   const nonEmptyBody = joinBody(bodyLines).trim() !== ""
   if (nonEmptyBody && bodyLines.at(-1)?.trim() !== "") {
-    diagnostics.push(diagnostic("invalid-spacing", "Example prose must be separated from code by exactly one blank line"))
+    diagnostics.push(
+      diagnostic("invalid-spacing", "Example prose must be separated from code by exactly one blank line")
+    )
   }
   const prose = nonEmptyBody ? joinBody(bodyLines.slice(0, bodyLines.at(-1)?.trim() === "" ? -1 : undefined)) : null
 
@@ -780,7 +883,9 @@ function parseExample(lines: Array<string>, headingIndex: number): {
   }
   index++
   if (index < lines.length && lines[index].trim() !== "" && !lines[index].trim().startsWith("@")) {
-    diagnostics.push(diagnostic("invalid-spacing", "Examples must be separated from following content by exactly one blank line"))
+    diagnostics.push(
+      diagnostic("invalid-spacing", "Examples must be separated from following content by exactly one blank line")
+    )
   }
 
   const result = { nextIndex: index, diagnostics }
@@ -800,7 +905,8 @@ function joinBody(lines: ReadonlyArray<string>): string {
 function isHeadingLine(line: string | undefined): boolean {
   if (line === undefined) return false
   const trimmed = line.trim()
-  return standardHeadings.includes(trimmed as StandardHeading) || trimmed.startsWith("**Example**") || isNearMissHeading(trimmed) || isBoldOnlyLine(trimmed) || isForbiddenMarkdownHeading(trimmed, false)
+  return standardHeadings.includes(trimmed as StandardHeading) || trimmed.startsWith("**Example**") ||
+    isNearMissHeading(trimmed) || isBoldOnlyLine(trimmed) || isForbiddenMarkdownHeading(trimmed, false)
 }
 
 function isNearMissHeading(line: string): boolean {
@@ -846,7 +952,10 @@ function extractParsedInlineLinks(source: string): ReadonlyArray<ParsedInlineLin
   return links
 }
 
-function buildTags(scope: DocScope, tags: ReadonlyArray<JSDocTag>): Result<ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags, StandardJSDocParseError> {
+function buildTags(
+  scope: DocScope,
+  tags: ReadonlyArray<JSDocTag>
+): Result<ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags, StandardJSDocParseError> {
   const diagnostics: Array<StandardJSDocDiagnostic> = []
   const allowed = scope === "declaration"
     ? new Set(["deprecated", "see", "category", "since"])
@@ -861,11 +970,18 @@ function buildTags(scope: DocScope, tags: ReadonlyArray<JSDocTag>): Result<Parse
       continue
     }
     if (tag.name === "example") {
-      diagnostics.push(diagnostic("forbidden-tag", "@example is not allowed; use a canonical **Example** (Title) section"))
+      diagnostics.push(
+        diagnostic("forbidden-tag", "@example is not allowed; use a canonical **Example** (Title) section")
+      )
       continue
     }
     if (!allowed.has(tag.name)) {
-      diagnostics.push(diagnostic("forbidden-tag", `@${tag.name} is not allowed in ${scope === "namespace-declaration" ? "namespace" : scope} JSDoc`))
+      diagnostics.push(
+        diagnostic(
+          "forbidden-tag",
+          `@${tag.name} is not allowed in ${scope === "namespace-declaration" ? "namespace" : scope} JSDoc`
+        )
+      )
       continue
     }
     const order = tagOrder.get(tag.name) ?? previousOrder
@@ -893,7 +1009,12 @@ function buildTags(scope: DocScope, tags: ReadonlyArray<JSDocTag>): Result<Parse
   if (deprecated === "") diagnostics.push(diagnostic("empty-tag", "@deprecated must include a message"))
   const since = values.get("since")?.[0] ?? null
   if ((scope === "declaration" || scope === "namespace" || scope === "namespace-declaration") && since === null) {
-    diagnostics.push(diagnostic("missing-tag", scope === "declaration" ? "Public JSDoc must include @since" : "Namespace JSDoc must include @since"))
+    diagnostics.push(
+      diagnostic(
+        "missing-tag",
+        scope === "declaration" ? "Public JSDoc must include @since" : "Namespace JSDoc must include @since"
+      )
+    )
   }
   if (since !== null && !stableSemverRegex.test(since)) {
     diagnostics.push(diagnostic("invalid-since", "@since must be a stable semver version like 1.2.3"))
@@ -903,7 +1024,9 @@ function buildTags(scope: DocScope, tags: ReadonlyArray<JSDocTag>): Result<Parse
     const category = values.get("category")?.[0] ?? null
     if (category === null) diagnostics.push(diagnostic("missing-tag", "Public JSDoc must include @category"))
     if (category === "") diagnostics.push(diagnostic("empty-tag", "@category must include a value"))
-    if (diagnostics.length > 0 || category === null || since === null) return { _tag: "Failure", error: { diagnostics } }
+    if (diagnostics.length > 0 || category === null || since === null) {
+      return { _tag: "Failure", error: { diagnostics } }
+    }
     return { _tag: "Success", value: { category, since, deprecated, see: see.map(parseSeeTag) } }
   }
 
@@ -930,7 +1053,9 @@ function parseTsConfig(tsconfigPath: string): ParsedConfigResult {
 
   const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, path.dirname(tsconfigPath))
   if (parsed.errors.length > 0) {
-    return { error: `Unable to parse TypeScript config ${tsconfigPath}: ${parsed.errors.map(formatDiagnostic).join("; ")}` }
+    return {
+      error: `Unable to parse TypeScript config ${tsconfigPath}: ${parsed.errors.map(formatDiagnostic).join("; ")}`
+    }
   }
   return { parsed }
 }
@@ -986,7 +1111,12 @@ function getExport(symbol: ts.Symbol, name: string, checker: ts.TypeChecker, loc
     checker.getDeclaredTypeOfSymbol(target).getProperty(name)
 }
 
-function resolveDottedSymbol(root: ts.Symbol | undefined, parts: ReadonlyArray<string>, checker: ts.TypeChecker, location: ts.Node): ts.Symbol | undefined {
+function resolveDottedSymbol(
+  root: ts.Symbol | undefined,
+  parts: ReadonlyArray<string>,
+  checker: ts.TypeChecker,
+  location: ts.Node
+): ts.Symbol | undefined {
   let current = root
   for (const part of parts) {
     if (current === undefined) return undefined
@@ -995,7 +1125,13 @@ function resolveDottedSymbol(root: ts.Symbol | undefined, parts: ReadonlyArray<s
   return current
 }
 
-function resolveJSDocLinkSymbol(link: ts.JSDocLink, target: string, sourceFile: ts.SourceFile, checker: ts.TypeChecker, entry: ProgramCacheEntry): ts.Symbol | undefined {
+function resolveJSDocLinkSymbol(
+  link: ts.JSDocLink,
+  target: string,
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+  entry: ProgramCacheEntry
+): ts.Symbol | undefined {
   if (link.name !== undefined) {
     const symbol = checker.getSymbolAtLocation(link.name)
     if (symbol !== undefined) return symbol
@@ -1006,8 +1142,14 @@ function resolveJSDocLinkSymbol(link: ts.JSDocLink, target: string, sourceFile: 
   if (root === undefined) return undefined
   const sourceModule = checker.getSymbolAtLocation(sourceFile)
   const lexical = checker.resolveName(root, sourceFile, ts.SymbolFlags.All, false)
-  const candidates = [lexical, sourceModule === undefined ? undefined : getExport(sourceModule, root, checker, sourceFile), entry.modulesByName?.get(root)]
-  return candidates.map((candidate) => resolveDottedSymbol(candidate, members, checker, sourceFile)).find((symbol) => symbol !== undefined)
+  const candidates = [
+    lexical,
+    sourceModule === undefined ? undefined : getExport(sourceModule, root, checker, sourceFile),
+    entry.modulesByName?.get(root)
+  ]
+  return candidates.map((candidate) => resolveDottedSymbol(candidate, members, checker, sourceFile)).find((symbol) =>
+    symbol !== undefined
+  )
 }
 
 function isInlineLinkStart(source: string, index: number): boolean {
@@ -1070,6 +1212,16 @@ function collectJSDocLinks(sourceFile: ts.SourceFile, block: JSDocBlock): Array<
   return links
 }
 
+/**
+ * Parses all public standard JSDoc blocks from an ESTree program.
+ *
+ * **Details**
+ *
+ * The parser returns root declarations and declared namespaces in the same grouped shape used by the rule dump output. It reports diagnostics for unsupported public constructs, missing required public JSDoc, malformed standard sections, invalid tags, and namespace exports that do not follow the supported type-only shape.
+ *
+ * @category parsing
+ * @since 0.0.0
+ */
 export function parseStandardJSDocsFromESTree(input: {
   readonly source: string
   readonly program: ESTree.Program
@@ -1089,7 +1241,9 @@ export function parseStandardJSDocsFromESTree(input: {
     }
     if (block === undefined) {
       if (required) {
-        diagnostics.push(diagnostic("missing-jsdoc", scope === "member" ? "Member JSDoc is required" : "Public JSDoc is required"))
+        diagnostics.push(
+          diagnostic("missing-jsdoc", scope === "member" ? "Member JSDoc is required" : "Public JSDoc is required")
+        )
       }
       return undefined
     }
@@ -1106,7 +1260,16 @@ export function parseStandardJSDocsFromESTree(input: {
   }
 
   const parseMembersFromFunction = (node: AstNode | null | undefined): Array<ParsedMember> => {
-    if (!node || !["FunctionDeclaration", "FunctionExpression", "TSDeclareFunction", "TSEmptyBodyFunctionExpression", "ArrowFunctionExpression"].includes(node.type)) {
+    if (
+      !node ||
+      ![
+        "FunctionDeclaration",
+        "FunctionExpression",
+        "TSDeclareFunction",
+        "TSEmptyBodyFunctionExpression",
+        "ArrowFunctionExpression"
+      ].includes(node.type)
+    ) {
       return []
     }
     return parseMembersFromType(node.returnType?.typeAnnotation)
@@ -1340,7 +1503,8 @@ function getStandaloneDeclarationBucket(declaration: AstNode): ExportBucket | un
 }
 
 function isDeclareNamespaceForSource(source: string, node: AstNode): boolean {
-  return node.declare === true || /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
+  return node.declare === true ||
+    /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
 }
 
 function isAmbientModuleLikeForSource(source: string, node: AstNode): boolean {
@@ -1351,7 +1515,10 @@ function isAmbientModuleLikeForSource(source: string, node: AstNode): boolean {
 function shouldParseMember(member: AstNode): boolean {
   if (member.kind === "constructor") return false
   if (member.accessibility === "private" || member.accessibility === "protected") return false
-  if (member.type === "TSCallSignatureDeclaration" || member.type === "TSConstructSignatureDeclaration" || member.type === "TSIndexSignature") return false
+  if (
+    member.type === "TSCallSignatureDeclaration" || member.type === "TSConstructSignatureDeclaration" ||
+    member.type === "TSIndexSignature"
+  ) return false
   return true
 }
 
@@ -1435,7 +1602,9 @@ const rule: CreateRule = {
         const target = extractInlineLinkTarget(text)
         if (target === "") continue
         if (urlRegex.test(target)) report(node, `JSDoc inline link must target a TypeScript symbol: ${text}`)
-        else if (resolveJSDocLinkSymbol(link, target, sourceFile, checker, entry) === undefined) report(node, `Unresolved JSDoc inline link: ${text}`)
+        else if (resolveJSDocLinkSymbol(link, target, sourceFile, checker, entry) === undefined) {
+          report(node, `Unresolved JSDoc inline link: ${text}`)
+        }
       }
     }
 
@@ -1471,7 +1640,15 @@ const rule: CreateRule = {
 
     function inspectFunctionLike(node: AstNode | null | undefined) {
       if (!node) return
-      if (["FunctionDeclaration", "FunctionExpression", "TSDeclareFunction", "TSEmptyBodyFunctionExpression", "ArrowFunctionExpression"].includes(node.type)) {
+      if (
+        [
+          "FunctionDeclaration",
+          "FunctionExpression",
+          "TSDeclareFunction",
+          "TSEmptyBodyFunctionExpression",
+          "ArrowFunctionExpression"
+        ].includes(node.type)
+      ) {
         for (const param of node.params ?? []) inspectParam(param)
         inspectTypeAnnotation(node.returnType)
       }
@@ -1497,7 +1674,10 @@ const rule: CreateRule = {
           inspectType(type.elementType)
           break
         case "TSConditionalType":
-          inspectType(type.checkType); inspectType(type.extendsType); inspectType(type.trueType); inspectType(type.falseType)
+          inspectType(type.checkType)
+          inspectType(type.extendsType)
+          inspectType(type.trueType)
+          inspectType(type.falseType)
           break
         case "TSTypeReference":
           for (const param of type.typeParameters?.params ?? []) inspectType(param)
@@ -1506,7 +1686,8 @@ const rule: CreateRule = {
           inspectType(type.typeAnnotation)
           break
         case "TSIndexedAccessType":
-          inspectType(type.objectType); inspectType(type.indexType)
+          inspectType(type.objectType)
+          inspectType(type.indexType)
           break
         case "TSFunctionType":
         case "TSConstructorType":
@@ -1519,7 +1700,10 @@ const rule: CreateRule = {
     function shouldCheckMember(member: AstNode): boolean {
       if (member.kind === "constructor") return false
       if (member.accessibility === "private" || member.accessibility === "protected") return false
-      if (member.type === "TSCallSignatureDeclaration" || member.type === "TSConstructSignatureDeclaration" || member.type === "TSIndexSignature") return false
+      if (
+        member.type === "TSCallSignatureDeclaration" || member.type === "TSConstructSignatureDeclaration" ||
+        member.type === "TSIndexSignature"
+      ) return false
       return true
     }
 
@@ -1560,14 +1744,26 @@ const rule: CreateRule = {
 
     function checkDeclarationMembers(declaration: AstNode) {
       switch (declaration.type) {
-        case "VariableDeclaration": checkVariableDeclaration(declaration); break
+        case "VariableDeclaration":
+          checkVariableDeclaration(declaration)
+          break
         case "FunctionDeclaration":
-        case "TSDeclareFunction": inspectFunctionLike(declaration); break
+        case "TSDeclareFunction":
+          inspectFunctionLike(declaration)
+          break
         case "ClassDeclaration":
-        case "ClassExpression": checkClassMembers(declaration); break
-        case "TSTypeAliasDeclaration": inspectType(declaration.typeAnnotation); break
-        case "TSInterfaceDeclaration": checkTypeLiteralMembers(declaration.body?.body); break
-        case "TSModuleDeclaration": checkNamespaceMembers(declaration); break
+        case "ClassExpression":
+          checkClassMembers(declaration)
+          break
+        case "TSTypeAliasDeclaration":
+          inspectType(declaration.typeAnnotation)
+          break
+        case "TSInterfaceDeclaration":
+          checkTypeLiteralMembers(declaration.body?.body)
+          break
+        case "TSModuleDeclaration":
+          checkNamespaceMembers(declaration)
+          break
       }
     }
 
@@ -1577,10 +1773,13 @@ const rule: CreateRule = {
         case "FunctionDeclaration":
         case "TSDeclareFunction":
         case "ClassDeclaration":
-        case "ClassExpression": return "value"
+        case "ClassExpression":
+          return "value"
         case "TSTypeAliasDeclaration":
-        case "TSInterfaceDeclaration": return "type"
-        default: return undefined
+        case "TSInterfaceDeclaration":
+          return "type"
+        default:
+          return undefined
       }
     }
 
@@ -1601,11 +1800,13 @@ const rule: CreateRule = {
     }
 
     function isDeclareNamespace(node: AstNode): boolean {
-      return node.declare === true || /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
+      return node.declare === true ||
+        /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
     }
 
     function isAmbientModuleLike(node: AstNode): boolean {
-      return node.type === "TSModuleDeclaration" && node.id?.type !== "Identifier" && !/\bnamespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
+      return node.type === "TSModuleDeclaration" && node.id?.type !== "Identifier" &&
+        !/\bnamespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
     }
 
     function checkNamespaceMembers(namespaceNode: AstNode) {

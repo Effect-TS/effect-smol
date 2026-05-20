@@ -129,6 +129,8 @@ const handledSymbol = Symbol.for("effect/http/HttpEffect/handled")
 /**
  * Disables automatic closing for an HTTP request scope.
  *
+ * **Gotchas**
+ *
  * Use only when another owner will close the scope; otherwise resources attached
  * to the request scope can leak.
  *
@@ -203,6 +205,8 @@ export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Ef
 
 export {
   /**
+   * Registers a pre-response handler for the supplied HTTP server request.
+   *
    * @category fiber refs
    * @since 4.0.0
    */

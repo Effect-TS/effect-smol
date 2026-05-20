@@ -178,6 +178,7 @@ export interface Metadata<Output = unknown, Input = unknown> extends InputMetada
  * Context reference containing metadata for the currently running schedule step.
  *
  * **Details**
+ *
  * Repeat, retry, stream, and channel scheduling operations provide this service
  * to effects run between schedule steps. The default value contains undefined
  * input and output values, zero duration, and zeroed timing fields before any
@@ -272,7 +273,8 @@ export declare namespace Schedule {
    * Type-level marker used by `Schedule.Variance` to record the variance of
    * `Schedule` type parameters.
    *
-   * **Notes**
+   * **Details**
+   *
    * This interface exists for TypeScript inference and assignability. Users
    * normally do not construct or inspect it directly.
    *
@@ -700,6 +702,8 @@ export const andThen: {
  * schedule to completion. Once the left schedule is complete, the right (i.e.
  * `other`) schedule will be executed to completion.
  *
+ * **Details**
+ *
  * The resulting schedule emits a `Result` to indicate which phase produced
  * each output: outputs from `self` are emitted as `Failure`, and outputs from
  * `other` are emitted as `Success`.
@@ -1061,6 +1065,7 @@ export const bothWith: {
  * far as an array.
  *
  * **Details**
+ *
  * This does not make the schedule run forever. The collected schedule stops
  * when `self` stops and fails when `self` fails.
  *
@@ -1099,6 +1104,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * seen so far as an array.
  *
  * **Details**
+ *
  * This does not make the schedule run forever. The collected schedule stops
  * when `self` stops and fails when `self` fails.
  *
@@ -1480,6 +1486,8 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
 
 /**
  * Returns a schedule that recurs once after the specified duration.
+ *
+ * **Details**
  *
  * The schedule outputs the configured duration for its first recurrence and
  * then completes.
@@ -1868,6 +1876,8 @@ export const eitherWith: {
 /**
  * A schedule that always recurs and returns the total elapsed duration since the first recurrence.
  *
+ * **Details**
+ *
  * This schedule never stops and outputs the cumulative time that has passed since the schedule
  * started executing. Useful for tracking execution time or implementing time-based logic.
  *
@@ -2043,10 +2053,12 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  * Returns a `Schedule` that recurs on the specified fixed `interval` and
  * outputs the number of repetitions of the schedule so far.
  *
+ * **Details**
+ *
  * If the action run between updates takes longer than the interval, then the
  * action will be run immediately, but re-runs will not "pile up".
  *
- * ```
+ * ```text
  * |-----interval-----|-----interval-----|-----interval-----|
  * |---------action--------||action|-----|action|-----------|
  * ```
@@ -2282,6 +2294,8 @@ export const modifyDelay: {
 
 /**
  * Returns a new `Schedule` that randomly adjusts each recurrence delay.
+ *
+ * **Details**
  *
  * Delays are jittered between `80%` and `120%` of the original delay.
  *
@@ -3097,6 +3111,8 @@ export {
    * Returns a new schedule that passes each input and output of the specified
    * schedule to the provided `predicate`.
    *
+   * **Details**
+   *
    * If the `predicate` returns `true`, the schedule will continue, otherwise
    * the schedule will stop.
    *
@@ -3110,10 +3126,12 @@ export {
  * A schedule that divides the timeline to `interval`-long windows, and sleeps
  * until the nearest window boundary every time it recurs.
  *
+ * **Details**
+ *
  * For example, `Schedule.windowed("10 seconds")` would produce a schedule as
  * follows:
  *
- * ```
+ * ```text
  *      10s        10s        10s       10s
  * |----------|----------|----------|----------|
  * |action------|sleep---|act|-sleep|action----|
@@ -3153,6 +3171,8 @@ export const windowed = (interval: Duration.Input): Schedule<number> => {
 
 /**
  * Returns a new `Schedule` that will recur forever.
+ *
+ * **Details**
  *
  * The output of the schedule is the current count of its repetitions thus far
  * (i.e. `0, 1, 2, ...`).

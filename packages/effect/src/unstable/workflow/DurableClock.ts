@@ -82,7 +82,7 @@ export const sleep: (
      * If the duration is less than or equal to this threshold, the clock will
      * be executed in memory.
      *
-     * Defaults to 60 seconds.
+     * @default 60 seconds
      */
     readonly inMemoryThreshold?: Duration.Input | undefined
   }

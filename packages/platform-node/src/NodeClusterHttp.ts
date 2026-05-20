@@ -62,6 +62,8 @@ import * as NodeSocket from "./NodeSocket.ts"
 
 export {
   /**
+   * Provides the Kubernetes HTTP client layer used by Kubernetes runner health checks.
+   *
    * @category re-exports
    * @since 4.0.0
    */

@@ -33,6 +33,8 @@ import * as Runners from "./Runners.ts"
 /**
  * Represents the service used to check if a Runner is healthy.
  *
+ * **Details**
+ *
  * If a Runner is responsive, shards will not be re-assigned because the Runner may
  * still be processing messages. If a Runner is not responsive, then its
  * associated shards can and will be re-assigned to a different Runner.
@@ -49,6 +51,8 @@ export class RunnerHealth extends Context.Service<
 
 /**
  * A layer which will **always** consider a Runner healthy.
+ *
+ * **When to use**
  *
  * This is useful for testing.
  *
@@ -102,6 +106,8 @@ export const layerPing: Layer.Layer<
  * Creates a `RunnerHealth` service that checks Kubernetes pod readiness for a
  * runner host, optionally scoped by namespace and label selector.
  *
+ * **Gotchas**
+ *
  * If the Kubernetes API check fails, the runner is treated as healthy.
  *
  * @category constructors
@@ -126,9 +132,14 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
  * A layer which checks Kubernetes pod readiness to determine whether a runner is
  * healthy.
  *
+ * **Details**
+ *
  * The provided `HttpClient` must trust the pod CA certificate and the pod service
- * account must be allowed to list pods. If the Kubernetes API check fails, the
- * runner is treated as healthy.
+ * account must be allowed to list pods.
+ *
+ * **Gotchas**
+ *
+ * If the Kubernetes API check fails, the runner is treated as healthy.
  *
  * @category layers
  * @since 4.0.0

@@ -21,10 +21,9 @@ import * as TxRef from "./TxRef.ts"
 const TypeId = "~effect/transactions/TxDeferred"
 
 /**
- * A transactional deferred — a write-once cell readable within transactions.
- *
- * Readers block (retry the transaction) until a value is committed.
- * Writers succeed only on the first call; subsequent writes return `false`.
+ * A transactional deferred is a write-once cell readable within transactions.
+ * Readers block (retry the transaction) until a value is committed, and writers
+ * succeed only on the first call; subsequent writes return `false`.
  *
  * **Example** (Completing a transactional deferred)
  *

@@ -107,7 +107,7 @@ export const SqlClient = Context.Service<SqlClient>("effect/sql/SqlClient")
  *
  * @since 4.0.0
  */
-export namespace SqlClient {
+export declare namespace SqlClient {
   /**
    * Options used to construct a `SqlClient`, including connection acquirers,
    * the SQL compiler, transaction SQL, row transformation, tracing attributes,

@@ -210,6 +210,8 @@ export const toParts = (snowflake: Snowflake): Snowflake.Parts => ({
 /**
  * Creates a stateful snowflake generator using `Clock`.
  *
+ * **Details**
+ *
  * The generator starts with a random machine id, never moves generated timestamps
  * backward, resets the sequence each millisecond, and advances the timestamp when
  * more than 4096 ids are requested in the same millisecond.

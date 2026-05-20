@@ -69,9 +69,15 @@ export declare namespace OpenAiConfig {
 /**
  * Provides an HTTP client transform for the supplied effect.
  *
- * The transform is read by OpenAI-compatible provider services from the
- * `OpenAiConfig` context and can be used to add provider-specific behavior such
- * as headers, retries, instrumentation, or proxy routing.
+ * **When to use**
+ *
+ * Use this to add provider-specific OpenAI-compatible HTTP behavior, such as
+ * headers, retries, instrumentation, or proxy routing.
+ *
+ * **Details**
+ *
+ * OpenAI-compatible provider services read the transform from the
+ * `OpenAiConfig` context.
  *
  * @category configuration
  * @since 4.0.0

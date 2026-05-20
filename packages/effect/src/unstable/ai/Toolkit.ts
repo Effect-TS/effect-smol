@@ -149,6 +149,8 @@ export interface HandlerContext<Tool extends Tool.Any> {
   /**
    * Emit a preliminary result during long-running tool calls.
    *
+   * **Details**
+   *
    * Preliminary results are streamed to the caller before the handler completes,
    * enabling real-time progress updates for lengthy operations.
    */
@@ -190,6 +192,8 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
 /**
  * A utility type that maps tool names to their required handler functions.
  *
+ * **Details**
+ *
  * Handlers can return either the tool's custom failure type, an `AiErrorReason`
  * (which will be wrapped in `AiError`), or a full `AiError`.
  *
@@ -221,6 +225,8 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
 
   /**
    * Executes a tool call by name.
+   *
+   * **Details**
    *
    * Validates the input parameters, executes the corresponding handler, and
    * streams back both the typed result and encoded result. Streaming allows
@@ -461,6 +467,8 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
 /**
  * An empty toolkit with no tools.
  *
+ * **When to use**
+ *
  * Useful as a starting point for building toolkits or as a default value. Can
  * be extended using the merge function to add tools.
  *
@@ -471,6 +479,8 @@ export const empty: Toolkit<{}> = makeProto({})
 
 /**
  * Creates a new toolkit from the specified tools.
+ *
+ * **Details**
  *
  * This is the primary constructor for creating toolkits. It accepts multiple
  * tools and organizes them into a toolkit that can be provided to AI language
@@ -540,6 +550,8 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
 
 /**
  * Merges multiple toolkits into a single toolkit.
+ *
+ * **Details**
  *
  * Combines all tools from the provided toolkits into one unified toolkit.
  * If there are naming conflicts, tools from later toolkits will override

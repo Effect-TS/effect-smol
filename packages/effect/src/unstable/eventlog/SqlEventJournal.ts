@@ -34,6 +34,8 @@ type WriteFromRemoteOptions = Parameters<EventJournal.EventJournal["Service"]["w
 /**
  * Creates an `EventJournal` backed by a SQL database.
  *
+ * **Details**
+ *
  * The constructor creates the entry and remote metadata tables when needed,
  * persists local and remote entries, and uses the configured `SqlClient`.
  *

@@ -36,6 +36,8 @@ const TypeId = "~effect/cluster/Runner"
 /**
  * A cluster runner that can host entities.
  *
+ * **Details**
+ *
  * Each runner has a unique network `address`, the shard `groups` it participates
  * in, and a relative `weight` used when assigning shards across runners.
  *

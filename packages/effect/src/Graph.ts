@@ -1751,8 +1751,10 @@ export const neighborsDirected: {
 /**
  * Configuration options for GraphViz DOT format generation from graphs.
  *
- * Provides customization for node labels, edge labels, and graph naming
- * in DOT format compatible with GraphViz tools.
+ * **Details**
+ *
+ * These options customize node labels, edge labels, and graph naming in DOT
+ * format compatible with GraphViz tools.
  *
  * **Example** (Configuring GraphViz labels)
  *
@@ -1876,6 +1878,8 @@ export const toGraphViz: {
 /**
  * Mermaid node shape types for diagram visualization.
  *
+ * **Details**
+ *
  * Each shape produces different visual representations in Mermaid diagrams:
  * - `rectangle`: Standard rectangular nodes `A["label"]`
  * - `rounded`: Rounded rectangular nodes `A("label")`
@@ -1921,6 +1925,8 @@ export type MermaidNodeShape =
 /**
  * Mermaid diagram direction types for controlling layout orientation.
  *
+ * **Details**
+ *
  * Determines the flow direction of nodes and edges in the diagram:
  * - `TB`/`TD`: Top to Bottom (vertical layout, default)
  * - `BT`: Bottom to Top (reverse vertical)
@@ -1960,6 +1966,8 @@ export type MermaidDirection =
 
 /**
  * Mermaid diagram types for different visualization formats.
+ *
+ * **Details**
  *
  * Specifies the Mermaid diagram syntax to use:
  * - `flowchart`: For directed graphs with arrows (`A --> B`)
@@ -2003,8 +2011,10 @@ export type MermaidDiagramType =
 /**
  * Configuration options for Mermaid diagram generation from graphs.
  *
- * Provides customization for node labels, edge labels, diagram type,
- * layout direction, node shapes, and graph naming in Mermaid format.
+ * **Details**
+ *
+ * These options customize node labels, edge labels, diagram type, layout
+ * direction, node shapes, and graph naming in Mermaid format.
  *
  * **Example** (Configuring Mermaid output)
  *
@@ -2118,6 +2128,8 @@ const formatMermaidNode = (
 
 /**
  * Exports a graph to Mermaid diagram format for visualization.
+ *
+ * **Details**
  *
  * Mermaid is a popular diagram-as-code tool that generates flowcharts and other
  * visualizations from text-based definitions. This function converts Effect Graph
@@ -2389,6 +2401,8 @@ export type Direction = "outgoing" | "incoming"
 /**
  * Checks if the graph is acyclic (contains no cycles).
  *
+ * **Details**
+ *
  * Uses depth-first search to detect back edges, which indicate cycles.
  * For directed graphs, any back edge creates a cycle. For undirected graphs,
  * a back edge that doesn't go to the immediate parent creates a cycle.
@@ -2499,6 +2513,8 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
 
 /**
  * Checks if an undirected graph is bipartite.
+ *
+ * **Details**
  *
  * A bipartite graph is one whose vertices can be divided into two disjoint sets
  * such that no two vertices within the same set are adjacent. Uses BFS coloring
@@ -3625,6 +3641,8 @@ export class Walker<T, N> implements Iterable<[T, N]> {
   /**
    * Visits each element and maps it to a value using the provided function.
    *
+   * **Details**
+   *
    * Takes a function that receives the index and data,
    * and returns an iterable of the mapped values. Skips elements that
    * no longer exist in the graph.
@@ -4018,6 +4036,8 @@ export interface TopoConfig {
 /**
  * Creates a new topological sort iterator with optional configuration.
  *
+ * **Details**
+ *
  * The iterator uses Kahn's algorithm to lazily produce nodes in topological order.
  * Throws an error if the graph contains cycles.
  *
@@ -4258,6 +4278,8 @@ export const dfsPostOrder: {
 /**
  * Creates an iterator over all node indices in the graph.
  *
+ * **Details**
+ *
  * The iterator produces node indices in the order they were added to the graph.
  * This provides access to all nodes regardless of connectivity.
  *
@@ -4303,6 +4325,8 @@ export const nodes = <N, E, T extends Kind = "directed">(
 
 /**
  * Creates an iterator over all edge indices in the graph.
+ *
+ * **Details**
  *
  * The iterator produces edge indices in the order they were added to the graph.
  * This provides access to all edges regardless of connectivity.
@@ -4365,10 +4389,12 @@ export interface ExternalsConfig {
 }
 
 /**
- * Creates an iterator over external nodes (nodes without edges in specified direction).
+ * Creates an iterator over external nodes (nodes without edges in the specified direction).
  *
- * External nodes are nodes that have no outgoing edges (direction="outgoing") or
- * no incoming edges (direction="incoming"). These are useful for finding
+ * **Details**
+ *
+ * External nodes have no outgoing edges (`direction: "outgoing"`) or no
+ * incoming edges (`direction: "incoming"`). These are useful for finding
  * sources, sinks, or isolated nodes.
  *
  * **Example** (Iterating external nodes)

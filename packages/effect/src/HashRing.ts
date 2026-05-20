@@ -73,6 +73,8 @@ const TypeId = "~effect/cluster/HashRing" as const
  * A weighted consistent-hashing ring for assigning inputs to nodes with stable
  * remapping as nodes are added or removed.
  *
+ * **Details**
+ *
  * Nodes are identified by their `PrimaryKey` value and can be iterated from the
  * ring.
  *
@@ -97,6 +99,8 @@ export const isHashRing = (u: unknown): u is HashRing<any> => hasProperty(u, Typ
 
 /**
  * Creates an empty `HashRing`.
+ *
+ * **Details**
  *
  * `baseWeight` controls how many virtual points are added for a node with
  * weight `1`; it defaults to `128` and is clamped to at least `1`.

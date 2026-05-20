@@ -24,14 +24,14 @@ import * as Context from "./Context.ts"
 import type * as Fiber from "./Fiber.ts"
 
 /**
- * A scheduler manages the execution of Effects by controlling when and how tasks
- * are scheduled and executed. It determines the execution mode (synchronous or
- * asynchronous) and handles task prioritization and yielding behavior.
+ * A scheduler manages the execution of Effect fibers by controlling when queued
+ * tasks run.
  *
- * The scheduler is responsible for:
- * - Scheduling tasks with different priorities
- * - Determining when fibers should yield control
- * - Managing the execution flow of Effects
+ * **Details**
+ *
+ * A scheduler determines the execution mode, schedules tasks with different
+ * priorities, and decides when fibers should yield control after consuming
+ * their operation budget.
  *
  * @category models
  * @since 2.0.0
@@ -47,6 +47,7 @@ export interface Scheduler {
  * tasks to run.
  *
  * **Details**
+ *
  * `scheduleTask` queues a task with a priority. `flush` drains pending work
  * synchronously, which is useful when callers need deterministic completion of
  * already scheduled tasks.
@@ -63,6 +64,7 @@ export interface SchedulerDispatcher {
  * Context reference for the scheduler used by the Effect runtime.
  *
  * **Details**
+ *
  * The default value creates a `MixedScheduler`. Provide this service to
  * customize execution mode, task dispatching, or yield behavior.
  *
@@ -114,15 +116,14 @@ class PriorityBuckets {
 }
 
 /**
- * A scheduler implementation that provides efficient task scheduling
- * with support for both synchronous and asynchronous execution modes.
+ * A scheduler implementation that batches queued tasks and dispatches them by
+ * priority.
  *
- * Features:
- * - Batches tasks for efficient execution
- * - Supports priority-based task scheduling
- * - Configurable execution mode (sync/async)
- * - Automatic yielding based on operation count
- * - Optimized for high-throughput scenarios
+ * **Details**
+ *
+ * `MixedScheduler` supports synchronous and asynchronous execution modes, uses
+ * operation counts to decide when fibers should yield, and is the default
+ * scheduler implementation.
  *
  * @category schedulers
  * @since 2.0.0
@@ -216,11 +217,13 @@ class MixedSchedulerDispatcher implements SchedulerDispatcher {
 
 /**
  * A service reference that controls the maximum number of operations a fiber
- * can perform before yielding control back to the scheduler. This helps
- * prevent long-running fibers from monopolizing the execution thread.
+ * can perform before yielding control back to the scheduler.
  *
- * The default value is 2048 operations, which provides a good balance between
- * performance and fairness in concurrent execution.
+ * **Details**
+ *
+ * The default value is `2048` operations, which balances performance and
+ * fairness by helping prevent long-running fibers from monopolizing the
+ * execution thread.
  *
  * @category references
  * @since 4.0.0

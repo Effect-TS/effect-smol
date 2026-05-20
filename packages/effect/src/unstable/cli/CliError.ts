@@ -494,6 +494,8 @@ export class UserError extends Schema.ErrorClass<UserError>(`${TypeId}/UserError
 /**
  * Schema for concrete CLI errors that can be reported together with help output.
  *
+ * **Details**
+ *
  * This excludes `ShowHelp` itself, allowing parse and validation errors to be
  * stored in `ShowHelp.errors` without nesting another help-control value.
  *
@@ -523,6 +525,8 @@ export const NonShowHelpErrors: Schema.Union<
 /**
  * Type of CLI errors that are not `ShowHelp`.
  *
+ * **Details**
+ *
  * These errors can be accumulated and attached to `ShowHelp.errors` when the
  * runner should display help along with the underlying parse or validation
  * failures.
@@ -534,6 +538,8 @@ export type NonShowHelpErrors = typeof NonShowHelpErrors.Type
 
 /**
  * Control-flow value that asks the CLI runner to render help for a command path.
+ *
+ * **Details**
  *
  * It is used for explicit help requests and for parse or validation failures
  * that should be shown with help text. When `errors` is non-empty, the runtime

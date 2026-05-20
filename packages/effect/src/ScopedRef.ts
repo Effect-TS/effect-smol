@@ -121,7 +121,9 @@ export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never
 
 /**
  * Sets the value of this reference to the specified resourcefully-created
- * value. Any resources associated with the old value will be released.
+ * value, releasing any resources associated with the old value.
+ *
+ * **Details**
  *
  * This method will not return until either the reference is successfully
  * changed to the new value, with old resources released, or until the attempt

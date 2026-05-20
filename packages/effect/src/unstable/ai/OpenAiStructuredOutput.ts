@@ -14,8 +14,9 @@ import * as Transformation from "../../SchemaTransformation.ts"
 import * as Tool from "./Tool.ts"
 
 /**
- * Transforms a `Schema.Codec` into a form compatible with OpenAI's
- * structured output constraints.
+ * Transforms a `Schema.Codec` into a form compatible with OpenAI's structured output constraints.
+ *
+ * **Details**
  *
  * The transformation walks the schema AST and rewrites constructs that
  * OpenAI does not support natively:

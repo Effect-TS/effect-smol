@@ -42,9 +42,10 @@ const TypeId = "~effect/Ref"
 /**
  * A mutable reference that provides atomic read, write, and update operations.
  *
- * Ref is a thread-safe mutable reference type that allows for atomic operations
- * on shared state. It supports both simple read/write operations and complex
- * atomic transformations.
+ * **Details**
+ *
+ * A `Ref` is a thread-safe mutable reference type for shared state. It supports
+ * simple read and write operations as well as atomic transformations.
  *
  * **Example** (Reading and updating a ref)
  *
@@ -126,8 +127,14 @@ const RefProto = {
 /**
  * Creates a new Ref with the specified initial value (unsafe version).
  *
- * This function creates a Ref synchronously without wrapping in Effect.
- * Use this only when you're sure about the safety of immediate creation.
+ * **When to use**
+ *
+ * Use this when you need immediate synchronous construction and can guarantee
+ * that creating the `Ref` outside of `Effect` is safe.
+ *
+ * **Gotchas**
+ *
+ * Prefer `Ref.make` for Effect-wrapped creation in Effect programs.
  *
  * **Example** (Creating a ref unsafely)
  *
@@ -227,9 +234,7 @@ export const set = dual<
 >(2, <A>(self: Ref<A>, value: A) => Effect.sync(() => MutableRef.set(self.ref, value)))
 
 /**
- * Atomically gets the current value of the Ref and sets it to the specified value.
- *
- * Returns the value that was in the Ref before the update.
+ * Atomically gets the current value of the Ref, sets it to the specified value, and returns the previous value.
  *
  * **Example** (Replacing a value atomically)
  *
@@ -262,9 +267,7 @@ export const getAndSet = dual<
   }))
 
 /**
- * Atomically gets the current value of the Ref and updates it with the given function.
- *
- * Returns the value that was in the Ref before the update.
+ * Atomically gets the current value of the Ref, updates it with the given function, and returns the previous value.
  *
  * **Example** (Updating and returning the previous value)
  *
@@ -299,9 +302,11 @@ export const getAndUpdate = dual<
 /**
  * Atomically gets the current value of the Ref and updates it with the given partial function.
  *
- * If the partial function returns `Option.some`, the Ref is updated with the new value.
- * If it returns `Option.none`, the Ref is left unchanged.
- * Always returns the value that was in the Ref before the attempted update.
+ * **Details**
+ *
+ * If the partial function returns `Option.some`, the Ref is updated with the
+ * new value. If it returns `Option.none`, the Ref is left unchanged. The effect
+ * always returns the value that was in the Ref before the attempted update.
  *
  * **Example** (Conditionally updating and returning the previous value)
  *
@@ -352,7 +357,10 @@ export const getAndUpdateSome = dual<
 /**
  * Atomically sets the value of the Ref to the specified value and returns the new value.
  *
- * This is useful when you want to set a value and immediately get it back in one atomic operation.
+ * **When to use**
+ *
+ * Use this when you want to set a value and immediately get it back in one
+ * atomic operation.
  *
  * **Example** (Setting and returning the new value)
  *
@@ -391,8 +399,11 @@ export const setAndGet = dual<
 /**
  * Atomically modifies the value of the Ref using the given function.
  *
- * The function receives the current value and returns a tuple of [result, newValue].
- * The Ref is updated with the newValue and the result is returned.
+ * **Details**
+ *
+ * The function receives the current value and returns a tuple of
+ * `[result, newValue]`. The Ref is updated with `newValue`, and `result` is
+ * returned by the effect.
  *
  * **Example** (Modifying a value atomically)
  *
@@ -578,8 +589,10 @@ export const updateAndGet = dual<
 /**
  * Atomically updates the value of the Ref using the given partial function.
  *
- * If the partial function returns `Option.some`, the Ref is updated with the new value.
- * If it returns `Option.none`, the Ref is left unchanged.
+ * **Details**
+ *
+ * If the partial function returns `Option.some`, the Ref is updated with the
+ * new value. If it returns `Option.none`, the Ref is left unchanged.
  *
  * **Example** (Conditionally updating a value)
  *
@@ -627,9 +640,11 @@ export const updateSome = dual<
 /**
  * Atomically updates the value of the Ref using the given partial function and returns the current value.
  *
- * If the partial function returns `Option.some`, the Ref is updated with the new value.
- * If it returns `Option.none`, the Ref is left unchanged.
- * Returns the current value of the Ref after the potential update.
+ * **Details**
+ *
+ * If the partial function returns `Option.some`, the Ref is updated with the
+ * new value. If it returns `Option.none`, the Ref is left unchanged. The effect
+ * returns the current value of the Ref after the potential update.
  *
  * **Example** (Conditionally updating and returning the current value)
  *
@@ -673,8 +688,14 @@ export const updateSomeAndGet = dual<
 /**
  * Gets the current value of the Ref synchronously (unsafe version).
  *
- * This function reads the current value without wrapping in Effect.
- * Use this only when you're sure about the safety of immediate access.
+ * **When to use**
+ *
+ * Use this when you need immediate synchronous access and can guarantee that
+ * reading the `Ref` outside of `Effect` is safe.
+ *
+ * **Gotchas**
+ *
+ * Prefer `Ref.get` for Effect-wrapped access in Effect programs.
  *
  * **Example** (Reading a ref unsafely)
  *

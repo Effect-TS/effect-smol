@@ -40,12 +40,12 @@ const TypeId = "~effect/ai/Model" as const
 /**
  * A Model represents a provider-specific AI service.
  *
- * A Model can be used directly as a Layer to provide a particular model
- * implementation to an Effect program.
+ * **When to use**
  *
- * A Model can also be used as an Effect to "lift" dependencies of the Model
- * constructor into the parent Effect. This is particularly useful when you
- * want to use a Model from within an Effect service.
+ * Use a Model directly as a Layer to provide a particular model implementation
+ * to an Effect program, or use it as an Effect to "lift" dependencies of the
+ * Model constructor into the parent Effect when you want to use a Model from
+ * within an Effect service.
  *
  * @category models
  * @since 4.0.0
@@ -73,6 +73,8 @@ export interface Model<in out Provider, in out Provides, in out Requires>
 /**
  * Service tag that provides the current large language model provider name.
  *
+ * **Details**
+ *
  * This tag is automatically provided by Model instances and can be used to
  * access the name of the provider that is currently in use within a given
  * Effect program.
@@ -86,6 +88,8 @@ export class ProviderName extends Context.Service<ProviderName, string>()(
 
 /**
  * Service tag that provides the current large language model name.
+ *
+ * **Details**
  *
  * This tag is automatically provided by Model instances and can be used to
  * access the name of the model that is currently in use within a given Effect

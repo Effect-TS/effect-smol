@@ -154,6 +154,8 @@ export const Exclude = Context.Reference<boolean>("effect/httpapi/OpenApi/Exclud
 /**
  * OpenAPI annotation for transforming a generated OpenAPI object.
  *
+ * **Details**
+ *
  * The function is applied during generation to the annotated API, group tag, or
  * endpoint operation.
  *

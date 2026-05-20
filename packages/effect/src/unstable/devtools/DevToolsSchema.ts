@@ -297,6 +297,8 @@ export const Counter = metric(
 /**
  * Type of a devtools counter metric snapshot.
  *
+ * **Details**
+ *
  * The state contains the current count and whether the counter reports
  * incremental updates.
  *
@@ -307,6 +309,8 @@ export type Counter = Schema.Schema.Type<typeof Counter>
 
 /**
  * Schema for a devtools frequency metric snapshot.
+ *
+ * **Details**
  *
  * The metric state records occurrence counts by string key.
  *
@@ -323,6 +327,8 @@ export const Frequency = metric(
 /**
  * Type of a devtools frequency metric snapshot.
  *
+ * **Details**
+ *
  * The state maps observed string values to occurrence counts.
  *
  * @category schemas
@@ -332,6 +338,8 @@ export type Frequency = Schema.Schema.Type<typeof Frequency>
 
 /**
  * Schema for a devtools gauge metric snapshot.
+ *
+ * **Details**
  *
  * The metric state contains the current numeric or bigint value.
  *
@@ -348,6 +356,8 @@ export const Gauge = metric(
 /**
  * Type of a devtools gauge metric snapshot.
  *
+ * **Details**
+ *
  * The state contains the current numeric or bigint value.
  *
  * @category schemas
@@ -357,6 +367,8 @@ export type Gauge = Schema.Schema.Type<typeof Gauge>
 
 /**
  * Schema for a devtools histogram metric snapshot.
+ *
+ * **Details**
  *
  * The metric state includes bucket counts plus the total count, minimum,
  * maximum, and sum.
@@ -378,6 +390,8 @@ export const Histogram = metric(
 /**
  * Type of a devtools histogram metric snapshot.
  *
+ * **Details**
+ *
  * The state includes bucket counts plus the total count, minimum, maximum, and
  * sum.
  *
@@ -388,6 +402,8 @@ export type Histogram = Schema.Schema.Type<typeof Histogram>
 
 /**
  * Schema for a devtools summary metric snapshot.
+ *
+ * **Details**
  *
  * The metric state contains quantile values plus the total count, minimum,
  * maximum, and sum.
@@ -409,6 +425,8 @@ export const Summary = metric(
 /**
  * Type of a devtools summary metric snapshot.
  *
+ * **Details**
+ *
  * The state contains quantile values plus the total count, minimum, maximum,
  * and sum.
  *
@@ -420,6 +438,8 @@ export type Summary = Schema.Schema.Type<typeof Summary>
 /**
  * Schema for any devtools metric snapshot.
  *
+ * **Details**
+ *
  * Accepted metric kinds are counters, frequencies, gauges, histograms, and
  * summaries.
  *
@@ -430,6 +450,8 @@ export const Metric = Schema.Union([Counter, Frequency, Gauge, Histogram, Summar
 
 /**
  * Type of any devtools metric snapshot.
+ *
+ * **Details**
  *
  * The union covers counters, frequencies, gauges, histograms, and summaries.
  *
@@ -461,6 +483,8 @@ export type MetricsSnapshot = Schema.Schema.Type<typeof MetricsSnapshot>
 /**
  * Schema for devtools protocol requests accepted by the server.
  *
+ * **Details**
+ *
  * Requests include heartbeat pings, spans, span events, and metric snapshots.
  *
  * @category schemas
@@ -470,6 +494,8 @@ export const Request = Schema.Union([Ping, Span, SpanEvent, MetricsSnapshot])
 
 /**
  * Type of devtools protocol requests accepted by the server.
+ *
+ * **Details**
  *
  * Requests include heartbeat pings, spans, span events, and metric snapshots.
  *
@@ -487,10 +513,11 @@ export declare namespace Request {
   /**
    * Devtools request messages excluding heartbeat pings.
    *
+   * **Details**
+   *
    * `DevToolsServer` handles `Ping` internally and exposes only these requests
    * to client handlers.
    *
-   * @category schemas
    * @since 4.0.0
    */
   export type WithoutPing = Exclude<Request, { readonly _tag: "Ping" }>
@@ -498,6 +525,8 @@ export declare namespace Request {
 
 /**
  * Schema for devtools protocol responses sent by the server.
+ *
+ * **Details**
  *
  * Responses include heartbeat pongs and requests for metric snapshots.
  *
@@ -508,6 +537,8 @@ export const Response = Schema.Union([Pong, MetricsRequest])
 
 /**
  * Type of devtools protocol responses sent by the server.
+ *
+ * **Details**
  *
  * Responses include heartbeat pongs and requests for metric snapshots.
  *
@@ -525,10 +556,11 @@ export declare namespace Response {
   /**
    * Devtools response messages excluding heartbeat pongs.
    *
+   * **Details**
+   *
    * `DevToolsServer` sends `Pong` internally and accepts only these responses
    * from client handlers.
    *
-   * @category schemas
    * @since 4.0.0
    */
   export type WithoutPong = Exclude<Response, { readonly _tag: "Pong" }>

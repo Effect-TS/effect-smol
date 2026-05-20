@@ -129,6 +129,8 @@ export declare namespace MutableList {
    * Storage node used by the exposed `head` and `tail` fields of a
    * `MutableList`.
    *
+   * **Details**
+   *
    * Most code should treat buckets as an implementation detail and use
    * `MutableList` operations such as `append`, `prepend`, and `take` instead
    * of constructing or mutating buckets directly.
@@ -420,8 +422,10 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  * Prepends all elements from a ReadonlyArray to the beginning of the MutableList.
  * This is an optimized version that can reuse the array when mutable=true.
  *
- * ⚠️ **Warning**: When mutable=true, the input array may be modified internally.
- * Only use mutable=true when you control the array lifecycle.
+ * **Gotchas**
+ *
+ * When mutable=true, the input array may be modified internally. Only use
+ * mutable=true when you control the array lifecycle.
  *
  * **Example** (Prepending arrays with optional mutation)
  *
@@ -503,8 +507,10 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  * This is an optimized version that can reuse the array when mutable=true.
  * Returns the number of elements added.
  *
- * ⚠️ **Warning**: When mutable=true, the input array may be modified internally.
- * Only use mutable=true when you control the array lifecycle.
+ * **Gotchas**
+ *
+ * When mutable=true, the input array may be modified internally. Only use
+ * mutable=true when you control the array lifecycle.
  *
  * **Example** (Appending arrays with optional mutation)
  *
@@ -668,6 +674,8 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
  * Removes up to `n` elements from the beginning of the `MutableList` without
  * returning them.
  *
+ * **Details**
+ *
  * If `n` is less than or equal to zero, or the list is empty, the list is left
  * unchanged. If `n` is greater than or equal to the current length, the list is
  * cleared.
@@ -812,6 +820,8 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  * Copies up to `n` elements from the beginning of the `MutableList` into a new
  * array without modifying the list.
  *
+ * **When to use**
+ *
  * Use `takeN` when the copied elements should also be removed from the list.
  *
  * @category elements
@@ -835,6 +845,8 @@ export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
 /**
  * Copies all current elements of the `MutableList` into a new array without
  * modifying the list.
+ *
+ * **When to use**
  *
  * Use `takeAll` when the list should be emptied after converting it to an
  * array.
@@ -912,8 +924,14 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  * Removes all occurrences of a value from the `MutableList` using JavaScript
  * strict equality semantics.
  *
- * The list is modified in place. Values are compared with `!==`, so this does
- * not use Effect structural equality.
+ * **Details**
+ *
+ * The list is modified in place.
+ *
+ * **Gotchas**
+ *
+ * Values are compared with `!==`, so this does not use Effect structural
+ * equality.
  *
  * **Example** (Removing matching values)
  *

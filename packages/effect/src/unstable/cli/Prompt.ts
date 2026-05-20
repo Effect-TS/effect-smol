@@ -49,6 +49,8 @@ const TypeId = "~effect/cli/Prompt"
 /**
  * Represents an interactive terminal prompt that produces an `Output` value.
  *
+ * **Details**
+ *
  * A `Prompt` is an `Effect` that may fail with `Terminal.QuitError` and
  * requires the prompt environment needed to render frames, read input, and
  * access files or paths when a prompt uses them.
@@ -94,6 +96,8 @@ export type Action<State, Output> = Data.TaggedEnum<{
 /**
  * Type-level definition for the tagged `Prompt.Action` variants.
  *
+ * **Details**
+ *
  * It connects the action state and output type parameters to the `Beep`,
  * `NextFrame`, and `Submit` action cases.
  *
@@ -105,11 +109,12 @@ export interface ActionDefinition extends Data.TaggedEnum.WithGenerics<2> {
 }
 
 /**
- * Represents the set of handlers used by a `Prompt` to:
+ * Represents the set of handlers used by a `Prompt`.
  *
- *   - Render the current frame of the prompt
- *   - Process user input and determine the next `Prompt.Action` to take
- *   - Clear the terminal screen before the next frame
+ * **Details**
+ *
+ * The handlers render the current frame, process user input into the next
+ * `Prompt.Action`, and clear the terminal screen before the next frame.
  *
  * @category models
  * @since 4.0.0
@@ -301,6 +306,8 @@ export interface IntegerOptions {
 /**
  * Options for a floating-point number prompt.
  *
+ * **Details**
+ *
  * In addition to the numeric bounds and step settings from `IntegerOptions`,
  * the prompt can be configured with a display precision.
  *
@@ -331,6 +338,8 @@ export interface ListOptions extends TextOptions {
 /**
  * Options for a file-system selection prompt.
  *
+ * **Details**
+ *
  * They control which path type can be selected, the starting directory, paging,
  * and filtering of displayed entries.
  *
@@ -339,34 +348,25 @@ export interface ListOptions extends TextOptions {
  */
 export interface FileOptions {
   /**
-   * The path type that will be selected.
-   *
-   * Defaults to `"file"`.
+   * The path type that will be selected, defaulting to `"file"`.
    */
   readonly type?: Primitive.PathType
   /**
-   * The message to display in the prompt.
-   *
-   * Defaults to `"Choose a file"`.
+   * The message to display in the prompt, defaulting to `"Choose a file"`.
    */
   readonly message?: string
   /**
-   * Where the user will initially be prompted to select files from.
-   *
-   * Defaults to the current working directory.
+   * Where the user will initially be prompted to select files from, defaulting
+   * to the current working directory.
    */
   readonly startingPath?: string
   /**
-   * The number of choices to display at one time
-   *
-   * Defaults to `10`.
+   * The number of choices to display at one time, defaulting to `10`.
    */
   readonly maxPerPage?: number
   /**
-   * A function which removes any file from the prompt display where the
-   * specified predicate returns `true`.
-   *
-   * Defaults to returning all files.
+   * A predicate or effect that keeps a file in the prompt when it returns
+   * `true`, defaulting to returning all files.
    */
   readonly filter?: (file: string) => boolean | Effect.Effect<boolean, never, Environment>
 }
@@ -584,6 +584,8 @@ export declare namespace All {
   /**
    * Computes the prompt returned by `Prompt.all` for an iterable of prompts.
    *
+   * **Details**
+   *
    * The resulting prompt produces an array of each prompt's output value.
    *
    * @category utility types
@@ -636,6 +638,8 @@ export declare namespace All {
 /**
  * Runs all the provided prompts in sequence respecting the structure provided
  * in input.
+ *
+ * **Details**
  *
  * Supports either a tuple / iterable of prompts or a record / struct of prompts
  * as an argument.
@@ -733,26 +737,15 @@ export const confirm = (options: ConfirmOptions): Prompt<boolean> => {
 /**
  * Creates a custom `Prompt` from the specified initial state and handlers.
  *
+ * **Details**
+ *
  * The initial state can either be a pure value or an `Effect`. This is
  * particularly useful when the initial state of the `Prompt` must be computed
- * by performing some effectful computation, such as reading data from the file
- * system.
- *
- * A `Prompt` is essentially a render loop where user input triggers a new frame
- * to be rendered to the `Terminal`. The `handlers` of a custom prompt are used
- * to control what is rendered to the `Terminal` each frame. During each frame,
- * the following occurs:
- *
- *   1. The `render` handler is called with this frame's prompt state and prompt
- *      action and returns an ANSI escape string to be rendered to the
- *      `Terminal`
- *   2. The `Terminal` obtains input from the user
- *   3. The `process` handler is called with the input obtained from the user
- *      and this frame's prompt state and returns the next prompt action that
- *      should be performed
- *   4. The `clear` handler is called with this frame's prompt state and prompt
- *      action and returns an ANSI escape string used to clear the screen of
- *      the `Terminal`
+ * by performing an effectful computation, such as reading data from the file
+ * system. A `Prompt` runs as a render loop: `render` returns ANSI output for
+ * the current frame, the `Terminal` obtains user input, `process` returns the
+ * next prompt action, and `clear` returns ANSI output used to clear the previous
+ * frame.
  *
  * @category constructors
  * @since 4.0.0
@@ -806,6 +799,8 @@ export const date = (options: DateOptions): Prompt<Date> => {
 
 /**
  * Creates a file-system selection prompt and returns the selected path.
+ *
+ * **Details**
  *
  * The prompt can be configured to select files, directories, or either path
  * type.
@@ -867,6 +862,8 @@ export const flatMap: {
 /**
  * Creates a floating-point number prompt.
  *
+ * **Details**
+ *
  * The prompt supports minimum and maximum bounds, keyboard step sizes, display
  * precision, and additional validation before submission.
  *
@@ -915,6 +912,8 @@ export const hidden = (
 
 /**
  * Creates an integer prompt.
+ *
+ * **Details**
  *
  * The prompt supports minimum and maximum bounds, keyboard step sizes, and
  * additional validation before submission.
@@ -997,6 +996,8 @@ export const password = (
  * Runs a prompt by reading terminal input and rendering prompt frames until the
  * prompt submits a value.
  *
+ * **Gotchas**
+ *
  * The returned effect may fail with `Terminal.QuitError` if terminal input ends
  * or the prompt is quit.
  *
@@ -1040,6 +1041,8 @@ const getSelectInitialIndex = <A>(choices: ReadonlyArray<SelectChoice<A>>): numb
 /**
  * Creates a prompt that lets the user select a single value from a list of
  * choices.
+ *
+ * **Gotchas**
  *
  * At most one choice may be marked as selected by default.
  *
@@ -1111,6 +1114,8 @@ export const autoComplete = <const A>(options: AutoCompleteOptions<A>): Prompt<A
  * Creates a prompt that lets the user select multiple choices and returns their
  * values as an array.
  *
+ * **Details**
+ *
  * The prompt supports default selected choices, bulk-selection commands, and
  * minimum or maximum selection counts.
  *
@@ -1143,8 +1148,10 @@ export const multiSelect = <const A>(
 /**
  * Creates a `Prompt` which immediately succeeds with the specified value.
  *
- * **NOTE**: This method will not attempt to obtain user input or render
- * anything to the screen.
+ * **Details**
+ *
+ * This prompt does not attempt to obtain user input or render anything to the
+ * screen.
  *
  * @category constructors
  * @since 4.0.0

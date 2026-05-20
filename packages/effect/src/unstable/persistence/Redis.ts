@@ -45,6 +45,8 @@ export class Redis extends Context.Service<Redis, {
 /**
  * Creates a `Redis` service from a raw command sender.
  *
+ * **Details**
+ *
  * Lua scripts are loaded through `SCRIPT LOAD`, cached, and then invoked with
  * `EVALSHA`.
  *
@@ -111,6 +113,8 @@ const ScriptTypeId: ScriptTypeId = "~effect/persistence/Redis/Script"
 /**
  * Typed descriptor for a Redis Lua script.
  *
+ * **Details**
+ *
  * It defines the Lua source, parameter-to-argument mapping, Redis key count,
  * and result type used by `Redis.eval`.
  *
@@ -158,6 +162,8 @@ const ScriptProto = {
 
 /**
  * Constructs a typed Redis Lua script descriptor.
+ *
+ * **Details**
  *
  * The result type defaults to `void` and can be refined with
  * `withReturnType`.

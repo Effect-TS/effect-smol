@@ -19,7 +19,11 @@ const CodegenLayer = Layer.provideMerge(Codegen.layer, Glob.layer)
 /**
  * CLI command that regenerates annotated barrel files.
  *
- * The command scans `cwd` for files matching `pattern`, finds `@barrel` annotations, and rewrites each annotated barrel with generated exports from matching modules.
+ * **Details**
+ *
+ * The command scans `cwd` for files matching `pattern`, finds `@barrel`
+ * annotations, and rewrites each annotated barrel with generated exports from
+ * matching modules.
  *
  * @category commands
  * @since 4.0.0

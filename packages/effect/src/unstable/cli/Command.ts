@@ -62,7 +62,10 @@ import * as Param from "./Param.ts"
 /**
  * Represents a CLI command with its configuration, handler, and metadata.
  *
+ * **Details**
+ *
  * Commands are the core building blocks of CLI applications. They define:
+ *
  * - The command name and description
  * - Configuration including flags and arguments
  * - Handler function for execution
@@ -171,6 +174,8 @@ export declare namespace Command {
   /**
    * Type-level variance marker for `Command`.
    *
+   * **Details**
+   *
    * The parsed input type is contravariant, while the command error and service
    * requirement types are covariant.
    *
@@ -197,10 +202,11 @@ export declare namespace Command {
   /**
    * Configuration object for defining command flags, arguments, and nested structures.
    *
-   * Command.Config allows you to specify:
-   * - Individual flags and arguments using Param types
-   * - Nested configuration objects for organization
-   * - Arrays of parameters for repeated elements
+   * **Details**
+   *
+   * `Command.Config` can contain individual flags and arguments using `Param`
+   * types, nested configuration objects for organization, and arrays of
+   * parameters for repeated elements.
    *
    * **Example** (Configuring command input)
    *
@@ -241,6 +247,8 @@ export declare namespace Command {
   /**
    * Configuration shape accepted by `Command.withSharedFlags`.
    *
+   * **Details**
+   *
    * Only flags are allowed here; arguments are intentionally excluded.
    *
    * @category models
@@ -258,9 +266,11 @@ export declare namespace Command {
    *
    * @since 4.0.0
    */
-  export namespace Config {
+  export declare namespace Config {
     /**
      * Infers the TypeScript type from a Command.Config structure.
+     *
+     * **Details**
      *
      * This type utility extracts the final configuration type that handlers will receive,
      * preserving the nested structure while converting Param types to their values.
@@ -352,6 +362,8 @@ export declare namespace Command {
 /**
  * Services required by CLI parsing and execution.
  *
+ * **Details**
+ *
  * This includes file-system and path services for arguments, terminal and
  * stdio services for running commands, and child-process spawning for
  * process-related CLI features.
@@ -378,6 +390,8 @@ export type Error<C> = C extends Command<
 
 /**
  * Service context for a specific command, enabling subcommands to access their parent's parsed configuration.
+ *
+ * **Details**
  *
  * When a subcommand handler needs access to flags or arguments from a parent command,
  * it can yield the parent command directly to retrieve its config. This is powered by
@@ -451,6 +465,8 @@ export const isCommand = (u: unknown): u is Command.Any => Predicate.hasProperty
 /**
  * Creates a `Command` from a name, an optional configuration, and an optional
  * handler.
+ *
+ * **Details**
  *
  * Use `withDescription` and related metadata combinators to add help text. The
  * overloads support simple commands, configured commands, and commands with
@@ -628,6 +644,8 @@ const normalizeSubcommandEntries = (
 /**
  * Adds subcommands to a command, creating a hierarchical command structure.
  *
+ * **Details**
+ *
  * Subcommands can access their parent's parsed configuration by yielding the parent
  * command within their handler. This enables shared parent flags that affect
  * all subcommands.
@@ -773,6 +791,8 @@ export const withSubcommands: {
 /**
  * Adds flags that are inherited by subcommands.
  *
+ * **Details**
+ *
  * Shared flags are available to this command's handler and to descendant
  * handlers via `yield* parentCommand`. Shared flags are accepted both before
  * and after a selected subcommand name (npm-style).
@@ -871,6 +891,8 @@ export const withSharedFlags: {
 /**
  * Declares global flags for a command scope.
  *
+ * **Details**
+ *
  * Declared global flags apply to the command and all of its descendants.
  *
  * @category combinators
@@ -927,6 +949,8 @@ type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> 
 /**
  * Sets the description for a command.
  *
+ * **Details**
+ *
  * Descriptions provide users with information about what the command does
  * when they view help documentation.
  *
@@ -965,6 +989,8 @@ export const withDescription: {
 /**
  * Sets a short description for a command.
  *
+ * **Details**
+ *
  * Short descriptions are used when listing subcommands in help output and
  * shell completions. If no short description is provided, the full
  * `description` is used as a fallback.
@@ -987,6 +1013,8 @@ export const withShortDescription: {
 
 /**
  * Sets an alias for a command.
+ *
+ * **Details**
  *
  * Aliases are accepted as alternate subcommand names during parsing and are
  * shown in help output as `name, alias`.
@@ -1091,6 +1119,8 @@ export const annotateMerge: {
 
 /**
  * Sets usage examples for a command.
+ *
+ * **Details**
  *
  * Examples are exposed in structured `HelpDoc` data and rendered by the
  * default formatter in an `EXAMPLES` section.
@@ -1343,8 +1373,11 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
 /**
  * Runs a command using the arguments supplied by the `Stdio` service.
  *
- * Use `runWith` when you need to execute a command with an explicit argument
- * array, such as in tests.
+ * **When to use**
+ *
+ * Use `run` at an application entry point when arguments should come from
+ * `Stdio`; use `runWith` when you need an explicit argument array, such as in
+ * tests.
  *
  * **Example** (Running commands with standard input)
  *
@@ -1394,9 +1427,11 @@ export const run: {
   ))
 
 /**
- * Runs a command with explicitly provided arguments instead of using process.argv.
+ * Runs a command with explicitly provided arguments instead of using arguments from `Stdio`.
  *
- * This function is useful for testing CLI applications or when you want to
+ * **When to use**
+ *
+ * Use this function for testing CLI applications or when you want to
  * programmatically execute commands with specific arguments.
  *
  * **Example** (Running commands with explicit arguments)

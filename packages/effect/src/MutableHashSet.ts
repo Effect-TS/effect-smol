@@ -84,6 +84,8 @@ const TypeId = "~effect/collections/MutableHashSet"
  * A mutable hash set for storing unique values with Effect structural equality
  * support.
  *
+ * **Details**
+ *
  * Operations mutate the set in place. Values that implement `Equal` / `Hash`
  * can be de-duplicated structurally; other values use normal JavaScript
  * reference or primitive equality.

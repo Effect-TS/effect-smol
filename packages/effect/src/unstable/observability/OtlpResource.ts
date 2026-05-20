@@ -41,6 +41,8 @@ export interface Resource {
 /**
  * Creates an OTLP resource from service metadata and additional attributes.
  *
+ * **Details**
+ *
  * The resource always includes `service.name`, includes `service.version` when
  * provided, and converts custom attributes into OTLP attribute values.
  *
@@ -79,6 +81,8 @@ export const make = (options: {
 /**
  * Creates an OTLP resource from explicit options and OpenTelemetry
  * configuration.
+ *
+ * **Details**
  *
  * Explicit options override `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`,
  * and `OTEL_SERVICE_VERSION`; missing required configuration is converted to a
@@ -121,6 +125,8 @@ export const fromConfig: (
 /**
  * Returns the `service.name` attribute from an OTLP resource.
  *
+ * **Gotchas**
+ *
  * Throws if the resource does not contain a string `service.name` attribute.
  *
  * @category Attributes
@@ -155,6 +161,8 @@ export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array
 
 /**
  * Converts an arbitrary JavaScript value into an OTLP `AnyValue`.
+ *
+ * **Details**
  *
  * Arrays are converted recursively, primitive values use their matching OTLP
  * fields, and unsupported values are formatted as strings.

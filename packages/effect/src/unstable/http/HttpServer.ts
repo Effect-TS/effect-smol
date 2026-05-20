@@ -37,6 +37,8 @@ import type { HttpServerResponse } from "./HttpServerResponse.ts"
 /**
  * Service tag for an HTTP server runtime.
  *
+ * **Details**
+ *
  * The service can serve an HTTP response effect and exposes the address where the
  * server is listening.
  *
@@ -65,6 +67,8 @@ export class HttpServer extends Context.Service<HttpServer, {
 
 /**
  * Address where an HTTP server is listening.
+ *
+ * **Details**
  *
  * The address is either a TCP host and port or a Unix domain socket path.
  *
@@ -117,6 +121,8 @@ export const make = (
  * Creates a layer that starts serving an HTTP response effect with the current
  * `HttpServer`.
  *
+ * **Details**
+ *
  * The request service is supplied by the server for each request; the returned
  * layer still requires the server, a scope, and any non-request dependencies of
  * the response effect or middleware.
@@ -164,6 +170,8 @@ export const serve: {
  * Effect that starts serving an HTTP response effect with the current
  * `HttpServer`.
  *
+ * **Details**
+ *
  * The request service is supplied by the server for each request; the effect
  * requires a scope and any non-request dependencies of the response effect or
  * middleware.
@@ -206,6 +214,8 @@ export const serveEffect: {
 
 /**
  * Formats a server address as a display string.
+ *
+ * **Details**
  *
  * TCP addresses are formatted as `http://host:port`; Unix socket addresses are
  * formatted as `unix://path`.
@@ -263,8 +273,14 @@ export const withLogAddress = <A, E, R>(
 /**
  * Builds an `HttpClient` that sends requests to the current test HTTP server.
  *
+ * **Details**
+ *
  * For TCP servers, requests are prefixed with the server URL and `0.0.0.0` is
- * rewritten to `127.0.0.1`. Unix socket addresses are not supported.
+ * rewritten to `127.0.0.1`.
+ *
+ * **Gotchas**
+ *
+ * Unix socket addresses are not supported.
  *
  * @category Testing
  * @since 4.0.0
@@ -300,6 +316,8 @@ export const layerTestClient: Layer.Layer<
 /**
  * Testing layer that provides the platform services commonly needed by HTTP
  * server tests.
+ *
+ * **Details**
  *
  * It includes `HttpPlatform`, `Path`, a weak ETag generator, and a no-op
  * `FileSystem`.

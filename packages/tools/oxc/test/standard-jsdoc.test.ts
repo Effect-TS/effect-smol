@@ -21,7 +21,12 @@ function node(source: string, search: string, type: string, extra: Record<string
   return { type, range: rangeOf(source, search), ...extra }
 }
 
-function exportNamed(source: string, search: string, declaration: TestNode | null, extra: Record<string, unknown> = {}): TestNode {
+function exportNamed(
+  source: string,
+  search: string,
+  declaration: TestNode | null,
+  extra: Record<string, unknown> = {}
+): TestNode {
   return node(source, search, "ExportNamedDeclaration", { declaration, source: null, specifiers: [], ...extra })
 }
 
@@ -49,15 +54,18 @@ function createTypescriptProject(source: string, files: Record<string, string> =
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "standard-jsdoc-"))
   const filename = path.join(cwd, "src", "Foo.ts")
   fs.mkdirSync(path.dirname(filename), { recursive: true })
-  fs.writeFileSync(path.join(cwd, "tsconfig.json"), JSON.stringify({
-    compilerOptions: {
-      module: "NodeNext",
-      moduleResolution: "NodeNext",
-      strict: true,
-      target: "ES2022"
-    },
-    include: ["src/**/*.ts"]
-  }))
+  fs.writeFileSync(
+    path.join(cwd, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: {
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        strict: true,
+        target: "ES2022"
+      },
+      include: ["src/**/*.ts"]
+    })
+  )
   fs.writeFileSync(filename, source)
   for (const [file, text] of Object.entries(files)) {
     const filePath = path.join(cwd, "src", file)
@@ -599,7 +607,9 @@ export const value = 1
     const source = `export const value = 1`
     const declaration = node(source, "export const value", "VariableDeclaration", { declarations: [] })
     const exportNode = exportNamed(source, "export const value", declaration)
-    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }], [{ include: [] }])
+    const errors = runRuleWithSource(source, [{ visitor: "ExportNamedDeclaration", node: exportNode }], [{
+      include: []
+    }])
 
     expect(errors).toHaveLength(0)
   })

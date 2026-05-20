@@ -101,6 +101,8 @@ export interface Sink<out A, in In = unknown, out L = never, out E = never, out 
 /**
  * Tuple returned when a `Sink` finishes.
  *
+ * **Details**
+ *
  * The first element is the sink result. The optional second element contains a
  * non-empty array of leftover input that was pulled but not consumed.
  *
@@ -113,6 +115,8 @@ const endVoid = Effect.succeed([void 0] as End<void, never>)
 
 /**
  * Type-level unification support for `Sink` values.
+ *
+ * **Details**
  *
  * This preserves the result, input, leftover, error, and service type
  * parameters when Effect's `Unify` machinery normalizes generic values that
@@ -138,6 +142,8 @@ export interface SinkUnify<A extends { [Unify.typeSymbol]?: any }> extends Effec
 /**
  * Marker used by Effect's `Unify` machinery for `Sink` values.
  *
+ * **Details**
+ *
  * It prevents the inherited `Effect` unifier from being selected when
  * sink-specific unification should preserve the `Sink` type parameters. Users
  * normally do not need to reference this interface directly.
@@ -158,6 +164,8 @@ export declare namespace Sink {
   /**
    * Type-level variance marker for `Sink`.
    *
+   * **Details**
+   *
    * The result `A`, leftovers `L`, errors `E`, and services `R` are
    * covariant. The input type `In` is contravariant because values flow into
    * the sink.
@@ -171,6 +179,8 @@ export declare namespace Sink {
   /**
    * Structural encoding used by `Sink.Variance` to record each `Sink` type
    * parameter's variance.
+   *
+   * **Details**
    *
    * `_A`, `_L`, `_E`, and `_R` are covariant markers. `_In` is a
    * contravariant marker.
@@ -249,6 +259,8 @@ export const fromChannel = <L, In, E, A, R>(
 /**
  * Creates a `Sink` from a low-level transform function.
  *
+ * **Details**
+ *
  * The transform receives the upstream pull of non-empty input arrays and the
  * active scope, and returns an effect that completes with the sink's `End`
  * value.
@@ -296,6 +308,8 @@ export const toChannel = <A, In, L, E, R>(
 /**
  * Creates a pipe-style constructor for sinks over input type `In`.
  *
+ * **Details**
+ *
  * The returned function exposes the sink input as a `Stream<In>`, applies the
  * provided pipeline, and uses the final effect's success value as the sink
  * result.
@@ -322,6 +336,8 @@ export const make = <In>(): make.Constructor<In> => (...fns: []) =>
 export declare namespace make {
   /**
    * Overloaded function type returned by `Sink.make`.
+   *
+   * **Details**
    *
    * The first pipeline function receives the sink input as a `Stream<In>`. The
    * final pipeline step must return an `Effect`, whose success value becomes
@@ -424,6 +440,8 @@ export declare namespace make {
  * Creates a sink that ignores upstream input and completes from an effect that
  * already returns an `End`.
  *
+ * **When to use**
+ *
  * Use this when the effect needs to provide both the result value and optional
  * leftovers.
  *
@@ -438,6 +456,8 @@ export const fromEffectEnd = <A, E, R, L = never>(
  * Creates a sink that ignores upstream input and completes with the success
  * value of the provided effect.
  *
+ * **Details**
+ *
  * If the effect fails, the sink fails with the same error.
  *
  * @category constructors
@@ -449,6 +469,8 @@ export const fromEffect = <A, E, R>(
 
 /**
  * Creates a sink that offers every consumed input element to a queue.
+ *
+ * **Details**
  *
  * When the upstream stream ends, the sink ends the queue and completes with
  * `void`.
@@ -472,6 +494,8 @@ export const fromQueue = <A>(
 
 /**
  * Creates a sink that publishes every consumed input element to a `PubSub`.
+ *
+ * **Details**
  *
  * The sink completes with `void` when the upstream stream ends.
  *
@@ -658,6 +682,8 @@ export const never: Sink<unknown> = fromEffectEnd(Effect.never)
 /**
  * Drops leftovers produced by a sink.
  *
+ * **Details**
+ *
  * The sink result is preserved, but any leftover elements are discarded
  * instead of being returned to downstream sink composition. This does not
  * continue pulling additional elements from the upstream stream.
@@ -715,6 +741,8 @@ export const fold = <S, In, E = never, R = never>(
 /**
  * Folds non-empty input arrays into state with an effectful function.
  *
+ * **Details**
+ *
  * The initial state is evaluated lazily. After each pulled array is folded,
  * the sink continues while `contFn` returns `true`; otherwise it completes
  * with the current state.
@@ -744,6 +772,8 @@ export const foldArray = <S, In, E = never, R = never>(
 /**
  * Folds input elements into state until the specified maximum number of
  * elements has been consumed or the upstream stream ends.
+ *
+ * **Details**
  *
  * If the sink stops in the middle of a pulled array, the remaining elements
  * from that array are returned as leftovers.
@@ -911,6 +941,8 @@ export const mapInputArrayEffect: {
 /**
  * Transforms the full `End` produced by this sink.
  *
+ * **Details**
+ *
  * This can change both the result value and the optional leftovers.
  *
  * @category mapping
@@ -942,6 +974,8 @@ const transformEffect = <A, In, L, E, R, A2, E2, R2, L2 = never>(
 
 /**
  * Effectfully transforms the full `End` produced by this sink.
+ *
+ * **Details**
  *
  * This can change both the result value and the optional leftovers, and the
  * transformation can fail or require services.
@@ -1012,6 +1046,8 @@ export const mapLeftover: {
 /**
  * Collects up to `n` input elements into an array.
  *
+ * **Details**
+ *
  * If `n` is less than or equal to zero, the sink completes with an empty array.
  * If more elements are pulled than needed, the remaining elements from the same
  * array are returned as leftovers.
@@ -1055,6 +1091,8 @@ export const take = <In>(n: number): Sink<Array<In>, In, In> =>
  * Runs this sink until it yields a result, then uses that result to create
  * another sink from the provided function which will continue to run until it
  * yields a result.
+ *
+ * **Details**
  *
  * This function essentially runs sinks in sequence.
  *
@@ -1378,6 +1416,8 @@ export const collect = <In>(): Sink<Array<In>, In> =>
  * Collects the longest input prefix whose elements satisfy the predicate or
  * refinement.
  *
+ * **Details**
+ *
  * The first failing input is consumed and excluded from the result. Any later
  * elements from the same pulled array are returned as leftovers.
  *
@@ -1412,6 +1452,8 @@ export const takeWhile: {
  * Applies a `Filter` to input elements while it succeeds, collecting each
  * successful output.
  *
+ * **Details**
+ *
  * The first input for which the filter fails is consumed and excluded from the
  * result. Any later elements from the same pulled array are returned as
  * leftovers.
@@ -1445,6 +1487,8 @@ export const takeWhileFilter = <In, Out, X>(
 
 /**
  * Effectfully collects input elements while the predicate succeeds.
+ *
+ * **Details**
  *
  * The first input for which the predicate returns `false` is consumed and
  * excluded from the result. Any later elements from the same pulled array are
@@ -1493,6 +1537,8 @@ export const takeWhileEffect: {
 /**
  * Effectfully applies a `FilterEffect` to input elements while it succeeds,
  * collecting each successful output.
+ *
+ * **Details**
  *
  * The first input for which the filter fails is consumed and excluded from the
  * result. Any later elements from the same pulled array are returned as
@@ -1550,6 +1596,8 @@ export const takeUntil = <In>(predicate: Predicate<In>): Sink<Array<In>, In, In>
 /**
  * Effectfully collects input elements until the predicate returns `true`,
  * including the matching element in the result.
+ *
+ * **Details**
  *
  * If the predicate effect fails, the sink fails with the same error.
  *
@@ -1643,6 +1691,8 @@ export const forEachArray = <In, X, E, R>(
 /**
  * Runs an effectful function for each input element while it returns `true`.
  *
+ * **Details**
+ *
  * The sink stops consuming input when the function returns `false` or when the
  * upstream stream ends, and completes with `void`.
  *
@@ -1663,6 +1713,8 @@ export const forEachWhile = <In, E, R>(
 /**
  * Runs an effectful function for each non-empty input array while it returns
  * `true`.
+ *
+ * **Details**
  *
  * The sink stops consuming input when the function returns `false` or when the
  * upstream stream ends, and completes with `void`.
@@ -1765,6 +1817,8 @@ export const timed: Sink<Duration.Duration, unknown> = map(withDuration(drain), 
 /**
  * Provides a `Context` to this sink.
  *
+ * **Details**
+ *
  * Services contained in the provided context are removed from the sink's
  * service requirements.
  *
@@ -1791,6 +1845,8 @@ export const provideContext: {
 
 /**
  * Provides a single service implementation to this sink.
+ *
+ * **Details**
  *
  * The service identified by `key` is removed from the sink's service
  * requirements.
@@ -1821,6 +1877,8 @@ export const provideService: {
 
 /**
  * Runs a fallback sink if this sink fails with a typed error.
+ *
+ * **Details**
  *
  * The fallback is built from the error and continues consuming from the same
  * upstream stream. If the upstream stream had already ended, the fallback sees
@@ -1865,6 +1923,8 @@ export const orElse: {
 /**
  * Handles failures from this sink by inspecting the full `Cause`.
  *
+ * **Details**
+ *
  * When this sink fails, the handler effect is run and its success value
  * becomes the sink result. If the handler fails, the returned sink fails with
  * that error.
@@ -1908,6 +1968,8 @@ const catch_: {
 
 export {
   /**
+   * Handles typed errors from this sink with an effectful fallback value.
+   *
    * @category error handling
    * @since 4.0.0
    */
@@ -1916,6 +1978,8 @@ export {
 
 /**
  * Runs an effect after this sink completes, fails, or is interrupted.
+ *
+ * **Details**
  *
  * The effect receives the sink's `Exit` for the result value. The original
  * sink result and leftovers are preserved unless the finalizer itself fails.
@@ -1942,6 +2006,8 @@ export const onExit: {
 
 /**
  * Runs a finalizer effect after this sink completes, fails, or is interrupted.
+ *
+ * **Details**
  *
  * The original sink result and leftovers are preserved unless the finalizer
  * itself fails.

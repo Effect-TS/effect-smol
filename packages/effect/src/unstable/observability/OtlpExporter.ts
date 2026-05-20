@@ -61,6 +61,8 @@ const policy = Schedule.forever.pipe(
 /**
  * Creates a scoped OTLP batch exporter.
  *
+ * **Details**
+ *
  * The exporter buffers pushed data, periodically posts encoded batches to the
  * configured URL, retries transient failures, temporarily disables exporting
  * after unhandled failures, and flushes during scope finalization up to

@@ -17,8 +17,7 @@ import * as Telemetry from "effect/unstable/ai/Telemetry"
  * The attributes used to describe telemetry in the context of Generative
  * Artificial Intelligence (GenAI) Models requests and responses.
  *
- * {@see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/}
- *
+ * @see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/
  * @category models
  * @since 4.0.0
  */
@@ -101,7 +100,9 @@ const addAnthropicResponseAttributes = Telemetry.addSpanAttributes("gen_ai.anthr
  * Applies the specified Anthropic GenAI telemetry attributes to the provided
  * `Span`.
  *
- * **NOTE**: This method will mutate the `Span` **in-place**.
+ * **Gotchas**
+ *
+ * This method mutates the `Span` in place.
  *
  * @category utils
  * @since 4.0.0

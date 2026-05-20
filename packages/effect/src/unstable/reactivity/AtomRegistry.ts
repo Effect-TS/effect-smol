@@ -64,6 +64,8 @@ export const isAtomRegistry = (u: unknown): u is AtomRegistry => hasProperty(u, 
  * The runtime registry that stores atom nodes and coordinates reads, writes,
  * refreshes, subscriptions, and disposal.
  *
+ * **Details**
+ *
  * It also manages scheduler configuration, serializable preloaded values, and node
  * addition/removal callbacks.
  *
@@ -94,6 +96,8 @@ export interface AtomRegistry {
 /**
  * A registry node for a single atom.
  *
+ * **Details**
+ *
  * Nodes expose the current value, parent and child dependency links, listener set,
  * and current lifecycle state.
  *
@@ -111,6 +115,8 @@ export interface Node<A> {
 
 /**
  * Creates an `AtomRegistry`.
+ *
+ * **Details**
  *
  * Options can preload initial atom values, provide a custom task scheduler,
  * configure timeout bucket resolution, and set a default idle time-to-live for
@@ -145,6 +151,8 @@ export const AtomRegistry = Context.Service<AtomRegistry>(TypeId)
 /**
  * Creates a layer that provides an `AtomRegistry` configured with the supplied
  * options.
+ *
+ * **Details**
  *
  * The registry is disposed when the layer scope is finalized.
  *
@@ -185,6 +193,8 @@ export const layer: Layer.Layer<AtomRegistry> = layerOptions()
 /**
  * Converts an atom in this registry into a stream.
  *
+ * **Details**
+ *
  * The stream emits the current value immediately, emits subsequent changes, and
  * unsubscribes from the registry when the stream scope closes.
  *
@@ -213,6 +223,8 @@ export const toStream: {
  * Converts an `AsyncResult` atom in this registry into a stream of successful
  * values.
  *
+ * **Details**
+ *
  * Initial results are skipped, failures fail the stream with their cause, and
  * duplicate stream values are dropped with `Stream.changes`.
  *
@@ -236,6 +248,8 @@ export const toStreamResult: {
 
 /**
  * Reads an `AsyncResult` atom from this registry as an effect.
+ *
+ * **Details**
  *
  * The effect waits for the result to leave `Initial`, and also waits through
  * waiting results when `suspendOnWaiting` is enabled.
@@ -274,6 +288,8 @@ export const getResult: {
 
 /**
  * Mounts an atom in this registry for the lifetime of the current scope.
+ *
+ * **Details**
  *
  * The atom is subscribed with a no-op listener and the subscription is released
  * when the scope finalizer runs.

@@ -78,6 +78,8 @@ export declare namespace HttpClient {
   /**
    * Parameterized HTTP client that may fail with `E` and require environment `R`.
    *
+   * **Details**
+   *
    * It exposes preprocessing, postprocessing, direct request execution, and method-specific helpers.
    *
    * @category models
@@ -255,6 +257,8 @@ export const options: (url: string | URL, options?: HttpClientRequest.Options.No
 /**
  * Transforms a client by wrapping the response effect for each request.
  *
+ * **Details**
+ *
  * The transformation receives both the response effect and the original request, allowing it to change success, error, and environment behavior.
  *
  * @category mapping & sequencing
@@ -329,6 +333,8 @@ const catch_: {
 
 export {
   /**
+   * Handles all client failures with an effectful recovery function and returns a transformed client.
+   *
    * @category error handling
    * @since 4.0.0
    */
@@ -562,6 +568,8 @@ export const filterStatusOk: <E, R>(self: HttpClient.With<E, R>) => HttpClient.W
 /**
  * Constructs an `HttpClient.With` from a preprocessing function and a postprocessing function.
  *
+ * **Details**
+ *
  * `execute` applies preprocessing to the request and then passes the resulting request effect to postprocessing.
  *
  * @category constructors
@@ -604,6 +612,8 @@ const Proto = {
 
 /**
  * Constructs an `HttpClient` from a low-level request runner.
+ *
+ * **Details**
  *
  * The runner receives the request, resolved URL, abort signal, and current fiber. The client wrapper handles URL construction failures, tracing and propagation, header redaction, and aborting non-scoped requests on interruption.
  *
@@ -806,6 +816,8 @@ export declare namespace Retry {
   /**
    * Computes the client type returned by `retry` for a given set of retry options.
    *
+   * **Details**
+   *
    * The result includes errors and requirements introduced by schedules and effectful retry predicates.
    *
    * @category error handling
@@ -857,7 +869,11 @@ export const retry: {
 /**
  * Retries common transient errors, such as rate limiting, timeouts or network issues.
  *
+ * **When to use**
+ *
  * Use `retryOn` to focus on retrying errors, transient responses, or both.
+ *
+ * **Details**
  *
  * Specifying a `while` predicate allows you to consider other errors as
  * transient, and is ignored in "response-only" mode.
@@ -966,6 +982,8 @@ export declare namespace WithRateLimiter {
   /**
    * Options used to configure `withRateLimiter`.
    *
+   * **Details**
+   *
    * They define the backing limiter, initial limit window, keying strategy, algorithm, token cost, and whether response headers update future limits.
    *
    * @category rate limiting
@@ -1007,6 +1025,8 @@ export declare namespace WithRateLimiter {
 
 /**
  * Applies request rate limiting using the `RateLimiter` service.
+ *
+ * **Details**
  *
  * It can update limits by inspecting common rate limit response headers and
  * automatically retries HTTP `429` responses (or `HttpClientError` values

@@ -19,6 +19,8 @@ const TypeId = "~effect/transactions/TxRef"
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
  *
+ * **Details**
+ *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
  * track changes, a transaction will retry whenever a conflict is detected or whenever the
  * transaction explicitely calls to `Effect.txRetry` and any of the accessed TxRef values
@@ -86,6 +88,8 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 
 /**
  * Synchronously creates a new `TxRef` with the specified initial value.
+ *
+ * **When to use**
  *
  * Prefer `make` in Effect code so allocation stays inside the Effect workflow.
  * Use `makeUnsafe` only when a `TxRef` must be constructed outside an effect.

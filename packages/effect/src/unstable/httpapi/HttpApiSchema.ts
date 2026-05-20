@@ -165,10 +165,11 @@ export type StatusLiteral = keyof typeof statusCodeByLiteral
 /**
  * A convenience function to set the HTTP status code of a schema.
  *
- * This is equivalent to calling `.annotate({ httpApiStatus: code })` on the schema.
+ * **Details**
  *
- * You can pass either a numeric status code (for example, `201`) or a common
- * literal name (for example, `"Created"`).
+ * This is equivalent to calling `.annotate({ httpApiStatus: code })` on the
+ * schema. You can pass either a numeric status code (for example, `201`) or a
+ * common literal name (for example, `"Created"`).
  *
  * @category status
  * @since 4.0.0
@@ -254,6 +255,8 @@ export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schem
 
 /**
  * Marks a schema as a no-content response while preserving a decoded client value.
+ *
+ * **Details**
  *
  * The server encodes the response as `void`; generated clients call `decode` to
  * produce the schema's decoded value when the response has no body.
@@ -410,6 +413,8 @@ export function asJson(options?: {
 /**
  * Marks a schema as an `application/x-www-form-urlencoded` payload or response.
  *
+ * **Details**
+ *
  * The schema's encoded side must be a record of strings.
  *
  * @category encoding
@@ -426,6 +431,8 @@ export function asFormUrlEncoded(options?: {
 /**
  * Marks a schema as a text payload / response.
  *
+ * **Details**
+ *
  * The schema encoded side must be a string.
  *
  * @category encoding
@@ -441,6 +448,8 @@ export function asText(options?: {
 /**
  * Marks a schema as a binary payload / response.
  *
+ * **Details**
+ *
  * The schema encoded side must be a `Uint8Array`.
  *
  * @category encoding
@@ -454,6 +463,8 @@ export function asUint8Array(options?: {
 }
 /**
  * Returns `true` when a schema AST represents a no-content response.
+ *
+ * **Details**
  *
  * The check succeeds for direct `void` schemas and schemas whose encoded or
  * transformation target is `void`.

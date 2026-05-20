@@ -35,6 +35,8 @@ import * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
 /**
  * Creates unencrypted event-log server `Storage` backed by SQL.
  *
+ * **Details**
+ *
  * The implementation creates tables for the server remote id, store sequences,
  * entries, and session authentication bindings, then persists and streams
  * plaintext remote entries.

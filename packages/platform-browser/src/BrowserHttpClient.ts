@@ -57,16 +57,22 @@ import * as HeaderParser from "multipasta/HeadersParser"
 
 export {
   /**
+   * Context reference for the `fetch` implementation used by the fetch-based HTTP client.
+   *
    * @category Fetch
    * @since 4.0.0
    */
   Fetch,
   /**
+   * Layer that provides an `HttpClient` implementation backed by the configured `Fetch` function.
+   *
    * @category Fetch
    * @since 4.0.0
    */
   layer as layerFetch,
   /**
+   * Service containing default `RequestInit` options for the fetch-based HTTP client.
+   *
    * @category Fetch
    * @since 4.0.0
    */

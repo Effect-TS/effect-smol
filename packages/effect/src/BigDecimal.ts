@@ -207,6 +207,8 @@ export const normalize = (self: BigDecimal): BigDecimal => {
 /**
  * Scales a `BigDecimal` to the specified scale.
  *
+ * **Details**
+ *
  * Increasing the scale appends decimal zeros. Decreasing the scale discards
  * digits beyond the target scale by `bigint` division, which truncates toward
  * zero.
@@ -482,10 +484,11 @@ export const roundTerminal = (n: bigint): bigint => {
 /**
  * Provides a division operation on `BigDecimal`s.
  *
- * If the dividend is not a multiple of the divisor, the result will be a `BigDecimal` value
- * with up to the default division precision.
+ * **Details**
  *
- * If the divisor is `0`, the result will be `Option.none()`.
+ * If the dividend is not a multiple of the divisor, the result will be a `BigDecimal` value
+ * with up to the default division precision. If the divisor is `0`, the result
+ * will be `Option.none()`.
  *
  * **Example** (Dividing decimals safely)
  *
@@ -544,8 +547,12 @@ export const divide: {
 /**
  * Provides an unsafe division operation on `BigDecimal`s.
  *
+ * **Details**
+ *
  * If the dividend is not a multiple of the divisor, the result will be a `BigDecimal` value
  * with up to the default division precision.
+ *
+ * **Gotchas**
  *
  * Throws a `RangeError` if the divisor is `0`.
  *
@@ -777,9 +784,11 @@ export const between: {
 /**
  * Restricts the given `BigDecimal` to be within the range specified by the `minimum` and `maximum` values.
  *
- * - If the `BigDecimal` is less than the `minimum` value, the function returns the `minimum` value.
- * - If the `BigDecimal` is greater than the `maximum` value, the function returns the `maximum` value.
- * - Otherwise, it returns the original `BigDecimal`.
+ * **Details**
+ *
+ * If the `BigDecimal` is less than the `minimum` value, the function returns
+ * the `minimum` value. If it is greater than the `maximum` value, the function
+ * returns the `maximum` value. Otherwise, it returns the original `BigDecimal`.
  *
  * **Example** (Clamping decimals to a range)
  *
@@ -925,6 +934,8 @@ export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
 /**
  * Returns the remainder left over when one operand is divided by a second operand.
  *
+ * **Details**
+ *
  * If the divisor is `0`, the result will be `Option.none()`.
  *
  * **Example** (Computing remainders safely)
@@ -973,6 +984,8 @@ export const remainder: {
 
 /**
  * Returns the remainder left over when one operand is divided by a second operand.
+ *
+ * **Gotchas**
  *
  * Throws a `RangeError` if the divisor is `0`.
  *
@@ -1089,10 +1102,11 @@ export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
 /**
  * Creates a `BigDecimal` from a `number` value.
  *
- * It is not recommended to convert a floating point number to a decimal directly,
- * as the floating point representation may be unexpected.
+ * **Gotchas**
  *
- * Throws a `RangeError` if the number is not finite (`NaN`, `+Infinity` or `-Infinity`).
+ * It is not recommended to convert a floating point number to a decimal
+ * directly, as the floating point representation may be unexpected. Throws a
+ * `RangeError` if the number is not finite (`NaN`, `+Infinity` or `-Infinity`).
  *
  * **Example** (Creating decimals from finite numbers)
  *
@@ -1114,10 +1128,14 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
 /**
  * Creates a `BigDecimal` from a `number` value.
  *
- * It is not recommended to convert a floating point number to a decimal directly,
- * as the floating point representation may be unexpected.
+ * **Details**
  *
  * Returns `Option.none()` for `NaN`, `+Infinity` or `-Infinity`.
+ *
+ * **Gotchas**
+ *
+ * It is not recommended to convert a floating point number to a decimal
+ * directly, as the floating point representation may be unexpected.
  *
  * **Example** (Creating decimals from numbers safely)
  *
@@ -1152,6 +1170,8 @@ export const fromNumber = (n: number): Option.Option<BigDecimal> => {
 
 /**
  * Safely parses a decimal string into a `BigDecimal`.
+ *
+ * **Details**
  *
  * Returns `Option.some` for valid decimal or exponent notation and
  * `Option.none` when the string cannot be parsed or would produce an unsafe
@@ -1223,6 +1243,8 @@ export const fromString = (s: string): Option.Option<BigDecimal> => {
  * Parses a decimal string into a `BigDecimal`, throwing if the string is
  * invalid.
  *
+ * **Details**
+ *
  * Accepts the same syntax as `fromString`. Use `fromString` when invalid input
  * should be represented as `Option.none` instead of throwing.
  *
@@ -1246,6 +1268,8 @@ export const fromStringUnsafe = (s: string): BigDecimal => {
 
 /**
  * Formats a `BigDecimal` as a string.
+ *
+ * **Details**
  *
  * The value is normalized before formatting. Scientific notation is used when
  * the absolute value of the normalized scale is at least `16`; otherwise plain
@@ -1332,6 +1356,8 @@ export const toExponential = (n: BigDecimal): string => {
 
 /**
  * Converts a `BigDecimal` to a JavaScript `number`.
+ *
+ * **Gotchas**
  *
  * This conversion is unsafe because the result can lose integer or fractional
  * precision, round to a nearby representable value, or become `Infinity` when
@@ -1431,16 +1457,18 @@ const isBigDecimalArgs = (args: IArguments) => isBigDecimal(args[0])
 /**
  * Rounding modes for `BigDecimal`.
  *
- * `ceil`: round towards positive infinity
- * `floor`: round towards negative infinity
- * `to-zero`: round towards zero
- * `from-zero`: round away from zero
- * `half-ceil`: round to the nearest neighbor; if equidistant round towards positive infinity
- * `half-floor`: round to the nearest neighbor; if equidistant round towards negative infinity
- * `half-to-zero`: round to the nearest neighbor; if equidistant round towards zero
- * `half-from-zero`: round to the nearest neighbor; if equidistant round away from zero
- * `half-even`: round to the nearest neighbor; if equidistant round to the neighbor with an even digit
- * `half-odd`: round to the nearest neighbor; if equidistant round to the neighbor with an odd digit
+ * **Details**
+ *
+ * - `ceil`: round towards positive infinity
+ * - `floor`: round towards negative infinity
+ * - `to-zero`: round towards zero
+ * - `from-zero`: round away from zero
+ * - `half-ceil`: round to the nearest neighbor; if equidistant round towards positive infinity
+ * - `half-floor`: round to the nearest neighbor; if equidistant round towards negative infinity
+ * - `half-to-zero`: round to the nearest neighbor; if equidistant round towards zero
+ * - `half-from-zero`: round to the nearest neighbor; if equidistant round away from zero
+ * - `half-even`: round to the nearest neighbor; if equidistant round to the neighbor with an even digit
+ * - `half-odd`: round to the nearest neighbor; if equidistant round to the neighbor with an odd digit
  *
  * @category math
  * @since 3.16.0

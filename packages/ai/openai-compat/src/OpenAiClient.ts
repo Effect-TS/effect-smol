@@ -46,7 +46,10 @@ import { OpenAiConfig } from "./OpenAiConfig.ts"
  * Effect service interface for OpenAI-compatible chat completions and embeddings.
  *
  * **Details**
- * Exposes the configured HTTP client plus helpers for non-streaming chat completions, streaming chat completions, and embeddings. Transport and schema decoding failures are mapped to `AiError`.
+ *
+ * Exposes the configured HTTP client plus helpers for non-streaming chat
+ * completions, streaming chat completions, and embeddings. Transport and
+ * schema decoding failures are mapped to `AiError`.
  *
  * @category models
  * @since 4.0.0
@@ -105,6 +108,8 @@ const RedactedOpenAiHeaders = {
 
 /**
  * Constructs an OpenAI-compatible client service from explicit options.
+ *
+ * **Details**
  *
  * The returned service applies the configured base URL, authentication, and
  * OpenAI organization/project headers to the underlying HTTP client.
@@ -501,6 +506,8 @@ type ItemReference = {
 
 /**
  * Item shapes accepted by a Responses-style `input` field.
+ *
+ * **Details**
  *
  * Supports input messages, output messages, tool calls, tool outputs, reasoning
  * items, custom tool interactions, and item references.

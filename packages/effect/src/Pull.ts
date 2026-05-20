@@ -39,6 +39,8 @@ import * as Result from "./Result.ts"
  * An effectful pull step that either produces a value, fails with `E`, or
  * signals completion with `Cause.Done<Done>`.
  *
+ * **Details**
+ *
  * `Pull` represents completion in the error channel so low-level stream
  * consumers can distinguish ordinary failures from end-of-input and carry a
  * leftover value when needed.
@@ -100,6 +102,8 @@ export type ExcludeDone<E> = Exclude<E, Cause.Done<any>>
  * Handles `Cause.Done` failures in an effect while leaving ordinary failures
  * in the error channel.
  *
+ * **Details**
+ *
  * The handler receives the done leftover value and may recover with a new
  * effect. Non-done errors are preserved.
  *
@@ -141,6 +145,8 @@ export const isDoneFailure = <E>(
 /**
  * Finds a `Cause.Done` failure in a `Cause`.
  *
+ * **Details**
+ *
  * Returns a successful `Result` with the `Cause.Done` value when one is
  * present, otherwise returns a failed `Result` containing the non-done cause.
  *
@@ -158,6 +164,8 @@ export const filterDone: <E>(
 /**
  * Finds a `Cause.Done` failure in a cause whose done value is not used.
  *
+ * **Details**
+ *
  * Returns a successful `Result` with the done marker when present, otherwise
  * returns a failed `Result` with the non-done cause.
  *
@@ -173,6 +181,8 @@ export const filterDoneVoid: <E extends Cause.Done>(
 
 /**
  * Keeps a `Cause` only when it contains no `Cause.Done` failures.
+ *
+ * **Details**
  *
  * Returns a successful `Result` with the cause when every failure is non-done;
  * otherwise returns a failed `Result` with the original cause.
@@ -205,6 +215,8 @@ export const filterDoneLeftover: <E>(
 /**
  * Converts a `Cause` into an `Exit`, treating `Cause.Done` as successful
  * completion.
+ *
+ * **Details**
  *
  * If the cause contains a done value, that leftover becomes the successful
  * value. Otherwise the non-done cause becomes the failure cause.

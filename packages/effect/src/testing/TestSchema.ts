@@ -78,14 +78,11 @@ import * as Parser from "../SchemaParser.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
 
 /**
- * Entry point for schema test assertions. Wraps a schema and exposes
- * operation-specific helpers: {@link Decoding}, {@link Encoding}, make,
- * arbitrary generation, and round-trip verification.
+ * Entry point for schema test assertions. Wraps a schema and exposes operation-specific helpers for decoding, encoding, make, arbitrary generation, and round-trip verification.
  *
- * When to use:
- * - You are writing unit tests for a schema's decoding, encoding, or
- *   construction behavior.
- * - You want property-based round-trip or generation checks.
+ * **When to use**
+ *
+ * Use `Asserts` when writing schema unit tests for decoding, encoding, construction, property-based round-trip, or generation behavior.
  *
  * **Example** (Decoding and encoding a struct)
  *
@@ -105,19 +102,16 @@ import * as FastCheck from "../testing/FastCheck.ts"
  *
  * @see {@link Decoding}
  * @see {@link Encoding}
- *
  * @category testing
  * @since 4.0.0
  */
 export class Asserts<S extends Schema.Top> {
   /**
-   * Static helpers for comparing schema AST structures. Useful when you need
-   * to assert that two field or element definitions produce the same AST.
+   * Static helpers for comparing schema AST structures.
    *
-   * - `ast.fields.equals(a, b)` – compares struct field ASTs via
-   *   `assert.deepStrictEqual`.
-   * - `ast.elements.equals(a, b)` – compares tuple element ASTs via
-   *   `assert.deepStrictEqual`.
+   * **Details**
+   *
+   * `ast.fields.equals(a, b)` compares struct field ASTs via `assert.deepStrictEqual`. `ast.elements.equals(a, b)` compares tuple element ASTs via `assert.deepStrictEqual`.
    *
    * **Example** (Comparing struct fields)
    *
@@ -148,12 +142,11 @@ export class Asserts<S extends Schema.Top> {
     this.schema = schema
   }
   /**
-   * Returns an object with `succeed` and `fail` helpers for testing the
-   * schema's `make` operation.
+   * Returns an object with `succeed` and `fail` helpers for testing the schema's `make` operation.
    *
-   * - `succeed(input)` – asserts make returns the input unchanged.
-   * - `succeed(input, expected)` – asserts make returns `expected`.
-   * - `fail(input, message)` – asserts make fails with `message`.
+   * **Details**
+   *
+   * `succeed(input)` asserts make returns the input unchanged. `succeed(input, expected)` asserts make returns `expected`. `fail(input, message)` asserts make fails with `message`.
    *
    * **Example** (Testing make)
    *
@@ -194,13 +187,11 @@ export class Asserts<S extends Schema.Top> {
     }
   }
   /**
-   * Runs a property-based test that encodes arbitrary values and then decodes
-   * them, asserting the decoded value equals the original. Useful for verifying
-   * that a codec is lossless (encode followed by decode is identity).
+   * Runs a property-based test that encodes arbitrary values and then decodes them, asserting the decoded value equals the original.
    *
-   * - Uses FastCheck to generate arbitrary values matching the schema's Type.
-   * - Fails the test if any generated value does not round-trip.
-   * - Pass `options.params` to control FastCheck parameters (e.g. `numRuns`).
+   * **Details**
+   *
+   * FastCheck generates arbitrary values matching the schema's `Type`. The assertion fails if any generated value does not round-trip. Pass `options.params` to control FastCheck parameters such as `numRuns`.
    *
    * **Example** (Round-trip verification)
    *
@@ -233,10 +224,11 @@ export class Asserts<S extends Schema.Top> {
     )
   }
   /**
-   * Returns a {@link Decoding} instance for this schema, providing `succeed`
-   * and `fail` helpers to test decoding behavior.
+   * Returns a {@link Decoding} instance for this schema with helpers for decoding assertions.
    *
-   * - Pass `parseOptions` to control error reporting (e.g. `{ errors: "all" }`).
+   * **Details**
+   *
+   * Pass `parseOptions` to control error reporting, for example `{ errors: "all" }`.
    *
    * **Example** (Decoding assertions)
    *
@@ -258,10 +250,11 @@ export class Asserts<S extends Schema.Top> {
     return new Decoding(this.schema, options)
   }
   /**
-   * Returns an {@link Encoding} instance for this schema, providing `succeed`
-   * and `fail` helpers to test encoding behavior.
+   * Returns an {@link Encoding} instance for this schema with helpers for encoding assertions.
    *
-   * - Pass `parseOptions` to control error reporting (e.g. `{ errors: "all" }`).
+   * **Details**
+   *
+   * Pass `parseOptions` to control error reporting, for example `{ errors: "all" }`.
    *
    * **Example** (Encoding assertions)
    *
@@ -282,12 +275,11 @@ export class Asserts<S extends Schema.Top> {
     return new Encoding(this.schema, options)
   }
   /**
-   * Returns an object with property-based testing helpers for the schema's
-   * arbitrary generator.
+   * Returns an object with property-based testing helpers for the schema's arbitrary generator.
    *
-   * - `verifyGeneration()` – generates arbitrary values and asserts each
-   *   satisfies the schema's `is` predicate. Defaults to 20 runs.
-   * - Pass `options.params` to override FastCheck parameters.
+   * **Details**
+   *
+   * `verifyGeneration()` generates arbitrary values and asserts each value satisfies the schema's `is` predicate. It defaults to 20 runs. Pass `options.params` to override FastCheck parameters.
    *
    * **Example** (Verifying arbitrary generation)
    *
@@ -315,22 +307,15 @@ export class Asserts<S extends Schema.Top> {
 }
 
 /**
- * Decoding test helper. Wraps a schema and exposes `succeed` and `fail`
- * methods that run the schema's decoder and compare the result.
+ * Decoding test helper that wraps a schema and exposes `succeed` and `fail` methods that run the schema's decoder and compare the result.
  *
- * When to use:
- * - You want to assert that specific inputs decode to expected values.
- * - You want to assert that invalid inputs produce specific error messages.
- * - You need to provide services required by the schema's decoding pipeline.
+ * **When to use**
  *
- * Behavior:
- * - All assertions are async and use `assert.deepStrictEqual` internally.
- * - `succeed(input)` asserts the decoded output equals `input` (identity).
- * - `succeed(input, expected)` asserts the decoded output equals `expected`.
- * - `fail(input, message)` asserts decoding fails and the stringified issue
- *   equals `message`.
- * - `provide(key, impl)` returns a new `Decoding` with the service injected
- *   into the decoding context.
+ * Use `Decoding` when you want to assert that specific inputs decode to expected values, invalid inputs produce specific error messages, or schemas receive required decoding services.
+ *
+ * **Details**
+ *
+ * All assertions are async and use `assert.deepStrictEqual` internally. `succeed(input)` asserts the decoded output equals `input`; `succeed(input, expected)` asserts it equals `expected`; `fail(input, message)` asserts decoding fails and the stringified issue equals `message`. `provide(key, impl)` returns a new `Decoding` with the service injected into the decoding context.
  *
  * **Example** (Decoding with service provision)
  *
@@ -345,7 +330,6 @@ export class Asserts<S extends Schema.Top> {
  *
  * @see {@link Asserts}
  * @see {@link Encoding}
- *
  * @category testing
  * @since 4.0.0
  */
@@ -431,11 +415,15 @@ export class Decoding<S extends Schema.Top> {
     assert.deepStrictEqual(r, Result.fail(message))
   }
   /**
-   * Returns a new {@link Decoding} instance with the given service injected
-   * into the decoding effect context. Use this when the schema's decoder
-   * requires a service dependency.
+   * Returns a new {@link Decoding} instance with the given service injected into the decoding effect context.
    *
-   * - Does not mutate the current instance; returns a new one.
+   * **When to use**
+   *
+   * Use this when the schema's decoder requires a service dependency.
+   *
+   * **Details**
+   *
+   * This method does not mutate the current instance.
    *
    * @see {@link Encoding.provide}
    */

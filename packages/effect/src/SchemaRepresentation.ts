@@ -104,14 +104,18 @@ import * as Getter from "./SchemaGetter.ts"
 // -----------------------------------------------------------------------------
 
 /**
- * A custom type declaration (e.g. `Date`, `Option`, `ReadonlySet`).
+ * A custom type declaration, such as `Date`, `Option`, or `ReadonlySet`.
  *
- * - Use when inspecting or transforming non-primitive schema types.
- * - `typeParameters` holds the inner type arguments (e.g. the `A` in `Option<A>`).
- * - `encodedSchema` is the fallback representation when no {@link Reviver}
- *   recognizes this declaration.
- * - `annotations.typeConstructor` identifies the declaration kind (e.g.
- *   `{ _tag: "effect/Option" }`).
+ * **When to use**
+ *
+ * Use this when inspecting or transforming non-primitive schema types.
+ *
+ * **Details**
+ *
+ * `typeParameters` holds the inner type arguments, such as the `A` in
+ * `Option<A>`. `encodedSchema` is the fallback representation when no
+ * {@link Reviver} recognizes this declaration. `annotations.typeConstructor`
+ * identifies the declaration kind, such as `{ _tag: "effect/Option" }`.
  *
  * @see {@link Reviver}
  * @see {@link toSchemaDefaultReviver}
@@ -128,10 +132,12 @@ export interface Declaration {
 }
 
 /**
- * A lazily-resolved representation, used for recursive schemas.
+ * A lazily resolved representation used for recursive schemas.
  *
- * - `thunk` points to the actual representation (possibly via a {@link Reference}).
- * - `checks` is always empty on `Suspend` nodes.
+ * **Details**
+ *
+ * `thunk` points to the actual representation, possibly via a
+ * {@link Reference}. `checks` is always empty on `Suspend` nodes.
  *
  * @see {@link Reference}
  *
@@ -148,9 +154,15 @@ export interface Suspend {
 /**
  * A named reference to a definition in the {@link References} map.
  *
- * - `$ref` is the key into `Document.references` or `MultiDocument.references`.
- * - Resolved lazily by {@link toSchema} and {@link toCodeDocument}.
- * - Throws at runtime if the key is not found in the references map.
+ * **Details**
+ *
+ * `$ref` is the key into `Document.references` or `MultiDocument.references`.
+ * References are resolved lazily by {@link toSchema} and
+ * {@link toCodeDocument}.
+ *
+ * **Gotchas**
+ *
+ * Resolution throws at runtime if the key is not found in the references map.
  *
  * @see {@link References}
  * @see {@link Document}
@@ -232,9 +244,12 @@ export interface Any {
 /**
  * The `string` type with optional validation checks.
  *
- * - `checks` holds string-specific constraints (min/max length, pattern, UUID, etc.).
- * - `contentMediaType` + `contentSchema` indicate the string contains
- *   encoded data (e.g. `"application/json"` with a nested schema).
+ * **Details**
+ *
+ * `checks` holds string-specific constraints, such as min/max length, pattern,
+ * and UUID checks. `contentMediaType` and `contentSchema` indicate that the
+ * string contains encoded data, such as `"application/json"` with a nested
+ * schema.
  *
  * @see {@link StringMeta}
  * @see {@link Check}
@@ -253,7 +268,10 @@ export interface String {
 /**
  * The `number` type with optional validation checks.
  *
- * - `checks` holds number-specific constraints (int, finite, min, max, multipleOf, etc.).
+ * **Details**
+ *
+ * `checks` holds number-specific constraints, such as int, finite, min, max,
+ * multipleOf, and between checks.
  *
  * @see {@link NumberMeta}
  *
@@ -365,11 +383,12 @@ export interface TemplateLiteral {
 /**
  * An array or tuple type.
  *
- * - `elements` are the fixed positional elements (tuple prefix). Each may be
- *   optional.
- * - `rest` are the variadic tail types. A single-element `rest` with no
- *   `elements` produces a plain `Array<T>`.
- * - `checks` holds array-specific constraints (minLength, maxLength, unique, etc.).
+ * **Details**
+ *
+ * `elements` are the fixed positional elements, or tuple prefix, and each may
+ * be optional. `rest` contains the variadic tail types; a single-element
+ * `rest` with no `elements` produces a plain `Array<T>`. `checks` holds
+ * array-specific constraints, such as minLength, maxLength, and unique checks.
  *
  * @see {@link Element}
  * @see {@link ArraysMeta}
@@ -388,8 +407,10 @@ export interface Arrays {
 /**
  * A positional element within an {@link Arrays} tuple.
  *
- * - `isOptional` indicates whether this element can be absent.
- * - `type` is the schema representation for this element's value.
+ * **Details**
+ *
+ * `isOptional` indicates whether this element can be absent. `type` is the
+ * schema representation for this element's value.
  *
  * @see {@link Arrays}
  *
@@ -405,9 +426,11 @@ export interface Element {
 /**
  * An object/struct type with named properties and optional index signatures.
  *
- * - `propertySignatures` are the explicitly named fields.
- * - `indexSignatures` define catch-all key/value types (like `Record<string, T>`).
- * - `checks` holds object-specific constraints (minProperties, maxProperties, etc.).
+ * **Details**
+ *
+ * `propertySignatures` are the explicitly named fields. `indexSignatures`
+ * define catch-all key/value types, such as `Record<string, T>`. `checks`
+ * holds object-specific constraints, such as minProperties and maxProperties.
  *
  * @see {@link PropertySignature}
  * @see {@link IndexSignature}
@@ -427,9 +450,11 @@ export interface Objects {
 /**
  * A named property within an {@link Objects} representation.
  *
- * - `name` is the property key (string, number, or symbol).
- * - `isOptional` indicates whether the key can be absent.
- * - `isMutable` indicates whether the property is mutable (vs. readonly).
+ * **Details**
+ *
+ * `name` is the property key, which can be a string, number, or symbol.
+ * `isOptional` indicates whether the key can be absent. `isMutable` indicates
+ * whether the property is mutable rather than readonly.
  *
  * @see {@link Objects}
  *
@@ -445,10 +470,13 @@ export interface PropertySignature {
 }
 
 /**
- * An index signature (e.g. `[key: string]: number`) within an {@link Objects}.
+ * An index signature, such as `[key: string]: number`, within an
+ * {@link Objects}.
  *
- * - `parameter` is the key type representation.
- * - `type` is the value type representation.
+ * **Details**
+ *
+ * `parameter` is the key type representation. `type` is the value type
+ * representation.
  *
  * @see {@link Objects}
  *
@@ -463,9 +491,10 @@ export interface IndexSignature {
 /**
  * A union of multiple representations.
  *
- * - `types` are the union members.
- * - `mode` controls JSON Schema output: `"anyOf"` (default) or `"oneOf"`
- *   (mutually exclusive).
+ * **Details**
+ *
+ * `types` are the union members. `mode` controls JSON Schema output as either
+ * `"anyOf"` (the default) or mutually exclusive `"oneOf"`.
  *
  * @category models
  * @since 4.0.0
@@ -479,6 +508,8 @@ export interface Union {
 
 /**
  * The core tagged union of all supported schema shapes.
+ *
+ * **Details**
  *
  * Each variant has a `_tag` discriminator. Switch on `_tag` to handle each
  * shape. Most variants carry optional `annotations` and some carry `checks`
@@ -725,10 +756,12 @@ export interface References {
 /**
  * A single {@link Representation} together with its named {@link References}.
  *
- * - Use {@link fromAST} to create a `Document` from a Schema AST.
- * - Use {@link toSchema} to reconstruct a runtime Schema.
- * - Use {@link toJsonSchemaDocument} to convert to JSON Schema.
- * - Use {@link toMultiDocument} to wrap as a {@link MultiDocument}.
+ * **When to use**
+ *
+ * Use {@link fromAST} to create a `Document` from a Schema AST, {@link toSchema}
+ * to reconstruct a runtime Schema, {@link toJsonSchemaDocument} to convert to
+ * JSON Schema, and {@link toMultiDocument} to wrap it as a
+ * {@link MultiDocument}.
  *
  * @see {@link MultiDocument}
  * @see {@link fromAST}
@@ -744,9 +777,11 @@ export type Document = {
 /**
  * One or more {@link Representation}s sharing a common {@link References} map.
  *
- * - Use {@link fromASTs} to create from multiple Schema ASTs.
- * - Use {@link toCodeDocument} to generate TypeScript code.
- * - Use {@link toJsonSchemaMultiDocument} to convert to JSON Schema.
+ * **When to use**
+ *
+ * Use {@link fromASTs} to create this from multiple Schema ASTs,
+ * {@link toCodeDocument} to generate TypeScript code, and
+ * {@link toJsonSchemaMultiDocument} to convert to JSON Schema.
  *
  * @see {@link Document}
  * @see {@link fromASTs}
@@ -1586,9 +1621,14 @@ export const $MultiDocument = Schema.Struct({
 /**
  * Converts a Schema AST into a {@link Document}.
  *
- * - Use when you have a single schema and need its representation.
- * - Pure function; does not mutate the input AST.
- * - Shared/recursive sub-schemas are extracted into the `references` map.
+ * **When to use**
+ *
+ * Use this when you have a single schema and need its representation.
+ *
+ * **Details**
+ *
+ * This is a pure function and does not mutate the input AST.
+ * Shared/recursive sub-schemas are extracted into the `references` map.
  *
  * **Example** (Converting a Schema to a Document)
  *
@@ -1616,9 +1656,14 @@ export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAS
 /**
  * Converts one or more Schema ASTs into a {@link MultiDocument}.
  *
- * - Use when you have multiple schemas that may share references.
- * - Pure function; does not mutate the input ASTs.
- * - All schemas share a single `references` map.
+ * **When to use**
+ *
+ * Use this when you have multiple schemas that may share references.
+ *
+ * **Details**
+ *
+ * This is a pure function and does not mutate the input ASTs. All schemas share
+ * a single `references` map.
  *
  * @see {@link MultiDocument}
  * @see {@link fromAST}
@@ -1631,8 +1676,10 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
 /**
  * Schema codec that decodes a {@link Document} from JSON and encodes it back.
  *
- * - Use with `Schema.decodeUnknownSync` / `Schema.encodeSync` to
- *   serialize/deserialize documents.
+ * **When to use**
+ *
+ * Use this with `Schema.decodeUnknownSync` or `Schema.encodeSync` to serialize
+ * and deserialize documents.
  *
  * **Example** (Round-tripping a Document through JSON)
  *
@@ -1668,9 +1715,14 @@ export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = S
  * Wraps a single {@link Document} as a {@link MultiDocument} with one
  * representation.
  *
- * - Use when an API expects a `MultiDocument` but you only have a single
- *   `Document`.
- * - Pure function; does not mutate the input.
+ * **When to use**
+ *
+ * Use this when an API expects a `MultiDocument` but you only have a single
+ * `Document`.
+ *
+ * **Details**
+ *
+ * This is a pure function and does not mutate the input.
  *
  * @see {@link Document}
  * @see {@link MultiDocument}
@@ -1689,10 +1741,12 @@ export function toMultiDocument(document: Document): MultiDocument {
  * A callback that handles {@link Declaration} nodes during reconstruction
  * ({@link toSchema}) or code generation ({@link toCodeDocument}).
  *
- * - Return a value to handle the declaration.
- * - Return `undefined` to fall back to default behavior (use `encodedSchema`
- *   for `toSchema`, or `generation` annotation for `toCodeDocument`).
- * - `recur` processes child representations recursively.
+ * **Details**
+ *
+ * Return a value to handle the declaration. Return `undefined` to fall back to
+ * default behavior, which uses `encodedSchema` for `toSchema` or the
+ * `generation` annotation for `toCodeDocument`. `recur` processes child
+ * representations recursively.
  *
  * @see {@link toSchema}
  * @see {@link toSchemaDefaultReviver}
@@ -1705,14 +1759,18 @@ export type Reviver<T> = (declaration: Declaration, recur: (representation: Repr
 
 /**
  * Default {@link Reviver} for {@link toSchema} that handles built-in Effect
- * types (Option, Result, Redacted, Cause, Exit, ReadonlyMap, HashMap,
- * ReadonlySet,
- * Date, Duration, URL, RegExp, etc.).
+ * types, including Option, Result, Redacted, Cause, Exit, ReadonlyMap, HashMap,
+ * ReadonlySet, Date, Duration, URL, and RegExp.
  *
- * - Pass as `options.reviver` to {@link toSchema} to reconstruct schemas that
- *   use these types.
- * - Returns `undefined` for unrecognized declarations, causing fallback to
- *   `encodedSchema`.
+ * **When to use**
+ *
+ * Pass this as `options.reviver` to {@link toSchema} to reconstruct schemas
+ * that use these types.
+ *
+ * **Details**
+ *
+ * The reviver returns `undefined` for unrecognized declarations, causing
+ * fallback to `encodedSchema`.
  *
  * @see {@link toSchema}
  * @see {@link Reviver}
@@ -1792,13 +1850,21 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
 /**
  * Reconstructs a runtime Schema from a {@link Document}.
  *
- * - Use when you have a serialized or computed representation and need a
- *   working Schema for decoding/encoding.
- * - Pass `options.reviver` (e.g. {@link toSchemaDefaultReviver}) to handle
- *   {@link Declaration} nodes for types like `Date`, `Option`, etc.
- * - Without a reviver, declarations fall back to their `encodedSchema`.
- * - Handles circular references via lazy `Schema.suspend`.
- * - Throws if a `$ref` is not found in `document.references`.
+ * **When to use**
+ *
+ * Use this when you have a serialized or computed representation and need a
+ * working Schema for decoding/encoding.
+ *
+ * **Details**
+ *
+ * Pass `options.reviver`, such as {@link toSchemaDefaultReviver}, to handle
+ * {@link Declaration} nodes for types like `Date` and `Option`. Without a
+ * reviver, declarations fall back to their `encodedSchema`. Circular references
+ * are handled via lazy `Schema.suspend`.
+ *
+ * **Gotchas**
+ *
+ * This throws if a `$ref` is not found in `document.references`.
  *
  * **Example** (Reconstructing a Schema)
  *
@@ -2130,8 +2196,14 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
 /**
  * Converts a {@link Document} to a Draft 2020-12 JSON Schema document.
  *
- * - Use to produce a standard JSON Schema from an Effect Schema representation.
- * - Pure function; does not mutate the input.
+ * **When to use**
+ *
+ * Use this to produce a standard JSON Schema from an Effect Schema
+ * representation.
+ *
+ * **Details**
+ *
+ * This is a pure function and does not mutate the input.
  *
  * **Example** (Generating JSON Schema)
  *
@@ -2160,8 +2232,13 @@ export const toJsonSchemaDocument: (
  * Converts a {@link MultiDocument} to a Draft 2020-12 JSON Schema
  * multi-document.
  *
- * - Use when you have multiple schemas sharing references.
- * - Pure function; does not mutate the input.
+ * **When to use**
+ *
+ * Use this when you have multiple schemas sharing references.
+ *
+ * **Details**
+ *
+ * This is a pure function and does not mutate the input.
  *
  * @see {@link MultiDocument}
  * @see {@link toJsonSchemaDocument}
@@ -2233,10 +2310,13 @@ export type Artifact =
  * The output of {@link toCodeDocument}: generated TypeScript code for one or
  * more schemas plus their shared references and auxiliary artifacts.
  *
- * - `codes` — one {@link Code} per input representation.
- * - `references.nonRecursives` — topologically sorted non-recursive definitions.
- * - `references.recursives` — definitions involved in cycles.
- * - `artifacts` — symbols, enums, and import statements needed by the code.
+ * **Details**
+ *
+ * `codes` contains one {@link Code} per input representation.
+ * `references.nonRecursives` contains topologically sorted non-recursive
+ * definitions. `references.recursives` contains definitions involved in cycles.
+ * `artifacts` contains symbols, enums, and import statements needed by the
+ * code.
  *
  * @see {@link toCodeDocument}
  * @see {@link Code}
@@ -2262,13 +2342,18 @@ export type CodeDocument = {
 /**
  * Generates TypeScript code strings from a {@link MultiDocument}.
  *
- * - Use to produce source code for Schema definitions (e.g. for codegen tools).
- * - `options.reviver` can customize code generation for {@link Declaration}
- *   nodes. Return `undefined` to fall back to the default logic (which uses
- *   `generation` annotations or the encoded schema).
- * - Performs topological sorting of references to emit non-recursive
- *   definitions before their dependents.
- * - Produces sanitized JavaScript identifiers for `$ref` keys.
+ * **When to use**
+ *
+ * Use this to produce source code for Schema definitions, such as in codegen
+ * tools.
+ *
+ * **Details**
+ *
+ * `options.reviver` can customize code generation for {@link Declaration}
+ * nodes. Return `undefined` to fall back to the default logic, which uses
+ * `generation` annotations or the encoded schema. References are
+ * topologically sorted so non-recursive definitions are emitted before their
+ * dependents. `$ref` keys are converted to sanitized JavaScript identifiers.
  *
  * **Example** (Generating TypeScript code)
  *
@@ -2893,11 +2978,20 @@ function toRuntimeRegExp(regExp: RegExp): string {
 /**
  * Parses a Draft 2020-12 JSON Schema document into a {@link Document}.
  *
- * - Use to import external JSON Schemas into the Effect representation system.
- * - `options.onEnter` is an optional hook called on each JSON Schema node
- *   before processing, allowing pre-transformation.
- * - Throws if a `$ref` cannot be resolved within the document's definitions.
- * - Circular `$ref`s are detected and cause an error.
+ * **When to use**
+ *
+ * Use this to import external JSON Schemas into the Effect representation
+ * system.
+ *
+ * **Details**
+ *
+ * `options.onEnter` is an optional hook called on each JSON Schema node before
+ * processing, allowing pre-transformation.
+ *
+ * **Gotchas**
+ *
+ * This throws if a `$ref` cannot be resolved within the document's definitions.
+ * Circular `$ref`s are detected and cause an error.
  *
  * @see {@link Document}
  * @see {@link toJsonSchemaDocument}
@@ -2924,10 +3018,18 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  * Parses a Draft 2020-12 JSON Schema multi-document into a
  * {@link MultiDocument}.
  *
- * - Use to import multiple JSON Schemas sharing definitions.
- * - `options.onEnter` is an optional hook called on each JSON Schema node
- *   before processing.
- * - Throws if a `$ref` cannot be resolved.
+ * **When to use**
+ *
+ * Use this to import multiple JSON Schemas sharing definitions.
+ *
+ * **Details**
+ *
+ * `options.onEnter` is an optional hook called on each JSON Schema node before
+ * processing.
+ *
+ * **Gotchas**
+ *
+ * This throws if a `$ref` cannot be resolved.
  *
  * @see {@link MultiDocument}
  * @see {@link toJsonSchemaMultiDocument}

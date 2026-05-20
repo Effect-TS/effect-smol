@@ -38,18 +38,26 @@ import * as Order from "../Order.ts"
 import * as Semaphore from "../Semaphore.ts"
 
 /**
- * A `TestClock` simplifies deterministically and efficiently testing effects
- * which involve the passage of time.
+ * A `TestClock` simplifies deterministic and efficient testing of effects that
+ * involve the passage of time.
+ *
+ * **Details**
  *
  * Instead of waiting for actual time to pass, `sleep` and methods implemented
- * in terms of it schedule effects to take place at a given clock time. Users
- * can adjust the clock time using the `adjust` and `setTime` methods, and all
- * effects scheduled to take place on or before that time will automatically be
- * run in order.
+ * in terms of it schedule effects to take place at a given clock time. Use
+ * `adjust` and `setTime` to move clock time, and all effects scheduled to take
+ * place on or before that time will automatically run in order.
  *
- * For example, here is how we can test `Effect.timeout` using `TestClock`:
+ * **Gotchas**
+ *
+ * Calls to `sleep` and methods derived from it will semantically block until
+ * the time is set to on or after the time they are scheduled to run. Fork the
+ * effect being tested, then adjust the clock time, and finally verify that the
+ * expected effects have been performed.
  *
  * **Example** (Testing timeouts deterministically)
+ *
+ * Tests `Effect.timeout` using `TestClock`.
  *
  * ```ts
  * import { Effect, Fiber, Option, pipe } from "effect"
@@ -67,14 +75,6 @@ import * as Semaphore from "../Semaphore.ts"
  *   assert.deepStrictEqual(result, Option.none())
  * })
  * ```
- *
- * Note how we forked the fiber that `sleep` was invoked on. Calls to `sleep`
- * and methods derived from it will semantically block until the time is set to
- * on or after the time they are scheduled to run. If we didn't fork the fiber
- * on which we called sleep we would never get to set the time on the line
- * below. Thus, a useful pattern when using `TestClock` is to fork the effect
- * being tested, then adjust the clock time, and finally verify that the
- * expected effects have been performed.
  *
  * **Example** (Advancing time deterministically)
  *

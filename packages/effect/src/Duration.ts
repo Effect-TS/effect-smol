@@ -51,6 +51,8 @@ export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable
 /**
  * Tagged representation of a `Duration` value.
  *
+ * **Details**
+ *
  * A duration is represented as milliseconds, nanoseconds, positive infinity,
  * or negative infinity.
  *
@@ -90,6 +92,8 @@ export type Unit =
 /**
  * Valid input types that can be converted to a Duration.
  *
+ * **Details**
+ *
  * String inputs accept values like `"10 seconds"`, `"500 millis"`,
  * `"Infinity"`, and `"-Infinity"`.
  *
@@ -109,6 +113,8 @@ export type Input =
 /**
  * An object with optional duration components that can be combined to create
  * a Duration. All fields are optional and additive.
+ *
+ * **Details**
  *
  * Compatible with Temporal.Duration-like objects.
  *
@@ -140,6 +146,8 @@ const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|m
 
 /**
  * Decodes a `Duration.Input` into a `Duration`.
+ *
+ * **Gotchas**
  *
  * If the input is not a valid `Duration.Input`, it throws an error.
  *
@@ -828,6 +836,8 @@ export const toWeeks = (self: Input): number =>
 /**
  * Get the duration in nanoseconds as a bigint.
  *
+ * **Gotchas**
+ *
  * If the duration is infinite, it throws an error.
  *
  * **Example** (Reading nanoseconds unsafely)
@@ -861,6 +871,8 @@ export const toNanosUnsafe = (input: Input): bigint => {
 
 /**
  * Get the duration in nanoseconds as a bigint.
+ *
+ * **Details**
  *
  * If the duration is infinite, returns `Option.none()`.
  *
@@ -926,6 +938,8 @@ export const toHrTime = (input: Input): [seconds: number, nanos: number] => {
 
 /**
  * Pattern matches on the representation of a `Duration`.
+ *
+ * **Details**
  *
  * Provide handlers for millisecond-backed values, nanosecond-backed values,
  * and positive infinity. Use `onNegativeInfinity` to handle negative infinity
@@ -1047,6 +1061,8 @@ export const matchPair: {
 
 /**
  * Order instance for `Duration`, allowing comparison operations.
+ *
+ * **Details**
  *
  * `NegativeInfinity` < any finite value < `Infinity`.
  *
@@ -1195,6 +1211,8 @@ export const clamp: {
 /**
  * Safely divides a `Duration` by a finite, non-zero number.
  *
+ * **Details**
+ *
  * Returns `Option.none()` for zero, negative zero, or non-finite divisors. For
  * nanosecond-backed durations, also returns `Option.none()` when the divisor
  * cannot be converted to a `bigint`, such as a fractional divisor.
@@ -1239,6 +1257,8 @@ export const divide: {
 /**
  * Divides a `Duration` by a number using fallback rules instead of returning
  * an `Option`.
+ *
+ * **Details**
  *
  * Non-finite divisors return `Duration.zero`. Division by positive or negative
  * zero can produce signed infinity for non-zero finite durations, while zero
@@ -1293,6 +1313,8 @@ export const divideUnsafe: {
 /**
  * Multiplies a `Duration` by a number.
  *
+ * **Details**
+ *
  * For nanosecond-backed durations, the multiplier must be convertible to a
  * `bigint`; fractional or non-finite multipliers can throw. Infinite
  * durations return positive infinity, negative infinity, or zero depending on
@@ -1327,7 +1349,10 @@ export const times: {
 /**
  * Subtracts one Duration from another. The result can be negative.
  *
- * **Infinity Subtraction Rules**
+ * **Details**
+ *
+ * Infinity subtraction follows these rules:
+ *
  * - infinity - infinity = 0
  * - infinity - negativeInfinity = infinity
  * - infinity - finite = infinity
@@ -1371,7 +1396,10 @@ export const subtract: {
 /**
  * Adds two Durations together.
  *
- * **Infinity Addition Rules**
+ * **Details**
+ *
+ * Infinity addition follows these rules:
+ *
  * - infinity + infinity = infinity
  * - infinity + negativeInfinity = zero
  * - infinity + finite = infinity
@@ -1520,6 +1548,8 @@ export const equals: {
 
 /**
  * Decomposes a `Duration` into normalized signed components.
+ *
+ * **Details**
  *
  * Finite durations are returned as `{ days, hours, minutes, seconds, millis,
  * nanos }`. Infinite durations return every component as `Infinity` or

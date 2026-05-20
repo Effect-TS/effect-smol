@@ -36,8 +36,9 @@ import type * as Fiber from "./Fiber.ts"
 /**
  * Represents a teardown function that handles program completion and determines the exit code.
  *
- * The teardown function is called when an Effect program completes (either successfully or with failure)
- * and is responsible for determining the appropriate exit code and performing any cleanup operations.
+ * **Details**
+ *
+ * A teardown function is called when an Effect program completes, either successfully or with a failure. It determines the appropriate exit code and can perform cleanup before invoking the supplied `onExit` callback.
  *
  * **Example** (Customizing teardown behavior)
  *
@@ -76,12 +77,11 @@ export interface Teardown {
 }
 
 /**
- * The default teardown function that determines exit codes based on Effect completion.
+ * The default teardown function that determines exit codes from an Effect exit.
  *
- * This teardown function follows standard Unix conventions:
- * - Returns exit code 0 for successful completion
- * - Returns exit code 1 for failures (except interruption-only failures)
- * - Returns exit code 130 for interruption-only failures
+ * **Details**
+ *
+ * This teardown function follows standard Unix conventions: exit code `0` for successful completion, exit code `1` for failures unless the squashed error has a `Runtime.errorExitCode` marker, and exit code `130` for interruption-only failures.
  *
  * **Example** (Using default teardown)
  *
@@ -119,9 +119,9 @@ export const defaultTeardown: Teardown = <E, A>(
 /**
  * Creates a platform-specific main program runner that handles Effect execution lifecycle.
  *
- * This function creates a runner that can execute Effect programs as main entry points,
- * handling process signals, fiber management, and teardown operations. The provided
- * function receives a fiber and teardown callback to implement platform-specific behavior.
+ * **Details**
+ *
+ * The runner executes Effect programs as main entry points. The provided function receives a forked fiber and a teardown callback so it can install platform-specific signal handling, fiber observers, and final exit behavior.
  *
  * **Example** (Creating platform runners)
  *
@@ -259,6 +259,7 @@ export const errorExitCode: errorExitCode = "~effect/Runtime/errorExitCode"
  * Reads the runtime exit-code marker from an unknown error value.
  *
  * **Details**
+ *
  * Returns the numeric `[Runtime.errorExitCode]` property when it is present on
  * an object. Otherwise returns `1`, the default failure exit code used by
  * `defaultTeardown`.
@@ -289,6 +290,7 @@ export type errorReported = "~effect/Runtime/errorReported"
  * Runtime marker that controls default `runMain` error logging for an error.
  *
  * **Details**
+ *
  * Set `[Runtime.errorReported]` to `false` on an error object to suppress the
  * runtime log because the error has already been reported. Omitted or
  * non-boolean values are treated as `true`, so failures are logged by default.
@@ -300,7 +302,7 @@ export type errorReported = "~effect/Runtime/errorReported"
  * import { NodeRuntime } from "@effect/platform-node"
  *
  * class MyError extends Data.TaggedError("MyError") {
- *   readonly [Runtime.errorReported] = true
+ *   readonly [Runtime.errorReported] = false
  * }
  *
  * // If the program fails with MyError, the process will exit with code 1 but
@@ -317,6 +319,7 @@ export const errorReported: errorReported = "~effect/Runtime/errorReported"
  * Reads the runtime error-reporting marker from an unknown error value.
  *
  * **Details**
+ *
  * Returns a boolean `[Runtime.errorReported]` property when it is present on an
  * object. Otherwise returns `true`, so failures are logged by default.
  *

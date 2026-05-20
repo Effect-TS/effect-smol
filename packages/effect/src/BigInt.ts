@@ -119,6 +119,8 @@ export const subtract: {
 /**
  * Safely divides one `bigint` by another.
  *
+ * **Details**
+ *
  * Uses JavaScript `bigint` division, so non-exact quotients are truncated
  * toward zero. Returns `Option.none()` when the divisor is `0n`.
  *
@@ -146,8 +148,14 @@ export const divide: {
 /**
  * Divides one `bigint` by another, throwing if the divisor is zero.
  *
+ * **Details**
+ *
  * Uses JavaScript `bigint` division, so non-exact quotients are truncated
- * toward zero. Throws a `RangeError` when the divisor is `0n`.
+ * toward zero.
+ *
+ * **Gotchas**
+ *
+ * Throws a `RangeError` when the divisor is `0n`.
  *
  * **Example** (Dividing bigints unsafely)
  *
@@ -361,6 +369,8 @@ export const between: {
 /**
  * Restricts the given `bigint` to be within the range specified by the `minimum` and `maximum` values.
  *
+ * **Details**
+ *
  * - If the `bigint` is less than the `minimum` value, the function returns the `minimum` value.
  * - If the `bigint` is greater than the `maximum` value, the function returns the `maximum` value.
  * - Otherwise, it returns the original `bigint`.
@@ -524,8 +534,14 @@ export const lcm: {
 /**
  * Returns the integer square root of a non-negative `bigint`.
  *
+ * **Details**
+ *
  * For non-perfect squares, returns the largest `bigint` whose square is less
- * than or equal to the input. Throws a `RangeError` if the input is negative.
+ * than or equal to the input.
+ *
+ * **Gotchas**
+ *
+ * Throws a `RangeError` if the input is negative.
  *
  * **Example** (Calculating square roots unsafely)
  *
@@ -558,6 +574,8 @@ export const sqrtUnsafe = (n: bigint): bigint => {
 /**
  * Safely returns the integer square root of a `bigint`.
  *
+ * **Details**
+ *
  * For non-perfect squares, returns the largest `bigint` whose square is less
  * than or equal to the input. Returns `Option.none()` when the input is
  * negative.
@@ -580,9 +598,7 @@ export const sqrt = (n: bigint): Option.Option<bigint> =>
   isGreaterThanOrEqualTo(n, bigint0) ? Option.some(sqrtUnsafe(n)) : Option.none()
 
 /**
- * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint`.
- *
- * Returns `0n` for an empty iterable.
+ * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint`. Returns `0n` for an empty iterable.
  *
  * **Example** (Summing iterable bigints)
  *
@@ -605,10 +621,7 @@ export const sumAll = (collection: Iterable<bigint>): bigint => {
 }
 
 /**
- * Takes an `Iterable` of `bigint`s and returns their product as a single
- * `bigint`.
- *
- * Returns `1n` for an empty iterable.
+ * Takes an `Iterable` of `bigint`s and returns their product as a single `bigint`. Returns `1n` for an empty iterable.
  *
  * **Example** (Multiplying iterable bigints)
  *
@@ -636,6 +649,8 @@ export const multiplyAll = (collection: Iterable<bigint>): bigint => {
 /**
  * Converts a `bigint` to a `number`.
  *
+ * **Details**
+ *
  * If the `bigint` is outside the safe integer range for JavaScript (`Number.MAX_SAFE_INTEGER`
  * and `Number.MIN_SAFE_INTEGER`), it returns `Option.none()`.
  *
@@ -661,6 +676,8 @@ export const toNumber = (b: bigint): Option.Option<number> => {
 
 /**
  * Converts a string to a `bigint`.
+ *
+ * **Details**
  *
  * If the string is empty or contains characters that cannot be converted into a
  * `bigint`, it returns `Option.none()`.
@@ -690,6 +707,8 @@ export const fromString = (s: string): Option.Option<bigint> => {
 
 /**
  * Converts a number to a `bigint`.
+ *
+ * **Details**
  *
  * If the number is outside the safe integer range for JavaScript
  * (`Number.MAX_SAFE_INTEGER` and `Number.MIN_SAFE_INTEGER`) or if the number is
@@ -724,8 +743,14 @@ export function fromNumber(n: number): Option.Option<bigint> {
 /**
  * Returns the JavaScript remainder of dividing one `bigint` by another.
  *
+ * **Details**
+ *
  * The result follows JavaScript `%` semantics, including the sign of the
- * dividend. Throws a `RangeError` when the divisor is `0n`.
+ * dividend.
+ *
+ * **Gotchas**
+ *
+ * Throws a `RangeError` when the divisor is `0n`.
  *
  * **Example** (Calculating remainders)
  *

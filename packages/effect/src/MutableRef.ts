@@ -43,6 +43,8 @@ const TypeId = "~effect/MutableRef"
 /**
  * A synchronous mutable reference that stores a current value.
  *
+ * **Details**
+ *
  * Read or write the value directly through `.current`, or use the `MutableRef`
  * helpers for pipeable updates such as `get`, `set`, `update`, and
  * `compareAndSet`. All operations mutate the same reference in place.

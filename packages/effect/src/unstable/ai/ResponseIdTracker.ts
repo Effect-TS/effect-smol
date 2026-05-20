@@ -21,6 +21,8 @@ import * as Prompt from "./Prompt.ts"
 /**
  * Result returned when a tracked prompt can be sent incrementally.
  *
+ * **Details**
+ *
  * It contains the provider response ID to pass as `previousResponseId` and the
  * prompt fragment containing only the new messages after the latest assistant
  * turn.
@@ -36,6 +38,8 @@ export interface PrepareResult {
 /**
  * Mutable service that tracks prompt message object identities by provider
  * response ID.
+ *
+ * **Details**
  *
  * `markParts` records the prompt messages that produced a response,
  * `prepareUnsafe` returns a `previousResponseId` plus the untracked suffix when
@@ -55,6 +59,8 @@ export interface Service {
  * Service tag for enabling provider previous-response ID reuse across language
  * model calls.
  *
+ * **When to use**
+ *
  * When provided, language model operations can use the tracker to send only new
  * prompt messages together with the provider's prior response ID.
  *
@@ -65,6 +71,8 @@ export class ResponseIdTracker extends Context.Service<ResponseIdTracker, Servic
 
 /**
  * Creates an in-memory `ResponseIdTracker` service.
+ *
+ * **Details**
  *
  * The tracker maps prompt message object identities to provider response IDs.
  * `prepareUnsafe` returns a previous response ID and the messages after the

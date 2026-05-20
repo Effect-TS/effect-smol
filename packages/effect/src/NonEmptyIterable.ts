@@ -145,6 +145,8 @@
 /**
  * A unique symbol used to brand the `NonEmptyIterable` type.
  *
+ * **Details**
+ *
  * This symbol ensures that `NonEmptyIterable<A>` is a distinct type from regular
  * `Iterable<A>`, providing compile-time guarantees about non-emptiness while
  * maintaining full compatibility with the JavaScript iteration protocol.
@@ -156,6 +158,8 @@ export declare const nonEmpty: unique symbol
 
 /**
  * Represents an iterable that is guaranteed to contain at least one element.
+ *
+ * **Details**
  *
  * `NonEmptyIterable<A>` extends the standard `Iterable<A>` interface with a type-level
  * guarantee of non-emptiness. This allows for safe operations that would otherwise
@@ -215,6 +219,8 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
 
 /**
  * Safely extracts the first element and remaining elements from a non-empty iterable.
+ *
+ * **Details**
  *
  * This function provides a safe way to deconstruct a `NonEmptyIterable` into its
  * head (first element) and tail (remaining elements as an iterator). Since the

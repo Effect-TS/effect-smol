@@ -82,11 +82,7 @@ import * as Toolkit from "./Toolkit.ts"
 // =============================================================================
 
 /**
- * The `LanguageModel` service key for dependency injection.
- *
- * This provides access to language model functionality throughout your
- * application, enabling text generation, streaming, and structured output
- * capabilities.
+ * The `LanguageModel` service key for dependency injection, providing access to text generation, streaming, and structured output capabilities throughout an application.
  *
  * **Example** (Accessing the language model service)
  *
@@ -111,10 +107,7 @@ export class LanguageModel extends Context.Service<LanguageModel, Service>()(
 ) {}
 
 /**
- * The service interface for language model operations.
- *
- * Defines the contract that all language model implementations must fulfill,
- * providing text generation, structured output, and streaming capabilities.
+ * The service interface for language model operations, defining the contract that all language model implementations must fulfill.
  *
  * @category models
  * @since 4.0.0
@@ -221,8 +214,9 @@ export interface Service {
 }
 
 /**
- * A function that transforms a `Schema.Codec` into a provider-compatible form
- * for structured output generation.
+ * A function that transforms a `Schema.Codec` into a provider-compatible form for structured output generation.
+ *
+ * **Details**
  *
  * Different language model providers have varying constraints on the JSON
  * schemas they accept. A `CodecTransformer` rewrites a codec's encoded side to
@@ -288,15 +282,13 @@ export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
   readonly concurrency?: Concurrency | undefined
 
   /**
-   * When set to `true`, tool calls requested by the large language model
-   * will not be auto-resolved by the framework.
+   * When set to `true`, tool calls requested by the large language model are not auto-resolved by the framework.
    *
-   * This option is useful when:
-   *   1. The user wants to include tool call definitions from an `AiToolkit`
-   *      in requests to the large language model so that the model has the
-   *      capability to call tools
-   *   2. The user wants to control the execution of tool call resolvers
-   *      instead of having the framework handle tool call resolution
+   * **When to use**
+   *
+   * Use this when you want to include tool call definitions from an `AiToolkit`
+   * in requests to the large language model, while controlling tool call
+   * resolver execution yourself.
    */
   readonly disableToolCallResolution?: boolean | undefined
 }
@@ -358,11 +350,7 @@ export type ToolChoice<ToolName extends string> =
   }
 
 /**
- * Response class for text generation operations.
- *
- * Contains the generated content and provides convenient accessors for
- * extracting different types of response parts like text, tool calls, and usage
- * information.
+ * Response class for text generation operations, with accessors for extracting text, tool calls, usage information, and other response parts from generated content.
  *
  * **Example** (Inspecting a text response)
  *
@@ -544,6 +532,8 @@ export type ToolkitOption<
 /**
  * The supported toolkit input shapes for language model operation options.
  *
+ * **Details**
+ *
  * Unlike `ToolkitOption`, this type does not distribute over unions. It is
  * intended for call-site assignability, while `ToolkitOption` remains the
  * distributive helper used for extraction and inference.
@@ -624,6 +614,8 @@ type ExtractToolkitResolutionServices<ToolkitValue> = ToolkitValue extends Effec
 /**
  * Utility type that extracts the error type from LanguageModel options.
  *
+ * **Details**
+ *
  * Automatically infers the possible error types based on toolkit configuration
  * and tool call resolution settings.
  *
@@ -645,6 +637,8 @@ export type ExtractError<Options> = Options extends {
 /**
  * Utility type that extracts the context requirements from LanguageModel options.
  *
+ * **Details**
+ *
  * Automatically infers the required services based on the toolkit configuration.
  *
  * @category utility types
@@ -663,8 +657,9 @@ export type ExtractServices<Options> = Options extends {
 // =============================================================================
 
 /**
- * Configuration options passed along to language model provider
- * implementations.
+ * Configuration options passed along to language model provider implementations.
+ *
+ * **Details**
  *
  * This interface defines the normalized options that are passed to the
  * underlying provider implementation, regardless of the specific provider being
@@ -686,15 +681,14 @@ export interface ProviderOptions {
   readonly tools: ReadonlyArray<Tool.Any>
 
   /**
-   * The format which the response should be provided in.
+   * The format the response should be provided in.
    *
-   * If `"text"` is specified, the large language model response will be
-   * returned as text.
+   * **Details**
    *
-   * If `"json"` is specified, the large language model respose will be provided
-   * as an JSON object that conforms to the shape of the specified schema.
-   *
-   * Defaults to `{ type: "text" }`.
+   * If `"text"` is specified, the large language model response is returned as
+   * text. If `"json"` is specified, the large language model response is
+   * provided as a JSON object that conforms to the shape of the specified schema.
+   * The default is `{ type: "text" }`.
    */
   readonly responseFormat:
     | {
@@ -740,31 +734,21 @@ export interface ProviderOptions {
 }
 
 /**
- * Creates a LanguageModel service from provider-specific implementations.
- *
- * This constructor takes provider-specific implementations for text generation
- * and streaming text generation and returns a LanguageModel service.
+ * Creates a LanguageModel service from provider-specific text generation and streaming implementations.
  *
  * @category constructors
  * @since 4.0.0
  */
 export const make: (params: {
   /**
-   * A method which requests text generation from the large language model
-   * provider.
-   *
-   * The final result is returned when the large language model provider
-   * finishes text generation.
+   * A method that requests text generation from the large language model provider and returns the final result when generation finishes.
    */
   readonly generateText: (
     options: ProviderOptions
   ) => Effect.Effect<Array<Response.PartEncoded>, AiError.AiError, IdGenerator>
 
   /**
-   * A method which requests text generation from the large language model
-   * provider.
-   *
-   * Intermediate results are streamed from the large language model provider.
+   * A method that requests text generation from the large language model provider and streams intermediate results.
    */
   readonly streamText: (
     options: ProviderOptions
@@ -1720,6 +1704,8 @@ export const generateObject = <
 
 /**
  * Generate text using a language model with streaming output.
+ *
+ * **Details**
  *
  * Returns a stream of response parts that are emitted as soon as they are
  * available from the model, enabling real-time text generation experiences.

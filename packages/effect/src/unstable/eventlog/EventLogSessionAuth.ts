@@ -241,7 +241,11 @@ const encodeRemoteIdField = (remoteId: string | Uint8Array): Uint8Array =>
     : textEncoder.encode(bytesToHex(remoteId))
 
 /**
- * Canonical payload format uses ordered big-endian length-prefixed fields:
+ * Encodes a session authentication payload into the canonical byte format.
+ *
+ * **Details**
+ *
+ * The canonical payload format uses ordered big-endian length-prefixed fields:
  *
  * 1. context (fixed: eventlog-auth-v1)
  * 2. remoteId
@@ -281,6 +285,8 @@ export const encodeSessionAuthPayload = Effect.fnUntraced(function*(payload: Ses
 
 /**
  * Decodes a canonical session authentication payload.
+ *
+ * **Details**
  *
  * The decoder validates the context field, UTF-8 fields, signing public key
  * length, and rejects truncated or trailing bytes.
@@ -326,6 +332,8 @@ export const decodeSessionAuthPayload = Effect.fnUntraced(
  * Signs canonical session authentication payload bytes with an Ed25519 private
  * key.
  *
+ * **Details**
+ *
  * The private key must be PKCS#8-encoded bytes importable by `SubtleCrypto`.
  *
  * @category signing
@@ -370,6 +378,8 @@ export const signSessionAuthPayloadBytes = Effect.fnUntraced(function*(options: 
 /**
  * Verifies an Ed25519 signature for canonical session authentication payload
  * bytes.
+ *
+ * **Details**
  *
  * The payload, signing public key, and signature lengths are validated before
  * calling `SubtleCrypto.verify`.

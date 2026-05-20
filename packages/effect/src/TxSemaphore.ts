@@ -32,10 +32,10 @@ import * as TxRef from "./TxRef.ts"
 const TypeId = "~effect/transactions/TxSemaphore"
 
 /**
- * A transactional semaphore that manages permits using Software Transactional Memory (STM) semantics.
- *
- * TxSemaphore provides atomic permit acquisition and release operations within Effect transactions,
- * ensuring thread-safe concurrency control for limited resources.
+ * A transactional semaphore that manages permits using Software Transactional
+ * Memory (STM) semantics, providing atomic permit acquisition and release
+ * operations within Effect transactions for concurrency control over limited
+ * resources.
  *
  * **Example** (Managing permits transactionally)
  *
@@ -223,10 +223,15 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
 /**
  * Acquires the specified number of permits from the semaphore.
  *
+ * **Details**
+ *
  * If fewer than `n` permits are available, the transaction retries until enough
- * permits are released. Passing a non-positive `n` dies with a defect. Passing a
- * value greater than the semaphore capacity will wait forever unless the
- * semaphore's capacity can somehow be changed externally.
+ * permits are released.
+ *
+ * **Gotchas**
+ *
+ * Passing a non-positive `n` dies with a defect. Passing a value greater than
+ * the semaphore capacity can wait forever because the capacity is fixed.
  *
  * **Example** (Acquiring multiple permits)
  *
@@ -262,8 +267,8 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
 }
 
 /**
- * Tries to acquire a single permit from the semaphore without blocking.
- * Returns true if successful, false if no permits are available.
+ * Tries to acquire a single permit from the semaphore without blocking,
+ * returning `true` if successful or `false` if no permits are available.
  *
  * **Example** (Trying to acquire a permit)
  *
@@ -295,8 +300,9 @@ export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
   })
 
 /**
- * Tries to acquire the specified number of permits from the semaphore without blocking.
- * Returns true if successful, false if not enough permits are available.
+ * Tries to acquire the specified number of permits from the semaphore without
+ * blocking, returning `true` if successful or `false` if not enough permits are
+ * available.
  *
  * **Example** (Trying to acquire multiple permits)
  *
@@ -335,6 +341,8 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
  * Releases one permit back to the semaphore, making it available for
  * acquisition.
  *
+ * **Details**
+ *
  * If the semaphore is already at capacity, this operation leaves the permit
  * count unchanged.
  *
@@ -367,8 +375,13 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
 /**
  * Releases the specified number of permits back to the semaphore.
  *
- * The available permit count is capped at the semaphore capacity. Passing a
- * non-positive `n` dies with a defect.
+ * **Details**
+ *
+ * The available permit count is capped at the semaphore capacity.
+ *
+ * **Gotchas**
+ *
+ * Passing a non-positive `n` dies with a defect.
  *
  * **Example** (Releasing multiple permits)
  *
@@ -408,8 +421,10 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * automatically acquired before execution and released afterwards, even if the
  * effect fails or is interrupted.
  *
- * **Note**: The permit acquisition and release operations use atomic semantics
- * to ensure proper resource management with Effect's scoped operations.
+ * **Details**
+ *
+ * The permit acquisition and release operations use atomic semantics to ensure
+ * proper resource management with Effect's scoped operations.
  *
  * **Example** (Running an effect with a permit)
  *
@@ -463,9 +478,15 @@ export const withPermit: {
  * Runs an effect while holding the specified number of permits from the
  * semaphore.
  *
+ * **Details**
+ *
  * The permits are acquired before the effect starts and released after it
- * completes, fails, or is interrupted. Passing a non-positive `n` dies with a
- * defect; passing a value greater than the semaphore capacity can wait forever.
+ * completes, fails, or is interrupted.
+ *
+ * **Gotchas**
+ *
+ * Passing a non-positive `n` dies with a defect. Passing a value greater than
+ * the semaphore capacity can wait forever.
  *
  * **Example** (Running an effect with multiple permits)
  *
@@ -520,8 +541,10 @@ export const withPermits: {
  * will be automatically released when the scope is closed, even if effects
  * within the scope fail or are interrupted.
  *
- * **Note**: The permit acquisition and release operations use atomic semantics
- * to ensure proper resource management with Effect's scoped operations.
+ * **Details**
+ *
+ * The permit acquisition and release operations use atomic semantics to ensure
+ * proper resource management with Effect's scoped operations.
  *
  * **Example** (Acquiring a scoped permit)
  *

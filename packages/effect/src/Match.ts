@@ -39,6 +39,8 @@ const TypeId = internal.TypeId
 /**
  * Union type for matchers created by `Match.type` and `Match.value`.
  *
+ * **Details**
+ *
  * A `Matcher` carries the input type, accumulated filters, remaining cases,
  * result type, and, for value matchers, the provided value being matched.
  *
@@ -74,6 +76,8 @@ export type Matcher<Input, Filters, RemainingApplied, Result, Provided, Return =
 
 /**
  * Represents a pattern matcher that operates on types rather than specific values.
+ *
+ * **Details**
  *
  * A `TypeMatcher` is created when using `Match.type<T>()` and allows you to define
  * patterns that will be applied to values of the specified type. It maintains
@@ -114,6 +118,8 @@ export interface TypeMatcher<in Input, out Filters, out Remaining, out Result, o
 
 /**
  * Represents a pattern matcher that operates on a specific provided value.
+ *
+ * **Details**
  *
  * A `ValueMatcher` is created when using `Match.value(someValue)` and contains
  * the actual value to be matched against. It tracks both the provided value
@@ -157,6 +163,8 @@ export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Prov
 /**
  * Represents a single pattern matching case.
  *
+ * **Details**
+ *
  * A `Case` can be either a positive match (`When`) or a negative match (`Not`).
  * Cases are the building blocks of pattern matching logic and determine
  * how values are tested and transformed.
@@ -168,6 +176,8 @@ export type Case = When | Not
 
 /**
  * Represents a positive pattern matching case.
+ *
+ * **Details**
  *
  * A `When` case contains the logic to test if a value matches a specific pattern
  * and the function to evaluate when the pattern matches. It's the primary
@@ -200,6 +210,8 @@ export interface When {
 
 /**
  * Represents a negative pattern matching case.
+ *
+ * **Details**
  *
  * A `Not` case contains the logic to test if a value does NOT match a specific
  * pattern and the function to evaluate when the pattern doesn't match. It's used
@@ -319,6 +331,8 @@ export const value: <const I>(
 /**
  * Creates a match function for a specific value with discriminated union handling.
  *
+ * **Details**
+ *
  * This function provides a convenient way to pattern match on discriminated unions
  * by providing an object that maps each `_tag` value to its corresponding handler.
  * It's similar to a switch statement but with better type safety and exhaustiveness checking.
@@ -360,6 +374,8 @@ export const valueTags: {
 
 /**
  * Creates a type-safe match function for discriminated unions based on `_tag` field.
+ *
+ * **Details**
  *
  * This function allows you to define exhaustive pattern matching for discriminated unions
  * by providing handlers for each possible `_tag` value. It ensures type safety and
@@ -857,7 +873,7 @@ export const discriminatorsExhaustive: <D extends string>(
  * a [Discriminated Union](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html#discriminated-unions).
  * You can specify multiple tags to match within a single pattern.
  *
- * **Note**
+ * **Details**
  *
  * The `Match.tag` function relies on the convention within the Effect ecosystem
  * of naming the tag field as `"_tag"`. Ensure that your discriminated unions
@@ -1119,6 +1135,8 @@ export const not: <
 /**
  * Matches non-empty strings.
  *
+ * **Details**
+ *
  * This predicate matches any string that contains at least one character,
  * effectively filtering out empty strings ("").
  *
@@ -1150,6 +1168,8 @@ export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptySt
 
 /**
  * Matches a specific set of literal values (e.g., `Match.is("a", 42, true)`).
+ *
+ * **Details**
  *
  * This function creates a predicate that matches any of the provided literal values.
  * It's useful for matching against multiple specific values in a single pattern.
@@ -1193,6 +1213,8 @@ export const is: <
 /**
  * Matches values of type `string`.
  *
+ * **Details**
+ *
  * This predicate refines unknown values to strings, allowing pattern matching
  * on string types. It's commonly used in type-based matchers to handle string cases.
  *
@@ -1220,6 +1242,8 @@ export const string: Predicate.Refinement<unknown, string> = Predicate.isString
 
 /**
  * Matches values of type `number`.
+ *
+ * **Details**
  *
  * This predicate refines unknown values to numbers, allowing pattern matching
  * on numeric types. It matches all number values including integers, floats,
@@ -1253,6 +1277,8 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
 
 /**
  * Matches any value without restrictions.
+ *
+ * **Details**
  *
  * This predicate matches absolutely any value, including `undefined`, `null`,
  * objects, primitives, functions, etc. It's useful as a catch-all pattern
@@ -1292,6 +1318,8 @@ export const any: SafeRefinement<unknown, any> = internal.any
 
 /**
  * Matches any defined (non-null and non-undefined) value.
+ *
+ * **Details**
  *
  * This predicate matches values that are neither `null` nor `undefined`,
  * effectively filtering out nullish values while preserving all other types.
@@ -1333,6 +1361,8 @@ export const defined: <A>(u: A) => u is A & {} = internal.defined
 
 /**
  * Matches values of type `boolean`.
+ *
+ * **Details**
  *
  * This predicate refines unknown values to booleans, allowing pattern matching
  * on boolean types. It only matches the primitive boolean values `true` and `false`.
@@ -1389,6 +1419,8 @@ export {
 /**
  * Matches values of type `bigint`.
  *
+ * **Details**
+ *
  * This predicate refines unknown values to bigints, allowing pattern matching
  * on bigint types. BigInts are used for representing integers with arbitrary precision.
  *
@@ -1421,6 +1453,8 @@ export const bigint: Predicate.Refinement<unknown, bigint> = Predicate.isBigInt
 
 /**
  * Matches values of type `symbol`.
+ *
+ * **Details**
  *
  * This predicate refines unknown values to symbols, allowing pattern matching
  * on symbol types. Symbols are unique identifiers that are often used as
@@ -1458,6 +1492,8 @@ export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
 /**
  * Matches values that are instances of `Date`.
  *
+ * **Details**
+ *
  * This predicate refines unknown values to Date instances, allowing pattern
  * matching on Date objects. It only matches actual Date instances, not
  * date strings or timestamps.
@@ -1491,6 +1527,8 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
 
 /**
  * Matches non-null objects other than arrays.
+ *
+ * **Details**
  *
  * This predicate uses `Predicate.isObject`: it returns `true` for values whose
  * runtime type is `"object"`, are not `null`, and are not arrays. It can match
@@ -1528,6 +1566,8 @@ export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }
 
 /**
  * Matches instances of a given class.
+ *
+ * **Details**
  *
  * This predicate checks if a value is an instance of the specified constructor,
  * providing type-safe matching for class instances and built-in objects.
@@ -1579,6 +1619,8 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
 
 /**
  * Unsafe variant of `instanceOf` that allows matching without type narrowing.
+ *
+ * **Details**
  *
  * This predicate checks if a value is an instance of the specified constructor
  * but doesn't provide the same type safety guarantees as the regular `instanceOf`.
@@ -1810,6 +1852,8 @@ const SafeRefinementId = "~effect/match/Match/SafeRefinement"
 /**
  * A safe refinement that narrows types without runtime errors.
  *
+ * **Details**
+ *
  * `SafeRefinement` provides a way to refine types in pattern matching while
  * maintaining type safety. Unlike regular predicates, safe refinements can
  * transform the matched value's type without throwing runtime errors.
@@ -1846,6 +1890,8 @@ type Fail = typeof Fail
 /**
  * A namespace containing utility types for Match operations.
  *
+ * **Details**
+ *
  * This namespace provides advanced type-level utilities used internally by the
  * Match module to perform complex pattern matching, type narrowing, and filter
  * application. These types enable the sophisticated type inference that makes
@@ -1856,6 +1902,8 @@ type Fail = typeof Fail
 export declare namespace Types {
   /**
    * Computes the matched type when a pattern P is applied to type R.
+   *
+   * **Details**
    *
    * This utility type determines what type a value will have after successfully
    * matching against a pattern. It handles refinements, predicates, and complex
@@ -1900,6 +1948,8 @@ export declare namespace Types {
   /**
    * Computes the remaining type when a pattern P is excluded from type R.
    *
+   * **Details**
+   *
    * This utility type determines what type remains after a `Match.not` pattern
    * excludes certain values. It's the complement of `WhenMatch`, calculating
    * what's left after removing the matched portion.
@@ -1931,6 +1981,8 @@ export declare namespace Types {
   /**
    * Resolves a pattern to its matched type for use in type computations.
    *
+   * **Details**
+   *
    * This utility type processes patterns (predicates, refinements, objects)
    * and resolves them to their corresponding matched types. It's used internally
    * to compute type transformations during pattern matching.
@@ -1956,6 +2008,8 @@ export declare namespace Types {
 
   /**
    * Computes the excluded type when a pattern P is used for exclusion.
+   *
+   * **Details**
    *
    * This utility type determines what should be excluded from a union type
    * when a pattern is used in filtering operations. It transforms patterns
@@ -2020,6 +2074,8 @@ export declare namespace Types {
   /**
    * Defines the structure for complex object and array patterns.
    *
+   * **Details**
+   *
    * This type represents patterns that can match against complex data structures
    * like objects and arrays. It supports nested pattern matching and partial
    * object matching, enabling sophisticated pattern compositions.
@@ -2060,6 +2116,8 @@ export declare namespace Types {
   /**
    * Defines primitive patterns that can match simple values.
    *
+   * **Details**
+   *
    * This type represents the building blocks of pattern matching: predicates,
    * literal values, and safe refinements. These are the atomic patterns that
    * can be composed into more complex matching logic.
@@ -2071,6 +2129,8 @@ export declare namespace Types {
 
   /**
    * Represents a filter that excludes specific types from a union.
+   *
+   * **Details**
    *
    * `Without` is used internally to track which types should be excluded
    * from consideration during pattern matching. It helps implement the
@@ -2100,6 +2160,8 @@ export declare namespace Types {
   /**
    * Represents a filter that includes only specific types from a union.
    *
+   * **Details**
+   *
    * `Only` is used internally to track which types should be exclusively
    * considered during pattern matching. It helps implement the type-level
    * logic for positive matches and type narrowing.
@@ -2127,6 +2189,8 @@ export declare namespace Types {
 
   /**
    * Adds a type to the exclusion filter, expanding what should be filtered out.
+   *
+   * **Details**
    *
    * This utility type manages the accumulation of excluded types during
    * pattern matching. When multiple exclusions are applied, it combines
@@ -2156,6 +2220,8 @@ export declare namespace Types {
   /**
    * Adds a type to the inclusion filter, refining what should be included.
    *
+   * **Details**
+   *
    * This utility type manages the refinement of included types during
    * pattern matching. It ensures that only the most specific type
    * constraints are maintained when multiple positive matches are applied.
@@ -2184,6 +2250,8 @@ export declare namespace Types {
 
   /**
    * Applies accumulated filters to an input type, producing the final narrowed type.
+   *
+   * **Details**
    *
    * This utility type takes the collected inclusion/exclusion filters and
    * applies them to the input type to compute the final narrowed result.
@@ -2218,6 +2286,8 @@ export declare namespace Types {
   /**
    * Extracts tag values from a discriminated union based on a discriminant field.
    *
+   * **Details**
+   *
    * This utility type extracts the possible values of a discriminant field
    * from a union type. It's used internally to implement tag-based pattern
    * matching for discriminated unions.
@@ -2251,6 +2321,8 @@ export declare namespace Types {
   /**
    * Converts an array type to an intersection of its element types.
    *
+   * **Details**
+   *
    * This utility type takes an array of types and converts them into a single
    * intersection type. It's used internally when multiple patterns need to
    * be satisfied simultaneously (like in `Match.whenAnd`).
@@ -2282,6 +2354,8 @@ export declare namespace Types {
 
   /**
    * Extracts and narrows the matched type from an input type given a pattern.
+   *
+   * **Details**
    *
    * This is the core type utility that performs the actual type extraction
    * and narrowing logic. It handles the complex type-level computation that

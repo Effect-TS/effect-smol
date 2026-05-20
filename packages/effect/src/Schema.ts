@@ -174,7 +174,8 @@ export type ConstructorDefault = "no-default" | "with-default"
 /**
  * Options for `makeEffect`, `make`, and Class constructors.
  *
- * When to use:
+ * **When to use**
+ *
  * - Pass `disableChecks: true` to skip validation when you trust the data.
  * - Pass `parseOptions` to control error reporting behavior.
  *
@@ -200,7 +201,8 @@ export interface MakeOptions {
  * parameters controlling type inference, mutability, optionality, services,
  * and transformation behavior.
  *
- * When to use:
+ * **When to use**
+ *
  * - You are writing advanced generic schema utilities or performing schema
  *   introspection.
  * - In user code, prefer {@link Schema}, {@link Codec}, {@link Decoder}, or
@@ -290,6 +292,8 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
  * `Array<A>`, `Option<A>`, etc.) by accepting a list of type-parameter schemas
  * and a decoder factory.
  *
+ * **Details**
+ *
  * The outer call `declareConstructor<T, E, Iso>()` fixes the decoded type `T`,
  * the encoded type `E`, and the optional iso type. The inner call receives:
  * - `typeParameters` — the concrete schemas for each type variable
@@ -368,6 +372,8 @@ export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [
  * function. The schema accepts any unknown value and succeeds when `is` returns
  * `true`, failing with an `InvalidType` issue otherwise.
  *
+ * **Details**
+ *
  * Use this when the type has no type parameters. For parametric types such as
  * `Option<A>` or `Array<A>`, use {@link declareConstructor} instead.
  *
@@ -409,6 +415,8 @@ export function declare<T, Iso = T>(
 /**
  * Widens a schema's type to the fully-parameterized {@link Bottom} interface,
  * making all 14 type parameters visible to TypeScript.
+ *
+ * **Details**
  *
  * Normally, concrete schema interfaces (e.g. `Schema<string>`) hide most type
  * parameters. `revealBottom` is useful when writing generic utilities that need
@@ -459,6 +467,8 @@ export function revealBottom<S extends Top>(
  * Adds metadata annotations to a schema without changing its runtime behavior.
  * This is the pipeable (curried) counterpart of the `.annotate` method.
  *
+ * **Details**
+ *
  * Annotations provide extra context used by documentation generators, JSON
  * Schema converters, error formatters, and other tooling. Common keys include
  * `title`, `description`, `examples`, `message`, and `identifier`.
@@ -490,6 +500,8 @@ export function annotate<S extends Top>(annotations: Annotations.Bottom<S["Type"
  * changing its runtime behavior. This is the encoded-side counterpart of
  * `annotate`, which targets the decoded (Type) side.
  *
+ * **Details**
+ *
  * Internally the schema is flipped so that `Encoded` becomes `Type`,
  * annotated, and then flipped back.
  *
@@ -520,6 +532,8 @@ export function annotateEncoded<S extends Top>(annotations: Annotations.Bottom<S
 /**
  * Adds key-level annotations to a schema field. This is the pipeable
  * (curried) counterpart of the `.annotateKey` method.
+ *
+ * **Details**
  *
  * Key annotations apply to a field's position inside a `Struct` or `Tuple`
  * rather than to the field's value type. They can carry a
@@ -553,6 +567,8 @@ export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"
 
 /**
  * The existential "any schema" type — all type parameters are erased to `unknown`.
+ *
+ * **Details**
  *
  * Use `Top` as a constraint when writing generic utilities that must accept *any*
  * schema regardless of its `Type`, `Encoded`, or service requirements. It is the
@@ -614,6 +630,8 @@ export declare namespace Schema {
 
 /**
  * A typed view of a schema that tracks only the decoded (output) type `T`.
+ *
+ * **Details**
  *
  * Use `Schema<T>` as a constraint when you want to accept "any schema that
  * decodes to `T`" and do not need to know or constrain the encoded
@@ -707,6 +725,8 @@ export declare namespace Codec {
 /**
  * A schema that additionally supports optic (lens/prism) operations.
  *
+ * **Details**
+ *
  * `Optic<T, Iso>` extends {@link Schema}`<T>` with an `Iso` type that
  * describes the isomorphic counterpart used by the optic layer. Crucially,
  * decoding and encoding require *no* Effect services (`DecodingServices` and
@@ -730,6 +750,8 @@ export interface Optic<out T, out Iso> extends Schema<T> {
 /**
  * A schema that tracks the decoded type `T`, the encoded type `E`, and the
  * Effect services required during decoding (`RD`) and encoding (`RE`).
+ *
+ * **Details**
  *
  * Use `Codec<T, E, RD, RE>` when you need to preserve full type information
  * about a schema — both what it decodes to and what it serializes from/to.
@@ -768,6 +790,8 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
 /**
  * A {@link Codec} view for APIs that only *decode* (parse/validate) values.
  *
+ * **Details**
+ *
  * Use `Decoder<T, RD>` to accept "any schema that can decode to `T`" without
  * constraining or depending on the encoded representation (`Encoded` is
  * `unknown`) or encoding services.
@@ -792,6 +816,8 @@ export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, un
 
 /**
  * A {@link Codec} view for APIs that only *encode* values.
+ *
+ * **Details**
  *
  * Use `Encoder<E, RE>` to accept "any schema that can encode to `E`" without
  * constraining or depending on the decoded `Type` (`Type` is `unknown`) or
@@ -818,6 +844,8 @@ export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknow
 /**
  * Identity function that widens a value to the full {@link Codec} interface,
  * prompting TypeScript to infer all four type parameters (`T`, `E`, `RD`, `RE`).
+ *
+ * **Details**
  *
  * When a schema is stored in a variable typed as `Schema<T>` or `Top`, the
  * encoded type and service requirements are erased. Passing the value through
@@ -847,6 +875,8 @@ export {
    * Error thrown (or returned as the error channel value) when schema decoding
    * or encoding fails.
    *
+   * **Details**
+   *
    * The `issue` field contains a structured {@link Issue.Issue} tree describing
    * every validation failure, including the path to the problematic value,
    * expected types, and actual values received. `message` renders the issue tree
@@ -869,6 +899,7 @@ export {
    * }
    * ```
    *
+   * @category errors
    * @since 4.0.0
    */
   SchemaError
@@ -907,6 +938,8 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
 /**
  * Returns a "Standard Schema" object conforming to the [Standard Schema
  * v1](https://standardschema.dev/) specification.
+ *
+ * **Details**
  *
  * This function creates a schema whose `validate` method attempts to decode and
  * validate the provided input synchronously. If the underlying `Schema`
@@ -1037,6 +1070,8 @@ function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Targ
 /**
  * Experimental support for converting a schema to a Standard JSON Schema V1.
  *
+ * **Details**
+ *
  * https://github.com/standard-schema/standard-schema/pull/134
  *
  * @category Standard Schema
@@ -1071,6 +1106,8 @@ export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
  * Creates a type guard function that checks if a value conforms to a given
  * schema.
  *
+ * **Details**
+ *
  * This function returns a predicate that performs a type-safe check, narrowing
  * the type of the input value if the check passes. It's particularly useful for
  * runtime type validation and TypeScript type narrowing.
@@ -1101,6 +1138,8 @@ export const is = Parser.is
 /**
  * Creates an assertion function that throws an error if the input doesn't match
  * the schema.
+ *
+ * **Details**
  *
  * This function is useful for runtime type checking with TypeScript's `asserts`
  * type guard. It narrows the type of the input if the assertion succeeds, or
@@ -1271,6 +1310,7 @@ export const decodeUnknownPromise = Parser.decodeUnknownPromise
  * schema issue. For `unknown` input use `decodeUnknownPromise`.
  *
  * **Details**
+ *
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1286,6 +1326,7 @@ export const decodePromise = Parser.decodePromise
  * mismatch as an exception. For typed input use `decodeSync`.
  *
  * **Details**
+ *
  * Only service-free schemas can be decoded synchronously. For non-throwing
  * alternatives see `decodeUnknownOption`, `decodeUnknownExit`, or
  * `decodeUnknownEffect`. Options may be provided either when creating the
@@ -1319,6 +1360,7 @@ export const decodeUnknownSync = Parser.decodeUnknownSync
  * contains the schema issue. For `unknown` input use `decodeUnknownSync`.
  *
  * **Details**
+ *
  * Only service-free schemas can be decoded synchronously. Options may be
  * provided either when creating the decoder or when applying it; application
  * options override creation options.
@@ -1518,6 +1560,8 @@ export const encodeSync = Parser.encodeSync
 /**
  * Creates a schema from an AST (Abstract Syntax Tree) node.
  *
+ * **Details**
+ *
  * This is the fundamental constructor for all schemas in the Effect Schema
  * library. It takes an AST node and wraps it in a fully-typed schema that
  * preserves all type information and provides the complete schema API.
@@ -1663,7 +1707,10 @@ interface optionalLambda extends Lambda {
  * Marks a struct field as optional, allowing the key to be absent or
  * `undefined`.
  *
- * explicitly set to `undefined`. Equivalent to `optionalKey(UndefinedOr(S))`.
+ * **Details**
+ *
+ * The resulting property may be absent or explicitly set to `undefined`.
+ * Equivalent to `optionalKey(UndefinedOr(S))`.
  *
  * Use {@link optionalKey} instead if you want exact optional semantics (absent
  * only, not `undefined`).
@@ -1956,6 +2003,7 @@ export declare namespace TemplateLiteral {
    * Constraint for schema parts that can appear inside a `TemplateLiteral`.
    *
    * **Details**
+   *
    * The schema's encoded value must be a `string`, `number`, or `bigint` so it can
    * be converted into a template literal string segment.
    *
@@ -2065,6 +2113,7 @@ export declare namespace TemplateLiteralParser {
    * Computes the decoded tuple type produced by `TemplateLiteralParser`.
    *
    * **Details**
+   *
    * Literal parts contribute their literal value to the tuple. Schema parts
    * contribute their decoded `Type`.
    *
@@ -2287,7 +2336,9 @@ export interface Number extends Bottom<number, number, never, never, AST.Number,
 /**
  * Schema for `number` values, including `NaN`, `Infinity`, and `-Infinity`.
  *
- * **Default Json Serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - Finite numbers are serialized as numbers.
  * - Non-finite values are serialized as strings (`"NaN"`, `"Infinity"`, `"-Infinity"`).
@@ -2419,6 +2470,8 @@ export function UniqueSymbol<const sym extends symbol>(symbol: sym): UniqueSymbo
 /**
  * Namespace for struct field type utilities.
  *
+ * **Details**
+ *
  * These types compute the decoded `Type`, encoded `Encoded`, and constructor
  * input `MakeIn` of a {@link Struct} from its field map, handling optional,
  * mutable, and other field modifiers automatically.
@@ -2464,6 +2517,7 @@ export declare namespace Struct {
    * Computes the decoded object type for a struct field map.
    *
    * **Details**
+   *
    * Field schemas contribute their decoded `Type`. `optionalKey` and `optional`
    * produce optional properties, while `mutableKey` produces writable properties.
    *
@@ -2487,6 +2541,7 @@ export declare namespace Struct {
    * `Iso` type.
    *
    * **Details**
+   *
    * The resulting property optionality and mutability follow the same field
    * modifiers used by `Struct.Type`.
    *
@@ -2519,6 +2574,7 @@ export declare namespace Struct {
    * Computes the encoded object type for a struct field map.
    *
    * **Details**
+   *
    * Field schemas contribute their `Encoded` type. Encoded-side optionality and
    * mutability modifiers determine whether properties are optional or writable in
    * the encoded shape.
@@ -2562,6 +2618,7 @@ export declare namespace Struct {
    * Computes the input object type accepted when constructing a struct value.
    *
    * **Details**
+   *
    * Required fields use each field schema's `~type.make` input. Fields marked
    * optional or with a constructor default may be omitted.
    *
@@ -2576,6 +2633,7 @@ export declare namespace Struct {
  * schema-defined fields.
  *
  * **Details**
+ *
  * The `fields` property exposes the original field map for reuse, and
  * `mapFields` creates a new struct schema by transforming that field map.
  *
@@ -2619,7 +2677,9 @@ export interface Struct<Fields extends Struct.Fields> extends
   /**
    * Returns a new struct with the fields modified by the provided function.
    *
-   * **Options**
+   * **Details**
+   *
+   * Options:
    *
    * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
    *   that were attached to the original union. Defaults to `false`.
@@ -2656,6 +2716,8 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
 
 /**
  * Defines a struct schema from a map of field schemas.
+ *
+ * **Details**
  *
  * Each field value is a schema. Use {@link optionalKey} or {@link optional} to
  * mark fields as optional, and {@link mutableKey} to mark them as mutable.
@@ -2747,6 +2809,8 @@ export interface encodeKeys<
 /**
  * Renames struct keys in the encoded form without changing the decoded type.
  *
+ * **Details**
+ *
  * Takes a partial mapping `{ decodedKey: encodedKey }` and produces a
  * transformation schema that decodes from the renamed keys and encodes back to
  * the renamed keys. Keys not present in the mapping are left unchanged.
@@ -2796,6 +2860,8 @@ export function encodeKeys<
 
 /**
  * Adds derived fields to a struct schema during decoding.
+ *
+ * **Details**
  *
  * Each new field is derived from the decoded struct value via a function that
  * returns `Option`. On encoding the derived fields are stripped. This allows
@@ -2863,6 +2929,8 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
 /**
  * Namespace for `Record` type utilities.
  *
+ * **Details**
+ *
  * - `Record.Key` — constraint for the key schema (must encode to `PropertyKey`)
  * - `Record.Type<K, V>` — decoded type of the record
  * - `Record.Encoded<K, V>` — encoded type of the record
@@ -2874,6 +2942,7 @@ export declare namespace Record {
    * Constraint for schemas that can be used as record keys.
    *
    * **Details**
+   *
    * The key schema must decode and encode property keys (`string`, `number`, or
    * `symbol`) so it can describe object property names.
    *
@@ -2890,6 +2959,7 @@ export declare namespace Record {
    * schemas.
    *
    * **Details**
+   *
    * The key schema supplies the property keys and the value schema supplies each
    * property's decoded `Type`. Optional and mutable value schemas affect the
    * resulting property optionality and writability.
@@ -2923,6 +2993,7 @@ export declare namespace Record {
    * schemas' encoded types.
    *
    * **Details**
+   *
    * Encoded-side optionality and mutability on the value schema determine whether
    * the encoded record properties are optional or writable.
    *
@@ -2962,6 +3033,7 @@ export declare namespace Record {
    * Computes the input object type accepted when constructing a record value.
    *
    * **Details**
+   *
    * Keys use the key schema's `~type.make` type and values use the value schema's
    * `~type.make` type. Value optionality and mutability determine whether
    * properties are optional or writable.
@@ -3039,6 +3111,8 @@ export function Record<Key extends Record.Key, Value extends Top>(
 
 /**
  * Namespace for `StructWithRest` type utilities.
+ *
+ * **Details**
  *
  * - `StructWithRest.Type<S, R>` — decoded type (struct type intersected with record types)
  * - `StructWithRest.Encoded<S, R>` — encoded type
@@ -3196,6 +3270,8 @@ export function StructWithRest<
 /**
  * Namespace for `Tuple` type utilities.
  *
+ * **Details**
+ *
  * - `Tuple.Elements` — constraint for the element schema array
  * - `Tuple.Type<E>` — decoded tuple type
  * - `Tuple.Encoded<E>` — encoded tuple type
@@ -3227,6 +3303,7 @@ export declare namespace Tuple {
    * Computes the decoded tuple type for a tuple element schema array.
    *
    * **Details**
+   *
    * Each element contributes its decoded `Type`; optional element schemas produce
    * optional tuple positions.
    *
@@ -3268,6 +3345,7 @@ export declare namespace Tuple {
    * Computes the encoded tuple type for a tuple element schema array.
    *
    * **Details**
+   *
    * Each element contributes its `Encoded` type; encoded-side optional element
    * schemas produce optional tuple positions.
    *
@@ -3310,6 +3388,7 @@ export declare namespace Tuple {
    * Computes the input tuple type accepted when constructing a tuple value.
    *
    * **Details**
+   *
    * Each element uses its `~type.make` input type. Optional elements and elements
    * with constructor defaults produce optional tuple positions.
    *
@@ -3341,7 +3420,9 @@ export interface Tuple<Elements extends Tuple.Elements> extends
   /**
    * Returns a new tuple with the elements modified by the provided function.
    *
-   * **Options**
+   * **Details**
+   *
+   * Options:
    *
    * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
    *   that were attached to the original union. Defaults to `false`.
@@ -3401,6 +3482,8 @@ export function Tuple<const Elements extends ReadonlyArray<Top>>(elements: Eleme
 /**
  * Namespace for `TupleWithRest` type utilities.
  *
+ * **Details**
+ *
  * - `TupleWithRest.TupleType` — constraint for the leading tuple schema
  * - `TupleWithRest.Rest` — the rest element schema(s)
  * - `TupleWithRest.Type<T, R>` — decoded type (fixed elements + rest)
@@ -3428,6 +3511,7 @@ export declare namespace TupleWithRest {
    * Non-empty list of schemas used for the rest portion of a `TupleWithRest`.
    *
    * **Details**
+   *
    * The first schema describes the repeated rest element. Additional schemas, when
    * present, describe trailing tuple elements after the repeated rest segment.
    *
@@ -3440,6 +3524,7 @@ export declare namespace TupleWithRest {
    * Computes the decoded tuple type for a `TupleWithRest`.
    *
    * **Details**
+   *
    * The output starts with the fixed tuple elements, continues with zero or more
    * values decoded by the first rest schema, and includes any trailing rest schemas
    * as fixed tuple positions.
@@ -3459,6 +3544,7 @@ export declare namespace TupleWithRest {
    * Computes the iso tuple type for a `TupleWithRest`.
    *
    * **Details**
+   *
    * The output starts with the fixed tuple's `Iso` elements, continues with zero
    * or more values using the first rest schema's `Iso`, and includes any trailing
    * rest schemas as fixed tuple positions.
@@ -3478,6 +3564,7 @@ export declare namespace TupleWithRest {
    * Computes the encoded tuple type for `TupleWithRest`.
    *
    * **Details**
+   *
    * The leading tuple's encoded elements are kept first. The encoded type of the
    * first rest schema may repeat zero or more times, and the encoded types of any
    * additional rest schemas become required trailing tuple elements.
@@ -3497,6 +3584,7 @@ export declare namespace TupleWithRest {
    * Computes the constructor input tuple type for `TupleWithRest`.
    *
    * **Details**
+   *
    * The leading tuple's make input elements are kept first. The make input type of
    * the first rest schema may repeat zero or more times, and the make input types
    * of any additional rest schemas become required trailing tuple elements.
@@ -3543,6 +3631,7 @@ export interface TupleWithRest<
  * Extends a fixed-length tuple schema with a variadic rest segment.
  *
  * **Details**
+ *
  * The resulting tuple starts with the fixed elements from `schema`. The first
  * schema in `rest` is the repeatable element schema, and any additional schemas
  * in `rest` are required trailing tuple elements after the variadic segment. For
@@ -3579,6 +3668,7 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
  * Schema interface produced by `Schema.Array` for readonly arrays.
  *
  * **Details**
+ *
  * The decoded type is `ReadonlyArray<S["Type"]>`, the encoded type is
  * `ReadonlyArray<S["Encoded"]>`, and the element schema is available as
  * `schema`.
@@ -3687,6 +3777,7 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
  * an array of items into a readonly array.
  *
  * **Details**
+ *
  * The schema decodes from `S` or `Schema.Array(S)` and produces
  * `ReadonlyArray<S["Type"]>`.
  *
@@ -3702,6 +3793,7 @@ export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, 
  * decoded by `Schema.Array(schema)`, then returns an array.
  *
  * **Details**
+ *
  * The single-value branch is tried before the array branch. If `schema` itself
  * accepts arrays, an array input can be treated as one value and wrapped in a
  * one-element array.
@@ -3734,6 +3826,8 @@ export interface UniqueArray<S extends Top> extends $Array<S> {
 
 /**
  * Returns a new array schema that ensures all elements are unique.
+ *
+ * **Details**
  *
  * The equivalence used to determine uniqueness is the one provided by
  * `Schema.toEquivalence(item)`.
@@ -3824,7 +3918,9 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
   /**
    * Returns a new union with the members modified by the provided function.
    *
-   * **Options**
+   * **Details**
+   *
+   * Options:
    *
    * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
    *   that were attached to the original union. Defaults to `false`.
@@ -3868,6 +3964,8 @@ function makeUnion<Members extends ReadonlyArray<Top>>(
 /**
  * Creates a union schema from an array of member schemas. Members are tested in
  * order; the first match is returned.
+ *
+ * **Details**
  *
  * Optionally, specify `mode`:
  * - `"anyOf"` (default) — matches if any member matches.
@@ -4004,6 +4102,7 @@ export const UndefinedOr = Struct_.lambda<UndefinedOrLambda>((self) => Union([se
 
 /**
  * Companion type for `S | null | undefined`. Produced by {@link NullishOr}.
+ *
  * @category models
  * @since 3.10.0
  */
@@ -4018,6 +4117,7 @@ interface NullishOrLambda extends Lambda {
 
 /**
  * Creates a union schema of `S | null | undefined`.
+ *
  * @category constructors
  * @since 3.10.0
  */
@@ -4025,6 +4125,7 @@ export const NullishOr = Struct_.lambda<NullishOrLambda>((self) => Union([self, 
 
 /**
  * Schema type wrapping a lazily-evaluated schema. Produced by {@link suspend}.
+ *
  * @category models
  * @since 3.10.0
  */
@@ -4130,6 +4231,8 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * Narrows the TypeScript type of a schema's output via a type guard predicate,
  * attaching the guard as a runtime filter check.
  *
+ * **Details**
+ *
  * The `annotations` parameter annotates the filter created by the refinement.
  * With the default formatter, failed refinements use `message` first,
  * `expected` second, and `<filter>` when neither is provided. `identifier`
@@ -4209,6 +4312,8 @@ export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: 
 /**
  * A schema that wraps another schema and intercepts its decoding pipeline.
  *
+ * **Details**
+ *
  * The interceptor receives the full decoding `Effect` and may replace, modify,
  * or augment it — including adding service requirements via `RD`.
  *
@@ -4240,6 +4345,8 @@ export interface middlewareDecoding<S extends Top, RD> extends
 
 /**
  * Intercepts the decoding pipeline of a schema.
+ *
+ * **Details**
  *
  * The provided function receives the current decoding `Effect` and `ParseOptions`,
  * and returns a new `Effect` — potentially adding service requirements (`RD`),
@@ -4277,6 +4384,8 @@ export function middlewareDecoding<S extends Top, RD>(
 /**
  * A schema that wraps another schema and intercepts its encoding pipeline.
  *
+ * **Details**
+ *
  * The interceptor receives the full encoding `Effect` and may replace, modify,
  * or augment it — including adding service requirements via `RE`.
  *
@@ -4308,6 +4417,8 @@ export interface middlewareEncoding<S extends Top, RE> extends
 
 /**
  * Intercepts the encoding pipeline of a schema.
+ *
+ * **Details**
  *
  * The provided function receives the current encoding `Effect` and `ParseOptions`,
  * and returns a new `Effect` — potentially adding service requirements (`RE`),
@@ -4344,6 +4455,8 @@ export function middlewareEncoding<S extends Top, RE>(
 
 /**
  * Recovers from a decoding error by providing a fallback value.
+ *
+ * **Details**
  *
  * The handler receives the `Issue` and returns an `Effect` that either
  * succeeds with a fallback value or re-fails with a (possibly different) issue.
@@ -4384,6 +4497,8 @@ export function catchDecodingWithContext<S extends Top, R = never>(
 /**
  * Recovers from an encoding error by providing a fallback value.
  *
+ * **Details**
+ *
  * The handler receives the `Issue` and returns an `Effect` that either
  * succeeds with a fallback value or re-fails with a (possibly different) issue.
  *
@@ -4415,6 +4530,7 @@ export function catchEncodingWithContext<S extends Top, R = never>(
  * `From` schema with a `To` schema.
  *
  * **Details**
+ *
  * `Type` is `To["Type"]` and `Encoded` is `From["Encoded"]`. Decoding services
  * are `To["DecodingServices"] | From["DecodingServices"] | RD`; encoding
  * services are `To["EncodingServices"] | From["EncodingServices"] | RE`.
@@ -4449,6 +4565,8 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
 /**
  * The type produced by {@link decodeTo} when called without a custom transformation (passthrough composition).
  *
+ * **Details**
+ *
  * Equivalent to {@link decodeTo} with `RD = never` and `RE = never`, meaning the schemas
  * are composed using their natural encoding/decoding chain.
  *
@@ -4461,18 +4579,20 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
 /**
  * Creates a schema that transforms from a source schema to a target schema.
  *
+ * **Details**
+ *
  * This is a curried function: call it with the target schema `to` (and optionally a transformation),
  * then call the returned function with the source schema `from`. The resulting schema decodes from
  * `From["Encoded"]` to `To["Type"]` and encodes from `To["Type"]` back to `From["Encoded"]`.
  *
- * **Key guarantees:**
+ * Key guarantees:
  * - Resulting schema has `Type = To["Type"]` and `Encoded = From["Encoded"]`
  * - When `transformation` is omitted, uses `Transformation.passthrough()` (schema composition)
  * - Combines decoding/encoding services from both `from` and `to` schemas
  * - Transformation `decode` maps `From["Type"]` → `To["Encoded"]` (used during encoding)
  * - Transformation `encode` maps `To["Encoded"]` → `From["Type"]` (used during decoding)
  *
- * **AI note - Common mistakes:**
+ * Common mistakes:
  * - **Direction confusion**: Remember `to` is the target (what you decode TO), `from` is the source (what you decode FROM)
  * - **Currying**: This is curried - must use pipe: `from.pipe(Schema.decodeTo(to))`
  * - **Transformation direction**: `decode` goes `From["Type"]` → `To["Encoded"]`, `encode` goes `To["Encoded"]` → `From["Type"]`
@@ -4534,18 +4654,20 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
 /**
  * Applies a transformation to a schema, creating a new schema with the same type but transformed encoding/decoding.
  *
+ * **Details**
+ *
  * This is a curried function: call it with a transformation object, then call the returned function with a schema.
  * The resulting schema has `Type = S["Type"]` and `Encoded = S["Encoded"]`, with the transformation applied during
  * encoding and decoding operations.
  *
- * **Key guarantees:**
+ * Key guarantees:
  * - Resulting schema has `Type = S["Type"]` and `Encoded = S["Encoded"]`
  * - Uses `toType(self)` as the target schema internally (creates a schema where both Type and Encoded are `S["Type"]`)
  * - Combines decoding/encoding services from the source schema and transformation
  * - Transformation `decode` maps `S["Type"]` → `S["Type"]` (used during encoding)
  * - Transformation `encode` maps `S["Type"]` → `S["Type"]` (used during decoding)
  *
- * **AI note - Common mistakes:**
+ * Common mistakes:
  * - **Currying**: This is curried - must use pipe: `schema.pipe(Schema.decode(transformation))`
  * - **Transformation direction**: `decode` and `encode` both operate on `S["Type"]` (same type, different values)
  * - **Service dependencies**: Resulting schema requires services from the source schema and transformation; use `Schema.provideService` if needed
@@ -4581,6 +4703,8 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
 /**
  * Like {@link decodeTo} but reverses the direction: the `from` schema acts as the target (decoded type)
  * and `to` acts as the encoded source.
+ *
+ * **Details**
  *
  * `encodeTo(to)(from)` is equivalent to `to.pipe(decodeTo(from))` — useful when it reads more
  * naturally to specify the encoded schema first.
@@ -4629,6 +4753,8 @@ export function encodeTo<To extends Top, From extends Top, RD = never, RE = neve
  * Applies a transformation to a schema's encoded type, creating a new schema where encoding/decoding
  * operate on `S["Encoded"]` rather than `S["Type"]`.
  *
+ * **Details**
+ *
  * The `decode` getter maps `S["Encoded"]` → `S["Encoded"]` (applied during decoding),
  * and the `encode` getter maps `S["Encoded"]` → `S["Encoded"]` (applied during encoding).
  *
@@ -4660,6 +4786,8 @@ export function encode<S extends Top, RD = never, RE = never>(transformation: {
 /**
  * Constraint used to ensure a schema field does not already have a constructor default.
  *
+ * **Details**
+ *
  * Only schemas that satisfy this constraint can be passed to {@link withConstructorDefault}.
  *
  * @category models
@@ -4674,6 +4802,7 @@ export interface WithoutConstructorDefault {
  * by constructor helpers.
  *
  * **Details**
+ *
  * The default affects `make` and related constructor helpers only; decoding and
  * encoding still use the original schema behavior. The schema is marked as
  * already having a constructor default so another constructor default cannot be
@@ -4707,6 +4836,8 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
 
 /**
  * Attaches a constructor default value to a schema field.
+ *
+ * **Details**
  *
  * Constructor defaults are applied only during `make*`, not during decoding or
  * encoding.
@@ -4754,6 +4885,8 @@ export interface withDecodingDefaultKey<S extends Top, R = never> extends decode
 /**
  * Options for {@link withDecodingDefaultKey} and {@link withDecodingDefault}.
  *
+ * **Details**
+ *
  * - `encodingStrategy`:
  *   - `"passthrough"` (default): pass the value through during encoding
  *   - `"omit"`: omit the key from the encoded output
@@ -4769,11 +4902,13 @@ export type DecodingDefaultOptions = {
  * Makes a struct key optional on the `Encoded` side and provides a default
  * `Encoded` value when the key is missing during decoding.
  *
+ * **Details**
+ *
  * The key uses `optionalKey` on the encoded side, so it may be absent from the
  * input object but **not** `undefined`. The default value is specified in terms
  * of the `Encoded` type (before any decoding transformations).
  *
- * **Options**
+ * Options:
  *
  * - `encodingStrategy`:
  *   - `"passthrough"` (default): include the value in the encoded output.
@@ -4830,11 +4965,13 @@ export interface withDecodingDefaultTypeKey<S extends Top, R = never>
  * key may be absent but **not** `undefined`) and provides a default `Type`
  * value when the key is missing during decoding.
  *
+ * **Details**
+ *
  * Unlike {@link withDecodingDefaultKey}, the default value is specified in
  * terms of the `Type` (decoded) representation, so it does not need to go
  * through the decoding transformation.
  *
- * **Options**
+ * Options:
  *
  * - `encodingStrategy`:
  *   - `"passthrough"` (default): include the value in the encoded output.
@@ -4874,10 +5011,12 @@ export interface withDecodingDefault<S extends Top, R = never> extends decodeTo<
  * and provides a default `Encoded` value when the field is missing or
  * `undefined` during decoding.
  *
+ * **Details**
+ *
  * The default value is specified in terms of the `Encoded` type (before any
  * decoding transformations).
  *
- * **Options**
+ * Options:
  *
  * - `encodingStrategy`:
  *   - `"passthrough"` (default): include the value in the encoded output.
@@ -4934,11 +5073,13 @@ export interface withDecodingDefaultType<S extends Top, R = never>
  * and provides a default `Type` value when the field is missing or
  * `undefined` during decoding.
  *
+ * **Details**
+ *
  * Unlike {@link withDecodingDefault}, the default value is specified in terms
  * of the `Type` (decoded) representation, so it does not need to go through
  * the decoding transformation.
  *
- * **Options**
+ * Options:
  *
  * - `encodingStrategy`:
  *   - `"passthrough"` (default): include the value in the encoded output.
@@ -4963,6 +5104,8 @@ export function withDecodingDefaultType<S extends Top, R = never>(
 
 /**
  * The type produced by {@link tag} — a literal schema with a constructor default.
+ *
+ * **Details**
  *
  * Used as the type of the `_tag` field in {@link TaggedStruct} and related helpers.
  *
@@ -5041,6 +5184,8 @@ export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fie
  * A tagged struct is a struct that includes a `_tag` field. This field is used
  * to identify the specific variant of the object, which is especially useful
  * when working with union types.
+ *
+ * **Details**
  *
  * When using the `make` method, the `_tag` field is optional and will be
  * added automatically. However, when decoding or encoding, the `_tag` field
@@ -5408,6 +5553,7 @@ export function link<T>() {
  * Creates a custom validation filter from a predicate function.
  *
  * **Details**
+ *
  * The predicate receives the decoded input value, the schema AST, and parse
  * options, and returns a `FilterOutput`. Non-success outputs are normalized into
  * schema issues. The `annotations` parameter annotates the filter itself; with
@@ -5471,6 +5617,8 @@ export const makeFilter: <T>(
  * A single failure reported by a filter predicate. Used as the element type
  * of the array arm of {@link FilterOutput}, and also accepted on its own.
  *
+ * **Details**
+ *
  * - `string`: failure with that string as the message. Produces an
  *   {@link Issue.InvalidValue} wrapping the input, with the string used as
  *   the issue's `message` annotation.
@@ -5490,6 +5638,8 @@ export type FilterIssue = string | Issue.Issue | {
 
 /**
  * The value a filter predicate (see {@link makeFilter}) may return.
+ *
+ * **Details**
  *
  * Each shape is normalized into an {@link Issue.Issue} (or `undefined` for
  * success) before being attached to the parse result:
@@ -5534,12 +5684,14 @@ const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
 /**
  * Validates that a string has no leading or trailing whitespace.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that
  * matches strings without leading or trailing whitespace.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the trimmed pattern.
@@ -5569,11 +5721,13 @@ export function isTrimmed(annotations?: Annotations.Filter) {
 /**
  * Validates that a string matches the specified regular expression pattern.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `pattern` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the specified RegExp pattern.
@@ -5587,12 +5741,14 @@ export const isPattern: (regExp: globalThis.RegExp, annotations?: Annotations.Fi
 /**
  * Validates that a string represents a finite number.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that matches
  * strings representing finite numbers.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the number string pattern.
@@ -5607,11 +5763,12 @@ export const isStringFinite: (annotations?: Annotations.Filter) => AST.Filter<st
  * BigInt string encoding.
  *
  * **Details**
+ *
  * The check uses the pattern `^-?\d+$`. It does not accept leading `+`, decimal
  * points, exponent notation, separators, or non-decimal inputs such as
  * hexadecimal strings.
  *
- * **JSON Schema**
+ * JSON Schema:
  * This check corresponds to a `pattern` constraint with the same signed
  * base-10 integer pattern.
  *
@@ -5625,6 +5782,7 @@ export const isStringBigInt: (annotations?: Annotations.Filter) => AST.Filter<st
  * symbol string encoding.
  *
  * **Details**
+ *
  * The check uses the pattern `^Symbol\((.*)\)$`. It is not a general test for
  * whether a string can be passed to JavaScript's `Symbol()` function.
  *
@@ -5652,12 +5810,14 @@ const getUUIDRegExp = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): globalThis.RegE
  * Optionally specify a version (1-8) to validate against a specific UUID version.
  * If no version is specified (`undefined`), all versions are supported.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that matches
  * UUID format, and includes a `format: "uuid"` annotation.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the UUID pattern.
@@ -5685,12 +5845,14 @@ export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, annotations?: An
  * Validates that a string is a valid ULID (Universally Unique Lexicographically
  * Sortable Identifier).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that matches
  * the ULID format.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the ULID pattern.
@@ -5715,12 +5877,14 @@ export function isULID(annotations?: Annotations.Filter) {
 /**
  * Validates that a string is valid Base64 encoded data.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that matches
  * Base64 format.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the Base64 pattern.
@@ -5747,12 +5911,14 @@ export function isBase64(annotations?: Annotations.Filter) {
  * Validates that a string is valid Base64URL encoded data (Base64 with URL-safe
  * characters).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that matches
  * Base64URL format.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the Base64URL pattern.
@@ -5778,7 +5944,9 @@ export function isBase64Url(annotations?: Annotations.Filter) {
 /**
  * Validates at runtime that a string starts with the specified literal prefix.
  *
- * **Notes**
+ * **Details**
+ *
+ * Notes:
  * The JSON Schema and arbitrary metadata are built from `^${startsWith}` without
  * escaping regexp metacharacters. If the prefix contains regexp syntax, generated
  * patterns may not be equivalent to the runtime `startsWith` check.
@@ -5810,7 +5978,9 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
 /**
  * Validates at runtime that a string ends with the specified literal suffix.
  *
- * **Notes**
+ * **Details**
+ *
+ * Notes:
  * The JSON Schema and arbitrary metadata are built from `${endsWith}$` without
  * escaping regexp metacharacters. If the suffix contains regexp syntax, generated
  * patterns may not be equivalent to the runtime `endsWith` check.
@@ -5842,7 +6012,9 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
 /**
  * Validates at runtime that a string contains the specified literal substring.
  *
- * **Notes**
+ * **Details**
+ *
+ * Notes:
  * The JSON Schema and arbitrary metadata use the substring as a raw regexp
  * pattern. If the substring contains regexp syntax, generated patterns may not be
  * equivalent to the runtime `includes` check.
@@ -5877,6 +6049,7 @@ const UPPERCASED_PATTERN = "^[^a-z]*$"
  * Validates that a string is unchanged by JavaScript's `toUpperCase()`.
  *
  * **Details**
+ *
  * This accepts empty strings and characters that do not have lowercase forms,
  * such as digits, punctuation, and whitespace. It rejects strings that would
  * change when uppercased.
@@ -5909,6 +6082,7 @@ const LOWERCASED_PATTERN = "^[^A-Z]*$"
  * Validates that a string is unchanged by JavaScript's `toLowerCase()`.
  *
  * **Details**
+ *
  * This accepts empty strings and characters that do not have uppercase forms,
  * such as digits, punctuation, and whitespace. It rejects strings that would
  * change when lowercased.
@@ -5942,6 +6116,7 @@ const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
  * `toUpperCase()`.
  *
  * **Details**
+ *
  * Empty strings pass. Strings whose first character has no lowercase form, such
  * as a digit, punctuation mark, or whitespace, also pass.
  *
@@ -5974,6 +6149,7 @@ const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
  * `toLowerCase()`.
  *
  * **Details**
+ *
  * Empty strings pass. Strings whose first character has no uppercase form, such
  * as a digit, punctuation mark, or whitespace, also pass.
  *
@@ -6002,12 +6178,14 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
 /**
  * Validates that a number is finite (not `Infinity`, `-Infinity`, or `NaN`).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, but ensures the
  * number is valid and finite.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies `noDefaultInfinity`
  * and `noNaN` constraints to ensure generated numbers are finite.
@@ -6212,11 +6390,13 @@ export function makeIsMultipleOf<T>(options: {
 /**
  * Validates that a number is greater than the specified value (exclusive).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `exclusiveMinimum` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `min` constraint
  * with `minExcluded: true` to ensure generated numbers are greater than the
@@ -6245,11 +6425,13 @@ export const isGreaterThan = makeIsGreaterThan({
  * Validates that a number is greater than or equal to the specified value
  * (inclusive).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `minimum` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `min` constraint
  * to ensure generated numbers are greater than or equal to the specified value.
@@ -6275,11 +6457,13 @@ export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
 /**
  * Validates that a number is less than the specified value (exclusive).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `exclusiveMaximum` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `max` constraint
  * with `maxExcluded: true` to ensure generated numbers are less than the
@@ -6308,11 +6492,13 @@ export const isLessThan = makeIsLessThan({
  * Validates that a number is less than or equal to the specified value
  * (inclusive).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `maximum` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `max` constraint
  * to ensure generated numbers are less than or equal to the specified value.
@@ -6339,12 +6525,14 @@ export const isLessThanOrEqualTo = makeIsLessThanOrEqualTo({
  * Validates that a number is within a specified range. The range boundaries can
  * be inclusive or exclusive based on the provided options.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to `minimum`/`maximum` or `exclusiveMinimum`/`exclusiveMaximum`
  * constraints in JSON Schema, depending on the options provided.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies `min` and `max`
  * constraints with optional `minExcluded` and `maxExcluded` flags to ensure
@@ -6376,11 +6564,13 @@ export const isBetween = makeIsBetween({
 /**
  * Validates that a number is a multiple of the specified divisor.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `multipleOf` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies constraints to ensure
  * generated numbers are multiples of the specified divisor.
@@ -6404,11 +6594,13 @@ export const isMultipleOf = makeIsMultipleOf({
  * Validates that a number is a safe integer (within the safe integer range
  * that can be exactly represented in JavaScript).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `type: "integer"` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies an `isInteger: true`
  * constraint to ensure generated numbers are integers.
@@ -6438,12 +6630,14 @@ export function isInt(annotations?: Annotations.Filter) {
  * Validates that a number is a 32-bit signed integer (range: -2,147,483,648 to
  * 2,147,483,647).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `format: "int32"` constraint in OpenAPI 3.1,
  * or `minimum`/`maximum` constraints in other JSON Schema targets.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies integer and range
  * constraints to ensure generated numbers are 32-bit signed integers.
@@ -6468,12 +6662,14 @@ export function isInt32(annotations?: Annotations.Filter) {
  * Validates that a number is a 32-bit unsigned integer (range: 0 to
  * 4,294,967,295).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `format: "uint32"` constraint in OpenAPI 3.1,
  * or `minimum`/`maximum` constraints in other JSON Schema targets.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies integer and range
  * constraints to ensure generated numbers are 32-bit unsigned integers.
@@ -6498,12 +6694,14 @@ export function isUint32(annotations?: Annotations.Filter) {
  * Validates that a Date object represents a valid date (not an invalid date
  * like `new Date("invalid")`).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, as JSON Schema
  * validates date strings, not Date objects.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `noInvalidDate`
  * constraint to ensure generated Date objects are valid.
@@ -6532,7 +6730,9 @@ export function isDateValid(annotations?: Annotations.Filter) {
 /**
  * Validates that a Date is greater than the specified value (exclusive).
  *
- * **Arbitrary**
+ * **Details**
+ *
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `min` constraint
  * with `minExcluded: true` to ensure generated Date objects are greater than the
@@ -6561,12 +6761,14 @@ export const isGreaterThanDate = makeIsGreaterThan({
  * Validates that a Date is greater than or equal to the specified date
  * (inclusive).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, as JSON Schema
  * validates date strings, not Date objects.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `min` constraint
  * to ensure generated Date objects are greater than or equal to the specified
@@ -6593,7 +6795,9 @@ export const isGreaterThanOrEqualToDate = makeIsGreaterThanOrEqualTo({
 /**
  * Validates that a Date is less than the specified value (exclusive).
  *
- * **Arbitrary**
+ * **Details**
+ *
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `max` constraint
  * with `maxExcluded: true` to ensure generated Date objects are less than the
@@ -6622,12 +6826,14 @@ export const isLessThanDate = makeIsLessThan({
  * Validates that a Date is less than or equal to the specified date
  * (inclusive).
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, as JSON Schema
  * validates date strings, not Date objects.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `max` constraint
  * to ensure generated Date objects are less than or equal to the specified
@@ -6655,12 +6861,14 @@ export const isLessThanOrEqualToDate = makeIsLessThanOrEqualTo({
  * Validates that a Date is within a specified range. The range boundaries can
  * be inclusive or exclusive based on the provided options.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, as JSON Schema
  * validates date strings, not Date objects.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies `min` and `max`
  * constraints to ensure generated Date objects fall within the specified range.
@@ -6687,7 +6895,9 @@ export const isBetweenDate = makeIsBetween({
 /**
  * Validates that a BigInt is greater than the specified value (exclusive).
  *
- * **Arbitrary**
+ * **Details**
+ *
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `min` constraint
  * with `minExcluded: true` to ensure generated BigInts are greater than the
@@ -6716,7 +6926,9 @@ export const isGreaterThanBigInt = makeIsGreaterThan({
  * Validates that a BigInt is greater than or equal to the specified value
  * (inclusive).
  *
- * **Arbitrary**
+ * **Details**
+ *
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `min` constraint
  * to ensure generated BigInt values are greater than or equal to the specified
@@ -6743,7 +6955,9 @@ export const isGreaterThanOrEqualToBigInt = makeIsGreaterThanOrEqualTo({
 /**
  * Validates that a BigInt is less than the specified value (exclusive).
  *
- * **Arbitrary**
+ * **Details**
+ *
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `max` constraint
  * with `maxExcluded: true` to ensure generated BigInts are less than the
@@ -6772,7 +6986,9 @@ export const isLessThanBigInt = makeIsLessThan({
  * Validates that a BigInt is less than or equal to the specified value
  * (inclusive).
  *
- * **Arbitrary**
+ * **Details**
+ *
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `max` constraint
  * to ensure generated BigInt values are less than or equal to the specified
@@ -6800,7 +7016,9 @@ export const isLessThanOrEqualToBigInt = makeIsLessThanOrEqualTo({
  * Validates that a BigInt is within a specified range. The range boundaries can
  * be inclusive or exclusive based on the provided options.
  *
- * **Arbitrary**
+ * **Details**
+ *
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies `min` and `max`
  * constraints to ensure generated BigInt values fall within the specified
@@ -6875,6 +7093,7 @@ export const isLessThanOrEqualToBigDecimal = makeIsLessThanOrEqualTo({
  * Validates that a `BigDecimal` is within a specified range.
  *
  * **Details**
+ *
  * The minimum and maximum boundaries are inclusive by default. Pass
  * `exclusiveMinimum` or `exclusiveMaximum` to exclude either boundary.
  *
@@ -6890,12 +7109,14 @@ export const isBetweenBigDecimal = makeIsBetween({
  * Validates that a value has at least the specified length. Works with strings
  * and arrays.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `minLength` constraint for strings or the
  * `minItems` constraint for arrays in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `minLength`
  * constraint to ensure generated strings or arrays have at least the required
@@ -6941,12 +7162,14 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
  * Validates that a value has at least one element. Works with strings and arrays.
  * This is equivalent to `isMinLength(1)`.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `minLength: 1` constraint for strings or the
  * `minItems: 1` constraint for arrays in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `minLength: 1`
  * constraint to ensure generated strings or arrays are non-empty.
@@ -6962,12 +7185,14 @@ export function isNonEmpty(annotations?: Annotations.Filter) {
  * Validates that a value has at most the specified length. Works with strings
  * and arrays.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `maxLength` constraint for strings or the
  * `maxItems` constraint for arrays in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `maxLength`
  * constraint to ensure generated strings or arrays have at most the required
@@ -7004,12 +7229,14 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
  * Validates that a value's length is within the specified range. Works with
  * strings and arrays.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to `minLength`/`maxLength` constraints for strings
  * or `minItems`/`maxItems` constraints for arrays in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies `minLength` and
  * `maxLength` constraints to ensure generated strings or arrays have a length
@@ -7052,12 +7279,14 @@ export function isLengthBetween(minimum: number, maximum: number, annotations?: 
  * Validates that a value has at least the specified size. Works with values
  * that have a `size` property, such as `Set` or `Map`.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, as it applies to
  * values with a `size` property rather than standard JSON Schema types.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `minLength`
  * constraint to the array representation to ensure generated values have at
@@ -7091,12 +7320,14 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
  * Validates that a value has at most the specified size. Works with values
  * that have a `size` property, such as `Set` or `Map`.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, as it applies to
  * values with a `size` property rather than standard JSON Schema types.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `maxLength`
  * constraint to the array representation to ensure generated values have at
@@ -7130,12 +7361,14 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
  * Validates that a value's size is within the specified range. Works with
  * values that have a `size` property, such as `Set` or `Map`.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check does not have a direct JSON Schema equivalent, as it applies to
  * values with a `size` property rather than standard JSON Schema types.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies `minLength` and
  * `maxLength` constraints to ensure generated values have a size within the
@@ -7175,11 +7408,13 @@ export function isSizeBetween(minimum: number, maximum: number, annotations?: An
  * properties. This includes both string and symbol keys when counting
  * properties.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `minProperties` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `minLength`
  * constraint to the array of entries that is generated before being converted
@@ -7214,11 +7449,13 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
  * Validates that an object contains at most the specified number of properties.
  * This includes both string and symbol keys when counting properties.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to the `maxProperties` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies a `maxLength`
  * constraint to the array of entries that is generated before being converted
@@ -7253,12 +7490,14 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
  * Validates that an object contains between `minimum` and `maximum` properties (inclusive).
  * This includes both string and symbol keys when counting properties.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  *
  * This check corresponds to `minProperties` and `maxProperties`
  * constraints in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  *
  * When generating test data with fast-check, this applies `minLength` and
  * `maxLength` constraints to the array of entries that is generated before
@@ -7298,10 +7537,11 @@ export function isPropertiesLengthBetween(minimum: number, maximum: number, anno
  * of the provided key schema.
  *
  * **Details**
+ *
  * This check uses `Reflect.ownKeys`, so symbol keys are validated in addition to
  * string property names.
  *
- * **JSON Schema**
+ * JSON Schema:
  * For string property names, this corresponds to the `propertyNames` constraint
  * in JSON Schema.
  *
@@ -7342,10 +7582,12 @@ export function isPropertyNames(keySchema: Top, annotations?: Annotations.Filter
 /**
  * Validates that all items in an array are unique according to Effect equality.
  *
- * **JSON Schema**
+ * **Details**
+ *
+ * JSON Schema:
  * This check corresponds to the `uniqueItems: true` constraint in JSON Schema.
  *
- * **Arbitrary**
+ * Arbitrary:
  * When generating test data with fast-check, this applies a comparator based on
  * Effect equality to ensure generated arrays contain only unique items.
  *
@@ -7450,6 +7692,7 @@ export interface Option<A extends Top> extends
  * Iso representation used for `Option` schemas.
  *
  * **Details**
+ *
  * `None` is represented as `{ _tag: "None" }`, while `Some` is represented as
  * `{ _tag: "Some", value }` using the wrapped schema's `Iso` type.
  *
@@ -7541,6 +7784,8 @@ export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<
 /**
  * Decodes a nullable, required value `T` to a required `Option<T>` value.
  *
+ * **Details**
+ *
  * Decoding:
  * - `null` is decoded as `None`
  * - other values are decoded as `Some`
@@ -7573,6 +7818,8 @@ export interface OptionFromUndefinedOr<S extends Top> extends decodeTo<Option<to
 /**
  * Decodes an undefined-or value `T` to a required `Option<T>` value.
  *
+ * **Details**
+ *
  * Decoding:
  * - `undefined` is decoded as `None`
  * - other values are decoded as `Some`
@@ -7604,6 +7851,8 @@ export interface OptionFromNullishOr<S extends Top> extends decodeTo<Option<toTy
 
 /**
  * Decodes a nullish value `T` to a required `Option<T>` value.
+ *
+ * **Details**
  *
  * Decoding:
  * - `null` and `undefined` are decoded as `None`
@@ -7642,6 +7891,8 @@ export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<to
 /**
  * Decodes an optional value `A` to a required `Option<A>` value.
  *
+ * **Details**
+ *
  * Decoding:
  * - a missing key is decoded as `None`
  * - a present value is decoded as `Some`
@@ -7674,6 +7925,8 @@ export interface OptionFromOptional<S extends Top> extends decodeTo<Option<toTyp
 /**
  * Decodes an optional or `undefined` value `A` to an required `Option<A>`
  * value.
+ *
+ * **Details**
  *
  * Decoding:
  * - a missing key is decoded as `None`
@@ -7708,6 +7961,8 @@ export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option
 /**
  * Decodes an optional or `null` or `undefined` value `A` to a required `Option<A>`
  * value.
+ *
+ * **Details**
  *
  * Decoding:
  * - a missing key is decoded as `None`
@@ -7769,6 +8024,7 @@ export interface Result<A extends Top, E extends Top> extends
  * Iso representation used for `Result` schemas.
  *
  * **Details**
+ *
  * Successful results are represented as `{ _tag: "Success", success }`, while
  * failed results are represented as `{ _tag: "Failure", failure }`.
  *
@@ -7877,10 +8133,12 @@ export interface Redacted<S extends Top> extends
  * Creates a schema for the `Redacted` type, providing secure handling of
  * sensitive information.
  *
+ * **Details**
+ *
  * If the wrapped schema fails, the issue will be redacted to prevent both
  * the actual value and the schema details from being exposed.
  *
- * **Options**
+ * Options:
  *
  * - `label`: When provided, the schema will behave as follows:
  *   - Values will be validated against the label in addition to the wrapped schema
@@ -7888,7 +8146,7 @@ export interface Redacted<S extends Top> extends
  *   - The arbitrary generator will produce a `Redacted` instance with the label
  *   - The formatter will return the label
  *
- * **Default JSON serializer**
+ * Default JSON serializer:
  *
  * The default JSON serializer will fail when attempting to serialize a `Redacted` value,
  * but it will deserialize a value into a `Redacted` instance.
@@ -8012,6 +8270,7 @@ export function RedactedFromValue<S extends Top>(value: S, options?: {
  * (`Interrupt`).
  *
  * **Details**
+ *
  * The `error` schema validates typed failures and the `defect` schema validates
  * unexpected defects.
  *
@@ -8035,6 +8294,7 @@ export interface CauseReason<E extends Top, D extends Top> extends
  * Iso representation used for `CauseReason` schemas.
  *
  * **Details**
+ *
  * Failures are represented with a `Fail` tag and encoded error, defects with a
  * `Die` tag and encoded defect, and interrupts with an optional `fiberId`.
  *
@@ -8171,6 +8431,7 @@ function causeReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknow
  * reasons combining typed errors, defects, and interrupts.
  *
  * **Details**
+ *
  * The `error` schema validates typed failures and the `defect` schema validates
  * unexpected defects.
  *
@@ -8282,7 +8543,9 @@ const ErrorJsonEncoded = Struct({
 /**
  * A schema for JavaScript `Error` objects.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  * Encodes an `Error` as an object with `message` and optional `name` properties,
  * and decodes that object back into an `Error`. The stack trace is omitted from
  * the encoded form for security.
@@ -8307,7 +8570,9 @@ export const Error: Error = instanceOf(globalThis.Error, {
  * A schema for JavaScript `Error` objects that preserves stack traces in the JSON
  * encoded form.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  * Encodes an `Error` as an object with `message`, optional `name`, and optional
  * `stack` properties, and decodes that object back into an `Error`.
  *
@@ -8373,7 +8638,9 @@ const defectTransformation = new Transformation.Transformation(
  * A schema for defect values, accepting either JavaScript `Error` values encoded
  * with `message` and optional `name`, or arbitrary unknown defect values.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  * Unknown defects are serialized with `JSON.stringify` when possible and fall
  * back to Effect's formatted representation when JSON serialization fails.
  *
@@ -8439,6 +8706,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
  * Iso representation used for `Exit` schemas.
  *
  * **Details**
+ *
  * Successful exits are represented as `{ _tag: "Success", value }`, while failed
  * exits are represented as `{ _tag: "Failure", cause }`.
  *
@@ -9050,6 +9318,8 @@ export interface RegExp extends instanceOf<globalThis.RegExp> {
 /**
  * Schema for JavaScript `RegExp` objects.
  *
+ * **Details**
+ *
  * The default JSON serializer encodes a `RegExp` as `{ source, flags }`.
  *
  * @category RegExp
@@ -9126,7 +9396,9 @@ const URLString = String.annotate({ expected: "a string that will be decoded as 
 /**
  * A schema for JavaScript `URL` objects.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - encodes `URL` as a `string`
  *
@@ -9168,6 +9440,8 @@ export interface URLFromString extends decodeTo<URL, String> {
 /**
  * A transformation schema that decodes a `string` into a `URL`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A **valid** URL `string` is decoded as a `URL`
  *
@@ -9194,6 +9468,8 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
 
 /**
  * A schema for JavaScript `Date` objects.
+ *
+ * **Details**
  *
  * This schema accepts any `Date` instance, including invalid dates. For
  * validating only valid dates, use `DateValid` instead. The default JSON
@@ -9246,11 +9522,13 @@ export interface DateFromString extends decodeTo<Date, String> {
 /**
  * A transformation schema that decodes a string into a JavaScript `Date`.
  *
- * **Decoding**
+ * **Details**
+ *
+ * Decoding:
  * The string is passed to JavaScript `Date` construction and may decode to an
  * invalid `Date`. Compose with `DateValid` when invalid dates should be rejected.
  *
- * **Encoding**
+ * Encoding:
  * A valid `Date` is encoded as an ISO string; an invalid `Date` is encoded as
  * `"Invalid Date"`.
  *
@@ -9273,6 +9551,8 @@ export interface DateValid extends Date {
 /**
  * A schema for **valid** JavaScript `Date` objects.
  *
+ * **Details**
+ *
  * This schema accepts `Date` instances but rejects invalid dates (such as `new
  * Date("invalid")`).
  *
@@ -9293,6 +9573,8 @@ export interface Duration extends declare<Duration_.Duration> {
 
 /**
  * A schema for `Duration` values.
+ *
+ * **Details**
  *
  * The default JSON serializer encodes `Duration` as a tagged object with the
  * duration type and value.
@@ -9385,6 +9667,8 @@ export interface DurationFromString extends decodeTo<Duration, String> {
 /**
  * A transformation schema that parses a string into a `Duration`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A `string` is decoded as a `Duration`, accepting any format that
  *   `Duration.fromInput` can parse.
@@ -9416,10 +9700,12 @@ const bigint0 = globalThis.BigInt(0)
  * A transformation schema that decodes a non-negative `bigint` into a
  * `Duration`, treating the bigint as nanoseconds.
  *
- * **Decoding**
+ * **Details**
+ *
+ * Decoding:
  * A non-negative `bigint` representing nanoseconds is decoded as a `Duration`.
  *
- * **Encoding**
+ * Encoding:
  * Finite durations are encoded as a non-negative `bigint` number of nanoseconds.
  * Encoding fails when the duration cannot be represented as nanoseconds, such as
  * `Duration.infinity`.
@@ -9446,6 +9732,8 @@ export interface DurationFromMillis extends decodeTo<Duration, Number> {
  * A transformation schema that decodes a non-negative (possibly infinite)
  * integer into a `Duration`, treating the integer value as the duration in
  * milliseconds.
+ *
+ * **Details**
  *
  * Decoding:
  * - A non-negative (possibly infinite) integer representing milliseconds is
@@ -9477,7 +9765,9 @@ const BigDecimalString = String.annotate({ expected: "a string that will be deco
 /**
  * A schema for `BigDecimal` values.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - encodes `BigDecimal` as a `string`
  *
@@ -9523,6 +9813,8 @@ export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
 /**
  * A transformation schema that parses a string into a `BigDecimal`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A `string` is decoded as a `BigDecimal`.
  *
@@ -9549,6 +9841,8 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
 
 /**
  * A transformation schema that decodes a JSON-encoded string into an `unknown` value.
+ *
+ * **Details**
  *
  * Decoding:
  * - A `string` is decoded as an `unknown` value.
@@ -9587,11 +9881,19 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * Returns a schema that decodes a JSON string and then decodes the parsed value
  * using the given schema.
  *
+ * **Details**
+ *
  * This is useful when working with JSON-encoded strings where the actual
  * structure of the value is known and described by an existing schema.
  *
  * The resulting schema first parses the input string as JSON, and then runs the
  * provided schema on the parsed result.
+ *
+ * JSON Schema generation:
+ *
+ * When using `fromJsonString` with `draft-2020-12` or `openApi3.1`, the
+ * resulting schema will be a JSON Schema with a `contentSchema` property that
+ * contains the JSON Schema for the given schema.
  *
  * **Example** (Decoding JSON strings with a schema)
  *
@@ -9604,12 +9906,6 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * Schema.decodeUnknownSync(schemaFromJsonString)(`{"a":1,"b":2}`)
  * // => { a: 1 }
  * ```
- *
- * **Json Schema Generation**
- *
- * When using `fromJsonString` with `draft-2020-12` or `openApi3.1`, the
- * resulting schema will be a JSON Schema with a `contentSchema` property that
- * contains the JSON Schema for the given schema.
  *
  * **Example** (Emitting JSON Schema for a JSON string decoder)
  *
@@ -9667,6 +9963,8 @@ export interface File extends instanceOf<globalThis.File> {
 
 /**
  * Schema for JavaScript `File` objects.
+ *
+ * **Details**
  *
  * The default JSON serializer encodes a `File` as `{ data, type, name, lastModified }`
  * where `data` is base64-encoded.
@@ -9740,6 +10038,8 @@ export interface FormData extends instanceOf<globalThis.FormData> {
 /**
  * Schema for JavaScript `FormData` objects.
  *
+ * **Details**
+ *
  * The default JSON serializer encodes a `FormData` as an array of `[key, entry]`
  * pairs where each entry is tagged as `"String"` or `"File"`.
  *
@@ -9805,10 +10105,19 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
  * converts it into a tree record using bracket notation, and then decodes the
  * resulting structure using the provided schema.
  *
+ * **Details**
+ *
  * The decoding process has two steps:
  *
  * 1. Parse `FormData` into a nested tree record.
  * 2. Decode the parsed value with the given schema.
+ *
+ * You can express nested values using bracket notation.
+ *
+ * If you want to decode values that are not strings, use
+ * `Schema.toCodecStringTree` with the `keepDeclarations: true` option.
+ * This serializer preserves values such as numbers and `Blob` objects when
+ * compatible with the schema.
  *
  * **Example** (Decoding a flat structure)
  *
@@ -9828,8 +10137,6 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
  * console.log(String(Schema.decodeUnknownExit(schema)(formData)))
  * // Success({"a":"1"})
  * ```
- *
- * You can express nested values using bracket notation.
  *
  * **Example** (Nested fields)
  *
@@ -9854,11 +10161,6 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
  * console.log(String(Schema.decodeUnknownExit(schema)(formData)))
  * // Success({"a":"1","b":{"c":"2","d":"3"}})
  * ```
- *
- * If you want to decode values that are not strings, use
- * `Schema.toCodecStringTree` with the `keepDeclarations: true` option.
- * This serializer preserves values such as numbers and `Blob` objects when
- * compatible with the schema.
  *
  * **Example** (Parsing non-string values)
  *
@@ -9902,6 +10204,8 @@ export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> 
 /**
  * Schema for JavaScript `URLSearchParams` objects.
  *
+ * **Details**
+ *
  * The default JSON serializer encodes a `URLSearchParams` as a query string.
  *
  * @category URLSearchParams
@@ -9942,10 +10246,18 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * instance, converts it into a tree record using bracket notation, and then
  * decodes the resulting structure using the provided schema.
  *
+ * **Details**
+ *
  * The decoding process has two steps:
  *
  * 1. Parse `URLSearchParams` into a nested tree record.
  * 2. Decode the parsed value with the given schema.
+ *
+ * You can express nested values using bracket notation.
+ *
+ * If you want to decode values that are not strings, use
+ * `Schema.toCodecStringTree`. This serializer preserves values such as
+ * numbers when compatible with the schema.
  *
  * **Example** (Decoding a flat structure)
  *
@@ -9963,7 +10275,6 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * console.log(String(Schema.decodeUnknownExit(schema)(urlSearchParams)))
  * // Success({"a":"1"})
  * ```
- * You can express nested values using bracket notation.
  *
  * **Example** (Nested fields)
  *
@@ -9985,10 +10296,6 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * console.log(String(Schema.decodeUnknownExit(schema)(urlSearchParams)))
  * // Success({"a":"1","b":{"c":"2","d":"3"}})
  * ```
- *
- * If you want to decode values that are not strings, use
- * `Schema.toCodecStringTree`. This serializer preserves values such as
- * numbers when compatible with the schema.
  *
  * **Example** (Parsing non-string values)
  *
@@ -10069,12 +10376,14 @@ export interface NumberFromString extends decodeTo<Finite, String> {
  * A transformation schema that parses a string into a `number` using JavaScript
  * number coercion.
  *
- * **Decoding**
+ * **Details**
+ *
+ * Decoding:
  * A `string` is decoded as a number, including possible non-finite values such as
  * `NaN`, `Infinity`, and `-Infinity`. Use `FiniteFromString` to reject non-finite
  * numbers.
  *
- * **Encoding**
+ * Encoding:
  * A number is encoded as a `string`.
  *
  * @category Number
@@ -10097,6 +10406,8 @@ export interface FiniteFromString extends decodeTo<Finite, String> {
 
 /**
  * A transformation schema that parses a string into a finite number.
+ *
+ * **Details**
  *
  * Decoding:
  * - A `string` is decoded as a finite number, rejecting `NaN`, `Infinity`, and
@@ -10125,6 +10436,8 @@ export interface BigIntFromString extends decodeTo<BigInt, String> {
 
 /**
  * A transformation schema that parses a string into a `bigint`.
+ *
+ * **Details**
  *
  * Decoding:
  * - A `string` is decoded as a `bigint`.
@@ -10172,6 +10485,8 @@ export interface Trim extends decodeTo<Trimmed, String> {
 /**
  * A transformation schema that trims whitespace from a string.
  *
+ * **Details**
+ *
  * Decoding:
  * - A `string` is decoded as a string with no leading or trailing whitespaces.
  *
@@ -10198,6 +10513,8 @@ export interface StringFromBase64 extends decodeTo<String, String> {
 
 /**
  * Decodes a base64 (RFC4648) encoded string into a UTF-8 string.
+ *
+ * **Details**
  *
  * Decoding:
  * - A **valid** base64 encoded string is decoded as a UTF-8 `string`.
@@ -10228,6 +10545,8 @@ export interface StringFromBase64Url extends decodeTo<String, String> {
 /**
  * Decodes a base64 (URL) encoded string into a UTF-8 string.
  *
+ * **Details**
+ *
  * Decoding:
  * - A **valid** base64 (URL) encoded string is decoded as a UTF-8 `string`.
  *
@@ -10256,6 +10575,8 @@ export interface StringFromHex extends decodeTo<String, String> {
 
 /**
  * Decodes a hex encoded string into a UTF-8 string.
+ *
+ * **Details**
  *
  * Decoding:
  * - A **valid** hex encoded string is decoded as a UTF-8 `string`.
@@ -10286,6 +10607,8 @@ export interface StringFromUriComponent extends decodeTo<String, String> {
 /**
  * Decodes a URI component encoded string into a UTF-8 string.
  * Can be used to store data in a URL.
+ *
+ * **Details**
  *
  * Decoding:
  * - A **valid** URI component encoded string is decoded as a UTF-8 `string`.
@@ -10331,6 +10654,8 @@ export const PropertyKey = Union([Finite, Symbol, String])
 
 /**
  * Schema for a Standard Schema v1 failure result.
+ *
+ * **Details**
  *
  * The result contains an `issues` array where each issue has a message and an
  * optional path made of property keys or keyed path segments.
@@ -10392,7 +10717,9 @@ const Base64String = String.annotate({
 /**
  * A schema for JavaScript `Uint8Array` objects.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * The default JSON serializer encodes Uint8Array as a Base64 encoded string.
  *
@@ -10431,6 +10758,8 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
  * A transformation schema that decodes a base64 encoded string into a
  * `Uint8Array`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A **valid** base64 encoded string is decoded as a `Uint8Array`.
  *
@@ -10458,6 +10787,8 @@ export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {
 /**
  * A transformation schema that decodes a base64 (URL) encoded string into a
  * `Uint8Array`.
+ *
+ * **Details**
  *
  * Decoding:
  * - A **valid** base64 (URL) encoded string is decoded as a `Uint8Array`.
@@ -10492,6 +10823,8 @@ export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {
  * A transformation schema that decodes a hex encoded string into a
  * `Uint8Array`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A **valid** hex encoded string is decoded as a `Uint8Array`.
  *
@@ -10524,7 +10857,9 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {
 /**
  * A schema for `DateTime.Utc` values.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - encodes `DateTime.Utc` as a UTC ISO string
  *
@@ -10569,6 +10904,8 @@ export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
 /**
  * A transformation schema that decodes a `Date` into a `DateTime.Utc`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A **valid** `Date` is decoded as a `DateTime.Utc`
  *
@@ -10598,6 +10935,8 @@ export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
 
 /**
  * A transformation schema that decodes a date-time string into a `DateTime.Utc`.
+ *
+ * **Details**
  *
  * Decoding:
  *
@@ -10634,6 +10973,8 @@ export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>
 /**
  * A transformation schema that decodes a number into a `DateTime.Utc`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A number of milliseconds since the Unix epoch is decoded as a `DateTime.Utc`
  *
@@ -10664,7 +11005,9 @@ export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {
 /**
  * A schema for `DateTime.TimeZone.Offset` values.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - encodes `DateTime.TimeZone.Offset` as a number (offset in milliseconds)
  *
@@ -10711,7 +11054,9 @@ const TimeZoneNamedString = String.annotate({ expected: "an IANA time zone ident
 /**
  * A schema for `DateTime.TimeZone.Named` values.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - encodes `DateTime.TimeZone.Named` as a string (IANA time zone identifier)
  *
@@ -10760,6 +11105,8 @@ export interface TimeZoneNamedFromString extends decodeTo<TimeZoneNamed, String>
 /**
  * A transformation schema that parses an IANA time zone identifier string into a `DateTime.TimeZone.Named`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A `string` is decoded as a `DateTime.TimeZone.Named`.
  *
@@ -10791,7 +11138,9 @@ const TimeZoneString = String.annotate({
 /**
  * A schema for `DateTime.TimeZone` values.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - encodes `DateTime.TimeZone` as a string (IANA identifier or offset like
  *   `+03:00`)
@@ -10844,6 +11193,8 @@ export interface TimeZoneFromString extends decodeTo<TimeZone, String> {
 /**
  * A transformation schema that parses a time zone string into a `DateTime.TimeZone`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A `string` (IANA identifier or offset like `+03:00`) is decoded as a `DateTime.TimeZone`.
  *
@@ -10875,7 +11226,9 @@ const DateTimeZonedString = String.annotate({
 /**
  * A schema for `DateTime.Zoned` values.
  *
- * **Default JSON serializer**
+ * **Details**
+ *
+ * Default JSON serializer:
  *
  * - encodes offset zones as an ISO date-time with a numeric offset, such as
  *   `YYYY-MM-DDTHH:mm:ss.sss+HH:MM`
@@ -10931,6 +11284,8 @@ export interface DateTimeZonedFromString extends decodeTo<DateTimeZoned, String>
 /**
  * A transformation schema that parses a zoned DateTime string into a `DateTime.Zoned`.
  *
+ * **Details**
+ *
  * Decoding:
  * - A `string` (e.g. `2024-01-01T00:00:00.000+00:00[Europe/London]`) is decoded as a `DateTime.Zoned`.
  *
@@ -10950,6 +11305,8 @@ export const DateTimeZonedFromString: DateTimeZonedFromString = DateTimeZonedStr
 
 /**
  * Interface for schema-backed classes created with {@link Class}.
+ *
+ * **Details**
  *
  * A `Class` is a TypeScript class whose constructor validates its input
  * against a {@link Struct} schema. Instances are always structurally valid.
@@ -10989,7 +11346,9 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
   /**
    * Returns a new struct with the fields modified by the provided function.
    *
-   * **Options**
+   * **Details**
+   *
+   * Options:
    *
    * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
    *   that were attached to the original struct. Defaults to `false`.
@@ -11178,6 +11537,8 @@ type MissingSelfGeneric<Usage extends string> =
  * {@link Struct} schema. Construction throws a {@link SchemaError} on invalid
  * input (unless `disableChecks` is set in the options).
  *
+ * **Details**
+ *
  * Pass the desired class type as the first type parameter. The second optional
  * type parameter can be used to add nominal brands.
  *
@@ -11251,6 +11612,8 @@ export const Class: {
  * Like {@link Class} but automatically adds a `_tag` literal field set to the
  * given `tag` value. This makes instances compatible with tagged union
  * discrimination patterns.
+ *
+ * **Details**
  *
  * The optional `identifier` parameter overrides the schema identifier;
  * it defaults to the `tag` value.
@@ -11438,6 +11801,8 @@ export type LazyArbitrary<T> = (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
  * Derives a {@link LazyArbitrary} from a schema. The result is memoized so
  * repeated calls with the same schema are cheap.
  *
+ * **Details**
+ *
  * Prefer {@link toArbitrary} when you just need the arbitrary directly.
  *
  * @category Arbitrary
@@ -11481,6 +11846,8 @@ export function toArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Ty
 /**
  * Annotates a schema with a custom formatter used by `toFormatter`.
  *
+ * **Details**
+ *
  * Use this when the formatter derived from the schema structure is not suitable.
  * The annotation is applied through this helper because adding it directly to
  * `Annotations.Bottom` would make schemas invariant.
@@ -11498,6 +11865,8 @@ export function overrideToFormatter<S extends Top>(toFormatter: () => Formatter<
  * Derives a string formatter function from a schema. The formatter converts
  * a value to its human-readable string representation, recursing into structs,
  * arrays, and unions.
+ *
+ * **Details**
  *
  * The optional `onBefore` hook lets you intercept specific AST nodes before
  * the default formatting logic runs.
@@ -11711,6 +12080,8 @@ export interface ToJsonSchemaOptions {
    * Controls how additional properties are handled while resolving the JSON
    * schema.
    *
+   * **Details**
+   *
    * Possible values include:
    * - `false`: Disallow additional properties (default)
    * - `true`: Allow additional properties
@@ -11726,6 +12097,8 @@ export interface ToJsonSchemaOptions {
 
 /**
  * Returns a JSON Schema document using draft 2020-12.
+ *
+ * **Details**
  *
  * The `options` parameter controls generation details such as additional
  * properties and synthesized check descriptions; it does not change the draft
@@ -11867,10 +12240,12 @@ export type StringTree = Tree<string | undefined>
  * The StringTree canonical codec converts **every leaf value to a string**, while
  * preserving the original structure.
  *
+ * **Details**
+ *
  * Declarations are converted to `undefined` (unless they have a
  * `toCodecJson` or `toCodec` annotation).
  *
- * **Options**
+ * Options:
  *
  * - `keepDeclarations`: if `true`, it **does not** convert declarations to
  *   `undefined` but instead keeps them as they are (unless they have a
@@ -11914,6 +12289,8 @@ type XmlEncoderOptions = {
 
 /**
  * Derives an XML encoder from a codec.
+ *
+ * **Details**
  *
  * The returned function encodes a value through `toCodecStringTree` and returns
  * an `Effect` that succeeds with the XML string or fails with `SchemaError` if
@@ -12455,6 +12832,8 @@ export function resolveAnnotationsKey<S extends Top>(schema: S): Annotations.Key
  * metadata to schemas. Annotations control documentation, validation messages,
  * JSON Schema generation, equivalence, arbitrary generation, and more.
  *
+ * **Details**
+ *
  * Use {@link resolveAnnotations} to read the annotations attached to a schema at
  * runtime.
  *
@@ -12464,6 +12843,8 @@ export declare namespace Annotations {
   /**
    * This interface is used to define the annotations that can be attached to a
    * schema. You can extend this interface to define your own annotations.
+   *
+   * **Details**
    *
    * Note that both a missing key or `undefined` is used to indicate that the
    * annotation is not present.
@@ -12516,6 +12897,8 @@ export declare namespace Annotations {
   export interface Augment extends Annotations {
     /**
      * Human-readable description of what a value is expected to satisfy.
+     *
+     * **Details**
      *
      * For filter and refinement failures, the default formatter uses
      * `message` first, then `expected`, and finally falls back to `<filter>`.
@@ -12573,6 +12956,8 @@ export declare namespace Annotations {
     /**
      * Complete message to use when this schema node reports an issue.
      *
+     * **Details**
+     *
      * This replaces the default message for matching issue types instead of
      * only changing the expected label. For a filter or refinement failure,
      * annotate the filter with `message` to replace the whole filter failure
@@ -12586,6 +12971,8 @@ export declare namespace Annotations {
     readonly messageUnexpectedKey?: string | undefined
     /**
      * Stable identifier for this schema node.
+     *
+     * **Details**
      *
      * Identifiers are used by schema tooling, including JSON Schema
      * generation, to name references. The default formatter also uses
@@ -12617,7 +13004,7 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export namespace TypeParameters {
+  export declare namespace TypeParameters {
     /**
      * Maps declaration type-parameter schemas to codecs for their decoded `Type`
      * values.
@@ -12693,12 +13080,16 @@ export declare namespace Annotations {
     /**
      * Complete message to use when this filter or refinement fails.
      *
+     * **Details**
+     *
      * The default formatter checks filter annotations in this order:
      * `message`, then `expected`, then `<filter>`.
      */
     readonly message?: string | undefined
     /**
      * Stable identifier for the schema after this filter is attached.
+     *
+     * **Details**
      *
      * This can affect schema tooling such as JSON Schema generation and
      * type-level failures before the filter runs, but it does not name the
@@ -12718,6 +13109,8 @@ export declare namespace Annotations {
      * structure of the container (e.g., array length, object keys) rather than
      * the contents.
      *
+     * **Details**
+     *
      * Example: `minLength` on an array is a structural filter.
      */
     readonly "~structural"?: boolean | undefined
@@ -12729,7 +13122,7 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export namespace ToArbitrary {
+  export declare namespace ToArbitrary {
     /**
      * fast-check string constraints plus optional regular-expression pattern strings
      * used when deriving string arbitraries from schema checks.
@@ -12817,6 +13210,8 @@ export declare namespace Annotations {
     /**
      * Hook signature for declaration schema arbitrary annotations.
      *
+     * **Details**
+     *
      * Given arbitraries for any type parameters, returns a function that receives the
      * fast-check module and derivation context and produces an arbitrary for `T`.
      *
@@ -12837,9 +13232,11 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export namespace ToFormatter {
+  export declare namespace ToFormatter {
     /**
      * Hook signature for declaration schema formatter annotations.
+     *
+     * **Details**
      *
      * Given formatters for any type parameters, returns a formatter for `T`.
      *
@@ -12860,9 +13257,11 @@ export declare namespace Annotations {
    *
    * @since 4.0.0
    */
-  export namespace ToEquivalence {
+  export declare namespace ToEquivalence {
     /**
      * Hook signature for declaration schema equivalence annotations.
+     *
+     * **Details**
      *
      * Given equivalences for any type parameters, returns an `Equivalence` for `T`.
      *
@@ -12880,6 +13279,8 @@ export declare namespace Annotations {
   /**
    * Annotations that can be attached to schema issues.
    *
+   * **Details**
+   *
    * The optional `message` field overrides the default issue message.
    *
    * @category models
@@ -12891,6 +13292,8 @@ export declare namespace Annotations {
 
   /**
    * Registry of metadata payloads emitted by built-in schema filters and checks.
+   *
+   * **Details**
    *
    * Do not augment this interface with custom metadata; extend `MetaDefinitions`
    * instead.
@@ -13114,6 +13517,8 @@ export declare namespace Annotations {
 
   /**
    * Augmentable registry of schema filter metadata payloads.
+   *
+   * **Details**
    *
    * Extend this interface to add custom values accepted by annotation `meta`
    * fields.

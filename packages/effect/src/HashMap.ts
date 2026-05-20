@@ -198,6 +198,7 @@ export declare namespace HashMap {
    * const getUserById = (id: UserKey) => HashMap.get(userMap, id)
    * console.log(getUserById("alice")) // Option.some({ name: "Alice", age: 30 })
    * ```
+   *
    * @category type-level
    * @since 2.0.0
    */
@@ -228,6 +229,7 @@ export declare namespace HashMap {
    * const alice = HashMap.get(userMap, "alice")
    * // alice has type Option<User> thanks to type extraction
    * ```
+   *
    * @category type-level
    * @since 2.0.0
    */
@@ -259,6 +261,7 @@ export declare namespace HashMap {
    * const descriptions = HashMap.toEntries(catalog).map(processEntry).sort()
    * console.log(descriptions) // ["book: $29 (education)", "laptop: $999 (electronics)"]
    * ```
+   *
    * @category type-level
    * @since 3.9.0
    */
@@ -435,8 +438,10 @@ export const getHash: {
  * Unsafely lookup the value for the specified key in the `HashMap` using the
  * internal hashing function.
  *
- * ⚠️ **Warning**: This function throws an error if the key is not found.
- * Use `HashMap.get` for safe access that returns `Option`.
+ * **Gotchas**
+ *
+ * This function throws an error if the key is not found. Use `HashMap.get` for
+ * safe access that returns `Option`.
  *
  * **Example** (Unsafely looking up values)
  *
@@ -738,6 +743,8 @@ export const size: <K, V>(self: HashMap<K, V>) => number = internal.size
 /**
  * Creates a transient mutable `HashMap` for efficient batched updates.
  *
+ * **Details**
+ *
  * Apply updates to the returned map, then call `endMutation` to finish the
  * mutation window and use the result as an immutable `HashMap`.
  *
@@ -802,6 +809,8 @@ export const endMutation: <K, V>(self: HashMap<K, V>) => HashMap<K, V> = interna
  * Runs a batch of updates against a transient mutable copy of the `HashMap`
  * and returns the finalized immutable result.
  *
+ * **Details**
+ *
  * The callback may call mutation-oriented helpers such as `set` and `remove`
  * on the transient map.
  *
@@ -828,6 +837,8 @@ export const mutate: {
 
 /**
  * Sets or removes the specified key using an update function.
+ *
+ * **Details**
  *
  * The update function receives `Some(value)` when the key exists or `None`
  * when it does not. Returning `Some(newValue)` stores the value, and returning
@@ -859,6 +870,8 @@ export const modifyAt: {
 /**
  * Sets or removes the specified key using a precomputed hash and an update
  * function.
+ *
+ * **Details**
  *
  * The update function receives `Some(value)` when the key exists or `None`
  * when it does not. Returning `Some(newValue)` stores the value, and returning
@@ -934,6 +947,8 @@ export const modify: {
 
 /**
  * Combines two `HashMap`s into one.
+ *
+ * **Details**
  *
  * Entries from `that` are inserted into `self`; when both maps contain an
  * equal key, the value from `that` replaces the value from `self`.
@@ -1059,7 +1074,9 @@ export const map: {
 /**
  * Chains over the entries of the `HashMap` using the specified function.
  *
- * **NOTE**: the hash and equal of both maps have to be the same.
+ * **Gotchas**
+ *
+ * The hash and equality behavior of both maps have to be the same.
  *
  * **Example** (FlatMapping values)
  *

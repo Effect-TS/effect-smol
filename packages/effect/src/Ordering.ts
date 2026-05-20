@@ -40,6 +40,8 @@ import * as Reducer_ from "./Reducer.ts"
 /**
  * Represents the result of comparing two values.
  *
+ * **Details**
+ *
  * - `-1` indicates the first value is less than the second
  * - `0` indicates the values are equal
  * - `1` indicates the first value is greater than the second
@@ -158,6 +160,8 @@ export const match: {
 
 /**
  * A `Reducer` for combining `Ordering`s.
+ *
+ * **Details**
  *
  * If any of the `Ordering`s is non-zero, the result is the first non-zero `Ordering`.
  * If all the `Ordering`s are zero, the result is zero.

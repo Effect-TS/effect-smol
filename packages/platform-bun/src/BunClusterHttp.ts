@@ -62,6 +62,8 @@ import * as BunSocket from "./BunSocket.ts"
 
 export {
   /**
+   * Kubernetes HTTP client layer used for runner health checks.
+   *
    * @category re-exports
    * @since 4.0.0
    */

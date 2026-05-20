@@ -42,6 +42,8 @@ export const isHttpBody = (u: unknown): u is HttpBody => Predicate.hasProperty(u
 /**
  * Represents an HTTP request body.
  *
+ * **Details**
+ *
  * Supported variants include empty bodies, raw bodies, byte arrays, `FormData`, and streams of bytes.
  *
  * @category models
@@ -57,6 +59,8 @@ export type HttpBody = Empty | Raw | Uint8Array | FormData | Stream
 export declare namespace HttpBody {
   /**
    * Common protocol implemented by all HTTP body variants.
+   *
+   * **Details**
    *
    * It carries the variant tag plus optional `contentType` and `contentLength` metadata.
    *
@@ -107,6 +111,8 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
 
 /**
  * Reason for an `HttpBodyError`.
+ *
+ * **Details**
  *
  * `JsonError` represents a `JSON.stringify` failure; `SchemaError` represents a schema encoding issue.
  *
@@ -209,6 +215,8 @@ export const raw = (
 /**
  * HTTP body variant backed by a `Uint8Array`.
  *
+ * **Details**
+ *
  * It stores the bytes, content type, and byte length.
  *
  * @category models
@@ -245,6 +253,8 @@ export class Uint8Array extends Proto {
 /**
  * Creates a byte-array HTTP body.
  *
+ * **Details**
+ *
  * The content type defaults to `application/octet-stream`, and the content length is the byte array length.
  *
  * @category constructors
@@ -258,6 +268,8 @@ const encoder = new TextEncoder()
 /**
  * Creates a UTF-8 encoded text HTTP body.
  *
+ * **Details**
+ *
  * The content type defaults to `text/plain`.
  *
  * @category constructors
@@ -269,6 +281,8 @@ export const text = (body: string, contentType?: string): Uint8Array =>
 /**
  * Creates a JSON HTTP body using `JSON.stringify`, throwing if serialization fails.
  *
+ * **Details**
+ *
  * The content type defaults to `application/json`.
  *
  * @category constructors
@@ -279,6 +293,8 @@ export const jsonUnsafe = (body: unknown, contentType?: string): Uint8Array =>
 
 /**
  * Creates a JSON HTTP body in an `Effect`.
+ *
+ * **Details**
  *
  * `JSON.stringify` failures are captured as `HttpBodyError` values, and the content type defaults to `application/json`.
  *
@@ -293,6 +309,8 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
 
 /**
  * Creates a JSON body constructor that first encodes values with the schema's JSON codec.
+ *
+ * **Details**
  *
  * Schema encoding issues and JSON serialization failures are returned as `HttpBodyError` values.
  *
@@ -322,6 +340,8 @@ export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string):
 
 /**
  * HTTP body variant backed by Web `FormData`.
+ *
+ * **Details**
  *
  * The content type and content length are left unset so the runtime can supply multipart boundaries.
  *
@@ -360,6 +380,8 @@ export const formData = (body: globalThis.FormData): FormData => new FormData(bo
 /**
  * Record input accepted by `formDataRecord`.
  *
+ * **Details**
+ *
  * Each field may be a single coercible value or an array of coercible values.
  *
  * @category models
@@ -369,6 +391,8 @@ export type FormDataInput = Record<string, FormDataCoercible | ReadonlyArray<For
 
 /**
  * Value that can be appended by `formDataRecord`.
+ *
+ * **Details**
  *
  * `File` and `Blob` values are appended directly, primitive values are converted to strings, and `null` or `undefined` values are skipped.
  *
@@ -390,6 +414,8 @@ const appendFormDataValue = (formData: globalThis.FormData, key: string, value: 
 
 /**
  * Creates a `FormData` HTTP body from a record.
+ *
+ * **Details**
  *
  * Array fields append each item under the same key; primitive values are stringified, `File` and `Blob` values are appended directly, and nullish values are skipped.
  *
@@ -445,6 +471,8 @@ export class Stream extends Proto {
 /**
  * Creates a streaming HTTP body from a stream of byte chunks.
  *
+ * **Details**
+ *
  * The content type defaults to `application/octet-stream`; content length is optional.
  *
  * @category constructors
@@ -458,6 +486,8 @@ export const stream = (
 
 /**
  * Creates a streaming HTTP body for a file path.
+ *
+ * **Details**
  *
  * The effect requires `FileSystem`, stats the file to set the content length, and can fail with `PlatformError`.
  *
@@ -486,6 +516,8 @@ export const file = (
 
 /**
  * Creates a streaming HTTP body for a file path using already-known file information.
+ *
+ * **Details**
  *
  * The effect requires `FileSystem`, uses the provided file size as the content length, and can fail with `PlatformError`.
  *

@@ -132,6 +132,8 @@ export const toString = (shardId: {
 /**
  * Parses a `group:id` string into plain shard id parts.
  *
+ * **Details**
+ *
  * Throws an `Error` when the string has no colon separator or the id segment is
  * not numeric.
  *
@@ -156,6 +158,8 @@ export function fromStringEncoded(s: string): {
 
 /**
  * Parses a `group:id` string into a cached `ShardId`.
+ *
+ * **Details**
  *
  * Throws an `Error` when the string has no colon separator or the id segment is
  * not numeric.

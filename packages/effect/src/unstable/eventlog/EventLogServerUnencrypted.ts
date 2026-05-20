@@ -99,6 +99,8 @@ export const makeWrite = <Groups extends EventGroup.Any>(
 /**
  * Provides RPC handlers for the unencrypted event-log server.
  *
+ * **Details**
+ *
  * Incoming plaintext entries are authorized, mapped to a server store, checked
  * for conflicts, run through registered handlers, and persisted; change streams
  * include compacted backlog entries when compactors are registered.
@@ -330,6 +332,8 @@ export const layerStoreMappingStatic = (options: {
 /**
  * Storage service used by the unencrypted event-log server.
  *
+ * **Details**
+ *
  * It provides the server remote id, stores session authentication bindings,
  * allocates remote sequence numbers, persists entries, streams changes, and
  * exposes a transaction boundary.
@@ -455,6 +459,8 @@ const toCompactedRemoteEntries = (options: {
 /**
  * Compacts a backlog of remote entries using the registered compactors.
  *
+ * **Details**
+ *
  * Contiguous entries handled by the same compactor may be replaced with compacted
  * entries when the replacement count can be mapped back to increasing remote
  * sequence numbers; otherwise the original entries are kept.
@@ -524,6 +530,8 @@ export const compactBacklog = Effect.fnUntraced(function*(options: {
 
 /**
  * Creates an in-memory unencrypted server `Storage`.
+ *
+ * **Details**
  *
  * The implementation keeps per-store journals and session authentication bindings
  * in memory, publishes live changes, and serializes transactions with a

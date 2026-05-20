@@ -50,6 +50,8 @@ export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, T
  * Typed collection of event definitions that represents a portion of an event log
  * domain.
  *
+ * **When to use**
+ *
  * Build groups from `empty.add(...)`, then provide implementations for the events
  * with `EventLog.group`.
  *
@@ -186,6 +188,8 @@ const makeProto = <
 
 /**
  * Empty event group used as the starting point for defining a group.
+ *
+ * **When to use**
  *
  * Call `.add(...)` to add event definitions and build a typed `EventGroup`.
  *

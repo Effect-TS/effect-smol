@@ -21,31 +21,43 @@ import { CurrentTraceLevel, DisablePropagation, MinimumTraceLevel, type SpanLink
 
 export {
   /**
+   * Reference for the current trace level used for dynamic trace filtering.
+   *
    * @category references
    * @since 4.0.0
    */
   CurrentTraceLevel,
   /**
+   * Reference used to disable trace propagation in the current context.
+   *
    * @category references
    * @since 4.0.0
    */
   DisablePropagation,
   /**
+   * Reference controlling the maximum operation budget before a fiber yields to the scheduler.
+   *
    * @category references
    * @since 4.0.0
    */
   MaxOpsBeforeYield,
   /**
+   * Reference setting the minimum trace level threshold for span sampling.
+   *
    * @category references
    * @since 4.0.0
    */
   MinimumTraceLevel,
   /**
+   * Reference controlling whether the runtime bypasses scheduler yield checks.
+   *
    * @category references
    * @since 4.0.0
    */
   PreventSchedulerYield,
   /**
+   * Reference for the active tracer service used to create spans.
+   *
    * @category references
    * @since 4.0.0
    */
@@ -155,7 +167,8 @@ export const CurrentLogAnnotations: Context.Reference<ReadonlyRecord<string, unk
  * Reference for the current log severity used by `Effect.log` when no explicit
  * level is provided.
  *
- * **Notes**
+ * **Details**
+ *
  * Use `MinimumLogLevel` to control which log entries are filtered out.
  *
  * **Example** (Changing the current log level)
@@ -266,6 +279,7 @@ export const CurrentLogSpans: Context.Reference<ReadonlyArray<[label: string, ti
  * fiber.
  *
  * **Details**
+ *
  * Effect and Layer tracing use this reference to attach stack-frame information
  * to failures and interruption causes. It is normally managed by tracing APIs
  * rather than provided directly by application code.
@@ -548,6 +562,7 @@ export const UnhandledLogLevel: Context.Reference<Severity | undefined> = refere
  * A captured stack-frame node used to describe the traced execution path.
  *
  * **Details**
+ *
  * Each frame has a span or operation `name`, a lazy `stack` supplier, and an
  * optional `parent` frame that links it to the previous captured frame.
  *
@@ -565,6 +580,7 @@ export interface StackFrame {
  * operations.
  *
  * **Details**
+ *
  * Providing this reference changes which `Logger` instances receive log entries
  * in the current context.
  *
@@ -577,6 +593,7 @@ export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>
  * Reference controlling whether the default console logger writes to stderr.
  *
  * **Details**
+ *
  * When set to `true`, the pretty console logger uses `console.error`; otherwise
  * it uses `console.log`.
  *

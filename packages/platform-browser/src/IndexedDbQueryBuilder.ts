@@ -465,7 +465,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -552,7 +554,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Stream the selected data.
      *
-     * Defaults to a chunk size of 100.
+     * **Details**
+     *
+     * The default chunk size is 100.
      */
     readonly stream: (options?: {
       readonly chunkSize?: number | undefined
@@ -565,7 +569,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -604,7 +610,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -617,7 +625,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactiveQueue: (
       keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
@@ -673,7 +683,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -702,7 +714,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined

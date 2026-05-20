@@ -70,21 +70,14 @@ export interface FunctionTypeLambda extends TypeLambda {
 }
 
 /**
- * Creates a function that can be used in a data-last (aka `pipe`able) or
- * data-first style.
+ * Creates a function that can be called in data-first style or data-last
+ * (`pipe`-friendly) style.
  *
- * The first parameter to `dual` is either the arity of the uncurried function
- * or a predicate that determines if the function is being used in a data-first
- * or data-last style.
+ * **Details**
  *
- * Using the arity is the most common use case, but there are some cases where
- * you may want to use a predicate. For example, if you have a function that
- * takes an optional argument, you can use a predicate to determine if the
- * function is being used in a data-first or data-last style.
- *
- * You can pass either the arity of the uncurried function or a predicate
- * which determines if the function is being used in a data-first or
- * data-last style.
+ * Pass either the arity of the uncurried function or a predicate that decides
+ * whether the current call is data-first. Arity is the common case. Use a
+ * predicate when optional arguments make arity ambiguous.
  *
  * **Example** (Using arity to determine data-first or data-last style)
  *
@@ -285,6 +278,8 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
 /**
  * Returns the input value with a different static type.
  *
+ * **Gotchas**
+ *
  * This is a type-level cast only; it performs no runtime validation or
  * conversion.
  *
@@ -295,6 +290,8 @@ export const cast: <A, B>(a: A) => B = identity as any
 
 /**
  * Creates a zero-argument function that always returns the provided value.
+ *
+ * **When to use**
  *
  * Use `constant` when an API expects a thunk or callback and every invocation
  * should return the same value.
@@ -449,10 +446,18 @@ export const compose: {
 } = dual(2, <A, B, C>(ab: (a: A) => B, bc: (b: B) => C): (a: A) => C => (a) => bc(ab(a)))
 
 /**
- * The `absurd` function is a stub for cases where a value of type `never` is encountered in your code,
- * meaning that it should be impossible for this code to be executed.
+ * Marks an impossible branch by accepting a `never` value and returning any
+ * type.
  *
- * This function is particularly useful when it's necessary to specify that certain cases are impossible.
+ * **When to use**
+ *
+ * Use `absurd` when exhaustive checks prove a branch cannot be reached, but
+ * TypeScript still needs a return value.
+ *
+ * **Gotchas**
+ *
+ * Calling `absurd` throws, because a value of type `never` should be
+ * impossible at runtime.
  *
  * **Example** (Handling impossible values)
  *
@@ -510,16 +515,29 @@ export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): 
 export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (...a: A) => B => (...a) => f(a)
 
 /**
- * Pipes the value of an expression into a pipeline of functions.
+ * Pipes the value of an expression through a left-to-right sequence of
+ * functions.
+ *
+ * **When to use**
+ *
+ * Use `pipe` with data-last functions to build readable transformation
+ * pipelines and to write method-style chains as ordinary function calls.
  *
  * **Details**
  *
- * The `pipe` function is a utility that allows us to compose functions in a
- * readable and sequential manner. It takes the output of one function and
- * passes it as the input to the next function in the pipeline. This enables us
- * to build complex transformations by chaining multiple functions together.
+ * `pipe` takes an initial value, passes it to the first function, then passes
+ * each result to the next function in order. The final function result is
+ * returned.
+ *
+ * **Gotchas**
+ *
+ * Each function passed after the initial value must accept a single argument,
+ * because `pipe` calls each step with only the previous result.
  *
  * **Example** (Showing pipeline syntax)
+ *
+ * In this example, `1` is passed to the first function, and each result becomes
+ * the input for the next function.
  *
  * ```ts
  * import { pipe } from "effect"
@@ -534,26 +552,6 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * console.log(result) // "result: 4"
  * ```
  *
- * In this syntax, `1` is the initial value, and each function is applied in
- * sequence. The result of each function becomes the input for the next
- * function, and the final result is returned.
- *
- * Here's an illustration of how `pipe` works:
- *
- * ```
- * ┌───┐    ┌───────┐    ┌─────────────┐    ┌────────┐
- * │ 1 │───►│ add 1 │───►│ multiply 2  │───►│ format │───► "result: 4"
- * └───┘    └───────┘    └─────────────┘    └────────┘
- * ```
- *
- * It's important to note that functions passed to `pipe` must have a **single
- * argument** because they are only called with a single argument.
- *
- * **When to Use**
- *
- * This is useful in combination with data-last functions as a simulation of
- * methods:
- *
  * **Example** (Chaining methods before conversion)
  *
  * ```ts
@@ -566,9 +564,9 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * console.log(result) // [6, 8]
  * ```
  *
- * becomes:
- *
  * **Example** (Rewriting method chains with pipe)
+ *
+ * The same transformation can be written with data-last functions.
  *
  * ```ts
  * import { Array, pipe } from "effect"
@@ -586,7 +584,7 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * console.log(result) // [6, 8]
  * ```
  *
- * **Example** (Chaining Arithmetic Operations)
+ * **Example** (Chaining arithmetic operations)
  *
  * ```ts
  * import { pipe } from "effect"
@@ -1075,9 +1073,12 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
 }
 
 /**
- * Performs left-to-right function composition. The first argument may have any arity, the remaining arguments must be unary.
+ * Performs left-to-right function composition.
  *
- * See also [`pipe`](#pipe).
+ * **Details**
+ *
+ * The first function may have any arity. Every following function must be
+ * unary. See also [`pipe`](#pipe).
  *
  * **Example** (Composing functions left to right)
  *
@@ -1264,6 +1265,8 @@ export function flow(
 /**
  * Creates a compile-time placeholder for a value of any type.
  *
+ * **Gotchas**
+ *
  * `hole` is intended for temporary development use. If the placeholder is
  * evaluated at runtime, it throws.
  *
@@ -1287,10 +1290,13 @@ export function flow(
 export const hole: <T>() => T = cast(absurd)
 
 /**
- * The SK combinator, also known as the "S-K combinator" or "S-combinator", is a fundamental combinator in the
- * lambda calculus and the SKI combinator calculus.
+ * The SK combinator, also known as the "S-K combinator" or "S-combinator", is
+ * a fundamental combinator in the lambda calculus and the SKI combinator
+ * calculus.
  *
- * This function is useful for discarding the first argument passed to it and returning the second argument.
+ * **When to use**
+ *
+ * Use `SK` to discard the first argument and return the second argument.
  *
  * **Example** (Discarding the first argument)
  *

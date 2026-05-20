@@ -366,12 +366,9 @@ export const isShutdown = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => TxRe
 /**
  * Publishes a message to all current subscribers.
  *
- * Returns `true` if the message was delivered to all subscribers, or `false` if
- * the hub is shut down or the message was dropped for any subscriber (dropping strategy).
+ * **Details**
  *
- * For bounded strategy, retries the transaction if any subscriber queue is full.
- * For sliding strategy, drops oldest messages in full subscriber queues.
- * For dropping strategy, drops the message for full subscriber queues and returns `false`.
+ * Returns `true` if the message was delivered to all subscribers, or `false` if the hub is shut down or the message was dropped for any subscriber. For the bounded strategy, the transaction retries if any subscriber queue is full. For the sliding strategy, full subscriber queues drop their oldest messages. For the dropping strategy, full subscriber queues drop the new message and the operation returns `false`.
  *
  * **Example** (Publishing a message to subscribers)
  *
@@ -423,6 +420,8 @@ export const publish: {
 /**
  * Publishes all messages from an iterable to all current subscribers.
  *
+ * **Details**
+ *
  * Returns `true` if all messages were delivered to all subscribers.
  *
  * **Example** (Publishing multiple messages to subscribers)
@@ -468,13 +467,11 @@ export const publishAll: {
 )
 
 /**
- * Subscribes to the TxPubSub, returning a scoped `TxQueue` for messages
- * published after subscription.
+ * Subscribes to the TxPubSub, returning a scoped `TxQueue` for messages published after subscription.
  *
- * The returned queue uses the hub's capacity strategy: bounded subscriptions
- * backpressure publishers when full, dropping subscriptions may miss new
- * messages when full, and sliding subscriptions may evict older queued
- * messages. The subscription is automatically removed when the scope is closed.
+ * **Details**
+ *
+ * The returned queue uses the hub's capacity strategy: bounded subscriptions backpressure publishers when full, dropping subscriptions may miss new messages when full, and sliding subscriptions may evict older queued messages. The subscription is automatically removed when the scope is closed.
  *
  * **Example** (Subscribing multiple queues)
  *
@@ -511,9 +508,9 @@ export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A
 /**
  * Creates a subscriber queue and registers it with the pub/sub.
  *
- * This is the transactional acquire step of `subscribe`, exposed so that
- * callers can compose it with other Tx operations in a single transaction
- * (e.g. `TxSubscriptionRef.changes`).
+ * **Details**
+ *
+ * This is the transactional acquire step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction, such as `TxSubscriptionRef.changes`.
  *
  * @category mutations
  * @since 4.0.0
@@ -530,8 +527,9 @@ export const acquireSubscriber = <A>(
 /**
  * Removes a subscriber queue from the pub/sub and shuts it down.
  *
- * This is the transactional release step of `subscribe`, exposed so that
- * callers can compose it with other Tx operations in a single transaction.
+ * **Details**
+ *
+ * This is the transactional release step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction.
  *
  * @category mutations
  * @since 4.0.0
@@ -568,12 +566,15 @@ const makeSubscriberQueue = <A>(
 }
 
 /**
- * Shuts down the TxPubSub and all subscriber queues registered at the time of
- * shutdown.
+ * Shuts down the TxPubSub and all subscriber queues registered at the time of shutdown.
  *
- * After shutdown, `publish` and `publishAll` return `false`, and
- * `awaitShutdown` completes. The operation is idempotent; subscribers acquired
- * after shutdown are not automatically shut down by this call.
+ * **Details**
+ *
+ * After shutdown, `publish` and `publishAll` return `false`, and `awaitShutdown` completes. The operation is idempotent.
+ *
+ * **Gotchas**
+ *
+ * Subscribers acquired after shutdown are not automatically shut down by this call.
  *
  * **Example** (Shutting down a pub/sub)
  *

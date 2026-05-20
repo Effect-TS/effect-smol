@@ -53,12 +53,13 @@ import type * as Unify from "./Unify.ts"
 const TypeId = "~effect/Layer"
 
 /**
- * A Layer describes how to build one or more services for dependency injection.
+ * A `Layer` describes how to build one or more services for dependency injection.
  *
- * A Layer<ROut, E, RIn> represents:
- * - ROut: The services this layer provides
- * - E: The possible errors during layer construction
- * - RIn: The services this layer requires as dependencies
+ * **Details**
+ *
+ * A `Layer<ROut, E, RIn>` represents `ROut` as the services this layer
+ * provides, `E` as the possible errors during layer construction, and `RIn` as
+ * the services this layer requires as dependencies.
  *
  * @category models
  * @since 2.0.0
@@ -74,6 +75,8 @@ export interface Layer<in ROut, out E = never, out RIn = never> extends Variance
 /**
  * Type-level hook that allows `Layer` values to participate in `Unify`
  * inference.
+ *
+ * **Details**
  *
  * This is used by Effect's pipe and unification machinery to preserve the
  * provided services, error, and requirements of a `Layer`.
@@ -114,6 +117,8 @@ export interface Variance<in ROut, out E, out RIn> {
 }
 /**
  * A constraint interface for working with any Layer type.
+ *
+ * **Details**
  *
  * This interface is used to constrain generic types to Layer types
  * without specifying exact type parameters.
@@ -156,6 +161,8 @@ const MemoMapTypeId = "~effect/Layer/MemoMap"
 
 /**
  * A MemoMap is used to memoize layer construction and ensure sharing of layers.
+ *
+ * **Details**
  *
  * The MemoMap prevents duplicate construction of the same layer instance,
  * enabling efficient resource sharing across layer dependencies.
@@ -267,6 +274,8 @@ const fromBuildUnsafe = <ROut, E, RIn>(
 /**
  * Constructs a Layer from a function that uses a `MemoMap` and `Scope` to build the layer.
  *
+ * **Details**
+ *
  * The function receives a `MemoMap` for memoization and a `Scope` for resource management.
  * A child scope is created, and if the build fails, the child scope is closed.
  *
@@ -308,6 +317,8 @@ export const fromBuild = <ROut, E, RIn>(
 /**
  * Constructs a Layer from a function that uses a `MemoMap` and `Scope` to build the layer,
  * with automatic memoization.
+ *
+ * **Details**
  *
  * This is similar to `fromBuild` but provides automatic memoization of the layer construction.
  * The layer will be memoized based on the provided `MemoMap`.
@@ -493,6 +504,8 @@ export const forkMemoMap = (parent: MemoMap): Effect<MemoMap> => internalEffect.
 
 /**
  * A service reference for the current `MemoMap` used in layer construction.
+ *
+ * **Details**
  *
  * This service provides access to the current memoization map during layer building,
  * allowing layers to share memoized results.
@@ -710,6 +723,8 @@ export const succeed: {
  * Constructs a layer from the specified value, which must return one or more
  * services.
  *
+ * **Details**
+ *
  * This is a more general version of `succeed` that allows you to provide multiple
  * services at once through a `Context`.
  *
@@ -746,7 +761,7 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
 /**
  * A Layer that provides no services, cannot fail, and has no requirements.
  *
- * **When to Use**
+ * **When to use**
  *
  * Layers can also be used for construction or lifecycle work that does not
  * provide services. In that setting, `Layer.empty` is the no-op branch for when
@@ -771,6 +786,8 @@ export const empty: Layer<never> = succeedContext(Context.empty())
 
 /**
  * Lazily constructs a layer from the specified value.
+ *
+ * **Details**
  *
  * This is a lazy version of `succeed` where the service value is computed
  * synchronously only when the layer is built.
@@ -808,6 +825,8 @@ export const sync: {
  * Lazily constructs a layer from the specified value, which must return one or more
  * services.
  *
+ * **Details**
+ *
  * This is a lazy version of `succeedContext` where the Context is computed
  * synchronously only when the layer is built.
  *
@@ -835,6 +854,8 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
 
 /**
  * Constructs a layer from the specified scoped effect.
+ *
+ * **Details**
  *
  * This allows you to create a Layer from an Effect that produces a service.
  * The Effect is executed in the scope of the layer, allowing for proper
@@ -884,6 +905,8 @@ const effectImpl = <I, S, E, R>(
  * Constructs a layer from the specified scoped effect, which must return one
  * or more services.
  *
+ * **Details**
+ *
  * This allows you to create a Layer from an effectful computation that returns
  * multiple services. The Effect is executed in the scope of the layer.
  *
@@ -914,6 +937,8 @@ export const effectContext = <A, E, R>(
 /**
  * Constructs a layer from the specified scoped effect.
  *
+ * **When to use**
+ *
  * This is useful when you want to run an Effect for its side effects during
  * layer construction, but don't need to provide any services.
  *
@@ -937,6 +962,8 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
 
 /**
  * Lazily constructs a layer using the specified factory.
+ *
+ * **Details**
  *
  * The factory is evaluated only when the suspended layer is first built, and
  * the result is memoized with normal layer sharing semantics.
@@ -966,9 +993,15 @@ export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E,
 /**
  * Unwraps a Layer from an Effect, flattening the nested structure.
  *
- * This is useful when you have an Effect that produces a Layer, and you want to
- * use that Layer directly. The resulting Layer will have the combined error and
- * dependency types from both the outer Effect and the inner Layer.
+ * **When to use**
+ *
+ * Use this when you have an Effect that produces a Layer and you want to use
+ * that Layer directly.
+ *
+ * **Details**
+ *
+ * The resulting Layer will have the combined error and dependency types from
+ * both the outer Effect and the inner Layer.
  *
  * **Example** (Unwrapping an effectful layer)
  *
@@ -1016,8 +1049,13 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
 /**
  * Combines all the provided layers concurrently, creating a new layer with merged input, error, and output types.
  *
+ * **When to use**
+ *
+ * Use this when you need to combine multiple independent layers.
+ *
+ * **Details**
+ *
  * All layers are built concurrently, and their outputs are merged into a single layer.
- * This is useful when you need to combine multiple independent layers.
  *
  * If multiple merged layers depend on the same layer value, that dependency is
  * shared by default. Reuse a named layer value when you want services to share
@@ -1059,6 +1097,8 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
 
 /**
  * Merges this layer with the specified layer concurrently, producing a new layer with combined input and output types.
+ *
+ * **Details**
  *
  * This is a binary version of `mergeAll` that merges exactly two layers or one layer with an array of layers.
  * The layers are built concurrently and their outputs are combined.
@@ -1145,6 +1185,8 @@ const provideWith = (
 /**
  * Feeds the output services of the dependency layer into the requirements of
  * this layer, returning a layer that only provides the services from this layer.
+ *
+ * **Details**
  *
  * In `serviceLayer.pipe(Layer.provide(dependencyLayer))`, the dependency layer is
  * built first and is used to satisfy the requirements of `serviceLayer`. Use this
@@ -1247,6 +1289,8 @@ export const provide: {
 /**
  * Feeds the output services of the dependency layer into the requirements of
  * this layer, returning a layer that provides both sets of services.
+ *
+ * **When to use**
  *
  * Use this when callers need access to both the service being built and the
  * dependency used to build it, such as a health check that needs both a
@@ -1502,6 +1546,7 @@ export const tapError: {
  * Performs the specified effect when this layer fails with any cause.
  *
  * **Details**
+ *
  * The callback receives the layer's `Cause`, so it can inspect typed errors,
  * defects, and interruption information. If the callback succeeds, the layer
  * fails again with the original cause; if the callback fails, that failure is
@@ -1684,6 +1729,7 @@ export const catchTag: {
  * Recovers from any failure cause by switching to another layer.
  *
  * **Details**
+ *
  * The handler receives the full `Cause` of the failed layer, including typed
  * errors, unexpected defects, and interruption information, and returns the fallback layer
  * to build instead. Finalizers for resources acquired by the failed layer are
@@ -1751,17 +1797,17 @@ export const catchCause: {
 /**
  * Updates a service in the context with a new implementation.
  *
+ * **When to use**
+ *
+ * Use this to adapt or extend a service's behavior during the creation of a
+ * layer.
+ *
  * **Details**
  *
  * This function modifies the existing implementation of a service in the
  * context. It retrieves the current service, applies the provided
  * transformation function `f`, and replaces the old service with the
  * transformed one.
- *
- * **When to Use**
- *
- * This is useful for adapting or extending a service's behavior during the
- * creation of a layer.
  *
  * @category utils
  * @since 3.13.0
@@ -1787,6 +1833,8 @@ export const updateService: {
 
 /**
  * Creates a fresh version of this layer that will not be shared.
+ *
+ * **When to use**
  *
  * Use `fresh` when two parts of an application must receive separate instances
  * of a resource, such as two independent client sessions. Do not use it just to
@@ -1867,8 +1915,12 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
 
 /**
  * Builds this layer and keeps it alive until the returned effect is interrupted.
- * This is useful when your entire application is a layer, such as an HTTP
- * server.
+ *
+ * **When to use**
+ *
+ * Use this when your entire application is a layer, such as an HTTP server.
+ *
+ * **Details**
  *
  * When the returned effect is interrupted, the layer scope is closed and all
  * finalizers registered during layer acquisition are run.
@@ -1930,6 +1982,8 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
 /**
  * A utility type for creating partial mocks of services in testing.
  *
+ * **Details**
+ *
  * This type makes Effect methods and Effect-returning functions optional,
  * while keeping non-Effect properties required. This allows you to provide
  * only the methods you need to test while leaving others unimplemented.
@@ -1959,6 +2013,8 @@ type AnyEffectOrStream =
  * implementation of the service. Any missing members that are `Effect`s,
  * `Stream`s, `Channel`s, or functions returning them will fail with an
  * unimplemented defect when used.
+ *
+ * **Details**
  *
  * Missing members are represented by a value that can be used as an `Effect`,
  * `Stream`, `Channel`, or as a function returning an `Effect`. This lets the
@@ -2067,6 +2123,8 @@ const ChannelTypeId: Channel.TypeId = "~effect/Channel"
 /**
  * Ensures that an layer's success type extends a given type `ROut`.
  *
+ * **Details**
+ *
  * This function provides compile-time type checking to ensure that the success
  * value of an layer conforms to a specific type constraint.
  *
@@ -2098,6 +2156,8 @@ export const satisfiesSuccessType =
 
 /**
  * Ensures that an layer's error type extends a given type `E`.
+ *
+ * **Details**
  *
  * This function provides compile-time type checking to ensure that the error
  * type of an layer conforms to a specific type constraint.
@@ -2131,6 +2191,8 @@ export const satisfiesErrorType =
 
 /**
  * Ensures that an layer's requirements type extends a given type `R`.
+ *
+ * **Details**
  *
  * This function provides compile-time type checking to ensure that the
  * requirements (context) type of an layer conforms to a specific type constraint.
@@ -2185,6 +2247,8 @@ export interface SpanOptions extends Tracer.SpanOptions {
 /**
  * Constructs a new `Layer` which creates a span and registers it as the current
  * parent span.
+ *
+ * **Details**
  *
  * This allows you to create a traced scope for layer construction, making all
  * operations within the layer constructor part of the same trace span. The span
@@ -2251,6 +2315,7 @@ export const span = (
  * Constructs a layer that provides an existing span as the current parent span.
  *
  * **Details**
+ *
  * The supplied span is made available through `Tracer.ParentSpan` for layers
  * that are built with this layer. This API does not create, end, or close the
  * span; the caller remains responsible for the span's lifetime.
@@ -2292,6 +2357,8 @@ export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
 /**
  * Wraps a Layer with a new tracing span, making all operations in the layer
  * constructor part of the named trace span.
+ *
+ * **Details**
  *
  * This creates a new span for the layer's construction and execution. The span
  * is automatically ended when the layer's scope is closed. This is useful for
@@ -2397,6 +2464,7 @@ export const withSpan: {
  * as their parent.
  *
  * **Details**
+ *
  * Use this to attach layer construction to an existing trace hierarchy. This API
  * does not create or end the supplied parent span.
  *

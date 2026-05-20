@@ -36,6 +36,8 @@ import * as OtlpTracer from "./OtlpTracer.ts"
 /**
  * Creates a combined OTLP layer for logs, metrics, and traces.
  *
+ * **Details**
+ *
  * The layer sends data to `/v1/logs`, `/v1/metrics`, and `/v1/traces` below
  * `baseUrl` and requires an `OtlpSerialization` implementation.
  *

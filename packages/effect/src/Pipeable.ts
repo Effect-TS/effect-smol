@@ -25,6 +25,8 @@
 /**
  * Interface for values that support method-style `pipe` composition.
  *
+ * **Details**
+ *
  * Calling `value.pipe(f, g, h)` passes the value through each function from
  * left to right, returning the final result. Many Effect data types implement
  * this so operations can be chained without nesting function calls.
@@ -531,6 +533,8 @@ export interface Pipeable {
  * Applies a `pipe` method's variadic arguments to an initial value from left
  * to right.
  *
+ * **Details**
+ *
  * This helper is intended for implementing `Pipeable.pipe` methods that
  * receive JavaScript's `arguments` object. With no functions it returns the
  * original value; otherwise it feeds each result into the next function.
@@ -593,6 +597,8 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
 /**
  * Reusable prototype that implements `Pipeable.pipe`.
  *
+ * **When to use**
+ *
  * Classes or object prototypes can reuse this value when they need the
  * standard pipe implementation backed by `pipeArguments`.
  *
@@ -608,6 +614,8 @@ export const Prototype: Pipeable = {
 /**
  * Base constructor whose instances implement the standard `Pipeable.pipe`
  * method.
+ *
+ * **When to use**
  *
  * Extend or compose this constructor when defining a class that should support
  * Effect-style method chaining through `.pipe(...)`.
@@ -634,6 +642,8 @@ export interface PipeableConstructor {
 /**
  * Returns a subclass of the provided class that adds the standard `pipe`
  * method.
+ *
+ * **Details**
  *
  * The original constructor and instance members are preserved, and the added
  * method delegates to `pipeArguments`.

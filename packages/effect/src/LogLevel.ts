@@ -45,7 +45,10 @@ import * as Ord from "./Order.ts"
 import * as References from "./References.ts"
 
 /**
- * Represents the severity level of a log message.
+ * Represents every level used by Effect logging, including concrete message
+ * severities and the `All` and `None` sentinel levels.
+ *
+ * **Details**
  *
  * The levels are ordered from most severe to least severe:
  * - `All` - Special level that allows all messages
@@ -103,6 +106,8 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
 /**
  * An `Order` instance for `LogLevel` that defines the severity ordering.
  *
+ * **Details**
+ *
  * This order treats "All" as the least restrictive level and "None" as the most restrictive,
  * with Fatal being the most severe actual log level.
  *
@@ -150,8 +155,14 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
 /**
  * Determines if the first log level is more severe than the second.
  *
+ * **When to use**
+ *
+ * Use this for strict severity comparisons when filtering logs based on minimum
+ * severity requirements.
+ *
+ * **Details**
+ *
  * Returns `true` if `self` represents a more severe level than `that`.
- * This is useful for filtering logs based on minimum severity requirements.
  *
  * **Example** (Checking higher severity)
  *
@@ -187,8 +198,13 @@ export const isGreaterThan: {
 /**
  * Determines if the first log level is more severe than or equal to the second.
  *
+ * **When to use**
+ *
+ * Use this for implementing minimum log level filtering.
+ *
+ * **Details**
+ *
  * Returns `true` if `self` represents a level that is more severe than or equal to `that`.
- * This is the most common function for implementing minimum log level filtering.
  *
  * **Example** (Filtering by minimum log level)
  *
@@ -232,8 +248,14 @@ export const isGreaterThanOrEqualTo: {
 /**
  * Determines if the first log level is less severe than the second.
  *
+ * **When to use**
+ *
+ * Use this for strict severity comparisons when filtering out logs that are too
+ * verbose.
+ *
+ * **Details**
+ *
  * Returns `true` if `self` represents a less severe level than `that`.
- * This is useful for filtering out logs that are too verbose.
  *
  * **Example** (Checking lower severity)
  *
@@ -269,8 +291,13 @@ export const isLessThan: {
 /**
  * Determines if the first log level is less severe than or equal to the second.
  *
+ * **When to use**
+ *
+ * Use this for implementing maximum log level filtering.
+ *
+ * **Details**
+ *
  * Returns `true` if `self` represents a level that is less severe than or equal to `that`.
- * This is useful for implementing maximum log level filtering.
  *
  * **Example** (Filtering by maximum log level)
  *
@@ -311,6 +338,8 @@ export const isLessThanOrEqualTo: {
 
 /**
  * Checks whether a given log level is enabled for the current fiber.
+ *
+ * **Details**
  *
  * A log level is enabled when it is greater than or equal to
  * `References.MinimumLogLevel`.

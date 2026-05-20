@@ -282,6 +282,8 @@ export const fromIterableBy = <A, K extends string | symbol>(
 /**
  * Builds a record from an iterable of key-value pairs.
  *
+ * **Details**
+ *
  * If there are conflicting keys when using `fromEntries`, the last occurrence of the key/value pair will overwrite the
  * previous ones. So the resulting record will only have the value of the last occurrence of each key.
  *
@@ -478,6 +480,8 @@ export const modify: {
 /**
  * Replaces the value at an existing key and returns the updated record in
  * `Option.some`.
+ *
+ * **Details**
  *
  * If the key is not present, returns `Option.none()` and leaves the record
  * unchanged.
@@ -893,6 +897,8 @@ export const getSuccesses = <K extends string, A, E>(
  * Applies a function to each record entry and partitions the returned `Result`
  * values into two records.
  *
+ * **Details**
+ *
  * Failure values are collected in the left record, and success values are
  * collected in the right record, preserving the original keys.
  *
@@ -1083,6 +1089,8 @@ export const isSubrecordBy = <A>(equivalence: Equivalence<A>): {
 
 /**
  * Checks whether the first record is a subrecord of the second record.
+ *
+ * **Details**
  *
  * Returns `true` when every key and value in `self` is also present in `that`.
  * Values are compared with Effect equality via `Equal.asEquivalence()`.
@@ -1427,9 +1435,8 @@ export const singleton = <K extends string | symbol, A>(key: K, value: A): Recor
 } as any)
 
 /**
- * A `Reducer` for combining `Record`s using union.
- *
- * Values for keys that exist in both records are combined using the provided `Combiner`.
+ * Creates a `Reducer` for combining `Record`s using union, with values for keys that exist in both records combined
+ * using the provided `Combiner`.
  *
  * @category combining
  * @since 4.0.0
@@ -1444,6 +1451,8 @@ export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combine
 /**
  * Creates a `Reducer` whose `combine` operation intersects two records and
  * combines values for keys present in both records.
+ *
+ * **Gotchas**
  *
  * The reducer's `initialValue` is an empty record. Because intersection with
  * an empty record is empty, the default `combineAll` folds from `{}` and

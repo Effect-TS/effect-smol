@@ -62,6 +62,8 @@ export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
 /**
  * Structured error returned by event-log remote RPCs.
  *
+ * **Details**
+ *
  * It records the request tag, optional identity and store information, a protocol
  * error code, and a human-readable message.
  *
@@ -93,6 +95,8 @@ export class EventLogAuthentication extends RpcMiddleware.Service<EventLogAuthen
 
 /**
  * Response sent by the remote server during the authentication handshake.
+ *
+ * **Details**
  *
  * It contains the server remote id and a challenge that must be signed by the
  * client.
@@ -154,6 +158,8 @@ export class SingleMessage
 
 /**
  * Transport message for one part of a large encoded event-log payload.
+ *
+ * **When to use**
  *
  * Use `split` to divide data into chunks and `join` to reassemble all chunks with
  * the same id once every part has arrived.
@@ -252,6 +258,8 @@ export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
 /**
  * Msgpack-encodable payload for writing encrypted entries to a remote store.
  *
+ * **Details**
+ *
  * It includes the client public key, target store id, AES-GCM initialization
  * vector, and encrypted entries.
  *
@@ -310,6 +318,8 @@ export class WriteSingleRpc extends Rpc.make("EventLog.WriteSingle", {
 /**
  * Authenticated streaming RPC for reading remote event-log changes for a public
  * key and store id starting at a sequence number.
+ *
+ * **Details**
  *
  * Responses are encoded as either `SingleMessage` values or `ChunkedMessage`
  * parts.

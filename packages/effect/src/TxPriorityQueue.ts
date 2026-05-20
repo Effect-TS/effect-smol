@@ -24,6 +24,8 @@ const TypeId = "~effect/transactions/TxPriorityQueue"
 /**
  * A transactional priority queue backed by a sorted `Chunk`.
  *
+ * **Details**
+ *
  * Elements are stored in ascending order according to the `Order` provided at
  * construction time. `take` returns the smallest element, `peek` observes it
  * without removing.

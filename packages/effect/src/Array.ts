@@ -103,6 +103,8 @@ import type { NoInfer, TupleOf } from "./Types.ts"
 /**
  * Reference to the global `Array` constructor.
  *
+ * **When to use**
+ *
  * Use this when you need the native `Array` constructor while the `Array`
  * namespace is in scope (e.g. `Array.Array.isArray`, `Array.Array.from`).
  *
@@ -133,6 +135,8 @@ export interface ReadonlyArrayTypeLambda extends TypeLambda {
 /**
  * A readonly array guaranteed to have at least one element.
  *
+ * **When to use**
+ *
  * Use this type when you need to ensure non-emptiness at the type level while
  * preventing mutation. Many Array module functions accept or return this type.
  *
@@ -155,6 +159,8 @@ export type NonEmptyReadonlyArray<A> = readonly [A, ...Array<A>]
 
 /**
  * A mutable array guaranteed to have at least one element.
+ *
+ * **Details**
  *
  * This is the mutable counterpart of {@link NonEmptyReadonlyArray}. Most Array
  * module functions return `NonEmptyArray` when the result is guaranteed
@@ -179,6 +185,8 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
 
 /**
  * Creates a `NonEmptyArray` from one or more elements.
+ *
+ * **When to use**
  *
  * - Use when you have literal values and want a typed non-empty array.
  * - The element type is inferred as the union of all arguments.
@@ -206,6 +214,8 @@ export const make = <Elements extends NonEmptyArray<unknown>>(
 /**
  * Creates a new `Array` of the specified length with all slots uninitialized.
  *
+ * **When to use**
+ *
  * - Use when you need a pre-sized array and will fill it imperatively.
  * - Elements are typed as `A | undefined` since slots are empty.
  * - Prefer {@link makeBy} when you can compute each element from its index.
@@ -228,6 +238,8 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
 
 /**
  * Creates a `NonEmptyArray` of length `n` where element `i` is computed by `f(i)`.
+ *
+ * **When to use**
  *
  * - Use when you need an array whose values depend on the index.
  * - `n` is normalized to an integer >= 1 — always returns at least one element.
@@ -264,6 +276,8 @@ export const makeBy: {
  * Creates a `NonEmptyArray` containing a range of integers, inclusive on both
  * ends.
  *
+ * **When to use**
+ *
  * - Use when you need a sequence of consecutive integers.
  * - If `start > end`, returns `[start]`.
  * - Always returns a `NonEmptyArray`.
@@ -287,6 +301,8 @@ export const range = (start: number, end: number): NonEmptyArray<number> =>
 
 /**
  * Creates a `NonEmptyArray` containing a value repeated `n` times.
+ *
+ * **When to use**
  *
  * - Use when you need multiple copies of the same value.
  * - `n` is normalized to an integer >= 1 — always returns at least one element.
@@ -314,6 +330,8 @@ export const replicate: {
 /**
  * Converts an `Iterable` to an `Array`.
  *
+ * **Details**
+ *
  * - If the input is already an array, returns it **by reference** (no copy).
  * - Otherwise, creates a new array from the iterable.
  * - Use {@link copy} if you need a fresh array even when the input is already
@@ -340,6 +358,8 @@ export const fromIterable = <A>(collection: Iterable<A>): Array<A> =>
 /**
  * Normalizes a value that is either a single element or an array into an array.
  *
+ * **Details**
+ *
  * - If the input is already an array, returns it by reference.
  * - If the input is a single value, wraps it in a one-element array.
  * - Useful for APIs that accept `A | Array<A>`.
@@ -363,6 +383,8 @@ export const ensure = <A>(self: ReadonlyArray<A> | A): Array<A> => Array.isArray
 
 /**
  * Converts a record into an array of `[key, value]` tuples.
+ *
+ * **Details**
  *
  * - Key order follows `Object.entries` semantics.
  * - Returns an empty array for an empty record.
@@ -402,6 +424,8 @@ export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArra
 
 /**
  * Pattern-matches on an array, handling empty and non-empty cases separately.
+ *
+ * **When to use**
  *
  * - Use when you need to branch on whether an array has elements.
  * - `onNonEmpty` receives a `NonEmptyReadonlyArray`.
@@ -452,6 +476,8 @@ export const match: {
  * Pattern-matches on an array from the left, providing the first element and
  * the remaining elements separately.
  *
+ * **Details**
+ *
  * - `onNonEmpty` receives `(head, tail)` where `tail` is the rest of the array.
  * - Use when you want to process the first element differently from the rest.
  *
@@ -499,6 +525,8 @@ export const matchLeft: {
 /**
  * Pattern-matches on an array from the right, providing all elements except the
  * last and the last element separately.
+ *
+ * **Details**
  *
  * - `onNonEmpty` receives `(init, last)` where `init` is everything but the last element.
  * - Use when you want to process the last element differently from the rest.
@@ -550,6 +578,8 @@ export const matchRight: {
 /**
  * Adds a single element to the front of an iterable, returning a `NonEmptyArray`.
  *
+ * **Details**
+ *
  * - Always returns a non-empty array.
  * - Does not mutate the input.
  *
@@ -575,6 +605,8 @@ export const prepend: {
 
 /**
  * Prepends all elements from a prefix iterable to the front of an array.
+ *
+ * **Details**
  *
  * - If either input is non-empty, the result is a `NonEmptyArray`.
  * - Does not mutate the input.
@@ -609,6 +641,8 @@ export const prependAll: {
 /**
  * Adds a single element to the end of an iterable, returning a `NonEmptyArray`.
  *
+ * **Details**
+ *
  * - Always returns a non-empty array.
  * - Does not mutate the input.
  *
@@ -634,6 +668,8 @@ export const append: {
 
 /**
  * Concatenates two iterables into a single array.
+ *
+ * **Details**
  *
  * - If either input is non-empty, the result is a `NonEmptyArray`.
  * - Does not mutate the inputs.
@@ -667,6 +703,8 @@ export const appendAll: {
 
 /**
  * Left-to-right fold that keeps every intermediate accumulator value.
+ *
+ * **Details**
  *
  * - The output length is `input.length + 1` (starts with the initial value).
  * - Always returns a `NonEmptyArray` because the initial value is included.
@@ -703,6 +741,8 @@ export const scan: {
 /**
  * Right-to-left fold that keeps every intermediate accumulator value.
  *
+ * **Details**
+ *
  * - The output length is `input.length + 1` (ends with the initial value).
  * - Always returns a `NonEmptyArray`.
  *
@@ -736,6 +776,8 @@ export const scanRight: {
 
 /**
  * Tests whether a value is an `Array`.
+ *
+ * **Details**
  *
  * - Acts as a type guard narrowing the input to `Array<unknown>`.
  * - Delegates to `globalThis.Array.isArray`.
@@ -870,6 +912,8 @@ const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.mi
  * Safely reads an element at the given index, returning `Option.some` or
  * `Option.none` if the index is out of bounds.
  *
+ * **Details**
+ *
  * - The index is floored to an integer.
  * - Never throws.
  *
@@ -899,6 +943,8 @@ export const get: {
 
 /**
  * Reads an element at the given index, throwing if the index is out of bounds.
+ *
+ * **Details**
  *
  * - Throws an `Error` with the message `"Index out of bounds: <i>"`.
  * - Prefer {@link get} for safe access.
@@ -931,6 +977,8 @@ export const getUnsafe: {
 /**
  * Splits a non-empty array into its first element and the remaining elements.
  *
+ * **Details**
+ *
  * - Returns a tuple `[head, tail]`.
  * - Requires a `NonEmptyReadonlyArray`.
  *
@@ -957,6 +1005,8 @@ export const unprepend = <A>(
 /**
  * Splits a non-empty array into all elements except the last, and the last
  * element.
+ *
+ * **Details**
  *
  * - Returns a tuple `[init, last]`.
  * - Requires a `NonEmptyReadonlyArray`.
@@ -1065,6 +1115,8 @@ export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.
 /**
  * Returns all elements except the first, wrapped in an `Option`.
  *
+ * **Details**
+ *
  * - Allocates a new array via `slice(1)`.
  * - Returns `Option.none()` for empty inputs.
  *
@@ -1109,6 +1161,8 @@ export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
 
 /**
  * Returns all elements except the last, wrapped in an `Option`.
+ *
+ * **Details**
  *
  * - Allocates a new array via `slice(0, -1)`.
  * - Returns `Option.none()` for empty inputs.
@@ -1155,6 +1209,8 @@ export const initNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
 /**
  * Keeps the first `n` elements, creating a new array.
  *
+ * **Details**
+ *
  * - `n` is clamped to `[0, length]`.
  * - Returns an empty array when `n <= 0`.
  *
@@ -1183,6 +1239,8 @@ export const take: {
 
 /**
  * Keeps the last `n` elements, creating a new array.
+ *
+ * **Details**
  *
  * - `n` is clamped to `[0, length]`.
  * - Returns an empty array when `n <= 0`.
@@ -1213,6 +1271,8 @@ export const takeRight: {
 /**
  * Takes elements from the start while the predicate holds, stopping at the
  * first element that fails.
+ *
+ * **Details**
  *
  * - Supports refinements for type narrowing.
  * - The predicate receives `(element, index)`.
@@ -1253,6 +1313,8 @@ export const takeWhile: {
 /**
  * Takes elements from the start while a `Filter` succeeds, collecting transformed values.
  *
+ * **Details**
+ *
  * - The filter receives `(element, index)`.
  * - Stops at the first filter failure.
  *
@@ -1290,6 +1352,8 @@ const spanIndex = <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean
 /**
  * Splits an iterable into two arrays: the longest prefix where the predicate
  * holds, and the remaining elements.
+ *
+ * **Details**
  *
  * - Equivalent to `[takeWhile(pred), dropWhile(pred)]` but more efficient
  *   (single pass).
@@ -1331,6 +1395,8 @@ export const span: {
 /**
  * Removes the first `n` elements, creating a new array.
  *
+ * **Details**
+ *
  * - `n` is clamped to `[0, length]`.
  * - Returns a copy of the full array when `n <= 0`.
  *
@@ -1360,6 +1426,8 @@ export const drop: {
 /**
  * Removes the last `n` elements, creating a new array.
  *
+ * **Details**
+ *
  * - `n` is clamped to `[0, length]`.
  *
  * **Example** (Dropping from the end)
@@ -1386,6 +1454,8 @@ export const dropRight: {
 
 /**
  * Drops elements from the start while the predicate holds, returning the rest.
+ *
+ * **Details**
  *
  * - The predicate receives `(element, index)`.
  *
@@ -1420,6 +1490,8 @@ export const dropWhile: {
 
 /**
  * Drops elements from the start while a `Filter` succeeds.
+ *
+ * **Details**
  *
  * - The filter receives `(element, index)`.
  * - Returns the remaining original elements after the first filter failure.
@@ -1512,6 +1584,8 @@ export const findLastIndex: {
  * Returns the first element matching a predicate, refinement, or mapping
  * function, wrapped in `Option`.
  *
+ * **Details**
+ *
  * - Accepts a predicate `(a, i) => boolean`, a refinement, or a function
  *   `(a, i) => Option<B>` for simultaneous find-and-transform.
  * - Returns `Option.none()` if no element matches.
@@ -1543,6 +1617,8 @@ export const findFirst: {
 /**
  * Returns the first selected value together with its index, wrapped in an
  * `Option`.
+ *
+ * **Details**
  *
  * Accepts a predicate, a refinement, or a function returning `Option`. For an
  * `Option`-returning function, returns `[mappedValue, index]` for the first
@@ -1597,6 +1673,8 @@ export const findFirstWithIndex: {
  * Returns the last element matching a predicate, refinement, or mapping
  * function, wrapped in `Option`.
  *
+ * **Details**
+ *
  * - Searches from the end of the array.
  * - Returns `Option.none()` if no element matches.
  *
@@ -1649,6 +1727,8 @@ export const findLast: {
  * Inserts an element at the specified index, returning a new `NonEmptyArray`
  * wrapped in an `Option`.
  *
+ * **Details**
+ *
  * - Valid indices: `0` to `length` (inclusive — inserting at `length` appends).
  * - Does not mutate the input.
  *
@@ -1681,6 +1761,8 @@ export const insertAt: {
 /**
  * Replaces the element at the specified index with a new value, returning the
  * updated array in `Option.some`.
+ *
+ * **Details**
  *
  * - Returns `Option.none()` when the index is out of bounds.
  * - Does not mutate the input.
@@ -1716,6 +1798,8 @@ export const replace: {
 /**
  * Applies a function to the element at the specified index, returning the
  * updated array in `Option.some`.
+ *
+ * **Details**
  *
  * - Returns `Option.none()` when the index is out of bounds.
  * - Does not mutate the input.
@@ -1761,6 +1845,8 @@ export const modify: {
  * Removes the element at the specified index, returning a new array. If the
  * index is out of bounds, returns a copy of the original.
  *
+ * **Details**
+ *
  * - Does not mutate the input.
  *
  * **Example** (Removing an element)
@@ -1793,6 +1879,8 @@ export const remove: {
 /**
  * Reverses an iterable into a new array.
  *
+ * **Details**
+ *
  * - Does not mutate the input.
  * - Preserves `NonEmptyArray` in the return type.
  *
@@ -1814,6 +1902,8 @@ export const reverse = <S extends Iterable<any>>(
 
 /**
  * Sorts an array by the given `Order`, returning a new array.
+ *
+ * **Details**
  *
  * - Does not mutate the input.
  * - Preserves `NonEmptyArray` in the return type.
@@ -1850,6 +1940,8 @@ export const sort: {
  * Sorts an array by a derived key using a mapping function and an `Order` for
  * that key.
  *
+ * **Details**
+ *
  * - Equivalent to `sort(Order.mapInput(order, f))` but more convenient.
  * - Does not mutate the input.
  *
@@ -1884,6 +1976,8 @@ export const sortWith: {
 /**
  * Sorts an array by multiple `Order`s applied in sequence: the first order is
  * used first; ties are broken by the second order, and so on.
+ *
+ * **Details**
  *
  * - Data-last only (returns a function).
  * - Preserves `NonEmptyArray` in the return type.
@@ -1934,6 +2028,8 @@ export const sortBy = <S extends Iterable<any>>(
 /**
  * Pairs elements from two iterables by position. If the iterables differ in
  * length, the extra elements from the longer one are discarded.
+ *
+ * **Details**
  *
  * - Returns `NonEmptyArray` when both inputs are non-empty.
  *
@@ -2033,6 +2129,8 @@ export const unzip: <S extends Iterable<readonly [any, any]>>(
 
 /**
  * Places a separator element between every pair of elements.
+ *
+ * **Details**
  *
  * - Preserves `NonEmptyArray` in the return type.
  * - An empty input produces an empty result.
@@ -2182,6 +2280,8 @@ export const setLastNonEmpty: {
  * Rotates an array by `n` steps. Positive `n` rotates right; negative `n`
  * rotates left.
  *
+ * **Details**
+ *
  * - `n` is rounded to the nearest integer before rotating.
  * - Preserves `NonEmptyArray` in the return type.
  * - Returns a copy for empty arrays or when the normalized rotation is `0`.
@@ -2275,6 +2375,8 @@ export const contains: {
  * Repeatedly applies a function that consumes a prefix of the array and
  * produces a value plus the remaining elements, collecting the values.
  *
+ * **Details**
+ *
  * - The function receives a `NonEmptyReadonlyArray` and returns
  *   `[value, rest]`.
  * - Continues until the remaining array is empty.
@@ -2331,6 +2433,8 @@ export const chop: {
 
 /**
  * Splits an iterable into two arrays at the given index.
+ *
+ * **Details**
  *
  * - `n` can be `0` (all elements in the second array).
  * - `n` is floored to an integer.
@@ -2395,6 +2499,8 @@ export const splitAtNonEmpty: {
 /**
  * Splits an iterable into `n` roughly equal-sized chunks.
  *
+ * **Details**
+ *
  * - Uses `chunksOf(ceil(length / n))` internally.
  * - The last chunk may be shorter.
  *
@@ -2451,6 +2557,8 @@ export const splitWhere: {
 /**
  * Creates a shallow copy of an array.
  *
+ * **Details**
+ *
  * - Preserves `NonEmptyArray` in the return type.
  * - Useful when you need a distinct reference (e.g. before mutating).
  *
@@ -2478,6 +2586,8 @@ export const copy: {
 /**
  * Pads or truncates an array to exactly `n` elements, filling with `fill`
  * if the array is shorter, or slicing if longer.
+ *
+ * **Details**
  *
  * - Returns an empty array when `n <= 0`.
  *
@@ -2517,6 +2627,8 @@ export const pad: {
  * Splits an iterable into chunks of length `n`. The last chunk may be shorter
  * if `n` does not evenly divide the length.
  *
+ * **Details**
+ *
  * - `chunksOf(n)([])` is `[]`, not `[[]]`.
  * - Each chunk is a `NonEmptyArray`.
  * - Preserves `NonEmptyArray` in the outer return type.
@@ -2554,6 +2666,8 @@ export const chunksOf: {
 /**
  * Creates overlapping sliding windows of size `n`.
  *
+ * **Details**
+ *
  * - Returns an empty array if `n <= 0` or the array has fewer than `n` elements.
  * - Each window is a tuple of exactly `n` elements.
  *
@@ -2587,6 +2701,8 @@ export const window: {
 
 /**
  * Groups consecutive equal elements using a custom equivalence function.
+ *
+ * **Details**
  *
  * - Only groups **adjacent** elements — non-adjacent duplicates stay separate.
  * - Requires a `NonEmptyReadonlyArray`.
@@ -2631,6 +2747,8 @@ export const groupWith: {
 /**
  * Groups consecutive equal elements using `Equal.equivalence()`.
  *
+ * **Details**
+ *
  * - Only groups **adjacent** elements.
  *
  * **Example** (Grouping adjacent equal elements)
@@ -2654,6 +2772,8 @@ export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmpt
 /**
  * Groups elements into a record by a key-returning function. Each key maps
  * to a `NonEmptyArray` of elements that produced that key.
+ *
+ * **Details**
  *
  * - Unlike {@link group}/{@link groupWith}, elements do not need to be
  *   adjacent to be grouped together.
@@ -3065,6 +3185,8 @@ export declare namespace ReadonlyArray {
 /**
  * Transforms each element using a function, returning a new array.
  *
+ * **Details**
+ *
  * - The function receives `(element, index)`.
  * - Preserves `NonEmptyArray` in the return type.
  *
@@ -3090,6 +3212,8 @@ export const map: {
 
 /**
  * Maps each element to an array and flattens the results into a single array.
+ *
+ * **Details**
  *
  * - The function receives `(element, index)`.
  * - Returns `NonEmptyArray` when both input and mapped arrays are non-empty.
@@ -3247,6 +3371,8 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
 /**
  * Keeps transformed values for elements where a `Filter` succeeds.
  *
+ * **Details**
+ *
  * - The filter receives `(element, index)`.
  * - Failures are discarded.
  *
@@ -3281,6 +3407,8 @@ export const filterMap: {
 
 /**
  * Keeps only elements satisfying a predicate (or refinement).
+ *
+ * **Details**
  *
  * - The predicate receives `(element, index)`.
  * - Supports refinements for type narrowing.
@@ -3319,6 +3447,8 @@ export const filter: {
 
 /**
  * Splits an iterable using a `Filter` into failures and successes.
+ *
+ * **Details**
  *
  * - Returns `[excluded, satisfying]`.
  * - The filter receives `(element, index)`.
@@ -3372,6 +3502,8 @@ export const partition: {
 /**
  * Separates an iterable of `Result`s into failure values and success values.
  *
+ * **Details**
+ *
  * - Returns `[failures, successes]`.
  * - Equivalent to `partition(identity)`.
  *
@@ -3403,6 +3535,8 @@ export const separate: <T extends Iterable<Result.Result<any, any>>>(
 /**
  * Folds an iterable from left to right into a single value.
  *
+ * **Details**
+ *
  * - The function receives `(accumulator, element, index)`.
  *
  * **Example** (Summing an array)
@@ -3430,6 +3564,8 @@ export const reduce: {
 
 /**
  * Folds an iterable from right to left into a single value.
+ *
+ * **Details**
  *
  * - The function receives `(accumulator, element, index)`.
  *
@@ -3681,6 +3817,8 @@ export const some: {
  * Applies a function to each suffix of the array (starting from each index),
  * collecting the results.
  *
+ * **Details**
+ *
  * - For index `i`, the function receives `self.slice(i)`.
  *
  * **Example** (Suffix lengths)
@@ -3914,6 +4052,8 @@ export const dedupe = <S extends Iterable<any>>(
 /**
  * Removes consecutive duplicate elements using a custom equivalence.
  *
+ * **Details**
+ *
  * - Non-adjacent duplicates are preserved.
  *
  * **Example** (Deduplicating adjacent elements)
@@ -3989,6 +4129,8 @@ export const join: {
 /**
  * Maps over an array while threading an accumulator through each step, returning both the final state and the mapped array.
  *
+ * **Details**
+ *
  * - Combines `map` and `reduce` in a single pass.
  * - The callback receives the current state, element, and index, and returns `[nextState, mappedValue]`.
  * - Returns `[finalState, mappedArray]`.
@@ -4038,6 +4180,8 @@ export const mapAccum: {
 /**
  * Computes the cartesian product of two arrays, applying a combiner to each pair.
  *
+ * **Details**
+ *
  * - Produces every combination of an element from `self` with an element from `that`.
  * - Result length is `self.length * that.length`.
  * - Order: iterates `that` for each element of `self`.
@@ -4067,6 +4211,8 @@ export const cartesianWith: {
 
 /**
  * Computes the cartesian product of two arrays, returning all pairs as tuples.
+ *
+ * **Details**
  *
  * - Produces every `[a, b]` combination of an element from `self` with an element from `that`.
  * - Result length is `self.length * that.length`.
@@ -4100,6 +4246,8 @@ export const cartesian: {
 /**
  * Starting point for the "do simulation" — an array comprehension pattern.
  *
+ * **When to use**
+ *
  * - Begin a pipeline with `Do`, then use {@link bind} to introduce array variables and {@link let_ let} for plain values.
  * - Each `bind` produces the cartesian product of all bound variables (like nested loops).
  * - Use `filter` and `map` in the pipeline to add conditions and transformations.
@@ -4130,6 +4278,8 @@ export const Do: ReadonlyArray<{}> = of({})
 
 /**
  * Introduces a new array variable into a do-notation scope, producing the cartesian product with all previous bindings.
+ *
+ * **Details**
  *
  * - Each `bind` call adds a named property to the accumulated object.
  * - The callback receives the current scope and must return an array.
@@ -4173,6 +4323,8 @@ export const bind: {
 /**
  * Names the elements of an array by wrapping each in an object with the given key, starting a do-notation scope.
  *
+ * **Details**
+ *
  * - Equivalent to `Array.map(self, (a) => ({ [tag]: a }))`.
  * - Alternative to starting with `Do` + `bind`; useful when you already have an array.
  *
@@ -4214,6 +4366,8 @@ const let_: {
 export {
   /**
    * Adds a computed plain value to the do-notation scope without introducing a new array dimension.
+   *
+   * **Details**
    *
    * - Unlike {@link bind}, the callback returns a single value (not an array), so no cartesian product occurs.
    * - Useful for derived or intermediate values that depend on previously bound variables.
@@ -4269,6 +4423,8 @@ export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
 
 /**
  * Counts the elements in an iterable that satisfy a predicate.
+ *
+ * **Details**
  *
  * - The predicate receives both the element and its index.
  * - Returns `0` for an empty iterable.

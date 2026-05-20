@@ -46,8 +46,10 @@ import type { EqualsWith, ExcludeTag, ExtractReason, ExtractTag, ReasonTags, Tag
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.
  *
- * A filter takes an input value and either returns a boxed pass value or
- * the special `fail` type to indicate the value should be filtered out.
+ * **Details**
+ *
+ * A filter takes an input value and either returns a boxed pass value or the
+ * special `fail` type to indicate the value should be filtered out.
  *
  * **Example** (Defining a positive number filter)
  *
@@ -71,8 +73,11 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
 /**
  * Represents an effectful filter function that can produce Effects.
  *
- * Similar to a regular Filter, but the filtering operation itself can be effectful,
- * allowing for asynchronous operations, error handling, and dependency injection.
+ * **Details**
+ *
+ * Similar to a regular `Filter`, but the filtering operation itself can be
+ * effectful, allowing for asynchronous operations, error handling, and
+ * dependency injection.
  *
  * **Example** (Defining an effectful user filter)
  *
@@ -116,6 +121,8 @@ export interface FilterEffect<
 /**
  * Creates a Filter from a function that returns either a `pass` or `fail` value.
  *
+ * **Details**
+ *
  * This is the primary constructor for creating custom filters. The function
  * should return either `Result.succeed(value)` or `Result.fail(value)`.
  *
@@ -143,9 +150,11 @@ export const make = <Input, Pass, Fail>(
 /**
  * Creates an effectful Filter from a function that returns an Effect.
  *
+ * **Details**
+ *
  * This constructor is used when the filtering operation needs to perform
- * effectful computations, such as async operations, error handling, or
- * accessing services from the environment.
+ * effectful computations, such as async operations, error handling, or accessing
+ * services from the environment.
  *
  * **Example** (Creating effectful filters)
  *
@@ -209,6 +218,8 @@ export {
 /**
  * Creates a Filter from a predicate or refinement function.
  *
+ * **Details**
+ *
  * This is a convenient way to create filters from boolean-returning functions.
  * When the predicate returns true, the input value is passed through unchanged.
  * When it returns false, the `fail` type is returned.
@@ -238,9 +249,8 @@ export const fromPredicate: {
   predicate(input) ? Result.succeed(input as B) : Result.fail(input)
 
 /**
- * Creates a `Filter` from a function that returns an `Option`.
- *
- * `Some(value)` passes with `value`. `None` fails with the original input.
+ * Creates a `Filter` from a function that returns an `Option`; `Some(value)`
+ * passes with `value`, and `None` fails with the original input.
  *
  * @category constructors
  * @since 4.0.0
@@ -454,6 +464,8 @@ export const or: {
 /**
  * Combines two filters and applies a function to their results.
  *
+ * **Details**
+ *
  * Both filters must succeed (not return `fail`) for the combination to succeed.
  * If both filters pass, their outputs are combined using the provided function.
  *
@@ -486,8 +498,10 @@ export const zipWith: {
 /**
  * Combines two filters into a tuple of their results.
  *
- * Both filters must succeed for the combination to succeed. If both pass,
- * their outputs are combined into a tuple.
+ * **Details**
+ *
+ * Both filters must succeed for the combination to succeed. If both pass, their
+ * outputs are combined into a tuple.
  *
  * **Example** (Zipping filters)
  *
@@ -623,8 +637,10 @@ export const compose: {
 })
 
 /**
- * Composes two filters sequentially, passing the successful output of the
- * first filter to the second.
+ * Composes two filters sequentially, passing the successful output of the first
+ * filter to the second.
+ *
+ * **Details**
  *
  * If either filter fails, the returned filter fails with the original input
  * instead of the intermediate failure value.

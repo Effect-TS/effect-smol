@@ -60,6 +60,8 @@ export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRe
 /**
  * Schema for `Cookies` collections.
  *
+ * **Details**
+ *
  * JSON encoding uses `Set-Cookie` header strings, while isomorphic encoding uses
  * a readonly record of cookie values.
  *
@@ -183,6 +185,8 @@ export class CookiesErrorReason extends Data.Error<{
 
 /**
  * Error returned when a cookie name, value, domain, path, or max-age option is invalid.
+ *
+ * **Details**
  *
  * Inspect `reason` to determine the specific validation failure.
  *
@@ -443,6 +447,8 @@ const CookieProto = {
 /**
  * Creates a cookie, validating the name, encoded value, domain, path, and finite `maxAge`.
  *
+ * **Details**
+ *
  * Returns a `CookiesError` in the `Result` failure channel when validation fails.
  *
  * @category constructors
@@ -574,6 +580,8 @@ export const get: {
 /**
  * Gets the decoded value of a cookie by name.
  *
+ * **Details**
+ *
  * Returns `Option.none()` when the cookie is not present.
  *
  * @category combinators
@@ -589,6 +597,8 @@ export const getValue: {
 
 /**
  * Creates and adds a cookie by name and value.
+ *
+ * **Details**
  *
  * The cookie fields are validated first; invalid input returns a `CookiesError` in the `Result` failure channel.
  *
@@ -646,6 +656,8 @@ export const setUnsafe: {
 
 /**
  * Adds an expired cookie with an empty value, `Max-Age=0`, and an epoch `Expires` value.
+ *
+ * **Details**
  *
  * Returns a `CookiesError` in the `Result` failure channel when the name or options are invalid.
  *
@@ -709,6 +721,8 @@ export const expireCookieUnsafe: {
 /**
  * Creates and adds multiple cookies from name/value/options tuples.
  *
+ * **Details**
+ *
  * If any tuple is invalid, returns the first `CookiesError` and leaves the original collection unchanged.
  *
  * @category combinators
@@ -759,6 +773,8 @@ export const setAllUnsafe: {
 
 /**
  * Serialize a cookie into a string
+ *
+ * **Details**
  *
  * Adapted from https://github.com/fastify/fastify-cookie under MIT License
  *
@@ -886,6 +902,8 @@ export const toSetCookieHeaders = (self: Cookies): Array<string> => Object.value
 
 /**
  * Parse a cookie header into a record of key-value pairs
+ *
+ * **Details**
  *
  * Adapted from https://github.com/fastify/fastify-cookie under MIT License
  *

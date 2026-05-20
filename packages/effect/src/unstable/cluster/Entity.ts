@@ -78,6 +78,8 @@ const TypeId = "~effect/cluster/Entity"
 /**
  * Represents a cluster entity type and the RPC protocol it can handle.
  *
+ * **Details**
+ *
  * An entity defines how ids map to shard groups, exposes a sharded client, and
  * can be registered as a layer using RPC handlers or a mailbox queue.
  *
@@ -147,6 +149,8 @@ export interface Entity<
   /**
    * Create a Layer from an Entity.
    *
+   * **Details**
+   *
    * It will register the entity with the Sharding service.
    */
   toLayer<
@@ -177,6 +181,8 @@ export interface Entity<
 
   /**
    * Create a Layer from an Entity.
+   *
+   * **Details**
    *
    * It will register the entity with the Sharding service.
    */
@@ -228,6 +234,8 @@ export type Any = Entity<string, Rpc.Any>
  * Maps each RPC in an entity protocol to the handler function expected by
  * `Entity.toLayer`.
  *
+ * **Details**
+ *
  * Each handler receives the entity request envelope for that RPC and returns the
  * RPC result or a supported RPC wrapper.
  *
@@ -242,6 +250,8 @@ export type HandlersFrom<Rpc extends Rpc.Any> = {
 
 /**
  * Returns `true` when the supplied value is a cluster `Entity`.
+ *
+ * **Details**
  *
  * The check is based on the internal entity type identifier.
  *
@@ -477,6 +487,8 @@ export class CurrentRunnerAddress extends Context.Service<
 /**
  * Reply API passed to queue-based entity handlers.
  *
+ * **When to use**
+ *
  * Use it to complete an entity request by succeeding, failing, failing with a
  * cause, or supplying an explicit `Exit`.
  *
@@ -514,6 +526,8 @@ export declare namespace Replier {
   /**
    * Success value accepted by a `Replier` for a single RPC.
    *
+   * **Details**
+   *
    * For streaming RPCs this may be either a stream of success chunks or a dequeue
    * of success chunks. For non-streaming RPCs it is the RPC success value.
    *
@@ -527,6 +541,8 @@ export declare namespace Replier {
 
 /**
  * Entity request envelope delivered to entity handlers.
+ *
+ * **Details**
  *
  * It includes the underlying request envelope plus the last stream reply chunk
  * that was sent, allowing handlers to resume chunk sequencing after a restart.
@@ -565,6 +581,8 @@ const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/clust
 
 /**
  * Builds an in-memory test client for an entity layer.
+ *
+ * **Details**
  *
  * The returned function creates a no-serialization RPC client for each entity ID,
  * using a test sharding service instead of the cluster transport.
@@ -673,6 +691,8 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
 /**
  * Enables or disables keep-alive for the current entity.
  *
+ * **Details**
+ *
  * When enabled it sends the internal keep-alive RPC for the current address; when
  * disabled it releases the keep-alive latch if one is present.
  *
@@ -727,6 +747,8 @@ export const keepAlive: (
 /**
  * Internal persisted RPC used to keep an entity active while a resource is held.
  *
+ * **Details**
+ *
  * The RPC is marked as persisted and uninterruptible so the keep-alive signal
  * survives normal entity restarts.
  *
@@ -739,6 +761,8 @@ export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
 
 /**
  * Service tag for the latch that coordinates entity keep-alive state.
+ *
+ * **Details**
  *
  * `keepAlive` closes the latch when keep-alive is active and opens it again when
  * the resource no longer needs to keep the entity alive.
