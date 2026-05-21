@@ -5,6 +5,12 @@
   "private": true,
   "license": "MIT",
   "description": "JSDoc extraction tools for Effect",
+  "homepage": "https://effect.website",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
+    "directory": "packages/tools/jsdocs"
+  },
   "sideEffects": [],
   "bin": {
     "effect-jsdocs": "./src/bin.ts"
