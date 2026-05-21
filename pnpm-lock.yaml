@@ -43,6 +43,9 @@ importers:
       '@effect/docgen':
         specifier: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e57e5f5
         version: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e57e5f5(tsx@4.21.0)(typescript@6.0.3)
+      '@effect/jsdocs':
+        specifier: workspace:^
+        version: link:packages/tools/jsdocs
       '@effect/language-service':
         specifier: ^0.85.1
         version: 0.85.1
@@ -752,6 +755,25 @@ importers:
         specifier: ^25.7.0
         version: 25.7.0
 
+  packages/tools/jsdocs:
+    dependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+      glob:
+        specifier: ^13.0.6
+        version: 13.0.6
+    devDependencies:
+      '@types/node':
+        specifier: ^25.7.0
+        version: 25.7.0
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.4(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@25.7.0)(@vitest/coverage-v8@4.1.4)(happy-dom@20.9.0)(jsdom@29.1.1)(vite@7.3.3(@types/node@25.7.0)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.9.0))
+
   packages/tools/openapi-generator:
     dependencies:
       '@effect/platform-node':
@@ -778,6 +800,10 @@ importers:
         version: 2.9.0
 
   packages/tools/oxc:
+    dependencies:
+      '@effect/jsdocs':
+        specifier: workspace:^
+        version: link:../jsdocs
     devDependencies:
       '@types/node':
         specifier: ^25.7.0

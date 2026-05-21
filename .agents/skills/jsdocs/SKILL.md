@@ -1,6 +1,6 @@
 ---
-name: standard-jsdoc
-description: Write, insert, or update Effect public API JSDoc so it satisfies the standard-jsdoc oxlint rule. Use when adding or fixing JSDoc comments, resolving standard-jsdoc diagnostics, preparing docs for JSON extraction, or reviewing public API documentation.
+name: jsdocs
+description: Write, insert, or update Effect public API JSDoc so it satisfies the jsdocs oxlint rule. Use when adding or fixing JSDoc comments, resolving jsdocs diagnostics, preparing docs for JSON extraction, or reviewing public API documentation.
 ---
 
 Use this skill to write well-formed JSDoc for Effect public APIs.

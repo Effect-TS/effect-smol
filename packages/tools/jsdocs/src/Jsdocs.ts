@@ -1,79 +1,15 @@
 /*
 AI prompt for writing Effect public API JSDoc:
 
-Prescription for LLMs editing this file: whenever you change the standard-jsdoc rule, parser, diagnostics, accepted tags, required tags, supported constructs, ignored constructs, examples, or spacing rules, update this prompt and `.agents/skills/standard-jsdoc/SKILL.md` in the same change so they remain aligned and this prompt remains the source of truth for writing valid JSDoc.
-
-Write or update the JSDoc so it follows this exact structure. Use sober, practical prose. Do not use jargon when a plain word works. Do not be clever. Do not add filler sections.
-
-Required shape:
-
-Short description as one paragraph.
-
-**When to use**
-
-Optional practical usage guidance. Include this section only when it helps the reader decide whether to use the API.
-
-**Details**
-
-Optional details for complex APIs, options, overloads, or behavior that needs more than the short description.
-
-**Gotchas**
-
-Optional edge cases, footguns, or surprising behavior.
-
-**Example** (Short title)
-
-Optional prose explaining the example.
-
-```ts
-const result = example()
-```
-
-@deprecated Optional replacement guidance.
-@default Optional member default value. Members only.
-@see Optional related API or text. May include {@link Symbol}.
-@category Required for root declarations; optional for namespaces and declarations inside namespaces.
-@since Required for root declarations, namespaces, and namespace declarations. Use stable semver like 1.2.3.
-
-Rules:
-
-- Use a normal multiline JSDoc comment in source code, with leading `*` on each line as TypeScript expects.
-- The short description is required and must be exactly one paragraph.
-- The standard sections are optional, but if present they must appear in this order: When to use, Details, Gotchas.
-- A present section must have a non-empty body.
-- Use exactly one blank line between the short description, sections, examples, and tags.
-- Examples must use `**Example** (Title)`, optional prose, and exactly one non-empty `ts` code fence.
-- Do not use `@example`; examples are Markdown sections, not tags.
-- Do not put TypeScript code fences outside example sections.
-- Root declarations require `@category` and `@since`.
-- Namespace docs and declarations inside namespaces require `@since` and may use `@category`.
-- Member JSDoc is optional. When present, members do not require `@since`, may use `@default`, and must not use `@category`.
-- `@internal` means the item is ignored; do not validate or rewrite it as public docs.
-- Do not document module-level comments; this rule ignores module JSDoc.
-- Default exports are ignored by this rule and do not need JSDoc.
-- Do not add unsupported constructs such as enums or empty exports in checked files.
-
-When updating existing JSDoc:
-
-1. Keep correct facts and examples, but rewrite the layout into the standard template.
-2. Move any usage guidance into `**When to use**`.
-3. Move option/overload/behavior details into `**Details**`.
-4. Move caveats into `**Gotchas**`.
-5. Convert `@example` tags or loose `ts` fences into `**Example** (Title)` sections.
-6. Preserve `@see`, `@deprecated`, `@default`, `@category`, and `@since` when valid for the documented item.
-7. Remove sections that would be empty.
+This package owns Effect public API JSDoc parsing, extraction, and model generation.
 */
 
+import * as Effect from "effect/Effect"
+import { globSync } from "glob"
+import * as crypto from "node:crypto"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import type { CreateRule, ESTree, Visitor } from "oxlint"
 import * as ts from "typescript"
-
-interface RuleOptions {
-  readonly include?: Array<string>
-  readonly exclude?: Array<string>
-  readonly tsconfig?: string
-}
 
 type ExportBucket = "value" | "type"
 type DocScope = "declaration" | "namespace" | "namespace-declaration" | "member"
@@ -83,12 +19,12 @@ type Result<A, E> =
   | { readonly _tag: "Failure"; readonly error: E }
 
 /**
- * Result type returned by the standard JSDoc parser helpers.
+ * Result type returned by the JSDoc parser helpers.
  *
  * @category utility types
  * @since 4.0.0
  */
-export type StandardJSDocResult<A, E> = Result<A, E>
+export type JSDocResult<A, E> = Result<A, E>
 
 /**
  * Diagnostic emitted when a JSDoc block does not follow the standard shape.
@@ -96,7 +32,7 @@ export type StandardJSDocResult<A, E> = Result<A, E>
  * @category models
  * @since 4.0.0
  */
-export interface StandardJSDocDiagnostic {
+export interface JSDocDiagnostic {
   readonly code: string
   readonly message: string
 }
@@ -107,8 +43,8 @@ export interface StandardJSDocDiagnostic {
  * @category models
  * @since 4.0.0
  */
-export interface StandardJSDocParseError {
-  readonly diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
+export interface JSDocParseError {
+  readonly diagnostics: ReadonlyArray<JSDocDiagnostic>
 }
 
 /**
@@ -135,7 +71,7 @@ export interface ParsedInlineLink {
 }
 
 /**
- * Parsed standard JSDoc description sections.
+ * Parsed JSDoc description sections.
  *
  * @category models
  * @since 4.0.0
@@ -148,7 +84,7 @@ export interface ParsedDescription {
 }
 
 /**
- * Parsed example section from a standard JSDoc block.
+ * Parsed example section from a JSDoc block.
  *
  * @category models
  * @since 4.0.0
@@ -262,18 +198,18 @@ export interface ParsedNamespace {
  * @category models
  * @since 4.0.0
  */
-export interface ParsedStandardJSDocFile {
+export interface ParsedJSDocFile {
   readonly declarations: ReadonlyArray<ParsedRootDeclaration>
   readonly namespaces: ReadonlyArray<ParsedNamespace>
 }
 
 /**
- * Barrel import metadata for a public module included in the standard JSDoc dump.
+ * Barrel import metadata for a public module included in the JSDoc dump.
  *
  * @category models
  * @since 4.0.0
  */
-export type ParsedStandardJSDocBarrelImport =
+export type ParsedJSDocBarrelImport =
   | {
     readonly type: "namespace"
     readonly module: string
@@ -285,14 +221,14 @@ export type ParsedStandardJSDocBarrelImport =
   }
 
 /**
- * Import specifiers for a public module included in the standard JSDoc dump.
+ * Import specifiers for a public module included in the JSDoc dump.
  *
  * @category models
  * @since 4.0.0
  */
-export interface ParsedStandardJSDocImports {
+export interface ParsedJSDocImports {
   readonly module: string
-  readonly barrel: ParsedStandardJSDocBarrelImport | null
+  readonly barrel: ParsedJSDocBarrelImport | null
 }
 
 interface ParsedBarrelExports {
@@ -306,9 +242,9 @@ interface ParsedBarrelExports {
  * @category models
  * @since 4.0.0
  */
-export interface ParsedStandardJSDocFileDumpEntry extends ParsedStandardJSDocFile {
+export interface ParsedJSDocFileDumpEntry extends ParsedJSDocFile {
   readonly file: string
-  readonly imports: ParsedStandardJSDocImports
+  readonly imports: ParsedJSDocImports
 }
 
 interface AstNode {
@@ -329,7 +265,7 @@ interface JSDocBlock {
   readonly lines: Array<string>
   readonly tags: Array<JSDocTag>
   readonly parsed?: ParsedCoreJSDoc
-  readonly diagnostics: Array<StandardJSDocDiagnostic>
+  readonly diagnostics: Array<JSDocDiagnostic>
   readonly internal: boolean
 }
 
@@ -369,55 +305,6 @@ interface ParsedConfigResult {
 const programCache = new Map<string, ProgramCacheEntry>()
 const packageMetadataCache = new Map<string, Result<PackageMetadata, string>>()
 const barrelExportCache = new Map<string, Result<ParsedBarrelExports, string>>()
-const dumpStateKey = Symbol.for("@effect/oxc/standard-jsdoc/dump-state")
-
-interface StandardJSDocDumpState {
-  readonly entries: Array<ParsedStandardJSDocFileDumpEntry>
-  registered: boolean
-  cwd: string
-  errorCount: number
-}
-
-function getDumpState(cwd: string): StandardJSDocDumpState {
-  const normalizedCwd = path.resolve(cwd)
-  const global = globalThis as typeof globalThis & { [dumpStateKey]?: Map<string, StandardJSDocDumpState> }
-  if (global[dumpStateKey] === undefined) {
-    global[dumpStateKey] = new Map()
-  }
-  let state = global[dumpStateKey].get(normalizedCwd)
-  if (state === undefined) {
-    state = { entries: [], registered: false, cwd: normalizedCwd, errorCount: 0 }
-    global[dumpStateKey].set(normalizedCwd, state)
-  }
-  return state
-}
-
-function recordDumpError(cwd: string) {
-  getDumpState(cwd).errorCount++
-}
-
-function registerDump(cwd: string, entry: ParsedStandardJSDocFileDumpEntry) {
-  const state = getDumpState(cwd)
-  state.entries.push(entry)
-  if (state.registered) {
-    return
-  }
-  state.registered = true
-  state.cwd = path.resolve(cwd)
-  process.once("exit", () => {
-    if (state.errorCount > 0) {
-      return
-    }
-    const dataDirectory = path.join(state.cwd, ".data")
-    const files = [...state.entries].sort((a, b) => a.file < b.file ? -1 : a.file > b.file ? 1 : 0)
-    fs.mkdirSync(dataDirectory, { recursive: true })
-    fs.writeFileSync(
-      path.join(dataDirectory, "standard-jsdoc.json"),
-      `${JSON.stringify({ files }, null, 2)}\n`
-    )
-  })
-}
-
 const tagOrder = new Map([
   ["deprecated", 0],
   ["default", 1],
@@ -429,7 +316,7 @@ const tagOrder = new Map([
 const stableSemverRegex = /^\d+\.\d+\.\d+$/
 const urlRegex = /^https?:\/\//
 
-function diagnostic(code: string, message: string): StandardJSDocDiagnostic {
+function diagnostic(code: string, message: string): JSDocDiagnostic {
   return { code, message }
 }
 
@@ -467,12 +354,12 @@ function globToRegExp(glob: string): RegExp {
 }
 
 /**
- * Creates a predicate that checks whether a filename is included by the configured standard JSDoc globs.
+ * Creates a predicate that checks whether a filename is included by the configured JSDoc globs.
  *
  * @category constructors
  * @since 4.0.0
  */
-export function createStandardJSDocFileMatcher(options: {
+export function createJSDocFileMatcher(options: {
   readonly cwd: string
   readonly include?: ReadonlyArray<string>
   readonly exclude?: ReadonlyArray<string>
@@ -675,7 +562,7 @@ function packageSpecifier(packageName: string, subpath: string): string {
 function resolveBarrelImport(
   metadata: PackageMetadata,
   filename: string
-): Result<ParsedStandardJSDocBarrelImport | null, string> {
+): Result<ParsedJSDocBarrelImport | null, string> {
   let directory = path.dirname(filename)
   while (isPathInside(metadata.sourceRoot, directory)) {
     const indexPath = path.join(directory, "index.ts")
@@ -713,10 +600,10 @@ function resolveBarrelImport(
   return { _tag: "Success", value: null }
 }
 
-function resolveStandardJSDocImports(
+function resolveJSDocImports(
   cwd: string,
   filename: string
-): Result<ParsedStandardJSDocImports, string> {
+): Result<ParsedJSDocImports, string> {
   const absoluteFilename = path.resolve(filename)
   const packageRoot = findPackageRoot(absoluteFilename)
   const relativeFilename = normalizePathName(path.relative(cwd, absoluteFilename))
@@ -737,7 +624,7 @@ function resolveStandardJSDocImports(
   if (path.basename(absoluteFilename) === "index.ts") {
     return {
       _tag: "Failure",
-      error: `${relativeFilename} is a barrel file; exclude it from standard-jsdoc`
+      error: `${relativeFilename} is a barrel file; exclude it from jsdocs`
     }
   }
   if (path.extname(absoluteFilename) !== ".ts" || absoluteFilename.endsWith(".d.ts")) {
@@ -770,13 +657,13 @@ function resolveStandardJSDocImports(
   }
 }
 
-function getSourceText(context: {
+export function getSourceText(context: {
   readonly sourceCode: { readonly text?: string; getText(node?: unknown): string }
 }): string {
   return context.sourceCode.text ?? context.sourceCode.getText()
 }
 
-function getCwd(context: { readonly cwd?: string; getCwd?: () => string }): string {
+export function getCwd(context: { readonly cwd?: string; getCwd?: () => string }): string {
   return context.cwd ?? context.getCwd?.() ?? process.cwd()
 }
 
@@ -807,7 +694,11 @@ function skipDirectiveComments(source: string, end: number): number {
   return end
 }
 
-function findLeadingJSDoc(source: string, node: AstNode, ignoredRange?: [number, number]): JSDocBlock | undefined {
+export function findLeadingJSDoc(
+  source: string,
+  node: AstNode,
+  ignoredRange?: [number, number]
+): JSDocBlock | undefined {
   const end = skipDirectiveComments(source, skipWhitespace(source, node.range[0]))
   if (!source.slice(0, end).endsWith("*/")) {
     return undefined
@@ -842,13 +733,13 @@ function findLeadingJSDoc(source: string, node: AstNode, ignoredRange?: [number,
  *   " * @since 4.0.0",
  *   " *" + "/"
  * ].join("\n")
- * const result = parseStandardJSDoc(rawBlock)
+ * const result = parseJSDoc(rawBlock)
  * ```
  *
  * @category parsing
  * @since 4.0.0
  */
-export function parseStandardJSDoc(raw: string): Result<ParsedCoreJSDoc, StandardJSDocParseError> {
+export function parseJSDoc(raw: string): Result<ParsedCoreJSDoc, JSDocParseError> {
   const block = parseJSDocBlock(raw, [0, raw.length])
   if (block.internal) {
     return { _tag: "Failure", error: { diagnostics: [diagnostic("internal", "Internal JSDoc blocks are ignored")] } }
@@ -926,8 +817,8 @@ function parseTags(lines: Array<string>): Array<JSDocTag> {
   return tags
 }
 
-function parseCoreJSDoc(lines: Array<string>, tags: Array<JSDocTag>): Result<ParsedCoreJSDoc, StandardJSDocParseError> {
-  const diagnostics: Array<StandardJSDocDiagnostic> = []
+function parseCoreJSDoc(lines: Array<string>, tags: Array<JSDocTag>): Result<ParsedCoreJSDoc, JSDocParseError> {
+  const diagnostics: Array<JSDocDiagnostic> = []
   const firstTagLine = tags[0]?.line ?? lines.length
   const content = lines.slice(0, firstTagLine)
 
@@ -972,8 +863,8 @@ function parseCoreJSDoc(lines: Array<string>, tags: Array<JSDocTag>): Result<Par
 }
 
 function uniqueDiagnostics(
-  diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
-): ReadonlyArray<StandardJSDocDiagnostic> {
+  diagnostics: ReadonlyArray<JSDocDiagnostic>
+): ReadonlyArray<JSDocDiagnostic> {
   const seen = new Set<string>()
   return diagnostics.filter((item) => {
     const key = `${item.code}:${item.message}`
@@ -994,11 +885,11 @@ interface ParsedContentResult {
     readonly description: ParsedDescription
     readonly examples: ReadonlyArray<ParsedExample>
   }
-  readonly diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
+  readonly diagnostics: ReadonlyArray<JSDocDiagnostic>
 }
 
 function parseDescriptionContent(lines: Array<string>): ParsedContentResult {
-  const diagnostics: Array<StandardJSDocDiagnostic> = []
+  const diagnostics: Array<JSDocDiagnostic> = []
   const sections: Record<StandardHeading, string | null> = {
     "**When to use**": null,
     "**Details**": null,
@@ -1120,9 +1011,9 @@ function parseDescriptionContent(lines: Array<string>): ParsedContentResult {
 function parseSection(lines: Array<string>, headingIndex: number): {
   readonly body: string | null
   readonly nextIndex: number
-  readonly diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
+  readonly diagnostics: ReadonlyArray<JSDocDiagnostic>
 } {
-  const diagnostics: Array<StandardJSDocDiagnostic> = []
+  const diagnostics: Array<JSDocDiagnostic> = []
   if (lines[headingIndex + 1]?.trim() !== "") {
     diagnostics.push(
       diagnostic("invalid-spacing", `${lines[headingIndex].trim()} must be followed by exactly one blank line`)
@@ -1166,9 +1057,9 @@ function parseSection(lines: Array<string>, headingIndex: number): {
 function parseExample(lines: Array<string>, headingIndex: number): {
   readonly example?: ParsedExample
   readonly nextIndex: number
-  readonly diagnostics: ReadonlyArray<StandardJSDocDiagnostic>
+  readonly diagnostics: ReadonlyArray<JSDocDiagnostic>
 } {
-  const diagnostics: Array<StandardJSDocDiagnostic> = []
+  const diagnostics: Array<JSDocDiagnostic> = []
   const heading = lines[headingIndex].trim()
   const match = /^\*\*Example\*\* \((.+)\)$/.exec(heading)
   if (!match || match[1].trim() === "") {
@@ -1302,8 +1193,8 @@ function extractParsedInlineLinks(source: string): ReadonlyArray<ParsedInlineLin
 function buildTags(
   scope: DocScope,
   tags: ReadonlyArray<JSDocTag>
-): Result<ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags, StandardJSDocParseError> {
-  const diagnostics: Array<StandardJSDocDiagnostic> = []
+): Result<ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags, JSDocParseError> {
+  const diagnostics: Array<JSDocDiagnostic> = []
   const allowed = scope === "declaration"
     ? new Set(["deprecated", "see", "category", "since"])
     : scope === "member"
@@ -1422,7 +1313,7 @@ function collectTsConfigFiles(tsconfigPath: string, seen: Set<string>, fileNames
   return result
 }
 
-function getProgram(tsconfigPath: string): ProgramCacheEntry {
+export function getProgram(tsconfigPath: string): ProgramCacheEntry {
   const cached = programCache.get(tsconfigPath)
   if (cached !== undefined) return cached
   const fileNames = new Set<string>()
@@ -1561,825 +1452,494 @@ function collectJSDocLinks(sourceFile: ts.SourceFile, block: JSDocBlock): Array<
   return links
 }
 
-/**
- * Parses all public standard JSDoc blocks from an ESTree program.
- *
- * **Details**
- *
- * The parser returns root declarations and declared namespaces in the same grouped shape used by the rule dump output. It reports diagnostics for unsupported public constructs, missing required public JSDoc, malformed standard sections, invalid tags, and namespace exports that do not follow the supported type-only shape.
- *
- * @category parsing
- * @since 4.0.0
- */
-export function parseStandardJSDocsFromESTree(input: {
-  readonly source: string
-  readonly program: ESTree.Program
-}): Result<ParsedStandardJSDocFile, StandardJSDocParseError> {
-  const diagnostics: Array<StandardJSDocDiagnostic> = []
-  const declarations: Array<ParsedRootDeclaration> = []
-  const namespaces: Array<ParsedNamespace> = []
+export interface JSDocModelDiagnostic extends JSDocDiagnostic {
+  readonly range: readonly [number, number]
+}
 
-  const addDiagnostics = (items: ReadonlyArray<StandardJSDocDiagnostic>) => {
-    diagnostics.push(...items)
-  }
+export interface JSDocModelFile extends ParsedJSDocFile {
+  readonly file: string
+  readonly hash: string
+  readonly diagnostics: ReadonlyArray<JSDocModelDiagnostic>
+  readonly imports?: ParsedJSDocImports
+}
 
-  const parseDocumented = (node: AstNode, scope: DocScope, required = true) => {
-    const block = findLeadingJSDoc(input.source, node)
-    if (block?.internal) {
-      return undefined
-    }
-    if (block === undefined) {
-      if (required) {
-        diagnostics.push(
-          diagnostic("missing-jsdoc", scope === "member" ? "Member JSDoc is required" : "Public JSDoc is required")
-        )
-      }
-      return undefined
-    }
-    addDiagnostics(block.diagnostics)
-    if (block.parsed === undefined) {
-      return undefined
-    }
-    const tags = buildTags(scope, block.parsed.tags)
-    if (tags._tag === "Failure") {
-      addDiagnostics(tags.error.diagnostics)
-      return undefined
-    }
-    return { core: block.parsed, tags: tags.value }
-  }
+export interface JSDocModel {
+  readonly version: 1
+  readonly generatedBy: "@effect/jsdocs"
+  readonly generatedAt: string
+  readonly files: ReadonlyArray<JSDocModelFile>
+}
 
-  const parseMembersFromFunction = (node: AstNode | null | undefined): Array<ParsedMember> => {
-    if (
-      !node ||
-      ![
-        "FunctionDeclaration",
-        "FunctionExpression",
-        "TSDeclareFunction",
-        "TSEmptyBodyFunctionExpression",
-        "ArrowFunctionExpression"
-      ].includes(node.type)
-    ) {
-      return []
-    }
-    return parseMembersFromType(node.returnType?.typeAnnotation)
-  }
+export interface JSDocConfig {
+  readonly tsconfig: string
+  readonly include: ReadonlyArray<string>
+  readonly exclude?: ReadonlyArray<string>
+  readonly output: string
+}
 
-  const parseNestedMembersFromMember = (member: AstNode): Array<ParsedMember> => [
-    ...parseMembersFromType(member.typeAnnotation?.typeAnnotation),
-    ...parseMembersFromFunction(member.value),
-    ...parseMembersFromFunction(member)
-  ]
+export interface ExtractJSDocsOptions extends JSDocConfig {
+  readonly cwd?: string
+}
 
-  const parseMembers = (members: ReadonlyArray<AstNode> | undefined): Array<ParsedMember> => {
-    const out: Array<ParsedMember> = []
-    for (const member of members ?? []) {
-      if (!shouldParseMember(member)) {
-        out.push(...parseNestedMembersFromMember(member))
-        continue
-      }
-      const documented = parseDocumented(member, "member", false)
-      if (documented === undefined) {
-        continue
-      }
-      const name = getRequiredNodeName(member, diagnostics, "Documented member")
-      if (name === undefined) {
-        continue
-      }
-      out.push({
-        name,
-        description: documented.core.description,
-        examples: documented.core.examples,
-        tags: documented.tags as ParsedMemberTags,
-        members: parseNestedMembersFromMember(member)
+function nodeRange(node: ts.Node): [number, number] {
+  return [node.getStart(), node.getEnd()]
+}
+
+function normalizeFile(cwd: string, filename: string): string {
+  return normalizePathName(path.relative(cwd, filename))
+}
+
+function hashSource(source: string): string {
+  return crypto.createHash("sha256").update(source).digest("hex")
+}
+
+function getNodeJSDoc(node: ts.Node): JSDocBlock | undefined {
+  const jsDocs = (node as { readonly jsDoc?: ReadonlyArray<ts.JSDoc> }).jsDoc
+  const jsDoc = jsDocs?.[jsDocs.length - 1]
+  if (jsDoc === undefined) return undefined
+  const source = node.getSourceFile().text
+  return parseJSDocBlock(source.slice(jsDoc.pos, jsDoc.end), [jsDoc.pos, jsDoc.end])
+}
+
+function addModelDiagnostics(
+  out: Array<JSDocModelDiagnostic>,
+  range: [number, number],
+  diagnostics: ReadonlyArray<JSDocDiagnostic>
+) {
+  for (const item of diagnostics) out.push({ ...item, range })
+}
+
+function parseDocumentedTs(
+  node: ts.Node,
+  scope: DocScope,
+  diagnostics: Array<JSDocModelDiagnostic>,
+  required = true,
+  linkContext?: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+) {
+  const block = getNodeJSDoc(node)
+  if (block?.internal) return undefined
+  if (block === undefined) {
+    if (required) {
+      diagnostics.push({
+        ...diagnostic("missing-jsdoc", scope === "member" ? "Member JSDoc is required" : "Public JSDoc is required"),
+        range: nodeRange(node)
       })
     }
-    return out
+    return undefined
   }
-
-  const parseMembersFromType = (type: AstNode | null | undefined): Array<ParsedMember> => {
-    if (!type) return []
-    switch (type.type) {
-      case "TSTypeAnnotation":
-        return parseMembersFromType(type.typeAnnotation)
-      case "TSTypeLiteral":
-        return parseMembers(type.members)
-      case "TSUnionType":
-      case "TSIntersectionType":
-        return (type.types ?? []).flatMap(parseMembersFromType)
-      case "TSParenthesizedType":
-      case "TSTypeOperator":
-      case "TSOptionalType":
-      case "TSRestType":
-        return parseMembersFromType(type.typeAnnotation)
-      case "TSArrayType":
-        return parseMembersFromType(type.elementType)
-      case "TSConditionalType":
-        return [
-          ...parseMembersFromType(type.checkType),
-          ...parseMembersFromType(type.extendsType),
-          ...parseMembersFromType(type.trueType),
-          ...parseMembersFromType(type.falseType)
-        ]
-      case "TSTypeReference":
-        return (type.typeParameters?.params ?? []).flatMap(parseMembersFromType)
-      case "TSMappedType":
-        return parseMembersFromType(type.typeAnnotation)
-      case "TSIndexedAccessType":
-        return [...parseMembersFromType(type.objectType), ...parseMembersFromType(type.indexType)]
-      case "TSFunctionType":
-      case "TSConstructorType":
-        return parseMembersFromType(type.returnType?.typeAnnotation)
-      default:
-        return []
-    }
+  addModelDiagnostics(diagnostics, block.range, block.diagnostics)
+  if (block.parsed === undefined) return undefined
+  const tags = buildTags(scope, block.parsed.tags)
+  if (tags._tag === "Failure") {
+    addModelDiagnostics(diagnostics, block.range, tags.error.diagnostics)
+    return undefined
   }
-
-  const parseDeclarationMembers = (declaration: AstNode): Array<ParsedMember> => {
-    switch (declaration.type) {
-      case "TSInterfaceDeclaration":
-        return parseMembers(declaration.body?.body)
-      case "ClassDeclaration":
-      case "ClassExpression":
-        return parseMembers(declaration.body?.body)
-      case "TSTypeAliasDeclaration":
-        return parseMembersFromType(declaration.typeAnnotation)
-      case "VariableDeclaration": {
-        const out: Array<ParsedMember> = []
-        for (const declarator of declaration.declarations ?? []) {
-          out.push(...parseMembersFromType(declarator.id?.typeAnnotation?.typeAnnotation))
-          out.push(...parseMembersFromFunction(declarator.init))
-        }
-        return out
-      }
-      case "FunctionDeclaration":
-      case "TSDeclareFunction":
-        return parseMembersFromFunction(declaration)
-      default:
-        return []
+  if (hasInlineLink(block) && linkContext !== undefined) {
+    for (const link of malformedInlineLinks(block)) {
+      diagnostics.push({ ...diagnostic("malformed-link", `Malformed JSDoc inline link: ${link}`), range: block.range })
     }
-  }
-
-  const parseNamespace = (exportNode: AstNode, declaration: AstNode): ParsedNamespace | undefined => {
-    if (isAmbientModuleLikeForSource(input.source, declaration)) {
-      return undefined
-    }
-    if (!isDeclareNamespaceForSource(input.source, declaration)) {
-      diagnostics.push(diagnostic("namespace-declare", "Namespaces must be declared with declare namespace"))
-      return undefined
-    }
-    const documented = parseDocumented(exportNode, "namespace")
-    if (documented === undefined) {
-      return undefined
-    }
-    const namespaceDeclarations: Array<ParsedNamespaceDeclaration> = []
-    const nestedNamespaces: Array<ParsedNamespace> = []
-    for (const statement of declaration.body?.body ?? []) {
-      if (statement.type !== "ExportNamedDeclaration" || !statement.declaration) {
-        if (statement.type === "ExportAllDeclaration") {
-          continue
-        }
-        continue
-      }
-      const nestedDeclaration = statement.declaration as AstNode
-      if (nestedDeclaration.type === "TSModuleDeclaration") {
-        const nested = parseNamespace(statement, nestedDeclaration)
-        if (nested !== undefined) nestedNamespaces.push(nested)
-        continue
-      }
-      if (nestedDeclaration.type === "TSEnumDeclaration") {
-        diagnostics.push(diagnostic("enum", "Enums are not allowed"))
-        continue
-      }
-      if (getStandaloneDeclarationBucket(nestedDeclaration) !== "type") {
-        diagnostics.push(diagnostic("namespace-value", "Namespace exports must be type declarations"))
-        continue
-      }
-      const nestedDocumented = parseDocumented(statement, "namespace-declaration")
-      if (nestedDocumented === undefined) {
-        continue
-      }
-      const name = getRequiredNodeName(nestedDeclaration, diagnostics, "Namespace declaration")
-      if (name === undefined) {
-        continue
-      }
-      namespaceDeclarations.push({
-        name,
-        description: nestedDocumented.core.description,
-        examples: nestedDocumented.core.examples,
-        tags: nestedDocumented.tags as ParsedNamespaceTags,
-        members: parseDeclarationMembers(nestedDeclaration)
-      })
-    }
-    const name = getRequiredNodeName(declaration, diagnostics, "Namespace")
-    if (name === undefined) {
-      return undefined
-    }
-    return {
-      name,
-      description: documented.core.description,
-      examples: documented.core.examples,
-      tags: documented.tags as ParsedNamespaceTags,
-      declarations: namespaceDeclarations,
-      namespaces: nestedNamespaces
-    }
-  }
-
-  for (const statement of input.program.body as ReadonlyArray<AstNode>) {
-    if (statement.type === "ExportDefaultDeclaration") {
-      continue
-    }
-    if (statement.type === "ExportAllDeclaration") {
-      continue
-    }
-    if (statement.type !== "ExportNamedDeclaration") {
-      continue
-    }
-    if (statement.declaration) {
-      const declaration = statement.declaration as AstNode
-      if (declaration.type === "TSEnumDeclaration") {
-        diagnostics.push(diagnostic("enum", "Enums are not allowed"))
-        continue
-      }
-      if (declaration.type === "TSModuleDeclaration") {
-        const namespace = parseNamespace(statement, declaration)
-        if (namespace !== undefined) namespaces.push(namespace)
-        continue
-      }
-      const bucket = getStandaloneDeclarationBucket(declaration)
-      if (bucket === undefined) {
-        continue
-      }
-      const documented = parseDocumented(statement, "declaration")
-      if (documented === undefined) {
-        continue
-      }
-      const name = getRequiredNodeName(declaration, diagnostics, "Root declaration")
-      if (name === undefined) {
-        continue
-      }
-      declarations.push({
-        name,
-        bucket,
-        description: documented.core.description,
-        examples: documented.core.examples,
-        tags: documented.tags as ParsedDeclarationTags,
-        members: parseDeclarationMembers(declaration)
-      })
-    } else {
-      if ((statement.specifiers?.length ?? 0) === 0) {
-        diagnostics.push(diagnostic("empty-export", "Empty export declarations are not allowed"))
-      }
-      for (const specifier of statement.specifiers ?? []) {
-        const documented = parseDocumented(specifier, "declaration")
-        if (documented === undefined) {
-          continue
-        }
-        const name = getRequiredExportedSpecifierName(specifier, diagnostics)
-        if (name === undefined) {
-          continue
-        }
-        declarations.push({
-          name,
-          bucket: statement.exportKind === "type" || specifier.exportKind === "type" ? "type" : "value",
-          description: documented.core.description,
-          examples: documented.core.examples,
-          tags: documented.tags as ParsedDeclarationTags,
-          members: []
+    for (const link of collectJSDocLinks(node.getSourceFile(), block)) {
+      const text = link.getText(node.getSourceFile())
+      const target = extractInlineLinkTarget(text)
+      if (target === "") continue
+      if (urlRegex.test(target)) {
+        diagnostics.push({
+          ...diagnostic("url-link", `JSDoc inline link must target a TypeScript symbol: ${text}`),
+          range: [link.pos, link.end]
+        })
+      } else if (
+        resolveJSDocLinkSymbol(link, target, node.getSourceFile(), linkContext.checker, linkContext.entry) === undefined
+      ) {
+        diagnostics.push({
+          ...diagnostic("unresolved-link", `Unresolved JSDoc inline link: ${text}`),
+          range: [link.pos, link.end]
         })
       }
     }
   }
-
-  return diagnostics.length > 0
-    ? { _tag: "Failure", error: { diagnostics: uniqueDiagnostics(diagnostics) } }
-    : { _tag: "Success", value: { declarations, namespaces } }
+  return { core: block.parsed, tags: tags.value }
 }
 
-function getStandaloneDeclarationBucket(declaration: AstNode): ExportBucket | undefined {
-  switch (declaration.type) {
-    case "VariableDeclaration":
-    case "FunctionDeclaration":
-    case "TSDeclareFunction":
-    case "ClassDeclaration":
-    case "ClassExpression":
-      return "value"
-    case "TSTypeAliasDeclaration":
-    case "TSInterfaceDeclaration":
-      return "type"
-    default:
-      return undefined
-  }
+function hasExportModifier(node: ts.Node): boolean {
+  return ts.canHaveModifiers(node) &&
+    (ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) ?? false)
 }
 
-function isDeclareNamespaceForSource(source: string, node: AstNode): boolean {
-  return node.declare === true ||
-    /\bdeclare\s+namespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80))) ||
-    isInsideDeclareNamespaceForSource(source, node.range[0])
+function hasDefaultModifier(node: ts.Node): boolean {
+  return ts.canHaveModifiers(node) &&
+    (ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword) ?? false)
 }
 
-function isInsideDeclareNamespaceForSource(source: string, index: number): boolean {
-  const prefix = stripCommentsForNamespaceScan(source.slice(0, index))
-  const matches = Array.from(prefix.matchAll(/\bdeclare\s+(?:namespace|module|global)\b/g)).reverse()
-  for (const match of matches) {
-    const declarationIndex = match.index
-    const openBraceIndex = prefix.indexOf("{", declarationIndex)
-    if (openBraceIndex === -1) {
-      continue
-    }
-    let depth = 0
-    for (let position = openBraceIndex; position < prefix.length; position++) {
-      const character = prefix[position]
-      if (character === "{") {
-        depth++
-      } else if (character === "}") {
-        depth--
-      }
-    }
-    if (depth > 0) {
-      return true
-    }
-  }
-  return false
-}
-
-function stripCommentsForNamespaceScan(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, (comment) => " ".repeat(comment.length))
-    .replace(/\/\/[^\n\r]*/g, (comment) => " ".repeat(comment.length))
-}
-
-function isAmbientModuleLikeForSource(source: string, node: AstNode): boolean {
-  return node.type === "TSModuleDeclaration" && node.id?.type !== "Identifier" &&
-    !/\bnamespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
-}
-
-function shouldParseMember(member: AstNode): boolean {
-  if (member.kind === "constructor") return false
-  if (member.accessibility === "private" || member.accessibility === "protected") return false
+function declarationName(node: ts.Node): string | undefined {
   if (
-    member.type === "TSCallSignatureDeclaration" || member.type === "TSConstructSignatureDeclaration" ||
-    member.type === "TSIndexSignature"
-  ) return false
-  return true
+    (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isClassDeclaration(node) ||
+      ts.isFunctionDeclaration(node) || ts.isModuleDeclaration(node)) && node.name !== undefined
+  ) return node.name.text
+  if (ts.isVariableStatement(node)) {
+    return node.declarationList.declarations.map((declaration) => {
+      if (ts.isIdentifier(declaration.name)) return declaration.name.text
+      if (ts.isObjectBindingPattern(declaration.name)) {
+        return declaration.name.elements.map((element) =>
+          element.propertyName?.getText(element.getSourceFile()) ?? element.name.getText(element.getSourceFile())
+        ).join(", ")
+      }
+      return ""
+    }).filter(Boolean).join(", ")
+  }
+  return undefined
 }
 
-function getNodeName(node: AstNode): string {
-  const direct = node.name ?? node.id?.name ?? node.key?.name ?? node.key?.value ?? node.local?.name ??
-    node.exported?.name
-  if (typeof direct === "string" && direct.length > 0) {
-    return direct
+function bucketOfTs(node: ts.Node): ExportBucket | undefined {
+  if (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) return "value"
+  if (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) return "type"
+  return undefined
+}
+
+function parseMembersFromTsType(
+  type: ts.TypeNode | undefined,
+  diagnostics: Array<JSDocModelDiagnostic>,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+): Array<ParsedMember> {
+  if (!type) return []
+  if (ts.isTypeLiteralNode(type)) return parseTsMembers(type.members, diagnostics, linkContext)
+  if (ts.isUnionTypeNode(type) || ts.isIntersectionTypeNode(type)) {
+    return type.types.flatMap((item) => parseMembersFromTsType(item, diagnostics, linkContext))
   }
-  if (node.type === "VariableDeclaration") {
-    return ((node.declarations ?? []) as ReadonlyArray<AstNode>).map(getNodeName).filter((name) => name.length > 0)
-      .join(", ")
+  if (ts.isParenthesizedTypeNode(type) || ts.isTypeOperatorNode(type)) {
+    return parseMembersFromTsType(type.type, diagnostics, linkContext)
   }
-  if (node.type === "VariableDeclarator") {
-    return getNodeName(node.id)
+  if (ts.isArrayTypeNode(type)) return parseMembersFromTsType(type.elementType, diagnostics, linkContext)
+  if (ts.isConditionalTypeNode(type)) {
+    return [
+      ...parseMembersFromTsType(type.checkType, diagnostics, linkContext),
+      ...parseMembersFromTsType(type.extendsType, diagnostics, linkContext),
+      ...parseMembersFromTsType(type.trueType, diagnostics, linkContext),
+      ...parseMembersFromTsType(type.falseType, diagnostics, linkContext)
+    ]
   }
-  if (node.type === "AssignmentPattern") {
-    return getNodeName(node.left)
+  if (ts.isTypeReferenceNode(type)) {
+    return type.typeArguments?.flatMap((item) => parseMembersFromTsType(item, diagnostics, linkContext)) ?? []
   }
-  if (node.type === "RestElement") {
-    return getNodeName(node.argument)
+  if (ts.isMappedTypeNode(type)) return parseMembersFromTsType(type.type, diagnostics, linkContext)
+  if (ts.isIndexedAccessTypeNode(type)) {
+    return [
+      ...parseMembersFromTsType(type.objectType, diagnostics, linkContext),
+      ...parseMembersFromTsType(type.indexType, diagnostics, linkContext)
+    ]
+  }
+  if (ts.isFunctionTypeNode(type) || ts.isConstructorTypeNode(type)) {
+    return parseMembersFromTsType(type.type, diagnostics, linkContext)
+  }
+  return []
+}
+
+function memberName(member: ts.TypeElement | ts.ClassElement): string {
+  if (
+    ts.isPropertySignature(member) || ts.isMethodSignature(member) || ts.isPropertyDeclaration(member) ||
+    ts.isMethodDeclaration(member) || ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)
+  ) {
+    const name = member.name
+    if (ts.isComputedPropertyName(name)) return name.expression.getText(member.getSourceFile())
+    return name.getText(member.getSourceFile()).replace(/^[']|[']$/g, "")
   }
   return ""
 }
 
-function getExportedSpecifierName(node: AstNode): string {
-  return node.exported?.name ?? node.exported?.value ?? node.local?.name ?? ""
-}
-
-function getRequiredNodeName(
-  node: AstNode,
-  diagnostics: Array<StandardJSDocDiagnostic>,
-  label: string
-): string | undefined {
-  const name = getNodeName(node)
-  if (name.length > 0) {
-    return name
-  }
-  diagnostics.push(diagnostic("missing-name", `${label} name could not be determined`))
+function memberType(member: ts.TypeElement | ts.ClassElement): ts.TypeNode | undefined {
+  if (
+    ts.isPropertySignature(member) || ts.isMethodSignature(member) || ts.isPropertyDeclaration(member) ||
+    ts.isMethodDeclaration(member) || ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)
+  ) return member.type
   return undefined
 }
 
-function getRequiredExportedSpecifierName(
-  node: AstNode,
-  diagnostics: Array<StandardJSDocDiagnostic>
-): string | undefined {
-  const name = getExportedSpecifierName(node)
-  if (name.length > 0) {
-    return name
-  }
-  diagnostics.push(diagnostic("missing-name", "Export specifier name could not be determined"))
-  return undefined
-}
-
-const rule: CreateRule = {
-  meta: {
-    type: "problem",
-    docs: { description: "Enforce Effect's public API JSDoc structure" },
-    schema: [
-      {
-        type: "object",
-        properties: {
-          include: { type: "array", items: { type: "string" } },
-          exclude: { type: "array", items: { type: "string" } },
-          tsconfig: { type: "string" }
-        },
-        additionalProperties: false
-      }
-    ]
-  },
-  create(context) {
-    const options = (context.options[0] as RuleOptions | undefined) ?? {}
-    const source = getSourceText(context)
-    const cwd = getCwd(context)
-    const matchesFile = createStandardJSDocFileMatcher({
-      cwd,
-      ...(options.include === undefined ? {} : { include: options.include }),
-      ...(options.exclude === undefined ? {} : { exclude: options.exclude })
+function parseTsMembers(
+  members: ts.NodeArray<ts.TypeElement | ts.ClassElement>,
+  diagnostics: Array<JSDocModelDiagnostic>,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+): Array<ParsedMember> {
+  const out: Array<ParsedMember> = []
+  for (const member of members) {
+    if (
+      ts.isCallSignatureDeclaration(member) || ts.isConstructSignatureDeclaration(member) ||
+      ts.isIndexSignatureDeclaration(member) || member.kind === ts.SyntaxKind.Constructor
+    ) continue
+    const documented = parseDocumentedTs(member, "member", diagnostics, false, linkContext)
+    if (documented === undefined) continue
+    const name = memberName(member)
+    if (name === "") continue
+    const nested = parseMembersFromTsType(memberType(member), diagnostics, linkContext)
+    out.push({
+      name,
+      description: documented.core.description,
+      examples: documented.core.examples,
+      tags: documented.tags as ParsedMemberTags,
+      members: nested
     })
-    if (!matchesFile(context.filename)) return {} as Visitor
+  }
+  return out
+}
 
-    const tsconfigPath = path.resolve(cwd, options.tsconfig ?? "tsconfig.json")
-    let programNode: ESTree.Program | undefined
-    const checkedExports = new Set<string>()
-    const checkedFunctionOverloads = new Set<string>()
-    const checkedNamespaceMemberExports = new Set<string>()
+function parseDeclarationMembersTs(
+  node: ts.Node,
+  diagnostics: Array<JSDocModelDiagnostic>,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+): Array<ParsedMember> {
+  if (ts.isInterfaceDeclaration(node)) return parseTsMembers(node.members, diagnostics, linkContext)
+  if (ts.isClassDeclaration(node)) return parseTsMembers(node.members, diagnostics, linkContext)
+  if (ts.isTypeAliasDeclaration(node)) return parseMembersFromTsType(node.type, diagnostics, linkContext)
+  if (ts.isVariableStatement(node)) {
+    return node.declarationList.declarations.flatMap((d) => parseMembersFromTsType(d.type, diagnostics, linkContext))
+  }
+  if (ts.isFunctionDeclaration(node)) return parseMembersFromTsType(node.type, diagnostics, linkContext)
+  return []
+}
 
-    function report(node: AstNode, message: string) {
-      recordDumpError(cwd)
-      context.report({ node: node as ESTree.Node, message })
-    }
+function hasDeclareModifier(node: ts.Node): boolean {
+  return ts.canHaveModifiers(node) &&
+    (ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.DeclareKeyword) ?? false)
+}
 
-    function getLeadingBlock(node: AstNode): JSDocBlock | undefined {
-      return findLeadingJSDoc(source, node)
-    }
-
-    function reportDiagnostics(node: AstNode, diagnostics: ReadonlyArray<StandardJSDocDiagnostic>) {
-      for (const item of diagnostics) report(node, item.message)
-    }
-
-    function validateLinks(node: AstNode, block: JSDocBlock) {
-      if (!hasInlineLink(block)) return
-      for (const link of malformedInlineLinks(block)) report(node, `Malformed JSDoc inline link: ${link}`)
-      const entry = getProgram(tsconfigPath)
-      if (entry.error !== undefined) {
-        if (!entry.reported) {
-          entry.reported = true
-          report(node, entry.error)
-        }
-        return
+function parseNamespaceTs(
+  node: ts.ModuleDeclaration,
+  diagnostics: Array<JSDocModelDiagnostic>,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry },
+  isInsideDeclare = false
+): ParsedNamespace | undefined {
+  if (!ts.isIdentifier(node.name)) return undefined
+  if (!isInsideDeclare && !hasDeclareModifier(node)) {
+    diagnostics.push({
+      ...diagnostic("namespace-declare", "Namespaces must be declared with declare namespace"),
+      range: nodeRange(node)
+    })
+    return undefined
+  }
+  const documented = parseDocumentedTs(node, "namespace", diagnostics, true, linkContext)
+  if (documented === undefined) return undefined
+  const declarations: Array<ParsedNamespaceDeclaration> = []
+  const namespaces: Array<ParsedNamespace> = []
+  if (node.body !== undefined && ts.isModuleBlock(node.body)) {
+    for (const statement of node.body.statements) {
+      if (!hasExportModifier(statement)) continue
+      if (ts.isModuleDeclaration(statement)) {
+        const nested = parseNamespaceTs(statement, diagnostics, linkContext, true)
+        if (nested !== undefined) namespaces.push(nested)
+        continue
       }
-      const program = entry.program
-      if (program === undefined) return
-      const sourceFile = program.getSourceFile(context.filename)
-      if (sourceFile === undefined) {
-        if (!entry.reported) {
-          entry.reported = true
-          report(node, `Unable to validate JSDoc links: ${context.filename} is not included in ${tsconfigPath}`)
-        }
-        return
+      if (ts.isEnumDeclaration(statement)) {
+        diagnostics.push({ ...diagnostic("enum", "Enums are not allowed"), range: nodeRange(statement) })
+        continue
       }
-      const checker = program.getTypeChecker()
-      for (const link of collectJSDocLinks(sourceFile, block)) {
-        const text = link.getText(sourceFile)
-        const target = extractInlineLinkTarget(text)
-        if (target === "") continue
-        if (urlRegex.test(target)) report(node, `JSDoc inline link must target a TypeScript symbol: ${text}`)
-        else if (resolveJSDocLinkSymbol(link, target, sourceFile, checker, entry) === undefined) {
-          report(node, `Unresolved JSDoc inline link: ${text}`)
-        }
-      }
-    }
-
-    function validateBlock(node: AstNode, block: JSDocBlock, scope: DocScope): boolean {
-      if (block.internal) return false
-      reportDiagnostics(node, block.diagnostics)
-      if (block.parsed !== undefined) {
-        const tags = buildTags(scope, block.parsed.tags)
-        if (tags._tag === "Failure") reportDiagnostics(node, tags.error.diagnostics)
-      }
-      validateLinks(node, block)
-      return true
-    }
-
-    function requireBlock(node: AstNode, scope: DocScope): boolean {
-      const block = getLeadingBlock(node)
-      if (!block) {
-        report(node, scope === "member" ? "Member JSDoc is required" : "Public JSDoc is required")
-        return true
-      }
-      return validateBlock(node, block, scope)
-    }
-
-    function inspectTypeAnnotation(typeAnnotation: AstNode | null | undefined) {
-      if (typeAnnotation?.type === "TSTypeAnnotation") inspectType(typeAnnotation.typeAnnotation)
-    }
-
-    function inspectParam(param: AstNode) {
-      if (param.type === "TSParameterProperty") return inspectParam(param.parameter)
-      inspectTypeAnnotation(param.typeAnnotation)
-      if (param.type === "RestElement") inspectTypeAnnotation(param.argument?.typeAnnotation)
-    }
-
-    function inspectFunctionLike(node: AstNode | null | undefined) {
-      if (!node) return
-      if (
-        [
-          "FunctionDeclaration",
-          "FunctionExpression",
-          "TSDeclareFunction",
-          "TSEmptyBodyFunctionExpression",
-          "ArrowFunctionExpression"
-        ].includes(node.type)
-      ) {
-        for (const param of node.params ?? []) inspectParam(param)
-        inspectTypeAnnotation(node.returnType)
-      }
-    }
-
-    function inspectType(type: AstNode | null | undefined) {
-      if (!type) return
-      switch (type.type) {
-        case "TSTypeLiteral":
-          checkTypeLiteralMembers(type.members)
-          break
-        case "TSUnionType":
-        case "TSIntersectionType":
-          for (const item of type.types ?? []) inspectType(item)
-          break
-        case "TSParenthesizedType":
-        case "TSTypeOperator":
-        case "TSOptionalType":
-        case "TSRestType":
-          inspectType(type.typeAnnotation)
-          break
-        case "TSArrayType":
-          inspectType(type.elementType)
-          break
-        case "TSConditionalType":
-          inspectType(type.checkType)
-          inspectType(type.extendsType)
-          inspectType(type.trueType)
-          inspectType(type.falseType)
-          break
-        case "TSTypeReference":
-          for (const param of type.typeParameters?.params ?? []) inspectType(param)
-          break
-        case "TSMappedType":
-          inspectType(type.typeAnnotation)
-          break
-        case "TSIndexedAccessType":
-          inspectType(type.objectType)
-          inspectType(type.indexType)
-          break
-        case "TSFunctionType":
-        case "TSConstructorType":
-          for (const param of type.params ?? []) inspectParam(param)
-          inspectTypeAnnotation(type.returnType)
-          break
-      }
-    }
-
-    function shouldCheckMember(member: AstNode): boolean {
-      if (member.kind === "constructor") return false
-      if (member.accessibility === "private" || member.accessibility === "protected") return false
-      if (
-        member.type === "TSCallSignatureDeclaration" || member.type === "TSConstructSignatureDeclaration" ||
-        member.type === "TSIndexSignature"
-      ) return false
-      return true
-    }
-
-    function checkMember(member: AstNode) {
-      if (!shouldCheckMember(member)) {
-        inspectMemberTypes(member)
-        return
-      }
-      const block = getLeadingBlock(member)
-      if (block?.internal) return
-      if (block) {
-        validateBlock(member, block, "member")
-      }
-      inspectMemberTypes(member)
-    }
-
-    function inspectMemberTypes(member: AstNode) {
-      inspectTypeAnnotation(member.typeAnnotation)
-      inspectFunctionLike(member.value)
-      inspectFunctionLike(member)
-      if (member.returnType) inspectTypeAnnotation(member.returnType)
-    }
-
-    function checkTypeLiteralMembers(members: ReadonlyArray<AstNode> | undefined) {
-      for (const member of members ?? []) checkMember(member)
-    }
-
-    function checkClassMembers(declaration: AstNode) {
-      for (const member of declaration.body?.body ?? []) checkMember(member)
-    }
-
-    function checkVariableDeclaration(node: AstNode) {
-      for (const declarator of node.declarations ?? []) {
-        inspectTypeAnnotation(declarator.id?.typeAnnotation)
-        inspectFunctionLike(declarator.init)
-      }
-    }
-
-    function checkDeclarationMembers(declaration: AstNode) {
-      switch (declaration.type) {
-        case "VariableDeclaration":
-          checkVariableDeclaration(declaration)
-          break
-        case "FunctionDeclaration":
-        case "TSDeclareFunction":
-          inspectFunctionLike(declaration)
-          break
-        case "ClassDeclaration":
-        case "ClassExpression":
-          checkClassMembers(declaration)
-          break
-        case "TSTypeAliasDeclaration":
-          inspectType(declaration.typeAnnotation)
-          break
-        case "TSInterfaceDeclaration":
-          checkTypeLiteralMembers(declaration.body?.body)
-          break
-        case "TSModuleDeclaration":
-          checkNamespaceMembers(declaration)
-          break
-      }
-    }
-
-    function getDeclarationBucket(declaration: AstNode): ExportBucket | undefined {
-      switch (declaration.type) {
-        case "VariableDeclaration":
-        case "FunctionDeclaration":
-        case "TSDeclareFunction":
-        case "ClassDeclaration":
-        case "ClassExpression":
-          return "value"
-        case "TSTypeAliasDeclaration":
-        case "TSInterfaceDeclaration":
-          return "type"
-        default:
-          return undefined
-      }
-    }
-
-    function shouldCheckOverload(declaration: AstNode): boolean {
-      if (declaration.type !== "FunctionDeclaration" && declaration.type !== "TSDeclareFunction") return true
-      const name = declaration.id?.name
-      if (typeof name !== "string") return true
-      if (declaration.body === null) {
-        if (checkedFunctionOverloads.has(name)) return false
-        checkedFunctionOverloads.add(name)
-        return true
-      }
-      return !checkedFunctionOverloads.has(name)
-    }
-
-    function getNodeKey(node: AstNode): string {
-      return `${node.range[0]}:${node.range[1]}`
-    }
-
-    function isDeclareNamespace(node: AstNode): boolean {
-      return isDeclareNamespaceForSource(source, node)
-    }
-
-    function isAmbientModuleLike(node: AstNode): boolean {
-      return node.type === "TSModuleDeclaration" && node.id?.type !== "Identifier" &&
-        !/\bnamespace\b/.test(source.slice(node.range[0], Math.min(node.range[1], node.range[0] + 80)))
-    }
-
-    function checkNamespaceMembers(namespaceNode: AstNode) {
-      for (const statement of namespaceNode.body?.body ?? []) {
-        if (statement.type === "ExportNamedDeclaration" && statement.declaration) {
-          checkedNamespaceMemberExports.add(getNodeKey(statement))
-          checkNamespaceMemberExport(statement, statement.declaration)
-        } else if (statement.type === "ExportAllDeclaration") {
-          continue
-        } else if (statement.type === "ExportDefaultDeclaration") {
-          continue
-        }
-      }
-    }
-
-    function checkNamespaceMemberExport(exportNode: AstNode, declaration: AstNode) {
-      if (declaration.type === "TSEnumDeclaration") {
-        report(exportNode, "Enums are not allowed")
-        return
-      }
-      if (declaration.type === "TSModuleDeclaration") {
-        if (isAmbientModuleLike(declaration)) return
-        if (!isDeclareNamespace(declaration)) {
-          report(exportNode, "Namespaces must be declared with declare namespace")
-          return
-        }
-        const block = getLeadingBlock(exportNode)
-        if (block?.internal) return
-        if (requireBlock(exportNode, "namespace")) checkNamespaceMembers(declaration)
-        return
-      }
-      const bucket = getDeclarationBucket(declaration)
+      const bucket = bucketOfTs(statement)
       if (bucket !== "type") {
-        report(exportNode, "Namespace exports must be type declarations")
-        return
+        diagnostics.push({
+          ...diagnostic("namespace-value", "Namespace exports must be type declarations"),
+          range: nodeRange(statement)
+        })
+        continue
       }
-      if (!shouldCheckOverload(declaration)) return
-      const block = getLeadingBlock(exportNode)
-      if (block?.internal) return
-      if (requireBlock(exportNode, "namespace-declaration")) checkDeclarationMembers(declaration)
-    }
-
-    function checkExportedDeclaration(exportNode: AstNode, declaration: AstNode) {
-      const key = getNodeKey(exportNode)
-      if (checkedNamespaceMemberExports.has(key) || checkedExports.has(key)) return
-      checkedExports.add(key)
-      if (declaration.type === "TSEnumDeclaration") {
-        report(exportNode, "Enums are not allowed")
-        return
+      const nestedDocumented = parseDocumentedTs(statement, "namespace-declaration", diagnostics, true, linkContext)
+      if (nestedDocumented === undefined) continue
+      const name = declarationName(statement)
+      if (name === undefined || name.length === 0) {
+        diagnostics.push({
+          ...diagnostic("missing-name", "Namespace declaration name could not be determined"),
+          range: nodeRange(statement)
+        })
+        continue
       }
-      if (declaration.type === "TSModuleDeclaration") {
-        if (isAmbientModuleLike(declaration)) return
-        if (!isDeclareNamespace(declaration)) {
-          report(exportNode, "Namespaces must be declared with declare namespace")
-          return
-        }
-        const block = getLeadingBlock(exportNode)
-        if (block?.internal) return
-        if (requireBlock(exportNode, "namespace")) checkNamespaceMembers(declaration)
-        return
+      declarations.push({
+        name,
+        description: nestedDocumented.core.description,
+        examples: nestedDocumented.core.examples,
+        tags: nestedDocumented.tags as ParsedNamespaceTags,
+        members: parseDeclarationMembersTs(statement, diagnostics, linkContext)
+      })
+    }
+  }
+  return {
+    name: node.name.text,
+    description: documented.core.description,
+    examples: documented.core.examples,
+    tags: documented.tags as ParsedNamespaceTags,
+    declarations,
+    namespaces
+  }
+}
+
+function parseSourceFileDocs(
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+  entry: ProgramCacheEntry
+): { readonly parsed: ParsedJSDocFile; readonly diagnostics: ReadonlyArray<JSDocModelDiagnostic> } {
+  const diagnostics: Array<JSDocModelDiagnostic> = []
+  const declarations: Array<ParsedRootDeclaration> = []
+  const namespaces: Array<ParsedNamespace> = []
+  const linkContext = { checker, entry }
+  const checkedFunctionOverloads = new Set<string>()
+
+  for (const statement of sourceFile.statements) {
+    if (ts.isExportAssignment(statement)) continue
+    if (ts.isExportDeclaration(statement)) {
+      if (statement.exportClause === undefined) continue
+      if (ts.isNamedExports(statement.exportClause) && statement.exportClause.elements.length === 0) {
+        diagnostics.push({
+          ...diagnostic("empty-export", "Empty export declarations are not allowed"),
+          range: nodeRange(statement)
+        })
       }
-      const bucket = getDeclarationBucket(declaration)
-      if (!bucket || !shouldCheckOverload(declaration)) return
-      const block = getLeadingBlock(exportNode)
-      if (block?.internal) return
-      if (requireBlock(exportNode, "declaration")) checkDeclarationMembers(declaration)
-    }
-
-    function specifierBucket(exportNode: AstNode, specifier: AstNode): ExportBucket {
-      return exportNode.exportKind === "type" || specifier.exportKind === "type" ? "type" : "value"
-    }
-
-    function checkExportSpecifier(exportNode: AstNode, specifier: AstNode) {
-      const block = getLeadingBlock(specifier)
-      if (block?.internal) return
-      if (!block) {
-        report(specifier, "Public JSDoc is required")
-        return
-      }
-      // Bucket is syntax-authoritative for specifier exports. Parsing/tag rules are the same for all public declarations.
-      specifierBucket(exportNode, specifier)
-      validateBlock(specifier, block, "declaration")
-    }
-
-    return {
-      Program(node: ESTree.Node) {
-        programNode = node as ESTree.Program
-      },
-      "Program:exit"() {
-        if (programNode === undefined) {
-          return
-        }
-        const result = parseStandardJSDocsFromESTree({ source, program: programNode })
-        if (result._tag === "Success" && (result.value.declarations.length > 0 || result.value.namespaces.length > 0)) {
-          const imports = resolveStandardJSDocImports(cwd, context.filename)
-          if (imports._tag === "Failure") {
-            report(
-              programNode as unknown as AstNode,
-              `Unable to resolve standard-jsdoc imports: ${imports.error}. Add the missing barrel/package export or exclude this file from standard-jsdoc.`
-            )
-            return
-          }
-          registerDump(cwd, {
-            file: normalizePathName(path.relative(cwd, context.filename)),
-            imports: imports.value,
-            ...result.value
+      if (ts.isNamedExports(statement.exportClause)) {
+        for (const specifier of statement.exportClause.elements) {
+          const documented = parseDocumentedTs(specifier, "declaration", diagnostics, true, linkContext)
+          if (documented === undefined) continue
+          declarations.push({
+            name: specifier.name.text,
+            bucket: statement.isTypeOnly || specifier.isTypeOnly ? "type" : "value",
+            description: documented.core.description,
+            examples: documented.core.examples,
+            tags: documented.tags as ParsedDeclarationTags,
+            members: []
           })
         }
-      },
-      ExportNamedDeclaration(node: ESTree.Node) {
-        const exportNode = node as AstNode
-        if (exportNode.declaration) {
-          checkExportedDeclaration(exportNode, exportNode.declaration)
-          return
-        }
-        if ((exportNode.specifiers?.length ?? 0) === 0) {
-          report(exportNode, "Empty export declarations are not allowed")
-          return
-        }
-        for (const specifier of exportNode.specifiers ?? []) checkExportSpecifier(exportNode, specifier)
-      },
-      ExportDefaultDeclaration(_node: ESTree.Node) {
-        // Default exports are intentionally ignored by this rule.
-      },
-      ExportAllDeclaration(_node: ESTree.Node) {
-        // Export-all declarations are intentionally ignored by this rule.
       }
-    } as Visitor
+      continue
+    }
+    if (!hasExportModifier(statement) || hasDefaultModifier(statement)) continue
+    if (ts.isModuleDeclaration(statement)) {
+      const namespace = parseNamespaceTs(statement, diagnostics, linkContext)
+      if (namespace !== undefined) namespaces.push(namespace)
+      continue
+    }
+    if (ts.isEnumDeclaration(statement)) {
+      diagnostics.push({ ...diagnostic("enum", "Enums are not allowed"), range: nodeRange(statement) })
+      continue
+    }
+    const bucket = bucketOfTs(statement)
+    if (bucket === undefined) continue
+    if (ts.isFunctionDeclaration(statement) && statement.name !== undefined) {
+      const name = statement.name.text
+      if (statement.body === undefined) {
+        if (checkedFunctionOverloads.has(name)) continue
+        checkedFunctionOverloads.add(name)
+      } else if (checkedFunctionOverloads.has(name)) {
+        continue
+      }
+    }
+    const documented = parseDocumentedTs(statement, "declaration", diagnostics, true, linkContext)
+    if (documented === undefined) continue
+    const name = declarationName(statement)
+    if (name === undefined || name.length === 0) {
+      diagnostics.push({
+        ...diagnostic("missing-name", "Root declaration name could not be determined"),
+        range: nodeRange(statement)
+      })
+      continue
+    }
+    declarations.push({
+      name,
+      bucket,
+      description: documented.core.description,
+      examples: documented.core.examples,
+      tags: documented.tags as ParsedDeclarationTags,
+      members: parseDeclarationMembersTs(statement, diagnostics, linkContext)
+    })
+  }
+  return {
+    parsed: { declarations, namespaces },
+    diagnostics: uniqueDiagnostics(diagnostics) as Array<JSDocModelDiagnostic>
   }
 }
 
-export default rule
+export function loadJSDocConfig(cwd = process.cwd(), configPath = "jsdocs.config.json"): JSDocConfig {
+  const absolute = path.resolve(cwd, configPath)
+  const parsed = JSON.parse(fs.readFileSync(absolute, "utf8")) as JSDocConfig
+  return parsed
+}
+
+export function extractJSDocsSync(options: ExtractJSDocsOptions): JSDocModel {
+  const cwd = path.resolve(options.cwd ?? process.cwd())
+  const tsconfigPath = path.resolve(cwd, options.tsconfig)
+  const entry = getProgram(tsconfigPath)
+  if (entry.error !== undefined || entry.program === undefined) {
+    throw new Error(entry.error ?? `Unable to read ${tsconfigPath}`)
+  }
+  const program = entry.program
+  const checker = program.getTypeChecker()
+  const sourceByPath = new Map(program.getSourceFiles().map((file) => [path.resolve(file.fileName), file]))
+  const files = globSync([...options.include], {
+    cwd,
+    absolute: true,
+    nodir: true,
+    ignore: [...options.exclude ?? []]
+  }).sort()
+  const modelFiles: Array<JSDocModelFile> = []
+  for (const filename of files) {
+    const source = fs.readFileSync(filename, "utf8")
+    const file = normalizeFile(cwd, filename)
+    const hash = hashSource(source)
+    const sourceFile = sourceByPath.get(path.resolve(filename))
+    if (sourceFile === undefined) {
+      modelFiles.push({
+        file,
+        hash,
+        diagnostics: [{ ...diagnostic("tsconfig", `${file} is not included in ${options.tsconfig}`), range: [0, 0] }],
+        declarations: [],
+        namespaces: []
+      })
+      continue
+    }
+    const result = parseSourceFileDocs(sourceFile, checker, entry)
+    if (
+      result.diagnostics.length === 0 && result.parsed.declarations.length === 0 &&
+      result.parsed.namespaces.length === 0
+    ) continue
+    const fileDiagnostics = [...result.diagnostics]
+    let importsValue: ParsedJSDocImports | undefined
+    if (
+      fileDiagnostics.length === 0 && (result.parsed.declarations.length > 0 || result.parsed.namespaces.length > 0)
+    ) {
+      const imports = resolveJSDocImports(cwd, filename)
+      if (imports._tag === "Success") importsValue = imports.value
+      else {fileDiagnostics.push({
+          ...diagnostic(
+            "imports",
+            `Unable to resolve jsdocs imports: ${imports.error}. Add the missing barrel/package export or exclude this file from jsdocs.`
+          ),
+          range: [0, 0]
+        })}
+    }
+    modelFiles.push({
+      file,
+      hash,
+      diagnostics: fileDiagnostics,
+      ...(importsValue === undefined ? {} : { imports: importsValue }),
+      ...result.parsed
+    })
+  }
+  return { version: 1, generatedBy: "@effect/jsdocs", generatedAt: new Date().toISOString(), files: modelFiles }
+}
+
+export const extractJSDocs = (options: ExtractJSDocsOptions): Effect.Effect<JSDocModel> =>
+  Effect.sync(() => extractJSDocsSync(options))
+
+export function writeJSDocModel(cwd: string, output: string, model: JSDocModel) {
+  const filename = path.resolve(cwd, output)
+  fs.mkdirSync(path.dirname(filename), { recursive: true })
+  fs.writeFileSync(filename, `${JSON.stringify(model, null, 2)}\n`)
+}
+
+export function readJSDocModel(filename: string): Result<JSDocModel, string> {
+  if (!fs.existsSync(filename)) return { _tag: "Failure", error: "missing" }
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filename, "utf8")) as JSDocModel
+    if (parsed.version !== 1) return { _tag: "Failure", error: "Unsupported jsdocs model version" }
+    if (!Array.isArray(parsed.files)) return { _tag: "Failure", error: "Invalid jsdocs model: files must be an array" }
+    return { _tag: "Success", value: parsed }
+  } catch (error) {
+    return { _tag: "Failure", error: `Invalid jsdocs model: ${error instanceof Error ? error.message : String(error)}` }
+  }
+}
+
+export function sourceHash(source: string): string {
+  return hashSource(source)
+}

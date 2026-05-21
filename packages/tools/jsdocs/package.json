@@ -1,40 +1,21 @@
 {
-  "name": "@effect/oxc",
+  "name": "@effect/jsdocs",
   "version": "0.0.0",
   "type": "module",
   "private": true,
   "license": "MIT",
-  "description": "Opinionated linting and formatting configuration for Effect",
-  "homepage": "https://effect.website",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Effect-TS/effect-smol.git",
-    "directory": "packages/tools/oxc"
-  },
+  "description": "JSDoc extraction tools for Effect",
   "sideEffects": [],
-  "bugs": {
-    "url": "https://github.com/Effect-TS/effect-smol/issues"
+  "bin": {
+    "effect-jsdocs": "./src/bin.ts"
   },
-  "tags": [
-    "typescript",
-    "formatting",
-    "linting",
-    "oxc"
-  ],
-  "keywords": [
-    "typescript",
-    "formatting",
-    "linting",
-    "oxc"
-  ],
   "exports": {
     "./package.json": "./package.json",
-    "./oxlint": "./src/oxlint/index.ts",
-    "./oxlint/rules/*": "./src/oxlint/rules/*.ts",
-    "./oxlintrc.json": "./oxlintrc.json"
+    ".": "./src/Jsdocs.ts",
+    "./*": "./src/*.ts",
+    "./bin": null
   },
   "files": [
-    "oxlintrc.json",
     "src/**/*.ts",
     "dist/**/*.js",
     "dist/**/*.js.map",
@@ -43,11 +24,14 @@
   ],
   "publishConfig": {
     "provenance": true,
+    "bin": {
+      "effect-jsdocs": "./dist/bin.js"
+    },
     "exports": {
       "./package.json": "./package.json",
-      "./oxlint": "./dist/oxlint/index.js",
-      "./oxlint/rules/*": "./dist/oxlint/rules/*.js",
-      "./oxlintrc.json": "./oxlintrc.json"
+      ".": "./dist/Jsdocs.js",
+      "./*": "./dist/*.js",
+      "./bin": null
     }
   },
   "scripts": {
@@ -59,7 +43,8 @@
     "coverage": "vitest --coverage"
   },
   "dependencies": {
-    "@effect/jsdocs": "workspace:^"
+    "effect": "workspace:^",
+    "glob": "^13.0.6"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0 <7.0.0"
