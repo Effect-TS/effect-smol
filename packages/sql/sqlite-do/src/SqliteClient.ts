@@ -95,8 +95,6 @@ export interface SqliteClientConfig {
   readonly transformQueryNames?: ((str: string) => string) | undefined
 }
 
-const Rollback = Symbol("@effect/sql-sqlite-do/Rollback")
-
 const unsupportedTransaction = (message: string, operation: string) =>
   new SqlError({
     reason: new UnknownError({
@@ -129,36 +127,24 @@ const makeStorageBackedWithTransaction = (
       )
     }
 
-    let exit: Exit.Exit<A, E> | undefined = undefined
-    const transaction = Effect.tryPromise<A, SqlError | typeof Rollback>({
-      try: () =>
-        storage.transaction(() =>
-          Effect.runPromiseExit(
-            Effect.provideContext(
-              effect,
-              Context.add(services, transactionService, [connection, 0] as const)
-            )
-          ).then((result) => {
-            exit = result
-            if (Exit.isFailure(result)) {
-              throw Rollback
-            }
-            return result.value
-          })
-        ),
-      catch: (cause) =>
-        cause === Rollback
-          ? Rollback
-          : new SqlError({ reason: classifyError(cause, "Failed transaction", "transaction") })
-    })
-
-    return semaphore.withPermits(1)(transaction).pipe(
-      Effect.catchAll((error) => {
-        if (error === Rollback) {
-          return exit ?? Exit.die("sqlite-do transaction exited without result")
-        }
-        return Effect.fail(error)
-      })
+    return semaphore.withPermits(1)(
+      Effect.tryPromise({
+        try: () =>
+          storage.transaction((txn) =>
+            Effect.runPromiseExit(
+              Effect.provideContext(
+                effect,
+                Context.add(services, transactionService, [connection, 0] as const)
+              )
+            ).then((exit) => {
+              if (Exit.isFailure(exit)) {
+                txn.rollback()
+              }
+              return exit
+            })
+          ),
+        catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed transaction", "transaction") })
+      }).pipe(Effect.flatten)
     )
   })
 

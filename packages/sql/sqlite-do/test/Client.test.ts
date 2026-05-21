@@ -118,14 +118,30 @@ class FakeSqlStorage {
 class FakeDurableObjectStorage {
   readonly sql = new FakeSqlStorage()
   transactionCalls = 0
+  rollbackCalls = 0
 
-  transaction<T>(body: () => T | Promise<T>): Promise<T> {
+  transaction<T>(body: (txn: { rollback: () => void }) => Promise<T>): Promise<T> {
     this.transactionCalls++
     const snapshot = this.sql.snapshot()
-    return Promise.resolve().then(body).catch((error) => {
-      this.sql.restore(snapshot)
-      throw error
-    })
+    let rolledBack = false
+    const txn = {
+      rollback: () => {
+        this.rollbackCalls++
+        rolledBack = true
+      }
+    }
+    return Promise.resolve().then(() => body(txn)).then(
+      (value) => {
+        if (rolledBack) {
+          this.sql.restore(snapshot)
+        }
+        return value
+      },
+      (error) => {
+        this.sql.restore(snapshot)
+        throw error
+      }
+    )
   }
 }
 
@@ -230,6 +246,7 @@ describe("Client", () => {
 
       assert.strictEqual(error, "boom")
       assert.deepStrictEqual(rows, [])
+      assert.strictEqual(storage.rollbackCalls, 1)
     }))
 
   it.effect("nested transactions fail clearly without savepoint SQL", () =>
@@ -249,6 +266,7 @@ describe("Client", () => {
       assert.strictEqual(error.reason._tag, "UnknownError")
       assert.match(error.message, /Nested transactions are not supported/)
       assert.deepStrictEqual(rows, [])
+      assert.strictEqual(storage.rollbackCalls, 1)
       assert.strictEqual(hasForbiddenTransactionSql(storage.sql), false)
     }))
 
