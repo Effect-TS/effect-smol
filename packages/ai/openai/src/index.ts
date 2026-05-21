@@ -5,7 +5,7 @@
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 export * as Generated from "./Generated.ts"
 

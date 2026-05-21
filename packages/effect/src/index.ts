@@ -234,7 +234,7 @@ export * as Cache from "./Cache.ts"
  *
  * ## Gotchas
  *
- * - `findError`/`findDefect` return `Filter.fail` (not `Option.none`) when no match is
+ * - `findError`/`findDefect` return `Result.fail` (not `Option.none`) when no match is
  *   found. Use {@link findErrorOption} if you need an `Option`.
  * - `squash` picks the first `Fail` error, then the first `Die` defect, then falls back
  *   to a generic "interrupted" / "empty" error. It is lossy — use `prettyErrors` or
@@ -261,21 +261,19 @@ export * as Cache from "./Cache.ts"
  *   const errors = cause.reasons
  *     .filter(Cause.isFailReason)
  *     .map((r) => r.error)
+ *     .sort()
  *
  *   const defects = cause.reasons
  *     .filter(Cause.isDieReason)
- *     .map((r) => r.defect)
+ *     .map((r) => String(r.defect))
+ *     .sort()
  *
- *   console.log(errors)  // ["err1", "err2"]  (order may vary)
- *   console.log(defects) // ["defect"]
+ *   console.log(errors.join(",")) // "err1,err2"
+ *   console.log(defects.join(",")) // "defect"
  * })
  *
  * Effect.runPromise(program)
  * ```
- *
- * @see {@link Cause} — the core interface
- * @see {@link Reason} — the union of failure kinds
- * @see {@link pretty} — human-readable rendering
  *
  * @since 2.0.0
  */
@@ -1573,7 +1571,7 @@ export * as ExecutionPlan from "./ExecutionPlan.ts"
  *
  * - A `Failure` wraps a `Cause<E>`, not a bare `E`. Use Cause utilities to drill into it.
  * - {@link mapError} and {@link mapBoth} only transform typed errors (Fail reasons in the Cause). If the Cause contains only defects or interruptions, the original failure passes through unchanged.
- * - Filter-based APIs ({@link filterSuccess}, {@link filterValue}, etc.) return `Filter.fail` markers for pipeline composition. They are not `Option` values or Effect failures.
+ * - Filter-based APIs ({@link filterSuccess}, {@link filterValue}, etc.) return `Result.fail` values for pipeline composition. They are not `Option` values or Effect failures.
  * - {@link findError} and {@link findDefect} return only the first matching reason from the Cause.
  *
  * ## Quickstart
