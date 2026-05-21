@@ -2619,6 +2619,60 @@ export const spaced = (duration: Duration.Input): Schedule<number> => {
 
 /**
  * Returns a new `Schedule` that allows execution of an effectful function for
+ * every decision of the schedule, but does not alter the inputs and outputs of
+ * the schedule.
+ *
+ * **Details**
+ *
+ * The callback receives the full schedule metadata, including the input, output,
+ * computed delay duration, current attempt, and elapsed timing information.
+ *
+ * **Example** (Tapping schedule metadata)
+ *
+ * ```ts
+ * import { Console, Effect, Schedule } from "effect"
+ *
+ * const monitoredSchedule = Schedule.exponential("100 millis").pipe(
+ *   Schedule.take(5),
+ *   Schedule.tap((metadata) =>
+ *     Console.log(
+ *       `Attempt ${metadata.attempt} produced ${metadata.output} ` +
+ *         `after ${metadata.elapsed}ms; next delay is ${metadata.duration}`
+ *     )
+ *   )
+ * )
+ *
+ * const program = Effect.retry(
+ *   Effect.fail("transient error"),
+ *   monitoredSchedule
+ * )
+ * ```
+ *
+ * @category sequencing
+ * @since 4.0.0
+ */
+export const tap: {
+  <Output, Input, X, Error2, Env2>(
+    f: (metadata: Metadata<Output, Input>) => Effect<X, Error2, Env2>
+  ): <Error, Env>(
+    self: Schedule<Output, Input, Error, Env>
+  ) => Schedule<Output, Input, Error | Error2, Env | Env2>
+  <Output, Input, Error, Env, X, Error2, Env2>(
+    self: Schedule<Output, Input, Error, Env>,
+    f: (metadata: Metadata<Output, Input>) => Effect<X, Error2, Env2>
+  ): Schedule<Output, Input, Error | Error2, Env | Env2>
+} = dual(2, <Output, Input, Error, Env, X, Error2, Env2>(
+  self: Schedule<Output, Input, Error, Env>,
+  f: (metadata: Metadata<Output, Input>) => Effect<X, Error2, Env2>
+): Schedule<Output, Input, Error | Error2, Env | Env2> =>
+  fromStep(effect.map(toStep(self), (step) => {
+    const meta = metadataFn()
+    return (now, input) =>
+      effect.tap(step(now, input), ([output, duration]) => f({ ...meta(now, input), output, duration }))
+  })))
+
+/**
+ * Returns a new `Schedule` that allows execution of an effectful function for
  * every input to the schedule, but does not alter the inputs and outputs of
  * the schedule.
  *
