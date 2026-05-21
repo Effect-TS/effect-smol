@@ -71,9 +71,21 @@ Use a normal multiline JSDoc comment in TypeScript source:
 - Do not use Markdown headings such as `# Heading` or ad hoc bold headings such as `**Notes**`; only the standard headings are allowed.
 - Examples must use `**Example** (Title)`, optional prose, and exactly one non-empty `ts` code fence.
 - Example titles must be unique after trimming and lowercasing.
+- Prefer examples with stable, deterministic output. Avoid assertions or
+  `console.log` comments that depend on stack traces, object inspection,
+  `Error` formatting, concurrency order, timing, randomness, or
+  environment-specific formatting. Examples may assume Node.js console
+  formatting. Direct `Set` / `Map` output is acceptable when insertion order is
+  deterministic and the expected output uses Node's format; otherwise
+  demonstrate a stable property instead.
 - Do not use `@example`.
 - Do not put TypeScript code fences outside `**Example** (Title)` sections.
 - Inline `{@link Symbol}` targets must resolve to TypeScript symbols; do not link to URLs with `{@link}`.
+- Avoid overlinking in prose. Use `{@link Symbol}` only when navigation to
+  that symbol helps the reader choose or understand the API. For the API being
+  documented, the module's central type, nearby obvious names, or repeated
+  mentions, prefer plain code formatting such as `Cause`, `Effect`, or
+  `Context`.
 - Do not document module-level comments; module JSDoc is ignored by this rule.
 - `@internal` means the item is ignored; do not rewrite it as public docs.
 - Default exports are ignored by this rule and do not need JSDoc.
@@ -127,7 +139,9 @@ When fixing or updating existing docs:
 6. Convert `@example` tags and loose `ts` fences into `**Example** (Title)` sections.
 7. Preserve valid `@see`, `@deprecated`, `@default`, `@category`, and `@since` tags.
 8. Remove `@see` tags that do not point to similar APIs with meaningfully different usage patterns.
-9. Remove sections that would be empty.
+9. Replace redundant inline `{@link ...}` tags with plain code formatting when
+   the link target is already obvious from the current declaration or module.
+10. Remove sections that would be empty.
 
 ## Module refinement
 
@@ -136,7 +150,8 @@ When asked to refine an existing module:
 1. First scan the module for local documentation patterns, repeated API families, and category conventions.
 2. Keep the change focused on documentation quality unless the user also asked for rule or source changes.
 3. Prefer improving existing comments over rewriting every comment into a new voice.
-4. Preserve examples unless they are wrong, stale, or fail the required documentation shape.
+4. Preserve examples unless they are wrong, stale, nondeterministic, or fail
+   the required documentation shape.
 5. Apply the `@see` and `**Gotchas**` audits across the module before finishing.
 
 ## See audit

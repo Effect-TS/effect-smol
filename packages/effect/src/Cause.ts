@@ -32,7 +32,7 @@
  *
  * ## Gotchas
  *
- * - `findError`/`findDefect` return `Filter.fail` (not `Option.none`) when no match is
+ * - `findError`/`findDefect` return `Result.fail` (not `Option.none`) when no match is
  *   found. Use {@link findErrorOption} if you need an `Option`.
  * - `squash` picks the first `Fail` error, then the first `Die` defect, then falls back
  *   to a generic "interrupted" / "empty" error. It is lossy — use `prettyErrors` or
@@ -59,21 +59,19 @@
  *   const errors = cause.reasons
  *     .filter(Cause.isFailReason)
  *     .map((r) => r.error)
+ *     .sort()
  *
  *   const defects = cause.reasons
  *     .filter(Cause.isDieReason)
- *     .map((r) => r.defect)
+ *     .map((r) => String(r.defect))
+ *     .sort()
  *
- *   console.log(errors)  // ["err1", "err2"]  (order may vary)
- *   console.log(defects) // ["defect"]
+ *   console.log(errors.join(",")) // "err1,err2"
+ *   console.log(defects.join(",")) // "defect"
  * })
  *
  * Effect.runPromise(program)
  * ```
- *
- * @see {@link Cause} — the core interface
- * @see {@link Reason} — the union of failure kinds
- * @see {@link pretty} — human-readable rendering
  *
  * @since 2.0.0
  */
@@ -134,8 +132,6 @@ export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
  * console.log(Cause.isFailReason(cause.reasons[0])) // true
  * ```
  *
- * @see {@link Reason} — the union type stored in `reasons`
- *
  * @category models
  * @since 2.0.0
  */
@@ -145,7 +141,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
 }
 
 /**
- * Tests if an arbitrary value is a {@link Cause}.
+ * Tests if an arbitrary value is a `Cause`.
  *
  * **Example** (runtime type check)
  *
@@ -162,7 +158,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
 export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
 
 /**
- * Tests if an arbitrary value is a {@link Reason} (`Fail`, `Die`, or `Interrupt`).
+ * Tests if an arbitrary value is a `Reason` (`Fail`, `Die`, or `Interrupt`).
  *
  * **Example** (runtime type check)
  *
@@ -180,7 +176,7 @@ export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
 export const isReason: (self: unknown) => self is Reason<unknown> = core.isCauseReason
 
 /**
- * A single entry inside a {@link Cause}'s `reasons` array.
+ * A single entry inside a `Cause`'s `reasons` array.
  *
  * **Details**
  *
@@ -205,17 +201,13 @@ export const isReason: (self: unknown) => self is Reason<unknown> = core.isCause
  * }
  * ```
  *
- * @see {@link Fail} — typed error reason
- * @see {@link Die} — untyped defect reason
- * @see {@link Interrupt} — interruption reason
- *
  * @category models
  * @since 4.0.0
  */
 export type Reason<E> = Fail<E> | Die | Interrupt
 
 /**
- * Narrows a {@link Reason} to {@link Fail}.
+ * Narrows a `Reason` to `Fail`.
  *
  * **When to use**
  *
@@ -240,7 +232,7 @@ export type Reason<E> = Fail<E> | Die | Interrupt
 export const isFailReason: <E>(self: Reason<E>) => self is Fail<E> = core.isFailReason
 
 /**
- * Narrows a {@link Reason} to {@link Die}.
+ * Narrows a `Reason` to `Die`.
  *
  * **When to use**
  *
@@ -265,7 +257,7 @@ export const isFailReason: <E>(self: Reason<E>) => self is Fail<E> = core.isFail
 export const isDieReason: <E>(self: Reason<E>) => self is Die = core.isDieReason
 
 /**
- * Narrows a {@link Reason} to {@link Interrupt}.
+ * Narrows a `Reason` to `Interrupt`.
  *
  * **When to use**
  *
@@ -290,7 +282,7 @@ export const isDieReason: <E>(self: Reason<E>) => self is Die = core.isDieReason
 export const isInterruptReason: <E>(self: Reason<E>) => self is Interrupt = core.isInterruptReason
 
 /**
- * Companion namespace for the {@link Cause} interface.
+ * Companion namespace for the `Cause` interface.
  *
  * @since 2.0.0
  */
@@ -313,8 +305,7 @@ export declare namespace Cause {
   export type Error<T> = T extends Cause<infer E> ? E : never
 
   /**
-   * Base interface shared by all reason types ({@link Fail}, {@link Die},
-   * {@link Interrupt}).
+   * Base interface shared by all reason types (`Fail`, `Die`, `Interrupt`).
    *
    * **Details**
    *
@@ -337,7 +328,7 @@ export declare namespace Cause {
 }
 
 /**
- * Companion namespace for the {@link Reason} type.
+ * Companion namespace for the `Reason` type.
  *
  * @since 4.0.0
  */
@@ -366,7 +357,7 @@ export declare namespace Reason {
  * **Details**
  *
  * The `defect` property is `unknown` because defects are not part of the
- * typed error channel. Use {@link isDieReason} to narrow a {@link Reason}
+ * typed error channel. Use {@link isDieReason} to narrow a `Reason`
  * to this type.
  *
  * **Example** (accessing the defect)
@@ -374,15 +365,12 @@ export declare namespace Reason {
  * ```ts
  * import { Cause } from "effect"
  *
- * const cause = Cause.die(new Error("Unexpected"))
+ * const cause = Cause.die("Unexpected")
  * const reason = cause.reasons[0]
  * if (Cause.isDieReason(reason)) {
- *   console.log(reason.defect) // Error: Unexpected
+ *   console.log(reason.defect) // "Unexpected"
  * }
  * ```
- *
- * @see {@link die} — create a `Cause` containing a single `Die`
- * @see {@link isDieReason} — type guard
  *
  * @category models
  * @since 2.0.0
@@ -397,7 +385,7 @@ export interface Die extends Cause.ReasonProto<"Die"> {
  * **Details**
  *
  * The `error` property carries the typed value `E`. Use {@link isFailReason}
- * to narrow a {@link Reason} to this type.
+ * to narrow a `Reason` to this type.
  *
  * **Example** (accessing the error)
  *
@@ -410,9 +398,6 @@ export interface Die extends Cause.ReasonProto<"Die"> {
  *   console.log(reason.error) // "Something went wrong"
  * }
  * ```
- *
- * @see {@link fail} — create a `Cause` containing a single `Fail`
- * @see {@link isFailReason} — type guard
  *
  * @category models
  * @since 2.0.0
@@ -427,7 +412,7 @@ export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
  *
  * **Details**
  *
- * Use {@link isInterruptReason} to narrow a {@link Reason} to this type.
+ * Use {@link isInterruptReason} to narrow a `Reason` to this type.
  *
  * **Example** (accessing the fiber ID)
  *
@@ -441,9 +426,6 @@ export interface Fail<out E> extends Cause.ReasonProto<"Fail"> {
  * }
  * ```
  *
- * @see {@link interrupt} — create a `Cause` containing a single `Interrupt`
- * @see {@link isInterruptReason} — type guard
- *
  * @category models
  * @since 2.0.0
  */
@@ -452,7 +434,7 @@ export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
 }
 
 /**
- * Creates a {@link Cause} from an array of {@link Reason} values.
+ * Creates a `Cause` from an array of `Reason` values.
  *
  * **When to use**
  *
@@ -463,7 +445,12 @@ export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
  * **Details**
  *
  * - Returns a new `Cause`; does not mutate the input array.
- * - An empty array produces a cause equivalent to {@link empty}.
+ * - An empty array produces a cause equivalent to `empty`.
+ *
+ * **Gotchas**
+ *
+ * The `reasons` array is stored as provided. Treat the array as immutable
+ * after passing it to this function.
  *
  * **Example** (building a cause from reasons)
  *
@@ -488,14 +475,23 @@ export const fromReasons: <E>(
 ) => Cause<E> = core.causeFromReasons
 
 /**
- * A {@link Cause} with an empty `reasons` array.
+ * A `Cause` with an empty `reasons` array.
  *
  * **Details**
  *
  * Represents the absence of failure. Combining any cause with `empty` via
  * {@link combine} returns the original cause unchanged.
  *
- * @see {@link combine}
+ * **Example** (combining with the empty cause)
+ *
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * const cause = Cause.combine(Cause.empty, Cause.fail("boom"))
+ *
+ * console.log(cause.reasons.length) // 1
+ * console.log(Cause.hasFails(cause)) // true
+ * ```
  *
  * @category constructors
  * @since 2.0.0
@@ -503,7 +499,7 @@ export const fromReasons: <E>(
 export const empty: Cause<never> = core.causeEmpty
 
 /**
- * Creates a {@link Cause} containing a single {@link Fail} reason with the
+ * Creates a `Cause` containing a single `Fail` reason with the
  * given typed error.
  *
  * **Example** (creating a fail cause)
@@ -525,7 +521,7 @@ export const empty: Cause<never> = core.causeEmpty
 export const fail: <E>(error: E) => Cause<E> = core.causeFail
 
 /**
- * Creates a {@link Cause} containing a single {@link Die} reason with the
+ * Creates a `Cause` containing a single `Die` reason with the
  * given defect.
  *
  * **Example** (creating a die cause)
@@ -533,7 +529,7 @@ export const fail: <E>(error: E) => Cause<E> = core.causeFail
  * ```ts
  * import { Cause } from "effect"
  *
- * const cause = Cause.die(new Error("Unexpected"))
+ * const cause = Cause.die("Unexpected")
  * console.log(cause.reasons.length) // 1
  * console.log(Cause.isDieReason(cause.reasons[0])) // true
  * ```
@@ -547,7 +543,7 @@ export const fail: <E>(error: E) => Cause<E> = core.causeFail
 export const die: (defect: unknown) => Cause<never> = core.causeDie
 
 /**
- * Creates a {@link Cause} containing a single {@link Interrupt} reason,
+ * Creates a `Cause` containing a single `Interrupt` reason,
  * optionally carrying the interrupting fiber's ID.
  *
  * **Example** (creating an interrupt cause)
@@ -569,7 +565,7 @@ export const die: (defect: unknown) => Cause<never> = core.causeDie
 export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.causeInterrupt
 
 /**
- * Creates a standalone {@link Fail} reason (not wrapped in a {@link Cause}).
+ * Creates a standalone `Fail` reason (not wrapped in a `Cause`).
  *
  * **When to use**
  *
@@ -595,15 +591,21 @@ export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.
 export const makeFailReason = <E>(error: E): Fail<E> => new core.Fail(error)
 
 /**
- * Creates a standalone {@link Die} reason (not wrapped in a {@link Cause}).
+ * Creates a standalone `Die` reason (not wrapped in a `Cause`).
+ *
+ * **When to use**
+ *
+ * Use this when you need to construct individual reasons for
+ * {@link fromReasons} or for direct comparison.
  *
  * **Example** (creating a Die reason)
  *
  * ```ts
  * import { Cause } from "effect"
  *
- * const reason = Cause.makeDieReason(new Error("bug"))
+ * const reason = Cause.makeDieReason("bug")
  * console.log(reason._tag) // "Die"
+ * console.log(reason.defect) // "bug"
  * ```
  *
  * @see {@link makeFailReason} — create a `Fail` reason
@@ -615,8 +617,13 @@ export const makeFailReason = <E>(error: E): Fail<E> => new core.Fail(error)
 export const makeDieReason = (defect: unknown): Die => new core.Die(defect)
 
 /**
- * Creates a standalone {@link Interrupt} reason (not wrapped in a {@link Cause}),
+ * Creates a standalone `Interrupt` reason (not wrapped in a `Cause`),
  * optionally carrying the interrupting fiber's ID.
+ *
+ * **When to use**
+ *
+ * Use this when you need to construct individual reasons for
+ * {@link fromReasons} or for direct comparison.
  *
  * **Example** (creating an Interrupt reason)
  *
@@ -637,7 +644,7 @@ export const makeDieReason = (defect: unknown): Die => new core.Die(defect)
 export const makeInterruptReason: (fiberId?: number | undefined) => Interrupt = effect.makeInterruptReason
 
 /**
- * Returns `true` if every reason in the cause is an {@link Interrupt} (and
+ * Returns `true` if every reason in the cause is an `Interrupt` (and
  * there is at least one reason).
  *
  * **When to use**
@@ -663,13 +670,16 @@ export const makeInterruptReason: (fiberId?: number | undefined) => Interrupt = 
 export const hasInterruptsOnly: <E>(self: Cause<E>) => boolean = effect.hasInterruptsOnly
 
 /**
- * Transforms the typed error values inside a {@link Cause} using the
- * provided function. Only {@link Fail} reasons are affected; {@link Die}
- * and {@link Interrupt} reasons pass through unchanged.
+ * Transforms the typed error values inside a `Cause` using the
+ * provided function. Only `Fail` reasons are affected; `Die` and `Interrupt`
+ * reasons pass through unchanged.
  *
  * **Details**
  *
- * Returns a new `Cause`; does not mutate the original.
+ * If at least one `Fail` reason exists, this returns a new `Cause`
+ * containing the mapped failures. If the cause has no `Fail` reasons, the
+ * original cause is returned unchanged. In either case, the original cause is
+ * not mutated.
  *
  * **Example** (mapping errors to uppercase)
  *
@@ -698,7 +708,7 @@ export const map: {
  *
  * **Details**
  *
- * - Combining with {@link empty} returns the other cause unchanged.
+ * - Combining with `empty` returns the other cause unchanged.
  * - If the result is structurally equal to `self`, `self` is returned
  *   (referential shortcut).
  *
@@ -724,15 +734,15 @@ export const combine: {
 } = effect.causeCombine
 
 /**
- * Collapses a {@link Cause} into a single `unknown` value, picking the "most
+ * Collapses a `Cause` into a single `unknown` value, picking the "most
  * important" failure in this order:
  *
  * **Details**
  *
- * 1. First {@link Fail} error (the `E` value)
- * 2. First {@link Die} defect
+ * 1. First `Fail` error (the `E` value)
+ * 2. First `Die` defect
  * 3. A generic `Error("All fibers interrupted without error")` for interrupt-only causes
- * 4. A generic `Error("Empty cause")` for {@link empty}
+ * 4. A generic `Error("Empty cause")` for `empty`
  *
  * This is the function used by `Effect.runPromise` and `Effect.runSync` to
  * decide what to throw.
@@ -760,7 +770,7 @@ export const combine: {
 export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
 
 /**
- * Returns `true` if the cause contains at least one {@link Fail} reason.
+ * Returns `true` if the cause contains at least one `Fail` reason.
  *
  * **Example** (checking for typed errors)
  *
@@ -780,7 +790,7 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
 export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
 
 /**
- * Returns a `Result` whose success value is the first {@link Fail} reason in
+ * Returns a `Result` whose success value is the first `Fail` reason in
  * the cause, including its annotations. If the cause has no `Fail` reason, the
  * failure value is the original cause narrowed to `Cause<never>`, because it
  * contains no typed error reasons.
@@ -803,20 +813,20 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
  * @see {@link findError} — extract the unwrapped `E` value
  * @see {@link findDie} — extract the first `Die` reason
  *
- * @category filters
+ * @category filtering
  * @since 4.0.0
  */
 export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never>> = effect.findFail
 
 /**
  * Returns a `Result` whose success value is the first typed error value `E`
- * from a {@link Fail} reason in the cause. If the cause has no `Fail` reason,
+ * from a `Fail` reason in the cause. If the cause has no `Fail` reason,
  * the failure value is the original cause narrowed to `Cause<never>`, because
  * it contains no typed error reasons.
  *
  * **When to use**
  *
- * Use {@link findFail} if you need the full {@link Fail} reason (including
+ * Use {@link findFail} if you need the full `Fail` reason (including
  * annotations). Use {@link findErrorOption} if you prefer an `Option`.
  *
  * **Example** (extracting the first error value)
@@ -833,14 +843,14 @@ export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never
  * @see {@link findFail} — extract the full `Fail` reason
  * @see {@link findErrorOption} — `Option`-based variant
  *
- * @category filters
+ * @category filtering
  * @since 4.0.0
  */
 export const findError: <E>(self: Cause<E>) => Result.Result<E, Cause<never>> = effect.findError
 
 /**
  * Returns the first typed error value `E` from a cause wrapped in
- * `Option.some`, or `Option.none` if no {@link Fail} reason exists.
+ * `Option.some`, or `Option.none` if no `Fail` reason exists.
  *
  * **When to use**
  *
@@ -859,15 +869,15 @@ export const findError: <E>(self: Cause<E>) => Result.Result<E, Cause<never>> = 
  * console.log(Option.isNone(none)) // true
  * ```
  *
- * @see {@link findError} — `Filter`-based variant
+ * @see {@link findError} — `Result`-based variant
  *
- * @category filters
+ * @category filtering
  * @since 4.0.0
  */
 export const findErrorOption: <E>(input: Cause<E>) => Option<E> = effect.findErrorOption
 
 /**
- * Returns `true` if the cause contains at least one {@link Die} reason.
+ * Returns `true` if the cause contains at least one `Die` reason.
  *
  * **Example** (checking for defects)
  *
@@ -887,7 +897,7 @@ export const findErrorOption: <E>(input: Cause<E>) => Option<E> = effect.findErr
 export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
 
 /**
- * Returns a `Result` whose success value is the first {@link Die} reason in
+ * Returns a `Result` whose success value is the first `Die` reason in
  * the cause, including its annotations. If the cause has no `Die` reason, the
  * failure value is the original cause.
  *
@@ -909,14 +919,14 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
  * @see {@link findDefect} — extract the unwrapped defect value
  * @see {@link findFail} — extract the first `Fail` reason
  *
- * @category filters
+ * @category filtering
  * @since 4.0.0
  */
 export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effect.findDie
 
 /**
  * Returns a `Result` whose success value is the first defect value from a
- * {@link Die} reason in the cause. If the cause has no `Die` reason, the
+ * `Die` reason in the cause. If the cause has no `Die` reason, the
  * failure value is the original cause.
  *
  * **When to use**
@@ -938,13 +948,13 @@ export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effe
  * @see {@link findDie} — extract the full `Die` reason
  * @see {@link findError} — extract the first typed error
  *
- * @category filters
+ * @category filtering
  * @since 4.0.0
  */
 export const findDefect: <E>(self: Cause<E>) => Result.Result<unknown, Cause<E>> = effect.findDefect
 
 /**
- * Returns `true` if the cause contains at least one {@link Interrupt} reason.
+ * Returns `true` if the cause contains at least one `Interrupt` reason.
  *
  * **Example** (checking for interruptions)
  *
@@ -965,7 +975,7 @@ export const findDefect: <E>(self: Cause<E>) => Result.Result<unknown, Cause<E>>
 export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupts
 
 /**
- * Returns a `Result` whose success value is the first {@link Interrupt} reason
+ * Returns a `Result` whose success value is the first `Interrupt` reason
  * in the cause, including its annotations. If the cause has no `Interrupt`
  * reason, the failure value is the original cause.
  *
@@ -982,13 +992,13 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
  *
  * @see {@link interruptors} — collect all interrupting fiber IDs as a `Set`
  *
- * @category filters
+ * @category filtering
  * @since 4.0.0
  */
 export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Cause<E>> = effect.findInterrupt
 
 /**
- * Collects the defined fiber IDs from all {@link Interrupt} reasons in the
+ * Collects the defined fiber IDs from all `Interrupt` reasons in the
  * cause into a `ReadonlySet`. Interrupt reasons without a `fiberId` are
  * ignored. Returns an empty set when the cause has no interrupting fiber IDs.
  *
@@ -1007,10 +1017,11 @@ export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Caus
  *   Cause.interrupt(1),
  *   Cause.interrupt(2)
  * )
- * console.log(Cause.interruptors(cause)) // Set { 1, 2 }
+ *
+ * console.log(Cause.interruptors(cause)) // Set(2) { 1, 2 }
  * ```
  *
- * @see {@link filterInterruptors} — `Filter`-based variant
+ * @see {@link filterInterruptors} — `Result`-based variant
  *
  * @category accessors
  * @since 2.0.0
@@ -1019,7 +1030,7 @@ export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.c
 
 /**
  * Returns a `Result` whose success value is the set of defined fiber IDs from
- * the cause's {@link Interrupt} reasons. If the cause has no `Interrupt`
+ * the cause's `Interrupt` reasons. If the cause has no `Interrupt`
  * reason, the failure value is the original cause.
  *
  * **When to use**
@@ -1027,32 +1038,38 @@ export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.c
  * Use {@link interruptors} if you always want a `Set` without `Result`
  * wrapping.
  *
- * **Example** (extracting interruptors with Filter)
+ * **Gotchas**
+ *
+ * Interrupt reasons without a `fiberId` still count as interrupts, so the
+ * function succeeds with an empty `Set` when every interrupt reason has an
+ * undefined fiber ID.
+ *
+ * **Example** (extracting interruptors with Result)
  *
  * ```ts
  * import { Cause, Result } from "effect"
  *
  * const result = Cause.filterInterruptors(Cause.interrupt(1))
  * if (!Result.isFailure(result)) {
- *   console.log(result.success) // Set { 1 }
+ *   console.log(result.success) // Set(1) { 1 }
  * }
  * ```
  *
  * @see {@link interruptors} — always-succeeding variant
  *
- * @category filters
+ * @category filtering
  * @since 4.0.0
  */
 export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number>, Cause<E>> =
   effect.causeFilterInterruptors
 
 /**
- * Converts a {@link Cause} into an `Array<Error>` suitable for logging or
+ * Converts a `Cause` into an `Array<Error>` suitable for logging or
  * rethrowing.
  *
  * **Details**
  *
- * Each {@link Fail} and {@link Die} reason is converted into a standard
+ * Each `Fail` and `Die` reason is converted into a standard
  * `Error`:
  *
  * - **Objects / Error instances** — `message`, `name`, `stack`, and `cause`
@@ -1062,9 +1079,11 @@ export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number
  * - **Other primitives** (`null`, `undefined`, numbers, …) — wrapped in an
  *   `Error` with message `"Unknown error: <value>"`.
  *
- * {@link Interrupt} reasons are collected separately. If the cause contains
+ * `Interrupt` reasons are collected separately. If the cause contains
  * **only** interrupts (no `Fail` or `Die`), a single `InterruptError` is
  * returned whose `cause` lists the interrupting fiber IDs.
+ *
+ * An empty cause returns an empty array.
  *
  * **Example** (converting a cause to errors)
  *
@@ -1085,7 +1104,7 @@ export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number
 export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
 
 /**
- * Renders a {@link Cause} as a human-readable string for logging or
+ * Renders a `Cause` as a human-readable string for logging or
  * debugging.
  *
  * **Details**
@@ -1105,15 +1124,18 @@ export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePre
  *
  * Span annotations are appended to the relevant stack frames when available.
  *
+ * **Gotchas**
+ *
+ * Rendering an empty cause produces an empty string because there are no
+ * errors to render.
+ *
  * **Example** (rendering a cause)
  *
  * ```ts
  * import { Cause } from "effect"
  *
- * const cause = Cause.fail("something went wrong")
- * console.log(Cause.pretty(cause))
- * // Error: something went wrong
- * //     at ...
+ * const rendered = Cause.pretty(Cause.fail("something went wrong"))
+ * console.log(rendered.includes("something went wrong")) // true
  * ```
  *
  * @see {@link prettyErrors} — get the individual `Error` instances
@@ -1130,10 +1152,9 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
  *
  * **Details**
  *
- * All built-in error classes in this module ({@link NoSuchElementError},
- * {@link TimeoutError}, {@link IllegalArgumentError},
- * {@link ExceededCapacityError}, {@link AsyncFiberError}, and
- * {@link UnknownError}) implement this interface.
+ * All built-in error classes in this module (`NoSuchElementError`,
+ * `TimeoutError`, `IllegalArgumentError`, `ExceededCapacityError`,
+ * `AsyncFiberError`, and `UnknownError`) implement this interface.
  *
  * **Example** (yielding an error in Effect.gen)
  *
@@ -1156,7 +1177,7 @@ export interface YieldableError extends Error, Pipeable, Inspectable {
 }
 
 /**
- * Tests if an arbitrary value is a {@link NoSuchElementError}.
+ * Tests if an arbitrary value is a `NoSuchElementError`.
  *
  * **Example** (runtime type check)
  *
@@ -1173,7 +1194,7 @@ export interface YieldableError extends Error, Pipeable, Inspectable {
 export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = core.isNoSuchElementError
 
 /**
- * Unique brand for {@link NoSuchElementError}.
+ * Unique brand for `NoSuchElementError`.
  *
  * @category symbols
  * @since 4.0.0
@@ -1186,13 +1207,14 @@ export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core
  * **Details**
  *
  * Used by APIs that convert absence into an exception or effect failure, such
- * as `Option.getOrThrow`. Implements {@link YieldableError} so it can be
+ * as `Option.getOrThrow`. Implements `YieldableError` so it can be
  * yielded directly in `Effect.gen`.
  *
  * **Gotchas**
  *
- * Safe lookup APIs that return `Option` should document the `None` case rather
- * than describing it as a thrown `NoSuchElementError`.
+ * Prefer APIs that return `Option` or a typed failure when absence is an
+ * expected case. This error is mainly for APIs that intentionally turn absence
+ * into a thrown value or failed effect.
  *
  * **Example** (creating and checking)
  *
@@ -1204,9 +1226,6 @@ export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core
  * console.log(error.message) // "Element not found"
  * ```
  *
- * @see {@link isNoSuchElementError} — type guard
- * @see {@link NoSuchElementError:var | NoSuchElementError constructor}
- *
  * @category errors
  * @since 4.0.0
  */
@@ -1216,7 +1235,7 @@ export interface NoSuchElementError extends YieldableError {
 }
 
 /**
- * Constructs a {@link NoSuchElementError} with an optional message.
+ * Constructs a `NoSuchElementError` with an optional message.
  *
  * **Example** (creating a NoSuchElementError)
  *
@@ -1233,7 +1252,7 @@ export interface NoSuchElementError extends YieldableError {
 export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
- * Tests if an arbitrary value is a {@link Done} signal.
+ * Tests if an arbitrary value is a `Done` signal.
  *
  * **Example** (runtime type check)
  *
@@ -1250,7 +1269,7 @@ export const NoSuchElementError: new(message?: string) => NoSuchElementError = c
 export const isDone: (u: unknown) => u is Done<any> = core.isDone
 
 /**
- * Unique brand for {@link Done} values.
+ * Unique brand for `Done` values.
  *
  * @category symbols
  * @since 4.0.0
@@ -1282,9 +1301,6 @@ export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
  * })
  * ```
  *
- * @see {@link isDone} — type guard
- * @see {@link done} — create a failing Effect with `Done`
- *
  * @category errors
  * @since 4.0.0
  */
@@ -1295,7 +1311,7 @@ export interface Done<A = void> {
 }
 
 /**
- * Companion namespace for the {@link Done} interface.
+ * Companion namespace for the `Done` interface.
  *
  * @since 4.0.0
  */
@@ -1319,7 +1335,12 @@ export declare namespace Done {
 }
 
 /**
- * Creates a {@link Done} signal with an optional value.
+ * Creates a `Done` signal with an optional value.
+ *
+ * **When to use**
+ *
+ * Use this when you need the completion signal value itself. Use {@link done}
+ * when you need an `Effect` that fails with the signal.
  *
  * @see {@link done} — create a failing `Effect` with `Done`
  *
@@ -1329,8 +1350,25 @@ export declare namespace Done {
 export const Done: <A = void>(value?: A) => Done<A> = core.Done
 
 /**
- * Creates an Effect that fails with a {@link Done} error. Shorthand for
+ * Creates an Effect that fails with a `Done` error. Shorthand for
  * `Effect.fail(Cause.Done(value))`.
+ *
+ * **When to use**
+ *
+ * Use this in effect workflows that model stream or queue completion through
+ * the error channel.
+ *
+ * **Example** (failing with Done)
+ *
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ *
+ * const program = Cause.done("finished")
+ *
+ * Effect.runPromiseExit(program).then((exit) => {
+ *   console.log(exit._tag) // "Failure"
+ * })
+ * ```
  *
  * @see {@link Done:var | Done} — create the signal value without an Effect
  *
@@ -1340,7 +1378,7 @@ export const Done: <A = void>(value?: A) => Done<A> = core.Done
 export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core.done
 
 /**
- * Unique brand for {@link TimeoutError}.
+ * Unique brand for `TimeoutError`.
  *
  * @category symbols
  * @since 4.0.0
@@ -1348,7 +1386,7 @@ export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core
 export const TimeoutErrorTypeId: "~effect/Cause/TimeoutError" = effect.TimeoutErrorTypeId
 
 /**
- * Tests if an arbitrary value is a {@link TimeoutError}.
+ * Tests if an arbitrary value is a `TimeoutError`.
  *
  * **Example** (runtime type check)
  *
@@ -1370,7 +1408,7 @@ export const isTimeoutError: (u: unknown) => u is TimeoutError = effect.isTimeou
  * **Details**
  *
  * Produced by `Effect.timeout` and related APIs. Implements
- * {@link YieldableError}.
+ * `YieldableError`.
  *
  * **Example** (creating and checking)
  *
@@ -1382,8 +1420,6 @@ export const isTimeoutError: (u: unknown) => u is TimeoutError = effect.isTimeou
  * console.log(error.message) // "Operation timed out"
  * ```
  *
- * @see {@link isTimeoutError} — type guard
- *
  * @category errors
  * @since 4.0.0
  */
@@ -1393,7 +1429,7 @@ export interface TimeoutError extends YieldableError {
 }
 
 /**
- * Constructs a {@link TimeoutError} with an optional message.
+ * Constructs a `TimeoutError` with an optional message.
  *
  * **Example** (creating a TimeoutError)
  *
@@ -1410,7 +1446,7 @@ export interface TimeoutError extends YieldableError {
 export const TimeoutError: new(message?: string) => TimeoutError = effect.TimeoutError
 
 /**
- * Unique brand for {@link IllegalArgumentError}.
+ * Unique brand for `IllegalArgumentError`.
  *
  * @category symbols
  * @since 4.0.0
@@ -1418,7 +1454,7 @@ export const TimeoutError: new(message?: string) => TimeoutError = effect.Timeou
 export const IllegalArgumentErrorTypeId: "~effect/Cause/IllegalArgumentError" = effect.IllegalArgumentErrorTypeId
 
 /**
- * Tests if an arbitrary value is an {@link IllegalArgumentError}.
+ * Tests if an arbitrary value is an `IllegalArgumentError`.
  *
  * **Example** (runtime type check)
  *
@@ -1440,7 +1476,7 @@ export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError =
  *
  * **Details**
  *
- * Implements {@link YieldableError}.
+ * Implements `YieldableError`.
  *
  * **Example** (creating and checking)
  *
@@ -1452,8 +1488,6 @@ export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError =
  * console.log(error.message) // "Expected positive number"
  * ```
  *
- * @see {@link isIllegalArgumentError} — type guard
- *
  * @category errors
  * @since 4.0.0
  */
@@ -1463,7 +1497,7 @@ export interface IllegalArgumentError extends YieldableError {
 }
 
 /**
- * Constructs an {@link IllegalArgumentError} with an optional message.
+ * Constructs an `IllegalArgumentError` with an optional message.
  *
  * **Example** (creating an IllegalArgumentError)
  *
@@ -1480,7 +1514,7 @@ export interface IllegalArgumentError extends YieldableError {
 export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = effect.IllegalArgumentError
 
 /**
- * Tests if an arbitrary value is an {@link ExceededCapacityError}.
+ * Tests if an arbitrary value is an `ExceededCapacityError`.
  *
  * **Example** (runtime type check)
  *
@@ -1497,7 +1531,7 @@ export const IllegalArgumentError: new(message?: string) => IllegalArgumentError
 export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError = effect.isExceededCapacityError
 
 /**
- * Unique brand for {@link ExceededCapacityError}.
+ * Unique brand for `ExceededCapacityError`.
  *
  * @category symbols
  * @since 4.0.0
@@ -1510,7 +1544,7 @@ export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" 
  *
  * **Details**
  *
- * Implements {@link YieldableError}.
+ * Implements `YieldableError`.
  *
  * **Example** (creating and checking)
  *
@@ -1522,8 +1556,6 @@ export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" 
  * console.log(error.message) // "Queue full"
  * ```
  *
- * @see {@link isExceededCapacityError} — type guard
- *
  * @category errors
  * @since 4.0.0
  */
@@ -1533,7 +1565,7 @@ export interface ExceededCapacityError extends YieldableError {
 }
 
 /**
- * Constructs an {@link ExceededCapacityError} with an optional message.
+ * Constructs an `ExceededCapacityError` with an optional message.
  *
  * **Example** (creating an ExceededCapacityError)
  *
@@ -1550,7 +1582,7 @@ export interface ExceededCapacityError extends YieldableError {
 export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError
 
 /**
- * Unique brand for {@link AsyncFiberError}.
+ * Unique brand for `AsyncFiberError`.
  *
  * @category symbols
  * @since 4.0.0
@@ -1558,7 +1590,20 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
 export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
 
 /**
- * Tests if an arbitrary value is an {@link AsyncFiberError}.
+ * Tests if an arbitrary value is an `AsyncFiberError`.
+ *
+ * **Example** (runtime type check)
+ *
+ * ```ts
+ * import { Cause } from "effect"
+ * import type { Fiber } from "effect"
+ *
+ * declare const fiber: Fiber.Fiber<unknown, unknown>
+ *
+ * const error = new Cause.AsyncFiberError(fiber)
+ * console.log(Cause.isAsyncFiberError(error)) // true
+ * console.log(Cause.isAsyncFiberError("nope")) // false
+ * ```
  *
  * @category guards
  * @since 4.0.0
@@ -1567,6 +1612,24 @@ export const isAsyncFiberError: (u: unknown) => u is AsyncFiberError = effect.is
 
 /**
  * An error that occurs when trying to run an async fiber with Effect.runSync.
+ *
+ * **Details**
+ *
+ * The `fiber` property stores the fiber that could not be synchronously
+ * resolved. This error implements `YieldableError`.
+ *
+ * **Example** (accessing the fiber)
+ *
+ * ```ts
+ * import { Cause } from "effect"
+ * import type { Fiber } from "effect"
+ *
+ * declare const fiber: Fiber.Fiber<unknown, unknown>
+ *
+ * const error = new Cause.AsyncFiberError(fiber)
+ * console.log(error._tag) // "AsyncFiberError"
+ * console.log(error.fiber === fiber) // true
+ * ```
  *
  * @category errors
  * @since 4.0.0
@@ -1578,7 +1641,20 @@ export interface AsyncFiberError extends YieldableError {
 }
 
 /**
- * An error that occurs when trying to run an async fiber with Effect.runSync.
+ * Constructs an `AsyncFiberError` for a fiber that could not be resolved
+ * synchronously.
+ *
+ * **Example** (creating an AsyncFiberError)
+ *
+ * ```ts
+ * import { Cause } from "effect"
+ * import type { Fiber } from "effect"
+ *
+ * declare const fiber: Fiber.Fiber<unknown, unknown>
+ *
+ * const error = new Cause.AsyncFiberError(fiber)
+ * console.log(error.message) // "An asynchronous Effect was executed with Effect.runSync"
+ * ```
  *
  * @category constructors
  * @since 4.0.0
@@ -1586,7 +1662,7 @@ export interface AsyncFiberError extends YieldableError {
 export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberError = effect.AsyncFiberError
 
 /**
- * Unique brand for {@link UnknownError}.
+ * Unique brand for `UnknownError`.
  *
  * @category symbols
  * @since 4.0.0
@@ -1594,7 +1670,7 @@ export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberE
 export const UnknownErrorTypeId: "~effect/Cause/UnknownError" = effect.UnknownErrorTypeId
 
 /**
- * Tests if an arbitrary value is an {@link UnknownError}.
+ * Tests if an arbitrary value is an `UnknownError`.
  *
  * **Example** (runtime type check)
  *
@@ -1615,9 +1691,9 @@ export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknow
  *
  * **Details**
  *
- * Produced by the runtime when an effect throws a non-`Error` value.
- * The original thrown value is stored in the `cause` property (inherited
- * from `Error`). Implements {@link YieldableError}.
+ * Used when a thrown or rejected value is not represented by a more specific
+ * typed error. The original value is stored in the `cause` property inherited
+ * from `Error`. Implements `YieldableError`.
  *
  * **Example** (creating and checking)
  *
@@ -1629,8 +1705,6 @@ export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknow
  * console.log(error.message) // "Something unknown"
  * ```
  *
- * @see {@link isUnknownError} — type guard
- *
  * @category errors
  * @since 4.0.0
  */
@@ -1640,7 +1714,7 @@ export interface UnknownError extends YieldableError {
 }
 
 /**
- * Constructs an {@link UnknownError}. The first argument is the original
+ * Constructs an `UnknownError`. The first argument is the original
  * cause (stored in `Error.cause`); the second is an optional human-readable
  * message.
  *
@@ -1659,7 +1733,7 @@ export interface UnknownError extends YieldableError {
 export const UnknownError: new(cause: unknown, message?: string) => UnknownError = effect.UnknownError
 
 /**
- * Attaches metadata to every reason in a {@link Cause}.
+ * Attaches metadata to every reason in a `Cause`.
  *
  * **Details**
  *
@@ -1676,12 +1750,13 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
  * ```ts
  * import { Cause, Context } from "effect"
  *
- * const cause = Cause.fail("error")
- * const annotated = Cause.annotate(cause, Context.empty())
- * ```
+ * class RequestId extends Context.Service<RequestId, string>()("RequestId") {}
  *
- * @see {@link annotations} — read merged annotations from a cause
- * @see {@link reasonAnnotations} — read annotations from a single reason
+ * const cause = Cause.fail("error")
+ * const annotated = Cause.annotate(cause, Context.make(RequestId, "req-1"))
+ *
+ * console.log(Context.getOrUndefined(Cause.annotations(annotated), RequestId)) // "req-1"
+ * ```
  *
  * @category annotations
  * @since 4.0.0
@@ -1699,15 +1774,27 @@ export const annotate: {
 } = core.causeAnnotate
 
 /**
- * Reads the annotations from a single {@link Reason} as a `Context`.
+ * Reads the annotations from a single `Reason` as a `Context`.
  *
  * **When to use**
  *
- * Use this when you need tracing metadata (e.g. {@link StackTrace}) from
+ * Use this when you need tracing metadata (e.g. `StackTrace`) from
  * a specific reason rather than the whole cause.
  *
+ * **Example** (reading reason annotations)
+ *
+ * ```ts
+ * import { Cause, Context } from "effect"
+ *
+ * class RequestId extends Context.Service<RequestId, string>()("RequestId") {}
+ *
+ * const reason = Cause.makeFailReason("error")
+ * const annotated = reason.annotate(Context.make(RequestId, "req-1"))
+ *
+ * console.log(Context.getOrUndefined(Cause.reasonAnnotations(annotated), RequestId)) // "req-1"
+ * ```
+ *
  * @see {@link annotations} — merged annotations from all reasons in a cause
- * @see {@link annotate} — attach annotations
  *
  * @category annotations
  * @since 4.0.0
@@ -1715,14 +1802,29 @@ export const annotate: {
 export const reasonAnnotations: <E>(self: Reason<E>) => Context.Context<never> = effect.reasonAnnotations
 
 /**
- * Reads the merged annotations from all reasons in a {@link Cause}.
+ * Reads the merged annotations from all reasons in a `Cause`.
  *
- * **Details**
+ * **Gotchas**
  *
- * Annotations from later reasons overwrite earlier ones when keys collide.
+ * When multiple reasons contain the same annotation key, the value from the
+ * later reason wins.
+ *
+ * **Example** (reading merged annotations)
+ *
+ * ```ts
+ * import { Cause, Context } from "effect"
+ *
+ * class RequestId extends Context.Service<RequestId, string>()("RequestId") {}
+ *
+ * const cause = Cause.annotate(
+ *   Cause.fail("error"),
+ *   Context.make(RequestId, "req-1")
+ * )
+ *
+ * console.log(Context.getOrUndefined(Cause.annotations(cause), RequestId)) // "req-1"
+ * ```
  *
  * @see {@link reasonAnnotations} — annotations from a single reason
- * @see {@link annotate} — attach annotations
  *
  * @category annotations
  * @since 4.0.0
@@ -1749,7 +1851,7 @@ export class StackTrace extends Context.Service<StackTrace, StackFrame>()("effec
  *
  * **Details**
  *
- * Similar to {@link StackTrace} but specific to {@link Interrupt} reasons.
+ * Similar to `StackTrace` but specific to `Interrupt` reasons.
  *
  * @category annotations
  * @since 4.0.0
