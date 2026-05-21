@@ -4628,9 +4628,17 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
 
             if (paused) {
               const eff = go()
-              if (eff) resume!(eff)
-            } else if (done && fibers!.size === 0) {
-              resume!(terminal ?? void_)
+              if (eff && resume) {
+                const cb = resume
+                resume = undefined
+                cb(eff)
+                return
+              }
+            }
+            if (resume && done && fibers!.size === 0) {
+              const cb = resume
+              resume = undefined
+              cb(terminal ?? void_)
             }
           })
 
@@ -4650,14 +4658,22 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
           fibers.forEach((f) => f.interruptUnsafe(parentFiber!.id, annotations))
           return
         }
-        if (resume || terminal._tag === "Failure") {
+        if (resume) {
+          const cb = resume
+          resume = undefined
+          cb(terminal)
+          return
+        }
+        if (terminal._tag === "Failure") {
           return terminal
         }
       } else if (resume) {
         if (!fibers) {
           return exitVoid
         } else if (fibers.size === 0) {
-          resume(void_)
+          const cb = resume
+          resume = undefined
+          cb(void_)
         }
       }
     }

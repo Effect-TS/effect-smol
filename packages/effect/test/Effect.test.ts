@@ -280,6 +280,26 @@ describe("Effect", () => {
         assert.deepStrictEqual(done, [1, 2, 3])
       }))
 
+    it.effect("bounded fail interrupts paused-batch fibers", () =>
+      Effect.gen(function*() {
+        const completed: Array<number> = []
+        const handle = yield* Effect.forEach([1, 2, 3, 4], (i) =>
+          Effect.suspend(() =>
+            i === 2
+              ? Effect.fail("boom").pipe(Effect.delay(50))
+              : Effect.sync(() => {
+                completed.push(i)
+                return i
+              }).pipe(Effect.delay(i === 1 ? 500 : 100))
+          ), {
+          concurrency: 2
+        }).pipe(Effect.forkChild)
+        yield* TestClock.adjust(1000)
+        const result = yield* Fiber.await(handle)
+        assert.deepStrictEqual(result, Exit.fail("boom"))
+        assert.deepStrictEqual(completed, [])
+      }))
+
     it("length = 0", () =>
       Effect.gen(function*() {
         const results = yield* Effect.forEach([], (_) => Effect.succeed(_))
