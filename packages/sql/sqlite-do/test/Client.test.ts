@@ -2,8 +2,8 @@ import type { DurableObjectStorage, SqlStorage } from "@cloudflare/workers-types
 import { SqliteClient, SqliteMigrator } from "@effect/sql-sqlite-do"
 import { assert, describe, it } from "@effect/vitest"
 import { Effect } from "effect"
-import * as SqlClient from "effect/unstable/sql/SqlClient"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
+import * as SqlClient from "effect/unstable/sql/SqlClient"
 
 class FakeCursor {
   readonly columnNames: ReadonlyArray<string>
@@ -91,7 +91,9 @@ class FakeSqlStorage {
     }
 
     if (/^SELECT\b/i.test(statement)) {
-      const match = /^SELECT\s+(.+)\s+FROM\s+("[^"]+"|\w+)(?:\s+WHERE\s+("[^"]+"|\w+)\s*=\s*(\?|('[^']*')|\d+))?(?:\s+ORDER BY\s+("[^"]+"|\w+)\s+DESC)?$/i.exec(statement)
+      const match =
+        /^SELECT\s+(.+)\s+FROM\s+("[^"]+"|\w+)(?:\s+WHERE\s+("[^"]+"|\w+)\s*=\s*(\?|('[^']*')|\d+))?(?:\s+ORDER BY\s+("[^"]+"|\w+)\s+DESC)?$/i
+          .exec(statement)
       if (match !== null) {
         const table = unquote(match[2])
         const selectedColumns = match[1].trim() === "*"

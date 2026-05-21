@@ -113,9 +113,10 @@ const unsupportedTransaction = (message: string, operation: string) =>
     })
   })
 
-const makeUnsupportedWithTransaction = (message: string): Client.SqlClient["withTransaction"] =>
-<R, E, A>(_effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
-  Effect.fail(unsupportedTransaction(message, "transaction"))
+const makeUnsupportedWithTransaction =
+  (message: string): Client.SqlClient["withTransaction"] =>
+  <R, E, A>(_effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
+    Effect.fail(unsupportedTransaction(message, "transaction"))
 
 const makeStorageBackedWithTransaction = (
   storage: DurableObjectStorage,
@@ -143,7 +144,7 @@ const makeStorageBackedWithTransaction = (
               Effect.provideContext(
                 effect,
                 Context.add(services, SqliteTransaction, [connection, 0] as const)
-              )
+              ) as Effect.Effect<A, E>
             ).then((exit) => {
               if (Exit.isFailure(exit)) {
                 txn.rollback()
@@ -175,13 +176,14 @@ export const make = (
     if (db === undefined) {
       return yield* Effect.die("SqliteClient.make requires either a Durable Object storage or sql storage")
     }
+    const sqlStorage = db
 
     const makeConnection = Effect.gen(function*() {
       function* runIterator(
         sql: string,
         params: ReadonlyArray<unknown> = []
       ) {
-        const cursor = db.exec(sql, ...params)
+        const cursor = sqlStorage.exec(sql, ...params)
         const columns = cursor.columnNames
         for (const result of cursor.raw()) {
           const obj: any = {}
@@ -208,7 +210,7 @@ export const make = (
       ): Effect.Effect<ReadonlyArray<any>, SqlError, never> =>
         Effect.try({
           try: () =>
-            Array.from(db.exec(sql, ...params).raw(), (row) => {
+            Array.from(sqlStorage.exec(sql, ...params).raw(), (row) => {
               for (let i = 0; i < row.length; i++) {
                 const value = row[i]
                 if (value instanceof ArrayBuffer) {
