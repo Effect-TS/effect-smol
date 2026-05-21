@@ -85,6 +85,10 @@ export interface SqliteClient extends Client.SqlClient {
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-do/SqliteClient")
 
+const SqliteTransaction = Context.Service<Client.TransactionConnection, Client.TransactionConnection.Service>(
+  "@effect/sql-sqlite-do/SqliteClient/SqliteTransaction"
+)
+
 /**
  * Configuration for a Cloudflare Durable Object SQLite client, including either a `SqlStorage` handle or the full `DurableObjectStorage` for transaction support, span attributes, and query/result name transforms.
  *
@@ -115,14 +119,13 @@ const makeUnsupportedWithTransaction = (message: string): Client.SqlClient["with
 
 const makeStorageBackedWithTransaction = (
   storage: DurableObjectStorage,
-  transactionService: Client.SqlClient["transactionService"],
   connection: Connection,
   semaphore: Semaphore.Semaphore
 ): Client.SqlClient["withTransaction"] =>
 <R, E, A>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E | SqlError, R> =>
   Effect.withFiber((fiber) => {
     const services = fiber.context
-    const connOption = Context.getOption(services, transactionService)
+    const connOption = Context.getOption(services, SqliteTransaction)
     if (connOption._tag === "Some") {
       return Effect.fail(
         unsupportedTransaction(
@@ -139,7 +142,7 @@ const makeStorageBackedWithTransaction = (
             Effect.runPromiseExit(
               Effect.provideContext(
                 effect,
-                Context.add(services, transactionService, [connection, 0] as const)
+                Context.add(services, SqliteTransaction, [connection, 0] as const)
               )
             ).then((exit) => {
               if (Exit.isFailure(exit)) {
@@ -270,6 +273,7 @@ export const make = (
       acquirer,
       compiler,
       transactionAcquirer,
+      transactionService: SqliteTransaction,
       spanAttributes: [
         ...(options.spanAttributes ? Object.entries(options.spanAttributes) : []),
         [ATTR_DB_SYSTEM_NAME, "sqlite"]
@@ -281,7 +285,7 @@ export const make = (
       [TypeId]: TypeId as TypeId,
       config: options,
       withTransaction: options.storage
-        ? makeStorageBackedWithTransaction(options.storage, client.transactionService, connection, semaphore)
+        ? makeStorageBackedWithTransaction(options.storage, connection, semaphore)
         : makeUnsupportedWithTransaction(
           "Transactions require Durable Object storage; pass ctx.storage as the storage option"
         )
