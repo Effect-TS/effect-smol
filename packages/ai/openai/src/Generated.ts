@@ -12,6 +12,12 @@ import * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+// recursive declarations
+export type CompoundFilter = {
+  readonly "type": "and" | "or"
+  readonly "filters": ReadonlyArray<ComparisonFilter | CompoundFilter>
+}
+export const CompoundFilter = Schema.suspend((): Schema.Codec<CompoundFilter> => __recursive_CompoundFilter)
 // non-recursive definitions
 export type AddUploadPartRequest = { readonly "data": string }
 export const AddUploadPartRequest = Schema.Struct({
@@ -145,6 +151,9 @@ export type AssignedRoleDetails = {
   readonly "created_by": string | null
   readonly "created_by_user_obj": {} | null
   readonly "metadata": {} | null
+  readonly "assignment_sources":
+    | ReadonlyArray<{ readonly "principal_id": string; readonly "principal_type": string }>
+    | null
 }
 export const AssignedRoleDetails = Schema.Struct({
   "id": Schema.String.annotate({ "description": "Identifier for the role." }),
@@ -155,7 +164,7 @@ export const AssignedRoleDetails = Schema.Struct({
   "description": Schema.Union([Schema.String, Schema.Null]).annotate({ "description": "Description of the role." }),
   "created_at": Schema.Union([Schema.Number.annotate({ "format": "unixtime" }).check(Schema.isInt()), Schema.Null])
     .annotate({ "description": "When the role was created." }),
-  "updated_at": Schema.Union([Schema.Number.annotate({ "format": "int64" }).check(Schema.isInt()), Schema.Null])
+  "updated_at": Schema.Union([Schema.Number.annotate({ "format": "unixtime" }).check(Schema.isInt()), Schema.Null])
     .annotate({ "description": "When the role was last updated." }),
   "created_by": Schema.Union([Schema.String, Schema.Null]).annotate({
     "description": "Identifier of the actor who created the role."
@@ -165,7 +174,11 @@ export const AssignedRoleDetails = Schema.Struct({
   }),
   "metadata": Schema.Union([Schema.Struct({}), Schema.Null]).annotate({
     "description": "Arbitrary metadata stored on the role."
-  })
+  }),
+  "assignment_sources": Schema.Union([
+    Schema.Array(Schema.Struct({ "principal_id": Schema.String, "principal_type": Schema.String })),
+    Schema.Null
+  ]).annotate({ "description": "Principals from which the role assignment is inherited, when available." })
 }).annotate({ "description": "Detailed information about a role assignment entry returned when listing assignments." })
 export type AssistantSupportedModels =
   | "gpt-5"
@@ -2451,6 +2464,28 @@ export const GroupDeletedResource = Schema.Struct({
   "id": Schema.String.annotate({ "description": "Identifier of the deleted group." }),
   "deleted": Schema.Boolean.annotate({ "description": "Whether the group was deleted." })
 }).annotate({ "description": "Confirmation payload returned after deleting a group." })
+export type GroupMemberUser = {
+  readonly "id": string
+  readonly "name": string
+  readonly "email": string | null
+  readonly "picture": string | null
+  readonly "is_service_account": boolean | null
+  readonly "user_type": "user" | "tenant_user"
+}
+export const GroupMemberUser = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "Identifier for the user." }),
+  "name": Schema.String.annotate({ "description": "Display name of the user." }),
+  "email": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "description": "Email address of the user, or `null` for users without an email."
+  }),
+  "picture": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "description": "URL of the user's profile picture, if available."
+  }),
+  "is_service_account": Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+    "description": "Whether the user is a service account."
+  }),
+  "user_type": Schema.Literals(["user", "tenant_user"]).annotate({ "description": "The type of user." })
+}).annotate({ "description": "Details about a user returned from an organization group membership lookup." })
 export type GroupResourceWithSuccess = {
   readonly "id": string
   readonly "name": string
@@ -2473,7 +2508,7 @@ export type GroupResponse = {
   readonly "name": string
   readonly "created_at": number
   readonly "is_scim_managed": boolean
-  readonly "group_type": string
+  readonly "group_type": "group" | "tenant_group"
 }
 export const GroupResponse = Schema.Struct({
   "id": Schema.String.annotate({ "description": "Identifier for the group." }),
@@ -2485,7 +2520,7 @@ export const GroupResponse = Schema.Struct({
   "is_scim_managed": Schema.Boolean.annotate({
     "description": "Whether the group is managed through SCIM and controlled by your identity provider."
   }),
-  "group_type": Schema.String.annotate({ "description": "The type of the group." })
+  "group_type": Schema.Literals(["group", "tenant_group"]).annotate({ "description": "The type of the group." })
 }).annotate({ "description": "Details about an organization group." })
 export type GroupUser = { readonly "id": string; readonly "name": string; readonly "email": string | null }
 export const GroupUser = Schema.Struct({
@@ -3165,7 +3200,7 @@ export const Model = Schema.StructWithRest(
     "object": Schema.Literal("model").annotate({ "description": "The object type, which is always \"model\"." }),
     "owned_by": Schema.String.annotate({ "description": "The organization that owns the model." })
   }),
-  [Schema.Record(Schema.String, Schema.Json)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "Model", "description": "Describes an OpenAI model offering that can be used with the API." })
 export type ModelIdsShared =
   | string
@@ -3404,7 +3439,7 @@ export const OpenAIFile = Schema.StructWithRest(
       })
     )
   }),
-  [Schema.Record(Schema.String, Schema.Json)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({
   "title": "OpenAIFile",
   "description": "The `File` object represents a document that has been uploaded to OpenAI."
@@ -3445,6 +3480,25 @@ export const OrganizationCertificate = Schema.Struct({
     "description": "Whether the certificate is currently active at the organization level."
   })
 }).annotate({ "description": "Represents an individual certificate configured at the organization level." })
+export type OrganizationDataRetention = {
+  readonly "object": "organization.data_retention"
+  readonly "type":
+    | "zero_data_retention"
+    | "modified_abuse_monitoring"
+    | "enhanced_zero_data_retention"
+    | "enhanced_modified_abuse_monitoring"
+}
+export const OrganizationDataRetention = Schema.Struct({
+  "object": Schema.Literal("organization.data_retention").annotate({
+    "description": "The object type, which is always `organization.data_retention`."
+  }),
+  "type": Schema.Literals([
+    "zero_data_retention",
+    "modified_abuse_monitoring",
+    "enhanced_zero_data_retention",
+    "enhanced_modified_abuse_monitoring"
+  ]).annotate({ "description": "The configured organization data retention type." })
+}).annotate({ "description": "Represents the organization's data retention control setting." })
 export type OrganizationProjectCertificate = {
   readonly "object": "organization.project.certificate"
   readonly "id": string
@@ -3481,6 +3535,18 @@ export const OrganizationProjectCertificate = Schema.Struct({
     "description": "Whether the certificate is currently active at the project level."
   })
 }).annotate({ "description": "Represents an individual certificate configured at the project level." })
+export type OrganizationSpendAlertDeletedResource = {
+  readonly "id": string
+  readonly "object": "organization.spend_alert.deleted"
+  readonly "deleted": boolean
+}
+export const OrganizationSpendAlertDeletedResource = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "The deleted spend alert ID." }),
+  "object": Schema.Literal("organization.spend_alert.deleted").annotate({
+    "description": "Always `organization.spend_alert.deleted`."
+  }),
+  "deleted": Schema.Boolean.annotate({ "description": "Whether the spend alert was deleted." })
+}).annotate({ "description": "Confirmation payload returned after deleting an organization spend alert." })
 export type ParallelToolCalls = boolean
 export const ParallelToolCalls = Schema.Boolean.annotate({
   "description":
@@ -3596,12 +3662,35 @@ export const ProjectCreateRequest = Schema.Struct({
     })
   )
 })
+export type ProjectDataRetention = {
+  readonly "object": "project.data_retention"
+  readonly "type":
+    | "organization_default"
+    | "none"
+    | "zero_data_retention"
+    | "modified_abuse_monitoring"
+    | "enhanced_zero_data_retention"
+    | "enhanced_modified_abuse_monitoring"
+}
+export const ProjectDataRetention = Schema.Struct({
+  "object": Schema.Literal("project.data_retention").annotate({
+    "description": "The object type, which is always `project.data_retention`."
+  }),
+  "type": Schema.Literals([
+    "organization_default",
+    "none",
+    "zero_data_retention",
+    "modified_abuse_monitoring",
+    "enhanced_zero_data_retention",
+    "enhanced_modified_abuse_monitoring"
+  ]).annotate({ "description": "The configured project data retention type." })
+}).annotate({ "description": "Represents a project's data retention control setting." })
 export type ProjectGroup = {
   readonly "object": "project.group"
   readonly "project_id": string
   readonly "group_id": string
   readonly "group_name": string
-  readonly "group_type": string
+  readonly "group_type": "group" | "tenant_group"
   readonly "created_at": number
 }
 export const ProjectGroup = Schema.Struct({
@@ -3609,7 +3698,7 @@ export const ProjectGroup = Schema.Struct({
   "project_id": Schema.String.annotate({ "description": "Identifier of the project." }),
   "group_id": Schema.String.annotate({ "description": "Identifier of the group that has access to the project." }),
   "group_name": Schema.String.annotate({ "description": "Display name of the group." }),
-  "group_type": Schema.String.annotate({ "description": "The type of the group." }),
+  "group_type": Schema.Literals(["group", "tenant_group"]).annotate({ "description": "The type of the group." }),
   "created_at": Schema.Number.annotate({
     "description": "Unix timestamp (in seconds) when the group was granted project access.",
     "format": "unixtime"
@@ -3787,6 +3876,18 @@ export const ProjectServiceAccountDeleteResponse = Schema.Struct({
   "id": Schema.String,
   "deleted": Schema.Boolean
 })
+export type ProjectSpendAlertDeletedResource = {
+  readonly "id": string
+  readonly "object": "project.spend_alert.deleted"
+  readonly "deleted": boolean
+}
+export const ProjectSpendAlertDeletedResource = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "The deleted spend alert ID." }),
+  "object": Schema.Literal("project.spend_alert.deleted").annotate({
+    "description": "Always `project.spend_alert.deleted`."
+  }),
+  "deleted": Schema.Boolean.annotate({ "description": "Whether the spend alert was deleted." })
+}).annotate({ "description": "Confirmation payload returned after deleting a project spend alert." })
 export type ProjectUpdateRequest = {
   readonly "name"?: string | null
   readonly "external_key_id"?: string | null
@@ -7016,6 +7117,22 @@ export const SpeechAudioDoneEvent = Schema.Struct({
     )
   }).annotate({ "description": "Token usage statistics for the request.\n" })
 }).annotate({ "description": "Emitted when the speech synthesis is complete and all audio has been streamed." })
+export type SpendAlertNotificationChannel = {
+  readonly "type": "email"
+  readonly "recipients": ReadonlyArray<string>
+  readonly "subject_prefix"?: string | null
+}
+export const SpendAlertNotificationChannel = Schema.Struct({
+  "type": Schema.Literal("email").annotate({
+    "description": "The notification channel type. Currently only `email` is supported."
+  }),
+  "recipients": Schema.Array(Schema.String).annotate({
+    "description": "Email addresses that receive the spend alert notification."
+  }),
+  "subject_prefix": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({ "description": "Optional subject prefix for alert emails." })
+  )
+}).annotate({ "description": "Email notification settings for a spend alert." })
 export type StaticChunkingStrategy = {
   readonly "max_chunk_size_tokens": number
   readonly "chunk_overlap_tokens": number
@@ -7353,6 +7470,47 @@ export const UpdateGroupBody = Schema.Struct({
   "name": Schema.String.annotate({ "description": "New display name for the group." }).check(Schema.isMinLength(1))
     .check(Schema.isMaxLength(255))
 }).annotate({ "description": "Request payload for updating the details of an existing group." })
+export type UpdateOrganizationDataRetentionBody = {
+  readonly "retention_type":
+    | "zero_data_retention"
+    | "modified_abuse_monitoring"
+    | "enhanced_zero_data_retention"
+    | "enhanced_modified_abuse_monitoring"
+}
+export const UpdateOrganizationDataRetentionBody = Schema.Struct({
+  "retention_type": Schema.Literals([
+    "zero_data_retention",
+    "modified_abuse_monitoring",
+    "enhanced_zero_data_retention",
+    "enhanced_modified_abuse_monitoring"
+  ]).annotate({ "description": "The desired organization data retention type." })
+}).annotate({ "description": "Parameters for updating organization data retention controls." })
+export type UpdateProjectDataRetentionBody = {
+  readonly "retention_type":
+    | "organization_default"
+    | "none"
+    | "zero_data_retention"
+    | "modified_abuse_monitoring"
+    | "enhanced_zero_data_retention"
+    | "enhanced_modified_abuse_monitoring"
+}
+export const UpdateProjectDataRetentionBody = Schema.Struct({
+  "retention_type": Schema.Literals([
+    "organization_default",
+    "none",
+    "zero_data_retention",
+    "modified_abuse_monitoring",
+    "enhanced_zero_data_retention",
+    "enhanced_modified_abuse_monitoring"
+  ]).annotate({ "description": "The desired project data retention type." })
+}).annotate({ "description": "Parameters for updating project data retention controls." })
+export type UpdateProjectServiceAccountBody = { readonly "name"?: string; readonly "role"?: "member" | "owner" }
+export const UpdateProjectServiceAccountBody = Schema.Struct({
+  "name": Schema.optionalKey(Schema.String.annotate({ "description": "The updated service account name." })),
+  "role": Schema.optionalKey(
+    Schema.Literals(["member", "owner"]).annotate({ "description": "The updated service account role." })
+  )
+}).annotate({ "description": "Parameters for updating a project service account." })
 export type UpdateVoiceConsentRequest = { readonly "name": string }
 export const UpdateVoiceConsentRequest = Schema.Struct({
   "name": Schema.String.annotate({ "description": "The updated label for this consent recording." })
@@ -7459,7 +7617,7 @@ export const Upload = Schema.Struct({
           })
         )
       }),
-      [Schema.Record(Schema.String, Schema.Json)]
+      [Schema.Record(Schema.String, Schema.Unknown)]
     ).annotate({
       "description": "The `File` object represents a document that has been uploaded to OpenAI.",
       "title": "OpenAIFile"
@@ -8448,7 +8606,7 @@ export const WebSearchToolCall = Schema.Struct({
         "An object describing the specific action taken in this web search call.\nIncludes details on how the model used the web (search, open_page, find_in_page).\n"
     }),
     Schema.Struct({
-      "type": Schema.Literal("open_page").annotate({ "description": "The action type. Always `open_page`.\n" }),
+      "type": Schema.Literal("open_page").annotate({ "description": "The action type.\n" }),
       "url": Schema.optionalKey(
         Schema.Union([Schema.String.annotate({ "format": "uri" }), Schema.Null]).annotate({
           "description": "The URL opened by the model.\n"
@@ -10535,16 +10693,111 @@ export const PredictionContent = Schema.Struct({
   "title": "Static Content",
   "description": "Static predicted output content, such as the content of a text file that is\nbeing regenerated.\n"
 })
-export type CompoundFilter = {
-  readonly "type": "and" | "or"
-  readonly "filters": ReadonlyArray<ComparisonFilter | unknown>
+export type VectorStoreSearchRequest = {
+  readonly "query": string | ReadonlyArray<string>
+  readonly "rewrite_query"?: boolean
+  readonly "max_num_results"?: number
+  readonly "filters"?: ComparisonFilter | CompoundFilter
+  readonly "ranking_options"?: {
+    readonly "ranker"?: "none" | "auto" | "default-2024-11-15"
+    readonly "score_threshold"?: number
+  }
 }
-export const CompoundFilter = Schema.Struct({
-  "type": Schema.Literals(["and", "or"]).annotate({ "description": "Type of operation: `and` or `or`." }),
-  "filters": Schema.Array(Schema.Union([ComparisonFilter, Schema.Unknown], { mode: "oneOf" })).annotate({
-    "description": "Array of filters to combine. Items can be `ComparisonFilter` or `CompoundFilter`."
-  })
-}).annotate({ "title": "Compound Filter", "description": "Combine multiple filters using `and` or `or`." })
+export const VectorStoreSearchRequest = Schema.Struct({
+  "query": Schema.Union([
+    Schema.String,
+    Schema.Array(Schema.String.annotate({ "description": "A list of queries to search for." }))
+  ], { mode: "oneOf" }).annotate({ "description": "A query string for a search" }),
+  "rewrite_query": Schema.optionalKey(
+    Schema.Boolean.annotate({ "description": "Whether to rewrite the natural language query for vector search." })
+  ),
+  "max_num_results": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description": "The maximum number of results to return. This number should be between 1 and 50 inclusive."
+    }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(Schema.isLessThanOrEqualTo(50))
+  ),
+  "filters": Schema.optionalKey(
+    Schema.Union([ComparisonFilter, CompoundFilter], { mode: "oneOf" }).annotate({
+      "description": "A filter to apply based on file attributes."
+    })
+  ),
+  "ranking_options": Schema.optionalKey(
+    Schema.Struct({
+      "ranker": Schema.optionalKey(
+        Schema.Literals(["none", "auto", "default-2024-11-15"]).annotate({
+          "description": "Enable re-ranking; set to `none` to disable, which can help reduce latency."
+        })
+      ),
+      "score_threshold": Schema.optionalKey(
+        Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(
+          Schema.isLessThanOrEqualTo(1)
+        )
+      )
+    }).annotate({ "description": "Ranking options for search." })
+  )
+})
+export type FileSearchTool = {
+  readonly "type": "file_search"
+  readonly "vector_store_ids": ReadonlyArray<string>
+  readonly "max_num_results"?: number
+  readonly "ranking_options"?: {
+    readonly "ranker"?: "auto" | "default-2024-11-15"
+    readonly "score_threshold"?: number
+    readonly "hybrid_search"?: { readonly "embedding_weight": number; readonly "text_weight": number }
+  }
+  readonly "filters"?: ComparisonFilter | CompoundFilter | null
+}
+export const FileSearchTool = Schema.Struct({
+  "type": Schema.Literal("file_search").annotate({
+    "description": "The type of the file search tool. Always `file_search`."
+  }),
+  "vector_store_ids": Schema.Array(Schema.String).annotate({
+    "description": "The IDs of the vector stores to search."
+  }),
+  "max_num_results": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description": "The maximum number of results to return. This number should be between 1 and 50 inclusive."
+    }).check(Schema.isInt())
+  ),
+  "ranking_options": Schema.optionalKey(
+    Schema.Struct({
+      "ranker": Schema.optionalKey(
+        Schema.Literals(["auto", "default-2024-11-15"]).annotate({
+          "description": "The ranker to use for the file search."
+        })
+      ),
+      "score_threshold": Schema.optionalKey(
+        Schema.Number.annotate({
+          "description":
+            "The score threshold for the file search, a number between 0 and 1. Numbers closer to 1 will attempt to return only the most relevant results, but may return fewer results."
+        }).check(Schema.isFinite())
+      ),
+      "hybrid_search": Schema.optionalKey(
+        Schema.Struct({
+          "embedding_weight": Schema.Number.annotate({
+            "description": "The weight of the embedding in the reciprocal ranking fusion."
+          }).check(Schema.isFinite()),
+          "text_weight": Schema.Number.annotate({
+            "description": "The weight of the text in the reciprocal ranking fusion."
+          }).check(Schema.isFinite())
+        }).annotate({
+          "description":
+            "Weights that control how reciprocal rank fusion balances semantic embedding matches versus sparse keyword matches when hybrid search is enabled."
+        })
+      )
+    }).annotate({ "description": "Ranking options for search." })
+  ),
+  "filters": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([ComparisonFilter, CompoundFilter]).annotate({ "description": "A filter to apply." }),
+      Schema.Null
+    ])
+  )
+}).annotate({
+  "title": "File search",
+  "description":
+    "A tool that searches for relevant content from uploaded files. Learn more about the [file search tool](https://platform.openai.com/docs/guides/tools-file-search)."
+})
 export type CreateCompletionResponse = {
   readonly "id": string
   readonly "choices": ReadonlyArray<
@@ -13230,6 +13483,66 @@ export const RunStepDeltaObject = Schema.Struct({
 })
 export type CreateSpeechResponseStreamEvent = SpeechAudioDeltaEvent | SpeechAudioDoneEvent
 export const CreateSpeechResponseStreamEvent = Schema.Union([SpeechAudioDeltaEvent, SpeechAudioDoneEvent])
+export type CreateSpendAlertBody = {
+  readonly "threshold_amount": number
+  readonly "currency": "USD"
+  readonly "interval": "month"
+  readonly "notification_channel": SpendAlertNotificationChannel
+}
+export const CreateSpendAlertBody = Schema.Struct({
+  "threshold_amount": Schema.Number.annotate({ "description": "The alert threshold amount, in cents." }).check(
+    Schema.isInt()
+  ).check(Schema.isGreaterThanOrEqualTo(0)),
+  "currency": Schema.Literal("USD").annotate({ "description": "The currency for the threshold amount." }),
+  "interval": Schema.Literal("month").annotate({
+    "description": "The time interval for evaluating spend against the threshold."
+  }),
+  "notification_channel": SpendAlertNotificationChannel
+}).annotate({ "description": "Parameters for creating or updating a spend alert." })
+export type OrganizationSpendAlert = {
+  readonly "id": string
+  readonly "object": "organization.spend_alert"
+  readonly "threshold_amount": number
+  readonly "currency": "USD"
+  readonly "interval": "month"
+  readonly "notification_channel": SpendAlertNotificationChannel
+}
+export const OrganizationSpendAlert = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "The identifier, which can be referenced in API endpoints." }),
+  "object": Schema.Literal("organization.spend_alert").annotate({
+    "description": "The object type, which is always `organization.spend_alert`."
+  }),
+  "threshold_amount": Schema.Number.annotate({ "description": "The alert threshold amount, in cents." }).check(
+    Schema.isInt()
+  ),
+  "currency": Schema.Literal("USD").annotate({ "description": "The currency for the threshold amount." }),
+  "interval": Schema.Literal("month").annotate({
+    "description": "The time interval for evaluating spend against the threshold."
+  }),
+  "notification_channel": SpendAlertNotificationChannel
+}).annotate({ "description": "Represents a spend alert configured at the organization level." })
+export type ProjectSpendAlert = {
+  readonly "id": string
+  readonly "object": "project.spend_alert"
+  readonly "threshold_amount": number
+  readonly "currency": "USD"
+  readonly "interval": "month"
+  readonly "notification_channel": SpendAlertNotificationChannel
+}
+export const ProjectSpendAlert = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "The identifier, which can be referenced in API endpoints." }),
+  "object": Schema.Literal("project.spend_alert").annotate({
+    "description": "The object type, which is always `project.spend_alert`."
+  }),
+  "threshold_amount": Schema.Number.annotate({ "description": "The alert threshold amount, in cents." }).check(
+    Schema.isInt()
+  ),
+  "currency": Schema.Literal("USD").annotate({ "description": "The currency for the threshold amount." }),
+  "interval": Schema.Literal("month").annotate({
+    "description": "The time interval for evaluating spend against the threshold."
+  }),
+  "notification_channel": SpendAlertNotificationChannel
+}).annotate({ "description": "Represents a spend alert configured at the project level." })
 export type ChunkingStrategyRequestParam = { readonly "type": "auto" } | {
   readonly "type": "static"
   readonly "static": StaticChunkingStrategy
@@ -15862,111 +16175,6 @@ export const ChatCompletionRequestUserMessage = Schema.Struct({
   "title": "User message",
   "description": "Messages sent by an end user, containing prompts or additional context\ninformation.\n"
 })
-export type VectorStoreSearchRequest = {
-  readonly "query": string | ReadonlyArray<string>
-  readonly "rewrite_query"?: boolean
-  readonly "max_num_results"?: number
-  readonly "filters"?: ComparisonFilter | CompoundFilter
-  readonly "ranking_options"?: {
-    readonly "ranker"?: "none" | "auto" | "default-2024-11-15"
-    readonly "score_threshold"?: number
-  }
-}
-export const VectorStoreSearchRequest = Schema.Struct({
-  "query": Schema.Union([
-    Schema.String,
-    Schema.Array(Schema.String.annotate({ "description": "A list of queries to search for." }))
-  ], { mode: "oneOf" }).annotate({ "description": "A query string for a search" }),
-  "rewrite_query": Schema.optionalKey(
-    Schema.Boolean.annotate({ "description": "Whether to rewrite the natural language query for vector search." })
-  ),
-  "max_num_results": Schema.optionalKey(
-    Schema.Number.annotate({
-      "description": "The maximum number of results to return. This number should be between 1 and 50 inclusive."
-    }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(Schema.isLessThanOrEqualTo(50))
-  ),
-  "filters": Schema.optionalKey(
-    Schema.Union([ComparisonFilter, CompoundFilter], { mode: "oneOf" }).annotate({
-      "description": "A filter to apply based on file attributes."
-    })
-  ),
-  "ranking_options": Schema.optionalKey(
-    Schema.Struct({
-      "ranker": Schema.optionalKey(
-        Schema.Literals(["none", "auto", "default-2024-11-15"]).annotate({
-          "description": "Enable re-ranking; set to `none` to disable, which can help reduce latency."
-        })
-      ),
-      "score_threshold": Schema.optionalKey(
-        Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(
-          Schema.isLessThanOrEqualTo(1)
-        )
-      )
-    }).annotate({ "description": "Ranking options for search." })
-  )
-})
-export type FileSearchTool = {
-  readonly "type": "file_search"
-  readonly "vector_store_ids": ReadonlyArray<string>
-  readonly "max_num_results"?: number
-  readonly "ranking_options"?: {
-    readonly "ranker"?: "auto" | "default-2024-11-15"
-    readonly "score_threshold"?: number
-    readonly "hybrid_search"?: { readonly "embedding_weight": number; readonly "text_weight": number }
-  }
-  readonly "filters"?: ComparisonFilter | CompoundFilter | null
-}
-export const FileSearchTool = Schema.Struct({
-  "type": Schema.Literal("file_search").annotate({
-    "description": "The type of the file search tool. Always `file_search`."
-  }),
-  "vector_store_ids": Schema.Array(Schema.String).annotate({
-    "description": "The IDs of the vector stores to search."
-  }),
-  "max_num_results": Schema.optionalKey(
-    Schema.Number.annotate({
-      "description": "The maximum number of results to return. This number should be between 1 and 50 inclusive."
-    }).check(Schema.isInt())
-  ),
-  "ranking_options": Schema.optionalKey(
-    Schema.Struct({
-      "ranker": Schema.optionalKey(
-        Schema.Literals(["auto", "default-2024-11-15"]).annotate({
-          "description": "The ranker to use for the file search."
-        })
-      ),
-      "score_threshold": Schema.optionalKey(
-        Schema.Number.annotate({
-          "description":
-            "The score threshold for the file search, a number between 0 and 1. Numbers closer to 1 will attempt to return only the most relevant results, but may return fewer results."
-        }).check(Schema.isFinite())
-      ),
-      "hybrid_search": Schema.optionalKey(
-        Schema.Struct({
-          "embedding_weight": Schema.Number.annotate({
-            "description": "The weight of the embedding in the reciprocal ranking fusion."
-          }).check(Schema.isFinite()),
-          "text_weight": Schema.Number.annotate({
-            "description": "The weight of the text in the reciprocal ranking fusion."
-          }).check(Schema.isFinite())
-        }).annotate({
-          "description":
-            "Weights that control how reciprocal rank fusion balances semantic embedding matches versus sparse keyword matches when hybrid search is enabled."
-        })
-      )
-    }).annotate({ "description": "Ranking options for search." })
-  ),
-  "filters": Schema.optionalKey(
-    Schema.Union([
-      Schema.Union([ComparisonFilter, CompoundFilter]).annotate({ "description": "A filter to apply." }),
-      Schema.Null
-    ])
-  )
-}).annotate({
-  "title": "File search",
-  "description":
-    "A tool that searches for relevant content from uploaded files. Learn more about the [file search tool](https://platform.openai.com/docs/guides/tools-file-search)."
-})
 export type EvalRunOutputItemList = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<EvalRunOutputItem>
@@ -18241,6 +18449,44 @@ export const RealtimeSessionCreateResponseGA = Schema.Struct({
   "title": "Realtime session configuration object",
   "description": "A Realtime session configuration object.\n"
 })
+export type OrganizationSpendAlertListResource = {
+  readonly "object": "list"
+  readonly "data": ReadonlyArray<OrganizationSpendAlert>
+  readonly "first_id": string | null
+  readonly "last_id": string | null
+  readonly "has_more": boolean
+}
+export const OrganizationSpendAlertListResource = Schema.Struct({
+  "object": Schema.Literal("list").annotate({ "description": "Always `list`." }),
+  "data": Schema.Array(OrganizationSpendAlert).annotate({
+    "description": "Spend alerts returned in the current page."
+  }),
+  "first_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "description": "The ID of the first spend alert in this page."
+  }),
+  "last_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "description": "The ID of the last spend alert in this page."
+  }),
+  "has_more": Schema.Boolean.annotate({ "description": "Whether more spend alerts are available when paginating." })
+}).annotate({ "description": "Paginated list of organization spend alerts." })
+export type ProjectSpendAlertListResource = {
+  readonly "object": "list"
+  readonly "data": ReadonlyArray<ProjectSpendAlert>
+  readonly "first_id": string | null
+  readonly "last_id": string | null
+  readonly "has_more": boolean
+}
+export const ProjectSpendAlertListResource = Schema.Struct({
+  "object": Schema.Literal("list").annotate({ "description": "Always `list`." }),
+  "data": Schema.Array(ProjectSpendAlert).annotate({ "description": "Spend alerts returned in the current page." }),
+  "first_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "description": "The ID of the first spend alert in this page."
+  }),
+  "last_id": Schema.Union([Schema.String, Schema.Null]).annotate({
+    "description": "The ID of the last spend alert in this page."
+  }),
+  "has_more": Schema.Boolean.annotate({ "description": "Whether more spend alerts are available when paginating." })
+}).annotate({ "description": "Paginated list of project spend alerts." })
 export type CreateVectorStoreFileRequest = {
   readonly "file_id": string
   readonly "chunking_strategy"?: ChunkingStrategyRequestParam
@@ -18291,7 +18537,7 @@ export const ListVectorStoresResponse = Schema.StructWithRest(
     "last_id": Schema.String,
     "has_more": Schema.Boolean
   }),
-  [Schema.Record(Schema.String, Schema.Json)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 )
 export type ListVectorStoreFilesResponse = {
   readonly "object": string
@@ -18309,7 +18555,7 @@ export const ListVectorStoreFilesResponse = Schema.StructWithRest(
     "last_id": Schema.String,
     "has_more": Schema.Boolean
   }),
-  [Schema.Record(Schema.String, Schema.Json)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 )
 export type VectorStoreSearchResultsPage = {
   readonly "object": "vector_store.search_results.page"
@@ -19665,7 +19911,7 @@ export const ListMessagesResponse = Schema.StructWithRest(
     "last_id": Schema.String,
     "has_more": Schema.Boolean
   }),
-  [Schema.Record(Schema.String, Schema.Json)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 )
 export type MessageStreamEvent =
   | { readonly "event": "thread.message.created"; readonly "data": MessageObject }
@@ -22410,7 +22656,7 @@ export const ListRunStepsResponse = Schema.StructWithRest(
     "last_id": Schema.String,
     "has_more": Schema.Boolean
   }),
-  [Schema.Record(Schema.String, Schema.Json)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 )
 export type RunStepStreamEvent =
   | { readonly "event": "thread.run.step.created"; readonly "data": RunStepObject }
@@ -23079,7 +23325,7 @@ export const InputItem = Schema.Union([
             "An object describing the specific action taken in this web search call.\nIncludes details on how the model used the web (search, open_page, find_in_page).\n"
         }),
         Schema.Struct({
-          "type": Schema.Literal("open_page").annotate({ "description": "The action type. Always `open_page`.\n" }),
+          "type": Schema.Literal("open_page").annotate({ "description": "The action type.\n" }),
           "url": Schema.optionalKey(
             Schema.Union([Schema.String.annotate({ "format": "uri" }), Schema.Null]).annotate({
               "description": "The URL opened by the model.\n"
@@ -28679,6 +28925,15 @@ export const ListPaginatedFineTuningJobsResponse = Schema.Struct({
   "has_more": Schema.Boolean,
   "object": Schema.Literal("list")
 })
+// recursive definitions
+const __recursive_CompoundFilter = Schema.Struct({
+  "type": Schema.Literals(["and", "or"]).annotate({ "description": "Type of operation: `and` or `or`." }),
+  "filters": Schema.Array(
+    Schema.Union([ComparisonFilter, Schema.suspend((): Schema.Codec<CompoundFilter> => CompoundFilter)], {
+      mode: "oneOf"
+    })
+  ).annotate({ "description": "Array of filters to combine. Items can be `ComparisonFilter` or `CompoundFilter`." })
+}).annotate({ "title": "Compound Filter", "description": "Combine multiple filters using `and` or `or`." })
 // schemas
 export type ListAssistantsParams = {
   readonly "limit"?: number
@@ -28917,7 +29172,7 @@ export const CreateConversationItemsRequestJson = Schema.StructWithRest(
       "description": "The items to add to the conversation. You may add up to 20 items at a time.\n"
     }).check(Schema.isMaxLength(20))
   }),
-  [Schema.Record(Schema.String, Schema.Json)]
+  [Schema.Record(Schema.String, Schema.Unknown)]
 )
 export type CreateConversationItems200 = ConversationItemList
 export const CreateConversationItems200 = ConversationItemList
@@ -29274,6 +29529,12 @@ export const UsageCostsParams = Schema.Struct({
 })
 export type UsageCosts200 = UsageResponse
 export const UsageCosts200 = UsageResponse
+export type RetrieveOrganizationDataRetention200 = OrganizationDataRetention
+export const RetrieveOrganizationDataRetention200 = OrganizationDataRetention
+export type UpdateOrganizationDataRetentionRequestJson = UpdateOrganizationDataRetentionBody
+export const UpdateOrganizationDataRetentionRequestJson = UpdateOrganizationDataRetentionBody
+export type UpdateOrganizationDataRetention200 = OrganizationDataRetention
+export const UpdateOrganizationDataRetention200 = OrganizationDataRetention
 export type ListGroupsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -29292,6 +29553,8 @@ export type CreateGroupRequestJson = CreateGroupBody
 export const CreateGroupRequestJson = CreateGroupBody
 export type CreateGroup200 = GroupResponse
 export const CreateGroup200 = GroupResponse
+export type RetrieveGroup200 = GroupResponse
+export const RetrieveGroup200 = GroupResponse
 export type UpdateGroupRequestJson = UpdateGroupBody
 export const UpdateGroupRequestJson = UpdateGroupBody
 export type UpdateGroup200 = GroupResourceWithSuccess
@@ -29316,6 +29579,8 @@ export type AssignGroupRoleRequestJson = PublicAssignOrganizationGroupRoleBody
 export const AssignGroupRoleRequestJson = PublicAssignOrganizationGroupRoleBody
 export type AssignGroupRole200 = GroupRoleAssignment
 export const AssignGroupRole200 = GroupRoleAssignment
+export type RetrieveGroupRole200 = AssignedRoleDetails
+export const RetrieveGroupRole200 = AssignedRoleDetails
 export type UnassignGroupRole200 = DeletedRoleAssignmentResource
 export const UnassignGroupRole200 = DeletedRoleAssignmentResource
 export type ListGroupUsersParams = {
@@ -29336,6 +29601,8 @@ export type AddGroupUserRequestJson = CreateGroupUserBody
 export const AddGroupUserRequestJson = CreateGroupUserBody
 export type AddGroupUser200 = GroupUserAssignment
 export const AddGroupUser200 = GroupUserAssignment
+export type RetrieveGroupUser200 = GroupMemberUser
+export const RetrieveGroupUser200 = GroupMemberUser
 export type RemoveGroupUser200 = GroupUserDeletedResource
 export const RemoveGroupUser200 = GroupUserDeletedResource
 export type ListInvitesParams = { readonly "limit"?: number; readonly "after"?: string }
@@ -29412,6 +29679,12 @@ export type DeactivateProjectCertificatesRequestJson = ToggleCertificatesRequest
 export const DeactivateProjectCertificatesRequestJson = ToggleCertificatesRequest
 export type DeactivateProjectCertificates200 = OrganizationProjectCertificateDeactivationResponse
 export const DeactivateProjectCertificates200 = OrganizationProjectCertificateDeactivationResponse
+export type RetrieveProjectDataRetention200 = ProjectDataRetention
+export const RetrieveProjectDataRetention200 = ProjectDataRetention
+export type UpdateProjectDataRetentionRequestJson = UpdateProjectDataRetentionBody
+export const UpdateProjectDataRetentionRequestJson = UpdateProjectDataRetentionBody
+export type UpdateProjectDataRetention200 = ProjectDataRetention
+export const UpdateProjectDataRetention200 = ProjectDataRetention
 export type ListProjectGroupsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -29430,6 +29703,12 @@ export type AddProjectGroupRequestJson = InviteProjectGroupBody
 export const AddProjectGroupRequestJson = InviteProjectGroupBody
 export type AddProjectGroup200 = ProjectGroup
 export const AddProjectGroup200 = ProjectGroup
+export type RetrieveProjectGroupParams = { readonly "group_type"?: "group" | "tenant_group" }
+export const RetrieveProjectGroupParams = Schema.Struct({
+  "group_type": Schema.optionalKey(Schema.Literals(["group", "tenant_group"]))
+})
+export type RetrieveProjectGroup200 = ProjectGroup
+export const RetrieveProjectGroup200 = ProjectGroup
 export type RemoveProjectGroup200 = ProjectGroupDeletedResource
 export const RemoveProjectGroup200 = ProjectGroupDeletedResource
 export type RetrieveProjectHostedToolPermissions200 = ProjectHostedToolPermissions
@@ -29481,8 +29760,38 @@ export type CreateProjectServiceAccount400 = ErrorResponse
 export const CreateProjectServiceAccount400 = ErrorResponse
 export type RetrieveProjectServiceAccount200 = ProjectServiceAccount
 export const RetrieveProjectServiceAccount200 = ProjectServiceAccount
+export type UpdateProjectServiceAccountRequestJson = UpdateProjectServiceAccountBody
+export const UpdateProjectServiceAccountRequestJson = UpdateProjectServiceAccountBody
+export type UpdateProjectServiceAccount200 = ProjectServiceAccount
+export const UpdateProjectServiceAccount200 = ProjectServiceAccount
 export type DeleteProjectServiceAccount200 = ProjectServiceAccountDeleteResponse
 export const DeleteProjectServiceAccount200 = ProjectServiceAccountDeleteResponse
+export type ListProjectSpendAlertsParams = {
+  readonly "limit"?: number
+  readonly "order"?: "asc" | "desc"
+  readonly "after"?: string
+  readonly "before"?: string
+}
+export const ListProjectSpendAlertsParams = Schema.Struct({
+  "limit": Schema.optionalKey(
+    Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(100))
+  ),
+  "order": Schema.optionalKey(Schema.Literals(["asc", "desc"])),
+  "after": Schema.optionalKey(Schema.String),
+  "before": Schema.optionalKey(Schema.String)
+})
+export type ListProjectSpendAlerts200 = ProjectSpendAlertListResource
+export const ListProjectSpendAlerts200 = ProjectSpendAlertListResource
+export type CreateProjectSpendAlertRequestJson = CreateSpendAlertBody
+export const CreateProjectSpendAlertRequestJson = CreateSpendAlertBody
+export type CreateProjectSpendAlert200 = ProjectSpendAlert
+export const CreateProjectSpendAlert200 = ProjectSpendAlert
+export type UpdateProjectSpendAlertRequestJson = CreateSpendAlertBody
+export const UpdateProjectSpendAlertRequestJson = CreateSpendAlertBody
+export type UpdateProjectSpendAlert200 = ProjectSpendAlert
+export const UpdateProjectSpendAlert200 = ProjectSpendAlert
+export type DeleteProjectSpendAlert200 = ProjectSpendAlertDeletedResource
+export const DeleteProjectSpendAlert200 = ProjectSpendAlertDeletedResource
 export type ListProjectUsersParams = { readonly "limit"?: number; readonly "after"?: string }
 export const ListProjectUsersParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
@@ -29528,12 +29837,40 @@ export type CreateRoleRequestJson = PublicCreateOrganizationRoleBody
 export const CreateRoleRequestJson = PublicCreateOrganizationRoleBody
 export type CreateRole200 = Role
 export const CreateRole200 = Role
+export type RetrieveRole200 = Role
+export const RetrieveRole200 = Role
 export type UpdateRoleRequestJson = PublicUpdateOrganizationRoleBody
 export const UpdateRoleRequestJson = PublicUpdateOrganizationRoleBody
 export type UpdateRole200 = Role
 export const UpdateRole200 = Role
 export type DeleteRole200 = RoleDeletedResource
 export const DeleteRole200 = RoleDeletedResource
+export type ListOrganizationSpendAlertsParams = {
+  readonly "limit"?: number
+  readonly "order"?: "asc" | "desc"
+  readonly "after"?: string
+  readonly "before"?: string
+}
+export const ListOrganizationSpendAlertsParams = Schema.Struct({
+  "limit": Schema.optionalKey(
+    Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(100))
+  ),
+  "order": Schema.optionalKey(Schema.Literals(["asc", "desc"])),
+  "after": Schema.optionalKey(Schema.String),
+  "before": Schema.optionalKey(Schema.String)
+})
+export type ListOrganizationSpendAlerts200 = OrganizationSpendAlertListResource
+export const ListOrganizationSpendAlerts200 = OrganizationSpendAlertListResource
+export type CreateOrganizationSpendAlertRequestJson = CreateSpendAlertBody
+export const CreateOrganizationSpendAlertRequestJson = CreateSpendAlertBody
+export type CreateOrganizationSpendAlert200 = OrganizationSpendAlert
+export const CreateOrganizationSpendAlert200 = OrganizationSpendAlert
+export type UpdateOrganizationSpendAlertRequestJson = CreateSpendAlertBody
+export const UpdateOrganizationSpendAlertRequestJson = CreateSpendAlertBody
+export type UpdateOrganizationSpendAlert200 = OrganizationSpendAlert
+export const UpdateOrganizationSpendAlert200 = OrganizationSpendAlert
+export type DeleteOrganizationSpendAlert200 = OrganizationSpendAlertDeletedResource
+export const DeleteOrganizationSpendAlert200 = OrganizationSpendAlertDeletedResource
 export type UsageAudioSpeechesParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -29838,6 +30175,8 @@ export type AssignUserRoleRequestJson = PublicAssignOrganizationGroupRoleBody
 export const AssignUserRoleRequestJson = PublicAssignOrganizationGroupRoleBody
 export type AssignUserRole200 = UserRoleAssignment
 export const AssignUserRole200 = UserRoleAssignment
+export type RetrieveUserRole200 = AssignedRoleDetails
+export const RetrieveUserRole200 = AssignedRoleDetails
 export type UnassignUserRole200 = DeletedRoleAssignmentResource
 export const UnassignUserRole200 = DeletedRoleAssignmentResource
 export type ListProjectGroupRoleAssignmentsParams = {
@@ -29858,6 +30197,8 @@ export type AssignProjectGroupRoleRequestJson = PublicAssignOrganizationGroupRol
 export const AssignProjectGroupRoleRequestJson = PublicAssignOrganizationGroupRoleBody
 export type AssignProjectGroupRole200 = GroupRoleAssignment
 export const AssignProjectGroupRole200 = GroupRoleAssignment
+export type RetrieveProjectGroupRole200 = AssignedRoleDetails
+export const RetrieveProjectGroupRole200 = AssignedRoleDetails
 export type UnassignProjectGroupRole200 = DeletedRoleAssignmentResource
 export const UnassignProjectGroupRole200 = DeletedRoleAssignmentResource
 export type ListProjectRolesParams = {
@@ -29878,6 +30219,8 @@ export type CreateProjectRoleRequestJson = PublicCreateOrganizationRoleBody
 export const CreateProjectRoleRequestJson = PublicCreateOrganizationRoleBody
 export type CreateProjectRole200 = Role
 export const CreateProjectRole200 = Role
+export type RetrieveProjectRole200 = Role
+export const RetrieveProjectRole200 = Role
 export type UpdateProjectRoleRequestJson = PublicUpdateOrganizationRoleBody
 export const UpdateProjectRoleRequestJson = PublicUpdateOrganizationRoleBody
 export type UpdateProjectRole200 = Role
@@ -29902,6 +30245,8 @@ export type AssignProjectUserRoleRequestJson = PublicAssignOrganizationGroupRole
 export const AssignProjectUserRoleRequestJson = PublicAssignOrganizationGroupRoleBody
 export type AssignProjectUserRole200 = UserRoleAssignment
 export const AssignProjectUserRole200 = UserRoleAssignment
+export type RetrieveProjectUserRole200 = AssignedRoleDetails
+export const RetrieveProjectUserRole200 = AssignedRoleDetails
 export type UnassignProjectUserRole200 = DeletedRoleAssignmentResource
 export const UnassignProjectUserRole200 = DeletedRoleAssignmentResource
 export type CreateRealtimeCallRequestFormData = RealtimeCallCreateRequest
@@ -31280,6 +31625,21 @@ export const make = (
           orElse: unexpectedStatus
         }))
       ),
+    "retrieveOrganizationDataRetention": (options) =>
+      HttpClientRequest.get(`/organization/data_retention`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveOrganizationDataRetention200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateOrganizationDataRetention": (options) =>
+      HttpClientRequest.post(`/organization/data_retention`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UpdateOrganizationDataRetention200),
+          orElse: unexpectedStatus
+        }))
+      ),
     "listGroups": (options) =>
       HttpClientRequest.get(`/organization/groups`).pipe(
         HttpClientRequest.setUrlParams({
@@ -31297,6 +31657,13 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         withResponse(options.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(CreateGroup200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "retrieveGroup": (groupId, options) =>
+      HttpClientRequest.get(`/organization/groups/${groupId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveGroup200),
           orElse: unexpectedStatus
         }))
       ),
@@ -31335,6 +31702,13 @@ export const make = (
           orElse: unexpectedStatus
         }))
       ),
+    "retrieveGroupRole": (groupId, roleId, options) =>
+      HttpClientRequest.get(`/organization/groups/${groupId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveGroupRole200),
+          orElse: unexpectedStatus
+        }))
+      ),
     "unassignGroupRole": (groupId, roleId, options) =>
       HttpClientRequest.delete(`/organization/groups/${groupId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
@@ -31359,6 +31733,13 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         withResponse(options.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(AddGroupUser200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "retrieveGroupUser": (groupId, userId, options) =>
+      HttpClientRequest.get(`/organization/groups/${groupId}/users/${userId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveGroupUser200),
           orElse: unexpectedStatus
         }))
       ),
@@ -31499,6 +31880,21 @@ export const make = (
           orElse: unexpectedStatus
         }))
       ),
+    "retrieveProjectDataRetention": (projectId, options) =>
+      HttpClientRequest.get(`/organization/projects/${projectId}/data_retention`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveProjectDataRetention200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateProjectDataRetention": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/data_retention`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UpdateProjectDataRetention200),
+          orElse: unexpectedStatus
+        }))
+      ),
     "listProjectGroups": (projectId, options) =>
       HttpClientRequest.get(`/organization/projects/${projectId}/groups`).pipe(
         HttpClientRequest.setUrlParams({
@@ -31516,6 +31912,14 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         withResponse(options.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(AddProjectGroup200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "retrieveProjectGroup": (projectId, groupId, options) =>
+      HttpClientRequest.get(`/organization/projects/${projectId}/groups/${groupId}`).pipe(
+        HttpClientRequest.setUrlParams({ "group_type": options?.params?.["group_type"] as any }),
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveProjectGroup200),
           orElse: unexpectedStatus
         }))
       ),
@@ -31612,10 +32016,54 @@ export const make = (
           orElse: unexpectedStatus
         }))
       ),
+    "updateProjectServiceAccount": (projectId, serviceAccountId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/service_accounts/${serviceAccountId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UpdateProjectServiceAccount200),
+          orElse: unexpectedStatus
+        }))
+      ),
     "deleteProjectServiceAccount": (projectId, serviceAccountId, options) =>
       HttpClientRequest.delete(`/organization/projects/${projectId}/service_accounts/${serviceAccountId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteProjectServiceAccount200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "listProjectSpendAlerts": (projectId, options) =>
+      HttpClientRequest.get(`/organization/projects/${projectId}/spend_alerts`).pipe(
+        HttpClientRequest.setUrlParams({
+          "limit": options?.params?.["limit"] as any,
+          "order": options?.params?.["order"] as any,
+          "after": options?.params?.["after"] as any,
+          "before": options?.params?.["before"] as any
+        }),
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ListProjectSpendAlerts200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createProjectSpendAlert": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/spend_alerts`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateProjectSpendAlert200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateProjectSpendAlert": (projectId, alertId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/spend_alerts/${alertId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UpdateProjectSpendAlert200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteProjectSpendAlert": (projectId, alertId, options) =>
+      HttpClientRequest.delete(`/organization/projects/${projectId}/spend_alerts/${alertId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteProjectSpendAlert200),
           orElse: unexpectedStatus
         }))
       ),
@@ -31684,6 +32132,13 @@ export const make = (
           orElse: unexpectedStatus
         }))
       ),
+    "retrieveRole": (roleId, options) =>
+      HttpClientRequest.get(`/organization/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveRole200),
+          orElse: unexpectedStatus
+        }))
+      ),
     "updateRole": (roleId, options) =>
       HttpClientRequest.post(`/organization/roles/${roleId}`).pipe(
         HttpClientRequest.bodyJsonUnsafe(options.payload),
@@ -31696,6 +32151,42 @@ export const make = (
       HttpClientRequest.delete(`/organization/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DeleteRole200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "listOrganizationSpendAlerts": (options) =>
+      HttpClientRequest.get(`/organization/spend_alerts`).pipe(
+        HttpClientRequest.setUrlParams({
+          "limit": options?.params?.["limit"] as any,
+          "order": options?.params?.["order"] as any,
+          "after": options?.params?.["after"] as any,
+          "before": options?.params?.["before"] as any
+        }),
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ListOrganizationSpendAlerts200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createOrganizationSpendAlert": (options) =>
+      HttpClientRequest.post(`/organization/spend_alerts`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateOrganizationSpendAlert200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateOrganizationSpendAlert": (alertId, options) =>
+      HttpClientRequest.post(`/organization/spend_alerts/${alertId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UpdateOrganizationSpendAlert200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteOrganizationSpendAlert": (alertId, options) =>
+      HttpClientRequest.delete(`/organization/spend_alerts/${alertId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteOrganizationSpendAlert200),
           orElse: unexpectedStatus
         }))
       ),
@@ -31941,6 +32432,13 @@ export const make = (
           orElse: unexpectedStatus
         }))
       ),
+    "retrieveUserRole": (userId, roleId, options) =>
+      HttpClientRequest.get(`/organization/users/${userId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveUserRole200),
+          orElse: unexpectedStatus
+        }))
+      ),
     "unassignUserRole": (userId, roleId, options) =>
       HttpClientRequest.delete(`/organization/users/${userId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
@@ -31968,6 +32466,13 @@ export const make = (
           orElse: unexpectedStatus
         }))
       ),
+    "retrieveProjectGroupRole": (projectId, groupId, roleId, options) =>
+      HttpClientRequest.get(`/projects/${projectId}/groups/${groupId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveProjectGroupRole200),
+          orElse: unexpectedStatus
+        }))
+      ),
     "unassignProjectGroupRole": (projectId, groupId, roleId, options) =>
       HttpClientRequest.delete(`/projects/${projectId}/groups/${groupId}/roles/${roleId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
@@ -31992,6 +32497,13 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         withResponse(options.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(CreateProjectRole200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "retrieveProjectRole": (projectId, roleId, options) =>
+      HttpClientRequest.get(`/projects/${projectId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveProjectRole200),
           orElse: unexpectedStatus
         }))
       ),
@@ -32027,6 +32539,13 @@ export const make = (
         HttpClientRequest.bodyJsonUnsafe(options.payload),
         withResponse(options.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(AssignProjectUserRole200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "retrieveProjectUserRole": (projectId, userId, roleId, options) =>
+      HttpClientRequest.get(`/projects/${projectId}/users/${userId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RetrieveProjectUserRole200),
           orElse: unexpectedStatus
         }))
       ),
@@ -33881,6 +34400,27 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Retrieves organization data retention controls.
+   */
+  readonly "retrieveOrganizationDataRetention": <Config extends OperationConfig>(
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveOrganizationDataRetention200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Updates organization data retention controls.
+   */
+  readonly "updateOrganizationDataRetention": <Config extends OperationConfig>(
+    options: {
+      readonly payload: typeof UpdateOrganizationDataRetentionRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UpdateOrganizationDataRetention200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * Lists all groups in the organization.
    */
   readonly "listGroups": <Config extends OperationConfig>(
@@ -33898,6 +34438,16 @@ export interface OpenAiClient {
     options: { readonly payload: typeof CreateGroupRequestJson.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
     WithOptionalResponse<typeof CreateGroup200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Retrieves a group.
+   */
+  readonly "retrieveGroup": <Config extends OperationConfig>(
+    groupId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveGroup200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -33944,6 +34494,17 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Retrieves an organization role assigned to a group.
+   */
+  readonly "retrieveGroupRole": <Config extends OperationConfig>(
+    groupId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveGroupRole200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * Unassigns an organization role from a group within the organization.
    */
   readonly "unassignGroupRole": <Config extends OperationConfig>(
@@ -33974,6 +34535,17 @@ export interface OpenAiClient {
     options: { readonly payload: typeof AddGroupUserRequestJson.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
     WithOptionalResponse<typeof AddGroupUser200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Retrieves a user in a group.
+   */
+  readonly "retrieveGroupUser": <Config extends OperationConfig>(
+    groupId: string,
+    userId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveGroupUser200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -34160,6 +34732,29 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Retrieves project data retention controls.
+   */
+  readonly "retrieveProjectDataRetention": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveProjectDataRetention200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Updates project data retention controls.
+   */
+  readonly "updateProjectDataRetention": <Config extends OperationConfig>(
+    projectId: string,
+    options: {
+      readonly payload: typeof UpdateProjectDataRetentionRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UpdateProjectDataRetention200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * Lists the groups that have access to a project.
    */
   readonly "listProjectGroups": <Config extends OperationConfig>(
@@ -34180,6 +34775,20 @@ export interface OpenAiClient {
     options: { readonly payload: typeof AddProjectGroupRequestJson.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
     WithOptionalResponse<typeof AddProjectGroup200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Retrieves a project's group.
+   */
+  readonly "retrieveProjectGroup": <Config extends OperationConfig>(
+    projectId: string,
+    groupId: string,
+    options: {
+      readonly params?: typeof RetrieveProjectGroupParams.Encoded | undefined
+      readonly config?: Config | undefined
+    } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveProjectGroup200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -34320,6 +34929,20 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Updates a service account in the project.
+   */
+  readonly "updateProjectServiceAccount": <Config extends OperationConfig>(
+    projectId: string,
+    serviceAccountId: string,
+    options: {
+      readonly payload: typeof UpdateProjectServiceAccountRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UpdateProjectServiceAccount200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * Deletes a service account from the project.
    *
    * Returns confirmation of service account deletion, or an error if the project
@@ -34331,6 +34954,57 @@ export interface OpenAiClient {
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
     WithOptionalResponse<typeof DeleteProjectServiceAccount200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Lists project spend alerts.
+   */
+  readonly "listProjectSpendAlerts": <Config extends OperationConfig>(
+    projectId: string,
+    options: {
+      readonly params?: typeof ListProjectSpendAlertsParams.Encoded | undefined
+      readonly config?: Config | undefined
+    } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ListProjectSpendAlerts200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a project spend alert.
+   */
+  readonly "createProjectSpendAlert": <Config extends OperationConfig>(
+    projectId: string,
+    options: {
+      readonly payload: typeof CreateProjectSpendAlertRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateProjectSpendAlert200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Updates a project spend alert.
+   */
+  readonly "updateProjectSpendAlert": <Config extends OperationConfig>(
+    projectId: string,
+    alertId: string,
+    options: {
+      readonly payload: typeof UpdateProjectSpendAlertRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UpdateProjectSpendAlert200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deletes a project spend alert.
+   */
+  readonly "deleteProjectSpendAlert": <Config extends OperationConfig>(
+    projectId: string,
+    alertId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteProjectSpendAlert200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -34421,6 +35095,16 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Retrieves an organization role.
+   */
+  readonly "retrieveRole": <Config extends OperationConfig>(
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveRole200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * Updates an existing organization role.
    */
   readonly "updateRole": <Config extends OperationConfig>(
@@ -34438,6 +35122,53 @@ export interface OpenAiClient {
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
     WithOptionalResponse<typeof DeleteRole200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Lists organization spend alerts.
+   */
+  readonly "listOrganizationSpendAlerts": <Config extends OperationConfig>(
+    options: {
+      readonly params?: typeof ListOrganizationSpendAlertsParams.Encoded | undefined
+      readonly config?: Config | undefined
+    } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ListOrganizationSpendAlerts200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates an organization spend alert.
+   */
+  readonly "createOrganizationSpendAlert": <Config extends OperationConfig>(
+    options: {
+      readonly payload: typeof CreateOrganizationSpendAlertRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateOrganizationSpendAlert200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Updates an organization spend alert.
+   */
+  readonly "updateOrganizationSpendAlert": <Config extends OperationConfig>(
+    alertId: string,
+    options: {
+      readonly payload: typeof UpdateOrganizationSpendAlertRequestJson.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UpdateOrganizationSpendAlert200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deletes an organization spend alert.
+   */
+  readonly "deleteOrganizationSpendAlert": <Config extends OperationConfig>(
+    alertId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteOrganizationSpendAlert200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -34598,6 +35329,17 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Retrieves an organization role assigned to a user.
+   */
+  readonly "retrieveUserRole": <Config extends OperationConfig>(
+    userId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveUserRole200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * Unassigns an organization role from a user within the organization.
    */
   readonly "unassignUserRole": <Config extends OperationConfig>(
@@ -34637,6 +35379,18 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Retrieves a project role assigned to a group.
+   */
+  readonly "retrieveProjectGroupRole": <Config extends OperationConfig>(
+    projectId: string,
+    groupId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveProjectGroupRole200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * Unassigns a project role from a group within a project.
    */
   readonly "unassignProjectGroupRole": <Config extends OperationConfig>(
@@ -34669,6 +35423,17 @@ export interface OpenAiClient {
     options: { readonly payload: typeof CreateProjectRoleRequestJson.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
     WithOptionalResponse<typeof CreateProjectRole200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Retrieves a project role.
+   */
+  readonly "retrieveProjectRole": <Config extends OperationConfig>(
+    projectId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveProjectRole200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -34716,6 +35481,18 @@ export interface OpenAiClient {
     options: { readonly payload: typeof AssignProjectUserRoleRequestJson.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
     WithOptionalResponse<typeof AssignProjectUserRole200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Retrieves a project role assigned to a user.
+   */
+  readonly "retrieveProjectUserRole": <Config extends OperationConfig>(
+    projectId: string,
+    userId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RetrieveProjectUserRole200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
