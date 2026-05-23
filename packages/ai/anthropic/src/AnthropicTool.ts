@@ -227,6 +227,13 @@ const CodeExecution_20250522_Parameters = Schema.Union([
 /**
  * Schema for the 2025-08-25 code execution tool input, containing the code to execute.
  *
+ * **When to use**
+ *
+ * Use when validating or constructing the input payload for the 2025-08-25
+ * Anthropic code execution tool.
+ *
+ * @see {@link CodeExecution_20250825} for the provider-defined tool that consumes this schema
+ *
  * @category Code Execution
  * @since 4.0.0
  */

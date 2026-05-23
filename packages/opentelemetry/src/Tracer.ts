@@ -222,6 +222,16 @@ export const layerWithoutOtelTracer: Layer.Layer<never, never, OtelTracer> = Lay
 /**
  * Layer that creates an OpenTelemetry tracer from a provider and resource, then installs it as the Effect tracer.
  *
+ * **When to use**
+ *
+ * Use when your application already supplies an `OtelTracerProvider` and a
+ * `Resource`, and you want Effect spans to be created by an OpenTelemetry
+ * tracer derived from those services.
+ *
+ * @see {@link layerTracer} for creating only the OpenTelemetry tracer service
+ * @see {@link layerGlobal} for installing the Effect tracer from the global provider
+ * @see {@link layerWithoutOtelTracer} for installing an already-provided `OtelTracer`
+ *
  * @category layers
  * @since 4.0.0
  */

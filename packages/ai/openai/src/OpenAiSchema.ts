@@ -169,6 +169,11 @@ const FilePathAnnotation = Schema.Struct({
 /**
  * Schema for citation and file-path annotations attached to output text content.
  *
+ * **Details**
+ *
+ * Accepts annotation objects discriminated by `type`: `file_citation`,
+ * `url_citation`, `container_file_citation`, or `file_path`.
+ *
  * @category schemas
  * @since 4.0.0
  */

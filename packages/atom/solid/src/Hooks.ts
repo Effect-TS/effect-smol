@@ -185,6 +185,20 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
  * Returns a Solid accessor for a writable atom together with a setter for
  * updating it.
  *
+ * **When to use**
+ *
+ * Use when a Solid component or computation needs both a reactive accessor for
+ * a writable atom and a write function for that same atom.
+ *
+ * **Details**
+ *
+ * The setter accepts either a write value or an updater function. For
+ * `AsyncResult` atoms, `promise` and `promiseExit` modes return promises for the
+ * success value or full `Exit`.
+ *
+ * @see {@link useAtomValue} for subscribing to an atom without a setter
+ * @see {@link useAtomSet} for updating a writable atom without subscribing to its value
+ *
  * @category hooks
  * @since 4.0.0
  */

@@ -215,6 +215,14 @@ export const useAtomRefresh = <A>(atom: Atom.Atom<A>): () => void => {
  * Subscribes to a writable atom and returns its current value together with a
  * setter for updating it.
  *
+ * **When to use**
+ *
+ * Use when a React component needs both to render the current value of a
+ * writable atom and update it from the same component.
+ *
+ * @see {@link useAtomValue} for subscribing to an atom without a setter
+ * @see {@link useAtomSet} for updating a writable atom without subscribing to its value
+ *
  * @category hooks
  * @since 4.0.0
  */

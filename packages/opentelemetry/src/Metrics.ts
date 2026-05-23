@@ -46,6 +46,20 @@ export type TemporalityPreference = "cumulative" | "delta"
 /**
  * Creates an OpenTelemetry metric producer from Effect metrics.
  *
+ * **When to use**
+ *
+ * Use to create a `MetricProducer` when you need to wire Effect metrics into
+ * OpenTelemetry manually instead of using the scoped `layer` helper.
+ *
+ * **Details**
+ *
+ * Requires the current OpenTelemetry `Resource`, captures the current Effect
+ * context, and uses cumulative temporality by default. Pass `"delta"` for
+ * interval-based values.
+ *
+ * @see {@link registerProducer} for attaching a producer to metric readers
+ * @see {@link layer} for creating and registering a producer in a scoped layer
+ *
  * @category constructors
  * @since 4.0.0
  */

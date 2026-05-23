@@ -30,6 +30,13 @@ import type { HttpClient } from "effect/unstable/http/HttpClient"
  * Context service used to carry OpenAI-compatible client configuration for the
  * current Effect scope.
  *
+ * **When to use**
+ *
+ * Use as the context service for OpenAI-compatible client configuration when you
+ * need to provide or read scoped HTTP client transforms through Effect context.
+ *
+ * @see {@link withClientTransform} for scoping an HTTP client transformation
+ *
  * @category services
  * @since 4.0.0
  */

@@ -27,6 +27,20 @@ export type Model = string
 /**
  * Service definition for OpenAI embedding model configuration.
  *
+ * **When to use**
+ *
+ * Use when you need to provide shared default request options for
+ * OpenAI-compatible embedding operations through the Effect context, such as
+ * `dimensions`, `encoding_format`, or `user`.
+ *
+ * **Details**
+ *
+ * The service stores the embedding request payload without `input`. Requests
+ * combine the selected model, layer or constructor config, and scoped context
+ * config, with scoped context config taking precedence.
+ *
+ * @see {@link withConfigOverride} for scoping embedding request overrides
+ *
  * @category context
  * @since 4.0.0
  */

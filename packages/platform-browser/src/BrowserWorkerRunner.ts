@@ -173,6 +173,25 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
 /**
  * Layer that provides a browser `WorkerRunnerPlatform` using the global `self` worker context.
  *
+ * **When to use**
+ *
+ * Use when a browser worker entry point uses the ambient `self` object as the
+ * worker transport.
+ *
+ * **Details**
+ *
+ * Delegates to `make(self)` and provides the runner-side platform used by
+ * protocols such as `RpcServer.layerProtocolWorkerRunner`.
+ *
+ * **Gotchas**
+ *
+ * This layer depends on the browser worker global `self`. Use
+ * `layerMessagePort` when the transport is an explicit `MessagePort` or
+ * `Window`.
+ *
+ * @see {@link make} for constructing a runner platform from an explicit endpoint
+ * @see {@link layerMessagePort} for providing a platform from an explicit endpoint
+ *
  * @category layers
  * @since 4.0.0
  */

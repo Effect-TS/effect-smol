@@ -28,6 +28,19 @@ const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
 /**
  * Service interface for reading from, writing to, and clearing the browser clipboard.
  *
+ * **Details**
+ *
+ * `read` and `write` work with `ClipboardItem` arrays. `readString` and
+ * `writeString` use text, `writeBlob` writes one `Blob`, and `clear` writes an
+ * empty string.
+ *
+ * **Gotchas**
+ *
+ * Clipboard access generally requires a secure context and may require user
+ * activation, permissions, or a focused document. `ClipboardItem` and non-text
+ * MIME type support varies by browser. Failed browser operations are surfaced
+ * as `ClipboardError`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -56,6 +69,14 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
 
 /**
  * Service tag for the browser `Clipboard` service.
+ *
+ * **When to use**
+ *
+ * Use when an Effect needs to require or provide clipboard capabilities through
+ * the context.
+ *
+ * @see {@link make} for building a custom clipboard service
+ * @see {@link layer} for providing the browser-backed clipboard service
  *
  * @category services
  * @since 4.0.0

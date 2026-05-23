@@ -134,6 +134,20 @@ export const make: Effect.Effect<
 /**
  * Creates a layer that installs the OpenTelemetry-backed Effect logger, merging with existing loggers by default.
  *
+ * **When to use**
+ *
+ * Use to install the OpenTelemetry-backed Effect logger in an application that
+ * has an `OtelLoggerProvider`, so standard Effect logging emits OpenTelemetry
+ * log records.
+ *
+ * **Details**
+ *
+ * The layer installs the logger created by `make`. `mergeWithExisting` defaults
+ * to `true`; set it to `false` to replace the current logger set.
+ *
+ * @see {@link make} for constructing the logger directly
+ * @see {@link layerLoggerProvider} for creating the required logger provider
+ *
  * @category layers
  * @since 4.0.0
  */

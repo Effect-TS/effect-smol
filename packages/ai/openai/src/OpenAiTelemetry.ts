@@ -131,9 +131,17 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
  * Applies the specified OpenAi GenAI telemetry attributes to the provided
  * `Span`.
  *
+ * **When to use**
+ *
+ * Use to annotate an existing OpenTelemetry span with standard GenAI attributes
+ * plus OpenAI-specific request and response metadata.
+ *
  * **Gotchas**
  *
  * This method will mutate the `Span` **in-place**.
+ *
+ * @see {@link OpenAiTelemetryAttributeOptions} for the accepted telemetry attributes
+ * @see {@link Telemetry.addGenAIAnnotations} for the provider-neutral annotation helper
  *
  * @category tracing
  * @since 4.0.0

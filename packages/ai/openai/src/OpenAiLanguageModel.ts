@@ -60,6 +60,18 @@ type ImageDetail = "auto" | "low" | "high"
 /**
  * Service definition for OpenAI language model configuration.
  *
+ * **When to use**
+ *
+ * Use when you need to provide OpenAI Responses API request defaults through
+ * Effect context for language model operations.
+ *
+ * **Details**
+ *
+ * Config values are merged with the config object passed to `model`, `make`, or
+ * `layer`, with scoped context values taking precedence.
+ *
+ * @see {@link withConfigOverride} for scoping language model request overrides
+ *
  * @category services
  * @since 4.0.0
  */

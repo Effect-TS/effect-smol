@@ -31,6 +31,23 @@ import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerE
 /**
  * Creates browser worker layers by combining the default `WorkerPlatform` with a spawner for `Worker`, `SharedWorker`, or `MessagePort` instances.
  *
+ * **When to use**
+ *
+ * Use when browser parent or client code needs both the browser
+ * `WorkerPlatform` and a `Spawner` from one layer.
+ *
+ * **Details**
+ *
+ * The `spawn` callback receives the numeric worker id and may return a
+ * `Worker`, `SharedWorker`, or `MessagePort`.
+ *
+ * **Gotchas**
+ *
+ * Scope finalization sends the worker close protocol over the port. Dedicated
+ * workers created by `spawn` are not terminated by this layer.
+ *
+ * @see {@link layerPlatform} for providing only the browser worker platform
+ *
  * @category layers
  * @since 4.0.0
  */

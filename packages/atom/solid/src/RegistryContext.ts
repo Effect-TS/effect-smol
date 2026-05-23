@@ -32,6 +32,17 @@ import { createComponent, createContext, onCleanup } from "solid-js"
  * A Solid context that carries the `AtomRegistry` used by atom hooks in the
  * current owner tree.
  *
+ * **When to use**
+ *
+ * Use when integrating lower-level Solid atom APIs that need direct access to,
+ * or direct provisioning of, the `AtomRegistry` for the current owner tree.
+ *
+ * **Details**
+ *
+ * When no provider is present, the context uses a standalone default registry.
+ *
+ * @see {@link RegistryProvider} for creating and providing a registry for a Solid subtree
+ *
  * @category context
  * @since 4.0.0
  */

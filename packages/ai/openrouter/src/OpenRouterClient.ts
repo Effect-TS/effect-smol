@@ -245,6 +245,14 @@ export const make = Effect.fnUntraced(
 /**
  * Creates a layer for the OpenRouter client with the given options.
  *
+ * **When to use**
+ *
+ * Use when you already have the OpenRouter client options in code and want to
+ * provide `OpenRouterClient` as a layer.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layerConfig} for loading client settings from `Config`
+ *
  * @category layers
  * @since 4.0.0
  */

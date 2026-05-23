@@ -32,6 +32,12 @@ export type OpenAiTool =
  * deleting, or updating files. This local tool runs in your environment and
  * requires a handler to execute file operations.
  *
+ * **When to use**
+ *
+ * Use when you want an OpenAI model to request structured file edits as create,
+ * delete, or update operations that your application executes through a local
+ * handler.
+ *
  * @category tools
  * @since 4.0.0
  */

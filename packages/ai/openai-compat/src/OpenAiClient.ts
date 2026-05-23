@@ -257,6 +257,14 @@ export const make = Effect.fnUntraced(
 /**
  * Creates a layer that provides an OpenAI-compatible client from explicit options.
  *
+ * **When to use**
+ *
+ * Use to install `OpenAiClient` in an application layer when the client options
+ * are already available as values rather than loaded from `Config`.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layerConfig} for loading client settings from `Config`
+ *
  * @category layers
  * @since 4.0.0
  */

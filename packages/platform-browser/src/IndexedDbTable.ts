@@ -176,6 +176,27 @@ const Proto = {
 /**
  * Creates a typed IndexedDB table definition from its name, schema, optional key path, indexes, auto-increment flag, and durability.
  *
+ * **When to use**
+ *
+ * Use to define a typed object-store descriptor for inclusion in an
+ * `IndexedDbVersion` and for migration or query APIs.
+ *
+ * **Details**
+ *
+ * `autoIncrement` defaults to `false` and `durability` defaults to `"relaxed"`.
+ * Tables without a key path get a read schema that includes an out-of-line
+ * `key`, while auto-increment tables use a write schema where the generated key
+ * may be omitted.
+ *
+ * **Gotchas**
+ *
+ * Tables without a key path cannot define a `key` field in their row schema.
+ * Key paths and index paths must point to encoded fields whose values are valid
+ * IndexedDB keys, and declared indexes still need to be created during
+ * database migrations.
+ *
+ * @see {@link IndexedDbVersion.make} for grouping table definitions into a schema version
+ *
  * @category constructors
  * @since 4.0.0
  */

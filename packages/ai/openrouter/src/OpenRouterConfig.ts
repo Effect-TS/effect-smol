@@ -28,6 +28,13 @@ import type { HttpClient } from "effect/unstable/http/HttpClient"
  * Context service carrying scoped OpenRouter provider configuration for client
  * operations.
  *
+ * **When to use**
+ *
+ * Use as the context service tag when manually providing or reading scoped
+ * OpenRouter provider configuration in an Effect context.
+ *
+ * @see {@link withClientTransform} for scoping an HTTP client transformation
+ *
  * @category services
  * @since 4.0.0
  */

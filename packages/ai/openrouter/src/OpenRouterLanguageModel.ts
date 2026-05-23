@@ -60,6 +60,13 @@ import { type ChatStreamingResponseChunkData, OpenRouterClient } from "./OpenRou
 /**
  * Service definition for OpenRouter language model configuration.
  *
+ * **When to use**
+ *
+ * Use to provide scoped OpenRouter chat completion defaults or per-operation
+ * overrides for an OpenRouter language model service.
+ *
+ * @see {@link withConfigOverride} for scoping language model request overrides
+ *
  * @category services
  * @since 4.0.0
  */

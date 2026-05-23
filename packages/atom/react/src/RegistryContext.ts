@@ -47,6 +47,14 @@ export function scheduleTask(f: () => void): () => void {
  * hydration helpers, defaulting to a standalone registry when no provider is
  * present.
  *
+ * **When to use**
+ *
+ * Use to supply an existing `AtomRegistry` through React context when hooks or
+ * hydration helpers need to share registry state that is managed outside
+ * `RegistryProvider`.
+ *
+ * @see {@link RegistryProvider} for creating and providing a registry for a React subtree
+ *
  * @category context
  * @since 4.0.0
  */

@@ -31,6 +31,26 @@ const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 /**
  * Service interface for browser geolocation, providing effects for the current position and streams of watched positions.
  *
+ * **When to use**
+ *
+ * Use when browser code needs a typed Effect service for one-shot location
+ * reads or streamed location updates.
+ *
+ * **Details**
+ *
+ * `getCurrentPosition` returns one position effect. `watchPosition` returns a
+ * stream and accepts the browser `PositionOptions` plus an optional sliding
+ * `bufferSize`.
+ *
+ * **Gotchas**
+ *
+ * Browser permission prompts, denied permissions, timeouts, unavailable
+ * position data, secure-context restrictions, and policy restrictions are
+ * surfaced as `GeolocationError`.
+ *
+ * @see {@link GeolocationError} for represented browser geolocation failures
+ * @see {@link layer} for the browser-backed service implementation
+ *
  * @category models
  * @since 4.0.0
  */
@@ -50,6 +70,13 @@ export interface Geolocation {
 
 /**
  * Service tag for the browser `Geolocation` service.
+ *
+ * **When to use**
+ *
+ * Use when an Effect needs to access or provide geolocation capabilities
+ * through the context.
+ *
+ * @see {@link layer} for providing the browser-backed geolocation service
  *
  * @category services
  * @since 4.0.0

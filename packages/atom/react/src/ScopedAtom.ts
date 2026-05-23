@@ -26,6 +26,11 @@ import * as React from "react"
 /**
  * Type identifier for ScopedAtom.
  *
+ * **Details**
+ *
+ * Used as the computed property key and marker value stored on `ScopedAtom`
+ * objects.
+ *
  * @category type IDs
  * @since 4.0.0
  */

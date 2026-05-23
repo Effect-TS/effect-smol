@@ -27,6 +27,13 @@ import type { HttpClient } from "effect/unstable/http/HttpClient"
 /**
  * Service tag for Anthropic client configuration overrides, such as transformations applied to the generated HTTP client.
  *
+ * **When to use**
+ *
+ * Use when a layer or integration needs to provide or read Anthropic client
+ * configuration through Effect's context.
+ *
+ * @see {@link withClientTransform} for scoping an HTTP client transformation
+ *
  * @category services
  * @since 4.0.0
  */

@@ -105,6 +105,11 @@ const addAnthropicResponseAttributes = Telemetry.addSpanAttributes("gen_ai.anthr
  * Applies the specified Anthropic GenAI telemetry attributes to the provided
  * `Span`.
  *
+ * **When to use**
+ *
+ * Use to annotate an Anthropic model span with standard GenAI telemetry
+ * attributes and Anthropic-specific request or response metadata.
+ *
  * **Gotchas**
  *
  * This method mutates the `Span` in place.

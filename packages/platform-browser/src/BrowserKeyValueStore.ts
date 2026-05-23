@@ -45,6 +45,26 @@ export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = Key
 /**
  * Creates a `KeyValueStore` layer backed by IndexedDB.
  *
+ * **When to use**
+ *
+ * Use when a browser `KeyValueStore` needs persistent asynchronous IndexedDB
+ * storage instead of the synchronous Web Storage APIs.
+ *
+ * **Details**
+ *
+ * The database name defaults to `"effect_key_value_store"`. The layer requires
+ * the `IndexedDb` service and stores string and `Uint8Array` values in the same
+ * backing object store.
+ *
+ * **Gotchas**
+ *
+ * IndexedDB may be unavailable or blocked by browser settings, private browsing,
+ * quota limits, or restricted contexts. The string and `Uint8Array` accessors do
+ * not coerce values stored with the other representation.
+ *
+ * @see {@link layerLocalStorage} for synchronous persistent Web Storage
+ * @see {@link layerSessionStorage} for synchronous tab-session Web Storage
+ *
  * @category layers
  * @since 4.0.0
  */

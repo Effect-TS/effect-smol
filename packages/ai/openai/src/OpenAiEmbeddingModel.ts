@@ -27,6 +27,19 @@ export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-
 /**
  * Service definition for OpenAI embedding model configuration.
  *
+ * **When to use**
+ *
+ * Use when embedding requests need scoped OpenAI request defaults or overrides
+ * from Effect context.
+ *
+ * **Details**
+ *
+ * The service stores the OpenAI create-embedding request payload without
+ * `input`, carrying options such as `model`, `dimensions`, `encoding_format`,
+ * and `user`.
+ *
+ * @see {@link withConfigOverride} for scoping embedding request overrides
+ *
  * @category services
  * @since 4.0.0
  */

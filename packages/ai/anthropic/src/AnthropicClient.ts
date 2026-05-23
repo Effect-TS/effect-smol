@@ -124,6 +124,15 @@ export type MessageStreamEvent =
 /**
  * Service identifier for the Anthropic client.
  *
+ * **When to use**
+ *
+ * Use when accessing or providing the Anthropic client service through Effect's
+ * context.
+ *
+ * @see {@link make} for constructing an Anthropic client effectfully
+ * @see {@link layer} for providing a client from explicit options
+ * @see {@link layerConfig} for providing a client from `Config`
+ *
  * @category services
  * @since 4.0.0
  */

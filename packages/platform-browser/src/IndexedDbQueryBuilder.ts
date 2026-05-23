@@ -84,6 +84,14 @@ export type ErrorReason =
 /**
  * Tagged error for IndexedDB query operations, carrying a query error reason and the original cause.
  *
+ * **Details**
+ *
+ * `reason` is the query failure category, `cause` preserves the underlying
+ * schema, IndexedDB request, transaction, or user callback failure, and
+ * `message` is set to the reason.
+ *
+ * @see {@link ErrorReason} for the supported failure categories
+ *
  * @category errors
  * @since 4.0.0
  */

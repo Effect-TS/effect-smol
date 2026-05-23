@@ -735,6 +735,15 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 /**
  * Creates a layer for the Anthropic language model.
  *
+ * **When to use**
+ *
+ * Use when composing application layers and you want Anthropic to satisfy
+ * `LanguageModel.LanguageModel` while supplying `AnthropicClient` from another
+ * layer.
+ *
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link model} for creating a model service directly
+ *
  * @category layers
  * @since 4.0.0
  */
