@@ -38,10 +38,11 @@ describe("jsdocs", () => {
     fs.writeFileSync(
       path.join(cwd, ".data/jsdocs.json"),
       JSON.stringify({
-        version: 1,
+        version: 2,
         generatedBy: "@effect/jsdocs",
         generatedAt: "now",
-        files: [{ file: "src/Foo.ts", hash: "old", diagnostics: [], declarations: [], namespaces: [] }]
+        files: [{ file: "src/Foo.ts", hash: "old", diagnostics: [], declarations: [], namespaces: [] }],
+        apis: []
       })
     )
     const errors = run("export const a = 1\n", cwd, path.join(cwd, "src/Foo.ts"))
@@ -55,9 +56,10 @@ describe("jsdocs", () => {
     fs.writeFileSync(
       path.join(cwd, ".data/jsdocs.json"),
       JSON.stringify({
-        version: 1,
+        version: 2,
         generatedBy: "@effect/jsdocs",
         generatedAt: "now",
+        apis: [],
         files: [{
           file: "src/Foo.ts",
           hash: hash(source),

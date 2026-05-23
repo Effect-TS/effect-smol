@@ -324,7 +324,7 @@ export type ServiceClass<
  *
  * **When to use**
  *
- * Use the optional configuration to declare required services, provided services,
+ * Use when you use the optional configuration to declare required services, provided services,
  * typed error schemas, security schemes, client errors, and whether generated
  * clients must provide a matching client middleware.
  *

@@ -48,7 +48,7 @@ import type { TupleOf, TupleOfAtLeast } from "./Types.ts"
  *
  * **When to use**
  *
- * - You want a reusable boolean check for `A`.
+ * Use when you want a reusable boolean check for `A`.
  * - You plan to combine checks with {@link and}/{@link or}.
  * - You want a simple filter predicate for arrays or iterables.
  *
@@ -83,7 +83,7 @@ export interface Predicate<in A> {
  *
  * **When to use**
  *
- * - You are defining APIs that abstract over predicates with HKTs.
+ * Use when you are defining APIs that abstract over predicates with HKTs.
  * - You need a `TypeLambda` instance for predicate-based type classes.
  *
  * **Details**
@@ -113,7 +113,7 @@ export interface PredicateTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * - You want a runtime check that refines `A` to `B` for TypeScript.
+ * Use when you want a runtime check that refines `A` to `B` for TypeScript.
  * - You want to compose multiple type guards with {@link compose}.
  * - You need to guard `unknown` values safely.
  *
@@ -151,7 +151,7 @@ export interface Refinement<in A, out B extends A> {
  *
  * **When to use**
  *
- * - You need to extract input types from predicate signatures.
+ * Use when you need to extract input types from predicate signatures.
  * - You want to write generic helpers over predicate types.
  *
  * **Details**
@@ -178,7 +178,7 @@ export declare namespace Predicate {
    *
    * **When to use**
    *
-   * - You want to infer the input type from a predicate type.
+   * Use when you want to infer the input type from a predicate type.
    * - You are defining generic utilities over predicates.
    *
    * **Details**
@@ -207,7 +207,7 @@ export declare namespace Predicate {
    *
    * **When to use**
    *
-   * - You need a constraint for "any predicate" in generic code.
+   * Use when you need a constraint for "any predicate" in generic code.
    *
    * **Details**
    *
@@ -233,7 +233,7 @@ export declare namespace Predicate {
  *
  * **When to use**
  *
- * - You need to extract input/output types from refinement signatures.
+ * Use when you need to extract input/output types from refinement signatures.
  * - You want to write generic helpers over refinements.
  *
  * **Details**
@@ -261,7 +261,7 @@ export declare namespace Refinement {
    *
    * **When to use**
    *
-   * - You want to infer the input type from a refinement type.
+   * Use when you want to infer the input type from a refinement type.
    *
    * **Details**
    *
@@ -290,7 +290,7 @@ export declare namespace Refinement {
    *
    * **When to use**
    *
-   * - You want to infer the narrowed type from a refinement type.
+   * Use when you want to infer the narrowed type from a refinement type.
    *
    * **Details**
    *
@@ -317,7 +317,7 @@ export declare namespace Refinement {
    *
    * **When to use**
    *
-   * - You need a constraint for "any refinement" in generic code.
+   * Use when you need a constraint for "any refinement" in generic code.
    *
    * **Details**
    *
@@ -344,7 +344,7 @@ export declare namespace Refinement {
  *
  * **When to use**
  *
- * - You have a predicate on `A` and want one on `B` via `B -> A`.
+ * Use when you have a predicate on `A` and want one on `B` via `B -> A`.
  * - You want to check derived values (lengths, projections, etc.).
  *
  * **Details**
@@ -381,7 +381,7 @@ export const mapInput: {
  *
  * **When to use**
  *
- * - You need a runtime check for tuple length.
+ * Use when you need a runtime check for tuple length.
  * - You want to narrow `ReadonlyArray<T>` to `TupleOf<N, T>`.
  *
  * **Details**
@@ -415,7 +415,7 @@ export const isTupleOf: {
  *
  * **When to use**
  *
- * - You need a runtime check for tuple-like minimum length.
+ * Use when you need a runtime check for tuple-like minimum length.
  * - You want to narrow `ReadonlyArray<T>` to `TupleOfAtLeast<N, T>`.
  *
  * **Details**
@@ -449,7 +449,7 @@ export const isTupleOfAtLeast: {
  *
  * **When to use**
  *
- * - You want a predicate that mirrors JavaScript truthiness.
+ * Use when you want a predicate that mirrors JavaScript truthiness.
  * - You need to filter out falsy values like `0`, "", and `false`.
  *
  * **Details**
@@ -483,7 +483,7 @@ export function isTruthy(input: unknown): boolean {
  *
  * **When to use**
  *
- * - You need a runtime guard for `Set` values.
+ * Use when you need a runtime guard for `Set` values.
  *
  * **Details**
  *
@@ -516,7 +516,7 @@ export function isSet(input: unknown): input is Set<unknown> {
  *
  * **When to use**
  *
- * - You need a runtime guard for `Map` values.
+ * Use when you need a runtime guard for `Map` values.
  *
  * **Details**
  *
@@ -549,7 +549,7 @@ export function isMap(input: unknown): input is Map<unknown, unknown> {
  *
  * **When to use**
  *
- * - You need to guard an `unknown` value as a string.
+ * Use when you need to guard an `unknown` value as a string.
  * - You want to narrow in `if` statements.
  *
  * **Details**
@@ -584,7 +584,7 @@ export function isString(input: unknown): input is string {
  *
  * **When to use**
  *
- * - You need to guard an `unknown` value as a number.
+ * Use when you need to guard an `unknown` value as a number.
  *
  * **Details**
  *
@@ -618,7 +618,7 @@ export function isNumber(input: unknown): input is number {
  *
  * **When to use**
  *
- * - You need to guard an `unknown` value as a boolean.
+ * Use when you need to guard an `unknown` value as a boolean.
  *
  * **Details**
  *
@@ -651,7 +651,7 @@ export function isBoolean(input: unknown): input is boolean {
  *
  * **When to use**
  *
- * - You need to guard an `unknown` value as a bigint.
+ * Use when you need to guard an `unknown` value as a bigint.
  *
  * **Details**
  *
@@ -683,7 +683,7 @@ export function isBigInt(input: unknown): input is bigint {
  *
  * **When to use**
  *
- * - You need to guard an `unknown` value as a symbol.
+ * Use when you need to guard an `unknown` value as a symbol.
  *
  * **Details**
  *
@@ -715,7 +715,7 @@ export function isSymbol(input: unknown): input is symbol {
  *
  * **When to use**
  *
- * - You need to guard unknown keys before indexing.
+ * Use when you need to guard unknown keys before indexing.
  *
  * **Details**
  *
@@ -750,7 +750,7 @@ export function isPropertyKey(u: unknown): u is PropertyKey {
  *
  * **When to use**
  *
- * - You need to guard an `unknown` value as callable.
+ * Use when you need to guard an `unknown` value as callable.
  *
  * **Details**
  *
@@ -782,7 +782,7 @@ export function isFunction(input: unknown): input is Function {
  *
  * **When to use**
  *
- * - You need a guard for optional values.
+ * Use when you need a guard for optional values.
  *
  * **Details**
  *
@@ -813,7 +813,7 @@ export function isUndefined(input: unknown): input is undefined {
  *
  * **When to use**
  *
- * - You want to filter out `undefined` while preserving other falsy values.
+ * Use when you want to filter out `undefined` while preserving other falsy values.
  *
  * **Details**
  *
@@ -845,7 +845,7 @@ export function isNotUndefined<A>(input: A): input is Exclude<A, undefined> {
  *
  * **When to use**
  *
- * - You need a guard for nullable values.
+ * Use when you need a guard for nullable values.
  *
  * **Details**
  *
@@ -876,7 +876,7 @@ export function isNull(input: unknown): input is null {
  *
  * **When to use**
  *
- * - You want to filter out `null` while preserving other falsy values.
+ * Use when you want to filter out `null` while preserving other falsy values.
  *
  * **Details**
  *
@@ -908,7 +908,7 @@ export function isNotNull<A>(input: A): input is Exclude<A, null> {
  *
  * **When to use**
  *
- * - You want to guard nullish values explicitly.
+ * Use when you want to guard nullish values explicitly.
  *
  * **Details**
  *
@@ -941,7 +941,7 @@ export function isNullish<A>(input: A): input is A & (null | undefined) {
  *
  * **When to use**
  *
- * - You want to filter out nullish values but keep other falsy ones.
+ * Use when you want to filter out nullish values but keep other falsy ones.
  *
  * **Details**
  *
@@ -974,7 +974,7 @@ export function isNotNullish<A>(input: A): input is NonNullable<A> {
  *
  * **When to use**
  *
- * - You need a predicate that never accepts, e.g. in default branches.
+ * Use when you need a predicate that never accepts, e.g. in default branches.
  *
  * **Details**
  *
@@ -1002,7 +1002,7 @@ export function isNever(_: unknown): _ is never {
  *
  * **When to use**
  *
- * - You need a predicate that always accepts, e.g. as a placeholder.
+ * Use when you need a predicate that always accepts, e.g. as a placeholder.
  *
  * **Details**
  *
@@ -1030,7 +1030,7 @@ export function isUnknown(_: unknown): _ is unknown {
  *
  * **When to use**
  *
- * - You want to accept plain objects and arrays, but not `null`.
+ * Use when you want to accept plain objects and arrays, but not `null`.
  *
  * **Details**
  *
@@ -1115,7 +1115,7 @@ export function isReadonlyObject(input: unknown): input is { readonly [x: Proper
  *
  * **When to use**
  *
- * - You want to accept arrays and functions as well as objects.
+ * Use when you want to accept arrays and functions as well as objects.
  *
  * **Details**
  *
@@ -1145,7 +1145,7 @@ export function isObjectKeyword(input: unknown): input is object {
  *
  * **When to use**
  *
- * - You need to guard property access on `unknown` values.
+ * Use when you need to guard property access on `unknown` values.
  * - You want a simple structural guard for objects.
  *
  * **Details**
@@ -1186,7 +1186,7 @@ export const hasProperty: {
  *
  * **When to use**
  *
- * - You model tagged unions with a `_tag` field.
+ * Use when you model tagged unions with a `_tag` field.
  * - You want a quick, structural guard for tagged values.
  *
  * **Details**
@@ -1221,7 +1221,7 @@ export const isTagged: {
  *
  * **When to use**
  *
- * - You need to guard errors caught from unknown sources.
+ * Use when you need to guard errors caught from unknown sources.
  *
  * **Details**
  *
@@ -1251,7 +1251,7 @@ export function isError(input: unknown): input is Error {
  *
  * **When to use**
  *
- * - You need to guard binary data at runtime.
+ * Use when you need to guard binary data at runtime.
  *
  * **Details**
  *
@@ -1282,7 +1282,7 @@ export function isUint8Array(input: unknown): input is Uint8Array {
  *
  * **When to use**
  *
- * - You need to guard dates at runtime.
+ * Use when you need to guard dates at runtime.
  *
  * **Details**
  *
@@ -1312,7 +1312,7 @@ export function isDate(input: unknown): input is Date {
  *
  * **When to use**
  *
- * - You need a guard before iterating an unknown value.
+ * Use when you need a guard before iterating an unknown value.
  *
  * **Details**
  *
@@ -1344,7 +1344,7 @@ export function isIterable(input: unknown): input is Iterable<unknown> {
  *
  * **When to use**
  *
- * - You need to detect promise instances across realms.
+ * Use when you need to detect promise instances across realms.
  *
  * **Details**
  *
@@ -1374,7 +1374,7 @@ export function isPromise(input: unknown): input is Promise<unknown> {
  *
  * **When to use**
  *
- * - You only need `then` to interop with promise-like values.
+ * Use when you only need `then` to interop with promise-like values.
  *
  * **Details**
  *
@@ -1404,7 +1404,7 @@ export function isPromiseLike(input: unknown): input is PromiseLike<unknown> {
  *
  * **When to use**
  *
- * - You need a runtime guard for regular expressions.
+ * Use when you need a runtime guard for regular expressions.
  *
  * **Details**
  *
@@ -1434,7 +1434,7 @@ export function isRegExp(input: unknown): input is RegExp {
  *
  * **When to use**
  *
- * - You want to chain two refinements for progressive narrowing.
+ * Use when you want to chain two refinements for progressive narrowing.
  * - You want a predicate that applies two checks in sequence.
  *
  * **Details**
@@ -1477,7 +1477,7 @@ export const compose: {
  *
  * **When to use**
  *
- * - You want to validate tuple positions independently.
+ * Use when you want to validate tuple positions independently.
  * - You want to lift element predicates into a tuple predicate.
  *
  * **Details**
@@ -1524,7 +1524,7 @@ export function Tuple<const T extends ReadonlyArray<Predicate.Any>>(
  *
  * **When to use**
  *
- * - You want to validate a record shape at runtime.
+ * Use when you want to validate a record shape at runtime.
  * - You want to lift property predicates into an object predicate.
  *
  * **Details**
@@ -1575,7 +1575,7 @@ export function Struct<R extends Record<string, Predicate.Any>>(
  *
  * **When to use**
  *
- * - You want the inverse of an existing predicate.
+ * Use when you want the inverse of an existing predicate.
  *
  * **Details**
  *
@@ -1607,7 +1607,7 @@ export function not<A>(self: Predicate<A>): Predicate<A> {
  *
  * **When to use**
  *
- * - You want to accept values that satisfy at least one condition.
+ * Use when you want to accept values that satisfy at least one condition.
  * - You want to combine refinements with union narrowing.
  *
  * **Details**
@@ -1643,7 +1643,7 @@ export const or: {
  *
  * **When to use**
  *
- * - You want to accept values that satisfy multiple conditions.
+ * Use when you want to accept values that satisfy multiple conditions.
  * - You want to combine refinements with intersection narrowing.
  *
  * **Details**
@@ -1687,7 +1687,7 @@ export const and: {
  *
  * **When to use**
  *
- * - You want an exclusive-or between two conditions.
+ * Use when you want an exclusive-or between two conditions.
  *
  * **Details**
  *
@@ -1721,7 +1721,7 @@ export const xor: {
  *
  * **When to use**
  *
- * - You want to check equivalence of two predicates.
+ * Use when you want to check equivalence of two predicates.
  *
  * **Details**
  *
@@ -1753,7 +1753,7 @@ export const eqv: {
  *
  * **When to use**
  *
- * - You want a rule that only applies when a precondition holds.
+ * Use when you want a rule that only applies when a precondition holds.
  * - You model constraints like "if A then B".
  *
  * **Details**
@@ -1791,7 +1791,7 @@ export const implies: {
  *
  * **When to use**
  *
- * - You want the logical NOR of two conditions.
+ * Use when you want the logical NOR of two conditions.
  *
  * **Details**
  *
@@ -1826,7 +1826,7 @@ export const nor: {
  *
  * **When to use**
  *
- * - You want the logical NAND of two conditions.
+ * Use when you want the logical NAND of two conditions.
  *
  * **Details**
  *
@@ -1861,7 +1861,7 @@ export const nand: {
  *
  * **When to use**
  *
- * - You have a dynamic list of predicates to apply.
+ * Use when you have a dynamic list of predicates to apply.
  *
  * **Details**
  *
@@ -1900,7 +1900,7 @@ export function every<A>(collection: Iterable<Predicate<A>>): Predicate<A> {
  *
  * **When to use**
  *
- * - You have a dynamic list of predicates and only need one to pass.
+ * Use when you have a dynamic list of predicates and only need one to pass.
  *
  * **Details**
  *

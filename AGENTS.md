@@ -73,6 +73,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 1. Inspect nearby implementation, tests, and pattern docs before editing.
 2. Prefer existing abstractions and conventions over introducing new ones.
 3. For ad hoc runnable code, create a temporary file in `scratchpad/`, run it with `node scratchpad/<file>.ts`, and delete it when done.
+   The local runtime is Node 24, which can run TypeScript files directly; use plain `node` for local TypeScript probes instead of `tsx` unless `node` fails.
 4. Run the validation appropriate to the change type.
 5. Report which validation commands were run and any commands that could not be run.
 

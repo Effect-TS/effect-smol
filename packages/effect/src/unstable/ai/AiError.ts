@@ -1619,7 +1619,7 @@ export const make = (params: {
  *
  * **When to use**
  *
- * Provider packages can use this as a base for provider-specific mapping.
+ * Use when provider packages can use this as a base for provider-specific mapping.
  *
  * **Example** (Mapping an HTTP status to a reason)
  *

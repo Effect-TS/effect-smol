@@ -93,7 +93,7 @@ const TypeId = "~effect/Config"
  *
  * **When to use**
  *
- * - Runtime type-checking before calling `.parse()` on an unknown value.
+ * Use when runtime type-checking before calling `.parse()` on an unknown value.
  * - Distinguishing a `Config` from a plain value inside {@link unwrap}.
  *
  * **Example** (Type guard)
@@ -115,7 +115,7 @@ export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasPrope
  *
  * **When to use**
  *
- * - Match on `error.cause._tag` to distinguish source failures from
+ * Use when match on `error.cause._tag` to distinguish source failures from
  *   validation failures.
  * - Pass to {@link fail} to create a Config that always errors.
  *
@@ -190,7 +190,7 @@ const Proto = {
  *
  * **When to use**
  *
- * - Building a custom config that cannot be expressed with {@link schema} or
+ * Use to build a custom config that cannot be expressed with {@link schema} or
  *   the convenience constructors.
  * - Composing configs programmatically.
  *
@@ -234,7 +234,7 @@ export function make<T>(
  *
  * **When to use**
  *
- * - Post-processing a config value (e.g. trimming, uppercasing, wrapping).
+ * Use when post-processing a config value (e.g. trimming, uppercasing, wrapping).
  * - The transformation cannot fail. Use {@link mapOrFail} if it can.
  *
  * **Details**
@@ -271,7 +271,7 @@ export const map: {
  *
  * **When to use**
  *
- * - Validating or converting a config value where the transformation can
+ * Use to validate or converting a config value where the transformation can
  *   produce a `ConfigError` (e.g. parsing a URL, checking a range).
  *
  * **Details**
@@ -305,7 +305,7 @@ export const mapOrFail: {
  *
  * **When to use**
  *
- * - Trying an alternative config source when the primary one errors.
+ * Use when trying an alternative config source when the primary one errors.
  * - Providing environment-specific overrides.
  *
  * **Details**
@@ -343,7 +343,7 @@ export const orElse: {
  *
  * **When to use**
  *
- * - Grouping related configs into a tuple or named struct.
+ * Use when grouping related configs into a tuple or named struct.
  *
  * **Details**
  *
@@ -423,7 +423,7 @@ function isMissingDataOnly(issue: Issue.Issue): boolean {
  *
  * **When to use**
  *
- * - Making a config key optional with a sensible default.
+ * Use when making a config key optional with a sensible default.
  *
  * **Details**
  *
@@ -474,7 +474,7 @@ export const withDefault: {
  *
  * **When to use**
  *
- * - A config key may or may not be present and you want to handle both
+ * Use when a config key may or may not be present and you want to handle both
  *   cases explicitly.
  *
  * **Gotchas**
@@ -515,7 +515,7 @@ export type Success<T> = [T] extends [Config<infer A>] ? A : never
  *
  * **When to use**
  *
- * - Typing the input of {@link unwrap} so callers can pass either a `Config`
+ * Use when typing the input of {@link unwrap} so callers can pass either a `Config`
  *   or a record of `Config`s.
  *
  * **Details**
@@ -542,7 +542,7 @@ type IsPlainObject<A> = [A] extends [Record<string, any>]
  *
  * **When to use**
  *
- * - Accepting config from callers who may pass either a single `Config` or a
+ * Use when accepting config from callers who may pass either a single `Config` or a
  *   record of individual `Config`s.
  *
  * **Details**
@@ -680,7 +680,7 @@ const recur: (
  *
  * **When to use**
  *
- * - Reading structured or validated config (structs, arrays, unions, branded
+ * Use when reading structured or validated config (structs, arrays, unions, branded
  *   types, etc.).
  * - All convenience constructors (`string`, `number`, …) delegate to this.
  *
@@ -750,8 +750,8 @@ export const FalseValues = Schema.Literals(["false", "no", "off", "0", "n"])
  *
  * **When to use**
  *
- * - Pass to {@link schema} for custom paths, or use the {@link boolean}
- *   convenience constructor.
+ * Use when passing to {@link schema} for custom paths, or use the
+ * {@link boolean} convenience constructor.
  *
  * **Details**
  *
@@ -778,8 +778,8 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
  *
  * **When to use**
  *
- * - Pass to {@link schema} for custom paths, or use the {@link port}
- *   convenience constructor.
+ * Use when passing to {@link schema} for custom paths, or use the {@link port}
+ * convenience constructor.
  *
  * @see {@link port} – convenience constructor
  *
@@ -793,8 +793,8 @@ export const Port = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 655
  *
  * **When to use**
  *
- * - Pass to {@link schema} for custom paths, or use the {@link logLevel}
- *   convenience constructor.
+ * Use when passing to {@link schema} for custom paths, or use the
+ * {@link logLevel} convenience constructor.
  *
  * **Details**
  *
@@ -814,7 +814,7 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  *
  * **When to use**
  *
- * - Reading key-value maps from a single env var (e.g. OpenTelemetry
+ * Use when reading key-value maps from a single env var (e.g. OpenTelemetry
  *   resource attributes).
  *
  * **Details**
@@ -874,7 +874,7 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
  *
  * **When to use**
  *
- * - Inside {@link orElse} to re-raise a specific error.
+ * Use when inside {@link orElse} to re-raise a specific error.
  * - Testing error handling paths.
  *
  * @category constructors
@@ -890,7 +890,7 @@ export function fail(err: SourceError | Schema.SchemaError) {
  *
  * **When to use**
  *
- * - Providing a hardcoded constant inside {@link orElse}.
+ * Use when providing a hardcoded constant inside {@link orElse}.
  * - Testing.
  *
  * **Example** (Constant fallback)
@@ -915,7 +915,7 @@ export function succeed<T>(value: T) {
  *
  * **When to use**
  *
- * - Reading a single string env var or config key.
+ * Use when reading a single string env var or config key.
  *
  * **Details**
  *
@@ -1013,6 +1013,10 @@ export function int(name?: string) {
 /**
  * Creates a config that only accepts a specific literal value.
  *
+ * **When to use**
+ *
+ * Use to restrict a config to a single, specific literal value.
+ *
  * **Details**
  *
  * Shortcut for `Config.schema(Schema.Literal(literal), name)`.
@@ -1025,6 +1029,7 @@ export function int(name?: string) {
  * const env = Config.literal("production", "ENV")
  * ```
  *
+ * @see {@link literals} – accepts multiple literal values
  * @category constructors
  * @since 2.0.0
  */
@@ -1331,7 +1336,7 @@ export function date(name?: string) {
  *
  * **When to use**
  *
- * - Grouping related config keys under a common namespace (e.g.
+ * Use when grouping related config keys under a common namespace (e.g.
  *   `"database"`, `"redis"`).
  * - Building reusable config fragments that callers nest at different paths.
  *

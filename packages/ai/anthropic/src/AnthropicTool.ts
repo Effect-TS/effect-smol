@@ -589,7 +589,7 @@ export type ComputerUseLeftClickDragAction = typeof ComputerUseLeftClickDragActi
  *
  * **When to use**
  *
- * Use this for fine-grained click control.
+ * Use when you use this for fine-grained click control.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -615,7 +615,7 @@ export type ComputerUseLeftMouseDownAction = typeof ComputerUseLeftMouseDownActi
  *
  * **When to use**
  *
- * Use this for fine-grained click control.
+ * Use when you use this for fine-grained click control.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -1390,7 +1390,7 @@ export const TextEditor_20250728 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Providing location helps return more relevant results for location-dependent
+ * Use when providing location helps return more relevant results for location-dependent
  * queries like weather, local businesses, events, etc.
  *
  * @category Web Search

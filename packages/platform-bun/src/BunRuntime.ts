@@ -26,7 +26,7 @@ import type { Teardown } from "effect/Runtime"
  *
  * **When to use**
  *
- * Use this function to run an Effect as your application's main program,
+ * Use to run an Effect as your application's main program,
  * especially when you need structured error handling, log management,
  * interrupt support, or advanced teardown capabilities.
  *

@@ -105,7 +105,7 @@ import type { NoInfer, TupleOf } from "./Types.ts"
  *
  * **When to use**
  *
- * Use this when you need the native `Array` constructor while the `Array`
+ * Use when you need the native `Array` constructor while the `Array`
  * namespace is in scope (e.g. `Array.Array.isArray`, `Array.Array.from`).
  *
  * **Example** (Using the Array constructor)
@@ -137,7 +137,7 @@ export interface ReadonlyArrayTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * Use this type when you need to ensure non-emptiness at the type level while
+ * Use when you use this type when you need to ensure non-emptiness at the type level while
  * preventing mutation. Many Array module functions accept or return this type.
  *
  * **Example** (Typing a non-empty array)
@@ -188,7 +188,7 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
  *
  * **When to use**
  *
- * - Use when you have literal values and want a typed non-empty array.
+ * Use when you have literal values and want a typed non-empty array.
  * - The element type is inferred as the union of all arguments.
  * - Always returns a `NonEmptyArray` since at least one argument is required.
  *
@@ -216,7 +216,7 @@ export const make = <Elements extends NonEmptyArray<unknown>>(
  *
  * **When to use**
  *
- * - Use when you need a pre-sized array and will fill it imperatively.
+ * Use when you need a pre-sized array and will fill it imperatively.
  * - Elements are typed as `A | undefined` since slots are empty.
  * - Prefer {@link makeBy} when you can compute each element from its index.
  *
@@ -241,7 +241,7 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
  *
  * **When to use**
  *
- * - Use when you need an array whose values depend on the index.
+ * Use when you need an array whose values depend on the index.
  * - `n` is normalized to an integer >= 1 — always returns at least one element.
  * - Dual: `Array.makeBy(5, f)` or `pipe(5, Array.makeBy(f))`.
  *
@@ -278,7 +278,7 @@ export const makeBy: {
  *
  * **When to use**
  *
- * - Use when you need a sequence of consecutive integers.
+ * Use when you need a sequence of consecutive integers.
  * - If `start > end`, returns `[start]`.
  * - Always returns a `NonEmptyArray`.
  *
@@ -304,7 +304,7 @@ export const range = (start: number, end: number): NonEmptyArray<number> =>
  *
  * **When to use**
  *
- * - Use when you need multiple copies of the same value.
+ * Use when you need multiple copies of the same value.
  * - `n` is normalized to an integer >= 1 — always returns at least one element.
  * - Dual: `Array.replicate("a", 3)` or `pipe("a", Array.replicate(3))`.
  *
@@ -427,7 +427,7 @@ export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArra
  *
  * **When to use**
  *
- * - Use when you need to branch on whether an array has elements.
+ * Use when you need to branch on whether an array has elements.
  * - `onNonEmpty` receives a `NonEmptyReadonlyArray`.
  * - Dual: data-first or data-last.
  *
@@ -641,6 +641,11 @@ export const prependAll: {
 /**
  * Adds a single element to the end of an iterable, returning a `NonEmptyArray`.
  *
+ * **When to use**
+ *
+ * Use to add one element to the end of an iterable and get a new
+ * `NonEmptyArray`.
+ *
  * **Details**
  *
  * - Always returns a non-empty array.
@@ -668,6 +673,11 @@ export const append: {
 
 /**
  * Concatenates two iterables into a single array.
+ *
+ * **When to use**
+ *
+ * Use to combine two iterable inputs into a new array with the second input's
+ * elements after the first.
  *
  * **Details**
  *
@@ -912,6 +922,11 @@ const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.mi
  * Safely reads an element at the given index, returning `Option.some` or
  * `Option.none` if the index is out of bounds.
  *
+ * **When to use**
+ *
+ * Use when you need to read an array element by index and handle an
+ * out-of-bounds index as `Option.none`.
+ *
  * **Details**
  *
  * - The index is floored to an integer.
@@ -926,9 +941,9 @@ const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.mi
  * console.log(Array.get([1, 2, 3], 10)) // None
  * ```
  *
- * @see {@link getUnsafe} — throws on out of bounds
- * @see {@link head} — get the first element
- * @see {@link last} — get the last element
+ * @see {@link getUnsafe} for indexed access that throws when the index is out of bounds
+ * @see {@link head} for reading the first element as an `Option`
+ * @see {@link last} for reading the last element as an `Option`
  *
  * @category getters
  * @since 2.0.0
@@ -977,6 +992,11 @@ export const getUnsafe: {
 /**
  * Splits a non-empty array into its first element and the remaining elements.
  *
+ * **When to use**
+ *
+ * Use when you have a `NonEmptyReadonlyArray` and need both its first element
+ * and the remaining elements as separate values.
+ *
  * **Details**
  *
  * - Returns a tuple `[head, tail]`.
@@ -991,9 +1011,9 @@ export const getUnsafe: {
  * console.log(result) // [1, [2, 3, 4]]
  * ```
  *
- * @see {@link unappend} — split into init + last
- * @see {@link headNonEmpty} — get only the head
- * @see {@link tailNonEmpty} — get only the tail
+ * @see {@link unappend} for splitting a non-empty array into init and last
+ * @see {@link headNonEmpty} for getting only the first element
+ * @see {@link tailNonEmpty} for getting only the elements after the first
  *
  * @category splitting
  * @since 2.0.0
@@ -1005,6 +1025,11 @@ export const unprepend = <A>(
 /**
  * Splits a non-empty array into all elements except the last, and the last
  * element.
+ *
+ * **When to use**
+ *
+ * Use to split a non-empty array from the end when you need both the elements
+ * before the last element and the last element.
  *
  * **Details**
  *
@@ -1020,9 +1045,9 @@ export const unprepend = <A>(
  * console.log(result) // [[1, 2, 3], 4]
  * ```
  *
- * @see {@link unprepend} — split into head + tail
- * @see {@link initNonEmpty} — get only the init
- * @see {@link lastNonEmpty} — get only the last
+ * @see {@link unprepend} for splitting a non-empty array into head and tail
+ * @see {@link initNonEmpty} for getting only the elements before the last
+ * @see {@link lastNonEmpty} for getting only the last element
  *
  * @category splitting
  * @since 2.0.0
@@ -1209,6 +1234,10 @@ export const initNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
 /**
  * Keeps the first `n` elements, creating a new array.
  *
+ * **When to use**
+ *
+ * Use to keep up to the first `n` elements from an iterable as a new array.
+ *
  * **Details**
  *
  * - `n` is clamped to `[0, length]`.
@@ -1222,9 +1251,9 @@ export const initNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  * console.log(Array.take([1, 2, 3, 4, 5], 3)) // [1, 2, 3]
  * ```
  *
- * @see {@link takeRight} — keep from the end
- * @see {@link takeWhile} — keep while predicate holds
- * @see {@link drop} — remove from the start
+ * @see {@link takeRight} for keeping elements from the end
+ * @see {@link takeWhile} for keeping an initial prefix while a predicate holds
+ * @see {@link drop} for removing elements from the start
  *
  * @category getters
  * @since 2.0.0
@@ -1272,6 +1301,11 @@ export const takeRight: {
  * Takes elements from the start while the predicate holds, stopping at the
  * first element that fails.
  *
+ * **When to use**
+ *
+ * Use to keep the leading elements of an iterable while each element satisfies
+ * a predicate, returning the retained prefix as an array.
+ *
  * **Details**
  *
  * - Supports refinements for type narrowing.
@@ -1285,9 +1319,9 @@ export const takeRight: {
  * console.log(Array.takeWhile([1, 3, 2, 4, 1, 2], (x) => x < 4)) // [1, 3, 2]
  * ```
  *
- * @see {@link take} — take a fixed count
- * @see {@link dropWhile} — drop while predicate holds
- * @see {@link span} — split into matching prefix + rest
+ * @see {@link take} for keeping a fixed number of leading elements
+ * @see {@link dropWhile} for removing the matching prefix and keeping the rest
+ * @see {@link span} for splitting the matching prefix from the remaining elements
  *
  * @category getters
  * @since 2.0.0
@@ -1313,10 +1347,18 @@ export const takeWhile: {
 /**
  * Takes elements from the start while a `Filter` succeeds, collecting transformed values.
  *
+ * **When to use**
+ *
+ * Use when you need to take a prefix of elements while a function can
+ * successfully extract or transform them, stopping at the first element
+ * that produces a failure result.
+ *
  * **Details**
  *
  * - The filter receives `(element, index)`.
  * - Stops at the first filter failure.
+ *
+ * @see {@link takeWhile} for taking a prefix based on a boolean predicate
  *
  * @category getters
  * @since 4.0.0
@@ -1353,6 +1395,11 @@ const spanIndex = <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean
  * Splits an iterable into two arrays: the longest prefix where the predicate
  * holds, and the remaining elements.
  *
+ * **When to use**
+ *
+ * Use to split an iterable into the longest prefix that satisfies a predicate
+ * and the elements after that prefix when you need both parts.
+ *
  * **Details**
  *
  * - Equivalent to `[takeWhile(pred), dropWhile(pred)]` but more efficient
@@ -1367,9 +1414,9 @@ const spanIndex = <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean
  * console.log(Array.span([1, 3, 2, 4, 5], (x) => x % 2 === 1)) // [[1, 3], [2, 4, 5]]
  * ```
  *
- * @see {@link takeWhile} — keep only the matching prefix
- * @see {@link dropWhile} — keep only the rest
- * @see {@link splitWhere} — split at the first element matching a predicate
+ * @see {@link takeWhile} for keeping only the matching prefix
+ * @see {@link dropWhile} for keeping only the elements after the matching prefix
+ * @see {@link splitWhere} for splitting at the first element that satisfies a predicate
  *
  * @category splitting
  * @since 2.0.0
@@ -1395,6 +1442,11 @@ export const span: {
 /**
  * Removes the first `n` elements, creating a new array.
  *
+ * **When to use**
+ *
+ * Use to keep the suffix of an iterable after skipping a fixed number of
+ * leading elements.
+ *
  * **Details**
  *
  * - `n` is clamped to `[0, length]`.
@@ -1408,9 +1460,9 @@ export const span: {
  * console.log(Array.drop([1, 2, 3, 4, 5], 2)) // [3, 4, 5]
  * ```
  *
- * @see {@link dropRight} — remove from the end
- * @see {@link dropWhile} — remove while predicate holds
- * @see {@link take} — keep from the start
+ * @see {@link dropRight} for removing a fixed number of elements from the end
+ * @see {@link dropWhile} for removing a prefix based on a predicate instead of a fixed count
+ * @see {@link take} for keeping a fixed number of elements from the start
  *
  * @category getters
  * @since 2.0.0
@@ -1583,6 +1635,11 @@ export const findLastIndex: {
 /**
  * Returns the first element matching a predicate, refinement, or mapping
  * function, wrapped in `Option`.
+ *
+ * **When to use**
+ *
+ * Use to scan an iterable in iteration order and return the first selected
+ * element or mapped value as an `Option`.
  *
  * **Details**
  *
@@ -1799,6 +1856,11 @@ export const replace: {
  * Applies a function to the element at the specified index, returning the
  * updated array in `Option.some`.
  *
+ * **When to use**
+ *
+ * Use to derive a replacement value from the current element at a specific
+ * index while leaving the other elements unchanged.
+ *
  * **Details**
  *
  * - Returns `Option.none()` when the index is out of bounds.
@@ -1940,6 +2002,11 @@ export const sort: {
  * Sorts an array by a derived key using a mapping function and an `Order` for
  * that key.
  *
+ * **When to use**
+ *
+ * Use when values need to be sorted by a derived key, such as a string length
+ * or object field, while the output should keep the original values.
+ *
  * **Details**
  *
  * - Equivalent to `sort(Order.mapInput(order, f))` but more convenient.
@@ -1954,8 +2021,8 @@ export const sort: {
  * // ["b", "cc", "aaa"]
  * ```
  *
- * @see {@link sort} — sort by a direct `Order`
- * @see {@link sortBy} — sort by multiple orders
+ * @see {@link sort} for sorting with an `Order` that compares the elements directly
+ * @see {@link sortBy} for sorting with multiple `Order`s applied in sequence
  *
  * @category elements
  * @since 2.0.0
@@ -2322,6 +2389,11 @@ export const rotate: {
 /**
  * Returns a membership-test function using a custom equivalence.
  *
+ * **When to use**
+ *
+ * Use when checking membership with caller-provided equality instead of
+ * `Equal.equivalence()`.
+ *
  * **Example** (Custom equality check)
  *
  * ```ts
@@ -2331,7 +2403,7 @@ export const rotate: {
  * console.log(pipe([1, 2, 3, 4], containsNumber(3))) // true
  * ```
  *
- * @see {@link contains} — uses default `Equal.equivalence()`
+ * @see {@link contains} for the `Equal.equivalence()` variant
  *
  * @category elements
  * @since 2.0.0
@@ -2352,6 +2424,11 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
 /**
  * Tests whether an array contains a value, using `Equal.equivalence()` for
  * comparison.
+ *
+ * **When to use**
+ *
+ * Use to check membership with Effect's default equality instead of providing a
+ * comparison function.
  *
  * **Example** (Checking membership)
  *
@@ -2374,6 +2451,11 @@ export const contains: {
 /**
  * Repeatedly applies a function that consumes a prefix of the array and
  * produces a value plus the remaining elements, collecting the values.
+ *
+ * **When to use**
+ *
+ * Use when the grouping logic is custom and each step needs to return both a
+ * value and the remaining input.
  *
  * **Details**
  *
@@ -2557,6 +2639,11 @@ export const splitWhere: {
 /**
  * Creates a shallow copy of an array.
  *
+ * **When to use**
+ *
+ * Use to create a distinct array reference for an existing array, for example
+ * before mutating the returned array.
+ *
  * **Details**
  *
  * - Preserves `NonEmptyArray` in the return type.
@@ -2626,6 +2713,11 @@ export const pad: {
 /**
  * Splits an iterable into chunks of length `n`. The last chunk may be shorter
  * if `n` does not evenly divide the length.
+ *
+ * **When to use**
+ *
+ * Use to divide an iterable into non-overlapping chunks with a maximum chunk
+ * size.
  *
  * **Details**
  *
@@ -2702,6 +2794,11 @@ export const window: {
 /**
  * Groups consecutive equal elements using a custom equivalence function.
  *
+ * **When to use**
+ *
+ * Use when a non-empty array is already arranged so matching elements are
+ * adjacent and you need a custom equivalence function.
+ *
  * **Details**
  *
  * - Only groups **adjacent** elements — non-adjacent duplicates stay separate.
@@ -2716,8 +2813,8 @@ export const window: {
  * // [["a", "a"], ["b", "b", "b"], ["c"], ["a"]]
  * ```
  *
- * @see {@link group} — uses default equality
- * @see {@link groupBy} — group by a key function into a record
+ * @see {@link group} for grouping adjacent elements with `Equal.equivalence()`
+ * @see {@link groupBy} for grouping all elements into a record by key, regardless of adjacency
  *
  * @category grouping
  * @since 2.0.0
@@ -2829,6 +2926,11 @@ export const groupBy: {
  * Computes the union of two arrays using a custom equivalence, removing
  * duplicates.
  *
+ * **When to use**
+ *
+ * Use when you need the union of two arrays but duplicate detection must use a
+ * custom equivalence instead of the default `Equal.equivalence()`.
+ *
  * **Example** (Union with custom equality)
  *
  * ```ts
@@ -2837,9 +2939,9 @@ export const groupBy: {
  * console.log(Array.unionWith([1, 2], [2, 3], (a, b) => a === b)) // [1, 2, 3]
  * ```
  *
- * @see {@link union} — uses default equality
- * @see {@link intersection} — elements in both arrays
- * @see {@link difference} — elements only in the first array
+ * @see {@link union} for the `Equal.equivalence()` variant
+ * @see {@link intersectionWith} for keeping elements present in both arrays
+ * @see {@link differenceWith} for keeping elements present only in the first array
  *
  * @category elements
  * @since 2.0.0
@@ -2910,6 +3012,11 @@ export const union: {
  * Computes the intersection of two arrays using a custom equivalence. Order is
  * determined by the first array.
  *
+ * **When to use**
+ *
+ * Use when keeping only values present in both arrays and equality must be
+ * defined by a custom comparator, such as matching objects by id.
+ *
  * **Example** (Intersection with custom equality)
  *
  * ```ts
@@ -2921,9 +3028,9 @@ export const union: {
  * console.log(Array.intersectionWith(isEquivalent)(array2)(array1)) // [{ id: 1 }, { id: 3 }]
  * ```
  *
- * @see {@link intersection} — uses default equality
- * @see {@link union} — elements in either array
- * @see {@link difference} — elements only in the first array
+ * @see {@link intersection} for the `Equal.equivalence()` variant
+ * @see {@link unionWith} for keeping values from either array with custom equality
+ * @see {@link differenceWith} for keeping values only from the first array with custom equality
  *
  * @category elements
  * @since 2.0.0
@@ -2970,6 +3077,11 @@ export const intersection: {
  * Computes elements in the first array that are not in the second, using a
  * custom equivalence.
  *
+ * **When to use**
+ *
+ * Use when keeping only values from the first array and equality must be
+ * defined by a custom comparator, such as matching objects by id.
+ *
  * **Example** (Difference with custom equality)
  *
  * ```ts
@@ -2979,9 +3091,9 @@ export const intersection: {
  * console.log(diff) // [1]
  * ```
  *
- * @see {@link difference} — uses default equality
- * @see {@link union} — elements in either array
- * @see {@link intersection} — elements in both arrays
+ * @see {@link difference} for the `Equal.equivalence()` variant
+ * @see {@link unionWith} for keeping values from either array with custom equality
+ * @see {@link intersectionWith} for keeping values present in both arrays with custom equality
  *
  * @category elements
  * @since 2.0.0
@@ -3003,6 +3115,11 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
 /**
  * Computes elements in the first array that are not in the second, using
  * `Equal.equivalence()`.
+ *
+ * **When to use**
+ *
+ * Use when you need to keep values from the first array that are absent from
+ * the second and the default `Equal.equivalence()` comparison is appropriate.
  *
  * **Example** (Array difference)
  *
@@ -3988,6 +4105,11 @@ export const forEach: {
  * Removes duplicates using a custom equivalence, preserving the order of the
  * first occurrence.
  *
+ * **When to use**
+ *
+ * Use to remove all duplicate elements with a custom equivalence when default
+ * equality is not appropriate.
+ *
  * **Example** (Deduplicating with custom equality)
  *
  * ```ts
@@ -4030,6 +4152,11 @@ export const dedupeWith: {
  * Removes duplicates using `Equal.equivalence()`, preserving the order of the
  * first occurrence.
  *
+ * **When to use**
+ *
+ * Use to remove repeated values from an iterable when Effect's default equality
+ * is the right comparison, preserving the first occurrence.
+ *
  * **Example** (Removing duplicates)
  *
  * ```ts
@@ -4051,6 +4178,12 @@ export const dedupe = <S extends Iterable<any>>(
 
 /**
  * Removes consecutive duplicate elements using a custom equivalence.
+ *
+ * **When to use**
+ *
+ * Use when consecutive duplicates should be collapsed using a custom
+ * equivalence, while equivalent values that appear later should remain in the
+ * result.
  *
  * **Details**
  *
@@ -4088,6 +4221,11 @@ export const dedupeAdjacentWith: {
 
 /**
  * Removes consecutive duplicate elements using `Equal.equivalence()`.
+ *
+ * **When to use**
+ *
+ * Use when you need to collapse consecutive duplicates while preserving later
+ * non-consecutive repeats, and the default equality is sufficient.
  *
  * **Example** (Removing adjacent duplicates)
  *
@@ -4180,6 +4318,11 @@ export const mapAccum: {
 /**
  * Computes the cartesian product of two arrays, applying a combiner to each pair.
  *
+ * **When to use**
+ *
+ * Use to compute every combination from two arrays and immediately transform
+ * each pair into a custom result.
+ *
  * **Details**
  *
  * - Produces every combination of an element from `self` with an element from `that`.
@@ -4195,7 +4338,7 @@ export const mapAccum: {
  * console.log(result) // ["1-a", "1-b", "2-a", "2-b"]
  * ```
  *
- * @see {@link cartesian} — returns tuples instead of applying a combiner
+ * @see {@link cartesian} for returning tuples instead of applying a combiner
  *
  * @category elements
  * @since 2.0.0
@@ -4211,6 +4354,10 @@ export const cartesianWith: {
 
 /**
  * Computes the cartesian product of two arrays, returning all pairs as tuples.
+ *
+ * **When to use**
+ *
+ * Use when you need every `[a, b]` pair from two arrays as tuples.
  *
  * **Details**
  *
@@ -4248,7 +4395,7 @@ export const cartesian: {
  *
  * **When to use**
  *
- * - Begin a pipeline with `Do`, then use {@link bind} to introduce array variables and {@link let_ let} for plain values.
+ * Use when begin a pipeline with `Do`, then use {@link bind} to introduce array variables and {@link let_ let} for plain values.
  * - Each `bind` produces the cartesian product of all bound variables (like nested loops).
  * - Use `filter` and `map` in the pipeline to add conditions and transformations.
  *
@@ -4278,6 +4425,11 @@ export const Do: ReadonlyArray<{}> = of({})
 
 /**
  * Introduces a new array variable into a do-notation scope, producing the cartesian product with all previous bindings.
+ *
+ * **When to use**
+ *
+ * Use to add another array-producing binding to an `Array.Do` pipeline, pairing
+ * each existing scope with every value returned by the callback.
  *
  * **Details**
  *
@@ -4322,6 +4474,11 @@ export const bind: {
 
 /**
  * Names the elements of an array by wrapping each in an object with the given key, starting a do-notation scope.
+ *
+ * **When to use**
+ *
+ * Use when you already have an array and want to start a do-notation pipeline
+ * by naming each element.
  *
  * **Details**
  *
@@ -4423,6 +4580,11 @@ export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
 
 /**
  * Counts the elements in an iterable that satisfy a predicate.
+ *
+ * **When to use**
+ *
+ * Use to count how many elements satisfy a predicate when you only need the
+ * number of matches instead of the matching elements.
  *
  * **Details**
  *

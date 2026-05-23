@@ -497,7 +497,7 @@ export interface Constructor {
    *
    * **When to use**
    *
-   * Useful for `ORDER BY` and `GROUP BY` clauses.
+   * Use when `ORDER BY` and `GROUP BY` clauses.
    */
   readonly csv: {
     (values: ReadonlyArray<string | Fragment>): Fragment

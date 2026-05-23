@@ -92,6 +92,13 @@ const makeUnsafe = <A, E>(
 /**
  * Creates a `Resource` that must be refreshed manually.
  *
+ * **When to use**
+ *
+ * Use when you need to control the timing of resource refreshes yourself rather
+ * than relying on an automatic schedule.
+ *
+ * @see {@link auto} for schedule-driven automatic refreshes
+ * @see {@link refresh} to manually trigger a resource refresh
  * @category constructors
  * @since 2.0.0
  */

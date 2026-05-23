@@ -194,7 +194,7 @@ export declare namespace Path {
  *
  * **When to use**
  *
- * Yield this service inside an effect to use path operations supplied by the
+ * Use when yield this service inside an effect to use path operations supplied by the
  * environment, or provide a custom implementation with `Layer.succeed`.
  *
  * **Example** (Providing a custom Path service)
@@ -855,7 +855,7 @@ const posixImpl = Path.of({
  *
  * **When to use**
  *
- * Use this layer when an effect requires the `Path` service and should use
+ * Use when you use this layer when an effect requires the `Path` service and should use
  * forward-slash path semantics.
  *
  * @category layers

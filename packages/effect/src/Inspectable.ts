@@ -148,12 +148,19 @@ export interface Inspectable {
 /**
  * Safely converts a value to a JSON-serializable representation.
  *
+ * **When to use**
+ *
+ * Use when you need a safe, JSON-serializable representation of a value
+ * without risking unhandled errors.
+ *
  * **Details**
  *
  * This function attempts to extract JSON data from objects that implement the
  * `toJSON` method, recursively processes arrays, and handles errors gracefully.
  * For objects that don't have a `toJSON` method, it applies redaction to
  * protect sensitive information.
+ *
+ * @see {@link toStringUnknown} for converting unknown values to strings
  *
  * @category converting
  * @since 4.0.0

@@ -447,7 +447,7 @@ export const schemaPathParams = <A, I extends Readonly<Record<string, string | u
  *
  * **When to use**
  *
- * Use it to register routes or middleware with the router during layer
+ * Use when you use it to register routes or middleware with the router during layer
  * construction.
  *
  * **Example** (Registering routes during layer construction)

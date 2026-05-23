@@ -599,7 +599,7 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
  *
  * **When to use**
  *
- * Classes or object prototypes can reuse this value when they need the
+ * Use when classes or object prototypes can reuse this value when they need the
  * standard pipe implementation backed by `pipeArguments`.
  *
  * @category models
@@ -617,7 +617,7 @@ export const Prototype: Pipeable = {
  *
  * **When to use**
  *
- * Extend or compose this constructor when defining a class that should support
+ * Use when extend or compose this constructor when defining a class that should support
  * Effect-style method chaining through `.pipe(...)`.
  *
  * @category constructors
@@ -643,11 +643,18 @@ export interface PipeableConstructor {
  * Returns a subclass of the provided class that adds the standard `pipe`
  * method.
  *
+ * **When to use**
+ *
+ * Use to add pipe support to an existing class without extending a base class
+ * or modifying its prototype.
+ *
  * **Details**
  *
  * The original constructor and instance members are preserved, and the added
  * method delegates to `pipeArguments`.
  *
+ * @see {@link Prototype} for a reusable prototype object
+ * @see {@link Class} for a base constructor to extend
  * @category constructors
  * @since 4.0.0
  */

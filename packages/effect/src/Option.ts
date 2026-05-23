@@ -101,7 +101,7 @@ const TypeId = "~effect/data/Option"
  *
  * **When to use**
  *
- * - Representing initial values that may not yet exist
+ * Use to represent initial values that may not yet exist
  * - Returning from partial functions (not defined for all inputs)
  * - Managing optional fields in data structures
  *
@@ -119,7 +119,7 @@ export type Option<A> = None<A> | Some<A>
  *
  * **When to use**
  *
- * - Use as a type guard target when narrowing via {@link isNone}
+ * Use as a type guard target when narrowing via {@link isNone}
  *
  * **Details**
  *
@@ -163,7 +163,7 @@ export interface OptionIterator<T extends Option<any>> {
  *
  * **When to use**
  *
- * - Use as a type guard target when narrowing via {@link isSome}
+ * Use as a type guard target when narrowing via {@link isSome}
  * - Access the inner value via `.value`
  *
  * **Details**
@@ -263,7 +263,7 @@ export interface OptionTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * - Representing a missing or uninitialized value
+ * Use to represent a missing or uninitialized value
  * - Returning "no result" from a function
  *
  * **Details**
@@ -296,7 +296,7 @@ export const none = <A = never>(): Option<A> => option.none
  *
  * **When to use**
  *
- * - Wrapping a known-present value as `Option`
+ * Use to wrap a known-present value as `Option`
  * - Returning a successful result from a partial function
  *
  * **Details**
@@ -329,7 +329,7 @@ export const some: <A>(value: A) => Option<A> = option.some
  *
  * **When to use**
  *
- * - Validating unknown values at runtime boundaries
+ * Use to validate unknown values at runtime boundaries
  * - Type-narrowing in union types
  *
  * **Details**
@@ -365,7 +365,7 @@ export const isOption: (input: unknown) => input is Option<unknown> = option.isO
  *
  * **When to use**
  *
- * - Branching on absence before accessing `.value`
+ * Use when branching on absence before accessing `.value`
  *
  * **Details**
  *
@@ -395,7 +395,7 @@ export const isNone: <A>(self: Option<A>) => self is None<A> = option.isNone
  *
  * **When to use**
  *
- * - Branching on presence before accessing `.value`
+ * Use when branching on presence before accessing `.value`
  *
  * **Details**
  *
@@ -425,7 +425,7 @@ export const isSome: <A>(self: Option<A>) => self is Some<A> = option.isSome
  *
  * **When to use**
  *
- * - Exhaustively handling both branches in one expression
+ * Use when exhaustively handling both branches in one expression
  * - Transforming an `Option` into a plain value
  *
  * **Details**
@@ -475,7 +475,7 @@ export const match: {
  *
  * **When to use**
  *
- * - Turning a parsing function into a type-narrowing predicate
+ * Use when turning a parsing function into a type-narrowing predicate
  * - Filtering arrays with `Array.prototype.filter`
  *
  * **Details**
@@ -518,7 +518,7 @@ export const toRefinement = <A, B extends A>(f: (a: A) => Option<B>): (a: A) => 
  *
  * **When to use**
  *
- * - Safely extracting the head of a collection
+ * Use when safely extracting the head of a collection
  * - Working with generators or lazy iterables
  *
  * **Details**
@@ -555,7 +555,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  *
  * **When to use**
  *
- * - Discarding the failure channel when you only care about success
+ * Use when discarding the failure channel when you only care about success
  *
  * **Details**
  *
@@ -586,7 +586,7 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * **When to use**
  *
- * - Extracting the failure when you do not need the success value
+ * Use to extract the failure when you do not need the success value
  *
  * **Details**
  *
@@ -617,7 +617,7 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  *
  * **When to use**
  *
- * - Providing a default value for an absent `Option`
+ * Use when providing a default value for an absent `Option`
  * - Unwrapping with lazy evaluation of the fallback
  *
  * **Details**
@@ -658,7 +658,7 @@ export const getOrElse: {
  *
  * **When to use**
  *
- * - Chaining fallback `Option` computations
+ * Use when chaining fallback `Option` computations
  * - Building priority chains of optional values
  *
  * **Details**
@@ -699,7 +699,7 @@ export const orElse: {
  *
  * **When to use**
  *
- * - Providing a default plain value (not an `Option`) as fallback
+ * Use when providing a default plain value (not an `Option`) as fallback
  *
  * **Details**
  *
@@ -737,7 +737,7 @@ export const orElseSome: {
  *
  * **When to use**
  *
- * - Distinguishing whether a value came from the primary or fallback `Option`
+ * Use when distinguishing whether a value came from the primary or fallback `Option`
  *
  * **Details**
  *
@@ -777,7 +777,7 @@ export const orElseResult: {
  *
  * **When to use**
  *
- * - Searching for the first available value in a priority list
+ * Use when searching for the first available value in a priority list
  *
  * **Details**
  *
@@ -819,7 +819,7 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  *
  * **When to use**
  *
- * - Bridging from nullable APIs to `Option`
+ * Use when bridging from nullable APIs to `Option`
  * - Wrapping values that may be `null` or `undefined`
  *
  * **Details**
@@ -859,7 +859,7 @@ export const fromNullishOr = <A>(
  *
  * **When to use**
  *
- * - When `null` is a meaningful value but `undefined` means absent
+ * Use when when `null` is a meaningful value but `undefined` means absent
  *
  * **Details**
  *
@@ -897,7 +897,7 @@ export const fromUndefinedOr = <A>(
  *
  * **When to use**
  *
- * - When `undefined` is a meaningful value but `null` means absent
+ * Use when when `undefined` is a meaningful value but `null` means absent
  *
  * **Details**
  *
@@ -935,7 +935,7 @@ export const fromNullOr = <A>(
  *
  * **When to use**
  *
- * - Wrapping existing nullable-returning functions for use in `Option` pipelines
+ * Use to wrap existing nullable-returning functions for use in `Option` pipelines
  *
  * **Details**
  *
@@ -977,7 +977,7 @@ export const liftNullishOr = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * - Interoping with APIs that use `null` for missing values
+ * Use when interoping with APIs that use `null` for missing values
  *
  * **Details**
  *
@@ -1009,7 +1009,7 @@ export const getOrNull: <A>(self: Option<A>) => A | null = getOrElse(constNull)
  *
  * **When to use**
  *
- * - Interoping with APIs that use `undefined` for missing values
+ * Use when interoping with APIs that use `undefined` for missing values
  *
  * **Details**
  *
@@ -1041,7 +1041,7 @@ export const getOrUndefined: <A>(self: Option<A>) => A | undefined = getOrElse(c
  *
  * **When to use**
  *
- * - Wrapping exception-throwing APIs (e.g. `JSON.parse`) for safe usage
+ * Use to wrap exception-throwing APIs (e.g. `JSON.parse`) for safe usage
  *
  * **Details**
  *
@@ -1083,7 +1083,7 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * - Fail-fast unwrapping when absence is unexpected
+ * Use when fail-fast unwrapping when absence is unexpected
  * - Providing a descriptive error for debugging
  *
  * **Details**
@@ -1124,7 +1124,7 @@ export const getOrThrowWith: {
  *
  * **When to use**
  *
- * - Quick fail-fast unwrapping when a generic error is acceptable
+ * Use when quick fail-fast unwrapping when a generic error is acceptable
  *
  * **Details**
  *
@@ -1157,8 +1157,8 @@ export const getOrThrow: <A>(self: Option<A>) => A = getOrThrowWith(() => new Er
  *
  * **When to use**
  *
- * - Applying a pure transformation to an optional value
- * - Chaining transformations in a pipeline
+ * Use to apply a pure transformation to an optional value, especially when
+ * chaining transformations in a pipeline.
  *
  * **Details**
  *
@@ -1197,7 +1197,7 @@ export const map: {
  *
  * **When to use**
  *
- * - Preserving presence/absence while discarding the original value
+ * Use when preserving presence/absence while discarding the original value
  *
  * **Details**
  *
@@ -1233,7 +1233,7 @@ export const as: {
  *
  * **When to use**
  *
- * - Discarding the value while preserving presence/absence
+ * Use when discarding the value while preserving presence/absence
  *
  * **Details**
  *
@@ -1266,7 +1266,7 @@ export {
    *
    * **When to use**
    *
-   * - Returning a "success with no meaningful value" from an `Option`-returning function
+   * Use to return a "success with no meaningful value" from an `Option`-returning function
    *
    * **Example** (Using Option.void)
    *
@@ -1291,8 +1291,8 @@ export {
  *
  * **When to use**
  *
- * - Chaining computations that each may fail (return `None`)
- * - Sequencing dependent optional operations
+ * Use when chaining dependent optional computations where each step may return
+ * `None`.
  *
  * **Details**
  *
@@ -1344,7 +1344,7 @@ export const flatMap: {
  *
  * **When to use**
  *
- * - Flexible chaining where the next step may return `Option`, a plain value,
+ * Use when flexible chaining where the next step may return `Option`, a plain value,
  *   or a function
  *
  * **Details**
@@ -1402,7 +1402,7 @@ export const andThen: {
  *
  * **When to use**
  *
- * - Chaining with functions that use `null`/`undefined` instead of `Option`
+ * Use when chaining with functions that use `null`/`undefined` instead of `Option`
  * - Navigating deeply nested optional properties
  *
  * **Details**
@@ -1451,7 +1451,7 @@ export const flatMapNullishOr: {
  *
  * **When to use**
  *
- * - Removing one layer of `Option` nesting
+ * Use when removing one layer of `Option` nesting
  *
  * **Details**
  *
@@ -1483,7 +1483,7 @@ export const flatten: <A>(self: Option<Option<A>>) => Option<A> = flatMap(identi
  *
  * **When to use**
  *
- * - Running a side-condition that must succeed, then using the second value
+ * Use to run a side-condition that must succeed, then using the second value
  *
  * **Details**
  *
@@ -1518,7 +1518,7 @@ export const zipRight: {
  *
  * **When to use**
  *
- * - Running a validation that must succeed, but keeping the original value
+ * Use to run a validation that must succeed, but keeping the original value
  *
  * **Details**
  *
@@ -1554,7 +1554,7 @@ export const zipLeft: {
  *
  * **When to use**
  *
- * - Building pipelines of partial functions (Kleisli composition)
+ * Use to build pipelines of partial functions (Kleisli composition)
  *
  * **Details**
  *
@@ -1598,7 +1598,7 @@ export const composeK: {
  *
  * **When to use**
  *
- * - Validating a value without transforming it
+ * Use to validate a value without transforming it
  * - Adding a side-condition check in a pipeline
  *
  * **Details**
@@ -1638,7 +1638,7 @@ export const tap: {
  *
  * **When to use**
  *
- * - Pairing two optional values together
+ * Use when pairing two optional values together
  *
  * **Details**
  *
@@ -1672,7 +1672,7 @@ export const product = <A, B>(self: Option<A>, that: Option<B>): Option<[A, B]> 
  *
  * **When to use**
  *
- * - Collecting several `Option`s of the same type into a non-empty tuple
+ * Use when collecting several `Option`s of the same type into a non-empty tuple
  *
  * **Details**
  *
@@ -1723,7 +1723,7 @@ export const productMany = <A>(
  *
  * **When to use**
  *
- * - Collecting multiple `Option`s into one, preserving the input shape
+ * Use when collecting multiple `Option`s into one, preserving the input shape
  * - "All or nothing" combination — any `None` makes the result `None`
  *
  * **Details**
@@ -1799,7 +1799,7 @@ export const all: <const I extends Iterable<Option<any>> | Record<string, Option
  *
  * **When to use**
  *
- * - Merging two optional values into a computed result
+ * Use when merging two optional values into a computed result
  *
  * **Details**
  *
@@ -1842,7 +1842,7 @@ export const zipWith: {
  *
  * **When to use**
  *
- * - Aggregating values from a collection where some may be absent
+ * Use when aggregating values from a collection where some may be absent
  *
  * **Details**
  *
@@ -1885,7 +1885,7 @@ export const reduceCompact: {
  *
  * **When to use**
  *
- * - Interfacing with array-based APIs
+ * Use when interfacing with array-based APIs
  * - Spreading optional values into collections
  *
  * **Details**
@@ -1917,7 +1917,7 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
  *
  * **When to use**
  *
- * - Categorizing an optional value into "left" (failure) and "right" (success) channels
+ * Use when categorizing an optional value into "left" (failure) and "right" (success) channels
  *
  * **Details**
  *
@@ -2006,7 +2006,7 @@ export const filterMap: {
  *
  * **When to use**
  *
- * - Discarding values that don't meet a condition
+ * Use when discarding values that don't meet a condition
  * - Narrowing the type via a refinement predicate
  *
  * **Details**
@@ -2056,7 +2056,7 @@ export const filter: {
  *
  * **When to use**
  *
- * - Comparing two `Option` values for structural equality
+ * Use to compare two `Option` values for structural equality
  *
  * **Details**
  *
@@ -2092,7 +2092,7 @@ export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Eq
  *
  * **When to use**
  *
- * - Sorting collections of `Option` values
+ * Use to sort collections of `Option` values
  *
  * **Details**
  *
@@ -2128,7 +2128,7 @@ export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
  *
  * **When to use**
  *
- * - Reusing an existing binary function in an `Option` context
+ * Use when reusing an existing binary function in an `Option` context
  *
  * **Details**
  *
@@ -2165,7 +2165,7 @@ export const lift2 = <A, B, C>(f: (a: A, b: B) => C): {
  *
  * **When to use**
  *
- * - Converting a boolean check into an `Option`-returning function
+ * Use to convert a boolean check into an `Option`-returning function
  * - Validating input and wrapping it in `Option`
  *
  * **Details**
@@ -2216,7 +2216,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  *
  * **When to use**
  *
- * - Testing membership with a custom equality check
+ * Use when testing membership with a custom equality check
  *
  * **Details**
  *
@@ -2256,7 +2256,7 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
  *
  * **When to use**
  *
- * - Quick membership test with standard equality
+ * Use when quick membership test with standard equality
  *
  * **Details**
  *
@@ -2294,7 +2294,7 @@ export const contains: {
  *
  * **When to use**
  *
- * - Checking a condition on an optional value without unwrapping
+ * Use to check a condition on an optional value without unwrapping
  *
  * **Details**
  *
@@ -2347,7 +2347,7 @@ export const exists: {
  *
  * **When to use**
  *
- * - Beginning a do notation chain by naming the first value
+ * Use when beginning a do notation chain by naming the first value
  *
  * **Example** (Starting do notation)
  *
@@ -2394,7 +2394,7 @@ export {
    *
    * **When to use**
    *
-   * - Binding a derived (non-`Option`) value in a do notation pipeline
+   * Use when binding a derived (non-`Option`) value in a do notation pipeline
    *
    * **Example** (Adding a computed value)
    *
@@ -2427,7 +2427,7 @@ export {
  *
  * **When to use**
  *
- * - Sequencing `Option` computations in do notation
+ * Use when sequencing `Option` computations in do notation
  *
  * **Example** (Binding Option values)
  *
@@ -2470,7 +2470,7 @@ export const bind: {
  *
  * **When to use**
  *
- * - Starting a do notation pipeline before adding bindings
+ * Use when starting a do notation pipeline before adding bindings
  *
  * **Example** (Do notation pipeline)
  *
@@ -2503,7 +2503,7 @@ export const Do: Option<{}> = some({})
  *
  * **When to use**
  *
- * - Writing imperative-style code that chains multiple `Option`s
+ * Use when writing imperative-style code that chains multiple `Option`s
  * - Readability when many sequential optional steps are involved
  *
  * **Details**
@@ -2556,7 +2556,7 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
  *
  * **When to use**
  *
- * - Building a reducer that falls back to the first available value
+ * Use to build a reducer that falls back to the first available value
  * - Combining optional values where either side may be absent
  *
  * **Details**
@@ -2596,7 +2596,7 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
  *
  * **When to use**
  *
- * - Operations that require both values to be present
+ * Use when operations that require both values to be present
  *
  * **Details**
  *
@@ -2635,7 +2635,7 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  *
  * **When to use**
  *
- * - Wrapping an existing `Reducer` to work with `Option` values
+ * Use to wrap an existing `Reducer` to work with `Option` values
  * - Reductions where any `None` should abort the entire result
  *
  * **Details**

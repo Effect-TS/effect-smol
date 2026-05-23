@@ -798,7 +798,10 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
  * Provides a `KeyValueStore` backed by a Web `Storage` instance such as
  * `localStorage` or `sessionStorage`.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
+ * **Details**
+ *
+ * This layer uses the Web Storage API:
+ * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
  * @category layers
  * @since 4.0.0

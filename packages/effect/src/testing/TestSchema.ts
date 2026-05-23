@@ -82,7 +82,7 @@ import * as FastCheck from "../testing/FastCheck.ts"
  *
  * **When to use**
  *
- * Use `Asserts` when writing schema unit tests for decoding, encoding, construction, property-based round-trip, or generation behavior.
+ * Use when writing schema unit tests for decoding, encoding, construction, property-based round-trip, or generation behavior.
  *
  * **Example** (Decoding and encoding a struct)
  *
@@ -311,7 +311,7 @@ export class Asserts<S extends Schema.Top> {
  *
  * **When to use**
  *
- * Use `Decoding` when you want to assert that specific inputs decode to expected values, invalid inputs produce specific error messages, or schemas receive required decoding services.
+ * Use when you want to assert that specific inputs decode to expected values, invalid inputs produce specific error messages, or schemas receive required decoding services.
  *
  * **Details**
  *
@@ -419,7 +419,7 @@ export class Decoding<S extends Schema.Top> {
    *
    * **When to use**
    *
-   * Use this when the schema's decoder requires a service dependency.
+   * Use when the schema's decoder requires a service dependency.
    *
    * **Details**
    *
@@ -439,23 +439,15 @@ export class Decoding<S extends Schema.Top> {
 }
 
 /**
- * Encoding test helper. Mirrors {@link Decoding} but exercises the schema's
- * encoder direction.
+ * Encoding test helper that wraps a schema and exposes `succeed` and `fail` methods that run the schema's encoder and compare the result.
  *
- * When to use:
- * - You want to assert that specific values encode to expected outputs.
- * - You want to assert that invalid inputs produce specific error messages
- *   during encoding.
- * - You need to provide services required by the schema's encoding pipeline.
+ * **When to use**
  *
- * Behavior:
- * - All assertions are async and use `assert.deepStrictEqual` internally.
- * - `succeed(input)` asserts the encoded output equals `input` (identity).
- * - `succeed(input, expected)` asserts the encoded output equals `expected`.
- * - `fail(input, message)` asserts encoding fails and the stringified issue
- *   equals `message`.
- * - `provide(key, impl)` returns a new `Encoding` with the service injected
- *   into the encoding context.
+ * Use when you want to assert that specific values encode to expected outputs, invalid inputs produce specific error messages, or schemas receive required encoding services.
+ *
+ * **Details**
+ *
+ * All assertions are async and use `assert.deepStrictEqual` internally. `succeed(input)` asserts the encoded output equals `input`; `succeed(input, expected)` asserts it equals `expected`; `fail(input, message)` asserts encoding fails and the stringified issue equals `message`. `provide(key, impl)` returns a new `Encoding` with the service injected into the encoding context.
  *
  * **Example** (Encoding assertions)
  *
@@ -470,9 +462,10 @@ export class Decoding<S extends Schema.Top> {
  * @see {@link Asserts}
  * @see {@link Decoding}
  *
+ * @category testing
  * @since 4.0.0
  */
-class Encoding<S extends Schema.Top> {
+export class Encoding<S extends Schema.Top> {
   readonly schema: S
   readonly encodeUnknownEffect: (
     input: unknown,
@@ -554,11 +547,15 @@ class Encoding<S extends Schema.Top> {
     assert.deepStrictEqual(r, Result.fail(message))
   }
   /**
-   * Returns a new {@link Encoding} instance with the given service injected
-   * into the encoding effect context. Use this when the schema's encoder
-   * requires a service dependency.
+   * Returns a new {@link Encoding} instance with the given service injected into the encoding effect context.
    *
-   * - Does not mutate the current instance; returns a new one.
+   * **When to use**
+   *
+   * Use when the schema's encoder requires a service dependency.
+   *
+   * **Details**
+   *
+   * This method does not mutate the current instance.
    *
    * @see {@link Decoding.provide}
    */

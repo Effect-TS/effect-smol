@@ -464,10 +464,16 @@ export const or: {
 /**
  * Combines two filters and applies a function to their results.
  *
+ * **When to use**
+ *
+ * Use to combine two filters with a custom function to merge their outputs.
+ *
  * **Details**
  *
  * Both filters must succeed (not return `fail`) for the combination to succeed.
  * If both filters pass, their outputs are combined using the provided function.
+ *
+ * @see {@link zip} for combining two filters into a tuple
  *
  * @category combinators
  * @since 4.0.0

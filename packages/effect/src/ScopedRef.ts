@@ -70,6 +70,12 @@ const makeUnsafe = <A>(
  * Creates a new `ScopedRef` from an effect that resourcefully produces a
  * value.
  *
+ * **When to use**
+ *
+ * Use when creating a `ScopedRef` whose initial value requires acquiring
+ * resources that must be released.
+ *
+ * @see {@link make} for creating a `ScopedRef` from a value that does not require resource acquisition
  * @category constructors
  * @since 2.0.0
  */

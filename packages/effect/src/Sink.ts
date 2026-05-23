@@ -235,6 +235,12 @@ export const isSink = (u: unknown): u is Sink<unknown, never, unknown, unknown, 
 /**
  * Creates a sink from a `Channel`.
  *
+ * **When to use**
+ *
+ * Use to create a `Sink` from a `Channel` that processes non-empty arrays of
+ * input values.
+ *
+ * @see {@link toChannel} for converting a `Sink` back to a `Channel`
  * @category constructors
  * @since 2.0.0
  */
@@ -442,7 +448,7 @@ export declare namespace make {
  *
  * **When to use**
  *
- * Use this when the effect needs to provide both the result value and optional
+ * Use when the effect needs to provide both the result value and optional
  * leftovers.
  *
  * @category constructors

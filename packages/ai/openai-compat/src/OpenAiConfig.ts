@@ -71,7 +71,7 @@ export declare namespace OpenAiConfig {
  *
  * **When to use**
  *
- * Use this to add provider-specific OpenAI-compatible HTTP behavior, such as
+ * Use to add provider-specific OpenAI-compatible HTTP behavior, such as
  * headers, retries, instrumentation, or proxy routing.
  *
  * **Details**

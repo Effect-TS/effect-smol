@@ -124,9 +124,16 @@ const Proto = {
  *
  * **When to use**
  *
+ * Use to require `Authorization: Bearer ...` credentials for an HTTP API group
+ * or endpoint.
+ *
+ * **Details**
+ *
  * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
  * security scheme.
  *
+ * @see {@link apiKey} for an API-key security scheme
+ * @see {@link basic} for an HTTP Basic security scheme
  * @category constructors
  * @since 4.0.0
  */
@@ -140,14 +147,19 @@ export const bearer: Bearer = Object.assign(Object.create(Proto), {
  *
  * **When to use**
  *
- * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
- * security scheme.
+ * Use to require API key credentials passed through a header, query parameter,
+ * or cookie.
  *
  * **Details**
+ *
+ * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
+ * security scheme.
  *
  * Use `HttpApiBuilder.securitySetCookie` to set the correct cookie in a
  * handler. By default, `in` is `"header"`.
  *
+ * @see {@link bearer} for a Bearer token security scheme
+ * @see {@link basic} for an HTTP Basic security scheme
  * @category constructors
  * @since 4.0.0
  */
@@ -167,9 +179,15 @@ export const apiKey = (options: {
  *
  * **When to use**
  *
+ * Use to require HTTP Basic username/password credentials.
+ *
+ * **Details**
+ *
  * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
  * security scheme.
  *
+ * @see {@link bearer} for a Bearer token security scheme
+ * @see {@link apiKey} for an API-key security scheme
  * @category constructors
  * @since 4.0.0
  */

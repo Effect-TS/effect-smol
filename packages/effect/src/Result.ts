@@ -405,6 +405,12 @@ export const failVoid: Result<never, void> = fail(void 0)
 /**
  * Converts a possibly `null` or `undefined` value into a `Result`.
  *
+ * **When to use**
+ *
+ * Use when an input may be `null` or `undefined` and absence should be
+ * represented as a `Failure` while present values should remain available as
+ * `Success`.
+ *
  * **Details**
  *
  * - Non-nullish values become `Success<NonNullable<A>>`
@@ -442,6 +448,11 @@ export const fromNullishOr: {
 /**
  * Converts an `Option<A>` into a `Result<A, E>`.
  *
+ * **When to use**
+ *
+ * Use when an existing `Option` should become a `Result`, preserving `Some` as
+ * success and turning `None` into a caller-provided failure.
+ *
  * **Details**
  *
  * - `Some<A>` becomes `Success<A>`
@@ -462,8 +473,9 @@ export const fromNullishOr: {
  * // Output: { _tag: "Failure", failure: "missing", ... }
  * ```
  *
- * @see {@link getSuccess} / {@link getFailure} to convert back to Option
- * @see {@link fromNullishOr} to convert from nullable values
+ * @see {@link getSuccess} to extract the success value as an Option
+ * @see {@link getFailure} to extract the failure value as an Option
+ * @see {@link fromNullishOr} to build a Result from nullable values
  *
  * @category constructors
  * @since 2.0.0
@@ -812,6 +824,11 @@ export const mapError: {
 /**
  * Transforms the success channel of a `Result`, leaving the failure channel unchanged.
  *
+ * **When to use**
+ *
+ * Use to apply a transformation to the success value of a `Result` while
+ * preserving any existing failure.
+ *
  * **Details**
  *
  * - If the result is a `Success`, applies `f` to the value and returns a new `Success`
@@ -1040,6 +1057,11 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: ide
 /**
  * Extracts the success value, or computes a fallback from the error.
  *
+ * **When to use**
+ *
+ * Use when you need the success value from a `Result`, with a fallback computed
+ * from the failure value.
+ *
  * **Details**
  *
  * - `Success<A>` returns the inner value
@@ -1061,6 +1083,7 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: ide
  * @see {@link getOrNull} / {@link getOrUndefined} for simpler fallbacks
  * @see {@link getOrThrow} to throw on failure
  * @see {@link match} to map both branches
+ * @see {@link orElse} to recover with another Result instead of unwrapping
  *
  * @category getters
  * @since 2.0.0
@@ -1135,12 +1158,15 @@ export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOr
 /**
  * Extracts the success value or throws a custom error derived from the failure.
  *
+ * **When to use**
+ *
+ * Use when converting a `Result` into a thrown exception with a custom error
+ * message or error type.
+ *
  * **Details**
  *
  * - `Success<A>` returns `A`
  * - `Failure<E>` throws the value returned by `onFailure(e)`
- * - Use when you want to convert a `Result` into a thrown exception with a
- *   custom error message or error type
  *
  * **Example** (Throwing a custom error)
  *
@@ -1497,6 +1523,12 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
 /**
  * Starting point for the "do notation" simulation with `Result`.
  *
+ * **When to use**
+ *
+ * Use to start a `Result` do-notation pipeline from an empty successful record
+ * before adding named fields from `Result`-producing computations and pure
+ * computed values.
+ *
  * **Details**
  *
  * Creates a `Result<{}>` (success with an empty object). Use with
@@ -1521,6 +1553,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
  * @see {@link bind} to add Result-producing fields
  * @see {@link let_ let} to add pure computed fields
  * @see {@link gen} for an alternative generator-based syntax
+ * @see {@link bindTo} for starting a do-notation chain from an existing Result
  *
  * @category Do Notation
  * @since 2.0.0
@@ -1530,6 +1563,11 @@ export const Do: Result<{}> = succeed({})
 /**
  * Adds a named field to the do-notation accumulator by running a `Result`-producing
  * function that receives the current accumulated object.
+ *
+ * **When to use**
+ *
+ * Use when adding a `Result`-producing step to a do-notation pipeline and
+ * storing its successful value under a named field in the accumulated object.
  *
  * **Details**
  *

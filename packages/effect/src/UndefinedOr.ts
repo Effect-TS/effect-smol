@@ -119,7 +119,7 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * - Take the first available value (like a fallback chain)
+ * Use when take the first available value (like a fallback chain)
  * - Combine values when both are present
  * - Maintain a `undefined` state only when all values are `undefined`
  *
@@ -171,7 +171,7 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  *
  * **When to use**
  *
- * - Wrapping an existing `Reducer` to work with `A | undefined` values
+ * Use to wrap an existing `Reducer` to work with `A | undefined` values
  * - Reductions where any `undefined` value should abort the entire result
  *
  * **Details**

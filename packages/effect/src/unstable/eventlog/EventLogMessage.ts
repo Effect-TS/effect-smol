@@ -161,7 +161,7 @@ export class SingleMessage
  *
  * **When to use**
  *
- * Use `split` to divide data into chunks and `join` to reassemble all chunks with
+ * Use to divide data into chunks and `join` to reassemble all chunks with
  * the same id once every part has arrived.
  *
  * @category protocol

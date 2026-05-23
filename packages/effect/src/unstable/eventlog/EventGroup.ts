@@ -52,7 +52,7 @@ export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, T
  *
  * **When to use**
  *
- * Build groups from `empty.add(...)`, then provide implementations for the events
+ * Use when build groups from `empty.add(...)`, then provide implementations for the events
  * with `EventLog.group`.
  *
  * @category models
@@ -191,7 +191,7 @@ const makeProto = <
  *
  * **When to use**
  *
- * Call `.add(...)` to add event definitions and build a typed `EventGroup`.
+ * Use when call `.add(...)` to add event definitions and build a typed `EventGroup`.
  *
  * @category constructors
  * @since 4.0.0

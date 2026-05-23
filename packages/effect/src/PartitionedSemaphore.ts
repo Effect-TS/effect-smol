@@ -113,7 +113,7 @@ export interface Partitioned<in K> extends PartitionedSemaphore<K> {}
  *
  * **When to use**
  *
- * Prefer `make` when the semaphore should be created inside an `Effect`
+ * Use when prefer `make` when the semaphore should be created inside an `Effect`
  * workflow.
  *
  * **Details**

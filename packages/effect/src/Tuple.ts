@@ -81,7 +81,7 @@ import type { Apply, Lambda } from "./Struct.ts"
  *
  * **When to use**
  *
- * Use this instead of `[a, b, c] as const` when you want a properly typed tuple
+ * Use when you use this instead of `[a, b, c] as const` when you want a properly typed tuple
  * without a manual cast.
  *
  * **Details**
@@ -112,7 +112,7 @@ type Indices<T extends ReadonlyArray<unknown>> = Exclude<Partial<T>["length"], T
  *
  * **When to use**
  *
- * Use this in a pipeline when you need to extract a single element.
+ * Use when you use this in a pipeline when you need to extract a single element.
  *
  * **Details**
  *
@@ -159,7 +159,7 @@ type PickTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, K>
  *
  * **When to use**
  *
- * Use this to select a subset of elements from a tuple by position.
+ * Use to select a subset of elements from a tuple by position.
  *
  * **Details**
  *
@@ -205,7 +205,7 @@ type OmitTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, Exclude<Ind
  *
  * **When to use**
  *
- * Use this to drop elements from a tuple by position.
+ * Use to drop elements from a tuple by position.
  *
  * **Details**
  *
@@ -315,7 +315,7 @@ type Evolved<T, E> = { [I in keyof T]: I extends keyof E ? (E[I] extends (...a: 
  *
  * **When to use**
  *
- * Use this when you want to update the first N elements while keeping the rest.
+ * Use when you want to update the first N elements while keeping the rest.
  *
  * **Details**
  *
@@ -404,7 +404,7 @@ export const renameIndices: {
  *
  * **When to use**
  *
- * Use this when you want to apply the same transformation to every element.
+ * Use when you want to apply the same transformation to every element.
  *
  * **Details**
  *
@@ -460,7 +460,7 @@ export const map: {
  *
  * **When to use**
  *
- * Use this when you want to apply the same transformation to a subset of
+ * Use when you want to apply the same transformation to a subset of
  * positions.
  *
  * **Details**
@@ -520,7 +520,7 @@ export const mapPick: {
  *
  * **When to use**
  *
- * Use this when most elements should be transformed but a few should be
+ * Use when most elements should be transformed but a few should be
  * preserved.
  *
  * **Details**
@@ -581,7 +581,7 @@ export const mapOmit: {
  *
  * **When to use**
  *
- * Use this when you need to compare tuples element-by-element.
+ * Use when you need to compare tuples element-by-element.
  *
  * **Details**
  *
@@ -614,7 +614,7 @@ export const makeEquivalence = Equivalence.Tuple
  *
  * **When to use**
  *
- * Use this to sort or compare tuples lexicographically by element position.
+ * Use to sort or compare tuples lexicographically by element position.
  *
  * **Details**
  *
@@ -644,7 +644,7 @@ export {
    *
    * **When to use**
    *
-   * Use this to guard against unexpected array lengths at runtime.
+   * Use to guard against unexpected array lengths at runtime.
    *
    * **Details**
    *
@@ -678,7 +678,7 @@ export {
    *
    * **When to use**
    *
-   * Use this to guard that an array has at least the expected number of
+   * Use to guard that an array has at least the expected number of
    * elements.
    *
    * **Details**
@@ -716,7 +716,7 @@ export {
  *
  * **When to use**
  *
- * Use this when you need to merge two tuples of the same shape, such as summing
+ * Use when you need to merge two tuples of the same shape, such as summing
  * counters or concatenating strings.
  *
  * **Details**
@@ -761,7 +761,7 @@ export function makeCombiner<A extends ReadonlyArray<unknown>>(
  *
  * **When to use**
  *
- * Use this to fold a collection of tuples into a single summary tuple.
+ * Use to fold a collection of tuples into a single summary tuple.
  *
  * **Details**
  *

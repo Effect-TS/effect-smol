@@ -129,7 +129,7 @@ const RefProto = {
  *
  * **When to use**
  *
- * Use this when you need immediate synchronous construction and can guarantee
+ * Use when you need immediate synchronous construction and can guarantee
  * that creating the `Ref` outside of `Effect` is safe.
  *
  * **Gotchas**
@@ -359,7 +359,7 @@ export const getAndUpdateSome = dual<
  *
  * **When to use**
  *
- * Use this when you want to set a value and immediately get it back in one
+ * Use when you want to set a value and immediately get it back in one
  * atomic operation.
  *
  * **Example** (Setting and returning the new value)
@@ -690,7 +690,7 @@ export const updateSomeAndGet = dual<
  *
  * **When to use**
  *
- * Use this when you need immediate synchronous access and can guarantee that
+ * Use when you need immediate synchronous access and can guarantee that
  * reading the `Ref` outside of `Effect` is safe.
  *
  * **Gotchas**

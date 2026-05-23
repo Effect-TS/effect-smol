@@ -127,7 +127,7 @@ export interface Semaphore {
  *
  * **When to use**
  *
- * Use this low-level constructor when an immediate semaphore value is required;
+ * Use when you use this low-level constructor when an immediate semaphore value is required;
  * otherwise prefer the effectful `make` constructor.
  *
  * **Example** (Creating an unsafe semaphore)
@@ -270,7 +270,7 @@ class SemaphoreImpl implements Semaphore {
  *
  * **When to use**
  *
- * Use the returned semaphore to limit concurrency with `withPermit` or
+ * Use when you use the returned semaphore to limit concurrency with `withPermit` or
  * `withPermits`, or to manually `take` and `release` permits.
  *
  * **Example** (Creating a semaphore)

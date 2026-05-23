@@ -157,7 +157,7 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  *
  * **When to use**
  *
- * Use this for strict severity comparisons when filtering logs based on minimum
+ * Use when you use this for strict severity comparisons when filtering logs based on minimum
  * severity requirements.
  *
  * **Details**
@@ -200,7 +200,7 @@ export const isGreaterThan: {
  *
  * **When to use**
  *
- * Use this for implementing minimum log level filtering.
+ * Use when you use this for implementing minimum log level filtering.
  *
  * **Details**
  *
@@ -250,7 +250,7 @@ export const isGreaterThanOrEqualTo: {
  *
  * **When to use**
  *
- * Use this for strict severity comparisons when filtering out logs that are too
+ * Use when you use this for strict severity comparisons when filtering out logs that are too
  * verbose.
  *
  * **Details**
@@ -293,7 +293,7 @@ export const isLessThan: {
  *
  * **When to use**
  *
- * Use this for implementing maximum log level filtering.
+ * Use when you use this for implementing maximum log level filtering.
  *
  * **Details**
  *

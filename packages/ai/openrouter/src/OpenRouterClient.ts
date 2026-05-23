@@ -136,7 +136,7 @@ export type Options = {
    *
    * **When to use**
    *
-   * Use this to add middleware, logging, or custom request/response handling.
+   * Use to add middleware, logging, or custom request/response handling.
    */
   readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
 }

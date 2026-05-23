@@ -91,7 +91,7 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
  *
  * **When to use**
  *
- * Prefer `make` in Effect code so allocation stays inside the Effect workflow.
+ * Use when prefer `make` in Effect code so allocation stays inside the Effect workflow.
  * Use `makeUnsafe` only when a `TxRef` must be constructed outside an effect.
  *
  * **Example** (Creating transactional references unsafely)

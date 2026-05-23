@@ -211,7 +211,7 @@ export type Reason<E> = Fail<E> | Die | Interrupt
  *
  * **When to use**
  *
- * Useful as a predicate for `Array.filter` when iterating over `cause.reasons`.
+ * Use as a predicate for `Array.filter` when iterating over `cause.reasons`.
  *
  * **Example** (filtering fail reasons)
  *
@@ -236,7 +236,7 @@ export const isFailReason: <E>(self: Reason<E>) => self is Fail<E> = core.isFail
  *
  * **When to use**
  *
- * Useful as a predicate for `Array.filter` when iterating over `cause.reasons`.
+ * Use as a predicate for `Array.filter` when iterating over `cause.reasons`.
  *
  * **Example** (filtering die reasons)
  *
@@ -261,7 +261,7 @@ export const isDieReason: <E>(self: Reason<E>) => self is Die = core.isDieReason
  *
  * **When to use**
  *
- * Useful as a predicate for `Array.filter` when iterating over `cause.reasons`.
+ * Use as a predicate for `Array.filter` when iterating over `cause.reasons`.
  *
  * **Example** (filtering interrupt reasons)
  *
@@ -438,7 +438,7 @@ export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
  *
  * **When to use**
  *
- * Use this when you already have individual reasons (e.g. from filtering or
+ * Use when you already have individual reasons (e.g. from filtering or
  * transforming another cause's `reasons` array) and need to wrap them back
  * into a `Cause`.
  *
@@ -569,7 +569,7 @@ export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.
  *
  * **When to use**
  *
- * Use this when you need to construct individual reasons for
+ * Use when you need to construct individual reasons for
  * {@link fromReasons} or for direct comparison.
  *
  * **Example** (creating a Fail reason)
@@ -595,7 +595,7 @@ export const makeFailReason = <E>(error: E): Fail<E> => new core.Fail(error)
  *
  * **When to use**
  *
- * Use this when you need to construct individual reasons for
+ * Use when you need to construct individual reasons for
  * {@link fromReasons} or for direct comparison.
  *
  * **Example** (creating a Die reason)
@@ -622,7 +622,7 @@ export const makeDieReason = (defect: unknown): Die => new core.Die(defect)
  *
  * **When to use**
  *
- * Use this when you need to construct individual reasons for
+ * Use when you need to construct individual reasons for
  * {@link fromReasons} or for direct comparison.
  *
  * **Example** (creating an Interrupt reason)
@@ -649,7 +649,7 @@ export const makeInterruptReason: (fiberId?: number | undefined) => Interrupt = 
  *
  * **When to use**
  *
- * Useful for deciding whether a failure was entirely due to interruption and
+ * Use when deciding whether a failure was entirely due to interruption and
  * can be silently discarded.
  *
  * **Example** (checking interrupt-only causes)
@@ -797,7 +797,7 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
  *
  * **When to use**
  *
- * Use {@link findError} if you only need the unwrapped error value `E`.
+ * Use when you use {@link findError} if you only need the unwrapped error value `E`.
  *
  * **Example** (extracting the first Fail reason)
  *
@@ -826,7 +826,7 @@ export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never
  *
  * **When to use**
  *
- * Use {@link findFail} if you need the full `Fail` reason (including
+ * Use when you use {@link findFail} if you need the full `Fail` reason (including
  * annotations). Use {@link findErrorOption} if you prefer an `Option`.
  *
  * **Example** (extracting the first error value)
@@ -854,7 +854,7 @@ export const findError: <E>(self: Cause<E>) => Result.Result<E, Cause<never>> = 
  *
  * **When to use**
  *
- * This is the `Option`-returning variant of {@link findError} for code that
+ * Use when this is the `Option`-returning variant of {@link findError} for code that
  * does not need the original cause returned in a failed `Result`.
  *
  * **Example** (extracting an error as Option)
@@ -903,7 +903,7 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
  *
  * **When to use**
  *
- * Use {@link findDefect} if you only need the unwrapped defect value.
+ * Use when you use {@link findDefect} if you only need the unwrapped defect value.
  *
  * **Example** (extracting the first Die reason)
  *
@@ -931,7 +931,7 @@ export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effe
  *
  * **When to use**
  *
- * Use {@link findDie} if you need the full `Die` reason (including
+ * Use when you use {@link findDie} if you need the full `Die` reason (including
  * annotations).
  *
  * **Example** (extracting the first defect)
@@ -1004,7 +1004,7 @@ export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Caus
  *
  * **When to use**
  *
- * This always succeeds. Use {@link filterInterruptors} when you want a
+ * Use when this always succeeds. Use {@link filterInterruptors} when you want a
  * `Result` that fails with the original cause if there are no `Interrupt`
  * reasons.
  *
@@ -1035,7 +1035,7 @@ export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.c
  *
  * **When to use**
  *
- * Use {@link interruptors} if you always want a `Set` without `Result`
+ * Use when you use {@link interruptors} if you always want a `Set` without `Result`
  * wrapping.
  *
  * **Gotchas**
@@ -1339,7 +1339,7 @@ export declare namespace Done {
  *
  * **When to use**
  *
- * Use this when you need the completion signal value itself. Use {@link done}
+ * Use when you need the completion signal value itself. Use {@link done}
  * when you need an `Effect` that fails with the signal.
  *
  * @see {@link done} — create a failing `Effect` with `Done`
@@ -1355,7 +1355,7 @@ export const Done: <A = void>(value?: A) => Done<A> = core.Done
  *
  * **When to use**
  *
- * Use this in effect workflows that model stream or queue completion through
+ * Use when you use this in effect workflows that model stream or queue completion through
  * the error channel.
  *
  * **Example** (failing with Done)
@@ -1370,7 +1370,7 @@ export const Done: <A = void>(value?: A) => Done<A> = core.Done
  * })
  * ```
  *
- * @see {@link Done:var | Done} — create the signal value without an Effect
+ * @see {@link Done} — create the signal value without an Effect
  *
  * @category constructors
  * @since 4.0.0
@@ -1778,7 +1778,7 @@ export const annotate: {
  *
  * **When to use**
  *
- * Use this when you need tracing metadata (e.g. `StackTrace`) from
+ * Use when you need tracing metadata (e.g. `StackTrace`) from
  * a specific reason rather than the whole cause.
  *
  * **Example** (reading reason annotations)

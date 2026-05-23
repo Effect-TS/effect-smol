@@ -5390,7 +5390,7 @@ export * as Symbol from "./Symbol.ts"
  *
  * **When to use**
  *
- * - Coordinating shared state that may be updated by many fibers
+ * Use to coordinate shared state that may be updated by many fibers
  * - Running effectful state transitions that must not overlap
  * - Computing both a return value and a new stored value atomically
  * - Applying partial updates with `Option`, where `None` leaves the value

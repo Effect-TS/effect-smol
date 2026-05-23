@@ -171,7 +171,7 @@ export const make = (
  *
  * **When to use**
  *
- * Prefer {@link layer} to configure reporters via the `Layer` API. Use this
+ * Use when prefer {@link layer} to configure reporters via the `Layer` API. Use this
  * reference directly only when you need low-level control (e.g. reading the
  * current reporters or swapping them inside a `FiberRef`).
  *
@@ -256,7 +256,7 @@ export const layer = <
  *
  * **When to use**
  *
- * This is useful when you want to report an error for observability without
+ * Use when this is useful when you want to report an error for observability without
  * actually failing the fiber.
  *
  * **Example** (Reporting a cause manually)

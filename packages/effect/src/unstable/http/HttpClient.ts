@@ -871,7 +871,7 @@ export const retry: {
  *
  * **When to use**
  *
- * Use `retryOn` to focus on retrying errors, transient responses, or both.
+ * Use to focus on retrying errors, transient responses, or both.
  *
  * **Details**
  *

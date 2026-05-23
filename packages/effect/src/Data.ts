@@ -83,7 +83,7 @@ import type { Unify } from "./Unify.ts"
  *
  * **When to use**
  *
- * Use `Class` when you need a lightweight immutable value type with `.pipe()` support. If you also need a `_tag` discriminator, use {@link TaggedClass}; if you need a yieldable error, use {@link Error} or {@link TaggedError}.
+ * Use when you need a lightweight immutable value type with `.pipe()` support. If you also need a `_tag` discriminator, use {@link TaggedClass}; if you need a yieldable error, use {@link Error} or {@link TaggedError}.
  *
  * **Details**
  *
@@ -127,7 +127,7 @@ export const Class: new<A extends Record<string, any> = {}>(
  *
  * **When to use**
  *
- * Use `TaggedClass` when you need a single-variant tagged type or an ad-hoc discriminator. For multi-variant unions, prefer {@link TaggedEnum} with {@link taggedEnum}; for yieldable errors, use {@link TaggedError}.
+ * Use when you need a single-variant tagged type or an ad-hoc discriminator. For multi-variant unions, prefer {@link TaggedEnum} with {@link taggedEnum}; for yieldable errors, use {@link TaggedError}.
  *
  * **Details**
  *
@@ -170,7 +170,7 @@ export const TaggedClass = <Tag extends string>(
  *
  * **When to use**
  *
- * Use `TaggedEnum` when you have two or more variants that share a common `_tag` discriminator. For generic tagged enums, see {@link TaggedEnum.WithGenerics}.
+ * Use when you have two or more variants that share a common `_tag` discriminator. For generic tagged enums, see {@link TaggedEnum.WithGenerics}.
  *
  * **Details**
  *
@@ -246,7 +246,7 @@ export declare namespace TaggedEnum {
    *
    * **When to use**
    *
-   * Use `WithGenerics` when variant payloads need to be parameterized, such as `Result<E, A>`. Pass the interface, not the type alias, to {@link taggedEnum} to get generic-aware constructors.
+   * Use when variant payloads need to be parameterized, such as `Result<E, A>`. Pass the interface, not the type alias, to {@link taggedEnum} to get generic-aware constructors.
    *
    * **Details**
    *
@@ -296,7 +296,7 @@ export declare namespace TaggedEnum {
    *
    * **When to use**
    *
-   * Use `Kind` to refer to a specific instantiation of a generic tagged enum in type signatures.
+   * Use to refer to a specific instantiation of a generic tagged enum in type signatures.
    *
    * **Example** (Applying generics)
    *
@@ -556,7 +556,7 @@ export declare namespace TaggedEnum {
  *
  * **When to use**
  *
- * Use `taggedEnum` when you have a `TaggedEnum` type and need to construct or inspect values. For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
+ * Use when you have a `TaggedEnum` type and need to construct or inspect values. For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
  *
  * **Details**
  *
@@ -718,7 +718,7 @@ function taggedMatch<
  *
  * **When to use**
  *
- * Use `Error` for errors that do **not** need tag-based discrimination. If you need `Effect.catchTag` support, use {@link TaggedError}.
+ * Use when you use `Error` for errors that do **not** need tag-based discrimination. If you need `Effect.catchTag` support, use {@link TaggedError}.
  *
  * **Details**
  *
@@ -760,7 +760,7 @@ export const Error: new<A extends Record<string, any> = {}>(
  *
  * **When to use**
  *
- * Use `TaggedError` for domain errors in Effect applications where you want discriminated-union error handling.
+ * Use when you use `TaggedError` for domain errors in Effect applications where you want discriminated-union error handling.
  *
  * **Details**
  *

@@ -91,7 +91,7 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
  *
  * **When to use**
  *
- * Use this when you only need to know whether constructor input is valid and do
+ * Use when you only need to know whether constructor input is valid and do
  * not need error details.
  *
  * @category Constructing

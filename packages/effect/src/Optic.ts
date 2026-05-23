@@ -110,7 +110,7 @@ import type { IsUnion } from "./Types.ts"
  *
  * **When to use**
  *
- * - You have a pair of functions that convert back and forth without losing
+ * Use when you have a pair of functions that convert back and forth without losing
  *   information (e.g. `Record ↔ entries`, `Celsius ↔ Fahrenheit`).
  * - You want the strongest optic that can be composed with any other.
  *
@@ -152,7 +152,7 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  *
  * **When to use**
  *
- * - You have two pure functions that form a lossless round-trip between `S`
+ * Use when you have two pure functions that form a lossless round-trip between `S`
  *   and `A`.
  *
  * **Details**
@@ -193,7 +193,7 @@ export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
  *
  * **When to use**
  *
- * - You always have a value to read (the part exists unconditionally).
+ * Use when you always have a value to read (the part exists unconditionally).
  * - You need the original `S` to produce the updated whole (unlike
  *   {@link Iso}).
  *
@@ -234,7 +234,7 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  *
  * **When to use**
  *
- * - You can always extract `A` from `S` and produce a new `S` by
+ * Use when you can always extract `A` from `S` and produce a new `S` by
  *   substituting a new `A`.
  *
  * **Details**
@@ -276,7 +276,7 @@ export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Le
  *
  * **When to use**
  *
- * - The focus is conditional — reading can fail (wrong variant, failed
+ * Use when the focus is conditional — reading can fail (wrong variant, failed
  *   validation).
  * - Building a new `S` from `A` does **not** require the original `S`.
  *
@@ -323,7 +323,7 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  *
  * **When to use**
  *
- * - Reading can fail (the part may not exist in `S`), but building `S`
+ * Use when reading can fail (the part may not exist in `S`), but building `S`
  *   from `A` always succeeds.
  *
  * **Details**
@@ -366,7 +366,7 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  *
  * **When to use**
  *
- * - You want to narrow `T` to the subset that passes certain validation
+ * Use when you want to narrow `T` to the subset that passes certain validation
  *   rules (e.g. positive integer).
  * - You already have `Schema.isGreaterThan`, `Schema.isInt`, etc.
  *
@@ -546,7 +546,7 @@ type ForbidUnion<A, Message extends string> = IsUnion<A> extends true ? [Message
  *
  * **When to use**
  *
- * - The focus may not exist in `S` **and** writing a new `A` back may also
+ * Use when the focus may not exist in `S` **and** writing a new `A` back may also
  *   fail (e.g. the source no longer matches the expected shape).
  * - As the base type: every optic ({@link Iso}, {@link Lens}, {@link Prism},
  *   {@link Traversal}) extends `Optional`.
@@ -1030,7 +1030,7 @@ export interface Optional<in out S, in out A> {
  *
  * **When to use**
  *
- * - Both reading and writing can fail.
+ * Use when both reading and writing can fail.
  *
  * **Details**
  *
@@ -1079,7 +1079,7 @@ export function makeOptional<S, A>(
  *
  * **When to use**
  *
- * - You want to read/update multiple elements at once (e.g. all items in
+ * Use when you want to read/update multiple elements at once (e.g. all items in
  *   an array, or a filtered subset).
  *
  * **Details**
@@ -1473,7 +1473,7 @@ function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
  *
  * **When to use**
  *
- * - You need the focused values as a simple `Array<A>` for further
+ * Use when you need the focused values as a simple `Array<A>` for further
  *   processing.
  *
  * **Details**
@@ -1526,7 +1526,7 @@ const identityIso = make(identityNode)
  *
  * **When to use**
  *
- * - As the starting point of an optic chain: `Optic.id<S>().key("x")...`
+ * Use when as the starting point of an optic chain: `Optic.id<S>().key("x")...`
  * - Anywhere an `Iso<S, S>` is needed.
  *
  * **Details**
@@ -1563,7 +1563,7 @@ export function id<S>(): Iso<S, S> {
  *
  * **When to use**
  *
- * - You want to traverse or manipulate record entries as an array (e.g.
+ * Use when you want to traverse or manipulate record entries as an array (e.g.
  *   with `.forEach()`).
  *
  * **Details**
@@ -1601,7 +1601,7 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
  *
  * **When to use**
  *
- * - You have an `Option<A>` and want to read/update the inner value only
+ * Use when you have an `Option<A>` and want to read/update the inner value only
  *   when it is `Some`.
  *
  * **Details**
@@ -1649,7 +1649,7 @@ export function some<A>(): Prism<Option.Option<A>, A> {
  *
  * **When to use**
  *
- * - You want to match or construct `None` values within an optic chain.
+ * Use when you want to match or construct `None` values within an optic chain.
  *
  * **Details**
  *
@@ -1694,7 +1694,7 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
  *
  * **When to use**
  *
- * - You have a `Result<A, E>` and want to read/update `A` only when it
+ * Use when you have a `Result<A, E>` and want to read/update `A` only when it
  *   is a `Success`.
  *
  * **Details**
@@ -1739,7 +1739,7 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
  *
  * **When to use**
  *
- * - You have a `Result<A, E>` and want to read/update `E` only when it
+ * Use when you have a `Result<A, E>` and want to read/update `E` only when it
  *   is a `Failure`.
  *
  * **Details**

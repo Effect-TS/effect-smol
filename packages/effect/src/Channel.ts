@@ -424,6 +424,13 @@ export const fromPull = <OutElem, OutErr, OutDone, EX, EnvX, Env>(
  * pulls, but also provides a forked scope that closes when the resulting
  * Channel completes.
  *
+ * **When to use**
+ *
+ * Use when building channels that require scoped resource lifecycle management,
+ * providing both the channel scope and a forked scope that automatically closes
+ * when the channel completes.
+ *
+ * @see {@link fromTransform} for a simpler transformation without a forked scope
  * @category constructors
  * @since 4.0.0
  */

@@ -499,7 +499,7 @@ export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: tr
  *
  * **When to use**
  *
- * Use this if your protocol supports framing for messages, otherwise use
+ * Use when you use this if your protocol supports framing for messages, otherwise use
  * {@link layerNdjson}.
  *
  * @category serialization
@@ -512,7 +512,7 @@ export const layerJson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSeriali
  *
  * **When to use**
  *
- * Use this if your protocol does not support framing for messages, otherwise
+ * Use when you use this if your protocol does not support framing for messages, otherwise
  * use {@link layerJson}.
  *
  * @category serialization

@@ -469,7 +469,7 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
  *
  * **When to use**
  *
- * Useful as a starting point for building toolkits or as a default value. Can
+ * Use as a starting point for building toolkits or as a default value. Can
  * be extended using the merge function to add tools.
  *
  * @category constructors

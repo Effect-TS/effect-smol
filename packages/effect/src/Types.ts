@@ -298,7 +298,7 @@ export type Simplify<A> = {
  *
  * **When to use**
  *
- * Use in conditional types or type-level tests to assert type equality.
+ * Use to assert type equality in conditional types or type-level tests.
  *
  * **Details**
  *
@@ -457,7 +457,7 @@ export type MergeRight<Target, Source> = Simplify<
  *
  * **When to use**
  *
- * Prefer {@link MergeLeft} or {@link MergeRight} for clarity about which
+ * Use when prefer {@link MergeLeft} or {@link MergeRight} for clarity about which
  * side wins.
  *
  * **Example** (Merging records)
@@ -587,8 +587,8 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
  *
  * **When to use**
  *
- * Use on a function parameter when you want inference to come from other
- * parameters, not this one.
+ * Use when a function parameter must match an inferred type without becoming
+ * an inference source.
  *
  * **Details**
  *
@@ -829,8 +829,7 @@ export type NotFunction<T> = T extends Function ? never : T
  *
  * **When to use**
  *
- * Use in generic functions to catch accidental extra properties at compile
- * time.
+ * Use to catch accidental extra properties in generic functions at compile time.
  *
  * **Details**
  *

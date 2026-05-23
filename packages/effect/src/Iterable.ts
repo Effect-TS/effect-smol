@@ -151,10 +151,16 @@ export const replicate: {
  * Repeats an iterable `n` times, yielding the full contents of `self` for each
  * repetition.
  *
+ * **When to use**
+ *
+ * Use to repeat an iterable's contents a specific number of times.
+ *
  * **Details**
  *
  * The result is lazy. Each repetition obtains a new iterator from `self`.
  *
+ * @see {@link forever} for repeating without an upper bound
+ * @see {@link replicate} for repeating a single value
  * @category constructors
  * @since 4.0.0
  */
@@ -1344,7 +1350,7 @@ const constEmptyIterator: Iterator<never> = {
  *
  * **When to use**
  *
- * Use this reusable empty iterable as a base case for operations or when you
+ * Use as a base case for operations or when you
  * need to represent "no data" in a type-safe way.
  *
  * **Example** (Creating an empty iterable)
@@ -1373,7 +1379,7 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
  *
  * **When to use**
  *
- * Use this to wrap a single value in an iterable context so it can be combined
+ * Use to wrap a single value in an iterable context so it can be combined
  * with other iterable operations.
  *
  * **Example** (Wrapping a single value)
@@ -1902,7 +1908,7 @@ export const filter: {
  *
  * **When to use**
  *
- * Use this when working with APIs or functions that return nullable values,
+ * Use when working with APIs or functions that return nullable values,
  * providing a clean way to filter out null or undefined while transforming.
  *
  * **Example** (FlatMapping nullable results)

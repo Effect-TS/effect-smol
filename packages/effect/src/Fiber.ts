@@ -98,7 +98,7 @@ const TypeId = `~effect/Fiber/${version}`
  *
  * **When to use**
  *
- * Use `Fiber` values when you need to observe, join, interrupt, or otherwise
+ * Use when you use `Fiber` values when you need to observe, join, interrupt, or otherwise
  * coordinate work that has already been forked.
  *
  * **Details**
@@ -220,7 +220,7 @@ export {
    *
    * **When to use**
    *
-   * Use `Fiber.await` when you need to inspect whether the fiber succeeded,
+   * Use when you need to inspect whether the fiber succeeded,
    * failed, died, or was interrupted without propagating the failure.
    *
    * **Details**
@@ -301,7 +301,7 @@ export const awaitAll: <A extends Fiber<any, any>>(
  *
  * **When to use**
  *
- * Use `Fiber.join` when the forked fiber is part of the current workflow and
+ * Use when the forked fiber is part of the current workflow and
  * its failure should fail the current Effect.
  *
  * **Gotchas**
@@ -583,7 +583,8 @@ export const interruptAllAs: {
  *
  * **When to use**
  *
- * Use at boundaries where an unknown value may be a runtime fiber.
+ * Use when checking values at boundaries where an unknown value may be a
+ * runtime fiber.
  *
  * **Details**
  *
@@ -627,7 +628,7 @@ export const isFiber = (
  *
  * **When to use**
  *
- * Use for low-level runtime integrations that need access to the currently
+ * Use when you need low-level runtime integrations that need access to the currently
  * executing fiber.
  *
  * **Gotchas**

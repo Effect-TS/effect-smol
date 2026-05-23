@@ -53,7 +53,10 @@ export type ScalarThemeId =
 /**
  * Configuration passed to the embedded Scalar API reference UI.
  *
- * @see https://github.com/scalar/scalar/blob/main/documentation/configuration.md
+ * **Details**
+ *
+ * This configuration follows Scalar's API reference configuration:
+ * https://github.com/scalar/scalar/blob/main/documentation/configuration.md
  *
  * @category models
  * @since 4.0.0

@@ -42,7 +42,7 @@ const TypeId = "~effect/ai/Model" as const
  *
  * **When to use**
  *
- * Use a Model directly as a Layer to provide a particular model implementation
+ * Use when you use a Model directly as a Layer to provide a particular model implementation
  * to an Effect program, or use it as an Effect to "lift" dependencies of the
  * Model constructor into the parent Effect when you want to use a Model from
  * within an Effect service.

@@ -176,7 +176,7 @@ export type ConstructorDefault = "no-default" | "with-default"
  *
  * **When to use**
  *
- * - Pass `disableChecks: true` to skip validation when you trust the data.
+ * Use when passing `disableChecks: true` to skip validation when you trust the data.
  * - Pass `parseOptions` to control error reporting behavior.
  *
  * @see {@link Bottom.makeEffect}
@@ -203,7 +203,7 @@ export interface MakeOptions {
  *
  * **When to use**
  *
- * - You are writing advanced generic schema utilities or performing schema
+ * Use when you are writing advanced generic schema utilities or performing schema
  *   introspection.
  * - In user code, prefer {@link Schema}, {@link Codec}, {@link Decoder}, or
  *   {@link Encoder} instead.
@@ -258,10 +258,57 @@ export interface Bottom<
   check(...checks: readonly [AST.Check<this["Type"]>, ...Array<AST.Check<this["Type"]>>]): this["Rebuild"]
   rebuild(ast: this["ast"]): this["Rebuild"]
   /**
-   * Constructs a value from the make input representation.
+   * Constructs a value from the make input representation synchronously.
+   *
+   * **When to use**
+   *
+   * Use when constructor input is trusted or when validation failure
+   * should abort with a thrown `Error`.
+   *
+   * **Details**
+   *
+   * Applies constructor defaults and type-side validation according to
+   * `MakeOptions`.
+   *
+   * **Gotchas**
+   *
+   * Throws an `Error` with the schema issue in its `cause` when validation
+   * fails.
+   *
+   * @see {@link Bottom.makeOption} — construct synchronously and discard validation details
+   * @see {@link Bottom.makeEffect} — construct through `Effect` when validation failure should stay in the error channel
    */
   make(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
+  /**
+   * Constructs a value from the make input representation, returning `Option.none`
+   * when validation fails.
+   *
+   * **When to use**
+   *
+   * Use when you only need to know whether construction succeeds
+   * and do not need validation details.
+   *
+   * **Details**
+   *
+   * Applies constructor defaults and type-side validation according to
+   * `MakeOptions`.
+   *
+   * @see {@link Bottom.make} — construct synchronously when validation failure should throw
+   * @see {@link Bottom.makeEffect} — construct through `Effect` when validation details should stay in the error channel
+   */
   makeOption(input: this["~type.make.in"], options?: MakeOptions): Option_.Option<this["Type"]>
+  /**
+   * Constructs a value from the make input representation, returning validation
+   * failures in the `Effect` error channel.
+   *
+   * **When to use**
+   *
+   * Use when constructor input may fail validation and you want to
+   * compose that failure with other `Effect` operations instead of throwing.
+   *
+   * @see {@link Bottom.make} — construct synchronously when validation failure should throw
+   * @see {@link Bottom.makeOption} — construct synchronously and discard validation details
+   */
   makeEffect(input: this["~type.make.in"], options?: MakeOptions): Effect.Effect<this["Type"], SchemaError>
 }
 

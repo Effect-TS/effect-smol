@@ -70,7 +70,7 @@ import type * as Order from "./Order.ts"
  *
  * **When to use**
  *
- * Use `Combiner` when you need to describe how two values of the same type
+ * Use when you need to describe how two values of the same type
  * merge, pass a reusable combining strategy to library functions like
  * `Struct.makeCombiner` or `Option.makeCombinerFailFast`, or define the
  * combining step for a `Reducer`.
@@ -102,7 +102,7 @@ export interface Combiner<A> {
  *
  * **When to use**
  *
- * Use this when you have a custom combining operation that is not covered by
+ * Use when you have a custom combining operation that is not covered by
  * the built-in constructors (`min`, `max`, `first`, `last`, `constant`).
  *
  * **Details**
@@ -134,7 +134,7 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
  *
  * **When to use**
  *
- * Use this when the "right" value should act as the accumulator side, or when
+ * Use when the "right" value should act as the accumulator side, or when
  * you want to reverse the natural direction of a non-commutative combiner such
  * as string concatenation.
  *
@@ -168,7 +168,7 @@ export function flip<A>(combiner: Combiner<A>): Combiner<A> {
  *
  * **When to use**
  *
- * Use this when you want to accumulate the minimum value across a collection or
+ * Use when you want to accumulate the minimum value across a collection or
  * build a `Reducer` that tracks the running minimum.
  *
  * **Details**
@@ -204,7 +204,7 @@ export function min<A>(order: Order.Order<A>): Combiner<A> {
  *
  * **When to use**
  *
- * Use this when you want to accumulate the maximum value across a collection or
+ * Use when you want to accumulate the maximum value across a collection or
  * build a `Reducer` that tracks the running maximum.
  *
  * **Details**
@@ -239,7 +239,7 @@ export function max<A>(order: Order.Order<A>): Combiner<A> {
  *
  * **When to use**
  *
- * Use this when you want "first write wins" semantics while merging values, or
+ * Use when you want "first write wins" semantics while merging values, or
  * when the combining logic should keep the existing value.
  *
  * **Details**
@@ -271,7 +271,7 @@ export function first<A>(): Combiner<A> {
  *
  * **When to use**
  *
- * Use this when you want "last write wins" semantics while merging values, or
+ * Use when you want "last write wins" semantics while merging values, or
  * when each new value should replace the accumulator.
  *
  * **Details**
@@ -304,7 +304,7 @@ export function last<A>(): Combiner<A> {
  *
  * **When to use**
  *
- * Use this when a combiner should produce a fixed result regardless of input,
+ * Use when a combiner should produce a fixed result regardless of input,
  * or when a generic API needs a combiner but the combined value is
  * predetermined.
  *
@@ -339,7 +339,7 @@ export function constant<A>(a: A): Combiner<A> {
  *
  * **When to use**
  *
- * Use this when you are building delimited strings (CSV, paths, etc.) by
+ * Use when you are building delimited strings (CSV, paths, etc.) by
  * repeated combination, or when you need to inject a fixed separator between
  * accumulated values.
  *

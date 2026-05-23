@@ -95,7 +95,7 @@ const TypeId = "~effect/SchemaIssue/Issue"
  *
  * **When to use**
  *
- * - Narrowing an `unknown` value to `Issue` in error-handling code.
+ * Use when narrowing an `unknown` value to `Issue` in error-handling code.
  * - Distinguishing an `Issue` from other error types in a catch-all handler.
  *
  * **Details**
@@ -129,7 +129,7 @@ export function isIssue(u: unknown): u is Issue {
  *
  * **When to use**
  *
- * - Constraining formatter hooks to only handle terminal nodes.
+ * Use when constraining formatter hooks to only handle terminal nodes.
  * - Pattern-matching on the `_tag` of an issue when you only care about leaves.
  *
  * **Details**
@@ -156,7 +156,7 @@ export type Leaf =
  *
  * **When to use**
  *
- * - Typing the error channel in `Effect<A, Issue, R>` results from schema
+ * Use when typing the error channel in `Effect<A, Issue, R>` results from schema
  *   parsing.
  * - Writing custom formatters or issue-tree walkers.
  *
@@ -196,7 +196,7 @@ class Base {
  *
  * **When to use**
  *
- * - Inspect which filter rejected the value.
+ * Use when inspect which filter rejected the value.
  * - Walk the inner `issue` for the specific validation failure.
  *
  * **Details**
@@ -266,7 +266,7 @@ export class Filter extends Base {
  *
  * **When to use**
  *
- * - Inspect failures from `Schema.decodeTo` / `Schema.encodeTo`
+ * Use when inspect failures from `Schema.decodeTo` / `Schema.encodeTo`
  *   transformations.
  * - Walk the inner `issue` for the root cause of the transformation failure.
  *
@@ -325,7 +325,7 @@ export class Encoding extends Base {
  *
  * **When to use**
  *
- * - Walk the issue tree to accumulate path segments for error reporting.
+ * Use when walk the issue tree to accumulate path segments for error reporting.
  * - Match on `_tag === "Pointer"` when flattening nested issues.
  *
  * **Details**
@@ -373,7 +373,7 @@ export class Pointer extends Base {
  *
  * **When to use**
  *
- * - Detect absent fields in struct/tuple validation.
+ * Use when detect absent fields in struct/tuple validation.
  * - Typically found inside a {@link Pointer} that indicates which key is
  *   missing.
  *
@@ -412,7 +412,7 @@ export class MissingKey extends Base {
  *
  * **When to use**
  *
- * - Detect excess properties during strict struct/tuple validation.
+ * Use when detect excess properties during strict struct/tuple validation.
  * - Typically found inside a {@link Pointer} that indicates which key was
  *   unexpected.
  *
@@ -460,7 +460,7 @@ export class UnexpectedKey extends Base {
  *
  * **When to use**
  *
- * - Walk the issue tree for struct/tuple schemas that collect all field errors
+ * Use when walk the issue tree for struct/tuple schemas that collect all field errors
  *   rather than failing on the first.
  * - Match on `_tag === "Composite"` to iterate over `issues`.
  *
@@ -519,7 +519,7 @@ export class Composite extends Base {
  *
  * **When to use**
  *
- * - Detect basic type mismatches (wrong primitive, null where object expected,
+ * Use when detect basic type mismatches (wrong primitive, null where object expected,
  *   etc.).
  * - The most common leaf issue in typical validation failures.
  *
@@ -583,7 +583,7 @@ export class InvalidType extends Base {
  *
  * **When to use**
  *
- * - Detect constraint violations from `Schema.filter`, `Schema.minLength`,
+ * Use when detect constraint violations from `Schema.filter`, `Schema.minLength`,
  *   `Schema.greaterThan`, etc.
  * - Create custom validation errors in `Schema.makeFilter` callbacks.
  *
@@ -647,7 +647,7 @@ export class InvalidValue extends Base {
  *
  * **When to use**
  *
- * - Detect that a schema requires async execution but was run synchronously.
+ * Use when detect that a schema requires async execution but was run synchronously.
  * - Provide custom error messages via the `annotations.message` field.
  *
  * **Details**
@@ -707,7 +707,7 @@ export class Forbidden extends Base {
  *
  * **When to use**
  *
- * - Inspect which union members were attempted and why each failed.
+ * Use when inspect which union members were attempted and why each failed.
  * - `issues` may be empty when the union has no members or when the input does
  *   not pass the initial type guard.
  *
@@ -766,7 +766,7 @@ export class AnyOf extends Base {
  *
  * **When to use**
  *
- * - Detect ambiguous union matches when `oneOf` validation is enabled.
+ * Use when detect ambiguous union matches when `oneOf` validation is enabled.
  * - Inspect `successes` to see which members matched.
  *
  * **Details**
@@ -823,7 +823,7 @@ export class OneOf extends Base {
  *
  * **When to use**
  *
- * - Retrieve the offending value for logging or custom error rendering.
+ * Use when retrieve the offending value for logging or custom error rendering.
  * - Uniformly access `actual` regardless of which issue variant you have.
  *
  * **Details**
@@ -928,7 +928,7 @@ export interface Formatter<out Format> extends FormatterI<Issue, Format> {}
  *
  * **When to use**
  *
- * - Pass a custom `LeafHook` to {@link makeFormatterStandardSchemaV1} to
+ * Use when passing a custom `LeafHook` to {@link makeFormatterStandardSchemaV1} to
  *   override how terminal issues are rendered.
  *
  * @see {@link defaultLeafHook} — the built-in implementation
@@ -944,8 +944,8 @@ export type LeafHook = (issue: Leaf) => string
  *
  * **When to use**
  *
- * - Use as-is when you only need to customise the {@link CheckHook} but want
- *   the default leaf rendering.
+ * Use as the default leaf renderer when you only need to customise the
+ * {@link CheckHook}.
  * - Reference as a starting point for custom `LeafHook` implementations.
  *
  * **Details**
@@ -999,8 +999,9 @@ export const defaultLeafHook: LeafHook = (issue): string => {
  *
  * **When to use**
  *
- * - Pass a custom `CheckHook` to {@link makeFormatterStandardSchemaV1} to
- *   override how filter failures are rendered.
+ * Use when passing a custom `CheckHook` to
+ * {@link makeFormatterStandardSchemaV1} to override how filter failures are
+ * rendered.
  *
  * **Details**
  *
@@ -1020,8 +1021,8 @@ export type CheckHook = (issue: Filter) => string | undefined
  *
  * **When to use**
  *
- * - Use as-is when you only need to customise the {@link LeafHook} but want
- *   the default filter rendering.
+ * Use as the default filter renderer when you only need to customise the
+ * {@link LeafHook}.
  *
  * **Details**
  *
@@ -1045,7 +1046,7 @@ export const defaultCheckHook: CheckHook = (issue): string | undefined => {
  *
  * **When to use**
  *
- * - Integrate with libraries that consume the
+ * Use when integrate with libraries that consume the
  *   [Standard Schema V1](https://github.com/standard-schema/standard-schema)
  *   error format.
  * - Customise error rendering by providing `leafHook` and/or `checkHook`.
@@ -1153,7 +1154,7 @@ function formatCheck<T>(check: AST.Check<T>): string {
  *
  * **When to use**
  *
- * - Produce error messages for logging, CLI output, or developer-facing
+ * Use when produce error messages for logging, CLI output, or developer-facing
  *   diagnostics.
  * - This is the default formatter used by `Issue.toString()`.
  *

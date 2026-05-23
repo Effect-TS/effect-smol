@@ -129,6 +129,11 @@ export const Clock: Context.Reference<Clock> = effect.ClockRef
 /**
  * Accesses the current Clock service and uses it to run the provided function.
  *
+ * **When to use**
+ *
+ * Use when you need the full Clock service interface to perform multiple time
+ * operations or call unsafe variants within a single effect.
+ *
  * **Example** (Using the current Clock service)
  *
  * ```ts
@@ -143,6 +148,9 @@ export const Clock: Context.Reference<Clock> = effect.ClockRef
  * )
  * ```
  *
+ * @see {@link Clock} for the service reference
+ * @see {@link currentTimeMillis} for convenience accessor that returns milliseconds
+ * @see {@link currentTimeNanos} for convenience accessor that returns nanoseconds
  * @category constructors
  * @since 2.0.0
  */

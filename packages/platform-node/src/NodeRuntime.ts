@@ -24,7 +24,7 @@ import type * as Runtime from "effect/Runtime"
  *
  * **When to use**
  *
- * Use this function to run an Effect as your application's main program, especially
+ * Use to run an Effect as your application's main program, especially
  * when you need structured error handling, log management, interrupt support,
  * or advanced teardown capabilities.
  *

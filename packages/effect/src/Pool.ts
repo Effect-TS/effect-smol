@@ -156,6 +156,11 @@ export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u
 /**
  * Makes a new pool of the specified fixed size.
  *
+ * **When to use**
+ *
+ * Use to create a fixed-size pool when you know the exact number of resources
+ * needed upfront, without growth or shrinkage.
+ *
  * **Details**
  *
  * The pool is returned in a `Scope`, which governs the lifetime of the pool.
@@ -172,6 +177,8 @@ export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u
  * A `targetUtilization` of 0.5 will create new pool items when the existing items are
  * 50% utilized.
  *
+ * @see {@link makeWithTTL} for pools with min/max sizes and a TTL-based shrinking policy
+ * @see {@link makeWithStrategy} for pools with a custom resizing and reclamation strategy
  * @category constructors
  * @since 2.0.0
  */

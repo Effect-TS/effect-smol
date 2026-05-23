@@ -175,7 +175,7 @@ export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Om
  *
  * **When to use**
  *
- * Use in a pipeline when you need to extract a single property.
+ * Use to extract a single property in a pipeline.
  *
  * **Details**
  *
@@ -205,7 +205,7 @@ export const get: {
  *
  * **When to use**
  *
- * Use instead of `Object.keys` when you want the return type narrowed to the
+ * Use when you use instead of `Object.keys` when you want the return type narrowed to the
  * known keys of the struct.
  *
  * **Details**
@@ -519,7 +519,7 @@ export const evolveEntries: {
  *
  * **When to use**
  *
- * Use for simple, declarative key renaming without custom logic.
+ * Use when you need simple, declarative key renaming without custom logic.
  *
  * **Details**
  *
@@ -633,7 +633,7 @@ export const makeOrder = order.Struct
  *
  * **When to use**
  *
- * Use this interface when defining a typed function for {@link map},
+ * Use when you use this interface when defining a typed function for {@link map},
  * {@link mapPick}, or {@link mapOmit}.
  *
  * **Details**
@@ -669,7 +669,7 @@ export interface Lambda {
  *
  * **When to use**
  *
- * Use this when you need to compute what type a Lambda would produce for a
+ * Use when you need to compute what type a Lambda would produce for a
  * given input.
  *
  * **Details**

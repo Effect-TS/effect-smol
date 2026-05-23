@@ -479,6 +479,12 @@ export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
 /**
  * Defines a condition for matching values.
  *
+ * **When to use**
+ *
+ * Use to add one positive pattern case to a `Match.type` or `Match.value`
+ * pipeline when a direct value, predicate, or structured object pattern should
+ * run a handler for matching input.
+ *
  * **Details**
  *
  * This function enables pattern matching by checking whether a given value
@@ -518,10 +524,10 @@ export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
  * // Output: "4 is too young"
  * ```
  *
- * @see {@link whenOr} Use this when multiple patterns should match in a single
- * condition.
- * @see {@link whenAnd} Use this when a value must match all provided patterns.
- * @see {@link orElse} Provides a fallback when no patterns match.
+ * @see {@link whenOr} for handling any one of several patterns with the same handler
+ * @see {@link whenAnd} for requiring all provided patterns to match before running a handler
+ * @see {@link not} for handling inputs that do not match a pattern
+ * @see {@link orElse} for providing a fallback when no pattern case matches
  *
  * @category Defining patterns
  * @since 4.0.0

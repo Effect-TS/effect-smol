@@ -83,7 +83,7 @@ export const encode = <S extends Schema.Top>(
  *
  * **When to use**
  *
- * Use this at channel boundaries where the encoded representation is
+ * Use when you use this at channel boundaries where the encoded representation is
  * intentionally untyped, while still encoding typed input chunks with the
  * provided schema.
  *
@@ -133,11 +133,18 @@ export const decode = <S extends Schema.Top>(
 /**
  * Creates a `decode` channel variant for schema-decoding channel boundaries.
  *
+ * **When to use**
+ *
+ * Use when the encoded input type is intentionally unknown or untyped, so
+ * that only the decoded output is statically typed according to the schema.
+ *
  * **Details**
  *
  * The channel decodes non-empty encoded chunks into schema values, emits
  * `SchemaError` when decoding fails, and requires the schema's decoding
  * services.
+ *
+ * @see {@link decode} for the typed variant that preserves the schema's encoded type
  *
  * @category constructors
  * @since 4.0.0

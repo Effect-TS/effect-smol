@@ -507,10 +507,17 @@ export const forkMemoMap = (parent: MemoMap): Effect<MemoMap> => internalEffect.
 /**
  * A service reference for the current `MemoMap` used in layer construction.
  *
+ * **When to use**
+ *
+ * Use when building custom layer operations that need to access the current
+ * memoization map from the fiber context.
+ *
  * **Details**
  *
- * This service provides access to the current memoization map during layer building,
- * allowing layers to share memoized results.
+ * This service wraps a `MemoMap` as a `Context.Service`, making it available
+ * for dependency injection during layer construction.
+ *
+ * @see {@link MemoMap} the memoization map type wrapped by this service
  *
  * @category models
  * @since 3.13.0
@@ -695,7 +702,7 @@ export const buildWithScope: {
  *
  * **When to use**
  *
- * Use `succeed` when the service implementation is already constructed and does
+ * Use when the service implementation is already constructed and does
  * not need effectful acquisition. Use `sync` when the service should be created
  * lazily during layer construction.
  *
@@ -734,7 +741,7 @@ export const succeed: {
  *
  * **When to use**
  *
- * Use `succeedContext` when you already have a `Context` or need to provide
+ * Use when you already have a `Context` or need to provide
  * multiple services at once. Use `succeed` when you only need to provide one
  * service value.
  *
@@ -781,7 +788,7 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
  *
  * **When to use**
  *
- * Use `Layer.empty` as the no-op branch when conditionally composing layers.
+ * Use when you use `Layer.empty` as the no-op branch when conditionally composing layers.
  * If you need to run an effect during layer construction while still providing
  * no services, use `effectDiscard`.
  *
@@ -809,7 +816,7 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  *
  * **When to use**
  *
- * Use `sync` when the service can be created synchronously but should be
+ * Use when the service can be created synchronously but should be
  * deferred until the layer is built. Use `succeed` when the service value is
  * already available.
  *
@@ -852,7 +859,7 @@ export const sync: {
  *
  * **When to use**
  *
- * Use `syncContext` when multiple services can be created synchronously and
+ * Use when multiple services can be created synchronously and
  * should be deferred until the layer is built. Use `sync` when you only need to
  * provide one service.
  *
@@ -891,7 +898,7 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  *
  * **When to use**
  *
- * Use `effect` when constructing the service requires effects, dependencies, or
+ * Use when constructing the service requires effects, dependencies, or
  * scoped resource acquisition. Use `effectContext` when the effect produces
  * multiple services in a `Context`, and `effectDiscard` when construction work
  * should provide no services.
@@ -950,7 +957,7 @@ const effectImpl = <I, S, E, R>(
  *
  * **When to use**
  *
- * Use `effectContext` when effectful construction needs to provide multiple
+ * Use when effectful construction needs to provide multiple
  * services at once. Use `effect` when the effect produces one service value.
  *
  * **Details**
@@ -991,7 +998,7 @@ export const effectContext = <A, E, R>(
  *
  * **When to use**
  *
- * This is useful when you want to run an Effect for its side effects during
+ * Use when this is useful when you want to run an Effect for its side effects during
  * layer construction, but don't need to provide any services.
  *
  * **Example** (Running an effect during layer construction)
@@ -1049,7 +1056,7 @@ export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E,
  *
  * **When to use**
  *
- * Use this when you have an `Effect` that produces a `Layer` and you want to
+ * Use when you have an `Effect` that produces a `Layer` and you want to
  * use that layer directly.
  *
  * **Details**
@@ -1106,7 +1113,7 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
  *
  * **When to use**
  *
- * Use this when you need to combine multiple independent layers.
+ * Use when you need to combine multiple independent layers.
  *
  * **Details**
  *
@@ -1158,7 +1165,7 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  *
  * **When to use**
  *
- * Use `merge` when composing from an existing layer in a pipeline. Use
+ * Use when composing from an existing layer in a pipeline. Use
  * `mergeAll` when you already have all layers as separate arguments.
  *
  * **Details**
@@ -1254,7 +1261,7 @@ const provideWith = (
  *
  * **When to use**
  *
- * Use `provide` when the dependency layer is an implementation detail of the
+ * Use when the dependency layer is an implementation detail of the
  * layer being built and should not be exposed to callers. Use `provideMerge`
  * when callers should also receive the dependency services.
  *
@@ -1365,7 +1372,7 @@ export const provide: {
  *
  * **When to use**
  *
- * Use this when callers need access to both the service being built and the
+ * Use when callers need access to both the service being built and the
  * dependency used to build it, such as a health check that needs both a
  * repository and its database. Prefer `provide` when the dependency should stay
  * private.
@@ -1735,7 +1742,7 @@ export {
    *
    * **When to use**
    *
-   * Use `catch` when every typed construction error should use the same recovery
+   * Use when every typed construction error should use the same recovery
    * path. Use `catchTag` to recover from specific tagged errors, and `catchCause`
    * when recovery needs the full failure cause.
    *
@@ -1753,7 +1760,7 @@ export {
  *
  * **When to use**
  *
- * Use `catchTag` when only some tagged construction errors should be recovered.
+ * Use when only some tagged construction errors should be recovered.
  * Use `catchCause` when recovery depends on defects, interruption, or other
  * cause information.
  *
@@ -1838,7 +1845,7 @@ export const catchTag: {
  *
  * **When to use**
  *
- * Use `catchCause` when recovery needs more than the typed error, such as
+ * Use when recovery needs more than the typed error, such as
  * defects or interruption information. Use `catchTag` when recovery only needs
  * to match specific tagged errors.
  *
@@ -1915,7 +1922,7 @@ export const catchCause: {
  *
  * **When to use**
  *
- * Use this to adapt or extend a service's behavior during the creation of a
+ * Use to adapt or extend a service's behavior during the creation of a
  * layer.
  *
  * **Details**
@@ -1952,7 +1959,7 @@ export const updateService: {
  *
  * **When to use**
  *
- * Use `fresh` when two parts of an application must receive separate instances
+ * Use when two parts of an application must receive separate instances
  * of a resource, such as two independent client sessions. Do not use it just to
  * work around confusing composition: by default, sharing the same layer value is
  * usually the desired behavior.
@@ -2034,7 +2041,7 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  *
  * **When to use**
  *
- * Use this when your entire application is a layer, such as an HTTP server.
+ * Use when your entire application is a layer, such as an HTTP server.
  *
  * **Details**
  *

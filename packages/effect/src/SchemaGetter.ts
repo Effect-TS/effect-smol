@@ -102,7 +102,7 @@ import * as Str from "./String.ts"
  *
  * **When to use**
  *
- * - Building custom schema transformations with `Schema.decodeTo` or `Schema.decode`.
+ * Use to build custom schema transformations with `Schema.decodeTo` or `Schema.decode`.
  * - Composing multiple transformation steps into a single getter.
  *
  * **Details**
@@ -128,9 +128,9 @@ import * as Str from "./String.ts"
  * // composed: Getter<number, string> — parses then doubles
  * ```
  *
- * @see {@link transform} - create a getter from a pure function
- * @see {@link passthrough} - identity getter
- * @see {@link transformOrFail} - fallible transformation
+ * @see {@link transform} to create a getter from a pure function
+ * @see {@link passthrough} for the identity getter
+ * @see {@link transformOrFail} for fallible transformation
  *
  * @category models
  * @since 4.0.0
@@ -169,7 +169,7 @@ export class Getter<out T, in E, R = never> extends Pipeable.Class {
  *
  * **When to use**
  *
- * - A schema field should always decode to a fixed value.
+ * Use when a schema field should always decode to a fixed value.
  * - You need a placeholder getter that produces a known default.
  *
  * **Details**
@@ -186,8 +186,8 @@ export class Getter<out T, in E, R = never> extends Pipeable.Class {
  * // alwaysZero: Getter<0, unknown> — always produces 0
  * ```
  *
- * @see {@link transform} - when you need to use the input value
- * @see {@link passthrough} - when you want to keep the input as-is
+ * @see {@link transform} when you need to use the input value
+ * @see {@link passthrough} when you want to keep the input as-is
  *
  * @category constructors
  * @since 4.0.0
@@ -201,7 +201,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  *
  * **When to use**
  *
- * - A transformation should unconditionally reject input.
+ * Use when a transformation should unconditionally reject input.
  * - Building custom validation getters that produce specific error types.
  *
  * **Details**
@@ -219,8 +219,8 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  * )
  * ```
  *
- * @see {@link forbidden} - convenience for `Forbidden` issues
- * @see {@link checkEffect} - fail conditionally based on input value
+ * @see {@link forbidden} for a convenience helper for `Forbidden` issues
+ * @see {@link checkEffect} to fail conditionally based on input value
  *
  * @category constructors
  * @since 4.0.0
@@ -234,7 +234,7 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  *
  * **When to use**
  *
- * - A field or direction (encode/decode) should be disallowed entirely.
+ * Use when a field or direction (encode/decode) should be disallowed entirely.
  * - You want a clear "forbidden" error message in schema validation output.
  *
  * **Details**
@@ -252,7 +252,7 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  * )
  * ```
  *
- * @see {@link fail} - fail with a custom issue type
+ * @see {@link fail} to fail with a custom issue type
  *
  * @category constructors
  * @since 4.0.0
@@ -272,7 +272,7 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  *
  * **When to use**
  *
- * - No transformation is needed between encoded and decoded types.
+ * Use when no transformation is needed between encoded and decoded types.
  * - One side of a `decodeTo` pair (encode or decode) should be a no-op.
  *
  * **Details**
@@ -296,9 +296,9 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  * )
  * ```
  *
- * @see {@link passthroughSupertype} - when `T extends E`
- * @see {@link passthroughSubtype} - when `E extends T`
- * @see {@link transform} - when you need to change the value
+ * @see {@link passthroughSupertype} when `T extends E`
+ * @see {@link passthroughSubtype} when `E extends T`
+ * @see {@link transform} when you need to change the value
  *
  * @category constructors
  * @since 4.0.0
@@ -314,7 +314,7 @@ export function passthrough<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use this when no runtime conversion is needed but the getter should be typed
+ * Use when no runtime conversion is needed but the getter should be typed
  * as producing a decoded/output type that is narrower than the encoded/input
  * type.
  *
@@ -331,8 +331,8 @@ export function passthrough<T>(): Getter<T, T> {
  * const g = SchemaGetter.passthroughSupertype<string, string>()
  * ```
  *
- * @see {@link passthrough} - when types are identical
- * @see {@link passthroughSubtype} - when `E extends T`
+ * @see {@link passthrough} when types are identical
+ * @see {@link passthroughSubtype} when `E extends T`
  *
  * @category constructors
  * @since 4.0.0
@@ -347,7 +347,7 @@ export function passthroughSupertype<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * - The encoded type is narrower than the decoded type.
+ * Use when the encoded type is narrower than the decoded type.
  * - You need type-safe passthrough without `{ strict: false }`.
  *
  * **Details**
@@ -363,8 +363,8 @@ export function passthroughSupertype<T>(): Getter<T, T> {
  * const g = SchemaGetter.passthroughSubtype<string, "hello">()
  * ```
  *
- * @see {@link passthrough} - when types are identical
- * @see {@link passthroughSupertype} - when `T extends E`
+ * @see {@link passthrough} when types are identical
+ * @see {@link passthroughSupertype} when `T extends E`
  *
  * @category constructors
  * @since 4.0.0
@@ -379,7 +379,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * - You need to provide a fallback or computed value for missing struct keys.
+ * Use when you need to provide a fallback or computed value for missing struct keys.
  * - Building custom "default value" logic more complex than {@link withDefault}.
  *
  * **Details**
@@ -398,9 +398,9 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * )
  * ```
  *
- * @see {@link required} - fails if input is absent
- * @see {@link withDefault} - simpler default value for undefined inputs
- * @see {@link onSome} - handle only present values
+ * @see {@link required} when absent input should fail
+ * @see {@link withDefault} for a simpler default value for undefined inputs
+ * @see {@link onSome} to handle only present values
  *
  * @category constructors
  * @since 4.0.0
@@ -416,7 +416,7 @@ export function onNone<T, E extends T = T, R = never>(
  *
  * **When to use**
  *
- * - A struct field must be present in the encoded input.
+ * Use when a struct field must be present in the encoded input.
  * - You want schema validation to report a missing key error.
  *
  * **Details**
@@ -433,8 +433,8 @@ export function onNone<T, E extends T = T, R = never>(
  * const mustExist = SchemaGetter.required<string>()
  * ```
  *
- * @see {@link onNone} - provide a fallback instead of failing
- * @see {@link withDefault} - substitute a default for undefined values
+ * @see {@link onNone} to provide a fallback instead of failing
+ * @see {@link withDefault} to substitute a default for undefined values
  *
  * @category constructors
  * @since 4.0.0
@@ -448,7 +448,7 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  *
  * **When to use**
  *
- * - You need to transform or validate only when a value is present.
+ * Use when you need to transform or validate only when a value is present.
  * - Missing keys should remain absent in the output.
  *
  * **Details**
@@ -467,9 +467,9 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  * )
  * ```
  *
- * @see {@link onNone} - handle only absent values
- * @see {@link transform} - simpler pure transformation of present values
- * @see {@link transformOrFail} - fallible transformation of present values
+ * @see {@link onNone} to handle only absent values
+ * @see {@link transform} for a simpler pure transformation of present values
+ * @see {@link transformOrFail} for fallible transformation of present values
  *
  * @category constructors
  * @since 4.0.0
@@ -485,7 +485,7 @@ export function onSome<T, E, R = never>(
  *
  * **When to use**
  *
- * - You need to validate a decoded value (e.g. check a constraint or call an external service).
+ * Use when you need to validate a decoded value (e.g. check a constraint or call an external service).
  * - The validation may be asynchronous or require Effect services.
  *
  * **Details**
@@ -509,8 +509,8 @@ export function onSome<T, E, R = never>(
  * )
  * ```
  *
- * @see {@link transform} - when you need to change the value, not just validate
- * @see {@link fail} - unconditional failure
+ * @see {@link transform} when you need to change the value, not just validate
+ * @see {@link fail} for unconditional failure
  *
  * @category constructors
  * @since 4.0.0
@@ -537,7 +537,7 @@ export function checkEffect<T, R = never>(
  *
  * **When to use**
  *
- * - You have a pure, infallible transformation between types.
+ * Use when you have a pure, infallible transformation between types.
  * - Building encode/decode pairs for `Schema.decodeTo`.
  *
  * **Details**
@@ -561,9 +561,9 @@ export function checkEffect<T, R = never>(
  * )
  * ```
  *
- * @see {@link transformOrFail} - when the transformation can fail
- * @see {@link transformOptional} - when you need to handle `None` inputs
- * @see {@link passthrough} - when no transformation is needed
+ * @see {@link transformOrFail} when the transformation can fail
+ * @see {@link transformOptional} when you need to handle `None` inputs
+ * @see {@link passthrough} when no transformation is needed
  *
  * @category constructors
  * @since 4.0.0
@@ -577,7 +577,7 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  *
  * **When to use**
  *
- * - The transformation may fail (e.g. parsing, validation).
+ * Use when the transformation may fail (e.g. parsing, validation).
  * - The transformation needs Effect services or is async.
  *
  * **Details**
@@ -601,8 +601,8 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  * )
  * ```
  *
- * @see {@link transform} - when transformation cannot fail
- * @see {@link onSome} - when you need full `Option` control over the output
+ * @see {@link transform} when transformation cannot fail
+ * @see {@link onSome} when you need full `Option` control over the output
  *
  * @category constructors
  * @since 4.0.0
@@ -618,7 +618,7 @@ export function transformOrFail<T, E, R = never>(
  *
  * **When to use**
  *
- * - You need to handle both `Some` and `None` cases.
+ * Use when you need to handle both `Some` and `None` cases.
  * - You want to turn a present value into absent, or vice versa.
  *
  * **Details**
@@ -636,8 +636,8 @@ export function transformOrFail<T, E, R = never>(
  * )
  * ```
  *
- * @see {@link transform} - simpler, only handles present values
- * @see {@link omit} - always returns `None`
+ * @see {@link transform} when you only need to transform present values
+ * @see {@link omit} when you always want `None`
  *
  * @category constructors
  * @since 4.0.0
@@ -651,7 +651,7 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  *
  * **When to use**
  *
- * - A field should be excluded during decoding or encoding.
+ * Use when a field should be excluded during decoding or encoding.
  *
  * **Details**
  *
@@ -666,8 +666,8 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  * const omitField = SchemaGetter.omit<string>()
  * ```
  *
- * @see {@link transformOptional} - when you want conditional omission
- * @see {@link forbidden} - when you want to fail instead of silently omit
+ * @see {@link transformOptional} when you want conditional omission
+ * @see {@link forbidden} when you want to fail instead of silently omit
  *
  * @category constructors
  * @since 4.0.0
@@ -681,7 +681,7 @@ export function omit<T>(): Getter<never, T> {
  *
  * **When to use**
  *
- * - A field may be `undefined` in the encoded input and should have a fallback.
+ * Use when a field may be `undefined` in the encoded input and should have a fallback.
  *
  * **Details**
  *
@@ -698,8 +698,8 @@ export function omit<T>(): Getter<never, T> {
  * // Getter<number, number | undefined>
  * ```
  *
- * @see {@link onNone} - handle only absent keys (not `undefined` values)
- * @see {@link required} - fail instead of providing a default
+ * @see {@link onNone} to handle only absent keys (not `undefined` values)
+ * @see {@link required} when absent input should fail instead of using a default
  *
  * @category constructors
  * @since 4.0.0
@@ -718,7 +718,7 @@ export function withDefault<T, R = never>(
  *
  * **When to use**
  *
- * - You need a string representation of an arbitrary encoded value.
+ * Use when you need a string representation of an arbitrary encoded value.
  *
  * **Details**
  *
@@ -734,7 +734,7 @@ export function withDefault<T, R = never>(
  * // Getter<string, number>
  * ```
  *
- * @see {@link transform} - for custom string conversions
+ * @see {@link transform} for custom string conversions
  *
  * @category Coercions
  * @since 4.0.0
@@ -748,7 +748,7 @@ export function String<E>(): Getter<string, E> {
  *
  * **When to use**
  *
- * - You need numeric coercion of an encoded value.
+ * Use when you need numeric coercion of an encoded value.
  *
  * **Details**
  *
@@ -764,7 +764,7 @@ export function String<E>(): Getter<string, E> {
  * // Getter<number, string>
  * ```
  *
- * @see {@link transformOrFail} - for validated number parsing
+ * @see {@link transformOrFail} for validated number parsing
  *
  * @category Coercions
  * @since 4.0.0
@@ -778,7 +778,7 @@ export function Number<E>(): Getter<number, E> {
  *
  * **When to use**
  *
- * - You need boolean coercion (truthiness check) of an encoded value.
+ * Use when you need boolean coercion (truthiness check) of an encoded value.
  *
  * **Details**
  *
@@ -806,7 +806,7 @@ export function Boolean<E>(): Getter<boolean, E> {
  *
  * **When to use**
  *
- * - You need to convert strings, numbers, or booleans to `bigint`.
+ * Use when you need to convert strings, numbers, or booleans to `bigint`.
  *
  * **Details**
  *
@@ -834,7 +834,7 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  *
  * **When to use**
  *
- * - You need to parse a string, number, or Date into a `Date` object.
+ * Use when you need to parse a string, number, or Date into a `Date` object.
  *
  * **Details**
  *
@@ -850,7 +850,7 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  * // Getter<Date, string>
  * ```
  *
- * @see {@link dateTimeUtcFromInput} - validated DateTime parsing
+ * @see {@link dateTimeUtcFromInput} for validated DateTime parsing
  *
  * @category Coercions
  * @since 4.0.0
@@ -940,7 +940,7 @@ export function uncapitalize<E extends string>(): Getter<string, E> {
  * const toCamel = SchemaGetter.snakeToCamel<string>()
  * ```
  *
- * @see {@link camelToSnake} - inverse operation
+ * @see {@link camelToSnake} for the inverse operation
  *
  * @category string
  * @since 4.0.0
@@ -964,7 +964,7 @@ export function snakeToCamel<E extends string>(): Getter<string, E> {
  * const toSnake = SchemaGetter.camelToSnake<string>()
  * ```
  *
- * @see {@link snakeToCamel} - inverse operation
+ * @see {@link snakeToCamel} for the inverse operation
  *
  * @category string
  * @since 4.0.0
@@ -988,7 +988,7 @@ export function camelToSnake<E extends string>(): Getter<string, E> {
  * const lower = SchemaGetter.toLowerCase<string>()
  * ```
  *
- * @see {@link toUpperCase} - inverse operation
+ * @see {@link toUpperCase} for the inverse operation
  *
  * @category string
  * @since 4.0.0
@@ -1012,7 +1012,7 @@ export function toLowerCase<E extends string>(): Getter<string, E> {
  * const upper = SchemaGetter.toUpperCase<string>()
  * ```
  *
- * @see {@link toLowerCase} - inverse operation
+ * @see {@link toLowerCase} for the inverse operation
  *
  * @category string
  * @since 4.0.0
@@ -1030,7 +1030,7 @@ type ParseJsonOptions = {
  *
  * **When to use**
  *
- * - An encoded value is a JSON string that needs to be parsed during decoding.
+ * Use when an encoded value is a JSON string that needs to be parsed during decoding.
  *
  * **Details**
  *
@@ -1048,7 +1048,7 @@ type ParseJsonOptions = {
  * // Getter<MutableJson, string>
  * ```
  *
- * @see {@link stringifyJson} - inverse operation
+ * @see {@link stringifyJson} for the inverse operation
  *
  * @category Json
  * @since 4.0.0
@@ -1074,7 +1074,7 @@ type StringifyJsonOptions = {
  *
  * **When to use**
  *
- * - A decoded value needs to be serialized to JSON text during encoding.
+ * Use when a decoded value needs to be serialized to JSON text during encoding.
  *
  * **Details**
  *
@@ -1096,7 +1096,7 @@ type StringifyJsonOptions = {
  * // Getter<string, unknown>
  * ```
  *
- * @see {@link parseJson} - inverse operation
+ * @see {@link parseJson} for the inverse operation
  *
  * @category Json
  * @since 4.0.0
@@ -1115,7 +1115,7 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
  *
  * **When to use**
  *
- * - An encoded string contains delimited key-value pairs (e.g. `"a=1,b=2"`).
+ * Use when an encoded string contains delimited key-value pairs (e.g. `"a=1,b=2"`).
  *
  * **Details**
  *
@@ -1132,8 +1132,8 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
  * // "a=1,b=2" -> { a: "1", b: "2" }
  * ```
  *
- * @see {@link joinKeyValue} - inverse operation
- * @see {@link split} - split into an array of strings
+ * @see {@link joinKeyValue} for the inverse operation
+ * @see {@link split} to split into an array of strings
  *
  * @category string
  * @since 4.0.0
@@ -1160,7 +1160,7 @@ export function splitKeyValue<E extends string>(options?: {
  *
  * **When to use**
  *
- * - A decoded record needs to be serialized as a delimited key-value string.
+ * Use when a decoded record needs to be serialized as a delimited key-value string.
  *
  * **Details**
  *
@@ -1176,7 +1176,7 @@ export function splitKeyValue<E extends string>(options?: {
  * // { a: "1", b: "2" } -> "a=1,b=2"
  * ```
  *
- * @see {@link splitKeyValue} - inverse operation
+ * @see {@link splitKeyValue} for the inverse operation
  *
  * @category string
  * @since 4.0.0
@@ -1197,7 +1197,7 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  *
  * **When to use**
  *
- * - An encoded string is a delimited list (e.g. CSV values).
+ * Use when an encoded string is a delimited list (e.g. CSV values).
  *
  * **Details**
  *
@@ -1215,7 +1215,7 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  * // "" -> []
  * ```
  *
- * @see {@link splitKeyValue} - when values are key-value pairs
+ * @see {@link splitKeyValue} when values are key-value pairs
  *
  * @category string
  * @since 4.0.0
@@ -1242,9 +1242,9 @@ export function split<E extends string>(options?: {
  * const encode = SchemaGetter.encodeBase64<Uint8Array>()
  * ```
  *
- * @see {@link decodeBase64} - inverse (to `Uint8Array`)
- * @see {@link decodeBase64String} - inverse (to `string`)
- * @see {@link encodeBase64Url} - URL-safe variant
+ * @see {@link decodeBase64} for the inverse operation to `Uint8Array`
+ * @see {@link decodeBase64String} for the inverse operation to `string`
+ * @see {@link encodeBase64Url} for the URL-safe variant
  *
  * @category Base64
  * @since 4.0.0
@@ -1268,9 +1268,9 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  * const encode = SchemaGetter.encodeBase64Url<Uint8Array>()
  * ```
  *
- * @see {@link decodeBase64Url} - inverse (to `Uint8Array`)
- * @see {@link decodeBase64UrlString} - inverse (to `string`)
- * @see {@link encodeBase64} - standard Base64 variant
+ * @see {@link decodeBase64Url} for the inverse operation to `Uint8Array`
+ * @see {@link decodeBase64UrlString} for the inverse operation to `string`
+ * @see {@link encodeBase64} for the standard Base64 variant
  *
  * @category Base64
  * @since 4.0.0
@@ -1294,8 +1294,8 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
  * const encode = SchemaGetter.encodeHex<Uint8Array>()
  * ```
  *
- * @see {@link decodeHex} - inverse (to `Uint8Array`)
- * @see {@link decodeHexString} - inverse (to `string`)
+ * @see {@link decodeHex} for the inverse operation to `Uint8Array`
+ * @see {@link decodeHexString} for the inverse operation to `string`
  *
  * @category Hex
  * @since 4.0.0
@@ -1320,8 +1320,8 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
  * // Getter<Uint8Array, string>
  * ```
  *
- * @see {@link decodeBase64String} - decode to `string` instead
- * @see {@link encodeBase64} - inverse operation
+ * @see {@link decodeBase64String} to decode to `string` instead
+ * @see {@link encodeBase64} for the inverse operation
  *
  * @category Base64
  * @since 4.0.0
@@ -1351,8 +1351,8 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  * // Getter<string, string>
  * ```
  *
- * @see {@link decodeBase64} - decode to `Uint8Array` instead
- * @see {@link encodeBase64} - inverse operation
+ * @see {@link decodeBase64} to decode to `Uint8Array` instead
+ * @see {@link encodeBase64} for the inverse operation
  *
  * @category Base64
  * @since 4.0.0
@@ -1382,8 +1382,8 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
  * // Getter<Uint8Array, string>
  * ```
  *
- * @see {@link decodeBase64UrlString} - decode to `string` instead
- * @see {@link encodeBase64Url} - inverse operation
+ * @see {@link decodeBase64UrlString} to decode to `string` instead
+ * @see {@link encodeBase64Url} for the inverse operation
  *
  * @category Base64
  * @since 4.0.0
@@ -1413,8 +1413,8 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
  * // Getter<string, string>
  * ```
  *
- * @see {@link decodeBase64Url} - decode to `Uint8Array` instead
- * @see {@link encodeBase64Url} - inverse operation
+ * @see {@link decodeBase64Url} to decode to `Uint8Array` instead
+ * @see {@link encodeBase64Url} for the inverse operation
  *
  * @category Base64
  * @since 4.0.0
@@ -1444,8 +1444,8 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
  * // Getter<Uint8Array, string>
  * ```
  *
- * @see {@link decodeHexString} - decode to `string` instead
- * @see {@link encodeHex} - inverse operation
+ * @see {@link decodeHexString} to decode to `string` instead
+ * @see {@link encodeHex} for the inverse operation
  *
  * @category Hex
  * @since 4.0.0
@@ -1475,8 +1475,8 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
  * // Getter<string, string>
  * ```
  *
- * @see {@link decodeHex} - decode to `Uint8Array` instead
- * @see {@link encodeHex} - inverse operation
+ * @see {@link decodeHex} to decode to `Uint8Array` instead
+ * @see {@link encodeHex} for the inverse operation
  *
  * @category Hex
  * @since 4.0.0
@@ -1507,7 +1507,7 @@ export function decodeHexString<E extends string>(): Getter<string, E> {
  * const encode = SchemaGetter.encodeUriComponent<string>()
  * ```
  *
- * @see {@link decodeUriComponent} - inverse operation
+ * @see {@link decodeUriComponent} for the inverse operation
  *
  * @category URI
  * @since 4.0.0
@@ -1532,7 +1532,7 @@ export function encodeUriComponent<E extends string>(): Getter<string, E> {
  * // Getter<string, string>
  * ```
  *
- * @see {@link encodeUriComponent} - inverse operation
+ * @see {@link encodeUriComponent} for the inverse operation
  *
  * @category URI
  * @since 4.0.0
@@ -1556,7 +1556,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  *
  * **When to use**
  *
- * - An encoded value represents a date/time and should be decoded to a `DateTime.Utc`.
+ * Use when an encoded value represents a date/time and should be decoded to a `DateTime.Utc`.
  *
  * **Details**
  *
@@ -1576,7 +1576,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  * // Getter<DateTime.Utc, string>
  * ```
  *
- * @see {@link Date} - simpler coercion to `Date` (no validation)
+ * @see {@link Date} for a simpler coercion to `Date` (no validation)
  *
  * @category DateTime
  * @since 4.0.0
@@ -1595,7 +1595,7 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  *
  * **When to use**
  *
- * - Parsing `FormData` from HTTP requests into structured objects.
+ * Use to parse `FormData` from HTTP requests into structured objects.
  *
  * **Details**
  *
@@ -1612,9 +1612,9 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  * // Getter<TreeObject<string | Blob>, FormData>
  * ```
  *
- * @see {@link encodeFormData} - inverse operation
- * @see {@link makeTreeRecord} - the underlying bracket-path parser
- * @see {@link decodeURLSearchParams} - similar for URLSearchParams
+ * @see {@link encodeFormData} for the inverse operation
+ * @see {@link makeTreeRecord} for the underlying bracket-path parser
+ * @see {@link decodeURLSearchParams} for the URLSearchParams variant
  *
  * @category FormData
  * @since 4.0.0
@@ -1632,7 +1632,7 @@ const collectFormDataEntries = collectBracketPathEntries((value): value is strin
  *
  * **When to use**
  *
- * - Serializing structured data to `FormData` for HTTP requests.
+ * Use to serialize structured data to `FormData` for HTTP requests.
  *
  * **Details**
  *
@@ -1649,9 +1649,9 @@ const collectFormDataEntries = collectBracketPathEntries((value): value is strin
  * // Getter<FormData, unknown>
  * ```
  *
- * @see {@link decodeFormData} - inverse operation
- * @see {@link collectBracketPathEntries} - the underlying flattener
- * @see {@link encodeURLSearchParams} - similar for URLSearchParams
+ * @see {@link decodeFormData} for the inverse operation
+ * @see {@link collectBracketPathEntries} for the underlying flattener
+ * @see {@link encodeURLSearchParams} for the URLSearchParams variant
  *
  * @category FormData
  * @since 4.0.0
@@ -1674,7 +1674,7 @@ export function encodeFormData(): Getter<FormData, unknown> {
  *
  * **When to use**
  *
- * - Parsing query parameters from URLs into structured objects.
+ * Use to parse query parameters from URLs into structured objects.
  *
  * **Details**
  *
@@ -1691,9 +1691,9 @@ export function encodeFormData(): Getter<FormData, unknown> {
  * // Getter<TreeObject<string>, URLSearchParams>
  * ```
  *
- * @see {@link encodeURLSearchParams} - inverse operation
- * @see {@link makeTreeRecord} - the underlying bracket-path parser
- * @see {@link decodeFormData} - similar for FormData
+ * @see {@link encodeURLSearchParams} for the inverse operation
+ * @see {@link makeTreeRecord} for the underlying bracket-path parser
+ * @see {@link decodeFormData} for the FormData variant
  *
  * @category URLSearchParams
  * @since 4.0.0
@@ -1709,7 +1709,7 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  *
  * **When to use**
  *
- * - Serializing structured data to query parameters for URLs.
+ * Use to serialize structured data to query parameters for URLs.
  *
  * **Details**
  *
@@ -1726,9 +1726,9 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  * // Getter<URLSearchParams, unknown>
  * ```
  *
- * @see {@link decodeURLSearchParams} - inverse operation
- * @see {@link collectBracketPathEntries} - the underlying flattener
- * @see {@link encodeFormData} - similar for FormData
+ * @see {@link decodeURLSearchParams} for the inverse operation
+ * @see {@link collectBracketPathEntries} for the underlying flattener
+ * @see {@link encodeFormData} for the FormData variant
  *
  * @category URLSearchParams
  * @since 4.0.0
@@ -1765,7 +1765,7 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  *
  * **When to use**
  *
- * - Parsing FormData or URLSearchParams entries into structured objects.
+ * Use to parse FormData or URLSearchParams entries into structured objects.
  * - You have flat key-value pairs with bracket-path keys that need nesting.
  *
  * **Details**
@@ -1795,9 +1795,9 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  * // { user: { name: "Alice", tags: ["admin", "editor"] } }
  * ```
  *
- * @see {@link collectBracketPathEntries} - inverse operation (tree to flat entries)
- * @see {@link decodeFormData} - uses this internally
- * @see {@link decodeURLSearchParams} - uses this internally
+ * @see {@link collectBracketPathEntries} for the inverse operation (tree to flat entries)
+ * @see {@link decodeFormData} for a higher-level FormData decoder
+ * @see {@link decodeURLSearchParams} for a higher-level URLSearchParams decoder
  *
  * @category Tree
  * @since 4.0.0
@@ -1859,7 +1859,7 @@ export function makeTreeRecord<A>(
  *
  * **When to use**
  *
- * - Serializing structured objects to flat key-value entries.
+ * Use to serialize structured objects to flat key-value entries.
  * - Building custom `FormData` or `URLSearchParams` encoders.
  *
  * **Details**
@@ -1883,9 +1883,9 @@ export function makeTreeRecord<A>(
  * // [["user[name]", "Alice"], ["user[tags]", "admin"], ["user[tags]", "editor"]]
  * ```
  *
- * @see {@link makeTreeRecord} - inverse operation (flat entries to tree)
- * @see {@link encodeFormData} - uses this internally
- * @see {@link encodeURLSearchParams} - uses this internally
+ * @see {@link makeTreeRecord} for the inverse operation (flat entries to tree)
+ * @see {@link encodeFormData} for a higher-level FormData encoder
+ * @see {@link encodeURLSearchParams} for a higher-level URLSearchParams encoder
  *
  * @category Tree
  * @since 4.0.0

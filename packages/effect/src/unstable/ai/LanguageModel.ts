@@ -286,7 +286,7 @@ export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
    *
    * **When to use**
    *
-   * Use this when you want to include tool call definitions from an `AiToolkit`
+   * Use when you want to include tool call definitions from an `AiToolkit`
    * in requests to the large language model, while controlling tool call
    * resolver execution yourself.
    */

@@ -54,7 +54,7 @@ export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, Type
  *
  * **When to use**
  *
- * Endpoint implementations can be provided with `HttpApiBuilder.group`, and the
+ * Use when endpoint implementations can be provided with `HttpApiBuilder.group`, and the
  * completed API can be registered with `HttpApiBuilder.layer`.
  *
  * @category models
@@ -212,7 +212,7 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
  *
  * **When to use**
  *
- * Add groups with `add` or `addHttpApi`, provide endpoint implementations with
+ * Use when add groups with `add` or `addHttpApi`, provide endpoint implementations with
  * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
  *
  * @category constructors

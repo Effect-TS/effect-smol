@@ -65,7 +65,7 @@ import type * as Types from "./Types.ts"
  *
  * **When to use**
  *
- * Implement `[Symbol.iterator]()` on Effect-like types so they can be
+ * Use when implement `[Symbol.iterator]()` on Effect-like types so they can be
  * `yield*`-ed inside generator functions, such as `Effect.gen` and
  * `Option.gen`. You almost never construct this directly — it is created
  * internally by yieldable types.
@@ -140,7 +140,7 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
  *
  * **When to use**
  *
- * Define variance constraints for a higher-kinded type so that {@link Gen}
+ * Use when define variance constraints for a higher-kinded type so that {@link Gen}
  * can correctly infer `R`, `O`, and `E` from yielded values. You typically
  * don't construct values of this type — it exists purely for type inference.
  *
@@ -181,7 +181,7 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  *
  * **When to use**
  *
- * Type the `gen` function of a module that supports generator syntax, such as
+ * Use when type the `gen` function of a module that supports generator syntax, such as
  * `Option.gen`, `Result.gen`, and `Effect.gen`. It accepts either `(body)` or
  * `(self, body)` where `body` is a generator function. The `self` overload
  * binds `this` inside the generator.

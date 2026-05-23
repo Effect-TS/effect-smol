@@ -483,7 +483,7 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  *
  * **When to use**
  *
- * This strategy prevents producers from being blocked but may result in message loss.
+ * Use when producers should not block and message loss is acceptable.
  * Useful when you want to maintain a rolling window of the most recent messages.
  *
  * **Example** (Creating sliding queues)
@@ -518,7 +518,7 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  *
  * **When to use**
  *
- * This strategy prevents producers from being blocked and preserves existing messages,
+ * Use when producers should not block and existing messages should be preserved,
  * but new messages may be lost when the queue is full.
  *
  * **Example** (Creating dropping queues)
@@ -554,7 +554,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  *
  * **When to use**
  *
- * Unlike bounded queues, unbounded queues never apply backpressure - producers
+ * Use when producers should never be blocked; unbounded queues never apply backpressure, so producers
  * can always add messages successfully. This is useful when you want to prioritize
  * producer throughput over memory usage control.
  *

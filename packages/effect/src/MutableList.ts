@@ -822,7 +822,7 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  *
  * **When to use**
  *
- * Use `takeN` when the copied elements should also be removed from the list.
+ * Use when the copied elements should also be removed from the list.
  *
  * @category elements
  * @since 4.0.0
@@ -848,7 +848,7 @@ export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
  *
  * **When to use**
  *
- * Use `takeAll` when the list should be emptied after converting it to an
+ * Use when the list should be emptied after converting it to an
  * array.
  *
  * @category elements

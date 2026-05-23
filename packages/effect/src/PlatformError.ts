@@ -159,7 +159,7 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
  *
  * **When to use**
  *
- * Use this helper when adapting an operating-system or platform failure into
+ * Use when you use this helper when adapting an operating-system or platform failure into
  * the normalized platform error model.
  *
  * @category constructors
@@ -180,7 +180,7 @@ export const systemError = (options: {
  *
  * **When to use**
  *
- * Use this helper when a platform API rejects caller input before performing
+ * Use when you use this helper when a platform API rejects caller input before performing
  * the underlying operation.
  *
  * @category constructors

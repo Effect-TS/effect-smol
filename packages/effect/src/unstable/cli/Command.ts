@@ -1041,7 +1041,7 @@ export const withAlias: {
  *
  * **When to use**
  *
- * Use this for experimental or internal subcommands that should be accepted but
+ * Use when you use this for experimental or internal subcommands that should be accepted but
  * not advertised on the public CLI surface.
  *
  * **Example** (Hiding a subcommand)
@@ -1377,7 +1377,7 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
  *
  * **When to use**
  *
- * Use `run` at an application entry point when arguments should come from
+ * Use when you use `run` at an application entry point when arguments should come from
  * `Stdio`; use `runWith` when you need an explicit argument array, such as in
  * tests.
  *
@@ -1433,7 +1433,7 @@ export const run: {
  *
  * **When to use**
  *
- * Use this function for testing CLI applications or when you want to
+ * Use when you use this function for testing CLI applications or when you want to
  * programmatically execute commands with specific arguments.
  *
  * **Example** (Running commands with explicit arguments)

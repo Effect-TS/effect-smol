@@ -211,7 +211,7 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * **When to use**
    *
-   * Use these options to control how text content is sent to OpenRouter.
+   * Use when you use these options to control how text content is sent to OpenRouter.
    *
    * @category request
    * @since 4.0.0

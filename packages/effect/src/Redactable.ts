@@ -76,7 +76,7 @@ import { hasProperty } from "./Predicate.ts"
  *
  * **When to use**
  *
- * Use this symbol as the property key when implementing {@link Redactable}.
+ * Use when you use this symbol as the property key when implementing {@link Redactable}.
  *
  * **Details**
  *
@@ -99,8 +99,8 @@ import { hasProperty } from "./Predicate.ts"
  * }
  * ```
  *
- * @see {@link Redactable} - the interface this symbol belongs to
- * @see {@link isRedactable} - check whether a value has this symbol
+ * @see {@link Redactable} for the interface this symbol belongs to
+ * @see {@link isRedactable} to check whether a value has this symbol
  * @category symbol
  * @since 3.10.0
  */
@@ -111,7 +111,7 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
  *
  * **When to use**
  *
- * Implement this interface on any class or object that holds sensitive data and
+ * Use when implement this interface on any class or object that holds sensitive data and
  * should present a sanitized form when inspected or logged.
  *
  * **Details**
@@ -133,9 +133,9 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
  * }
  * ```
  *
- * @see {@link symbolRedactable} - the symbol key to implement
- * @see {@link redact} - apply redaction to any value
- * @see {@link isRedactable} - type guard for this interface
+ * @see {@link symbolRedactable} for the symbol key to implement
+ * @see {@link redact} to apply redaction to any value
+ * @see {@link isRedactable} for the type guard for this interface
  * @category models
  * @since 3.10.0
  */
@@ -147,8 +147,8 @@ export interface Redactable {
  * Type guard that checks whether a value implements the {@link Redactable}
  * interface.
  *
- * @see {@link Redactable} - the interface being checked
- * @see {@link redact} - applies redaction if the value is redactable
+ * @see {@link Redactable} for the interface being checked
+ * @see {@link redact} to apply redaction if the value is redactable
  * @category guards
  * @since 3.10.0
  */
@@ -160,7 +160,7 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  *
  * **When to use**
  *
- * Use this as the general-purpose entry point for redaction when the input may
+ * Use as the general-purpose entry point for redaction when the input may
  * or may not implement the redaction protocol.
  *
  * **Details**
@@ -173,8 +173,8 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  * Redaction is not recursive. Nested redactable values inside the returned
  * object are not automatically redacted.
  *
- * @see {@link isRedactable} - check before redacting
- * @see {@link getRedacted} - lower-level variant for known redactables
+ * @see {@link isRedactable} to check before redacting
+ * @see {@link getRedacted} for the lower-level variant for known redactables
  * @category destructors
  * @since 3.10.0
  */
@@ -189,7 +189,7 @@ export function redact(u: unknown): unknown {
  *
  * **When to use**
  *
- * Use this when you have already verified the value is `Redactable`, for
+ * Use when you have already verified the value is `Redactable`, for
  * example with {@link isRedactable}, and want to avoid a second check.
  *
  * **Details**
@@ -201,8 +201,8 @@ export function redact(u: unknown): unknown {
  *
  * If no fiber is active, an empty `Context` is passed to the redaction method.
  *
- * @see {@link redact} - higher-level variant that handles non-redactable values
- * @see {@link isRedactable} - type guard to verify before calling this
+ * @see {@link redact} for the higher-level variant that handles non-redactable values
+ * @see {@link isRedactable} for the type guard to verify before calling this
  * @category destructors
  * @since 4.0.0
  */

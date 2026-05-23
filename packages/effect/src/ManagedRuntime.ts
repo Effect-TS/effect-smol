@@ -120,7 +120,7 @@ export interface ManagedRuntime<in R, out ER> {
    *
    * **When to use**
    *
-   * This method is effectful and should only be invoked at the edges of your
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runSyncExit: <A, E>(effect: Effect.Effect<A, E, R>) => Exit.Exit<A, ER | E>
@@ -130,7 +130,7 @@ export interface ManagedRuntime<in R, out ER> {
    *
    * **When to use**
    *
-   * This method is effectful and should only be invoked at the edges of your
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runSync: <A, E>(effect: Effect.Effect<A, E, R>) => A
@@ -141,7 +141,7 @@ export interface ManagedRuntime<in R, out ER> {
    *
    * **When to use**
    *
-   * This method is effectful and should only be invoked at the edges of your
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runCallback: <A, E>(
@@ -160,7 +160,7 @@ export interface ManagedRuntime<in R, out ER> {
    *
    * **When to use**
    *
-   * This method is effectful and should only be used at the edges of your
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runPromise: <A, E>(effect: Effect.Effect<A, E, R>, options?: Effect.RunOptions) => Promise<A>
@@ -171,7 +171,7 @@ export interface ManagedRuntime<in R, out ER> {
    *
    * **When to use**
    *
-   * This method is effectful and should only be used at the edges of your
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runPromiseExit: <A, E>(

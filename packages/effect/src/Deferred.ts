@@ -88,7 +88,7 @@ const TypeId = "~effect/Deferred"
  *
  * **When to use**
  *
- * Use `Deferred` for primitive actions whose completions require the
+ * Use when you use `Deferred` for primitive actions whose completions require the
  * coordinated action of multiple fibers, and for building higher-level
  * concurrent or asynchronous structures.
  *
@@ -182,7 +182,7 @@ const DeferredProto = {
  *
  * **When to use**
  *
- * Prefer `Deferred.make` in effectful code so allocation is represented in
+ * Use when prefer `Deferred.make` in effectful code so allocation is represented in
  * `Effect`; use this only when direct synchronous allocation is required.
  *
  * **Example** (Creating a Deferred unsafely)
@@ -267,7 +267,7 @@ export {
  *
  * **When to use**
  *
- * Use `Deferred.complete` when the effect should be evaluated once and the
+ * Use when the effect should be evaluated once and the
  * resulting `Exit` memoized. Use `Deferred.completeWith` when you need to store
  * an effect directly without memoizing its result.
  *

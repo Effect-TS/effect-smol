@@ -75,7 +75,7 @@ import type * as Combiner from "./Combiner.ts"
  *
  * **When to use**
  *
- * - You need to fold/reduce a collection into a single value.
+ * Use when you need to fold/reduce a collection into a single value.
  * - You want a reusable reducing strategy that can be passed to library
  *   functions like `Struct.makeReducer`, `Option.makeReducer`, or
  *   `Record.makeReducerUnion`.
@@ -124,7 +124,7 @@ export interface Reducer<A> extends Combiner.Combiner<A> {
  *
  * **When to use**
  *
- * - You have a custom reducing operation not covered by a pre-built reducer.
+ * Use when you have a custom reducing operation not covered by a pre-built reducer.
  * - You want to provide an optimized `combineAll` (e.g. short-circuiting on
  *   a known absorbing element like `0` for multiplication).
  *
@@ -190,7 +190,7 @@ export function make<A>(
  *
  * **When to use**
  *
- * - You need the "right" value to act as the accumulator side.
+ * Use when you need the "right" value to act as the accumulator side.
  * - You want to reverse the natural direction of a non-commutative reducer
  *   (e.g. string concatenation becomes prepend).
  *

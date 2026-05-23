@@ -399,7 +399,7 @@ export const urlParams = (
  *
  * **When to use**
  *
- * Use this when the underlying runtime already understands the body value, such
+ * Use when the underlying runtime already understands the body value, such
  * as a Web `Response`, `Blob`, or `ReadableStream`; the body is passed through
  * for later platform conversion.
  *
@@ -681,7 +681,7 @@ export const expireCookie: {
  *
  * **When to use**
  *
- * Use `setCookie` when cookie errors should be represented as `CookiesError`
+ * Use when cookie errors should be represented as `CookiesError`
  * failures.
  *
  * @category combinators
@@ -719,7 +719,7 @@ export const setCookieUnsafe: {
  *
  * **When to use**
  *
- * Use `expireCookie` when cookie errors should be represented as `CookiesError`
+ * Use when cookie errors should be represented as `CookiesError`
  * failures.
  *
  * @category combinators
@@ -859,7 +859,7 @@ export const setCookies: {
  *
  * **When to use**
  *
- * Use `setCookies` when cookie errors should be represented as `CookiesError`
+ * Use when cookie errors should be represented as `CookiesError`
  * failures.
  *
  * @category combinators

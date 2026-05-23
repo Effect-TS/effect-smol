@@ -301,7 +301,7 @@ export const make = Effect.fnUntraced(function*({
  *
  * **When to use**
  *
- * This is the recommended way to provide ID generation capabilities to your
+ * Use when this is the recommended way to provide ID generation capabilities to your
  * application. The layer will fail during construction if the configuration is
  * invalid.
  *

@@ -293,7 +293,7 @@ export const cast: <A, B>(a: A) => B = identity as any
  *
  * **When to use**
  *
- * Use `constant` when an API expects a thunk or callback and every invocation
+ * Use when an API expects a thunk or callback and every invocation
  * should return the same value.
  *
  * **Example** (Creating a constant thunk)
@@ -451,7 +451,7 @@ export const compose: {
  *
  * **When to use**
  *
- * Use `absurd` when exhaustive checks prove a branch cannot be reached, but
+ * Use when exhaustive checks prove a branch cannot be reached, but
  * TypeScript still needs a return value.
  *
  * **Gotchas**
@@ -520,7 +520,7 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  *
  * **When to use**
  *
- * Use `pipe` with data-last functions to build readable transformation
+ * Use when you use `pipe` with data-last functions to build readable transformation
  * pipelines and to write method-style chains as ordinary function calls.
  *
  * **Details**
@@ -1296,7 +1296,7 @@ export const hole: <T>() => T = cast(absurd)
  *
  * **When to use**
  *
- * Use `SK` to discard the first argument and return the second argument.
+ * Use to discard the first argument and return the second argument.
  *
  * **Example** (Discarding the first argument)
  *

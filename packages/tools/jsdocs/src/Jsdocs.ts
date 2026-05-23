@@ -59,6 +59,17 @@ export interface ParsedSeeTag {
 }
 
 /**
+ * TypeScript symbol target resolved for a parsed inline JSDoc link.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ParsedInlineLinkSymbol {
+  readonly file: string
+  readonly range: readonly [number, number]
+}
+
+/**
  * Parsed inline JSDoc link target and optional display text.
  *
  * @category models
@@ -68,6 +79,8 @@ export interface ParsedInlineLink {
   readonly raw: string
   readonly target: string
   readonly text: string | null
+  readonly range?: readonly [number, number]
+  readonly symbol?: ParsedInlineLinkSymbol
 }
 
 /**
@@ -142,6 +155,7 @@ export interface ParsedMemberTags {
  */
 export interface ParsedMember {
   readonly name: string
+  readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
   readonly tags: ParsedMemberTags
@@ -157,6 +171,7 @@ export interface ParsedMember {
 export interface ParsedRootDeclaration {
   readonly name: string
   readonly bucket: ExportBucket
+  readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
   readonly tags: ParsedDeclarationTags
@@ -171,6 +186,7 @@ export interface ParsedRootDeclaration {
  */
 export interface ParsedNamespaceDeclaration {
   readonly name: string
+  readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
   readonly tags: ParsedNamespaceTags
@@ -185,6 +201,7 @@ export interface ParsedNamespaceDeclaration {
  */
 export interface ParsedNamespace {
   readonly name: string
+  readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
   readonly tags: ParsedNamespaceTags
@@ -229,11 +246,85 @@ export type ParsedJSDocBarrelImport =
 export interface ParsedJSDocImports {
   readonly module: string
   readonly barrel: ParsedJSDocBarrelImport | null
+  readonly flatNames: ReadonlyArray<string>
+}
+
+export type JSDocApiKind = "root-declaration" | "namespace" | "namespace-declaration" | "member"
+
+export type JSDocApiImportGuidance =
+  | {
+    readonly style: "namespace-barrel"
+    readonly importDeclaration: string
+    readonly usage: string
+  }
+  | {
+    readonly style: "named-barrel"
+    readonly importDeclaration: string
+    readonly usage: string
+  }
+  | {
+    readonly style: "named-module"
+    readonly importDeclaration: string
+    readonly usage: string
+  }
+
+export type JSDocApiSeeLinkResolution =
+  | {
+    readonly _tag: "Resolved"
+    readonly apiId: string
+    readonly apiFqn: string
+  }
+  | {
+    readonly _tag: "Unresolved"
+    readonly reason: "not-found" | "ambiguous"
+    readonly candidates: ReadonlyArray<string>
+  }
+
+export interface JSDocApiSeeLink extends ParsedInlineLink {
+  readonly resolution: JSDocApiSeeLinkResolution
+}
+
+export interface JSDocApiSeeTag {
+  readonly text: string
+  readonly links: ReadonlyArray<JSDocApiSeeLink>
+}
+
+export interface JSDocApiTags {
+  readonly category: string | null
+  readonly since: string | null
+  readonly deprecated: string | null
+  readonly default: string | null
+}
+
+export interface JSDocApi {
+  readonly id: string
+  readonly kind: JSDocApiKind
+  readonly moduleName: string
+  readonly apiName: string
+  readonly localName: string
+  readonly parentApiName: string | null
+  readonly apiFqn: string
+  readonly hasFqnCollision: boolean
+  readonly bucket: ExportBucket | null
+  readonly importable: boolean
+  readonly namespacePath: ReadonlyArray<string>
+  readonly memberPath: ReadonlyArray<string>
+  readonly source: {
+    readonly file: string
+    readonly path: ReadonlyArray<string | number>
+    readonly range: readonly [number, number]
+  }
+  readonly description: ParsedDescription
+  readonly examples: ReadonlyArray<ParsedExample>
+  readonly tags: JSDocApiTags
+  readonly see: ReadonlyArray<JSDocApiSeeTag>
+  readonly importGuidance: JSDocApiImportGuidance | null
 }
 
 interface ParsedBarrelExports {
   readonly namespace: ReadonlyMap<string, string>
   readonly flat: ReadonlySet<string>
+  readonly named: ReadonlyMap<string, ReadonlySet<string>>
 }
 
 /**
@@ -468,6 +559,7 @@ function parseBarrelExports(indexPath: string): Result<ParsedBarrelExports, stri
   const sourceFile = ts.createSourceFile(normalizedIndexPath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
   const namespace = new Map<string, string>()
   const flat = new Set<string>()
+  const named = new Map<string, Set<string>>()
   for (const statement of sourceFile.statements) {
     if (
       ts.isExportDeclaration(statement) &&
@@ -479,10 +571,16 @@ function parseBarrelExports(indexPath: string): Result<ParsedBarrelExports, stri
         flat.add(moduleSpecifier)
       } else if (ts.isNamespaceExport(statement.exportClause)) {
         namespace.set(moduleSpecifier, statement.exportClause.name.text)
+      } else if (ts.isNamedExports(statement.exportClause)) {
+        const names = named.get(moduleSpecifier) ?? new Set<string>()
+        for (const specifier of statement.exportClause.elements) {
+          names.add(specifier.name.text)
+        }
+        named.set(moduleSpecifier, names)
       }
     }
   }
-  const result = { _tag: "Success", value: { namespace, flat } } as const
+  const result = { _tag: "Success", value: { namespace, flat, named } } as const
   barrelExportCache.set(normalizedIndexPath, result)
   return result
 }
@@ -562,7 +660,7 @@ function packageSpecifier(packageName: string, subpath: string): string {
 function resolveBarrelImport(
   metadata: PackageMetadata,
   filename: string
-): Result<ParsedJSDocBarrelImport | null, string> {
+): Result<{ readonly barrel: ParsedJSDocBarrelImport | null; readonly flatNames: ReadonlyArray<string> }, string> {
   let directory = path.dirname(filename)
   while (isPathInside(metadata.sourceRoot, directory)) {
     const indexPath = path.join(directory, "index.ts")
@@ -577,17 +675,24 @@ function resolveBarrelImport(
       const exportTarget = barrelSubpath === "" ? "./src/index.ts" : `./src/${barrelSubpath}/index.ts`
       if (isPackageSubpathExported(metadata.exports, exportSubpath, exportTarget)) {
         const moduleSpecifier = packageSpecifier(metadata.name, barrelSubpath)
+        const flatNames = Array.from(parsed.value.named.get(expectedExport) ?? [])
         const namespace = parsed.value.namespace.get(expectedExport)
         if (namespace !== undefined) {
           return {
             _tag: "Success",
-            value: { type: "namespace", module: moduleSpecifier, name: namespace }
+            value: { barrel: { type: "namespace", module: moduleSpecifier, name: namespace }, flatNames }
           }
         }
         if (parsed.value.flat.has(expectedExport)) {
           return {
             _tag: "Success",
-            value: { type: "flat", module: moduleSpecifier }
+            value: { barrel: { type: "flat", module: moduleSpecifier }, flatNames }
+          }
+        }
+        if (flatNames.length > 0) {
+          return {
+            _tag: "Success",
+            value: { barrel: { type: "flat", module: moduleSpecifier }, flatNames }
           }
         }
       }
@@ -597,7 +702,7 @@ function resolveBarrelImport(
     }
     directory = path.dirname(directory)
   }
-  return { _tag: "Success", value: null }
+  return { _tag: "Success", value: { barrel: null, flatNames: [] } }
 }
 
 function resolveJSDocImports(
@@ -652,7 +757,8 @@ function resolveJSDocImports(
     _tag: "Success",
     value: {
       module: packageSpecifier(metadata.value.name, moduleSubpath),
-      barrel: barrel.value
+      barrel: barrel.value.barrel,
+      flatNames: barrel.value.flatNames
     }
   }
 }
@@ -880,6 +986,8 @@ const standardHeadings = ["**When to use**", "**Details**", "**Gotchas**"] as co
 
 type StandardHeading = typeof standardHeadings[number]
 
+const whenToUsePrefixes = ["Use to", "Use when", "Use as", "Use with"] as const
+
 interface ParsedContentResult {
   readonly value?: {
     readonly description: ParsedDescription
@@ -991,6 +1099,16 @@ function parseDescriptionContent(lines: Array<string>): ParsedContentResult {
     index++
   }
 
+  const whenToUse = sections["**When to use**"]
+  if (whenToUse !== null && !hasWhenToUsePrefix(whenToUse)) {
+    diagnostics.push(
+      diagnostic(
+        "when-to-use-format",
+        `**When to use** must start with one of: ${whenToUsePrefixes.map((prefix) => `\`${prefix}\``).join(", ")}`
+      )
+    )
+  }
+
   if (diagnostics.length > 0) {
     return { diagnostics }
   }
@@ -1006,6 +1124,11 @@ function parseDescriptionContent(lines: Array<string>): ParsedContentResult {
     },
     diagnostics
   }
+}
+
+function hasWhenToUsePrefix(text: string): boolean {
+  const trimmed = text.trimStart()
+  return whenToUsePrefixes.some((prefix) => trimmed === prefix || trimmed.startsWith(`${prefix} `))
 }
 
 function parseSection(lines: Array<string>, headingIndex: number): {
@@ -1452,6 +1575,124 @@ function collectJSDocLinks(sourceFile: ts.SourceFile, block: JSDocBlock): Array<
   return links
 }
 
+function collectJSDocSeeLinks(sourceFile: ts.SourceFile, block: JSDocBlock): Array<ts.JSDocLink> {
+  const links: Array<ts.JSDocLink> = []
+  function inspectJSDoc(node: ts.Node) {
+    for (const jsdoc of (node as { readonly jsDoc?: ReadonlyArray<ts.JSDoc> }).jsDoc ?? []) {
+      if (jsdoc.pos !== block.range[0] || jsdoc.end !== block.range[1]) continue
+      ts.forEachChild(jsdoc, function visit(child) {
+        if (ts.isJSDocSeeTag(child)) {
+          ts.forEachChild(child, function visitSeeTag(seeTagChild) {
+            if (ts.isJSDocLink(seeTagChild)) links.push(seeTagChild)
+            ts.forEachChild(seeTagChild, visitSeeTag)
+          })
+          return
+        }
+        ts.forEachChild(child, visit)
+      })
+    }
+  }
+  function visit(node: ts.Node) {
+    inspectJSDoc(node)
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return links
+}
+
+function resolvedSymbolTarget(symbol: ts.Symbol, checker: ts.TypeChecker): ts.Symbol {
+  return (symbol.flags & ts.SymbolFlags.Alias) === 0 ? symbol : checker.getAliasedSymbol(symbol)
+}
+
+function isLocalSourceFile(cwd: string, sourceFile: ts.SourceFile): boolean {
+  if (sourceFile.isDeclarationFile) return false
+  const relative = path.relative(cwd, sourceFile.fileName)
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))
+}
+
+function symbolDeclarations(symbol: ts.Symbol, checker: ts.TypeChecker): ReadonlyArray<ts.Declaration> {
+  const target = resolvedSymbolTarget(symbol, checker)
+  const declarations = new Set<ts.Declaration>()
+  if (target.valueDeclaration !== undefined) declarations.add(target.valueDeclaration)
+  for (const declaration of target.declarations ?? []) declarations.add(declaration)
+  return Array.from(declarations)
+}
+
+function symbolHasPublicJSDoc(symbol: ts.Symbol, checker: ts.TypeChecker): boolean {
+  return symbolDeclarations(symbol, checker).some((declaration) => {
+    const block = getNodeJSDoc(declaration)
+    return block !== undefined && !block.internal && block.parsed !== undefined
+  })
+}
+
+function isMemberDeclaration(declaration: ts.Declaration): boolean {
+  return ts.isPropertySignature(declaration) || ts.isMethodSignature(declaration) ||
+    ts.isPropertyDeclaration(declaration) || ts.isMethodDeclaration(declaration) ||
+    ts.isGetAccessorDeclaration(declaration) || ts.isSetAccessorDeclaration(declaration)
+}
+
+function undocumentedSeeLinkTarget(
+  symbol: ts.Symbol,
+  checker: ts.TypeChecker,
+  cwd: string
+): ts.Declaration | undefined {
+  const localDeclarations = symbolDeclarations(symbol, checker).filter((declaration) =>
+    isMemberDeclaration(declaration) && isLocalSourceFile(cwd, declaration.getSourceFile())
+  )
+  if (localDeclarations.length === 0 || symbolHasPublicJSDoc(symbol, checker)) return undefined
+  return localDeclarations[0]
+}
+
+function inlineLinkSymbol(
+  symbol: ts.Symbol,
+  cwd: string,
+  checker: ts.TypeChecker
+): ParsedInlineLinkSymbol | undefined {
+  const target = resolvedSymbolTarget(symbol, checker)
+  const declaration = target.valueDeclaration ?? target.declarations?.[0]
+  if (declaration === undefined) return undefined
+  return {
+    file: normalizeFile(cwd, declaration.getSourceFile().fileName),
+    range: nodeRange(declaration)
+  }
+}
+
+function attachSeeLinkSymbols<T extends ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags>(
+  tags: T,
+  node: ts.Node,
+  block: JSDocBlock,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
+): T {
+  const resolved = new Map<
+    string,
+    Array<{ readonly range: readonly [number, number]; readonly symbol?: ParsedInlineLinkSymbol }>
+  >()
+  for (const link of collectJSDocLinks(node.getSourceFile(), block)) {
+    const text = link.getText(node.getSourceFile())
+    const target = extractInlineLinkTarget(text)
+    if (target === "" || urlRegex.test(target)) continue
+    const symbol = resolveJSDocLinkSymbol(link, target, node.getSourceFile(), linkContext.checker, linkContext.entry)
+    const info = symbol === undefined ? undefined : inlineLinkSymbol(symbol, linkContext.cwd, linkContext.checker)
+    const items = resolved.get(text) ?? []
+    items.push(info === undefined ? { range: [link.pos, link.end] } : { range: [link.pos, link.end], symbol: info })
+    resolved.set(text, items)
+  }
+  return {
+    ...tags,
+    see: tags.see.map((tag) => ({
+      ...tag,
+      links: tag.links.map((link) => {
+        const items = resolved.get(link.raw)
+        const info = items?.shift()
+        if (info === undefined) return link
+        return info.symbol === undefined
+          ? { ...link, range: info.range }
+          : { ...link, range: info.range, symbol: info.symbol }
+      })
+    }))
+  }
+}
+
 export interface JSDocModelDiagnostic extends JSDocDiagnostic {
   readonly range: readonly [number, number]
 }
@@ -1464,10 +1705,11 @@ export interface JSDocModelFile extends ParsedJSDocFile {
 }
 
 export interface JSDocModel {
-  readonly version: 1
+  readonly version: 2
   readonly generatedBy: "@effect/jsdocs"
   readonly generatedAt: string
   readonly files: ReadonlyArray<JSDocModelFile>
+  readonly apis: ReadonlyArray<JSDocApi>
 }
 
 export interface JSDocConfig {
@@ -1479,6 +1721,624 @@ export interface JSDocConfig {
 
 export interface ExtractJSDocsOptions extends JSDocConfig {
   readonly cwd?: string
+}
+
+function isIdentifierName(value: string): boolean {
+  return /^[$A-Z_a-z][$\w]*$/.test(value)
+}
+
+function renderInlineLinks(text: string): string {
+  return text.replace(/\{@link\s+([^}]+)\}/g, (_match, content: string) => {
+    const pipeIndex = content.indexOf("|")
+    const beforeLabel = pipeIndex === -1 ? content.trim() : content.slice(0, pipeIndex).trim()
+    const target = beforeLabel.split(/\s+/)[0] ?? ""
+    const label = pipeIndex === -1
+      ? beforeLabel.slice(target.length).trim() || target
+      : content.slice(pipeIndex + 1).trim() || target
+    return `\`${label.replace(/:var$/, "")}\``
+  })
+}
+
+function renderDescription(description: ParsedDescription): ParsedDescription {
+  return {
+    short: renderInlineLinks(description.short),
+    whenToUse: description.whenToUse === null ? null : renderInlineLinks(description.whenToUse),
+    details: description.details === null ? null : renderInlineLinks(description.details),
+    gotchas: description.gotchas === null ? null : renderInlineLinks(description.gotchas)
+  }
+}
+
+function renderExamples(examples: ReadonlyArray<ParsedExample>): ReadonlyArray<ParsedExample> {
+  return examples.map((example) => ({
+    ...example,
+    body: example.body === null ? null : renderInlineLinks(example.body)
+  }))
+}
+
+function apiTags(
+  tags: ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags
+): JSDocApiTags {
+  return {
+    category: "category" in tags ? tags.category : null,
+    since: tags.since,
+    deprecated: tags.deprecated,
+    default: "default" in tags ? tags.default : null
+  }
+}
+
+function unresolvedSeeTag(tag: ParsedSeeTag): JSDocApiSeeTag {
+  return {
+    text: renderInlineLinks(tag.text),
+    links: tag.links.map((link) => ({
+      ...link,
+      resolution: { _tag: "Unresolved", reason: "not-found", candidates: [] }
+    }))
+  }
+}
+
+function unresolvedSee(tags: ReadonlyArray<ParsedSeeTag>): ReadonlyArray<JSDocApiSeeTag> {
+  return tags.map(unresolvedSeeTag)
+}
+
+function apiId(kind: JSDocApiKind, bucket: ExportBucket | null, apiFqn: string): string {
+  return `${kind}:${bucket ?? "none"}:${apiFqn}`
+}
+
+function importGuidance(
+  imports: ParsedJSDocImports,
+  kind: JSDocApiKind,
+  bucket: ExportBucket | null,
+  apiName: string
+): JSDocApiImportGuidance | null {
+  if (kind !== "root-declaration" || bucket !== "value" || !isIdentifierName(apiName)) {
+    return null
+  }
+  if (imports.flatNames.includes(apiName) && imports.barrel !== null) {
+    return {
+      style: "named-barrel",
+      importDeclaration: `import { ${apiName} } from "${imports.barrel.module}"`,
+      usage: apiName
+    }
+  }
+  if (imports.barrel?.type === "namespace") {
+    if (!isIdentifierName(imports.barrel.name)) return null
+    return {
+      style: "namespace-barrel",
+      importDeclaration: `import { ${imports.barrel.name} } from "${imports.barrel.module}"`,
+      usage: `${imports.barrel.name}.${apiName}`
+    }
+  }
+  if (imports.barrel?.type === "flat") {
+    return {
+      style: "named-barrel",
+      importDeclaration: `import { ${apiName} } from "${imports.barrel.module}"`,
+      usage: apiName
+    }
+  }
+  return {
+    style: "named-module",
+    importDeclaration: `import { ${apiName} } from "${imports.module}"`,
+    usage: apiName
+  }
+}
+
+function makeApi(input: {
+  readonly file: JSDocModelFile
+  readonly imports: ParsedJSDocImports
+  readonly kind: JSDocApiKind
+  readonly bucket: ExportBucket | null
+  readonly apiName: string
+  readonly localName: string
+  readonly parentApiName: string | null
+  readonly namespacePath: ReadonlyArray<string>
+  readonly memberPath: ReadonlyArray<string>
+  readonly sourcePath: ReadonlyArray<string | number>
+  readonly sourceRange: readonly [number, number]
+  readonly description: ParsedDescription
+  readonly examples: ReadonlyArray<ParsedExample>
+  readonly tags: ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags
+}): JSDocApi {
+  const apiFqn = `${input.imports.module}.${input.apiName}`
+  return {
+    id: apiId(input.kind, input.bucket, apiFqn),
+    kind: input.kind,
+    moduleName: input.imports.module,
+    apiName: input.apiName,
+    localName: input.localName,
+    parentApiName: input.parentApiName,
+    apiFqn,
+    hasFqnCollision: false,
+    bucket: input.bucket,
+    importable: input.kind === "root-declaration",
+    namespacePath: input.namespacePath,
+    memberPath: input.memberPath,
+    source: {
+      file: input.file.file,
+      path: input.sourcePath,
+      range: input.sourceRange
+    },
+    description: renderDescription(input.description),
+    examples: renderExamples(input.examples),
+    tags: apiTags(input.tags),
+    see: unresolvedSee(input.tags.see),
+    importGuidance: importGuidance(input.imports, input.kind, input.bucket, input.apiName)
+  }
+}
+
+function buildJSDocApis(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSDocApi> {
+  const apis: Array<JSDocApi> = []
+  const addMembers = (
+    file: JSDocModelFile,
+    imports: ParsedJSDocImports,
+    members: ReadonlyArray<ParsedMember>,
+    parentApiName: string,
+    namespacePath: ReadonlyArray<string>,
+    memberPath: ReadonlyArray<string>,
+    sourcePath: ReadonlyArray<string | number>
+  ) => {
+    members.forEach((member, index) => {
+      const nextMemberPath = [...memberPath, member.name]
+      const apiName = `${parentApiName}.${nextMemberPath.join(".")}`
+      apis.push(makeApi({
+        file,
+        imports,
+        kind: "member",
+        bucket: null,
+        apiName,
+        localName: member.name,
+        parentApiName,
+        namespacePath,
+        memberPath: nextMemberPath,
+        sourcePath: [...sourcePath, "members", index],
+        sourceRange: member.range,
+        description: member.description,
+        examples: member.examples,
+        tags: member.tags
+      }))
+      addMembers(file, imports, member.members, parentApiName, namespacePath, nextMemberPath, [
+        ...sourcePath,
+        "members",
+        index
+      ])
+    })
+  }
+  const addNamespaces = (
+    file: JSDocModelFile,
+    imports: ParsedJSDocImports,
+    namespaces: ReadonlyArray<ParsedNamespace>,
+    namespacePath: ReadonlyArray<string>,
+    sourcePath: ReadonlyArray<string | number>
+  ) => {
+    namespaces.forEach((namespace, index) => {
+      const nextNamespacePath = [...namespacePath, namespace.name]
+      const namespaceApiName = nextNamespacePath.join(".")
+      apis.push(makeApi({
+        file,
+        imports,
+        kind: "namespace",
+        bucket: null,
+        apiName: namespaceApiName,
+        localName: namespace.name,
+        parentApiName: namespacePath.length === 0 ? null : namespacePath.join("."),
+        namespacePath: nextNamespacePath,
+        memberPath: [],
+        sourcePath: [...sourcePath, index],
+        sourceRange: namespace.range,
+        description: namespace.description,
+        examples: namespace.examples,
+        tags: namespace.tags
+      }))
+      namespace.declarations.forEach((declaration, declarationIndex) => {
+        const apiName = `${namespaceApiName}.${declaration.name}`
+        apis.push(makeApi({
+          file,
+          imports,
+          kind: "namespace-declaration",
+          bucket: "type",
+          apiName,
+          localName: declaration.name,
+          parentApiName: namespaceApiName,
+          namespacePath: nextNamespacePath,
+          memberPath: [],
+          sourcePath: [...sourcePath, index, "declarations", declarationIndex],
+          sourceRange: declaration.range,
+          description: declaration.description,
+          examples: declaration.examples,
+          tags: declaration.tags
+        }))
+        addMembers(file, imports, declaration.members, apiName, nextNamespacePath, [], [
+          ...sourcePath,
+          index,
+          "declarations",
+          declarationIndex
+        ])
+      })
+      addNamespaces(file, imports, namespace.namespaces, nextNamespacePath, [...sourcePath, index, "namespaces"])
+    })
+  }
+  for (const file of files) {
+    if (file.diagnostics.length > 0 || file.imports === undefined) continue
+    const imports = file.imports
+    file.declarations.forEach((declaration, index) => {
+      apis.push(makeApi({
+        file,
+        imports,
+        kind: "root-declaration",
+        bucket: declaration.bucket,
+        apiName: declaration.name,
+        localName: declaration.name,
+        parentApiName: null,
+        namespacePath: [],
+        memberPath: [],
+        sourcePath: ["declarations", index],
+        sourceRange: declaration.range,
+        description: declaration.description,
+        examples: declaration.examples,
+        tags: declaration.tags
+      }))
+      addMembers(file, imports, declaration.members, declaration.name, [], [], ["declarations", index])
+    })
+    addNamespaces(file, imports, file.namespaces, [], ["namespaces"])
+  }
+  return resolveJSDocApiSeeLinks(markFqnCollisions(apis))
+}
+
+function markFqnCollisions(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<JSDocApi> {
+  const counts = new Map<string, number>()
+  for (const api of apis) counts.set(api.apiFqn, (counts.get(api.apiFqn) ?? 0) + 1)
+  return apis.map((api) => ({ ...api, hasFqnCollision: (counts.get(api.apiFqn) ?? 0) > 1 }))
+}
+
+function normalizeSeeTarget(target: string): ReadonlyArray<string> {
+  const withoutKind = target.replace(/:[A-Za-z]+$/, "")
+  const out = [withoutKind]
+  if (withoutKind.endsWith("_")) out.push(withoutKind.slice(0, -1))
+  return Array.from(new Set(out.filter((item) => item.length > 0)))
+}
+
+function sourceRangeKey(file: string, range: readonly [number, number]): string {
+  return `${file}:${range[0]}:${range[1]}`
+}
+
+function rangeContains(outer: readonly [number, number], inner: readonly [number, number]): boolean {
+  return outer[0] <= inner[0] && inner[1] <= outer[1]
+}
+
+function rangeOverlaps(self: readonly [number, number], that: readonly [number, number]): boolean {
+  return self[0] <= that[1] && that[0] <= self[1]
+}
+
+function rangeWidth(range: readonly [number, number]): number {
+  return range[1] - range[0]
+}
+
+function seeTargetNames(link: ParsedInlineLink): ReadonlySet<string> {
+  const names = new Set<string>()
+  const add = (target: string) => {
+    for (const normalized of normalizeSeeTarget(target)) {
+      const parts = normalized.split(".").filter((part) => part.length > 0)
+      for (const part of parts) names.add(part)
+      if (parts.length > 0) names.add(parts.join("."))
+    }
+  }
+  add(link.target)
+  if (link.text !== null) add(link.text)
+  return names
+}
+
+function apiMatchesSeeTarget(api: JSDocApi, names: ReadonlySet<string>): boolean {
+  if (names.size === 0) return true
+  if (names.has(api.localName) || names.has(api.apiName)) return true
+  for (const name of names) {
+    if (api.apiName.endsWith(`.${name}`)) return true
+  }
+  return false
+}
+
+function resolveJSDocApiSeeLinks(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<JSDocApi> {
+  const byModuleAndName = new Map<string, JSDocApi>()
+  const byLocalName = new Map<string, Array<JSDocApi>>()
+  const bySourceRange = new Map<string, JSDocApi>()
+  const bySourceFile = new Map<string, Array<JSDocApi>>()
+  for (const api of apis) {
+    byModuleAndName.set(`${api.moduleName}:${api.apiName}`, api)
+    bySourceRange.set(sourceRangeKey(api.source.file, api.source.range), api)
+    const sourceApis = bySourceFile.get(api.source.file) ?? []
+    sourceApis.push(api)
+    bySourceFile.set(api.source.file, sourceApis)
+    for (const name of new Set([api.apiName, api.localName])) {
+      const existing = byLocalName.get(name) ?? []
+      existing.push(api)
+      byLocalName.set(name, existing)
+    }
+  }
+  const resolveSymbol = (api: JSDocApi, link: ParsedInlineLink): JSDocApiSeeLinkResolution | undefined => {
+    if (link.symbol === undefined) return undefined
+    const symbol = link.symbol
+    const exact = bySourceRange.get(sourceRangeKey(symbol.file, symbol.range))
+    if (exact !== undefined) return { _tag: "Resolved", apiId: exact.id, apiFqn: exact.apiFqn }
+    const names = seeTargetNames(link)
+    const candidates = (bySourceFile.get(symbol.file) ?? []).filter((api) =>
+      apiMatchesSeeTarget(api, names) &&
+      (rangeContains(symbol.range, api.source.range) ||
+        rangeContains(api.source.range, symbol.range) ||
+        rangeOverlaps(symbol.range, api.source.range))
+    ).sort((self, that) => rangeWidth(self.source.range) - rangeWidth(that.source.range))
+    const unique = Array.from(new Map(candidates.map((candidate) => [candidate.id, candidate])).values())
+    if (unique.length === 1) return { _tag: "Resolved", apiId: unique[0].id, apiFqn: unique[0].apiFqn }
+    if (unique.length > 1) {
+      return { _tag: "Unresolved", reason: "ambiguous", candidates: unique.map((candidate) => candidate.id) }
+    }
+    const sameFileByName = (bySourceFile.get(symbol.file) ?? []).filter((api) => apiMatchesSeeTarget(api, names))
+    const uniqueByName = Array.from(new Map(sameFileByName.map((candidate) => [candidate.id, candidate])).values())
+    if (uniqueByName.length === 1) {
+      return { _tag: "Resolved", apiId: uniqueByName[0].id, apiFqn: uniqueByName[0].apiFqn }
+    }
+    if (uniqueByName.length > 1) {
+      return { _tag: "Unresolved", reason: "ambiguous", candidates: uniqueByName.map((candidate) => candidate.id) }
+    }
+    const sameModule = Array.from(names).flatMap((name) => byModuleAndName.get(`${api.moduleName}:${name}`) ?? [])
+    const uniqueSameModule = Array.from(new Map(sameModule.map((candidate) => [candidate.id, candidate])).values())
+    if (uniqueSameModule.length === 1) {
+      return { _tag: "Resolved", apiId: uniqueSameModule[0].id, apiFqn: uniqueSameModule[0].apiFqn }
+    }
+    if (uniqueSameModule.length > 1) {
+      return {
+        _tag: "Unresolved",
+        reason: "ambiguous",
+        candidates: uniqueSameModule.map((candidate) => candidate.id)
+      }
+    }
+    return { _tag: "Unresolved", reason: "not-found", candidates: [] }
+  }
+  const resolve = (api: JSDocApi, link: ParsedInlineLink): JSDocApiSeeLinkResolution => {
+    const symbolResolution = resolveSymbol(api, link)
+    if (symbolResolution !== undefined) return symbolResolution
+    const targets = new Set<string>()
+    for (const target of normalizeSeeTarget(link.target)) targets.add(target)
+    if (link.text !== null) {
+      for (const target of normalizeSeeTarget(link.text)) targets.add(target)
+    }
+    for (const target of targets) {
+      const sameModule = byModuleAndName.get(`${api.moduleName}:${target}`)
+      if (sameModule !== undefined) return { _tag: "Resolved", apiId: sameModule.id, apiFqn: sameModule.apiFqn }
+      if (!target.includes(".") && api.namespacePath.length > 0) {
+        const sameNamespace = byModuleAndName.get(`${api.moduleName}:${[...api.namespacePath, target].join(".")}`)
+        if (sameNamespace !== undefined) {
+          return { _tag: "Resolved", apiId: sameNamespace.id, apiFqn: sameNamespace.apiFqn }
+        }
+      }
+    }
+    const candidates = Array.from(targets).flatMap((target) => byLocalName.get(target) ?? [])
+    const unique = Array.from(new Map(candidates.map((candidate) => [candidate.id, candidate])).values())
+    if (unique.length === 1) return { _tag: "Resolved", apiId: unique[0].id, apiFqn: unique[0].apiFqn }
+    if (unique.length > 1) {
+      return { _tag: "Unresolved", reason: "ambiguous", candidates: unique.map((candidate) => candidate.id) }
+    }
+    return { _tag: "Unresolved", reason: "not-found", candidates: [] }
+  }
+  return apis.map((api) => ({
+    ...api,
+    see: api.see.map((tag) => ({
+      ...tag,
+      links: tag.links.map((link) => ({ ...link, resolution: resolve(api, link) }))
+    }))
+  }))
+}
+
+function sameDiagnostic(self: JSDocModelDiagnostic, that: JSDocModelDiagnostic): boolean {
+  return self.code === that.code && self.message === that.message &&
+    self.range[0] === that.range[0] && self.range[1] === that.range[1]
+}
+
+function unresolvedPublicSeeDiagnostic(link: JSDocApiSeeLink): JSDocModelDiagnostic | undefined {
+  if (link.resolution._tag === "Resolved" || link.range === undefined) return undefined
+  const message = link.resolution.reason === "ambiguous"
+    ? `@see link target must resolve to exactly one public JSDoc API: ${link.raw}`
+    : `@see link target must resolve to a public JSDoc API: ${link.raw}`
+  return { ...diagnostic("public-see-target", message), range: link.range }
+}
+
+function appendPublicSeeDiagnostics(
+  files: ReadonlyArray<JSDocModelFile>,
+  apis: ReadonlyArray<JSDocApi>
+): { readonly files: ReadonlyArray<JSDocModelFile>; readonly added: boolean } {
+  const diagnosticsByFile = new Map(files.map((file) => [file.file, [...file.diagnostics]]))
+  let added = false
+  for (const api of apis) {
+    const diagnostics = diagnosticsByFile.get(api.source.file)
+    if (diagnostics === undefined) continue
+    for (const tag of api.see) {
+      for (const link of tag.links) {
+        const item = unresolvedPublicSeeDiagnostic(link)
+        if (item === undefined || diagnostics.some((diagnostic) => sameDiagnostic(diagnostic, item))) continue
+        diagnostics.push(item)
+        added = true
+      }
+    }
+  }
+  if (!added) return { files, added }
+  return {
+    added,
+    files: files.map((file) => ({
+      ...file,
+      diagnostics: diagnosticsByFile.get(file.file) ?? file.diagnostics
+    }))
+  }
+}
+
+function buildJSDocApisWithPublicSeeDiagnostics(files: ReadonlyArray<JSDocModelFile>): {
+  readonly files: ReadonlyArray<JSDocModelFile>
+  readonly apis: ReadonlyArray<JSDocApi>
+} {
+  let current = files
+  for (let index = 0; index < 5; index++) {
+    const apis = buildJSDocApis(current)
+    const next = appendPublicSeeDiagnostics(current, apis)
+    if (!next.added) return { files: current, apis }
+    current = next.files
+  }
+  return { files: current, apis: buildJSDocApis(current) }
+}
+
+interface ExampleImportPolicy {
+  readonly allowedNamedBySource: ReadonlyMap<string, ReadonlySet<string>>
+  readonly namespaceModuleBySource: ReadonlyMap<string, { readonly barrelModule: string; readonly name: string }>
+  readonly flatModuleBySource: ReadonlyMap<
+    string,
+    { readonly barrelModule: string; readonly names: ReadonlySet<string> }
+  >
+  readonly namedModuleBySource: ReadonlyMap<string, ReadonlySet<string>>
+}
+
+function createExampleImportPolicy(files: ReadonlyArray<JSDocModelFile>): ExampleImportPolicy {
+  const allowedNamed = new Map<string, Set<string>>()
+  const namespaceModuleBySource = new Map<string, { readonly barrelModule: string; readonly name: string }>()
+  const flatModuleBySource = new Map<string, { readonly barrelModule: string; readonly names: ReadonlySet<string> }>()
+  const namedModuleBySource = new Map<string, ReadonlySet<string>>()
+  const addAllowed = (source: string, name: string) => {
+    const names = allowedNamed.get(source) ?? new Set<string>()
+    names.add(name)
+    allowedNamed.set(source, names)
+  }
+  for (const file of files) {
+    if (file.imports === undefined) continue
+    const rootValues = file.declarations.filter((declaration) =>
+      declaration.bucket === "value" && isIdentifierName(declaration.name)
+    ).map((declaration) => declaration.name)
+    if (file.imports.barrel?.type === "namespace") {
+      addAllowed(file.imports.barrel.module, file.imports.barrel.name)
+      for (const name of file.imports.flatNames) addAllowed(file.imports.barrel.module, name)
+      namespaceModuleBySource.set(file.imports.module, {
+        barrelModule: file.imports.barrel.module,
+        name: file.imports.barrel.name
+      })
+      continue
+    }
+    if (file.imports.barrel?.type === "flat") {
+      for (const name of new Set([...rootValues, ...file.imports.flatNames])) {
+        addAllowed(file.imports.barrel.module, name)
+      }
+      flatModuleBySource.set(file.imports.module, {
+        barrelModule: file.imports.barrel.module,
+        names: new Set([...rootValues, ...file.imports.flatNames])
+      })
+      continue
+    }
+    for (const name of rootValues) addAllowed(file.imports.module, name)
+    namedModuleBySource.set(file.imports.module, new Set(rootValues))
+  }
+  return { allowedNamedBySource: allowedNamed, namespaceModuleBySource, flatModuleBySource, namedModuleBySource }
+}
+
+function importSpecifierName(specifier: ts.ImportSpecifier): string {
+  return specifier.propertyName?.text ?? specifier.name.text
+}
+
+function validateExampleImports(
+  code: string,
+  policy: ExampleImportPolicy
+): ReadonlyArray<JSDocDiagnostic> {
+  const diagnostics: Array<JSDocDiagnostic> = []
+  const sourceFile = ts.createSourceFile("example.ts", code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteralLike(statement.moduleSpecifier)) continue
+    if (statement.importClause?.isTypeOnly) continue
+    const source = statement.moduleSpecifier.text
+    const namedAllowed = policy.allowedNamedBySource.get(source)
+    const namespaceModule = policy.namespaceModuleBySource.get(source)
+    const flatModule = policy.flatModuleBySource.get(source)
+    const namedModule = policy.namedModuleBySource.get(source)
+    const clause = statement.importClause
+    if (clause === undefined) continue
+    if (namespaceModule !== undefined) {
+      diagnostics.push(diagnostic(
+        "example-import-style",
+        `JSDoc examples should use \`import { ${namespaceModule.name} } from "${namespaceModule.barrelModule}"\` instead of importing from "${source}"`
+      ))
+      continue
+    }
+    if (flatModule !== undefined) {
+      diagnostics.push(diagnostic(
+        "example-import-style",
+        `JSDoc examples should import ${
+          Array.from(flatModule.names).map((name) => `\`${name}\``).join(", ")
+        } from "${flatModule.barrelModule}" instead of "${source}"`
+      ))
+      continue
+    }
+    if (clause.namedBindings !== undefined && ts.isNamespaceImport(clause.namedBindings)) {
+      if (namedAllowed !== undefined || namedModule !== undefined) {
+        diagnostics.push(diagnostic("example-import-style", `JSDoc examples should use named imports from "${source}"`))
+      }
+      continue
+    }
+    if (clause.name !== undefined && (namedAllowed !== undefined || namedModule !== undefined)) {
+      diagnostics.push(
+        diagnostic("example-import-style", `JSDoc examples should not use default imports from "${source}"`)
+      )
+    }
+    if (clause.namedBindings !== undefined && ts.isNamedImports(clause.namedBindings) && namedAllowed !== undefined) {
+      for (const specifier of clause.namedBindings.elements) {
+        if (specifier.isTypeOnly) continue
+        const imported = importSpecifierName(specifier)
+        if (!namedAllowed.has(imported)) {
+          diagnostics.push(diagnostic(
+            "example-import-style",
+            `JSDoc example import \`${imported}\` from "${source}" is not a canonical public API import`
+          ))
+        }
+      }
+    }
+  }
+  return diagnostics
+}
+
+function appendExampleImportDiagnostics(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSDocModelFile> {
+  const policy = createExampleImportPolicy(files)
+  const checkExamples = (examples: ReadonlyArray<ParsedExample>): ReadonlyArray<JSDocModelDiagnostic> =>
+    examples.flatMap((example) =>
+      validateExampleImports(example.code, policy).map((item) => ({ ...item, range: [0, 0] as const }))
+    )
+  const checkMembers = (members: ReadonlyArray<ParsedMember>): ReadonlyArray<JSDocModelDiagnostic> =>
+    members.flatMap((member) => [
+      ...checkExamples(member.examples),
+      ...checkMembers(member.members)
+    ])
+  const checkNamespaces = (namespaces: ReadonlyArray<ParsedNamespace>): ReadonlyArray<JSDocModelDiagnostic> =>
+    namespaces.flatMap((namespace) => [
+      ...checkExamples(namespace.examples),
+      ...namespace.declarations.flatMap((declaration) => [
+        ...checkExamples(declaration.examples),
+        ...checkMembers(declaration.members)
+      ]),
+      ...checkNamespaces(namespace.namespaces)
+    ])
+  return files.map((file) => {
+    const diagnostics = [
+      ...file.diagnostics,
+      ...file.declarations.flatMap((declaration) => [
+        ...checkExamples(declaration.examples),
+        ...checkMembers(declaration.members)
+      ]),
+      ...checkNamespaces(file.namespaces)
+    ]
+    return diagnostics.length === file.diagnostics.length
+      ? file
+      : { ...file, diagnostics: uniqueModelDiagnostics(diagnostics) }
+  })
+}
+
+function uniqueModelDiagnostics(
+  diagnostics: ReadonlyArray<JSDocModelDiagnostic>
+): ReadonlyArray<JSDocModelDiagnostic> {
+  const seen = new Set<string>()
+  return diagnostics.filter((item) => {
+    const key = `${item.code}:${item.message}:${item.range[0]}:${item.range[1]}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function nodeRange(node: ts.Node): [number, number] {
@@ -1514,7 +2374,7 @@ function parseDocumentedTs(
   scope: DocScope,
   diagnostics: Array<JSDocModelDiagnostic>,
   required = true,
-  linkContext?: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+  linkContext?: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
 ) {
   const block = getNodeJSDoc(node)
   if (block?.internal) return undefined
@@ -1556,8 +2416,24 @@ function parseDocumentedTs(
         })
       }
     }
+    for (const link of collectJSDocSeeLinks(node.getSourceFile(), block)) {
+      const text = link.getText(node.getSourceFile())
+      const target = extractInlineLinkTarget(text)
+      if (target === "" || urlRegex.test(target)) continue
+      const symbol = resolveJSDocLinkSymbol(link, target, node.getSourceFile(), linkContext.checker, linkContext.entry)
+      if (symbol === undefined) continue
+      if (undocumentedSeeLinkTarget(symbol, linkContext.checker, linkContext.cwd) !== undefined) {
+        diagnostics.push({
+          ...diagnostic("undocumented-see-target", `@see link target must have public JSDoc: ${text}`),
+          range: [link.pos, link.end]
+        })
+      }
+    }
   }
-  return { core: block.parsed, tags: tags.value }
+  return {
+    core: block.parsed,
+    tags: linkContext === undefined ? tags.value : attachSeeLinkSymbols(tags.value, node, block, linkContext)
+  }
 }
 
 function hasExportModifier(node: ts.Node): boolean {
@@ -1589,6 +2465,16 @@ function declarationName(node: ts.Node): string | undefined {
   return undefined
 }
 
+function publicDeclarationRange(node: ts.Node, name: string): readonly [number, number] {
+  if (ts.isVariableStatement(node)) {
+    const declaration = node.declarationList.declarations.find((item) =>
+      ts.isIdentifier(item.name) && item.name.text === name
+    )
+    if (declaration !== undefined) return nodeRange(declaration)
+  }
+  return nodeRange(node)
+}
+
 function bucketOfTs(node: ts.Node): ExportBucket | undefined {
   if (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) return "value"
   if (ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)) return "type"
@@ -1598,7 +2484,7 @@ function bucketOfTs(node: ts.Node): ExportBucket | undefined {
 function parseMembersFromTsType(
   type: ts.TypeNode | undefined,
   diagnostics: Array<JSDocModelDiagnostic>,
-  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
 ): Array<ParsedMember> {
   if (!type) return []
   if (ts.isTypeLiteralNode(type)) return parseTsMembers(type.members, diagnostics, linkContext)
@@ -1656,7 +2542,7 @@ function memberType(member: ts.TypeElement | ts.ClassElement): ts.TypeNode | und
 function parseTsMembers(
   members: ts.NodeArray<ts.TypeElement | ts.ClassElement>,
   diagnostics: Array<JSDocModelDiagnostic>,
-  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
 ): Array<ParsedMember> {
   const out: Array<ParsedMember> = []
   for (const member of members) {
@@ -1671,6 +2557,7 @@ function parseTsMembers(
     const nested = parseMembersFromTsType(memberType(member), diagnostics, linkContext)
     out.push({
       name,
+      range: nodeRange(member),
       description: documented.core.description,
       examples: documented.core.examples,
       tags: documented.tags as ParsedMemberTags,
@@ -1683,7 +2570,7 @@ function parseTsMembers(
 function parseDeclarationMembersTs(
   node: ts.Node,
   diagnostics: Array<JSDocModelDiagnostic>,
-  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry }
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
 ): Array<ParsedMember> {
   if (ts.isInterfaceDeclaration(node)) return parseTsMembers(node.members, diagnostics, linkContext)
   if (ts.isClassDeclaration(node)) return parseTsMembers(node.members, diagnostics, linkContext)
@@ -1703,7 +2590,7 @@ function hasDeclareModifier(node: ts.Node): boolean {
 function parseNamespaceTs(
   node: ts.ModuleDeclaration,
   diagnostics: Array<JSDocModelDiagnostic>,
-  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry },
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string },
   isInsideDeclare = false
 ): ParsedNamespace | undefined {
   if (!ts.isIdentifier(node.name)) return undefined
@@ -1750,6 +2637,7 @@ function parseNamespaceTs(
       }
       declarations.push({
         name,
+        range: publicDeclarationRange(statement, name),
         description: nestedDocumented.core.description,
         examples: nestedDocumented.core.examples,
         tags: nestedDocumented.tags as ParsedNamespaceTags,
@@ -1759,6 +2647,7 @@ function parseNamespaceTs(
   }
   return {
     name: node.name.text,
+    range: nodeRange(node),
     description: documented.core.description,
     examples: documented.core.examples,
     tags: documented.tags as ParsedNamespaceTags,
@@ -1768,6 +2657,7 @@ function parseNamespaceTs(
 }
 
 function parseSourceFileDocs(
+  cwd: string,
   sourceFile: ts.SourceFile,
   checker: ts.TypeChecker,
   entry: ProgramCacheEntry
@@ -1775,7 +2665,7 @@ function parseSourceFileDocs(
   const diagnostics: Array<JSDocModelDiagnostic> = []
   const declarations: Array<ParsedRootDeclaration> = []
   const namespaces: Array<ParsedNamespace> = []
-  const linkContext = { checker, entry }
+  const linkContext = { checker, entry, cwd }
   const checkedFunctionOverloads = new Set<string>()
 
   for (const statement of sourceFile.statements) {
@@ -1795,6 +2685,7 @@ function parseSourceFileDocs(
           declarations.push({
             name: specifier.name.text,
             bucket: statement.isTypeOnly || specifier.isTypeOnly ? "type" : "value",
+            range: nodeRange(specifier),
             description: documented.core.description,
             examples: documented.core.examples,
             tags: documented.tags as ParsedDeclarationTags,
@@ -1838,6 +2729,7 @@ function parseSourceFileDocs(
     declarations.push({
       name,
       bucket,
+      range: publicDeclarationRange(statement, name),
       description: documented.core.description,
       examples: documented.core.examples,
       tags: documented.tags as ParsedDeclarationTags,
@@ -1888,25 +2780,25 @@ export function extractJSDocsSync(options: ExtractJSDocsOptions): JSDocModel {
       })
       continue
     }
-    const result = parseSourceFileDocs(sourceFile, checker, entry)
+    const result = parseSourceFileDocs(cwd, sourceFile, checker, entry)
     if (
       result.diagnostics.length === 0 && result.parsed.declarations.length === 0 &&
       result.parsed.namespaces.length === 0
     ) continue
     const fileDiagnostics = [...result.diagnostics]
     let importsValue: ParsedJSDocImports | undefined
-    if (
-      fileDiagnostics.length === 0 && (result.parsed.declarations.length > 0 || result.parsed.namespaces.length > 0)
-    ) {
+    if (result.parsed.declarations.length > 0 || result.parsed.namespaces.length > 0) {
       const imports = resolveJSDocImports(cwd, filename)
       if (imports._tag === "Success") importsValue = imports.value
-      else {fileDiagnostics.push({
+      else {
+        fileDiagnostics.push({
           ...diagnostic(
             "imports",
             `Unable to resolve jsdocs imports: ${imports.error}. Add the missing barrel/package export or exclude this file from jsdocs.`
           ),
           range: [0, 0]
-        })}
+        })
+      }
     }
     modelFiles.push({
       file,
@@ -1916,7 +2808,15 @@ export function extractJSDocsSync(options: ExtractJSDocsOptions): JSDocModel {
       ...result.parsed
     })
   }
-  return { version: 1, generatedBy: "@effect/jsdocs", generatedAt: new Date().toISOString(), files: modelFiles }
+  const filesWithExampleDiagnostics = appendExampleImportDiagnostics(modelFiles)
+  const withPublicSeeDiagnostics = buildJSDocApisWithPublicSeeDiagnostics(filesWithExampleDiagnostics)
+  return {
+    version: 2,
+    generatedBy: "@effect/jsdocs",
+    generatedAt: new Date().toISOString(),
+    files: withPublicSeeDiagnostics.files,
+    apis: withPublicSeeDiagnostics.apis
+  }
 }
 
 export const extractJSDocs = (options: ExtractJSDocsOptions): Effect.Effect<JSDocModel> =>
@@ -1932,8 +2832,9 @@ export function readJSDocModel(filename: string): Result<JSDocModel, string> {
   if (!fs.existsSync(filename)) return { _tag: "Failure", error: "missing" }
   try {
     const parsed = JSON.parse(fs.readFileSync(filename, "utf8")) as JSDocModel
-    if (parsed.version !== 1) return { _tag: "Failure", error: "Unsupported jsdocs model version" }
+    if (parsed.version !== 2) return { _tag: "Failure", error: "Unsupported jsdocs model version" }
     if (!Array.isArray(parsed.files)) return { _tag: "Failure", error: "Invalid jsdocs model: files must be an array" }
+    if (!Array.isArray(parsed.apis)) return { _tag: "Failure", error: "Invalid jsdocs model: apis must be an array" }
     return { _tag: "Success", value: parsed }
   } catch (error) {
     return { _tag: "Failure", error: `Invalid jsdocs model: ${error instanceof Error ? error.message : String(error)}` }

@@ -7,7 +7,7 @@
  *
  * **When to use**
  *
- * - Create an Anthropic-backed model with {@link model}
+ * Use when create an Anthropic-backed model with {@link model}
  * - Build or provide a `LanguageModel.LanguageModel` layer with {@link layer}
  *   or {@link make}
  * - Supply default request options through {@link Config}
@@ -202,7 +202,7 @@ declare module "effect/unstable/ai/Prompt" {
    *
    * **When to use**
    *
-   * Use these options to control how text blocks are sent to Anthropic.
+   * Use when you use these options to control how text blocks are sent to Anthropic.
    *
    * @category request
    * @since 4.0.0
@@ -283,7 +283,7 @@ declare module "effect/unstable/ai/Prompt" {
        *
        * **When to use**
        *
-       * Useful for storing additional document metadata as text or stringified JSON.
+       * Use when storing additional document metadata as text or stringified JSON.
        */
       readonly documentContext?: string | null
     } | null

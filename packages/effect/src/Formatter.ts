@@ -60,7 +60,7 @@ import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
  *
  * **When to use**
  *
- * Use `Formatter` when you want to type a formatting or rendering function generically, or when you are building a pipeline that accepts pluggable formatters.
+ * Use when you want to type a formatting or rendering function generically, or when you are building a pipeline that accepts pluggable formatters.
  *
  * **Details**
  *
@@ -91,7 +91,7 @@ export interface Formatter<in Value, out Format = string> {
  *
  * **When to use**
  *
- * - Pretty-printing values for debugging, logging, or error messages.
+ * Use to pretty-print values for debugging, logging, or error messages.
  * - You need to handle `BigInt`, `Symbol`, `Set`, `Map`, `Date`, `RegExp`,
  *   or class instances that `JSON.stringify` cannot represent.
  * - You want circular references shown as `"[Circular]"` instead of
@@ -289,7 +289,7 @@ function safeToString(input: any): string {
  *
  * **When to use**
  *
- * - You need valid JSON output (unlike {@link format}).
+ * Use when you need valid JSON output (unlike {@link format}).
  * - The input may contain circular references and you want them silently
  *   omitted rather than throwing a `TypeError`.
  *

@@ -108,7 +108,7 @@ import * as Getter from "./SchemaGetter.ts"
  *
  * **When to use**
  *
- * Use this when inspecting or transforming non-primitive schema types.
+ * Use when inspecting or transforming non-primitive schema types.
  *
  * **Details**
  *
@@ -758,7 +758,7 @@ export interface References {
  *
  * **When to use**
  *
- * Use {@link fromAST} to create a `Document` from a Schema AST, {@link toSchema}
+ * Use when you use {@link fromAST} to create a `Document` from a Schema AST, {@link toSchema}
  * to reconstruct a runtime Schema, {@link toJsonSchemaDocument} to convert to
  * JSON Schema, and {@link toMultiDocument} to wrap it as a
  * {@link MultiDocument}.
@@ -779,7 +779,7 @@ export type Document = {
  *
  * **When to use**
  *
- * Use {@link fromASTs} to create this from multiple Schema ASTs,
+ * Use when you use {@link fromASTs} to create this from multiple Schema ASTs,
  * {@link toCodeDocument} to generate TypeScript code, and
  * {@link toJsonSchemaMultiDocument} to convert to JSON Schema.
  *
@@ -1623,7 +1623,7 @@ export const $MultiDocument = Schema.Struct({
  *
  * **When to use**
  *
- * Use this when you have a single schema and need its representation.
+ * Use when you have a single schema and need its representation.
  *
  * **Details**
  *
@@ -1658,7 +1658,7 @@ export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAS
  *
  * **When to use**
  *
- * Use this when you have multiple schemas that may share references.
+ * Use when you have multiple schemas that may share references.
  *
  * **Details**
  *
@@ -1678,7 +1678,7 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
  *
  * **When to use**
  *
- * Use this with `Schema.decodeUnknownSync` or `Schema.encodeSync` to serialize
+ * Use with `Schema.decodeUnknownSync` or `Schema.encodeSync` to serialize
  * and deserialize documents.
  *
  * **Example** (Round-tripping a Document through JSON)
@@ -1717,7 +1717,7 @@ export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = S
  *
  * **When to use**
  *
- * Use this when an API expects a `MultiDocument` but you only have a single
+ * Use when an API expects a `MultiDocument` but you only have a single
  * `Document`.
  *
  * **Details**
@@ -1764,8 +1764,8 @@ export type Reviver<T> = (declaration: Declaration, recur: (representation: Repr
  *
  * **When to use**
  *
- * Pass this as `options.reviver` to {@link toSchema} to reconstruct schemas
- * that use these types.
+ * Use when passing this as `options.reviver` to {@link toSchema} to reconstruct
+ * schemas that use these types.
  *
  * **Details**
  *
@@ -1852,7 +1852,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
  *
  * **When to use**
  *
- * Use this when you have a serialized or computed representation and need a
+ * Use when you have a serialized or computed representation and need a
  * working Schema for decoding/encoding.
  *
  * **Details**
@@ -2198,7 +2198,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
  *
  * **When to use**
  *
- * Use this to produce a standard JSON Schema from an Effect Schema
+ * Use to produce a standard JSON Schema from an Effect Schema
  * representation.
  *
  * **Details**
@@ -2234,7 +2234,7 @@ export const toJsonSchemaDocument: (
  *
  * **When to use**
  *
- * Use this when you have multiple schemas sharing references.
+ * Use when you have multiple schemas sharing references.
  *
  * **Details**
  *
@@ -2344,7 +2344,7 @@ export type CodeDocument = {
  *
  * **When to use**
  *
- * Use this to produce source code for Schema definitions, such as in codegen
+ * Use to produce source code for Schema definitions, such as in codegen
  * tools.
  *
  * **Details**
@@ -2980,7 +2980,7 @@ function toRuntimeRegExp(regExp: RegExp): string {
  *
  * **When to use**
  *
- * Use this to import external JSON Schemas into the Effect representation
+ * Use to import external JSON Schemas into the Effect representation
  * system.
  *
  * **Details**
@@ -3020,7 +3020,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  *
  * **When to use**
  *
- * Use this to import multiple JSON Schemas sharing definitions.
+ * Use to import multiple JSON Schemas sharing definitions.
  *
  * **Details**
  *

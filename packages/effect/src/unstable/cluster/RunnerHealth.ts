@@ -54,7 +54,7 @@ export class RunnerHealth extends Context.Service<
  *
  * **When to use**
  *
- * This is useful for testing.
+ * Use when this is useful for testing.
  *
  * @category layers
  * @since 4.0.0

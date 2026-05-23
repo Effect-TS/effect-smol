@@ -60,7 +60,7 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * - Use as a type annotation for equivalence functions
+ * Use as a type annotation for equivalence functions
  * - Use when implementing custom equivalence logic
  * - Use when working with collection operations that require equivalence relations
  *
@@ -109,7 +109,7 @@ export type Equivalence<in A> = (self: A, that: A) => boolean
  *
  * **When to use**
  *
- * - Rarely needed in application code
+ * Use when rarely needed in application code
  * - Use primarily for internal type system operations and HKT (Higher-Kinded Types) abstractions
  * - Use when working with generic type constructors that require type lambdas
  *
@@ -148,7 +148,7 @@ export interface EquivalenceTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * - Use when you need a custom equivalence that is not just strict equality
+ * Use when you need a custom equivalence that is not just strict equality
  * - Use when creating equivalences for complex types with custom comparison logic
  * - Use when you want the performance benefit of reference equality optimization
  *
@@ -202,7 +202,7 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
  *
  * **When to use**
  *
- * - Use for primitive types where `===` is appropriate
+ * Use when you need primitive types where `===` is appropriate
  * - Use when you need reference equality for objects
  * - Use as a building block for more complex equivalences via {@link mapInput} or {@link combine}
  * - Use when performance is critical and you do not need structural equality
@@ -329,7 +329,7 @@ export const BigInt: Equivalence<bigint> = isStrictEquivalent
  *
  * **When to use**
  *
- * - Use when you need to combine exactly two equivalences
+ * Use when you need to combine exactly two equivalences
  * - Use when building complex equivalences from simpler ones
  * - Use when you want both conditions to be satisfied
  *
@@ -385,7 +385,7 @@ export const combine: {
  *
  * **When to use**
  *
- * - Use when you need to combine three or more equivalences
+ * Use when you need to combine three or more equivalences
  * - Use when you have a dynamic collection of equivalences to combine
  * - Use when building equivalences from arrays or iterables
  * - Prefer this over multiple `combine` calls when you have many equivalences
@@ -462,7 +462,7 @@ export const combineAll = <A>(collection: Iterable<Equivalence<A>>): Equivalence
  *
  * **When to use**
  *
- * - Use when you need an equivalence for a complex type based on a single property
+ * Use when you need an equivalence for a complex type based on a single property
  * - Use when you want to normalize values before comparison, such as case-insensitive strings
  * - Use when creating equivalences that focus on specific fields of objects
  * - Use as a building block for creating equivalences via {@link combine} or {@link combineAll}
@@ -532,7 +532,7 @@ export const mapInput: {
  *
  * **When to use**
  *
- * - Use when comparing tuples with different types at each position
+ * Use when comparing tuples with different types at each position
  * - Use when you need different equivalence logic for each tuple element
  * - Use when working with fixed-length tuples instead of arrays
  * - Prefer this over `Array` when you have a known tuple structure with different types
@@ -585,8 +585,6 @@ export const mapInput: {
  * ) // true
  * ```
  *
- * @see {@link Array_}
- * @see {@link Struct}
  * @category combinators
  * @since 4.0.0
  */
@@ -626,7 +624,7 @@ export {
    *
    * **When to use**
    *
-   * - Use when comparing arrays with homogeneous element types
+   * Use when comparing arrays with homogeneous element types
    * - Use when all elements should use the same equivalence logic
    * - Use when working with variable-length arrays instead of fixed tuples
    * - Prefer this over `Tuple` when you have arrays of the same type
@@ -681,7 +679,7 @@ export {
  *
  * **When to use**
  *
- * - Use when comparing objects with known, fixed property names
+ * Use when comparing objects with known, fixed property names
  * - Use when you need different equivalence logic for different properties
  * - Use when working with struct or interface types with specific fields
  * - Prefer this over `Record` when you have a fixed set of known properties
@@ -764,7 +762,7 @@ export function Struct<R extends Record<string, Equivalence<any>>>(
  *
  * **When to use**
  *
- * - Use when comparing objects with dynamic or unknown property names
+ * Use when comparing objects with dynamic or unknown property names
  * - Use when all property values should use the same equivalence logic
  * - Use when working with record or dictionary types
  * - Prefer this over `Struct` when you have variable properties or need to compare all properties uniformly
@@ -811,8 +809,6 @@ export function Struct<R extends Record<string, Equivalence<any>>>(
  * console.log(numberRecordEq(scores1, scores3)) // false
  * ```
  *
- * @see {@link Struct}
- * @see {@link Array_}
  * @category combinators
  * @since 4.0.0
  */
@@ -838,7 +834,7 @@ export function Record<A>(value: Equivalence<A>): Equivalence<Record<PropertyKey
  *
  * **When to use**
  *
- * - Use when you need to combine multiple equivalences from a collection using reducer patterns
+ * Use when you need to combine multiple equivalences from a collection using reducer patterns
  * - Use when implementing fold operations over collections of equivalences
  * - Use when working with reducers that operate on equivalences
  *
@@ -883,6 +879,10 @@ export function makeReducer<A>() {
 /**
  * An `Equivalence` instance for `Date` objects that compares their `getTime()` values using `Equivalence.Number`.
  *
+ * **When to use**
+ *
+ * Use when comparing `Date` values by their millisecond timestamp.
+ *
  * **Details**
  *
  * Different `Date` instances that represent the same millisecond timestamp are equivalent. Because `Equivalence.Number`
@@ -917,9 +917,9 @@ export function makeReducer<A>() {
  * console.log(Equivalence.Date(d1, d2)) // true (same time value)
  * ```
  *
- * @see {@link Number}
- * @see {@link mapInput}
- * @see {@link strictEqual}
+ * @see {@link Number} for the numeric equivalence applied to each `Date#getTime()` result
+ * @see {@link mapInput} for deriving an equivalence by mapping inputs before comparison
+ * @see {@link strictEqual} for reference equality when two values must be the same object
  * @category instances
  * @since 2.0.0
  */

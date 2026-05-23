@@ -88,7 +88,7 @@ export interface Latch {
  *
  * **When to use**
  *
- * Use this only when synchronous allocation is required; otherwise prefer
+ * Use when you use this only when synchronous allocation is required; otherwise prefer
  * `make`.
  *
  * **Details**
@@ -161,10 +161,17 @@ export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = intern
 /**
  * Opens the latch and releases fibers waiting on it.
  *
+ * **When to use**
+ *
+ * Use to open a latch and release all fibers that are waiting on it.
+ *
  * **Details**
  *
  * The returned effect succeeds with `true` when this call changed the latch
  * from closed to open, or `false` if it was already open.
+ *
+ * @see {@link openUnsafe} for a synchronous variant
+ * @see {@link release} to release waiting fibers without opening the latch
  *
  * @category combinators
  * @since 4.0.0

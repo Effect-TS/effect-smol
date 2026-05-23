@@ -481,7 +481,7 @@ const makeUnsafe = (history: Ref.Ref<Prompt.Prompt>) => {
  *
  * **When to use**
  *
- * This is the most common way to start a fresh chat session without
+ * Use when this is the most common way to start a fresh chat session without
  * any initial context or system prompts.
  *
  * **Example** (Creating an empty chat)

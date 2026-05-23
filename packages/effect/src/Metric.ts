@@ -195,7 +195,7 @@ export interface Metric<in Input, out State> extends Pipeable {
  *
  * **When to use**
  *
- * Counters are useful for tracking monotonically increasing values like request counts,
+ * Use when counters are useful for tracking monotonically increasing values like request counts,
  * bytes processed, errors encountered, or any value that accumulates over time.
  *
  * **Example** (Using counter metrics)
@@ -328,7 +328,7 @@ export interface CounterState<in Input extends number | bigint> {
  *
  * **When to use**
  *
- * Frequency metrics are ideal for tracking categorical data where you want to count
+ * Use when frequency metrics are ideal for tracking categorical data where you want to count
  * how many times specific string values occur, such as HTTP status codes, user actions,
  * error types, or any discrete string-based events.
  *
@@ -500,7 +500,7 @@ export interface FrequencyState {
  *
  * **When to use**
  *
- * Gauges are useful for tracking current state values like memory usage, CPU load,
+ * Use when gauges are useful for tracking current state values like memory usage, CPU load,
  * active connections, queue sizes, or any value that represents a current level.
  *
  * **Example** (Using gauge metrics)
@@ -632,7 +632,7 @@ export interface GaugeState<in Input extends number | bigint> {
  *
  * **When to use**
  *
- * Histograms are ideal for measuring request durations, response sizes, and other continuous values
+ * Use when histograms are ideal for measuring request durations, response sizes, and other continuous values
  * where you need to understand the distribution of values rather than just aggregates.
  *
  * **Example** (Using histogram metrics)
@@ -814,7 +814,7 @@ export interface HistogramState {
  *
  * **When to use**
  *
- * Summaries provide statistical insights into value distributions by tracking specific quantiles
+ * Use when summaries provide statistical insights into value distributions by tracking specific quantiles
  * (percentiles) such as median (50th), 95th percentile, 99th percentile, etc. They're ideal for
  * understanding performance characteristics like response time distributions.
  *
@@ -2142,7 +2142,7 @@ class MetricTransform<in Input, out State, in Input2> extends Metric$<Input2, St
  *
  * **When to use**
  *
- * This function is useful for runtime type checking and ensuring that a value
+ * Use when you need runtime type checking and ensuring that a value
  * conforms to the Metric interface before performing metric operations.
  *
  * **Example** (Checking metric values)
@@ -2252,7 +2252,7 @@ export const counter: {
  *
  * **When to use**
  *
- * Gauges are most suitable for metrics that represent instantaneous values,
+ * Use when gauges are most suitable for metrics that represent instantaneous values,
  * such as memory usage or CPU load.
  *
  * **Details**
@@ -2331,7 +2331,7 @@ export const gauge: {
  *
  * **When to use**
  *
- * Frequency metrics are most suitable for counting the number of times a
+ * Use when frequency metrics are most suitable for counting the number of times a
  * specific event or incident occurs.
  *
  * **Details**
@@ -2414,7 +2414,7 @@ export const frequency = (name: string, options?: {
  *
  * **When to use**
  *
- * Histogram metrics are most suitable for measuring the distribution of values
+ * Use when histogram metrics are most suitable for measuring the distribution of values
  * within a range.
  *
  * **Details**
@@ -2494,7 +2494,7 @@ export const histogram = (name: string, options: {
  *
  * **When to use**
  *
- * Summary metrics are most suitable for providing statistical information about
+ * Use when summary metrics are most suitable for providing statistical information about
  * a set of values, including quantiles.
  *
  * **Details**
@@ -2590,7 +2590,7 @@ export const summary = (name: string, options: {
  *
  * **When to use**
  *
- * Summary metrics are most suitable for statistical information about a set of
+ * Use when summary metrics are most suitable for statistical information about a set of
  * values.
  *
  * **Details**
@@ -3743,10 +3743,8 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  *
  * **When to use**
  *
- * Unlike the function version which wraps individual Effects, this layer provides
- * runtime metrics collection to all Effects in the application context. This is
- * the recommended approach for production applications that need comprehensive
- * fiber monitoring.
+ * Use when you need runtime metrics collection for all Effects in the
+ * application context rather than wrapping individual Effects.
  *
  * **Example** (Enabling runtime metrics with a layer)
  *
@@ -3972,7 +3970,7 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  *
  * **When to use**
  *
- * This is useful when you want to selectively disable runtime metrics for specific
+ * Use when this is useful when you want to selectively disable runtime metrics for specific
  * parts of your application while keeping them enabled elsewhere, or when you need
  * to avoid the overhead of metrics collection in performance-critical sections.
  *

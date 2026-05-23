@@ -157,6 +157,11 @@ export interface Entry<A, E> {
 /**
  * Creates a cache with dynamic time-to-live based on the result and key.
  *
+ * **When to use**
+ *
+ * Use when you need different cache entry lifetimes based on the lookup result
+ * or key characteristics.
+ *
  * **Details**
  *
  * The timeToLive function receives both the exit result and the key, allowing
@@ -187,6 +192,7 @@ export interface Entry<A, E> {
  * })
  * ```
  *
+ * @see {@link make} for a simpler cache constructor with a fixed time-to-live for all entries
  * @category constructors
  * @since 2.0.0
  */

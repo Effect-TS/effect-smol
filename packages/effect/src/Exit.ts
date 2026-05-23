@@ -71,7 +71,7 @@ const TypeId = core.ExitTypeId
  *
  * **When to use**
  *
- * - Use when you need to synchronously inspect whether a computation succeeded or failed
+ * Use when you need to synchronously inspect whether a computation succeeded or failed
  * - Use as an alternative to try/catch for Effect-based code
  *
  * **Details**
@@ -131,7 +131,7 @@ export declare namespace Exit {
  *
  * **When to use**
  *
- * - Use {@link isSuccess} to narrow an `Exit` to `Success`
+ * Use when you use {@link isSuccess} to narrow an `Exit` to `Success`
  * - Access the value via the `value` property after narrowing
  *
  * **Example** (Accessing the success value)
@@ -163,7 +163,7 @@ export interface Success<out A, out E = never> extends Exit.Proto<A, E> {
  *
  * **When to use**
  *
- * - Use {@link isFailure} to narrow an `Exit` to `Failure`
+ * Use when you use {@link isFailure} to narrow an `Exit` to `Failure`
  * - Access the cause via the `cause` property after narrowing
  *
  * **Details**
@@ -199,7 +199,7 @@ export interface Failure<out A, out E> extends Exit.Proto<A, E> {
  *
  * **When to use**
  *
- * - Use to validate unknown values at system boundaries
+ * Use to validate unknown values at system boundaries
  * - Works as a type guard, narrowing to `Exit<unknown, unknown>`
  *
  * **Details**
@@ -230,7 +230,7 @@ export const isExit: (u: unknown) => u is Exit<unknown, unknown> = core.isExit
  *
  * **When to use**
  *
- * - Use to wrap a known success value into an Exit
+ * Use to wrap a known success value into an Exit
  * - Use when constructing test data or returning explicit results
  *
  * **Details**
@@ -260,7 +260,7 @@ export const succeed: <A>(a: A) => Exit<A> = core.exitSucceed
  *
  * **When to use**
  *
- * - Use when you already have a `Cause<E>` and want to wrap it in an Exit
+ * Use when you already have a `Cause<E>` and want to wrap it in an Exit
  * - Use for advanced error handling where you need full control over the Cause structure
  *
  * **Details**
@@ -291,7 +291,7 @@ export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = core.exit
  *
  * **When to use**
  *
- * - Use for expected, recoverable failures
+ * Use when you need expected, recoverable failures
  *
  * **Details**
  *
@@ -322,7 +322,7 @@ export const fail: <E>(e: E) => Exit<never, E> = core.exitFail
  *
  * **When to use**
  *
- * - Use for unexpected, unrecoverable errors that should not appear in the typed error channel
+ * Use when you need unexpected, unrecoverable errors that should not appear in the typed error channel
  *
  * **Details**
  *
@@ -353,7 +353,7 @@ export const die: (defect: unknown) => Exit<never> = core.exitDie
  *
  * **When to use**
  *
- * - Use to signal that a fiber was interrupted
+ * Use to signal that a fiber was interrupted
  *
  * **Details**
  *
@@ -385,7 +385,7 @@ export {
    *
    * **When to use**
    *
-   * - Use when you need a success Exit but do not care about the value
+   * Use when you need a success Exit but do not care about the value
    * - Avoids allocating a new Exit for a common case
    *
    * **Details**
@@ -415,7 +415,7 @@ export {
  *
  * **When to use**
  *
- * - Use as a type guard to narrow `Exit<A, E>` to `Success<A, E>`
+ * Use as a type guard to narrow `Exit<A, E>` to `Success<A, E>`
  * - After narrowing, the `value` property becomes accessible
  *
  * **Example** (Narrowing to Success)
@@ -443,7 +443,7 @@ export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effe
  *
  * **When to use**
  *
- * - Use as a type guard to narrow `Exit<A, E>` to `Failure<A, E>`
+ * Use as a type guard to narrow `Exit<A, E>` to `Failure<A, E>`
  * - After narrowing, the `cause` property becomes accessible
  *
  * **Example** (Narrowing to Failure)
@@ -471,7 +471,7 @@ export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effe
  *
  * **When to use**
  *
- * - Use to distinguish typed failures from defects or interruptions
+ * Use to distinguish typed failures from defects or interruptions
  *
  * **Details**
  *
@@ -503,7 +503,7 @@ export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effec
  *
  * **When to use**
  *
- * - Use to check for unexpected errors
+ * Use to check for unexpected errors
  *
  * **Details**
  *
@@ -535,7 +535,7 @@ export const hasDies: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect
  *
  * **When to use**
  *
- * - Use to check if a fiber was interrupted
+ * Use to check if a fiber was interrupted
  *
  * **Details**
  *
@@ -799,7 +799,7 @@ export const findDefect: <A, E>(input: Exit<A, E>) => Result.Result<unknown, Exi
  *
  * **When to use**
  *
- * - Use for exhaustive handling of both outcomes
+ * Use when you need exhaustive handling of both outcomes
  *
  * **Details**
  *
@@ -846,7 +846,7 @@ export const match: {
  *
  * **When to use**
  *
- * - Use to apply a transformation to the value inside a successful Exit
+ * Use to apply a transformation to the value inside a successful Exit
  *
  * **Details**
  *
@@ -881,7 +881,7 @@ export const map: {
  *
  * **When to use**
  *
- * - Use to remap typed errors while preserving the Exit structure
+ * Use to remap typed errors while preserving the Exit structure
  *
  * **Details**
  *
@@ -923,7 +923,7 @@ export const mapError: {
  *
  * **When to use**
  *
- * - Use when you need to remap both channels in one step
+ * Use when you need to remap both channels in one step
  *
  * **Details**
  *
@@ -974,7 +974,7 @@ export const mapBoth: {
  *
  * **When to use**
  *
- * - Use when you only care about whether the computation succeeded or failed, not the value
+ * Use when you only care about whether the computation succeeded or failed, not the value
  *
  * **Details**
  *
@@ -1005,7 +1005,7 @@ export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = effect.exitAsVo
  *
  * **When to use**
  *
- * - Use to validate that all exits in a collection succeeded
+ * Use to validate that all exits in a collection succeeded
  *
  * **Details**
  *
@@ -1041,7 +1041,7 @@ export const asVoidAll: <I extends Iterable<Exit<any, any>>>(
  *
  * **When to use**
  *
- * - Use when you want to optionally extract the value without pattern matching
+ * Use when you want to optionally extract the value without pattern matching
  *
  * **Details**
  *
@@ -1069,7 +1069,7 @@ export const getSuccess: <A, E>(self: Exit<A, E>) => Option<A> = effect.exitGetS
  *
  * **When to use**
  *
- * - Use when you want to optionally inspect the failure cause
+ * Use when you want to optionally inspect the failure cause
  *
  * **Details**
  *
@@ -1097,7 +1097,7 @@ export const getCause: <A, E>(self: Exit<A, E>) => Option<Cause.Cause<E>> = effe
  *
  * **When to use**
  *
- * - Use when you want to optionally extract a typed error without dealing with the full Cause
+ * Use when you want to optionally extract a typed error without dealing with the full Cause
  *
  * **Details**
  *

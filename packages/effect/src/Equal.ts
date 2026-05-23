@@ -79,7 +79,7 @@ import { hasProperty } from "./Predicate.ts"
  *
  * **When to use**
  *
- * - Use it as the computed property key when implementing custom equality on a
+ * Use when you use it as the computed property key when implementing custom equality on a
  *   class or object literal.
  * - Use it to check manually whether an object carries an equality method (prefer
  *   {@link isEqual} instead).
@@ -118,7 +118,7 @@ export const symbol = "~effect/interfaces/Equal"
  *
  * **When to use**
  *
- * - When you need value-based equality for a class (e.g. domain IDs,
+ * Use when when you need value-based equality for a class (e.g. domain IDs,
  *   coordinates, money values).
  * - When your type will be stored in `HashMap` or `HashSet`.
  * - When the default structural comparison is too broad or too narrow for
@@ -174,7 +174,7 @@ export interface Equal extends Hash.Hash {
  *
  * **When to use**
  *
- * - As the default equality check throughout Effect code.
+ * Use when as the default equality check throughout Effect code.
  * - In data-level assertions or conditional logic where structural comparison
  *   is needed.
  * - In its curried (single-argument) form to build reusable predicates.
@@ -462,7 +462,7 @@ const compareSets = makeCompareSet(compareBoth)
  *
  * **When to use**
  *
- * - To branch on whether a value supports custom equality before calling
+ * Use when to branch on whether a value supports custom equality before calling
  *   its `[Equal.symbol]` method directly.
  * - In generic utility code that needs to distinguish `Equal` implementors
  *   from plain values.
@@ -506,7 +506,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  *
  * **When to use**
  *
- * - When an API (e.g. `Array.dedupeWith`, `Equivalence.mapInput`) requires an
+ * Use when when an API (e.g. `Array.dedupeWith`, `Equivalence.mapInput`) requires an
  *   `Equivalence` and you want to reuse `Equal.equals`.
  *
  * **Details**
@@ -536,7 +536,7 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  *
  * **When to use**
  *
- * - When you have a plain object or array that should be compared by identity
+ * Use when when you have a plain object or array that should be compared by identity
  *   (reference), not by contents.
  * - When you want to preserve the original object unchanged and get a new
  *   reference-equal handle.
@@ -581,7 +581,7 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  *
  * **When to use**
  *
- * - When you want reference equality semantics and can accept that the
+ * Use when when you want reference equality semantics and can accept that the
  *   original object is **permanently** modified.
  * - When proxy overhead is unacceptable (hot paths, large collections).
  *

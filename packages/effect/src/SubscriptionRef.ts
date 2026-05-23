@@ -34,7 +34,7 @@ const TypeId = "~effect/SubscriptionRef"
  *
  * **When to use**
  *
- * Use `changes` to observe the current value and subsequent updates as a
+ * Use to observe the current value and subsequent updates as a
  * stream.
  *
  * @category models

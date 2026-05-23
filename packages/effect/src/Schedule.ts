@@ -806,7 +806,7 @@ export const andThenResult: {
  *
  * **When to use**
  *
- * Use `both` when the combined schedule should continue only while both
+ * Use when the combined schedule should continue only while both
  * schedules still recur. Use `either` when either schedule should be enough to
  * continue.
  *
@@ -1497,7 +1497,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  *
  * **When to use**
  *
- * Use `duration` when you need one delayed recurrence. Use `during` to keep
+ * Use when you need one delayed recurrence. Use `during` to keep
  * recurring until a duration has elapsed.
  *
  * **Details**
@@ -1536,7 +1536,7 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  *
  * **When to use**
  *
- * Use `during` to bound a repeating or retrying schedule by elapsed time. Use
+ * Use to bound a repeating or retrying schedule by elapsed time. Use
  * `duration` when you need one delayed recurrence.
  *
  * **Example** (Repeating work during a duration)
@@ -1635,7 +1635,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  *
  * **When to use**
  *
- * Use `either` when the combined schedule should continue while at least one
+ * Use when the combined schedule should continue while at least one
  * schedule still recurs. Use `both` when both schedules must continue.
  *
  * **Example** (Combining schedules with either semantics)
@@ -2095,7 +2095,7 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  *
  * **When to use**
  *
- * Use `fixed` when recurrences should stay aligned to a regular cadence. Use
+ * Use when recurrences should stay aligned to a regular cadence. Use
  * `spaced` when each delay should start after the previous action completes.
  *
  * **Gotchas**
@@ -2403,7 +2403,7 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * **When to use**
  *
- * Use `recurs` for a counter schedule with no additional delay. Use `take` to
+ * Use when you use `recurs` for a counter schedule with no additional delay. Use `take` to
  * limit an existing schedule while preserving its output and delay behavior.
  *
  * **Gotchas**
@@ -2628,7 +2628,7 @@ export const reduce: {
  *
  * **When to use**
  *
- * Use `spaced` when each delay should start after the previous action
+ * Use when each delay should start after the previous action
  * completes. Use `fixed` when recurrences should stay aligned to a regular
  * cadence.
  *
@@ -2996,7 +2996,7 @@ export const tapOutput: {
  *
  * **When to use**
  *
- * Use `take` to limit an existing schedule while preserving its output and
+ * Use to limit an existing schedule while preserving its output and
  * delay behavior. Use `recurs` when you only need an immediate counter
  * schedule.
  *
@@ -3347,12 +3347,18 @@ export {
   /**
    * Creates a schedule that always recurs, passing inputs directly as outputs.
    *
+   * **When to use**
+   *
+   * Use when you need an infinite schedule that preserves input values as
+   * outputs.
+   *
    * **Details**
    *
    * This schedule runs indefinitely, returning each input value as its output
    * without modification. It effectively acts as a pass-through that simply
    * echoes its input values at each step.
    *
+   * @see {@link forever} for an infinite schedule that returns incrementing step counts
    * @category constructors
    * @since 2.0.0
    */
@@ -3364,7 +3370,7 @@ export {
  *
  * **When to use**
  *
- * Use `satisfiesInputType` to check an existing schedule input type. Use
+ * Use to check an existing schedule input type. Use
  * `setInputType` to adapt a schedule that does not depend on its input values.
  *
  * **Details**
@@ -3404,7 +3410,7 @@ export const satisfiesInputType = <T>() =>
  *
  * **When to use**
  *
- * Use `setInputType` to adapt a schedule that does not depend on its input
+ * Use to adapt a schedule that does not depend on its input
  * values. Use `satisfiesInputType` to check an existing schedule input type.
  *
  * **Details**

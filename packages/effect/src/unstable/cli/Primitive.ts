@@ -679,7 +679,7 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
  *
  * **When to use**
  *
- * Used for flags that don't accept values.
+ * Use when you need flags that don't accept values.
  *
  * **Example** (Rejecting option values)
  *
@@ -705,7 +705,7 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  *
  * **When to use**
  *
- * Used for generating help documentation.
+ * Use when you need generating help documentation.
  *
  * **Example** (Getting primitive type names)
  *

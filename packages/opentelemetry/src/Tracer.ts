@@ -348,7 +348,7 @@ const convertOtelTimeInput = (input: Otel.TimeInput | undefined, clock: Clock.Cl
  *
  * **When to use**
  *
- * Use this when OpenTelemetry instrumentation outside Effect has already
+ * Use when OpenTelemetry instrumentation outside Effect has already
  * produced a parent span context and an effect should continue that trace.
  *
  * @category propagation

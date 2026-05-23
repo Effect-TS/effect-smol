@@ -1289,7 +1289,7 @@ export const make = <
  *
  * **When to use**
  *
- * This is useful for tools where the schema isn't known at compile time,
+ * Use when this is useful for tools where the schema isn't known at compile time,
  * such as MCP tools discovered at runtime or tools from external configurations.
  *
  * **Details**

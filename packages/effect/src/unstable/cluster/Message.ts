@@ -181,7 +181,7 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
  *
  * **When to use**
  *
- * Use `OutgoingEnvelope.interrupt` to construct an interrupt envelope for an
+ * Use to construct an interrupt envelope for an
  * in-flight request.
  *
  * @category outgoing

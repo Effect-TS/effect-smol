@@ -875,7 +875,7 @@ export const fileSchema = <Kind extends ParamKind, A>(
  *
  * **When to use**
  *
- * Use it for options that accept configuration values.
+ * Use when you use it for options that accept configuration values.
  *
  * **Details**
  *
@@ -920,7 +920,7 @@ export const keyValuePair = <Kind extends ParamKind>(
  *
  * **When to use**
  *
- * This is useful for creating placeholder parameters or for combinators.
+ * Use when this is useful for creating placeholder parameters or for combinators.
  *
  * **Example** (Creating sentinel parameters)
  *
@@ -955,7 +955,7 @@ const FLAG_DASH_REGEXP = /^-+/
  *
  * **When to use**
  *
- * Aliases allow params to be specified with alternative names,
+ * Use when aliases allow params to be specified with alternative names,
  * typically single-character shortcuts like "-f" for "--force".
  *
  * **Details**
@@ -1037,7 +1037,7 @@ export const withDescription: {
  *
  * **When to use**
  *
- * Useful for experimental, internal, or deprecated flags that should be
+ * Use when experimental, internal, or deprecated flags that should be
  * accepted but not advertised.
  *
  * **Example** (Hiding a flag from help)
@@ -1607,7 +1607,7 @@ export const atLeast: {
  *
  * **When to use**
  *
- * Use this combinator for validation and transformation in a single step.
+ * Use when you use this combinator for validation and transformation in a single step.
  *
  * **Example** (Filtering and transforming values)
  *

@@ -139,7 +139,7 @@ export declare namespace ServiceClass {
  *
  * **When to use**
  *
- * Use `Service` for dependencies that must be provided by the surrounding
+ * Use when you use `Service` for dependencies that must be provided by the surrounding
  * context. Use `Reference` when a dependency should have a default value.
  *
  * **Details**
@@ -614,7 +614,7 @@ export const make = <I, S>(
  *
  * **When to use**
  *
- * Use `add` when you always have a service value to store. Use `addOrOmit`
+ * Use when you always have a service value to store. Use `addOrOmit`
  * when the value is optional and a missing value should remove the service.
  *
  * **Details**
@@ -671,7 +671,7 @@ export const add: {
  *
  * **When to use**
  *
- * Use `addOrOmit` when service presence is already represented as an `Option`.
+ * Use when service presence is already represented as an `Option`.
  * Use `add` when you always want to store a service value.
  *
  * **Details**
@@ -729,7 +729,7 @@ export const addOrOmit: {
  *
  * **When to use**
  *
- * Use `getOrElse` when you want a fallback value for a missing regular
+ * Use when you want a fallback value for a missing regular
  * service. Use `getOption` when you need to distinguish presence from absence.
  *
  * **Details**
@@ -788,7 +788,7 @@ export const getOrElse: {
  *
  * **When to use**
  *
- * Use `getOrUndefined` for raw map-style lookup. Use `getOption` when you want
+ * Use when you use `getOrUndefined` for raw map-style lookup. Use `getOption` when you want
  * the usual `Context.Reference` default-value behavior.
  *
  * **Gotchas**
@@ -815,7 +815,7 @@ export const getOrUndefined: {
  *
  * **When to use**
  *
- * Use `getUnsafe` only when the context type cannot prove that the service is
+ * Use when you use `getUnsafe` only when the context type cannot prove that the service is
  * present. Use `get` when the service requirement is tracked in the context
  * type, or `getOption` when absence is expected.
  *
@@ -865,7 +865,7 @@ export const getUnsafe: {
  *
  * **When to use**
  *
- * Use `get` when the context type proves that the service is present. Use
+ * Use when the context type proves that the service is present. Use
  * `getOption` or `getOrElse` when a service may be absent.
  *
  * **Example** (Getting a service from a context)
@@ -960,7 +960,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  *
  * **When to use**
  *
- * Use `getOption` when service absence is expected and should be represented
+ * Use when service absence is expected and should be represented
  * as data. Use `getOrElse` when you want to provide a fallback value directly.
  *
  * **Details**
@@ -1007,7 +1007,7 @@ export const getOption: {
  *
  * **When to use**
  *
- * Use `merge` when combining two contexts. Use `mergeAll` when combining a
+ * Use when combining two contexts. Use `mergeAll` when combining a
  * variadic list of contexts.
  *
  * **Details**
@@ -1054,7 +1054,7 @@ export const merge: {
  *
  * **When to use**
  *
- * Use `mergeAll` when the number of contexts is variadic. Use `merge` when
+ * Use when the number of contexts is variadic. Use `merge` when
  * combining exactly two contexts.
  *
  * **Details**
@@ -1109,7 +1109,7 @@ export const mergeAll = <T extends Array<unknown>>(
  *
  * **When to use**
  *
- * Use `pick` when you want to keep a small allowlist of services. Use `omit`
+ * Use when you want to keep a small allowlist of services. Use `omit`
  * when it is easier to name the services to remove.
  *
  * **Example** (Picking services from a context)
@@ -1157,7 +1157,7 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  *
  * **When to use**
  *
- * Use `omit` when you want to remove a small denylist of services. Use `pick`
+ * Use when you want to remove a small denylist of services. Use `pick`
  * when it is easier to name the services to keep.
  *
  * **Example** (Omitting services from a context)
@@ -1236,7 +1236,7 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  *
  * **When to use**
  *
- * Use `Reference` when a service should be available even if it is not
+ * Use when a service should be available even if it is not
  * explicitly stored in the `Context`. Use `Service` when the service must be
  * provided by the surrounding context.
  *

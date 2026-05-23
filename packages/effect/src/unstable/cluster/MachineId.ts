@@ -5,7 +5,7 @@
  *
  * **When to use**
  *
- * - Persisting or exchanging the machine id assigned to a cluster runner
+ * Use to persist or exchanging the machine id assigned to a cluster runner
  * - Passing a runner-specific identity to the cluster snowflake generator
  * - Decoding machine ids from storage while keeping them distinct from plain numbers
  *

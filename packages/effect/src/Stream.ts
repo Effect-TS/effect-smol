@@ -756,7 +756,7 @@ export const toChannel = <A, E, R>(
  *
  * **When to use**
  *
- * You can use the `Queue` with the apis from the `Queue` module to emit
+ * Use when you can use the `Queue` with the apis from the `Queue` module to emit
  * values to the stream or to signal the stream ending.
  *
  * By default it uses an "unbounded" buffer size.
@@ -1505,7 +1505,7 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  *
  * **When to use**
  *
- * Use `PubSub.subscribe` to create the subscription and `Stream.take` or
+ * Use to create the subscription and `Stream.take` or
  * cancellation to control how many values are consumed.
  *
  * **Example** (Creating a stream from a PubSub subscription)
@@ -5108,7 +5108,7 @@ export const catchFilter: {
  *
  * **When to use**
  *
- * Use `catchTag` when your error type is a tagged union with a readonly `_tag`
+ * Use when your error type is a tagged union with a readonly `_tag`
  * field and you want to handle a specific error case.
  *
  * **Example** (Catching tagged failures)
@@ -5321,7 +5321,7 @@ export const catchTags: {
  *
  * **When to use**
  *
- * Use this to handle nested error causes without removing the parent error
+ * Use to handle nested error causes without removing the parent error
  * from the error channel. The handler receives the unwrapped reason.
  *
  * **Example** (Catching a tagged error reason)
@@ -5811,7 +5811,7 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  *
  * **When to use**
  *
- * Use the `log` option to emit the full {@link Cause} when the stream fails.
+ * Use to emit the full {@link Cause} when the stream fails. with the `log` option
  *
  * **Example** (Ignoring stream failures)
  *
@@ -5875,7 +5875,7 @@ export const ignore: <
  *
  * **When to use**
  *
- * Use the `log` option to emit the full {@link Cause} when the stream fails.
+ * Use to emit the full {@link Cause} when the stream fails. with the `log` option
  *
  * **Example** (Ignoring stream failure causes)
  *

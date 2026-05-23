@@ -279,8 +279,8 @@ export type errorExitCode = "~effect/Runtime/errorExitCode"
  *
  * **When to use**
  *
- * Use on error classes whose failures should map to a specific process exit
- * code when handled by {@link defaultTeardown}.
+ * Use when error classes should map failures to a specific process exit code
+ * when handled by {@link defaultTeardown}.
  *
  * **Details**
  *
@@ -356,8 +356,8 @@ export type errorReported = "~effect/Runtime/errorReported"
  *
  * **When to use**
  *
- * Use on error classes that are already reported by application code and
- * should not be logged again by the default main runner.
+ * Use when error classes are already reported by application code and should
+ * not be logged again by the default main runner.
  *
  * **Details**
  *

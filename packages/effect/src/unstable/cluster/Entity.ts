@@ -489,7 +489,7 @@ export class CurrentRunnerAddress extends Context.Service<
  *
  * **When to use**
  *
- * Use it to complete an entity request by succeeding, failing, failing with a
+ * Use when you use it to complete an entity request by succeeding, failing, failing with a
  * cause, or supplying an explicit `Exit`.
  *
  * @category Replier
