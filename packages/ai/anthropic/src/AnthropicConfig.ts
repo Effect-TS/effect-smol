@@ -76,6 +76,11 @@ export declare namespace AnthropicConfig {
 /**
  * Runs an effect with an `AnthropicConfig` override that transforms the underlying `HttpClient` used by generated Anthropic requests.
  *
+ * **When to use**
+ *
+ * Use when you need to apply a temporary `HttpClient` transformation, such as adding middleware or logging, to a
+ * specific scope of an effectful program.
+ *
  * @category configuration
  * @since 4.0.0
  */

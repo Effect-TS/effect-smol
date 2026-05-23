@@ -5811,7 +5811,9 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  *
  * **When to use**
  *
- * Use to emit the full {@link Cause} when the stream fails. with the `log` option
+ * Use when you want a failing stream to end gracefully rather than propagate
+ * the error. The `log` option controls whether the failure is logged before
+ * the stream terminates.
  *
  * **Example** (Ignoring stream failures)
  *
@@ -5847,6 +5849,8 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  * // []
  * ```
  *
+ * @see {@link ignoreCause} for a variant that also ignores defects, not just typed failures
+ *
  * @category error handling
  * @since 4.0.0
  */
@@ -5875,7 +5879,9 @@ export const ignore: <
  *
  * **When to use**
  *
- * Use to emit the full {@link Cause} when the stream fails. with the `log` option
+ * Use when a stream may fail with defects and you want to silently suppress the
+ * entire failure cause — including both typed errors and defects — rather than
+ * propagate it downstream.
  *
  * **Example** (Ignoring stream failure causes)
  *
@@ -5893,6 +5899,8 @@ export const ignore: <
  *
  * // [ 1, 2 ]
  * ```
+ *
+ * @see {@link ignore} to ignore only typed failures without suppressing defects
  *
  * @category error handling
  * @since 4.0.0

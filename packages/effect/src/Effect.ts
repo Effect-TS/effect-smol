@@ -838,7 +838,8 @@ export const whileLoop: <A, E, R>(options: {
  *
  * **When to use**
  *
- * Use when you are sure the operation will not reject.
+ * Use to convert a `Promise` into an `Effect` when the async operation is
+ * guaranteed to succeed and will not reject.
  *
  * **Details**
  *

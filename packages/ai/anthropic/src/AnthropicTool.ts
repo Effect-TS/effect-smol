@@ -52,10 +52,17 @@ export type AnthropicTool =
 /**
  * Anthropic Bash tool (2024-10-22 version).
  *
+ * **When to use**
+ *
+ * Use when you need the model to execute bash commands and require the 2024-10-22
+ * version of the Anthropic computer-use beta.
+ *
  * **Details**
  *
  * Allows the model to execute bash commands in a sandboxed environment.
  * Requires the "computer-use-2024-10-22" beta header.
+ *
+ * @see {@link Bash_20250124} for the newer 2025-01-24 version of the bash tool
  *
  * @category Bash
  * @since 4.0.0
@@ -75,10 +82,17 @@ export const Bash_20241022 = Tool.providerDefined({
 /**
  * Anthropic Bash tool (2025-01-24 version).
  *
+ * **When to use**
+ *
+ * Use when you need the model to execute bash commands and require the 2025-01-24
+ * version of the Anthropic computer-use beta.
+ *
  * **Details**
  *
  * Allows the model to execute bash commands in a sandboxed environment.
  * Requires the "computer-use-2025-01-24" beta header.
+ *
+ * @see {@link Bash_20241022} for the older 2024-10-22 version of the bash tool
  *
  * @category Bash
  * @since 4.0.0
@@ -105,6 +119,13 @@ export const Bash_20250124 = Tool.providerDefined({
 
 /**
  * Schema for a code execution request that asks Anthropic to run source code as a programmatic tool call.
+ *
+ * **When to use**
+ *
+ * Use when constructing or validating a programmatic tool call for the Anthropic
+ * Code Execution tool.
+ *
+ * @see {@link CodeExecution_20250522} for the parent tool definition
  *
  * @category Code Execution
  * @since 4.0.0
@@ -369,11 +390,18 @@ export type CodeExecution_20250825_Parameters = typeof CodeExecution_20250825_Pa
 /**
  * Anthropic Code Execution tool (2025-05-22 version).
  *
+ * **When to use**
+ *
+ * Use when you need the model to execute code in a sandboxed environment and
+ * require the 2025-05-22 version of the Anthropic code-execution beta.
+ *
  * **Details**
  *
  * Allows the model to execute code in a sandboxed environment with support
  * for multiple execution types including programmatic tool calls, bash
  * execution, and text editor operations.
+ *
+ * @see {@link CodeExecutionProgrammaticToolCall} for the programmatic tool call schema
  *
  * @category Code Execution
  * @since 4.0.0

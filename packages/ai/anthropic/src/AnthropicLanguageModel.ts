@@ -80,6 +80,11 @@ export type Model = typeof Generated.Model.Type
 /**
  * Configuration options for the Anthropic language model.
  *
+ * **When to use**
+ *
+ * Use when you need to provide or override Anthropic model configuration on a
+ * per-request basis via `Context.Service`.
+ *
  * **Details**
  *
  * This service can be used to provide default configuration values or to

@@ -211,7 +211,8 @@ export type Reason<E> = Fail<E> | Die | Interrupt
  *
  * **When to use**
  *
- * Use as a predicate for `Array.filter` when iterating over `cause.reasons`.
+ * Use as a predicate for `Array.filter` to pick out typed `Fail` reasons when
+ * iterating over `cause.reasons`.
  *
  * **Example** (filtering fail reasons)
  *
@@ -236,7 +237,8 @@ export const isFailReason: <E>(self: Reason<E>) => self is Fail<E> = core.isFail
  *
  * **When to use**
  *
- * Use as a predicate for `Array.filter` when iterating over `cause.reasons`.
+ * Use as a predicate for `Array.filter` to pick out `Die` (defect) reasons when
+ * iterating over `cause.reasons`.
  *
  * **Example** (filtering die reasons)
  *
@@ -261,7 +263,8 @@ export const isDieReason: <E>(self: Reason<E>) => self is Die = core.isDieReason
  *
  * **When to use**
  *
- * Use as a predicate for `Array.filter` when iterating over `cause.reasons`.
+ * Use as a predicate for `Array.filter` to pick out `Interrupt` reasons when
+ * iterating over `cause.reasons`.
  *
  * **Example** (filtering interrupt reasons)
  *

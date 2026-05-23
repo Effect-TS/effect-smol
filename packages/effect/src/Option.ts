@@ -263,8 +263,8 @@ export interface OptionTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * Use to represent a missing or uninitialized value
- * - Returning "no result" from a function
+ * Use to represent a missing or uninitialized value, such as returning "no
+ * result" from a function.
  *
  * **Details**
  *
@@ -329,8 +329,8 @@ export const some: <A>(value: A) => Option<A> = option.some
  *
  * **When to use**
  *
- * Use to validate unknown values at runtime boundaries
- * - Type-narrowing in union types
+ * Use to validate unknown values at runtime boundaries, such as type-narrowing
+ * in union types.
  *
  * **Details**
  *

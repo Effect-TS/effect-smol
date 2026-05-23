@@ -204,11 +204,19 @@ const RedactedAnthropicHeaders = {
 /**
  * Creates an Anthropic client service with the given options.
  *
+ * **When to use**
+ *
+ * Use when you have explicit configuration values and need an `Effect` that
+ * constructs the Anthropic client service, rather than providing it as a `Layer`.
+ *
  * **Details**
  *
  * The client handles API key authentication via the `x-api-key` header, API versioning via the `anthropic-version`
  * header, error mapping to the unified `AiError` type, and request/response transformations via `AnthropicConfig`. It
  * requires an `HttpClient` in the context.
+ *
+ * @see {@link layer} for providing the client as a `Layer` from explicit options
+ * @see {@link layerConfig} for providing the client as a `Layer` with `Config`-based settings
  *
  * @category constructors
  * @since 4.0.0
@@ -375,6 +383,15 @@ export const layer = (options: Options): Layer.Layer<AnthropicClient, never, Htt
 /**
  * Creates a layer for the Anthropic client, loading the requisite configuration
  * via Effect's `Config` module.
+ *
+ * **When to use**
+ *
+ * Use when you want to provide the Anthropic client as a `Layer` with
+ * configuration loaded from Effect's `Config` module, such as from environment
+ * variables or a secrets provider.
+ *
+ * @see {@link layer} for providing the client from explicit options instead of `Config`
+ * @see {@link make} for constructing the client service effectfully
  *
  * @category layers
  * @since 4.0.0
