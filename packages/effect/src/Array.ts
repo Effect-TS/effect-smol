@@ -833,6 +833,10 @@ export const scanRight: {
 /**
  * Tests whether a value is an `Array`.
  *
+ * **When to use**
+ *
+ * Use to verify a value is a mutable array, narrowing its type to `Array<unknown>`.
+ *
  * **Details**
  *
  * - Acts as a type guard narrowing the input to `Array<unknown>`.
@@ -943,6 +947,10 @@ export const isReadonlyArrayNonEmpty: <A>(self: ReadonlyArray<A>) => self is Non
 
 /**
  * Returns the number of elements in a `ReadonlyArray`.
+ *
+ * **When to use**
+ *
+ * Use when you need length as a composable function rather than a property access.
  *
  * **Example** (Getting the length)
  *
@@ -2243,6 +2251,10 @@ export const sortBy = <S extends Iterable<any>>(
  * Pairs elements from two iterables by position. If the iterables differ in
  * length, the extra elements from the longer one are discarded.
  *
+ * **When to use**
+ *
+ * Use to pair corresponding elements from two iterables when you need simple pairs without a custom combiner.
+ *
  * **Details**
  *
  * - Returns `NonEmptyArray` when both inputs are non-empty.
@@ -2344,6 +2356,10 @@ export const unzip: <S extends Iterable<readonly [any, any]>>(
 /**
  * Places a separator element between every pair of elements.
  *
+ * **When to use**
+ *
+ * Use to insert a separator between elements, for example when preparing data for display or concatenation.
+ *
  * **Details**
  *
  * - Preserves `NonEmptyArray` in the return type.
@@ -2387,6 +2403,10 @@ export const intersperse: {
 /**
  * Applies a function to the first element of a non-empty array, returning a
  * new array.
+ *
+ * **When to use**
+ *
+ * Use to transform the first element of a non-empty array while preserving the rest.
  *
  * **Example** (Modifying the head)
  *
@@ -2671,6 +2691,10 @@ export const chop: {
 /**
  * Splits an iterable into two arrays at the given index.
  *
+ * **When to use**
+ *
+ * Use to divide an array into a prefix and suffix at a specific position.
+ *
  * **Details**
  *
  * - `n` can be `0` (all elements in the second array).
@@ -2736,6 +2760,10 @@ export const splitAtNonEmpty: {
 /**
  * Splits an iterable into `n` roughly equal-sized chunks.
  *
+ * **When to use**
+ *
+ * Use to distribute elements across a fixed number of groups, such as when splitting work across threads.
+ *
  * **Details**
  *
  * - Uses `chunksOf(ceil(length / n))` internally.
@@ -2765,6 +2793,10 @@ export const split: {
 /**
  * Splits an iterable at the first element matching the predicate. The matching
  * element is included in the second array.
+ *
+ * **When to use**
+ *
+ * Use to split an array at a condition boundary when you know which element marks the transition point.
  *
  * **Example** (Splitting at a condition)
  *
@@ -2828,6 +2860,10 @@ export const copy: {
 /**
  * Pads or truncates an array to exactly `n` elements, filling with `fill`
  * if the array is shorter, or slicing if longer.
+ *
+ * **When to use**
+ *
+ * Use to ensure an array has a specific length, padding with a fill value or truncating as needed.
  *
  * **Details**
  *
@@ -2912,6 +2948,10 @@ export const chunksOf: {
 
 /**
  * Creates overlapping sliding windows of size `n`.
+ *
+ * **When to use**
+ *
+ * Use to process sequences with a moving window, such as for computing running averages or detecting patterns.
  *
  * **Details**
  *
