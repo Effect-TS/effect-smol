@@ -137,6 +137,20 @@ describe("Stream.catchTags", () => {
     )
     expect(_s).type.toBe<Stream.Stream<string, never, "dep-1">>()
   })
+
+  it("keeps the orElse error type when orElse re-fails", () => {
+    const result = pipe(
+      stream,
+      Stream.catchTags(
+        { ErrorA: () => Stream.succeed("ok") },
+        (error) => {
+          expect(error).type.toBe<ErrorB>()
+          return Stream.fail(new RateLimit({ retryAfter: 1 }))
+        }
+      )
+    )
+    expect(result).type.toBe<Stream.Stream<string, RateLimit, "dep-1">>()
+  })
 })
 
 describe("Stream.catchReason", () => {

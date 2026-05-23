@@ -10,3 +10,4 @@ Two related soundness bugs are fixed:
 
 - The unhandled-error type was a defaulted-but-inferable type parameter, so an explicit result annotation (or any contextual type) could collapse it to `never`, hiding errors that were never handled. These combinators now use the `unassigned` sentinel (matching `catchReason`) so the omitted-`orElse` path always reports the unhandled errors.
 - A re-failing `orElse` (one whose success type is `never`, e.g. `Effect.fail`) caused the sentinel's conditional type to distribute over `never` and erase the still-unhandled error tags. The error channel is now structured so those tags are preserved regardless of the `orElse` return type.
+- `Stream.catchTags` additionally omitted the `orElse`'s own error type from its result, so a re-failing `orElse` erased that error too. Its error channel now keeps it, matching `Effect.catchTags`.
