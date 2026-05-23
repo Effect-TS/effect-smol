@@ -60,7 +60,13 @@ import type * as Generated from "./Generated.ts"
 import * as InternalUtilities from "./internal/utilities.ts"
 
 /**
- * The available Anthropic Claude model identifiers.
+ * Known Anthropic Claude model identifiers exposed by the generated Anthropic schema.
+ *
+ * **Details**
+ *
+ * The Anthropic language model constructors accept `Model` values and custom
+ * string model ids, so this type is best used for autocomplete and type checking
+ * of known Claude ids.
  *
  * @category models
  * @since 4.0.0
@@ -634,7 +640,15 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * Creates an Anthropic language model that can be used with `AiModel.provide`.
+ * Creates an Anthropic model descriptor that can be provided with `Effect.provide`.
+ *
+ * **When to use**
+ *
+ * Use when you want an Anthropic Claude model value that carries provider and
+ * model metadata and can be supplied directly to an Effect program.
+ *
+ * @see {@link layer} for creating a `LanguageModel.LanguageModel` layer directly
+ * @see {@link make} for constructing the language model service effectfully
  *
  * @category constructors
  * @since 4.0.0
@@ -646,7 +660,21 @@ export const model = (
   AiModel.make("anthropic", model, layer({ model, config }))
 
 /**
- * Creates an Anthropic language model service.
+ * Creates an Anthropic `LanguageModel` service from a model identifier and optional request defaults.
+ *
+ * **When to use**
+ *
+ * Use when an Effect needs to construct a `LanguageModel.Service` value backed
+ * by `AnthropicClient`.
+ *
+ * **Details**
+ *
+ * The returned effect requires `AnthropicClient`. Request defaults from the
+ * `config` option are merged with any `Config` service in the context, with
+ * context values taking precedence.
+ *
+ * @see {@link layer} for providing the service as a `Layer`
+ * @see {@link model} for creating a model descriptor for `AiModel.provide`
  *
  * @category constructors
  * @since 4.0.0
@@ -755,6 +783,20 @@ export const layer = (options: {
 
 /**
  * Provides config overrides for Anthropic language model operations.
+ *
+ * **When to use**
+ *
+ * Use to apply Anthropic request configuration to one effect without changing
+ * the model's default configuration.
+ *
+ * **Details**
+ *
+ * The overrides are merged with any existing `Config` service for the duration
+ * of the supplied effect. Fields in `overrides` take precedence over existing
+ * config, and the helper supports both `effect.pipe(withConfigOverride(overrides))`
+ * and `withConfigOverride(effect, overrides)`.
+ *
+ * @see {@link Config} for available Anthropic request configuration fields
  *
  * @category configuration
  * @since 4.0.0
@@ -1182,7 +1224,21 @@ const prepareMessages = Effect.fnUntraced(
 // =============================================================================
 
 /**
- * Represents a user-defined tool that can be passed to the Anthropic API.
+ * Encoded Anthropic custom tool definition that can be sent in a Messages API request.
+ *
+ * **When to use**
+ *
+ * Use when you need to type or inspect the provider-specific request payload for
+ * a custom Anthropic tool.
+ *
+ * **Details**
+ *
+ * This type aliases the encoded `Generated.BetaTool` schema used for Effect
+ * user-defined and dynamic tools after conversion. It contains the tool `name`,
+ * optional `description`, and `input_schema`, plus Anthropic-specific fields
+ * such as `strict` and `cache_control`.
+ *
+ * @see {@link AnthropicProviderDefinedTool} for the request shape used by Anthropic built-in provider tools
  *
  * @category tools
  * @since 4.0.0

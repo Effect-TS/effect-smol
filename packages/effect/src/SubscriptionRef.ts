@@ -93,6 +93,19 @@ const Proto = {
 /**
  * Constructs a new `SubscriptionRef` from an initial value.
  *
+ * **When to use**
+ *
+ * Use to create shared mutable state when consumers need to read the latest
+ * value and subscribe to every update.
+ *
+ * **Details**
+ *
+ * The initial value is published during construction, so `changes` starts new
+ * subscribers with that value before future updates.
+ *
+ * @see {@link changes} for streaming the current value and subsequent updates
+ * @see {@link set} for replacing the value and notifying subscribers
+ *
  * @category constructors
  * @since 2.0.0
  */

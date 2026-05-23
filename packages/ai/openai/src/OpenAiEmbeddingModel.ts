@@ -61,6 +61,14 @@ export class Config extends Context.Service<
 /**
  * Creates an `AiModel` for an OpenAI embedding model with its configured vector dimensions.
  *
+ * **When to use**
+ *
+ * Use to provide an OpenAI `EmbeddingModel` and its `Dimensions` service to an
+ * Effect program.
+ *
+ * @see {@link layer} for providing only the embedding model service
+ * @see {@link withConfigOverride} for scoped request configuration overrides
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -114,6 +122,21 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 
 /**
  * Creates a layer for the OpenAI embedding model.
+ *
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenAI to satisfy
+ * `EmbeddingModel.EmbeddingModel` while supplying `OpenAiClient` from another
+ * layer.
+ *
+ * **Gotchas**
+ *
+ * Use the default floating-point embedding format. The service expects numeric
+ * vectors and fails with `InvalidOutputError` if OpenAI returns base64
+ * embeddings.
+ *
+ * @see {@link make} for constructing the embedding model service effectfully
+ * @see {@link model} for creating an `AiModel` that also provides embedding dimensions
  *
  * @category layers
  * @since 4.0.0

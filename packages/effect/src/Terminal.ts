@@ -143,7 +143,19 @@ export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty
 export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("effect/platform/Terminal")
 
 /**
- * Creates a Terminal implementation
+ * Creates a `Terminal` service implementation.
+ *
+ * **When to use**
+ *
+ * Use to construct a custom `Terminal` service implementation from concrete
+ * terminal capabilities when writing a platform adapter, test implementation,
+ * or custom runtime service.
+ *
+ * **Details**
+ *
+ * The implementation object supplies `columns`, `rows`, `readInput`,
+ * `readLine`, and `display`; `make` attaches the `Terminal` service marker so
+ * the result can be provided through the `Terminal` context service.
  *
  * @category constructors
  * @since 4.0.0

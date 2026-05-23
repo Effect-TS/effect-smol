@@ -497,7 +497,22 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * Creates an AI model descriptor for an OpenRouter language model.
+ * Creates an OpenRouter model descriptor that can be provided with
+ * `Effect.provide`.
+ *
+ * **When to use**
+ *
+ * Use when you want an OpenRouter language model value that carries provider
+ * and model metadata and can be supplied directly to an Effect program.
+ *
+ * **Details**
+ *
+ * The returned model requires `OpenRouterClient` and provides
+ * `LanguageModel.LanguageModel`.
+ *
+ * @see {@link layer} for creating a `LanguageModel.LanguageModel` layer directly
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link withConfigOverride} for scoping OpenRouter request overrides
  *
  * @category constructors
  * @since 4.0.0
@@ -509,7 +524,29 @@ export const model = (
   AiModel.make("openai", model, layer({ model, config }))
 
 /**
- * Creates an OpenRouter language model service.
+ * Creates an OpenRouter `LanguageModel` service from a model identifier and
+ * optional request defaults.
+ *
+ * **When to use**
+ *
+ * Use when an Effect needs to construct a `LanguageModel.Service` value backed
+ * by `OpenRouterClient`.
+ *
+ * **Details**
+ *
+ * The returned effect requires `OpenRouterClient`. Request defaults from the
+ * `config` option are merged with any `Config` service in the context, with
+ * context values taking precedence. The service supports both `generateText`
+ * and `streamText`.
+ *
+ * **Gotchas**
+ *
+ * Provider-defined tools are not supported by this provider integration;
+ * requests that include them fail with an `InvalidUserInputError`.
+ *
+ * @see {@link layer} for providing the service as a `Layer`
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
+ * @see {@link withConfigOverride} for scoping request defaults around operations
  *
  * @category constructors
  * @since 4.0.0
@@ -580,6 +617,15 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 /**
  * Creates a layer for the OpenRouter language model.
  *
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenRouter to satisfy
+ * `LanguageModel.LanguageModel` while supplying `OpenRouterClient` from another
+ * layer.
+ *
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -591,6 +637,20 @@ export const layer = (options: {
 
 /**
  * Provides config overrides for OpenRouter language model operations.
+ *
+ * **When to use**
+ *
+ * Use to apply OpenRouter request configuration to one effect without changing
+ * the model's default configuration.
+ *
+ * **Details**
+ *
+ * The overrides are merged with any existing `Config` service for the duration
+ * of the supplied effect. Fields in `overrides` take precedence over existing
+ * config, and the helper supports both pipe form and
+ * `withConfigOverride(effect, overrides)`.
+ *
+ * @see {@link Config} for available OpenRouter request configuration fields
  *
  * @category configuration
  * @since 4.0.0

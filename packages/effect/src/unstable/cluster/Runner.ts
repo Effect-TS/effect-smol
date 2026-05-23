@@ -118,6 +118,25 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
  * Constructs a `Runner` from its network address, shard groups, and relative
  * shard-assignment weight.
  *
+ * **When to use**
+ *
+ * Use to build runner metadata from an existing `RunnerAddress`, shard groups,
+ * and relative weight when registering or exchanging a cluster runner.
+ *
+ * **Details**
+ *
+ * The `groups` array lists the shard groups the runner can host. During shard
+ * assignment, the runner's address is added to each group's hash ring with
+ * `weight` as its relative weight.
+ *
+ * **Gotchas**
+ *
+ * This helper constructs the value without runtime schema validation, so only
+ * pass trusted `RunnerAddress`, `groups`, and `weight` values.
+ *
+ * @see {@link Runner} for the value created by this helper
+ * @see {@link RunnerAddress} for the network address accepted in `props.address`
+ *
  * @category constructors
  * @since 4.0.0
  */

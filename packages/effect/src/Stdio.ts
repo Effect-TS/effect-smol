@@ -75,6 +75,19 @@ export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeI
  * Creates a `Stdio` service implementation from the provided fields and
  * attaches the `Stdio` type identifier.
  *
+ * **When to use**
+ *
+ * Use to assemble a concrete `Stdio` service when you already have
+ * implementations for command-line arguments, standard output, standard error,
+ * and standard input.
+ *
+ * **Details**
+ *
+ * The returned service reuses the supplied fields unchanged and only adds the
+ * `Stdio` type identifier; it does not create a `Layer` or provide defaults.
+ *
+ * @see {@link layerTest} for a test layer with default fields that can be overridden
+ *
  * @category constructors
  * @since 4.0.0
  */

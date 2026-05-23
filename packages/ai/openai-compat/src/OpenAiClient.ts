@@ -77,8 +77,22 @@ export interface Service {
 }
 
 /**
- * Context service tag for accessing an OpenAI-compatible client from the
- * Effect context.
+ * Context service tag for the OpenAI-compatible chat completions and embeddings client.
+ *
+ * **When to use**
+ *
+ * Use when building effects that depend on the low-level OpenAI-compatible
+ * client through context rather than receiving the client as a value.
+ *
+ * **Details**
+ *
+ * The tagged service is the `Service` interface produced by `make` and provided
+ * by `layer` or `layerConfig`.
+ *
+ * @see {@link Service} for the operations provided by the service
+ * @see {@link make} for constructing the service from explicit options
+ * @see {@link layer} for providing the service from explicit options
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category services
  * @since 4.0.0

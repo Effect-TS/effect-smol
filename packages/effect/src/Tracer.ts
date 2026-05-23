@@ -425,6 +425,19 @@ export interface SpanLink {
 /**
  * Creates a `Tracer` value from a tracer implementation object.
  *
+ * **When to use**
+ *
+ * Use to create a custom tracing backend value that Effect can use when
+ * creating spans.
+ *
+ * **Details**
+ *
+ * `make` returns the supplied implementation object unchanged. The object must
+ * satisfy the `Tracer` contract, including a `span` method that returns a
+ * `Span`.
+ *
+ * @see {@link Span} for the span values returned by tracer implementations
+ *
  * @category constructors
  * @since 2.0.0
  */

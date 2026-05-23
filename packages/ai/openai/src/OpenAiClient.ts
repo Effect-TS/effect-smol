@@ -92,6 +92,15 @@ export interface Service {
 /**
  * Service identifier for the OpenAI client.
  *
+ * **When to use**
+ *
+ * Use when accessing or providing the OpenAI client service through Effect's
+ * context.
+ *
+ * @see {@link make} for constructing an OpenAI client effectfully
+ * @see {@link layer} for providing a client from explicit options
+ * @see {@link layerConfig} for providing a client from `Config`
+ *
  * @category services
  * @since 4.0.0
  */
@@ -149,6 +158,26 @@ const RedactedOpenAiHeaders = {
 
 /**
  * Creates an OpenAI client service with the given options.
+ *
+ * **When to use**
+ *
+ * Use to construct the OpenAI client service inside an effect when you need the
+ * service value directly.
+ *
+ * **Details**
+ *
+ * The returned service uses the current `HttpClient`, prepends `apiUrl` or
+ * `https://api.openai.com/v1`, adds the bearer token and optional OpenAI
+ * organization/project headers, accepts JSON responses, filters for successful
+ * HTTP statuses, and applies `transformClient` when provided.
+ *
+ * **Gotchas**
+ *
+ * A scoped `OpenAiConfig.withClientTransform` is applied when request helpers
+ * run, after the `transformClient` option supplied to `make`.
+ *
+ * @see {@link layer} for providing this client from explicit options
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category constructors
  * @since 4.0.0

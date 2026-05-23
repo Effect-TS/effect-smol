@@ -547,6 +547,27 @@ export const run: (options: {
  * `RpcServer.Protocol` and provides the `McpServer` and `McpServerClient`
  * services.
  *
+ * **When to use**
+ *
+ * Use when you already have a custom or externally provided
+ * `RpcServer.Protocol` and want to start an MCP server as part of a layer
+ * graph.
+ *
+ * **Details**
+ *
+ * The returned layer forks `run(options)` in the layer scope and merges
+ * `McpServer.layer`, so registration layers can use the `McpServer` service
+ * while the server is running.
+ *
+ * **Gotchas**
+ *
+ * Unlike `layerStdio` and `layerHttp`, this layer does not install a concrete
+ * transport. The surrounding layer graph must provide `RpcServer.Protocol`.
+ *
+ * @see {@link run} for the effect form used by this layer
+ * @see {@link layerStdio} for a stdio-backed layer that installs the MCP protocol and NDJSON-RPC serialization
+ * @see {@link layerHttp} for an HTTP-backed layer that registers with `HttpRouter` and installs JSON-RPC serialization
+ *
  * @category layers
  * @since 4.0.0
  */

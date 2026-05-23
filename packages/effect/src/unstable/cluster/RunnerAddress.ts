@@ -91,6 +91,25 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
 /**
  * Constructs a `RunnerAddress` from a host and port.
  *
+ * **When to use**
+ *
+ * Use to create the stable network identity for a cluster runner when
+ * configuring sharding, registering runner metadata, or targeting a runner by
+ * host and port.
+ *
+ * **Details**
+ *
+ * The returned `RunnerAddress` stores the supplied `host` and `port`. Equality,
+ * hashing, and the primary key use both fields, with the primary key formatted
+ * as `host:port`.
+ *
+ * **Gotchas**
+ *
+ * `make` does not normalize the host. Pass the host string exactly as the
+ * cluster routing and storage layers should identify it.
+ *
+ * @see {@link RunnerAddress} for the constructed address type and its equality, hashing, primary-key, and formatting behavior
+ *
  * @category constructors
  * @since 4.0.0
  */

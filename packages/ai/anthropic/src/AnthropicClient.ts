@@ -147,6 +147,21 @@ export class AnthropicClient extends Context.Service<AnthropicClient, Service>()
 /**
  * Configuration options for creating an Anthropic client.
  *
+ * **When to use**
+ *
+ * Use when the Anthropic client settings are already available as values and
+ * should be passed directly to `make` or `layer`.
+ *
+ * **Details**
+ *
+ * These options configure the base Anthropic URL, the `x-api-key`
+ * authentication header, the `anthropic-version` header, and an optional
+ * transformation of the underlying `HttpClient`.
+ *
+ * @see {@link make} for constructing an Anthropic client from explicit options
+ * @see {@link layer} for providing an Anthropic client from explicit options
+ * @see {@link layerConfig} for loading Anthropic client settings from `Config`
+ *
  * @category models
  * @since 4.0.0
  */
@@ -342,6 +357,14 @@ export const make = Effect.fnUntraced(
 
 /**
  * Creates a layer for the Anthropic client with the given options.
+ *
+ * **When to use**
+ *
+ * Use when you already have explicit `Options` values, such as an API key or
+ * custom API URL, and want to provide `AnthropicClient` as a `Layer`.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category layers
  * @since 4.0.0

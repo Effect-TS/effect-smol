@@ -8521,6 +8521,20 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseReasonIs
  * Creates a schema for `Cause` values using separate schemas for typed failures
  * and unexpected defects.
  *
+ * **When to use**
+ *
+ * Use to validate, transform, or serialize Effect failure causes when typed
+ * failures and unexpected defects need separate schemas.
+ *
+ * **Details**
+ *
+ * The `error` schema is applied to `Fail` reasons and the `defect` schema is
+ * applied to `Die` reasons. Interrupt reasons do not use either schema and
+ * carry only an optional fiber id.
+ *
+ * @see {@link CauseReason} for the schema used by each individual cause reason
+ * @see {@link CauseIso} for the ordered array representation used by the schema ISO
+ *
  * @category Cause
  * @since 3.10.0
  */

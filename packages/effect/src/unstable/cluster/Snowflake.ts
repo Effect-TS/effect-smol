@@ -150,6 +150,19 @@ const constBigInt4096 = BigInt(4096)
  * using the custom snowflake epoch and 10-bit machine id and 12-bit sequence
  * fields.
  *
+ * **When to use**
+ *
+ * Use to pack known timestamp, machine id, and sequence parts into a branded
+ * snowflake id when you already control id allocation.
+ *
+ * **Gotchas**
+ *
+ * Machine id values are encoded modulo 1024, and sequence values modulo 4096;
+ * values outside those ranges wrap instead of being rejected.
+ *
+ * @see {@link toParts} for the inverse operation that decodes a snowflake id into timestamp, machine id, and sequence parts
+ * @see {@link makeGenerator} for generating ids with Clock-backed timestamp and sequence management
+ *
  * @category constructors
  * @since 4.0.0
  */

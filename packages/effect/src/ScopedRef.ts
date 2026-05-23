@@ -111,8 +111,26 @@ export const getUnsafe = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.
 export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
 
 /**
- * Creates a new `ScopedRef` from the specified value. This method should
- * not be used for values whose creation require the acquisition of resources.
+ * Creates a new `ScopedRef` from the specified value.
+ *
+ * **When to use**
+ *
+ * Use to create a `ScopedRef` when the initial value is already available or
+ * can be produced without acquiring resources.
+ *
+ * **Details**
+ *
+ * The `evaluate` function runs when the returned effect runs. The returned
+ * effect requires a `Scope`, and the reference closes the currently stored
+ * value's scope when that outer scope closes.
+ *
+ * **Gotchas**
+ *
+ * Do not use `make` for an initial value whose creation acquires resources; use
+ * `fromAcquire` so acquisition and finalization are tracked.
+ *
+ * @see {@link fromAcquire} for creating a `ScopedRef` from an effect that acquires the initial value
+ * @see {@link set} for replacing the current value with a resourcefully acquired value
  *
  * @category constructors
  * @since 2.0.0

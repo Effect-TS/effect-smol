@@ -295,6 +295,27 @@ export const make = (options?: {
  * Provides `EventJournal` using the SQL-backed implementation created by
  * `make`.
  *
+ * **When to use**
+ *
+ * Use when composing a Layer graph that should provide a persistent SQL-backed
+ * `EventJournal` from an existing `SqlClient` service.
+ *
+ * **Details**
+ *
+ * The layer delegates to `make(options)`, so the same optional `entryTable` and
+ * `remotesTable` settings are used and construction requires `SqlClient` and
+ * may fail with `SqlError`.
+ *
+ * **Gotchas**
+ *
+ * Layer construction performs the same minimal `CREATE TABLE IF NOT EXISTS`
+ * setup as `make`; manage indexes and schema migrations outside this layer when
+ * your SQL schema needs more than the built-in tables.
+ *
+ * @see {@link make} for constructing the SQL-backed service directly
+ * @see {@link EventJournal.layerMemory} for an in-memory `EventJournal` layer
+ * @see {@link EventJournal.layerIndexedDb} for an IndexedDB-backed `EventJournal` layer
+ *
  * @category layers
  * @since 4.0.0
  */

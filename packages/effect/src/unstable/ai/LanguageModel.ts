@@ -734,7 +734,32 @@ export interface ProviderOptions {
 }
 
 /**
- * Creates a LanguageModel service from provider-specific text generation and streaming implementations.
+ * Creates a LanguageModel service from provider-specific text generation and
+ * streaming implementations.
+ *
+ * **When to use**
+ *
+ * Use to build a `LanguageModel.Service` from provider-specific final and
+ * streaming text generation functions.
+ *
+ * **Details**
+ *
+ * The returned service implements `generateText`, `generateObject`, and
+ * `streamText`. It prepares `ProviderOptions` for each request, including the
+ * normalized prompt, tools, tool choice, response format, tracing span, and
+ * incremental response fields, before calling the supplied provider hook.
+ * Structured object generation uses the `generateText` hook and the configured
+ * `codecTransformer`, or `defaultCodecTransformer` when none is supplied.
+ *
+ * **Gotchas**
+ *
+ * Provider hooks must return encoded response parts that match the toolkit and
+ * response format prepared in `ProviderOptions`; invalid parts fail decoding as
+ * `AiError.InvalidOutputError`.
+ *
+ * @see {@link Service} for the returned service contract
+ * @see {@link ProviderOptions} for the normalized options passed to provider hooks
+ * @see {@link defaultCodecTransformer} for the default structured-output schema transformer
  *
  * @category constructors
  * @since 4.0.0

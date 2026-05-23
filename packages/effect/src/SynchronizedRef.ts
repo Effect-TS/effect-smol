@@ -76,6 +76,19 @@ export const makeUnsafe = <A>(value: A): SynchronizedRef<A> => {
 /**
  * Creates a `SynchronizedRef` from an initial value, wrapped in an `Effect`.
  *
+ * **When to use**
+ *
+ * Use to create a synchronized reference inside an Effect program when later
+ * updates may run effects and must be serialized.
+ *
+ * **Details**
+ *
+ * The returned effect constructs a fresh `SynchronizedRef` by delegating to
+ * `makeUnsafe` when the effect is evaluated.
+ *
+ * @see {@link makeUnsafe} for synchronous construction when the caller controls safe initialization
+ * @see {@link Ref.make} for a plain `Ref` when updates do not need effectful synchronization
+ *
  * @category constructors
  * @since 2.0.0
  */

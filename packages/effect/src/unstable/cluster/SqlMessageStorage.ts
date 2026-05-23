@@ -42,6 +42,24 @@ const withTracerDisabled = Effect.withTracerEnabled(false)
  * Creates a SQL-backed `MessageStorage` implementation, running its migrations
  * and using the optional table prefix.
  *
+ * **When to use**
+ *
+ * Use when you need the SQL-backed `MessageStorage` service directly, such as
+ * when composing a custom layer or providing your own `Snowflake.Generator`.
+ *
+ * **Details**
+ *
+ * The optional `prefix` controls the table names for messages, replies, and
+ * migrations; when omitted, `cluster` is used.
+ *
+ * **Gotchas**
+ *
+ * Changing `prefix` after deployment points the runtime at a different set of
+ * tables, including the migration history table.
+ *
+ * @see {@link layer} for a ready-made layer using the default prefix and generator
+ * @see {@link layerWith} for a ready-made layer with a custom table prefix
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -624,6 +642,26 @@ export const make: (options?: {
 /**
  * Layer that provides SQL-backed `MessageStorage` using the default table prefix
  * and the default snowflake generator.
+ *
+ * **When to use**
+ *
+ * Use when a cluster should persist mailbox messages and replies in SQL using
+ * the default `cluster` table prefix and the standard snowflake generator.
+ *
+ * **Details**
+ *
+ * The layer runs the SQL migrations through `make`, provides `MessageStorage`,
+ * and supplies `Snowflake.layerGenerator` internally. Callers still provide
+ * `SqlClient` and `ShardingConfig`.
+ *
+ * **Gotchas**
+ *
+ * This layer always uses the `cluster` table prefix. Use `layerWith` before
+ * deployment if you need a different stable prefix, because changing prefixes
+ * later points the runtime at a different set of tables.
+ *
+ * @see {@link layerWith} for the same SQL storage layer with a custom table prefix
+ * @see {@link make} for the lower-level service constructor that uses an existing `Snowflake.Generator`
  *
  * @category layers
  * @since 4.0.0

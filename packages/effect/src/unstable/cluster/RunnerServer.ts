@@ -160,6 +160,20 @@ const constWaitUntilRead = { waitUntilRead: true } as const
  * runners, forwards them to the `Sharding` layer, and responds to `Ping`
  * requests.
  *
+ * **When to use**
+ *
+ * Use when a runner process should accept runner-to-runner protocol messages
+ * over a provided server `RpcServer.Protocol`.
+ *
+ * **Gotchas**
+ *
+ * This layer does not choose or provide the wire transport; provide a
+ * transport-specific `RpcServer.Protocol` separately.
+ *
+ * @see {@link layerHandlers} for the lower-level handler layer used when the RPC server is supplied elsewhere
+ * @see {@link layerWithClients} for a runner server layer that also provides the `Sharding` and `Runners` clients
+ * @see {@link layerClientOnly} for embedding a cluster client without serving runner RPCs
+ *
  * @category layers
  * @since 4.0.0
  */

@@ -98,6 +98,15 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
 /**
  * Service identifier for the OpenRouter client.
  *
+ * **When to use**
+ *
+ * Use when accessing or providing the OpenRouter client service through
+ * Effect's context.
+ *
+ * @see {@link make} for constructing an OpenRouter client effectfully
+ * @see {@link layer} for providing a client from explicit options
+ * @see {@link layerConfig} for providing a client from `Config`
+ *
  * @category services
  * @since 4.0.0
  */
@@ -146,7 +155,28 @@ export type Options = {
 // =============================================================================
 
 /**
- * Creates an OpenRouter client service with the given options.
+ * Creates an OpenRouter client service from explicit options.
+ *
+ * **When to use**
+ *
+ * Use to construct the OpenRouter client service inside an effect when you need
+ * the service value directly.
+ *
+ * **Details**
+ *
+ * The returned service uses the current `HttpClient`, prepends `apiUrl` or
+ * `https://openrouter.ai/api/v1`, adds the bearer token and optional
+ * `HTTP-Referer` and `X-Title` headers, accepts JSON responses, and applies
+ * `transformClient` when provided.
+ *
+ * **Gotchas**
+ *
+ * Scoped `OpenRouterConfig.withClientTransform` applies to generated client
+ * request methods. Streaming chat completion requests are sent directly by this
+ * module and do not read that scoped transform.
+ *
+ * @see {@link layer} for providing this client from explicit options
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category constructors
  * @since 4.0.0

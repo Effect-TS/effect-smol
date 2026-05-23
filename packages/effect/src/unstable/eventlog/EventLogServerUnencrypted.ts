@@ -653,6 +653,27 @@ export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(ma
  * Creates the `EventLogServerUnencrypted` service from the configured storage and
  * registered event handlers.
  *
+ * **When to use**
+ *
+ * Use to construct the unencrypted event-log server service directly when you
+ * already provide `Storage` and an event-log `Registry` and want to supply the
+ * service yourself.
+ *
+ * **Details**
+ *
+ * The constructed service exposes `makeWrite`, which builds a typed server-side
+ * write function from an `EventLogSchema`. Each write encodes the payload with
+ * the event schema, runs the registered handler, and persists the generated
+ * entry inside `Storage.withTransaction`.
+ *
+ * **Gotchas**
+ *
+ * The write function dies if the requested event tag is not present in the
+ * schema passed to `makeWrite`; it does not report that case as a typed failure.
+ *
+ * @see {@link makeWrite} for the accessor that retrieves the typed server-side write function from the service environment
+ * @see {@link layerServer} for the layer form that provides this service together with an event-log `Registry`
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -730,6 +751,30 @@ export const layerServer: Layer.Layer<
 /**
  * Builds a full unencrypted event-log RPC server for the supplied schema and
  * event-group handler layer.
+ *
+ * **When to use**
+ *
+ * Use when you need a complete unencrypted event-log RPC endpoint for a trusted
+ * deployment, local development, tests, or a server-side event source, and you
+ * can provide storage, store mapping, authorization, an RPC protocol, and the
+ * event-group handler layer.
+ *
+ * **Details**
+ *
+ * The layer installs `EventLogRemoteRpcs`, wires `layerRpcHandlers`, registers
+ * the supplied event-group handler layer, and provides `layerServer`, leaving
+ * only the required infrastructure services in the environment.
+ *
+ * **Gotchas**
+ *
+ * Entries are persisted and streamed in plaintext. Protect the backing
+ * `Storage` with the surrounding infrastructure, and use durable storage that
+ * preserves session authentication bindings when the server must survive
+ * restarts.
+ *
+ * @see {@link layerNoRpcServer} for installing the same unencrypted handlers when an `RpcServer.Protocol` is provided elsewhere
+ * @see {@link layerRpcHandlers} for wiring the unencrypted RPC handlers directly
+ * @see {@link layerServer} for constructing the server service and event-log registry without RPC handlers
  *
  * @category layers
  * @since 4.0.0

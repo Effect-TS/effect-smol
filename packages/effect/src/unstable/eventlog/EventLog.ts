@@ -961,6 +961,29 @@ export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal
 /**
  * Combines event-group handler layers with the `EventLog` runtime for a schema.
  *
+ * **When to use**
+ *
+ * Use when an application has an `EventLogSchema` and event-group handler layer
+ * and wants one layer that installs the shared `EventLog` runtime and registers
+ * the handlers for typed writes.
+ *
+ * **Details**
+ *
+ * The supplied handler layer is provided with `layerEventLog`. The returned
+ * layer provides `EventLog | Registry`, preserves the handler layer's error
+ * type, and still requires its remaining services plus `EventJournal` and
+ * `Identity`.
+ *
+ * **Gotchas**
+ *
+ * The schema argument does not register handlers by itself. Handler registration
+ * comes from the supplied layer, and writing an event without a registered
+ * handler dies with `Event handler not found for: "<tag>"`.
+ *
+ * @see {@link schema} for creating the schema argument from event groups
+ * @see {@link group} for building the handler layer consumed by this layer
+ * @see {@link layerEventLog} for installing the runtime and registry without combining a handler layer
+ *
  * @category layers
  * @since 4.0.0
  */

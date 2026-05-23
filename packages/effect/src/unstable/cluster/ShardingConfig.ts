@@ -180,6 +180,29 @@ export const defaults: ShardingConfig["Service"] = {
  * Creates a `ShardingConfig` layer by merging the provided partial options over
  * `defaults`.
  *
+ * **When to use**
+ *
+ * Use when wiring a cluster runner with explicit `ShardingConfig` values,
+ * especially in tests, local development, or code paths where configuration
+ * should be provided programmatically instead of loaded from environment
+ * variables.
+ *
+ * **Details**
+ *
+ * The merge is shallow: omitted fields use `defaults`, and provided fields
+ * replace the corresponding default value.
+ *
+ * **Gotchas**
+ *
+ * This layer only merges and provides configuration; it does not check that
+ * cluster-wide settings are consistent across runners. Keep values such as
+ * `shardsPerGroup` and `availableShardGroups` aligned for runners that should
+ * share shard assignments.
+ *
+ * @see {@link defaults} for the values used when an option is omitted
+ * @see {@link layerDefaults} for a layer with no overrides
+ * @see {@link layerFromEnv} for loading configuration from environment variables before applying explicit overrides
+ *
  * @category layers
  * @since 4.0.0
  */

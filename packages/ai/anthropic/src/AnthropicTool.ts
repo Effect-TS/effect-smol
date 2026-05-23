@@ -11,7 +11,18 @@ import * as Tool from "effect/unstable/ai/Tool"
 import * as Generated from "./Generated.ts"
 
 /**
- * Union of all Anthropic provider-defined tools.
+ * Union of all Anthropic provider-defined tool definitions exported by this module.
+ *
+ * **When to use**
+ *
+ * Use when a helper, collection, or option accepts any Anthropic
+ * provider-defined tool value created by this module.
+ *
+ * **Details**
+ *
+ * The union is built from the return types of the exported constructors,
+ * including Bash, Code Execution, Computer Use, Memory, Text Editor, Tool
+ * Search, Web Fetch, and Web Search tool versions.
  *
  * @category models
  * @since 4.0.0
@@ -114,7 +125,19 @@ export const CodeExecutionProgrammaticToolCall = Schema.Struct({
 export type CodeExecutionProgrammaticToolCall = typeof CodeExecutionProgrammaticToolCall.Type
 
 /**
- * Schema for a code execution request that runs a bash command.
+ * Schema for the `bash_code_execution` input variant of Anthropic Code Execution.
+ *
+ * **When to use**
+ *
+ * Use when validating or constructing a bash command request for
+ * `CodeExecution_20250522`.
+ *
+ * **Details**
+ *
+ * The schema requires `type` to be `"bash_code_execution"` and `command` to
+ * contain the bash command sent to Anthropic.
+ *
+ * @see {@link CodeExecution_20250522} for the provider-defined tool that consumes this input variant
  *
  * @category Code Execution
  * @since 4.0.0
@@ -127,7 +150,24 @@ export const CodeExecutionBashCommand = Schema.Struct({
   command: Schema.String
 })
 /**
- * Input payload for a bash command executed through Anthropic code execution.
+ * Input payload for a bash command routed through the Anthropic code execution tool.
+ *
+ * **When to use**
+ *
+ * Use when representing a provider-executed bash command request for the
+ * 2025-05-22 code execution tool.
+ *
+ * **Details**
+ *
+ * The payload uses `type: "bash_code_execution"` to distinguish bash execution
+ * from programmatic code and text editor operations, and `command` contains the
+ * bash command to run.
+ *
+ * @see {@link CodeExecutionProgrammaticToolCall} for programmatic code execution input
+ * @see {@link CodeExecutionTextEditorView} for viewing files through text editor code execution
+ * @see {@link CodeExecutionTextEditorCreate} for creating files through text editor code execution
+ * @see {@link CodeExecutionTextEditorStrReplace} for replacing text through text editor code execution
+ * @see {@link CodeExecution_20250522} for the provider-defined tool that consumes this payload
  *
  * @category Code Execution
  * @since 4.0.0
@@ -135,7 +175,20 @@ export const CodeExecutionBashCommand = Schema.Struct({
 export type CodeExecutionBashCommand = typeof CodeExecutionBashCommand.Type
 
 /**
- * Text editor view command for code execution.
+ * Schema for a code execution text editor request that views a file by path.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct the `view` command for Anthropic code execution
+ * text editor tool calls.
+ *
+ * **Details**
+ *
+ * The encoded payload uses `type: "text_editor_code_execution"`,
+ * `command: "view"`, and a `path` string.
+ *
+ * @see {@link CodeExecutionTextEditorCreate} for the command that creates a file
+ * @see {@link CodeExecutionTextEditorStrReplace} for the command that replaces text in a file
  *
  * @category Code Execution
  * @since 4.0.0
@@ -149,7 +202,26 @@ export const CodeExecutionTextEditorView = Schema.Struct({
   path: Schema.String
 })
 /**
- * Input payload for viewing a file through the text editor code execution tool.
+ * Input payload for the `view` command of Anthropic's text editor code execution tool.
+ *
+ * **When to use**
+ *
+ * Use when handling or validating the `view` command for Anthropic's text
+ * editor code execution tool.
+ *
+ * **Details**
+ *
+ * The payload is discriminated by `type: "text_editor_code_execution"` and
+ * `command: "view"`. The `path` field identifies the file to view.
+ *
+ * **Gotchas**
+ *
+ * This code execution view payload does not include `view_range`; line ranges
+ * are part of the standalone text editor view payload, not this code execution
+ * payload.
+ *
+ * @see {@link CodeExecution_20250522} for the provider-defined code execution tool that includes this payload
+ * @see {@link TextEditorViewCommand} for the standalone text editor view payload
  *
  * @category Code Execution
  * @since 4.0.0
@@ -157,7 +229,22 @@ export const CodeExecutionTextEditorView = Schema.Struct({
 export type CodeExecutionTextEditorView = typeof CodeExecutionTextEditorView.Type
 
 /**
- * Text editor create command for code execution.
+ * Schema for a text editor code execution request that creates a file at a path.
+ *
+ * **When to use**
+ *
+ * Use when validating or constructing an Anthropic `text_editor_code_execution`
+ * tool call that should create a file.
+ *
+ * **Details**
+ *
+ * The request is discriminated by `type: "text_editor_code_execution"` and
+ * `command: "create"`. It requires `path` and accepts optional `file_text`; the
+ * schema allows `file_text` to be omitted, `null`, or a string.
+ *
+ * @see {@link CodeExecution_20250522} for the provider-defined tool that consumes this request
+ * @see {@link CodeExecutionTextEditorView} for the matching view request
+ * @see {@link CodeExecutionTextEditorStrReplace} for the matching replace request
  *
  * @category Code Execution
  * @since 4.0.0
@@ -183,7 +270,20 @@ export const CodeExecutionTextEditorCreate = Schema.Struct({
 export type CodeExecutionTextEditorCreate = typeof CodeExecutionTextEditorCreate.Type
 
 /**
- * Text editor str_replace command for code execution.
+ * Schema for a code execution text editor request that replaces one exact string in a file.
+ *
+ * **When to use**
+ *
+ * Use when validating or constructing the `str_replace` text editor operation
+ * for the 2025-05-22 Anthropic code execution tool.
+ *
+ * **Gotchas**
+ *
+ * The `old_str` must match the file contents exactly, including whitespace and
+ * indentation, and must identify a single occurrence.
+ *
+ * @see {@link CodeExecutionTextEditorView} for reading file contents before choosing the replacement text
+ * @see {@link CodeExecution_20250522} for the provider-defined tool that consumes this payload
  *
  * @category Code Execution
  * @since 4.0.0
@@ -245,6 +345,17 @@ export const CodeExecution_20250825_Parameters = Schema.Struct({
 })
 /**
  * Input payload for the 2025-08-25 Anthropic code execution tool.
+ *
+ * **When to use**
+ *
+ * Use when typing input passed to the 2025-08-25 Anthropic code execution tool.
+ *
+ * **Details**
+ *
+ * The payload has a single `code` field containing the source code string to
+ * execute.
+ *
+ * @see {@link CodeExecution_20250825} for the provider-defined tool that consumes this payload
  *
  * @category Code Execution
  * @since 4.0.0
@@ -406,7 +517,16 @@ const ComputerUse_20251124_Args = Schema.Struct({
 // -----------------------------------------------------------------------------
 
 /**
- * Press a key or key combination (e.g. `"Return"`, `"ctrl+c"`, `"ctrl+s"`).
+ * Schema for a computer-use action that presses a key or key combination, such
+ * as `"Return"`, `"ctrl+c"`, or `"ctrl+s"`.
+ *
+ * **When to use**
+ *
+ * Use when validating or constructing a computer-use action for keyboard
+ * shortcuts or non-text key presses.
+ *
+ * @see {@link TypeAction} for entering ordinary text strings
+ * @see {@link ComputerUseHoldKeyAction} for holding a key for a duration
  *
  * @category Computer Use
  * @since 4.0.0
@@ -420,6 +540,16 @@ export const ComputerUseKeyAction = Schema.Struct({
 })
 /**
  * Computer-use action payload for pressing a key or key combination.
+ *
+ * **Details**
+ *
+ * The payload uses `action: "key"` and stores the key or key combination to
+ * press in `text`, such as `"Return"`, `"ctrl+c"`, or `"ctrl+s"`.
+ *
+ * **Gotchas**
+ *
+ * `text` is typed as `string`; the paired schema does not validate
+ * provider-specific key names or key combinations.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -449,7 +579,24 @@ export const ComputerUseLeftClickAction = Schema.Struct({
 export type ComputerUseLeftClickAction = typeof ComputerUseLeftClickAction.Type
 
 /**
- * Move the mouse cursor to the specified coordinates.
+ * Schema for a computer-use action that moves the mouse cursor to a required
+ * `[x, y]` screen coordinate.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct a mouse movement action for an Anthropic
+ * computer-use tool call.
+ *
+ * **Details**
+ *
+ * The encoded payload has action `"mouse_move"` and a required `coordinate`
+ * field containing the target `[x, y]` pixel position.
+ *
+ * **Gotchas**
+ *
+ * The coordinate schema only checks that the value is a two-number tuple. It
+ * does not validate that the point falls within the configured display
+ * dimensions.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -470,7 +617,19 @@ export const ComputerUseMouseMoveAction = Schema.Struct({
 export type ComputerUseMouseMoveAction = typeof ComputerUseMouseMoveAction.Type
 
 /**
- * Capture the current display.
+ * Schema for a computer-use action that requests a screenshot of the current display.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct a computer-use tool action that asks the handler
+ * to capture the full current display.
+ *
+ * **Details**
+ *
+ * The payload contains only `action: "screenshot"` and does not include
+ * coordinates or other options.
+ *
+ * @see {@link ComputerUseZoomAction} for requesting a zoomed-in screenshot of a specific screen region with the 2025-11-24 computer-use tool
  *
  * @category Computer Use
  * @since 4.0.0
@@ -520,7 +679,7 @@ const ComputerUse_20241022_Actions = Schema.Union([
 // -----------------------------------------------------------------------------
 
 /**
- * Perform a double click.
+ * Perform a double click at the current mouse position or a specified `[x, y]` coordinate.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -544,6 +703,25 @@ export type ComputerUseDoubleClickAction = typeof ComputerUseDoubleClickAction.T
 /**
  * Hold a key for a specified duration during computer-use execution.
  *
+ * **When to use**
+ *
+ * Use to keep a keyboard key depressed for a fixed number of seconds in a
+ * computer-use action sequence.
+ *
+ * **Details**
+ *
+ * The schema describes objects with `action: "hold_key"`, a `text` field
+ * containing the key to hold, and a `duration` field containing the number of
+ * seconds to hold it.
+ *
+ * **Gotchas**
+ *
+ * The schema only checks that `duration` is a number; it does not require a
+ * positive value.
+ *
+ * @see {@link ComputerUseKeyAction} for pressing a key or key combination without holding it
+ * @see {@link ComputerUseWaitAction} for pausing between actions without holding a key
+ *
  * @category Computer Use
  * @since 4.0.0
  */
@@ -561,13 +739,24 @@ export const ComputerUseHoldKeyAction = Schema.Struct({
 /**
  * Computer-use action payload for holding a key for a specified duration.
  *
+ * **When to use**
+ *
+ * Use to represent a key that should remain pressed for a measured interval.
+ *
+ * **Details**
+ *
+ * Set `action` to `"hold_key"`, `text` to the key to hold, and `duration` to
+ * the number of seconds to hold it.
+ *
+ * @see {@link ComputerUseKeyAction} for a single key press or key combination without a hold duration
+ *
  * @category Computer Use
  * @since 4.0.0
  */
 export type ComputerUseHoldKeyAction = typeof ComputerUseHoldKeyAction.Type
 
 /**
- * Click and drag from start coordinate to end coordinate.
+ * Perform a left-click drag from a start coordinate to an end coordinate.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -644,7 +833,26 @@ export const ComputerUseLeftMouseUpAction = Schema.Struct({
 export type ComputerUseLeftMouseUpAction = typeof ComputerUseLeftMouseUpAction.Type
 
 /**
- * Perform a middle click.
+ * Schema for a computer-use action that performs a middle click.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct a middle-button click action for Anthropic
+ * computer use, optionally targeting a specific screen coordinate.
+ *
+ * **Details**
+ *
+ * The payload must use `action: "middle_click"`. When `coordinate` is omitted,
+ * the click occurs at the current mouse position.
+ *
+ * **Gotchas**
+ *
+ * This action is available in the 2025-01-24 computer-use action set and later;
+ * it is not part of `ComputerUse_20241022`.
+ *
+ * @see {@link ComputerUse_20250124} for the provider-defined tool version that first accepts this action
+ * @see {@link ComputerUseLeftClickAction} for primary-button clicks
+ * @see {@link ComputerUseRightClickAction} for secondary-button clicks
  *
  * @category Computer Use
  * @since 4.0.0
@@ -666,7 +874,22 @@ export const ComputerUseMiddleClickAction = Schema.Struct({
 export type ComputerUseMiddleClickAction = typeof ComputerUseMiddleClickAction.Type
 
 /**
- * Perform a right click.
+ * Schema for a computer-use action that performs a right click, optionally at a
+ * specific screen coordinate.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct the `right_click` action for an Anthropic
+ * computer-use tool call.
+ *
+ * **Details**
+ *
+ * The optional `coordinate` field is an `[x, y]` screen coordinate in pixels.
+ * When omitted, the right click is performed at the current mouse position.
+ *
+ * @see {@link ComputerUse_20250124} for the provider-defined computer-use tool version that introduced this action
+ * @see {@link ComputerUseLeftClickAction} for the corresponding left-click action
+ * @see {@link ComputerUseMiddleClickAction} for the corresponding middle-click action
  *
  * @category Computer Use
  * @since 4.0.0
