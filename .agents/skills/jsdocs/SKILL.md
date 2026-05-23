@@ -62,6 +62,7 @@ Use a normal multiline JSDoc comment in TypeScript source:
   2. `**Details**`
   3. `**Gotchas**`
 - Include an optional section only when it has useful, non-empty content.
+- Prefer prose over bullet lists for single-item `**Details**`, `**When to use**`, or `**Gotchas**` sections. Use bullets only when there are two or more parallel facts, options, cases, or caveats.
 - `**When to use**` describes the positive use case for the documented API. Do not use it as a routing section for sibling APIs. If neighboring APIs need to be mentioned, put that boundary in `@see` tag text instead.
 - `**When to use**` is important when the API has close alternatives, trade-offs, or `@see` tags. If `@see` tags are present, inspect the referenced APIs and add `**When to use**` when it clarifies the documented API's own use case.
 - `**When to use**` must start with one of these practical guidance forms: `Use to`, `Use when`, `Use as`, or `Use with`. Avoid bullet lists and vague openers such as `Use this...` or `Useful for...`.
