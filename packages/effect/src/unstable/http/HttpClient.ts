@@ -372,7 +372,15 @@ export const catchTag: {
       e: ExtractTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
   ): HttpClient.With<E1 | ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> =>
-    transformResponse(self, Effect.catchTag(tag, f))
+    transformResponse(
+      self,
+      (effect) =>
+        Effect.catchTag<HttpClientResponse.HttpClientResponse, E, R, K, R1, E1, HttpClientResponse.HttpClientResponse>(
+          effect,
+          tag,
+          f
+        )
+    )
 )
 
 /**
