@@ -508,9 +508,17 @@ export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A
 /**
  * Creates a subscriber queue and registers it with the pub/sub.
  *
+ * **When to use**
+ *
+ * Use to create and register a subscriber queue inside a larger transaction
+ * when registration must be atomic with other Tx operations.
+ *
  * **Details**
  *
  * This is the transactional acquire step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction, such as `TxSubscriptionRef.changes`.
+ *
+ * @see {@link subscribe} for the scoped acquire and release wrapper when no custom transaction composition is needed
+ * @see {@link releaseSubscriber} to remove and shut down a queue returned by `acquireSubscriber`
  *
  * @category mutations
  * @since 4.0.0
@@ -527,9 +535,23 @@ export const acquireSubscriber = <A>(
 /**
  * Removes a subscriber queue from the pub/sub and shuts it down.
  *
+ * **When to use**
+ *
+ * Use to release a manually acquired subscriber queue inside a larger
+ * transaction, removing it from the pub/sub and shutting it down together with
+ * related transactional cleanup.
+ *
  * **Details**
  *
  * This is the transactional release step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction.
+ *
+ * **Gotchas**
+ *
+ * The supplied queue is shut down after being removed, so callers should pass a
+ * queue acquired for this pub/sub.
+ *
+ * @see {@link acquireSubscriber} for the matching transactional acquire step
+ * @see {@link subscribe} for the scoped acquire and release wrapper
  *
  * @category mutations
  * @since 4.0.0

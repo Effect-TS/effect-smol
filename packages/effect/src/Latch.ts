@@ -212,6 +212,25 @@ export {
   /**
    * Waits for the latch to be opened.
    *
+   * **When to use**
+   *
+   * Use to suspend the current fiber until the latch is opened or the current
+   * set of waiters is released.
+   *
+   * **Details**
+   *
+   * Awaiting an already open latch completes immediately. Awaiting a closed
+   * latch suspends until `open` or `release` resumes the waiters.
+   *
+   * **Gotchas**
+   *
+   * `release` can resume current waiters without opening the latch, so later
+   * waiters may still suspend.
+   *
+   * @see {@link open} for opening the latch for current and future waiters
+   * @see {@link release} for resuming current waiters without opening the latch
+   * @see {@link whenOpen} for waiting before running another effect
+   *
    * @category getters
    * @since 4.0.0
    */

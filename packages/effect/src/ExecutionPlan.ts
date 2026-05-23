@@ -71,6 +71,20 @@ export const TypeId: TypeId = "~effect/ExecutionPlan"
  * Returns `true` if a value is an `ExecutionPlan` by checking for the
  * `ExecutionPlan.TypeId` marker.
  *
+ * **When to use**
+ *
+ * Use when accepting an unknown value and you need to narrow it to an
+ * `ExecutionPlan` before reading plan fields or passing it to plan-consuming
+ * APIs.
+ *
+ * **Gotchas**
+ *
+ * This is a structural marker check; it does not validate the marker value or
+ * the shape of the plan steps.
+ *
+ * @see {@link make} for constructing execution plans that satisfy this guard
+ * @see {@link TypeId} for the runtime marker checked by this guard
+ *
  * @category guards
  * @since 3.16.0
  */

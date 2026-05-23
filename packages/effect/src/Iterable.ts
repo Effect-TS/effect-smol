@@ -266,6 +266,21 @@ export const prependAll: {
 /**
  * Append an element to the end of an `Iterable`, creating a new `Iterable`.
  *
+ * **When to use**
+ *
+ * Use to add one element after all elements of an iterable while keeping the
+ * result as a lazy `Iterable`.
+ *
+ * **Details**
+ *
+ * The result yields every element from `self` first, then yields `last` after
+ * `self` is exhausted.
+ *
+ * **Gotchas**
+ *
+ * If `self` is infinite or never completes, the appended element is never
+ * reached.
+ *
  * **Example** (Appending an element)
  *
  * ```ts
@@ -283,6 +298,9 @@ export const prependAll: {
  * console.log(Array.from(result)) // [1, 2, 3, 4]
  * ```
  *
+ * @see {@link prepend} for adding one element before the existing elements
+ * @see {@link appendAll} for appending all elements from another iterable
+ *
  * @category concatenating
  * @since 2.0.0
  */
@@ -293,6 +311,20 @@ export const append: {
 
 /**
  * Concatenates two iterables, combining their elements.
+ *
+ * **When to use**
+ *
+ * Use to lazily concatenate two iterables while preserving order, yielding all
+ * elements from `self` before `that`.
+ *
+ * **Details**
+ *
+ * The result is lazy. The iterator for `that` is not created or read until
+ * `self` is exhausted.
+ *
+ * **Gotchas**
+ *
+ * If `self` is infinite or never completes, `that` is never reached.
  *
  * **Example** (Concatenating iterables)
  *
@@ -316,6 +348,9 @@ export const append: {
  * const result = Iterable.take(Iterable.appendAll(finite, infinite), 5)
  * console.log(Array.from(result)) // [0, -1, -2, 1, 2]
  * ```
+ *
+ * @see {@link append} for appending one value instead of another iterable
+ * @see {@link prependAll} for yielding another iterable before `self`
  *
  * @category concatenating
  * @since 2.0.0

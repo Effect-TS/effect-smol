@@ -2408,6 +2408,12 @@ export interface Boolean extends Bottom<boolean, boolean, never, never, AST.Bool
 /**
  * Schema for `boolean` values. Validates that the input is `typeof` `"boolean"`.
  *
+ * **When to use**
+ *
+ * Use to validate values that are already JavaScript booleans.
+ *
+ * @see {@link BooleanFromBit} for a schema that decodes bit literals `0` or `1` into a boolean
+ *
  * @category Boolean
  * @since 4.0.0
  */
@@ -2442,6 +2448,13 @@ export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigInt,
 
 /**
  * Schema for `bigint` values. Validates that the input is `typeof` `"bigint"`.
+ *
+ * **When to use**
+ *
+ * Use when the input is already a bigint and the schema should validate and
+ * preserve bigint values without parsing from another representation.
+ *
+ * @see {@link BigIntFromString} for parsing string input into a bigint
  *
  * @category schemas
  * @since 4.0.0
@@ -3713,6 +3726,11 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
 
 /**
  * Schema interface produced by `Schema.Array` for readonly arrays.
+ *
+ * **When to use**
+ *
+ * Use as the public companion type returned by `Schema.Array` when you need to
+ * refer to a readonly array schema built from an element schema.
  *
  * **Details**
  *
@@ -7696,7 +7714,15 @@ export interface Char extends String {
 }
 
 /**
- * A schema representing a single character.
+ * A schema for strings whose JavaScript `length` is exactly `1`.
+ *
+ * **When to use**
+ *
+ * Use to validate string values that must have `length === 1`.
+ *
+ * @see {@link String} for unconstrained string values
+ * @see {@link NonEmptyString} for strings with length greater than zero
+ * @see {@link isLengthBetween} for the underlying length check
  *
  * @category String
  * @since 3.10.0
@@ -10508,6 +10534,11 @@ export interface BigIntFromString extends decodeTo<BigInt, String> {
 /**
  * A transformation schema that parses a string into a `bigint`.
  *
+ * **When to use**
+ *
+ * Use to parse signed base-10 integer strings into bigint values while encoding
+ * bigint values back to decimal strings.
+ *
  * **Details**
  *
  * Decoding:
@@ -10515,6 +10546,15 @@ export interface BigIntFromString extends decodeTo<BigInt, String> {
  *
  * Encoding:
  * - A `bigint` is encoded as a `string`.
+ *
+ * **Gotchas**
+ *
+ * Decoding accepts only strings matching `^-?\d+$`.
+ *
+ * @see {@link isStringBigInt} for the string predicate used by this schema
+ * @see {@link BigInt} for validating values that are already bigint values
+ * @see {@link NumberFromString} for parsing finite number strings
+ * @see {@link BigDecimalFromString} for parsing decimal number strings
  *
  * @category BigInt
  * @since 4.0.0
@@ -10754,6 +10794,19 @@ export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 
 
 /**
  * A boolean parsed from 0 or 1.
+ *
+ * **When to use**
+ *
+ * Use when decoding data sources that represent booleans as `0 | 1` while
+ * keeping boolean values in the decoded model.
+ *
+ * **Details**
+ *
+ * Decoding accepts only `0 | 1`, maps `1` to `true`, and maps `0` to `false`.
+ * Encoding maps `true` to `1` and `false` to `0`.
+ *
+ * @see {@link Boolean} for validating values that are already booleans
+ * @see {@link Literals} for keeping bit literals instead of decoding them
  *
  * @category Boolean
  * @since 4.0.0
@@ -11608,6 +11661,12 @@ type MissingSelfGeneric<Usage extends string> =
  * {@link Struct} schema. Construction throws a {@link SchemaError} on invalid
  * input (unless `disableChecks` is set in the options).
  *
+ * **When to use**
+ *
+ * Use to define a schema-backed data class when you want validated
+ * construction, schema-derived decoding/encoding, and class-style methods or
+ * inheritance.
+ *
  * **Details**
  *
  * Pass the desired class type as the first type parameter. The second optional
@@ -11645,6 +11704,10 @@ type MissingSelfGeneric<Usage extends string> =
  * console.log(dog.name) // "Rex"
  * console.log(dog.breed) // "Labrador"
  * ```
+ *
+ * @see {@link TaggedClass} for adding a `_tag` literal field to the class schema
+ * @see {@link ErrorClass} for defining schema-backed error classes
+ * @see {@link TaggedErrorClass} for defining tagged schema-backed error classes
  *
  * @category constructors
  * @since 3.10.0

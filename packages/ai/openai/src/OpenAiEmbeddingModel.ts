@@ -97,6 +97,29 @@ export const model = (
 /**
  * Creates an OpenAI embedding model service.
  *
+ * **When to use**
+ *
+ * Use to construct the `EmbeddingModel.Service` effectfully when
+ * `OpenAiClient` is already available in the environment or when the service
+ * value is needed directly.
+ *
+ * **Details**
+ *
+ * The `model` option is sent with each embedding request. Constructor `config`
+ * supplies create-embedding request fields other than `model` and `input`, and
+ * scoped overrides from `withConfigOverride` are merged last for each request.
+ *
+ * **Gotchas**
+ *
+ * The service expects numeric embedding vectors. It fails with
+ * `InvalidOutputError` when the provider returns base64 embeddings,
+ * out-of-range indexes, duplicate indexes, or an unexpected number of
+ * embeddings.
+ *
+ * @see {@link layer} for providing the embedding model service as a layer
+ * @see {@link model} for creating an `AiModel` that also provides dimensions
+ * @see {@link withConfigOverride} for scoped request configuration overrides
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -149,6 +172,19 @@ export const layer = (options: {
 
 /**
  * Provides config overrides for OpenAI embedding model operations.
+ *
+ * **When to use**
+ *
+ * Use when a single effect or workflow needs scoped OpenAI embedding request
+ * defaults without rebuilding the embedding model service.
+ *
+ * **Details**
+ *
+ * Supports both data-first and data-last forms. Existing scoped config is read
+ * first, then the provided overrides are applied so override fields take
+ * precedence.
+ *
+ * @see {@link Config} for the scoped embedding request configuration service
  *
  * @category configuration
  * @since 4.0.0

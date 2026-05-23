@@ -500,6 +500,21 @@ export const mutate: {
 /**
  * Adds a new node to a mutable graph and returns its index.
  *
+ * **When to use**
+ *
+ * Use to allocate a new node in a mutable graph before storing edges or
+ * querying it by index.
+ *
+ * **Details**
+ *
+ * The returned index is allocated from the graph's next node index. The mutable
+ * graph stores the node data and initializes empty incoming and outgoing edge
+ * indexes for the new node.
+ *
+ * **Gotchas**
+ *
+ * `NodeIndex` values are identifiers and are not reused after removals.
+ *
  * **Example** (Adding nodes)
  *
  * ```ts
@@ -512,6 +527,10 @@ export const mutate: {
  *   console.log(nodeB) // NodeIndex with value 1
  * })
  * ```
+ *
+ * @see {@link mutate} for obtaining a mutable graph from an immutable graph
+ * @see {@link addEdge} for connecting existing nodes
+ * @see {@link removeNode} for removing nodes from a mutable graph
  *
  * @category mutations
  * @since 3.18.0
@@ -1253,6 +1272,22 @@ const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
 /**
  * Adds a new edge to a mutable graph and returns its index.
  *
+ * **When to use**
+ *
+ * Use to connect two existing nodes in a mutable graph while storing edge data
+ * and receiving the new edge identifier.
+ *
+ * **Details**
+ *
+ * Creates an `Edge` with the source, target, and data at the next edge index,
+ * updates adjacency indexes, and increments the graph's next edge index.
+ * Undirected graphs register the same edge for both endpoints.
+ *
+ * **Gotchas**
+ *
+ * The source and target nodes must already exist in the mutable graph; missing
+ * endpoints throw a `GraphError`.
+ *
  * **Example** (Adding edges)
  *
  * ```ts
@@ -1265,6 +1300,11 @@ const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
  *   console.log(edge) // EdgeIndex with value 0
  * })
  * ```
+ *
+ * @see {@link mutate} for obtaining a mutable graph from an immutable graph
+ * @see {@link addNode} for creating node indexes before connecting them
+ * @see {@link getEdge} for reading the returned edge
+ * @see {@link removeEdge} for removing an edge from a mutable graph
  *
  * @category mutations
  * @since 3.18.0

@@ -38,6 +38,12 @@ const TypeId = "~effect/ScopedRef"
  * resources). The reference itself takes care of properly releasing resources
  * for the old value whenever a new value is obtained.
  *
+ * **When to use**
+ *
+ * Use when an application needs to keep a current resource-backed value and
+ * later replace it with another acquired value while ensuring the previous
+ * value is released.
+ *
  * @category models
  * @since 2.0.0
  */
@@ -97,6 +103,13 @@ export const fromAcquire: <A, E, R>(
 /**
  * Retrieves the current value of the scoped reference.
  *
+ * **When to use**
+ *
+ * Use when you need immediate synchronous access to the current `ScopedRef`
+ * value and can guarantee that reading outside the `Effect` API is safe.
+ *
+ * @see {@link get} for Effect-wrapped access in Effect programs
+ *
  * @category getters
  * @since 4.0.0
  */
@@ -104,6 +117,13 @@ export const getUnsafe = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.
 
 /**
  * Retrieves the current value of the scoped reference.
+ *
+ * **When to use**
+ *
+ * Use to read the value currently stored in a `ScopedRef` inside an `Effect`
+ * workflow.
+ *
+ * @see {@link getUnsafe} for reading the current value synchronously when an unsafe read is acceptable
  *
  * @category getters
  * @since 2.0.0
@@ -147,13 +167,19 @@ export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never
  * Sets the value of this reference to the specified resourcefully-created
  * value, releasing any resources associated with the old value.
  *
+ * **When to use**
+ *
+ * Use to replace the current value of an existing `ScopedRef` with a
+ * resourcefully acquired value while releasing resources for the previous
+ * value.
+ *
  * **Details**
  *
  * This method will not return until either the reference is successfully
  * changed to the new value, with old resources released, or until the attempt
  * to acquire a new value fails.
  *
- * @category getters
+ * @category setters
  * @since 2.0.0
  */
 export const set: {

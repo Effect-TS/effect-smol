@@ -2776,11 +2776,22 @@ export const timeout: {
  * Switches to a fallback stream if this stream does not emit a value within
  * the specified duration.
  *
+ * **When to use**
+ *
+ * Use when a stream should continue with another stream if an upstream pull
+ * waits longer than the allowed duration.
+ *
  * **Details**
  *
  * The timeout is checked for each pull. A zero duration uses `orElse`
  * immediately, while an infinite duration leaves the original stream
  * unchanged.
+ *
+ * **Gotchas**
+ *
+ * The fallback stream is not timed after the switch.
+ *
+ * @see {@link timeout} for ending the stream instead of switching to a fallback stream
  *
  * @category Rate Limiting
  * @since 4.0.0
@@ -3298,8 +3309,16 @@ export const mergeRight: {
 /**
  * Merges a collection of streams, running up to the specified number concurrently.
  *
- * @category Merging
- * @since 2.0.0
+ * **When to use**
+ *
+ * Use to merge an iterable of already-created streams while bounding how many
+ * inner streams may run at the same time.
+ *
+ * **Details**
+ *
+ * The `concurrency` option is required and may be a number or `"unbounded"`.
+ * `bufferSize` controls buffering between inner streams, and outputs are
+ * emitted as they arrive under concurrent merging.
  *
  * **Example** (Merging streams with bounded concurrency)
  *
@@ -3321,6 +3340,12 @@ export const mergeRight: {
  * Effect.runPromise(program)
  * // Output: [ "B", "A" ]
  * ```
+ *
+ * @see {@link merge} for merging exactly two streams and choosing a halt strategy
+ * @see {@link flatten} for flattening a stream that already emits streams
+ *
+ * @category Merging
+ * @since 2.0.0
  */
 export const mergeAll: {
   (
@@ -4245,6 +4270,19 @@ export const filter: {
 /**
  * Filters and maps stream elements in one pass using a `Filter`.
  *
+ * **When to use**
+ *
+ * Use to keep only stream elements accepted by a `Filter` and emit each filter
+ * success value.
+ *
+ * **Details**
+ *
+ * `Result.succeed` values are emitted and `Result.fail` values are skipped.
+ *
+ * @see {@link filter} for keeping original elements with a boolean predicate or refinement
+ * @see {@link filterMapEffect} for an effectful `Filter`
+ * @see {@link partition} for consuming both filter success and failure values
+ *
  * @category filtering
  * @since 2.0.0
  */
@@ -4303,7 +4341,21 @@ export const filterEffect: {
 )
 
 /**
- * Effectfully filters and maps elements in a single pass.
+ * Effectfully filters and maps elements in one pass using a `FilterEffect`.
+ *
+ * **When to use**
+ *
+ * Use to apply effectful logic that can reject stream elements or emit
+ * transformed values before they continue downstream.
+ *
+ * **Details**
+ *
+ * `Result.succeed` values are emitted, `Result.fail` values are skipped, and
+ * effect failures fail the stream.
+ *
+ * @see {@link filterMap} for the synchronous `Filter` variant
+ * @see {@link filterEffect} for effectfully keeping original elements
+ * @see {@link mapEffect} for effectfully transforming every element
  *
  * @category filtering
  * @since 2.0.0
@@ -4453,11 +4505,20 @@ export const partitionQueue: {
  * Splits a stream with an effectful `Filter`, returning scoped streams for
  * filter successes and failures.
  *
+ * **When to use**
+ *
+ * Use when each stream element must be classified by an effectful `Filter` and
+ * both passing and failing mapped values need to be consumed as streams.
+ *
  * **Details**
  *
  * The returned streams are backed by queues in the current scope and should be
  * consumed while that scope remains open. The first stream emits success values
  * from the filter, and the second emits failure values.
+ *
+ * @see {@link partition} for the pure `Filter` variant, which returns the failing stream before the passing stream
+ * @see {@link partitionQueue} for the lower-level queue result
+ * @see {@link filterMapEffect} for effectful filtering that discards failed filter results
  *
  * @category filtering
  * @since 4.0.0
@@ -5059,6 +5120,21 @@ export const catchIf: {
 /**
  * Recovers from errors that match a `Filter` by switching to a recovery
  * stream.
+ *
+ * **When to use**
+ *
+ * Use to recover from stream errors with a reusable `Filter` when matching can
+ * also narrow or transform the error before choosing the recovery stream.
+ *
+ * **Details**
+ *
+ * Successful filter results are passed to `f`. Failed filter results go to
+ * `orElse` when provided; otherwise the filter failure is re-failed.
+ *
+ * @see {@link catchIf} for predicate or refinement based recovery
+ * @see {@link catchTag} for `_tag` based recovery from one tagged error
+ * @see {@link catchTags} for `_tag` based recovery from multiple tagged errors
+ * @see {@link catchCauseFilter} for filtering full causes
  *
  * @category error handling
  * @since 4.0.0
@@ -5674,6 +5750,22 @@ export const catchCauseIf: {
 /**
  * Recovers from stream failures by filtering the `Cause` and switching to a
  * recovery stream.
+ *
+ * **When to use**
+ *
+ * Use when you need to recover a stream only from causes selected by a
+ * `Filter`, and the recovery needs both the selected value and the original
+ * `Cause`.
+ *
+ * **Details**
+ *
+ * The filter is applied to the full `Cause`. A successful filter result is
+ * passed to `f` together with the original cause; a failed filter result
+ * re-fails with the residual cause.
+ *
+ * @see {@link catchCauseIf} for predicate-based cause selection
+ * @see {@link catchFilter} for filtering typed error values instead of full causes
+ * @see {@link catchCause} for recovering from every cause without filtering
  *
  * @category error handling
  * @since 4.0.0
@@ -6380,9 +6472,18 @@ export const takeWhile: {
  * Takes the longest initial prefix accepted by a `Filter` and emits the
  * filter's success values.
  *
+ * **When to use**
+ *
+ * Use to keep the leading stream elements that a `Filter` accepts, emit the
+ * filter's success values, and stop at the first filter failure.
+ *
  * **Details**
  *
  * The stream stops at the first `Result.fail` returned by the filter.
+ *
+ * @see {@link takeWhile} for keeping original elements with a boolean predicate or refinement
+ * @see {@link filterMap} for filtering across the whole stream instead of only the leading prefix
+ * @see {@link dropWhileFilter} for dropping the accepted prefix and keeping the remaining original elements
  *
  * @category filtering
  * @since 4.0.0
@@ -6625,6 +6726,21 @@ export const dropWhile: {
 
 /**
  * Drops elements while the filter succeeds.
+ *
+ * **When to use**
+ *
+ * Use when you need to remove a leading stream prefix based on a synchronous
+ * `Filter` result while preserving the remaining original stream elements.
+ *
+ * **Details**
+ *
+ * `Result.succeed` drops the current element. The first `Result.fail` stops
+ * dropping, emits that original element, and the rest of the source stream is
+ * emitted without further filtering.
+ *
+ * @see {@link dropWhile} for boolean predicate prefix dropping
+ * @see {@link takeWhileFilter} for keeping the accepted prefix as filter success values
+ * @see {@link dropWhileEffect} for effectful predicate prefix dropping
  *
  * @category filtering
  * @since 4.0.0
@@ -8188,11 +8304,20 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
 /**
  * Groups consecutive elements that have equal keys into non-empty arrays.
  *
+ * **When to use**
+ *
+ * Use when a stream is already ordered by the grouping key and you want to emit
+ * each consecutive run as a non-empty array while keeping later non-adjacent
+ * runs separate.
+ *
  * **Details**
  *
  * The key is computed with `f`; adjacent elements whose keys are equal by
  * `Equal.equals` are emitted as one `[key, group]`. Later non-adjacent runs
  * with the same key are emitted separately.
+ *
+ * @see {@link groupByKey} for grouping all elements with the same key across the stream
+ * @see {@link groupBy} for custom grouped stream construction
  *
  * @category Grouping
  * @since 2.0.0
@@ -10541,6 +10666,24 @@ export const runHead = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
 
 /**
  * Runs the stream and returns the last element as an `Option`.
+ *
+ * **When to use**
+ *
+ * Use to consume a finite stream when only the final emitted element matters.
+ *
+ * **Details**
+ *
+ * `Option.some` contains the last emitted element. `Option.none` means the
+ * stream completed without emitting.
+ *
+ * **Gotchas**
+ *
+ * The returned effect waits for the stream to complete before it can produce a
+ * value.
+ *
+ * @see {@link runHead} for consuming only the first emitted element
+ * @see {@link runCollect} for collecting every emitted element
+ * @see {@link runDrain} for consuming the stream while discarding emitted elements
  *
  * @category destructors
  * @since 2.0.0

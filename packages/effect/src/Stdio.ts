@@ -66,6 +66,14 @@ export interface Stdio {
 /**
  * Context service tag for the `Stdio` service.
  *
+ * **When to use**
+ *
+ * Use when an effect needs command-line arguments or standard I/O streams
+ * supplied by its environment.
+ *
+ * @see {@link make} for constructing a `Stdio` service directly
+ * @see {@link layerTest} for a test layer with defaults and overrides
+ *
  * @category services
  * @since 4.0.0
  */
@@ -99,11 +107,18 @@ export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
 /**
  * Creates a test layer for `Stdio`.
  *
+ * **When to use**
+ *
+ * Use to provide deterministic standard I/O in tests while overriding only the
+ * command-line arguments, input stream, or output sinks relevant to the case.
+ *
  * **Details**
  *
  * Any provided fields override defaults. By default, arguments are empty,
  * standard output and error are draining sinks, and standard input is an empty
  * stream.
+ *
+ * @see {@link make} for constructing a `Stdio` service directly without a `Layer` or defaults
  *
  * @category layers
  * @since 4.0.0

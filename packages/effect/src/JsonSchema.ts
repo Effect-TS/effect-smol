@@ -207,6 +207,18 @@ export interface MultiDocument<D extends Dialect> {
 /**
  * The `$schema` meta-schema URI for JSON Schema Draft-07.
  *
+ * **When to use**
+ *
+ * Use when constructing a Draft-07 JSON Schema document and you need a stable
+ * value for the root `$schema` field.
+ *
+ * **Details**
+ *
+ * The exported value is the literal string
+ * `http://json-schema.org/draft-07/schema`.
+ *
+ * @see {@link META_SCHEMA_URI_DRAFT_2020_12} for the Draft 2020-12 `$schema` URI
+ *
  * @category constants
  * @since 4.0.0
  */
@@ -214,6 +226,18 @@ export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
 
 /**
  * The `$schema` meta-schema URI for JSON Schema Draft 2020-12.
+ *
+ * **When to use**
+ *
+ * Use to populate the `$schema` field when emitting a JSON Schema document that
+ * should declare JSON Schema Draft 2020-12.
+ *
+ * **Details**
+ *
+ * The exported value is the literal string
+ * `https://json-schema.org/draft/2020-12/schema`.
+ *
+ * @see {@link META_SCHEMA_URI_DRAFT_07} for the Draft-07 `$schema` URI
  *
  * @category constants
  * @since 4.0.0

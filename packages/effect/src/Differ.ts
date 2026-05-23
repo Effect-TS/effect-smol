@@ -41,6 +41,11 @@
 /**
  * Describes how to compute, combine, and apply patches for values of type `T`.
  *
+ * **When to use**
+ *
+ * Use to model patch-based updates for a value type when callers need to
+ * compute a patch from two values, combine patches, and apply a patch later.
+ *
  * **Details**
  *
  * A `Differ` provides an empty patch, computes the patch between two values,

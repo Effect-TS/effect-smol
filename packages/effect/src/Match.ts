@@ -1284,11 +1284,20 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
 /**
  * Matches any value without restrictions.
  *
+ * **When to use**
+ *
+ * Use to define an explicit catch-all pattern when the handler should receive
+ * the unmatched value.
+ *
  * **Details**
  *
- * This predicate matches absolutely any value, including `undefined`, `null`,
- * objects, primitives, functions, etc. It's useful as a catch-all pattern
- * or when you need to match any remaining cases.
+ * This predicate matches every input, including `undefined`, `null`, objects,
+ * primitives, and functions.
+ *
+ * **Gotchas**
+ *
+ * `Match.any` should usually be last because cases are checked in order and
+ * the first matching case wins.
  *
  * **Example** (Matching any remaining value)
  *
@@ -1316,6 +1325,9 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
  * console.log(describeValue(null))
  * // Output: "Other: object"
  * ```
+ *
+ * @see {@link defined} for matching only non-nullish values
+ * @see {@link orElse} for providing a fallback after earlier cases
  *
  * @category Predicates
  * @since 4.0.0
@@ -1405,6 +1417,19 @@ export {
   /**
    * Matches the value `undefined`.
    *
+   * **When to use**
+   *
+   * Use when a matcher should handle only inputs whose value is exactly
+   * `undefined`.
+   *
+   * **Details**
+   *
+   * This refinement is backed by `Predicate.isUndefined`, which checks
+   * `input === undefined`.
+   *
+   * @see {@link defined} for matching non-nullish values
+   * @see {@link is} for matching literal values
+   *
    * @category Predicates
    * @since 4.0.0
    */
@@ -1415,6 +1440,18 @@ const _null: Predicate.Refinement<unknown, null> = Predicate.isNull
 export {
   /**
    * Matches the value `null`.
+   *
+   * **When to use**
+   *
+   * Use when a match branch should handle only the literal `null` value.
+   *
+   * **Details**
+   *
+   * This refinement is backed by `Predicate.isNull`, which checks
+   * `input === null`.
+   *
+   * @see {@link defined} for matching non-nullish values
+   * @see {@link is} for matching literal values
    *
    * @category Predicates
    * @since 4.0.0

@@ -459,6 +459,15 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
  * Constructs a child `MemoMap` that can reuse layers already memoized in the
  * parent while isolating any new layer allocations to the child map.
  *
+ * **When to use**
+ *
+ * Use to synchronously fork a memo map for manual layer building when child
+ * builds should see parent memoized layers without writing newly built layers
+ * back to the parent.
+ *
+ * @see {@link forkMemoMap} for allocating the child memo map inside `Effect`
+ * @see {@link makeMemoMapUnsafe} for creating a root memo map without a parent
+ *
  * @category memo map
  * @since 4.0.0
  */
@@ -498,6 +507,15 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
 /**
  * Constructs a child `MemoMap` that can reuse layers already memoized in the
  * parent while isolating any new layer allocations to the child map.
+ *
+ * **When to use**
+ *
+ * Use when a layer build should inherit already memoized layers from an
+ * existing `MemoMap` while keeping newly memoized layers out of the parent map.
+ *
+ * @see {@link makeMemoMap} for creating a root memo map in an `Effect`
+ * @see {@link forkMemoMapUnsafe} for the synchronous constructor variant
+ * @see {@link buildWithMemoMap} for building layers with an explicit memo map
  *
  * @category memo map
  * @since 4.0.0
@@ -1577,10 +1595,19 @@ export const flatMap: {
 /**
  * Performs the specified effect if this layer succeeds.
  *
+ * **When to use**
+ *
+ * Use to run an effectful observation after a layer has been built
+ * successfully, such as logging or metrics, without changing the services the
+ * layer provides.
+ *
  * **Details**
  *
  * The callback receives the services produced by this layer. Its result is
  * discarded, and the original layer output is preserved.
+ *
+ * @see {@link tapError} for running an effect when layer construction fails with a typed error
+ * @see {@link tapCause} for running an effect when layer construction fails with any cause
  *
  * @category sequencing
  * @since 2.0.0
@@ -1607,11 +1634,19 @@ export const tap: {
 /**
  * Performs the specified effect if this layer fails.
  *
+ * **When to use**
+ *
+ * Use to run logging, metrics, or other effects when layer construction fails
+ * while preserving the original typed error.
+ *
  * **Details**
  *
  * The callback receives the typed error. If the callback succeeds, the layer
  * still fails with the original error; if the callback fails, that failure is
  * added to the layer's error type.
+ *
+ * @see {@link tap} for running an effect when layer construction succeeds
+ * @see {@link tapCause} for inspecting the full failure cause, including defects and interruption
  *
  * @category sequencing
  * @since 2.0.0
@@ -1638,12 +1673,20 @@ export const tapError: {
 /**
  * Performs the specified effect when this layer fails with any cause.
  *
+ * **When to use**
+ *
+ * Use to run diagnostics or reporting when layer construction fails and the
+ * full `Cause` is needed.
+ *
  * **Details**
  *
  * The callback receives the layer's `Cause`, so it can inspect typed errors,
  * defects, and interruption information. If the callback succeeds, the layer
  * fails again with the original cause; if the callback fails, that failure is
  * added to the layer's error type.
+ *
+ * @see {@link tapError} for observing only typed layer construction errors
+ * @see {@link catchCause} for recovering from a layer construction failure by switching to another layer
  *
  * @category sequencing
  * @since 4.0.0

@@ -1758,10 +1758,25 @@ const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
 /**
  * `Context.Reference` for the metric registry in the current context.
  *
+ * **When to use**
+ *
+ * Use to provide a custom metric registry when a program or test needs metrics
+ * isolated from the default registry.
+ *
  * **Details**
  *
- * The default registry is an empty `Map`. Metrics register their metadata and
- * hooks lazily in this map when they are read or updated.
+ * By default, the reference creates an empty `Map` the first time it is
+ * resolved. Metrics register their metadata and hooks lazily in this map when
+ * they are read or updated.
+ *
+ * **Gotchas**
+ *
+ * Because `Context.Reference` caches default values, the default `Map` is
+ * shared by contexts that do not provide an override. Provide `MetricRegistry`
+ * with a fresh `Map` when isolation matters.
+ *
+ * @see {@link snapshot} for reading all registered metrics from the current `Effect` context
+ * @see {@link snapshotUnsafe} for reading all registered metrics from an explicit `Context`
  *
  * @category references
  * @since 4.0.0

@@ -1103,6 +1103,19 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
  * Returns `true` if a `Duration` is greater than or equal to `minimum` and
  * less than or equal to `maximum`, according to `Duration.Order`.
  *
+ * **When to use**
+ *
+ * Use to test whether a duration is inside an inclusive range.
+ *
+ * **Details**
+ *
+ * Both bounds are inclusive and compared with `Duration.Order`.
+ *
+ * **Gotchas**
+ *
+ * The bounds are not normalized. If `minimum` is greater than `maximum`, the
+ * predicate returns `false` for every duration.
+ *
  * **Example** (Checking duration ranges)
  *
  * ```ts
@@ -1114,6 +1127,10 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
  * })
  * console.log(isInRange) // true
  * ```
+ *
+ * @see {@link clamp} for constraining a duration to a range
+ * @see {@link isGreaterThanOrEqualTo} for checking only the lower bound
+ * @see {@link isLessThanOrEqualTo} for checking only the upper bound
  *
  * @category predicates
  * @since 2.0.0

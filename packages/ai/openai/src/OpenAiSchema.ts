@@ -480,6 +480,13 @@ export type TextResponseFormatConfiguration = typeof TextResponseFormatConfigura
 /**
  * Schema for request options used to create an OpenAI Responses API response.
  *
+ * **Details**
+ *
+ * Validates the Responses API request payload, including input content, model
+ * selection, instructions, reasoning options, text output format, tools,
+ * `tool_choice`, streaming, storage, response continuation, sampling options,
+ * and optional response fields requested through `include`.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -938,6 +945,12 @@ export type Embedding = typeof Embedding.Type
 /**
  * Schema for the request payload sent to the OpenAI embeddings endpoint.
  *
+ * **Details**
+ *
+ * Requires `input` and `model`. `input` may be a string, an array of strings,
+ * a token array, or an array of token arrays. Optional fields configure the
+ * embedding encoding format, requested dimensions, and user identifier.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -964,6 +977,17 @@ export type CreateEmbeddingRequest = typeof CreateEmbeddingRequest.Type
 
 /**
  * Schema for a successful response payload returned by the OpenAI embeddings endpoint.
+ *
+ * **Details**
+ *
+ * The response contains an array of `Embedding` items, the model name, an
+ * optional `object: "list"` marker, and optional token usage counts for prompt
+ * and total tokens.
+ *
+ * **Gotchas**
+ *
+ * Each `Embedding` may contain either a numeric vector or a string embedding.
+ * Callers that require numeric vectors must account for string embeddings.
  *
  * @category schemas
  * @since 4.0.0

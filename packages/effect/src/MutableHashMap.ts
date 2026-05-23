@@ -84,6 +84,20 @@ export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable
 /**
  * Checks if the specified value is a `MutableHashMap`, `false` otherwise.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a mutable hash map.
+ *
+ * **Details**
+ *
+ * The check looks for the `MutableHashMap` runtime marker.
+ *
+ * **Gotchas**
+ *
+ * The check does not validate the key or value types carried by the map.
+ *
+ * @see {@link MutableHashMap} for the mutable hash map interface
+ *
  * @category refinements
  * @since 4.0.0
  */
@@ -114,6 +128,14 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
 /**
  * Creates an empty MutableHashMap.
  *
+ * **When to use**
+ *
+ * Use to create a fresh mutable map before adding entries over time.
+ *
+ * **Details**
+ *
+ * Each call returns a new empty map instance.
+ *
  * **Example** (Creating an empty map)
  *
  * ```ts
@@ -127,6 +149,9 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
  *
  * console.log(MutableHashMap.size(map)) // 2
  * ```
+ *
+ * @see {@link make} for creating a map from explicit entries
+ * @see {@link fromIterable} for creating a map from an iterable of entries
  *
  * @category constructors
  * @since 2.0.0
@@ -701,6 +726,12 @@ export const size = <K, V>(self: MutableHashMap<K, V>): number => self.backing.s
 
 /**
  * Returns `true` when the `MutableHashMap` contains no key-value pairs.
+ *
+ * **When to use**
+ *
+ * Use to branch on whether a mutable map currently has any entries.
+ *
+ * @see {@link size} for reading the exact number of entries
  *
  * @category predicates
  * @since 2.0.0

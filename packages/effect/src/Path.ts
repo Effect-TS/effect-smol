@@ -40,6 +40,17 @@ import { BadArgument } from "./PlatformError.ts"
 /**
  * Runtime type identifier used to mark implementations of the `Path` service.
  *
+ * **When to use**
+ *
+ * Use when implementing or inspecting a custom `Path` service value that must
+ * carry the runtime marker.
+ *
+ * **Details**
+ *
+ * The marker is the exact string stored on `Path` service implementations.
+ *
+ * @see {@link layer} for the built-in POSIX `Path` service layer
+ *
  * @category type IDs
  * @since 4.0.0
  */
@@ -194,8 +205,7 @@ export declare namespace Path {
  *
  * **When to use**
  *
- * Use when yield this service inside an effect to use path operations supplied by the
- * environment, or provide a custom implementation with `Layer.succeed`.
+ * Use when an effect needs path operations supplied by its environment.
  *
  * **Example** (Providing a custom Path service)
  *
@@ -855,8 +865,15 @@ const posixImpl = Path.of({
  *
  * **When to use**
  *
- * Use when you use this layer when an effect requires the `Path` service and should use
- * forward-slash path semantics.
+ * Use when an effect requires the `Path` service and should run with the
+ * built-in POSIX path implementation.
+ *
+ * **Details**
+ *
+ * The layer provides a static service whose separator is `/` and whose
+ * operations use POSIX path semantics.
+ *
+ * @see {@link Path} for accessing the `Path` service from an effect
  *
  * @category layers
  * @since 4.0.0

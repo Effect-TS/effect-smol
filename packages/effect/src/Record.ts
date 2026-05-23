@@ -1438,6 +1438,21 @@ export const singleton = <K extends string | symbol, A>(key: K, value: A): Recor
  * Creates a `Reducer` for combining `Record`s using union, with values for keys that exist in both records combined
  * using the provided `Combiner`.
  *
+ * **When to use**
+ *
+ * Use to build a reusable reducer for accumulating many records into one
+ * union-shaped record, preserving keys from every input and combining
+ * overlapping values with the supplied combiner.
+ *
+ * **Details**
+ *
+ * The returned reducer uses `Record.union` for combine and an empty record as
+ * `initialValue`, so the default `combineAll` folds from `{}` and accumulates
+ * keys from each input record.
+ *
+ * @see {@link union} for one-off record merging with the same union semantics
+ * @see {@link makeReducerIntersection} for a reducer that keeps only keys present on both sides
+ *
  * @category combining
  * @since 4.0.0
  */
@@ -1452,11 +1467,19 @@ export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combine
  * Creates a `Reducer` whose `combine` operation intersects two records and
  * combines values for keys present in both records.
  *
+ * **When to use**
+ *
+ * Use to build a `Reducer` that combines records by retaining only keys shared
+ * by both inputs and combining matching values with a `Combiner`.
+ *
  * **Gotchas**
  *
  * The reducer's `initialValue` is an empty record. Because intersection with
  * an empty record is empty, the default `combineAll` folds from `{}` and
  * therefore produces `{}` for ordinary non-empty inputs.
+ *
+ * @see {@link makeReducerUnion} for a reducer that preserves keys from either input record
+ * @see {@link intersection} for applying the shared-key merge to one pair of records
  *
  * @category combining
  * @since 4.0.0

@@ -113,14 +113,16 @@ export interface Partitioned<in K> extends PartitionedSemaphore<K> {}
  *
  * **When to use**
  *
- * Use when prefer `make` when the semaphore should be created inside an `Effect`
- * workflow.
+ * Use when a partitioned semaphore must be constructed synchronously outside an
+ * `Effect` workflow.
  *
  * **Details**
  *
  * Negative permit counts are clamped to `0`. Non-finite permit counts create
  * an unbounded semaphore whose acquire and release operations complete
  * immediately.
+ *
+ * @see {@link make} for creating a partitioned semaphore inside `Effect`
  *
  * @category constructors
  * @since 3.19.4
@@ -315,11 +317,22 @@ export const makeUnsafe = <K = unknown>(options: {
 /**
  * Creates a `PartitionedSemaphore` inside an `Effect`.
  *
+ * **When to use**
+ *
+ * Use when semaphore construction should stay inside an `Effect` workflow.
+ *
  * **Details**
  *
  * The `permits` option sets the shared permit capacity. The resulting
  * semaphore tracks waiters by partition key and distributes released permits
  * across waiting partitions in round-robin order.
+ *
+ * **Gotchas**
+ *
+ * Negative permit counts are clamped to `0`. Non-finite permit counts create
+ * an unbounded semaphore.
+ *
+ * @see {@link makeUnsafe} for synchronous construction
  *
  * @category constructors
  * @since 3.19.4
@@ -331,6 +344,24 @@ export const make = <K = unknown>(options: {
 /**
  * Gets the current number of available permits.
  *
+ * **When to use**
+ *
+ * Use to inspect a snapshot of how many permits are currently free.
+ *
+ * **Details**
+ *
+ * Running the returned effect reads the semaphore's current availability.
+ * Taking permits decreases availability, and releasing permits can increase it
+ * up to the semaphore capacity.
+ *
+ * **Gotchas**
+ *
+ * Reading availability does not reserve permits.
+ *
+ * @see {@link capacity} for the fixed total permit capacity
+ * @see {@link release} for returning permits to the shared pool
+ * @see {@link withPermitsIfAvailable} for running only when permits are immediately available
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -338,6 +369,17 @@ export const available = <K>(self: PartitionedSemaphore<K>): Effect.Effect<numbe
 
 /**
  * Gets the total capacity.
+ *
+ * **When to use**
+ *
+ * Use to inspect the fixed number of permits configured for the semaphore.
+ *
+ * **Details**
+ *
+ * Capacity is stored when the semaphore is created and does not change as
+ * permits are acquired or released.
+ *
+ * @see {@link available} for the current number of free permits
  *
  * @category getters
  * @since 4.0.0

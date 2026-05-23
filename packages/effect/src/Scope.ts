@@ -490,12 +490,22 @@ export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effe
 /**
  * Unsafely transitions a scope to `Closed` with the provided exit value.
  *
+ * **When to use**
+ *
+ * Use when implementing lower-level scope machinery that must transition a
+ * scope to `Closed` immediately and can run the returned finalizer effect when
+ * one is produced.
+ *
  * **Details**
  *
  * Returns an effect that runs registered finalizers, or `undefined` when the
- * scope was already closed or no finalizers need to run. Prefer `close` unless
- * you are implementing lower-level scope machinery and can correctly run the
- * returned effect.
+ * scope was already closed or no finalizers need to run.
+ *
+ * **Gotchas**
+ *
+ * Ignoring the returned effect skips registered finalizers.
+ *
+ * @see {@link close} for the usual effectful close operation that always returns an `Effect`
  *
  * @category unsafe
  * @since 4.0.0
@@ -507,11 +517,19 @@ export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void,
  * Runs an effect with the provided closeable scope in its context and closes
  * that scope when the effect exits.
  *
+ * **When to use**
+ *
+ * Use when you already have a `Closeable` scope and want to run an effect that
+ * requires `Scope` while automatically closing that scope when the effect exits.
+ *
  * **Details**
  *
  * The scope is closed with the same exit value as the effect, so registered
  * finalizers can observe whether the effect succeeded, failed, or was
  * interrupted.
+ *
+ * @see {@link provide} for providing a scope without closing it automatically
+ * @see `Effect.scoped` for creating and closing a fresh scope around a workflow
  *
  * @category combinators
  * @since 2.0.0

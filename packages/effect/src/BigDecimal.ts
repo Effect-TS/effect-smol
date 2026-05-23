@@ -1588,6 +1588,20 @@ export const truncate: {
 /**
  * Calculate the ceiling of a `BigDecimal` at the given scale.
  *
+ * **When to use**
+ *
+ * Use to round a decimal toward positive infinity at a requested scale.
+ *
+ * **Details**
+ *
+ * The default scale is `0`. Positive scales keep digits to the right of the
+ * decimal point, and negative scales round positions to the left of the decimal
+ * point.
+ *
+ * @see {@link floor} for rounding toward negative infinity
+ * @see {@link truncate} for rounding toward zero
+ * @see {@link round} for configurable rounding modes
+ *
  * **Example** (Rounding decimals up)
  *
  * ```ts

@@ -674,11 +674,19 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
  * Removes up to `n` elements from the beginning of the `MutableList` without
  * returning them.
  *
+ * **When to use**
+ *
+ * Use to discard a bounded number of values from the head of a `MutableList`
+ * when the removed values are not needed.
+ *
  * **Details**
  *
  * If `n` is less than or equal to zero, or the list is empty, the list is left
  * unchanged. If `n` is greater than or equal to the current length, the list is
  * cleared.
+ *
+ * @see {@link takeN} for removing up to `n` values and returning them as an array
+ * @see {@link clear} for removing every value from the list
  *
  * @category elements
  * @since 4.0.0

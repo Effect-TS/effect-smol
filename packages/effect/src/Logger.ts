@@ -240,8 +240,22 @@ export const isLogger = (u: unknown): u is Logger<unknown, unknown> => Predicate
 export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>> = effect.CurrentLoggers
 
 /**
- * Context reference that controls whether console-style loggers write to
- * `console.error` instead of `console.log`.
+ * Context reference that routes the built-in default logger and TTY pretty
+ * console logger to stderr.
+ *
+ * **When to use**
+ *
+ * Use to keep stdout reserved for protocol messages or data output while still
+ * allowing Effect runtime logs to be emitted.
+ *
+ * **Details**
+ *
+ * The reference defaults to `false`. Providing `true` makes the affected
+ * loggers call `console.error` instead of `console.log`.
+ *
+ * @see {@link defaultLogger} for the runtime logger affected by this reference
+ * @see {@link consolePretty} for the TTY-mode pretty console logger affected by this reference
+ * @see {@link withConsoleError} for routing a specific formatter logger to `console.error`
  *
  * @category references
  * @since 4.0.0

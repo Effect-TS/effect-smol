@@ -133,6 +133,13 @@ export {
    * Reads the deferred value. Retries the transaction if the deferred has not
    * been completed yet.
    *
+   * **When to use**
+   *
+   * Use to read the success value of a `TxDeferred` while retrying until the
+   * deferred is completed.
+   *
+   * @see {@link poll} for inspecting the current completion state without retrying the transaction
+   *
    * @category getters
    * @since 4.0.0
    */

@@ -453,6 +453,24 @@ export const attributes: attributes = "~effect/ErrorReporter/attributes"
  * Reads the `ErrorReporter.attributes` annotation from an error object,
  * returning an empty record when unset.
  *
+ * **When to use**
+ *
+ * Use to inspect the attributes that reporter callbacks will receive for an
+ * object error.
+ *
+ * **Details**
+ *
+ * Returns the value stored under `ErrorReporter.attributes`, or the module's
+ * shared empty record when the annotation is absent.
+ *
+ * **Gotchas**
+ *
+ * The annotation value is returned as-is; this helper does not validate or
+ * clone it.
+ *
+ * @see {@link attributes} for the annotation key used to attach metadata
+ * @see {@link Reportable} for the annotation properties recognized on object errors
+ *
  * @category annotations
  * @since 4.0.0
  */

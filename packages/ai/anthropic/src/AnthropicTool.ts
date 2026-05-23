@@ -585,7 +585,27 @@ export const ComputerUseKeyAction = Schema.Struct({
 export type ComputerUseKeyAction = typeof ComputerUseKeyAction.Type
 
 /**
- * Perform a left click at the current mouse position or the specified coordinates.
+ * Schema for a computer-use action that performs a left click.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct an Anthropic computer-use payload for clicking
+ * once at the current mouse position or at a specific screen coordinate.
+ *
+ * **Details**
+ *
+ * The encoded payload uses `action: "left_click"`. The optional `coordinate`
+ * field supplies the `[x, y]` pixel position; when omitted, the action uses the
+ * current mouse position.
+ *
+ * **Gotchas**
+ *
+ * The coordinate schema only checks that the value is a two-number tuple. It
+ * does not validate that the point falls within the configured display
+ * dimensions.
+ *
+ * @see {@link ComputerUseDoubleClickAction} for performing a double click
+ * @see {@link ComputerUseMouseMoveAction} for moving the mouse without clicking
  *
  * @category Computer Use
  * @since 4.0.0
@@ -707,7 +727,26 @@ const ComputerUse_20241022_Actions = Schema.Union([
 // -----------------------------------------------------------------------------
 
 /**
- * Perform a double click at the current mouse position or a specified `[x, y]` coordinate.
+ * Schema for a computer-use action that performs a double click.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct an Anthropic computer-use payload for double
+ * clicking at the current mouse position or at a specific screen coordinate.
+ *
+ * **Details**
+ *
+ * The encoded payload uses `action: "double_click"`. The optional
+ * `coordinate` field supplies the `[x, y]` pixel position; when omitted, the
+ * action uses the current mouse position.
+ *
+ * **Gotchas**
+ *
+ * The coordinate schema only checks that the value is a two-number tuple. It
+ * does not validate that the point falls within the configured display
+ * dimensions.
+ *
+ * @see {@link ComputerUseLeftClickAction} for performing a single left click
  *
  * @category Computer Use
  * @since 4.0.0
@@ -784,7 +823,26 @@ export const ComputerUseHoldKeyAction = Schema.Struct({
 export type ComputerUseHoldKeyAction = typeof ComputerUseHoldKeyAction.Type
 
 /**
- * Perform a left-click drag from a start coordinate to an end coordinate.
+ * Schema for a computer-use action that drags with the left mouse button.
+ *
+ * **When to use**
+ *
+ * Use to validate or construct an Anthropic computer-use payload for dragging
+ * from one screen coordinate to another in a single action.
+ *
+ * **Details**
+ *
+ * The encoded payload uses `action: "left_click_drag"` and requires both
+ * `start_coordinate` and `coordinate` as `[x, y]` pixel positions.
+ *
+ * **Gotchas**
+ *
+ * The coordinate schema only checks that each value is a two-number tuple. It
+ * does not validate that either point falls within the configured display
+ * dimensions.
+ *
+ * @see {@link ComputerUseLeftMouseDownAction} for starting a manual drag sequence
+ * @see {@link ComputerUseLeftMouseUpAction} for ending a manual drag sequence
  *
  * @category Computer Use
  * @since 4.0.0

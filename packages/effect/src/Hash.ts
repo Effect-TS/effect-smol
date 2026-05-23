@@ -178,11 +178,15 @@ export const random: <A extends object>(self: A) => number = (self) => {
 /**
  * Combines two hash values into a single hash value.
  *
+ * **When to use**
+ *
+ * Use to build a hash for a composite value by folding together hash values for
+ * its parts.
+ *
  * **Details**
  *
- * This function takes two hash values and combines them using a mathematical
- * operation to produce a new hash value. It's useful for creating hash values
- * of composite structures.
+ * Supports both direct and pipeable usage. The implementation combines two
+ * hash values with `(self * 53) ^ b`.
  *
  * **Example** (Combining hash values)
  *
@@ -199,6 +203,9 @@ export const random: <A extends object>(self: A) => number = (self) => {
  * console.log(combined)
  * const result = pipe(hash1, Hash.combine(hash2))
  * ```
+ *
+ * @see {@link hash} for computing hash values from arbitrary inputs
+ * @see {@link structureKeys} for hashing selected object fields without manual combination
  *
  * @category hashing
  * @since 2.0.0
@@ -422,13 +429,21 @@ const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<a
 }
 
 /**
- * Computes a hash value for an array by hashing all of its elements.
+ * Computes a hash value for an iterable by hashing all of its elements.
+ *
+ * **When to use**
+ *
+ * Use to hash the values yielded by an iterable with Effect hash semantics.
  *
  * **Details**
  *
- * This function creates a hash value based on all elements in the array.
- * The order of elements matters, so arrays with the same elements in different
- * orders will produce different hash values.
+ * The implementation folds element hashes from the seed `6151` with XOR and
+ * then optimizes the final hash.
+ *
+ * **Gotchas**
+ *
+ * A hash is not an equality proof. Because this implementation uses XOR,
+ * reordered inputs can produce the same hash.
  *
  * **Example** (Hashing arrays)
  *
@@ -441,12 +456,13 @@ const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<a
  *
  * console.log(Hash.array(arr1)) // hash of [1, 2, 3]
  * console.log(Hash.array(arr2)) // same hash as arr1
- * console.log(Hash.array(arr3)) // different hash (different order)
+ * console.log(Hash.array(arr3)) // may match reordered inputs
  *
- * // Arrays with same elements in same order produce same hash
  * console.log(Hash.array(arr1) === Hash.array(arr2)) // true
- * console.log(Hash.array(arr1) === Hash.array(arr3)) // false
+ * console.log(Hash.array(arr1) === Hash.array(arr3)) // true
  * ```
+ *
+ * @see {@link hash} for the general-purpose hash dispatcher
  *
  * @category hashing
  * @since 2.0.0

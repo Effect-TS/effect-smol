@@ -15,6 +15,15 @@ import { hasProperty } from "./Predicate.ts"
 /**
  * The unique identifier used to identify objects that implement the `PrimaryKey` interface.
  *
+ * **When to use**
+ *
+ * Use to implement the `PrimaryKey` protocol as a computed property key on
+ * classes or object literals that expose a stable string identifier.
+ *
+ * @see {@link PrimaryKey} for the protocol interface that declares the method keyed by this symbol
+ * @see {@link value} for reading the string key from a `PrimaryKey` value
+ * @see {@link isPrimaryKey} for checking whether an unknown value carries this method
+ *
  * @category symbols
  * @since 2.0.0
  */
@@ -55,10 +64,20 @@ export interface PrimaryKey {
 /**
  * Checks whether a value implements the `PrimaryKey` protocol.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a `PrimaryKey`.
+ *
  * **Details**
  *
- * This is a structural guard for the `PrimaryKey.symbol` property. It does not
- * call the method or verify that it returns a string.
+ * This is a structural guard for the `PrimaryKey.symbol` property.
+ *
+ * **Gotchas**
+ *
+ * This guard does not call the method or verify that it returns a string.
+ *
+ * @see {@link PrimaryKey} for the protocol being checked
+ * @see {@link value} for extracting the string value after narrowing
  *
  * @category models
  * @since 4.0.0

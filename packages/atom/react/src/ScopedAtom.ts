@@ -81,6 +81,22 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
 /**
  * Creates a ScopedAtom from a factory function.
  *
+ * **When to use**
+ *
+ * Use to create an atom instance that is owned by a React provider and scoped
+ * to a component subtree.
+ *
+ * **Details**
+ *
+ * The returned scoped atom includes a `Provider`, `Context`, and `use`
+ * accessor. The provider creates the atom once for its lifetime, passing the
+ * `value` prop to the factory when the scoped atom expects input.
+ *
+ * **Gotchas**
+ *
+ * `use` must run under the matching provider. Changing the provider `value`
+ * prop after mount does not recreate the atom.
+ *
  * **Example** (Creating a scoped atom with input)
  *
  * ```ts

@@ -53,6 +53,24 @@ export const RegistryContext = createContext<AtomRegistry.AtomRegistry>(AtomRegi
  * values and scheduler settings, and disposes the registry when the owner is
  * cleaned up.
  *
+ * **When to use**
+ *
+ * Use to scope atom state, scheduling, and cleanup to a Solid subtree.
+ *
+ * **Details**
+ *
+ * The provider creates an `AtomRegistry` with `AtomRegistry.make`, forwards
+ * `initialValues`, `scheduleTask`, `timeoutResolution`, and
+ * `defaultIdleTTL`, and supplies the registry through `RegistryContext`.
+ *
+ * **Gotchas**
+ *
+ * Provider options are consumed when the registry is created; they are not
+ * reactive updates. A custom `scheduleTask` should return a cancellation
+ * function that is safe to call during Solid cleanup.
+ *
+ * @see {@link RegistryContext} for the context supplied by this provider
+ *
  * @category context
  * @since 4.0.0
  */

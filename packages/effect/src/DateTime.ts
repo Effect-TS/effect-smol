@@ -2201,6 +2201,22 @@ export const match: {
 /**
  * Add the given `Duration` to a `DateTime`.
  *
+ * **When to use**
+ *
+ * Use to move a `DateTime` by an elapsed duration such as minutes, seconds, or
+ * milliseconds.
+ *
+ * **Details**
+ *
+ * The duration is converted to milliseconds and added to the epoch
+ * milliseconds. Zoned values keep their original time zone.
+ *
+ * **Gotchas**
+ *
+ * This is elapsed-time arithmetic, not calendar-aware local date arithmetic.
+ * Use `add` when adding days, weeks, months, or years should account for the
+ * date/time zone rules.
+ *
  * **Example** (Adding durations)
  *
  * ```ts
@@ -2211,6 +2227,9 @@ export const match: {
  *   DateTime.addDuration("5 minutes")
  * )
  * ```
+ *
+ * @see {@link add} for calendar-aware date/time part arithmetic
+ * @see {@link subtractDuration} for subtracting an elapsed duration
  *
  * @category math
  * @since 3.6.0
@@ -2549,7 +2568,17 @@ export const formatUtc: {
 } = Internal.formatUtc
 
 /**
- * Format a `DateTime` as a string using the `DateTimeFormat` API.
+ * Formats a `DateTime` as a string using the `Intl.DateTimeFormat` API.
+ *
+ * **When to use**
+ *
+ * Use when you already have an `Intl.DateTimeFormat` and want it to control the
+ * locale, time zone, and formatting options.
+ *
+ * **Details**
+ *
+ * The formatter receives the `DateTime` epoch milliseconds. Any time zone
+ * conversion comes from the supplied formatter.
  *
  * **Example** (Formatting DateTime values with custom formatters)
  *
@@ -2569,8 +2598,11 @@ export const formatUtc: {
  * })
  *
  * const formatted = DateTime.formatIntl(dt, formatter)
- * console.log(formatted) // "15. Juni 2024, 16:30"
+ * console.log(formatted.length > 0) // true
  * ```
+ *
+ * @see {@link formatUtc} for formatting with options forced to UTC
+ * @see {@link formatIso} for stable ISO formatting
  *
  * @category formatting
  * @since 3.6.0

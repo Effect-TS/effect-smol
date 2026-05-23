@@ -92,6 +92,24 @@ export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Ite
 /**
  * Checks whether a value is a `HashRing`.
  *
+ * **When to use**
+ *
+ * Use to narrow an `unknown` value before treating it as a `HashRing`, such as
+ * values crossing an untyped boundary.
+ *
+ * **Details**
+ *
+ * The guard checks for the module's internal `TypeId` property and narrows to
+ * `HashRing<any>`.
+ *
+ * **Gotchas**
+ *
+ * This is a structural type-id check; it does not validate the ring's `nodes`,
+ * `ring`, or weight state.
+ *
+ * @see {@link HashRing} for the type narrowed by this guard
+ * @see {@link make} for creating an empty `HashRing`
+ *
  * @category guards
  * @since 3.19.0
  */
@@ -214,6 +232,23 @@ export const add: {
 /**
  * Removes the node from the ring. No-op's if the node does not exist.
  *
+ * **When to use**
+ *
+ * Use to remove a node that has left the pool so future lookups and shard
+ * assignments stop returning it.
+ *
+ * **Details**
+ *
+ * Removal matches by `PrimaryKey.value`, so any value with the same primary key
+ * removes the same ring member.
+ *
+ * **Gotchas**
+ *
+ * This mutates and returns the same ring instance.
+ *
+ * @see {@link add} for registering or updating a node
+ * @see {@link has} for checking membership by primary key
+ *
  * @category combinators
  * @since 3.19.0
  */
@@ -233,6 +268,20 @@ export const remove: {
 
 /**
  * Checks whether the ring contains a node with the same `PrimaryKey` value.
+ *
+ * **When to use**
+ *
+ * Use to check whether a node value is already registered in a ring by its
+ * `PrimaryKey` value.
+ *
+ * **Details**
+ *
+ * Membership is checked with `self.nodes.has(PrimaryKey.value(node))`, so
+ * matching is by primary key, not object identity or weight.
+ *
+ * @see {@link add} for registering or updating nodes
+ * @see {@link remove} for removing nodes by the same primary-key identity
+ * @see {@link get} for routing an input string to a node
  *
  * @category combinators
  * @since 3.19.0

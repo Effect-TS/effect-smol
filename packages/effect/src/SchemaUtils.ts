@@ -25,11 +25,20 @@ import * as Transformation from "./SchemaTransformation.ts"
  * Builds an experimental schema for instances of a native class using a struct
  * schema as the encoded representation.
  *
+ * **When to use**
+ *
+ * Use when you need a schema for an existing native class while keeping a
+ * `Struct` schema as its encoded representation.
+ *
  * **Details**
  *
  * Decoding constructs `new constructor(props)` from the encoded fields.
  * Encoding uses the instance as the encoded shape, so the class should expose
  * properties compatible with the provided encoding schema.
+ *
+ * @see {@link Schema.instanceOf} for validating existing class instances without a struct encoding
+ * @see {@link Schema.Class} for defining schema-backed classes directly
+ * @see {@link Schema.ErrorClass} for defining schema-backed error classes
  *
  * @category schemas
  * @since 4.0.0

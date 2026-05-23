@@ -6623,6 +6623,19 @@ export const embedInput: {
  * Allows a faster producer to progress independently of a slower consumer by
  * buffering up to `capacity` elements in a queue.
  *
+ * **Details**
+ *
+ * Finite queues use the `strategy` option. The default `"suspend"` strategy
+ * applies backpressure, while `"dropping"` and `"sliding"` can discard output
+ * elements when the queue is full. `"unbounded"` capacity does not use a finite
+ * capacity strategy.
+ *
+ * **Gotchas**
+ *
+ * Dropping and sliding strategies can lose output elements under backpressure.
+ *
+ * @see {@link bufferArray} for buffering elements from array outputs
+ *
  * @category Buffering
  * @since 2.0.0
  */
@@ -6668,6 +6681,21 @@ export const buffer: {
 /**
  * Allows a faster producer to progress independently of a slower consumer by
  * buffering up to `capacity` elements in a queue.
+ *
+ * **Details**
+ *
+ * Finite queues use the `strategy` option. The default `"suspend"` strategy
+ * applies backpressure, while `"dropping"` and `"sliding"` can discard output
+ * elements when the queue is full. `"unbounded"` capacity does not use a finite
+ * capacity strategy.
+ *
+ * **Gotchas**
+ *
+ * Input arrays are offered to the queue element-by-element and outputs are
+ * rebuilt from the currently available queued elements, so upstream array
+ * boundaries are not preserved.
+ *
+ * @see {@link buffer} for buffering output elements without flattening arrays
  *
  * @category Buffering
  * @since 4.0.0
@@ -7465,6 +7493,15 @@ export const bind: {
 
 /**
  * Wraps each output element in an object under the specified field name.
+ *
+ * **When to use**
+ *
+ * Use when starting a Channel Do-notation chain from an existing output value
+ * by assigning that value to a field name.
+ *
+ * @see {@link Do} for starting Do notation from an empty object
+ * @see {@link bind} for adding a field produced by another channel
+ * @see {@link let} for adding a computed field
  *
  * @category Do notation
  * @since 4.0.0

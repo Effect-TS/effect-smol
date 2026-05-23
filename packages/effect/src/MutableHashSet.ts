@@ -128,6 +128,20 @@ export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectabl
 /**
  * Checks if the specified value is a `MutableHashSet`, `false` otherwise.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a mutable hash set.
+ *
+ * **Details**
+ *
+ * The check looks for the `MutableHashSet` runtime marker.
+ *
+ * **Gotchas**
+ *
+ * Native `Set` values do not satisfy this check.
+ *
+ * @see {@link MutableHashSet} for the mutable hash set interface
+ *
  * @category refinements
  * @since 4.0.0
  */
@@ -164,6 +178,14 @@ const fromHashMap = <V>(keyMap: MutableHashMap.MutableHashMap<V, boolean>): Muta
 /**
  * Creates an empty MutableHashSet.
  *
+ * **When to use**
+ *
+ * Use to create a fresh mutable set before adding values over time.
+ *
+ * **Details**
+ *
+ * Each call returns a new empty set backed by an empty `MutableHashMap`.
+ *
  * **Example** (Creating an empty set)
  *
  * ```ts
@@ -179,6 +201,10 @@ const fromHashMap = <V>(keyMap: MutableHashMap.MutableHashMap<V, boolean>): Muta
  * console.log(MutableHashSet.size(set)) // 2
  * console.log(Array.from(set)) // ["apple", "banana"]
  * ```
+ *
+ * @see {@link make} for creating a set from explicit values
+ * @see {@link fromIterable} for creating a set from an iterable of values
+ * @see {@link clear} for emptying an existing mutable set
  *
  * @category constructors
  * @since 2.0.0
@@ -288,6 +314,15 @@ export const add: {
 /**
  * Checks if the MutableHashSet contains the specified value.
  *
+ * **When to use**
+ *
+ * Use to test whether a mutable set currently contains a value.
+ *
+ * **Details**
+ *
+ * Membership follows the same hashing and equality rules as the underlying
+ * `MutableHashMap`.
+ *
  * **Example** (Checking for a value)
  *
  * ```ts
@@ -306,6 +341,9 @@ export const add: {
  * MutableHashSet.add(set, "grape")
  * console.log(MutableHashSet.has(set, "grape")) // true
  * ```
+ *
+ * @see {@link add} for adding a value to the set
+ * @see {@link remove} for removing a value from the set
  *
  * @category elements
  * @since 2.0.0

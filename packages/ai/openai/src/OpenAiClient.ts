@@ -346,8 +346,21 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
   Layer.effect(OpenAiClient, make(options))
 
 /**
- * Creates a layer for the OpenAI client, loading the requisite configuration
- * via Effect's `Config` module.
+ * Creates a layer for the OpenAI client from provided `Config` values.
+ *
+ * **When to use**
+ *
+ * Use when client settings should be read from Effect `Config` values while
+ * providing `OpenAiClient` as a `Layer`.
+ *
+ * **Details**
+ *
+ * Only config values supplied in `options` are loaded. Omitted fields are
+ * passed to `make` as `undefined`, and `transformClient` is forwarded as a
+ * plain option.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layer} for providing the client from already-resolved options
  *
  * @category layers
  * @since 4.0.0
@@ -417,6 +430,25 @@ export type ResponseStreamEvent = typeof OpenAiSchema.ResponseStreamEvent.Type
 
 /**
  * Service for creating OpenAI response streams over a WebSocket connection.
+ *
+ * **When to use**
+ *
+ * Use when code needs direct access to the WebSocket-backed response streaming
+ * service rather than wrapping an effect with WebSocket mode.
+ *
+ * **Details**
+ *
+ * `createResponseStream` sends a `response.create` message over the WebSocket
+ * connection and returns an HTTP response together with a stream of
+ * `ResponseStreamEvent` values.
+ *
+ * **Gotchas**
+ *
+ * WebSocket response streams are serialized to one request at a time by the
+ * shared socket service.
+ *
+ * @see {@link withWebSocketMode} for enabling WebSocket mode for one effect
+ * @see {@link layerWebSocketMode} for providing WebSocket mode through a layer
  *
  * @category Websocket mode
  * @since 4.0.0
@@ -653,6 +685,11 @@ export const withWebSocketMode = <A, E, R>(
 /**
  * Uses OpenAI's websocket mode for all responses that use the Layer.
  *
+ * **When to use**
+ *
+ * Use to provide WebSocket mode through layer composition for effects that use
+ * OpenAI response streaming.
+ *
  * **Gotchas**
  *
  * This only works with the following WebSocket constructor layers:
@@ -661,6 +698,8 @@ export const withWebSocketMode = <A, E, R>(
  * - `BunSocket.layerWebSocketConstructor`
  *
  * This is because it needs to use non-standard options for setting the Authorization header.
+ *
+ * @see {@link withWebSocketMode} for enabling WebSocket mode around a single effect
  *
  * @category Websocket mode
  * @since 4.0.0

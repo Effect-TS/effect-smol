@@ -403,8 +403,17 @@ export const TaggedClass = <Tag extends string>(
 }
 
 /**
- * Completes a request entry with the provided result. This is typically used
- * within RequestResolver implementations to fulfill pending requests.
+ * Completes a request entry with the provided result.
+ *
+ * **When to use**
+ *
+ * Use to finish a `Request.Entry` when you already have the request's final
+ * `Exit` result.
+ *
+ * @see {@link completeEffect} for completing an entry from an effect that may succeed or fail
+ * @see {@link succeed} for completing an entry with a successful value
+ * @see {@link fail} for completing an entry with a typed failure
+ * @see {@link failCause} for completing an entry with a failure `Cause`
  *
  * @category completion
  * @since 2.0.0
@@ -421,11 +430,24 @@ export const complete: {
 /**
  * Completes a request entry with the result of an effect.
  *
+ * **When to use**
+ *
+ * Use to finish a `Request.Entry` by running an effect whose success or typed
+ * failure should become the request result.
+ *
  * **Details**
  *
  * If the effect succeeds, the entry is completed successfully with its value.
- * If the effect fails, the entry is completed with that failure. The returned
- * effect itself does not fail with the request error.
+ * If the effect fails, the entry is completed with that failure.
+ *
+ * **Gotchas**
+ *
+ * The returned effect itself does not fail with the request error.
+ *
+ * @see {@link complete} for completing an entry with a prebuilt `Exit`
+ * @see {@link succeed} for completing an entry with a successful value
+ * @see {@link fail} for completing an entry with a typed failure
+ * @see {@link failCause} for completing an entry with a failure `Cause`
  *
  * @category completion
  * @since 2.0.0
@@ -445,6 +467,16 @@ export const completeEffect: {
 /**
  * Completes a request entry with a typed failure.
  *
+ * **When to use**
+ *
+ * Use to report a request-specific typed error while implementing a
+ * `RequestResolver`.
+ *
+ * @see {@link failCause} for completing an entry with a full `Cause`
+ * @see {@link complete} for completing an entry with an existing `Exit`
+ * @see {@link completeEffect} for completing an entry from an effect result
+ * @see {@link succeed} for completing an entry successfully
+ *
  * @category completion
  * @since 2.0.0
  */
@@ -459,10 +491,15 @@ export const fail: {
 /**
  * Completes a request entry with a failure `Cause`.
  *
- * **Details**
+ * **When to use**
  *
- * Use this when the request should fail with structured cause information
- * rather than only the request's typed error value.
+ * Use when a `RequestResolver` needs to complete an entry with structured cause
+ * information rather than only the request's typed error value.
+ *
+ * @see {@link fail} for completing an entry with a typed error value
+ * @see {@link complete} for completing an entry with an existing `Exit`
+ * @see {@link completeEffect} for completing an entry from an effect result
+ * @see {@link succeed} for completing an entry successfully
  *
  * @category completion
  * @since 2.0.0
@@ -478,6 +515,16 @@ export const failCause: {
 
 /**
  * Completes a request entry successfully with the supplied value.
+ *
+ * **When to use**
+ *
+ * Use to finish a `Request.Entry` when you have a successful value for the
+ * request.
+ *
+ * @see {@link complete} for completing an entry with a prebuilt `Exit`
+ * @see {@link completeEffect} for completing an entry from an effect result
+ * @see {@link fail} for completing an entry with a typed failure
+ * @see {@link failCause} for completing an entry with a failure `Cause`
  *
  * @category completion
  * @since 2.0.0

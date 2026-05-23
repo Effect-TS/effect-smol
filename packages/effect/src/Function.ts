@@ -186,6 +186,15 @@ export const dual: {
 /**
  * Apply a function to a given value.
  *
+ * **When to use**
+ *
+ * Use to pass a fixed value into a unary function, especially when the function
+ * is the value flowing through `pipe`.
+ *
+ * **Details**
+ *
+ * `apply(a)(f)` is equivalent to `f(a)`.
+ *
  * **Example** (Applying an argument to a function)
  *
  * ```ts
@@ -194,6 +203,8 @@ export const dual: {
  *
  * assert.deepStrictEqual(pipe(String.length, Function.apply("hello")), 5)
  * ```
+ *
+ * @see {@link pipe} for building left-to-right pipelines
  *
  * @category combinators
  * @since 2.0.0
@@ -278,10 +289,17 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
 /**
  * Returns the input value with a different static type.
  *
+ * **When to use**
+ *
+ * Use when you need an explicit type-level cast and accept that the value is
+ * returned unchanged at runtime.
+ *
  * **Gotchas**
  *
  * This is a type-level cast only; it performs no runtime validation or
  * conversion.
+ *
+ * @see {@link satisfies} for checking assignability without changing the resulting type
  *
  * @category type utils
  * @since 4.0.0
@@ -1315,6 +1333,23 @@ export const SK = <A, B>(_: A, b: B): B => b
 /**
  * Memoizes a function whose input is an object, caching results by object
  * identity.
+ *
+ * **When to use**
+ *
+ * Use to reuse the result of a synchronous computation whose output is stable
+ * for a given object reference.
+ *
+ * **Details**
+ *
+ * Each memoized wrapper owns a private `WeakMap` keyed by object identity.
+ * Cached `undefined` results are still returned because the cache is checked
+ * with `WeakMap.has`.
+ *
+ * **Gotchas**
+ *
+ * Structurally equal objects do not share cache entries. If the same object is
+ * mutated after its first call, later calls still return the cached result for
+ * that reference.
  *
  * @category utils
  * @since 4.0.0

@@ -110,6 +110,11 @@ export interface Clock {
 /**
  * A reference to the current Clock service in the environment.
  *
+ * **When to use**
+ *
+ * Use when you need to access or provide the full Clock service rather than a
+ * single timestamp accessor.
+ *
  * **Example** (Accessing the Clock service)
  *
  * ```ts
@@ -120,6 +125,10 @@ export interface Clock {
  *   return clock.currentTimeMillisUnsafe()
  * })
  * ```
+ *
+ * @see {@link clockWith} for using the current Clock service inside an effect
+ * @see {@link currentTimeMillis} for reading the current time in milliseconds
+ * @see {@link currentTimeNanos} for reading the current time in nanoseconds
  *
  * @category references
  * @since 2.0.0
@@ -159,6 +168,11 @@ export const clockWith: <A, E, R>(f: (clock: Clock) => Effect<A, E, R>) => Effec
 /**
  * Returns an Effect that succeeds with the current time in milliseconds.
  *
+ * **When to use**
+ *
+ * Use to read wall-clock time from the active Clock service with millisecond
+ * precision.
+ *
  * **Example** (Reading milliseconds)
  *
  * ```ts
@@ -170,6 +184,9 @@ export const clockWith: <A, E, R>(f: (clock: Clock) => Effect<A, E, R>) => Effec
  *   return currentTime
  * })
  * ```
+ *
+ * @see {@link currentTimeNanos} for nanosecond precision
+ * @see {@link clockWith} for accessing the full Clock service
  *
  * @category constructors
  * @since 2.0.0

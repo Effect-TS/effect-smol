@@ -290,8 +290,21 @@ export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, Ht
   Layer.effect(OpenRouterClient, make(options))
 
 /**
- * Creates a layer for the OpenRouter client, loading the requisite
- * configuration via Effect's `Config` module.
+ * Creates a layer for the OpenRouter client from provided `Config` values.
+ *
+ * **When to use**
+ *
+ * Use when OpenRouter client settings should be read from Effect `Config`
+ * values while providing `OpenRouterClient` as a layer.
+ *
+ * **Details**
+ *
+ * Only config values supplied in `options` are loaded. Omitted fields are
+ * passed to `make` as `undefined`, and `transformClient` is forwarded as a
+ * plain option.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layer} for providing the client from already-resolved options
  *
  * @category layers
  * @since 4.0.0

@@ -605,6 +605,15 @@ const getImpl = <Key, A, E, R>(
  * Retrieves the value associated with the specified key from the cache, only if
  * it contains a resolved successful value.
  *
+ * **Details**
+ *
+ * This checks only an existing non-expired entry. It returns `Option.some` when
+ * the entry has already resolved successfully, and `Option.none` for missing,
+ * expired, failed, or still-pending entries.
+ *
+ * @see {@link get} for triggering or awaiting the cache lookup
+ * @see {@link getOption} for reading an existing entry as an optional effect
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -748,6 +757,11 @@ export const set: {
 
 /**
  * Checks if the cache contains an entry for the specified key.
+ *
+ * **Details**
+ *
+ * This checks for an existing non-expired entry without invoking the cache
+ * lookup function. Expired entries are treated as absent.
  *
  * **Example** (Checking for cached keys)
  *
@@ -1276,6 +1290,13 @@ export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<I
  * Retrieves all key-value pairs from the cache as an iterable. This function
  * only returns entries with successfully resolved values, filtering out any
  * failed lookups or expired entries.
+ *
+ * **Gotchas**
+ *
+ * Expired entries are removed from the cache while `entries` filters them out.
+ *
+ * @see {@link keys} for retrieving only cached keys
+ * @see {@link values} for retrieving only cached values
  *
  * @category combinators
  * @since 4.0.0

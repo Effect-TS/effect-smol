@@ -1657,10 +1657,18 @@ export const fromURLSearchParams = new Transformation<unknown, URLSearchParams>(
  * Decodes a numeric time-zone offset in milliseconds into a
  * `DateTime.TimeZone.Offset` and encodes it back to the offset number.
  *
+ * **When to use**
+ *
+ * Use to represent fixed-offset time zones with numeric millisecond offsets in
+ * schema transformations or JSON codecs.
+ *
  * **Details**
  *
  * Decode uses `DateTime.zoneMakeOffset`; encode returns the offset's `offset`
  * field.
+ *
+ * @see {@link timeZoneFromString} for IANA or offset string encodings
+ * @see {@link timeZoneNamedFromString} for IANA named-zone strings
  *
  * @category transforming
  * @since 4.0.0
@@ -1677,10 +1685,17 @@ export const timeZoneOffsetFromNumber: Transformation<DateTime.TimeZone.Offset, 
  * Decodes an IANA time-zone identifier string into a
  * `DateTime.TimeZone.Named` and encodes a named time zone back to its `id`.
  *
+ * **When to use**
+ *
+ * Use when a schema transformation should accept only IANA time-zone identifier
+ * strings and produce `DateTime.TimeZone.Named` values.
+ *
  * **Details**
  *
  * Decode fails with `InvalidValue` when the string is not a valid IANA time-zone
  * identifier.
+ *
+ * @see {@link timeZoneFromString} for time-zone strings that may be either IANA identifiers or offset strings
  *
  * @category transforming
  * @since 4.0.0
@@ -1702,11 +1717,19 @@ export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, st
  * Decodes a string into a `DateTime.TimeZone` and encodes a time zone back to
  * its string representation.
  *
+ * **When to use**
+ *
+ * Use when schema decoding should accept either an IANA time-zone identifier or
+ * an offset string and produce a general `DateTime.TimeZone`.
+ *
  * **Details**
  *
  * Accepted decode inputs include valid IANA identifiers and offset strings such
  * as `"+03:00"`. Decode fails with `InvalidValue` when the string cannot be
  * parsed as a time zone.
+ *
+ * @see {@link timeZoneNamedFromString} for IANA named-zone strings only
+ * @see {@link timeZoneOffsetFromNumber} for fixed-offset zones encoded as numbers
  *
  * @category transforming
  * @since 4.0.0
@@ -1728,11 +1751,19 @@ export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = tra
  * Decodes a date-time string into a `DateTime.Utc` and encodes it back to an ISO
  * string.
  *
+ * **When to use**
+ *
+ * Use to decode date-time strings when the schema value should be a normalized
+ * `DateTime.Utc` and encode back as a UTC ISO string.
+ *
  * **Details**
  *
  * Decode accepts strings supported by `DateTime.make`, converts the result to
  * UTC, and fails with `InvalidValue` when parsing fails. Encode uses
  * `DateTime.formatIso`.
+ *
+ * @see {@link dateTimeZonedFromString} for ISO strings that should preserve zoned date-time information
+ * @see {@link dateFromString} for decoding into JavaScript `Date`
  *
  * @category transforming
  * @since 4.0.0
@@ -1755,11 +1786,18 @@ export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = trans
  * Decodes a zoned date-time string into a `DateTime.Zoned` and encodes it back
  * to an ISO zoned string.
  *
+ * **When to use**
+ *
+ * Use to define a schema transformation for ISO zoned date-time strings that
+ * decode to `DateTime.Zoned` and encode with `DateTime.formatIsoZoned`.
+ *
  * **Details**
  *
  * Decode uses `DateTime.makeZonedFromString` and fails with `InvalidValue` when
  * the input is not a valid zoned date-time. Encode uses
  * `DateTime.formatIsoZoned`.
+ *
+ * @see {@link dateTimeUtcFromString} for date-time strings that should decode to `DateTime.Utc` and encode as UTC ISO strings
  *
  * @category transforming
  * @since 4.0.0

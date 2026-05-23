@@ -81,6 +81,17 @@ export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u
 /**
  * Encodes the given value into a base64 (RFC4648) `string`.
  *
+ * **When to use**
+ *
+ * Use to encode text or bytes as a standard padded Base64 string for storage or
+ * transport.
+ *
+ * **Details**
+ *
+ * String inputs are encoded as UTF-8 bytes before Base64 encoding.
+ * `Uint8Array` inputs are encoded directly. The output uses the standard
+ * RFC4648 alphabet with `=` padding.
+ *
  * **Example** (Encoding Base64 strings and bytes)
  *
  * ```ts
@@ -93,6 +104,10 @@ export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u
  * const bytes = new Uint8Array([72, 101, 108, 108, 111])
  * console.log(Encoding.encodeBase64(bytes)) // "SGVsbG8="
  * ```
+ *
+ * @see {@link decodeBase64} for decoding standard Base64 to bytes
+ * @see {@link decodeBase64String} for decoding standard Base64 to UTF-8 text
+ * @see {@link encodeBase64Url} for URL-safe unpadded Base64 output
  *
  * @category encoding
  * @since 2.0.0
@@ -206,6 +221,17 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
 /**
  * Encodes the given value into a base64 (URL) `string`.
  *
+ * **When to use**
+ *
+ * Use to encode text or bytes as an unpadded Base64Url string for contexts that
+ * require the URL-safe alphabet.
+ *
+ * **Details**
+ *
+ * String inputs are encoded as UTF-8 bytes before Base64Url encoding.
+ * `Uint8Array` inputs are encoded directly. The output removes `=` padding and
+ * replaces `+` with `-` and `/` with `_`.
+ *
  * **Example** (Encoding URL-safe Base64)
  *
  * ```ts
@@ -217,6 +243,10 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
  * const bytes = new Uint8Array([72, 101, 108, 108, 111, 63])
  * console.log(Encoding.encodeBase64Url(bytes)) // "SGVsbG8_"
  * ```
+ *
+ * @see {@link decodeBase64Url} for decoding URL-safe Base64 to bytes
+ * @see {@link decodeBase64UrlString} for decoding URL-safe Base64 to UTF-8 text
+ * @see {@link encodeBase64} for standard padded Base64 output
  *
  * @category encoding
  * @since 2.0.0

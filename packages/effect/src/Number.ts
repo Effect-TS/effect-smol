@@ -623,6 +623,21 @@ export const ReducerSum: Reducer.Reducer<number> = Reducer.make((a, b) => a + b,
 /**
  * A `Reducer` for combining `number`s using multiplication.
  *
+ * **When to use**
+ *
+ * Use to multiply many numbers through APIs that consume a `Reducer`.
+ *
+ * **Details**
+ *
+ * The reducer starts from `1`, so reducing an empty collection returns `1`.
+ *
+ * **Gotchas**
+ *
+ * Reducing an iterable short-circuits when it sees `0`, so later elements are
+ * not consumed.
+ *
+ * @see {@link multiplyAll} for multiplying an iterable directly
+ *
  * @category math
  * @since 4.0.0
  */
@@ -638,6 +653,22 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 /**
  * A `Reducer` for reducing `number`s by keeping the maximum value.
  *
+ * **When to use**
+ *
+ * Use to keep the largest number through APIs that consume a `Reducer`.
+ *
+ * **Details**
+ *
+ * The reducer starts from `-Infinity`, so reducing an empty collection returns
+ * `-Infinity`.
+ *
+ * **Gotchas**
+ *
+ * `NaN` values propagate through `Math.max`.
+ *
+ * @see {@link ReducerMin} for keeping the smallest number
+ * @see {@link max} for comparing two numbers directly
+ *
  * @category math
  * @since 4.0.0
  */
@@ -645,6 +676,22 @@ export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.m
 
 /**
  * A `Reducer` for reducing `number`s by keeping the minimum value.
+ *
+ * **When to use**
+ *
+ * Use to keep the smallest number through APIs that consume a `Reducer`.
+ *
+ * **Details**
+ *
+ * The reducer starts from `Infinity`, so reducing an empty collection returns
+ * `Infinity`.
+ *
+ * **Gotchas**
+ *
+ * `NaN` values propagate through `Math.min`.
+ *
+ * @see {@link ReducerMax} for keeping the largest number
+ * @see {@link min} for comparing two numbers directly
  *
  * @category math
  * @since 4.0.0

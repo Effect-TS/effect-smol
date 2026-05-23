@@ -22,10 +22,18 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
+import * as LanguageModel from "./LanguageModel.ts"
+import * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
 import * as Tool from "./Tool.ts"
 
 /**
  * Transforms a `Schema.Codec` into a form compatible with Anthropic's structured output constraints.
+ *
+ * **When to use**
+ *
+ * Use to adapt an `Effect` `Schema.Codec` for Anthropic structured output by
+ * returning an Anthropic-compatible JSON Schema together with a codec that
+ * preserves the decoded value type.
  *
  * **Details**
  *
@@ -45,6 +53,9 @@ import * as Tool from "./Tool.ts"
  *
  * If the schema is already compatible, the original codec is returned
  * unchanged.
+ *
+ * @see {@link LanguageModel.CodecTransformer} for the structured-output transformer contract
+ * @see {@link OpenAiStructuredOutput.toCodecOpenAI} for the OpenAI-specific transformer
  *
  * @category Codec Transformation
  * @since 4.0.0

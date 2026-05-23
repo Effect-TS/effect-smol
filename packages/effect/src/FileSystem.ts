@@ -765,11 +765,20 @@ export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Servi
 /**
  * Creates a FileSystem implementation from a partial implementation.
  *
+ * **When to use**
+ *
+ * Use to build a concrete `FileSystem` service from platform-specific core
+ * operations while deriving the convenience methods that can be implemented
+ * from them.
+ *
  * **Details**
  *
  * This function takes a partial FileSystem implementation and automatically provides
  * default implementations for `exists`, `readFileString`, `stream`, `sink`, and
  * `writeFileString` methods based on the provided core methods.
+ *
+ * @see {@link makeNoop} for a testing stub that accepts method overrides without requiring a complete implementation
+ * @see {@link layerNoop} for providing a no-op `FileSystem` as a `Layer` in tests
  *
  * @category constructors
  * @since 4.0.0
@@ -1044,18 +1053,35 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * Runtime type identifier attached to `FileSystem.File` handles and used by
  * `isFile` to recognize them.
  *
+ * **When to use**
+ *
+ * Use when implementing a custom `FileSystem` file handle that should be
+ * recognized by `isFile`.
+ *
+ * @see {@link File} for the open file handle shape that carries this marker
+ * @see {@link isFile} for the public guard that checks this marker
+ *
  * @category File
  * @since 4.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"
 
 /**
- * Type guard to check if a value is a File instance.
+ * Returns `true` if a value is a `File` handle by checking for the
+ * `FileTypeId` marker.
+ *
+ * **When to use**
+ *
+ * Use when accepting an unknown value and you need to narrow it to a `File`
+ * before calling file-handle operations.
  *
  * **Details**
  *
- * This function determines whether the provided value is a valid File
- * instance by checking for the presence of the File type identifier.
+ * This is a structural marker check. It does not validate the marker value or
+ * the shape of the file handle.
+ *
+ * @see {@link File} for the file-handle interface narrowed by this guard
+ * @see {@link FileTypeId} for the runtime marker checked by this guard
  *
  * @category File
  * @since 4.0.0
@@ -1224,12 +1250,25 @@ export declare namespace File {
 }
 
 /**
- * Creates a branded file descriptor.
+ * Creates a `File.Descriptor` from a number.
+ *
+ * **When to use**
+ *
+ * Use to brand an operating-system file descriptor number when implementing a
+ * `FileSystem` that returns custom `File` handles.
  *
  * **Details**
  *
- * File descriptors are integer handles that the operating system uses to identify
- * open files. This branded type ensures type safety when working with file descriptors.
+ * `File.Descriptor` is a branded integer handle used by operating systems to
+ * identify open files.
+ *
+ * **Gotchas**
+ *
+ * This constructor is nominal and does not check that the number is an integer
+ * or that it refers to an open file descriptor.
+ *
+ * @see {@link File.Descriptor} for the branded descriptor type produced by this constructor
+ * @see {@link File} for file handles that expose a descriptor through `fd`
  *
  * @category constructors
  * @since 4.0.0
@@ -1237,12 +1276,20 @@ export declare namespace File {
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
 
 /**
- * Specifies the reference point for seeking within a file.
+ * Specifies the reference point for seeking within an open file.
+ *
+ * **When to use**
+ *
+ * Use with `File` handles when positioning the cursor before a read or write
+ * and the offset must be interpreted from either the start of the file or the
+ * current cursor.
  *
  * **Details**
  *
- * - `"start"` - Seek from the beginning of the file
- * - `"current"` - Seek from the current position
+ * - `"start"` seeks from the beginning of the file.
+ * - `"current"` seeks from the current cursor position.
+ *
+ * @see {@link File} for the open file handle API whose `seek` method consumes this mode
  *
  * @category models
  * @since 4.0.0
@@ -1250,7 +1297,19 @@ export const FileDescriptor = Brand.nominal<File.Descriptor>()
 export type SeekMode = "start" | "current"
 
 /**
- * Represents file system events that can be observed when watching files or directories.
+ * Represents file system events emitted when watching files or directories.
+ *
+ * **When to use**
+ *
+ * Use when consuming file system watch streams and pattern matching on `_tag`
+ * to handle created, updated, or removed paths.
+ *
+ * **Details**
+ *
+ * The union covers create, update, and remove events. Each event carries the
+ * reported `path`.
+ *
+ * @see {@link FileSystem} for the service interface whose `watch` operation emits these events
  *
  * @category models
  * @since 4.0.0

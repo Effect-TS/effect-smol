@@ -289,6 +289,20 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
  * Creates a layer that loads OpenAI-compatible client settings from `Config`
  * values before constructing the service.
  *
+ * **When to use**
+ *
+ * Use when OpenAI-compatible client settings should be read from Effect
+ * `Config` values while providing `OpenAiClient` as a layer.
+ *
+ * **Details**
+ *
+ * Only config values supplied in `options` are loaded. Omitted fields are
+ * passed to `make` as `undefined`, and `transformClient` is forwarded as a
+ * plain option.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layer} for providing the client from already-resolved options
+ *
  * @category layers
  * @since 4.0.0
  */

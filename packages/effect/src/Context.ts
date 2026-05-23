@@ -514,6 +514,21 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
 /**
  * Checks if the provided argument is a `Context`.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before passing it to APIs that require a
+ * `Context`.
+ *
+ * **Details**
+ *
+ * This checks the runtime `Context` marker and does not inspect which services
+ * the context contains.
+ *
+ * **Gotchas**
+ *
+ * This guard only proves that the value is a `Context`; it does not prove that
+ * any specific service is present.
+ *
  * **Example** (Checking for contexts)
  *
  * ```ts
@@ -522,6 +537,9 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
  *
  * assert.strictEqual(Context.isContext(Context.empty()), true)
  * ```
+ *
+ * @see {@link isKey} for checking service keys
+ * @see {@link isReference} for checking references with defaults
  *
  * @category guards
  * @since 2.0.0
@@ -900,6 +918,21 @@ export const get: {
  * Gets the value for a `Context.Reference`, returning its cached default when
  * the context does not contain an override.
  *
+ * **When to use**
+ *
+ * Use to resolve a `Context.Reference` against a context when you want either
+ * the stored override or the reference's default value.
+ *
+ * **Details**
+ *
+ * Stored overrides take precedence. If no override is present, the reference's
+ * default value is computed lazily and cached on the reference itself.
+ *
+ * **Gotchas**
+ *
+ * Mutable default values can be shared across contexts unless an override is
+ * provided, because the default is cached on the `Context.Reference`.
+ *
  * **Example** (Getting reference defaults unsafely)
  *
  * ```ts
@@ -914,6 +947,10 @@ export const get: {
  *
  * console.log(typeof logger.log) // "function"
  * ```
+ *
+ * @see {@link getUnsafe} for unsafe access with any service key
+ * @see {@link get} for type-checked reference-aware access
+ * @see {@link getOption} for optional access to non-reference keys
  *
  * @category unsafe
  * @since 4.0.0

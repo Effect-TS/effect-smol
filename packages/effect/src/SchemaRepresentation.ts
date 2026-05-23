@@ -818,6 +818,14 @@ export type PrimitiveTree = Schema.Tree<null | number | boolean | bigint | symbo
 /**
  * Schema codec for {@link PrimitiveTree}.
  *
+ * **When to use**
+ *
+ * Use to validate recursive annotation metadata trees whose leaves are `null`,
+ * `number`, `boolean`, `bigint`, `symbol`, or `string`.
+ *
+ * @see {@link PrimitiveTree} for the recursive tree type accepted by this codec
+ * @see {@link $Annotations} for the annotation codec that filters values through this codec
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -1592,8 +1600,20 @@ export const $Representation: $Representation = Schema.Union([
 ]).annotate({ identifier: "Schema" })
 
 /**
- * Schema codec for {@link Document}. Use with `Schema.decodeUnknownSync` or
- * `Schema.encodeSync` to validate or serialize document data.
+ * Schema codec for {@link Document}.
+ *
+ * **When to use**
+ *
+ * Use to validate or serialize a single schema representation document with
+ * `Schema.decodeUnknownSync` or `Schema.encodeSync`.
+ *
+ * **Gotchas**
+ *
+ * This codec validates document structure but does not resolve `$ref` keys
+ * against `references`.
+ *
+ * @see {@link DocumentFromJson} for the JSON-string codec wrapper
+ * @see {@link $MultiDocument} for validating documents with multiple root representations
  *
  * @category schemas
  * @since 4.0.0

@@ -308,6 +308,8 @@ export type errorExitCode = "~effect/Runtime/errorExitCode"
  * ```
  *
  * @see {@link errorReported} for controlling automatic error logging
+ * @see {@link defaultTeardown} for the default failure exit-code rules that read this marker
+ * @see {@link getErrorExitCode} for reading the marker from unknown error values
  *
  * @category symbols
  * @since 4.0.0
@@ -369,6 +371,9 @@ export type errorReported = "~effect/Runtime/errorReported"
  *
  * This marker controls only automatic error logging. It does not change the
  * failure Cause or the process exit code.
+ * `makeRunMain` reads the marker from `Cause.squash(cause)`, so for causes
+ * with multiple failures, the squashed error determines whether default logging
+ * is suppressed.
  *
  * **Example** (Suppressing error reporting)
  *

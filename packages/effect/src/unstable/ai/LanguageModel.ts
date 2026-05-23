@@ -234,6 +234,20 @@ export type CodecTransformer = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>
  * The default codec transformer that passes schemas through without
  * provider-specific rewrites.
  *
+ * **When to use**
+ *
+ * Use as the codec transformer for provider implementations when the provider
+ * accepts the JSON Schema generated from an `Effect` Schema codec without
+ * provider-specific rewrites.
+ *
+ * **Details**
+ *
+ * The transformer returns the original codec, resolves a top-level `$ref`, and
+ * copies schema definitions into `$defs`.
+ *
+ * @see {@link CodecTransformer} for the structured-output transformer contract
+ * @see {@link make} for where this transformer is used as the default
+ *
  * @category services
  * @since 4.0.0
  */

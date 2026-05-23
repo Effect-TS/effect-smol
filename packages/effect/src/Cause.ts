@@ -1585,7 +1585,8 @@ export interface ExceededCapacityError extends YieldableError {
 export const ExceededCapacityError: new(message?: string) => ExceededCapacityError = effect.ExceededCapacityError
 
 /**
- * Unique brand for `AsyncFiberError`.
+ * Unique brand present on `AsyncFiberError` values and used by
+ * `isAsyncFiberError` for runtime checks.
  *
  * @category symbols
  * @since 4.0.0

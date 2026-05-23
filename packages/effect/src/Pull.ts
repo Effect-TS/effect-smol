@@ -102,10 +102,19 @@ export type ExcludeDone<E> = Exclude<E, Cause.Done<any>>
  * Handles `Cause.Done` failures in an effect while leaving ordinary failures
  * in the error channel.
  *
+ * **When to use**
+ *
+ * Use to recover from a `Cause.Done` completion signal in an effect, such as
+ * turning a pull leftover value into a successful recovery effect while
+ * preserving ordinary failures.
+ *
  * **Details**
  *
  * The handler receives the done leftover value and may recover with a new
  * effect. Non-done errors are preserved.
+ *
+ * @see {@link matchEffect} for handling success, ordinary failure, and done outcomes explicitly
+ * @see {@link filterDoneLeftover} for extracting a done leftover from an existing `Cause`
  *
  * @category Done
  * @since 4.0.0
@@ -164,10 +173,19 @@ export const filterDone: <E>(
 /**
  * Finds a `Cause.Done` failure in a cause whose done value is not used.
  *
+ * **When to use**
+ *
+ * Use to detect `Cause.Done` completion in a `Cause` when the completion value
+ * is not part of the downstream logic.
+ *
  * **Details**
  *
  * Returns a successful `Result` with the done marker when present, otherwise
  * returns a failed `Result` with the non-done cause.
+ *
+ * @see {@link filterDone} for preserving the typed `Cause.Done` value when the done payload matters
+ * @see {@link filterDoneLeftover} for extracting only the done leftover value
+ * @see {@link filterNoDone} for the inverse filter that succeeds only when no done failure is present
  *
  * @category Done
  * @since 4.0.0
@@ -216,10 +234,19 @@ export const filterDoneLeftover: <E>(
  * Converts a `Cause` into an `Exit`, treating `Cause.Done` as successful
  * completion.
  *
+ * **When to use**
+ *
+ * Use to produce an `Exit` for finalizing a low-level pull workflow when a
+ * `Cause.Done` signal should be treated as success and any remaining cause
+ * should fail.
+ *
  * **Details**
  *
  * If the cause contains a done value, that leftover becomes the successful
  * value. Otherwise the non-done cause becomes the failure cause.
+ *
+ * @see {@link filterDone} for extracting the done signal without converting the cause to an `Exit`
+ * @see {@link matchEffect} for handling `Pull` success, failure, and done outcomes directly
  *
  * @category Done
  * @since 4.0.0

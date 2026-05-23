@@ -102,6 +102,15 @@ export class Chat extends Context.Service<Chat, Service>()(
 /**
  * Represents the interface that the `Chat` service provides.
  *
+ * **When to use**
+ *
+ * Use as the service contract for code that receives or constructs a stateful
+ * chat session and needs history, export, text generation, streaming, and
+ * structured-output operations.
+ *
+ * @see {@link Chat} for the context tag that provides this service
+ * @see {@link Persisted} for the persistence-backed extension
+ *
  * @category models
  * @since 4.0.0
  */
@@ -916,10 +925,17 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
 /**
  * Creates a `Layer` for a new chat persistence service.
  *
+ * **When to use**
+ *
+ * Use to provide `Chat.Persistence` from a configured `BackingPersistence` when
+ * your application needs persisted chat sessions backed by a named store.
+ *
  * **Details**
  *
  * The provided store identifier will be used to indicate which "store" the
  * backing persistence should load chats from.
+ *
+ * @see {@link makePersisted} for the effect constructor when building the service directly instead of providing it as a layer
  *
  * @category constructors
  * @since 4.0.0

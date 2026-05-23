@@ -143,13 +143,20 @@
  */
 
 /**
- * A unique symbol used to brand the `NonEmptyIterable` type.
+ * Type-level symbol used to brand the `NonEmptyIterable` type.
+ *
+ * **When to use**
+ *
+ * Use as the property key for the type-level brand that marks an `Iterable` as
+ * non-empty.
  *
  * **Details**
  *
- * This symbol ensures that `NonEmptyIterable<A>` is a distinct type from regular
- * `Iterable<A>`, providing compile-time guarantees about non-emptiness while
- * maintaining full compatibility with the JavaScript iteration protocol.
+ * `NonEmptyIterable<A>` includes `readonly [nonEmpty]: A`, which makes it
+ * distinct from a plain `Iterable<A>` at compile time while preserving the
+ * normal iteration shape.
+ *
+ * @see {@link NonEmptyIterable} for the branded iterable type that uses this symbol
  *
  * @category symbol
  * @since 2.0.0

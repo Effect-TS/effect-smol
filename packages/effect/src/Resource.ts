@@ -62,6 +62,15 @@ export interface Resource<in out A, in out E = never> extends Pipeable {
 /**
  * Returns `true` if the specified value is a `Resource`.
  *
+ * **When to use**
+ *
+ * Use to validate unknown values at runtime boundaries before treating them as
+ * `Resource` values.
+ *
+ * **Details**
+ *
+ * This predicate narrows the input to `Resource<unknown, unknown>`.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -120,6 +129,14 @@ export const manual = <A, E, R>(
  * Creates a `Resource` that refreshes automatically according to the supplied
  * schedule.
  *
+ * **When to use**
+ *
+ * Use when a resource should refresh in the background according to a schedule
+ * for the lifetime of its scope.
+ *
+ * @see {@link manual} for caller-controlled refresh timing
+ * @see {@link refresh} to trigger a refresh explicitly
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -135,6 +152,17 @@ export const auto = <A, E, R, Out, E2, R2>(
 /**
  * Retrieves the current value stored in this resource.
  *
+ * **When to use**
+ *
+ * Use to read the value currently cached by a `Resource`.
+ *
+ * **Gotchas**
+ *
+ * If the resource currently stores a failed acquisition result, the returned
+ * effect fails with the stored error.
+ *
+ * @see {@link refresh} to re-run acquisition and update the stored value before a later read
+ *
  * @category getters
  * @since 2.0.0
  */
@@ -144,11 +172,25 @@ export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
 /**
  * Re-runs this resource's acquisition effect and updates the current value.
  *
+ * **When to use**
+ *
+ * Use to force an existing `Resource` to reacquire its value at a
+ * caller-controlled point.
+ *
  * **Details**
  *
- * Refreshing replaces the value stored in the resource's scoped reference and
- * releases resources associated with the previous value. If acquisition fails,
- * the returned effect fails with the acquisition error.
+ * When acquisition succeeds, refreshing replaces the value stored in the
+ * resource's scoped reference and releases resources associated with the
+ * previous value.
+ *
+ * **Gotchas**
+ *
+ * If acquisition fails, the returned effect fails and the previously stored
+ * result is left as what `get` reads.
+ *
+ * @see {@link get} for reading the current stored value
+ * @see {@link manual} for resources refreshed only by caller action
+ * @see {@link auto} for schedule-driven automatic refreshes
  *
  * @category utils
  * @since 2.0.0

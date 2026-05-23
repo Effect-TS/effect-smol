@@ -12,7 +12,18 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global Boolean constructor.
+ * Reference to the global `Boolean` constructor for JavaScript truthiness
+ * coercion.
+ *
+ * **When to use**
+ *
+ * Use when you want native `Boolean` constructor coercion from the Effect module
+ * namespace.
+ *
+ * **Gotchas**
+ *
+ * This follows native truthiness rules. For example, non-empty strings such as
+ * `"false"` coerce to `true`.
  *
  * **Example** (Coercing values to booleans)
  *
@@ -143,7 +154,11 @@ export const Equivalence: Equ.Equivalence<boolean> = Equ.Boolean
 export const not = (self: boolean): boolean => !self
 
 /**
- * Combines two boolean using AND: `self && that`.
+ * Combines two booleans using logical AND: `self && that`.
+ *
+ * **Details**
+ *
+ * Supports both data-first and data-last forms.
  *
  * **Example** (Combining booleans with AND)
  *

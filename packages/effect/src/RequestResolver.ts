@@ -173,6 +173,13 @@ const RequestResolverProto = {
 /**
  * Returns `true` if the specified value is a `RequestResolver`, `false` otherwise.
  *
+ * **When to use**
+ *
+ * Use to narrow unknown values before passing them to APIs that require a
+ * `RequestResolver`.
+ *
+ * @see {@link RequestResolver} for the type narrowed by this guard
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -181,6 +188,27 @@ export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasP
 /**
  * Low-level constructor for creating a request resolver with fine-grained
  * control over its behavior.
+ *
+ * **When to use**
+ *
+ * Use when you need to supply the resolver batching primitives directly,
+ * including the batch key, optional pre-check, delay effect, collection cutoff,
+ * and batch runner.
+ *
+ * **Details**
+ *
+ * `batchKey` groups request entries, `delay` schedules batch execution,
+ * `collectWhile` can end collection early, and `runAll` receives a non-empty
+ * batch for one key.
+ *
+ * **Gotchas**
+ *
+ * Accepted entries must be completed. If `runAll` succeeds with incomplete
+ * entries, waiting requests fail. If `preCheck` returns `false`, the entry is
+ * not batched, so it must be completed or linked to another completion path.
+ *
+ * @see {@link make} for constructing a resolver from a batch runner
+ * @see {@link makeGrouped} for constructing a resolver that groups requests by key
  *
  * @category constructors
  * @since 4.0.0
@@ -695,6 +723,18 @@ export const around: {
 /**
  * A request resolver that never executes requests.
  *
+ * **When to use**
+ *
+ * Use as a resolver value for request types that are statically impossible and
+ * should never be issued.
+ *
+ * **Gotchas**
+ *
+ * If this resolver is used for an actual request, the request waits forever
+ * unless the fiber is interrupted.
+ *
+ * @see {@link make} for constructing a resolver that executes batches and completes request entries
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -963,6 +1003,26 @@ export const withSpan: {
  * Wraps a request resolver in a cache, allowing it to cache results up to a
  * specified capacity and optional time-to-live.
  *
+ * **When to use**
+ *
+ * Use to turn a request resolver into a first-class `Cache` when callers need
+ * cache lookup, refresh, invalidation, or inspection around request results.
+ *
+ * **Details**
+ *
+ * The request value is the cache key. Cache misses run the resolver via
+ * `Effect.request`, `timeToLive` receives the request `Exit` and the request,
+ * and `requireServicesAt` controls whether services are required at lookup time
+ * or construction time.
+ *
+ * **Gotchas**
+ *
+ * Cache hits depend on the request value's equality semantics.
+ *
+ * @see {@link withCache} for keeping caching behind a resolver used with `Effect.request`
+ * @see {@link persisted} for storing persistable request results outside process memory
+ * @see {@link Cache.Cache} for operations available on the returned cache
+ *
  * @category Caching
  * @since 4.0.0
  */
@@ -1025,8 +1085,27 @@ export const asCache: {
   }) as any)
 
 /**
- * Adds caching capabilities to a request resolver, allowing it to cache
- * results up to a specified capacity.
+ * Adds a bounded in-memory cache to a request resolver.
+ *
+ * **When to use**
+ *
+ * Use to reuse completed results for repeated equal request values while still
+ * passing a `RequestResolver` to `Effect.request`.
+ *
+ * **Details**
+ *
+ * Running the returned effect creates the cache and returns a wrapped resolver.
+ * The cache stores completed success or failure results by request equality up
+ * to `capacity`. The `strategy` option controls eviction order and defaults to
+ * `"lru"`; `"fifo"` keeps insertion order.
+ *
+ * **Gotchas**
+ *
+ * Entries do not expire by time, and completed failures are cached the same as
+ * successes. Request equality controls cache hits.
+ *
+ * @see {@link asCache} for exposing the resolver as a `Cache` with time-to-live and service lookup controls
+ * @see {@link persisted} for backing persistable requests with the configured persistence store
  *
  * @category Caching
  * @since 4.0.0
@@ -1099,12 +1178,22 @@ export const withCache: {
 /**
  * Wraps a request resolver with persistent storage for persistable requests.
  *
+ * **When to use**
+ *
+ * Use to keep a `RequestResolver` interface while reusing completed
+ * `Persistable` request results through a `Persistence` store.
+ *
  * **Details**
  *
  * Cached results are loaded from the configured persistence store before
- * running the underlying resolver. Missing entries, and entries marked stale by
- * `staleWhileRevalidate`, are resolved normally and written back to the store.
- * Creating the persisted resolver requires `Persistence.Persistence` and `Scope`.
+ * running the underlying resolver. Missing entries are resolved normally and
+ * written back to the store. Entries marked stale by `staleWhileRevalidate`
+ * receive the stored result and are also resolved again so the refreshed result
+ * can be written back to the store. Creating the persisted resolver requires
+ * `Persistence.Persistence` and `Scope`.
+ *
+ * @see {@link withCache} for in-memory resolver caching that does not require persistable request values or a persistence store
+ * @see {@link asCache} for exposing resolver results through a `Cache` instead of returning another resolver
  *
  * @category Persistence
  * @since 4.0.0

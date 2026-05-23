@@ -69,6 +69,16 @@ export interface Constructor<in out B extends Brand<any>> {
  * A `BrandError` is returned when a branded type is constructed from an invalid
  * value.
  *
+ * **Details**
+ *
+ * The error wraps a `SchemaIssue.Issue`, exposes `message` through
+ * `issue.toString()`, and formats as `BrandError(<message>)`.
+ *
+ * **Gotchas**
+ *
+ * `BrandError` is an error-like model with `_tag`, `name`, `message`, and
+ * `toString`; it does not extend JavaScript `Error`.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -256,9 +266,18 @@ export function check<A extends Brand<any>>(
 }
 
 /**
- * Combines two or more brands together to form a single branded type. This API
- * is useful when you want to validate that the input data passes multiple brand
- * validators.
+ * Combines one or more brand constructors to form a single branded type.
+ *
+ * **When to use**
+ *
+ * Use to require an input to satisfy every runtime check collected by the
+ * provided brand constructors.
+ *
+ * **Details**
+ *
+ * If the provided constructors contain runtime checks, the combined
+ * constructor succeeds only when all checks pass. If no runtime checks are
+ * present, it behaves as a nominal constructor.
  *
  * @category combining
  * @since 2.0.0

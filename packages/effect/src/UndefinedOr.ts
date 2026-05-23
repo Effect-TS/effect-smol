@@ -35,6 +35,13 @@ import * as Reducer from "./Reducer.ts"
 /**
  * Maps a defined value with `f`, or returns `undefined` unchanged.
  *
+ * **When to use**
+ *
+ * Use to apply a pure transformation to an `A | undefined` value while
+ * preserving `undefined` as absence.
+ *
+ * @see {@link match} when you need to handle the `undefined` case explicitly
+ *
  * @category mapping
  * @since 4.0.0
  */
@@ -46,6 +53,14 @@ export const map: {
 /**
  * Pattern matches on an `A | undefined` value, running `onDefined` when the
  * value is present or evaluating `onUndefined` when the value is `undefined`.
+ *
+ * **When to use**
+ *
+ * Use when you need to turn an `A | undefined` into a non-optional result by
+ * handling both the defined and undefined branches in one expression.
+ *
+ * @see {@link map} for transforming defined values while preserving `undefined`
+ * @see {@link getOrThrowWith} for throwing when the value is `undefined` instead of returning a fallback branch
  *
  * @category pattern matching
  * @since 4.0.0
@@ -71,6 +86,19 @@ export const match: {
  * Returns the defined value, or throws the value produced by `onUndefined`
  * when the input is `undefined`.
  *
+ * **When to use**
+ *
+ * Use when fail-fast unwrapping of an `A | undefined` value is appropriate and
+ * callers need to provide the thrown error for the undefined case.
+ *
+ * **Details**
+ *
+ * Defined values are returned unchanged. When the input is `undefined`,
+ * `onUndefined` is called and its result is thrown.
+ *
+ * @see {@link getOrThrow} for the default-error sibling
+ * @see {@link match} for handling defined and undefined cases without throwing
+ *
  * @category getters
  * @since 4.0.0
  */
@@ -88,6 +116,19 @@ export const getOrThrowWith: {
  * Returns the defined value, or throws a default `Error` when the input is
  * `undefined`.
  *
+ * **When to use**
+ *
+ * Use when a value should already be defined at this point and throwing a
+ * generic missing-value `Error` is acceptable.
+ *
+ * **Details**
+ *
+ * Defined inputs are returned unchanged. `undefined` throws
+ * `new Error("getOrThrow called on a undefined")`.
+ *
+ * @see {@link getOrThrowWith} for the sibling that lets callers choose the thrown value
+ * @see {@link match} for handling defined and undefined cases without throwing
+ *
  * @category getters
  * @since 4.0.0
  */
@@ -98,6 +139,16 @@ export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
 /**
  * Converts a throwing function into one that returns successful results
  * unchanged and returns `undefined` when the function throws.
+ *
+ * **When to use**
+ *
+ * Use to adapt exception-throwing functions when `undefined` is the absence
+ * value you want to return for failures.
+ *
+ * **Gotchas**
+ *
+ * Thrown values are discarded. If the wrapped function can successfully return
+ * `undefined`, that success is indistinguishable from a thrown failure.
  *
  * @category converting
  * @since 4.0.0

@@ -148,6 +148,15 @@ export interface Strategy<A, E> {
 /**
  * Returns `true` if the specified value is a `Pool`, `false` otherwise.
  *
+ * **When to use**
+ *
+ * Use to validate unknown values at runtime boundaries before treating them as
+ * `Pool` values.
+ *
+ * **Details**
+ *
+ * This predicate narrows the input to `Pool<unknown, unknown>`.
+ *
  * @category refinements
  * @since 2.0.0
  */
@@ -261,11 +270,19 @@ export const makeWithTTL = <A, E, R>(options: {
 /**
  * Creates a scoped pool using a custom resizing and reclamation strategy.
  *
+ * **When to use**
+ *
+ * Use to build a pool whose item lifecycle is controlled by an explicit
+ * `Strategy`, such as custom background resizing, replacement, or reclamation.
+ *
  * **Details**
  *
  * The returned pool requires `Scope`; closing the scope shuts down the pool and
- * releases allocated items. Use this constructor when `make` and `makeWithTTL`
- * do not provide the desired item lifecycle behavior.
+ * releases allocated items.
+ *
+ * @see {@link make} for fixed-size pools without custom resizing or reclamation
+ * @see {@link makeWithTTL} for min/max pools that shrink excess items with a TTL policy
+ * @see {@link Strategy} for the custom strategy contract consumed by this constructor
  *
  * @category constructors
  * @since 4.0.0
@@ -349,9 +366,23 @@ const shutdown = Effect.fnUntraced(function*<A, E>(self: Pool<A, E>) {
 })
 
 /**
- * Retrieves an item from the pool in a scoped effect. Note that if
- * acquisition fails, then the returned effect will fail for that same reason.
- * Retrying a failed acquisition attempt will repeat the acquisition attempt.
+ * Retrieves an item from the pool in a scoped effect.
+ *
+ * **When to use**
+ *
+ * Use to borrow a pooled resource for the lifetime of the current scope so it
+ * is automatically returned when that scope closes.
+ *
+ * **Details**
+ *
+ * The returned effect waits for an available item when the pool is at capacity.
+ * If acquiring a new item fails, the effect fails with the acquisition error.
+ *
+ * **Gotchas**
+ *
+ * Retrying a failed `get` can repeat the acquisition attempt.
+ *
+ * @see {@link invalidate} for removing an unhealthy item from future reuse
  *
  * @category getters
  * @since 2.0.0
@@ -426,9 +457,21 @@ const getPoolItemInner = Effect.fnUntraced(function*<A, E>(
 })
 
 /**
- * Invalidates the specified item. This will cause the pool to eventually
- * reallocate the item, although this reallocation may occur lazily rather
- * than eagerly.
+ * Invalidates the specified item so the pool can remove it and reallocate the
+ * item, lazily if needed.
+ *
+ * **When to use**
+ *
+ * Use to prevent a pooled item from being reused after you determine it is no
+ * longer suitable, such as a stale connection or a resource that failed a
+ * health check.
+ *
+ * **Gotchas**
+ *
+ * The item is matched with strict equality. Passing an equivalent but different
+ * object instance does nothing.
+ *
+ * @see {@link get} for retrieving scoped items from the pool
  *
  * @category combinators
  * @since 2.0.0

@@ -132,6 +132,20 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
  * Mounts an atom in the current Solid registry for the lifetime of the current
  * Solid computation.
  *
+ * **When to use**
+ *
+ * Use to keep an atom mounted from a Solid owner without reading, writing, or
+ * refreshing it.
+ *
+ * **Details**
+ *
+ * The hook uses the current `RegistryContext`, mounts inside a Solid
+ * computation, and releases the mount through Solid cleanup when the
+ * computation changes or the owner is disposed.
+ *
+ * @see {@link useAtomSet} for mounting a writable atom while returning a setter
+ * @see {@link useAtomRefresh} for mounting an atom while returning a refresh callback
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -269,6 +283,21 @@ const constUnresolvedPromise = new Promise<never>(() => {})
 /**
  * Subscribes to an atom ref and returns its value as a Solid accessor.
  *
+ * **When to use**
+ *
+ * Use when a Solid component or computation should render from an
+ * `AtomRef.ReadonlyRef` directly instead of reading an atom through the current
+ * registry.
+ *
+ * **Details**
+ *
+ * The hook accepts a thunk for the ref, reads `ref().value`, subscribes with
+ * `ref.subscribe`, and releases the subscription through Solid cleanup when
+ * the selected ref changes or the owner is disposed.
+ *
+ * @see {@link useAtomValue} for reading an `Atom` from the current registry
+ * @see {@link useAtomRefPropValue} for reading a property ref value
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -284,6 +313,24 @@ export const useAtomRef = <A>(ref: () => AtomRef.ReadonlyRef<A>): Accessor<A> =>
 
 /**
  * Returns a Solid accessor for a property ref derived from an atom ref.
+ *
+ * **When to use**
+ *
+ * Use to derive an `AtomRef` for one property of an object-shaped atom ref in a
+ * Solid computation.
+ *
+ * **Details**
+ *
+ * The returned accessor memoizes `ref().prop(prop)`, updating when the source
+ * ref thunk produces a different ref.
+ *
+ * **Gotchas**
+ *
+ * The `prop` argument is captured as a plain value. Recreate the hook call when
+ * the property key should change.
+ *
+ * @see {@link useAtomRef} for subscribing to an atom ref value
+ * @see {@link useAtomRefPropValue} for subscribing directly to a property value
  *
  * @category hooks
  * @since 4.0.0

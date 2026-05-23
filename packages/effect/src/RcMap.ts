@@ -462,10 +462,22 @@ export const invalidate: {
  * Returns whether the `RcMap` currently contains an entry for the specified
  * key.
  *
+ * **When to use**
+ *
+ * Use to check whether a key is already present in an `RcMap` without running
+ * the lookup function or acquiring a missing resource.
+ *
  * **Details**
  *
- * This operation only checks the current map state; it does not run the lookup
- * function or acquire a missing resource. Closed maps return `false`.
+ * This operation only checks the current map state.
+ *
+ * **Gotchas**
+ *
+ * Closed maps return `false`, so `false` does not distinguish a missing key
+ * from a closed map.
+ *
+ * @see {@link get} for acquiring or retaining the resource for a key
+ * @see {@link keys} for enumerating all currently stored keys
  *
  * @category combinators
  * @since 3.17.7

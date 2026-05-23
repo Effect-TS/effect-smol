@@ -188,12 +188,19 @@ export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts i
 /**
  * Creates an effectful decoder for `unknown` input.
  *
+ * **When to use**
+ *
+ * Use when decoding untyped boundary input while preserving decoding failures,
+ * effectful transformations, and service requirements in an `Effect`.
+ *
  * **Details**
  *
  * The returned function succeeds with the schema's decoded `Type` or fails with a
  * `SchemaIssue.Issue`. Decoding service requirements are preserved in the returned
  * `Effect`. Parse options may be provided when creating the decoder and overridden
  * when applying it.
+ *
+ * @see {@link decodeEffect} for input already typed as the schema's `Encoded` type
  *
  * @category decoding
  * @since 4.0.0
@@ -212,11 +219,20 @@ export function decodeUnknownEffect<S extends Schema.Top>(
  * Creates an effectful decoder for input already typed as the schema's `Encoded`
  * type.
  *
+ * **When to use**
+ *
+ * Use when the input is already typed as the schema's `Encoded` type and
+ * decoding should stay in `Effect`, including parse failures and required
+ * decoding services.
+ *
  * **Details**
  *
  * The returned function succeeds with the decoded `Type` or fails with a
  * `SchemaIssue.Issue`, preserving any decoding service requirements in the
  * returned `Effect`.
+ *
+ * @see {@link decodeUnknownEffect} for untyped boundary input
+ * @see {@link encodeEffect} for the opposite direction
  *
  * @category decoding
  * @since 4.0.0
@@ -230,10 +246,18 @@ export const decodeEffect: <S extends Schema.Top>(
 /**
  * Creates a Promise-based decoder for `unknown` input.
  *
+ * **When to use**
+ *
+ * Use when decoding untyped input with a service-free schema at a JavaScript
+ * `Promise` boundary.
+ *
  * **Details**
  *
  * The returned function resolves with the decoded `Type` on success and rejects
  * with a `SchemaIssue.Issue` on decoding failure.
+ *
+ * @see {@link decodePromise} for input already typed as the schema's `Encoded` type
+ * @see {@link decodeUnknownEffect} for schemas that require decoding services or when failures should remain in `Effect`
  *
  * @category decoding
  * @since 3.10.0
@@ -249,10 +273,18 @@ export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
  * Creates a Promise-based decoder for input already typed as the schema's
  * `Encoded` type.
  *
+ * **When to use**
+ *
+ * Use when the input is already typed as the schema's `Encoded` type and you
+ * need a native `Promise` boundary.
+ *
  * **Details**
  *
  * The returned function resolves with the decoded `Type` on success and rejects
  * with a `SchemaIssue.Issue` on decoding failure.
+ *
+ * @see {@link decodeUnknownPromise} for untyped input at a `Promise` boundary
+ * @see {@link decodeEffect} for preserving decoding services and failures in `Effect`
  *
  * @category decoding
  * @since 3.10.0
@@ -267,10 +299,27 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
 /**
  * Creates a synchronous decoder for `unknown` input that returns an `Exit`.
  *
+ * **When to use**
+ *
+ * Use when decoding unknown input synchronously and preserving the parser
+ * outcome as an `Exit` value.
+ *
  * **Details**
  *
- * The returned function produces `Exit.Success` with the decoded `Type` or
- * `Exit.Failure` with a `SchemaIssue.Issue`.
+ * The returned function produces `Exit.Success` with the decoded `Type`.
+ * Schema issues are represented by an `Exit.Failure` cause containing a
+ * `SchemaIssue.Issue`.
+ *
+ * **Gotchas**
+ *
+ * Because this adapter runs synchronously, async decoding work can produce an
+ * `Exit.Failure` with a defect cause.
+ *
+ * @see {@link decodeExit} for input already typed as the schema's `Encoded` type
+ * @see {@link decodeUnknownEffect} for preserving decoding services and failures in `Effect`
+ * @see {@link decodeUnknownOption} for discarding issue details
+ * @see {@link decodeUnknownResult} for returning schema issues as data
+ * @see {@link decodeUnknownSync} for throwing on decoding failure
  *
  * @category decoding
  * @since 4.0.0
@@ -286,10 +335,18 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
  * Creates a synchronous decoder for input already typed as the schema's `Encoded`
  * type, returning an `Exit`.
  *
+ * **When to use**
+ *
+ * Use to synchronously decode already typed `Encoded` input when you want
+ * decoding failures returned as `Exit` values.
+ *
  * **Details**
  *
  * The returned function produces `Exit.Success` with the decoded `Type` or
  * `Exit.Failure` with a `SchemaIssue.Issue`.
+ *
+ * @see {@link decodeUnknownExit} for untyped input with the same `Exit` result shape
+ * @see {@link decodeEffect} for preserving decoding services and failures in `Effect`
  *
  * @category decoding
  * @since 4.0.0
@@ -302,10 +359,18 @@ export const decodeExit: <S extends Schema.Decoder<unknown>>(
 /**
  * Creates a decoder for `unknown` input that returns an `Option`.
  *
+ * **When to use**
+ *
+ * Use when you need a synchronous yes/no decode from untyped input and do not
+ * need schema issue details.
+ *
  * **Details**
  *
  * The returned function produces `Option.some` with the decoded `Type` on success
  * or `Option.none` on failure, discarding issue details.
+ *
+ * @see {@link decodeOption} for input already typed as the schema's `Encoded` type
+ * @see {@link decodeUnknownResult} for retaining schema issues as data
  *
  * @category decoding
  * @since 3.10.0
@@ -321,10 +386,18 @@ export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
  * Creates a decoder for input already typed as the schema's `Encoded` type,
  * returning an `Option`.
  *
+ * **When to use**
+ *
+ * Use when the input is already typed as the schema's `Encoded` type and you
+ * only need to know whether decoding succeeds.
+ *
  * **Details**
  *
  * The returned function produces `Option.some` with the decoded `Type` on success
  * or `Option.none` on failure, discarding issue details.
+ *
+ * @see {@link decodeUnknownOption} for untyped input with the same yes/no result shape
+ * @see {@link decodeResult} for retaining schema issues as data
  *
  * @category decoding
  * @since 3.10.0
@@ -337,10 +410,23 @@ export const decodeOption: <S extends Schema.Decoder<unknown>>(
 /**
  * Creates a decoder for `unknown` input that returns a `Result`.
  *
+ * **When to use**
+ *
+ * Use when decoding untyped boundary input and you want schema issues returned
+ * as data in a `Result`.
+ *
  * **Details**
  *
  * The returned function produces `Result.succeed` with the decoded `Type` on
  * success or `Result.fail` with a `SchemaIssue.Issue` on decoding failure.
+ *
+ * **Gotchas**
+ *
+ * This adapter runs synchronously. Schema issues become `Result.fail`, but async
+ * decoding or defects can still throw.
+ *
+ * @see {@link decodeResult} for input already typed as the schema's `Encoded` type
+ * @see {@link decodeUnknownEffect} for effectful or service-requiring decoding
  *
  * @category decoding
  * @since 4.0.0
@@ -356,10 +442,23 @@ export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
  * Creates a decoder for input already typed as the schema's `Encoded` type,
  * returning a `Result`.
  *
+ * **When to use**
+ *
+ * Use when the input is already typed as the schema's `Encoded` type and you
+ * want schema decoding failures represented as `Result.fail`.
+ *
  * **Details**
  *
  * The returned function produces `Result.succeed` with the decoded `Type` on
  * success or `Result.fail` with a `SchemaIssue.Issue` on decoding failure.
+ *
+ * **Gotchas**
+ *
+ * This synchronous adapter returns `Result.fail` for schema issues, but async
+ * decoding or other non-schema failures can still throw.
+ *
+ * @see {@link decodeUnknownResult} for untyped input with the same `Result` shape
+ * @see {@link decodeEffect} for effectful or service-requiring decoding
  *
  * @category decoding
  * @since 4.0.0
@@ -372,10 +471,19 @@ export const decodeResult: <S extends Schema.Decoder<unknown>>(
 /**
  * Creates a synchronous decoder for `unknown` input.
  *
+ * **When to use**
+ *
+ * Use to decode untrusted or dynamically typed input at a synchronous boundary
+ * where invalid data should be reported by throwing.
+ *
  * **Details**
  *
  * The returned function returns the decoded `Type` on success and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
+ *
+ * @see {@link decodeSync} for input already typed as the schema's `Encoded` type
+ * @see {@link decodeUnknownEffect} for preserving decoding failures in `Effect`
+ * @see {@link decodeUnknownResult} for returning schema issues as data
  *
  * @category decoding
  * @since 3.10.0
@@ -391,10 +499,19 @@ export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
  * Creates a synchronous decoder for input already typed as the schema's `Encoded`
  * type.
  *
+ * **When to use**
+ *
+ * Use to decode values already typed as the schema's `Encoded` input when
+ * decoding failure should be reported by throwing an `Error`.
+ *
  * **Details**
  *
  * The returned function returns the decoded `Type` on success and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
+ *
+ * @see {@link decodeUnknownSync} for untrusted or dynamically typed input
+ * @see {@link decodeResult} for returning schema issues as data
+ * @see {@link decodeEffect} for preserving decoding failures in `Effect`
  *
  * @category decoding
  * @since 3.10.0
@@ -407,12 +524,19 @@ export const decodeSync: <S extends Schema.Decoder<unknown>>(
 /**
  * Creates an effectful encoder for `unknown` input.
  *
+ * **When to use**
+ *
+ * Use when encoding untyped boundary input and preserving encoding failures and
+ * service requirements in `Effect` is the desired result shape.
+ *
  * **Details**
  *
  * The returned function succeeds with the schema's `Encoded` value or fails with a
  * `SchemaIssue.Issue`. Encoding service requirements are preserved in the returned
  * `Effect`. Parse options may be provided when creating the encoder and overridden
  * when applying it.
+ *
+ * @see {@link encodeEffect} for the typed-input variant when the value is already typed as the schema's decoded `Type`
  *
  * @category encoding
  * @since 4.0.0
@@ -431,11 +555,19 @@ export function encodeUnknownEffect<S extends Schema.Top>(
  * Creates an effectful encoder for input already typed as the schema's decoded
  * `Type`.
  *
+ * **When to use**
+ *
+ * Use to encode values already typed as the schema's decoded `Type` when
+ * encoding should preserve service requirements and return failures in an
+ * `Effect`.
+ *
  * **Details**
  *
  * The returned function succeeds with the schema's `Encoded` value or fails with a
  * `SchemaIssue.Issue`, preserving any encoding service requirements in the
  * returned `Effect`.
+ *
+ * @see {@link encodeUnknownEffect} for encoding unknown input before the value is statically typed as the schema's `Type`
  *
  * @category encoding
  * @since 4.0.0
@@ -449,10 +581,18 @@ export const encodeEffect: <S extends Schema.Top>(
 /**
  * Creates a Promise-based encoder for `unknown` input.
  *
+ * **When to use**
+ *
+ * Use to encode untrusted or dynamically typed values at a `Promise` boundary
+ * when the schema has no encoding service requirements.
+ *
  * **Details**
  *
  * The returned function resolves with the schema's `Encoded` value on success and
  * rejects with a `SchemaIssue.Issue` on encoding failure.
+ *
+ * @see {@link encodePromise} for input already typed as the schema's decoded `Type`
+ * @see {@link encodeUnknownEffect} for schemas that require encoding services or when failures should remain in `Effect`
  *
  * @category encoding
  * @since 3.10.0
@@ -467,10 +607,19 @@ export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
  * Creates a Promise-based encoder for input already typed as the schema's decoded
  * `Type`.
  *
+ * **When to use**
+ *
+ * Use when you need a `Promise`-returning encoder for values already typed as
+ * the schema's decoded `Type`, such as at a JavaScript `Promise` interop
+ * boundary.
+ *
  * **Details**
  *
  * The returned function resolves with the schema's `Encoded` value on success and
  * rejects with a `SchemaIssue.Issue` on encoding failure.
+ *
+ * @see {@link encodeUnknownPromise} for encoding untyped input
+ * @see {@link encodeEffect} for effectful encoding or schemas with encoding service requirements
  *
  * @category encoding
  * @since 3.10.0
@@ -483,10 +632,18 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
 /**
  * Creates a synchronous encoder for `unknown` input that returns an `Exit`.
  *
+ * **When to use**
+ *
+ * Use to encode unknown input synchronously when you want the encoded value or
+ * schema issue represented as an `Exit`.
+ *
  * **Details**
  *
  * The returned function produces `Exit.Success` with the schema's `Encoded` value
  * or `Exit.Failure` with a `SchemaIssue.Issue`.
+ *
+ * @see {@link encodeExit} for input already typed as the schema's decoded `Type`
+ * @see {@link encodeUnknownEffect} for effectful encoding that preserves service requirements
  *
  * @category encoding
  * @since 4.0.0
@@ -502,10 +659,18 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
  * Creates a synchronous encoder for input already typed as the schema's decoded
  * `Type`, returning an `Exit`.
  *
+ * **When to use**
+ *
+ * Use to synchronously encode already typed schema values when you want encoding
+ * failures returned as `Exit` values.
+ *
  * **Details**
  *
  * The returned function produces `Exit.Success` with the schema's `Encoded` value
  * or `Exit.Failure` with a `SchemaIssue.Issue`.
+ *
+ * @see {@link encodeUnknownExit} for unknown input with the same `Exit` result shape
+ * @see {@link encodeEffect} for effectful encoding that preserves service requirements
  *
  * @category encoding
  * @since 4.0.0
@@ -518,10 +683,18 @@ export const encodeExit: <S extends Schema.Encoder<unknown>>(
 /**
  * Creates an encoder for `unknown` input that returns an `Option`.
  *
+ * **When to use**
+ *
+ * Use when encoding untyped input and you want a synchronous `Option` result
+ * that keeps the encoded value on success but discards issue details on failure.
+ *
  * **Details**
  *
  * The returned function produces `Option.some` with the schema's `Encoded` value
  * on success or `Option.none` on failure, discarding issue details.
+ *
+ * @see {@link encodeOption} for input already typed as the schema's decoded `Type`
+ * @see {@link encodeUnknownResult} for retaining schema issues as data
  *
  * @category encoding
  * @since 3.10.0
@@ -537,10 +710,18 @@ export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
  * Creates an encoder for input already typed as the schema's decoded `Type`,
  * returning an `Option`.
  *
+ * **When to use**
+ *
+ * Use when encoding values that are already typed as the schema's decoded
+ * `Type` and an `Option` result is the desired success/failure boundary.
+ *
  * **Details**
  *
  * The returned function produces `Option.some` with the schema's `Encoded` value
  * on success or `Option.none` on failure, discarding issue details.
+ *
+ * @see {@link encodeUnknownOption} for untyped input with the same yes/no result shape
+ * @see {@link encodeResult} for retaining schema issues as data
  *
  * @category encoding
  * @since 3.10.0
@@ -553,11 +734,19 @@ export const encodeOption: <S extends Schema.Encoder<unknown>>(
 /**
  * Creates an encoder for `unknown` input that returns a `Result`.
  *
+ * **When to use**
+ *
+ * Use when encoding values from an unknown or dynamically typed boundary
+ * synchronously, and you want schema issues returned as `Result` data.
+ *
  * **Details**
  *
  * The returned function produces `Result.succeed` with the schema's `Encoded`
  * value on success or `Result.fail` with a `SchemaIssue.Issue` on encoding
  * failure.
+ *
+ * @see {@link encodeResult} for input already typed as the schema's decoded `Type`
+ * @see {@link encodeUnknownEffect} for effectful encoding, including schemas with encoding service requirements
  *
  * @category encoding
  * @since 4.0.0
@@ -573,11 +762,19 @@ export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
  * Creates an encoder for input already typed as the schema's decoded `Type`,
  * returning a `Result`.
  *
+ * **When to use**
+ *
+ * Use when the input is already typed as the schema's decoded `Type` and
+ * encoding failures should be returned as a `Result` instead of thrown or run in
+ * `Effect`.
+ *
  * **Details**
  *
  * The returned function produces `Result.succeed` with the schema's `Encoded`
  * value on success or `Result.fail` with a `SchemaIssue.Issue` on encoding
  * failure.
+ *
+ * @see {@link encodeUnknownResult} for the same `Result` shape when the input is not already typed
  *
  * @category encoding
  * @since 4.0.0
@@ -590,10 +787,18 @@ export const encodeResult: <S extends Schema.Encoder<unknown>>(
 /**
  * Creates a synchronous encoder for `unknown` input.
  *
+ * **When to use**
+ *
+ * Use when encoding values from untyped input in synchronous code and treating
+ * encoding failures as thrown errors is the desired boundary.
+ *
  * **Details**
  *
  * The returned function returns the schema's `Encoded` value on success and throws
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
+ *
+ * @see {@link encodeSync} for input already typed as the schema's decoded `Type`
+ * @see {@link encodeUnknownEffect} for effectful encoding that preserves service requirements
  *
  * @category encoding
  * @since 3.10.0
@@ -609,10 +814,20 @@ export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
  * Creates a synchronous encoder for input already typed as the schema's decoded
  * `Type`.
  *
+ * **When to use**
+ *
+ * Use to encode already typed schema values synchronously when encoding failure
+ * should be reported by throwing an `Error`.
+ *
  * **Details**
  *
  * The returned function returns the schema's `Encoded` value on success and throws
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
+ *
+ * @see {@link encodeUnknownSync} for unknown input with the same throwing boundary
+ * @see {@link encodeOption} for discarding failure details
+ * @see {@link encodeResult} for returning schema issues as data
+ * @see {@link encodeEffect} for effectful encoding that preserves service requirements
  *
  * @category encoding
  * @since 3.10.0

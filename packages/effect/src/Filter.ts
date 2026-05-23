@@ -341,13 +341,44 @@ export const number: Filter<unknown, number> = fromPredicate(Predicate.isNumber)
 /**
  * A predefined filter that only passes through boolean values.
  *
+ * **When to use**
+ *
+ * Use when accepting an unknown input only if it is already a boolean and you
+ * want a `Filter` result rather than a plain predicate result.
+ *
+ * **Details**
+ *
+ * Implemented with `fromPredicate(Predicate.isBoolean)`, so `true` and `false`
+ * succeed and non-booleans fail with the original input.
+ *
+ * @see {@link Predicate.isBoolean} for the underlying guard
+ * @see {@link fromPredicate} for custom predicate-based filters
+ *
  * @category constructors
  * @since 4.0.0
  */
 export const boolean: Filter<unknown, boolean> = fromPredicate(Predicate.isBoolean)
 
 /**
- * A predefined filter that only passes through BigInt values.
+ * A predefined filter that only passes through `bigint` primitive values.
+ *
+ * **When to use**
+ *
+ * Use to keep `bigint` primitive values from unknown input while staying in the
+ * composable `Filter` / `Result` pipeline.
+ *
+ * **Details**
+ *
+ * Implemented with `fromPredicate(Predicate.isBigInt)`, so values where
+ * `typeof input === "bigint"` succeed and all other inputs fail with the
+ * original input.
+ *
+ * **Gotchas**
+ *
+ * This filter does not coerce numbers or strings; `1n` passes while `1` fails.
+ *
+ * @see {@link number} for JavaScript `number` values
+ * @see {@link Predicate.isBigInt} for the underlying guard
  *
  * @category constructors
  * @since 4.0.0
@@ -364,6 +395,25 @@ export const symbol: Filter<unknown, symbol> = fromPredicate(Predicate.isSymbol)
 
 /**
  * A predefined filter that only passes through Date objects.
+ *
+ * **When to use**
+ *
+ * Use when narrowing unknown input to JavaScript `Date` instances with a
+ * reusable `Filter`.
+ *
+ * **Details**
+ *
+ * Implemented with `fromPredicate(Predicate.isDate)`, so passing values return
+ * `Result.succeed(input)` and failing values return `Result.fail(input)`.
+ *
+ * **Gotchas**
+ *
+ * The check uses `instanceof Date`, so invalid `Date` objects still pass; the
+ * filter does not validate the timestamp.
+ *
+ * @see {@link Predicate.isDate} for the underlying guard
+ * @see {@link instanceOf} for constructor-based filtering
+ * @see {@link fromPredicate} for custom date checks
  *
  * @category constructors
  * @since 4.0.0

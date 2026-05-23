@@ -60,6 +60,16 @@ export const ApplyPatch = Tool.providerDefined({
  * OpenAI Code Interpreter tool that allows the model to execute Python code in
  * a sandboxed environment.
  *
+ * **When to use**
+ *
+ * Use to enable OpenAI-hosted Python execution for a model response.
+ *
+ * **Details**
+ *
+ * The tool is configured with a `container` argument. Successful tool calls
+ * expose `outputs`, which may contain logs or generated images, or `null` when
+ * no outputs are available.
+ *
  * @category tools
  * @since 4.0.0
  */
@@ -82,6 +92,17 @@ export const CodeInterpreter = Tool.providerDefined({
 /**
  * OpenAI File Search tool that enables the model to search through uploaded
  * files and vector stores.
+ *
+ * **When to use**
+ *
+ * Use to let an OpenAI model search uploaded files through one or more vector
+ * stores.
+ *
+ * **Details**
+ *
+ * The tool requires `vector_store_ids` and accepts optional `filters`,
+ * `max_num_results`, and `ranking_options`. Successful tool calls expose the
+ * search `status`, generated `queries`, and optional `results`.
  *
  * @category tools
  * @since 4.0.0
@@ -106,6 +127,18 @@ export const FileSearch = Tool.providerDefined({
 /**
  * OpenAI Image Generation tool that enables the model to generate images using
  * the GPT image models.
+ *
+ * **When to use**
+ *
+ * Use to enable OpenAI provider-defined image generation through a language
+ * model response.
+ *
+ * **Details**
+ *
+ * The tool configures the `image_generation` provider tool, including model,
+ * size, quality, output format, moderation, background, input-image options,
+ * and partial image settings. Successful tool calls expose `result` as base64
+ * image data or `null`.
  *
  * @category tools
  * @since 4.0.0

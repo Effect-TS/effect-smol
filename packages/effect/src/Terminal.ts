@@ -92,6 +92,13 @@ export interface Key {
  * A terminal input event containing an optional raw character and the parsed
  * key that was pressed.
  *
+ * **When to use**
+ *
+ * Use when consuming low-level terminal input events from `Terminal.readInput`
+ * and you need both raw character input and parsed key metadata.
+ *
+ * @see {@link Key} for the parsed key metadata stored on each input event
+ *
  * @category models
  * @since 4.0.0
  */
@@ -112,6 +119,13 @@ const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
  * A `QuitError` represents an error that occurs when a user attempts to
  * quit out of a `Terminal` prompt for input (usually by entering `ctrl`+`c`).
  *
+ * **When to use**
+ *
+ * Use when implementing terminal input or prompts that need to signal
+ * user-requested cancellation through the typed error channel.
+ *
+ * @see {@link isQuitError} for checking unknown errors when handling terminal cancellation
+ *
  * @category QuitError
  * @since 4.0.0
  */
@@ -129,7 +143,19 @@ export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
 /**
  * Returns `true` if the provided value is a `Terminal.QuitError`.
  *
- * @category QuitError
+ * **When to use**
+ *
+ * Use to narrow unknown failures to `QuitError` when handling terminal input
+ * cancellation.
+ *
+ * **Details**
+ *
+ * Returns `true` when the value carries the `QuitError` runtime marker and
+ * narrows it to `QuitError`.
+ *
+ * @see {@link QuitError} for the error value produced when terminal input is quit
+ *
+ * @category guards
  * @since 4.0.0
  */
 export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty(u, QuitErrorTypeId)

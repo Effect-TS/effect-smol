@@ -192,11 +192,21 @@ export const get: <A, E>(self: RcRef<A, E>) => Effect.Effect<A, E, Scope> = inte
 /**
  * Invalidates the currently cached resource, if one has been acquired.
  *
+ * **When to use**
+ *
+ * Use to force future `RcRef.get` calls to acquire a fresh resource when the
+ * currently cached resource should no longer be reused.
+ *
  * **Details**
  *
- * After invalidation, the next `get` acquires a fresh resource. If the current
- * resource is still referenced by active scopes, it remains usable until those
- * scopes close; otherwise it is closed immediately.
+ * After invalidation, the next `get` acquires a fresh resource.
+ *
+ * **Gotchas**
+ *
+ * Invalidation does not revoke resources already borrowed by active scopes;
+ * those remain usable until their scopes close.
+ *
+ * @see {@link get} for acquiring the current cached resource or the fresh resource after invalidation
  *
  * @category combinators
  * @since 3.19.6

@@ -15,7 +15,20 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global BigInt constructor.
+ * Reference to the global `BigInt` constructor for JavaScript bigint coercion.
+ *
+ * **When to use**
+ *
+ * Use when you want the native `BigInt` constructor behavior from the Effect
+ * module namespace.
+ *
+ * **Gotchas**
+ *
+ * This follows native `BigInt` coercion rules. It throws for invalid strings or
+ * non-integral numbers, and whitespace-only strings coerce to `0n`.
+ *
+ * @see {@link fromString} for parsing strings into an `Option`
+ * @see {@link fromNumber} for converting safe integers into an `Option`
  *
  * **Example** (Constructing bigints)
  *

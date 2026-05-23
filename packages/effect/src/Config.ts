@@ -1254,6 +1254,14 @@ export function redacted(name?: string) {
 /**
  * Creates a config for a `URL` value parsed from a string.
  *
+ * **When to use**
+ *
+ * Use to read configuration values that must be valid URL strings.
+ *
+ * **Details**
+ *
+ * This is a shortcut for `Config.schema(Schema.URL, name)`.
+ *
  * **Gotchas**
  *
  * Fails if the string cannot be parsed by the `URL` constructor.
@@ -1293,6 +1301,8 @@ export function redacted(name?: string) {
  * //   hash: ''
  * // }
  * ```
+ *
+ * @see {@link schema} for decoding configuration values with a custom codec
  *
  * @category constructors
  * @since 3.11.0

@@ -53,6 +53,22 @@ const TypeId = "~effect/ManagedRuntime"
 /**
  * Checks if the provided argument is a `ManagedRuntime`.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a `ManagedRuntime`.
+ *
+ * **Details**
+ *
+ * The guard checks the internal `ManagedRuntime` marker property. It does not
+ * build the layer or inspect the runtime's services.
+ *
+ * **Gotchas**
+ *
+ * Disposed runtimes still carry the marker, so this guard does not prove the
+ * runtime is still usable.
+ *
+ * @see {@link make} for creating managed runtimes this guard recognizes
+ *
  * @category guards
  * @since 3.9.0
  */
@@ -193,11 +209,22 @@ export interface ManagedRuntime<in R, out ER> {
 /**
  * Creates a `ManagedRuntime` from a layer.
  *
+ * **When to use**
+ *
+ * Use to create a reusable runtime from a `Layer` for application entry points
+ * or integration code that runs many effects without rebuilding services.
+ *
  * **Details**
  *
  * The layer is built lazily on first use and its context is cached for
  * subsequent runs. Resources acquired by the layer are owned by the runtime and
- * are released when `dispose` or `disposeEffect` is run.
+ * are released when `dispose` or `disposeEffect` is run. `options.memoMap` can
+ * be used to share layer memoization with other layer builds.
+ *
+ * **Gotchas**
+ *
+ * Dispose the runtime when it is no longer needed. A runtime cannot be reused
+ * after disposal.
  *
  * **Example** (Creating a managed runtime)
  *
@@ -224,6 +251,10 @@ export interface ManagedRuntime<in R, out ER> {
  * runtime.runPromise(program)
  * // Hello, world!
  * ```
+ *
+ * @see {@link ManagedRuntime} for the returned runtime interface
+ * @see {@link Layer.MemoMap} for shared layer memoization
+ * @see {@link Layer.build} for lower-level scoped layer construction
  *
  * @category runtime class
  * @since 2.0.0

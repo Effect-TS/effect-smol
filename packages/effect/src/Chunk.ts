@@ -691,6 +691,11 @@ export const getUnsafe: {
 /**
  * Appends the specified element to the end of the `Chunk`.
  *
+ * **When to use**
+ *
+ * Use to add one element after the existing elements and get a non-empty
+ * result.
+ *
  * **Example** (Appending an element)
  *
  * ```ts
@@ -705,6 +710,9 @@ export const getUnsafe: {
  * const singleElement = Chunk.append(emptyChunk, 42)
  * console.log(Chunk.toArray(singleElement)) // [42]
  * ```
+ *
+ * @see {@link prepend} for adding one element before the existing elements
+ * @see {@link appendAll} for appending all elements from another chunk
  *
  * @category concatenating
  * @since 2.0.0
@@ -937,6 +945,11 @@ export const prependAll: {
  * Concatenates two chunks, combining their elements.
  * If either chunk is non-empty, the result is also a non-empty chunk.
  *
+ * **When to use**
+ *
+ * Use to concatenate two chunks when the second chunk's elements should come
+ * after the first.
+ *
  * **Example** (Appending all elements)
  *
  * ```ts
@@ -950,6 +963,9 @@ export const prependAll: {
  * console.log(result)
  * // [ 1, 2, "a", "b" ]
  * ```
+ *
+ * @see {@link prependAll} for concatenating chunks in the opposite order
+ * @see {@link append} for adding a single element to the end
  *
  * @category concatenating
  * @since 2.0.0
@@ -1267,6 +1283,20 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
 /**
  * Groups elements in chunks of up to `n` elements.
  *
+ * **When to use**
+ *
+ * Use to divide a chunk into ordered, non-overlapping batches with at most `n`
+ * elements each.
+ *
+ * **Details**
+ *
+ * The final chunk may contain fewer than `n` elements. Empty input produces an
+ * empty chunk of chunks.
+ *
+ * **Gotchas**
+ *
+ * Values of `n` less than or equal to zero produce singleton chunks.
+ *
  * **Example** (Splitting into fixed-size chunks)
  *
  * ```ts
@@ -1284,6 +1314,8 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
  * console.log(Chunk.toArray(chunked2).map(Chunk.toArray))
  * // [[1, 2], [3, 4], [5]]
  * ```
+ *
+ * @see {@link split} for splitting into a target number of chunks instead of a fixed chunk size
  *
  * @category elements
  * @since 2.0.0

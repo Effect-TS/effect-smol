@@ -1296,6 +1296,27 @@ export {
 /**
  * Adds an `Effect` value to the do notation record under a given name.
  *
+ * **When to use**
+ *
+ * Use to sequence an effectful step in a do-notation pipeline when that step
+ * depends on fields already accumulated in the record and its success value
+ * should be stored under a name.
+ *
+ * **Details**
+ *
+ * The function receives the current record, runs the returned effect after the
+ * input effect succeeds, and inserts its success value under `name`. The
+ * resulting effect combines the error and service requirements of both steps.
+ *
+ * **Gotchas**
+ *
+ * Binding a name that already exists replaces that field in the resulting
+ * record.
+ *
+ * @see {@link Do} for starting from an empty do-notation record
+ * @see {@link bindTo} for naming the success value of an existing effect
+ * @see {@link gen} for generator-based sequencing without accumulating a record
+ *
  * @category do notation
  * @since 2.0.0
  */
@@ -3263,6 +3284,21 @@ export const catchCauseIf: {
 
 /**
  * Recovers from specific failures based on a `Filter`.
+ *
+ * **When to use**
+ *
+ * Use when you need to recover only from causes selected by a `Filter`, and the
+ * recovery needs both the selected value and the original `Cause`.
+ *
+ * **Details**
+ *
+ * The filter is applied to the full `Cause`. When it succeeds, the handler
+ * receives the selected value and the original cause. When it fails, the effect
+ * re-fails with the residual cause returned by the filter.
+ *
+ * @see {@link catchCauseIf} for predicate-based cause selection
+ * @see {@link catchFilter} for filtering typed error values instead of full causes
+ * @see {@link catchCause} for recovering from every cause without filtering
  *
  * @category error handling
  * @since 4.0.0
@@ -6955,6 +6991,24 @@ export const interruptibleMask: <A, E, R>(
 
 /**
  * Creates an AbortSignal that is managed by the provided scope.
+ *
+ * **When to use**
+ *
+ * Use to obtain a scope-managed `AbortSignal` for APIs that accept cancellation
+ * through a signal.
+ *
+ * **Details**
+ *
+ * Each acquisition creates a fresh `AbortController`. Closing the owning scope
+ * runs a finalizer that aborts the controller and the effect succeeds with the
+ * controller's signal.
+ *
+ * **Gotchas**
+ *
+ * The signal is aborted when its owning scope closes, so avoid keeping it for
+ * work that outlives that scope.
+ *
+ * @see {@link scoped} for binding resource lifetime to a scope
  *
  * @category interruption
  * @since 4.0.0

@@ -73,6 +73,22 @@ export declare namespace OpenAiConfig {
  * Provides a scoped transform for the OpenAI HTTP client used by provider
  * operations.
  *
+ * **When to use**
+ *
+ * Use when a single effect or workflow needs temporary OpenAI HTTP client
+ * customization without rebuilding the client layer.
+ *
+ * **Details**
+ *
+ * Supports both data-first and data-last forms. The transform is stored in the
+ * scoped `OpenAiConfig` service and read by OpenAI provider operations while
+ * running the supplied effect.
+ *
+ * **Gotchas**
+ *
+ * If a transform is already present in the scoped config, this helper replaces
+ * it. Compose transforms manually when both should apply.
+ *
  * @category configuration
  * @since 4.0.0
  */

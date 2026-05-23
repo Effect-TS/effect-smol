@@ -160,6 +160,20 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
  * Mounts an atom in the current React registry for the lifetime of the
  * component.
  *
+ * **When to use**
+ *
+ * Use to keep an atom mounted from a React component without reading, writing,
+ * or refreshing it.
+ *
+ * **Details**
+ *
+ * The hook uses the current `RegistryContext` and releases the mount through
+ * React effect cleanup when the component unmounts or when the registry or atom
+ * dependency changes.
+ *
+ * @see {@link useAtomSet} for mounting a writable atom while returning a setter
+ * @see {@link useAtomRefresh} for mounting an atom while returning a refresh callback
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -333,6 +347,19 @@ export const useAtomSubscribe = <A>(
 /**
  * Subscribes to an atom ref and returns its latest value.
  *
+ * **When to use**
+ *
+ * Use when a React component should render from an `AtomRef.ReadonlyRef`
+ * directly instead of reading an atom through the current registry.
+ *
+ * **Details**
+ *
+ * The hook subscribes with `ref.subscribe`, triggers re-renders through React
+ * state, and returns the current `ref.value`.
+ *
+ * @see {@link useAtomValue} for reading an `Atom` from the current registry
+ * @see {@link useAtomRefPropValue} for reading a property ref value
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -344,6 +371,19 @@ export const useAtomRef = <A>(ref: AtomRef.ReadonlyRef<A>): A => {
 
 /**
  * Returns a memoized atom ref for a property of another atom ref.
+ *
+ * **When to use**
+ *
+ * Use to derive an `AtomRef` for one property of an object-shaped atom ref.
+ *
+ * **Details**
+ *
+ * The hook memoizes `ref.prop(prop)` for the `[ref, prop]` dependency pair and
+ * returns the property ref so callers can read, set, update, or subscribe to
+ * that nested property.
+ *
+ * @see {@link useAtomRef} for subscribing to an atom ref value
+ * @see {@link useAtomRefPropValue} for subscribing directly to a property value
  *
  * @category hooks
  * @since 4.0.0

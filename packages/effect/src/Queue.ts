@@ -76,6 +76,14 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
 /**
  * Type guard to check if a value is a Queue.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value to a full `Queue` before passing it to APIs
+ * that need both offering and taking capabilities.
+ *
+ * @see {@link isEnqueue} for checking values that only need write access
+ * @see {@link isDequeue} for checking values that only need read access
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -85,6 +93,20 @@ export const isQueue = <A = unknown, E = unknown>(
 
 /**
  * Type guard to check if a value is an Enqueue.
+ *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before calling queue operations that require
+ * write-side access.
+ *
+ * **Gotchas**
+ *
+ * A full `Queue` also satisfies this guard because every queue includes the
+ * enqueue side.
+ *
+ * @see {@link isQueue} for checking for a full read-write queue handle
+ * @see {@link isDequeue} for checking for the read side of a queue
+ * @see {@link asEnqueue} for narrowing an existing `Queue` to its write-only interface
  *
  * @category guards
  * @since 2.0.0
@@ -96,6 +118,16 @@ export const isEnqueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is a Dequeue.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before passing it to read-side queue
+ * operations.
+ *
+ * @see {@link Dequeue} for the read-side queue handle checked by this guard
+ * @see {@link isQueue} for checking for a full read-write queue handle
+ * @see {@link isEnqueue} for checking for the write side of a queue
+ * @see {@link asDequeue} for narrowing an existing `Queue` to its read-only interface
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -104,7 +136,20 @@ export const isDequeue = <A = unknown, E = unknown>(
 ): u is Dequeue<A, E> => hasProperty(u, DequeueTypeId)
 
 /**
- * Converts a Queue to an Enqueue (write-only interface).
+ * Converts a `Queue` to its write-only `Enqueue` interface.
+ *
+ * **When to use**
+ *
+ * Use to expose only the producer side of a `Queue` to code that should offer
+ * values or signal queue lifecycle.
+ *
+ * **Gotchas**
+ *
+ * This is a type-level capability restriction. It returns the same queue
+ * object, so it does not hide read operations at runtime.
+ *
+ * @see {@link asDequeue} for exposing only the read side of a `Queue`
+ * @see {@link Enqueue} for the write-only queue handle returned by this conversion
  *
  * @category converting
  * @since 4.0.0
@@ -112,7 +157,20 @@ export const isDequeue = <A = unknown, E = unknown>(
 export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
 
 /**
- * Convert a Queue to a Dequeue, allowing only read operations.
+ * Narrows a `Queue` to a `Dequeue`, exposing the consumer side of the queue.
+ *
+ * **When to use**
+ *
+ * Use to pass a queue to code that should consume values while keeping
+ * producer-side operations out of that code's TypeScript type.
+ *
+ * **Gotchas**
+ *
+ * This is a type-level narrowing operation. It returns the same queue object
+ * and does not create a runtime wrapper.
+ *
+ * @see {@link asEnqueue} for narrowing a queue to its producer side
+ * @see {@link Dequeue} for the consumer-side queue handle returned by this function
  *
  * @category converting
  * @since 4.0.0
@@ -1501,7 +1559,29 @@ const await_ = <A, E>(self: Dequeue<A, E>): Effect<void, Exclude<E, Done>> =>
 
 export {
   /**
-   * Wait for the queue to be done.
+   * Waits until a queue reaches the `Done` state.
+   *
+   * **When to use**
+   *
+   * Use to suspend a fiber until no further values can be taken from the queue
+   * and its terminal outcome is known.
+   *
+   * **Details**
+   *
+   * The effect succeeds with `void` for normal `Done` completion. Other
+   * terminal causes are preserved, so failures and interruptions complete this
+   * effect with the same terminal outcome.
+   *
+   * **Gotchas**
+   *
+   * A queue can be closing before it is done. `await` resumes at `Done`, not at
+   * the first completion signal, so buffered messages may need to be drained
+   * first.
+   *
+   * @see {@link end} for signaling normal completion while preserving buffered messages for consumers
+   * @see {@link fail} for signaling an error while preserving buffered messages for consumers
+   * @see {@link interrupt} for graceful interruption after buffered messages are drained
+   * @see {@link shutdown} for immediately discarding buffered messages and resuming pending operations
    *
    * @category Completion
    * @since 4.0.0
