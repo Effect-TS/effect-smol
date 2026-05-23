@@ -512,9 +512,6 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
     devDependencies:
-      '@effect/vitest':
-        specifier: workspace:^
-        version: link:../../vitest
       '@types/node':
         specifier: ^25.7.0
         version: 25.7.0
@@ -767,6 +764,9 @@ importers:
         specifier: ^13.0.6
         version: 13.0.6
     devDependencies:
+      '@effect/vitest':
+        specifier: workspace:^
+        version: link:../../vitest
       '@types/node':
         specifier: ^25.7.0
         version: 25.7.0
