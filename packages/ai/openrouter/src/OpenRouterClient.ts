@@ -61,14 +61,14 @@ export interface Service {
   readonly client: Generated.OpenRouterClient
 
   readonly createChatCompletion: (
-    options: typeof Generated.ChatGenerationParams.Encoded
+    options: typeof Generated.ChatRequest.Encoded
   ) => Effect.Effect<
     [body: typeof Generated.SendChatCompletionRequest200.Type, response: HttpClientResponse.HttpClientResponse],
     AiError.AiError
   >
 
   readonly createChatCompletionStream: (
-    options: Omit<typeof Generated.ChatGenerationParams.Encoded, "stream" | "stream_options">
+    options: Omit<typeof Generated.ChatRequest.Encoded, "stream" | "stream_options">
   ) => Effect.Effect<
     [
       response: HttpClientResponse.HttpClientResponse,
@@ -89,7 +89,7 @@ export interface Service {
  * @category models
  * @since 4.0.0
  */
-export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponseChunk.fields.data.Type
+export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponse.fields.data.Type
 
 // =============================================================================
 // Service Identifier
@@ -364,7 +364,7 @@ export const layerConfig = (options?: {
 // Internal Utilities
 // =============================================================================
 
-const ChatStreamingResponseChunkDataFromString = Schema.fromJsonString(Generated.ChatStreamingResponseChunk.fields.data)
+const ChatStreamingResponseChunkDataFromString = Schema.fromJsonString(Generated.ChatStreamingResponse.fields.data)
 const decodeChatStreamingResponseChunkData = Schema.decodeUnknownEffect(ChatStreamingResponseChunkDataFromString)
 
 const decodeChatCompletionSseData = (
