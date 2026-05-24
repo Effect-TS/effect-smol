@@ -65,10 +65,9 @@ import type * as Types from "./Types.ts"
  *
  * **When to use**
  *
- * Use when implement `[Symbol.iterator]()` on Effect-like types so they can be
+ * Use to implement `[Symbol.iterator]()` on Effect-like types so they can be
  * `yield*`-ed inside generator functions, such as `Effect.gen` and
- * `Option.gen`. You almost never construct this directly — it is created
- * internally by yieldable types.
+ * `Option.gen`.
  *
  * **Details**
  *
@@ -94,7 +93,7 @@ import type * as Types from "./Types.ts"
  * // { value: 42, done: true }
  * ```
  *
- * @see {@link Gen} — the type-level signature that relies on `SingleShotGen`
+ * @see {@link Gen} for the type-level signature that relies on `SingleShotGen`
  * @category constructors
  * @since 2.0.0
  */
@@ -108,6 +107,11 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
 
   /**
    * Yields the stored value once, then completes with the value sent back in.
+   *
+   * **When to use**
+   *
+   * Use to advance a `SingleShotGen` through its single yield and completion
+   * step.
    *
    * @since 2.0.0
    */
@@ -127,6 +131,11 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
   /**
    * Creates a fresh single-shot iterator over the stored value.
    *
+   * **When to use**
+   *
+   * Use to iterate the wrapped value again without reusing the consumed
+   * iterator state.
+   *
    * @since 2.0.0
    */
   [Symbol.iterator](): IterableIterator<T, A> {
@@ -140,9 +149,8 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
  *
  * **When to use**
  *
- * Use when define variance constraints for a higher-kinded type so that {@link Gen}
- * can correctly infer `R`, `O`, and `E` from yielded values. You typically
- * don't construct values of this type — it exists purely for type inference.
+ * Use to define variance constraints for a higher-kinded type so that
+ * {@link Gen} can correctly infer `R`, `O`, and `E` from yielded values.
  *
  * **Details**
  *
@@ -164,7 +172,7 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
  * >
  * ```
  *
- * @see {@link Gen} — uses `Variance` for type parameter inference
+ * @see {@link Gen} for the type-level signature that uses `Variance`
  * @category models
  * @since 2.0.0
  */
@@ -181,10 +189,8 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  *
  * **When to use**
  *
- * Use when type the `gen` function of a module that supports generator syntax, such as
- * `Option.gen`, `Result.gen`, and `Effect.gen`. It accepts either `(body)` or
- * `(self, body)` where `body` is a generator function. The `self` overload
- * binds `this` inside the generator.
+ * Use to type the `gen` function of a module that supports generator syntax,
+ * such as `Option.gen`, `Result.gen`, and `Effect.gen`.
  *
  * **Details**
  *
@@ -200,8 +206,8 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  * declare const gen: Utils.Gen<Option.OptionTypeLambda>
  * ```
  *
- * @see {@link Variance} — encodes the variance used for inference
- * @see {@link SingleShotGen} — the iterator protocol that makes yielding work
+ * @see {@link Variance} for encoding the variance used for inference
+ * @see {@link SingleShotGen} for the iterator protocol that makes yielding work
  * @category models
  * @since 2.0.0
  */

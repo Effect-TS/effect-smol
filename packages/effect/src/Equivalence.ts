@@ -252,6 +252,10 @@ export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
 /**
  * An `Equivalence` instance for strings using strict equality (`===`).
  *
+ * **When to use**
+ *
+ * Use when an API needs an `Equivalence` instance for string equality.
+ *
  * **Example** (Comparing strings)
  *
  * ```ts
@@ -268,6 +272,11 @@ export const String: Equivalence<string> = isStrictEquivalent
 
 /**
  * An `Equivalence` instance for numbers.
+ *
+ * **When to use**
+ *
+ * Use when an API needs an `Equivalence` instance for numeric equality where
+ * `NaN` equals `NaN`.
  *
  * **Details**
  *
@@ -293,6 +302,10 @@ export const Number: Equivalence<number> = make((self, that) =>
 /**
  * An `Equivalence` instance for booleans using strict equality (`===`).
  *
+ * **When to use**
+ *
+ * Use when an API needs an `Equivalence` instance for boolean equality.
+ *
  * **Example** (Comparing booleans)
  *
  * ```ts
@@ -309,6 +322,10 @@ export const Boolean: Equivalence<boolean> = isStrictEquivalent
 
 /**
  * An `Equivalence` instance for bigints using strict equality (`===`).
+ *
+ * **When to use**
+ *
+ * Use when an API needs an `Equivalence` instance for `bigint` equality.
  *
  * **Example** (Comparing bigints)
  *

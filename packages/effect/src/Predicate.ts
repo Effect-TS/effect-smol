@@ -1058,6 +1058,10 @@ export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: un
 /**
  * Checks whether a value is a non-null object value that is not an array.
  *
+ * **When to use**
+ *
+ * Use to narrow unknown input to a non-null, non-array object.
+ *
  * **Details**
  *
  * This is a structural runtime check using `typeof input === "object"`, so it
@@ -1085,6 +1089,11 @@ export function isObject(input: unknown): input is { [x: PropertyKey]: unknown }
 /**
  * Checks whether a value is a non-null, non-array object and narrows it to a
  * readonly indexable object type.
+ *
+ * **When to use**
+ *
+ * Use to narrow unknown input to a readonly view of a non-null, non-array
+ * object.
  *
  * **Details**
  *

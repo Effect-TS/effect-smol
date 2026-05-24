@@ -160,6 +160,11 @@ export type NonEmptyReadonlyArray<A> = readonly [A, ...Array<A>]
 /**
  * A mutable array guaranteed to have at least one element.
  *
+ * **When to use**
+ *
+ * Use when mutation is acceptable and non-emptiness must be tracked at the type
+ * level.
+ *
  * **Details**
  *
  * This is the mutable counterpart of {@link NonEmptyReadonlyArray}. Most Array
@@ -3039,6 +3044,11 @@ export const groupWith: {
 /**
  * Groups consecutive equal elements using `Equal.equivalence()`.
  *
+ * **When to use**
+ *
+ * Use when equal values are already adjacent and Effect's default equality is
+ * the right comparison.
+ *
  * **Details**
  *
  * - Only groups **adjacent** elements.
@@ -3064,6 +3074,10 @@ export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmpt
 /**
  * Groups elements into a record by a key-returning function. Each key maps
  * to a `NonEmptyArray` of elements that produced that key.
+ *
+ * **When to use**
+ *
+ * Use to build buckets of elements indexed by a computed string or symbol key.
  *
  * **Details**
  *
@@ -3339,6 +3353,10 @@ export const difference: {
 /**
  * Creates an empty array.
  *
+ * **When to use**
+ *
+ * Use to create a typed empty array without allocating placeholder elements.
+ *
  * **Example** (Creating an empty array)
  *
  * ```ts
@@ -3497,6 +3515,10 @@ export declare namespace ReadonlyArray {
 /**
  * Transforms each element using a function, returning a new array.
  *
+ * **When to use**
+ *
+ * Use to transform each element independently while preserving the array shape.
+ *
  * **Details**
  *
  * - The function receives `(element, index)`.
@@ -3524,6 +3546,11 @@ export const map: {
 
 /**
  * Maps each element to an array and flattens the results into a single array.
+ *
+ * **When to use**
+ *
+ * Use to map each element to zero or more values and concatenate the results in
+ * one pass.
  *
  * **Details**
  *
@@ -3570,6 +3597,11 @@ export const flatMap: {
 /**
  * Flattens a nested array of arrays into a single array.
  *
+ * **When to use**
+ *
+ * Use to collapse one level of nested arrays when no per-element mapping is
+ * needed.
+ *
  * **Example** (Flattening nested arrays)
  *
  * ```ts
@@ -3588,6 +3620,11 @@ export const flatten: <const S extends ReadonlyArray<ReadonlyArray<any>>>(self: 
 
 /**
  * Extracts all `Some` values from an iterable of `Option`s, discarding `None`s.
+ *
+ * **When to use**
+ *
+ * Use to collect only present values from `Option` values while discarding
+ * `None` values.
  *
  * **Example** (Extracting Some values)
  *
@@ -3618,6 +3655,11 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
 
 /**
  * Extracts all failure values from an iterable of `Result`s, discarding
+ * successes.
+ *
+ * **When to use**
+ *
+ * Use to collect only failure values from `Result` values while discarding
  * successes.
  *
  * **Example** (Extracting failures)
@@ -3652,6 +3694,11 @@ export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
  * Extracts all success values from an iterable of `Result`s, discarding
  * failures.
  *
+ * **When to use**
+ *
+ * Use to collect only success values from `Result` values while discarding
+ * failures.
+ *
  * **Example** (Extracting successes)
  *
  * ```ts
@@ -3683,6 +3730,11 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
 /**
  * Keeps transformed values for elements where a `Filter` succeeds.
  *
+ * **When to use**
+ *
+ * Use to transform elements with a `Result`-returning filter while discarding
+ * failures.
+ *
  * **Details**
  *
  * - The filter receives `(element, index)`.
@@ -3698,6 +3750,7 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
  * ```
  *
  * @see {@link filter} — keep original elements matching a predicate
+ * @see {@link partition} for keeping both failures and successes
  *
  * @category filtering
  * @since 2.0.0
@@ -3720,6 +3773,10 @@ export const filterMap: {
 /**
  * Keeps only elements satisfying a predicate (or refinement).
  *
+ * **When to use**
+ *
+ * Use to keep original elements that satisfy a boolean predicate or refinement.
+ *
  * **Details**
  *
  * - The predicate receives `(element, index)`.
@@ -3734,6 +3791,7 @@ export const filterMap: {
  * ```
  *
  * @see {@link partition} — split into matching and non-matching
+ * @see {@link filterMap} for transforming while filtering
  *
  * @category filtering
  * @since 2.0.0
@@ -3760,6 +3818,11 @@ export const filter: {
 /**
  * Splits an iterable using a `Filter` into failures and successes.
  *
+ * **When to use**
+ *
+ * Use to evaluate each element with a `Result`-returning filter and keep both
+ * failure and success values.
+ *
  * **Details**
  *
  * - Returns `[excluded, satisfying]`.
@@ -3777,6 +3840,7 @@ export const filter: {
  * ```
  *
  * @see {@link filter} — keep only matching elements
+ * @see {@link filterMap} for discarding failures
  * @see {@link separate} — split an iterable of `Result` values
  *
  * @category filtering
@@ -3814,6 +3878,10 @@ export const partition: {
 /**
  * Separates an iterable of `Result`s into failure values and success values.
  *
+ * **When to use**
+ *
+ * Use to split existing `Result` values into failure and success arrays.
+ *
  * **Details**
  *
  * - Returns `[failures, successes]`.
@@ -3833,6 +3901,7 @@ export const partition: {
  *
  * @see {@link getFailures} — extract only failures
  * @see {@link getSuccesses} — extract only successes
+ * @see {@link partition} for computing `Result` values while splitting
  *
  * @category filtering
  * @since 2.0.0
@@ -3846,6 +3915,10 @@ export const separate: <T extends Iterable<Result.Result<any, any>>>(
 
 /**
  * Folds an iterable from left to right into a single value.
+ *
+ * **When to use**
+ *
+ * Use to combine all elements into one accumulated value from left to right.
  *
  * **Details**
  *
@@ -3876,6 +3949,11 @@ export const reduce: {
 
 /**
  * Folds an iterable from right to left into a single value.
+ *
+ * **When to use**
+ *
+ * Use when folding order matters and values must be combined from right to
+ * left.
  *
  * **Details**
  *
@@ -3960,6 +4038,10 @@ export const liftOption = <A extends Array<unknown>, B>(
 /**
  * Converts a nullable value to an array: `null`/`undefined` becomes `[]`,
  * anything else becomes `[value]`.
+ *
+ * **When to use**
+ *
+ * Use to treat a nullable single value as zero or one array element.
  *
  * **Example** (Nullable to array)
  *
@@ -4075,6 +4157,11 @@ export const liftResult = <A extends Array<unknown>, E, B>(
 /**
  * Tests whether all elements satisfy the predicate. Supports refinements for
  * type narrowing.
+ *
+ * **When to use**
+ *
+ * Use to check that all elements satisfy a predicate, including
+ * refinement-based type narrowing.
  *
  * **Example** (Testing all elements)
  *
@@ -4483,6 +4570,11 @@ export const join: {
 
 /**
  * Maps over an array while threading an accumulator through each step, returning both the final state and the mapped array.
+ *
+ * **When to use**
+ *
+ * Use when mapping needs state threaded through each element and the final state
+ * is also needed.
  *
  * **Details**
  *

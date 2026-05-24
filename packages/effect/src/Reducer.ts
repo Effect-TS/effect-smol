@@ -112,10 +112,22 @@ import type * as Combiner from "./Combiner.ts"
  * @since 4.0.0
  */
 export interface Reducer<A> extends Combiner.Combiner<A> {
-  /** Neutral starting value (combining with this changes nothing). */
+  /**
+   * Neutral starting value (combining with this changes nothing).
+   *
+   * **When to use**
+   *
+   * Use to seed a reduction and represent the result of reducing an empty collection.
+   */
   readonly initialValue: A
 
-  /** Combines all values in the collection, starting from `initialValue`. */
+  /**
+   * Combines all values in the collection, starting from `initialValue`.
+   *
+   * **When to use**
+   *
+   * Use to reduce an iterable with this reducer's initial value and combining operation.
+   */
   readonly combineAll: (collection: Iterable<A>) => A
 }
 

@@ -29,6 +29,11 @@ const TypeId = "~effect/RcRef"
 /**
  * A reference counted reference that manages resource lifecycle.
  *
+ * **When to use**
+ *
+ * Use to share a scoped resource across active users with reference-counted
+ * acquisition and release.
+ *
  * **Details**
  *
  * An RcRef wraps a resource that can be acquired and released multiple times.
@@ -71,6 +76,10 @@ export interface RcRef<out A, out E = never> extends Pipeable {
 /**
  * Namespace containing type-level members associated with `RcRef`.
  *
+ * **When to use**
+ *
+ * Use to reference type-level members associated with `RcRef`.
+ *
  * **Example** (Referencing namespace types)
  *
  * ```ts
@@ -86,6 +95,11 @@ export interface RcRef<out A, out E = never> extends Pipeable {
 export declare namespace RcRef {
   /**
    * Type-level variance marker for `RcRef`.
+   *
+   * **When to use**
+   *
+   * Use to carry the value and error type parameters for `RcRef` in Effect's
+   * type machinery.
    *
    * **Details**
    *
@@ -104,6 +118,11 @@ export declare namespace RcRef {
 
 /**
  * Creates an `RcRef` from an acquire effect.
+ *
+ * **When to use**
+ *
+ * Use to create a lazily acquired, reference-counted resource from an acquire
+ * effect.
  *
  * **Details**
  *
@@ -151,6 +170,11 @@ export const make: <A, E, R>(
 
 /**
  * Gets the value from an `RcRef`, acquiring it first if needed.
+ *
+ * **When to use**
+ *
+ * Use to borrow the current resource within a `Scope`, acquiring it first if
+ * necessary.
  *
  * **Details**
  *

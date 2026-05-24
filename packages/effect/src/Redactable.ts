@@ -76,7 +76,7 @@ import { hasProperty } from "./Predicate.ts"
  *
  * **When to use**
  *
- * Use when you use this symbol as the property key when implementing {@link Redactable}.
+ * Use as the property key when implementing the `Redactable` protocol.
  *
  * **Details**
  *
@@ -111,8 +111,8 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
  *
  * **When to use**
  *
- * Use when implement this interface on any class or object that holds sensitive data and
- * should present a sanitized form when inspected or logged.
+ * Use to define classes or objects that hold sensitive data and should present
+ * a sanitized form when inspected or logged.
  *
  * **Details**
  *
@@ -146,6 +146,10 @@ export interface Redactable {
 /**
  * Type guard that checks whether a value implements the {@link Redactable}
  * interface.
+ *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before calling redaction-specific helpers.
  *
  * @see {@link Redactable} for the interface being checked
  * @see {@link redact} to apply redaction if the value is redactable

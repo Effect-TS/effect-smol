@@ -88,9 +88,8 @@ const TypeId = "~effect/Deferred"
  *
  * **When to use**
  *
- * Use when you use `Deferred` for primitive actions whose completions require the
- * coordinated action of multiple fibers, and for building higher-level
- * concurrent or asynchronous structures.
+ * Use to coordinate multiple fibers around a value or failure that will be
+ * supplied exactly once.
  *
  * **Example** (Creating a Deferred for inter-fiber communication)
  *
@@ -150,11 +149,20 @@ export const isDeferred = <A, E>(u: unknown): u is Deferred<A, E> => hasProperty
 /**
  * Companion namespace containing type-level metadata for `Deferred`.
  *
+ * **When to use**
+ *
+ * Use to reference type-level metadata associated with `Deferred`.
+ *
  * @since 2.0.0
  */
 export declare namespace Deferred {
   /**
    * Type-level variance marker for the value and error channels of `Deferred`.
+   *
+   * **When to use**
+   *
+   * Use to carry the value and error type parameters for `Deferred` in Effect's
+   * type machinery.
    *
    * **Details**
    *
@@ -187,8 +195,8 @@ const DeferredProto = {
  *
  * **When to use**
  *
- * Use when prefer `Deferred.make` in effectful code so allocation is represented in
- * `Effect`; use this only when direct synchronous allocation is required.
+ * Use to allocate a `Deferred` synchronously when direct allocation outside
+ * `Effect` is required.
  *
  * **Example** (Creating a Deferred unsafely)
  *
@@ -211,6 +219,10 @@ export const makeUnsafe = <A, E = never>(): Deferred<A, E> => {
 
 /**
  * Creates a new `Deferred`.
+ *
+ * **When to use**
+ *
+ * Use to allocate an empty `Deferred` inside an `Effect` workflow.
  *
  * **Example** (Creating a Deferred)
  *
@@ -412,6 +424,10 @@ export const done: {
 /**
  * Attempts to complete the `Deferred` with the specified error.
  *
+ * **When to use**
+ *
+ * Use to complete a `Deferred` with a typed failure value.
+ *
  * **Details**
  *
  * Fibers waiting on the `Deferred` fail with that error only if this call
@@ -441,6 +457,10 @@ export const fail: {
 /**
  * Computes an error when the returned effect is run, then attempts to complete
  * the `Deferred` with that error.
+ *
+ * **When to use**
+ *
+ * Use to lazily compute a typed failure value when the completion effect runs.
  *
  * **Details**
  *
@@ -474,6 +494,10 @@ export const failSync: {
 
 /**
  * Attempts to complete the `Deferred` with the specified `Cause`.
+ *
+ * **When to use**
+ *
+ * Use to complete a `Deferred` with a full failure cause.
  *
  * **Details**
  *
@@ -511,6 +535,10 @@ export const failCause: {
  * Computes a `Cause` when the returned effect is run, then attempts to
  * complete the `Deferred` with that cause.
  *
+ * **When to use**
+ *
+ * Use to lazily compute a full failure cause when the completion effect runs.
+ *
  * **Details**
  *
  * Fibers waiting on the `Deferred` observe the computed cause only if this
@@ -547,6 +575,10 @@ export const failCauseSync: {
 /**
  * Attempts to complete the `Deferred` with a defect.
  *
+ * **When to use**
+ *
+ * Use to complete a `Deferred` with an unexpected defect.
+ *
  * **Details**
  *
  * Fibers waiting on the `Deferred` die with that defect only if this call
@@ -579,6 +611,10 @@ export const die: {
 /**
  * Computes a defect when the returned effect is run, then attempts to complete
  * the `Deferred` with that defect.
+ *
+ * **When to use**
+ *
+ * Use to lazily compute an unexpected defect when the completion effect runs.
  *
  * **Details**
  *
@@ -616,6 +652,10 @@ export const dieSync: {
 /**
  * Attempts to complete the `Deferred` with interruption by the current fiber.
  *
+ * **When to use**
+ *
+ * Use to complete a `Deferred` as interrupted by the current fiber.
+ *
  * **Details**
  *
  * Fibers waiting on the `Deferred` are interrupted with the current fiber id
@@ -644,6 +684,10 @@ export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
 /**
  * Attempts to complete the `Deferred` with interruption by the specified
  * `FiberId`.
+ *
+ * **When to use**
+ *
+ * Use to complete a `Deferred` as interrupted by a specific fiber id.
  *
  * **Details**
  *
@@ -678,6 +722,10 @@ export const interruptWith: {
 /**
  * Returns `true` if this `Deferred` has already been completed with a value or
  * an error, `false` otherwise.
+ *
+ * **When to use**
+ *
+ * Use to check completion status inside an `Effect` workflow.
  *
  * **Example** (Checking Deferred completion)
  *
@@ -721,6 +769,11 @@ export const isDoneUnsafe = <A, E>(self: Deferred<A, E>): boolean => self.effect
  * `Option.some(effect)` when the `Deferred` is completed, `Option.none()`
  * otherwise.
  *
+ * **When to use**
+ *
+ * Use to inspect whether a `Deferred` is already completed and retrieve its
+ * stored completion effect when available.
+ *
  * **Example** (Polling Deferred completion)
  *
  * ```ts
@@ -746,6 +799,10 @@ export function poll<A, E>(self: Deferred<A, E>): Effect<Option.Option<Effect<A,
 
 /**
  * Attempts to complete the `Deferred` with the specified value.
+ *
+ * **When to use**
+ *
+ * Use to complete a `Deferred` with a successful value.
  *
  * **Details**
  *
@@ -778,6 +835,10 @@ export const succeed: {
 /**
  * Computes a value when the returned effect is run, then attempts to complete
  * the `Deferred` with that value.
+ *
+ * **When to use**
+ *
+ * Use to lazily compute a successful value when the completion effect runs.
  *
  * **Details**
  *
@@ -815,6 +876,11 @@ export const sync: {
  * Synchronously attempts to complete the `Deferred` with the specified
  * completion effect.
  *
+ * **When to use**
+ *
+ * Use to complete a `Deferred` synchronously in low-level code that already has
+ * the completion effect.
+ *
  * **Details**
  *
  * This mutates the `Deferred` directly and should be reserved for low-level
@@ -849,6 +915,11 @@ export const doneUnsafe = <A, E>(self: Deferred<A, E>, effect: Effect<A, E>): bo
 /**
  * Runs an `Effect` and attempts to complete a `Deferred` with the effect's
  * result.
+ *
+ * **When to use**
+ *
+ * Use to pipe an effect result into a `Deferred` while preserving success,
+ * failure, defects, and interruption.
  *
  * **Details**
  *

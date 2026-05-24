@@ -78,9 +78,9 @@ const TypeId = "~effect/Newtype"
  *
  * **When to use**
  *
- * Use when define your newtype as an `interface` extending
- * `Newtype<"MyKey", CarrierType>` when you need two structurally identical
- * carrier types to remain distinct in TypeScript.
+ * Use to define a newtype as an `interface` extending
+ * `Newtype<"MyKey", CarrierType>` when structurally identical carrier types
+ * should remain distinct in TypeScript.
  *
  * **Details**
  *
@@ -116,12 +116,21 @@ export interface Newtype<in out Key extends string, out Carrier> {
  * Namespace containing type-level helpers for `Newtype` values, including
  * constraints and utilities for extracting a newtype's key and carrier type.
  *
+ * **When to use**
+ *
+ * Use to access generic constraints and type-level utilities for `Newtype`
+ * values.
+ *
  * @since 4.0.0
  */
 export declare namespace Newtype {
   /**
    * A type that matches any `Newtype`, useful as a generic constraint:
    * `<N extends Newtype.Any>`.
+   *
+   * **When to use**
+   *
+   * Use as a generic constraint when a type parameter can be any `Newtype`.
    *
    * @see {@link Newtype} — the base tagged interface
    *
@@ -135,7 +144,7 @@ export declare namespace Newtype {
    *
    * **When to use**
    *
-   * Use when you use this in generic code that needs to inspect or constrain the key.
+   * Use to inspect or constrain a newtype's key in generic code.
    *
    * @category utility types
    * @since 4.0.0

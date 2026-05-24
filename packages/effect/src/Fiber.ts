@@ -98,8 +98,8 @@ const TypeId = `~effect/Fiber/${version}`
  *
  * **When to use**
  *
- * Use when you use `Fiber` values when you need to observe, join, interrupt, or otherwise
- * coordinate work that has already been forked.
+ * Use to observe, join, interrupt, or coordinate work that has already been
+ * forked.
  *
  * **Details**
  *
@@ -161,6 +161,10 @@ export interface Fiber<out A, out E = never> extends Pipeable {
  * The Fiber namespace contains utility types and functions for working with fibers.
  * It provides type-level utilities for fiber operations and variance encoding.
  *
+ * **When to use**
+ *
+ * Use to reference type-level helpers associated with `Fiber`.
+ *
  * **Details**
  *
  * The namespace currently exposes type-level support used by the `Fiber`
@@ -193,6 +197,11 @@ export declare namespace Fiber {
   /**
    * Variance encoding for the Fiber type, specifying covariance in both the
    * success type `A` and the error type `E`.
+   *
+   * **When to use**
+   *
+   * Use to carry the success and error type parameters for `Fiber` in Effect's
+   * type machinery.
    *
    * **Example** (Upcasting fibers safely)
    *
@@ -522,6 +531,11 @@ export const interruptAll: <A extends Iterable<Fiber<any, any>>>(
  * Interrupts all fibers in the provided iterable using the specified fiber ID as the
  * interrupting fiber. This allows you to control which fiber is considered the source
  * of the interruption, which can be useful for debugging and tracing.
+ *
+ * **When to use**
+ *
+ * Use to interrupt several fibers while recording a specific fiber ID as the
+ * interruptor.
  *
  * **Details**
  *

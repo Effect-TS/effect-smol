@@ -250,6 +250,11 @@ export const make = <A, E, R>(options: {
  * Creates a scoped pool with minimum and maximum sizes and a time-to-live
  * policy for shrinking unused excess items.
  *
+ * **When to use**
+ *
+ * Use to create an elastic scoped pool that can grow up to a maximum size and
+ * later reclaim unused excess items.
+ *
  * **Details**
  *
  * The returned pool requires `Scope`; when that scope is closed, allocated

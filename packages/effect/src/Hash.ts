@@ -31,6 +31,10 @@ export const symbol = "~effect/interfaces/Hash"
 /**
  * A type that represents an object that can be hashed.
  *
+ * **When to use**
+ *
+ * Use to let a custom type provide its own stable hash value.
+ *
  * **Details**
  *
  * Objects implementing this interface provide a method to compute their hash value,
@@ -62,6 +66,11 @@ export interface Hash {
 
 /**
  * Computes a hash value for any given value.
+ *
+ * **When to use**
+ *
+ * Use to compute an Effect hash for primitives, collections, and hashable
+ * objects.
  *
  * **Details**
  *
@@ -153,6 +162,10 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
 /**
  * Generates a random hash value for an object and caches it.
  *
+ * **When to use**
+ *
+ * Use to hash an object by reference identity instead of structural content.
+ *
  * **Details**
  *
  * This function creates a random hash value for objects that don't have their own
@@ -227,6 +240,10 @@ export const combine: {
 /**
  * Optimizes a hash value by applying bit manipulation techniques.
  *
+ * **When to use**
+ *
+ * Use to improve the bit distribution of a raw numeric hash value.
+ *
  * **Details**
  *
  * This function takes a hash value and applies bitwise operations to improve
@@ -252,6 +269,10 @@ export const optimize = (n: number): number => (n & 0xbfffffff) | ((n >>> 1) & 0
 
 /**
  * Checks if a value implements the Hash interface.
+ *
+ * **When to use**
+ *
+ * Use to detect whether an unknown value provides a custom hash implementation.
  *
  * **Details**
  *
@@ -282,6 +303,10 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
 
 /**
  * Computes a hash value for a number.
+ *
+ * **When to use**
+ *
+ * Use to hash a JavaScript number with Effect's numeric hash semantics.
  *
  * **Details**
  *
@@ -329,6 +354,10 @@ export const number = (n: number) => {
 /**
  * Computes a hash value for a string using the djb2 algorithm.
  *
+ * **When to use**
+ *
+ * Use to hash a string directly.
+ *
  * **Details**
  *
  * This function implements a variation of the djb2 hash algorithm, which is
@@ -361,6 +390,10 @@ export const string = (str: string) => {
 
 /**
  * Computes a hash value for an object using only the specified keys.
+ *
+ * **When to use**
+ *
+ * Use to hash an object by a selected set of property keys.
  *
  * **Details**
  *
@@ -401,6 +434,10 @@ export const structureKeys = (o: object, keys: Iterable<PropertyKey>) => {
 
 /**
  * Computes a structural hash for an object using Effect's object key collection.
+ *
+ * **When to use**
+ *
+ * Use to hash an object from all structural keys collected by Effect.
  *
  * **Details**
  *

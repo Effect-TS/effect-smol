@@ -20,10 +20,18 @@ import { identity } from "./Function.ts"
 /**
  * A unique symbol used to identify unification behavior in Effect types.
  *
+ * **When to use**
+ *
+ * Use to implement the unification protocol on library data types that should
+ * widen to a public union type.
+ *
  * **Details**
  *
  * This symbol is used internally by the Effect type system to enable automatic
  * unification of Effect types in unions and complex type operations.
+ *
+ * @see {@link typeSymbol} for storing the source type information used during unification
+ * @see {@link ignoreSymbol} for excluding protocol entries from unification
  *
  * @category symbols
  * @since 2.0.0
@@ -32,6 +40,11 @@ export declare const unifySymbol: unique symbol
 
 /**
  * The type of the unifySymbol.
+ *
+ * **When to use**
+ *
+ * Use to reference the `unifySymbol` property key in type-level protocol
+ * definitions.
  *
  * **Details**
  *
@@ -47,10 +60,17 @@ export type unifySymbol = typeof unifySymbol
 /**
  * A unique symbol used to identify the type information for unification.
  *
+ * **When to use**
+ *
+ * Use to implement the unification protocol on types that need to expose their
+ * original type information.
+ *
  * **Details**
  *
  * This symbol is used internally by the Effect type system to store type
  * information that can be used during type unification operations.
+ *
+ * @see {@link unifySymbol} for defining how protocol entries widen
  *
  * @category symbols
  * @since 2.0.0
@@ -59,6 +79,11 @@ export declare const typeSymbol: unique symbol
 
 /**
  * The type of the typeSymbol.
+ *
+ * **When to use**
+ *
+ * Use to reference the `typeSymbol` property key in type-level protocol
+ * definitions.
  *
  * **Details**
  *
@@ -74,11 +99,17 @@ export type typeSymbol = typeof typeSymbol
 /**
  * A unique symbol used to specify types that should be ignored during unification.
  *
+ * **When to use**
+ *
+ * Use to exclude specific protocol properties from type unification.
+ *
  * **Details**
  *
  * This symbol is used internally by the Effect type system to mark types
  * that should be excluded from the unification process, allowing for more
  * precise type handling in complex scenarios.
+ *
+ * @see {@link unifySymbol} for defining the protocol entries being filtered
  *
  * @category symbols
  * @since 2.0.0
@@ -87,6 +118,11 @@ export declare const ignoreSymbol: unique symbol
 
 /**
  * The type of the ignoreSymbol.
+ *
+ * **When to use**
+ *
+ * Use to reference the `ignoreSymbol` property key in type-level protocol
+ * definitions.
  *
  * **Details**
  *
@@ -133,6 +169,10 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
 /**
  * Unifies types that implement the unification protocol.
  *
+ * **When to use**
+ *
+ * Use to normalize unions of types that expose Effect's unification protocol.
+ *
  * **Details**
  *
  * This type performs automatic type unification for types that contain
@@ -163,6 +203,8 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
  * // Results in a properly unified type
  * ```
  *
+ * @see {@link unify} for applying this normalization to a value or function
+ *
  * @category models
  * @since 2.0.0
  */
@@ -191,6 +233,11 @@ export type Unify<A> = Values<
 
 /**
  * Applies `Unify` to a value or function return type at compile time.
+ *
+ * **When to use**
+ *
+ * Use to keep a value or function unchanged at runtime while normalizing its
+ * inferred type with Effect's unification protocol.
  *
  * **Details**
  *
@@ -222,6 +269,8 @@ export type Unify<A> = Values<
  * const unifiedCurried = Unify.unify(curriedFunction)
  * // Type: (a: string) => (b: number) => Unify<{ result: string }>
  * ```
+ *
+ * @see {@link Unify} for the type-level normalization applied by this helper
  *
  * @category utils
  * @since 2.0.0

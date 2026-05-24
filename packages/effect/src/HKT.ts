@@ -40,6 +40,10 @@ import type * as Types from "./Types.ts"
 /**
  * A unique symbol used to associate `TypeClass` implementations with their `TypeLambda`.
  *
+ * **When to use**
+ *
+ * Use to link type class implementations to the `TypeLambda` they operate on.
+ *
  * **Details**
  *
  * This symbol is used internally by the HKT system to link runtime type class
@@ -76,6 +80,10 @@ export declare const URI: unique symbol
 
 /**
  * Base interface for type classes that work with Higher-Kinded Types.
+ *
+ * **When to use**
+ *
+ * Use to define type class interfaces parameterized by a `TypeLambda`.
  *
  * **Details**
  *
@@ -114,6 +122,10 @@ export interface TypeClass<F extends TypeLambda> {
 
 /**
  * Base interface for defining Higher-Kinded Type parameters.
+ *
+ * **When to use**
+ *
+ * Use to encode a type constructor for higher-kinded generic programming.
  *
  * **Details**
  *
@@ -156,6 +168,10 @@ export interface TypeLambda {
 
 /**
  * Applies type parameters to a `TypeLambda` to get the concrete type.
+ *
+ * **When to use**
+ *
+ * Use to apply a `TypeLambda` to type parameters and obtain its concrete type.
  *
  * **Details**
  *

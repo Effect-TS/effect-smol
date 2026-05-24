@@ -84,6 +84,11 @@ const TypeId = "~effect/collections/MutableHashSet"
  * A mutable hash set for storing unique values with Effect structural equality
  * support.
  *
+ * **When to use**
+ *
+ * Use to store and mutate a collection of unique values with Effect hashing and
+ * equality semantics.
+ *
  * **Details**
  *
  * Operations mutate the set in place. Values that implement `Equal` / `Hash`
@@ -215,6 +220,10 @@ export const empty = <K = never>(): MutableHashSet<K> => fromHashMap(MutableHash
  * Creates a MutableHashSet from an iterable collection of values.
  * Duplicates are automatically removed.
  *
+ * **When to use**
+ *
+ * Use to build a mutable hash set from any iterable of values.
+ *
  * **Example** (Creating a set from an iterable)
  *
  * ```ts
@@ -244,6 +253,10 @@ export const fromIterable = <K = never>(keys: Iterable<K>): MutableHashSet<K> =>
 /**
  * Creates a MutableHashSet from a variable number of values.
  * Duplicates are automatically removed.
+ *
+ * **When to use**
+ *
+ * Use to build a mutable hash set from explicit values.
  *
  * **Example** (Creating a set from values)
  *
@@ -275,6 +288,10 @@ export const make = <Keys extends ReadonlyArray<unknown>>(
 /**
  * Adds a value to the MutableHashSet, mutating the set in place.
  * If the value already exists, the set remains unchanged.
+ *
+ * **When to use**
+ *
+ * Use to insert a value into a mutable set while keeping uniqueness.
  *
  * **Example** (Adding values)
  *
@@ -360,6 +377,10 @@ export const has: {
  * Removes the specified value from the MutableHashSet, mutating the set in place.
  * If the value doesn't exist, the set remains unchanged.
  *
+ * **When to use**
+ *
+ * Use to delete a value from a mutable set if it is present.
+ *
  * **Example** (Removing a value)
  *
  * ```ts
@@ -398,6 +419,10 @@ export const remove: {
 /**
  * Returns the number of unique values in the MutableHashSet.
  *
+ * **When to use**
+ *
+ * Use to read how many unique values are currently stored in the set.
+ *
  * **Example** (Checking set size)
  *
  * ```ts
@@ -426,6 +451,10 @@ export const size = <V>(self: MutableHashSet<V>): number => MutableHashMap.size(
 /**
  * Removes all values from the MutableHashSet, mutating the set in place.
  * The set becomes empty after this operation.
+ *
+ * **When to use**
+ *
+ * Use to empty a mutable set while keeping the same set instance.
  *
  * **Example** (Clearing all values)
  *

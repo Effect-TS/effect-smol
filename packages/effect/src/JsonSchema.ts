@@ -92,6 +92,10 @@ import * as Rec from "./Record.ts"
 /**
  * A plain object representing a single JSON Schema node.
  *
+ * **When to use**
+ *
+ * Use to represent an arbitrary JSON Schema object regardless of dialect.
+ *
  * **Details**
  *
  * This is an open record type (`[x: string]: unknown`) so it can hold any JSON
@@ -128,6 +132,10 @@ export type Dialect = "draft-07" | "draft-2020-12" | "openapi-3.1" | "openapi-3.
 
 /**
  * The JSON Schema primitive type names.
+ *
+ * **When to use**
+ *
+ * Use to restrict a JSON Schema `type` keyword to the supported primitive names.
  *
  * @category models
  * @since 4.0.0

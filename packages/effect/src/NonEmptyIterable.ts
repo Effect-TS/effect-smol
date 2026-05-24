@@ -166,6 +166,10 @@ export declare const nonEmpty: unique symbol
 /**
  * Represents an iterable that is guaranteed to contain at least one element.
  *
+ * **When to use**
+ *
+ * Use to require an iterable input that must provide at least one element.
+ *
  * **Details**
  *
  * `NonEmptyIterable<A>` extends the standard `Iterable<A>` interface with a type-level
@@ -226,6 +230,11 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
 
 /**
  * Safely extracts the first element and remaining elements from a non-empty iterable.
+ *
+ * **When to use**
+ *
+ * Use to split a non-empty iterable into its first element and an iterator for
+ * the remaining elements.
  *
  * **Details**
  *

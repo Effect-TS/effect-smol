@@ -150,6 +150,11 @@ export class ConfigError {
 /**
  * A recipe for extracting a typed value `T` from a `ConfigProvider`.
  *
+ * **When to use**
+ *
+ * Use to describe typed configuration that can be parsed from a provider or
+ * yielded inside `Effect.gen`.
+ *
  * **Details**
  *
  * Key members:
@@ -954,11 +959,15 @@ export function string(name?: string) {
  * Creates a config for a non-empty string value. Fails if the value is an
  * empty string.
  *
+ * **When to use**
+ *
+ * Use to read a string config value that must contain at least one character.
+ *
  * **Details**
  *
  * Shortcut for `Config.schema(Schema.NonEmptyString, name)`.
  *
- * @see {@link string} – allows empty strings
+ * @see {@link string} for allowing empty strings
  *
  * @category constructors
  * @since 3.7.0
@@ -970,12 +979,16 @@ export function nonEmptyString(name?: string) {
 /**
  * Creates a config for a numeric value (including `NaN`, `Infinity`).
  *
+ * **When to use**
+ *
+ * Use to read a numeric config value when `NaN` and `Infinity` are acceptable.
+ *
  * **Details**
  *
  * Shortcut for `Config.schema(Schema.Number, name)`.
  *
- * @see {@link finite} – rejects `NaN` and `Infinity`
- * @see {@link int} – only integers
+ * @see {@link finite} for rejecting `NaN` and `Infinity`
+ * @see {@link int} for accepting only integers
  *
  * @category constructors
  * @since 2.0.0
@@ -987,12 +1000,16 @@ export function number(name?: string) {
 /**
  * Creates a config for a finite number (rejects `NaN` and `Infinity`).
  *
+ * **When to use**
+ *
+ * Use to read a numeric config value that must be finite.
+ *
  * **Details**
  *
  * Shortcut for `Config.schema(Schema.Finite, name)`.
  *
- * @see {@link number} – allows `NaN` and `Infinity`
- * @see {@link int} – only integers
+ * @see {@link number} for accepting `NaN` and `Infinity`
+ * @see {@link int} for accepting only integers
  *
  * @category constructors
  * @since 4.0.0
@@ -1004,12 +1021,16 @@ export function finite(name?: string) {
 /**
  * Creates a config for an integer value. Rejects floats.
  *
+ * **When to use**
+ *
+ * Use to read a numeric config value that must be an integer.
+ *
  * **Details**
  *
  * Shortcut for `Config.schema(Schema.Int, name)`.
  *
- * @see {@link number} – allows any number
- * @see {@link port} – integers in 1–65535
+ * @see {@link number} for accepting any number
+ * @see {@link port} for accepting only integers in `1` through `65535`
  *
  * @category constructors
  * @since 4.0.0
@@ -1048,6 +1069,10 @@ export function literal<L extends AST.LiteralValue>(literal: L, name?: string) {
 /**
  * Creates a config that only accepts one of the specified literal values.
  *
+ * **When to use**
+ *
+ * Use to restrict a config to a fixed set of allowed literal values.
+ *
  * **Details**
  *
  * Shortcut for `Config.schema(Schema.Literals(literals), name)`.
@@ -1060,6 +1085,8 @@ export function literal<L extends AST.LiteralValue>(literal: L, name?: string) {
  * const env = Config.literals(["development", "production"], "ENV")
  * ```
  *
+ * @see {@link literal} for accepting one specific literal value
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1070,6 +1097,10 @@ export function literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
 /**
  * Creates a config for a boolean value parsed from common string
  * representations.
+ *
+ * **When to use**
+ *
+ * Use to read boolean flags from string-like config sources.
  *
  * **Details**
  *
@@ -1100,6 +1131,8 @@ export function literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
  * // Output: true
  * ```
  *
+ * @see {@link Boolean} for the underlying boolean codec
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -1110,6 +1143,10 @@ export function boolean(name?: string) {
 /**
  * Creates a config for a `Duration` value parsed from a human-readable
  * string.
+ *
+ * **When to use**
+ *
+ * Use to read time duration settings such as timeouts, intervals, or TTLs.
  *
  * **Details**
  *
@@ -1140,6 +1177,8 @@ export function boolean(name?: string) {
  * // Output: Duration { _tag: "millis", value: 10000 }
  * ```
  *
+ * @see {@link schema} for decoding configuration values with a custom codec
+ *
  * @category constructors
  * @since 2.5.0
  */
@@ -1149,6 +1188,10 @@ export function duration(name?: string) {
 
 /**
  * Creates a config for a port number (integer in 1–65535).
+ *
+ * **When to use**
+ *
+ * Use to read network port settings that must be valid port numbers.
  *
  * **Details**
  *
@@ -1176,6 +1219,9 @@ export function duration(name?: string) {
  * // Output: 8080
  * ```
  *
+ * @see {@link int} for integer config values outside the port range
+ * @see {@link Port} for the underlying port codec
+ *
  * @category constructors
  * @since 3.16.0
  */
@@ -1185,6 +1231,10 @@ export function port(name?: string) {
 
 /**
  * Creates a config for a log level string.
+ *
+ * **When to use**
+ *
+ * Use to read Effect log-level settings from configuration.
  *
  * **Details**
  *
@@ -1215,6 +1265,8 @@ export function port(name?: string) {
  * // Output: "Info"
  * ```
  *
+ * @see {@link LogLevel} for the underlying log-level codec
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -1225,6 +1277,11 @@ export function logLevel(name?: string) {
 /**
  * Creates a config for a redacted string value. The parsed result is wrapped
  * in a `Redacted` container that hides the value from logs and `toString`.
+ *
+ * **When to use**
+ *
+ * Use to read secret string settings that should not be exposed in logs or
+ * string output.
  *
  * **Details**
  *
@@ -1251,6 +1308,8 @@ export function logLevel(name?: string) {
  * )
  * // Output: <redacted>
  * ```
+ *
+ * @see {@link string} for non-secret string settings
  *
  * @category constructors
  * @since 2.0.0
@@ -1321,6 +1380,10 @@ export function url(name?: string) {
 
 /**
  * Creates a config for a `Date` value parsed from a string.
+ *
+ * **When to use**
+ *
+ * Use to read date settings that must parse to valid `Date` values.
  *
  * **Details**
  *

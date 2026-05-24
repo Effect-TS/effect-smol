@@ -25,6 +25,10 @@
 /**
  * Interface for values that support method-style `pipe` composition.
  *
+ * **When to use**
+ *
+ * Use to type values that expose an Effect-style `.pipe(...)` method.
+ *
  * **Details**
  *
  * Calling `value.pipe(f, g, h)` passes the value through each function from
@@ -532,6 +536,11 @@ export interface Pipeable {
 /**
  * Applies a `pipe` method's variadic arguments to an initial value from left
  * to right.
+ *
+ * **When to use**
+ *
+ * Use to implement a custom `.pipe(...)` method from JavaScript's `arguments`
+ * object.
  *
  * **Details**
  *

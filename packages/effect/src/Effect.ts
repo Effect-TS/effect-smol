@@ -442,6 +442,11 @@ export declare namespace All {
  * Combines an iterable or record of effects into one effect whose success shape
  * follows the input.
  *
+ * **When to use**
+ *
+ * Use to run a known collection of effects and collect results in the same
+ * tuple, iterable, or record shape.
+ *
  * **Details**
  *
  * Tuple and iterable inputs collect results in order. Record inputs collect
@@ -755,6 +760,11 @@ export const findFirstFilter: {
 
 /**
  * Executes an effectful operation for each element in an `Iterable`.
+ *
+ * **When to use**
+ *
+ * Use to traverse an iterable with an effectful function while preserving
+ * element order in the collected results.
  *
  * **Details**
  *
@@ -2349,6 +2359,11 @@ export const map: {
 /**
  * Replaces the value inside an effect with a constant value.
  *
+ * **When to use**
+ *
+ * Use to replace a successful value with a constant while preserving failures
+ * and requirements.
+ *
  * **Details**
  *
  * `as` allows you to ignore the original value inside an effect and
@@ -2365,6 +2380,9 @@ export const map: {
  * Effect.runPromise(program).then(console.log)
  * // Output: "new value"
  * ```
+ *
+ * @see {@link map} for deriving the replacement value from the success value
+ * @see {@link asVoid} for replacing the success value with `void`
  *
  * @category mapping
  * @since 2.0.0
@@ -2454,6 +2472,10 @@ export const flip: <A, E, R>(self: Effect<A, E, R>) => Effect<E, A, R> = interna
 /**
  * Combines two effects into a single effect, producing a tuple with the results of both effects.
  *
+ * **When to use**
+ *
+ * Use to combine exactly two effects into a tuple.
+ *
  * **Details**
  *
  * The `zip` function executes the first effect (left) and then the second effect (right).
@@ -2516,6 +2538,7 @@ export const flip: <A, E, R>(self: Effect<A, E, R>) => Effect<E, A, R> = interna
  * ```
  *
  * @see {@link zipWith} for a version that combines the results with a custom function.
+ * @see {@link all} for collecting a larger structure of effects.
  *
  * @category zipping
  * @since 2.0.0
@@ -2820,6 +2843,11 @@ export const catchTags: {
 /**
  * Catches a specific reason within a tagged error.
  *
+ * **When to use**
+ *
+ * Use to handle one nested reason inside a tagged error while preserving the
+ * parent error shape for unmatched reasons.
+ *
  * **Details**
  *
  * Use this to handle nested error causes without removing the parent error
@@ -2851,6 +2879,8 @@ export const catchTags: {
  *   )
  * )
  * ```
+ *
+ * @see {@link catchReasons} for handling several nested reason tags
  *
  * @category error handling
  * @since 4.0.0
@@ -3303,6 +3333,10 @@ export const catchFilter: {
 /**
  * Catches `NoSuchElementError` failures and converts them to `Option.none`.
  *
+ * **When to use**
+ *
+ * Use to convert `NoSuchElementError` failures into `Option.none`.
+ *
  * **Details**
  *
  * Success values become `Option.some`, `NoSuchElementError` becomes
@@ -3320,6 +3354,10 @@ export const catchFilter: {
  * Effect.runPromise(none).then(console.log) // { _id: 'Option', _tag: 'None' }
  * ```
  *
+ * @see {@link fromOption} for converting `Option.none` into `NoSuchElementError`
+ * @see {@link fromNullishOr} for converting nullish values into `NoSuchElementError`
+ * @see {@link option} for converting any failure into `Option.none`
+ *
  * @category error handling
  * @since 4.0.0
  */
@@ -3329,6 +3367,10 @@ export const catchNoSuchElement: <A, E, R>(
 
 /**
  * Recovers from specific failures based on a predicate.
+ *
+ * **When to use**
+ *
+ * Use to recover from full causes selected by a predicate.
  *
  * **Details**
  *
@@ -3358,6 +3400,10 @@ export const catchNoSuchElement: <A, E, R>(
  * // Output: "Caught network error: Network Error"
  * // Then: "Fallback response"
  * ```
+ *
+ * @see {@link catchCause} for recovering from every cause
+ * @see {@link catchCauseFilter} for selecting full causes with a `Filter`
+ * @see {@link catchIf} for predicate-based recovery from typed errors
  *
  * @category error handling
  * @since 4.0.0
@@ -3411,6 +3457,10 @@ export const catchCauseFilter: {
  * The `mapError` function is used to transform or modify the error
  * produced by an effect, without affecting its success value.
  *
+ * **When to use**
+ *
+ * Use to translate typed failures while leaving successful values unchanged.
+ *
  * **Details**
  *
  * This function is helpful when you want to enhance the error with additional
@@ -3450,6 +3500,11 @@ export const mapError: {
 
 /**
  * Applies transformations to both the success and error channels of an effect.
+ *
+ * **When to use**
+ *
+ * Use to transform both success and failure values without changing whether the
+ * effect succeeds or fails.
  *
  * **Details**
  *
@@ -5403,6 +5458,11 @@ export const matchCauseEffectEager: {
 /**
  * Handles failures with access to the cause and allows performing side effects.
  *
+ * **When to use**
+ *
+ * Use when both success and failure handling must return effects and the
+ * failure branch needs the full `Cause`.
+ *
  * **Details**
  *
  * The `matchCauseEffect` function works similarly to {@link matchCause}, but it
@@ -5609,6 +5669,10 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
 /**
  * Returns the complete context.
  *
+ * **When to use**
+ *
+ * Use to read the complete `Context` available to the current effect.
+ *
  * **Details**
  *
  * This function allows you to access all services that are currently available
@@ -5644,6 +5708,9 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * const provided = Effect.provideContext(program, context)
  * ```
  *
+ * @see {@link contextWith} for deriving an effect from the complete context
+ * @see {@link service} for reading one service from the context
+ *
  * @category environment
  * @since 2.0.0
  */
@@ -5651,6 +5718,10 @@ export const context: <R = never>() => Effect<Context.Context<R>, never, R> = in
 
 /**
  * Transforms the current context using the provided function.
+ *
+ * **When to use**
+ *
+ * Use to derive an effect from the complete `Context`.
  *
  * **Details**
  *
@@ -5692,6 +5763,9 @@ export const context: <R = never>() => Effect<Context.Context<R>, never, R> = in
  *   get: () => "cached_value"
  * })
  * ```
+ *
+ * @see {@link context} for reading the complete context as a value
+ * @see {@link service} for reading one service from the context
  *
  * @category environment
  * @since 2.0.0
@@ -5996,6 +6070,10 @@ export const updateService: {
  * The `provideService` function is used to provide an actual
  * implementation for a service in the context of an effect.
  *
+ * **When to use**
+ *
+ * Use to satisfy one service requirement with an already-built implementation.
+ *
  * **Details**
  *
  * This function allows you to associate a service with its implementation so
@@ -6036,6 +6114,8 @@ export const updateService: {
  * ```
  *
  * @see {@link provide} for providing multiple layers to an effect.
+ * @see {@link provideServiceEffect} for acquiring the service implementation effectfully.
+ * @see {@link provideContext} for providing a complete context.
  * @category context
  * @since 2.0.0
  */
@@ -6289,6 +6369,10 @@ export const scopedWith: <A, E, R>(
  * Constructs a scoped resource from an acquisition effect and a release
  * finalizer.
  *
+ * **When to use**
+ *
+ * Use to acquire a scoped resource with an explicit release finalizer.
+ *
  * **Details**
  *
  * If acquisition succeeds, the release finalizer is added to the current scope
@@ -6336,6 +6420,9 @@ export const scopedWith: <A, E, R>(
  * )
  * ```
  *
+ * @see {@link acquireDisposable} for resources that implement JavaScript disposal protocols
+ * @see {@link acquireUseRelease} for bracketing acquire, use, and release in one effect
+ *
  * @category resource management
  * @since 2.0.0
  */
@@ -6348,6 +6435,11 @@ export const acquireRelease: <A, E, R, R2>(
 /**
  * This function constructs a scoped resource from an Effect that acquires a
  * disposable value.
+ *
+ * **When to use**
+ *
+ * Use with JavaScript `Disposable` or `AsyncDisposable` resources that should
+ * be closed with the surrounding scope.
  *
  * **Details**
  *
@@ -6381,6 +6473,8 @@ export const acquireRelease: <A, E, R, R2>(
  * )
  * ```
  *
+ * @see {@link acquireRelease} for resources that need an explicit finalizer
+ *
  * @category resource management
  * @since 4.0.0
  */
@@ -6393,6 +6487,10 @@ export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
  * acquisition of a resource (for example, opening a file, launching a thread,
  * etc.) will not be interrupted, and that the resource will always be released
  * when the `Effect` value completes execution.
+ *
+ * **When to use**
+ *
+ * Use to bracket acquire, use, and release logic in one effect.
  *
  * **Details**
  *
@@ -6459,6 +6557,8 @@ export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
  * // Closing connection to db://localhost:5432 (success)
  * ```
  *
+ * @see {@link acquireRelease} for scoped resources whose use happens later
+ *
  * @category resource management
  * @since 2.0.0
  */
@@ -6472,6 +6572,10 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * This function adds a finalizer to the scope of the calling `Effect` value.
  * The finalizer is guaranteed to be run when the scope is closed, and it may
  * depend on the `Exit` value that the scope is closed with.
+ *
+ * **When to use**
+ *
+ * Use to register low-level cleanup in the current scope.
  *
  * **Details**
  *
@@ -6508,6 +6612,9 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  * // Cleanup: Operation completed successfully
  * // operation result
  * ```
+ *
+ * @see {@link acquireRelease} for resource acquisition with a release finalizer
+ * @see {@link ensuring} for attaching a finalizer to one effect
  *
  * @category resource management
  * @since 2.0.0
@@ -7326,6 +7433,10 @@ export const forever: <
 /**
  * Repeats an effect based on a specified schedule or until the first failure.
  *
+ * **When to use**
+ *
+ * Use to rerun an effect after successful executions.
+ *
  * **Details**
  *
  * This function executes an effect repeatedly according to the given schedule.
@@ -7388,6 +7499,9 @@ export const forever: <
  *
  * // Effect.runPromiseExit(program).then(console.log)
  * ```
+ *
+ * @see {@link retry} for failure-based repetition
+ * @see {@link repeatOrElse} for fallback handling when repetition fails
  *
  * @category repetition / recursion
  * @since 2.0.0
@@ -7538,6 +7652,11 @@ export const replicateEffect: {
 /**
  * Runs an effect repeatedly according to a schedule and returns the schedule's
  * final output.
+ *
+ * **When to use**
+ *
+ * Use to rerun a successful effect according to a `Schedule` when the schedule
+ * does not need a custom initial input.
  *
  * **Details**
  *
@@ -13638,6 +13757,10 @@ export const annotateLogs = dual<
 /**
  * Adds log annotations to the current scope.
  *
+ * **When to use**
+ *
+ * Use to attach log annotations that last until the current scope closes.
+ *
  * **Details**
  *
  * This differs from `annotateLogs`, which only annotates a specific effect.
@@ -13659,6 +13782,8 @@ export const annotateLogs = dual<
  *
  * Effect.runPromise(program)
  * ```
+ *
+ * @see {@link annotateLogs} for annotating one effect
  *
  * @category logging
  * @since 3.1.0

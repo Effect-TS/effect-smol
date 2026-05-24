@@ -19,6 +19,11 @@ const TypeId = "~effect/transactions/TxRef"
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
  *
+ * **When to use**
+ *
+ * Use to store mutable state that must be read and modified inside Effect
+ * transactions.
+ *
  * **Details**
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
@@ -60,6 +65,10 @@ export interface TxRef<in out A> extends Pipeable {
 /**
  * Creates a new `TxRef` with the specified initial value.
  *
+ * **When to use**
+ *
+ * Use to create a transactional reference inside an `Effect` workflow.
+ *
  * **Example** (Creating transactional references)
  *
  * ```ts
@@ -91,8 +100,8 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
  *
  * **When to use**
  *
- * Use when prefer `make` in Effect code so allocation stays inside the Effect workflow.
- * Use `makeUnsafe` only when a `TxRef` must be constructed outside an effect.
+ * Use to construct a transactional reference synchronously when it must be
+ * created outside an `Effect` workflow.
  *
  * **Example** (Creating transactional references unsafely)
  *
@@ -123,6 +132,11 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
 
 /**
  * Modifies the value of the `TxRef` using the provided function.
+ *
+ * **When to use**
+ *
+ * Use to update a transactional reference and return a computed result from the
+ * same transaction step.
  *
  * **Example** (Modifying transactional references)
  *
@@ -168,6 +182,10 @@ export const modify: {
 /**
  * Updates the value of the `TxRef` using the provided function.
  *
+ * **When to use**
+ *
+ * Use to transform a transactional reference when no result value is needed.
+ *
  * **Example** (Updating transactional references)
  *
  * ```ts
@@ -199,6 +217,10 @@ export const update: {
 /**
  * Reads the current value of the `TxRef`.
  *
+ * **When to use**
+ *
+ * Use to read the current value of a transactional reference.
+ *
  * **Example** (Reading transactional references)
  *
  * ```ts
@@ -223,6 +245,10 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
 
 /**
  * Sets the value of the `TxRef`.
+ *
+ * **When to use**
+ *
+ * Use to replace the value of a transactional reference.
  *
  * **Example** (Setting transactional references)
  *

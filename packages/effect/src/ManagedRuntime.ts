@@ -78,11 +78,21 @@ export const isManagedRuntime = (input: unknown): input is ManagedRuntime<unknow
 /**
  * Type helpers associated with `ManagedRuntime`.
  *
+ * **When to use**
+ *
+ * Use to reference type-level helpers for extracting managed runtime services
+ * and layer errors.
+ *
  * @since 3.4.0
  */
 export declare namespace ManagedRuntime {
   /**
    * Extracts the services available from a `ManagedRuntime`.
+   *
+   * **When to use**
+   *
+   * Use to derive the service requirements provided by an existing
+   * `ManagedRuntime` type.
    *
    * @category type-level
    * @since 3.4.0
@@ -91,6 +101,11 @@ export declare namespace ManagedRuntime {
     : never
   /**
    * Extracts the layer construction error type of a `ManagedRuntime`.
+   *
+   * **When to use**
+   *
+   * Use to derive the layer construction error type from an existing
+   * `ManagedRuntime` type.
    *
    * @category type-level
    * @since 3.4.0
@@ -138,6 +153,11 @@ export interface ManagedRuntime<in R, out ER> {
   /**
    * Executes the effect using the provided Scheduler or using the global
    * Scheduler if not provided
+   *
+   * **When to use**
+   *
+   * Use to fork an effect against this runtime's services and get the running
+   * fiber.
    */
   readonly runFork: <A, E>(
     self: Effect.Effect<A, E, R>,
@@ -210,11 +230,19 @@ export interface ManagedRuntime<in R, out ER> {
 
   /**
    * Dispose of the resources associated with the runtime.
+   *
+   * **When to use**
+   *
+   * Use to release this runtime's layer resources from Promise-based code.
    */
   readonly dispose: () => Promise<void>
 
   /**
    * Dispose of the resources associated with the runtime.
+   *
+   * **When to use**
+   *
+   * Use to release this runtime's layer resources from an `Effect` workflow.
    */
   readonly disposeEffect: Effect.Effect<void, never, never>
 }

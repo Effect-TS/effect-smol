@@ -93,6 +93,10 @@ import type * as Order from "./Order.ts"
 export interface Combiner<A> {
   /**
    * Combines two values into a new value.
+   *
+   * **When to use**
+   *
+   * Use to merge two values according to this combining strategy.
    */
   readonly combine: (self: A, that: A) => A
 }

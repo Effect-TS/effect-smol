@@ -64,6 +64,10 @@ export class BadArgument extends Data.TaggedError("BadArgument")<{
   /**
    * Formats the module, method, and optional description that rejected the argument.
    *
+   * **When to use**
+   *
+   * Use to read the formatted error message for a rejected platform argument.
+   *
    * @since 4.0.0
    */
   override get message(): string {
@@ -136,6 +140,10 @@ export class SystemError extends Data.Error<{
   /**
    * Formats the normalized system error tag with operation and path details.
    *
+   * **When to use**
+   *
+   * Use to read the formatted error message for a normalized system failure.
+   *
    * @since 4.0.0
    */
   override get message(): string {
@@ -182,6 +190,10 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
   /**
    * Marks this value as a platform error wrapper for runtime guards.
    *
+   * **When to use**
+   *
+   * Use to identify `PlatformError` values through their runtime type marker.
+   *
    * @since 4.0.0
    */
   readonly [TypeId]: typeof TypeId = TypeId
@@ -196,8 +208,8 @@ export class PlatformError extends Data.TaggedError("PlatformError")<{
  *
  * **When to use**
  *
- * Use when you use this helper when adapting an operating-system or platform failure into
- * the normalized platform error model.
+ * Use to adapt an operating-system or platform failure into the normalized
+ * platform error model.
  *
  * @category constructors
  * @since 4.0.0
@@ -217,8 +229,8 @@ export const systemError = (options: {
  *
  * **When to use**
  *
- * Use when you use this helper when a platform API rejects caller input before performing
- * the underlying operation.
+ * Use to report a platform API rejecting caller input before performing the
+ * underlying operation.
  *
  * @category constructors
  * @since 4.0.0

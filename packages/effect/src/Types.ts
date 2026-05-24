@@ -484,6 +484,10 @@ export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
  * Describes the concurrency level for Effect operations that run multiple
  * effects.
  *
+ * **When to use**
+ *
+ * Use to type options that control how many effects may run at the same time.
+ *
  * **Details**
  *
  * - `number` — run at most N effects concurrently.
@@ -647,11 +651,19 @@ export type Invariant<A> = (_: A) => A
 /**
  * Namespace for {@link Invariant}-related utilities.
  *
+ * **When to use**
+ *
+ * Use when referring to type-level helpers nested under `Invariant`.
+ *
  * @since 3.9.0
  */
 export declare namespace Invariant {
   /**
    * Extracts the type parameter `A` from an `Invariant<A>`.
+   *
+   * **When to use**
+   *
+   * Use to recover the carried type from an invariant phantom marker.
    *
    * **Example** (Extracting the inner type)
    *
@@ -707,11 +719,19 @@ export type Covariant<A> = (_: never) => A
 /**
  * Namespace for {@link Covariant}-related utilities.
  *
+ * **When to use**
+ *
+ * Use when referring to type-level helpers nested under `Covariant`.
+ *
  * @since 3.9.0
  */
 export declare namespace Covariant {
   /**
    * Extracts the type parameter `A` from a `Covariant<A>`.
+   *
+   * **When to use**
+   *
+   * Use to recover the carried type from a covariant phantom marker.
    *
    * **Example** (Extracting the inner type)
    *
@@ -767,11 +787,19 @@ export type Contravariant<A> = (_: A) => void
 /**
  * Namespace for {@link Contravariant}-related utilities.
  *
+ * **When to use**
+ *
+ * Use when referring to type-level helpers nested under `Contravariant`.
+ *
  * @since 3.9.0
  */
 export declare namespace Contravariant {
   /**
    * Extracts the type parameter `A` from a `Contravariant<A>`.
+   *
+   * **When to use**
+   *
+   * Use to recover the carried type from a contravariant phantom marker.
    *
    * **Example** (Extracting the inner type)
    *
@@ -793,6 +821,10 @@ export declare namespace Contravariant {
 /**
  * Conditional type that returns `void` if `S` is an empty object type,
  * otherwise returns `S`.
+ *
+ * **When to use**
+ *
+ * Use to erase an empty object type from an API result or parameter position.
  *
  * @category types
  * @since 3.19.20
@@ -855,6 +887,11 @@ export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyo
 /**
  * Branded marker interface representing an unassigned type parameter.
  *
+ * **When to use**
+ *
+ * Use when Effect's type-level machinery needs to represent a type parameter
+ * that has not been assigned yet.
+ *
  * **Details**
  *
  * Used internally by the Effect type system to indicate that a type parameter
@@ -872,6 +909,11 @@ export interface unassigned {
 /**
  * Branded marker interface representing an unhandled error type.
  *
+ * **When to use**
+ *
+ * Use when Effect's type-level machinery needs to represent an error type that
+ * has not been handled yet.
+ *
  * **Details**
  *
  * Used internally by the Effect type system to indicate that an error type
@@ -888,6 +930,10 @@ export interface unhandled {
 
 /**
  * Checks whether a type `T` is a union type.
+ *
+ * **When to use**
+ *
+ * Use to branch type-level logic depending on whether a type is a union.
  *
  * **Details**
  *
@@ -948,6 +994,11 @@ export type ReasonOf<E> = E extends { readonly reason: infer R } ? R : never
 
 /**
  * Extracts the `_tag` values from the `reason` type of an error.
+ *
+ * **When to use**
+ *
+ * Use to get the discriminant values available inside a nested `reason`
+ * error union.
  *
  * **Details**
  *
@@ -1127,6 +1178,10 @@ export type ExcludeReason<E, K extends string> = E extends { readonly reason: in
 
 /**
  * Extracts the required keys from a type.
+ *
+ * **When to use**
+ *
+ * Use to derive the keys whose properties must be present on an object type.
  *
  * @category types
  * @since 4.0.0

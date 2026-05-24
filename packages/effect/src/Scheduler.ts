@@ -27,6 +27,10 @@ import type * as Fiber from "./Fiber.ts"
  * A scheduler manages the execution of Effect fibers by controlling when queued
  * tasks run.
  *
+ * **When to use**
+ *
+ * Use to define or provide custom runtime scheduling behavior for Effect fibers.
+ *
  * **Details**
  *
  * A scheduler determines the execution mode, schedules tasks with different
@@ -68,6 +72,10 @@ export interface SchedulerDispatcher {
 
 /**
  * Context reference for the scheduler used by the Effect runtime.
+ *
+ * **When to use**
+ *
+ * Use to provide or override the scheduler used by the Effect runtime.
  *
  * **Details**
  *
@@ -155,6 +163,11 @@ export class MixedScheduler implements Scheduler {
   /**
    * Returns whether the fiber has reached its operation budget and should yield.
    *
+   * **When to use**
+   *
+   * Use to decide whether a fiber should yield after consuming its current
+   * operation budget.
+   *
    * @since 2.0.0
    */
   shouldYield(fiber: Fiber.Fiber<unknown, unknown>) {
@@ -163,6 +176,10 @@ export class MixedScheduler implements Scheduler {
 
   /**
    * Creates a dispatcher that schedules work through this scheduler.
+   *
+   * **When to use**
+   *
+   * Use to create a dispatcher for enqueuing work through this scheduler.
    *
    * @since 4.0.0
    */

@@ -700,6 +700,11 @@ export type Apply<L extends Lambda, V> = (L & { readonly "~lambda.in": V })["~la
  * Wraps a plain function as a {@link Lambda} value so it can be used with
  * {@link map}, {@link mapPick}, and {@link mapOmit}.
  *
+ * **When to use**
+ *
+ * Use to create a typed lambda for struct mapping APIs that need type-level
+ * input and output tracking.
+ *
  * **Details**
  *
  * The type parameter `L` encodes both the input and output types at the type
@@ -1030,6 +1035,10 @@ export function makeReducer<A>(
 
 /**
  * Creates a record with the given keys and value.
+ *
+ * **When to use**
+ *
+ * Use to build an object where each provided key receives the same value.
  *
  * **Example** (Creating a record)
  *

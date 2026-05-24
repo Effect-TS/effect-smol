@@ -69,7 +69,7 @@ const Proto = {
  *
  * **When to use**
  *
- * Use when this bypasses `Effect` construction; prefer `make` in effectful code.
+ * Use when synchronous construction is required outside an Effect workflow.
  *
  * @category constructors
  * @since 4.0.0
@@ -219,6 +219,13 @@ export const getAndUpdateEffect: {
  * function returns `Option.some`, the ref is updated; if it returns
  * `Option.none`, the ref is left unchanged.
  *
+ * **When to use**
+ *
+ * Use to return the previous value while applying a pure conditional update.
+ *
+ * @see {@link getAndUpdate} for always applying a pure update
+ * @see {@link updateSome} for applying a pure conditional update without returning the previous value
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -235,6 +242,14 @@ export const getAndUpdateSome: {
  * Atomically runs an effectful partial update while holding the ref's semaphore
  * and returns the previous value. `Option.some` updates the ref; `Option.none`
  * leaves it unchanged.
+ *
+ * **When to use**
+ *
+ * Use to return the previous value while running an effectful conditional
+ * update.
+ *
+ * @see {@link getAndUpdateSome} for the pure conditional variant
+ * @see {@link updateSomeEffect} for effectful conditional updates without returning the previous value
  *
  * @category utils
  * @since 2.0.0
@@ -286,6 +301,14 @@ export const modify: {
  * Atomically runs an effectful modification while holding the ref's semaphore,
  * stores the new value if the effect succeeds, and returns the computed result.
  *
+ * **When to use**
+ *
+ * Use to effectfully compute both a separate return value and the next stored
+ * value in one serialized update.
+ *
+ * @see {@link modify} for the pure variant
+ * @see {@link updateEffect} for effectfully storing a new value without a separate result
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -307,6 +330,13 @@ export const modifyEffect: {
 /**
  * Atomically computes a return value and an optional new ref value.
  * `Option.some` updates the ref; `Option.none` leaves it unchanged.
+ *
+ * **When to use**
+ *
+ * Use to compute a return value while optionally updating the stored value.
+ *
+ * @see {@link modify} for always storing a new value
+ * @see {@link updateSome} for optional updates without a separate return value
  *
  * @category utils
  * @since 2.0.0
@@ -331,6 +361,14 @@ export const modifySome: {
  * Atomically runs an effectful modification while holding the ref's semaphore.
  * The effect computes a return value and an optional new ref value;
  * `Option.some` updates the ref and `Option.none` leaves it unchanged.
+ *
+ * **When to use**
+ *
+ * Use to effectfully compute a return value while optionally updating the
+ * stored value.
+ *
+ * @see {@link modifySome} for the pure variant
+ * @see {@link updateSomeEffect} for effectful optional updates without a separate return value
  *
  * @category utils
  * @since 2.0.0
@@ -388,6 +426,14 @@ export const set: {
 
 /**
  * Sets the value of the `SynchronizedRef` and returns the new value.
+ *
+ * **When to use**
+ *
+ * Use to replace the current value with a known value and return that new
+ * value.
+ *
+ * @see {@link set} for setting without returning a value
+ * @see {@link getAndSet} for setting while returning the previous value
  *
  * @category utils
  * @since 2.0.0
@@ -462,6 +508,13 @@ export const updateEffect: {
  * Updates the value of the `SynchronizedRef` with a function and returns the
  * new value.
  *
+ * **When to use**
+ *
+ * Use to apply a pure state transition and return the new stored value.
+ *
+ * @see {@link update} for updating without returning the new value
+ * @see {@link getAndUpdate} for updating while returning the previous value
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -477,6 +530,13 @@ export const updateAndGet: {
 /**
  * Runs an effectful update while holding the ref's semaphore, stores the new
  * value if the effect succeeds, and returns that new value.
+ *
+ * **When to use**
+ *
+ * Use to run an effectful state transition and return the new stored value.
+ *
+ * @see {@link updateEffect} for effectful updates without returning the new value
+ * @see {@link updateAndGet} for the pure variant
  *
  * @category utils
  * @since 2.0.0
@@ -500,6 +560,13 @@ export const updateAndGetEffect: {
  * Applies a partial update to the current value. `Option.some` stores the new
  * value; `Option.none` leaves the ref unchanged.
  *
+ * **When to use**
+ *
+ * Use to apply a pure conditional update without returning a value.
+ *
+ * @see {@link update} for always applying a pure update
+ * @see {@link updateSomeAndGet} for returning the resulting current value
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -515,6 +582,13 @@ export const updateSome: {
 /**
  * Runs an effectful partial update while holding the ref's semaphore.
  * `Option.some` stores the new value; `Option.none` leaves the ref unchanged.
+ *
+ * **When to use**
+ *
+ * Use to run an effectful conditional update without returning a value.
+ *
+ * @see {@link updateSome} for the pure conditional variant
+ * @see {@link updateEffect} for effectful updates that always store a new value
  *
  * @category utils
  * @since 2.0.0
@@ -543,6 +617,14 @@ export const updateSomeEffect: {
  * `Option.some` stores and returns the new value; `Option.none` returns the
  * unchanged value.
  *
+ * **When to use**
+ *
+ * Use to apply a pure conditional update and return the resulting current
+ * value.
+ *
+ * @see {@link updateSome} for conditional updates without returning a value
+ * @see {@link updateAndGet} for always applying a pure update and returning the new value
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -559,6 +641,14 @@ export const updateSomeAndGet: {
  * Runs an effectful partial update while holding the ref's semaphore and
  * returns the resulting current value. `Option.some` stores and returns the new
  * value; `Option.none` returns the unchanged value.
+ *
+ * **When to use**
+ *
+ * Use to run an effectful conditional update and return the resulting current
+ * value.
+ *
+ * @see {@link updateSomeEffect} for effectful conditional updates without returning a value
+ * @see {@link updateAndGetEffect} for effectful updates that always store and return a new value
  *
  * @category utils
  * @since 2.0.0

@@ -107,6 +107,11 @@ export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
 /**
  * A structured representation of how an Effect failed.
  *
+ * **When to use**
+ *
+ * Use to preserve the full structured failure information for an effect instead
+ * of collapsing it to a single error value.
+ *
  * **Details**
  *
  * Access the individual failure entries through the `reasons` array, then
@@ -357,6 +362,11 @@ export declare namespace Reason {
 /**
  * An untyped defect — typically a programming error or an uncaught exception.
  *
+ * **When to use**
+ *
+ * Use when inspecting `Cause` reasons that represent defects instead of typed
+ * failures or interruptions.
+ *
  * **Details**
  *
  * The `defect` property is `unknown` because defects are not part of the
@@ -375,6 +385,9 @@ export declare namespace Reason {
  * }
  * ```
  *
+ * @see {@link die} for constructing a cause with a single `Die` reason
+ * @see {@link isDieReason} for narrowing a `Reason` to `Die`
+ *
  * @category models
  * @since 2.0.0
  */
@@ -384,6 +397,11 @@ export interface Die extends Cause.ReasonProto<"Die"> {
 
 /**
  * A typed, expected error produced by `Effect.fail`.
+ *
+ * **When to use**
+ *
+ * Use when inspecting `Cause` reasons that represent expected failures from the
+ * typed error channel.
  *
  * **Details**
  *
@@ -401,6 +419,9 @@ export interface Die extends Cause.ReasonProto<"Die"> {
  *   console.log(reason.error) // "Something went wrong"
  * }
  * ```
+ *
+ * @see {@link fail} for constructing a cause with a single `Fail` reason
+ * @see {@link isFailReason} for narrowing a `Reason` to `Fail`
  *
  * @category models
  * @since 2.0.0
@@ -480,6 +501,11 @@ export const fromReasons: <E>(
 /**
  * A `Cause` with an empty `reasons` array.
  *
+ * **When to use**
+ *
+ * Use to represent the absence of failure when constructing or combining
+ * causes.
+ *
  * **Details**
  *
  * Represents the absence of failure. Combining any cause with `empty` via
@@ -496,6 +522,8 @@ export const fromReasons: <E>(
  * console.log(Cause.hasFails(cause)) // true
  * ```
  *
+ * @see {@link combine} for merging causes where `empty` acts as the identity
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -504,6 +532,10 @@ export const empty: Cause<never> = core.causeEmpty
 /**
  * Creates a `Cause` containing a single `Fail` reason with the
  * given typed error.
+ *
+ * **When to use**
+ *
+ * Use to construct a cause from an expected typed error.
  *
  * **Example** (creating a fail cause)
  *
@@ -526,6 +558,10 @@ export const fail: <E>(error: E) => Cause<E> = core.causeFail
 /**
  * Creates a `Cause` containing a single `Die` reason with the
  * given defect.
+ *
+ * **When to use**
+ *
+ * Use to construct a cause from an untyped defect or unexpected thrown value.
  *
  * **Example** (creating a die cause)
  *
@@ -677,6 +713,11 @@ export const hasInterruptsOnly: <E>(self: Cause<E>) => boolean = effect.hasInter
  * provided function. Only `Fail` reasons are affected; `Die` and `Interrupt`
  * reasons pass through unchanged.
  *
+ * **When to use**
+ *
+ * Use to transform expected typed failures while preserving defects and
+ * interruptions unchanged.
+ *
  * **Details**
  *
  * If at least one `Fail` reason exists, this returns a new `Cause`
@@ -709,6 +750,10 @@ export const map: {
  * Merges two causes into a single cause whose `reasons` array is the union
  * of both inputs (de-duplicated by value equality).
  *
+ * **When to use**
+ *
+ * Use to merge independent causes into one structured failure value.
+ *
  * **Details**
  *
  * - Combining with `empty` returns the other cause unchanged.
@@ -727,6 +772,7 @@ export const map: {
  * ```
  *
  * @see {@link fromReasons} — build a cause from an array of reasons
+ * @see {@link empty} for the identity cause used when combining
  *
  * @category combining
  * @since 4.0.0
@@ -739,6 +785,11 @@ export const combine: {
 /**
  * Collapses a `Cause` into a single `unknown` value, picking the "most
  * important" failure in this order:
+ *
+ * **When to use**
+ *
+ * Use to collapse a structured cause to the single value that synchronous and
+ * promise runners would throw.
  *
  * **Details**
  *
@@ -774,6 +825,11 @@ export const squash: <E>(self: Cause<E>) => unknown = effect.causeSquash
 
 /**
  * Returns `true` if the cause contains at least one `Fail` reason.
+ *
+ * **When to use**
+ *
+ * Use to check whether a cause includes typed failures before extracting,
+ * mapping, or rendering them.
  *
  * **Example** (checking for typed errors)
  *
@@ -882,6 +938,11 @@ export const findErrorOption: <E>(input: Cause<E>) => Option<E> = effect.findErr
 /**
  * Returns `true` if the cause contains at least one `Die` reason.
  *
+ * **When to use**
+ *
+ * Use to check whether a cause includes defects before extracting or rendering
+ * them.
+ *
  * **Example** (checking for defects)
  *
  * ```ts
@@ -982,6 +1043,11 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
  * in the cause, including its annotations. If the cause has no `Interrupt`
  * reason, the failure value is the original cause.
  *
+ * **When to use**
+ *
+ * Use to extract the first interruption reason when you need its fiber ID and
+ * annotations.
+ *
  * **Example** (extracting the first interrupt)
  *
  * ```ts
@@ -1070,6 +1136,11 @@ export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number
  * Converts a `Cause` into an `Array<Error>` suitable for logging or
  * rethrowing.
  *
+ * **When to use**
+ *
+ * Use to convert every renderable failure in a cause into individual `Error`
+ * values before logging or rethrowing.
+ *
  * **Details**
  *
  * Each `Fail` and `Die` reason is converted into a standard
@@ -1109,6 +1180,11 @@ export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePre
 /**
  * Renders a `Cause` as a human-readable string for logging or
  * debugging.
+ *
+ * **When to use**
+ *
+ * Use to render a whole cause as one human-readable string for logs or
+ * diagnostics.
  *
  * **Details**
  *
@@ -1207,6 +1283,10 @@ export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core
 /**
  * An error indicating that an expected value was absent.
  *
+ * **When to use**
+ *
+ * Use to model APIs that intentionally turn absence into an error.
+ *
  * **Details**
  *
  * Used by APIs that convert absence into an exception or effect failure, such
@@ -1240,6 +1320,11 @@ export interface NoSuchElementError extends YieldableError {
 /**
  * Constructs a `NoSuchElementError` with an optional message.
  *
+ * **When to use**
+ *
+ * Use to create the error value for APIs that intentionally fail when an
+ * expected element is absent.
+ *
  * **Example** (creating a NoSuchElementError)
  *
  * ```ts
@@ -1248,6 +1333,8 @@ export interface NoSuchElementError extends YieldableError {
  * const error = new Cause.NoSuchElementError("Element not found")
  * console.log(error.message) // "Element not found"
  * ```
+ *
+ * @see {@link isNoSuchElementError} for checking unknown values
  *
  * @category constructors
  * @since 4.0.0
@@ -1281,6 +1368,11 @@ export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
 
 /**
  * A graceful completion signal for queues and streams.
+ *
+ * **When to use**
+ *
+ * Use to model normal producer completion through a stream or queue error
+ * channel.
  *
  * **Details**
  *
@@ -1545,6 +1637,11 @@ export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" 
  * An error indicating that a bounded resource (queue, pool, semaphore, etc.)
  * has exceeded its capacity.
  *
+ * **When to use**
+ *
+ * Use to model bounded-resource failures where an operation cannot proceed
+ * because capacity has been exhausted.
+ *
  * **Details**
  *
  * Implements `YieldableError`.
@@ -1570,6 +1667,10 @@ export interface ExceededCapacityError extends YieldableError {
 /**
  * Constructs an `ExceededCapacityError` with an optional message.
  *
+ * **When to use**
+ *
+ * Use to create the error value for bounded-resource capacity failures.
+ *
  * **Example** (creating an ExceededCapacityError)
  *
  * ```ts
@@ -1578,6 +1679,8 @@ export interface ExceededCapacityError extends YieldableError {
  * const error = new Cause.ExceededCapacityError("Queue full")
  * console.log(error.message) // "Queue full"
  * ```
+ *
+ * @see {@link isExceededCapacityError} for checking unknown values
  *
  * @category constructors
  * @since 4.0.0
@@ -1617,6 +1720,11 @@ export const isAsyncFiberError: (u: unknown) => u is AsyncFiberError = effect.is
 /**
  * An error that occurs when trying to run an async fiber with Effect.runSync.
  *
+ * **When to use**
+ *
+ * Use to inspect failures produced when synchronous runners encounter an effect
+ * that cannot complete synchronously.
+ *
  * **Details**
  *
  * The `fiber` property stores the fiber that could not be synchronously
@@ -1648,6 +1756,11 @@ export interface AsyncFiberError extends YieldableError {
  * Constructs an `AsyncFiberError` for a fiber that could not be resolved
  * synchronously.
  *
+ * **When to use**
+ *
+ * Use to create the error value for a fiber that could not be completed by a
+ * synchronous runner.
+ *
  * **Example** (creating an AsyncFiberError)
  *
  * ```ts
@@ -1659,6 +1772,8 @@ export interface AsyncFiberError extends YieldableError {
  * const error = new Cause.AsyncFiberError(fiber)
  * console.log(error.message) // "An asynchronous Effect was executed with Effect.runSync"
  * ```
+ *
+ * @see {@link isAsyncFiberError} for checking unknown values
  *
  * @category constructors
  * @since 4.0.0
@@ -1739,6 +1854,10 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
 /**
  * Attaches metadata to every reason in a `Cause`.
  *
+ * **When to use**
+ *
+ * Use to attach diagnostic metadata to every reason in a cause.
+ *
  * **Details**
  *
  * Annotations are stored as a `Context` on each reason and can be
@@ -1761,6 +1880,9 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
  *
  * console.log(Context.getOrUndefined(Cause.annotations(annotated), RequestId)) // "req-1"
  * ```
+ *
+ * @see {@link annotations} for reading merged annotations from a cause
+ * @see {@link reasonAnnotations} for reading annotations from a single reason
  *
  * @category annotations
  * @since 4.0.0
@@ -1807,6 +1929,10 @@ export const reasonAnnotations: <E>(self: Reason<E>) => Context.Context<never> =
 
 /**
  * Reads the merged annotations from all reasons in a `Cause`.
+ *
+ * **When to use**
+ *
+ * Use to read diagnostic metadata merged from the whole cause.
  *
  * **Gotchas**
  *

@@ -63,6 +63,11 @@ const recurDefaults = memoize((ast: AST.AST): AST.AST => {
 /**
  * Creates an effectful maker for the schema's decoded type side.
  *
+ * **When to use**
+ *
+ * Use to construct decoded schema values in `Effect` while preserving
+ * construction issues in the error channel.
+ *
  * **Details**
  *
  * The returned function accepts constructor input, applies constructor defaults,
@@ -107,6 +112,11 @@ export function makeOption<S extends Schema.Top>(schema: S) {
 /**
  * Creates a synchronous maker for the schema's decoded type side.
  *
+ * **When to use**
+ *
+ * Use to construct decoded schema values synchronously when invalid input
+ * should throw.
+ *
  * **Details**
  *
  * The returned function constructs a value from constructor input and throws an
@@ -130,6 +140,11 @@ export function make<S extends Schema.Top>(schema: S) {
 /**
  * Creates a type guard that checks whether an input satisfies the schema's decoded
  * type side.
+ *
+ * **When to use**
+ *
+ * Use to build a type guard for checking the decoded side of a schema without
+ * exposing issue details.
  *
  * **Details**
  *
@@ -164,6 +179,11 @@ export function _issue<T>(ast: AST.AST) {
 
 /**
  * Asserts that an input satisfies the schema's decoded type side.
+ *
+ * **When to use**
+ *
+ * Use to assert that an input satisfies the decoded side of a schema, throwing
+ * when validation fails.
  *
  * **Details**
  *

@@ -62,8 +62,8 @@ import type * as Schema from "./Schema.ts"
  *
  * **When to use**
  *
- * Use when you use this type when manually constructing patch operations, accepting patch
- * operations from callers, or type-checking patch operation structures.
+ * Use to manually construct patch operations, accept patch operations from
+ * callers, or type-check patch operation structures.
  *
  * **Details**
  *
@@ -109,6 +109,10 @@ export type JsonPatchOperation =
     /**
      * JSON Pointer to the target location. For arrays, the last token may be `-`
      * to append.
+     *
+     * **When to use**
+     *
+     * Use to identify where the `add` operation inserts its value.
      */
     readonly path: string
     readonly value: Schema.Json
@@ -116,13 +120,25 @@ export type JsonPatchOperation =
   }
   | {
     readonly op: "remove"
-    /** JSON Pointer to the target location. */
+    /**
+     * JSON Pointer to the target location.
+     *
+     * **When to use**
+     *
+     * Use to identify which location the `remove` operation deletes.
+     */
     readonly path: string
     readonly description?: string
   }
   | {
     readonly op: "replace"
-    /** JSON Pointer to the target location. Use `""` to replace the root document. */
+    /**
+     * JSON Pointer to the target location. Use `""` to replace the root document.
+     *
+     * **When to use**
+     *
+     * Use to identify which location the `replace` operation overwrites.
+     */
     readonly path: string
     readonly value: Schema.Json
     readonly description?: string
@@ -133,8 +149,7 @@ export type JsonPatchOperation =
  *
  * **When to use**
  *
- * Use when you use this type when storing, serializing, passing, or validating complete patch
- * documents.
+ * Use to store, serialize, pass, or validate complete patch documents.
  *
  * **Details**
  *

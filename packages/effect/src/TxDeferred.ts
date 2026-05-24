@@ -25,6 +25,11 @@ const TypeId = "~effect/transactions/TxDeferred"
  * Readers block (retry the transaction) until a value is committed, and writers
  * succeed only on the first call; subsequent writes return `false`.
  *
+ * **When to use**
+ *
+ * Use to coordinate transaction-local readers and one-time completion with a
+ * success or failure result.
+ *
  * **Example** (Completing a transactional deferred)
  *
  * ```ts
@@ -78,6 +83,10 @@ const makeTxDeferred = <A, E>(ref: TxRef.TxRef<Option<Result<A, E>>>): TxDeferre
 
 /**
  * Creates a new empty `TxDeferred`.
+ *
+ * **When to use**
+ *
+ * Use to create a transactional deferred that can be completed exactly once.
  *
  * **Example** (Creating a transactional deferred)
  *
@@ -150,6 +159,10 @@ export {
  * Reads the current state of the deferred without retrying. Returns `None` if
  * not yet completed.
  *
+ * **When to use**
+ *
+ * Use to inspect a `TxDeferred` without retrying when it is not completed yet.
+ *
  * **Example** (Polling a deferred)
  *
  * ```ts
@@ -174,6 +187,10 @@ export const poll = <A, E>(self: TxDeferred<A, E>): Effect.Effect<Option<Result<
 /**
  * Completes the deferred with a `Result`. Returns `true` if this was the first
  * completion, `false` if already completed.
+ *
+ * **When to use**
+ *
+ * Use to complete a `TxDeferred` with an already computed `Result`.
  *
  * **Example** (Completing with a result)
  *
@@ -210,6 +227,10 @@ export const done: {
  * Completes the deferred with a success value. Returns `true` if this was the
  * first completion, `false` if already completed.
  *
+ * **When to use**
+ *
+ * Use to complete a `TxDeferred` with a successful value.
+ *
  * **Example** (Completing with a success value)
  *
  * ```ts
@@ -239,6 +260,10 @@ export const succeed: {
  * Completes the deferred with a failure. Returns `true` if this was the first
  * completion, `false` if already completed.
  *
+ * **When to use**
+ *
+ * Use to complete a `TxDeferred` with a typed failure value.
+ *
  * **Example** (Completing with a failure)
  *
  * ```ts
@@ -266,6 +291,10 @@ export const fail: {
 
 /**
  * Determines if the provided value is a `TxDeferred`.
+ *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a transactional deferred.
  *
  * **Example** (Checking transactional deferreds)
  *

@@ -40,6 +40,11 @@ import * as Reducer_ from "./Reducer.ts"
 /**
  * Represents the result of comparing two values.
  *
+ * **When to use**
+ *
+ * Use to model a normalized comparison result that is exactly less than,
+ * equal to, or greater than.
+ *
  * **Details**
  *
  * - `-1` indicates the first value is less than the second
@@ -77,6 +82,11 @@ export type Ordering = -1 | 0 | 1
  * Inverts the ordering of the input Ordering.
  * This is useful for creating descending sort orders from ascending ones.
  *
+ * **When to use**
+ *
+ * Use to flip an ordering result when reversing sort direction or comparison
+ * priority.
+ *
  * **Example** (Reversing comparison order)
  *
  * ```ts
@@ -112,6 +122,10 @@ export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 :
 
 /**
  * Depending on the `Ordering` parameter given to it, returns a value produced by one of the 3 functions provided as parameters.
+ *
+ * **When to use**
+ *
+ * Use to branch on the three possible comparison outcomes in one expression.
  *
  * **Example** (Pattern matching on orderings)
  *

@@ -71,8 +71,8 @@ const TypeId = core.ExitTypeId
  *
  * **When to use**
  *
- * Use when you need to synchronously inspect whether a computation succeeded or failed
- * - Use as an alternative to try/catch for Effect-based code
+ * Use when you need to synchronously inspect whether an Effect computation
+ * succeeded or failed.
  *
  * **Details**
  *
@@ -108,11 +108,20 @@ export type Exit<A, E = never> = Success<A, E> | Failure<A, E>
 /**
  * Namespace containing helper types shared by `Exit` values.
  *
+ * **When to use**
+ *
+ * Use to reference helper types that describe the shared structure of `Exit`
+ * values.
+ *
  * @since 2.0.0
  */
 export declare namespace Exit {
   /**
    * Base interface shared by both Success and Failure.
+   *
+   * **When to use**
+   *
+   * Use to describe the common protocol implemented by every `Exit` value.
    *
    * **Details**
    *

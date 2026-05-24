@@ -202,6 +202,10 @@ export interface Some<out A> extends Pipeable, Inspectable {
 /**
  * Type-level unification support for `Option` values.
  *
+ * **When to use**
+ *
+ * Use when extending Effect's type-level unification support for `Option`.
+ *
  * **Details**
  *
  * This is used by Effect's `Unify` machinery to preserve the contained value
@@ -218,11 +222,19 @@ export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
 /**
  * Namespace containing utility types for `Option`.
  *
+ * **When to use**
+ *
+ * Use to access type-level helpers associated with `Option`.
+ *
  * @since 2.0.0
  */
 export declare namespace Option {
   /**
    * Extracts the type of the value contained in an `Option`.
+   *
+   * **When to use**
+   *
+   * Use to infer the inner value type from an existing `Option` type.
    *
    * **Example** (Extracting the value type)
    *
@@ -245,6 +257,10 @@ export declare namespace Option {
 /**
  * Marker interface used by Effect's `Unify` machinery for `Option` values.
  *
+ * **When to use**
+ *
+ * Use when marking generic code so `Option` unification should be ignored.
+ *
  * **Details**
  *
  * This supports type-level unification behavior for `Option`. Users normally
@@ -257,6 +273,10 @@ export interface OptionUnifyIgnore {}
 
 /**
  * Type lambda interface for higher-kinded type encodings with `Option`.
+ *
+ * **When to use**
+ *
+ * Use to represent `Option` in higher-kinded type operations.
  *
  * @category Type Lambdas
  * @since 2.0.0
@@ -1973,6 +1993,10 @@ export const partitionMap: {
 
 /**
  * Transforms and filters an `Option` using a `Filter` callback.
+ *
+ * **When to use**
+ *
+ * Use to transform a present value and discard it when the `Filter` fails.
  *
  * **Details**
  *

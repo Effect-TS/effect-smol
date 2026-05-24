@@ -39,6 +39,11 @@ import * as Predicate from "./Predicate.ts"
 /**
  * Represents a service for generating pseudo-random numbers.
  *
+ * **When to use**
+ *
+ * Use to access or provide the random-number generator service used by Effect
+ * programs.
+ *
  * **Gotchas**
  *
  * The default implementation is based on `Math.random` and is not
@@ -75,6 +80,11 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
 /**
  * Generates a random number between 0 (inclusive) and 1 (exclusive).
  *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random floating-point number in the standard
+ * `[0, 1)` range.
+ *
  * **Example** (Generating a random number)
  *
  * ```ts
@@ -93,6 +103,10 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
 
 /**
  * Generates a random boolean value.
+ *
+ * **When to use**
+ *
+ * Use to make a pseudo-random true-or-false choice.
  *
  * **Example** (Generating a random boolean)
  *
@@ -114,6 +128,11 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
  * and `Number.MAX_SAFE_INTEGER` (inclusive).
  *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random safe integer across the full safe-integer
+ * range.
+ *
  * **Example** (Generating a random integer)
  *
  * ```ts
@@ -132,6 +151,10 @@ export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe(
 
 /**
  * Generates a random number between `min` (inclusive) and `max` (exclusive).
+ *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random floating-point number within a numeric range.
  *
  * **Example** (Generating a bounded random number)
  *
@@ -152,6 +175,10 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
 
 /**
  * Generates a random integer between `min` and `max`.
+ *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random integer within a rounded numeric range.
  *
  * **Details**
  *
@@ -190,6 +217,10 @@ export const nextIntBetween = (min: number, max: number, options?: {
 /**
  * Uses the pseudo-random number generator to shuffle the specified iterable.
  *
+ * **When to use**
+ *
+ * Use to randomly reorder an iterable using the active `Random` service.
+ *
  * **Example** (Shuffling values)
  *
  * ```ts
@@ -218,6 +249,10 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
 
 /**
  * Seeds the pseudo-random number generator with the specified value.
+ *
+ * **When to use**
+ *
+ * Use to run an effect with a deterministic pseudo-random sequence.
  *
  * **Details**
  *

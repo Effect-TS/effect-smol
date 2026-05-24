@@ -230,6 +230,11 @@ type UntaggedChildren<A> = true extends ChildrenAreTagged<A>
 /**
  * Namespace for `TaggedEnum` utility types.
  *
+ * **When to use**
+ *
+ * Use to reference utility types for constructing, extracting, and matching
+ * `TaggedEnum` variants.
+ *
  * **Details**
  *
  * Provides helper types for:
@@ -338,6 +343,11 @@ export declare namespace TaggedEnum {
    * Extracts the constructor argument type for a specific variant of a tagged
    * union.
    *
+   * **When to use**
+   *
+   * Use to derive the argument object expected by a constructor for one tagged
+   * union variant.
+   *
    * **Details**
    *
    * Returns `void` if the variant has no fields beyond `_tag`.
@@ -375,6 +385,10 @@ export declare namespace TaggedEnum {
   /**
    * Extracts the full variant type (including `_tag`) for a specific tag.
    *
+   * **When to use**
+   *
+   * Use to select one full tagged-union variant by its `_tag` value.
+   *
    * **Example** (extracting a variant type)
    *
    * ```ts
@@ -400,6 +414,11 @@ export declare namespace TaggedEnum {
 
   /**
    * The full constructor-object type returned by {@link taggedEnum}.
+   *
+   * **When to use**
+   *
+   * Use to type the full constructor and matcher object returned by
+   * `taggedEnum`.
    *
    * **Details**
    *
@@ -476,6 +495,10 @@ export declare namespace TaggedEnum {
    * Function type that constructs a tagged-union variant from its fields,
    * excluding the keys listed in `Tag`.
    *
+   * **When to use**
+   *
+   * Use to type an individual constructor for one tagged-union variant.
+   *
    * **Details**
    *
    * The constructor returns the full variant type `A`. If no fields remain
@@ -490,6 +513,10 @@ export declare namespace TaggedEnum {
 
   /**
    * Type-guard and pattern-matching interface for generic tagged enums.
+   *
+   * **When to use**
+   *
+   * Use to type the `$is` and `$match` helpers for generic tagged enums.
    *
    * **Details**
    *

@@ -170,9 +170,8 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * Use when take the first available value (like a fallback chain)
- * - Combine values when both are present
- * - Maintain a `undefined` state only when all values are `undefined`
+ * Use to take the first available value like a fallback chain, combining values
+ * only when both operands are present.
  *
  * **Details**
  *
@@ -196,6 +195,11 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
 /**
  * Creates a `Combiner` for `A | undefined` that combines values only when both
  * operands are defined.
+ *
+ * **When to use**
+ *
+ * Use to lift a `Combiner` so any `undefined` operand makes the combined result
+ * `undefined`.
  *
  * **Details**
  *
@@ -222,8 +226,8 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  *
  * **When to use**
  *
- * Use to wrap an existing `Reducer` to work with `A | undefined` values
- * - Reductions where any `undefined` value should abort the entire result
+ * Use to wrap an existing `Reducer` so any `undefined` value aborts the entire
+ * reduction result.
  *
  * **Details**
  *

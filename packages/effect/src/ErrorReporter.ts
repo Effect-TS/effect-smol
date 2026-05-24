@@ -65,6 +65,10 @@ import type * as Scope from "./Scope.ts"
  * String literal type used as the runtime type identifier for
  * `ErrorReporter` values.
  *
+ * **When to use**
+ *
+ * Use to refer to the runtime type identifier type in low-level integrations.
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */
@@ -72,6 +76,10 @@ export type TypeId = "~effect/ErrorReporter"
 
 /**
  * Runtime type identifier attached to `ErrorReporter` values.
+ *
+ * **When to use**
+ *
+ * Use to compare or attach the runtime identifier for `ErrorReporter` values.
  *
  * @category Type Identifiers
  * @since 4.0.0
@@ -114,6 +122,11 @@ export interface ErrorReporter {
 /**
  * Creates an `ErrorReporter` from a callback.
  *
+ * **When to use**
+ *
+ * Use to define how reported failures are forwarded to a logging, monitoring,
+ * or error-tracking backend.
+ *
  * **Details**
  *
  * The returned reporter automatically deduplicates causes and individual
@@ -133,6 +146,9 @@ export interface ErrorReporter {
  *   }
  * )
  * ```
+ *
+ * @see {@link layer} for registering reporters in the environment
+ * @see {@link report} for manually reporting a `Cause`
  *
  * @category constructors
  * @since 4.0.0
@@ -181,9 +197,8 @@ export const make = (
  *
  * **When to use**
  *
- * Use when prefer {@link layer} to configure reporters via the `Layer` API. Use this
- * reference directly only when you need low-level control (e.g. reading the
- * current reporters or swapping them inside a `FiberRef`).
+ * Use when low-level code needs to read or replace the current set of reporters
+ * directly.
  *
  * @category references
  * @since 4.0.0
@@ -192,6 +207,11 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
 
 /**
  * Creates a `Layer` that registers one or more `ErrorReporter`s.
+ *
+ * **When to use**
+ *
+ * Use to provide one or more error reporters to effects that perform error
+ * reporting.
  *
  * **Details**
  *
@@ -231,6 +251,9 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
  * )
  * ```
  *
+ * @see {@link make} for creating an `ErrorReporter` from a callback
+ * @see {@link CurrentErrorReporters} for low-level access to the current reporters
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -266,8 +289,7 @@ export const layer = <
  *
  * **When to use**
  *
- * Use when this is useful when you want to report an error for observability without
- * actually failing the fiber.
+ * Use to report a failure for observability without failing the current fiber.
  *
  * **Example** (Reporting a cause manually)
  *
@@ -329,6 +351,11 @@ declare global {
 /**
  * String property key used to mark an object error as ignored by error
  * reporting.
+ *
+ * **When to use**
+ *
+ * Use to type the property key that suppresses reporting for expected object
+ * errors.
  *
  * **Details**
  *
@@ -395,6 +422,11 @@ export const isIgnored = (u: unknown): boolean =>
 /**
  * String property key used to override the severity level of an object error.
  *
+ * **When to use**
+ *
+ * Use to type the property key that overrides the reporting severity for object
+ * errors.
+ *
  * **Details**
  *
  * When set to a valid `LogLevel.Severity`, the reporter callback receives this
@@ -407,6 +439,11 @@ export type severity = "~effect/ErrorReporter/severity"
 
 /**
  * Runtime property key used to override the severity level of an object error.
+ *
+ * **When to use**
+ *
+ * Use to annotate object errors with the severity reporter callbacks should
+ * receive.
  *
  * **Details**
  *
@@ -423,6 +460,10 @@ export type severity = "~effect/ErrorReporter/severity"
  * }
  * ```
  *
+ * @see {@link getSeverity} for reading the severity stored under this key
+ * @see {@link Reportable} for the annotation contract recognized on object
+ * errors
+ *
  * @category annotations
  * @since 4.0.0
  */
@@ -431,6 +472,14 @@ export const severity: severity = "~effect/ErrorReporter/severity"
 /**
  * Reads the `ErrorReporter.severity` annotation from an error object,
  * falling back to `"Info"` when the annotation is unset or invalid.
+ *
+ * **When to use**
+ *
+ * Use to inspect the severity that reporter callbacks will receive for an
+ * object error.
+ *
+ * @see {@link severity} for the annotation key used to override severity
+ * @see {@link Reportable} for the annotation properties recognized on object errors
  *
  * @category annotations
  * @since 4.0.0
@@ -445,6 +494,10 @@ export const getSeverity = (error: object): Severity => {
 /**
  * String property key used to attach extra key/value metadata to an object
  * error report.
+ *
+ * **When to use**
+ *
+ * Use to type the property key that attaches metadata to object error reports.
  *
  * **Details**
  *

@@ -276,6 +276,11 @@ export class SourceError extends Data.TaggedError("SourceError")<{
  * the configuration tree. String segments name object keys; numeric segments
  * index into arrays.
  *
+ * **When to use**
+ *
+ * Use to address raw configuration nodes when implementing or transforming a
+ * `ConfigProvider`.
+ *
  * **Example** (A typical config path)
  *
  * ```ts
@@ -317,21 +322,39 @@ export interface ConfigProvider extends Pipeable {
   /**
    * Returns the node found at `path`, or `undefined` if it does not exist.
    * Fails with `SourceError` when the underlying source cannot be read.
+   *
+   * **When to use**
+   *
+   * Use to resolve a path through this provider's path transformations before
+   * reading the backing source.
    */
   readonly load: (path: Path) => Effect.Effect<Node | undefined, SourceError>
 
   /**
    * Raw access to the underlying source.
+   *
+   * **When to use**
+   *
+   * Use to read from the backing source without applying this provider's path
+   * transformations.
    */
   readonly get: (path: Path) => Effect.Effect<Node | undefined, SourceError>
 
   /**
    * Function to map the input path.
+   *
+   * **When to use**
+   *
+   * Use to store the path transformation applied before raw provider lookup.
    */
   readonly mapInput: ((path: Path) => Path) | undefined
 
   /**
    * Prefix to add to the input path.
+   *
+   * **When to use**
+   *
+   * Use to store the path prefix applied before raw provider lookup.
    */
   readonly prefix: Path | undefined
 }

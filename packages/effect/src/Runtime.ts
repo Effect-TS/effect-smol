@@ -268,6 +268,11 @@ declare global {
 /**
  * Type-level key for the `Runtime.errorExitCode` marker.
  *
+ * **When to use**
+ *
+ * Use to type properties keyed by `Runtime.errorExitCode` on custom error
+ * values.
+ *
  * @category symbols
  * @since 4.0.0
  */
@@ -319,6 +324,11 @@ export const errorExitCode: errorExitCode = "~effect/Runtime/errorExitCode"
 /**
  * Reads the runtime exit-code marker from an unknown error value.
  *
+ * **When to use**
+ *
+ * Use to read a custom failure exit code from an unknown error value, falling
+ * back to the default failure code.
+ *
  * **Details**
  *
  * Returns the numeric `[Runtime.errorExitCode]` property when it is present on
@@ -347,6 +357,11 @@ export const getErrorExitCode = (u: unknown): number => {
 
 /**
  * Type-level key for the `Runtime.errorReported` marker.
+ *
+ * **When to use**
+ *
+ * Use to type properties keyed by `Runtime.errorReported` on custom error
+ * values.
  *
  * @category symbols
  * @since 4.0.0
@@ -400,6 +415,11 @@ export const errorReported: errorReported = "~effect/Runtime/errorReported"
 
 /**
  * Reads the runtime error-reporting marker from an unknown error value.
+ *
+ * **When to use**
+ *
+ * Use to read whether an unknown error value should be treated as already
+ * reported by the default main runner.
  *
  * **Details**
  *

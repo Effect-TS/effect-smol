@@ -32,6 +32,11 @@ export const symbol = "~effect/interfaces/PrimaryKey"
 /**
  * An interface for objects that can provide a string-based primary key.
  *
+ * **When to use**
+ *
+ * Use to define values that expose a stable string identifier through the
+ * `PrimaryKey` protocol.
+ *
  * **Details**
  *
  * Objects implementing this interface must provide a method that returns
@@ -86,6 +91,11 @@ export const isPrimaryKey = (u: unknown): u is PrimaryKey => hasProperty(u, symb
 
 /**
  * Extracts the string value from a `PrimaryKey`.
+ *
+ * **When to use**
+ *
+ * Use to read the stable string identifier from a value that implements
+ * `PrimaryKey`.
  *
  * **Example** (Reading primary key values)
  *

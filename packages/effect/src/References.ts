@@ -127,6 +127,11 @@ export {
  * Reference for controlling the current concurrency limit. Can be set to "unbounded"
  * for unlimited concurrency or a specific number to limit concurrent operations.
  *
+ * **When to use**
+ *
+ * Use to configure the default concurrency limit for operations that read
+ * concurrency from the current context.
+ *
  * **Example** (Setting current concurrency)
  *
  * ```ts
@@ -167,6 +172,11 @@ export const CurrentConcurrency: Context.Reference<number | "unbounded"> = refer
 /**
  * Reference for managing log annotations that are automatically added to all log entries.
  * These annotations provide contextual metadata that appears in every log message.
+ *
+ * **When to use**
+ *
+ * Use to attach shared contextual metadata to every log entry emitted in the
+ * current context.
  *
  * **Example** (Managing log annotations)
  *
@@ -226,6 +236,11 @@ export const CurrentLogAnnotations: Context.Reference<ReadonlyRecord<string, unk
  * Reference for the current log severity used by `Effect.log` when no explicit
  * level is provided.
  *
+ * **When to use**
+ *
+ * Use to set the default severity for `Effect.log` entries that do not provide
+ * an explicit level.
+ *
  * **Details**
  *
  * Use `MinimumLogLevel` to control which log entries are filtered out.
@@ -273,6 +288,11 @@ export const CurrentLogLevel: Context.Reference<Severity> = references.CurrentLo
 /**
  * Reference for managing log spans that track the duration and hierarchy of operations.
  * Each span represents a labeled time period for performance analysis and debugging.
+ *
+ * **When to use**
+ *
+ * Use to carry the active log span stack that should be included with log
+ * entries in the current context.
  *
  * **Example** (Tracking log spans)
  *
@@ -359,6 +379,10 @@ export const CurrentStackFrame: Context.Reference<StackFrame | undefined> = refe
  * Reference for setting the minimum log level threshold. Log entries below this
  * level will be filtered out completely.
  *
+ * **When to use**
+ *
+ * Use to filter out log entries below a severity threshold.
+ *
  * **Example** (Setting the minimum log level)
  *
  * ```ts
@@ -411,6 +435,10 @@ export const MinimumLogLevel: Context.Reference<LogLevel> = references.MinimumLo
  * Reference for controlling whether tracing is enabled globally. When set to false,
  * spans will not be registered with the tracer and tracing overhead is minimized.
  *
+ * **When to use**
+ *
+ * Use to disable or re-enable span registration in the current context.
+ *
  * **Example** (Toggling tracing)
  *
  * ```ts
@@ -457,6 +485,10 @@ export const TracerEnabled: Context.Reference<boolean> = references.TracerEnable
 /**
  * Reference for managing span annotations that are automatically added to all new spans.
  * These annotations provide context and metadata that applies across multiple spans.
+ *
+ * **When to use**
+ *
+ * Use to attach shared metadata to every span created in the current context.
  *
  * **Example** (Managing span annotations)
  *
@@ -511,6 +543,10 @@ export const TracerSpanAnnotations: Context.Reference<ReadonlyRecord<string, unk
 /**
  * Reference for managing span links that are automatically added to all new spans.
  * Span links connect related spans that are not in a parent-child relationship.
+ *
+ * **When to use**
+ *
+ * Use to attach shared links to every span created in the current context.
  *
  * **Example** (Managing span links)
  *
@@ -575,6 +611,10 @@ export const TracerSpanLinks: Context.Reference<ReadonlyArray<SpanLink>> = refer
  * Reference for controlling whether trace timing is enabled globally. When set
  * to false, spans will not contain timing information (trace time will always
  * be set to zero).
+ *
+ * **When to use**
+ *
+ * Use to disable or re-enable timing capture for spans in the current context.
  *
  * **Example** (Toggling trace timing)
  *
@@ -707,6 +747,11 @@ export {
   /**
    * Reference for the current scheduler implementation used by the Effect runtime.
    * Controls how Effects are scheduled and executed.
+   *
+   * **When to use**
+   *
+   * Use to provide the scheduler implementation that fibers use in the current
+   * context.
    *
    * **Example** (Providing a custom scheduler)
    *

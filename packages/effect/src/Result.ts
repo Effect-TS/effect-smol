@@ -340,9 +340,12 @@ export const succeed: <A>(right: A) => Result<A> = result.succeed
 /**
  * Creates a `Result` holding a `Failure` value.
  *
+ * **When to use**
+ *
+ * Use to represent a failed computation with a typed failure value.
+ *
  * **Details**
  *
- * - Use when you want to represent a failed computation
  * - The success type `A` defaults to `never`
  * - Does not mutate input; allocates a new `Failure` wrapper
  *
@@ -561,9 +564,12 @@ export {
 /**
  * Tests whether a value is a `Result` (either `Success` or `Failure`).
  *
+ * **When to use**
+ *
+ * Use to validate unknown input before operating on it as a `Result`.
+ *
  * **Details**
  *
- * - Use to validate unknown input before operating on it as a `Result`
  * - Returns `true` for both `Success` and `Failure` variants
  * - Acts as a TypeScript type guard, narrowing to `Result<unknown, unknown>`
  *
@@ -588,6 +594,10 @@ export const isResult: (input: unknown) => input is Result<unknown, unknown> = r
 
 /**
  * Checks whether a `Result` is a `Failure`.
+ *
+ * **When to use**
+ *
+ * Use to narrow a known `Result` to the `Failure` variant.
  *
  * **Details**
  *
@@ -618,6 +628,10 @@ export const isFailure: <A, E>(self: Result<A, E>) => self is Failure<A, E> = re
 /**
  * Checks whether a `Result` is a `Success`.
  *
+ * **When to use**
+ *
+ * Use to narrow a known `Result` to the `Success` variant.
+ *
  * **Details**
  *
  * - Acts as a TypeScript type guard, narrowing to `Success<A, E>`
@@ -647,11 +661,14 @@ export const isSuccess: <A, E>(self: Result<A, E>) => self is Success<A, E> = re
 /**
  * Extracts the success value as an `Option`, discarding the failure.
  *
+ * **When to use**
+ *
+ * Use to extract only the success value and discard failure information.
+ *
  * **Details**
  *
  * - `Success<A>` becomes `Some<A>`
  * - `Failure<E>` becomes `None`
- * - Use when you only care about the success case and want to discard error info
  *
  * **Example** (Extracting the success as an Option)
  *
@@ -676,11 +693,14 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
 /**
  * Extracts the failure value as an `Option`, discarding the success.
  *
+ * **When to use**
+ *
+ * Use to extract only the failure value and discard successful values.
+ *
  * **Details**
  *
  * - `Failure<E>` becomes `Some<E>`
  * - `Success<A>` becomes `None`
- * - Use when you only care about the error case
  *
  * **Example** (Extracting the failure as an Option)
  *
@@ -744,12 +764,16 @@ export const makeEquivalence = <A, E>(
 /**
  * Transforms both the success and failure channels of a `Result`.
  *
+ * **When to use**
+ *
+ * Use to transform both success and failure values without changing whether the
+ * result succeeds or fails.
+ *
  * **Details**
  *
  * - Applies `onSuccess` if the result is a `Success`
  * - Applies `onFailure` if the result is a `Failure`
  * - Returns a new `Result`; does not mutate the input
- * - Use when you need to transform both channels in a single operation
  *
  * **Example** (Mapping both channels)
  *
@@ -793,6 +817,10 @@ export const mapBoth: {
 
 /**
  * Transforms the failure channel of a `Result`, leaving the success channel unchanged.
+ *
+ * **When to use**
+ *
+ * Use to transform only the failure channel while preserving success values.
  *
  * **Details**
  *
@@ -925,6 +953,11 @@ export const match: {
 /**
  * Lifts a value into a `Result` based on a predicate or refinement.
  *
+ * **When to use**
+ *
+ * Use to construct a `Result` from a raw value guarded by a predicate or
+ * refinement.
+ *
  * **Details**
  *
  * - If the predicate returns `true`, the value becomes `Success<A>`
@@ -979,6 +1012,11 @@ export const liftPredicate: {
 /**
  * Validates the success value of a `Result` using a predicate, failing with a
  * custom error if the predicate returns `false`.
+ *
+ * **When to use**
+ *
+ * Use to validate an already-successful `Result` value with a predicate or
+ * refinement.
  *
  * **Details**
  *
@@ -1107,11 +1145,14 @@ export const getOrElse: {
 /**
  * Extracts the success value, or returns `null` on failure.
  *
+ * **When to use**
+ *
+ * Use with APIs that represent absence as `null`.
+ *
  * **Details**
  *
  * - `Success<A>` returns `A`
  * - `Failure<E>` returns `null`
- * - Convenient for interop with APIs that use `null` to represent absence
  *
  * **Example** (Unwrapping to nullable)
  *
@@ -1136,11 +1177,14 @@ export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(const
 /**
  * Extracts the success value, or returns `undefined` on failure.
  *
+ * **When to use**
+ *
+ * Use with APIs that represent absence as `undefined`.
+ *
  * **Details**
  *
  * - `Success<A>` returns `A`
  * - `Failure<E>` returns `undefined`
- * - Convenient for interop with APIs that use `undefined` to represent absence
  *
  * **Example** (Unwrapping to optional)
  *
@@ -1211,6 +1255,10 @@ export const getOrThrowWith: {
 /**
  * Extracts the success value or throws the raw failure value `E`.
  *
+ * **When to use**
+ *
+ * Use when unchecked boundaries should turn failures into thrown exceptions.
+ *
  * **Details**
  *
  * - `Success<A>` returns `A`
@@ -1278,6 +1326,11 @@ export const orElse: {
 /**
  * Chains a function that returns a `Result` onto a successful value.
  *
+ * **When to use**
+ *
+ * Use to sequence `Result`-returning computations that should short-circuit on
+ * failure.
+ *
  * **Details**
  *
  * - If `self` is a `Success`, applies `f` to the value and returns the resulting `Result`
@@ -1317,6 +1370,11 @@ export const flatMap: {
 
 /**
  * A flexible variant of {@link flatMap} that accepts multiple input shapes.
+ *
+ * **When to use**
+ *
+ * Use to sequence a next step that may be a `Result`, a function, or a plain
+ * value.
  *
  * **Details**
  *
@@ -1380,6 +1438,11 @@ export const andThen: {
 
 /**
  * Collects a structure of `Result`s into a single `Result` of collected values.
+ *
+ * **When to use**
+ *
+ * Use to collect independent `Result` values into one `Result` while preserving
+ * the original structure.
  *
  * **Details**
  *
@@ -1451,6 +1514,11 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
 /**
  * Swaps the success and failure channels of a `Result`.
  *
+ * **When to use**
+ *
+ * Use to swap channels when failure-focused operations are easier through
+ * success-oriented combinators.
+ *
  * **Details**
  *
  * - `Success<A>` becomes `Failure<A>` (i.e., `Result<E, A>`)
@@ -1480,6 +1548,11 @@ export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
 
 /**
  * Generator-based syntax for composing `Result` values sequentially.
+ *
+ * **When to use**
+ *
+ * Use when sequential `Result` composition is clearer with generator syntax
+ * than nested `flatMap` calls.
  *
  * **Details**
  *
@@ -1619,6 +1692,11 @@ export const bind: {
  * Wraps the success value of a `Result` into a named field, producing a
  * `Result<Record<N, A>>`.
  *
+ * **When to use**
+ *
+ * Use to name the success value of an existing `Result` before continuing a
+ * do-notation pipeline.
+ *
  * **Details**
  *
  * This is typically used to start a do-notation chain from an existing
@@ -1664,6 +1742,10 @@ export {
   /**
    * Adds a named field to the do-notation accumulator by computing a pure
    * (non-Result) value from the current accumulated object.
+   *
+   * **When to use**
+   *
+   * Use to add a pure computed field to a do-notation accumulator.
    *
    * **Details**
    *

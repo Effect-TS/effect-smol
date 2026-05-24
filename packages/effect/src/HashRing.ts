@@ -73,6 +73,11 @@ const TypeId = "~effect/cluster/HashRing" as const
  * A weighted consistent-hashing ring for assigning inputs to nodes with stable
  * remapping as nodes are added or removed.
  *
+ * **When to use**
+ *
+ * Use to maintain a mutable weighted hash ring for routing keys or shards to
+ * nodes identified by `PrimaryKey`.
+ *
  * **Details**
  *
  * Nodes are identified by their `PrimaryKey` value and can be iterated from the
@@ -163,6 +168,10 @@ const Proto = {
 /**
  * Add new nodes to the ring. If a node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
+ *
+ * **When to use**
+ *
+ * Use to register or update several nodes in a `HashRing` at the same weight.
  *
  * @category combinators
  * @since 3.19.0
@@ -348,6 +357,11 @@ export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: s
  * Distributes `count` shards across the nodes in the ring, attempting to
  * balance the number of shards allocated to each node. Returns undefined if
  * the hashring has no elements with weight.
+ *
+ * **When to use**
+ *
+ * Use to precompute ownership for a fixed number of shard indexes across the
+ * current ring members.
  *
  * @category combinators
  * @since 3.19.0

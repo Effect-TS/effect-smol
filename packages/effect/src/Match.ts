@@ -253,6 +253,10 @@ export interface Not {
 /**
  * Creates a matcher for a specific type.
  *
+ * **When to use**
+ *
+ * Use to build a reusable matcher function for values of a known input type.
+ *
  * **Details**
  *
  * This function defines a `Matcher` that operates on a given type, allowing you
@@ -294,6 +298,10 @@ export const type: <I>() => Matcher<I, Types.Without<never>, I, never, never> = 
 
 /**
  * Creates a matcher from a specific value.
+ *
+ * **When to use**
+ *
+ * Use to match one concrete input immediately.
  *
  * **Details**
  *
@@ -680,6 +688,10 @@ export const whenAnd: <
 /**
  * Matches values based on a specified discriminant field.
  *
+ * **When to use**
+ *
+ * Use to match one or more exact values of a discriminator field.
+ *
  * **Details**
  *
  * This function is used to define pattern matching on objects that follow a
@@ -706,6 +718,9 @@ export const whenAnd: <
  * )
  * ```
  *
+ * @see {@link discriminators} for defining several discriminator handlers at once
+ * @see {@link discriminatorStartsWith} for matching string discriminator values by prefix
+ *
  * @category Defining patterns
  * @since 4.0.0
  */
@@ -726,6 +741,10 @@ export const discriminator: <D extends string>(
 
 /**
  * Matches values where a specified field starts with a given prefix.
+ *
+ * **When to use**
+ *
+ * Use to match string discriminator values by prefix instead of exact value.
  *
  * **Details**
  *
@@ -756,6 +775,8 @@ export const discriminator: <D extends string>(
  * console.log(match({ type: "A.A" })) // 1
  * ```
  *
+ * @see {@link discriminator} for matching exact discriminator values
+ *
  * @category Defining patterns
  * @since 4.0.0
  */
@@ -778,6 +799,11 @@ export const discriminatorStartsWith: <D extends string>(
 /**
  * Matches values based on a field that serves as a discriminator, mapping each
  * possible value to a corresponding handler.
+ *
+ * **When to use**
+ *
+ * Use to define several discriminator handlers at once without finalizing the
+ * matcher.
  *
  * **Details**
  *
@@ -809,6 +835,9 @@ export const discriminatorStartsWith: <D extends string>(
  * )
  * ```
  *
+ * @see {@link discriminator} for adding one discriminator case to a matcher pipeline
+ * @see {@link discriminatorsExhaustive} for handling every discriminator value and finalizing the matcher
+ *
  * @category Defining patterns
  * @since 4.0.0
  */
@@ -837,6 +866,11 @@ export const discriminators: <D extends string>(
  * Matches values by a discriminator field and requires every possible case to
  * be handled.
  *
+ * **When to use**
+ *
+ * Use to define an exhaustive discriminator handler map that finalizes the
+ * matcher.
+ *
  * **Details**
  *
  * This is the exhaustive variant of {@link discriminators}. Each possible
@@ -863,6 +897,8 @@ export const discriminators: <D extends string>(
  *   })
  * )
  * ```
+ *
+ * @see {@link discriminators} for defining discriminator handlers without finalizing the matcher
  *
  * @category Defining patterns
  * @since 4.0.0
@@ -1096,6 +1132,11 @@ export const tagsExhaustive: <
 /**
  * Excludes a specific value from matching while allowing all others.
  *
+ * **When to use**
+ *
+ * Use to add a negative pattern case for inputs that should match when another
+ * pattern does not.
+ *
  * **Details**
  *
  * This function is useful when you need to **handle all values except one or
@@ -1124,6 +1165,8 @@ export const tagsExhaustive: <
  * // Output: "fallback"
  * ```
  *
+ * @see {@link when} for adding a positive pattern case
+ *
  * @category Defining patterns
  * @since 4.0.0
  */
@@ -1148,6 +1191,10 @@ export const not: <
 
 /**
  * Matches non-empty strings.
+ *
+ * **When to use**
+ *
+ * Use to match strings whose length is greater than zero.
  *
  * **Details**
  *
@@ -1175,6 +1222,8 @@ export const not: <
  * // Output: "Valid input:    " (whitespace-only strings are considered non-empty)
  * ```
  *
+ * @see {@link string} for matching any string
+ *
  * @category Predicates
  * @since 4.0.0
  */
@@ -1182,6 +1231,10 @@ export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptySt
 
 /**
  * Matches a specific set of literal values (e.g., `Match.is("a", 42, true)`).
+ *
+ * **When to use**
+ *
+ * Use to match one of several literal primitive or null values.
  *
  * **Details**
  *
@@ -1257,6 +1310,10 @@ export const string: Predicate.Refinement<unknown, string> = Predicate.isString
 /**
  * Matches values of type `number`.
  *
+ * **When to use**
+ *
+ * Use to match primitive number values, including `NaN` and infinities.
+ *
  * **Details**
  *
  * This predicate refines unknown values to numbers, allowing pattern matching
@@ -1283,6 +1340,8 @@ export const string: Predicate.Refinement<unknown, string> = Predicate.isString
  * console.log(categorizeNumber(NaN)) // "Not a number"
  * console.log(categorizeNumber("hello")) // "Not a number type"
  * ```
+ *
+ * @see {@link bigint} for matching primitive bigint values
  *
  * @category predicates
  * @since 4.0.0
@@ -1345,6 +1404,10 @@ export const any: SafeRefinement<unknown, any> = internal.any
 /**
  * Matches any defined (non-null and non-undefined) value.
  *
+ * **When to use**
+ *
+ * Use to exclude only `null` and `undefined` from a match branch.
+ *
  * **Details**
  *
  * This predicate matches values that are neither `null` nor `undefined`,
@@ -1380,6 +1443,8 @@ export const any: SafeRefinement<unknown, any> = internal.any
  * // Output: "Value is null or undefined"
  * ```
  *
+ * @see {@link any} for matching every value without excluding nullish inputs
+ *
  * @category Predicates
  * @since 4.0.0
  */
@@ -1387,6 +1452,10 @@ export const defined: <A>(u: A) => u is A & {} = internal.defined
 
 /**
  * Matches values of type `boolean`.
+ *
+ * **When to use**
+ *
+ * Use to match primitive boolean values.
  *
  * **Details**
  *
@@ -1414,6 +1483,8 @@ export const defined: <A>(u: A) => u is A & {} = internal.defined
  * console.log(describeTruthiness(0)) // "Falsy number"
  * console.log(describeTruthiness(1)) // "Some other truthy value"
  * ```
+ *
+ * @see {@link is} for matching specific literal boolean values
  *
  * @category predicates
  * @since 4.0.0
@@ -1470,6 +1541,10 @@ export {
 /**
  * Matches values of type `bigint`.
  *
+ * **When to use**
+ *
+ * Use to match primitive bigint values.
+ *
  * **Details**
  *
  * This predicate refines unknown values to bigints, allowing pattern matching
@@ -1496,6 +1571,8 @@ export {
  * console.log(processLargeNumber(123)) // "Regular number: 123"
  * console.log(processLargeNumber("123")) // "Not a numeric type"
  * ```
+ *
+ * @see {@link number} for matching primitive number values
  *
  * @category predicates
  * @since 4.0.0
@@ -1543,6 +1620,10 @@ export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
 /**
  * Matches values that are instances of `Date`.
  *
+ * **When to use**
+ *
+ * Use to match `Date` instances.
+ *
  * **Details**
  *
  * This predicate refines unknown values to Date instances, allowing pattern
@@ -1571,6 +1652,8 @@ export const symbol: Predicate.Refinement<unknown, symbol> = Predicate.isSymbol
  * console.log(processDateValue(1704067200000)) // "Not a date-related value"
  * ```
  *
+ * @see {@link instanceOf} for matching instances of any constructor
+ *
  * @category predicates
  * @since 4.0.0
  */
@@ -1578,6 +1661,10 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
 
 /**
  * Matches non-null objects other than arrays.
+ *
+ * **When to use**
+ *
+ * Use to match broad non-null, non-array object values.
  *
  * **Details**
  *
@@ -1610,6 +1697,8 @@ export const date: Predicate.Refinement<unknown, Date> = Predicate.isDate
  * console.log(analyzeValue("hello")) // "Not an object"
  * ```
  *
+ * @see {@link instanceOf} for matching a specific constructor
+ *
  * @category predicates
  * @since 4.0.0
  */
@@ -1617,6 +1706,11 @@ export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }
 
 /**
  * Matches instances of a given class.
+ *
+ * **When to use**
+ *
+ * Use to match values that are instances of a constructor with type-safe
+ * narrowing.
  *
  * **Details**
  *
@@ -1661,6 +1755,9 @@ export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }
  * console.log(handleValue(new Map([["count", 1]]))) // "Map with 1 entries"
  * ```
  *
+ * @see {@link instanceOfUnsafe} for constructor matching without the same type-safety guarantee
+ * @see {@link record} for matching broad non-null, non-array objects
+ *
  * @category Predicates
  * @since 4.0.0
  */
@@ -1670,6 +1767,10 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
 
 /**
  * Unsafe variant of `instanceOf` that allows matching without type narrowing.
+ *
+ * **When to use**
+ *
+ * Use when constructor matching needs the unsafe refinement type.
  *
  * **Details**
  *
@@ -1699,6 +1800,8 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
  * )
  * ```
  *
+ * @see {@link instanceOf} for type-safe constructor matching
+ *
  * @category predicates
  * @since 4.0.0
  */
@@ -1708,6 +1811,10 @@ export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
 
 /**
  * Provides a fallback value when no patterns match.
+ *
+ * **When to use**
+ *
+ * Use to finalize a matcher with a fallback for unmatched input.
  *
  * **Details**
  *
@@ -1736,6 +1843,10 @@ export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
  * // Output: "fallback"
  * ```
  *
+ * @see {@link option} for finalizing unmatched input as `Option.none`
+ * @see {@link result} for returning unmatched input as a `Result` failure
+ * @see {@link orElseAbsurd} for finalizing when unmatched input should be impossible
+ *
  * @category Completion
  * @since 4.0.0
  */
@@ -1748,6 +1859,11 @@ export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
 // TODO(4.0): Rename to "orThrow"? Like Result.getOrThrow
 /**
  * Throws an error if no pattern matches.
+ *
+ * **When to use**
+ *
+ * Use to finalize a matcher when every remaining unmatched case should be
+ * impossible.
  *
  * **Details**
  *
@@ -1777,6 +1893,9 @@ export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
  * // This would throw an error at runtime:
  * // strictMatcher("c" as any) // throws
  * ```
+ *
+ * @see {@link exhaustive} for compile-time exhaustive matcher finalization
+ * @see {@link orElse} for providing a fallback for unmatched input
  *
  * @category completion
  * @since 4.0.0
@@ -1831,6 +1950,11 @@ export const result: <I, F, R, A, Pr, Ret>(
 /**
  * Wraps the match result in an `Option`, representing an optional match.
  *
+ * **When to use**
+ *
+ * Use to finalize a matcher when unmatched input is expected and should become
+ * `Option.none`.
+ *
  * **Details**
  *
  * This function ensures that the result of a matcher is wrapped in an `Option`,
@@ -1861,6 +1985,9 @@ export const result: <I, F, R, A, Pr, Ret>(
  * console.log(getRole({ role: "viewer" }))
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
+ *
+ * @see {@link result} for preserving unmatched input as a `Result` failure
+ * @see {@link orElse} for replacing unmatched input with a fallback value
  *
  * @category Completion
  * @since 4.0.0

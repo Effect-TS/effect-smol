@@ -224,6 +224,11 @@ export const isDoneFailure = <E>(
 /**
  * Finds a `Cause.Done` failure in a `Cause`.
  *
+ * **When to use**
+ *
+ * Use to separate `Cause.Done` completion from ordinary causes while preserving
+ * the typed done value.
+ *
  * **Details**
  *
  * Returns a successful `Result` with the `Cause.Done` value when one is
@@ -298,6 +303,11 @@ export const filterNoDone: <E>(
 /**
  * Filters a Cause to extract the leftover value from done errors.
  *
+ * **When to use**
+ *
+ * Use to extract only the leftover value carried by a `Cause.Done` completion
+ * signal.
+ *
  * @category Done
  * @since 4.0.0
  */
@@ -336,6 +346,10 @@ export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Don
 
 /**
  * Pattern matches on a Pull, handling success, failure, and done cases.
+ *
+ * **When to use**
+ *
+ * Use to handle all three `Pull` outcomes with effectful handlers.
  *
  * **Example** (Matching Pull outcomes)
  *

@@ -67,6 +67,11 @@ import * as effect from "./internal/effect.ts"
  * Represents a time-based clock which provides functionality related to time
  * and scheduling.
  *
+ * **When to use**
+ *
+ * Use to define or provide a clock service for current-time and sleep
+ * operations.
+ *
  * **Example** (Reading current time)
  *
  * ```ts
@@ -87,22 +92,44 @@ import * as effect from "./internal/effect.ts"
 export interface Clock {
   /**
    * Unsafely returns the current time in milliseconds.
+   *
+   * **When to use**
+   *
+   * Use to read millisecond time synchronously when you already have a `Clock`
+   * service and can accept non-effectful access.
    */
   currentTimeMillisUnsafe(): number
   /**
    * Returns the current time in milliseconds.
+   *
+   * **When to use**
+   *
+   * Use to read millisecond time through this `Clock` service in `Effect`.
    */
   readonly currentTimeMillis: Effect<number>
   /**
    * Unsafely returns the current time in nanoseconds.
+   *
+   * **When to use**
+   *
+   * Use to read nanosecond time synchronously when you already have a `Clock`
+   * service and can accept non-effectful access.
    */
   currentTimeNanosUnsafe(): bigint
   /**
    * Returns the current time in nanoseconds.
+   *
+   * **When to use**
+   *
+   * Use to read nanosecond time through this `Clock` service in `Effect`.
    */
   readonly currentTimeNanos: Effect<bigint>
   /**
    * Asynchronously sleeps for the specified duration.
+   *
+   * **When to use**
+   *
+   * Use to delay an `Effect` workflow by a duration through this `Clock` service.
    */
   sleep(duration: Duration.Duration): Effect<void>
 }
@@ -195,6 +222,11 @@ export const currentTimeMillis: Effect<number> = effect.currentTimeMillis
 
 /**
  * Returns an Effect that succeeds with the current time in nanoseconds.
+ *
+ * **When to use**
+ *
+ * Use to read wall-clock time from the active `Clock` service with nanosecond
+ * precision.
  *
  * **Example** (Reading nanoseconds)
  *

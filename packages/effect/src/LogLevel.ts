@@ -48,6 +48,11 @@ import * as References from "./References.ts"
  * Represents every level used by Effect logging, including concrete message
  * severities and the `All` and `None` sentinel levels.
  *
+ * **When to use**
+ *
+ * Use to type values that may be either concrete log message severities or
+ * logging configuration sentinels.
+ *
  * **Details**
  *
  * The levels are ordered from most severe to least severe:
@@ -135,6 +140,10 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
 /**
  * An `Order` instance for `LogLevel` that defines the severity ordering.
  *
+ * **When to use**
+ *
+ * Use to sort or compare log levels according to Effect's severity order.
+ *
  * **Details**
  *
  * This order treats "All" as the least restrictive level and "None" as the most restrictive,
@@ -218,8 +227,7 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  *
  * **When to use**
  *
- * Use when you use this for strict severity comparisons when filtering logs based on minimum
- * severity requirements.
+ * Use to check whether one log level is strictly more severe than another.
  *
  * **Details**
  *
@@ -261,7 +269,8 @@ export const isGreaterThan: {
  *
  * **When to use**
  *
- * Use when you use this for implementing minimum log level filtering.
+ * Use to implement minimum log-level filtering by checking whether a message
+ * level meets a threshold.
  *
  * **Details**
  *
@@ -311,8 +320,7 @@ export const isGreaterThanOrEqualTo: {
  *
  * **When to use**
  *
- * Use when you use this for strict severity comparisons when filtering out logs that are too
- * verbose.
+ * Use to check whether one log level is strictly less severe than another.
  *
  * **Details**
  *
@@ -354,7 +362,8 @@ export const isLessThan: {
  *
  * **When to use**
  *
- * Use when you use this for implementing maximum log level filtering.
+ * Use to implement maximum log-level filtering by checking whether a level is
+ * at or below a threshold.
  *
  * **Details**
  *
@@ -399,6 +408,11 @@ export const isLessThanOrEqualTo: {
 
 /**
  * Checks whether a given log level is enabled for the current fiber.
+ *
+ * **When to use**
+ *
+ * Use to check whether a log level would be emitted under the current fiber's
+ * minimum log level.
  *
  * **Details**
  *

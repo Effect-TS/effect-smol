@@ -15,6 +15,10 @@ import * as predicate from "./Predicate.ts"
 /**
  * Tests if a value is a `symbol`.
  *
+ * **When to use**
+ *
+ * Use to validate unknown input before treating it as a JavaScript `symbol`.
+ *
  * **Example** (Checking for symbols)
  *
  * ```ts

@@ -59,6 +59,11 @@ export const TypeId = "~effect/platform/Path"
 /**
  * Service interface for platform-specific path manipulation.
  *
+ * **When to use**
+ *
+ * Use to depend on path operations through the Effect environment instead of a
+ * concrete host path module.
+ *
  * **Details**
  *
  * The service exposes operations for joining, normalizing, parsing,
@@ -122,6 +127,10 @@ export interface Path {
 /**
  * Namespace containing types associated with the `Path` service.
  *
+ * **When to use**
+ *
+ * Use to reference types associated with path parsing and formatting.
+ *
  * **Example** (Working with parsed paths)
  *
  * ```ts
@@ -152,6 +161,11 @@ export interface Path {
 export declare namespace Path {
   /**
    * Structured representation of a parsed file system path.
+   *
+   * **When to use**
+   *
+   * Use to model the object form produced by `Path.parse` and consumed by
+   * `Path.format`.
    *
    * **Details**
    *

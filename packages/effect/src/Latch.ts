@@ -40,6 +40,11 @@ import * as internal from "./internal/effect.ts"
  * A reusable coordination primitive that lets fibers wait until they are
  * released by the latch.
  *
+ * **When to use**
+ *
+ * Use to coordinate fibers that must wait for an explicit open or release
+ * signal before continuing.
+ *
  * **Details**
  *
  * A closed latch causes `await` and `whenOpen` to suspend. `open` opens the
@@ -63,23 +68,76 @@ import * as internal from "./internal/effect.ts"
  * })
  * ```
  *
+ * @see {@link make} for creating a latch inside Effect code
+ * @see {@link open} for releasing current and future waiters
+ * @see {@link release} for releasing only the current waiters
+ *
  * @category models
  * @since 4.0.0
  */
 export interface Latch {
-  /** open the latch, releasing all fibers waiting on it */
+  /**
+   * Opens the latch, releasing all fibers waiting on it.
+   *
+   * **When to use**
+   *
+   * Use to let current and future waiters continue.
+   */
   readonly open: Effect.Effect<boolean>
-  /** open the latch, releasing all fibers waiting on it */
+
+  /**
+   * Opens the latch synchronously, releasing all fibers waiting on it.
+   *
+   * **When to use**
+   *
+   * Use when synchronous code must open the latch immediately.
+   */
   openUnsafe(this: Latch): boolean
-  /** release all fibers waiting on the latch, without opening it */
+
+  /**
+   * Releases all fibers currently waiting on the latch without opening it.
+   *
+   * **When to use**
+   *
+   * Use to let current waiters continue while future waiters still suspend.
+   */
   readonly release: Effect.Effect<boolean>
-  /** wait for the latch to be opened */
+
+  /**
+   * Waits for the latch to be opened or released.
+   *
+   * **When to use**
+   *
+   * Use to suspend until the latch allows the current fiber to continue.
+   */
   readonly await: Effect.Effect<void>
-  /** close the latch */
+
+  /**
+   * Closes the latch so future waiters suspend again.
+   *
+   * **When to use**
+   *
+   * Use to re-enable waiting after a latch has been opened.
+   */
   readonly close: Effect.Effect<boolean>
-  /** close the latch */
+
+  /**
+   * Closes the latch synchronously so future waiters suspend again.
+   *
+   * **When to use**
+   *
+   * Use when synchronous code must close the latch immediately.
+   */
   closeUnsafe(this: Latch): boolean
-  /** only run the given effect when the latch is open */
+
+  /**
+   * Runs the given effect only after the latch allows waiting fibers to
+   * continue.
+   *
+   * **When to use**
+   *
+   * Use to gate an effect behind the latch signal.
+   */
   whenOpen<A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
 }
 
@@ -88,8 +146,7 @@ export interface Latch {
  *
  * **When to use**
  *
- * Use when you use this only when synchronous allocation is required; otherwise prefer
- * `make`.
+ * Use when synchronous allocation is required outside an Effect workflow.
  *
  * **Details**
  *
@@ -117,6 +174,8 @@ export interface Latch {
  * const program = Effect.all([waiter, opener])
  * ```
  *
+ * @see {@link make} for creating a latch inside Effect code
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -124,6 +183,10 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
 
 /**
  * Creates a `Latch` inside `Effect`.
+ *
+ * **When to use**
+ *
+ * Use to create a latch for coordinating fibers inside Effect code.
  *
  * **Details**
  *
@@ -152,6 +215,8 @@ export const makeUnsafe: (open?: boolean | undefined) => Latch = internal.makeLa
  *   yield* Effect.all([waiter, opener])
  * })
  * ```
+ *
+ * @see {@link makeUnsafe} for synchronous allocation outside Effect code
  *
  * @category constructors
  * @since 4.0.0

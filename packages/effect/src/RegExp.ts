@@ -8,6 +8,11 @@ import * as predicate from "./Predicate.ts"
 /**
  * Re-exports the JavaScript `RegExp` constructor from `globalThis`.
  *
+ * **When to use**
+ *
+ * Use to construct JavaScript regular expressions through the Effect module
+ * namespace.
+ *
  * **Example** (Creating a regular expression)
  *
  * ```ts
@@ -29,6 +34,10 @@ export const RegExp = globalThis.RegExp
 /**
  * Tests if a value is a `RegExp`.
  *
+ * **When to use**
+ *
+ * Use to validate unknown input before treating it as a regular expression.
+ *
  * **Example** (Checking for regular expressions)
  *
  * ```ts
@@ -46,6 +55,10 @@ export const isRegExp: (input: unknown) => input is RegExp = predicate.isRegExp
 
 /**
  * Escapes special characters in a regular expression pattern.
+ *
+ * **When to use**
+ *
+ * Use to turn literal text into a safe regular expression pattern fragment.
  *
  * **Example** (Escaping a pattern string)
  *

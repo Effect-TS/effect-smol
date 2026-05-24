@@ -44,6 +44,10 @@ import { redact } from "./Redactable.ts"
 /**
  * Symbol used by Node.js for custom object inspection.
  *
+ * **When to use**
+ *
+ * Use to implement Node.js custom inspection for a value.
+ *
  * **Details**
  *
  * This symbol is recognized by Node.js's `util.inspect()` function and the REPL
@@ -77,6 +81,10 @@ export const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom")
  * This symbol type is used to implement custom inspection behavior in Node.js
  * environments.
  *
+ * **When to use**
+ *
+ * Use to type methods keyed by the Node.js custom inspection symbol.
+ *
  * **Example** (Typing custom Node inspection)
  *
  * ```ts
@@ -101,6 +109,10 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
 
 /**
  * Interface for objects that can be inspected and provide custom string representations.
+ *
+ * **When to use**
+ *
+ * Use to define values with custom string, JSON, and Node.js inspection output.
  *
  * **Details**
  *
@@ -185,6 +197,10 @@ export const toJson = (input: unknown): unknown => {
 /**
  * Converts an unknown value to a string for diagnostics.
  *
+ * **When to use**
+ *
+ * Use to produce a diagnostic string from a value whose runtime type is unknown.
+ *
  * **Details**
  *
  * Strings are returned unchanged. Objects are formatted as JSON using the
@@ -207,6 +223,10 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
 
 /**
  * A base prototype object that implements the {@link Inspectable} interface.
+ *
+ * **When to use**
+ *
+ * Use as a prototype for plain objects that should share standard inspectable behavior.
  *
  * **Details**
  *
@@ -252,6 +272,10 @@ export const BaseProto: Inspectable = {
 /**
  * Abstract base class that implements the Inspectable interface.
  *
+ * **When to use**
+ *
+ * Use as a base class for inspectable objects that define their own JSON representation.
+ *
  * **Details**
  *
  * This class provides a convenient way to create inspectable objects by extending it.
@@ -294,6 +318,10 @@ export abstract class Class {
   /**
    * Returns a JSON representation of this object.
    *
+   * **When to use**
+   *
+   * Use to provide the JSON representation consumed by inherited inspection methods.
+   *
    * **Details**
    *
    * Subclasses must implement this method to define how the object
@@ -305,6 +333,10 @@ export abstract class Class {
   /**
    * Node.js custom inspection method.
    *
+   * **When to use**
+   *
+   * Use to expose the class JSON representation to Node.js inspection.
+   *
    * @since 2.0.0
    */
   [NodeInspectSymbol]() {
@@ -312,6 +344,10 @@ export abstract class Class {
   }
   /**
    * Returns a formatted string representation of this object.
+   *
+   * **When to use**
+   *
+   * Use to format the class JSON representation as a string.
    *
    * @since 2.0.0
    */

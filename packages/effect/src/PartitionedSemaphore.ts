@@ -44,6 +44,10 @@ import * as Option from "./Option.ts"
  * Runtime type identifier used to mark values that implement
  * `PartitionedSemaphore`.
  *
+ * **When to use**
+ *
+ * Use to mark and recognize `PartitionedSemaphore` values at runtime.
+ *
  * **Details**
  *
  * This constant is stored on partitioned semaphore instances and can be used by
@@ -56,6 +60,10 @@ export const PartitionedTypeId: PartitionedTypeId = "~effect/PartitionedSemaphor
 
 /**
  * Literal type of the `PartitionedSemaphore` runtime type identifier.
+ *
+ * **When to use**
+ *
+ * Use to type fields that store the exact `PartitionedSemaphore` runtime marker.
  *
  * **Details**
  *
@@ -70,6 +78,11 @@ export type PartitionedTypeId = "~effect/PartitionedSemaphore"
 /**
  * A `PartitionedSemaphore` controls access to a shared permit pool while
  * tracking waiters by partition key.
+ *
+ * **When to use**
+ *
+ * Use to coordinate shared permits across partition keys so waiting groups make
+ * progress without one group monopolizing the pool.
  *
  * **Details**
  *
@@ -96,6 +109,10 @@ export interface PartitionedSemaphore<in K> {
 
 /**
  * Alias interface for a `PartitionedSemaphore` keyed by values of type `K`.
+ *
+ * **When to use**
+ *
+ * Use as an alternate exported name for a partitioned permit pool keyed by `K`.
  *
  * **Details**
  *

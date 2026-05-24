@@ -27,6 +27,10 @@ import * as Stream from "./Stream.ts"
 /**
  * String literal type used as the unique brand for the `Stdio` service.
  *
+ * **When to use**
+ *
+ * Use to type the runtime identifier stored on `Stdio` service implementations.
+ *
  * @category type IDs
  * @since 4.0.0
  */
@@ -35,6 +39,10 @@ export type TypeId = "~effect/Stdio"
 /**
  * Runtime identifier stored on `Stdio` service implementations.
  *
+ * **When to use**
+ *
+ * Use to mark and recognize concrete `Stdio` service values at runtime.
+ *
  * @category type IDs
  * @since 4.0.0
  */
@@ -42,6 +50,11 @@ export const TypeId: TypeId = "~effect/Stdio"
 
 /**
  * Service interface for process standard I/O.
+ *
+ * **When to use**
+ *
+ * Use to depend on command-line arguments and standard I/O through the Effect
+ * environment.
  *
  * **Details**
  *
