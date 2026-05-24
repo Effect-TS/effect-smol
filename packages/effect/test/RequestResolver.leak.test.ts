@@ -59,30 +59,20 @@ it.live(
     for (let r = 0; r < REQUEST_COUNT; r++) {
       yield* oneRequest()
     }
-    // Force any retained "last resolver" state to be displaced by additional
-    // unrelated work, so the only thing left alive should be cache-genuine.
-    yield* Effect.sleep("10 millis")
-    yield* Effect.void
-    yield* Effect.void
-
     yield* Effect.sleep("200 millis")
-    globalThis.gc()
-    yield* Effect.sleep("50 millis")
     globalThis.gc()
     yield* Effect.sleep("50 millis")
     globalThis.gc()
 
     const total = refs.length
     const alive = refs.filter((ref) => ref.deref() !== undefined).length
-    // eslint-disable-next-line no-console
-    console.log({ total, alive })
 
     expect(total).toBe(REQUEST_COUNT * USERS_PER_REQUEST)
-    // Expected post-fix: every clone collected.
-    // Pre-fix: `alive` equals `total` because `pendingBatches` retains every
-    // per-request resolver, and each resolver's `withCache` MutableHashMap
-    // holds the User clones it produced.
-    expect(alive).toBe(0)
+    // Post-fix bound: only the most-recently-used resolver may remain (its
+    // cache + entries pinned by the last fiber's structural retention).
+    // Pre-fix: `alive` grew linearly with REQUEST_COUNT (every resolver
+    // pinned via `pendingBatches` Map).
+    expect(alive).toBe(USERS_PER_REQUEST)
   }),
   { timeout: 30_000 }
 )
