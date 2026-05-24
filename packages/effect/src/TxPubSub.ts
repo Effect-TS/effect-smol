@@ -1,9 +1,49 @@
 /**
- * TxPubSub is a transactional publish/subscribe hub that provides Software Transactional Memory
- * (STM) semantics for message broadcasting. Publishers broadcast messages to all current
- * subscribers, with each subscriber receiving its own copy of every published message.
+ * The `TxPubSub` module provides a transactional publish/subscribe hub for
+ * broadcasting values to scoped subscribers. Each subscriber owns a `TxQueue`,
+ * so every value is offered independently to the queues registered at the time
+ * of publication.
  *
- * Supports multiple queue strategies: bounded, unbounded, dropping, and sliding.
+ * **Mental model**
+ *
+ * A `TxPubSub` is a registry of subscriber queues plus a shutdown flag.
+ * Publishing reads the current subscribers and offers the value to each queue
+ * in one transactional operation. Subscribers only receive values published
+ * after they subscribe, and `subscribe` removes the queue when its scope
+ * closes.
+ *
+ * **Common tasks**
+ *
+ * - Use `bounded` when slow subscribers should apply backpressure to
+ *   publishers.
+ * - Use `dropping` when new messages may be skipped for full subscribers.
+ * - Use `sliding` when full subscribers should keep the newest messages.
+ * - Use `unbounded` when subscriber queues should grow without backpressure.
+ *
+ * **Example** (Broadcasting to a subscriber)
+ *
+ * ```ts
+ * import { Effect, TxPubSub, TxQueue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const hub = yield* TxPubSub.unbounded<string>()
+ *
+ *   return yield* Effect.scoped(
+ *     Effect.gen(function*() {
+ *       const subscriber = yield* TxPubSub.subscribe(hub)
+ *       yield* TxPubSub.publish(hub, "updated")
+ *       return yield* TxQueue.take(subscriber)
+ *     })
+ *   )
+ * })
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - `size` reports the maximum pending messages in any subscriber queue, not
+ *   the total number of queued copies.
+ * - `shutdown` stops future publishes and shuts down subscriber queues that are
+ *   registered at shutdown time.
  *
  * @since 4.0.0
  */

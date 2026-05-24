@@ -1,48 +1,58 @@
 /**
- * The `Chat` module provides a stateful conversation interface for AI language
- * models.
+ * Stateful conversation sessions on top of a language model.
  *
- * This module enables persistent chat sessions that maintain conversation
- * history, support tool calling, and offer both streaming and non-streaming
- * text generation. It integrates seamlessly with the Effect AI ecosystem,
- * providing type-safe conversational AI capabilities.
+ * A `Chat` keeps `Prompt` history in a `Ref` and reuses it for text generation,
+ * streaming, and structured output. Each generation call combines the current
+ * history with the caller's new prompt, invokes the active language model, and
+ * appends the response parts back into history. Constructors create fresh
+ * sessions, seed sessions from prompts, restore exported history, or connect a
+ * chat to persistence.
  *
- * **Example** (Creating a chat session)
+ * **Mental model**
+ *
+ * A {@link Service} is a mutable conversation handle. It stores history, while
+ * the language model implementation is still supplied through the Effect
+ * environment when `generateText`, `streamText`, or `generateObject` runs.
+ * Local sessions created with {@link empty} and {@link fromPrompt} live only in
+ * memory; persisted sessions add a backing store and save after generation.
+ *
+ * **Common tasks**
+ *
+ * - Start an empty session with {@link empty}.
+ * - Seed system prompts or prior messages with {@link fromPrompt}.
+ * - Restore saved history with {@link fromExport} or {@link fromJson}.
+ * - Persist sessions by providing {@link Persistence} with {@link makePersisted}
+ *   or {@link layerPersisted}.
+ *
+ * **Example** (Starting a chat session)
  *
  * ```ts
  * import { Effect } from "effect"
  * import { Chat } from "effect/unstable/ai"
  *
- * // Create a new chat session
  * const program = Effect.gen(function*() {
- *   const chat = yield* Chat.empty
+ *   const chat = yield* Chat.fromPrompt([{
+ *     role: "system",
+ *     content: "Answer in one sentence."
+ *   }])
  *
- *   // Send a message and get response
  *   const response = yield* chat.generateText({
- *     prompt: "Hello! What can you help me with?"
+ *     prompt: "What does Effect provide for TypeScript applications?"
  *   })
  *
- *   console.log(response.content)
+ *   const saved = yield* chat.exportJson
  *
- *   return response
+ *   return { text: response.text, saved }
  * })
  * ```
  *
- * **Example** (Streaming chat responses)
+ * **Gotchas**
  *
- * ```ts
- * import { Effect, Stream } from "effect"
- * import { Chat } from "effect/unstable/ai"
- *
- * // Streaming chat with tool support
- * const streamingChat = Effect.gen(function*() {
- *   const chat = yield* Chat.empty
- *
- *   yield* chat.streamText({
- *     prompt: "Generate a creative story"
- *   }).pipe(Stream.runForEach((part) => Effect.sync(() => console.log(part))))
- * })
- * ```
+ * Generation requires a language model service in the environment. `streamText`
+ * records the parts emitted by the stream when the stream finalizes, so consume
+ * the stream to completion when the full assistant response should become part
+ * of history. Direct writes to `history` are possible, but bypass the helpers
+ * that encode, decode, export, and persist the conversation.
  *
  * @since 4.0.0
  */

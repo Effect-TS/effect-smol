@@ -1,17 +1,26 @@
 /**
- * Defines the wire messages used by event-log remotes to authenticate clients,
- * write event batches, and stream changes back to replicas.
+ * Defines the remote event-log protocol messages and RPC group.
  *
- * This module is the protocol boundary between `EventLogRemote` clients and
- * event-log servers: it provides schemas for store identifiers, protocol
- * errors, session handshake payloads, authenticated RPCs, and the msgpack
- * payloads used to carry encrypted or plaintext journal entries.
+ * This module is the shared boundary between `EventLogRemote` clients and
+ * event-log servers. It provides branded store ids, structured protocol errors,
+ * the hello/authenticate session handshake, authenticated write and changes
+ * RPCs, and msgpack payloads for encrypted or plaintext journal entries.
  *
- * Event batches are serialized as binary payloads before transport. Small
- * payloads can be sent as a single frame, while larger payloads are split into
- * `ChunkedMessage` parts and must be reassembled by message id after every part
- * has arrived. Transports should preserve `Uint8Array` bytes exactly and avoid
- * treating msgpack data as text.
+ * **Mental model**
+ *
+ * A remote session starts with `HelloRpc`, then proves control of the client's
+ * signing key with `AuthenticateRpc`. After authentication, writes flow from the
+ * client to the server as encoded entry batches, and `ChangesRpc` streams
+ * encoded remote entries back to replicas from a requested sequence number. The
+ * `EventLogAuthentication` middleware marks the RPCs that require an
+ * authenticated event-log identity.
+ *
+ * **Gotchas**
+ *
+ * Entry batches are binary payloads. Small payloads travel as `SingleMessage`,
+ * while larger payloads are split into `ChunkedMessage` parts and reassembled by
+ * message id after every part arrives. Transports must preserve `Uint8Array`
+ * bytes exactly; do not treat msgpack payloads as text or JSON.
  *
  * @since 4.0.0
  */

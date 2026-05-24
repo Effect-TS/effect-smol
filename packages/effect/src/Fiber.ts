@@ -1,73 +1,54 @@
 /**
- * This module provides utilities for working with `Fiber`, the fundamental unit of
- * concurrency in Effect. Fibers are lightweight, user-space threads that allow
- * multiple Effects to run concurrently with structured concurrency guarantees.
+ * The `Fiber` module provides operations for handles returned by forking
+ * effects. A `Fiber<A, E>` is a lightweight runtime execution of an `Effect`
+ * that may still be running, may already have completed, and can be observed or
+ * interrupted by other fibers.
  *
- * Key characteristics of Fibers:
- * - **Lightweight**: Much lighter than OS threads, you can create millions
- * - **Structured concurrency**: Parent fibers manage child fiber lifecycles
- * - **Cancellation safety**: Proper resource cleanup when interrupted
- * - **Cooperative**: Fibers yield control at effect boundaries
- * - **Traceable**: Each fiber has an ID for debugging and monitoring
+ * Applications create fibers with operations such as `Effect.forkChild`,
+ * `Effect.forkScoped`, `Effect.forkIn`, or `Effect.forkDetach`, then use this
+ * module to wait for results, inspect exits, or cancel work that is no longer
+ * needed.
  *
- * Common patterns:
- * - **Fork and join**: Start concurrent work and wait for results
- * - **Race conditions**: Run multiple effects, take the first to complete
- * - **Supervision**: Monitor and restart failed fibers
- * - **Resource management**: Ensure proper cleanup on interruption
+ * **Mental model**
  *
- * **Example** (Running effects in fibers)
+ * - A fiber is a handle to a running or completed effect, not the effect itself
+ * - {@link await} observes completion as an `Exit` without failing the current
+ *   effect
+ * - {@link join} waits for success and propagates the fiber's failure into the
+ *   current effect
+ * - {@link interrupt} requests cancellation and waits until the target fiber
+ *   finishes running finalizers
+ * - Group operations such as {@link awaitAll}, {@link joinAll}, and
+ *   {@link interruptAll} apply the same ideas to collections of fibers
+ *
+ * **Common tasks**
+ *
+ * - Wait for one fiber with {@link await} or {@link join}
+ * - Wait for many fibers with {@link awaitAll} or {@link joinAll}
+ * - Stop work with {@link interrupt}, {@link interruptAs},
+ *   {@link interruptAll}, or {@link interruptAllAs}
+ * - Recognize fiber handles with {@link isFiber}
+ * - Link a manually managed fiber to a `Scope` with {@link runIn}
+ *
+ * **Gotchas**
+ *
+ * - `await` gives you an `Exit`; use `join` when the current effect should fail
+ *   if the fiber failed
+ * - Interruption is cooperative, so a fiber can continue through
+ *   uninterruptible regions and finalizers before it finishes
+ * - `joinAll` stops waiting on the first failure, but it does not interrupt the
+ *   remaining fibers for you
+ *
+ * **Example** (Joining a forked effect)
  *
  * ```ts
- * import { Console, Effect, Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
- * // Basic fiber operations
- * const basicExample = Effect.gen(function*() {
- *   // Fork an effect to run concurrently
- *   const fiber = yield* Effect.forkChild(
- *     Effect.gen(function*() {
- *       yield* Effect.sleep("2 seconds")
- *       yield* Console.log("Background task completed")
- *       return "background result"
- *     })
- *   )
+ * const program = Effect.gen(function*() {
+ *   const fiber = yield* Effect.forkChild(Effect.succeed(42))
+ *   const value = yield* Fiber.join(fiber)
  *
- *   // Do other work while the fiber runs
- *   yield* Console.log("Doing other work...")
- *   yield* Effect.sleep("1 second")
- *
- *   // Wait for the fiber to complete
- *   const result = yield* Fiber.join(fiber)
- *   yield* Console.log(`Fiber result: ${result}`)
- * })
- *
- * // Joining multiple fibers
- * const joinExample = Effect.gen(function*() {
- *   const task1 = Effect.delay(Effect.succeed("task1"), "1 second")
- *   const task2 = Effect.delay(Effect.succeed("task2"), "2 seconds")
- *
- *   // Start both effects as fibers
- *   const fiber1 = yield* Effect.forkChild(task1)
- *   const fiber2 = yield* Effect.forkChild(task2)
- *
- *   // Wait for both to complete
- *   const result1 = yield* Fiber.join(fiber1)
- *   const result2 = yield* Fiber.join(fiber2)
- *   return [result1, result2] // ["task1", "task2"]
- * })
- *
- * // Parallel execution with structured concurrency
- * const parallelExample = Effect.gen(function*() {
- *   const tasks = [1, 2, 3, 4, 5].map((n) =>
- *     Effect.gen(function*() {
- *       yield* Effect.sleep(`${n * 100} millis`)
- *       return n * n
- *     })
- *   )
- *
- *   // Run all tasks in parallel, wait for all to complete
- *   const results = yield* Effect.all(tasks, { concurrency: "unbounded" })
- *   return results // [1, 4, 9, 16, 25]
+ *   return value
  * })
  * ```
  *

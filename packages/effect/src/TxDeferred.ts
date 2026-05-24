@@ -1,6 +1,29 @@
 /**
- * A transactional deferred value — a write-once cell that can be read within transactions.
- * Readers retry until a value is set; once set, the value is immutable.
+ * Transactional deferred values for coordinating Effect transactions.
+ *
+ * A `TxDeferred<A, E>` is a write-once cell whose completion is a
+ * `Result<A, E>` stored in transactional state. Readers can wait for the value
+ * from inside a transaction: while the cell is empty the transaction retries,
+ * and when another transaction completes the deferred the waiting transaction
+ * can resume with either the success value or the typed failure.
+ *
+ * **Mental model**
+ *
+ * `TxDeferred` is the transaction-aware counterpart to a regular deferred
+ * value. Completion is single-assignment, reads participate in transaction
+ * retry semantics, and all observers see the same committed result once the
+ * deferred has been completed.
+ *
+ * **Common tasks**
+ *
+ * Create an empty deferred with {@link make}, wait for completion with
+ * `await`, inspect the current state with {@link poll}, and complete it with
+ * {@link done}, {@link succeed}, or {@link fail}.
+ *
+ * **Gotchas**
+ *
+ * Only the first completion wins. Later completion attempts return `false`
+ * instead of replacing the stored result.
  *
  * @since 4.0.0
  */

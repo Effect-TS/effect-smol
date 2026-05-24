@@ -1,36 +1,52 @@
 /**
- * This module provides utilities for Higher-Kinded Types (HKT) in TypeScript.
+ * Type-level encoding for higher-kinded types in Effect.
  *
- * Higher-Kinded Types are types that take other types as parameters, similar to how
- * functions take values as parameters. They enable generic programming over type
- * constructors, allowing you to write code that works with any container type
- * (like Array, Option, Effect, etc.) in a uniform way.
+ * TypeScript cannot abstract directly over type constructors such as
+ * `Option<_>`, `ReadonlyArray<_>`, or `Effect<_, _, _>`. This module encodes
+ * those constructors with {@link TypeLambda} and applies them with
+ * {@link Kind}, so libraries can define generic APIs that work across many
+ * Effect data types.
  *
- * The HKT system in Effect uses TypeLambdas to encode type-level functions that
- * can represent complex type relationships with multiple type parameters, including
- * contravariant, covariant, and invariant positions.
+ * **Mental model**
  *
- * **Example** (Encoding type lambdas)
+ * - A {@link TypeLambda} is a type-level function with four slots: `In`,
+ *   `Out2`, `Out1`, and `Target`
+ * - A concrete type lambda defines `readonly type` in terms of those slots
+ * - {@link Kind} fills the slots and reads the lambda's resulting concrete type
+ * - {@link TypeClass} lets an interface carry the lambda it implements through
+ *   {@link URI}
+ * - Effect modules expose their own type lambdas when they support generic
+ *   higher-kinded programming
+ *
+ * **Common tasks**
+ *
+ * - Define a type lambda for a data type by extending {@link TypeLambda}
+ * - Apply a lambda to type arguments with {@link Kind}
+ * - Write type class interfaces that are parameterized by a lambda
+ *
+ * **Gotchas**
+ *
+ * - The slot names are positional; check the concrete lambda to see how `In`,
+ *   `Out2`, `Out1`, and `Target` map to that data type's parameters
+ * - Use `never` for slots that a lambda does not read
+ * - HKT values are type-level encodings; they do not create runtime wrappers
+ *
+ * **Example** (Defining a simple type lambda)
  *
  * ```ts
  * import type { HKT } from "effect"
  *
- * // Define a TypeLambda for Array
- * interface ArrayTypeLambda extends HKT.TypeLambda {
- *   readonly type: Array<this["Target"]>
+ * interface ReadonlyArrayTypeLambda extends HKT.TypeLambda {
+ *   readonly type: ReadonlyArray<this["Target"]>
  * }
  *
- * // Use Kind to get the concrete type
- * type MyArray = HKT.Kind<ArrayTypeLambda, never, never, never, string>
- * // MyArray is Array<string>
- *
- * // Define a TypeClass that works with any HKT
- * interface Functor<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
- *   map<A, B>(
- *     fa: HKT.Kind<F, never, never, never, A>,
- *     f: (a: A) => B
- *   ): HKT.Kind<F, never, never, never, B>
- * }
+ * type StringArray = HKT.Kind<
+ *   ReadonlyArrayTypeLambda,
+ *   never,
+ *   never,
+ *   never,
+ *   string
+ * >
  * ```
  *
  * @since 2.0.0

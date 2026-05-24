@@ -1,19 +1,34 @@
 /**
  * Shared Node.js implementation of the Effect `Stdio` service.
  *
- * This module builds the `Stdio` layer used by Node platform packages by
- * wiring the service to the current process: command-line arguments come from
- * `process.argv`, input is read from `process.stdin`, and output and error
- * output are written to `process.stdout` and `process.stderr`. It is intended
- * for CLIs, scripts, command runners, test harnesses, and other
- * process-oriented programs that need standard I/O through Effect services.
+ * `NodeStdio` provides {@link Stdio.Stdio} from the current Node process. The
+ * exported {@link layer} reads command-line arguments from `process.argv`,
+ * consumes input from `process.stdin`, and writes normal and error output to
+ * `process.stdout` and `process.stderr`. It is the shared implementation used
+ * by Node platform packages for CLIs, scripts, command runners, test harnesses,
+ * and other process-oriented programs.
  *
- * The process stdio streams are global resources owned by Node. This layer
- * leaves stdin open and does not end stdout or stderr by default, avoiding
- * accidental closure of handles other code in the process may still use. Those
- * streams may be pipes, files, or TTYs; interactive terminal behavior such as
- * raw mode, echo, colors, and cursor movement should be coordinated with the
- * terminal APIs instead of assuming this layer has exclusive control.
+ * **Mental model**
+ *
+ * Application code should depend on `Stdio`; this module decides that the
+ * backing resources are the global Node process handles. The layer does not
+ * create new streams and does not claim exclusive ownership of the existing
+ * ones.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layer} when an Effect program needs process arguments, stdin,
+ * stdout, or stderr through the service environment. Pair it with terminal
+ * services when the same program also needs line editing, raw key input, or
+ * terminal dimensions.
+ *
+ * **Gotchas**
+ *
+ * Process stdio streams are shared with the rest of the Node process. This
+ * layer leaves stdin open and does not end stdout or stderr by default, avoiding
+ * accidental closure of handles that other code may still use. The streams may
+ * be pipes, files, or TTYs; terminal-specific behavior such as raw mode, echo,
+ * color detection, and cursor movement belongs with terminal APIs.
  *
  * @since 4.0.0
  */

@@ -1,20 +1,31 @@
 /**
- * The `TestRunner` module provides a lightweight in-memory cluster layer for
- * tests that need the cluster sharding services without starting real runners
- * or relying on external storage.
+ * The `TestRunner` module assembles the smallest cluster runtime useful in
+ * tests: `Sharding` backed by in-memory message storage, in-memory runner
+ * storage, no-op runner transport, and always-healthy runner checks. It lets
+ * code that depends on cluster services exercise registration, shard
+ * coordination, and mailbox persistence without starting RPC servers or
+ * external databases.
  *
- * Use it when exercising sharding behavior, message storage, or code that
- * depends on the cluster runner services in unit and integration tests. The
- * layer wires the normal sharding service to in-memory message and runner
- * storage, along with no-op runner and health implementations.
+ * **Mental model**
  *
- * **Testing gotchas**
+ * The layer behaves like a single in-process runner using the default
+ * `ShardingConfig`. Sharding still computes shard ids, acquires in-memory shard
+ * locks, stores persisted messages, and emits registration events, but remote
+ * runner communication is deliberately absent.
  *
- * - State is held in memory and scoped to the layer lifetime; it is not shared
- *   across independently constructed layers or persisted between test runs
- * - Runner execution and health checks are no-ops, so this layer is best suited
- *   for testing coordination and storage behavior rather than real distributed
- *   runner processes
+ * **Common tasks**
+ *
+ * - Provide cluster services around tests for sharded entities and singletons
+ * - Exercise persisted mailbox behavior with the in-memory message store
+ * - Observe registration events without starting a real runner process
+ *
+ * **Gotchas**
+ *
+ * - State is scoped to each layer instance and disappears when the layer closes
+ * - No-op runner transport cannot deliver work to another process, so
+ *   multi-runner tests should provide their own `Runners` implementation
+ * - No-op health checks treat every runner as healthy and do not model
+ *   failure-driven rebalancing
  *
  * @since 4.0.0
  */

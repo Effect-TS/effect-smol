@@ -1,21 +1,41 @@
 /**
- * Runtime support for Effect workers that are executed by Node.js.
+ * Node.js runtime support for workers that serve Effect worker requests.
  *
- * This module is intended to be installed in the program running inside a
- * `node:worker_threads` worker or an IPC-enabled child process. It provides the
- * `WorkerRunnerPlatform` used by `WorkerRunner` to receive request messages
- * from the parent, run the registered Effect handler, and send responses back
- * over the parent channel.
+ * `NodeWorkerRunner` supplies the Node implementation of the Effect worker
+ * runner platform. Install {@link layer} inside code that is already running in
+ * a `node:worker_threads` worker or in a child process with an IPC channel. The
+ * layer listens for parent messages, runs handlers registered through
+ * `WorkerRunner`, and replies over the same parent channel.
  *
- * Use it when the parent side is created with `NodeWorker` and the worker code
- * needs to perform CPU-bound work, isolate Node resources, or host services that
- * should communicate through the Effect worker protocol. The runner must be
- * started from an actual worker context: `parentPort` is required for worker
- * threads, while child processes must be spawned with an IPC channel so
- * `process.send` is available. Transfer lists only apply to worker-thread
- * `postMessage`; child-process messages go through Node IPC serialization.
- * Shutdown is coordinated by the parent message protocol, so long-running
- * handlers should remain interruptible and keep resource cleanup in scopes.
+ * **Mental model**
+ *
+ * - The parent process creates a worker with the Node worker APIs.
+ * - The worker process provides this module's {@link layer} to its runner program.
+ * - Startup sends a ready message to the parent, then request messages are
+ *   dispatched to the registered Effect handler.
+ * - Responses are sent with Node `postMessage` for worker threads or
+ *   `process.send` for child processes.
+ * - Shutdown is initiated by the parent protocol and closes or unreferences the
+ *   parent channel.
+ *
+ * **Common tasks**
+ *
+ * - Provide {@link layer} in the worker entrypoint before running `WorkerRunner`.
+ * - Host CPU-bound work or isolated Node resources behind the Effect worker protocol.
+ * - Return transferable values when using `worker_threads`.
+ *
+ * **Gotchas**
+ *
+ * - The runner must start inside an actual worker context; otherwise the layer
+ *   fails because neither `parentPort` nor `process.send` is available.
+ * - Transfer lists only apply to `worker_threads`; child-process IPC uses Node
+ *   serialization.
+ * - Long-running handlers should remain interruptible and keep cleanup in
+ *   scopes so parent-driven shutdown can release resources.
+ *
+ * **See also**
+ *
+ * - {@link layer} for the Node worker runner platform.
  *
  * @since 4.0.0
  */

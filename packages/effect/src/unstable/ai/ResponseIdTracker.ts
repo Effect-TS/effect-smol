@@ -1,15 +1,37 @@
 /**
- * The `ResponseIdTracker` module provides a small service for reusing provider
- * response IDs across incremental language model calls. It records which prompt
- * message objects were sent for a provider response, then prepares a later
- * prompt by returning the recognized `previousResponseId` together with only
- * the new messages that should be sent.
+ * Track provider response IDs for incremental language model calls.
  *
- * Use this when integrating providers that support continuing a conversation
- * from a prior response ID instead of resending the entire prompt. The tracker
- * is intentionally identity-based and mutable: it only recognizes the same
- * message objects that were previously marked, and it clears its state when a
- * prompt can no longer be matched safely.
+ * Some providers can continue from a prior response by accepting a
+ * `previousResponseId` plus only the messages added after that response. This
+ * module exposes a small mutable service that remembers which prompt message
+ * objects were included in each provider response and prepares a shorter prompt
+ * when a later call extends the same conversation.
+ *
+ * **Mental model**
+ *
+ * The tracker is an optimization cache, not conversation storage. `markParts`
+ * associates the exact message objects that were sent with the response ID the
+ * provider returned. `prepareUnsafe` scans a future prompt, finds the latest
+ * assistant-message boundary whose prefix is tracked, and returns that response
+ * ID with only the messages after the boundary. If the prompt cannot be matched
+ * safely, the cache is cleared and no incremental send is attempted.
+ *
+ * **Common tasks**
+ *
+ * - Provide `ResponseIdTracker` to a language model implementation that can use
+ *   provider previous-response IDs
+ * - Mark prompt messages after a successful provider response
+ * - Prepare follow-up prompts so unchanged history is replaced by
+ *   `previousResponseId`
+ *
+ * **Gotchas**
+ *
+ * - Tracking is based on object identity; equivalent message values are not
+ *   recognized unless they are the same objects.
+ * - The service is mutable and intentionally exposes `Unsafe` methods because
+ *   callers coordinate it inside provider request/response code.
+ * - A mismatch clears tracked state to avoid reusing a response ID for the
+ *   wrong prompt prefix.
  *
  * @since 4.0.0
  */

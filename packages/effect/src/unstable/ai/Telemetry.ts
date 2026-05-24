@@ -1,34 +1,35 @@
 /**
- * The `Telemetry` module provides OpenTelemetry integration for operations
- * performed against a large language model provider by defining telemetry
- * attributes and utilities that follow the OpenTelemetry GenAI semantic
- * conventions.
+ * OpenTelemetry span annotation helpers for Effect AI operations.
  *
- * **Example** (Annotating AI spans)
+ * The `Telemetry` module models the OpenTelemetry GenAI semantic-convention
+ * attributes used by language model and embedding providers, and exposes small
+ * helpers for writing those attributes onto Effect tracing spans. It is used by
+ * provider implementations and by applications that want consistent
+ * `gen_ai.*` span metadata around model requests, responses, token usage, and
+ * provider-specific identifiers.
  *
- * ```ts
- * import { Effect } from "effect"
- * import { Telemetry } from "effect/unstable/ai"
+ * **Mental model**
  *
- * // Add telemetry attributes to a span
- * const addTelemetry = Effect.gen(function*() {
- *   const span = yield* Effect.currentSpan
+ * Attribute options are grouped by semantic-convention namespace: base
+ * `gen_ai`, `operation`, `request`, `response`, `token`, and `usage`.
+ * `addGenAIAnnotations` flattens those groups into span attributes, ignores
+ * nullish values, and converts camelCase field names to snake_case keys.
+ * `addSpanAttributes` provides the same prefix-and-transform behavior for
+ * custom namespaces.
  *
- *   Telemetry.addGenAIAnnotations(span, {
- *     system: "openai",
- *     operation: { name: "chat" },
- *     request: {
- *       model: "gpt-4",
- *       temperature: 0.7,
- *       maxTokens: 1000
- *     },
- *     usage: {
- *       inputTokens: 100,
- *       outputTokens: 50
- *     }
- *   })
- * })
- * ```
+ * **Common tasks**
+ *
+ * - Add standard GenAI attributes to the current span with
+ *   `addGenAIAnnotations`.
+ * - Create a custom attribute writer with `addSpanAttributes`.
+ * - Provide `CurrentSpanTransformer` so a language model implementation can
+ *   annotate the span after seeing the provider response.
+ *
+ * **Gotchas**
+ *
+ * These helpers annotate spans that already exist; they do not create or scope
+ * spans. Attribute writers mutate the provided span, and only non-nullish
+ * values are emitted.
  *
  * @since 4.0.0
  */

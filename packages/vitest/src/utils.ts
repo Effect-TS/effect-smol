@@ -1,17 +1,32 @@
 /**
- * Assertion utilities for `@effect/vitest` test suites.
+ * Assertion helpers used by `@effect/vitest` tests.
  *
- * This module collects small assertion helpers for common Effect testing
- * scenarios: Node-style equality checks, `Equal.equals` comparisons, string
- * matching, thrown error validation, and focused assertions for `Option`,
- * `Result`, and `Exit` values. They are intended to be imported as `assert`
- * helpers from `@effect/vitest` and used in both regular Vitest tests and
- * `it.effect` tests after the value under test has already been produced.
+ * This module extends Node and Vitest assertions with Effect-aware checks for
+ * values commonly returned by the library: `Option`, `Result`, and `Exit`. The
+ * helpers are synchronous assertions except `throwsAsync`, and are intended to
+ * be used after a test has already produced the value to inspect.
  *
- * These helpers throw assertion errors synchronously; they do not run Effects,
- * provide services, or advance test environments such as `TestClock`. In
- * Effect-based tests, yield the effect first and then assert on the resulting
- * value so failures are reported through the surrounding Vitest test.
+ * **Mental model**
+ *
+ * `@effect/vitest` supplies the test runner integration, while this module
+ * supplies small value-level assertions. Use `it.effect` to run Effects and
+ * then call these helpers on yielded results; use ordinary Vitest tests for pure
+ * synchronous code.
+ *
+ * **Common tasks**
+ *
+ * Use `assertEquals` when equality should follow Effect's `Equal` trait, Node
+ * `strictEqual` or `deepStrictEqual` for JavaScript equality, `assertSome` and
+ * `assertNone` for `Option`, `assertSuccess` and `assertFailure` for `Result`,
+ * and `assertExitSuccess` or `assertExitFailure` when an Effect has been run to
+ * an `Exit`.
+ *
+ * **Gotchas**
+ *
+ * These helpers throw assertion errors; they do not run Effects, provide test
+ * services, or advance `TestClock`. Failed `assertEquals` checks first delegate
+ * to `deepStrictEqual` so Vitest can show a structural diff before reporting the
+ * `Equal.equals` mismatch.
  *
  * @since 4.0.0
  */

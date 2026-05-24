@@ -1,79 +1,82 @@
 /**
- * Utilities for working with immutable arrays (and non-empty arrays) in a
- * functional style. All functions treat arrays as immutable — they return new
- * arrays rather than mutating the input.
+ * The `Array` module provides functional operations for JavaScript arrays,
+ * readonly arrays, and arrays that are known to contain at least one element.
+ * Operations that transform, reorder, or update collections allocate new arrays
+ * instead of mutating their inputs, while preserving useful type information
+ * such as non-emptiness when the operation can prove it.
  *
- * ## Mental model
+ * **Mental model**
  *
- * - **`Array<A>`** is a standard JS array. All functions in this module return
- *   new arrays; the input is never mutated.
- * - **`NonEmptyReadonlyArray<A>`** (`readonly [A, ...Array<A>]`) is a readonly
- *   array guaranteed to have at least one element. Many functions preserve or
- *   require this guarantee at the type level.
- * - **`NonEmptyArray<A>`** is the mutable counterpart: `[A, ...Array<A>]`.
- * - Most functions are **dual** — they can be called either as
- *   `Array.fn(array, arg)` (data-first) or piped as
- *   `pipe(array, Array.fn(arg))` (data-last).
- * - Functions that access elements by index return `Option<A>` for safety; use
- *   the `*NonEmpty` variants (e.g. {@link headNonEmpty}) when you already know
- *   the array is non-empty.
- * - Set-like operations ({@link union}, {@link intersection},
- *   {@link difference}) use `Equal.equivalence()` by default; use the `*With`
- *   variants for custom equality.
+ * - A regular `Array<A>` is still the built-in JavaScript array type; this
+ *   module supplies functional constructors, combinators, searches, folds,
+ *   grouping, sorting, and set-like operations around it.
+ * - {@link NonEmptyReadonlyArray} and {@link NonEmptyArray} encode
+ *   non-emptiness at the type level. APIs with `NonEmpty` in the name can avoid
+ *   `Option` because an element is guaranteed to exist.
+ * - Most functions are dual. You can call them data-first, such as
+ *   `Array.map(values, f)`, or data-last in a pipeline, such as
+ *   `pipe(values, Array.map(f))`.
+ * - Safe element access returns {@link Option}; unsafe or `NonEmpty` variants
+ *   are for code that already has a proof an index or element exists.
+ * - Set-like operations such as {@link union}, {@link intersection}, and
+ *   {@link difference} use the {@link Equal} protocol by default. Use the
+ *   `*With` variants when equality is domain-specific.
  *
- * ## Common tasks
+ * **Common tasks**
  *
- * - **Create** an array: {@link make}, {@link of}, {@link empty},
- *   {@link fromIterable}, {@link range}, {@link makeBy}, {@link replicate},
- *   {@link unfold}
- * - **Access** elements: {@link head}, {@link last}, {@link get}, {@link tail},
- *   {@link init}
- * - **Transform**: {@link map}, {@link flatMap}, {@link flatten}
- * - **Filter**: {@link filter}, {@link partition}, {@link dedupe}
- * - **Combine**: {@link append}, {@link prepend}, {@link appendAll},
- *   {@link prependAll}, {@link zip}, {@link cartesian}
- * - **Split**: {@link splitAt}, {@link chunksOf}, {@link span}, {@link window}
- * - **Search**: {@link findFirst}, {@link findLast}, {@link contains}
- * - **Sort**: {@link sort}, {@link sortBy}, {@link sortWith}
- * - **Fold**: {@link reduce}, {@link scan}, {@link join}
- * - **Group**: {@link groupBy}, {@link group}, {@link groupWith}
- * - **Set operations**: {@link union}, {@link intersection},
- *   {@link difference}
- * - **Match** on empty vs non-empty: {@link match}, {@link matchLeft},
- *   {@link matchRight}
- * - **Check** properties: {@link isArray}, {@link isArrayNonEmpty},
- *   {@link every}, {@link some}
+ * - Create arrays with {@link make}, {@link of}, {@link empty},
+ *   {@link fromIterable}, {@link range}, {@link makeBy}, {@link replicate}, and
+ *   {@link unfold}.
+ * - Access edges or indexes with {@link head}, {@link last}, {@link get},
+ *   {@link tail}, and {@link init}.
+ * - Transform and flatten with {@link map}, {@link flatMap}, and
+ *   {@link flatten}.
+ * - Keep, split, or deduplicate values with {@link filter}, {@link partition},
+ *   {@link dedupe}, and {@link dedupeAdjacent}.
+ * - Combine collections with {@link append}, {@link prepend}, {@link appendAll},
+ *   {@link prependAll}, {@link zip}, and {@link cartesian}.
+ * - Chunk, window, and slice with {@link splitAt}, {@link chunksOf},
+ *   {@link span}, and {@link window}.
+ * - Sort with {@link sort}, {@link sortWith}, and {@link sortBy}.
+ * - Fold or aggregate with {@link reduce}, {@link scan}, {@link join}, and
+ *   {@link countBy}.
+ * - Match empty and non-empty cases with {@link match}, {@link matchLeft}, and
+ *   {@link matchRight}.
  *
- * ## Gotchas
+ * **Gotchas**
  *
- * - {@link fromIterable} returns the original array reference when given an
- *   array; if you need a copy, use {@link copy}.
- * - `sort`, `reverse`, etc. always allocate a new array — the input is never
- *   mutated.
- * - {@link makeBy} and {@link replicate} normalize `n` to an integer >= 1 —
- *   they never produce an empty array.
- * - {@link range}`(start, end)` is inclusive on both ends. If `start > end` it
- *   returns `[start]`.
- * - Functions returning `Option` (e.g. {@link head}, {@link findFirst}) return
- *   `Option.none()` for empty inputs — they never throw.
+ * - {@link fromIterable} returns the original array reference when the input is
+ *   already an array. Use {@link copy} when you need a fresh shallow copy.
+ * - {@link sort}, {@link reverse}, {@link rotate}, and update operations
+ *   allocate new arrays; they do not mutate the input.
+ * - {@link makeBy}, {@link range}, and {@link replicate} always return
+ *   non-empty arrays. `range(start, end)` is inclusive and returns `[start]`
+ *   when `start > end`.
+ * - Functions returning {@link Option}, such as {@link head} and
+ *   {@link findFirst}, return `Option.none()` for empty inputs instead of
+ *   throwing.
+ * - `NonEmpty` return types describe what the function can prove, not what may
+ *   happen for a particular runtime value after filtering.
  *
- * ## Quickstart
- *
- * **Example** (Basic array operations)
+ * **Example** (Filtering and transforming)
  *
  * ```ts
- * import { Array } from "effect"
+ * import { Array, Option, pipe } from "effect"
  *
- * const numbers = Array.make(1, 2, 3, 4, 5)
+ * const numbers = [1, 2, 3, 4, 5]
  *
- * const doubled = Array.map(numbers, (n) => n * 2)
- * console.log(doubled) // [2, 4, 6, 8, 10]
+ * const doubledEvens = pipe(
+ *   numbers,
+ *   Array.filter((n) => n % 2 === 0),
+ *   Array.map((n) => n * 2)
+ * )
  *
- * const evens = Array.filter(numbers, (n) => n % 2 === 0)
- * console.log(evens) // [2, 4]
+ * console.log(doubledEvens)
+ * // [4, 8]
  *
- * const sum = Array.reduce(numbers, 0, (acc, n) => acc + n)
- * console.log(sum) // 15
+ * const first = Array.head(doubledEvens)
+ * console.log(Option.getOrElse(first, () => 0))
+ * // 4
  * ```
  *
  * @see {@link make} — create a non-empty array from elements

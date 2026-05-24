@@ -1,22 +1,34 @@
 /**
- * The `HttpApiScalar` module mounts an interactive Scalar API reference for a
- * declarative `HttpApi`.
+ * Scalar documentation UI for declarative `HttpApi` contracts.
  *
- * Use this module when you want a browser-friendly documentation page for an
- * `HttpApi` without maintaining a separate OpenAPI document. The `layer`
- * helper registers a `GET` route on an `HttpRouter`, generates the OpenAPI
- * specification with `OpenApi.fromApi`, embeds it into the HTML page, and loads
- * the bundled Scalar browser script. `layerCdn` provides the same UI while
- * loading Scalar from jsDelivr, optionally pinned with `version`.
+ * Use this module to mount a browser-based API reference on an `HttpRouter`
+ * without writing or storing a separate OpenAPI file. The route renders an HTML
+ * page containing the OpenAPI document produced from the supplied `HttpApi` and
+ * boots Scalar in the browser.
  *
- * The mounted path is a documentation UI route, defaulting to `/docs`, rather
- * than a raw JSON specification endpoint. If clients, gateways, or external
- * documentation pipelines need the OpenAPI document directly, expose it
- * separately with `HttpApiBuilder.layer`'s `openapiPath` option. Scalar
- * configuration is forwarded to the page through `ScalarConfig`; values such as
- * `proxyUrl`, theme and layout settings, and `baseServerURL` matter when
- * enabling "Test Request", styling the docs, or rendering relative server URLs
- * outside the browser origin.
+ * ## Mental model
+ *
+ * {@link layer} serves the UI with the bundled Scalar script. {@link layerCdn}
+ * serves the same UI while loading Scalar from jsDelivr, optionally pinned with
+ * `version`. Both helpers register a `GET` route, defaulting to `/docs`, and
+ * pass {@link ScalarConfig} through to Scalar's HTML configuration.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} when the application should serve the bundled Scalar
+ *   assets without depending on a CDN at runtime.
+ * - Use {@link layerCdn} when a CDN-loaded Scalar bundle is preferred, and pin
+ *   `version` when repeatable output matters.
+ * - Set `path` to mount the documentation UI somewhere other than `/docs`.
+ * - Set `proxyUrl`, theme, layout, and `baseServerURL` in `ScalarConfig` for
+ *   request testing, styling, and relative server URLs.
+ *
+ * ## Gotchas
+ *
+ * The mounted route is an HTML documentation page, not a raw OpenAPI JSON
+ * endpoint. If clients, gateways, or documentation pipelines need the OpenAPI
+ * document directly, expose it separately with `HttpApiBuilder.layer`'s
+ * `openapiPath` option.
  *
  * @since 4.0.0
  */

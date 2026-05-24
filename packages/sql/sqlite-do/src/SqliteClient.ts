@@ -1,21 +1,35 @@
 /**
- * Provides an Effect SQL client for Cloudflare Durable Object SQLite storage.
+ * Effect SQL client for Cloudflare Durable Object SQLite storage.
  *
  * This module adapts a Durable Object `SqlStorage` handle into both the
- * Durable Object-specific `SqliteClient` service and the generic Effect
- * `SqlClient` service. Use it from inside a Durable Object to run local
- * per-object queries, repositories, migrations, transactional read/write
- * workflows, and tests that exercise Cloudflare's SQLite-backed storage API.
+ * Durable Object-specific {@link SqliteClient} service and the generic Effect
+ * SQL `SqlClient` service. Use it inside a Durable Object for per-object
+ * queries, repositories, migrations, transactional read/write workflows, and
+ * tests that exercise Cloudflare's SQLite-backed storage API.
  *
- * Durable Object SQLite storage is scoped to one object id, so each object
- * instance has its own database and callers should pass the same `SqlStorage`
- * handle that the object uses for normal reads and writes. This adapter
- * serializes Effect SQL access through one connection; a transaction holds that
- * permit for the lifetime of its scope, so keep transactions short, avoid
- * suspending them across unrelated work, and use them when multi-statement
- * writes must commit atomically. `SqlStorage.exec` returns `ArrayBuffer` values
- * for SQLite blobs, which this client normalizes to `Uint8Array`, and SQLite
- * does not support `updateValues`.
+ * **Mental model**
+ *
+ * Durable Object storage is scoped to one object id. Each object instance has
+ * its own database, and {@link make} wraps the same `SqlStorage` handle that
+ * the object uses for normal reads and writes. Effect SQL access is serialized
+ * through one connection; a transaction keeps that permit for the lifetime of
+ * its scope.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layer} when the Durable Object constructor already has a concrete
+ * `SqlStorage` handle. Use {@link layerConfig} when the handle and transform
+ * options should be supplied through Effect `Config`. Keep using generic
+ * `SqlClient` APIs for ordinary SQL, and depend on {@link SqliteClient} when
+ * code needs the Durable Object-specific service identity.
+ *
+ * **Gotchas**
+ *
+ * Keep transactions short and avoid suspending them across unrelated work,
+ * because all access through one client waits on the same serialized
+ * connection. `SqlStorage.exec` returns SQLite blob values as `ArrayBuffer`,
+ * which this client normalizes to `Uint8Array`. SQLite does not support
+ * `updateValues`.
  *
  * @since 4.0.0
  */

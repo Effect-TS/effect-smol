@@ -1,20 +1,34 @@
 /**
- * Typed builders for Microsoft SQL Server stored procedure definitions.
+ * Typed metadata builders for Microsoft SQL Server stored procedure calls.
  *
- * This module describes the metadata consumed by `MssqlClient.call`: create a
- * definition with `make`, add input and output parameters with their Tedious
- * data types and `ParameterOptions`, optionally describe the returned row shape
- * with `withRows`, and use `compile` to bind the input values before execution.
- * It is useful when application code calls stored procedures for commands,
- * reports, migrations, or workflows that return both result sets and output
- * parameters.
+ * This module defines the `Procedure` values consumed by `MssqlClient.call`.
+ * Use it when application code invokes SQL Server stored procedures for
+ * commands, reports, migrations, or workflows that need explicit Tedious
+ * parameter metadata, output parameters, and typed result rows.
  *
- * Parameter value types are supplied explicitly through `param<A>()` and
- * `outputParam<A>()`; they are not inferred from the Tedious data type. Input
- * values must be keyed by the parameter names in the definition, output
- * parameters are collected separately from returned rows, and `withRows` only
- * records the expected TypeScript row type, so row names and transforms still
- * follow the configured `MssqlClient` result handling.
+ * **Mental model**
+ *
+ * A `Procedure` is a typed description, not an executable request. Start with
+ * `make`, add input parameters with `param` and output parameters with
+ * `outputParam`, optionally attach the expected row type with `withRows`, and
+ * finish with `compile` to bind the input value record. `MssqlClient.call`
+ * turns the compiled value into a Tedious request, registers output parameters,
+ * and returns output values separately from returned rows.
+ *
+ * **Common tasks**
+ *
+ * Use `param<A>()` for every input parameter whose value should appear in the
+ * record passed to `compile`, and `outputParam<A>()` for values collected from
+ * SQL Server `returnValue` events. Use `withRows<A>()` when the procedure
+ * returns a result set and callers should see a typed row array.
+ *
+ * **Gotchas**
+ *
+ * The generic type arguments are supplied explicitly; they are not inferred from
+ * Tedious `DataType`s or `ParameterOptions`. Parameter names should match the
+ * stored procedure parameter names used by Tedious, typically without a leading
+ * `@`. `withRows` records only the expected TypeScript row type; runtime row
+ * names and transforms still follow the configured `MssqlClient`.
  *
  * @since 4.0.0
  */

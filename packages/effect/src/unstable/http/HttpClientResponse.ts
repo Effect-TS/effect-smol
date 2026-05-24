@@ -1,20 +1,39 @@
 /**
- * Utilities for inspecting, decoding, and filtering HTTP client responses.
+ * HTTP client response values, status helpers, and body decoders.
  *
- * An `HttpClientResponse` pairs the platform `Response` with the request that
- * produced it, exposing status, headers, cookies, and effectful views of the
- * response body. Use this module after an `HttpClient` call to branch on status
- * with `matchStatus` or `filterStatus`, decode JSON or URL-encoded bodies with
- * schemas, stream bytes, or adapt a Web `Response` with `fromWeb`.
+ * This module represents responses produced by the Effect HTTP client. An
+ * {@link HttpClientResponse} keeps the original request together with the
+ * response status, headers, cookies, and effectful body accessors inherited from
+ * the shared incoming-message model.
  *
- * Response bodies come from the underlying Web response and should be decoded
- * deliberately: `json` parses an empty text body as `null`, body readers fail
- * with `HttpClientError` when decoding fails, and the raw stream fails when no
- * body is present. Headers are represented by the HTTP `Headers` module's
- * single-value, lowercase map, while response cookies are parsed separately from
- * `Set-Cookie` headers. Status values are not considered errors by themselves;
- * use the provided filters or matchers when only specific status codes are
- * acceptable.
+ * **Mental model**
+ *
+ * A response is a successful client result unless a status filter turns it into
+ * a failure. {@link fromWeb} adapts a platform `Response`, body readers decode
+ * the underlying Web response, and schema helpers combine status, headers, and
+ * decoded body data when validating API-specific responses.
+ *
+ * **Common tasks**
+ *
+ * - Branch on exact or status-class handlers with {@link matchStatus}.
+ * - Fail non-accepted statuses with {@link filterStatus} or
+ *   {@link filterStatusOk}.
+ * - Decode JSON response envelopes with {@link schemaJson}.
+ * - Decode status and headers without reading a body with {@link schemaNoBody}.
+ * - Stream response bytes from an effect with {@link stream}.
+ *
+ * **Gotchas**
+ *
+ * HTTP status codes are data, not errors, until a filter is applied. `json`
+ * parses an empty text body as `null`. Body readers fail with `HttpClientError`
+ * when decoding fails, and the raw stream fails when no body is present.
+ * Headers use the HTTP `Headers` module's lowercase, single-value map, while
+ * response cookies are parsed separately from `Set-Cookie` headers.
+ *
+ * **See also**
+ *
+ * {@link HttpClientResponse}, {@link fromWeb}, {@link matchStatus},
+ * {@link schemaJson}, {@link filterStatus}.
  *
  * @since 4.0.0
  */

@@ -1,41 +1,66 @@
 /**
- * Predicate and Refinement helpers for runtime checks, filtering, and type narrowing.
- * This module provides small, pure functions you can combine to decide whether a
- * value matches a condition and, when using refinements, narrow TypeScript types.
+ * Predicates are small boolean functions for checking values at runtime.
+ * Refinements are predicates that also narrow TypeScript types after a
+ * successful check. This module provides primitive guards for common JavaScript
+ * values and combinators for building larger checks from smaller ones.
  *
- * Mental model:
- * - A `Predicate<A>` is just `(a: A) => boolean`.
- * - A `Refinement<A, B>` is a predicate that narrows `A` to `B` when true.
- * - Guards like `isString` are predicates/refinements for common runtime types.
- * - Combinators like `and`/`or` build new predicates from existing ones.
- * - `Tuple` and `Struct` lift element/property predicates to compound values.
+ * **Mental model**
  *
- * Common tasks:
- * - Reuse an existing predicate on a different input shape -> {@link mapInput}
- * - Combine checks -> {@link and}, {@link or}, {@link not}, {@link xor}
- * - Build tuple/object checks -> {@link Tuple}, {@link Struct}
- * - Narrow `unknown` to a concrete type -> {@link Refinement}, {@link compose}
- * - Check runtime types -> {@link isString}, {@link isNumber}, {@link isObject}
+ * - A `Predicate<A>` is `(a: A) => boolean`
+ * - A `Refinement<A, B>` is `(a: A) => a is B`; when it returns `true`,
+ *   TypeScript can treat the value as `B`
+ * - Guards such as {@link isString}, {@link isNumber}, and {@link isObject}
+ *   refine `unknown` values into useful runtime types
+ * - Combinators such as {@link and}, {@link or}, {@link not}, and {@link xor}
+ *   build new predicates while preserving refinement information where possible
+ * - {@link Tuple} and {@link Struct} lift element and property predicates to
+ *   tuple-like arrays and object shapes
  *
- * Gotchas:
- * - `isTruthy` uses JavaScript truthiness; `0`, "", and `false` are false.
- * - `isObject` excludes arrays; use {@link isObjectOrArray} for both.
- * - `isIterable` treats strings as iterable.
- * - `isPromise`/`isPromiseLike` are structural checks (then/catch), not `instanceof`.
- * - `isTupleOf` and `isTupleOfAtLeast` only check length, not element types.
+ * **Common tasks**
+ *
+ * - Check primitive runtime types: {@link isString}, {@link isNumber},
+ *   {@link isBoolean}, {@link isBigInt}, {@link isSymbol}
+ * - Check object-like values: {@link isObject}, {@link isObjectOrArray},
+ *   {@link hasProperty}, {@link isTagged}
+ * - Combine predicates: {@link and}, {@link or}, {@link not}, {@link xor}
+ * - Reuse a predicate on derived input: {@link mapInput}
+ * - Compose refinements that narrow in stages: {@link compose}
+ * - Validate tuple or object shapes: {@link Tuple}, {@link Struct}
+ *
+ * **Gotchas**
+ *
+ * - Predicates only return `true` or `false`; they do not explain why a value
+ *   failed a check
+ * - {@link isTruthy} uses JavaScript truthiness, so `0`, `""`, and `false`
+ *   are rejected
+ * - {@link isObject} excludes arrays; use {@link isObjectOrArray} when arrays
+ *   should also pass
+ * - {@link isIterable} accepts strings because strings are iterable in
+ *   JavaScript
+ * - {@link isPromise} and {@link isPromiseLike} are structural checks, not
+ *   `instanceof` checks
+ * - {@link isTupleOf} and {@link isTupleOfAtLeast} check length only, not
+ *   element types
+ *
+ * **Quickstart**
  *
  * **Example** (Filter by a predicate)
  *
  * ```ts
  * import { Predicate } from "effect"
  *
- * const isPositive = (n: number) => n > 0
- * const data = [2, -1, 3]
+ * const values: Array<unknown> = ["one", 2, "three", null]
+ * const strings = values.filter(Predicate.isString)
  *
- * console.log(data.filter(isPositive))
+ * console.log(strings)
+ * // Output: ["one", "three"]
  * ```
  *
- * See also: {@link Predicate}, {@link Refinement}, {@link and}, {@link or}, {@link mapInput}
+ * **See also**
+ *
+ * - {@link Predicate} for plain boolean checks
+ * - {@link Refinement} for checks that narrow types
+ * - {@link Struct} and {@link Tuple} for checking compound values
  *
  * @since 2.0.0
  */

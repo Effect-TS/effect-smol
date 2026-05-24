@@ -1,20 +1,40 @@
 /**
- * Building blocks for Effect's unstable SQL statement API.
+ * Low-level SQL statement and fragment primitives.
  *
- * This module defines the low-level `Statement` and `Fragment` model used by
- * SQL clients, the tagged-template `Constructor` for creating executable
- * parameterized statements, and dialect compilers that turn statement segments
- * into SQL text plus bind parameters. It also provides helpers for escaped
- * identifiers, `IN` lists, comma-separated clause fragments, record inserts and
- * updates, custom segments, and row or identifier transforms.
+ * This module is the foundation used by SQL clients to build executable,
+ * parameterized SQL. It defines the {@link Statement} and {@link Fragment}
+ * models, the tagged-template {@link Constructor}, segment constructors for
+ * identifiers, parameters, literals, arrays, records, and custom dialect data,
+ * plus compilers that render those segments into dialect-specific SQL text and
+ * bind parameters.
  *
- * In tagged templates, interpolated `Fragment`s and known `Segment`s are
- * spliced into the statement, while ordinary values become bound parameters. Use
- * identifiers for table and column names and the record helpers for generated
- * column lists; `literal` and `unsafe` insert SQL text directly and should only
- * be used with trusted SQL. Compilation is dialect-specific, caches rendered SQL
- * on the statement, and has a `withoutTransform` path for bypassing identifier
- * transforms, so compiled output can differ from normal transformed execution.
+ * **Mental model**
+ *
+ * A statement is a sequence of {@link Segment} values. In a tagged template,
+ * nested fragments and known segments are spliced into that sequence, while
+ * ordinary interpolated values become bound parameters. A {@link Compiler}
+ * turns the sequence into SQL for one dialect, escaping identifiers and
+ * formatting placeholders for that dialect. Executing a {@link Statement} uses
+ * the connection acquirer captured by {@link make} and can return rows, raw
+ * results, streams, values, or unprepared execution paths.
+ *
+ * **Common tasks**
+ *
+ * - Build statements with a {@link Constructor} tagged template
+ * - Use {@link identifier} for table and column names rather than interpolating
+ *   plain strings
+ * - Compose optional clauses with {@link and}, {@link or}, {@link csv}, and
+ *   {@link join}
+ * - Create insert and update fragments with record helpers
+ * - Add custom segment handling with {@link custom} and {@link makeCompiler}
+ *
+ * **Gotchas**
+ *
+ * Bound parameters protect values, not SQL syntax. Use `literal` and `unsafe`
+ * only for trusted SQL text, and use identifiers for names that need escaping.
+ * Compiled SQL is dialect-specific and cached on the statement;
+ * `withoutTransform` intentionally bypasses identifier or row transforms, so
+ * its output can differ from normal execution.
  *
  * @since 4.0.0
  */

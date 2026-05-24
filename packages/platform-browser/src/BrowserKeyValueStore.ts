@@ -1,19 +1,54 @@
 /**
- * Browser-backed `KeyValueStore` layers for Effect programs.
+ * Browser-backed `KeyValueStore` layers for client-side Effect programs.
  *
- * This module provides `KeyValueStore` implementations backed by the browser's
- * synchronous Web Storage APIs: `localStorage` for origin-scoped data that
- * persists across page reloads and browser sessions, and `sessionStorage` for
- * page-session data that is cleared when that tab or window's page session
- * ends. They are useful for small client-side values such as user preferences,
- * feature flags, lightweight caches, persisted drafts, or session-only workflow
- * state.
+ * This module provides browser implementations of the unstable persistence
+ * `KeyValueStore` service. Use {@link layerLocalStorage} for small
+ * origin-scoped values that should survive reloads and browser restarts, use
+ * {@link layerSessionStorage} for tab / page-session state, and use
+ * {@link layerIndexedDb} when the store should be asynchronous and backed by
+ * IndexedDB.
  *
- * Web Storage is only available in browser environments and is scoped by origin.
- * Browsers may deny access in private modes or restricted contexts, and writes
- * can fail when storage quotas are exceeded. The API stores strings and runs
- * synchronously on the main thread, so prefer it for small payloads and avoid
- * treating it as a database or a secure place for sensitive data.
+ * ## Mental model
+ *
+ * All exports provide the same `KeyValueStore.KeyValueStore` service; the layer
+ * chooses the browser storage backend. The Web Storage layers delegate to
+ * `globalThis.localStorage` or `globalThis.sessionStorage` and adapt the
+ * string-only API, encoding `Uint8Array` values as base64. The IndexedDB layer
+ * stores strings and `Uint8Array` values in an object store and requires the
+ * browser `IndexedDb` service to open the database.
+ *
+ * ## Common tasks
+ *
+ * - Persist user preferences, lightweight caches, or drafts with
+ *   {@link layerLocalStorage}.
+ * - Keep tab-scoped workflow state with {@link layerSessionStorage}.
+ * - Avoid blocking the main thread for larger client-side stores by using
+ *   {@link layerIndexedDb}.
+ *
+ * ## Gotchas
+ *
+ * These layers only work where browser storage APIs are available. Browsers may
+ * deny storage in private modes, sandboxed frames, disabled-storage settings, or
+ * quota-limited contexts. Web Storage is synchronous and origin-scoped, so keep
+ * payloads small and do not use it as a secure store for secrets. IndexedDB is
+ * asynchronous but can still be blocked by permissions, quota limits, version
+ * upgrades, or other open tabs.
+ *
+ * **Example** (Provide localStorage to a program)
+ *
+ * ```ts
+ * import { BrowserKeyValueStore } from "@effect/platform-browser"
+ * import { Effect } from "effect"
+ * import { KeyValueStore } from "effect/unstable/persistence"
+ *
+ * const program = Effect.gen(function*() {
+ *   const store = yield* KeyValueStore.KeyValueStore
+ *   yield* store.set("theme", "dark")
+ *   return yield* store.get("theme")
+ * }).pipe(
+ *   Effect.provide(BrowserKeyValueStore.layerLocalStorage)
+ * )
+ * ```
  *
  * @since 4.0.0
  */

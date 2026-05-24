@@ -1,19 +1,33 @@
 /**
- * Utilities for encoding Effect channel payloads and schema values as
- * newline-delimited JSON.
+ * Encode and decode newline-delimited JSON streams in Effect channels.
  *
- * NDJSON represents a stream as one complete JSON value per line, making this
- * module useful for log pipelines, long-lived HTTP responses, socket protocols,
- * and file formats where records should be processed incrementally instead of
- * buffering a whole JSON array. Use the byte helpers at transport boundaries
- * that speak UTF-8, the string helpers when text framing is already handled,
- * and the schema-aware helpers when each record should be validated or
- * transformed at the boundary.
+ * NDJSON represents a stream as one complete JSON value per line. This module
+ * keeps that framing explicit for streaming boundaries: byte helpers handle
+ * UTF-8 transport chunks, string helpers handle already-decoded text, and
+ * schema helpers validate or transform each record at the edge of the pipeline.
  *
- * Encoders append a trailing newline after each emitted chunk, and decoders
- * tolerate records split across input chunks. Empty lines are only skipped when
- * `ignoreEmptyLines` is enabled; otherwise they are passed to `JSON.parse` and
- * fail like any other invalid JSON record.
+ * **Mental model**
+ *
+ * - Encoders receive non-empty chunks of values and emit one NDJSON chunk ending
+ *   with a newline
+ * - Decoders accumulate partial lines across input chunks and emit parsed JSON
+ *   records as soon as complete lines are available
+ * - Schema helpers compose channel encoding and decoding with the plain NDJSON
+ *   framing helpers
+ *
+ * **Common tasks**
+ *
+ * - Encode values to UTF-8 bytes: {@link encode}
+ * - Encode values to strings: {@link encodeString}
+ * - Decode UTF-8 bytes or strings: {@link decode}, {@link decodeString}
+ * - Add schema validation at the boundary: {@link encodeSchema}, {@link decodeSchema}
+ *
+ * **Gotchas**
+ *
+ * - Records must be valid JSON values, not JavaScript expressions
+ * - Empty lines are ignored only when `ignoreEmptyLines` is enabled
+ * - Encoders append a trailing newline, so downstream consumers should treat it
+ *   as record framing rather than as an extra record
  *
  * @since 4.0.0
  */

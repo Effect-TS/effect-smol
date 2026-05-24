@@ -1,16 +1,33 @@
 /**
- * The `Unify` module contains the type-level protocol Effect uses to normalize
- * unions of data types that opt in to unification. It is primarily a library
- * authoring tool: data types expose hidden symbol properties describing how
- * their variants should be widened, and {@link Unify} turns those protocol
- * entries into the user-facing union type that TypeScript should infer.
+ * The `Unify` module defines the type-level protocol Effect uses to collapse
+ * unions of protocol-enabled values into their public data types. It is mostly
+ * for maintainers of Effect data types and advanced library authors; ordinary
+ * application code usually benefits from unification through APIs such as
+ * `Effect`, `Option`, `Result`, `Stream`, `Layer`, and `Match`.
  *
- * Most application code does not need to interact with these symbols directly.
- * The main runtime helper, {@link unify}, is an identity function that preserves
- * values and functions at runtime while applying {@link Unify} to the relevant
- * static type. This is useful when authoring APIs that return branded or
- * protocol-enabled values and need inference to collapse to the public Effect
- * data type rather than exposing implementation details.
+ * **Mental model**
+ *
+ * A type opts in by carrying phantom entries keyed by {@link typeSymbol} and
+ * {@link unifySymbol}. {@link Unify} reads those entries, ignores any protocol
+ * members listed through {@link ignoreSymbol}, and widens matching union
+ * members to the public type each entry returns. The runtime helper
+ * {@link unify} is an identity function; it changes only the static type that
+ * TypeScript sees.
+ *
+ * **Common tasks**
+ *
+ * - Add unification support to a new Effect data type so mixed unions infer as
+ *   the public container type instead of an implementation shape.
+ * - Normalize the return type of branching APIs, matchers, or builders that can
+ *   produce several protocol-enabled values.
+ * - Apply unification to a value or curried function result with {@link unify}
+ *   while preserving the original runtime behavior.
+ *
+ * **Gotchas**
+ *
+ * - Unification is a compile-time protocol, not a runtime conversion hook.
+ * - Protocol entries should be specific to the data type they widen; overly
+ *   broad entries can make inferred unions less precise.
  *
  * @since 2.0.0
  */

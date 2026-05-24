@@ -1,21 +1,38 @@
 /**
- * Utilities for running HTTP server effects at the boundary between Effect and
- * platform request handlers.
+ * Bridges Effect HTTP server programs with platform request handlers.
  *
- * This module is used to turn an effect that produces an `HttpServerResponse`
- * into a concrete handler, such as a Web `Request` handler, while applying
- * middleware, converting failures into HTTP responses, and preserving the
- * current `HttpServerRequest` in the Effect context. It also provides hooks for
- * adjusting a response immediately before it is sent and helpers for managing
- * the request `Scope`, especially when a streaming response must own that scope
- * until the stream completes.
+ * This module runs effects that produce `HttpServerResponse` values at the edge
+ * of a server runtime. It can turn an Effect handler into a Web `Request`
+ * handler, build that handler from a `Layer`, adapt an existing Web handler back
+ * into an Effect server effect, apply HTTP middleware, translate failures into
+ * responses, and run pre-response hooks immediately before a response is sent.
  *
- * Handlers built here expect the per-request context to contain
- * `HttpServerRequest` and, for scoped resources, `Scope.Scope`. Failures are
- * reported and translated through `HttpServerError` / respondable conversions,
- * so unhandled defects generally become server error responses while request
- * aborts and already-sent responses need to be handled with the provided
- * middleware and scope utilities.
+ * **Mental model**
+ *
+ * Each incoming platform request becomes an `HttpServerRequest` in the Effect
+ * context plus a request `Scope`. The server effect produces a response, or
+ * fails with a cause that is converted into an HTTP response. Web handler
+ * adapters fork the Effect program, resolve the platform `Response` promise when
+ * the response is handled, and interrupt the fiber when the request aborts.
+ * Streaming responses transfer scope ownership to the body stream so resources
+ * remain open until the stream exits.
+ *
+ * **Common tasks**
+ *
+ * Use `toWebHandler` for a handler with no extra services, `toWebHandlerWith`
+ * when each request may provide additional context, `toWebHandlerLayer` or
+ * `toWebHandlerLayerWith` when services come from a layer that must later be
+ * disposed, and `fromWebHandler` when embedding a Web-standard handler inside an
+ * Effect HTTP server. Use pre-response handlers to adjust headers, cookies, or
+ * status before the response is converted to the platform response type.
+ *
+ * **Gotchas**
+ *
+ * Layer-backed handlers return a `dispose` function for the layer scope; call it
+ * when the hosting runtime shuts down. Pre-response handlers run before bytes
+ * are sent, not after a streaming body has started. Web adapters handle
+ * streaming scope transfer automatically, but lower-level integrations that call
+ * `toHandled` directly must preserve request scope ownership themselves.
  *
  * @since 4.0.0
  */

@@ -1,19 +1,40 @@
 /**
- * The `RcRef` module provides reference-counted access to a shared resource
- * whose lifecycle is managed by `Scope`. An `RcRef<A, E>` lazily acquires its
- * resource the first time it is requested, shares that resource across active
- * users, and releases it when the final scope holding a reference closes.
+ * The `RcRef` module provides a reference-counted handle for sharing one
+ * scoped resource across many scoped users. An `RcRef<A, E>` is lazy: it
+ * acquires the resource the first time {@link get} needs it, reuses that value
+ * while it is borrowed or kept idle, and finalizes it when the final borrowing
+ * scope closes unless an idle timeout keeps it available.
  *
- * Use `RcRef` when several scoped operations should reuse the same expensive
- * or stateful resource, such as a connection, client, cache, or worker, without
- * making each operation acquire and release its own copy. `make` defines how
- * the resource is acquired, `get` borrows the current resource for the active
- * scope, and `invalidate` forces a future `get` to acquire a fresh resource.
+ * **Mental model**
  *
- * The resource is tied to scopes rather than ordinary object reachability:
- * every `get` must run with a `Scope`, and the reference count is decremented
- * when that scope closes. If `idleTimeToLive` is configured, a resource whose
- * reference count reaches zero can remain cached briefly before release.
+ * - {@link make} stores the acquisition effect and captures the surrounding
+ *   `Scope`
+ * - {@link get} borrows the current resource for the caller's scope,
+ *   acquiring it on demand
+ * - Each borrowing scope increments the reference count and installs a release
+ *   finalizer
+ * - When the count reaches zero, the resource is finalized immediately or kept
+ *   for `idleTimeToLive`
+ * - {@link invalidate} stops reusing the current value; active borrowers keep
+ *   it until their scopes close
+ *
+ * **Common tasks**
+ *
+ * - Lazily share a connection, client, cache, worker, or other scoped resource
+ *   with {@link make}
+ * - Borrow the shared resource inside a scoped operation with {@link get}
+ * - Force the next borrow to reacquire after a stale or broken resource with
+ *   {@link invalidate}
+ *
+ * **Gotchas**
+ *
+ * - {@link get} requires `Scope`; use `Effect.scoped` or run it inside an
+ *   existing scoped workflow
+ * - Invalidation does not revoke values already returned to active scopes
+ * - With a finite `idleTimeToLive`, a zero-reference resource remains
+ *   available until the timeout expires
+ * - With an infinite `idleTimeToLive`, an idle resource remains until
+ *   invalidated or the owning scope closes
  *
  * @since 3.5.0
  */

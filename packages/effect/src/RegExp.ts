@@ -1,5 +1,38 @@
 /**
- * This module provides utility functions for working with RegExp in TypeScript.
+ * Tools for working with JavaScript regular expressions from the Effect module
+ * namespace. The module exposes the native `RegExp` constructor, a guard for
+ * narrowing unknown values, and escaping for literal text that will be embedded
+ * in a pattern.
+ *
+ * Reach for `RegExp` when you need to build a regular expression from user or
+ * data-driven text, check whether an unknown value is already a `RegExp`, or
+ * access the native constructor without leaving the Effect namespace.
+ *
+ * **Common tasks**
+ *
+ * - Construct expressions with the native constructor: {@link RegExp}
+ * - Narrow unknown input to `RegExp`: {@link isRegExp}
+ * - Escape literal text before interpolating it into a pattern: {@link escape}
+ *
+ * **Gotchas**
+ *
+ * - {@link escape} only escapes regular expression metacharacters in a string.
+ *   It does not add anchors, flags, grouping, or validation for a full pattern.
+ *
+ * **Quickstart**
+ *
+ * **Example** (Matching literal text)
+ *
+ * ```ts
+ * import { RegExp } from "effect"
+ *
+ * const literal = "a+b.txt"
+ * const expression = new RegExp.RegExp(`^${RegExp.escape(literal)}$`)
+ *
+ * console.log(expression.test("a+b.txt")) // true
+ * console.log(expression.test("aaab.txt")) // false
+ * console.log(RegExp.isRegExp(expression)) // true
+ * ```
  *
  * @since 2.0.0
  */

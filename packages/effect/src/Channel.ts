@@ -1,60 +1,72 @@
 /**
- * The `Channel` module provides a powerful abstraction for bi-directional communication
- * and streaming operations. A `Channel` is a nexus of I/O operations that supports both
- * reading and writing, forming the foundation for Effect's Stream and Sink abstractions.
+ * The `Channel` module provides the low-level stream processing primitive used
+ * to build Effect streams, sinks, and stream operators.
  *
- * ## What is a Channel?
+ * A `Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>` describes a
+ * scoped process that can read elements from an upstream input, emit elements
+ * downstream, fail with a typed error, or complete with a typed done value.
+ * Most application code works with higher-level stream APIs; channels are for
+ * implementing reusable streaming primitives, adapting pull-based sources, and
+ * controlling how input, output, errors, final values, and resources compose.
  *
- * A `Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>` represents:
- * - **OutElem**: The type of elements the channel outputs
- * - **OutErr**: The type of errors the channel can produce
- * - **OutDone**: The type of the final value when the channel completes
- * - **InElem**: The type of elements the channel reads
- * - **InErr**: The type of errors the channel can receive
- * - **InDone**: The type of the final value from upstream
- * - **Env**: The environment/context required by the channel
+ * **Mental model**
  *
- * ## Key Features
+ * - `OutElem`, `OutErr`, and `OutDone` describe the values, failures, and final
+ *   value produced by the channel.
+ * - `InElem`, `InErr`, and `InDone` describe the upstream protocol consumed by
+ *   the channel when it is piped after another channel.
+ * - `Env` is the Effect environment required while the channel is interpreted.
+ * - Constructors such as {@link fromArray}, {@link fromIterable},
+ *   {@link fromEffect}, {@link succeed}, and {@link fail} create sources.
+ * - Combinators such as {@link map}, {@link mapEffect}, {@link flatMap}, and
+ *   {@link pipeTo} transform, sequence, and connect channels.
+ * - Execution functions such as {@link runCollect} and {@link runDrain}
+ *   interpret channels that no longer require upstream input.
  *
- * - **Bi-directional**: Channels can both read and write
- * - **Composable**: Channels can be piped, sequenced, and concatenated
- * - **Resource-safe**: Automatic cleanup and resource management
- * - **Error-handling**: Built-in error propagation and handling
- * - **Concurrent**: Support for concurrent operations
+ * **Common tasks**
  *
- * ## Composition Patterns
+ * - Build finite sources from values, arrays, iterables, queues, pub/sub
+ *   subscriptions, effects, or pulls.
+ * - Transform output elements with pure or effectful functions.
+ * - Connect channels with {@link pipeTo} when one channel's output protocol
+ *   should become another channel's input protocol.
+ * - Sequence dependent channels with {@link flatMap}, or concatenate channels
+ *   with {@link concat}.
+ * - Manage channel-scoped resources with {@link acquireRelease} and
+ *   {@link ensuring}.
+ * - Bridge to lower-level pull loops with {@link toPull} and {@link fromPull}.
  *
- * 1. **Piping**: Connect channels where output of one becomes input of another
- * 2. **Sequencing**: Use the result of one channel to create another
- * 3. **Concatenating**: Combine multiple channels into a single channel
- *
- * **Example** (Creating a simple channel)
- *
- * ```ts
- * import { Channel } from "effect"
- *
- * // Simple channel that outputs numbers
- * const numberChannel = Channel.succeed(42)
- *
- * // Transform channel that doubles values
- * const doubleChannel = Channel.map(numberChannel, (n) => n * 2)
- *
- * // Running the channel would output: 84
- * ```
- *
- * **Example** (Transforming array-backed channels)
+ * **Example** (Collecting transformed output)
  *
  * ```ts
- * import { Channel } from "effect"
+ * import { Channel, Effect } from "effect"
  *
- * // Channel from an array of values
- * const arrayChannel = Channel.fromArray([1, 2, 3, 4, 5])
+ * const program = Channel.fromArray([1, 2, 3]).pipe(
+ *   Channel.map((n) => n * 2),
+ *   Channel.runCollect
+ * )
  *
- * // Transform the channel by mapping over values
- * const transformedChannel = Channel.map(arrayChannel, (n) => n * 2)
- *
- * // This channel will output: 2, 4, 6, 8, 10
+ * Effect.runPromise(program).then(console.log)
  * ```
+ *
+ * **Gotchas**
+ *
+ * - A channel's done value is distinct from its emitted elements; use
+ *   done-focused APIs when the final value matters.
+ * - `pipeTo` connects the output side of the left channel to the input side of
+ *   the right channel, so type errors usually mean those protocols do not line
+ *   up.
+ * - Resource finalizers run when the channel scope closes, not when a channel
+ *   value is merely constructed.
+ * - Prefer stream and sink APIs unless you are implementing lower-level
+ *   streaming behavior.
+ *
+ * **See also**
+ *
+ * - {@link Channel} for the type parameters and variance of channel values.
+ * - {@link pipeTo} for wiring one channel into another.
+ * - {@link runCollect}, {@link runDrain}, and {@link runDone} for common
+ *   execution modes.
  *
  * @since 2.0.0
  */

@@ -1,20 +1,35 @@
 /**
- * Helpers for passing a schema-encoded bootstrap message to worker-backed RPC
- * protocols.
+ * Bootstrap messages for worker-backed RPC protocols.
  *
- * Worker RPC protocols can send one initial message when each worker starts,
- * before ordinary RPC requests begin flowing. Use this module to build and
- * provide that message from the client side, and to decode it inside the
- * worker-side server. Common payloads include per-worker configuration,
- * credentials or session metadata, feature flags, preloaded data, or
- * transferable resources such as `ArrayBuffer` and `MessagePort` values.
+ * Worker-backed RPC clients sometimes need to send data before the first RPC
+ * request is handled: per-worker configuration, credentials, feature flags,
+ * preloaded caches, or transferable handles. This module defines the
+ * {@link InitialMessage} service plus helpers that encode that bootstrap value
+ * on the client side and decode it on the worker server side.
  *
- * The initial message uses the supplied schema's JSON codec and is posted as a
- * worker message, so it is separate from the normal `RpcSerialization` used for
- * RPC request and response traffic. Values still need to be valid for the
- * worker transport's structured clone boundary. Transferable annotations can
- * collect objects for the `postMessage` transfer list, but transferring moves
- * ownership to the worker and may detach buffers from the sender.
+ * **Mental model**
+ *
+ * The initial message is a one-time envelope outside the normal RPC request and
+ * response stream. {@link makeInitialMessage} runs the build effect, encodes
+ * its value with the supplied schema's JSON codec, and collects transferables.
+ * {@link layerInitialMessage} stores that encoded payload in context for the
+ * RPC client runtime. Inside the worker, {@link initialMessage} reads the
+ * protocol's bootstrap payload and decodes it with the same schema.
+ *
+ * **Common tasks**
+ *
+ * - Provide typed worker startup data with {@link layerInitialMessage}
+ * - Precompute encoded data and transfer lists with {@link makeInitialMessage}
+ * - Read typed startup data in the worker with {@link initialMessage}
+ *
+ * **Gotchas**
+ *
+ * The payload is posted with worker `postMessage`, so encoded values still must
+ * cross the structured clone boundary. Transferables collected during encoding
+ * are moved to the worker; buffers and ports may no longer be usable by the
+ * sender after transfer. The initial message is separate from
+ * `RpcSerialization`, so changing request/response serialization does not
+ * change how this bootstrap payload is encoded.
  *
  * @since 4.0.0
  */

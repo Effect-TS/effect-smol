@@ -1,15 +1,28 @@
 /**
- * Utilities for adapting Node `http.IncomingMessage` values to the Effect HTTP
- * incoming message interface used by the platform Node server and client
- * implementations.
+ * Adapter base for exposing Node `http.IncomingMessage` values as Effect HTTP
+ * incoming messages.
  *
- * This module is useful when code needs to keep access to Node's request or
- * response object while also exposing Effect's typed headers, remote address,
- * body decoders, and stream interface. The body helpers consume Node's readable
- * stream, cache decoded text and array-buffer results, and honor the
- * `HttpIncomingMessage.MaxBodySize` fiber ref. Prefer a single body access
- * strategy per message: raw `stream` access is not cached, and Node request
- * bodies cannot be replayed once the underlying stream has been consumed.
+ * Server requests and Node client responses both arrive as Node readable
+ * streams with raw header objects, socket metadata, and one-shot body
+ * consumption. This module's `NodeHttpIncomingMessage` class keeps the original
+ * Node message available while presenting Effect's `HttpIncomingMessage` shape:
+ * typed headers, remote address lookup, stream access, and text, JSON,
+ * URL-encoded, and array-buffer body readers.
+ *
+ * **Mental model**
+ *
+ * The Node message remains the source of truth. The adapter translates headers
+ * and remote address on demand, delegates raw streaming to `NodeStream`, and
+ * lets subclasses choose how unknown Node errors are mapped into their HTTP
+ * error type.
+ *
+ * **Gotchas**
+ *
+ * Node request and response bodies are one-shot streams. The `text` and
+ * `arrayBuffer` readers are cached and share decoded values with each other,
+ * but direct `stream` access is not cached and can consume the underlying Node
+ * stream before a decoder reads it. Body readers honor
+ * `HttpIncomingMessage.MaxBodySize`.
  *
  * @since 4.0.0
  */

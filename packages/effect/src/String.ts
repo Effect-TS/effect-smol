@@ -1,6 +1,68 @@
 /**
- * This module provides utility functions and type class instances for working with the `string` type in TypeScript.
- * It includes functions for basic string manipulation.
+ * Operations for working with TypeScript `string` values. Use this module to
+ * normalize text, inspect and extract characters, search with `Option` results,
+ * split or iterate lines, convert identifier casing, and pass string instances
+ * to generic APIs.
+ *
+ * **Mental model**
+ *
+ * Strings are plain JavaScript strings. Many operations mirror native string
+ * methods while giving them Effect-style names and data-last forms for `pipe`.
+ * Operations that may miss, such as {@link at}, {@link charCodeAt},
+ * {@link codePointAt}, {@link indexOf}, {@link lastIndexOf}, {@link match}, and
+ * {@link search}, return `Option` instead of sentinel values such as `-1`,
+ * `undefined`, or `null`.
+ *
+ * **Common tasks**
+ *
+ * - Coerce or narrow input: {@link String}, {@link isString}
+ * - Build and compare strings: {@link empty}, {@link concat}, {@link Order},
+ *   {@link Equivalence}, {@link ReducerConcat}
+ * - Change text shape: {@link trim}, {@link trimStart}, {@link trimEnd},
+ *   {@link toUpperCase}, {@link toLowerCase}, {@link capitalize},
+ *   {@link uncapitalize}
+ * - Slice, split, and inspect: {@link slice}, {@link substring},
+ *   {@link takeLeft}, {@link takeRight}, {@link split}, {@link length}
+ * - Search and match: {@link includes}, {@link startsWith}, {@link endsWith},
+ *   {@link indexOf}, {@link lastIndexOf}, {@link match}, {@link matchAll},
+ *   {@link search}
+ * - Normalize identifiers and text blocks: {@link camelCase},
+ *   {@link pascalCase}, {@link snakeCase}, {@link kebabCase},
+ *   {@link constantCase}, {@link linesIterator}, {@link linesWithSeparators},
+ *   {@link stripMargin}
+ *
+ * **Gotchas**
+ *
+ * - {@link length} reports JavaScript string length in UTF-16 code units, not
+ *   user-perceived characters.
+ * - {@link String} is the native JavaScript constructor. `String.String(value)`
+ *   returns native string coercion results.
+ * - {@link split} always returns a non-empty array; splitting `""` with `""`
+ *   returns `[""]`.
+ * - {@link replace} and {@link replaceAll} follow native JavaScript behavior.
+ *   In particular, `replace` only replaces all matches when given a global
+ *   regular expression.
+ * - Fixed converters such as {@link snakeToCamel} expect their named input
+ *   shape. For mixed free-form input, prefer {@link camelCase},
+ *   {@link pascalCase}, {@link snakeCase}, {@link kebabCase}, or
+ *   {@link noCase}.
+ *
+ * **Quickstart**
+ *
+ * **Example** (Normalizing and searching text)
+ *
+ * ```ts
+ * import { String } from "effect"
+ *
+ * const slug = String.kebabCase("User profile ID")
+ * console.log(slug) // "user-profile-id"
+ *
+ * const parts = String.split(slug, "-")
+ * console.log(parts) // ["user", "profile", "id"]
+ *
+ * const firstDash = String.indexOf("-")(slug)
+ * console.log(firstDash) // Option.some(4)
+ * ```
  *
  * @since 2.0.0
  */

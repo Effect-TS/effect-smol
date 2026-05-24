@@ -1,18 +1,35 @@
 /**
- * Low-level storage and replay primitives for the unstable event-log system.
+ * Persistence boundary for unstable event-log entries and replication state.
  *
- * An `EventJournal` records committed event entries, exposes them for replay,
- * and tracks the replication state needed to exchange entries with remote
- * journals. It is the persistence boundary used by higher-level event-log
- * schemas and handlers for workflows such as rebuilding projections, syncing
- * offline clients, importing remote changes, and coordinating per-store writes.
+ * `EventJournal` stores committed entries, exposes them for replay, publishes
+ * local changes, and records the remote metadata needed to exchange entries
+ * with other journals. Higher-level event-log schemas and handlers build on
+ * this service when rebuilding projections, syncing offline clients, importing
+ * remote changes, or coordinating writes per store.
  *
- * Journal entries are ordered by their UUID v7 entry ids, so persistence and
- * replay code should account for clock-derived ordering when detecting
- * conflicts. Payloads are stored as encoded bytes and must remain compatible
- * with the event schemas that will decode them later. Remote writes may include
- * duplicate entries, compaction can rewrite the set of imported entries before
- * effects run, and replay handlers should be prepared for entries that arrive
+ * **Mental model**
+ *
+ * A local write creates a UUID v7 entry id, runs the caller-provided effect,
+ * and commits the entry only when that effect succeeds. Remote writes first
+ * split duplicate entries from new entries, optionally compact the new remote
+ * history, run replay effects with conflict entries, and then persist the
+ * imported entries. Remote metadata tracks the last known sequence number and
+ * which local entries each remote still needs.
+ *
+ * **Common tasks**
+ *
+ * Use `entries` to replay the full journal, `changes` to subscribe to local
+ * writes, `writeFromRemote` to import replicated entries, and
+ * `withRemoteUncommited` to send entries a remote has not yet acknowledged. Use
+ * `withLock` when multiple event-log operations must serialize work for the
+ * same store id.
+ *
+ * **Gotchas**
+ *
+ * Entry ordering comes from UUID v7 timestamps, so conflict detection is tied
+ * to clock-derived ids. Payloads are opaque encoded bytes and must remain
+ * compatible with the schemas that decode historical entries. Remote imports
+ * can include duplicates, and replay handlers should expect entries that arrive
  * after local changes for the same event and primary key.
  *
  * @since 4.0.0

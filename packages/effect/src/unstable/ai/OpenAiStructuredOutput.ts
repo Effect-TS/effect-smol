@@ -1,5 +1,52 @@
 /**
- * Provides codec transformations for OpenAI structured output.
+ * Adapt Effect Schema codecs to the JSON Schema subset accepted by OpenAI
+ * structured output.
+ *
+ * The main entry point is {@link toCodecOpenAI}. It returns a JSON Schema value
+ * for the model request and a codec that preserves the original decoded Type
+ * while changing the encoded representation when OpenAI cannot express that
+ * shape directly.
+ *
+ * **Mental model**
+ *
+ * OpenAI structured output requires a narrower schema vocabulary than Effect
+ * Schema. This module walks the schema AST before JSON Schema generation,
+ * rewrites unsupported shapes into OpenAI-compatible encodings, and
+ * post-processes the generated JSON Schema to remove constructs such as
+ * `allOf`.
+ *
+ * **Common tasks**
+ *
+ * - Convert a `Schema.Codec` for an OpenAI response format with
+ *   {@link toCodecOpenAI}
+ * - Decode model output back into the original application shape with the
+ *   returned codec
+ * - Represent optional properties as `T | null`, tuples as objects with
+ *   numeric string keys, and records as arrays of `[key, value]` pairs
+ *
+ * **Gotchas**
+ *
+ * - The returned codec may encode to a different shape than the input schema,
+ *   so use it for decoding model output instead of the original schema.
+ * - Unsupported schema kinds throw during conversion rather than producing a
+ *   lossy schema.
+ * - Optional properties are required in the emitted JSON Schema and use `null`
+ *   to represent absence because OpenAI requires object keys to be present.
+ *
+ * **Example** (Prepare a response schema)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ * import { OpenAiStructuredOutput } from "effect/unstable/ai"
+ *
+ * const Weather = Schema.Struct({
+ *   city: Schema.String,
+ *   forecast: Schema.optionalKey(Schema.String)
+ * })
+ *
+ * const output = OpenAiStructuredOutput.toCodecOpenAI(Weather)
+ * console.log(output.jsonSchema)
+ * ```
  *
  * @since 4.0.0
  */

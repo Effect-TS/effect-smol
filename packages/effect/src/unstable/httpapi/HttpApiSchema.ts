@@ -1,40 +1,43 @@
 /**
- * Helpers for attaching HTTP API metadata to Effect Schema values.
+ * Attaches HTTP API metadata to Effect Schema values.
  *
- * This module is the schema-side bridge used by the unstable HttpApi endpoint
- * builder, generated clients, and OpenAPI support. It does not define routes or
- * perform IO. Instead, helpers such as {@link status}, {@link asJson},
- * {@link asMultipart}, and {@link asNoContent} annotate schemas so downstream
- * HTTP tooling can choose response status codes, content types, body codecs, and
- * no-body handling while the original schema remains usable for validation and
- * transformation.
+ * This module is the schema-side bridge for HttpApi endpoint builders,
+ * generated clients, and OpenAPI support. It does not define routes or perform
+ * IO. Instead, the helpers annotate schemas so the surrounding HTTP API tooling
+ * can choose response status codes, content types, body codecs, multipart
+ * handling, and no-body response behavior.
  *
- * Common use cases:
- * - Mark success or error schemas with explicit HTTP statuses using
- *   {@link status}, {@link NoContent}, {@link Created}, {@link Accepted}, or
- *   {@link Empty}.
- * - Override the default JSON encoding for request payloads or responses with
- *   {@link asFormUrlEncoded}, {@link asText}, {@link asUint8Array}, or
- *   {@link asJson}.
- * - Describe buffered or streaming multipart request payloads with
- *   {@link asMultipart} and {@link asMultipartStream}.
- * - Represent an HTTP response with no body while still decoding a client-side
- *   value through {@link asNoContent}.
+ * **Mental model**
  *
- * Status and encoding details:
- * - {@link status} only stores an annotation. The same annotation is interpreted
- *   by the surrounding HttpApi context; unannotated success responses default to
- *   `200`, and unannotated error responses default to `500`.
- * - Missing encodings default to JSON for bodies and responses. Payload schemas
- *   used with methods that have no request body fall back to form-url-encoded
- *   metadata for parameter encoding.
- * - {@link asFormUrlEncoded} expects the schema's encoded side to be a record
- *   of strings. {@link asText} expects `string`, and {@link asUint8Array}
- *   expects `Uint8Array`.
- * - Multipart encodings are payload-only; response multipart is rejected when
- *   response encoding is resolved.
- * - These helpers attach annotations consumed by HttpApi internals. They do not
- *   validate, encode, decode, or send data by themselves.
+ * Keep the `Schema` as the source of validation and transformation, then add
+ * HTTP-specific annotations with helpers such as {@link status}, {@link asJson},
+ * {@link asMultipart}, and {@link asNoContent}. The same annotated schema can be
+ * read later by server builders, clients, and OpenAPI generation.
+ *
+ * **Common tasks**
+ *
+ * Use {@link status}, {@link NoContent}, {@link Created}, {@link Accepted}, or
+ * {@link Empty} to describe response statuses. Use {@link asFormUrlEncoded},
+ * {@link asText}, {@link asUint8Array}, or {@link asJson} to override the
+ * default JSON encoding. Use {@link asMultipart} or
+ * {@link asMultipartStream} for multipart request payloads. Use
+ * {@link asNoContent} when the wire response has no body but the client should
+ * decode a useful value.
+ *
+ * **Gotchas**
+ *
+ * {@link status} only stores an annotation: unannotated success responses
+ * default to `200`, and unannotated error responses default to `500` when the
+ * surrounding HttpApi context interprets them. Missing body and response
+ * encodings default to JSON, while payload schemas for methods without request
+ * bodies fall back to form-url-encoded metadata. Multipart encodings are
+ * payload-only, and response multipart is rejected when response encoding is
+ * resolved.
+ *
+ * **See also**
+ *
+ * `HttpApiEndpoint` for route contracts that consume these annotations and
+ * `HttpApi` for reflection over status and encoding metadata.
  *
  * @since 4.0.0
  */

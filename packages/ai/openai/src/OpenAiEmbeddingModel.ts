@@ -1,7 +1,33 @@
 /**
- * OpenAI Embedding Model implementation.
+ * The `OpenAiEmbeddingModel` module provides the OpenAI implementation of
+ * Effect AI's `EmbeddingModel` service. It adapts the OpenAI embeddings
+ * endpoint into Effect AI's batch embedding interface, preserving input order
+ * and returning numeric vectors for each requested input.
  *
- * Provides an EmbeddingModel implementation for OpenAI's embeddings API.
+ * **Mental model**
+ *
+ * `OpenAiClient` owns transport, authentication, and provider request
+ * execution. This module owns embedding-specific configuration, response
+ * validation, and the `EmbeddingModel.EmbeddingModel` layer. Use {@link model}
+ * when you want an `AiModel` descriptor that also provides the configured
+ * embedding dimensions, or {@link layer} / {@link make} when the dimensions are
+ * managed separately.
+ *
+ * **Common tasks**
+ *
+ * - Provide an OpenAI-backed `EmbeddingModel.EmbeddingModel` from an existing
+ *   `OpenAiClient`
+ * - Configure the OpenAI embedding model id, dimensions, encoding format, and
+ *   other create-embedding request fields
+ * - Scope per-request defaults with {@link Config} and
+ *   {@link withConfigOverride}
+ *
+ * **Gotchas**
+ *
+ * - The service expects OpenAI to return floating-point embedding arrays.
+ *   Requesting base64 embeddings causes an `InvalidOutputError`.
+ * - Provider results are checked for missing, duplicate, or out-of-range
+ *   indexes before they are exposed as Effect AI embedding results.
  *
  * @since 4.0.0
  */

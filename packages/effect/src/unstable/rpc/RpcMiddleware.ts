@@ -1,29 +1,39 @@
 /**
- * The `RpcMiddleware` module defines middleware services that can wrap RPC
- * handler execution on the server and request execution in generated clients.
+ * Middleware services for the unstable RPC runtime.
  *
- * Use middleware to attach cross-cutting behavior to individual RPCs or whole
- * `RpcGroup`s, such as authentication, authorization, request logging, tracing,
- * metrics, rate limiting, header propagation, or adding request-scoped services
- * to the handler context. A middleware service records the services it requires
- * and provides, the schema for errors it can fail with, and whether clients must
- * install a matching middleware via `layerClient`.
+ * A middleware service wraps server handler execution and can also install a
+ * client-side wrapper for generated clients. Its metadata records the services
+ * provided to downstream handlers, the services required by the middleware
+ * implementation, the schema for server-visible failures, the client-only error
+ * type, and whether generated clients must require the matching client layer.
  *
- * Server middleware receives the target `rpc`, decoded `payload`, request
- * `headers`, `requestId`, and `Rpc.ServerClient`, then wraps the handler effect.
- * Its `provides` type removes services from the downstream handler requirement,
- * while `requires` adds the services needed by the middleware implementation.
- * Middleware errors must be declared with a `Schema` so they can be encoded as
- * RPC failures, and any schema encoding or decoding services remain part of the
- * generated RPC environments.
+ * **Mental model**
  *
- * Client middleware is installed with `layerClient`, captures the surrounding
- * layer context, and can inspect, rewrite, retry, or short-circuit outgoing
- * requests before calling `next`. Set `requiredForClient` when an RPC's typed
- * client must require that `ForClient` layer; otherwise a client implementation
- * is used only when one is present. `clientError` contributes only to the
+ * A server {@link RpcMiddleware} receives the target RPC, decoded payload,
+ * request headers, request id, and `Rpc.ServerClient`, then wraps the handler
+ * effect. `provides` removes services from the downstream handler requirement,
+ * while `requires` adds the services needed by the middleware. A client
+ * {@link RpcMiddlewareClient} is installed with {@link layerClient}; it can
+ * inspect, rewrite, retry, or short-circuit outgoing requests before calling
+ * `next`.
+ *
+ * **Common tasks**
+ *
+ * Use {@link Service} to define authentication, authorization, logging,
+ * tracing, metrics, rate limiting, header propagation, or request-scoped
+ * service injection. Attach the service to individual RPCs or whole groups,
+ * then provide the server implementation like any other `Context.Service`.
+ * Provide a client implementation with {@link layerClient} when outgoing
+ * requests need matching behavior.
+ *
+ * **Gotchas**
+ *
+ * Middleware failures that cross the RPC boundary must be declared with a
+ * `Schema`, and any encoding or decoding services required by that schema stay
+ * in the generated RPC environments. `clientError` contributes only to the
  * client-side call error channel, while the middleware `error` schema is shared
- * with server failures.
+ * with server failures. Set `requiredForClient` only when typed clients must
+ * reject calls unless the matching client middleware layer is installed.
  *
  * @since 4.0.0
  */

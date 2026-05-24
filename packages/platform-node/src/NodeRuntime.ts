@@ -1,17 +1,31 @@
 /**
- * Node.js entry-point helpers for running Effect programs.
+ * Node.js process runner for starting an Effect program at the application
+ * edge.
  *
- * This module exposes `runMain`, the Node runtime launcher used at the edge of
- * CLI tools, scripts, servers, and worker processes. It runs an already
- * self-contained Effect as the process main program, with built-in error
- * reporting and Node signal handling.
+ * This module exposes `runMain`, the launcher used by Node CLIs, scripts,
+ * servers, and workers when a single Effect should become the process root. It
+ * handles runtime error reporting, Node process signals, and teardown so the
+ * rest of the program can stay inside Effect.
  *
- * `NodeRuntime` does not provide application services by itself. Provide any
- * required layers, such as `NodeServices.layer` or narrower service-specific
- * layers, before passing the effect to `runMain`. On `SIGINT` or `SIGTERM`,
- * the main fiber is interrupted so scoped resources and finalizers can shut
- * down; keep long-running work attached to that scope and avoid finalizers that
- * never complete, otherwise process shutdown can be delayed.
+ * **Mental model**
+ *
+ * `runMain` is the last call in `main.ts`: build the effect, provide the layers
+ * it needs, then hand the self-contained program to this module. The function
+ * does not provide Node services itself; use `NodeServices.layer` or narrower
+ * platform layers before launching.
+ *
+ * **Common tasks**
+ *
+ * - Run a CLI command or script and let failures become process failures.
+ * - Keep a server or worker fiber alive as the process main program.
+ * - Override teardown or disable automatic error reporting at the boundary.
+ *
+ * **Gotchas**
+ *
+ * `SIGINT` and `SIGTERM` interrupt the main fiber so scoped finalizers can run.
+ * Clean success lets the event loop drain naturally, while signal-triggered
+ * interruption or a non-zero teardown code exits the process. Keep long-lived
+ * resources in Effect scopes and avoid finalizers that never complete.
  *
  * @since 4.0.0
  */

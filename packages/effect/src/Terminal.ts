@@ -1,19 +1,32 @@
 /**
- * The `Terminal` module defines the service interface used by platform
- * integrations to model command-line input and output. It gives programs a
- * uniform way to query terminal dimensions, read lines, stream low-level key
- * events, and write text without depending directly on Node, the browser, or a
- * test-specific console implementation.
+ * The `Terminal` module defines Effect's service for interactive terminal
+ * capabilities. Programs can query dimensions, read a line of input, subscribe
+ * to low-level key events, and display text without depending directly on Node,
+ * the browser, or a test-specific console implementation.
  *
- * Use this module when building interactive command-line tools, prompts, or
- * platform abstractions that need terminal capabilities as an Effect service.
- * Implementations are supplied through context, so application code can depend
- * on `Terminal` while tests and runtimes provide the concrete behavior.
+ * **Mental model**
  *
- * `readLine` can fail with {@link QuitError} when the user requests to quit,
- * commonly via `Ctrl+C`. For lower-level interaction, `readInput` returns a
- * scoped stream of {@link UserInput} values containing parsed key metadata and
- * any raw character input.
+ * `Terminal` sits above raw standard I/O. `Stdio` exposes process streams,
+ * while `Terminal` exposes already interpreted terminal operations as an Effect
+ * service. Application code depends on the {@link Terminal} service; platform
+ * runtimes and tests provide the concrete implementation, often by constructing
+ * one with {@link make}.
+ *
+ * **Common tasks**
+ *
+ * - Read prompt answers with `readLine` and handle user cancellation through
+ *   {@link QuitError}.
+ * - Build interactive prompts from `readInput` by consuming {@link UserInput}
+ *   values with parsed key metadata and optional raw character input.
+ * - Write terminal output through `display` while keeping platform failures in
+ *   the Effect error channel.
+ *
+ * **Gotchas**
+ *
+ * - `readLine` can fail with {@link QuitError} when the user requests to quit,
+ *   commonly via `Ctrl+C`.
+ * - `readInput` requires a `Scope` because the returned dequeue represents a
+ *   live input subscription.
  *
  * @since 4.0.0
  */

@@ -1,22 +1,40 @@
 /**
- * Helpers and data types for describing the OTLP resource attached to exported
- * logs, metrics, and traces.
+ * OTLP resource metadata for logs, metrics, and traces exported by Effect.
  *
- * A resource identifies the service that produced telemetry and carries
- * process- or deployment-level attributes that should be shared across every
- * signal sent by the Effect OTLP logger, metrics exporter, and tracer. Use this
- * module when building explicit resource metadata, reading the standard OTEL
- * resource environment variables, or converting application metadata into OTLP
- * `KeyValue` / `AnyValue` shapes before serialization.
+ * This module builds the resource object attached to every OTLP signal sent by
+ * the Effect observability exporters. A resource carries service identity such
+ * as `service.name` and `service.version`, plus process, host, deployment, or
+ * application attributes that should be shared by all exported telemetry.
+ *
+ * **Mental model**
+ *
+ * A {@link Resource} is the OTLP envelope for service-level metadata. Use
+ * {@link make} when the service metadata is already known, or use
+ * {@link fromConfig} when explicit options should be merged with standard
+ * OpenTelemetry environment variables before export. Attribute helpers convert
+ * JavaScript values into OTLP {@link KeyValue} and {@link AnyValue} structures
+ * used by JSON and protobuf serialization.
+ *
+ * **Common tasks**
+ *
+ * - Create explicit resource metadata with {@link make}.
+ * - Read `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
+ *   `OTEL_SERVICE_VERSION` with {@link fromConfig}.
+ * - Convert custom attribute records with {@link entriesToAttributes}.
+ * - Convert individual runtime values with {@link unknownToAttributeValue}.
+ *
+ * **Gotchas**
  *
  * `service.name` is required because the signal exporters also use it as the
- * instrumentation scope name. Explicit resource options take precedence over
- * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
- * `OTEL_SERVICE_VERSION`; `service.name` and `service.version` are normalized
- * through the service metadata inputs and re-added as canonical OTLP
- * attributes rather than left in the custom attribute map. Attribute values are
- * converted to OTLP scalar or array values where possible, with unsupported
- * runtime values formatted as strings.
+ * instrumentation scope name. Explicit options take precedence over
+ * environment variables. `service.name` and `service.version` are normalized
+ * into canonical OTLP attributes instead of being left in the custom attribute
+ * map. Unsupported runtime values are formatted as strings.
+ *
+ * **See also**
+ *
+ * {@link Resource}, {@link make}, {@link fromConfig},
+ * {@link unknownToAttributeValue}.
  *
  * @since 4.0.0
  */

@@ -1,72 +1,79 @@
 /**
- * The `Effect` module is the core of the Effect library, providing a powerful and expressive
- * way to model and compose asynchronous, concurrent, and effectful computations.
+ * `Effect` is the core data type for describing programs that may perform
+ * synchronous or asynchronous work, fail with typed errors, require services,
+ * acquire resources, or run concurrently. An `Effect<A, E, R>` is lazy: creating
+ * one describes a workflow, and running it executes that workflow.
  *
- * An `Effect<A, E, R>` represents a computation that:
- * - May succeed with a value of type `A`
- * - May fail with an error of type `E`
- * - Requires a context/environment of type `R`
+ * **Mental model**
  *
- * Effects are lazy and immutable - they describe computations that can be executed later.
- * This allows for powerful composition, error handling, resource management, and concurrency
- * patterns.
+ * - `A` is the success value, `E` is the expected failure type, and `R` is the
+ *   context of services required to run
+ * - Effects are immutable descriptions, not promises; composition with
+ *   {@link map}, {@link flatMap}, {@link zip}, or {@link gen} builds a larger
+ *   description
+ * - Failures in `E` are part of the type signature and can be handled with
+ *   {@link match}, {@link matchEffect}, {@link catchTag}, or {@link catchTags}
+ * - Requirements in `R` are satisfied before running, usually with
+ *   {@link provide}, {@link provideService}, or layers
+ * - Fibers are lightweight executions of effects and are used by concurrency
+ *   operators such as {@link all}, {@link race}, {@link forkScoped}, and
+ *   {@link forkDetach}
  *
- * ## Key Features
+ * **Common tasks**
  *
- * - **Type-safe error handling**: Errors are tracked in the type system
- * - **Resource management**: Automatic cleanup with scoped resources
- * - **Structured concurrency**: Safe parallel and concurrent execution
- * - **Composable**: Effects can be combined using operators like `flatMap`, `map`, `zip`
- * - **Testable**: Built-in support for testing with controlled environments
- * - **Interruptible**: Effects can be safely interrupted and cancelled
+ * - Create values and failures: {@link succeed}, {@link fail}, {@link failSync}
+ * - Wrap promise-producing code: {@link tryPromise}
+ * - Sequence workflows: {@link gen}, {@link flatMap}, {@link map}, {@link tap}
+ * - Handle errors: {@link match}, {@link matchEffect}, {@link catchTag},
+ *   {@link catchTags}
+ * - Run effects at the edge of an application: {@link runPromise},
+ *   {@link runSync}, {@link runFork}
+ * - Work with time and interruption: {@link sleep}, {@link timeout},
+ *   {@link retry}
+ * - Manage resources: {@link acquireRelease}, {@link scoped},
+ *   {@link scopedWith}
+ * - Provide services: {@link provide}, {@link provideContext},
+ *   {@link provideService}, {@link provideServiceEffect}
  *
- * **Example** (Creating and running effects)
+ * **Gotchas**
+ *
+ * - Effects do nothing until run by a runtime function such as
+ *   {@link runPromise}, {@link runSync}, or {@link runFork}
+ * - {@link runSync} is only for effects that can complete synchronously; use
+ *   {@link runPromise} for effects that may suspend asynchronously
+ * - In {@link gen}, use `yield*` to compose effects; do not use `await` inside
+ *   the generator
+ * - The `E` type tracks expected failures, not every possible JavaScript
+ *   defect such as an unchecked throw
+ * - Any remaining `R` requirement must be provided before an effect can be run
+ *
+ * **Quickstart**
+ *
+ * **Example** (Composing and running a typed workflow)
  *
  * ```ts
  * import { Console, Effect } from "effect"
  *
- * // Creating a simple effect
- * const hello = Effect.succeed("Hello, World!")
- *
- * // Composing effects
- * const program = Effect.gen(function*() {
- *   const message = yield* hello
- *   yield* Console.log(message)
- *   return message.length
- * })
- *
- * // Running the effect
- * Effect.runPromise(program).then(console.log) // 13
- * ```
- *
- * **Example** (Handling typed failures)
- *
- * ```ts
- * import { Data, Effect } from "effect"
- *
- * class DiscountRateError extends Data.TaggedError("DiscountRateError")<{}> {}
- *
- * // Effect that may fail
  * const divide = (a: number, b: number) =>
  *   b === 0
- *     ? Effect.fail(new DiscountRateError())
+ *     ? Effect.fail("divide by zero")
  *     : Effect.succeed(a / b)
  *
- * // Error handling
  * const program = Effect.gen(function*() {
  *   const result = yield* divide(10, 2)
- *   console.log("Result:", result) // Result: 5
+ *   yield* Console.log(`result: ${result}`)
  *   return result
  * })
  *
- * // Handle errors
- * const safeProgram = program.pipe(
- *   Effect.match({
- *     onFailure: (error) => -1,
- *     onSuccess: (value) => value
- *   })
- * )
+ * Effect.runPromise(program).then(console.log)
  * ```
+ *
+ * **See also**
+ *
+ * - {@link gen} for generator-based sequencing
+ * - {@link tryPromise} for asynchronous boundaries
+ * - {@link acquireRelease} and {@link scoped} for resource safety
+ * - {@link runPromise}, {@link runSync}, and {@link runFork} for execution
  *
  * @since 2.0.0
  */

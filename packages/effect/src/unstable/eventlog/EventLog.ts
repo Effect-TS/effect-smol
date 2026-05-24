@@ -1,19 +1,33 @@
 /**
- * Typed event-log runtime for appending domain events to an `EventJournal` and
- * replaying entries from remote replicas.
+ * High-level runtime for writing typed event-log events and replaying replicated
+ * journal entries.
  *
- * This module is used to define event-log schemas, register handlers for event
- * groups, build clients that write typed payloads, and connect local journals to
- * authenticated remote sessions. It is useful for event-sourced state,
- * offline-first synchronization, audit trails, and replicated stores where each
- * event must run its handler before the entry is committed.
+ * This module connects event definitions, handler layers, an `EventJournal`, and
+ * optional remote replicas. Applications define groups with `EventGroup`, build
+ * an `EventLogSchema`, register handlers with `group`, and obtain a typed client
+ * with `makeClient`; the `EventLog` service then encodes payloads, runs the
+ * matching handler, and commits the entry only after the handler succeeds.
  *
- * Local appends encode payloads with the event schema and commit only after the
- * registered handler succeeds. Remote replay decodes entries with the same
- * schema, passes duplicate or conflicting entries to handlers, may run
- * compaction before committing, and invalidates registered reactivity keys.
- * Remote sessions depend on the current `Identity` and `CurrentStoreId`, so use
- * stable values when multiple replicas or stores must share the same log.
+ * **Mental model**
+ *
+ * Local writes are command-like: encode the payload, derive the primary key, run
+ * the handler, then commit the journal entry. Remote replay is journal-like:
+ * entries are decoded with the same schemas, conflict entries are supplied to
+ * handlers, optional compaction can rewrite imported entries, and reactivity keys
+ * are invalidated after successful handling.
+ *
+ * **Common tasks**
+ *
+ * Use `schema` to combine event groups, `layer` or `layerEventLog` to install
+ * the runtime, `group` to register required handlers, `groupCompaction` to
+ * collapse remote history before replay, and `groupReactivity` to invalidate
+ * projections keyed by event primary key.
+ *
+ * **Gotchas**
+ *
+ * Remote synchronization depends on the current `Identity` and `CurrentStoreId`.
+ * Keep both stable for replicas that should share a log, and provide handlers for
+ * every event tag before writing through a client.
  *
  * @since 4.0.0
  */

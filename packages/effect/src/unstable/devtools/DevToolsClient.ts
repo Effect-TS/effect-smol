@@ -1,15 +1,34 @@
 /**
- * Provides the low-level client used by the unstable devtools integration to
- * exchange telemetry with an Effect devtools server over the current `Socket`.
+ * Low-level devtools client and tracer wiring over the current `Socket`.
  *
- * The client speaks the devtools NDJSON protocol, publishes span starts, span
- * events, span completions, and metric snapshots, and exposes layers for
- * installing a tracer that mirrors the current tracer while forwarding data to
- * devtools. Most applications should use the higher-level devtools layers
- * instead of constructing this service directly. When using this module
- * directly, provide a live `Socket`, keep the layer scoped so the background
- * ping and stream fibers are finalized, and prefer `layerTracer` when the goal
- * is to observe an application's Effect traces.
+ * `DevToolsClient` speaks the devtools NDJSON protocol used by the unstable
+ * devtools integration. It sends span starts, span events, span completions,
+ * ping messages, and metric snapshots through a socket, then exposes tracer
+ * layers that forward telemetry while preserving the current tracer's behavior.
+ *
+ * **Mental model**
+ *
+ * {@link make} creates the scoped client service over the provided `Socket`;
+ * {@link makeTracer} wraps the current tracer and sends each span update
+ * through that client; {@link layerTracer} combines both steps for integrations
+ * that already have a socket transport. The higher-level `DevTools` module
+ * provides WebSocket defaults for applications.
+ *
+ * **Common tasks**
+ *
+ * - Build the client service directly with {@link make} or {@link layer}
+ * - Install only the forwarding tracer with {@link makeTracer}
+ * - Create the client and tracer together with {@link layerTracer}
+ * - Send custom span or span-event messages through `DevToolsClient.sendUnsafe`
+ *
+ * **Gotchas**
+ *
+ * - The client is scoped because it starts background fibers for the socket
+ *   stream and heartbeat.
+ * - `sendUnsafe` enqueues telemetry without back pressure and should stay on
+ *   the tracer hot path.
+ * - This module does not create a socket transport; provide `Socket` yourself
+ *   or use the higher-level `DevTools` module.
  *
  * @since 4.0.0
  */

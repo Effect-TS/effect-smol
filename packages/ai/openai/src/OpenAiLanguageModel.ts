@@ -1,8 +1,38 @@
 /**
- * OpenAI Language Model implementation.
+ * The `OpenAiLanguageModel` module provides the OpenAI Responses API
+ * implementation of Effect AI's `LanguageModel` service. It translates Effect
+ * AI prompts, files, tools, structured output requests, reasoning metadata, and
+ * provider options into OpenAI response requests, then converts OpenAI
+ * responses and streams back into Effect AI response parts.
  *
- * Provides a LanguageModel implementation for OpenAI's responses API,
- * supporting text generation, structured output, tool calling, and streaming.
+ * **Mental model**
+ *
+ * `OpenAiClient` owns HTTP transport and provider calls. This module owns
+ * protocol translation: request assembly, tool choice conversion, structured
+ * output codecs, streaming event handling, response metadata, and GenAI
+ * telemetry annotations. {@link model}, {@link layer}, and {@link make} all
+ * build the same OpenAI-backed `LanguageModel.LanguageModel` service from a
+ * model id and optional request defaults.
+ *
+ * **Common tasks**
+ *
+ * - Provide an OpenAI-backed `LanguageModel.LanguageModel` from an existing
+ *   `OpenAiClient`
+ * - Generate text or stream text through Effect AI's provider-neutral language
+ *   model API
+ * - Use OpenAI provider metadata for files, reasoning items, tool calls, and
+ *   response parts
+ * - Scope Responses API defaults with {@link Config} and
+ *   {@link withConfigOverride}
+ *
+ * **Gotchas**
+ *
+ * - Some OpenAI model families receive system instructions as developer
+ *   messages because the Responses API treats them differently.
+ * - File prompt parts are sent either as provider file ids or as base64
+ *   content, depending on `fileIdPrefixes`.
+ * - Structured output and tool-call behavior depends on both Effect AI tool
+ *   definitions and OpenAI model capabilities.
  *
  * @since 4.0.0
  */

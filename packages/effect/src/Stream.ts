@@ -1,40 +1,83 @@
 /**
- * The `Stream` module provides a typed, composable way to describe effectful
- * sequences of values. A `Stream<A, E, R>` can emit zero or more `A` values,
- * fail with an `E`, and require services from `R` while preserving
- * backpressure and resource safety.
+ * The `Stream` module describes effectful sequences that may emit many values
+ * over time. A `Stream<A, E, R>` can produce zero or more `A` values, fail with
+ * an `E`, and require services from `R`; the Effect runtime handles
+ * backpressure, interruption, scopes, and finalizers while the stream is being
+ * consumed.
+ *
+ * Streams are useful for files, sockets, queues, subscriptions, paginated APIs,
+ * background jobs, and any workflow where values should be processed
+ * incrementally instead of loaded into memory all at once.
  *
  * **Mental model**
  *
- * - A stream is a lazy description; it runs only when consumed with a `run*` function
- * - Streams are pull-based and emit chunks internally for efficient throughput
- * - `A` is the element type, `E` is the failure type, and `R` is the required context
- * - Stream composition mirrors `Effect`: use `map`, `flatMap`, error handling, and `pipe`
- * - Resource scopes, interruption, and finalizers are tracked by the Effect runtime
- * - Interop functions connect streams to queues, pub/subs, web streams, async iterables, and channels
+ * - A stream is a lazy description; it does not run until consumed with
+ *   {@link run}, {@link runCollect}, {@link runForEach}, or another `run*`
+ *   function.
+ * - Pulling drives evaluation. Operators request values from upstream, and the
+ *   runtime propagates demand instead of pushing unbounded data downstream.
+ * - Values are batched internally as chunks for throughput, while user-facing
+ *   combinators still work with individual elements unless they mention chunks.
+ * - `A` is the element type, `E` is the failure type, and `R` is the required
+ *   service context.
+ * - Composition mirrors `Effect`: use `pipe`, {@link map}, {@link flatMap},
+ *   error handling, resource operators, and service provisioning.
  *
  * **Common tasks**
  *
- * - Create streams: {@link make}, {@link fromIterable}, {@link fromEffect}, {@link fromQueue}
- * - Transform values: {@link map}, {@link mapEffect}, {@link flatMap}, {@link filter}
- * - Combine streams: {@link concat}, {@link merge}, {@link zip}, {@link race}
- * - Control demand and timing: {@link take}, {@link drop}, {@link debounce}, {@link throttle}
- * - Manage errors: {@link catchCause}, {@link catchIf}, {@link mapError}, {@link retry}
- * - Manage resources and services: {@link scoped}, {@link ensuring}, {@link provide}
- * - Consume streams: {@link runCollect}, {@link runForEach}, {@link runFold}, {@link runDrain}
+ * - Create streams from values, effects, and collections with {@link make},
+ *   {@link fromEffect}, {@link fromIterable}, and {@link fromQueue}.
+ * - Transform or select values with {@link map}, {@link mapEffect},
+ *   {@link flatMap}, {@link filter}, and {@link filterMap}.
+ * - Combine streams with {@link concat}, {@link merge}, {@link zip},
+ *   {@link race}, and {@link interleave}.
+ * - Control size and timing with {@link take}, {@link drop}, {@link debounce},
+ *   {@link throttle}, {@link grouped}, and {@link groupedWithin}.
+ * - Handle failures with {@link catchCause}, {@link catchIf},
+ *   {@link mapError}, {@link retry}, and {@link withExecutionPlan}.
+ * - Connect to other protocols with {@link fromReadableStream},
+ *   {@link toReadableStream}, {@link fromAsyncIterable}, {@link toQueue}, and
+ *   {@link runIntoQueue}.
+ * - Consume streams with {@link runCollect}, {@link runForEach},
+ *   {@link runFold}, {@link runDrain}, or a {@link Sink.Sink}.
+ *
+ * **Quickstart**
+ *
+ * **Example** (Transforming and collecting values)
+ *
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const program = Stream.make(1, 2, 3).pipe(
+ *   Stream.map((n) => n * 2),
+ *   Stream.runCollect
+ * )
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // [2, 4, 6]
+ * ```
  *
  * **Gotchas**
  *
- * - A stream is not a collection; constructors and operators build a description until it is run
- * - Re-running a stream re-executes its effects unless it is explicitly shared or backed by external state
- * - Operators such as {@link merge}, {@link race}, and {@link broadcast} introduce concurrency and interruption semantics
- * - Prefer bounded constructors and sinks for large or infinite streams instead of collecting everything into memory
+ * - A stream is not a collection. Constructors and operators build a
+ *   description; effects run each time the stream is consumed.
+ * - {@link runCollect} stores every emitted value in memory. Prefer
+ *   {@link runForEach}, {@link runFold}, or a streaming sink for large or
+ *   infinite streams.
+ * - Operators such as {@link merge}, {@link race}, {@link broadcast}, and
+ *   {@link share} introduce concurrency, so interruption and finalizer timing
+ *   can matter.
+ * - Reusing the same stream value does not share execution by itself. Use
+ *   {@link share}, {@link broadcast}, queues, or external state when multiple
+ *   consumers must observe one running producer.
  *
  * **See also**
  *
- * - {@link Effect.Effect} for single-result effectful programs
- * - {@link Sink.Sink} for consuming and folding streams
- * - {@link Channel.Channel} for the lower-level primitive underlying streams
+ * - {@link Effect.Effect} for single-result effectful programs.
+ * - {@link Sink.Sink} for reusable stream consumers.
+ * - {@link Channel.Channel} for the lower-level primitive behind streams.
+ * - {@link Queue.Queue} and {@link PubSub.PubSub} for coordinating producers
+ *   and consumers.
  *
  * @since 2.0.0
  */

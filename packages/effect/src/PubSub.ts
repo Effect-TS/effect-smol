@@ -1,32 +1,60 @@
 /**
- * This module provides utilities for working with publish-subscribe (PubSub) systems.
+ * The `PubSub` module provides asynchronous publish-subscribe hubs for
+ * broadcasting values to many subscribers. Publishers add messages with
+ * {@link publish} or {@link publishAll}; each active {@link Subscription}
+ * receives its own copy of every accepted message.
  *
- * A PubSub is an asynchronous message hub where publishers can publish messages and subscribers
- * can subscribe to receive those messages. PubSub supports various backpressure strategies,
- * message replay, and concurrent access from multiple producers and consumers.
+ * Unlike a queue, subscribers do not compete for messages. A published value is
+ * retained until all subscribers that were active for that value have taken it
+ * or unsubscribed.
  *
- * **Example** (Creating and using a PubSub)
+ * **Mental model**
+ *
+ * - A `PubSub<A>` is the shared publish side, and each `Subscription<A>` is an
+ *   independent read side
+ * - {@link subscribe} is scoped; leaving the scope automatically unsubscribes
+ *   the subscription and releases any retained messages for it
+ * - {@link bounded} applies back pressure when the buffer is full,
+ *   {@link dropping} drops new messages, and {@link sliding} drops old messages
+ * - {@link unbounded} removes the capacity limit but can retain an unbounded
+ *   number of messages for slow subscribers
+ * - The optional replay buffer lets late subscribers first consume recently
+ *   published messages
+ *
+ * **Common tasks**
+ *
+ * - Create hubs: {@link bounded}, {@link dropping}, {@link sliding},
+ *   {@link unbounded}
+ * - Publish values: {@link publish}, {@link publishAll}
+ * - Subscribe and consume: {@link subscribe}, {@link take}, {@link takeAll},
+ *   {@link takeUpTo}, {@link takeBetween}
+ * - Inspect lifecycle and capacity: {@link capacity}, {@link size},
+ *   {@link isFull}, {@link isEmpty}, {@link isShutdown}
+ * - Stop a hub: {@link shutdown}, {@link awaitShutdown}
+ *
+ * **Example** (Publishing to one scoped subscriber)
  *
  * ```ts
  * import { Effect, PubSub } from "effect"
  *
- * const program = Effect.gen(function*() {
- *   const pubsub = yield* PubSub.bounded<string>(10)
- *
- *   yield* Effect.scoped(Effect.gen(function*() {
+ * const program = Effect.scoped(
+ *   Effect.gen(function*() {
+ *     const pubsub = yield* PubSub.bounded<string>(16)
  *     const subscription = yield* PubSub.subscribe(pubsub)
  *
- *     // Publisher
- *     yield* PubSub.publish(pubsub, "Hello")
- *     yield* PubSub.publish(pubsub, "World")
+ *     yield* PubSub.publish(pubsub, "ready")
  *
- *     // Subscriber
- *     const message1 = yield* PubSub.take(subscription)
- *     const message2 = yield* PubSub.take(subscription)
- *     console.log(message1, message2) // "Hello", "World"
- *   }))
- * })
+ *     return yield* PubSub.take(subscription)
+ *   })
+ * )
  * ```
+ *
+ * **Gotchas**
+ *
+ * - `bounded` can suspend publishers when a subscriber is slow
+ * - `dropping` and `sliding` can lose messages by design
+ * - Replay buffers are for late subscribers; they do not make the hub a
+ *   permanent event log
  *
  * @since 2.0.0
  */

@@ -1,15 +1,30 @@
 /**
- * The `Random` module provides a service for generating pseudo-random numbers
- * in Effect programs. It offers a testable and composable way to work with
- * randomness, supporting integers, floating-point numbers, and range-based
- * generation.
+ * Pseudo-random generation through Effect's service context. The module exposes
+ * effectful generators for booleans, doubles, safe integers, bounded numbers,
+ * shuffling, and deterministic seeded runs.
  *
- * The default `Random` service is not cryptographically secure. Do not use it
- * for secrets, tokens, UUIDs, session identifiers, or other security-sensitive
- * values. For cryptographically secure random generation, replace the service
- * with a cryptographically secure implementation such as the platform `Crypto`
- * service. `Random.withSeed` also replaces the service, but predictable seeds
- * remain deterministic and must not be treated as cryptographically secure.
+ * **Mental model**
+ *
+ * Randomness is read from the current {@link Random} service instead of a
+ * global singleton. That makes random programs reproducible in tests and local
+ * simulations with {@link withSeed}, while still allowing applications to
+ * replace the service at the edge.
+ *
+ * **Common tasks**
+ *
+ * - Draw a floating-point value in `[0, 1)` with {@link next}
+ * - Draw an integer with {@link nextInt} or {@link nextIntBetween}
+ * - Draw a floating-point value in a custom range with {@link nextBetween}
+ * - Randomize an iterable with {@link shuffle}
+ * - Run the same random sequence repeatedly with {@link withSeed}
+ *
+ * **Gotchas**
+ *
+ * - The default service is not suitable for secrets, session identifiers,
+ *   tokens, or other security-sensitive values.
+ * - `withSeed` is deterministic by design. A predictable seed does not make
+ *   generated values cryptographically secure.
+ * - Bounded integer generation rounds bounds before drawing from the range.
  *
  * **Example** (Generating random values)
  *
@@ -18,13 +33,10 @@
  *
  * const program = Effect.gen(function*() {
  *   const randomFloat = yield* Random.next
- *   console.log("Random float:", randomFloat)
- *
  *   const randomInt = yield* Random.nextInt
- *   console.log("Random integer:", randomInt)
- *
  *   const diceRoll = yield* Random.nextIntBetween(1, 6)
- *   console.log("Dice roll:", diceRoll)
+ *
+ *   return { randomFloat, randomInt, diceRoll }
  * })
  * ```
  *

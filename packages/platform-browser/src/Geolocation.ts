@@ -1,19 +1,35 @@
 /**
- * Browser geolocation support for Effect programs.
+ * Browser geolocation integration for Effect programs.
  *
- * This module provides a `Geolocation` service and browser-backed layer for
- * reading device location through `navigator.geolocation`. Use
- * `getCurrentPosition` when an application needs one location fix, such as a
- * nearby-search, check-in, or delivery estimate, and `watchPosition` when it
- * needs a stream of updates for navigation, tracking, or location-aware UI.
+ * This module exposes a `Geolocation` service backed by
+ * `navigator.geolocation`. Use it for browser features that need a single
+ * position fix, such as nearby search or delivery estimates, or a stream of
+ * position updates for navigation, tracking, and location-aware interfaces.
+ * Browser failures are represented as typed `GeolocationError` values instead
+ * of raw callback errors.
  *
- * The implementation is browser-only and relies on the browser permission and
- * policy model for geolocation. Calls may prompt the user, fail when permission
- * is denied, time out, or report that position data is unavailable because of
- * device, browser, privacy, origin, or secure-context restrictions. Watched
- * positions are scoped so the underlying browser watch is cleared when the
- * stream is finalized, and slow consumers should account for the sliding
- * buffer used by `watchPosition`.
+ * **Mental model**
+ *
+ * - The service delegates to the browser Geolocation API and follows the
+ *   browser's permission, privacy, origin, and secure-context rules.
+ * - `getCurrentPosition` reads one position fix from the service.
+ * - {@link watchPosition} turns browser position callbacks into a `Stream` and
+ *   clears the underlying browser watch when the stream is finalized.
+ *
+ * **Common tasks**
+ *
+ * - Provide the live browser implementation with {@link layer}.
+ * - Read a one-shot position from the `Geolocation` service.
+ * - Stream position updates with {@link watchPosition}.
+ * - Handle denied permissions, timeouts, and unavailable position data with
+ *   {@link GeolocationError}.
+ *
+ * **Gotchas**
+ *
+ * - Browsers may prompt the user, reject access outside secure contexts, block
+ *   access by permissions policy, or report that position data is unavailable.
+ * - {@link watchPosition} uses a sliding buffer; increase `bufferSize` if slow
+ *   consumers must not skip older positions.
  *
  * @since 4.0.0
  */

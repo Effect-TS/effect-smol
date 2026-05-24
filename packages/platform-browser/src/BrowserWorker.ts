@@ -1,22 +1,37 @@
 /**
- * Parent-side browser support for Effect workers.
+ * Parent-side browser platform for running Effect workers.
  *
- * This module provides the `WorkerPlatform` used by browser applications that
- * spawn or connect to `Worker`, `SharedWorker`, and `MessagePort` endpoints
- * through Effect's worker protocol. Pair it with `BrowserWorkerRunner` in the
- * worker entrypoint when building worker-backed RPC clients, moving CPU-bound
- * work off the main thread, isolating browser-only services, or adapting an
- * existing `MessageChannel` in tests and custom transports.
+ * This module provides the `WorkerPlatform` used by browser code that spawns or
+ * connects to `Worker`, `SharedWorker`, and `MessagePort` endpoints through
+ * Effect's worker protocol. Pair it with `BrowserWorkerRunner` in the worker
+ * entrypoint when building worker-backed RPC clients, moving CPU-bound work off
+ * the main thread, isolating browser-only services, or adapting an existing
+ * `MessageChannel` in tests.
  *
- * Dedicated workers communicate through the worker object itself, while shared
- * workers communicate through `worker.port`; raw `MessagePort` values are also
- * accepted and are started when supported. Messages are posted with the browser
- * structured-clone algorithm, so payloads must be cloneable by the target
- * runtime. Transfer lists can avoid copying values such as `ArrayBuffer` or
- * `MessagePort`, but transferring moves ownership away from the sender and
- * invalid or mismatched transferables can fail the send. Scope finalization
- * sends the worker close signal over the port; the application that created a
- * dedicated `Worker` remains responsible for any broader lifecycle such as
+ * **Mental model**
+ *
+ * Browser worker communication is normalized to a message port. Dedicated
+ * workers post messages on the worker object itself, shared workers post
+ * through `worker.port`, and raw `MessagePort` values can be supplied directly.
+ * `layerPlatform` provides only the browser platform, while `layer` combines
+ * the platform with a `Spawner` that creates a worker endpoint for each worker
+ * id.
+ *
+ * **Common tasks**
+ *
+ * Use `layer` when parent code should both provide browser worker messaging and
+ * define how workers are spawned. Use `layerPlatform` when a spawner is already
+ * provided elsewhere. Return a `MessagePort` from the spawner for tests or
+ * custom channels, a `Worker` for dedicated workers, or a `SharedWorker` when
+ * multiple browser contexts should share one worker runtime.
+ *
+ * **Gotchas**
+ *
+ * Messages use the browser structured-clone algorithm, so payloads and transfer
+ * lists must be accepted by the target runtime. Transferring an `ArrayBuffer` or
+ * `MessagePort` moves ownership away from the sender. Scope finalization sends
+ * the worker close signal over the port, but code that created a dedicated
+ * `Worker` remains responsible for broader lifecycle concerns such as
  * terminating it.
  *
  * @since 4.0.0

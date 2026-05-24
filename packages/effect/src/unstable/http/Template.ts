@@ -1,18 +1,31 @@
 /**
- * Template literal helpers for rendering HTTP-oriented text with Effect values.
+ * Effect-aware template literal rendering for HTTP response text.
  *
- * This module powers response helpers that accept template tags, such as HTML
- * responses with dynamic fragments, deferred service lookups, or streaming
- * sections. Use `make` when the whole rendered value should be assembled before
- * building the response, and `stream` when parts of the template can be emitted
- * incrementally from effects or streams.
+ * This module backs HTTP response helpers that accept template tags, especially
+ * HTML responses assembled from plain values, optional values, effects, and
+ * streams. It keeps template interpolation in the Effect type system so dynamic
+ * fragments can contribute errors and service requirements to the final
+ * response-producing program.
  *
- * Interpolation is intentionally simple: primitive values are converted to
- * strings, arrays are concatenated without separators, and `Option.none`,
- * `null`, and `undefined` render as empty text. The module does not escape HTML,
- * encode bytes, set content types, or compute content lengths, so callers should
- * escape or encode untrusted values and choose the appropriate response
- * constructor for the rendered output.
+ * **Mental model**
+ *
+ * `make` evaluates effectful interpolations and returns one complete string.
+ * `stream` emits static template text together with effect and stream
+ * interpolations as a `Stream`. Plain primitive values are converted to text,
+ * arrays are concatenated without separators, and `Option.none`, `null`, and
+ * `undefined` render as empty text.
+ *
+ * **Common tasks**
+ *
+ * Use `make` when the entire rendered body should be available before creating
+ * the response. Use `stream` when a response can be emitted incrementally, for
+ * example when part of an HTML page is produced by an existing stream.
+ *
+ * **Gotchas**
+ *
+ * Templates do not escape HTML, encode bytes, set content types, or compute
+ * content lengths. Escape or encode untrusted values before interpolation and
+ * choose the response constructor that matches the rendered body.
  *
  * @since 4.0.0
  */

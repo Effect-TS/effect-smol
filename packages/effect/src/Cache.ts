@@ -1,17 +1,23 @@
 /**
  * The `Cache` module provides an effectful, mutable key-value cache for values
- * that are computed by a lookup function. A `Cache<Key, A, E, R>` stores lookup
- * results for keys, shares concurrent lookups for the same key, and manages
- * entry lifetime with capacity limits and optional time-to-live policies.
+ * computed by lookup effects. A `Cache<Key, A, E, R>` stores lookup exits for
+ * keys, shares concurrent misses for the same key, and manages entry lifetime
+ * with capacity limits and optional time-to-live policies.
  *
  * **Mental model**
  *
- * - A cache is created from a lookup function and a maximum capacity
- * - {@link get} returns a cached value when present, or runs the lookup on a miss
- * - Concurrent misses for the same key share one pending lookup
- * - Lookup failures are cached as failures until the entry expires, is invalidated, or is refreshed
- * - Entries can live forever, expire after a fixed duration, or use a dynamic TTL based on the lookup `Exit`
- * - Capacity is enforced by removing the oldest stored entries when new entries are added
+ * - {@link make} and {@link makeWith} create a cache from a lookup function and
+ *   a maximum capacity
+ * - {@link get} returns a cached value when present, or runs the lookup for a
+ *   missing or expired key
+ * - Concurrent misses for the same key share one pending lookup and all await
+ *   the same result
+ * - Successes and failures are both cached as `Exit` values until their entry
+ *   expires or is replaced
+ * - Entries can live forever, use a fixed TTL, or use a dynamic TTL based on
+ *   the lookup `Exit`
+ * - Capacity uses access order: reads move entries to the back and overflow
+ *   removes the oldest entries
  *
  * **Common tasks**
  *
@@ -24,10 +30,15 @@
  *
  * **Gotchas**
  *
- * - {@link getOption} does not run the lookup; it only reads an existing non-expired entry
+ * - {@link getOption} does not run the lookup, but it awaits pending entries
+ *   and fails when the existing entry is a failure
+ * - {@link getSuccess} returns `Option.none` for missing, expired, pending, or
+ *   failed entries
  * - {@link size} may include expired entries until they are observed and removed
- * - {@link values} and {@link entries} include only successfully resolved entries
- * - Use `Data` or another `Equal`-compatible key type when keys need structural equality
+ * - {@link values} and {@link entries} include only successfully resolved,
+ *   non-expired entries
+ * - Use `Data` or another `Equal`-compatible key type when keys should compare
+ *   structurally
  *
  * **See also**
  *

@@ -1,28 +1,46 @@
 /**
- * The `effect/match` module provides a type-safe pattern matching system for
- * TypeScript. Inspired by functional programming, it simplifies conditional
- * logic by replacing verbose if/else or switch statements with a structured and
- * expressive API.
+ * Pattern matching for TypeScript values, predicates, and tagged unions.
  *
- * This module supports matching against types, values, and discriminated unions
- * while enforcing exhaustiveness checking to ensure all cases are handled.
+ * `Match` turns branching logic into a matcher that is built from ordered
+ * cases and finished with an explicit finalizer. Use `Match.type` to define a
+ * reusable matcher for a type, or `Match.value` to classify one value
+ * immediately. Cases can match literal values, predicates, object patterns,
+ * discriminators, tags, or negated patterns.
  *
- * Although pattern matching is not yet a native JavaScript feature,
- * `effect/match` offers a reliable implementation that is available today.
+ * **Mental model**
  *
- * **How Pattern Matching Works**
+ * A matcher checks cases in the order they are added and evaluates the handler
+ * for the first match. Type matchers produce a function that can be reused with
+ * different inputs, while value matchers already contain the input value. As
+ * cases are added, the type system tracks which inputs remain unmatched, so
+ * `Match.exhaustive` is only available when every remaining case has been
+ * handled.
  *
- * Pattern matching follows a structured process:
+ * **Common tasks**
  *
- * - **Creating a matcher**: Define a `Matcher` that operates on either a
- *   specific `Match.type` or `Match.value`.
+ * - Use `Match.type<Union>()` when a branch table should be reusable and
+ *   exhaustiveness-checked.
+ * - Use `Match.value(value)` when a single value should be matched immediately.
+ * - Use `Match.tag`, `Match.tags`, or `Match.discriminator` for discriminated
+ *   unions and domain objects with tag fields.
+ * - Use `Match.orElse`, `Match.option`, or `Match.result` when unmatched input
+ *   should be handled explicitly instead of requiring full exhaustiveness.
  *
- * - **Defining patterns**: Use combinators such as `Match.when`, `Match.not`,
- *   and `Match.tag` to specify matching conditions.
+ * **Example** (Matching a tagged union)
  *
- * - **Completing the match**: Apply a finalizer such as `Match.exhaustive`,
- *   `Match.orElse`, or `Match.option` to determine how unmatched cases should
- *   be handled.
+ * ```ts
+ * import { Match } from "effect"
+ *
+ * type Event =
+ *   | { readonly _tag: "UserCreated"; readonly id: string }
+ *   | { readonly _tag: "UserDeleted"; readonly id: string }
+ *
+ * const describe = Match.type<Event>().pipe(
+ *   Match.tag("UserCreated", (event) => `created ${event.id}`),
+ *   Match.tag("UserDeleted", (event) => `deleted ${event.id}`),
+ *   Match.exhaustive
+ * )
+ * ```
  *
  * @since 4.0.0
  */

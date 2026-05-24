@@ -1,28 +1,57 @@
 /**
- * The `Tool` module provides functionality for defining and managing tools
- * that language models can call to augment their capabilities.
+ * The `Tool` module describes callable capabilities that a language model can
+ * request during a workflow. A tool definition names the operation, describes
+ * its parameter shape, declares the success and failure payloads, and carries
+ * annotations that providers or MCP adapters can expose to clients.
  *
- * This module enables creation of both user-defined and provider-defined tools,
- * with full schema validation, type safety, and handler support. Tools allow
- * AI models to perform actions like searching databases, calling APIs, or
- * executing code within your application context.
+ * **Mental model**
  *
- * **Example** (Defining a calculator tool)
+ * - `Tool.make` defines an application-owned tool whose handler is supplied by
+ *   a toolkit.
+ * - `dynamic` represents tools discovered at runtime, including tools backed by
+ *   raw JSON Schema.
+ * - `providerDefined` represents native provider features such as web search or
+ *   code execution, optionally with an application handler for returned data.
+ * - Schemas validate tool-call parameters and encode/decode handler results;
+ *   `failureMode` controls whether handler failures fail the effect or become a
+ *   returned tool-result value.
+ *
+ * **Common tasks**
+ *
+ * - Define typed application tools with {@link make}.
+ * - Register runtime-discovered tools with {@link dynamic}.
+ * - Model provider-native tools with {@link providerDefined}.
+ * - Generate provider-facing parameter JSON Schema with {@link getJsonSchema}.
+ * - Add tool metadata with annotations such as {@link Title}, {@link Readonly},
+ *   {@link Destructive}, {@link Idempotent}, {@link OpenWorld}, and
+ *   {@link Strict}.
+ *
+ * **Gotchas**
+ *
+ * - Tool names are runtime lookup keys for toolkits; choose stable names.
+ * - Tool definitions do not execute anything by themselves. Handlers are bound
+ *   when tools are placed in a toolkit.
+ * - Dynamic tools created from raw JSON Schema receive `unknown` parameters in
+ *   handlers. Use Effect `Schema` values when you need typed parameters.
+ * - Provider-defined tools have both a custom Effect name and a provider name
+ *   so multiple providers can expose similarly named native tools.
+ *
+ * **Example** (Defining a typed tool)
  *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
- * // Define a simple calculator tool
- * const Calculator = Tool.make("Calculator", {
- *   description: "Performs basic arithmetic operations",
+ * const SearchDocs = Tool.make("SearchDocs", {
+ *   description: "Search project documentation",
  *   parameters: Schema.Struct({
- *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
- *     a: Schema.Number,
- *     b: Schema.Number
+ *     query: Schema.String,
+ *     limit: Schema.optional(Schema.Number)
  *   }),
- *   success: Schema.Number
- * })
+ *   success: Schema.Array(Schema.String),
+ *   failure: Schema.String,
+ *   needsApproval: ({ limit }) => limit !== undefined && limit > 20
+ * }).annotate(Tool.Readonly, true)
  * ```
  *
  * @since 4.0.0

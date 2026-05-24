@@ -1,27 +1,41 @@
 /**
- * The `MessageStorage` module defines the persistence boundary used by Effect
- * Cluster to store mailbox messages and replies. Storage implementations keep
- * requests, envelopes, and reply chunks durable enough for runners to recover
- * work after restarts, replay unprocessed messages for assigned shards, and
- * deliver replies back to locally registered handlers.
+ * Persistence and reply delivery for Effect Cluster mailboxes.
  *
- * **Common use cases**
+ * `MessageStorage` is the boundary between cluster message delivery and the
+ * storage backend that keeps mailbox state recoverable. Implementations persist
+ * outgoing requests, control envelopes, stream replies, completion replies, and
+ * the indexes needed to find duplicate requests and unprocessed messages for a
+ * runner's assigned shards.
  *
- * - Persist outgoing requests and control envelopes before delivery
- * - Detect duplicate requests by primary key and resume from an existing reply
- * - Query unprocessed messages when shards are assigned to a runner
- * - Store, load, and clear replies for request streams and completions
- * - Reset or clear mailbox state during shard or address lifecycle changes
+ * **Mental model**
+ *
+ * Mailbox delivery has two kinds of state. Durable state lives in the storage
+ * implementation and is used to resume work after restarts or reassignment.
+ * Local state lives in the current process and connects persisted replies to
+ * registered reply handlers. The service combines both: storage methods record
+ * and query durable messages, while handler methods connect replies to the
+ * fibers waiting for them in the current runner.
+ *
+ * **Common tasks**
+ *
+ * - Provide the in-memory storage with {@link layerMemory} for local tests and
+ *   development
+ * - Provide {@link layerNoop} when persistence should be disabled
+ * - Build custom storage from decoded operations with {@link make}
+ * - Build custom storage from encoded operations with {@link makeEncoded}
+ * - Check {@link SaveResult} after saving a request to distinguish new work from
+ *   duplicate request ids
  *
  * **Gotchas**
  *
- * - Implementations should make save and reply operations transactional when
- *   possible so recovery does not observe partial mailbox state
+ * - Reply handlers are process-local; persisted replies may need to be loaded
+ *   again after a runner restart or shard reassignment.
  * - Duplicate detection depends on stable request primary keys and persisted
- *   request ids
- * - Reply handlers are local process state; persisted replies may need to be
- *   loaded again after restarts or reassignment
- * - Concurrent runners must only process messages for shards they currently own
+ *   request ids.
+ * - Storage backends should make save and reply writes transactional when
+ *   possible so recovery never observes partial mailbox state.
+ * - Runners should only process unprocessed messages for shards they currently
+ *   own.
  *
  * @since 4.0.0
  */

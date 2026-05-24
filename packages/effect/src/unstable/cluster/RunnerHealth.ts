@@ -1,23 +1,40 @@
 /**
- * The `RunnerHealth` module defines the health-check service used by cluster
- * sharding to decide whether a runner may still own its assigned shards. A
- * runner that is reported as alive is allowed to keep processing messages,
- * while a runner that is reported as unavailable can have its shards moved to
- * another runner.
+ * The `RunnerHealth` module defines the health-check service used by the
+ * unstable cluster runtime when deciding whether a runner can keep ownership of
+ * its assigned shards. The service answers whether a runner address is alive
+ * enough for sharding to keep routing work to it.
+ *
+ * **Mental model**
+ *
+ * Runner health feeds placement decisions, not process supervision. A healthy
+ * result lets the current runner continue serving its entities, while an
+ * unhealthy result allows sharding to move those shards to another runner. Keep
+ * checks conservative: a runner reported as unavailable may still be finishing
+ * in-flight messages.
  *
  * **Common tasks**
  *
- * - Provide a custom {@link RunnerHealth} service for a cluster deployment
- * - Use {@link layerPing} to check runners through the cluster runner protocol
- * - Use {@link layerK8s} when Kubernetes pod readiness should drive health
- * - Use {@link layerNoop} in tests or environments where runners are always considered healthy
+ * - Provide a custom {@link RunnerHealth} service for deployment-specific
+ *   failure detection.
+ * - Use {@link layerPing} to check runners through the cluster runner protocol.
+ * - Use {@link layerK8s} when Kubernetes pod readiness should drive runner
+ *   health.
+ * - Use {@link layerNoop} in tests or single-runner environments where every
+ *   runner should be treated as healthy.
  *
  * **Gotchas**
  *
- * - Health checks affect shard reassignment, so false negatives can move shards
- *   away from runners that may still be processing messages
+ * - False negatives can trigger shard reassignment away from runners that are
+ *   still processing messages.
  * - The Kubernetes implementation treats API failures as healthy to avoid
- *   reassignment caused by a temporary control-plane outage
+ *   reassignment caused by a temporary control-plane outage.
+ * - {@link layerNoop} disables failure detection for this decision point, so it
+ *   should only be used when that tradeoff is intentional.
+ *
+ * **See also**
+ *
+ * - {@link RunnerHealth}
+ * - {@link layerPing}, {@link layerK8s}, and {@link layerNoop}
  *
  * @since 4.0.0
  */

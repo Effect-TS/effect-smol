@@ -1,20 +1,35 @@
 /**
- * Browser Permissions API support for Effect programs.
+ * Effect service for the browser Permissions API.
  *
- * This module provides a `Permissions` service and browser-backed layer for
- * querying `navigator.permissions` from Effect code. Use it to check whether a
- * browser capability is currently `granted`, `prompt`, or `denied` before
- * showing UI for flows such as geolocation, notifications, clipboard access,
- * camera, microphone, or persistent storage.
+ * This module wraps `navigator.permissions` in a `Permissions` service and a
+ * browser-backed layer. It lets browser programs query whether a capability is
+ * currently `granted`, `prompt`, or `denied` before deciding which UI or
+ * feature flow to show for geolocation, notifications, clipboard access,
+ * camera, microphone, persistent storage, and other browser-gated features.
  *
- * Permission queries do not request access by themselves and should not replace
- * the feature API that actually performs the operation. Browser support for
- * permission names and states is uneven, queries may reject for unsupported or
- * invalid descriptors, and some permissions are only meaningful in secure
- * contexts or after user activation. Returned `PermissionStatus` objects can
- * change when the user updates browser settings or responds to prompts; when
- * watching `change` or `onchange`, account for browser differences and clean up
- * listeners when the surrounding Effect scope ends.
+ * **Mental model**
+ *
+ * A permission query is a status read, not an access request. The service
+ * delegates to `navigator.permissions.query({ name })` and returns the browser's
+ * `PermissionStatus`, while browser rejections are represented as
+ * `PermissionsError` values.
+ *
+ * **Common tasks**
+ *
+ * - Check whether a feature is already available before rendering a prompt or
+ *   settings path.
+ * - Require permission querying through Effect context instead of reaching for
+ *   the ambient `navigator` in application code.
+ * - Provide the live browser implementation with `layer`.
+ *
+ * **Gotchas**
+ *
+ * Browser support for permission names and states is uneven, and unsupported or
+ * invalid descriptors may reject. Some permissions are only meaningful in
+ * secure contexts or after user activation. Returned `PermissionStatus` objects
+ * can change when the user updates browser settings or responds to prompts; if
+ * you subscribe to `change` or `onchange`, clean up listeners with the
+ * surrounding Effect scope.
  *
  * @since 4.0.0
  */

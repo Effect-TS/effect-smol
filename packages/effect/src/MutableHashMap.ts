@@ -1,25 +1,40 @@
 /**
- * MutableHashMap is a high-performance, mutable hash map implementation designed for efficient key-value storage
- * with support for both structural and referential equality. It provides O(1) average-case performance for
- * basic operations and integrates seamlessly with Effect's Equal and Hash interfaces.
+ * `MutableHashMap` is an in-place key-value map with fast lookup, insertion,
+ * removal, clearing, and iteration. It combines a native `Map` for ordinary
+ * JavaScript keys with hash buckets for keys that implement Effect `Equal` /
+ * `Hash`, so callers can mix referential and structural lookup in the same
+ * collection.
  *
- * The implementation uses a hybrid approach:
- * - Referential keys (without Equal implementation) are stored in a native Map
- * - Structural keys (with Equal implementation) are stored in hash buckets with collision handling
+ * **Mental model**
  *
- * Key Features:
- * - Mutable operations for performance-critical scenarios
- * - Supports both structural and referential equality
- * - Efficient collision handling through bucketing
- * - Iterable interface for easy traversal
- * - Memory-efficient storage with automatic bucket management
+ * - `MutableHashMap<K, V>` stores entries on a single mutable map instance
+ * - {@link set}, {@link remove}, and {@link clear} mutate that instance and
+ *   return it for convenient piping
+ * - Keys that implement `Equal` / `Hash` are matched structurally through hash
+ *   buckets; other keys use JavaScript map semantics
+ * - The map is iterable as `[key, value]` pairs and reports size in O(1)
  *
- * Performance Characteristics:
- * - Get/Set/Has: O(1) average, O(n) worst case (hash collisions)
- * - Remove: O(1) average, O(n) worst case
- * - Clear: O(1)
- * - Size: O(1)
- * - Iteration: O(n)
+ * **Common tasks**
+ *
+ * - Create maps: {@link empty}, {@link make}, {@link fromIterable}
+ * - Read entries: {@link get}, {@link has}, {@link size}
+ * - Mutate entries: {@link set}, {@link modify}, {@link remove}, {@link clear}
+ * - Narrow unknown values: {@link isMutableHashMap}
+ *
+ * **Gotchas**
+ *
+ * - This data structure is intentionally mutable; share it only when callers
+ *   agree on ownership
+ * - Mutating a structural key after insertion can make future lookups fail if
+ *   its equality or hash changes
+ * - Iteration follows the underlying storage order and should not be used as a
+ *   sorting guarantee
+ *
+ * **Performance**
+ *
+ * - Lookup, insertion, removal, clearing, and size are O(1) on average
+ * - Hash collisions can make key lookup and removal O(n)
+ * - Iteration is O(n)
  *
  * @since 2.0.0
  */

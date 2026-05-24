@@ -1,22 +1,40 @@
 /**
  * Node.js Redis integration backed by `ioredis`.
  *
- * This module provides scoped layers that create an `ioredis` client and expose
- * both the low-level `Redis` service used by Effect persistence modules and the
- * `NodeRedis` service for direct access to the underlying client. It is useful
- * for Node applications that want Redis-backed persistence, persisted queues,
- * distributed rate limiting, or custom Redis commands alongside the Effect
- * services that build on Redis.
+ * This module creates a scoped `ioredis` client and exposes it in two forms:
+ * the generic `Redis` service consumed by Effect persistence modules, and the
+ * {@link NodeRedis} service for code that needs direct access to the underlying
+ * client.
  *
- * The client is acquired when the layer is built and closed with `quit` when
- * the layer scope ends, so install the layer at the lifetime you want for the
- * connection and pass `ioredis` options, or `layerConfig`, for connection,
- * TLS, database, retry, and reconnect settings. Persistence and rate limiter
- * stores build their own keys and Lua scripts on top of this service; choose
- * stable prefixes and store ids to avoid collisions, account for persisted
- * values that may fail to decode after schema changes, and avoid unbounded
- * high-cardinality rate-limit keys unless you have a cleanup or bounding
- * strategy.
+ * **Mental model**
+ *
+ * - {@link layer} creates one `ioredis` client from explicit client options
+ * - {@link layerConfig} reads the same options from `Config`
+ * - Building the layer opens the client, and closing the layer scope calls
+ *   `quit`
+ * - The generic `Redis` service sends command strings through `client.call`
+ * - {@link NodeRedis} exposes the raw client plus `use`, which maps promise
+ *   failures into `RedisError`
+ *
+ * **Common tasks**
+ *
+ * - Provide Redis-backed persistence, persisted queues, or distributed rate
+ *   limiting in Node.js
+ * - Configure connection, TLS, database, retry, and reconnect behavior with
+ *   standard `ioredis` options
+ * - Run custom Redis commands through {@link NodeRedis} when the generic
+ *   `Redis` service does not cover the command shape you need
+ *
+ * **Gotchas**
+ *
+ * - Install the layer at the lifetime you want for the connection; a short
+ *   scope opens and closes a Redis client for that scope
+ * - Persistence and rate limiter stores create their own keys and Lua scripts
+ *   on top of this service, so choose stable prefixes and store ids
+ * - Persisted values may fail to decode after schema changes; plan migrations
+ *   or cleanup for long-lived Redis data
+ * - Avoid unbounded high-cardinality rate-limit keys unless another process or
+ *   key policy bounds their lifetime
  *
  * @since 4.0.0
  */

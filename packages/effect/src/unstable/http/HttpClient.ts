@@ -1,22 +1,38 @@
 /**
- * Composable HTTP client service for executing `HttpClientRequest` values and
- * receiving `HttpClientResponse` values inside Effect programs.
+ * Dependency-injected HTTP client for executing outgoing requests from Effect
+ * programs.
  *
- * This module provides the `HttpClient` service tag, method-specific accessors,
- * constructors for low-level runtimes, and middleware-style combinators for
- * common client concerns such as request rewriting, response filtering, retries,
- * redirects, cookies, rate limiting, and tracing. It is intended for code that
- * needs dependency-injected outbound HTTP calls, reusable clients customized for
- * an API, or cross-cutting behavior layered around a concrete platform client.
+ * This module defines the `HttpClient` service used by platform clients,
+ * tests, and API-specific clients. It executes immutable `HttpClientRequest`
+ * values, returns `HttpClientResponse` values, and keeps outbound HTTP behind a
+ * service boundary so call sites do not depend on a concrete runtime transport.
  *
- * Responses are successful Effects even for non-2xx status codes unless a
- * filter such as `filterStatus` or `filterStatusOk` is applied. Request
- * middleware is ordered by whether it prepends to or appends after the existing
- * preprocessing pipeline, so use `mapRequestInput` for transformations that
- * should run before previously installed request middleware and `mapRequest`
- * for transformations that should run after it. Non-scoped responses are tied to
- * an abort controller for interruption cleanup; use `withScope` when the request
- * lifetime should instead be controlled by a surrounding `Scope`.
+ * **Mental model**
+ *
+ * A client is an `execute` function plus method helpers such as `get`, `post`,
+ * and `del`. Before a request reaches the runtime, it passes through a
+ * preprocessing pipeline. After the runtime returns a response, it passes
+ * through a postprocessing pipeline. Combinators such as `mapRequest`,
+ * `filterStatusOk`, `retry`, `followRedirects`, `withCookiesRef`, and
+ * `withRateLimiter` return a new client with behavior layered around the
+ * previous one.
+ *
+ * **Common tasks**
+ *
+ * Use method helpers for straightforward calls, construct `HttpClientRequest`
+ * values directly when a request is assembled across several steps, and use
+ * `make` or `makeWith` when adapting a lower-level transport. Use
+ * `filterStatus` or `filterStatusOk` when non-success HTTP statuses should fail
+ * the Effect. Use `withScope` when response resources should live for a
+ * surrounding scope instead of only the individual request.
+ *
+ * **Gotchas**
+ *
+ * Receiving a response is a successful Effect even for non-2xx statuses unless
+ * a status filter has been applied. `mapRequestInput` prepends work before
+ * existing request middleware, while `mapRequest` appends after it. Without
+ * `withScope`, non-scoped responses are attached to an abort controller so
+ * interruption can clean up the request.
  *
  * @since 4.0.0
  */

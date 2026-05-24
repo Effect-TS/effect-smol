@@ -1,23 +1,42 @@
 /**
- * The `OpenRouterLanguageModel` module provides constructors for using
- * OpenRouter chat completion models through the Effect AI `LanguageModel`
- * interface. It adapts Effect prompts, tools, structured output schemas, file
- * parts, reasoning details, cache-control hints, and telemetry annotations into
- * the OpenRouter request and response formats.
+ * The `OpenRouterLanguageModel` module provides the OpenRouter implementation
+ * of Effect AI's `LanguageModel` service. It translates provider-neutral
+ * prompts, tools, files, structured output requests, reasoning metadata,
+ * cache-control hints, and telemetry annotations into OpenRouter chat
+ * completion requests, then converts responses and streams back into Effect AI
+ * response parts.
  *
- * Use this module when an application wants to select an OpenRouter model by
- * name while keeping the rest of its AI workflow provider-agnostic. The
- * exported layer and model constructors install a `LanguageModel` service backed
- * by `OpenRouterClient`, and `withConfigOverride` can scope per-request
- * OpenRouter options such as sampling, routing, tool use, or JSON schema
- * behavior.
+ * **Mental model**
  *
- * OpenRouter routes requests to many underlying providers, so model support for
- * images, files, tools, structured outputs, caching, and reasoning metadata can
- * vary. Provider-specific prompt and response metadata is preserved under the
- * `openrouter` option namespace so multi-turn conversations can round-trip
- * details such as reasoning blocks and file annotations when the selected model
- * supports them.
+ * `OpenRouterClient` owns HTTP transport and authentication. This module owns
+ * protocol translation: message assembly, tool conversion, structured output
+ * codec selection, streaming chunk handling, OpenRouter metadata round-trips,
+ * and GenAI telemetry annotations. {@link model}, {@link layer}, and
+ * {@link make} all build the same OpenRouter-backed
+ * `LanguageModel.LanguageModel` service from a model id and optional request
+ * defaults.
+ *
+ * **Common tasks**
+ *
+ * - Create an OpenRouter model descriptor for `Effect.provide`: {@link model}
+ * - Provide `LanguageModel.LanguageModel` as a `Layer`: {@link layer}
+ * - Construct the service effectfully from an existing `OpenRouterClient`:
+ *   {@link make}
+ * - Supply or scope OpenRouter request defaults: {@link Config},
+ *   {@link withConfigOverride}
+ * - Preserve OpenRouter reasoning and file metadata across turns:
+ *   {@link ReasoningDetails}, {@link FileAnnotation}
+ *
+ * **Gotchas**
+ *
+ * - OpenRouter routes to many underlying providers, so support for images,
+ *   files, tools, structured outputs, caching, and reasoning metadata depends
+ *   on the selected model and route.
+ * - Provider-specific prompt and response metadata lives under the `openrouter`
+ *   option namespace so later requests can replay reasoning details and file
+ *   annotations when the model supports them.
+ * - Provider-defined tools are not supported by this integration; requests that
+ *   include them fail before reaching OpenRouter.
  *
  * @since 4.0.0
  */

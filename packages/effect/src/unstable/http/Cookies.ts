@@ -1,17 +1,63 @@
 /**
- * Utilities for representing, validating, parsing, and serializing HTTP cookies.
+ * Immutable HTTP cookie values and collections for request and response
+ * workflows.
  *
- * This module provides an immutable `Cookies` collection keyed by cookie name,
- * constructors for validated `Cookie` values, and helpers for common server and
- * client flows such as reading `Cookie` request headers, emitting `Set-Cookie`
- * response headers, merging cookie sets, and expiring cookies.
+ * The module models a validated {@link Cookie}, an immutable {@link Cookies}
+ * collection keyed by cookie name, and the conversions needed around HTTP
+ * headers. Use it to read request `Cookie` headers, build cookies with standard
+ * attributes, merge or remove cookies immutably, expire cookies, and emit
+ * response `Set-Cookie` headers.
  *
- * Cookie parsing is intentionally tolerant of malformed input: unsupported or
- * invalid `Set-Cookie` attributes are ignored, values are percent-decoded on a
- * best-effort basis, and collections keep one cookie per name. Security
- * attributes such as `HttpOnly`, `Secure`, `SameSite`, and `Partitioned` are
- * serialized when present, but browsers enforce their final behavior, so set
- * them explicitly for session, cross-site, and HTTPS-sensitive cookies.
+ * **Mental model**
+ *
+ * - A `Cookie` stores both the decoded `value` and the encoded `valueEncoded`
+ *   used in headers
+ * - A `Cookies` collection contains at most one cookie per name; later writes,
+ *   merges, and iterable inputs replace earlier cookies with the same name
+ * - `Cookie` request headers carry name/value pairs, while `Set-Cookie`
+ *   response headers carry one cookie plus optional attributes
+ * - Safe constructors return `Result` failures for invalid names, values,
+ *   domains, paths, or infinite `Max-Age` values
+ *
+ * **Common tasks**
+ *
+ * - Create cookies: {@link makeCookie}, {@link makeCookieUnsafe}
+ * - Build collections: {@link empty}, {@link fromIterable},
+ *   {@link fromSetCookie}, {@link fromReadonlyRecord}
+ * - Read values: {@link get}, {@link getValue}, {@link toRecord},
+ *   {@link isEmpty}
+ * - Update collections: {@link set}, {@link setUnsafe}, {@link setAll},
+ *   {@link setCookie}, {@link setAllCookie}, {@link remove}, {@link merge}
+ * - Expire cookies: {@link expireCookie}, {@link expireCookieUnsafe}
+ * - Encode and decode headers: {@link toCookieHeader},
+ *   {@link toSetCookieHeaders}, {@link serializeCookie}, {@link parseHeader}
+ *
+ * **Gotchas**
+ *
+ * - Use {@link toCookieHeader} for an outbound request `Cookie` header and
+ *   {@link toSetCookieHeaders} for response `Set-Cookie` headers.
+ * - Parsing is intentionally tolerant: malformed `Set-Cookie` input can be
+ *   ignored, unsupported attributes are skipped, and percent-decoding falls
+ *   back to the original text.
+ * - Security attributes such as `HttpOnly`, `Secure`, `SameSite`, and
+ *   `Partitioned` are serialized when present, but browser policy enforces
+ *   their final behavior.
+ *
+ * **Example** (Serializing a session cookie)
+ *
+ * ```ts
+ * import { Cookies } from "effect/unstable/http"
+ *
+ * const cookies = Cookies.setUnsafe(Cookies.empty, "session", "abc123", {
+ *   httpOnly: true,
+ *   path: "/",
+ *   sameSite: "lax",
+ *   secure: true
+ * })
+ *
+ * console.log(Cookies.toSetCookieHeaders(cookies))
+ * // ["session=abc123; Path=/; HttpOnly; Secure; SameSite=Lax"]
+ * ```
  *
  * @since 4.0.0
  */

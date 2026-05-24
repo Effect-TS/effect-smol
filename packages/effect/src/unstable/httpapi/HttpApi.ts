@@ -1,26 +1,50 @@
 /**
- * The `HttpApi` module defines the top-level contract for an Effect HTTP API.
- * An `HttpApi` names an API and collects one or more `HttpApiGroup`s, whose
- * endpoints describe the request inputs, response schemas, middleware, and
- * annotations that later drive server builders, clients, and OpenAPI
- * generation.
+ * The `HttpApi` module defines the top-level declaration for an Effect HTTP
+ * API. An {@link HttpApi} has an identifier, annotations, and a collection of
+ * groups whose endpoints describe request inputs, response schemas, middleware,
+ * and route metadata.
  *
- * Use this module when you want to compose a domain API from endpoint groups,
- * combine APIs from multiple modules, apply a shared path prefix or middleware,
- * attach annotations, or reflect over the final route shape. Implementations are
- * provided separately with `HttpApiBuilder.group`, and the completed API is
- * registered with `HttpApiBuilder.layer`.
+ * An `HttpApi` value is the shared contract consumed by server builders,
+ * generated clients, URL builders, OpenAPI generation, and reflection tools.
+ * Handler implementations are supplied later with `HttpApiBuilder.group`, and
+ * the completed API is registered with `HttpApiBuilder.layer`.
  *
- * A few composition details are worth keeping in mind: group identifiers are
- * used as keys, so adding another group with the same identifier replaces the
- * previous one; `prefix` and `middleware` are applied to the groups and
- * endpoints already present when they are called; and `addHttpApi` merges the
- * added API's annotations into its groups. During reflection, success and error
- * schemas are grouped by the HTTP status recorded on their `HttpApiSchema`
- * annotations, endpoints without an explicit success schema default to
- * `NoContent`, and middleware error schemas are included with endpoint errors.
- * Extra schemas supplied through `AdditionalSchemas` must have an `identifier`
- * annotation so they can be emitted as OpenAPI components.
+ * **Mental model**
+ *
+ * - {@link make} creates an empty API declaration with a stable identifier.
+ * - Groups are added to the API declaration, and each group owns its endpoint
+ *   declarations.
+ * - API-level prefixes, middleware, and annotations are composition operations
+ *   over the groups already present in the declaration.
+ * - {@link reflect} walks the final group and endpoint metadata with merged
+ *   annotations, status-indexed response schemas, and middleware errors.
+ *
+ * **Common tasks**
+ *
+ * - Create an API with {@link make}.
+ * - Add groups with the `add` method, or merge another API with `addHttpApi`.
+ * - Apply a shared path prefix, middleware, or annotation through the methods on
+ *   {@link HttpApi}.
+ * - Inspect the resulting route shape with {@link reflect}.
+ * - Register extra OpenAPI component schemas through {@link AdditionalSchemas}.
+ *
+ * **Gotchas**
+ *
+ * - Group identifiers are used as keys. Adding a group with the same identifier
+ *   replaces the previous group.
+ * - `prefix` and `middleware` affect the groups and endpoints already present
+ *   when those methods are called.
+ * - `addHttpApi` merges the added API's annotations into its groups.
+ * - Reflection includes middleware error schemas with endpoint errors and treats
+ *   endpoints without an explicit success schema as `NoContent`.
+ * - Schemas supplied through {@link AdditionalSchemas} must have an `identifier`
+ *   annotation so OpenAPI generation can emit them as components.
+ *
+ * **See also**
+ *
+ * - {@link make} for constructing API declarations.
+ * - {@link reflect} for inspecting groups and endpoints.
+ * - {@link AdditionalSchemas} for OpenAPI component schemas.
  *
  * @since 4.0.0
  */

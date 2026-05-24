@@ -1,7 +1,35 @@
 /**
- * The `Toolkit` module allows for creating and implementing a collection of
- * `Tool`s which can be used to enhance the capabilities of a large language
- * model beyond simple text generation.
+ * The `Toolkit` module groups AI `Tool` definitions into a single typed service
+ * that can execute tool calls by name. A toolkit is the runtime bridge between
+ * declarative tool schemas and the handler functions your application provides
+ * for a language model workflow.
+ *
+ * **Mental model**
+ *
+ * - A `Tool` describes one callable operation: its name, parameter schema,
+ *   success schema, and failure behavior.
+ * - A `Toolkit` is a record of tools that also carries the handler requirements
+ *   needed to execute those tools.
+ * - `toolkit.toLayer(...)` and `toolkit.toHandlers(...)` bind handlers into
+ *   `Context`, so yielding a toolkit produces a value with a `handle` function.
+ * - `handle` validates parameters, runs the matching handler, and returns a
+ *   `Stream` of preliminary and final encoded results.
+ *
+ * **Common tasks**
+ *
+ * - Build a toolkit from tools: {@link make}
+ * - Merge independently defined toolkits: {@link merge}
+ * - Provide handlers with `toolkit.toLayer(...)` or `toolkit.toHandlers(...)`
+ * - Emit progress from a long-running handler with `context.preliminary(...)`
+ *
+ * **Gotchas**
+ *
+ * - Tool names are runtime lookup keys. When toolkits are merged, later tools
+ *   replace earlier tools with the same name.
+ * - Handler output is validated and encoded against the tool schemas; invalid
+ *   output is reported as an AI error.
+ * - The result of `handle` is a stream because handlers can emit preliminary
+ *   results before the final value.
  *
  * **Example** (Creating and implementing toolkits)
  *

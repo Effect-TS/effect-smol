@@ -1,11 +1,48 @@
 /**
- * This module provides functionality for working with primary keys.
- * A `PrimaryKey` is a simple interface that represents a unique identifier
- * that can be converted to a string representation.
+ * The `PrimaryKey` module defines a small protocol for values that can expose
+ * a stable, string-based identifier. A value participates by implementing a
+ * method at {@link symbol}; consumers can check unknown values with
+ * {@link isPrimaryKey} and read the key with {@link value}.
  *
- * Primary keys are useful for creating unique identifiers for objects,
- * database records, cache keys, or any scenario where you need a
- * string-based unique identifier.
+ * **Mental model**
+ *
+ * - `PrimaryKey` is structural: no base class or registration step is required
+ * - The key is produced by a symbol-named method, which avoids collisions with
+ *   ordinary object fields
+ * - The returned string is expected to be stable for the lifetime of the value
+ *   when it is used for maps, caches, or persistence boundaries
+ *
+ * **Common tasks**
+ *
+ * - Implement the protocol on a class or object literal with
+ *   `[PrimaryKey.symbol]`
+ * - Accept unknown input safely by checking {@link isPrimaryKey}
+ * - Convert a known `PrimaryKey` to its string identifier with {@link value}
+ *
+ * **Gotchas**
+ *
+ * - {@link isPrimaryKey} only checks that the symbol property exists; it does
+ *   not call the method or verify the returned string
+ * - The module does not enforce global uniqueness. Choose key formats that are
+ *   unambiguous for the domain where they are compared
+ *
+ * **Example** (Implementing a stable key)
+ *
+ * ```ts
+ * import { PrimaryKey } from "effect"
+ *
+ * class UserId implements PrimaryKey.PrimaryKey {
+ *   constructor(readonly id: number) {}
+ *
+ *   [PrimaryKey.symbol](): string {
+ *     return `user:${this.id}`
+ *   }
+ * }
+ *
+ * const id = new UserId(42)
+ *
+ * PrimaryKey.value(id) // "user:42"
+ * ```
  *
  * @since 2.0.0
  */

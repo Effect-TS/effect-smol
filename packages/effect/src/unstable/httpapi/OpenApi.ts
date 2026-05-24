@@ -1,32 +1,44 @@
 /**
- * The `OpenApi` module converts declarative `HttpApi` definitions into
- * OpenAPI 3.1 specifications and provides annotations for shaping the
- * generated document.
+ * OpenAPI 3.1 generation for declarative `HttpApi` contracts.
  *
- * Use this module when you need to publish an `HttpApi` contract to tooling
- * such as Swagger UI, Scalar, client generators, API gateways, or documentation
- * pipelines. `fromApi` reflects the API's groups and endpoints into tags,
+ * This module reflects an `HttpApi` into an OpenAPI document and provides the
+ * annotations used to shape the generated output. The result can be served from
+ * `HttpApiBuilder.layer`, rendered by Swagger UI or Scalar, passed to client
+ * generators, or published through API gateway and documentation pipelines.
+ *
+ * **Mental model**
+ *
+ * {@link fromApi} walks the API's groups and endpoints and emits OpenAPI tags,
  * paths, operations, parameters, request bodies, responses, security schemes,
- * and component schemas while preserving Effect Schema metadata where OpenAPI
- * can represent it.
+ * and component schemas. Endpoint and schema metadata determine the HTTP
+ * surface; annotations such as {@link Title}, {@link Description},
+ * {@link Summary}, {@link Version}, {@link Servers}, {@link License},
+ * {@link ExternalDocs}, {@link Identifier}, {@link Deprecated}, and
+ * {@link Format} fill in OpenAPI-specific fields.
  *
- * The generated specification is driven by annotations on APIs, groups,
- * endpoints, security definitions, and schemas. `Title`, `Description`,
- * `Summary`, `Version`, `Servers`, `License`, `ExternalDocs`, `Identifier`,
- * `Deprecated`, and `Format` feed the corresponding OpenAPI fields; `Exclude`
- * omits a group or endpoint; `Override` shallowly merges custom fields; and
- * `Transform` can rewrite the generated API, tag, or operation object. Schema
- * identifiers are important for stable component names, additional schemas must
- * have identifiers, and invalid OpenAPI component keys are rejected during
- * generation.
+ * **Common tasks**
  *
- * A few generation details are worth keeping in mind: `HttpApiSchema`
- * encodings choose media types and special representations for JSON,
- * form-url-encoded, text, binary, and multipart payloads; no-content schemas
- * emit responses without bodies; request and response unions are grouped by
- * status code and content type; path parameters are rendered from `:id` route
- * segments as `{id}`; and schemas are converted through the OpenAPI 3.1 JSON
- * Schema representation before being patched into the final document.
+ * Use {@link fromApi} to generate the complete specification. Use
+ * {@link annotations} to attach several OpenAPI annotations at once. Use
+ * {@link Exclude} to omit a group or endpoint, {@link Override} to shallowly
+ * merge extra fields into a generated object, and {@link Transform} when the
+ * generated API, tag, or operation needs a programmatic rewrite.
+ *
+ * **Gotchas**
+ *
+ * Schema identifiers are used as component names; additional schemas must have
+ * identifiers, and invalid OpenAPI component keys are rejected during
+ * generation. `HttpApiSchema` encodings choose media types for JSON,
+ * form-url-encoded, text, binary, and multipart payloads. No-content schemas
+ * emit responses without bodies, request and response unions are grouped by
+ * status code and content type, and `:id` route segments are rendered as `{id}`
+ * path parameters.
+ *
+ * **See also**
+ *
+ * `HttpApi` for API composition, `HttpApiEndpoint` for endpoint metadata,
+ * `HttpApiSchema` for HTTP status and encoding annotations, and
+ * `HttpApiBuilder` for serving the generated document with an HTTP router.
  *
  * @since 4.0.0
  */

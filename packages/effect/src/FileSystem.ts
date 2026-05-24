@@ -1,38 +1,55 @@
 /**
- * This module provides a comprehensive file system abstraction that supports both synchronous
- * and asynchronous file operations through Effect. It includes utilities for file I/O, directory
- * management, permissions, timestamps, and file watching with proper error handling.
+ * Effect service for reading, writing, inspecting, and watching files.
  *
- * The `FileSystem` interface provides a cross-platform abstraction over file system operations,
- * allowing you to work with files and directories in a functional, composable way. All operations
- * return `Effect` values that can be composed, transformed, and executed safely.
+ * The `FileSystem` service is the portable boundary between Effect programs and
+ * the host file system. Programs depend on the service from `effect/FileSystem`;
+ * platform packages provide concrete layers at the edge. Operations return
+ * `Effect`, `Stream`, or `Sink` values and report failures as `PlatformError`
+ * instead of throwing.
  *
- * **Example** (Working with files and directories)
+ * **Mental model**
+ *
+ * `FileSystem` is a capability, not a global singleton. Request it with
+ * `yield* FileSystem.FileSystem` inside an effect, compose file work like any
+ * other effect, and provide a platform or test implementation when the program
+ * is run. Scoped operations such as `open`, `makeTempFileScoped`, and
+ * `makeTempDirectoryScoped` bind resource cleanup to `Scope`.
+ *
+ * **Common tasks**
+ *
+ * - Create, copy, rename, remove, chmod, chown, link, and symlink paths.
+ * - Read and write whole files as bytes or strings.
+ * - Stream large files with `stream` and `sink`, using binary size helpers such
+ *   as `KiB` and `MiB` for chunk sizes and offsets.
+ * - Inspect metadata with `stat`, check accessibility with `access` or
+ *   `exists`, and canonicalize paths with `realPath`.
+ * - Watch files or directories with `watch` when the platform implementation
+ *   supports it.
+ *
+ * **Example** (Write and clean up a temporary file)
  *
  * ```ts
- * import { Console, Effect, FileSystem } from "effect"
+ * import { Effect, FileSystem } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
- *   // Create a directory
- *   yield* fs.makeDirectory("./temp", { recursive: true })
+ *   const directory = yield* fs.makeTempDirectoryScoped()
+ *   const path = `${directory}/message.txt`
  *
- *   // Write a file
- *   yield* fs.writeFileString("./temp/hello.txt", "Hello, World!")
- *
- *   // Read the file back
- *   const content = yield* fs.readFileString("./temp/hello.txt")
- *   yield* Console.log("File content:", content)
- *
- *   // Get file information
- *   const stats = yield* fs.stat("./temp/hello.txt")
- *   yield* Console.log("File size:", stats.size)
- *
- *   // Clean up
- *   yield* fs.remove("./temp", { recursive: true })
+ *   yield* fs.writeFileString(path, "hello")
+ *   return yield* fs.readFileString(path)
  * })
  * ```
+ *
+ * **Gotchas**
+ *
+ * Paths are interpreted by the provided implementation, so relative paths, case
+ * sensitivity, permissions, links, and watch behavior are platform-dependent.
+ * Size options are normalized to branded bigint byte counts; prefer the `Size`,
+ * `KiB`, `MiB`, and related helpers for offsets, chunk sizes, and truncation
+ * lengths. A program that uses this service still needs a concrete layer, such
+ * as `NodeFileSystem.layer`, before it can access the real file system.
  *
  * @since 4.0.0
  */

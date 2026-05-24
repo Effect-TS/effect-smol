@@ -1,26 +1,40 @@
 /**
- * The `Atom` module defines reactive values and the helpers for constructing,
- * composing, running, and persisting them with an `AtomRegistry`. Atoms are
- * small read functions whose regular `get` reads form a dependency graph, so
- * derived values are cached by the registry and invalidated when their
- * dependencies, writable state, refresh hooks, or subscriptions change.
+ * Reactive state primitives for values evaluated by an {@link AtomRegistry}.
  *
- * Use atoms for application and UI state, derived data, `Effect` or `Stream`
- * queries exposed as `AsyncResult`, writable function atoms for commands,
- * subscription refs, pull-based streams, optimistic updates, URL search
- * parameters, `KeyValueStore` entries, and serializable or server-specific
- * hydration.
+ * An {@link Atom} describes how to read a value. The registry is the runtime
+ * owner: it evaluates reads, caches results, records dependency edges, runs
+ * effects and streams with the configured runtime services, and disposes nodes
+ * when they are no longer observed.
  *
- * The cache belongs to the registry, not the atom object: the same atom can have
- * different values in different registries, and serializable atoms are keyed by
- * their serialization key. Stable atom identity matters for dependency tracking
- * and cache reuse, so use `family` for parameterized atoms. Unobserved atoms are
- * disposed unless kept alive or retained by an idle TTL, which can cause derived
- * state, effects, streams, and finalizers to be rebuilt later. Runtime-backed
- * atoms run effects and streams with the registry scheduler, scope, and
- * `AtomRuntime` layer context; `runtime.withReactivity` only refreshes after
- * explicit `Reactivity` invalidations, while one-shot reads such as `once` do
- * not create dependency edges.
+ * **Mental model**
+ *
+ * Regular `get(atom)` calls inside a read function create dependencies. When a
+ * dependency changes or refreshes, dependent atoms are invalidated and re-read
+ * on demand. One-shot reads such as `get.once(atom)` read the current value
+ * without creating an edge. The same atom can hold different cached values in
+ * different registries, so stable atom identity matters; use {@link family} for
+ * atoms parameterized by input values.
+ *
+ * **Common tasks**
+ *
+ * Use {@link readable} or {@link writable} for synchronous state, {@link make}
+ * for effects and streams exposed as `AsyncResult`, {@link fn} for
+ * command-style effects, {@link pull} for pull-based streams, and
+ * {@link subscriptionRef} to expose a `SubscriptionRef`. Use {@link kvs},
+ * {@link searchParam}, and {@link serializable} when atom values need
+ * persistence, URL state, or server-to-client hydration. Read and mutate atoms
+ * from Effect code with {@link get}, {@link set}, {@link update},
+ * {@link refresh}, and {@link mount}; convert observed values to streams with
+ * {@link toStream} or {@link toStreamResult}.
+ *
+ * **Gotchas**
+ *
+ * Cache lifetime belongs to the registry, not the atom object. Unobserved
+ * non-`keepAlive` atoms can be disposed immediately or after their idle TTL,
+ * which also releases finalizers and may rebuild effects, streams, and derived
+ * state on the next read. Runtime-backed atoms refresh only through their
+ * registered refresh hooks or explicit `Reactivity` invalidations; reading an
+ * `Effect` by itself does not keep external data subscribed.
  *
  * @since 4.0.0
  */

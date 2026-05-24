@@ -1,18 +1,32 @@
 /**
- * Utilities for representing and generating HTTP entity tags.
+ * HTTP entity tag values and metadata-based generator layers.
  *
- * ETags are validators that identify a particular representation of a
- * resource. Servers commonly attach them to responses so clients and
- * intermediaries can revalidate cached content with conditional requests such
- * as `If-None-Match`, or protect updates with preconditions such as `If-Match`.
+ * ETags are validators for a specific representation of a resource. Servers put
+ * them in `ETag` response headers so clients and intermediaries can revalidate
+ * cached content with `If-None-Match`, or protect writes with preconditions such
+ * as `If-Match`.
  *
- * This module models weak and strong ETags, formats them for the `ETag` header,
- * and provides generator layers that derive tags from file size and
- * modification-time metadata. Metadata-derived tags are convenient for static
- * files, but they are only as precise as the underlying metadata: choose strong
- * tags only when that metadata reliably changes for every byte-level change,
- * and use weak tags when the validator is suitable for cache revalidation but
- * not for operations that require byte-for-byte identity.
+ * **Mental model**
+ *
+ * A strong ETag represents byte-for-byte identity for the selected
+ * representation. A weak ETag represents a validator that is useful for cache
+ * revalidation but not for operations that require exact byte identity. The
+ * `Weak` and `Strong` models store the raw tag value; `toString` adds the
+ * required quotes and the `W/` prefix for weak tags.
+ *
+ * **Common tasks**
+ *
+ * - Format an `Etag` value for an HTTP header with `toString`.
+ * - Provide a `Generator` service with `layer` for strong metadata-derived tags.
+ * - Use `layerWeak` when size and modification time are good cache validators
+ *   but not a byte-for-byte guarantee.
+ *
+ * **Gotchas**
+ *
+ * The built-in generator derives tags only from file size and modification time.
+ * Choose the strong layer only when that metadata changes for every byte-level
+ * content change. This module formats ETags but does not parse incoming ETag
+ * headers or implement conditional request logic.
  *
  * @since 4.0.0
  */

@@ -1,27 +1,40 @@
 /**
- * Client-side worker primitives shared by browser, Node, and Bun platform
- * packages.
+ * Client-side worker primitives shared by browser, Node, and Bun adapters.
  *
- * A `WorkerPlatform` turns a numeric worker id into a long-lived `Worker`
- * client using a runtime-specific `Spawner`. This module is the low-level
- * building block used by worker-backed RPC clients and by platform adapters
- * that need to communicate with dedicated workers, shared workers,
- * `MessagePort`s, worker threads, or child-process transports while keeping
- * setup, message handling, and cleanup inside `Effect` scopes.
+ * This module defines the platform-neutral {@link Worker} client and the
+ * {@link WorkerPlatform} service that creates one for a numeric worker id.
+ * Platform packages provide the runtime-specific spawn, setup, listen, and
+ * cleanup logic; higher-level code uses the resulting worker to send messages
+ * and run an Effect handler for messages coming back from the worker.
  *
- * The worker protocol separates spawning from message delivery. Calls to
- * `send` made before the platform reports readiness are buffered and flushed
- * after `run` receives the ready signal, so a spawned worker must eventually be
- * run or buffered messages will never leave the client. Message values are
- * passed through `postMessage`, which means callers are responsible for
- * encoding payloads into values supported by the selected runtime's structured
- * clone implementation. Transfer lists can avoid copies for buffers, ports, or
- * other transferable values, but ownership moves to the worker and invalid
- * transfer lists surface as `WorkerSendError`s. Incoming messages are handled
- * by forking each handler invocation into the worker run's `FiberSet`, so
- * processing is concurrent rather than serialized; use an explicit queue,
- * semaphore, or protocol-level acknowledgement when ordering or back pressure
- * matters.
+ * **Mental model**
+ *
+ * A {@link Spawner} locates or creates the native worker value, and
+ * {@link makePlatform} turns platform hooks into a scoped {@link Worker}.
+ * Sending and receiving are separate: `send` queues outbound values until
+ * `run` observes the platform ready signal, then `run` keeps the message loop
+ * alive and owns the cleanup scope for the active port.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layerSpawner} to provide the runtime's worker lookup function,
+ * {@link makePlatform} to build browser, Node, Bun, or custom adapters, and
+ * {@link makeUnsafe} when an adapter already exposes the low-level platform
+ * protocol. Worker-backed RPC clients use these primitives to communicate with
+ * dedicated workers, shared workers, `MessagePort`s, worker threads, or child
+ * processes.
+ *
+ * **Gotchas**
+ *
+ * - Messages sent before readiness are buffered, so the returned worker must be
+ *   run or those messages never leave the client
+ * - Values pass through `postMessage`; callers must use values supported by
+ *   the selected runtime's structured clone implementation
+ * - Transfer lists can avoid copies, but ownership moves to the worker and
+ *   invalid transfer lists fail with `WorkerSendError`
+ * - Incoming messages are handled concurrently in the run fiber set; add a
+ *   queue, semaphore, or protocol acknowledgement when ordering or back
+ *   pressure matters
  *
  * @since 4.0.0
  */

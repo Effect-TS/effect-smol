@@ -1,22 +1,36 @@
 /**
- * Embedded PostgreSQL client implementation for Effect SQL, backed by
- * `@electric-sql/pglite`.
+ * Embedded PostgreSQL client for Effect SQL, backed by `@electric-sql/pglite`.
  *
- * This module exposes constructors and layers for providing a `PgliteClient`
- * as both the PGlite-specific service and the generic `SqlClient`. It can
- * create a scoped `PGlite` instance from constructor options or wrap a
- * caller-owned `liveClient`, making it useful for local-first browser storage,
- * web worker databases, tests, demos, migrations, and development tools that
- * want PostgreSQL syntax without connecting to a separate PostgreSQL server.
+ * This module creates or wraps a PGlite database and exposes it as both the
+ * PGlite-specific {@link PgliteClient} service and the generic Effect SQL
+ * `SqlClient` service. Use it for local-first browser storage, worker-hosted
+ * databases, tests, demos, migrations, and development tools that need
+ * PostgreSQL syntax without a separate PostgreSQL server process.
  *
- * The client uses the PostgreSQL statement compiler and adds PGlite-specific
- * access to the underlying instance, JSON fragments, LISTEN/NOTIFY streams,
- * data directory dumps, and array type refresh. Because PGlite is embedded in
- * the current JavaScript runtime, operations share the supplied instance and
- * are serialized by this client; a `liveClient` remains caller-owned and is not
- * closed by the layer. In browsers or workers, persistence, durability,
- * extension availability, and lifecycle all follow the selected PGlite
- * `dataDir`/runtime rather than a hosted PostgreSQL process.
+ * **Mental model**
+ *
+ * A client is a scoped adapter around one PGlite instance. {@link make} creates
+ * and closes that instance unless the configuration supplies a caller-owned
+ * `liveClient`; {@link fromClient} always wraps an existing instance. SQL is
+ * compiled with the PostgreSQL statement compiler, while access through the
+ * Effect SQL connection is serialized through the shared embedded database.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layer} with concrete PGlite options, {@link layerConfig} when the
+ * options should come from Effect `Config`, and {@link layerFrom} when another
+ * scoped effect acquires the client. Use `client.json`, `client.listen`,
+ * `client.notify`, `client.dumpDataDir`, and `client.refreshArrayTypes` for
+ * PGlite-specific capabilities.
+ *
+ * **Gotchas**
+ *
+ * PGlite runs inside the current JavaScript runtime, so persistence,
+ * durability, extension support, and lifecycle follow the selected `dataDir`
+ * and runtime rather than a hosted PostgreSQL server. A supplied `liveClient`
+ * remains caller-owned and is not closed by this module's layer. Long-running
+ * transactions and streams keep the serialized connection permit until their
+ * scope closes.
  *
  * @since 4.0.0
  */

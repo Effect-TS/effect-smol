@@ -1,22 +1,48 @@
 /**
- * This module provides utilities for making values inspectable and debuggable in TypeScript.
+ * Inspection protocol for stable string, JSON, and Node.js representations.
  *
- * The Inspectable interface provides a standard way to implement custom string representations
- * for objects, making them easier to debug and inspect. It includes support for JSON
- * serialization, Node.js inspection, and safe circular reference handling.
+ * This module is the small bridge used by Effect data types to explain
+ * themselves in logs, REPLs, test failures, and JSON-like diagnostics. Implement
+ * `Inspectable` or extend {@link Class} when a value should expose one
+ * representation to `toString`, `toJSON`, and Node's `util.inspect`; use
+ * {@link toJson} and {@link toStringUnknown} when formatting values supplied by
+ * user code.
  *
- * The module also includes redaction capabilities for sensitive data, allowing objects
- * to provide different representations based on the current execution context.
+ * ## Mental model
+ *
+ * Inspectable values choose their own JSON representation. {@link BaseProto}
+ * and {@link Class} derive `toString()` from that representation with the
+ * formatter and expose the same value through {@link NodeInspectSymbol}.
+ * {@link toJson} is defensive: it calls zero-argument `toJSON` methods,
+ * recurses through arrays, returns `"[toJSON threw]"` if a custom serializer
+ * fails, and applies redaction to other values.
+ *
+ * ## Common tasks
+ *
+ * - Extend {@link Class} for classes that only need to define `toJSON`.
+ * - Reuse {@link BaseProto} for object prototypes that should share standard
+ *   inspection behavior.
+ * - Format unknown diagnostic values with {@link toStringUnknown}.
+ * - Implement {@link NodeInspectSymbol} when integrating directly with
+ *   Node.js inspection.
+ *
+ * ## Gotchas
+ *
+ * `toJson` is meant for inspection, not canonical persistence. It catches
+ * `toJSON` failures, does not deeply traverse arbitrary objects, and may
+ * replace redactable values according to current redaction behavior. Keep
+ * custom `toJSON` implementations side-effect free so logging and debugging do
+ * not change program state.
  *
  * **Example** (Creating inspectable values)
  *
  * ```ts
- * import { Formatter, Inspectable } from "effect"
+ * import { Inspectable } from "effect"
  *
  * class User extends Inspectable.Class {
  *   constructor(
- *     public readonly name: string,
- *     public readonly email: string
+ *     readonly id: number,
+ *     readonly name: string
  *   ) {
  *     super()
  *   }
@@ -24,15 +50,15 @@
  *   toJSON() {
  *     return {
  *       _tag: "User",
+ *       id: this.id,
  *       name: this.name,
- *       email: this.email
  *     }
  *   }
  * }
  *
- * const user = new User("Alice", "alice@example.com")
- * console.log(user.toString()) // Pretty printed JSON
- * console.log(Formatter.format(user)) // Same as toString()
+ * const user = new User(1, "Alice")
+ * console.log(user.toString())
+ * console.log(user[Inspectable.NodeInspectSymbol]())
  * ```
  *
  * @since 2.0.0

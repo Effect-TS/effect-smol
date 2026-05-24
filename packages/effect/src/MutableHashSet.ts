@@ -1,49 +1,43 @@
 /**
- * The `MutableHashSet` module provides a mutable hash set for storing unique
- * values with efficient membership checks, insertion, removal, and iteration.
- * It is built on {@link MutableHashMap}: each set value is stored as a map key,
- * so uniqueness follows the same hashing and equality rules as the underlying
- * mutable hash map.
+ * `MutableHashSet` is an in-place hash set for storing unique values with fast
+ * membership checks, insertion, removal, clearing, and iteration. It is built on
+ * {@link MutableHashMap}: each set value is stored as a map key, so uniqueness
+ * follows the same hashing and equality rules as the underlying mutable hash
+ * map.
  *
  * **Mental model**
  *
  * - `MutableHashSet<V>` is a mutable collection of unique values of type `V`
- * - Operations such as {@link add}, {@link remove}, and {@link clear} mutate
- *   the set in place
- * - Duplicate values are ignored according to Effect equality and hashing semantics
- * - Values that implement `Equal` / `Hash` are compared structurally
- * - Primitive values and references that do not implement Effect equality use
- *   the normal hash map behavior
- * - The set is iterable, so `Array.from(set)` or `for...of` can be used to
- *   inspect its values
+ * - {@link add}, {@link remove}, and {@link clear} mutate the same set instance
+ * - Duplicate values are ignored according to Effect equality and hashing
+ *   semantics
+ * - Values that implement `Equal` / `Hash` can be compared structurally;
+ *   primitive values and ordinary object references use the underlying hash map
+ *   behavior
+ * - The set is iterable, so `for...of` and `Array.from(set)` can inspect the
+ *   current values
  *
  * **Common tasks**
  *
  * - Create an empty set: {@link empty}
- * - Create from values: {@link make}
- * - Create from any iterable: {@link fromIterable}
- * - Add a value: {@link add}
- * - Check membership: {@link has}
- * - Remove a value: {@link remove}
- * - Remove all values: {@link clear}
- * - Count unique values: {@link size}
+ * - Create from values or an iterable: {@link make}, {@link fromIterable}
+ * - Add, remove, and clear values: {@link add}, {@link remove}, {@link clear}
+ * - Check membership and size: {@link has}, {@link size}
  * - Narrow unknown values: {@link isMutableHashSet}
  *
  * **Gotchas**
  *
- * - This data structure is intentionally mutable; keep ownership clear when
- *   sharing it between callers
- * - Mutating operations return the same set instance for convenient piping, not
- *   a copy
- * - Iteration order should not be used as a stable sorting mechanism
- * - For immutable set operations, use Effect's immutable collection modules
- *   instead
+ * - This data structure is intentionally mutable; keep ownership clear if the
+ *   same set is shared by multiple callers
+ * - Mutating operations return the same set instance for convenient piping
+ * - Do not use iteration order as a sorting or presentation guarantee
+ * - Use immutable collection modules when callers need persistent snapshots
  *
  * **Performance**
  *
- * - Add, membership checks, and removal are O(1) on average and O(n) in the
- *   presence of hash collisions
- * - Clearing and reading the size are O(1)
+ * - Add, membership checks, and removal are O(1) on average
+ * - Hash collisions can make those operations O(n)
+ * - Clearing and reading size are O(1)
  * - Iteration is O(n)
  *
  * **Quickstart**
@@ -53,20 +47,23 @@
  * ```ts
  * import { MutableHashSet } from "effect"
  *
- * const set = MutableHashSet.make("apple", "banana", "apple")
+ * const set = MutableHashSet.make("alice", "bob", "alice")
  *
- * MutableHashSet.add(set, "cherry")
- * MutableHashSet.remove(set, "banana")
+ * MutableHashSet.add(set, "carol")
+ * MutableHashSet.remove(set, "bob")
  *
- * console.log(MutableHashSet.has(set, "apple"))
+ * console.log(MutableHashSet.has(set, "alice"))
  * // Output: true
  *
  * console.log(MutableHashSet.size(set))
  * // Output: 2
- *
- * console.log(Array.from(set))
- * // Output: ["apple", "cherry"]
  * ```
+ *
+ * **See also**
+ *
+ * - {@link MutableHashMap} for the mutable key-value structure underneath
+ * - {@link empty}, {@link make}, and {@link fromIterable} for construction
+ * - {@link add}, {@link remove}, and {@link has} for core set operations
  *
  * @since 2.0.0
  */

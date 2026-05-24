@@ -1,21 +1,40 @@
 /**
- * SQL-backed storage for an unencrypted event-log server.
+ * SQL-backed storage for unencrypted event-log servers.
  *
- * This module provides the persistence layer used by
+ * This module provides the durable `Storage` implementation used by
  * `EventLogServerUnencrypted` when remote entries should be stored in a SQL
- * database and streamed back to clients by store sequence. It creates and uses
+ * database and streamed back to clients by store sequence. It creates
  * dialect-specific tables for the server remote id, per-store sequence state,
- * plaintext entries, and session authentication bindings, which makes it useful
- * for durable local or service-side event-log deployments where database
- * backup, replication, and transactional ordering are desired.
+ * plaintext entries, and session authentication bindings.
+ *
+ * **Mental model**
+ *
+ * Each server store is an append-only SQL sequence. A write transaction ensures
+ * the store row exists, locks its next sequence, inserts the plaintext entry
+ * rows, advances the sequence, and publishes the committed remote entries to
+ * in-process subscribers. A change stream first reads the SQL backlog from the
+ * requested sequence, applies compaction, and then continues with entries
+ * published by this process.
+ *
+ * **Common tasks**
+ *
+ * - Persist an unencrypted event-log server across process restarts.
+ * - Use database backup, replication, and transactional ordering for remote
+ *   event-log entries.
+ * - Choose table names with `entryTablePrefix` and `remoteIdTable`, or tune
+ *   insert batching with `insertBatchSize`.
+ *
+ * **Gotchas**
  *
  * Entry payloads are intentionally written as plaintext bytes. Use this storage
  * only when the database, transport, backups, logs, and operators are trusted,
- * or when encryption is handled outside this module. Table names are derived
- * from the provided prefixes, and writes rely on SQL transactions plus
- * store-level sequence rows, so deployments should provision compatible
- * isolation/locking behavior and account for dialect-specific binary and text
- * column limits.
+ * or when encryption is handled outside this module. Live notifications are
+ * process-local after the initial SQL backlog read, so multi-process
+ * deployments need routing, reconnect/backfill behavior, or an external
+ * notification channel for writes made elsewhere. Writes also rely on SQL
+ * transactions and store-level locking, so deployments should provision
+ * compatible isolation behavior and account for dialect-specific binary and
+ * text column limits.
  *
  * @since 4.0.0
  */

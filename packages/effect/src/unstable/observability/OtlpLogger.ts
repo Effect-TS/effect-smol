@@ -1,20 +1,36 @@
 /**
- * Exports Effect log records to an OpenTelemetry Protocol (OTLP) logs endpoint.
+ * OTLP/HTTP log exporter for Effect's logging system.
  *
- * Use this module to send Effect log messages, annotations, fiber identifiers,
- * causes, and active span identifiers to an OpenTelemetry Collector or OTLP
- * compatible observability backend. `make` is useful for custom logger wiring,
- * while `layer` installs the logger for an application and can merge it with
- * any existing loggers.
+ * This module turns Effect log entries into OTLP log records and sends them to
+ * a logs endpoint such as an OpenTelemetry Collector or vendor OTLP intake. It
+ * is the signal-specific logger used by the higher-level `Otlp` module when an
+ * application wants logs, metrics, and traces configured together.
  *
- * Records are buffered by the shared OTLP exporter. `exportInterval`,
- * `maxBatchSize`, and `shutdownTimeout` control periodic exports, early batch
- * flushes, and how long scope finalization waits for the final flush. Resource
- * options are attached to every export and override OpenTelemetry resource
- * environment variables, so ensure a `service.name` is available through the
- * options, `OTEL_RESOURCE_ATTRIBUTES`, or `OTEL_SERVICE_NAME`; use `headers`
- * for collector authentication and `excludeLogSpans` when log span duration
- * attributes would be too noisy.
+ * **Mental model**
+ *
+ * Each call to Effect logging APIs becomes one OTLP log record. The logger
+ * serializes the message body, severity, timestamp, fiber id, log annotations,
+ * failure cause, and current trace/span identifiers. Active log spans are
+ * exported as duration attributes named `logSpan.<label>` unless
+ * `excludeLogSpans` is enabled.
+ *
+ * **Common tasks**
+ *
+ * - Use `layer` to install the logger in an application; it merges with
+ *   existing loggers by default.
+ * - Use `make` when composing a custom `Logger` or logger layer manually.
+ * - Pass the concrete `/v1/logs` endpoint, or use `Otlp` when a shared
+ *   `baseUrl` should construct all signal paths.
+ * - Provide `headers` for collector authentication or routing, and choose an
+ *   `OtlpSerialization` layer accepted by the endpoint.
+ *
+ * **Gotchas**
+ *
+ * Batches are flushed on `exportInterval`, when `maxBatchSize` is reached, and
+ * during scope finalization up to `shutdownTimeout`. Resource options are
+ * attached to every export and override OpenTelemetry resource environment
+ * variables, so ensure a stable `service.name` is available through options,
+ * `OTEL_RESOURCE_ATTRIBUTES`, or `OTEL_SERVICE_NAME`.
  *
  * @since 4.0.0
  */

@@ -1,21 +1,34 @@
 /**
- * Service and helpers for running Effect HTTP applications on a concrete server
- * runtime.
+ * Runtime boundary for serving Effect HTTP responses on a concrete HTTP server.
  *
- * This module defines the `HttpServer` service tag used by platform integrations
- * to expose a listening server, plus accessors for serving an
- * `HttpServerResponse` effect, formatting and logging server addresses, and
- * building test clients against a running server. It is intended for low-level
- * server runtimes, router integrations, HTTP API tests, and applications that
- * need to start serving from a provided `Layer`.
+ * `HttpServer` is the service implemented by platform adapters and consumed by
+ * routers, API layers, tests, and applications that start serving from a
+ * `Layer`. It exposes the listening address and a `serve` operation that runs
+ * an `HttpServerResponse` effect for each incoming request.
  *
- * The server supplies `HttpServerRequest` for each request, so application
- * effects should rely on the server for request-scoped data while still
- * providing their other services through the surrounding environment. `serve`
- * returns a `Layer` whose listener lifetime is managed by the layer scope; use
- * `serveEffect` when composing directly in an effect with an explicit `Scope`.
- * Test clients only support TCP addresses, and rewrite `0.0.0.0` to
- * `127.0.0.1` for local requests.
+ * **Mental model**
+ *
+ * The server owns the listener and supplies `HttpServerRequest` for every
+ * request. The application effect only describes how to produce a response, so
+ * request-scoped data comes from the server while the rest of the environment is
+ * still provided by the surrounding layer graph. `serve` ties listener lifetime
+ * to a layer scope, and `serveEffect` performs the same work inside an explicit
+ * `Scope`.
+ *
+ * **Common tasks**
+ *
+ * - Build a server service from a platform adapter with `make`.
+ * - Serve an HTTP app with `serve` or `serveEffect`.
+ * - Format or log the listening address with `formatAddress`,
+ *   `addressFormattedWith`, `logAddress`, or `withLogAddress`.
+ * - Create a test client that targets the running server with `makeTestClient`
+ *   or `layerTestClient`.
+ *
+ * **Gotchas**
+ *
+ * Middleware is applied at the server boundary, after the server has supplied
+ * the request service. Test clients only support TCP addresses, and rewrite
+ * `0.0.0.0` to `127.0.0.1` for local requests.
  *
  * @since 4.0.0
  */

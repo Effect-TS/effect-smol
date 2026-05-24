@@ -1,19 +1,34 @@
 /**
- * Utilities for encoding Effect channel payloads and schema values as
- * MessagePack bytes.
+ * Encode and decode MessagePack frames in Effect channels.
  *
- * This module is useful when a protocol or storage layer expects compact binary
- * frames instead of JSON text, such as RPC transports, socket streams, caches,
- * or database columns that carry typed Effect data. Use the raw channel helpers
- * when both sides already agree on the MessagePack value shape, and use the
- * schema-aware helpers when values should be validated, transformed, or decoded
- * into domain types at the boundary.
+ * MessagePack is a compact binary serialization format for protocols and
+ * storage layers that expect bytes rather than JSON text, such as RPC
+ * transports, socket streams, caches, or database columns. This module provides
+ * raw channel helpers for already-agreed value shapes and schema helpers for
+ * validating, transforming, or decoding domain values at the boundary.
  *
- * MessagePack preserves binary data and common JavaScript collection shapes, but
- * it is still a data format rather than an Effect schema. Schema encoders run
- * before packing and schema decoders run after unpacking, so unsupported runtime
- * values, lossy schema encodings, or mismatched schemas surface as either
- * `MsgPackError` or `SchemaError` depending on where the failure occurs.
+ * **Mental model**
+ *
+ * - Each input value passed to {@link encode} becomes one MessagePack byte array
+ * - {@link decode} can receive arbitrary byte chunks; incomplete frames are
+ *   buffered until enough bytes arrive
+ * - Schema helpers run Effect schema encoding before packing and schema decoding
+ *   after unpacking
+ *
+ * **Common tasks**
+ *
+ * - Pack values into bytes: {@link encode}
+ * - Unpack byte chunks into values: {@link decode}
+ * - Encode or decode domain values with schemas: {@link encodeSchema}, {@link decodeSchema}
+ *
+ * **Gotchas**
+ *
+ * - MessagePack preserves binary data better than JSON, but it is not a schema;
+ *   use schema helpers when runtime validation matters
+ * - Packing failures surface as {@link MsgPackError}; schema failures surface as
+ *   `SchemaError` before or after the binary boundary
+ * - Decoding expects complete MessagePack documents over time, not arbitrary
+ *   byte payloads with out-of-band framing
  *
  * @since 4.0.0
  */

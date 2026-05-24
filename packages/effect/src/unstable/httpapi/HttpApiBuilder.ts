@@ -1,30 +1,44 @@
 /**
- * The `HttpApiBuilder` module connects declarative `HttpApi` definitions to
- * runnable HTTP server routes.
+ * Server builders for declarative `HttpApi` contracts.
  *
- * Use this module when you have described an API with `HttpApi`,
- * `HttpApiGroup`, and `HttpApiEndpoint` values and need to provide the
- * server-side implementation. `group` creates a layer for implementing every
- * endpoint in one API group, `layer` registers the implemented groups with an
- * `HttpRouter` and can expose the generated OpenAPI specification, and
- * `endpoint` builds the effect for a single endpoint when custom composition is
- * needed.
+ * This module is the server-side bridge between an `HttpApi` description and an
+ * `HttpRouter`. It turns endpoint metadata into routes, decodes incoming
+ * request parts with `Schema`, runs HTTP API middleware, invokes the registered
+ * handlers, and encodes successes or declared errors back into
+ * `HttpServerResponse` values.
  *
- * The builder performs the runtime work implied by endpoint metadata: it decodes
- * path parameters, headers, query parameters, and request payloads with
- * `Schema`, applies endpoint middleware and security middleware, invokes the
- * registered handler, and encodes successful or declared error results into
- * `HttpServerResponse` values. Handlers can return an `HttpServerResponse`
- * directly to bypass success encoding, and `handleRaw` can be used when payload
- * decoding should be handled manually.
+ * **Mental model**
  *
- * A few implementation details are worth keeping in mind. Every group in the
- * API must be provided with `HttpApiBuilder.group` before `layer` is evaluated,
- * otherwise registration fails with a defect that names the missing group and
- * the available group services. Payload decoding is selected by request media type;
- * unsupported content types produce a `415` response before the handler runs.
- * Schema failures are wrapped as `HttpApiSchemaError`, while ordinary handler
- * failures are encoded with the endpoint's declared error schemas.
+ * `HttpApi` values describe what can be served; this module supplies how it is
+ * served. Implement each group with {@link group}, then register the completed
+ * API with {@link layer}. The layer reads the group implementations from the
+ * Effect context, adds their routes to the active `HttpRouter`, and can also
+ * expose the generated OpenAPI document.
+ *
+ * **Common tasks**
+ *
+ * Use {@link group} with `handlers.handle` to implement every endpoint in one
+ * API group. Use `handlers.handleRaw` when the handler needs direct access to
+ * the `HttpServerRequest` or must decode the payload manually. Use
+ * {@link endpoint} when composing one endpoint route by hand, and use
+ * {@link securityDecode} or {@link securitySetCookie} inside security-aware
+ * middleware.
+ *
+ * **Gotchas**
+ *
+ * Every group in the API must have a matching {@link group} layer before
+ * {@link layer} is evaluated; otherwise registration fails with a defect naming
+ * the missing group service. Payload decoding is selected from the request
+ * media type, so unsupported content types return `415` before the handler
+ * runs. Request decoding failures are wrapped in `HttpApiSchemaError`; handler
+ * failures are encoded only when they match the endpoint or middleware error
+ * schemas.
+ *
+ * **See also**
+ *
+ * `HttpApi` for the top-level contract, `HttpApiGroup` and `HttpApiEndpoint`
+ * for declaration, `HttpApiMiddleware` for server and client middleware, and
+ * `OpenApi` for generated specifications.
  *
  * @since 4.0.0
  */

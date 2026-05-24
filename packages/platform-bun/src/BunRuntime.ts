@@ -1,19 +1,32 @@
 /**
- * Bun entry-point helpers for running Effect programs.
+ * Bun process runner for Effect programs.
  *
- * This module exposes `runMain`, the Bun runtime launcher used at the edge of
- * CLIs, scripts, servers, and worker processes. It runs an already
- * self-contained Effect as the process main program, using the shared
- * Node-compatible runtime implementation for error reporting, teardown, and
- * `process` signal handling available in Bun.
+ * This module exposes Bun's `runMain` entry point. It is the function to call
+ * at the outer edge of a Bun CLI, script, server, or worker when a single
+ * Effect should become the process main fiber and use Bun's Node-compatible
+ * process, signal, and teardown behavior.
  *
- * `BunRuntime` does not provide application services by itself. Provide any
- * required layers, such as `BunServices.layer` or narrower service-specific
- * layers, before passing the effect to `runMain`. On `SIGINT` or `SIGTERM`,
- * the main fiber is interrupted so scoped resources and finalizers can shut
- * down; keep long-running servers, workers, and subscriptions attached to that
- * scope and avoid finalizers that never complete, otherwise process shutdown
- * can be delayed.
+ * **Mental model**
+ *
+ * `runMain` delegates to the shared Node-compatible runner. It starts the
+ * supplied Effect as the process root, reports failures through the configured
+ * runtime reporting, and translates `SIGINT` or `SIGTERM` into interruption so
+ * scoped resources can finalize before teardown chooses an exit code.
+ *
+ * **Common tasks**
+ *
+ * - Launch a Bun CLI or one-off script from an Effect.
+ * - Start a long-running Bun server or worker under an Effect scope.
+ * - Customize error reporting or teardown with `runMain` options.
+ * - Provide `BunServices.layer` or narrower layers before calling `runMain`.
+ *
+ * **Gotchas**
+ *
+ * This module runs the program; it does not provide filesystem, network,
+ * terminal, or other platform services. Long-lived servers, subscriptions, and
+ * worker loops should be acquired in Effect scopes so interruption from process
+ * signals can release them. Finalizers that never complete can keep shutdown
+ * waiting.
  *
  * @since 4.0.0
  */

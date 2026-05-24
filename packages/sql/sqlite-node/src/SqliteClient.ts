@@ -1,17 +1,44 @@
 /**
- * Node.js SQLite client implementation for Effect SQL, backed by `better-sqlite3`.
+ * Node.js SQLite driver for Effect SQL, backed by `better-sqlite3`.
  *
- * This module exposes constructors and layers for providing both the SQLite-specific `SqliteClient`
- * service and the generic `SqlClient` service. It is intended for file-backed or in-memory SQLite
- * databases in Node applications, local development tools, tests, migrations, and embedded
- * persistence use cases that need Effect SQL query compilation plus SQLite-specific operations such
- * as exporting a database, creating backups, or loading native SQLite extensions.
+ * Use this module to provide a scoped {@link SqliteClient} for file-backed or
+ * in-memory SQLite databases in Node.js. The provided layers install both the
+ * SQLite-specific service and the generic `SqlClient`, making the module useful
+ * for local applications, tests, migrations, development tools, and embedded
+ * persistence that need Effect SQL query compilation with SQLite-specific
+ * operations.
  *
- * Each client owns one scoped `better-sqlite3` connection and serializes access through it. WAL mode
- * is enabled by default, so set `disableWAL` when opening read-only databases or when the database
- * location cannot change journal mode. Prepared statements are cached by SQL text, safe integer
- * handling follows the `SqlClient` fiber-local setting, `executeStream` is not implemented, and
- * SQLite does not support `updateValues`.
+ * ## Mental model
+ *
+ * Each client owns one scoped `better-sqlite3` database handle and serializes
+ * all SQL access through it. Because `better-sqlite3` executes statements
+ * synchronously, a long-running query or transaction holds the serialized
+ * connection until it completes. Prepared statements are cached by SQL text and
+ * result-name transforms are applied after rows are read.
+ *
+ * The service adds Node SQLite capabilities on top of the generic `SqlClient`:
+ * database export, file backup, and native extension loading.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} with a concrete filename and options.
+ * - Use {@link layerConfig} when the filename or flags should come from
+ *   `Config`.
+ * - Use {@link make} inside a custom scoped layer when you need to manage the
+ *   client lifecycle directly.
+ * - Use `client.export`, `client.backup`, or `client.loadExtension` for
+ *   operations that are specific to this Node SQLite driver.
+ *
+ * ## Gotchas
+ *
+ * WAL mode is enabled by default. Set `disableWAL` for read-only databases or
+ * when the database file or directory cannot be updated with SQLite WAL side
+ * files. Separate database handles or processes can still contend for SQLite
+ * write locks even though access through one client is serialized.
+ *
+ * Safe integer handling follows the generic `SqlClient` fiber-local setting.
+ * `executeStream` is not implemented for this driver, and SQLite does not
+ * support `updateValues`.
  *
  * @since 4.0.0
  */

@@ -1,5 +1,38 @@
 /**
- * Minimal local OpenAI schemas used by the handwritten Responses client path.
+ * The `OpenAiSchema` module defines the request, response, streaming, and
+ * embedding schemas used by the handwritten OpenAI client. These schemas are
+ * the transport boundary for JSON sent to and decoded from the Responses and
+ * embeddings endpoints.
+ *
+ * **Mental model**
+ *
+ * - Request schemas such as {@link CreateResponse} and
+ *   {@link CreateEmbeddingRequest} describe the encoded payloads sent to OpenAI.
+ * - Response schemas such as {@link Response}, {@link ResponseStreamEvent}, and
+ *   {@link CreateEmbeddingResponse} describe provider data after schema
+ *   decoding.
+ * - Shared schemas such as {@link InputItem}, {@link Tool}, and
+ *   {@link TextResponseFormatConfiguration} cover the message, tool, and output
+ *   format fragments reused across request and response shapes.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link CreateResponse} with {@link Response} for non-streaming
+ *   Responses API calls.
+ * - Use {@link ResponseStreamEvent} for server-sent events emitted by streaming
+ *   Responses API calls.
+ * - Use {@link CreateEmbeddingRequest} and {@link CreateEmbeddingResponse} for
+ *   embeddings endpoint payloads.
+ * - Use smaller schemas like {@link IncludeEnum}, {@link InputContent}, and
+ *   {@link ToolChoice} when validating request fragments.
+ *
+ * **Gotchas**
+ *
+ * - The module models the subset of OpenAI shapes supported by this client
+ *   path; it is not a complete mirror of every OpenAI REST API field.
+ * - Unknown future stream event types decode through
+ *   {@link UnknownResponseStreamEvent}, while malformed known event types still
+ *   fail schema decoding.
  *
  * @since 4.0.0
  */

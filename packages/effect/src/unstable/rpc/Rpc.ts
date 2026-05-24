@@ -1,19 +1,30 @@
 /**
- * The `Rpc` module defines the typed declaration for a single remote
- * procedure. An RPC definition is the shared contract used by `RpcGroup`,
- * clients, and servers: it stores the procedure tag, payload schema, success
- * schema, error schema, defect schema, middleware, annotations, and the type
- * information needed to derive client calls and server handler signatures.
+ * Schema-backed declarations for individual RPC procedures.
  *
- * Use this module to declare request/response procedures with {@link make},
- * build custom constructors that transform success and error schemas with
- * {@link custom}, add middleware or annotations to individual procedures, and
- * derive helper types such as {@link Payload}, {@link Success},
- * {@link Error}, and {@link ToHandlerFn}. Server implementations can also use
- * {@link fork} and {@link uninterruptible} wrappers to control how handler
- * results are executed.
+ * An {@link Rpc} is the shared contract for one remote procedure. It records
+ * the procedure tag, payload schema, success schema, error schema, defect
+ * schema, middleware, annotations, and the type information used to derive
+ * client calls and server handler signatures. The declaration is transport
+ * independent; RPC groups, clients, and servers all read the same metadata.
  *
- * **Schema gotchas**
+ * **Mental model**
+ *
+ * An RPC definition is data. The tag names the procedure, the schemas describe
+ * the values crossing the wire, and middleware or annotations attach
+ * procedure-local behavior and metadata. Nothing is sent or handled until the
+ * definition is placed in a group and interpreted by a client or server.
+ *
+ * **Common tasks**
+ *
+ * Use {@link make} for ordinary request/response procedures, {@link custom} for
+ * constructors that transform success or error schemas, and the instance
+ * methods on {@link Rpc} to refine payloads, attach middleware, prefix tags, or
+ * add annotations. Helper types such as {@link Payload}, {@link Success},
+ * {@link Error}, and {@link ToHandlerFn} expose the derived TypeScript shapes
+ * used by client and handler code. Server handlers can wrap object results with
+ * {@link fork} or {@link uninterruptible} to control how those results are run.
+ *
+ * **Gotchas**
  *
  * - Payloads default to `Schema.Void`; passing struct fields creates a
  *   `Schema.Struct`, while `primaryKey` creates a payload class with a derived
@@ -21,9 +32,9 @@
  * - Success values default to `Schema.Void`, ordinary errors default to
  *   `Schema.Never`, and middleware errors are included in the effective RPC
  *   error channel
- * - Streaming RPCs store the element and stream error schemas in
- *   `RpcSchema.Stream`; the immediate exit success is `void` and the normal
- *   RPC error schema is set to `Schema.Never`
+ * - Streaming RPCs store element and stream-error schemas in
+ *   `RpcSchema.Stream`; the immediate exit success is `void` and the ordinary
+ *   RPC error schema is `Schema.Never`
  * - Defects use a separate defect schema, defaulting to `Schema.Defect`; custom
  *   defect schemas must not require decoding or encoding services
  * - Schema services are directional: clients encode payloads and decode

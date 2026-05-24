@@ -1,30 +1,43 @@
 /**
- * A `Layer<ROut, E, RIn>` describes how to build one or more services in your
- * application. Services can be injected into effects via
- * `Effect.provideService`. Effects can require services via `Effect.service`.
+ * The `Layer` module provides the dependency-injection building blocks for
+ * Effect applications. A {@link Layer} describes how to acquire one or more
+ * services, which dependencies are needed to acquire them, and which errors can
+ * occur during acquisition.
  *
- * A layer is a recipe for producing services from their dependencies:
+ * **Mental model**
  *
- * - `ROut` is what the layer provides.
- * - `E` is what can fail while building the layer.
- * - `RIn` is what the layer needs in order to build.
+ * - Application effects ask for services through context tags.
+ * - Layer code builds those services, often from configuration, clients,
+ *   connection pools, or other services.
+ * - The application boundary provides a final layer to the program.
+ * - Layers are lazy: acquisition starts only when a layer is provided, built, or
+ *   launched.
+ * - Layer acquisition is scoped, so finalizers run when the owning scope closes.
+ * - A layer value is memoized by default; reusing the same layer value shares
+ *   the acquired service instance.
  *
- * Normal application code should ask for services. Layer code should create
- * services. The application entry point should provide the final layer once.
- * Keeping this boundary clear makes programs easier to reuse with production,
- * test, or mock implementations.
+ * **Common tasks**
  *
- * Construction of services can be effectful and can acquire resources that must
- * be safely released when the services are no longer used. For example, a layer
- * can open a database pool during acquisition and close it in a finalizer.
+ * - Provide an existing service value with {@link succeed}.
+ * - Build a service lazily with {@link sync}, {@link effect}, or
+ *   {@link effectContext}.
+ * - Run setup work that provides no services with {@link effectDiscard}.
+ * - Combine independent layers with {@link merge} or {@link mergeAll}.
+ * - Feed one layer's output into another layer's requirements with
+ *   {@link provide}.
+ * - Keep dependency services in the final output with {@link provideMerge}.
+ * - Materialize a layer manually with {@link build} or {@link buildWithScope}.
  *
- * Layers are lazy: they do not build anything until they are provided to a
- * program or explicitly built. By default layers are shared, meaning that if the
- * same layer value is used twice, it is allocated only once and both users share
- * the same service instance.
+ * **Gotchas**
  *
- * Because of their excellent composition properties, layers are the idiomatic
- * way in Effect to create services that depend on other services.
+ * - Sharing is tied to layer identity. Constructing the same layer twice creates
+ *   two distinct values and can acquire two service instances.
+ * - Use {@link fresh} when a layer must be rebuilt even if the same value is
+ *   provided more than once.
+ * - Scoped resources belong in layers when construction and release are part of
+ *   the service lifecycle.
+ * - Normal application code should request services; layer code should create
+ *   services.
  *
  * @since 2.0.0
  */

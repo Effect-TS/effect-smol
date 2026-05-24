@@ -1,27 +1,39 @@
 /**
- * The `HttpApiSecurity` module defines the security scheme values used by
- * declarative HTTP APIs.
+ * Defines security scheme declarations for declarative HTTP APIs.
  *
- * Use these constructors when an API group or endpoint needs authentication
- * middleware for bearer tokens, API keys, or HTTP Basic credentials. The values
- * are intentionally small declarations: `HttpApiMiddleware.Service` attaches
- * them to middleware, `HttpApiBuilder` decodes the matching credential shape from
- * each request, and OpenAPI generation emits the corresponding
- * `components.securitySchemes` and operation security requirements.
+ * Security schemes describe where credentials are read from and which credential
+ * type is passed to security middleware. They are consumed by
+ * `HttpApiMiddleware.Service`, `HttpApiBuilder`, generated clients, and OpenAPI
+ * generation, but they do not authenticate requests by themselves.
  *
- * Common uses include modeling `Authorization: Bearer ...` tokens, Basic
- * username/password credentials, and API keys passed through headers, query
- * parameters, or cookies. Bearer tokens and API-key values are exposed to
- * middleware as `Redacted` values; Basic credentials expose the username with a
- * redacted password. Cookie API keys can also be written to responses with
- * `HttpApiBuilder.securitySetCookie`.
+ * **Mental model**
  *
- * A security scheme does not authenticate by itself: middleware must reject empty
- * or invalid credentials. Bearer and Basic schemes read the `Authorization`
- * header, while API-key headers use HTTP header name normalization and API-key
- * query or cookie names are matched exactly. OpenAPI annotations such as
- * descriptions and bearer formats affect generated documentation only; they do
+ * Create a scheme with {@link bearer}, {@link apiKey}, or {@link basic}, attach
+ * it to middleware, and let the HTTP API builder decode the matching credential
+ * shape from each request. OpenAPI generation emits the same declaration as
+ * `components.securitySchemes` plus operation security requirements.
+ *
+ * **Common tasks**
+ *
+ * Use {@link bearer} for `Authorization: Bearer ...` tokens, {@link basic} for
+ * HTTP Basic username/password credentials, and {@link apiKey} for keys passed
+ * through headers, query parameters, or cookies. Use {@link annotate} or
+ * {@link annotateMerge} to add documentation metadata for generated OpenAPI
+ * descriptions.
+ *
+ * **Gotchas**
+ *
+ * Middleware must reject empty or invalid credentials. Bearer tokens and API-key
+ * values are delivered as `Redacted` values; Basic credentials expose the
+ * username and redact the password. Bearer and Basic schemes read the
+ * `Authorization` header, API-key headers use HTTP header name normalization,
+ * and API-key query or cookie names are matched exactly. OpenAPI annotations do
  * not change runtime decoding.
+ *
+ * **See also**
+ *
+ * `HttpApiMiddleware` for implementing security checks and `HttpApiBuilder` for
+ * installing middleware and setting API-key cookies on responses.
  *
  * @since 4.0.0
  */

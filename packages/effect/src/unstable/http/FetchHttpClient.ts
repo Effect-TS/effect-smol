@@ -1,19 +1,33 @@
 /**
- * Provides an `HttpClient` implementation backed by the Web Fetch API.
+ * Fetch-based implementation of the Effect HTTP client service.
  *
- * Use this module when an application should run HTTP requests through the
- * platform's `fetch` implementation, such as browser code, edge runtimes, or
- * Node.js environments that provide `globalThis.fetch`. The `Fetch` reference
- * allows tests and custom runtimes to supply a different fetch function, while
- * `RequestInit` can provide defaults such as credentials, redirect behavior,
- * cache mode, or other platform-specific fetch options.
+ * This module provides an `HttpClient` layer that executes requests through a
+ * Web Fetch API implementation. It is the transport to use in browsers, edge
+ * runtimes, and Node.js environments where `globalThis.fetch` is available, or
+ * anywhere a compatible fetch function can be supplied.
  *
- * The client translates Effect HTTP requests into fetch calls and wraps Web
- * `Response` values as `HttpClientResponse`s. Fetch implementations control
- * details such as CORS, cookies, redirect handling, and abort semantics, so
- * behavior can vary by platform. Stream request bodies are sent as Web streams
- * with `duplex: "half"` for runtimes that require it, and `content-length` is
- * omitted so fetch can manage body framing itself.
+ * **Mental model**
+ *
+ * `layer` installs an `HttpClient` whose runtime boundary is a call to `fetch`.
+ * The `Fetch` reference chooses the fetch function and defaults to
+ * `globalThis.fetch`. The `RequestInit` service supplies default fetch options
+ * such as credentials, redirects, cache behavior, or other platform-specific
+ * settings. Request-specific method, headers, body, and abort signal are written
+ * by the client for each call.
+ *
+ * **Common tasks**
+ *
+ * Provide `layer` when an Effect program should run outbound HTTP through the
+ * current platform. Override `Fetch` in tests or custom runtimes to capture
+ * requests or route them to a different implementation. Provide `RequestInit`
+ * when all requests made by this client should share fetch defaults.
+ *
+ * **Gotchas**
+ *
+ * Fetch behavior is platform behavior: CORS, cookies, redirect handling, aborts,
+ * and streaming support can differ across runtimes. Stream request bodies are
+ * sent as Web streams with `duplex: "half"` for runtimes that require it, and
+ * `content-length` is removed so fetch can manage body framing.
  *
  * @since 4.0.0
  */

@@ -1,19 +1,37 @@
 /**
- * Durable queues bridge workflow executions with persisted background workers.
- * A workflow calls `process` to enqueue a schema-encoded payload in a named
- * `PersistedQueue`, attach a durable deferred token, and suspend until a worker
- * records the handler's `Exit` back through that deferred.
+ * Durable workflow queues delegate work to persisted background workers and
+ * resume the waiting workflow with the worker result.
  *
- * Use this module for workflow steps that should be delegated to independent
- * workers: long-running side effects, rate-limited or concurrency-limited
- * integrations, fan-out jobs, API calls, and other work that must survive
- * workflow suspension, process restarts, or handoff to another service.
+ * A workflow calls `process` to encode a payload, offer it to a named
+ * `PersistedQueue`, attach a `DurableDeferred` token, and suspend. A worker
+ * created with `makeWorker` or `worker` takes the item, runs the handler, and
+ * records the handler's `Exit` through that token so the original workflow can
+ * continue with the typed success or error.
  *
- * Queue names, payload schemas, result schemas, and idempotency keys become
- * persisted coordination state. Keep them deterministic and stable across
- * deployments; changing them is a persistence migration. Delivery follows the
- * underlying `PersistedQueue` semantics, so handlers should be idempotent and
- * prepared for retries, duplicate observations, and worker restarts.
+ * **Mental model**
+ *
+ * A `DurableQueue` definition names the persisted queue and carries the payload,
+ * success, and error schemas shared by producers and workers. The
+ * `idempotencyKey` becomes the persisted queue item id, while `process` also
+ * stores trace context and a deferred token alongside the payload. Worker
+ * concurrency is local to the worker layer; delivery and retry behavior come
+ * from the underlying `PersistedQueue`.
+ *
+ * **Common tasks**
+ *
+ * Use `make` to define the queue once, call `process` from workflow code, and
+ * run `worker` in the service responsible for executing queued work. Tune
+ * `process` retries for transient persistence failures, and tune worker
+ * concurrency for the downstream system being called.
+ *
+ * **Gotchas**
+ *
+ * Queue names, schemas, result types, and idempotency keys are persisted
+ * coordination state. Keep them deterministic and stable across deployments;
+ * changing them is a persistence migration. Delivery is at least once according
+ * to the backing `PersistedQueue`, so handlers should be idempotent and prepared
+ * for retries, duplicate observations, worker restarts, and completions that are
+ * decoded by a later version of the queue definition.
  *
  * @since 4.0.0
  */

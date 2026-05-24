@@ -1,19 +1,35 @@
 /**
- * Utilities for testing RPC groups without opening a network transport.
+ * In-memory test harness for RPC groups.
  *
- * This module connects a generated RPC client directly to an in-memory
- * `RpcServer` for the same group, using the group's handlers from the Effect
- * environment and the no-serialization message path. It is intended for tests
- * that need to exercise client calls, server handlers, middleware, request
- * routing, and streaming behavior without standing up HTTP, sockets, workers,
- * or a serializer.
+ * `RpcTest` connects a generated client directly to `RpcServer` handlers for
+ * the same `RpcGroup`. It uses the no-serialization path, so requests,
+ * responses, stream chunks, acknowledgements, interrupts, headers, and
+ * middleware metadata travel through the normal client/server machinery without
+ * opening HTTP, socket, worker, or serializer infrastructure.
  *
- * Because messages stay decoded in memory, this module is not a substitute for
- * transport or schema-encoding tests. Callers still need to provide the handler
- * layer, any client/server middleware services, and a `Scope`; the returned
- * client is scoped to that in-memory connection. The `flatten` option follows
- * `RpcClient.makeNoSerialization`, and acknowledgements are enabled to match
- * the normal bidirectional client/server protocol used by the test harness.
+ * **Mental model**
+ *
+ * `makeClient` builds an in-memory server, wires the client and server write
+ * callbacks together, and returns the scoped generated client. The handlers,
+ * server middleware, client middleware, and `Scope` still come from the Effect
+ * environment just as they would for a real transport; only the byte-level
+ * protocol is skipped.
+ *
+ * **Common tasks**
+ *
+ * Use this module for tests that should exercise RPC routing, handler lookup,
+ * middleware, headers, typed errors, interruptions, and streaming behavior
+ * quickly. Use a real transport plus `RpcSerialization` coverage when you need
+ * to test HTTP status handling, socket framing, worker transferables, schema
+ * encoding or decoding, or wire compatibility.
+ *
+ * **Gotchas**
+ *
+ * Because no serialization happens, invalid wire payloads and mismatched codecs
+ * will not be discovered here. The client is scoped to the in-memory
+ * connection; acquire it inside a scoped test or provide `Scope` explicitly.
+ * The `flatten` option matches `RpcClient.makeNoSerialization`, and
+ * acknowledgements are enabled to mirror the bidirectional streaming protocol.
  *
  * @since 4.0.0
  */

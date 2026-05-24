@@ -1,29 +1,59 @@
 /**
- * This module provides small, allocation-free utilities for working with values of type
- * `A | undefined`, where `undefined` means "no value".
+ * The `UndefinedOr` module works with plain TypeScript values of type
+ * `A | undefined` where `undefined` is the only absence marker. It is a small
+ * alternative to wrapping values in `Option` when your domain already uses
+ * `undefined` to mean "no value".
  *
- * Why not `Option<A>`?
- * In TypeScript, `Option<A>` is often unnecessary. If `undefined` already models absence
- * in your domain, using `A | undefined` keeps types simple, avoids extra wrappers, and
- * reduces overhead. The key is that `A` itself must not include `undefined`; in this
- * module `undefined` is reserved to mean "no value".
+ * **Mental model**
  *
- * When to use `A | undefined`:
- * - Absence can be represented by `undefined` in your domain model.
- * - You do not need to distinguish between "no value" and "value is undefined".
- * - You want straightforward ergonomics and zero extra allocations.
+ * - A defined value is the present branch.
+ * - `undefined` is reserved for absence; the payload type `A` should not itself
+ *   include `undefined`.
+ * - Helpers such as {@link map} and {@link match} keep values unwrapped and use
+ *   `undefined` directly instead of allocating tagged values.
+ * - The fail-fast combiner and reducer helpers propagate `undefined` when a
+ *   required value is missing.
  *
- * When to prefer `Option<A>`:
- * - You must distinguish `None` from `Some(undefined)` (that is, `undefined` is a valid
- *   payload and carries meaning on its own).
- * - You need a tagged representation for serialization or pattern matching across
- *   boundaries where `undefined` would be ambiguous.
- * - You want the richer `Option` API and are comfortable with the extra wrapper.
+ * **Common tasks**
  *
- * Lawfulness note:
- * All helpers treat `undefined` as absence. Do not use these utilities with payloads
- * where `A` can itself be `undefined`, or you will lose information. If you need to
- * carry `undefined` as a valid payload, use `Option<A>` instead.
+ * - Transform a present value: {@link map}
+ * - Branch on present versus absent: {@link match}
+ * - Unwrap at a boundary: {@link getOrThrow}, {@link getOrThrowWith}
+ * - Adapt throwing code to an optional result: {@link liftThrowable}
+ * - Lift combination and reduction logic: {@link makeReducer},
+ *   {@link makeCombinerFailFast}, {@link makeReducerFailFast}
+ *
+ * **Gotchas**
+ *
+ * - `A | undefined` cannot distinguish "missing" from "present and
+ *   undefined". Use `Option` when that distinction matters.
+ * - {@link liftThrowable} discards the thrown value and also returns
+ *   `undefined` when the wrapped function throws.
+ *
+ * **Example** (Parsing optional input)
+ *
+ * ```ts
+ * import { UndefinedOr } from "effect"
+ *
+ * const parseInteger = UndefinedOr.liftThrowable((input: string) => {
+ *   const value = Number.parseInt(input, 10)
+ *   if (Number.isNaN(value)) {
+ *     throw new Error("not an integer")
+ *   }
+ *   return value
+ * })
+ *
+ * console.log(UndefinedOr.map(parseInteger("42"), (n) => n + 1))
+ * // 43
+ *
+ * console.log(
+ *   UndefinedOr.match(parseInteger("abc"), {
+ *     onUndefined: () => "missing",
+ *     onDefined: (n) => `parsed ${n}`
+ *   })
+ * )
+ * // "missing"
+ * ```
  *
  * @since 4.0.0
  */

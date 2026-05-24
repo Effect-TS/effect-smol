@@ -2,28 +2,37 @@
  * Microsoft SQL Server client implementation for Effect SQL, backed by the
  * `tedious` driver.
  *
- * This module provides the `MssqlClient` service and layers that also satisfy
- * the generic `SqlClient` service. It is intended for server applications,
- * background workers, migrations, and tests that need SQL Server query
- * compilation, Tedious parameter typing, scoped connection management,
- * transactions, and typed stored procedure calls.
+ * This module provides the `MssqlClient` service, constructors, layers, and SQL
+ * Server statement compiler. The layers provide both `MssqlClient` and the
+ * generic `SqlClient` service, so code written against Effect SQL can run
+ * regular queries while SQL Server-specific code can add typed Tedious
+ * parameters with `param` and execute stored procedures with `call`.
  *
- * Clients own a scoped pool of Tedious connections and validate startup with
- * `SELECT 1`. Regular queries borrow a pooled connection per operation, while
- * transactions keep one pooled connection for their lifetime and use SQL Server
- * savepoints for nested transactions. Long-running transactions therefore
- * reduce available pool capacity; size `maxConnections`, `connectionTTL`, and
- * `connectTimeout` accordingly.
+ * **Mental model**
  *
- * Tedious permits one active request per connection. This client compiles
- * statements with named `@1`-style parameters, maps Effect SQL primitive values
- * to Tedious `DataType`s unless `param` is used, and does not implement
- * streaming queries. Be deliberate about TLS options: `encrypt` defaults to
- * `false` and `trustServerCertificate` defaults to `true` unless overridden.
- * Stored procedure calls go through `callProcedure`; define input and output
- * parameters with the `Procedure` and `Parameter` helpers so Tedious receives
- * the correct data types and output values can be collected from `returnValue`
- * events.
+ * A client owns a scoped pool of Tedious connections and validates startup with
+ * `SELECT 1`. Ordinary queries borrow a pooled connection for one operation.
+ * Transactions keep one connection for their lifetime, and nested transactions
+ * are represented with SQL Server savepoints. Long-running transactions
+ * therefore reduce available pool capacity.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layer} for a concrete `MssqlClientConfig`, {@link layerConfig} when
+ * configuration should come from Effect `Config`, and {@link make} when a scoped
+ * client value is needed directly. Use `param` to override the default mapping
+ * from Effect SQL primitive values to Tedious `DataType`s, and use the
+ * `Procedure` and `Parameter` helpers when a stored procedure needs typed input
+ * parameters, output parameters, or result rows.
+ *
+ * **Gotchas**
+ *
+ * Tedious permits one active request per connection, and this client does not
+ * implement streaming queries. Statements compile to SQL Server-style `@1`
+ * parameters and bracket-escaped identifiers. Be explicit about connection pool
+ * and timeout settings for workloads with transactions. Review TLS settings:
+ * `encrypt` defaults to `false`, and `trustServer` defaults to `true` for the
+ * Tedious `trustServerCertificate` option unless overridden.
  *
  * @since 4.0.0
  */

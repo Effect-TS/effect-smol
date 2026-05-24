@@ -1,40 +1,84 @@
 /**
- * The `ExecutionPlan` module provides a way to describe ordered fallback
- * strategies for effects and streams that need different resources across
- * repeated attempts. An `ExecutionPlan` is a non-empty list of steps, where
- * each step supplies a `Context` or `Layer` and may control retries with an
- * attempt limit, a `Schedule`, or a `while` predicate.
+ * Defines finite fallback plans for effects and streams that should retry the
+ * same work with different services. An `ExecutionPlan` is a non-empty
+ * sequence of steps. Each step provides a `Context` or `Layer`, and can limit
+ * or shape retries with `attempts`, `schedule`, and `while`.
+ *
+ * Use a plan with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`.
+ * Those APIs run the wrapped work with the first step, retry within that step
+ * as directed, then move to later steps until the work succeeds or the plan is
+ * exhausted.
  *
  * **Mental model**
  *
- * - A plan is evaluated step by step until the wrapped effect or stream
- *   succeeds, or until every step has been exhausted
- * - Each step provides the services used while that step is active
- * - `attempts` limits how many times a step may be tried
- * - `schedule` controls retry timing and receives the failure input
- * - `while` can stop retrying a step based on the failure input
- * - `CurrentMetadata` exposes the current 1-based attempt and 0-based step
- *   index to code running under a plan
+ * - A step is a resource profile for one part of a fallback strategy
+ * - The active step supplies the services visible to the wrapped effect or
+ *   stream
+ * - `attempts` caps the number of tries for a step
+ * - `schedule` controls retry timing and receives the wrapped work's failure
+ *   value
+ * - `while` can stop the current step early by inspecting the same failure
+ *   value
+ * - `CurrentMetadata` exposes the 1-based attempt number and 0-based step
+ *   index to code running under the active step
  *
  * **Common tasks**
  *
  * - Build a plan with {@link make}
- * - Run an effect with a plan using `Effect.withExecutionPlan`
- * - Run a stream with a plan using `Stream.withExecutionPlan`
- * - Combine plans in order with {@link merge}
- * - Capture required services up front with `captureRequirements`
- * - Inspect the current attempt and step with {@link CurrentMetadata}
+ * - Append fallback plans with {@link merge}
+ * - Apply a plan with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`
+ * - Read active step and attempt information with {@link CurrentMetadata}
+ * - Carry the current environment into a plan with `captureRequirements`
+ *
+ * **Quickstart**
+ *
+ * **Example** (Retry with one layer, then fall back)
+ *
+ * ```ts
+ * import { Context, Effect, ExecutionPlan, Layer, Schedule } from "effect"
+ *
+ * class Endpoint extends Context.Service<Endpoint>()("Endpoint", {
+ *   make: Effect.succeed({ url: "primary" })
+ * }) {}
+ *
+ * const primary = Layer.succeed(Endpoint, Endpoint.of({ url: "primary" }))
+ * const fallback = Layer.succeed(Endpoint, Endpoint.of({ url: "fallback" }))
+ *
+ * const plan = ExecutionPlan.make(
+ *   {
+ *     provide: primary,
+ *     attempts: 2,
+ *     schedule: Schedule.recurs(1)
+ *   },
+ *   {
+ *     provide: fallback
+ *   }
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const endpoint = yield* Endpoint
+ *   if (endpoint.url === "primary") {
+ *     return yield* Effect.fail("unavailable")
+ *   }
+ *   return endpoint.url
+ * }).pipe(Effect.withExecutionPlan(plan))
+ * ```
  *
  * **Gotchas**
  *
  * - Plans must contain at least one step
  * - `attempts` must be greater than zero when provided
- * - If `attempts` is omitted, a step is attempted once unless a `schedule` is
- *   provided
- * - A `while` predicate returning `false` skips the remaining retries for that
- *   step and moves the plan forward
- * - Layer, schedule, and predicate requirements are tracked in the plan type
- *   until they are provided or captured
+ * - Without `attempts` or `schedule`, a step is tried once
+ * - A `schedule` can keep a step active until bounded by `attempts` or
+ *   stopped by `while`
+ * - Layer, schedule, and predicate requirements stay in the plan type until
+ *   they are provided or captured
+ *
+ * **See also**
+ *
+ * - {@link make} for constructing plans
+ * - {@link merge} for combining plans in order
+ * - {@link CurrentMetadata} for inspecting the active attempt
  *
  * @since 3.16.0
  */

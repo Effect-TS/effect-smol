@@ -1,21 +1,45 @@
 /**
- * SQL-backed storage for encrypted event-log servers.
+ * SQL storage for encrypted event-log server state.
  *
- * This module provides the encrypted server-side storage implementation used
- * when event-log entries should be durable in a SQL database without exposing
- * plaintext event data to that database. It is intended for remote event-log
- * servers, sync services, and multi-client deployments where the server assigns
- * stable sequence numbers and broadcasts changes while clients retain control of
- * event encryption and decryption.
+ * This module provides the durable `Storage` implementation used by
+ * `EventLogServerEncrypted` when remote entries should be stored in SQL without
+ * exposing plaintext event data to the database. The server assigns stable
+ * sequence numbers and streams changes, while clients remain responsible for
+ * encrypting writes and decrypting reads with their identity key material.
  *
- * The storage creates dialect-specific tables for the server remote id and
- * session authentication bindings, then creates per-identity/store entry tables
- * using a SHA-256-derived table suffix. Those entry tables store IVs, entry ids,
- * encrypted entry bytes, and the SQL sequence used for ordering. Operators
- * should account for these dynamically created tables in migrations, backups,
- * retention policies, and table-prefix changes. Encryption key material is not
- * stored here, so rotating encryption schemes or moving data between databases
- * requires compatibility with the clients that produced the encrypted entries.
+ * **Mental model**
+ *
+ * The storage keeps a durable server remote id, one session authentication
+ * binding per public key, and one append-only entry table per public-key/store
+ * pair. Entry table names are derived from `entryTablePrefix` plus a truncated
+ * SHA-256 hash of the public key and store id. Each encrypted entry row stores
+ * the SQL sequence, initialization vector, entry id, and ciphertext bytes. A
+ * write inserts new entry ids in batches, ignores duplicates, reads back the
+ * ordered rows that are present, and publishes those rows to in-process change
+ * subscribers. A change stream first reads the SQL backlog from the requested
+ * sequence and then continues with entries published by this process.
+ *
+ * **Common tasks**
+ *
+ * - Persist an encrypted event-log server across process restarts.
+ * - Use SQL backup, replication, and transactional ordering while keeping event
+ *   payloads encrypted at rest.
+ * - Choose table names with `entryTablePrefix` and `remoteIdTable`, or tune
+ *   insert batching with `insertBatchSize`.
+ *
+ * **Gotchas**
+ *
+ * The database still contains protocol-sensitive ciphertext, IVs, entry ids,
+ * sequence numbers, public keys, and signing public key bindings, so backups and
+ * retention policies remain part of the security boundary. Live notifications
+ * are process-local after the initial SQL backlog read, so multi-process
+ * deployments need routing, reconnect/backfill behavior, or an external
+ * notification channel for writes made elsewhere. Entry tables are created
+ * dynamically, so migrations, monitoring, grants, table-prefix changes, and
+ * cleanup jobs must account for tables whose names are derived from identities
+ * and store ids. Encryption key material is not stored here; changing identity
+ * keys, encryption schemes, or data portability rules requires compatibility
+ * with the clients that produced the encrypted entries.
  *
  * @since 4.0.0
  */

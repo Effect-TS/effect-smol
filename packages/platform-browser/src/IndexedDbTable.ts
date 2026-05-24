@@ -1,21 +1,38 @@
 /**
- * Defines typed table descriptors for the browser IndexedDB integration.
+ * Typed object-store descriptors for the browser IndexedDB integration.
  *
- * An `IndexedDbTable` records the object store name, row schema, primary key
- * path, indexes, auto-increment behavior, and transaction durability used by
- * database versions, migrations, and typed queries. These descriptors are
- * useful for local caches, offline-first application state, background queues,
- * drafts, and other browser-persisted data that should be validated through
- * `Schema`.
+ * An {@link IndexedDbTable} is the schema-backed description of one IndexedDB
+ * object store. It carries the store name, row schema, key path, index key
+ * paths, auto-increment mode, and transaction durability used by database
+ * versions, migrations, and typed queries.
  *
- * Key paths and index paths must reference encoded schema fields whose values
- * are valid IndexedDB keys, and compound paths are represented as readonly
- * arrays. Tables without a key path use an out-of-line `key` that is added to
- * reads and required for writes, so the row schema itself cannot define a
- * `key` field. Auto-increment tables require a numeric key path; when that key
- * is omitted on write, the module uses a derived schema without the generated
- * key. Declaring indexes here types query builder index selection, but the
- * indexes still need to be created during database migrations.
+ * **Mental model**
+ *
+ * A table value is metadata. `make` does not create an object store; it gives
+ * database versions, migration helpers, and the query builder the information
+ * they need to type table names, validate rows, and choose schemas for reads
+ * and writes. The stored values are the encoded schema values accepted by
+ * IndexedDB, with derived schemas for out-of-line keys and generated
+ * auto-increment keys.
+ *
+ * **Common tasks**
+ *
+ * - Define object stores for browser caches, offline state, drafts, and
+ *   background queues.
+ * - Reuse the same table descriptor in database versions, migrations, and
+ *   typed queries.
+ * - Declare index key paths so query builders can restrict index names and key
+ *   values.
+ *
+ * **Gotchas**
+ *
+ * Key paths and index paths point at encoded schema fields whose values must be
+ * valid IndexedDB keys. Tables without an inline key path use an out-of-line
+ * `key`, so the row schema cannot define a `key` field. Auto-increment tables
+ * require a numeric key path, and declared indexes still have to be created in
+ * migrations.
+ *
+ * @see {@link make} for constructing table descriptors.
  *
  * @since 4.0.0
  */

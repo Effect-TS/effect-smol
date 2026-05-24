@@ -1,19 +1,33 @@
 /**
- * The `OpenAiConfig` module provides contextual configuration for the
- * `@effect/ai-openai` integration. It is used to customize how OpenAI clients
- * are built and interpreted without threading configuration through every API
- * call manually.
+ * The `OpenAiConfig` module carries request-time configuration for the
+ * `@effect/ai-openai` package through Effect's context. It currently exposes a
+ * scoped HTTP client transform used by OpenAI request helpers when they execute
+ * provider calls.
  *
- * The primary use case is installing an HTTP client transform with
- * {@link withClientTransform}. This lets applications adapt the underlying
- * OpenAI HTTP client for cross-cutting concerns such as custom middleware,
- * instrumentation, proxying, or request policy changes while keeping the
- * OpenAI service APIs unchanged.
+ * **Mental model**
  *
- * Configuration is scoped through Effect's context, so transforms only apply to
- * the effect they are provided to and anything evaluated inside that scope.
- * When multiple transforms are needed, compose them into a single
- * `HttpClient => HttpClient` function before providing the configuration.
+ * Client constructors set the baseline HTTP client for an OpenAI service.
+ * `OpenAiConfig` is for narrower dynamic scopes: wrap an effect with
+ * {@link withClientTransform} and OpenAI requests evaluated inside that effect
+ * see the transformed `HttpClient`. Leaving the scope restores the previous
+ * configuration.
+ *
+ * **Common tasks**
+ *
+ * - Add request middleware, tracing, retry policy, proxy routing, or test
+ *   interception around a group of OpenAI calls.
+ * - Apply a temporary HTTP client transform without rebuilding the OpenAI
+ *   service layer.
+ * - Share one transform across all OpenAI helpers executed inside the same
+ *   Effect scope.
+ *
+ * **Gotchas**
+ *
+ * - Only one `transformClient` value is stored in the scoped config. Compose
+ *   transforms into a single `HttpClient => HttpClient` function when multiple
+ *   behaviors should apply.
+ * - The transform affects OpenAI requests that read this contextual config; it
+ *   does not mutate an already constructed HTTP client globally.
  *
  * @since 4.0.0
  */

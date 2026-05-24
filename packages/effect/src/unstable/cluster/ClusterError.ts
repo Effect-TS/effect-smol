@@ -1,24 +1,45 @@
 /**
- * The `ClusterError` module defines the typed error values used by the
- * unstable cluster runtime when routing messages to entities, coordinating
- * runners, and persisting mailbox work.
+ * The `ClusterError` module defines the tagged, schema-backed error values used
+ * by the unstable cluster runtime. These errors describe failures at routing,
+ * runner membership, serialization, persistence, mailbox capacity, and duplicate
+ * envelope boundaries.
  *
- * These errors are useful when implementing cluster transports, runner
- * supervision, mailbox storage, and entity request handling. They make common
- * distributed-system failures explicit: a message may reach a runner that no
- * longer owns the entity, a runner may be unavailable or unregistered, a
- * payload may fail to decode, persistence may fail, a mailbox may be at
- * capacity, or an envelope may already be in progress.
+ * **Mental model**
+ *
+ * - Cluster operations fail with typed values so callers can distinguish retry,
+ *   supervision, decoding, and storage failures.
+ * - Each error has a stable `_tag` and schema representation for transport or
+ *   storage boundaries.
+ * - Static `is` helpers recognize errors from this module at runtime, and
+ *   `refail` helpers map lower-level failures into cluster errors.
+ *
+ * **Common tasks**
+ *
+ * - Report wrong-runner delivery with {@link EntityNotAssignedToRunner}.
+ * - Surface runner membership and liveness failures with
+ *   {@link RunnerNotRegistered} or {@link RunnerUnavailable}.
+ * - Convert encode and decode failures to {@link MalformedMessage}.
+ * - Preserve storage failures as {@link PersistenceError}.
+ * - Signal mailbox pressure with {@link MailboxFull}.
+ * - Reject duplicate in-flight envelopes with
+ *   {@link AlreadyProcessingMessage}.
  *
  * **Gotchas**
  *
- * - Entity ownership and runner availability can change while messages are in
- *   flight, so routing errors should generally be treated as retryable or
- *   recoverable by higher-level cluster logic.
- * - `MalformedMessage` points to a schema/serialization boundary failure,
- *   while `PersistenceError` preserves failures from durable mailbox storage.
- * - `AlreadyProcessingMessage` protects an entity mailbox from processing the
- *   same envelope concurrently.
+ * - Ownership and health can change while a message is in flight, so routing
+ *   and availability errors are often retryable by higher-level cluster logic.
+ * - {@link MalformedMessage} means the payload crossed a schema or
+ *   serialization boundary incorrectly; it is not an entity handler failure.
+ * - {@link AlreadyProcessingMessage} is per-envelope protection, not a general
+ *   entity lock.
+ *
+ * **See also**
+ *
+ * - {@link EntityNotAssignedToRunner}, {@link RunnerUnavailable}, and
+ *   {@link RunnerNotRegistered} for routing and membership failures.
+ * - {@link MalformedMessage} and {@link PersistenceError} for boundary
+ *   failures.
+ * - {@link MailboxFull} and {@link AlreadyProcessingMessage} for mailbox state.
  *
  * @since 4.0.0
  */

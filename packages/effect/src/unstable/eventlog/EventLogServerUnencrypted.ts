@@ -1,19 +1,41 @@
 /**
- * Server implementation for event logs whose entries are persisted and streamed
- * in plaintext.
+ * Plaintext server implementation for the event-log remote protocol.
  *
- * This module is useful for trusted deployments, local development, tests, and
- * server-side event sources that need typed event handlers, conflict detection,
- * compaction, and RPC change streams without an encryption layer. It includes
- * services for mapping client store ids to server stores, authorizing reads and
- * writes, storing remote entries, and binding session authentication keys.
+ * The module accepts unencrypted event batches from remote clients, runs the
+ * registered event handlers, persists journal entries through `Storage`, and
+ * streams compacted backlog entries plus live changes through the shared
+ * `EventLogServer` RPC protocol. It is intended for trusted deployments, local
+ * development, tests, and server-side producers that want typed event handling
+ * and conflict detection without an encryption layer.
  *
- * Because payloads and journals are unencrypted, storage must be protected by
- * the surrounding infrastructure. Session authentication bindings are part of
- * the storage contract and must be persisted by durable implementations so a
- * public key cannot silently bind to a different signing key after a restart.
- * The provided memory storage is process-local and intended for ephemeral
- * servers, tests, or examples rather than durable multi-process use.
+ * **Mental model**
+ *
+ * `StoreMapping` resolves the client-requested store id to the server store,
+ * `EventLogServerAuthorization` gates reads, writes, and identities, and
+ * `Storage` is the durable boundary for remote entries and session
+ * authentication bindings. Remote writes are sorted, checked for duplicates and
+ * conflicts, passed to event handlers inside the storage transaction, and then
+ * committed as remote entries. Change streams replay the requested backlog,
+ * apply registered compactors when possible, and then continue with live
+ * entries.
+ *
+ * **Common tasks**
+ *
+ * Use `layer` for a complete RPC server, `layerNoRpcServer` when an
+ * `RpcServer.Protocol` is installed elsewhere, and `layerServer` plus
+ * `makeWrite` for server-side plaintext writes that do not enter through RPC.
+ * `layerStoreMappingStatic` and `layerStorageMemory` are small local defaults;
+ * production systems usually provide their own mapping, authorization, and
+ * durable storage services.
+ *
+ * **Gotchas**
+ *
+ * Payloads, journals, and change streams are plaintext, so protect the backing
+ * store and transport with the surrounding infrastructure. Durable storage must
+ * preserve session authentication bindings across restarts so a public key
+ * cannot silently bind to a different signing key. The memory storage is
+ * process-local and volatile; it is useful for tests and examples, not for
+ * multi-process or restart-safe servers.
  *
  * @since 4.0.0
  */

@@ -1,20 +1,35 @@
 /**
- * Node-specific helpers for parsing HTTP `multipart/form-data` request bodies.
+ * Node.js multipart parsing for HTTP `multipart/form-data` request bodies.
  *
- * This module adapts a Node `Readable` request body plus its incoming headers
- * into the shared `Multipart` model. Use `stream` when an HTTP server route
- * wants to handle form fields and uploaded files incrementally, for example API
- * endpoints that validate text fields while piping file parts to storage. Use
- * `persisted` when the whole form should be collected into a record and uploaded
- * files should be written into scoped temporary files through the current
- * `FileSystem` and `Path` services.
+ * `NodeMultipart` adapts a Node `Readable` plus incoming HTTP headers into
+ * Effect's shared multipart model. It can expose form parts as a stream for
+ * incremental processing, or collect a complete persisted form by writing file
+ * uploads to scoped temporary files through the current `FileSystem` and `Path`
+ * services.
  *
- * Node request bodies are one-shot streams, so consume either `stream` or
- * `persisted`, and make sure file parts are drained, piped, or otherwise
- * deliberately handled. `contentEffect` loads a file into memory and should be
- * reserved for small uploads. Persisted paths live only for the surrounding
- * `Scope`, and filenames supplied by clients should be treated as metadata, not
- * trusted filesystem paths.
+ * **Mental model**
+ *
+ * Multipart request bodies are one-shot byte streams. {@link stream} parses the
+ * body as it arrives: fields are decoded to strings and file parts keep their
+ * underlying Node readable stream. {@link persisted} consumes the same kind of
+ * body, builds a `Multipart.Persisted` record, and ties temporary upload files
+ * to the surrounding `Scope`.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link stream} when a route validates fields while piping file uploads
+ *   to storage.
+ * - Use {@link persisted} when a route needs a complete form value with scoped
+ *   temporary files.
+ * - Use {@link fileToReadable} when a downstream Node library expects a
+ *   `Readable`.
+ *
+ * **Gotchas**
+ *
+ * Consume a request body with only one parser. File parts must be drained,
+ * piped, or persisted so the request can finish reading. `contentEffect` loads
+ * an uploaded file into memory, so reserve it for small files. Client-supplied
+ * filenames are metadata, not trusted filesystem paths.
  *
  * @since 4.0.0
  */

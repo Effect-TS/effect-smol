@@ -1,15 +1,46 @@
 /**
- * The `Request` module provides a way to model requests to external data sources
- * in a functional and composable manner. Requests represent descriptions of
- * operations that can be batched, cached, and executed efficiently.
+ * The `Request` module defines typed request values for data loading with
+ * `Effect.request`. A request is a description of work, not the execution of
+ * that work: it records the success type, typed error, service requirements,
+ * and the fields needed by a resolver to perform one logical operation.
  *
- * A `Request<A, E, R>` represents a request that:
- * - Yields a value of type `A` on success
- * - Can fail with an error of type `E`
- * - Requires services of type `R`
+ * Requests are designed to be paired with a `RequestResolver`, which receives
+ * pending request entries, batches or caches them when possible, and completes
+ * each entry with a result. This lets calling code ask for data declaratively
+ * while resolver code owns the backend-specific loading logic.
  *
- * Requests are primarily used with RequestResolver to implement efficient
- * data fetching patterns, including automatic batching and caching.
+ * **Mental model**
+ *
+ * - `Request<A, E, R>` describes one operation that succeeds with `A`, fails
+ *   with `E`, and may require services `R`
+ * - Constructors such as {@link of}, {@link tagged}, {@link Class}, and
+ *   {@link TaggedClass} attach the request marker and structural behavior
+ *   expected by the request runtime
+ * - A resolver receives {@link Entry} values; each entry contains the original
+ *   request, the captured context, and a completion callback
+ * - Completion helpers such as {@link succeed}, {@link fail},
+ *   {@link failCause}, {@link complete}, and {@link completeEffect} turn
+ *   resolver results into the `Exit` expected by the waiting fiber
+ *
+ * **Common tasks**
+ *
+ * - Define request shapes with {@link Request}, {@link Class}, or
+ *   {@link TaggedClass}
+ * - Build lightweight request constructors with {@link of} or {@link tagged}
+ * - Check unknown values with {@link isRequest}
+ * - Complete pending resolver entries with {@link succeed}, {@link fail},
+ *   {@link failCause}, {@link complete}, or {@link completeEffect}
+ * - Extract request type members with {@link Success}, {@link Error},
+ *   {@link Services}, and {@link Result}
+ *
+ * **Gotchas**
+ *
+ * - Creating a request value does not run anything; it must be submitted with
+ *   `Effect.request` and handled by a resolver
+ * - Resolver implementations must complete every {@link Entry} they receive,
+ *   otherwise the fiber waiting for that request will not receive a value
+ * - Cached and deduplicated requests depend on request identity and structural
+ *   equality, so include only stable fields that describe the logical operation
  *
  * @since 2.0.0
  */

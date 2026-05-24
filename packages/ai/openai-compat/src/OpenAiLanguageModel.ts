@@ -1,8 +1,34 @@
 /**
- * OpenAI Language Model implementation.
+ * The `OpenAiLanguageModel` module adapts OpenAI-compatible chat-completions
+ * providers to the shared Effect AI `LanguageModel` interface. It translates
+ * provider-neutral prompts, tools, structured output schemas, and streaming
+ * responses into the request and response shapes used by `OpenAiClient`.
  *
- * Provides a LanguageModel implementation for OpenAI's chat completions API,
- * supporting text generation, structured output, tool calling, and streaming.
+ * Use this module when an application wants to talk to OpenAI-compatible
+ * endpoints through Effect AI abstractions rather than constructing provider
+ * payloads directly. The exported constructors build a language model service
+ * from a model id, while `Config` and {@link withConfigOverride} provide scoped
+ * defaults for request fields such as temperature, reasoning options, text
+ * format, and provider-specific file handling.
+ *
+ * **Common tasks**
+ *
+ * - Create a model descriptor with {@link model}
+ * - Build or provide the `LanguageModel` service with {@link make} or
+ *   {@link layer}
+ * - Scope request defaults with {@link Config} and {@link withConfigOverride}
+ * - Send tool calls, structured output schemas, images, files, and reasoning
+ *   metadata through the provider-neutral Effect AI prompt types
+ *
+ * **Gotchas**
+ *
+ * - The module requires an `OpenAiClient` service; configure authentication,
+ *   base URL, and HTTP behavior through that client layer.
+ * - Compatibility depends on the provider supporting the OpenAI request fields
+ *   being used. Optional capabilities such as strict JSON schemas, reasoning
+ *   metadata, and tool status fields may vary across providers.
+ * - `fileIdPrefixes` tells the prompt conversion which file references are
+ *   provider file IDs instead of base64 file contents.
  *
  * @since 4.0.0
  */

@@ -1,20 +1,41 @@
 /**
  * Utilities for parsing and rendering Server-Sent Events text streams.
  *
- * This module is useful at HTTP streaming boundaries that speak the EventSource
- * wire format, such as live updates, notifications, progress feeds, and other
- * unidirectional server-to-client event streams. It provides low-level parser
- * and encoder primitives, channel combinators for streaming chunks through
- * Effect pipelines, and schema-aware helpers for validating or transforming the
- * `id`, `event`, and string `data` fields at the edge of an application.
+ * SSE is the EventSource wire format used by live updates, notifications,
+ * progress feeds, and other unidirectional server-to-client HTTP streams. This
+ * module provides low-level parser and encoder primitives, channel combinators
+ * for streaming text chunks through Effect pipelines, and schema-aware helpers
+ * for validating or transforming the `id`, `event`, and string `data` fields
+ * at the edge of an application.
  *
- * SSE is line-oriented text rather than a framed binary protocol. Incoming
- * chunks may split fields across arbitrary boundaries, events are dispatched by
- * a blank line, repeated `data:` lines are joined with newlines, and `retry:`
- * directives are control messages rather than regular events. The decoder
- * handles UTF-8 byte order marks, CRLF and LF line endings, default `message`
- * events, and retry directives so callers can reconnect with the requested
- * delay while preserving the last event ID when available.
+ * **Mental model**
+ *
+ * - SSE is line-oriented text, not a framed binary protocol.
+ * - Incoming chunks may split fields across arbitrary boundaries, so decoders
+ *   buffer incomplete lines until a full event is available.
+ * - A blank line dispatches an event; repeated `data:` lines are joined with
+ *   newlines.
+ * - `retry:` directives are control messages. Decoders surface them as
+ *   {@link Retry} failures so callers can reconnect with the requested delay.
+ *
+ * **Common tasks**
+ *
+ * - Parse string chunks into {@link Event} values: {@link decode}
+ * - Decode events with a schema: {@link decodeSchema}
+ * - JSON-decode each event `data` field with a schema:
+ *   {@link decodeDataSchema}
+ * - Feed a stateful parser manually: {@link makeParser}
+ * - Encode {@link Event} values as SSE text: {@link encode}, {@link encoder}
+ * - Schema-encode domain values before writing SSE text: {@link encodeSchema}
+ *
+ * **Gotchas**
+ *
+ * - Event `data` is text. Use {@link decodeDataSchema} when the data field
+ *   contains JSON that should be decoded into a domain value.
+ * - The default event name is `message`; the encoder omits the `event:` line
+ *   for that default.
+ * - The decoder handles UTF-8 byte order marks, CRLF and LF line endings, and
+ *   retry directives while preserving the last event ID when available.
  *
  * @since 4.0.0
  */

@@ -1,31 +1,53 @@
 /**
- * This module provides utilities for working with mutable references in a functional context.
+ * The `Ref` module provides fiber-safe mutable references for state inside
+ * Effect programs. A `Ref<A>` holds one value of type `A` and exposes reads,
+ * writes, and atomic transformations as effects, so state changes compose with
+ * Effect's concurrency model.
  *
- * A Ref is a mutable reference that can be read, written, and atomically modified. Unlike plain
- * mutable variables, Refs are thread-safe and work seamlessly with Effect's concurrency model.
- * They provide atomic operations for safe state management in concurrent programs.
+ * **Mental model**
  *
- * **Example** (Managing shared state with refs)
+ * - {@link make} creates a reference with an initial value
+ * - {@link get} reads the current value, and {@link set} replaces it
+ * - {@link update}, {@link updateAndGet}, and {@link getAndUpdate} transform
+ *   the current value atomically
+ * - {@link modify} updates the value and returns a separate result computed
+ *   from the previous value
+ * - The `Some` variants use `Option` to leave the value unchanged when a
+ *   partial update does not apply
+ *
+ * **Common tasks**
+ *
+ * - Create refs: {@link make}, {@link makeUnsafe}
+ * - Read and write: {@link get}, {@link set}, {@link getAndSet},
+ *   {@link setAndGet}
+ * - Update state: {@link update}, {@link updateAndGet}, {@link getAndUpdate}
+ * - Update conditionally: {@link updateSome}, {@link updateSomeAndGet},
+ *   {@link getAndUpdateSome}, {@link modifySome}
+ * - Compute while updating: {@link modify}
+ *
+ * **Example** (Updating shared state)
  *
  * ```ts
  * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   // Create a ref with initial value
  *   const counter = yield* Ref.make(0)
  *
- *   // Atomic operations
- *   yield* Ref.update(counter, (n) => n + 1)
- *   yield* Ref.update(counter, (n) => n * 2)
+ *   const next = yield* Ref.updateAndGet(counter, (n) => n + 1)
+ *   const label = yield* Ref.modify(counter, (n) => [`count=${n}`, n + 1])
  *
- *   const value = yield* Ref.get(counter)
- *   console.log(value) // 2
- *
- *   // Atomic modify with return value
- *   const previous = yield* Ref.getAndSet(counter, 100)
- *   console.log(previous) // 2
+ *   return { label, next }
  * })
  * ```
+ *
+ * **Gotchas**
+ *
+ * - Each `Ref` operation is atomic for that reference, but multiple refs are
+ *   not updated transactionally as a group
+ * - If the new value depends on the old value, prefer {@link update} or
+ *   {@link modify} over a separate {@link get} followed by {@link set}
+ * - Unsafe operations are synchronous low-level accessors; prefer effectful
+ *   operations in application code
  *
  * @since 2.0.0
  */

@@ -1,6 +1,39 @@
 /**
- * TxSubscriptionRef is a TxRef that allows subscribing to all committed changes. Subscribers
- * receive the current value followed by every subsequent update via a transactional queue.
+ * The `TxSubscriptionRef` module provides a transactional reference that can
+ * also be observed as a stream of committed values. It combines the read and
+ * update behavior of a `TxRef.TxRef` with a subscription channel, so each
+ * subscriber first receives the current value and then receives every value
+ * published by later updates.
+ *
+ * **Mental model**
+ *
+ * - The current value is stored transactionally and can be read with
+ *   {@link get}
+ * - Mutations such as {@link set}, {@link update}, and {@link modify} commit a
+ *   new value and publish that value to active subscribers
+ * - {@link changes} creates a scoped transactional queue for one subscriber
+ * - {@link changesStream} exposes the same change feed as a `Stream.Stream`
+ * - Subscriptions are per subscriber; each subscriber gets its own queue of
+ *   committed values
+ *
+ * **Common tasks**
+ *
+ * - Create observable transactional state with {@link make}
+ * - Read or replace the current value with {@link get} and {@link set}
+ * - Derive new values atomically with {@link update} or {@link modify}
+ * - Consume changes from transactional code with {@link changes}
+ * - Consume changes from stream pipelines with {@link changesStream}
+ *
+ * **Gotchas**
+ *
+ * - A subscription starts with the value current at subscription time, not just
+ *   future updates
+ * - The queue returned by {@link changes} is scoped; leaving the scope removes
+ *   the subscriber
+ * - Updates are published even when the new value is equal to the previous
+ *   value
+ * - Subscriber queues are unbounded, so long-lived slow subscribers can retain
+ *   pending values until they catch up or their scope closes
  *
  * @since 4.0.0
  */

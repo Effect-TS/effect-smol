@@ -1,7 +1,53 @@
 /**
- * This module provides types and utility functions to create and work with
- * branded types, which are TypeScript types with an added type tag to prevent
- * accidental usage of a value in the wrong context.
+ * The `Brand` module adds compile-time names to ordinary TypeScript values so
+ * structurally identical values cannot be mixed accidentally. A branded value
+ * has the same runtime representation as its unbranded value; the extra
+ * information lives in the type system unless you choose a validating
+ * constructor.
+ *
+ * **Mental model**
+ *
+ * - {@link Branded} is an existing value type plus a phantom {@link Brand}
+ *   marker
+ * - {@link nominal} creates constructors for purely nominal brands and
+ *   performs no runtime validation
+ * - {@link make} and {@link check} create constructors that validate input
+ *   before returning the branded value
+ * - A {@link Constructor} can throw, return `Option`, return `Result`, or act
+ *   as a type guard through its `is` method
+ * - {@link all} combines multiple brand constructors with the same base type so
+ *   a value can carry several brands
+ *
+ * **Common tasks**
+ *
+ * - Distinguish identifiers with the same primitive representation, such as
+ *   `UserId` and `OrderId`
+ * - Constrain primitive values after validation, such as positive numbers,
+ *   non-empty strings, or normalized tokens
+ * - Keep public APIs precise without wrapping values in runtime classes
+ *
+ * **Quickstart**
+ *
+ * **Example** (Validated identifier)
+ *
+ * ```ts
+ * import { Brand } from "effect"
+ *
+ * type UserId = Brand.Branded<number, "UserId">
+ *
+ * const UserId = Brand.make<UserId>(
+ *   (n) => Number.isInteger(n) && n > 0 || "Expected a positive integer"
+ * )
+ *
+ * const id = UserId(1)
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - Brands do not change the runtime value; `id` above is still a number at
+ *   runtime
+ * - {@link nominal} accepts every value of the base type, so use
+ *   {@link make} or {@link check} at trust boundaries that need validation
  *
  * @since 2.0.0
  */

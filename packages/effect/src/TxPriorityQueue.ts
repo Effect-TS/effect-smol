@@ -1,6 +1,33 @@
 /**
- * A transactional priority queue. Elements are dequeued in order determined by the
- * provided `Order` instance. All operations participate in the STM transaction system.
+ * The `TxPriorityQueue` module provides a mutable priority queue whose state is
+ * stored in a transactional reference. Elements are kept in the order defined by
+ * the `Order` supplied at construction time, and dequeue operations return the
+ * first element according to that ordering.
+ *
+ * A `TxPriorityQueue<A>` is useful when multiple fibers coordinate through a
+ * shared queue and the queue operation needs to compose with other
+ * transactional state changes. Every operation returns an `Effect`; group
+ * several queue operations with `Effect.tx` when the whole sequence must commit
+ * or retry as one transaction.
+ *
+ * **Common tasks**
+ *
+ * - Create queues with {@link empty}, {@link fromIterable}, or {@link make}
+ * - Insert values with {@link offer} and {@link offerAll}
+ * - Read priority order with {@link peek}, {@link peekOption}, and
+ *   {@link toArray}
+ * - Remove values with {@link take}, {@link takeOption}, {@link takeAll}, and
+ *   {@link takeUpTo}
+ * - Keep or remove subsets with {@link retainIf} and {@link removeIf}
+ *
+ * **Gotchas**
+ *
+ * - `take` and `peek` retry when the queue is empty; use `takeOption` or
+ *   `peekOption` when empty queues should be represented as `Option.none`.
+ * - `Order.Number` is ascending, so lower numbers are dequeued first. Provide a
+ *   reversed order when larger values should have higher priority.
+ * - The queue preserves all values with equal priority; equal values are not
+ *   merged or deduplicated.
  *
  * @since 4.0.0
  */

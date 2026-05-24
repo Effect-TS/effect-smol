@@ -1,24 +1,45 @@
 /**
- * Effect SQL migration helpers for loading, ordering, and running schema
- * changes against a `SqlClient`.
+ * SQL migration runner for Effect applications.
  *
- * This module provides a migrator constructor plus loaders for common migration
- * layouts, including dynamic glob imports, Babel-style glob records, in-memory
- * records, and filesystem directories. It is intended for applications and
- * libraries that need to apply numbered SQL migrations on startup, in tests, or
- * as part of deployment tooling while keeping migration effects inside the
- * Effect environment.
+ * A migrator loads numbered migration effects, records which ids have already
+ * run in a migrations table, and executes only the pending migrations through a
+ * `SqlClient`. The helpers in this module cover the common ways migrations are
+ * discovered: dynamic glob imports, Babel-style glob records, in-memory
+ * records, and filesystem directories.
  *
- * The migrator tracks applied migrations in a configurable table, defaults that
- * table to `effect_sql_migrations`, rejects duplicate migration ids, and only
- * runs migrations with an id greater than the latest recorded id. Pending
- * migrations are recorded and executed inside a `SqlClient` transaction; on
- * PostgreSQL the migrations table is explicitly locked, while other dialects
- * rely on the table's primary key or unique constraint to detect concurrent
- * runners. Migration effects should therefore be written to be transaction-aware,
- * and callers should account for dialect-specific DDL transaction behavior and
- * custom table names when coordinating schema dumps or external migration
- * tooling.
+ * **Mental model**
+ *
+ * - A {@link Loader} resolves an ordered list of {@link ResolvedMigration}
+ *   values
+ * - {@link make} creates a runner that ensures the migrations table exists,
+ *   reads the latest recorded id, loads pending migration effects, records
+ *   them, and runs them in a transaction
+ * - The default migrations table is `effect_sql_migrations`; pass `table` when
+ *   a database needs a different name
+ * - On PostgreSQL the migrations table is explicitly locked; other dialects use
+ *   the table constraint to detect concurrent runners
+ * - `schemaDirectory` runs the `dumpSchema` hook after successful migrations
+ *
+ * **Common tasks**
+ *
+ * - Load bundler migration modules with {@link fromGlob} or
+ *   {@link fromBabelGlob}
+ * - Load test or programmatic migrations with {@link fromRecord}
+ * - Load migration files from a directory with {@link fromFileSystem}
+ * - Customize schema dumps by passing `dumpSchema` to {@link make}
+ *
+ * **Gotchas**
+ *
+ * - Migration ids must be unique numbers; duplicate ids fail before any pending
+ *   migration is run
+ * - Only ids greater than the latest recorded id are considered pending, so
+ *   editing or inserting an older migration does not make it run again
+ * - File-based migrations must match `<id>_<name>.js`, `<id>_<name>.ts`,
+ *   `<id>_<name>.mjs`, or `<id>_<name>.mts`
+ * - File-based migration modules should default-export an `Effect` value that
+ *   uses the current `SqlClient`; records can supply effects directly
+ * - DDL transaction behavior is dialect-specific; coordinate custom table
+ *   names, schema dumps, and external migration tooling accordingly
  *
  * @since 4.0.0
  */

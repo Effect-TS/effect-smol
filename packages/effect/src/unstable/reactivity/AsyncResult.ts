@@ -1,23 +1,44 @@
 /**
- * The `AsyncResult` module models the state of an asynchronous value inside the
- * reactivity APIs. It represents whether a computation has not produced a
- * result yet, has succeeded, or has failed, while keeping `waiting` as a
- * separate flag for first loads, refreshes, retries, and other in-flight work.
+ * State containers for asynchronous values used by the reactivity APIs.
  *
- * This is useful for atoms and UI integrations that need to render async
- * queries, background refreshes, optimistic transitions, stream pulls, or RPC
- * and HTTP calls without losing track of the current value. `Success` contains
- * the latest value and timestamp, and `Failure` contains a `Cause` plus an
- * optional `previousSuccess` so callers can keep showing stale data after a
- * refresh fails.
+ * `AsyncResult` records the latest observable state of work that may still be
+ * loading, refreshing, retrying, or recovering from failure. The value is one of
+ * `Initial`, `Success`, or `Failure`, and every variant also carries a `waiting`
+ * flag so callers can keep rendering the current state while newer work is in
+ * flight.
  *
- * Treat `waiting` as an overlay rather than a fourth state: an `Initial` result
- * can be waiting with no value, and a `Success` or `Failure` can also be waiting
- * while a newer computation is running. Accessors such as `value` and
- * `getOrElse` may return the previous success stored in a failure, so inspect
- * `cause` or `error` when the difference between a current success and stale
- * data matters. Matchers such as `matchWithWaiting` prioritize the waiting flag,
- * while `match` and `matchWithError` expose the underlying state.
+ * **Mental model**
+ *
+ * The variant answers "what do we know right now?", while `waiting` answers "is
+ * newer work currently running?". A success contains the current value and its
+ * timestamp. A failure contains a `Cause` and may also keep the previous
+ * success, which lets UI and atom code show stale data while exposing the latest
+ * failure for error displays and retry logic.
+ *
+ * **Common tasks**
+ *
+ * - Start with {@link initial}, {@link success}, {@link failure}, or
+ *   {@link fail}
+ * - Convert Effect exits with {@link fromExit} and
+ *   {@link fromExitWithPrevious}
+ * - Mark existing state as loading with {@link waiting} or
+ *   {@link waitingFrom}
+ * - Read values and failures with {@link value}, {@link cause}, {@link error},
+ *   {@link getOrElse}, and {@link toExit}
+ * - Transform and combine results with {@link map}, {@link flatMap}, and
+ *   {@link all}
+ * - Render all states with {@link match}, {@link matchWithWaiting}, or
+ *   {@link builder}
+ *
+ * **Gotchas**
+ *
+ * - `waiting` is an overlay, not a fourth variant; any variant can be waiting.
+ * - {@link value} and {@link getOrElse} can read the previous success stored in
+ *   a failure, so inspect {@link cause} or {@link error} when stale data and a
+ *   current success must be distinguished.
+ * - {@link matchWithWaiting} handles waiting before variant-specific branches,
+ *   while {@link match} and {@link matchWithError} expose the underlying
+ *   variant first.
  *
  * @since 4.0.0
  */

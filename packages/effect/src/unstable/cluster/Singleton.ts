@@ -1,14 +1,33 @@
 /**
- * The `Singleton` module provides a small helper for registering effects that
- * should run once across an Effect cluster. A singleton is coordinated through
- * `Sharding`, which assigns ownership to one node at a time and can move that
- * ownership when nodes leave or fail.
+ * Register effects that should have one active owner in an Effect cluster.
  *
- * Use singletons for cluster-wide background work such as schedulers, polling
- * loops, maintenance jobs, or consumers that must not have one instance per
- * process. Because ownership can change during failover, the registered effect
- * should be interruptible, scoped, and able to resume work without assuming that
- * the previous owner completed every in-flight action exactly once.
+ * `Singleton.make` wraps `Sharding.registerSingleton` in a `Layer`. When the
+ * local runner owns the shard for the singleton's name and shard group,
+ * sharding starts the effect; when ownership moves or the layer scope closes,
+ * the running fiber is interrupted and the registration is removed.
+ *
+ * **Mental model**
+ *
+ * A singleton is still placed on a shard. Its name and optional shard group
+ * determine the shard id, and the runner that acquires that shard lock is the
+ * only runner allowed to execute it. Failover is handled by shard ownership, so
+ * another runner can resume the singleton after the previous owner leaves.
+ *
+ * **Common tasks**
+ *
+ * - Start one scheduler, consumer, polling loop, or maintenance process for a
+ *   whole cluster
+ * - Register that process as part of application wiring with `Layer`
+ * - Choose a `shardGroup` when singleton ownership should be coordinated with a
+ *   specific group of clustered work
+ *
+ * **Gotchas**
+ *
+ * - Design the effect to be interruptible and idempotent; ownership can move
+ *   while work is in flight.
+ * - Duplicate singleton names in the same shard group fail during registration.
+ * - Handle expected failures inside the effect when it should keep running,
+ *   because unhandled failures are surfaced as defects by sharding.
  *
  * @since 4.0.0
  */

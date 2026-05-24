@@ -1,20 +1,33 @@
 /**
- * Provides the OpenTelemetry resource used by the Effect OpenTelemetry layers.
+ * OpenTelemetry resource service for Effect telemetry layers.
  *
- * A resource describes the entity that produces telemetry, such as a service,
- * process, deployment, or browser application. The tracing, metrics, logging,
- * and SDK layers use this module's `Resource` service to configure providers
- * and identify emitted telemetry with service-level metadata.
+ * An OpenTelemetry resource identifies the process or service that emits spans,
+ * metrics, and logs. This module stores that resource in Effect context so
+ * tracer, metric, logger, Node SDK, and Web SDK layers can create providers with
+ * consistent service metadata.
  *
- * Use `layer` when service metadata is known in code, `layerFromEnv` when
- * deploying with `OTEL_SERVICE_NAME` and `OTEL_RESOURCE_ATTRIBUTES`, and
- * `layerEmpty` when no resource attributes should be provided. Resource
- * attributes are for stable process or service metadata, not per-span or
- * per-log data. The explicit `layer` helper sets `service.name` and the
- * `telemetry.sdk.*` attributes after merging custom attributes, so those keys
- * are controlled by this integration. With `layerFromEnv`, `OTEL_SERVICE_NAME`
- * overrides `service.name` from `OTEL_RESOURCE_ATTRIBUTES`, and additional
- * attributes passed to the layer are merged last.
+ * **Mental model**
+ *
+ * Resource attributes describe stable producer metadata such as `service.name`,
+ * `service.version`, deployment, process, or environment attributes. They are
+ * attached to telemetry providers, not to individual spans or log records.
+ *
+ * **Common tasks**
+ *
+ * Use `layer` when service metadata is configured in code, `layerFromEnv` when
+ * deployment supplies `OTEL_SERVICE_NAME` or `OTEL_RESOURCE_ATTRIBUTES`, and
+ * `layerEmpty` for tests or integrations that intentionally provide no resource
+ * attributes. `configToAttributes` converts the explicit configuration shape
+ * into OpenTelemetry semantic-convention attributes for composition with other
+ * resource sources.
+ *
+ * **Gotchas**
+ *
+ * `layer` merges custom attributes first and then writes `service.name` and
+ * `telemetry.sdk.*`, so those keys are controlled by this package. In
+ * `layerFromEnv`, `OTEL_SERVICE_NAME` overrides `service.name` from
+ * `OTEL_RESOURCE_ATTRIBUTES`, and any additional attributes passed to the layer
+ * are merged last.
  *
  * @since 4.0.0
  */

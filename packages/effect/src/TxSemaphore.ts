@@ -1,21 +1,39 @@
 /**
- * The `TxSemaphore` module provides a transactional semaphore for coordinating
- * access to limited resources from within Effect transactions. A semaphore
- * tracks a fixed number of permits, and transactional operations can acquire,
- * release, or inspect those permits atomically with other transactional state.
+ * Coordinate access to limited resources with a semaphore whose permit count
+ * participates in Effect transactions. A `TxSemaphore` keeps a fixed capacity
+ * and records permit changes in transactional state, so acquiring or releasing
+ * permits can commit atomically with related `TxRef` updates.
  *
- * Use `TxSemaphore` when permit accounting needs to compose with `TxRef` and
- * other transactional updates, such as guarding resource pools, rate-limited
- * sections, or workflows that must reserve capacity consistently before
- * committing related state changes.
+ * **Mental model**
+ *
+ * - {@link make} creates a semaphore with a fixed number of permits.
+ * - {@link acquire} and {@link acquireN} wait by retrying the transaction when
+ *   there are not enough permits available.
+ * - {@link tryAcquire} and {@link tryAcquireN} update the permit count only
+ *   when enough permits are already available.
+ * - {@link release} and {@link releaseN} return permits, and the total cannot
+ *   exceed the original capacity.
+ * - {@link withPermit} and {@link withPermits} bracket a supplied effect,
+ *   while {@link withPermitScoped} holds one permit until the current scope
+ *   closes.
+ *
+ * **Common tasks**
+ *
+ * - Reserve capacity before committing related transactional state changes.
+ * - Protect a pool, queue, or rate-limited section with permit accounting that
+ *   composes with `TxRef`.
+ * - Inspect the current number of permits with {@link available} and the fixed
+ *   total with {@link capacity}.
  *
  * **Gotchas**
  *
- * - Permit operations are intended for transactional workflows and are wrapped
- *   with `Effect.tx`.
- * - The semaphore capacity is fixed at construction time; releasing more
- *   permits than the original capacity fails.
- * - Creating a semaphore with a negative number of permits defects.
+ * - Permit operations enter `Effect.tx`; group related transactional
+ *   work inside the same boundary when it must commit together.
+ * - Requesting more permits than the semaphore capacity with
+ *   {@link acquireN} can wait forever because the capacity never grows.
+ * - Creating a semaphore with negative permits, acquiring a non-positive number
+ *   of permits, or releasing a non-positive number of permits defects.
+ * - Extra releases are capped at the fixed capacity.
  *
  * @since 4.0.0
  */

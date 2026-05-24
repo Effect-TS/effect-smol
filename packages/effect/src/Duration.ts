@@ -1,15 +1,51 @@
 /**
- * This module provides utilities for working with durations of time. A `Duration`
- * is an immutable data type that represents a span of time with high precision,
- * supporting operations from nanoseconds to weeks.
+ * The `Duration` module models spans of time as immutable values with support
+ * for unit conversion, ordering, arithmetic, and positive or negative infinity.
+ * It is the standard representation for delays, timeouts, intervals, and
+ * TTL-like values across Effect APIs.
  *
- * Durations support:
- * - **High precision**: Nanosecond-level accuracy using BigInt
- * - **Multiple formats**: Numbers (millis), BigInt (nanos), tuples, strings
- * - **Arithmetic operations**: Add, subtract, multiply, divide
- * - **Comparisons**: Equal, less than, greater than
- * - **Conversions**: Between different time units
- * - **Human-readable formatting**: Pretty printing and parsing
+ * **Mental model**
+ *
+ * - A `Duration` stores either milliseconds, nanoseconds, `Infinity`, or
+ *   `-Infinity`; operations preserve that distinction where it matters
+ * - Constructor helpers such as {@link seconds} and {@link millis} build
+ *   duration values for the chosen unit
+ * - {@link Input} values are decoded at API boundaries: numbers mean
+ *   milliseconds, bigints mean nanoseconds, tuples mean `[seconds, nanos]`,
+ *   and strings use units such as `"5 seconds"`
+ * - Arithmetic and ordering helpers return new duration values rather than
+ *   mutating existing ones
+ *
+ * **Common tasks**
+ *
+ * - Build durations with {@link nanos}, {@link micros}, {@link millis},
+ *   {@link seconds}, {@link minutes}, {@link hours}, {@link days}, or
+ *   {@link weeks}
+ * - Decode flexible inputs with {@link fromInput} or {@link fromInputUnsafe}
+ * - Convert with {@link toMillis}, {@link toSeconds}, {@link toNanos},
+ *   {@link toHrTime}, {@link parts}, or {@link format}
+ * - Compare and constrain durations with {@link Order}, {@link between},
+ *   {@link min}, {@link max}, and {@link clamp}
+ * - Combine durations with {@link sum}, {@link subtract}, {@link times}, and
+ *   {@link divide}
+ *
+ * **Gotchas**
+ *
+ * - Passing a plain number means milliseconds, not seconds
+ * - {@link toNanosUnsafe} throws for infinite durations; {@link toNanos}
+ *   returns `Option.none()` instead
+ * - Unsafe decoders and unsafe math helpers throw or apply fallback rules for
+ *   invalid inputs; prefer the safe variants when input is external
+ *
+ * **Example** (Decoding and formatting a duration)
+ *
+ * ```ts
+ * import { Duration, Option } from "effect"
+ *
+ * const formatted = Duration.fromInput("90 seconds").pipe(
+ *   Option.map((duration) => Duration.format(duration))
+ * )
+ * ```
  *
  * @since 2.0.0
  */

@@ -1,17 +1,57 @@
 /**
- * Utilities and data types for describing outgoing HTTP body content.
+ * Describes the body attached to outgoing HTTP requests and server responses.
  *
- * This module provides a small set of `HttpBody` variants used by HTTP client
- * requests and server responses: empty bodies, raw runtime values, in-memory
- * bytes, `FormData`, and byte streams. Constructors cover the common cases of
- * text, JSON, URL-encoded forms, multipart forms, and files while carrying the
- * content type and, when known, the content length used by platform adapters.
+ * `HttpBody` is the transport-facing representation used by the HTTP modules
+ * before a platform adapter turns a request or response into a concrete Web,
+ * Node, or other runtime value. Each body variant carries the payload plus the
+ * metadata an adapter can safely know ahead of time, such as `contentType` and
+ * `contentLength`.
  *
- * Streaming bodies are represented as streams of `Uint8Array` chunks and may
- * omit `contentLength` when the size is not known ahead of time. Multipart
- * `FormData` intentionally leaves `contentType` unset so the runtime can add
- * the required boundary; setting that header manually can produce invalid
- * requests.
+ * **Mental model**
+ *
+ * - {@link empty} represents an absent body.
+ * - {@link uint8Array}, {@link text}, {@link jsonUnsafe}, {@link json}, and
+ *   {@link urlParams} build in-memory byte bodies with content metadata.
+ * - {@link formData} and {@link formDataRecord} keep multipart data as
+ *   `FormData` so the runtime can generate the boundary.
+ * - {@link stream} represents a stream of `Uint8Array` chunks and may omit the
+ *   content length when the final size is not known.
+ * - {@link raw} is the escape hatch for platform-specific body values that an
+ *   adapter already knows how to send.
+ *
+ * **Common tasks**
+ *
+ * - Send text, bytes, JSON, URL-encoded data, multipart forms, or files.
+ * - Use {@link json} or {@link jsonSchema} when JSON encoding failures should
+ *   be represented as `HttpBodyError` values.
+ * - Use {@link file} or {@link fileFromInfo} when file metadata should become
+ *   `contentType` / `contentLength` metadata for the adapter.
+ * - Use {@link isHttpBody} when accepting unknown values at an integration
+ *   boundary.
+ *
+ * **Gotchas**
+ *
+ * - {@link jsonUnsafe} calls `JSON.stringify` directly and can throw; prefer
+ *   {@link json} in effectful code.
+ * - `FormData` bodies intentionally leave `contentType` unset because setting a
+ *   multipart header without the generated boundary produces invalid requests.
+ * - Stream bodies may not have a `contentLength`; code that requires one must
+ *   provide it explicitly when constructing the stream body.
+ *
+ * **Example** (Creating common body variants)
+ *
+ * ```ts
+ * import { HttpBody, UrlParams } from "effect/unstable/http"
+ * import * as assert from "node:assert"
+ *
+ * const textBody = HttpBody.text("hello")
+ * const jsonBody = HttpBody.jsonUnsafe({ name: "Ada" })
+ * const formBody = HttpBody.urlParams(UrlParams.fromInput({ q: "effect" }))
+ *
+ * assert.equal(textBody.contentType, "text/plain")
+ * assert.equal(jsonBody.contentType, "application/json")
+ * assert.equal(formBody.contentType, "application/x-www-form-urlencoded")
+ * ```
  *
  * @since 4.0.0
  */

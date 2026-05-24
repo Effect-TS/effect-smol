@@ -1,19 +1,37 @@
 /**
- * Low-level Redis integration for the persistence modules.
+ * Redis service adapter for Effect persistence modules.
  *
- * This module defines the `Redis` service used by Redis-backed persistence,
- * persisted queues, and rate limiter stores. It adapts an external Redis
- * connection to Effect through `send` for raw commands and `eval` for typed
- * Lua scripts that are loaded with `SCRIPT LOAD` and executed with `EVALSHA`.
+ * This module defines the low-level {@link Redis} service used by Redis-backed
+ * persistence, persisted queues, and rate limiter stores. It adapts a Redis
+ * client or pool into Effect through a raw `send` command function and cached
+ * Lua script execution.
  *
- * The service does not create or manage Redis connections; callers provide a
- * command sender from their Redis client or pool. Higher-level stores layer on
- * key prefixes and store ids, so choose stable prefixes to avoid collisions
- * and remember that schema or primary-key changes can make previously persisted
- * JSON values fail to decode. Finite TTLs in the persistence stores are applied
- * with millisecond Redis expirations, while non-finite TTLs are stored without
- * expiration. Script parameters are stringified before execution, and the
- * script descriptor's key count controls how Redis splits `KEYS` from `ARGV`.
+ * **Mental model**
+ *
+ * The service does not create or own Redis connections. {@link make} wraps a
+ * caller-provided command sender, while {@link script} describes a Lua script's
+ * source, parameters, key count, and result type. The service loads scripts
+ * with `SCRIPT LOAD`, caches the returned SHA, and runs them with `EVALSHA`
+ * through `Redis.eval`.
+ *
+ * **Common tasks**
+ *
+ * - Wrap an existing Redis client by implementing `send`.
+ * - Use `Redis.send` for ordinary Redis commands.
+ * - Use {@link script} for typed Lua helpers shared by persistence stores.
+ * - Map client or network failures into {@link RedisError} in the provided
+ *   command sender.
+ *
+ * **Gotchas**
+ *
+ * Script parameters are stringified before execution. The script descriptor's
+ * key count controls how Redis splits `KEYS` from `ARGV`. Higher-level stores
+ * add key prefixes and store ids on top of this service, so those identifiers
+ * must stay stable when persisted data is expected to survive deployments.
+ *
+ * **See also**
+ *
+ * {@link Redis}, {@link make}, {@link script}, {@link RedisError}.
  *
  * @since 4.0.0
  */

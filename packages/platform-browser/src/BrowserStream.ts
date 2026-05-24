@@ -1,25 +1,40 @@
 /**
- * Browser `Stream` constructors for DOM event targets.
+ * Convert browser DOM events into Effect streams.
  *
- * This module provides typed helpers for turning `window.addEventListener` and
- * `document.addEventListener` callbacks into Effect `Stream`s. They are useful
- * for UI and runtime signals such as resize, visibility, keyboard, pointer,
- * focus, online / offline, and other browser events that should be composed
- * with Effect stream operators and finalized with the consuming fiber.
+ * This module provides typed constructors for listening to `window` and
+ * `document` events from Effect programs. Use {@link fromEventListenerWindow}
+ * for viewport, network, focus, pointer, keyboard, and other `Window` events,
+ * and use {@link fromEventListenerDocument} for document lifecycle,
+ * visibility, selection, fullscreen, and other `Document` events.
  *
- * Browser events are push-based `EventTarget` notifications, so they do not
- * apply Web Streams backpressure to the browser event source. Events are
- * buffered until downstream pulls them; the default buffer is unbounded, so
- * high-frequency sources like scroll, pointermove, or mousemove should usually
- * set `bufferSize` and use stream operators that sample, debounce, throttle, or
- * drop work as appropriate.
+ * ## Mental model
  *
- * These helpers are for DOM events, not for adapting `ReadableStream` request
- * or response bodies. Fetch bodies follow the Web Streams body rules, including
- * single-consumer locking and disturbed bodies after reads, and should be
- * handled with body-specific HTTP or Web Streams APIs instead. When using the
- * browser `once` option, pair the stream with `Stream.take(1)` if a finite
- * stream is required.
+ * Each constructor registers a DOM `addEventListener` callback when the stream
+ * is consumed and removes it when the stream is finalized. Browser events are
+ * push-based `EventTarget` notifications, so the browser does not slow down the
+ * event source when downstream stream processing is busy. Events are buffered
+ * inside the stream until a consumer pulls them.
+ *
+ * ## Common tasks
+ *
+ * - Track browser state such as resize, online / offline, focus, visibility, or
+ *   pointer activity with Effect stream operators.
+ * - Scope DOM listeners to a fiber so they are removed when the consuming
+ *   effect is interrupted or completes.
+ * - Set `bufferSize` for bursty event sources before applying sampling,
+ *   throttling, debouncing, or dropping logic downstream.
+ *
+ * ## Gotchas
+ *
+ * The default buffer is unbounded. High-frequency sources such as `scroll`,
+ * `pointermove`, or `mousemove` should usually specify `bufferSize` and reduce
+ * the event rate with stream operators.
+ *
+ * These helpers are for DOM events, not for `ReadableStream` request or
+ * response bodies. Fetch bodies follow Web Streams rules such as
+ * single-consumer locking and disturbed bodies after reads. When using the DOM
+ * `once` option, also use `Stream.take(1)` if the consuming code needs a finite
+ * stream.
  *
  * @since 4.0.0
  */

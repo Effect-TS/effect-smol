@@ -1,8 +1,44 @@
 /**
- * TxReentrantLock is a transactional read/write lock with reentrant semantics using Software
- * Transactional Memory (STM). Multiple readers can hold the lock concurrently, OR a single
- * writer can hold exclusive access. A fiber holding a write lock may acquire additional
- * read or write locks (reentrancy).
+ * The `TxReentrantLock` module provides a transactional read/write lock whose
+ * ownership is tracked per fiber. Multiple fibers may hold read locks at the
+ * same time, while a write lock gives one fiber exclusive access.
+ *
+ * **Mental model**
+ *
+ * The lock stores reader counts and an optional writer count in transactional
+ * state. A fiber can reacquire locks it already owns, so nested read or write
+ * sections are safe as long as each acquisition is matched by a release. A
+ * write acquisition waits when another fiber owns a read or write lock, and a
+ * read acquisition waits when another fiber owns the write lock.
+ *
+ * **Common tasks**
+ *
+ * - Use `withReadLock` to run an effect that may share access with other
+ *   readers.
+ * - Use `withWriteLock` or `withLock` to run an effect with exclusive access.
+ * - Use `readLock` or `writeLock` when lock ownership should be tied to an
+ *   existing scope.
+ *
+ * **Example** (Protecting a read/write workflow)
+ *
+ * ```ts
+ * import { Effect, Ref, TxReentrantLock } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const lock = yield* TxReentrantLock.make()
+ *   const state = yield* Ref.make(0)
+ *
+ *   yield* TxReentrantLock.withWriteLock(lock, Ref.update(state, (n) => n + 1))
+ *   return yield* TxReentrantLock.withReadLock(lock, Ref.get(state))
+ * })
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - Manual acquisitions are counted; release the same number of times or use
+ *   the scoped and `with*` helpers.
+ * - Releasing a lock from a fiber that does not own it leaves the lock
+ *   unchanged and returns `0`.
  *
  * @since 4.0.0
  */

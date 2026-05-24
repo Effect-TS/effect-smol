@@ -1,21 +1,36 @@
 /**
  * SQL-backed persistence for the unstable event-log journal.
  *
- * This module provides an `EventJournal` implementation that stores local
- * entries and remote replication metadata in a `SqlClient` database. It is
- * useful when event-log data needs to survive process restarts, be replayed to
- * rebuild projections, or be synchronized with other journals such as remote
- * servers, peer replicas, or offline clients that later reconnect.
+ * This module implements `EventJournal` on top of a `SqlClient`. It stores event
+ * entries as encoded bytes and stores per-remote sequence metadata in separate
+ * tables, giving event-log programs a durable journal that can be replayed after
+ * restart and synchronized with remote journals.
  *
- * The adapter creates the entry and remotes tables with dialect-specific UUID,
- * binary payload, and timestamp column types, but it only performs the minimal
- * `CREATE TABLE IF NOT EXISTS` setup needed by the journal. Applications that
- * customize table names, add indexes, or evolve storage should manage those
- * migrations explicitly and keep encoded payloads compatible with the schemas
- * that will decode historical entries. Remote sequence rows are persisted
- * separately from entries, duplicate imports are ignored by primary key, and
- * conflict checks rely on event name, primary key, and the timestamp derived
- * from the entry id.
+ * **Mental model**
+ *
+ * The entry table is the append-only history used by `entries`, local writes,
+ * and remote imports. The remotes table records which entries are associated
+ * with a remote id and sequence number, so the journal can compute the next
+ * sequence to read from a remote and the local entries a remote has not yet
+ * seen. `changes` is a process-local stream of entries written by this service.
+ *
+ * **Common tasks**
+ *
+ * - Provide a persistent `EventJournal` with `layer`.
+ * - Customize entry and remotes table names when sharing a database.
+ * - Replay `entries` to rebuild projections after process restart.
+ * - Import remote entries and detect duplicates or conflicts during
+ *   synchronization.
+ *
+ * **Gotchas**
+ *
+ * Construction runs only minimal `CREATE TABLE IF NOT EXISTS` statements with
+ * dialect-specific UUID, binary, and timestamp column types; indexes,
+ * migrations, retention, and table-name changes remain application
+ * responsibilities. Payloads must stay compatible with the schemas that decode
+ * historical entries. Duplicate remote imports are ignored by primary key, and
+ * conflict lookup compares event name, primary key, and the timestamp derived
+ * from the UUID v7 entry id.
  *
  * @since 4.0.0
  */

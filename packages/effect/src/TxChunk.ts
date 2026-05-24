@@ -1,11 +1,44 @@
 /**
- * TxChunk is a transactional chunk data structure that provides Software Transactional Memory (STM)
- * semantics for chunk operations. It uses a `TxRef<Chunk<A>>` internally to ensure all operations
- * are performed atomically within transactions.
+ * The `TxChunk` module provides a transactional collection backed by an
+ * immutable {@link Chunk}. A `TxChunk<A>` stores the current chunk in a
+ * {@link TxRef}, so reads and updates are tracked by Effect transactions and
+ * committed atomically.
  *
- * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
- * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
- * calls `Effect.txRetry` and any of the accessed TxChunk values change.
+ * **Mental model**
+ *
+ * - A `TxChunk` is mutable at the reference level, but every stored value is a
+ *   persistent `Chunk`
+ * - Single operations such as {@link append}, {@link drop}, or {@link get} run
+ *   as transactions on their own
+ * - Wrap several operations in `Effect.tx` when they must observe one
+ *   consistent snapshot and commit or retry together
+ * - If a transaction reads a `TxChunk` and another transaction changes it
+ *   before commit, the transaction retries instead of publishing a stale write
+ *
+ * **Common tasks**
+ *
+ * - Create collections: {@link empty}, {@link make}, {@link fromIterable}
+ * - Replace or transform contents: {@link set}, {@link update}, {@link modify}
+ * - Add values: {@link append}, {@link prepend}, {@link appendAll},
+ *   {@link prependAll}
+ * - Keep or remove ranges: {@link take}, {@link drop}, {@link slice},
+ *   {@link filter}
+ * - Inspect contents: {@link get}, {@link size}, {@link isEmpty},
+ *   {@link isNonEmpty}
+ *
+ * **Gotchas**
+ *
+ * - `get` returns the current immutable `Chunk`, not a live mutable view
+ * - Operations such as {@link append}, {@link drop}, and {@link filter} update
+ *   the stored chunk; they do not return a new `TxChunk`
+ * - Use `TxQueue` instead when producers should wait, drop, or slide based on
+ *   queue capacity
+ *
+ * **See also**
+ *
+ * - {@link TxRef} for the lower-level transactional reference used internally
+ * - {@link Chunk} for immutable chunk operations
+ * - `TxQueue` for transactional producer/consumer queues
  *
  * @since 4.0.0
  */

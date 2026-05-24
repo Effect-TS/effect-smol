@@ -1,26 +1,40 @@
 /**
- * Browser WebSocket layers for Effect sockets.
+ * Provide Effect sockets backed by the browser `WebSocket` implementation.
  *
- * This module provides the browser entry point for `Socket.Socket` values
- * backed by the platform `WebSocket` implementation. Use `layerWebSocket` when
- * client-side Effect programs, browser tests, RPC transports, or realtime UI
- * features need a bidirectional socket connected to a WebSocket URL, and use
- * `layerWebSocketConstructor` when lower-level socket APIs need access to the
- * browser constructor service.
+ * This module is the browser entry point for Effect's socket abstraction. Use
+ * {@link layerWebSocket} when a client-side Effect program needs a complete
+ * `Socket.Socket` connected to a WebSocket URL. Use
+ * {@link layerWebSocketConstructor} when lower-level socket code only needs the
+ * browser-backed constructor service.
  *
- * Browser WebSocket rules still apply. Connections are created through
- * `globalThis.WebSocket`, so URL schemes, subprotocol negotiation, mixed-content
- * blocking, cookies, authentication, CORS-like origin checks, and extension
- * negotiation are controlled by the browser and server rather than by Effect.
- * Close events are translated into socket errors unless the provided
- * `closeCodeIsError` predicate classifies the close code as clean, which is
- * useful for protocols that use application-specific close codes.
+ * ## Mental model
  *
- * Messages are delivered as strings or binary `Uint8Array` values; browser
- * `Blob` messages are read into bytes before they reach the socket handler.
- * Outgoing data should already be serialized to a string or bytes, and protocol
- * frames that represent an intentional close should be sent as `CloseEvent`
- * values so the underlying `WebSocket.close` code and reason are preserved.
+ * `layerWebSocket` delegates socket behavior to Effect's WebSocket support and
+ * supplies `globalThis.WebSocket` as the constructor. Incoming browser messages
+ * are normalized to strings or binary `Uint8Array` values. Browser `Blob`
+ * messages are read into bytes before they reach the socket consumer.
+ *
+ * Outgoing data should already be serialized to a string or bytes. To close the
+ * underlying browser socket with a specific code and reason, send a
+ * `CloseEvent` value so the close metadata is preserved.
+ *
+ * ## Common tasks
+ *
+ * - Connect RPC transports, browser tests, or realtime UI features to a
+ *   WebSocket URL with {@link layerWebSocket}.
+ * - Provide only the browser constructor service with
+ *   {@link layerWebSocketConstructor} when another socket layer builds the
+ *   connection.
+ * - Customize `closeCodeIsError` for protocols that treat specific close codes
+ *   as normal completion instead of socket failure.
+ *
+ * ## Gotchas
+ *
+ * Browser WebSocket rules still apply. URL schemes, subprotocol negotiation,
+ * mixed-content blocking, cookies, authentication, server origin checks, and
+ * extension negotiation are controlled by the browser and server rather than by
+ * Effect. Close events become socket errors unless `closeCodeIsError`
+ * classifies the close code as clean.
  *
  * @since 4.0.0
  */

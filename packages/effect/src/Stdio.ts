@@ -1,19 +1,32 @@
 /**
- * The `Stdio` module defines the service interface used by Effect programs to
- * interact with process standard I/O. It models command-line arguments,
- * standard output, standard error, and standard input as Effects, Sinks, and
- * Streams so programs can depend on console I/O through `Context` instead of
- * directly coupling to a specific runtime.
+ * Service contract for process standard input, output, error output, and
+ * command-line arguments.
  *
- * Use this module when building command-line programs, tests, or platform
- * integrations that need to read bytes from stdin, write text or bytes to
- * stdout/stderr, or provide deterministic replacements for those capabilities.
- * The `layerTest` helper is useful for tests because it supplies inert defaults
- * and lets individual fields be overridden.
+ * `Stdio` lets command-line programs depend on standard I/O through the Effect
+ * environment instead of reading from or writing to global process handles
+ * directly. The service exposes arguments as an `Effect`, stdout and stderr as
+ * `Sink`s that accept strings or bytes, and stdin as a byte `Stream`.
  *
- * Standard I/O operations are platform capabilities and may fail with
- * `PlatformError`; handle those failures in the Effect error channel rather than
- * assuming writes or reads are infallible.
+ * **Mental model**
+ *
+ * Application code describes what it needs from standard I/O, and a runtime
+ * layer supplies the concrete streams. Platform packages provide real process
+ * implementations, while tests can use `Stdio.layerTest` to replace only the
+ * fields that matter for a scenario and keep the rest inert.
+ *
+ * **Common tasks**
+ *
+ * - Read command-line arguments from the service's `args` effect.
+ * - Write text or bytes by running values into the service's `stdout()` or
+ *   `stderr()` sinks.
+ * - Consume `stdin` as a stream of `Uint8Array` chunks.
+ * - Build deterministic tests with `Stdio.layerTest`.
+ *
+ * **Gotchas**
+ *
+ * Standard I/O is a platform capability. Reads and writes can fail with
+ * `PlatformError`, so handle failures in the Effect error channel instead of
+ * assuming the process streams are always available.
  *
  * @since 4.0.0
  */

@@ -1,7 +1,37 @@
 /**
- * OpenAI Embedding Model implementation.
+ * The `OpenAiEmbeddingModel` module adapts OpenAI-compatible embeddings
+ * endpoints to Effect's embedding model service. It sends embedding requests
+ * through {@link OpenAiClient}, exposes constructors for layers and `AiModel`
+ * values, and supports scoped request configuration overrides.
  *
- * Provides an EmbeddingModel implementation for OpenAI-compatible embeddings APIs.
+ * **Mental model**
+ *
+ * - {@link make} builds the `EmbeddingModel` service when an
+ *   {@link OpenAiClient} is already available.
+ * - {@link layer} provides that service as a `Layer`.
+ * - {@link model} creates an `AiModel` and also provides the configured vector
+ *   dimensions service expected by embedding consumers.
+ * - {@link Config} and {@link withConfigOverride} merge default request options
+ *   with scoped overrides for individual operations.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link model} when application code wants a named `AiModel` with known
+ *   dimensions.
+ * - Use {@link layer} when composing services around an existing
+ *   {@link OpenAiClient} layer.
+ * - Use {@link withConfigOverride} to set per-operation options such as `user`,
+ *   `dimensions`, or provider-specific request fields.
+ *
+ * **Gotchas**
+ *
+ * - {@link Model} is `string` because OpenAI-compatible providers use their
+ *   own embedding model identifiers.
+ * - {@link model} requires explicit dimensions because compatible providers do
+ *   not expose a shared way to infer vector width.
+ * - Provider responses must contain one numeric vector per input with unique,
+ *   in-range indexes; base64 embeddings or malformed indexes fail with
+ *   `InvalidOutputError`.
  *
  * @since 4.0.0
  */

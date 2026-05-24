@@ -1,13 +1,40 @@
 /**
- * The `TestConsole` module provides a test implementation of the `Console`
- * service that records console calls instead of writing them to the host
- * environment. It is useful when testing workflows that use `Console.log` or
- * `Console.error` and need to assert on the produced output.
+ * The `TestConsole` module provides a test implementation of the Effect
+ * `Console` service. When {@link layer} is provided, calls made through the
+ * Effect console APIs are captured in memory instead of being written to the
+ * host console, so tests can assert on logged values deterministically.
  *
- * Use {@link layer} to provide the test console to an effect, then inspect
- * captured output with {@link logLines} and {@link errorLines}. Because console
- * operations are service-based effects, programs under test must be run with
- * this layer for their output to be captured.
+ * This module is intentionally small: it gives tests a console layer, helpers
+ * for reading captured `Console.log` and `Console.error` arguments, and a way
+ * to access the provided test console service directly.
+ *
+ * **Mental model**
+ *
+ * - {@link layer} replaces the current `Console` service with a fresh
+ *   in-memory test console for the effect it is provided to
+ * - Code under test must call Effect's `Console` APIs; direct calls to
+ *   `globalThis.console` are outside the service and are not captured
+ * - {@link logLines} returns the values passed to `Console.log` in call order
+ * - {@link errorLines} returns the values passed to `Console.error` in call
+ *   order
+ * - {@link testConsoleWith} gives direct access to the current `TestConsole`
+ *   service when a test needs to inspect or call it manually
+ *
+ * **Common tasks**
+ *
+ * - Capture console output by providing {@link layer}
+ * - Assert on logged values with {@link logLines}
+ * - Assert on error output with {@link errorLines}
+ * - Construct a standalone test console service with {@link make}
+ * - Access the provided service with {@link testConsoleWith}
+ *
+ * **Gotchas**
+ *
+ * - Captured log and error values are the original arguments, not formatted
+ *   strings
+ * - `logLines` and `errorLines` expose `Console.log` and `Console.error`
+ *   output; other console methods are implemented for compatibility but do not
+ *   have dedicated accessor effects in this module
  *
  * @since 4.0.0
  */

@@ -1,19 +1,56 @@
 /**
- * Utilities for representing and transforming HTTP headers.
+ * Immutable HTTP header collections for the unstable HTTP modules.
  *
- * This module provides an immutable `Headers` collection for request and
- * response metadata, along with constructors and combinators for common header
- * workflows such as reading values, checking for presence, setting or merging
- * header sets, removing names, and redacting sensitive headers before
- * inspection.
+ * This module defines the `Headers` data type used by HTTP client and server
+ * request / response models. It converts records or iterables into a
+ * predictable lowercase map, provides pipeable operations for reading and
+ * updating header values, and integrates with inspection redaction so sensitive
+ * header names can be masked before logging or serialization.
  *
- * Header names are normalized to lowercase by the safe constructors and
- * lookups, matching HTTP's case-insensitive header-name semantics. Each stored
- * header name maps to a single string value: array values in record input are
- * joined with `", "`, iterable input keeps the last value for duplicate names,
- * and later values override earlier ones when setting or merging. Be careful
- * with headers that require distinct field lines, such as `set-cookie`, because
- * this representation does not preserve multiple values separately.
+ * ## Mental model
+ *
+ * A `Headers` value is a plain immutable record whose keys are normalized
+ * header names and whose values are strings. Safe constructors and lookups
+ * lowercase names because HTTP header names are case-insensitive, and
+ * combinators return new `Headers` values instead of mutating the original
+ * collection.
+ *
+ * ## Common tasks
+ *
+ * - Build headers from records or entry iterables with {@link fromInput}.
+ * - Read values with {@link get} or check presence with {@link has}.
+ * - Add, replace, merge, or remove headers with {@link set}, {@link setAll},
+ *   {@link merge}, {@link remove}, and {@link removeMany}.
+ * - Mask sensitive names before inspection with {@link redact} and
+ *   {@link CurrentRedactedNames}.
+ *
+ * ## Gotchas
+ *
+ * Each lowercase header name stores one string. Record array values are joined
+ * with `", "`, iterable input keeps the last value for duplicate names, and
+ * later set / merge operations replace earlier values. This is convenient for
+ * most headers but does not preserve repeated field lines such as `Set-Cookie`;
+ * use cookie-specific HTTP modules when cookie multiplicity matters.
+ *
+ * **Example** (Normalize and update headers)
+ *
+ * ```ts
+ * import { Option } from "effect"
+ * import { Headers } from "effect/unstable/http"
+ *
+ * const headers = Headers.fromInput({
+ *   "Content-Type": "application/json",
+ *   accept: ["application/json", "text/plain"]
+ * })
+ *
+ * const contentType = Headers.get(headers, "content-type")
+ * if (Option.isSome(contentType)) {
+ *   console.log(contentType.value)
+ * }
+ *
+ * const next = Headers.set(headers, "authorization", "Bearer token")
+ * console.log(Headers.has(next, "Authorization")) // true
+ * ```
  *
  * @since 4.0.0
  */
