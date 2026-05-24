@@ -105,6 +105,159 @@ export const makeValue = () => 1
     })
   })
 
+  it("stores valid top-of-file module JSDoc", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
+    fs.mkdirSync(path.join(cwd, "src"), { recursive: true })
+    fs.writeFileSync(
+      path.join(cwd, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2022" },
+        include: ["src/**/*.ts"]
+      })
+    )
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        name: "@effect/sample",
+        type: "module",
+        exports: { ".": "./src/index.ts", "./*": "./src/*.ts" }
+      })
+    )
+    fs.writeFileSync(path.join(cwd, "src/index.ts"), `export * as Foo from "./Foo.ts"\n`)
+    fs.writeFileSync(
+      path.join(cwd, "src/Foo.ts"),
+      `/**
+ * The Foo module provides helpers for sample values. Use {@link makeValue} to
+ * create the default value.
+ *
+ * **Example** (Using the module)
+ *
+ * \`\`\`ts
+ * import { Foo } from "@effect/sample"
+ *
+ * Foo.makeValue()
+ * \`\`\`
+ *
+ * @see {@link makeValue}
+ * @since 1.0.0
+ */
+import type { Buffer } from "node:buffer"
+
+/**
+ * Creates a value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const makeValue = () => 1
+`
+    )
+    const model = extractJSDocsSync({
+      cwd,
+      tsconfig: "tsconfig.json",
+      include: ["src/**/*.ts"],
+      output: ".data/jsdocs.json"
+    })
+    assert.strictEqual(model.files[0]?.moduleJSDoc?.raw.includes("The Foo module provides helpers"), true)
+    assert.deepStrictEqual(model.files[0]?.diagnostics, [])
+  })
+
+  it("does not treat the first exported declaration JSDoc as module JSDoc", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
+    fs.mkdirSync(path.join(cwd, "src"), { recursive: true })
+    fs.writeFileSync(
+      path.join(cwd, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2022" },
+        include: ["src/**/*.ts"]
+      })
+    )
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        name: "@effect/sample",
+        type: "module",
+        exports: { ".": "./src/index.ts", "./*": "./src/*.ts" }
+      })
+    )
+    fs.writeFileSync(path.join(cwd, "src/index.ts"), `export * as Foo from "./Foo.ts"\n`)
+    fs.writeFileSync(
+      path.join(cwd, "src/Foo.ts"),
+      `/**
+ * Creates a value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const makeValue = () => 1
+`
+    )
+    const model = extractJSDocsSync({
+      cwd,
+      tsconfig: "tsconfig.json",
+      include: ["src/**/*.ts"],
+      output: ".data/jsdocs.json"
+    })
+    assert.strictEqual(model.files[0]?.moduleJSDoc, undefined)
+    assert.deepStrictEqual(model.files[0]?.diagnostics, [])
+  })
+
+  it("flags module JSDoc tag, example, and public @see diagnostics", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
+    fs.mkdirSync(path.join(cwd, "src"), { recursive: true })
+    fs.writeFileSync(
+      path.join(cwd, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2022" },
+        include: ["src/**/*.ts"]
+      })
+    )
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        name: "@effect/sample",
+        type: "module",
+        exports: { ".": "./src/index.ts", "./*": "./src/*.ts" }
+      })
+    )
+    fs.writeFileSync(path.join(cwd, "src/index.ts"), `export * as Foo from "./Foo.ts"\n`)
+    fs.writeFileSync(
+      path.join(cwd, "src/Foo.ts"),
+      `/**
+ * The Foo module provides helpers.
+ *
+ * \`\`\`ts
+ * const value = 1
+ * \`\`\`
+ *
+ * @see {@link Hidden}
+ */
+import type { Buffer } from "node:buffer"
+
+class Hidden {}
+
+/**
+ * Creates a value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const makeValue = () => 1
+`
+    )
+    const model = extractJSDocsSync({
+      cwd,
+      tsconfig: "tsconfig.json",
+      include: ["src/**/*.ts"],
+      output: ".data/jsdocs.json"
+    })
+    assert.deepStrictEqual(
+      model.files[0]?.diagnostics.map((diagnostic) => diagnostic.code).sort(),
+      ["loose-ts-fence", "missing-tag", "public-see-target"].sort()
+    )
+    assert.strictEqual(model.files[0]?.moduleJSDoc?.raw.includes("The Foo module provides helpers"), true)
+  })
+
   it("flags @see links to targets without public JSDoc", () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
     fs.mkdirSync(path.join(cwd, "src"), { recursive: true })

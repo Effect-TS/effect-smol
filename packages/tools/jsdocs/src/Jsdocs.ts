@@ -12,7 +12,7 @@ import * as path from "node:path"
 import * as ts from "typescript"
 
 type ExportBucket = "value" | "type"
-type DocScope = "declaration" | "namespace" | "namespace-declaration" | "member"
+type DocScope = "module" | "declaration" | "namespace" | "namespace-declaration" | "member"
 
 type Result<A, E> =
   | { readonly _tag: "Success"; readonly value: A }
@@ -106,6 +106,23 @@ export interface ParsedExample {
   readonly title: string
   readonly body: string | null
   readonly code: string
+}
+
+/**
+ * Raw module-level JSDoc block collected from the top of a checked file.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ParsedModuleJSDoc {
+  readonly raw: string
+  readonly range: readonly [number, number]
+}
+
+interface ParsedModuleTags {
+  readonly since: string
+  readonly deprecated: string | null
+  readonly see: ReadonlyArray<ParsedSeeTag>
 }
 
 /**
@@ -216,6 +233,7 @@ export interface ParsedNamespace {
  * @since 4.0.0
  */
 export interface ParsedJSDocFile {
+  readonly moduleJSDoc?: ParsedModuleJSDoc
   readonly declarations: ReadonlyArray<ParsedRootDeclaration>
   readonly namespaces: ReadonlyArray<ParsedNamespace>
 }
@@ -856,18 +874,25 @@ export function parseJSDoc(raw: string): Result<ParsedCoreJSDoc, JSDocParseError
   return { _tag: "Success", value: block.parsed }
 }
 
-function parseJSDocBlock(raw: string, range: [number, number]): JSDocBlock {
+function parseLooseJSDocBlock(raw: string, range: [number, number]): JSDocBlock {
   const body = raw.replace(/^\/\*\*/, "").replace(/\*\/$/, "")
   const rawLines = body.split(/\r\n|\r|\n/)
   const lines = rawLines.map((line) => line.replace(/^\s*\* ?/, "").trimEnd())
   const normalized = trimStructuralBlankLines(lines)
   const tags = parseTags(normalized)
   const internal = tags.some((tag) => tag.name === "internal")
+  return { range, raw, lines: normalized, tags, diagnostics: [], internal }
+}
+
+function parseJSDocBlock(raw: string, range: [number, number]): JSDocBlock {
+  const base = parseLooseJSDocBlock(raw, range)
+  const { lines: normalized, tags, internal } = base
   if (internal) {
-    return { range, raw, lines: normalized, tags, diagnostics: [], internal }
+    return base
   }
   const result = parseCoreJSDoc(normalized, tags)
   const block: JSDocBlock = {
+    ...base,
     range,
     raw,
     lines: normalized,
@@ -1255,6 +1280,46 @@ function parseExample(lines: Array<string>, headingIndex: number): {
     : result
 }
 
+function parseModuleExamples(block: JSDocBlock): {
+  readonly examples: ReadonlyArray<ParsedExample>
+  readonly diagnostics: ReadonlyArray<JSDocDiagnostic>
+} {
+  const diagnostics: Array<JSDocDiagnostic> = []
+  const examples: Array<ParsedExample> = []
+  const exampleTitles = new Set<string>()
+  const firstTagLine = block.tags[0]?.line ?? block.lines.length
+  const lines = block.lines.slice(0, firstTagLine)
+  let index = 0
+  while (index < lines.length) {
+    const trimmed = lines[index].trim()
+    if (trimmed.startsWith("**Example**")) {
+      const parsed = parseExample(lines, index)
+      diagnostics.push(...parsed.diagnostics)
+      if (parsed.example !== undefined) {
+        const key = parsed.example.title.trim().toLowerCase()
+        if (exampleTitles.has(key)) {
+          diagnostics.push(diagnostic("duplicate-example", `Duplicate example title: ${parsed.example.title.trim()}`))
+        }
+        exampleTitles.add(key)
+        examples.push(parsed.example)
+      }
+      index = Math.max(parsed.nextIndex, index + 1)
+      continue
+    }
+    if (trimmed.startsWith("```")) {
+      diagnostics.push(
+        diagnostic("loose-ts-fence", "Code fences in module JSDoc must use **Example** (Title) sections")
+      )
+      index++
+      while (index < lines.length && !lines[index].trim().startsWith("```")) index++
+      if (index < lines.length) index++
+      continue
+    }
+    index++
+  }
+  return { examples, diagnostics }
+}
+
 function joinBody(lines: ReadonlyArray<string>): string {
   let start = 0
   let end = lines.length
@@ -1316,12 +1381,14 @@ function extractParsedInlineLinks(source: string): ReadonlyArray<ParsedInlineLin
 function buildTags(
   scope: DocScope,
   tags: ReadonlyArray<JSDocTag>
-): Result<ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags, JSDocParseError> {
+): Result<ParsedModuleTags | ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags, JSDocParseError> {
   const diagnostics: Array<JSDocDiagnostic> = []
   const allowed = scope === "declaration"
     ? new Set(["deprecated", "see", "category", "since"])
     : scope === "member"
     ? new Set(["deprecated", "default", "see", "since"])
+    : scope === "module"
+    ? new Set(["deprecated", "see", "since"])
     : new Set(["deprecated", "see", "category", "since"])
   let previousOrder = -1
   const values = new Map<string, Array<string>>()
@@ -1377,6 +1444,9 @@ function buildTags(
       )
     )
   }
+  if (scope === "module" && since === null) {
+    diagnostics.push(diagnostic("missing-tag", "Module JSDoc must include @since"))
+  }
   if (since !== null && !stableSemverRegex.test(since)) {
     diagnostics.push(diagnostic("invalid-since", "@since must be a stable semver version like 1.2.3"))
   }
@@ -1396,6 +1466,11 @@ function buildTags(
     if (defaultValue === "") diagnostics.push(diagnostic("empty-tag", "@default must include a value"))
     if (diagnostics.length > 0) return { _tag: "Failure", error: { diagnostics } }
     return { _tag: "Success", value: { since, default: defaultValue, deprecated, see: see.map(parseSeeTag) } }
+  }
+
+  if (scope === "module") {
+    if (diagnostics.length > 0 || since === null) return { _tag: "Failure", error: { diagnostics } }
+    return { _tag: "Success", value: { since, deprecated, see: see.map(parseSeeTag) } }
   }
 
   const category = values.get("category")?.[0] ?? null
@@ -1657,9 +1732,11 @@ function inlineLinkSymbol(
   }
 }
 
-function attachSeeLinkSymbols<T extends ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags>(
+function attachSeeLinkSymbolsFromSourceFile<
+  T extends ParsedModuleTags | ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags
+>(
   tags: T,
-  node: ts.Node,
+  sourceFile: ts.SourceFile,
   block: JSDocBlock,
   linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
 ): T {
@@ -1667,11 +1744,11 @@ function attachSeeLinkSymbols<T extends ParsedDeclarationTags | ParsedNamespaceT
     string,
     Array<{ readonly range: readonly [number, number]; readonly symbol?: ParsedInlineLinkSymbol }>
   >()
-  for (const link of collectJSDocLinks(node.getSourceFile(), block)) {
-    const text = link.getText(node.getSourceFile())
+  for (const link of collectJSDocLinks(sourceFile, block)) {
+    const text = link.getText(sourceFile)
     const target = extractInlineLinkTarget(text)
     if (target === "" || urlRegex.test(target)) continue
-    const symbol = resolveJSDocLinkSymbol(link, target, node.getSourceFile(), linkContext.checker, linkContext.entry)
+    const symbol = resolveJSDocLinkSymbol(link, target, sourceFile, linkContext.checker, linkContext.entry)
     const info = symbol === undefined ? undefined : inlineLinkSymbol(symbol, linkContext.cwd, linkContext.checker)
     const items = resolved.get(text) ?? []
     items.push(info === undefined ? { range: [link.pos, link.end] } : { range: [link.pos, link.end], symbol: info })
@@ -1691,6 +1768,15 @@ function attachSeeLinkSymbols<T extends ParsedDeclarationTags | ParsedNamespaceT
       })
     }))
   }
+}
+
+function attachSeeLinkSymbols<T extends ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags>(
+  tags: T,
+  node: ts.Node,
+  block: JSDocBlock,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
+): T {
+  return attachSeeLinkSymbolsFromSourceFile(tags, node.getSourceFile(), block, linkContext)
 }
 
 export interface JSDocModelDiagnostic extends JSDocDiagnostic {
@@ -2035,7 +2121,7 @@ function apiMatchesSeeTarget(api: JSDocApi, names: ReadonlySet<string>): boolean
   return false
 }
 
-function resolveJSDocApiSeeLinks(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<JSDocApi> {
+function createJSDocApiSeeLinkResolver(apis: ReadonlyArray<JSDocApi>) {
   const byModuleAndName = new Map<string, JSDocApi>()
   const byLocalName = new Map<string, Array<JSDocApi>>()
   const bySourceRange = new Map<string, JSDocApi>()
@@ -2052,7 +2138,7 @@ function resolveJSDocApiSeeLinks(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<J
       byLocalName.set(name, existing)
     }
   }
-  const resolveSymbol = (api: JSDocApi, link: ParsedInlineLink): JSDocApiSeeLinkResolution | undefined => {
+  const resolveSymbol = (link: ParsedInlineLink): JSDocApiSeeLinkResolution | undefined => {
     if (link.symbol === undefined) return undefined
     const symbol = link.symbol
     const exact = bySourceRange.get(sourceRangeKey(symbol.file, symbol.range))
@@ -2077,22 +2163,13 @@ function resolveJSDocApiSeeLinks(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<J
     if (uniqueByName.length > 1) {
       return { _tag: "Unresolved", reason: "ambiguous", candidates: uniqueByName.map((candidate) => candidate.id) }
     }
-    const sameModule = Array.from(names).flatMap((name) => byModuleAndName.get(`${api.moduleName}:${name}`) ?? [])
-    const uniqueSameModule = Array.from(new Map(sameModule.map((candidate) => [candidate.id, candidate])).values())
-    if (uniqueSameModule.length === 1) {
-      return { _tag: "Resolved", apiId: uniqueSameModule[0].id, apiFqn: uniqueSameModule[0].apiFqn }
-    }
-    if (uniqueSameModule.length > 1) {
-      return {
-        _tag: "Unresolved",
-        reason: "ambiguous",
-        candidates: uniqueSameModule.map((candidate) => candidate.id)
-      }
-    }
-    return { _tag: "Unresolved", reason: "not-found", candidates: [] }
+    return undefined
   }
-  const resolve = (api: JSDocApi, link: ParsedInlineLink): JSDocApiSeeLinkResolution => {
-    const symbolResolution = resolveSymbol(api, link)
+  return (
+    context: { readonly moduleName: string; readonly namespacePath: ReadonlyArray<string> },
+    link: ParsedInlineLink
+  ): JSDocApiSeeLinkResolution => {
+    const symbolResolution = resolveSymbol(link)
     if (symbolResolution !== undefined) return symbolResolution
     const targets = new Set<string>()
     for (const target of normalizeSeeTarget(link.target)) targets.add(target)
@@ -2100,10 +2177,12 @@ function resolveJSDocApiSeeLinks(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<J
       for (const target of normalizeSeeTarget(link.text)) targets.add(target)
     }
     for (const target of targets) {
-      const sameModule = byModuleAndName.get(`${api.moduleName}:${target}`)
+      const sameModule = byModuleAndName.get(`${context.moduleName}:${target}`)
       if (sameModule !== undefined) return { _tag: "Resolved", apiId: sameModule.id, apiFqn: sameModule.apiFqn }
-      if (!target.includes(".") && api.namespacePath.length > 0) {
-        const sameNamespace = byModuleAndName.get(`${api.moduleName}:${[...api.namespacePath, target].join(".")}`)
+      if (!target.includes(".") && context.namespacePath.length > 0) {
+        const sameNamespace = byModuleAndName.get(
+          `${context.moduleName}:${[...context.namespacePath, target].join(".")}`
+        )
         if (sameNamespace !== undefined) {
           return { _tag: "Resolved", apiId: sameNamespace.id, apiFqn: sameNamespace.apiFqn }
         }
@@ -2117,6 +2196,10 @@ function resolveJSDocApiSeeLinks(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<J
     }
     return { _tag: "Unresolved", reason: "not-found", candidates: [] }
   }
+}
+
+function resolveJSDocApiSeeLinks(apis: ReadonlyArray<JSDocApi>): ReadonlyArray<JSDocApi> {
+  const resolve = createJSDocApiSeeLinkResolver(apis)
   return apis.map((api) => ({
     ...api,
     see: api.see.map((tag) => ({
@@ -2169,14 +2252,88 @@ function appendPublicSeeDiagnostics(
   }
 }
 
-function buildJSDocApisWithPublicSeeDiagnostics(files: ReadonlyArray<JSDocModelFile>): {
+function moduleSeeTags(
+  file: JSDocModelFile,
+  sourceFile: ts.SourceFile,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
+): ReadonlyArray<JSDocApiSeeTag> {
+  if (file.moduleJSDoc === undefined) return []
+  const block = parseLooseJSDocBlock(file.moduleJSDoc.raw, [file.moduleJSDoc.range[0], file.moduleJSDoc.range[1]])
+  if (block.internal) return []
+  const tags = buildTags("module", block.tags)
+  const moduleTags: ParsedModuleTags = tags._tag === "Success"
+    ? tags.value as ParsedModuleTags
+    : {
+      since: "0.0.0",
+      deprecated: null,
+      see: block.tags.filter((tag) => tag.name === "see" && tag.value.trim() !== "").map((tag) =>
+        parseSeeTag(tag.value.trim())
+      )
+    }
+  const withSymbols = attachSeeLinkSymbolsFromSourceFile(moduleTags, sourceFile, block, linkContext)
+  return unresolvedSee(withSymbols.see)
+}
+
+function appendModulePublicSeeDiagnostics(
+  files: ReadonlyArray<JSDocModelFile>,
+  apis: ReadonlyArray<JSDocApi>,
+  context: {
+    readonly sourceFilesByFile: ReadonlyMap<string, ts.SourceFile>
+    readonly checker: ts.TypeChecker
+    readonly entry: ProgramCacheEntry
+    readonly cwd: string
+  }
+): { readonly files: ReadonlyArray<JSDocModelFile>; readonly added: boolean } {
+  const diagnosticsByFile = new Map(files.map((file) => [file.file, [...file.diagnostics]]))
+  const resolve = createJSDocApiSeeLinkResolver(apis)
+  let added = false
+  for (const file of files) {
+    if (file.imports === undefined || file.moduleJSDoc === undefined) continue
+    const sourceFile = context.sourceFilesByFile.get(file.file)
+    const diagnostics = diagnosticsByFile.get(file.file)
+    if (sourceFile === undefined || diagnostics === undefined) continue
+    for (const tag of moduleSeeTags(file, sourceFile, context)) {
+      for (const link of tag.links) {
+        const item = unresolvedPublicSeeDiagnostic({
+          ...link,
+          resolution: resolve({ moduleName: file.imports.module, namespacePath: [] }, link)
+        })
+        if (item === undefined || diagnostics.some((diagnostic) => sameDiagnostic(diagnostic, item))) continue
+        diagnostics.push(item)
+        added = true
+      }
+    }
+  }
+  if (!added) return { files, added }
+  return {
+    added,
+    files: files.map((file) => ({
+      ...file,
+      diagnostics: diagnosticsByFile.get(file.file) ?? file.diagnostics
+    }))
+  }
+}
+
+function buildJSDocApisWithPublicSeeDiagnostics(
+  files: ReadonlyArray<JSDocModelFile>,
+  context?: {
+    readonly sourceFilesByFile: ReadonlyMap<string, ts.SourceFile>
+    readonly checker: ts.TypeChecker
+    readonly entry: ProgramCacheEntry
+    readonly cwd: string
+  }
+): {
   readonly files: ReadonlyArray<JSDocModelFile>
   readonly apis: ReadonlyArray<JSDocApi>
 } {
   let current = files
   for (let index = 0; index < 5; index++) {
     const apis = buildJSDocApis(current)
-    const next = appendPublicSeeDiagnostics(current, apis)
+    const publicSee = appendPublicSeeDiagnostics(current, apis)
+    const moduleSee = context === undefined
+      ? { files: publicSee.files, added: false }
+      : appendModulePublicSeeDiagnostics(publicSee.files, apis, context)
+    const next = { files: moduleSee.files, added: publicSee.added || moduleSee.added }
     if (!next.added) return { files: current, apis }
     current = next.files
   }
@@ -2298,10 +2455,17 @@ function validateExampleImports(
 
 function appendExampleImportDiagnostics(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSDocModelFile> {
   const policy = createExampleImportPolicy(files)
-  const checkExamples = (examples: ReadonlyArray<ParsedExample>): ReadonlyArray<JSDocModelDiagnostic> =>
-    examples.flatMap((example) =>
-      validateExampleImports(example.code, policy).map((item) => ({ ...item, range: [0, 0] as const }))
-    )
+  const checkExamples = (
+    examples: ReadonlyArray<ParsedExample>,
+    range: readonly [number, number] = [0, 0] as const
+  ): ReadonlyArray<JSDocModelDiagnostic> =>
+    examples.flatMap((example) => validateExampleImports(example.code, policy).map((item) => ({ ...item, range })))
+  const checkModuleExamples = (moduleJSDoc: ParsedModuleJSDoc | undefined): ReadonlyArray<JSDocModelDiagnostic> => {
+    if (moduleJSDoc === undefined) return []
+    const block = parseLooseJSDocBlock(moduleJSDoc.raw, [moduleJSDoc.range[0], moduleJSDoc.range[1]])
+    if (block.internal) return []
+    return checkExamples(parseModuleExamples(block).examples, moduleJSDoc.range)
+  }
   const checkMembers = (members: ReadonlyArray<ParsedMember>): ReadonlyArray<JSDocModelDiagnostic> =>
     members.flatMap((member) => [
       ...checkExamples(member.examples),
@@ -2319,6 +2483,7 @@ function appendExampleImportDiagnostics(files: ReadonlyArray<JSDocModelFile>): R
   return files.map((file) => {
     const diagnostics = [
       ...file.diagnostics,
+      ...checkModuleExamples(file.moduleJSDoc),
       ...file.declarations.flatMap((declaration) => [
         ...checkExamples(declaration.examples),
         ...checkMembers(declaration.members)
@@ -2371,6 +2536,47 @@ function addModelDiagnostics(
   for (const item of diagnostics) out.push({ ...item, range })
 }
 
+function addJSDocLinkDiagnostics(
+  sourceFile: ts.SourceFile,
+  block: JSDocBlock,
+  diagnostics: Array<JSDocModelDiagnostic>,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
+) {
+  if (!hasInlineLink(block)) return
+  for (const link of malformedInlineLinks(block)) {
+    diagnostics.push({ ...diagnostic("malformed-link", `Malformed JSDoc inline link: ${link}`), range: block.range })
+  }
+  for (const link of collectJSDocLinks(sourceFile, block)) {
+    const text = link.getText(sourceFile)
+    const target = extractInlineLinkTarget(text)
+    if (target === "") continue
+    if (urlRegex.test(target)) {
+      diagnostics.push({
+        ...diagnostic("url-link", `JSDoc inline link must target a TypeScript symbol: ${text}`),
+        range: [link.pos, link.end]
+      })
+    } else if (resolveJSDocLinkSymbol(link, target, sourceFile, linkContext.checker, linkContext.entry) === undefined) {
+      diagnostics.push({
+        ...diagnostic("unresolved-link", `Unresolved JSDoc inline link: ${text}`),
+        range: [link.pos, link.end]
+      })
+    }
+  }
+  for (const link of collectJSDocSeeLinks(sourceFile, block)) {
+    const text = link.getText(sourceFile)
+    const target = extractInlineLinkTarget(text)
+    if (target === "" || urlRegex.test(target)) continue
+    const symbol = resolveJSDocLinkSymbol(link, target, sourceFile, linkContext.checker, linkContext.entry)
+    if (symbol === undefined) continue
+    if (undocumentedSeeLinkTarget(symbol, linkContext.checker, linkContext.cwd) !== undefined) {
+      diagnostics.push({
+        ...diagnostic("undocumented-see-target", `@see link target must have public JSDoc: ${text}`),
+        range: [link.pos, link.end]
+      })
+    }
+  }
+}
+
 function parseDocumentedTs(
   node: ts.Node,
   scope: DocScope,
@@ -2396,45 +2602,11 @@ function parseDocumentedTs(
     addModelDiagnostics(diagnostics, block.range, tags.error.diagnostics)
     return undefined
   }
-  if (hasInlineLink(block) && linkContext !== undefined) {
-    for (const link of malformedInlineLinks(block)) {
-      diagnostics.push({ ...diagnostic("malformed-link", `Malformed JSDoc inline link: ${link}`), range: block.range })
-    }
-    for (const link of collectJSDocLinks(node.getSourceFile(), block)) {
-      const text = link.getText(node.getSourceFile())
-      const target = extractInlineLinkTarget(text)
-      if (target === "") continue
-      if (urlRegex.test(target)) {
-        diagnostics.push({
-          ...diagnostic("url-link", `JSDoc inline link must target a TypeScript symbol: ${text}`),
-          range: [link.pos, link.end]
-        })
-      } else if (
-        resolveJSDocLinkSymbol(link, target, node.getSourceFile(), linkContext.checker, linkContext.entry) === undefined
-      ) {
-        diagnostics.push({
-          ...diagnostic("unresolved-link", `Unresolved JSDoc inline link: ${text}`),
-          range: [link.pos, link.end]
-        })
-      }
-    }
-    for (const link of collectJSDocSeeLinks(node.getSourceFile(), block)) {
-      const text = link.getText(node.getSourceFile())
-      const target = extractInlineLinkTarget(text)
-      if (target === "" || urlRegex.test(target)) continue
-      const symbol = resolveJSDocLinkSymbol(link, target, node.getSourceFile(), linkContext.checker, linkContext.entry)
-      if (symbol === undefined) continue
-      if (undocumentedSeeLinkTarget(symbol, linkContext.checker, linkContext.cwd) !== undefined) {
-        diagnostics.push({
-          ...diagnostic("undocumented-see-target", `@see link target must have public JSDoc: ${text}`),
-          range: [link.pos, link.end]
-        })
-      }
-    }
-  }
+  const parsedTags = tags.value as ParsedDeclarationTags | ParsedNamespaceTags | ParsedMemberTags
+  if (linkContext !== undefined) addJSDocLinkDiagnostics(node.getSourceFile(), block, diagnostics, linkContext)
   return {
     core: block.parsed,
-    tags: linkContext === undefined ? tags.value : attachSeeLinkSymbols(tags.value, node, block, linkContext)
+    tags: linkContext === undefined ? parsedTags : attachSeeLinkSymbols(parsedTags, node, block, linkContext)
   }
 }
 
@@ -2658,6 +2830,54 @@ function parseNamespaceTs(
   }
 }
 
+function skipLeadingIgnoredTrivia(source: string): number {
+  let index = source.charCodeAt(0) === 0xfeff ? 1 : 0
+  while (index < source.length) {
+    while (index < source.length && /\s/.test(source[index])) index++
+    if (!source.startsWith("//", index)) return index
+    const lineEnd = source.indexOf("\n", index)
+    const end = lineEnd === -1 ? source.length : lineEnd + 1
+    if (!isSkippableDirectiveComment(source.slice(index, end))) return index
+    index = end
+  }
+  return index
+}
+
+function sourceFileTopLevelJSDoc(sourceFile: ts.SourceFile): ParsedModuleJSDoc | undefined {
+  const source = sourceFile.text
+  const start = skipLeadingIgnoredTrivia(source)
+  if (!source.startsWith("/**", start)) return undefined
+  const end = source.indexOf("*/", start + 3)
+  if (end === -1) return undefined
+  const range = [start, end + 2] as const
+  const firstStatement = sourceFile.statements[0]
+  if (firstStatement !== undefined) {
+    const jsDocs = (firstStatement as { readonly jsDoc?: ReadonlyArray<ts.JSDoc> }).jsDoc ?? []
+    if (
+      jsDocs.some((jsDoc) => jsDoc.pos === range[0] && jsDoc.end === range[1]) &&
+      !ts.isImportDeclaration(firstStatement) &&
+      !ts.isImportEqualsDeclaration(firstStatement)
+    ) return undefined
+  }
+  return { raw: source.slice(range[0], range[1]), range }
+}
+
+function parseModuleJSDocTs(
+  sourceFile: ts.SourceFile,
+  moduleJSDoc: ParsedModuleJSDoc,
+  diagnostics: Array<JSDocModelDiagnostic>,
+  linkContext: { readonly checker: ts.TypeChecker; readonly entry: ProgramCacheEntry; readonly cwd: string }
+): ParsedModuleJSDoc | undefined {
+  const block = parseLooseJSDocBlock(moduleJSDoc.raw, [moduleJSDoc.range[0], moduleJSDoc.range[1]])
+  if (block.internal) return undefined
+  const tags = buildTags("module", block.tags)
+  if (tags._tag === "Failure") addModelDiagnostics(diagnostics, block.range, tags.error.diagnostics)
+  const examples = parseModuleExamples(block)
+  addModelDiagnostics(diagnostics, block.range, examples.diagnostics)
+  addJSDocLinkDiagnostics(sourceFile, block, diagnostics, linkContext)
+  return moduleJSDoc
+}
+
 function parseSourceFileDocs(
   cwd: string,
   sourceFile: ts.SourceFile,
@@ -2669,6 +2889,10 @@ function parseSourceFileDocs(
   const namespaces: Array<ParsedNamespace> = []
   const linkContext = { checker, entry, cwd }
   const checkedFunctionOverloads = new Set<string>()
+  const moduleJSDoc = sourceFileTopLevelJSDoc(sourceFile)
+  const parsedModuleJSDoc = moduleJSDoc === undefined
+    ? undefined
+    : parseModuleJSDocTs(sourceFile, moduleJSDoc, diagnostics, linkContext)
 
   for (const statement of sourceFile.statements) {
     if (ts.isExportAssignment(statement)) continue
@@ -2739,7 +2963,11 @@ function parseSourceFileDocs(
     })
   }
   return {
-    parsed: { declarations, namespaces },
+    parsed: {
+      ...(parsedModuleJSDoc === undefined ? {} : { moduleJSDoc: parsedModuleJSDoc }),
+      declarations,
+      namespaces
+    },
     diagnostics: uniqueDiagnostics(diagnostics) as Array<JSDocModelDiagnostic>
   }
 }
@@ -2760,6 +2988,7 @@ export function extractJSDocsSync(options: ExtractJSDocsOptions): JSDocModel {
   const program = entry.program
   const checker = program.getTypeChecker()
   const sourceByPath = new Map(program.getSourceFiles().map((file) => [path.resolve(file.fileName), file]))
+  const sourceFilesByFile = new Map(program.getSourceFiles().map((file) => [normalizeFile(cwd, file.fileName), file]))
   const files = globSync([...options.include], {
     cwd,
     absolute: true,
@@ -2785,11 +3014,14 @@ export function extractJSDocsSync(options: ExtractJSDocsOptions): JSDocModel {
     const result = parseSourceFileDocs(cwd, sourceFile, checker, entry)
     if (
       result.diagnostics.length === 0 && result.parsed.declarations.length === 0 &&
-      result.parsed.namespaces.length === 0
+      result.parsed.namespaces.length === 0 && result.parsed.moduleJSDoc === undefined
     ) continue
     const fileDiagnostics = [...result.diagnostics]
     let importsValue: ParsedJSDocImports | undefined
-    if (result.parsed.declarations.length > 0 || result.parsed.namespaces.length > 0) {
+    if (
+      result.parsed.declarations.length > 0 || result.parsed.namespaces.length > 0 ||
+      result.parsed.moduleJSDoc !== undefined
+    ) {
       const imports = resolveJSDocImports(cwd, filename)
       if (imports._tag === "Success") importsValue = imports.value
       else {
@@ -2811,7 +3043,12 @@ export function extractJSDocsSync(options: ExtractJSDocsOptions): JSDocModel {
     })
   }
   const filesWithExampleDiagnostics = appendExampleImportDiagnostics(modelFiles)
-  const withPublicSeeDiagnostics = buildJSDocApisWithPublicSeeDiagnostics(filesWithExampleDiagnostics)
+  const withPublicSeeDiagnostics = buildJSDocApisWithPublicSeeDiagnostics(filesWithExampleDiagnostics, {
+    sourceFilesByFile,
+    checker,
+    entry,
+    cwd
+  })
   return {
     version: 2,
     generatedBy: "@effect/jsdocs",
