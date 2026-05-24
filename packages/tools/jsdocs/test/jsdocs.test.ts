@@ -292,6 +292,92 @@ export const useHidden = () => Hidden
       model.files[0]?.diagnostics.map((diagnostic) => diagnostic.code),
       ["public-see-target"]
     )
+    assert.deepStrictEqual(
+      model.files[0]?.diagnostics.map((diagnostic) => diagnostic.message),
+      [
+        "@see link {@link Hidden} does not resolve to a public JSDoc API. Check that the target is exported and has valid public JSDoc."
+      ]
+    )
+  })
+
+  it("keeps valid APIs from files with diagnostics for @see resolution", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
+    fs.mkdirSync(path.join(cwd, "src"), { recursive: true })
+    fs.writeFileSync(
+      path.join(cwd, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2022" },
+        include: ["src/**/*.ts"]
+      })
+    )
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        name: "@effect/sample",
+        type: "module",
+        exports: { ".": "./src/index.ts", "./*": "./src/*.ts" }
+      })
+    )
+    fs.writeFileSync(
+      path.join(cwd, "src/index.ts"),
+      `export * as Bar from "./Bar.ts"\nexport * as Foo from "./Foo.ts"\n`
+    )
+    fs.writeFileSync(
+      path.join(cwd, "src/Foo.ts"),
+      `/**
+ * Target value.
+ *
+ * @category constants
+ * @since 1.0.0
+ */
+export const Target = "target"
+
+/**
+ * Broken value.
+ *
+ * **Example**
+ *
+ * \`\`\`ts
+ * const value = "broken"
+ * \`\`\`
+ *
+ * @category constants
+ * @since 1.0.0
+ */
+export const Broken = "broken"
+`
+    )
+    fs.writeFileSync(
+      path.join(cwd, "src/Bar.ts"),
+      `import * as Foo from "./Foo.ts"
+
+/**
+ * Uses the target value.
+ *
+ * @see {@link Foo.Target} for the target value
+ * @category constants
+ * @since 1.0.0
+ */
+export const useTarget = () => Foo.Target
+`
+    )
+    const model = extractJSDocsSync({
+      cwd,
+      tsconfig: "tsconfig.json",
+      include: ["src/**/*.ts"],
+      output: ".data/jsdocs.json"
+    })
+    const foo = model.files.find((file) => file.file === "src/Foo.ts")
+    const bar = model.files.find((file) => file.file === "src/Bar.ts")
+    assert.deepStrictEqual(
+      foo?.diagnostics.map((diagnostic) => diagnostic.code),
+      ["malformed-example"]
+    )
+    assert.deepStrictEqual(bar?.diagnostics, [])
+    assert.strictEqual(
+      model.apis.some((api) => api.apiFqn === "@effect/sample/Foo.Target"),
+      true
+    )
   })
 
   it("resolves @see links to aliased export specifiers", () => {

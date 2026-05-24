@@ -1957,7 +1957,7 @@ function buildJSDocApis(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSD
     })
   }
   for (const file of files) {
-    if (file.diagnostics.length > 0 || file.imports === undefined) continue
+    if (file.imports === undefined) continue
     const imports = file.imports
     file.declarations.forEach((declaration, index) => {
       apis.push(makeApi({
@@ -2134,8 +2134,10 @@ function sameDiagnostic(self: JSDocModelDiagnostic, that: JSDocModelDiagnostic):
 function unresolvedPublicSeeDiagnostic(link: JSDocApiSeeLink): JSDocModelDiagnostic | undefined {
   if (link.resolution._tag === "Resolved" || link.range === undefined) return undefined
   const message = link.resolution.reason === "ambiguous"
-    ? `@see link target must resolve to exactly one public JSDoc API: ${link.raw}`
-    : `@see link target must resolve to a public JSDoc API: ${link.raw}`
+    ? `@see link ${link.raw} is ambiguous; it must resolve to exactly one public JSDoc API. Candidates: ${
+      link.resolution.candidates.join(", ")
+    }`
+    : `@see link ${link.raw} does not resolve to a public JSDoc API. Check that the target is exported and has valid public JSDoc.`
   return { ...diagnostic("public-see-target", message), range: link.range }
 }
 

@@ -56,18 +56,8 @@ function getCachedFile(
   return modelCache.get(modelPath)?.filesByPath.get(file) as never
 }
 
-function offsetToLineColumn(source: string, offset: number): { readonly line: number; readonly column: number } {
-  let line = 1
-  let column = 0
-  for (let i = 0; i < offset && i < source.length; i++) {
-    if (source.charCodeAt(i) === 10) {
-      line++
-      column = 0
-    } else {
-      column++
-    }
-  }
-  return { line, column }
+function rangeNode(range: readonly [number, number]): { readonly range: [number, number] } {
+  return { range: [range[0], range[1]] }
 }
 
 const rule: CreateRule = {
@@ -108,9 +98,7 @@ const rule: CreateRule = {
           return
         }
         for (const diagnostic of file.diagnostics) {
-          const start = offsetToLineColumn(source, diagnostic.range[0])
-          const end = offsetToLineColumn(source, diagnostic.range[1])
-          context.report({ loc: { start, end }, message: diagnostic.message })
+          context.report({ node: rangeNode(diagnostic.range), message: diagnostic.message })
         }
       }
     } as Visitor
