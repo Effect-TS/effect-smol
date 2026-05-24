@@ -874,6 +874,20 @@ export const some = <In>(predicate: Predicate<In>): Sink<boolean, In, In> =>
 /**
  * Transforms this sink's result.
  *
+ * **When to use**
+ *
+ * Use to compute a new result from the original sink result while preserving
+ * the sink's input consumption behavior.
+ *
+ * **Details**
+ *
+ * The transformed sink preserves the original sink's input type, leftovers,
+ * errors, and requirements.
+ *
+ * @see {@link mapEffect} for effectful result transformations
+ * @see {@link as} for replacing the result with a constant value
+ * @see {@link mapEnd} for transforming both the result and leftovers
+ *
  * @category mapping
  * @since 2.0.0
  */
@@ -1056,6 +1070,20 @@ export const mapEffectEnd: {
 
 /**
  * Effectfully transforms this sink's result.
+ *
+ * **When to use**
+ *
+ * Use when transforming a sink result itself is effectful, can fail, or needs
+ * services.
+ *
+ * **Details**
+ *
+ * The transformed sink preserves the original sink's input consumption and
+ * leftovers while adding the errors and requirements of the transformation.
+ *
+ * @see {@link map} for pure result transformations
+ * @see {@link mapEffectEnd} for effectfully transforming both the result and leftovers
+ * @see {@link flatMap} for continuing with another sink based on the result
  *
  * @category mapping
  * @since 2.0.0
@@ -1400,6 +1428,12 @@ const head_ = reduceWhile(Option.none<unknown>, Option.isNone, (_, in_) => Optio
 /**
  * Creates a sink containing the first value.
  *
+ * **Details**
+ *
+ * Returns `Option.some(first)` for non-empty input, or `Option.none` when the
+ * upstream ends without input. The first element is consumed; later elements
+ * from the same pulled array are emitted as leftovers.
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -1409,6 +1443,22 @@ const last_ = reduceArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
 
 /**
  * Creates a sink containing the last value.
+ *
+ * **When to use**
+ *
+ * Use when consuming all upstream input and only the final element is needed.
+ *
+ * **Details**
+ *
+ * Returns `Option.some(last)` with the final input value, or `Option.none` when
+ * the upstream ends without input.
+ *
+ * **Gotchas**
+ *
+ * This sink produces a result only when the upstream ends, so it does not
+ * complete for a stream that does not end.
+ *
+ * @see {@link head} for taking the first input value instead
  *
  * @category constructors
  * @since 2.0.0

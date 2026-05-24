@@ -137,6 +137,11 @@ export interface Deferred<in out A, in out E = never> extends Deferred.Variance<
 /**
  * Checks whether a value is a `Deferred`.
  *
+ * **When to use**
+ *
+ * Use to validate unknown values at runtime boundaries before treating them as
+ * `Deferred` values.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -696,8 +701,15 @@ export const interruptWith: {
 export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalEffect.sync(() => isDoneUnsafe(self))
 
 /**
- * Returns `true` if this `Deferred` has already been completed with a value or
- * an error, `false` otherwise.
+ * Synchronously returns whether this `Deferred` has already been completed.
+ *
+ * **When to use**
+ *
+ * Use to check `Deferred` completion synchronously in code that cannot return
+ * an `Effect`, such as low-level integration code.
+ *
+ * @see {@link isDone} for checking completion inside `Effect`
+ * @see {@link poll} for reading the completed effect when available
  *
  * @category getters
  * @since 4.0.0

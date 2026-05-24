@@ -649,7 +649,20 @@ export const layerStdio = (options: {
   )
 
 /**
- * Run the `McpServer`, registering a router with a `HttpRouter`
+ * Registers an HTTP POST JSON-RPC route at `options.path` on the current
+ * `HttpRouter`.
+ *
+ * **When to use**
+ *
+ * Use to expose an MCP server through an existing `HttpRouter`.
+ *
+ * **Details**
+ *
+ * This layer composes `layer(options)`, `RpcServer.layerProtocolHttp(options)`,
+ * and `RpcSerialization.layerJsonRpc()`.
+ *
+ * @see {@link layerStdio} for exposing the server over stdio
+ * @see {@link layer} for the base MCP server layer without a transport protocol
  *
  * @category layers
  * @since 4.0.0
@@ -1009,6 +1022,18 @@ export const resource: {
 /**
  * Register a prompt with the McpServer.
  *
+ * **When to use**
+ *
+ * Use to register an MCP prompt from an Effect program.
+ *
+ * **Details**
+ *
+ * Parameters are decoded with the supplied schema, completion handlers encode
+ * per-parameter suggestions, and string prompt content is converted into a user
+ * text message.
+ *
+ * @see {@link prompt} for the layer-based prompt registration wrapper
+ *
  * @category prompts
  * @since 4.0.0
  */
@@ -1103,6 +1128,18 @@ export const registerPrompt = <
 
 /**
  * Register a prompt with the McpServer.
+ *
+ * **When to use**
+ *
+ * Use to compose prompt registration into an MCP server layer.
+ *
+ * **Details**
+ *
+ * Parameters are decoded with the supplied schema, completion handlers encode
+ * per-parameter suggestions, and string prompt content is converted into a user
+ * text message.
+ *
+ * @see {@link registerPrompt} for the Effect-level prompt registration API
  *
  * @category prompts
  * @since 4.0.0

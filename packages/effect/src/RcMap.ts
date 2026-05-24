@@ -84,6 +84,15 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
  * Represents the internal state of an RcMap, which can be either Open (active)
  * or Closed (shutdown and no longer accepting operations).
  *
+ * **When to use**
+ *
+ * Use when typing code that inspects an `RcMap`'s `state` field and narrows
+ * between open and closed lifecycle states.
+ *
+ * @see {@link RcMap} for the map value that exposes this state
+ * @see {@link State.Open} for the active state with entries
+ * @see {@link State.Closed} for the shutdown state
+ *
  * @category models
  * @since 4.0.0
  */

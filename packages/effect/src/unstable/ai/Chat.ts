@@ -770,10 +770,18 @@ export interface Persisted extends Service {
 /**
  * Creates a new chat persistence service.
  *
+ * **When to use**
+ *
+ * Use to construct the `Chat.Persistence` service from the current
+ * `BackingPersistence` when you want to create and retrieve persisted chats
+ * programmatically by chat id.
+ *
  * **Details**
  *
  * The provided store identifier will be used to indicate which "store" the
  * backing persistence should load chats from.
+ *
+ * @see {@link layerPersisted} for the `Layer`-based constructor
  *
  * @category constructors
  * @since 4.0.0

@@ -45,6 +45,13 @@ export class EmbeddingModel extends Context.Service<EmbeddingModel, Service>()(
 /**
  * Service tag that provides the current embedding dimensions.
  *
+ * **When to use**
+ *
+ * Use to retrieve or provide the configured embedding vector size through
+ * context.
+ *
+ * @see {@link EmbeddingModel} for the embedding service that uses these dimensions
+ *
  * @category services
  * @since 4.0.0
  */
@@ -54,6 +61,12 @@ export class Dimensions extends Context.Service<Dimensions, number>()(
 
 /**
  * Token usage metadata for embedding operations.
+ *
+ * **Details**
+ *
+ * Contains optional provider-reported `inputTokens`. The value may be
+ * `undefined` when the provider does not report usage or when `embedMany([])`
+ * bypasses the provider.
  *
  * @category models
  * @since 4.0.0
@@ -77,7 +90,15 @@ export class EmbedResponse extends Schema.Class<EmbedResponse>(
 }) {}
 
 /**
- * Response for multiple embeddings.
+ * Batch embedding response containing per-input embeddings and usage metadata.
+ *
+ * **Details**
+ *
+ * `embeddings` preserves batch order, and `usage` carries token metadata for
+ * the operation.
+ *
+ * @see {@link EmbedResponse} for individual embedding responses
+ * @see {@link EmbeddingUsage} for token usage metadata
  *
  * @category models
  * @since 4.0.0

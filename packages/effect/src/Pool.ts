@@ -53,6 +53,17 @@ const TypeId = "~effect/Pool"
  * associated with the acquisition and release of resources. An attempt to get
  * an item `A` from a pool may fail with an error of type `E`.
  *
+ * **When to use**
+ *
+ * Use when you need to share a bounded set of scoped resources across fibers
+ * while the pool manages acquisition, reuse, and release.
+ *
+ * @see {@link make} for creating a pool with size bounds
+ * @see {@link makeWithTTL} for creating a pool with idle item expiration
+ * @see {@link makeWithStrategy} for creating a pool with a custom strategy
+ * @see {@link get} for acquiring an item from a pool
+ * @see {@link invalidate} for removing a broken item from the pool
+ *
  * @category models
  * @since 2.0.0
  */
@@ -65,10 +76,19 @@ export interface Pool<in out A, in out E = never> extends Pipeable {
 /**
  * Normalized configuration used by a `Pool`.
  *
+ * **When to use**
+ *
+ * Use as the normalized, read-only description of how a pool acquires, sizes,
+ * shares, and resizes its items after construction.
+ *
  * **Details**
  *
  * The config stores the acquire effect, size bounds, per-item concurrency,
  * target utilization, and resizing strategy used by the pool implementation.
+ *
+ * @see {@link Pool} for the value exposing this configuration
+ * @see {@link State} for mutable runtime state instead of static configuration
+ * @see {@link Strategy} for the resizing and reclamation contract stored on the config
  *
  * @category models
  * @since 4.0.0
@@ -85,12 +105,23 @@ export interface Config<A, E> {
 /**
  * Mutable runtime state maintained by a `Pool`.
  *
+ * **When to use**
+ *
+ * Use when you need to inspect or support the runtime state backing a `Pool`,
+ * including its scope, item sets, semaphores, waiters, invalidation tracking,
+ * and shutdown flag.
+ *
  * **Details**
  *
  * This state tracks the pool scope, active and available items, invalidated
  * items, semaphores, waiters, and shutdown status. It is exposed for
  * inspection and implementation support; user code should prefer the
  * high-level pool operations.
+ *
+ * @see {@link Pool} for the pool value exposing this state
+ * @see {@link PoolItem} for the entries stored in the runtime item sets
+ * @see {@link get} for acquiring items through the high-level API
+ * @see {@link invalidate} for invalidating items through the high-level API
  *
  * @category models
  * @since 4.0.0
@@ -110,11 +141,20 @@ export interface State<A, E> {
 /**
  * Internal record for a value managed by a `Pool`.
  *
+ * **When to use**
+ *
+ * Use when implementing a custom pool `Strategy` that needs to inspect
+ * acquired items, track reference counts, or return reclaimable items to the
+ * pool.
+ *
  * **Details**
  *
  * Each item stores the acquisition `Exit`, its finalizer, the current
  * reference count, and whether automatic reclaiming has been disabled because
  * the item was invalidated.
+ *
+ * @see {@link Strategy} for the custom strategy callbacks that receive and return pool items
+ * @see {@link State} for the runtime sets that store active, available, and invalidated pool items
  *
  * @category models
  * @since 4.0.0
@@ -130,11 +170,18 @@ export interface PoolItem<A, E> {
  * Strategy used by a `Pool` to manage background resizing and item
  * reclamation.
  *
+ * **When to use**
+ *
+ * Use when defining a custom pool lifecycle policy that needs to run background
+ * work, observe acquired items, or choose items for reclamation.
+ *
  * **Details**
  *
  * `run` starts any strategy-specific background work, `onAcquire` is invoked
  * when an item is acquired, and `reclaim` selects an item that can be removed
  * or replaced.
+ *
+ * @see {@link makeWithStrategy} for constructing a pool from a custom `Strategy`
  *
  * @category models
  * @since 4.0.0

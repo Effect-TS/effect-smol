@@ -385,10 +385,17 @@ const makeProto = <Provides, In, PlanE, PlanR>(
 /**
  * Combines multiple execution plans by concatenating their steps in order.
  *
+ * **When to use**
+ *
+ * Use to combine separately defined fallback plans into one ordered plan before
+ * applying it to an effect or stream.
+ *
  * **Details**
  *
  * The resulting plan tries every step from the first plan, then every step from
  * the next plan, and so on.
+ *
+ * @see {@link make} for building a plan from individual steps instead of combining existing plans
  *
  * @category Combining
  * @since 3.16.0

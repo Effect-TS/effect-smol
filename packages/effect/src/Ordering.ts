@@ -161,10 +161,20 @@ export const match: {
 /**
  * A `Reducer` for combining `Ordering`s.
  *
+ * **When to use**
+ *
+ * Use to combine multiple comparison results in priority order, such as
+ * checking secondary criteria only when earlier criteria compare as equal.
+ *
  * **Details**
  *
  * If any of the `Ordering`s is non-zero, the result is the first non-zero `Ordering`.
  * If all the `Ordering`s are zero, the result is zero.
+ *
+ * **Gotchas**
+ *
+ * `combineAll` stops consuming the iterable as soon as it finds a non-zero
+ * `Ordering`.
  *
  * @category ordering
  * @since 4.0.0

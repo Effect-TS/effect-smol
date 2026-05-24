@@ -632,6 +632,15 @@ export const Class: new() => Pipeable = (function() {
 /**
  * Constructor type for classes whose instances implement `Pipeable`.
  *
+ * **When to use**
+ *
+ * Use as the constructor-side type when a class value should be known to create
+ * instances that support Effect-style method chaining with `.pipe(...)`.
+ *
+ * @see {@link Pipeable} for the instance-side contract
+ * @see {@link Class} for the base constructor
+ * @see {@link Mixin} for wrapping an existing class constructor
+ *
  * @category models
  * @since 3.15.0
  */

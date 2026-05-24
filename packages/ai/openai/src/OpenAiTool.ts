@@ -169,6 +169,17 @@ export const ImageGeneration = Tool.providerDefined({
  * shell. This local tool runs in your environment and requires a handler to
  * execute commands.
  *
+ * **When to use**
+ *
+ * Use to let an OpenAI model request local shell commands that your application
+ * executes through a handler.
+ *
+ * **Details**
+ *
+ * The tool exposes a provider-defined `local_shell` call. It is marked as
+ * handler-required, so applications must provide the command execution policy
+ * and implementation.
+ *
  * @category tools
  * @since 4.0.0
  */
@@ -188,6 +199,22 @@ export const LocalShell = Tool.providerDefined({
 /**
  * OpenAI MCP tool that gives the model access to additional tools via remote
  * Model Context Protocol (MCP) servers.
+ *
+ * **When to use**
+ *
+ * Use to let an OpenAI model call tools exposed by a remote MCP server.
+ *
+ * **Details**
+ *
+ * The tool accepts MCP server configuration such as allowed tools,
+ * authorization, connector id, approval requirements, server metadata, and
+ * server URL. Tool call results include the called tool name, arguments, output,
+ * error, and server label.
+ *
+ * **Gotchas**
+ *
+ * This schema leaves both `server_url` and `connector_id` optional, but OpenAI
+ * may require a server URL or connector id for a usable MCP tool configuration.
  *
  * @category tools
  * @since 4.0.0
@@ -241,6 +268,17 @@ export const Shell = Tool.providerDefined({
  * OpenAI Web Search tool that enables the model to search the web for
  * information.
  *
+ * **When to use**
+ *
+ * Use to enable OpenAI provider-defined web search for a model response.
+ *
+ * **Details**
+ *
+ * The tool accepts optional filters, user location, and search context size.
+ * Successful calls expose the performed search action and status.
+ *
+ * @see {@link WebSearchPreview} for the preview web search provider tool
+ *
  * @category tools
  * @since 4.0.0
  */
@@ -263,8 +301,18 @@ export const WebSearch = Tool.providerDefined({
 })
 
 /**
- * OpenAI Web Search Preview tool, a preview version of the web search tool with
- * additional features.
+ * OpenAI preview Web Search tool for model responses.
+ *
+ * **When to use**
+ *
+ * Use to enable the preview OpenAI web search provider tool.
+ *
+ * **Details**
+ *
+ * The preview tool accepts optional user location and search context size, then
+ * exposes the performed search action and status in successful calls.
+ *
+ * @see {@link WebSearch} for the stable web search provider tool
  *
  * @category tools
  * @since 4.0.0

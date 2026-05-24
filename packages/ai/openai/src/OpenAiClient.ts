@@ -654,7 +654,12 @@ const AllEvents = Schema.Union([ErrorEvent, OpenAiSchema.ResponseStreamEvent])
 const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
 
 /**
- * Uses OpenAI's websocket mode for all responses within the provided effect.
+ * Uses OpenAI's WebSocket mode for response streams within the provided effect.
+ *
+ * **When to use**
+ *
+ * Use to enable WebSocket mode around one effect that creates OpenAI response
+ * streams.
  *
  * **Gotchas**
  *
@@ -664,6 +669,9 @@ const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
  * - `BunSocket.layerWebSocketConstructor`
  *
  * This is because it needs to use non-standard options for setting the Authorization header.
+ *
+ * @see {@link layerWebSocketMode} for providing WebSocket mode through a layer
+ * @see {@link OpenAiSocket} for direct access to the WebSocket-backed streaming service
  *
  * @category Websocket mode
  * @since 4.0.0

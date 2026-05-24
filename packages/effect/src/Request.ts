@@ -56,6 +56,17 @@ export interface Request<out A, out E = never, out R = never> extends Variance<A
  * Alias for any `Request`, regardless of its success, error, or service
  * requirements.
  *
+ * **When to use**
+ *
+ * Use as a generic constraint for APIs that accept any request while preserving
+ * each concrete request's success, error, and service types.
+ *
+ * @see {@link Request} for the request interface
+ * @see {@link Success} for extracting a request's success type
+ * @see {@link Error} for extracting a request's error type
+ * @see {@link Services} for extracting a request's service requirements
+ * @see {@link Result} for the exit type produced by completing a request
+ *
  * @category models
  * @since 4.0.0
  */

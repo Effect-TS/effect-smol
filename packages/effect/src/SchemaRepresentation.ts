@@ -846,6 +846,18 @@ const isPrimitiveTree = Schema.is($PrimitiveTree)
  * Schema codec for `Schema.Annotations.Annotations`. Filters out internal
  * annotation keys and non-primitive values during encoding.
  *
+ * **When to use**
+ *
+ * Use to serialize schema annotations in representation schemas while retaining
+ * only primitive-tree metadata.
+ *
+ * **Details**
+ *
+ * Decoding is passthrough. Encoding removes internal annotation keys and values
+ * that are not accepted by `$PrimitiveTree`.
+ *
+ * @see {@link $PrimitiveTree} for the codec used to filter annotation values
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -1210,6 +1222,18 @@ const $BigIntMeta = Schema.Union([
 
 /**
  * Schema codec for the {@link BigInt} representation node.
+ *
+ * **When to use**
+ *
+ * Use to encode, decode, or validate serialized `BigInt` representation nodes,
+ * not application `bigint` values.
+ *
+ * **Details**
+ *
+ * Accepts representation nodes with `_tag: "BigInt"`, optional annotations,
+ * and bigint-specific validation metadata in `checks`.
+ *
+ * @see {@link BigIntMeta} for the metadata accepted by the `checks` array
  *
  * @category schemas
  * @since 4.0.0

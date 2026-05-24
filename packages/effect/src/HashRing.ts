@@ -118,10 +118,18 @@ export const isHashRing = (u: unknown): u is HashRing<any> => hasProperty(u, Typ
 /**
  * Creates an empty `HashRing`.
  *
+ * **When to use**
+ *
+ * Use to create an empty weighted consistent-hashing ring with the default or
+ * custom virtual-point density.
+ *
  * **Details**
  *
  * `baseWeight` controls how many virtual points are added for a node with
  * weight `1`; it defaults to `128` and is clamped to at least `1`.
+ *
+ * @see {@link add} for registering one node after creation
+ * @see {@link addMany} for registering several nodes after creation
  *
  * @category constructors
  * @since 3.19.0
@@ -215,6 +223,24 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
  * Add a new node to the ring. If the node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
  *
+ * **When to use**
+ *
+ * Use to register one node in a `HashRing` so lookups and shard assignments can
+ * return it, or to update that node's weight.
+ *
+ * **Details**
+ *
+ * Nodes are matched by `PrimaryKey.value`. The weight defaults to `1` and is
+ * clamped to at least `0.1`.
+ *
+ * **Gotchas**
+ *
+ * This mutates and returns the same ring instance.
+ *
+ * @see {@link addMany} for adding or updating several nodes
+ * @see {@link remove} for unregistering a node
+ * @see {@link has} for checking primary-key membership
+ *
  * @category combinators
  * @since 3.19.0
  */
@@ -297,6 +323,14 @@ export const has: {
 /**
  * Gets the node which should handle the given input. Returns undefined if
  * the hashring has no elements with weight.
+ *
+ * **When to use**
+ *
+ * Use to route a single string input key to the current ring member responsible
+ * for that key.
+ *
+ * @see {@link getShards} for assigning fixed shard indexes instead of routing
+ * one input string at a time
  *
  * @category combinators
  * @since 3.19.0

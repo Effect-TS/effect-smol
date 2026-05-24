@@ -154,6 +154,11 @@ export const TypeId: TypeId = core.EffectTypeId
  * job. The workflow requires some context `R`, and may fail with an error of
  * type `E`, or succeed with a value of type `A`.
  *
+ * **When to use**
+ *
+ * Use when you need to represent a lazy, composable workflow that can require
+ * services, fail with a typed error, or succeed with a typed value.
+ *
  * **Details**
  *
  * `Effect` values model resourceful interaction with the outside world,
@@ -214,6 +219,14 @@ export interface Variance<A, E, R> {
 /**
  * Extracts the success type from an `Effect`.
  *
+ * **When to use**
+ *
+ * Use to derive the value produced by an existing effect when declaring
+ * reusable type aliases, service interfaces, or function signatures.
+ *
+ * @see {@link Error} for extracting the failure type from the same `Effect`
+ * @see {@link Services} for extracting the required services from the same `Effect`
+ *
  * @category models
  * @since 2.0.0
  */
@@ -223,6 +236,18 @@ export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
 /**
  * Extracts the error type from an `Effect`.
  *
+ * **When to use**
+ *
+ * Use to derive the error type from an existing `Effect` type when declaring
+ * helper types, wrappers, or APIs that preserve the effect's failure channel.
+ *
+ * **Details**
+ *
+ * Non-`Effect` inputs resolve to `never`.
+ *
+ * @see {@link Success} for extracting the success value type instead
+ * @see {@link Services} for extracting the required services type instead
+ *
  * @category models
  * @since 2.0.0
  */
@@ -231,6 +256,14 @@ export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
 
 /**
  * Extracts the required services type from an `Effect`.
+ *
+ * **When to use**
+ *
+ * Use to derive the context requirements of a generic or inferred `Effect`
+ * without restating its `R` type parameter.
+ *
+ * @see {@link Success} for extracting the success value type instead
+ * @see {@link Error} for extracting the failure type instead
  *
  * @category models
  * @since 4.0.0
@@ -257,6 +290,13 @@ export const isEffect: (u: unknown) => u is Effect<any, any, any> = core.isEffec
 
 /**
  * Iterator interface for Effect generators, enabling Effect values to work with generator functions.
+ *
+ * **When to use**
+ *
+ * Use when defining or typing `[Symbol.iterator]()` for values typed as
+ * `Effect`s so `yield*` can pass their success type back into `Effect.gen`.
+ *
+ * @see {@link gen} for writing generator-based `Effect` programs that consume this iterator protocol
  *
  * @category models
  * @since 4.0.0
@@ -1261,6 +1301,14 @@ export const Do: Effect<{}> = internal.Do
  * Gives a name to the success value of an `Effect`, creating a single-key
  * record used in do notation pipelines.
  *
+ * **When to use**
+ *
+ * Use to start a do-notation pipeline from an existing `Effect` when its
+ * success value should become the first named field in the accumulated record.
+ *
+ * @see {@link Do} for starting from an empty accumulated record
+ * @see {@link bind} for adding fields produced by effects
+ *
  * @category do notation
  * @since 2.0.0
  */
@@ -1286,6 +1334,22 @@ const let_: {
 export {
   /**
    * Adds a computed plain value to the do notation record.
+   *
+   * **When to use**
+   *
+   * Use to add a derived, synchronous value to a do-notation pipeline when it
+   * depends on fields already accumulated in the record and does not need to run
+   * another `Effect`.
+   *
+   * **Details**
+   *
+   * The new field is added with object spreading. If the name already exists in
+   * the record, the computed value replaces it in the returned type.
+   *
+   * @see {@link bind} for adding fields produced by effects
+   * @see {@link bindTo} for naming an existing success value
+   * @see {@link Do} for starting from an empty accumulated record
+   * @see {@link gen} for sequencing without accumulating a record
    *
    * @category do notation
    * @since 2.0.0
@@ -2963,9 +3027,19 @@ export const catchReasons: {
 /**
  * Type helper that keeps only error tags whose tagged error contains a tagged `reason` field.
  *
+ * **When to use**
+ *
+ * Use to constrain custom helpers or overloads to parent error tags whose error
+ * contains a tagged reason.
+ *
  * **Details**
  *
- * Used by `catchReasons` and `unwrapReason` to constrain the parent error tag to reason-bearing errors.
+ * The mapped type keeps each parent error tag whose extracted tagged error has
+ * at least one reason tag, and removes tags that do not carry tagged reasons.
+ *
+ * @see {@link unwrapReason} for promoting nested reason errors into the error channel
+ * @see {@link catchReason} for handling one nested reason tag
+ * @see {@link catchReasons} for handling several nested reason tags
  *
  * @category error handling
  * @since 4.0.0
@@ -3190,6 +3264,24 @@ export const catchIf: {
 
 /**
  * Recovers from specific errors using a `Filter`.
+ *
+ * **When to use**
+ *
+ * Use to recover from typed `Effect` errors with a reusable `Filter` when
+ * matching can also narrow or transform the error before choosing the recovery
+ * effect.
+ *
+ * **Details**
+ *
+ * The filter runs on typed failures extracted from the `Cause`. Successful
+ * filter results are passed to `f`; failed filter results are passed to
+ * `orElse` when provided. Without `orElse`, the original failure cause is
+ * preserved.
+ *
+ * @see {@link catchIf} for predicate-based recovery from typed errors
+ * @see {@link catchTag} for recovering from a single tagged error
+ * @see {@link catchTags} for recovering from several tagged errors
+ * @see {@link catchCauseFilter} for filtering full causes instead of typed errors
  *
  * @category error handling
  * @since 4.0.0
@@ -3621,6 +3713,21 @@ export const tapCauseIf: {
 
 /**
  * Conditionally executes a side effect based on the cause of a failed effect.
+ *
+ * **When to use**
+ *
+ * Use when you need to observe only failure causes selected by a `Filter`, and
+ * the side effect needs both the selected value and the original `Cause`.
+ *
+ * **Details**
+ *
+ * A successful filter result runs the side effect with the selected value and
+ * original cause. A failed filter result skips the side effect and preserves the
+ * original cause.
+ *
+ * @see {@link tapCauseIf} for selecting causes with a boolean predicate
+ * @see {@link tapCause} for observing every failure cause
+ * @see {@link catchCauseFilter} for recovering from selected causes instead of only observing them
  *
  * @category sequencing
  * @since 4.0.0
@@ -4743,6 +4850,19 @@ export const filter: {
 /**
  * Filters and maps elements of an iterable with a `Filter`.
  *
+ * **When to use**
+ *
+ * Use to keep only iterable elements accepted by a `Filter` and collect each
+ * filter success value.
+ *
+ * **Details**
+ *
+ * `Result.succeed` values are collected in the returned array, and
+ * `Result.fail` values are skipped.
+ *
+ * @see {@link filter} for keeping original elements with a boolean predicate, refinement, or effectful predicate
+ * @see {@link filterMapEffect} for using an effectful `Filter`
+ *
  * @category filtering
  * @since 2.0.0
  */
@@ -4758,6 +4878,24 @@ export const filterMap: {
 
 /**
  * Effectfully filters and maps elements of an iterable with a `FilterEffect`.
+ *
+ * **When to use**
+ *
+ * Use when filtering each iterable element requires effects and accepted
+ * elements should be transformed into successful output values.
+ *
+ * **Details**
+ *
+ * `Result.succeed` values are collected in the returned array, and
+ * `Result.fail` values are skipped.
+ *
+ * **Gotchas**
+ *
+ * With concurrent execution, successful values are collected in completion
+ * order, not input order.
+ *
+ * @see {@link filterMap} for using a synchronous `Filter`
+ * @see {@link filter} for keeping original elements with a predicate
  *
  * @category filtering
  * @since 4.0.0
@@ -4828,6 +4966,20 @@ export const filterOrElse: {
 
 /**
  * Filters an effect with a `Filter`, providing an alternative effect on failure.
+ *
+ * **When to use**
+ *
+ * Use when a successful effect value should be accepted and transformed by a
+ * `Filter`, while rejected values should continue with an alternative effect
+ * built from the filter failure.
+ *
+ * **Details**
+ *
+ * `Result.succeed` becomes the returned success value, and `Result.fail` is
+ * passed to `orElse`.
+ *
+ * @see {@link filterOrElse} for using a predicate and fallback effect
+ * @see {@link filterMapOrFail} for failing the effect when the filter fails
  *
  * @category filtering
  * @since 4.0.0
@@ -4910,7 +5062,21 @@ export const filterOrFail: {
 } = internal.filterOrFail
 
 /**
- * Filters an effect with a `Filter`, failing when the filter fails.
+ * Filters and maps an effect with a `Filter`, failing when the filter fails.
+ *
+ * **When to use**
+ *
+ * Use when validating and transforming one effect success with a synchronous
+ * `Filter`, while rejected values should fail the effect.
+ *
+ * **Details**
+ *
+ * `Result.succeed` becomes the returned success value. `Result.fail` is mapped
+ * with `orFailWith` when provided, or fails with `NoSuchElementError`.
+ *
+ * @see {@link filterMapOrElse} for continuing with a fallback effect when the filter fails
+ * @see {@link filterOrFail} for validating with a predicate instead of a `Filter`
+ * @see {@link filterMap} for filtering and mapping iterable elements
  *
  * @category filtering
  * @since 4.0.0
@@ -5200,10 +5366,20 @@ export const matchCauseEager: {
 /**
  * Eagerly handles success or failure with effectful handlers when the effect is already resolved.
  *
+ * **When to use**
+ *
+ * Use when success and cause-aware failure handlers return effects and the
+ * input may already be resolved, so the selected handler can run immediately
+ * while unresolved inputs keep normal effectful matching behavior.
+ *
  * **Details**
  *
  * If the effect is an `Exit`, the matching handler runs immediately; otherwise it behaves like
  * {@link matchCauseEffect}.
+ *
+ * @see {@link matchCauseEffect} for the non-eager effectful variant
+ * @see {@link matchCauseEager} for eager cause matching with pure handlers
+ * @see {@link matchEffect} for effectful matching on typed failures instead of full causes
  *
  * @category pattern matching
  * @since 4.0.0
@@ -6468,6 +6644,16 @@ export const onErrorIf: {
 /**
  * Runs the finalizer only when this effect fails and the cause matches the provided `Filter`.
  *
+ * **When to use**
+ *
+ * Use when cleanup or diagnostics should run only for failures whose full
+ * `Cause` is accepted or transformed by a `Filter`, and the finalizer needs the
+ * filter's pass value plus the original cause.
+ *
+ * @see {@link onError} for cleanup on every failure
+ * @see {@link onErrorIf} for selecting failures with a boolean predicate
+ * @see {@link onExitFilter} for selecting from every exit instead of only failures
+ *
  * @category resource management
  * @since 4.0.0
  */
@@ -6487,10 +6673,18 @@ export const onErrorFilter: {
  * Runs an optional finalizer with the effect's `Exit` value when the effect
  * completes.
  *
+ * **When to use**
+ *
+ * Use when you are building a low-level `Effect` operator that must inspect the
+ * source effect's `Exit`, may skip finalization by returning `undefined`, or
+ * must choose whether finalization is forced into an uninterruptible region.
+ *
  * **Details**
  *
  * This low-level operator preserves the source effect's result unless the
  * finalizer fails. Prefer `onExit` for normal cleanup logic.
+ *
+ * @see {@link onExit} for ordinary exit-aware cleanup whose finalizer always returns an effect
  *
  * @category resource management
  * @since 4.0.0
@@ -6574,6 +6768,21 @@ export const onExitIf: {
 
 /**
  * Runs the cleanup effect only when the `Exit` matches the provided `Filter`.
+ *
+ * **When to use**
+ *
+ * Use when cleanup should run only for `Exit` values selected by a `Filter`,
+ * and the cleanup needs the extracted pass value together with the original
+ * `Exit`.
+ *
+ * **Details**
+ *
+ * `Result.fail` skips cleanup, and `Result.succeed` runs cleanup with the
+ * selected value and the original `Exit`.
+ *
+ * @see {@link onExit} for cleanup on every exit
+ * @see {@link onExitIf} for selecting exits with a boolean predicate
+ * @see {@link onErrorFilter} for selecting only failure causes
  *
  * @category resource management
  * @since 4.0.0
@@ -7263,9 +7472,18 @@ export const repeatOrElse: {
 /**
  * Returns an array of `n` identical effects.
  *
+ * **When to use**
+ *
+ * Use to create an array containing the same effect multiple times when you
+ * want to pass those effects to another collector or control execution
+ * separately.
+ *
  * **Details**
  *
- * Use with `Effect.all` to run the replicated effects and collect results.
+ * This only creates the array of effects. It does not run or collect them.
+ *
+ * @see {@link all} for running the returned effects and collecting results
+ * @see {@link replicateEffect} for repeating an effect and collecting results in one step with concurrency and discard options
  *
  * @category collecting
  * @since 2.0.0
@@ -7978,8 +8196,11 @@ export const withParentSpan: {
 /**
  * Executes a request using the provided resolver.
  *
- * @category requests & batching
- * @since 2.0.0
+ * **When to use**
+ *
+ * Use to execute a typed `Request` through a `RequestResolver` when you want
+ * concurrent requests made with the same resolver to be collected and completed
+ * by resolver logic.
  *
  * **Example** (Executing a request through a resolver)
  *
@@ -8005,6 +8226,11 @@ export const withParentSpan: {
  *   yield* Console.log(name)
  * })
  * ```
+ *
+ * @see {@link requestUnsafe} for the low-level entry point when you already have a `Context` and need to enqueue outside an `Effect`
+ *
+ * @category requests & batching
+ * @since 2.0.0
  */
 export const request: {
   <A extends Request.Any, EX = never, RX = never>(
@@ -8018,11 +8244,17 @@ export const request: {
 
 /**
  * Low-level entry point that registers a request with a resolver and delivers the exit value via `onExit`.
- * Use this when you already have a `Context` and need to enqueue a request outside an `Effect`.
+ *
+ * **When to use**
+ *
+ * Use when you already have a `Context` and need to enqueue a request outside
+ * an `Effect` while receiving completion through `onExit`.
  *
  * **Details**
  *
  * It returns a canceler that removes the pending request entry.
+ *
+ * @see {@link request} for the `Effect`-returning API used for normal request execution
  *
  * @category requests & batching
  * @since 4.0.0
@@ -8256,6 +8488,21 @@ export const forkDetach: <
  * Waits for all child fibers forked by this effect to complete before this
  * effect completes.
  *
+ * **When to use**
+ *
+ * Use to let an effect start child work concurrently while still delaying its
+ * own completion until that child work is done.
+ *
+ * **Gotchas**
+ *
+ * Child fibers that already exist before the wrapped effect starts are not
+ * awaited.
+ *
+ * @see {@link forkChild} for forking child fibers that are awaited by this operator
+ * @see {@link forkDetach} for forking fibers outside the child scope
+ * @see {@link forkIn} for forking into an explicit scope
+ * @see {@link forkScoped} for forking fibers tied to the current scope
+ *
  * @category supervision & fibers
  * @since 2.0.0
  */
@@ -8311,6 +8558,22 @@ export const fiberId: Effect<number> = internal.fiberId
 /**
  * Configuration options for running Effect programs, providing control over
  * interruption and scheduling behavior.
+ *
+ * **When to use**
+ *
+ * Use to pass cancellation, scheduler, interruptibility, and fiber-start hooks
+ * when running an `Effect` at a program boundary.
+ *
+ * **Details**
+ *
+ * `signal` interrupts the fiber, `scheduler` provides the scheduler service,
+ * `uninterruptible` starts the fiber uninterruptibly, and `onFiberStart`
+ * receives the created fiber.
+ *
+ * @see {@link runFork} for starting a fiber with these options
+ * @see {@link runCallback} for callback-based running with these options
+ * @see {@link runPromise} for promise-based running with these options
+ * @see {@link runPromiseExit} for promise-based running that returns an `Exit`
  *
  * @category running effects
  * @since 4.0.0

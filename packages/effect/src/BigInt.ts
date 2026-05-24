@@ -786,6 +786,17 @@ export const remainder: {
 /**
  * A `Reducer` for combining `bigint`s using addition.
  *
+ * **When to use**
+ *
+ * Use to sum many `bigint` values through APIs that consume a `Reducer`.
+ *
+ * **Details**
+ *
+ * The initial value is `0n`, so `combineAll([])` returns `0n`.
+ *
+ * @see {@link sumAll} for summing an iterable directly
+ * @see {@link ReducerMultiply} for multiplying `bigint` values
+ *
  * @category math
  * @since 4.0.0
  */
@@ -809,6 +820,13 @@ export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a
 /**
  * A `Combiner` that returns the maximum `bigint`.
  *
+ * **When to use**
+ *
+ * Use to keep the largest `bigint` when an API consumes a `Combiner`.
+ *
+ * @see {@link CombinerMin} for keeping the smallest `bigint`
+ * @see {@link max} for comparing two `bigint` values directly
+ *
  * @category math
  * @since 4.0.0
  */
@@ -816,6 +834,13 @@ export const CombinerMax: Combiner.Combiner<bigint> = Combiner.max(Order)
 
 /**
  * A `Combiner` that returns the minimum `bigint`.
+ *
+ * **When to use**
+ *
+ * Use to keep the smallest `bigint` through APIs that consume a `Combiner`.
+ *
+ * @see {@link CombinerMax} for keeping the largest `bigint`
+ * @see {@link min} for comparing two `bigint` values directly
  *
  * @category math
  * @since 4.0.0

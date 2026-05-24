@@ -366,6 +366,11 @@ export interface UnknownErrorMetadata extends ProviderMetadata {}
 /**
  * Token usage information from AI operations.
  *
+ * **Details**
+ *
+ * Contains optional provider-reported token counts for prompt tokens,
+ * completion tokens, and total tokens.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -377,6 +382,14 @@ export const UsageInfo = Schema.Struct({
 
 /**
  * Combined HTTP context for error reporting.
+ *
+ * **Details**
+ *
+ * Includes the required request details plus optional response details and raw
+ * response body.
+ *
+ * @see {@link HttpRequestDetails} for captured request details
+ * @see {@link HttpResponseDetails} for captured response details
  *
  * @category schemas
  * @since 4.0.0
@@ -1414,6 +1427,16 @@ export type AiErrorReason =
 
 /**
  * Schema for validating and parsing AI error reasons.
+ *
+ * **When to use**
+ *
+ * Use when decoding or validating unknown AI error reason values with Schema.
+ *
+ * **Details**
+ *
+ * This runtime schema is the union of the concrete AI error reason classes.
+ *
+ * @see {@link isAiErrorReason} for checking an existing value without Schema decoding
  *
  * @category schemas
  * @since 4.0.0

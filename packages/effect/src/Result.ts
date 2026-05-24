@@ -169,7 +169,14 @@ export interface Failure<out A, out E> extends Pipeable, Inspectable {
  * Iterator protocol used to yield a `Result` inside {@link gen}, returning the
  * success value type back to the generator.
  *
- * @category Generators
+ * **When to use**
+ *
+ * Use when defining or typing `[Symbol.iterator]()` for `Result` values so
+ * `yield*` can pass the success value type back into `Result.gen`.
+ *
+ * @see {@link gen} for writing generator-based `Result` code that consumes this iterator protocol
+ *
+ * @category generators
  * @since 4.0.0
  */
 export interface ResultIterator<T extends Result<any, any>> {

@@ -49,8 +49,23 @@ export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchem
 })
 
 /**
- * Whether to wrap the request with a storage transaction, so sql queries are
- * committed atomically.
+ * Annotation that marks whether request handling should be wrapped in the
+ * configured message storage transaction.
+ *
+ * **When to use**
+ *
+ * Use when a request needs server-side handling or storage work wrapped in the
+ * storage transaction.
+ *
+ * **Details**
+ *
+ * The default value is `false`. When `true`, entity handling wraps server
+ * writes with the configured storage transaction.
+ *
+ * **Gotchas**
+ *
+ * This annotation has transactional behavior only when the configured
+ * `MessageStorage` implements it.
  *
  * @category annotations
  * @since 4.0.0
@@ -82,6 +97,13 @@ export const Uninterruptible = Context.Reference<boolean | "client" | "server">(
  * Returns whether the `Uninterruptible` annotation applies to server-side
  * request handling for the provided context.
  *
+ * **Details**
+ *
+ * Returns `true` only when `Uninterruptible` is `true` or `"server"`.
+ *
+ * @see {@link Uninterruptible} for the annotation values interpreted by this helper
+ * @see {@link isUninterruptibleForClient} for the client-side counterpart
+ *
  * @category annotations
  * @since 4.0.0
  */
@@ -93,6 +115,19 @@ export const isUninterruptibleForServer = (context: Context.Context<never>): boo
 /**
  * Returns whether the `Uninterruptible` annotation applies to client-side
  * request handling for the provided context.
+ *
+ * **When to use**
+ *
+ * Use when client-side cluster request handling needs to decide whether an
+ * interrupt should be ignored.
+ *
+ * **Details**
+ *
+ * Returns `true` when `Uninterruptible` is `true` or `"client"`, and `false`
+ * for `"server"` or the default `false`.
+ *
+ * @see {@link Uninterruptible} for the annotation values interpreted by this helper
+ * @see {@link isUninterruptibleForServer} for the server-side counterpart
  *
  * @category annotations
  * @since 4.0.0

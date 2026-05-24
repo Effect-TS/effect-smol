@@ -453,6 +453,11 @@ export interface ParsedTokens {
 /**
  * Returns `true` if the provided value is a `Command`.
  *
+ * **Gotchas**
+ *
+ * This checks for the `Command` type-id property; it does not validate the full
+ * command shape.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -1071,6 +1076,22 @@ export const withHidden = <const Name extends string, Input, E, R, ContextInput>
 /**
  * Adds a custom annotation to a command.
  *
+ * **When to use**
+ *
+ * Use to attach one command-scoped metadata value under a `Context.Key`,
+ * especially for consumers such as custom help formatters.
+ *
+ * **Details**
+ *
+ * Annotations are stored on the command's annotation context and flow into
+ * generated help document annotations.
+ *
+ * **Gotchas**
+ *
+ * Adding the same `Context.Key` again replaces the earlier value.
+ *
+ * @see {@link annotateMerge} for merging an existing annotation context
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1097,6 +1118,22 @@ export const annotate: {
 
 /**
  * Merges a Context of annotations into a command.
+ *
+ * **When to use**
+ *
+ * Use when attaching an already-built `Context.Context` of command annotations.
+ *
+ * **Details**
+ *
+ * Merged annotations are stored on the command and exposed through generated
+ * help document annotations.
+ *
+ * **Gotchas**
+ *
+ * If both contexts contain the same `Context.Key`, the incoming annotations
+ * context wins.
+ *
+ * @see {@link annotate} for adding a single annotation without constructing a `Context`
  *
  * @category combinators
  * @since 4.0.0
@@ -1266,6 +1303,15 @@ export const provideSync: {
 /**
  * Provides the handler of a command with the service produced by an effect
  * that optionally depends on the command-line input to be created.
+ *
+ * **When to use**
+ *
+ * Use to acquire a service effectfully for each command run, optionally using
+ * parsed command input.
+ *
+ * @see {@link provideSync} for synchronous service acquisition
+ * @see {@link provide} for providing an already-available service
+ * @see {@link provideEffectDiscard} for running an effect before the handler without providing a service
  *
  * @category providing services
  * @since 4.0.0

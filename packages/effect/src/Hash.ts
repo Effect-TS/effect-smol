@@ -14,6 +14,15 @@ import { hasProperty } from "./Predicate.ts"
 /**
  * The unique identifier used to identify objects that implement the Hash interface.
  *
+ * **When to use**
+ *
+ * Use as the computed property key for the method that supplies a custom hash
+ * value on a `Hash` implementor.
+ *
+ * @see {@link Hash} for the interface implemented with this symbol
+ * @see {@link isHash} for checking whether a value implements `Hash`
+ * @see {@link hash} for computing hash values
+ *
  * @category symbols
  * @since 2.0.0
  */

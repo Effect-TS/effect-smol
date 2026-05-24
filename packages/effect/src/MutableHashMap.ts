@@ -741,10 +741,18 @@ export const isEmpty = <K, V>(self: MutableHashMap<K, V>): boolean => self.backi
 /**
  * Runs a callback for each key-value pair in the `MutableHashMap`.
  *
+ * **When to use**
+ *
+ * Use to run a synchronous side-effecting callback for every key-value pair in
+ * an existing mutable map.
+ *
  * **Details**
  *
  * Iteration follows the backing map's order. The callback receives the value
  * first and the key second, matching `Map.prototype.forEach`.
+ *
+ * @see {@link keys} for iterating only keys
+ * @see {@link values} for iterating only values
  *
  * @category traversing
  * @since 2.0.0

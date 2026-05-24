@@ -44,12 +44,20 @@ export const ServiceTypeId: ServiceTypeId = "~effect/Context/Service"
 /**
  * Typed identifier for a service stored in a `Context`.
  *
+ * **When to use**
+ *
+ * Use as the typed handle for storing, retrieving, and requiring a specific
+ * service in a `Context`.
+ *
  * **Details**
  *
  * `Identifier` tracks the requirement in Effect types, while `Shape` is the
  * service implementation retrieved by the key. A key is also an Effect value,
  * so yielding it inside `Effect.gen` retrieves the service from the current
  * fiber context.
+ *
+ * @see {@link Service} for creating required service keys
+ * @see {@link Reference} for creating service keys with default values
  *
  * @category models
  * @since 4.0.0
@@ -98,10 +106,17 @@ export interface Service<in out Identifier, in out Shape> extends Key<Identifier
 /**
  * Class-style service key produced by `Context.Service<Self, Shape>()("Id")`.
  *
+ * **When to use**
+ *
+ * Use when declaring a service as a class so the class value can serve as the
+ * `Context` key.
+ *
  * **Details**
  *
- * Use this shape when declaring services as classes. The class itself is the
- * Context key, and its string `key` identifies the service at runtime.
+ * The class itself is the `Context` key, and its string `key` identifies the
+ * service at runtime.
+ *
+ * @see {@link Service} for creating function-style keys or class-style service keys
  *
  * @category models
  * @since 4.0.0
@@ -1238,6 +1253,17 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
 /**
  * Perform a series of mutations on a `Context`. Prevents unnecessary copying
  * of the underlying map when multiple mutations are needed.
+ *
+ * **When to use**
+ *
+ * Use to apply several `Context` transformations in one callback while copying
+ * the underlying service map only once.
+ *
+ * @see {@link add} for adding or replacing a service
+ * @see {@link addOrOmit} for adding or removing a service from an `Option`
+ * @see {@link merge} for combining two contexts
+ * @see {@link pick} for keeping selected services
+ * @see {@link omit} for removing selected services
  *
  * @category utils
  * @since 4.0.0

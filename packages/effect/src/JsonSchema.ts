@@ -107,11 +107,19 @@ export interface JsonSchema {
 /**
  * The set of JSON Schema dialects supported by this module.
  *
+ * **When to use**
+ *
+ * Use as the dialect marker for `JsonSchema` documents when parsing,
+ * converting, or emitting schemas across the supported formats.
+ *
  * **Details**
  *
  * Supported values are `"draft-07"` for JSON Schema Draft-07,
  * `"draft-2020-12"` for JSON Schema Draft 2020-12 and the canonical internal
  * form, `"openapi-3.1"` for OpenAPI 3.1, and `"openapi-3.0"` for OpenAPI 3.0.
+ *
+ * @see {@link Document} for a single root schema tagged with a dialect
+ * @see {@link MultiDocument} for multiple root schemas tagged with a dialect
  *
  * @category models
  * @since 4.0.0
@@ -128,6 +136,20 @@ export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
 
 /**
  * A record of named JSON Schema definitions, keyed by definition name.
+ *
+ * **When to use**
+ *
+ * Use as the shared lookup table for named JSON Schema nodes that are
+ * referenced from JSON Schema documents.
+ *
+ * **Details**
+ *
+ * The map is dialect-neutral. Conversion APIs emit it as `$defs`,
+ * `definitions`, or `components.schemas` depending on the target format.
+ *
+ * @see {@link Document} for a single root schema with definitions
+ * @see {@link MultiDocument} for multiple root schemas sharing definitions
+ * @see {@link resolve$ref} for resolving a `$ref` against definitions
  *
  * @category models
  * @since 4.0.0

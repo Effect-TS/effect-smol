@@ -2325,6 +2325,16 @@ const ensureCapacity = (capacity: number): void => {
  * risk that a slow subscriber will slow down the rate at which messages
  * are published and received by other subscribers.
  *
+ * **When to use**
+ *
+ * Use to preserve every message for current subscribers when a bounded custom
+ * `PubSub` should make publishers wait for capacity instead of dropping or
+ * evicting messages.
+ *
+ * @see {@link bounded} for creating bounded PubSubs with back pressure by default
+ * @see {@link DroppingStrategy} for dropping new messages when capacity is full
+ * @see {@link SlidingStrategy} for evicting old messages when capacity is full
+ *
  * @category models
  * @since 4.0.0
  */

@@ -163,11 +163,19 @@ export interface ValueMatcher<in Input, Filters, out Remaining, out Result, Prov
 /**
  * Represents a single pattern matching case.
  *
+ * **When to use**
+ *
+ * Use as the common public type for code that needs to inspect, store, or pass
+ * either positive or negative pattern matching cases.
+ *
  * **Details**
  *
  * A `Case` can be either a positive match (`When`) or a negative match (`Not`).
  * Cases are the building blocks of pattern matching logic and determine
  * how values are tested and transformed.
+ *
+ * @see {@link When} for positive cases
+ * @see {@link Not} for negative cases
  *
  * @category models
  * @since 4.0.0

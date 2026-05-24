@@ -371,9 +371,22 @@ export const some = (collection: Iterable<boolean>): boolean => {
 /**
  * A `Reducer` for combining `boolean`s using AND.
  *
+ * **When to use**
+ *
+ * Use to require every accumulated boolean to be `true` through APIs that
+ * consume a `Reducer`.
+ *
  * **Details**
  *
- * The `initialValue` is `true`.
+ * The `initialValue` is `true`, so `combineAll([])` returns `true`.
+ *
+ * **Gotchas**
+ *
+ * `combineAll` uses the default left-to-right `Reducer.make` fold and does not
+ * short-circuit on `false`.
+ *
+ * @see {@link ReducerOr} for reducing with OR semantics
+ * @see {@link every} for checking an iterable directly
  *
  * @category math
  * @since 4.0.0
@@ -383,9 +396,17 @@ export const ReducerAnd: Reducer.Reducer<boolean> = Reducer.make((a, b) => a && 
 /**
  * A `Reducer` for combining `boolean`s using OR.
  *
+ * **When to use**
+ *
+ * Use to reduce boolean values where the result should be `true` if any
+ * combined value is `true`.
+ *
  * **Details**
  *
  * The `initialValue` is `false`.
+ *
+ * @see {@link ReducerAnd} for reducing with AND semantics
+ * @see {@link some} for checking an iterable directly
  *
  * @category math
  * @since 4.0.0

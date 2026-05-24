@@ -113,8 +113,12 @@ export interface Console {
  *
  * **When to use**
  *
- * Use when you need to provide or retrieve the full console service rather
- * than call one console operation.
+ * Use when an Effect program needs the current console service as a context
+ * reference, such as when providing or overriding a console implementation.
+ *
+ * **Details**
+ *
+ * When no override is provided, the reference resolves to `globalThis.console`.
  *
  * **Example** (Accessing the current console)
  *

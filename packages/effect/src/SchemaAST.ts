@@ -158,6 +158,13 @@ export function isAST(u: unknown): u is AST {
 /**
  * Narrows an {@link AST} to {@link Declaration}.
  *
+ * **When to use**
+ *
+ * Use to recognize declaration AST nodes before running declaration-specific
+ * handling.
+ *
+ * @see {@link Declaration} for the AST node type narrowed by this guard
+ *
  * @category guards
  * @since 3.10.0
  */
@@ -335,6 +342,13 @@ export const isSymbol = makeGuard("Symbol")
 /**
  * Narrows an {@link AST} to {@link Literal}.
  *
+ * **When to use**
+ *
+ * Use to recognize exact string, number, boolean, or bigint literal AST nodes.
+ *
+ * @see {@link Literal} for the AST node type narrowed by this guard
+ * @see {@link LiteralValue} for the values stored by literal nodes
+ *
  * @category guards
  * @since 3.10.0
  */
@@ -368,6 +382,13 @@ export const isObjectKeyword = makeGuard("ObjectKeyword")
 /**
  * Narrows an {@link AST} to {@link Enum}.
  *
+ * **When to use**
+ *
+ * Use to recognize enum AST nodes before reading enum cases or running
+ * enum-specific handling.
+ *
+ * @see {@link Enum} for the AST node type narrowed by this guard
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -383,6 +404,13 @@ export const isTemplateLiteral = makeGuard("TemplateLiteral")
 
 /**
  * Narrows an {@link AST} to {@link Arrays}.
+ *
+ * **When to use**
+ *
+ * Use to recognize array-like AST nodes before reading their element, rest, or
+ * mutability metadata.
+ *
+ * @see {@link Arrays} for the AST node type narrowed by this guard
  *
  * @category guards
  * @since 4.0.0

@@ -49,6 +49,11 @@ export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, 
 /**
  * Returns `true` if the provided value is a `SubscriptionRef`.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before calling `SubscriptionRef` operations
+ * that require a subscription reference.
+ *
  * @category guards
  * @since 4.0.0
  */

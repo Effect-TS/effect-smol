@@ -522,7 +522,14 @@ export const FilePart: Schema.Struct<{
 }).annotate({ identifier: "FilePart" })
 
 /**
- * Constructs a new file part.
+ * Constructs a `FilePart` for prompt file attachments.
+ *
+ * **When to use**
+ *
+ * Use to create the file-attachment part of a prompt from typed file part
+ * parameters.
+ *
+ * @see {@link makePart} for the generic part constructor
  *
  * @category constructors
  * @since 4.0.0
@@ -1476,6 +1483,12 @@ export interface AssistantMessageOptions extends ProviderOptions {}
 /**
  * Schema for validation and encoding of assistant messages.
  *
+ * **Details**
+ *
+ * Assistant content can be a string decoded through `ContentFromString` or an
+ * array of text, file, reasoning, tool-call, tool-result, and
+ * tool-approval-request parts.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -1542,6 +1555,14 @@ export const AssistantMessage: Schema.Struct<{
 
 /**
  * Constructs a new assistant message.
+ *
+ * **When to use**
+ *
+ * Use to add assistant-role prompt history or model responses.
+ *
+ * **Details**
+ *
+ * This is the role-specific wrapper around `makeMessage("assistant", params)`.
  *
  * @category constructors
  * @since 4.0.0

@@ -40,6 +40,16 @@ const bigint1e9 = BigInt(1_000_000_000)
  * Represents a span of time with high precision, supporting operations from
  * nanoseconds to weeks.
  *
+ * **When to use**
+ *
+ * Use to model elapsed time, delays, timeouts, schedule intervals, and cache
+ * TTLs as immutable duration values.
+ *
+ * @see {@link Input} for values accepted by APIs that decode duration-like
+ * inputs
+ * @see {@link DurationValue} for the tagged representation exposed by the
+ * `value` field
+ *
  * @category models
  * @since 2.0.0
  */
@@ -51,10 +61,20 @@ export interface Duration extends Equal.Equal, Pipeable, Inspectable.Inspectable
 /**
  * Tagged representation of a `Duration` value.
  *
+ * **When to use**
+ *
+ * Use when modeling or inspecting the exact tagged representation stored in a
+ * `Duration`, including finite millisecond or nanosecond values and infinite
+ * sentinels.
+ *
  * **Details**
  *
  * A duration is represented as milliseconds, nanoseconds, positive infinity,
  * or negative infinity.
+ *
+ * @see {@link Duration} for the public type whose `value` field contains this
+ * representation
+ * @see {@link match} for pattern matching without reading `value` directly
  *
  * @category models
  * @since 2.0.0
@@ -67,6 +87,13 @@ export type DurationValue =
 
 /**
  * Valid time units that can be used in duration string representations.
+ *
+ * **When to use**
+ *
+ * Use when typing the unit portion of duration string inputs accepted by
+ * `Duration.Input`.
+ *
+ * @see {@link Input} for the full duration input union
  *
  * @category models
  * @since 2.0.0
@@ -92,10 +119,22 @@ export type Unit =
 /**
  * Valid input types that can be converted to a Duration.
  *
+ * **When to use**
+ *
+ * Use when an API should accept any value that Effect can convert into a
+ * `Duration`, including existing durations, millisecond numbers, nanosecond
+ * bigints, high-resolution tuples, duration strings, infinity strings, or
+ * duration objects.
+ *
  * **Details**
  *
  * String inputs accept values like `"10 seconds"`, `"500 millis"`,
  * `"Infinity"`, and `"-Infinity"`.
+ *
+ * @see {@link fromInput} for safe conversion to `Option`
+ * @see {@link fromInputUnsafe} for throwing conversion
+ * @see {@link DurationObject} for object-shaped duration input
+ * @see {@link Unit} for supported string units
  *
  * @category models
  * @since 4.0.0
@@ -1722,6 +1761,19 @@ export const format = (self: Duration): string => {
 /**
  * A `Reducer` for summing `Duration`s.
  *
+ * **When to use**
+ *
+ * Use to sum many `Duration` values through APIs that consume a `Reducer`.
+ *
+ * **Details**
+ *
+ * `ReducerSum` uses `sum` and starts from `zero`, so `combineAll([])` returns
+ * `zero`.
+ *
+ * @see {@link sum} for adding two duration values directly
+ * @see {@link CombinerMax} for keeping the longest duration instead of summing
+ * @see {@link CombinerMin} for keeping the shortest duration instead of summing
+ *
  * @category math
  * @since 4.0.0
  */
@@ -1730,6 +1782,13 @@ export const ReducerSum: Reducer.Reducer<Duration> = Reducer.make(sum, zero)
 /**
  * A `Combiner` that returns the maximum `Duration`.
  *
+ * **When to use**
+ *
+ * Use to keep the longest `Duration` when an API consumes a `Combiner`.
+ *
+ * @see {@link CombinerMin} for keeping the shortest `Duration`
+ * @see {@link max} for comparing two `Duration` values directly
+ *
  * @category math
  * @since 4.0.0
  */
@@ -1737,6 +1796,13 @@ export const CombinerMax: Combiner.Combiner<Duration> = Combiner.max(Order)
 
 /**
  * A `Combiner` that returns the minimum `Duration`.
+ *
+ * **When to use**
+ *
+ * Use to keep the shortest `Duration` through APIs that consume a `Combiner`.
+ *
+ * @see {@link CombinerMax} for keeping the longest `Duration`
+ * @see {@link min} for comparing two `Duration` values directly
  *
  * @category math
  * @since 4.0.0

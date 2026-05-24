@@ -137,6 +137,15 @@ export const get = <A>(self: SynchronizedRef<A>): Effect.Effect<A> => Effect.syn
  * Atomically sets a new value and returns the previous value, serialized by the
  * ref's semaphore.
  *
+ * **When to use**
+ *
+ * Use to replace a `SynchronizedRef` with a known value when the previous value
+ * is also needed.
+ *
+ * @see {@link set} for setting a value without returning the previous value
+ * @see {@link setAndGet} for setting a value and returning the new value
+ * @see {@link getAndUpdate} for deriving the new value from the current value
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -153,6 +162,14 @@ export const getAndSet: {
  * Atomically updates the current value with a function and returns the previous
  * value, serialized by the ref's semaphore.
  *
+ * **When to use**
+ *
+ * Use to run a pure state update when the previous stored value is also needed.
+ *
+ * @see {@link update} for updating without returning a value
+ * @see {@link updateAndGet} for updating and returning the new value
+ * @see {@link getAndUpdateEffect} for effectful updates that return the previous value
+ *
  * @category utils
  * @since 2.0.0
  */
@@ -168,6 +185,16 @@ export const getAndUpdate: {
 /**
  * Atomically runs an effectful update while holding the ref's semaphore, sets
  * the new value if the effect succeeds, and returns the previous value.
+ *
+ * **When to use**
+ *
+ * Use when an effectful state transition must return the previous stored value.
+ *
+ * @see {@link getAndUpdate} for pure updates that return the previous value
+ * @see {@link updateEffect} for effectful updates without returning a value
+ * @see {@link updateAndGetEffect} for effectful updates that return the new value
+ * @see {@link modifyEffect} for effectful updates with a custom return value
+ * @see {@link getAndUpdateSomeEffect} for conditional effectful updates that return the previous value
  *
  * @category utils
  * @since 2.0.0

@@ -181,11 +181,20 @@ export const open = (self: Latch): Effect.Effect<boolean> => self.open
 /**
  * Synchronously opens the latch and releases fibers waiting on it.
  *
+ * **When to use**
+ *
+ * Use when synchronous code needs to open a latch immediately and release the
+ * fibers waiting on it.
+ *
  * **Details**
  *
  * Returns `true` when this call changed the latch from closed to open, or
  * `false` if it was already open. This unsafe variant performs the state
  * change immediately instead of returning an `Effect`.
+ *
+ * @see {@link open} for the effectful variant
+ * @see {@link release} to release waiting fibers without opening the latch
+ * @see {@link closeUnsafe} for the synchronous inverse operation
  *
  * @category unsafe
  * @since 4.0.0
@@ -195,11 +204,18 @@ export const openUnsafe = (self: Latch): boolean => self.openUnsafe()
 /**
  * Releases the fibers currently waiting on a closed latch without opening it.
  *
+ * **When to use**
+ *
+ * Use to let the fibers currently waiting on a latch proceed while keeping the
+ * latch closed for future waiters.
+ *
  * **Details**
  *
  * The returned effect succeeds with `true` when release was requested while
  * the latch was closed, or `false` if the latch was already open. Future
  * waiters still suspend until the latch is opened or released again.
+ *
+ * @see {@link open} for opening the latch for current and future waiters
  *
  * @category combinators
  * @since 4.0.0
@@ -240,10 +256,18 @@ export {
 /**
  * Closes the latch so future `await` and `whenOpen` calls suspend.
  *
+ * **When to use**
+ *
+ * Use to re-enable waiting on a latch after it was opened, so later `await`
+ * and `whenOpen` calls suspend again.
+ *
  * **Details**
  *
  * The returned effect succeeds with `true` when this call changed the latch
  * from open to closed, or `false` if it was already closed.
+ *
+ * @see {@link closeUnsafe} for a synchronous variant
+ * @see {@link open} for opening the latch for current and future waiters
  *
  * @category combinators
  * @since 4.0.0
@@ -254,11 +278,20 @@ export const close = (self: Latch): Effect.Effect<boolean> => self.close
  * Synchronously closes the latch so future `await` and `whenOpen` calls
  * suspend.
  *
+ * **When to use**
+ *
+ * Use to close a latch synchronously when the state change must happen outside
+ * an `Effect`.
+ *
  * **Details**
  *
  * Returns `true` when this call changed the latch from open to closed, or
  * `false` if it was already closed. This unsafe variant performs the state
  * change immediately instead of returning an `Effect`.
+ *
+ * @see {@link close} for the effectful variant
+ * @see {@link openUnsafe} to synchronously open the latch and release waiting
+ * fibers
  *
  * @category unsafe
  * @since 4.0.0
@@ -268,12 +301,21 @@ export const closeUnsafe = (self: Latch): boolean => self.closeUnsafe()
 /**
  * Waits on the latch, then runs the provided effect.
  *
+ * **When to use**
+ *
+ * Use to gate another effect so it starts only after the latch is opened or
+ * the current waiters are released.
+ *
  * **Details**
  *
  * If the latch is open, the effect runs immediately. If it is closed, the
  * returned effect suspends until the latch is opened or the current waiters are
  * released. The provided effect's success, failure, and requirements are
  * preserved.
+ *
+ * @see `await` for waiting without running another effect
+ * @see {@link open} for opening the latch for current and future waiters
+ * @see {@link release} for resuming current waiters without opening the latch
  *
  * @category combinators
  * @since 4.0.0

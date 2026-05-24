@@ -391,6 +391,7 @@ export type errorReported = "~effect/Runtime/errorReported"
  * ```
  *
  * @see {@link errorExitCode} for controlling failure exit codes
+ * @see {@link getErrorReported} for reading the marker from unknown error values
  *
  * @category symbols
  * @since 4.0.0

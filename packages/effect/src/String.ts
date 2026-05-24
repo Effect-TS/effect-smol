@@ -20,6 +20,18 @@ import * as Reducer from "./Reducer.ts"
 /**
  * Reference to the global `String` constructor.
  *
+ * **When to use**
+ *
+ * Use when code in the Effect `String` namespace needs native JavaScript string
+ * coercion or constructor behavior.
+ *
+ * **Gotchas**
+ *
+ * Calling `String(value)` returns a primitive string. Calling
+ * `new String(value)` creates a boxed `String` object.
+ *
+ * @see {@link isString} for checking whether a value is a primitive string
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -1392,6 +1404,16 @@ export const snakeCase: (self: string) => string = noCase({
 
 /**
  * A `Reducer` for concatenating `string`s.
+ *
+ * **When to use**
+ *
+ * Use to concatenate many strings through APIs that consume a `Reducer`.
+ *
+ * **Details**
+ *
+ * The reducer starts from `""`, so combining an empty collection returns `""`.
+ *
+ * @see {@link concat} for concatenating two strings directly
  *
  * @category concatenating
  * @since 4.0.0

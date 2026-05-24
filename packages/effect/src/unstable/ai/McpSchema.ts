@@ -293,7 +293,7 @@ export type Role = typeof Role.Type
 
 /**
  * Optional annotations for the client. The client can use annotations to
- * inform how objects are used or displayed
+ * inform how objects are used or displayed.
  *
  * @category common
  * @since 4.0.0
@@ -879,7 +879,7 @@ export class TextResourceContents extends Schema.Opaque<TextResourceContents>()(
 })) {}
 
 /**
- * The contents of a binary resource, which can be represented as an Uint8Array
+ * The contents of a binary resource, which can be represented as a Uint8Array.
  *
  * @category resources
  * @since 4.0.0
@@ -1456,6 +1456,14 @@ export class CallToolResult extends Schema.Class<CallToolResult>("@effect/ai/Mcp
 
 /**
  * Used by the client to invoke a tool provided by the server.
+ *
+ * **When to use**
+ *
+ * Use when a client already knows the tool name and wants the server to execute
+ * it with argument values.
+ *
+ * @see {@link ListTools} for discovering available tools before calling one
+ * @see {@link CallToolResult} for the successful tool-call result shape
  *
  * @category tools
  * @since 4.0.0

@@ -18,6 +18,15 @@ const TypeId = "~effect/Brand"
 /**
  * A generic interface that defines a branded type.
  *
+ * **When to use**
+ *
+ * Use to define a branded type such as `number & Brand<"Positive">` when
+ * TypeScript should keep structurally identical values separate without
+ * changing their runtime value.
+ *
+ * @see {@link Branded} for applying a brand key to a base type
+ * @see {@link Constructor} for validating or constructing branded values
+ *
  * @category models
  * @since 2.0.0
  */
@@ -30,6 +39,17 @@ export interface Brand<in out Keys extends string> {
 /**
  * A constructor for a branded type that provides validation and safe
  * construction methods.
+ *
+ * **When to use**
+ *
+ * Use as the shared callable interface for branded values when an API accepts
+ * or returns a brand constructor and callers need throwing, `Option`, `Result`,
+ * or type-guard validation forms.
+ *
+ * @see {@link nominal} for a constructor without runtime validation
+ * @see {@link make} for creating a constructor from a validation predicate
+ * @see {@link check} for creating a constructor from schema checks
+ * @see {@link all} for combining brand constructors
  *
  * @category models
  * @since 2.0.0

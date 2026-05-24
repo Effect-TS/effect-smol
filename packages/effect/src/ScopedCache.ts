@@ -533,6 +533,22 @@ export const invalidate: {
  * Conditionally invalidates the entry associated with the specified key in the cache
  * if the predicate returns true for the cached value.
  *
+ * **When to use**
+ *
+ * Use to remove an already-cached scoped value only when the successful cached
+ * value satisfies a predicate.
+ *
+ * **Details**
+ *
+ * Returns `true` only when a successful cached value matches and is removed. It
+ * returns `false` for absent, expired, failed, or non-matching entries.
+ *
+ * **Gotchas**
+ *
+ * A matching invalidation closes the entry scope and releases its resources.
+ *
+ * @see {@link invalidate} for unconditional removal by key
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -669,6 +685,17 @@ export const size = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
 /**
  * Retrieves all active keys from the cache, automatically filtering out expired entries.
  *
+ * **When to use**
+ *
+ * Use to inspect currently cached unexpired keys without running cache lookups.
+ *
+ * **Gotchas**
+ *
+ * Expired entries are removed and their scopes are closed while filtering.
+ *
+ * @see {@link entries} for retrieving successful cached key-value pairs
+ * @see {@link values} for retrieving only successfully cached values
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -693,6 +720,18 @@ export const keys = <Key, A, E, R>(self: ScopedCache<Key, A, E, R>): Effect.Effe
 /**
  * Retrieves all successfully cached values from the cache, excluding failed
  * lookups and expired entries.
+ *
+ * **When to use**
+ *
+ * Use to inspect currently successful cached values without running cache
+ * lookups.
+ *
+ * **Gotchas**
+ *
+ * Expired entries are removed and their scopes are closed while filtering.
+ *
+ * @see {@link entries} for retrieving successful cached key-value pairs
+ * @see {@link keys} for retrieving only cached keys
  *
  * @category combinators
  * @since 4.0.0

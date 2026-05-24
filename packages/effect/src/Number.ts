@@ -615,6 +615,17 @@ export const round: {
 /**
  * A `Reducer` for combining `number`s using addition.
  *
+ * **When to use**
+ *
+ * Use to sum many numbers through APIs that consume a `Reducer`.
+ *
+ * **Details**
+ *
+ * The reducer starts from `0`, so `combineAll([])` returns `0`.
+ *
+ * @see {@link sumAll} for summing an iterable directly
+ * @see {@link ReducerMultiply} for multiplying number values
+ *
  * @category math
  * @since 4.0.0
  */

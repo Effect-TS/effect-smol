@@ -156,8 +156,11 @@ let settingIdCounter = 0
 /* ========================================================================== */
 
 /**
- * The `--help` / `-h` global flag.
- * Shows help documentation for the command.
+ * The `--help` / `-h` global flag, which shows help documentation for the
+ * active command path.
+ *
+ * @see {@link BuiltIns} for the default list containing this flag
+ * @see {@link action} for defining custom action global flags
  *
  * @category references
  * @since 4.0.0
@@ -194,8 +197,13 @@ export const Version: Action<boolean> = action({
 })
 
 /**
- * The `--completions` global flag.
- * Prints shell completion script for the given shell.
+ * The `--completions` global flag, which prints a shell completion script for
+ * the given shell.
+ *
+ * **Details**
+ *
+ * Accepted values are `bash`, `zsh`, `fish`, and `sh`; `sh` is normalized to
+ * `bash`.
  *
  * @category references
  * @since 4.0.0
@@ -250,6 +258,22 @@ export const LogLevel: Setting<"log-level", Option.Option<LogLevelType>> = setti
 
 /**
  * Built-in global flags in default precedence order.
+ *
+ * **Details**
+ *
+ * The built-ins are `Help`, `Version`, `Completions`, and `LogLevel`.
+ * `Command.runWith` prepends these built-ins when collecting and parsing global
+ * flags.
+ *
+ * **Gotchas**
+ *
+ * Action flags are processed in active flag order and the first present action
+ * exits, so this array controls built-in action precedence.
+ *
+ * @see {@link Help} for the help action flag
+ * @see {@link Version} for the version action flag
+ * @see {@link Completions} for the shell-completions action flag
+ * @see {@link LogLevel} for the built-in log-level setting flag
  *
  * @category references
  * @since 4.0.0

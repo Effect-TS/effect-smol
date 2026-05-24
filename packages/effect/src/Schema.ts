@@ -3113,6 +3113,14 @@ export declare namespace Record {
  * Companion type for a key-value record (map) with a typed key and value schema.
  * Produced by {@link Record}.
  *
+ * **When to use**
+ *
+ * Use as the concrete schema type returned by `Record` when an API needs to
+ * accept or return a record schema with typed property keys and values.
+ *
+ * @see {@link Record} for constructing record schemas
+ * @see {@link StructWithRest} for combining fixed struct fields with record index signatures
+ *
  * @category models
  * @since 4.0.0
  */
@@ -3273,6 +3281,14 @@ export declare namespace StructWithRest {
 /**
  * Companion type for a struct combined with one or more record schemas. Produced
  * by {@link StructWithRest}.
+ *
+ * **When to use**
+ *
+ * Use as the schema type returned by `StructWithRest` when generic code needs to
+ * retain the base struct schema and all rest record schemas.
+ *
+ * @see {@link StructWithRest} for constructing this schema type
+ * @see {@link Record} for constructing record schemas used as rest index signatures
  *
  * @category models
  * @since 4.0.0
@@ -3841,12 +3857,19 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
  * Schema interface returned by `ArrayEnsure`, which normalizes a single item or
  * an array of items into a readonly array.
  *
+ * **When to use**
+ *
+ * Use as the schema type returned by `ArrayEnsure` when generic code needs to
+ * retain the original item schema.
+ *
  * **Details**
  *
  * The schema decodes from `S` or `Schema.Array(S)` and produces
  * `ReadonlyArray<S["Type"]>`.
  *
- * @category Arrays
+ * @see {@link ArrayEnsure} for constructing this schema type
+ *
+ * @category constructors
  * @since 3.10.0
  */
 export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, Union<readonly [S, $Array<S>]>> {
@@ -3857,16 +3880,26 @@ export interface ArrayEnsure<S extends Top> extends decodeTo<$Array<toType<S>>, 
  * Creates a schema that accepts either a value decoded by `schema` or an array
  * decoded by `Schema.Array(schema)`, then returns an array.
  *
+ * **When to use**
+ *
+ * Use to accept input that may be provided either as one item or as an array,
+ * while normalizing decoded values to a readonly array.
+ *
  * **Details**
+ *
+ * During encoding, one-element arrays are encoded as the single element. Empty
+ * arrays and arrays with two or more elements are encoded as arrays.
+ *
+ * **Gotchas**
  *
  * The single-value branch is tried before the array branch. If `schema` itself
  * accepts arrays, an array input can be treated as one value and wrapped in a
  * one-element array.
  *
- * During encoding, one-element arrays are encoded as the single element. Empty
- * arrays and arrays with two or more elements are encoded as arrays.
+ * @see {@link Array} for accepting only array input
+ * @see {@link NonEmptyArray} for requiring at least one decoded element
  *
- * @category Arrays
+ * @category constructors
  * @since 3.10.0
  */
 export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
@@ -4321,6 +4354,13 @@ type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string 
  * The output type of {@link brand}, intersecting the schema's `Type` with one or
  * more {@link Brand.Brand} tags.
  *
+ * **When to use**
+ *
+ * Use as the schema type returned by `brand` when generic code needs to retain
+ * the wrapped schema and nominal brand type.
+ *
+ * @see {@link brand} for adding the brand tag to an existing schema
+ *
  * @category branding
  * @since 3.10.0
  */
@@ -4350,6 +4390,18 @@ export interface brand<S extends Top, B> extends
 /**
  * Adds a nominal brand to a schema, intersecting the output type with
  * `Brand.Brand<B>` to prevent accidental mixing of structurally identical types.
+ *
+ * **When to use**
+ *
+ * Use to make values decoded by an existing schema nominally distinct when the
+ * schema already carries the runtime validation you need.
+ *
+ * **Gotchas**
+ *
+ * `brand` adds brand metadata and narrows the TypeScript output type, but it
+ * does not add runtime checks.
+ *
+ * @see {@link fromBrand} for applying a Brand constructor's checks along with the brand tag
  *
  * @category branding
  * @since 3.10.0
@@ -4549,6 +4601,19 @@ export function catchDecoding<S extends Top>(
 /**
  * Like {@link catchDecoding}, but the handler may require Effect services (`R`).
  *
+ * **When to use**
+ *
+ * Use when decoding fallback logic needs services from the Effect context.
+ *
+ * **Details**
+ *
+ * The handler receives the `Issue` and returns an `Effect` that either succeeds
+ * with a fallback value or re-fails with a (possibly different) issue. The
+ * handler's services are added to the schema's decoding services.
+ *
+ * @see {@link catchDecoding} for recovery handlers that do not require services
+ * @see {@link middlewareDecoding} for intercepting or replacing the full decoding pipeline
+ *
  * @category error handling
  * @since 4.0.0
  */
@@ -4579,6 +4644,19 @@ export function catchEncoding<S extends Top>(
 
 /**
  * Like {@link catchEncoding}, but the handler may require Effect services (`R`).
+ *
+ * **When to use**
+ *
+ * Use when encoding fallback logic needs services from the Effect context.
+ *
+ * **Details**
+ *
+ * The handler receives the `Issue` and returns an `Effect` that either succeeds
+ * with a fallback encoded value or re-fails with a (possibly different) issue.
+ * The handler's services are added to the schema's encoding services.
+ *
+ * @see {@link catchEncoding} for recovery handlers that do not require services
+ * @see {@link middlewareEncoding} for intercepting or replacing the full encoding pipeline
  *
  * @category error handling
  * @since 4.0.0
@@ -7720,6 +7798,11 @@ export interface Char extends String {
  *
  * Use to validate string values that must have `length === 1`.
  *
+ * **Gotchas**
+ *
+ * This schema uses JavaScript `String.length`, so visible characters made from
+ * multiple UTF-16 code units do not satisfy `length === 1`.
+ *
  * @see {@link String} for unconstrained string values
  * @see {@link NonEmptyString} for strings with length greater than zero
  * @see {@link isLengthBetween} for the underlying length check
@@ -8352,10 +8435,18 @@ export function RedactedFromValue<S extends Top>(value: S, options?: {
  * a typed error (`Fail`), an unexpected defect (`Die`), or an interrupt
  * (`Interrupt`).
  *
+ * **When to use**
+ *
+ * Use as the schema type returned by `CauseReason` when generic code needs to
+ * retain the typed failure and defect schemas.
+ *
  * **Details**
  *
  * The `error` schema validates typed failures and the `defect` schema validates
  * unexpected defects.
+ *
+ * @see {@link CauseReason} for constructing this schema type
+ * @see {@link CauseReasonIso} for the ISO shape of each cause reason
  *
  * @category CauseReason
  * @since 4.0.0
@@ -8398,6 +8489,19 @@ export type CauseReasonIso<E extends Top, D extends Top> = {
 /**
  * Creates a schema for `Cause.Reason` values using separate schemas for typed
  * failures and unexpected defects.
+ *
+ * **When to use**
+ *
+ * Use to validate, transform, or serialize individual `Cause.Reason` values
+ * when typed failures and unexpected defects need separate schemas.
+ *
+ * **Details**
+ *
+ * `Fail` reasons use the `error` schema, `Die` reasons use the `defect` schema,
+ * and `Interrupt` reasons carry only an optional fiber id.
+ *
+ * @see {@link Cause} for constructing schemas for full Cause values
+ * @see {@link CauseReasonIso} for the ISO shape of each cause reason
  *
  * @category CauseReason
  * @since 4.0.0
@@ -8513,10 +8617,18 @@ function causeReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknow
  * Schema for `Cause` values, represented as an ordered collection of failure
  * reasons combining typed errors, defects, and interrupts.
  *
+ * **When to use**
+ *
+ * Use as the schema type returned by `Cause` when generic code needs to retain
+ * the typed failure and defect schemas.
+ *
  * **Details**
  *
  * The `error` schema validates typed failures and the `defect` schema validates
  * unexpected defects.
+ *
+ * @see {@link Cause} for constructing this schema type
+ * @see {@link CauseIso} for the ordered array representation used by the schema ISO
  *
  * @category Cause
  * @since 3.10.0
@@ -8537,6 +8649,14 @@ export interface Cause<E extends Top, D extends Top> extends
 /**
  * Iso representation used for `Cause` schemas: an ordered array of
  * `CauseReasonIso` values.
+ *
+ * **When to use**
+ *
+ * Use when working with the ISO shape of a `Cause` schema, such as `toIso`
+ * optics or codecs that expose a cause as its ordered array of encoded reasons.
+ *
+ * @see {@link Cause} for constructing schemas for full Cause values
+ * @see {@link CauseReasonIso} for the ISO shape of each array element
  *
  * @category Cause
  * @since 4.0.0
@@ -8923,6 +9043,15 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
  * Type-level representation of a `ReadonlyMap` schema whose keys and values are
  * validated by the provided schemas.
  *
+ * **When to use**
+ *
+ * Use as a type annotation for a `ReadonlyMap` schema when exposing or returning
+ * the schema while preserving its key schema, value schema, and ISO
+ * representation.
+ *
+ * @see {@link ReadonlyMap} for constructing this schema type from key and value schemas
+ * @see {@link ReadonlyMapIso} for the readonly tuple-array ISO representation used by this schema
+ *
  * @category ReadonlyMap
  * @since 4.0.0
  */
@@ -9117,6 +9246,14 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
 /**
  * Type-level representation of a `ReadonlySet` schema whose values are validated
  * by the provided element schema.
+ *
+ * **When to use**
+ *
+ * Use to name or constrain the schema type produced by `ReadonlySet` when
+ * generic code needs to retain the element schema type.
+ *
+ * @see {@link ReadonlySet} for constructing this schema type
+ * @see {@link ReadonlySetIso} for the array representation used by this schema's ISO
  *
  * @category ReadonlySet
  * @since 4.0.0
@@ -9328,6 +9465,13 @@ export interface Chunk<Value extends Top> extends
 /**
  * Iso representation used for `Chunk` schemas: an array of element values using
  * the element schema's `Iso` type.
+ *
+ * **When to use**
+ *
+ * Use when annotating type-level helpers that work with the readonly-array ISO
+ * shape of a `Chunk` schema.
+ *
+ * @see {@link Chunk} for the schema interface and constructor that use this ISO representation
  *
  * @category Chunk
  * @since 4.0.0
@@ -9566,12 +9710,16 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
 /**
  * A schema for JavaScript `Date` objects.
  *
+ * **When to use**
+ *
+ * Use to validate in-memory values that must already be JavaScript `Date`
+ * instances.
+ *
  * **Details**
  *
- * This schema accepts any `Date` instance, including invalid dates. For
- * validating only valid dates, use `DateValid` instead. The default JSON
- * serializer encodes valid dates as ISO 8601 strings; invalid dates encode as
- * `"Invalid Date"`.
+ * This schema accepts any `Date` instance, including invalid dates. The default
+ * JSON serializer encodes valid dates as ISO 8601 strings; invalid dates encode
+ * as `"Invalid Date"`.
  *
  * **Example** (Date schema)
  *
@@ -9581,6 +9729,8 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
  * Schema.decodeUnknownSync(Schema.Date)(new Date("2024-01-01"))
  * // => Date { 2024-01-01T00:00:00.000Z }
  * ```
+ *
+ * @see {@link DateValid} for accepting only valid Date instances
  *
  * @category Date
  * @since 4.0.0
@@ -9619,15 +9769,26 @@ export interface DateFromString extends decodeTo<Date, String> {
 /**
  * A transformation schema that decodes a string into a JavaScript `Date`.
  *
+ * **When to use**
+ *
+ * Use to model string-encoded dates that decode to JavaScript `Date` objects
+ * and encode back to strings.
+ *
  * **Details**
  *
  * Decoding:
- * The string is passed to JavaScript `Date` construction and may decode to an
- * invalid `Date`. Compose with `DateValid` when invalid dates should be rejected.
+ * The string is passed to JavaScript `Date` construction.
  *
  * Encoding:
  * A valid `Date` is encoded as an ISO string; an invalid `Date` is encoded as
  * `"Invalid Date"`.
+ *
+ * **Gotchas**
+ *
+ * Invalid date strings can decode to invalid `Date` instances.
+ *
+ * @see {@link Date} for accepting Date instances directly
+ * @see {@link DateValid} for rejecting invalid Date instances
  *
  * @category Date
  * @since 3.10.0
@@ -9862,11 +10023,18 @@ const BigDecimalString = String.annotate({ expected: "a string that will be deco
 /**
  * A schema for `BigDecimal` values.
  *
+ * **When to use**
+ *
+ * Use when values are already `BigDecimal` instances and need schema validation,
+ * formatting, equivalence, and JSON string serialization.
+ *
  * **Details**
  *
  * Default JSON serializer:
  *
  * - encodes `BigDecimal` as a `string`
+ *
+ * @see {@link BigDecimalFromString} for parsing string input into a BigDecimal
  *
  * @category BigDecimal
  * @since 3.10.0
@@ -9910,13 +10078,26 @@ export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
 /**
  * A transformation schema that parses a string into a `BigDecimal`.
  *
+ * **When to use**
+ *
+ * Use to parse decimal or exponent-notation strings into arbitrary-precision
+ * BigDecimal values while encoding them back to strings.
+ *
  * **Details**
  *
  * Decoding:
- * - A `string` is decoded as a `BigDecimal`.
+ * - A `string` is decoded with `BigDecimal.fromString`.
  *
  * Encoding:
- * - A `BigDecimal` is encoded as a `string`.
+ * - A `BigDecimal` is encoded with `BigDecimal.format`.
+ *
+ * **Gotchas**
+ *
+ * An empty string decodes as zero.
+ *
+ * @see {@link BigDecimal} for validating values that are already BigDecimal values
+ * @see {@link BigIntFromString} for parsing base-10 integer strings into bigint values
+ * @see {@link NumberFromString} for parsing JavaScript number strings
  *
  * @category BigDecimal
  * @since 4.0.0
@@ -10553,7 +10734,7 @@ export interface BigIntFromString extends decodeTo<BigInt, String> {
  *
  * @see {@link isStringBigInt} for the string predicate used by this schema
  * @see {@link BigInt} for validating values that are already bigint values
- * @see {@link NumberFromString} for parsing finite number strings
+ * @see {@link NumberFromString} for parsing JavaScript number strings, including non-finite values
  * @see {@link BigDecimalFromString} for parsing decimal number strings
  *
  * @category BigInt
@@ -10981,11 +11162,20 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {
 /**
  * A schema for `DateTime.Utc` values.
  *
+ * **When to use**
+ *
+ * Use to validate existing `DateTime.Utc` schema values and use the default JSON
+ * codec that represents them as UTC ISO strings.
+ *
  * **Details**
  *
- * Default JSON serializer:
+ * The default JSON codec decodes UTC ISO strings into `DateTime.Utc` values and
+ * encodes `DateTime.Utc` values as UTC ISO strings.
  *
- * - encodes `DateTime.Utc` as a UTC ISO string
+ * @see {@link DateTimeUtcFromString} for decoding date-time strings into UTC values
+ * @see {@link DateTimeUtcFromDate} for decoding JavaScript Date values into UTC values
+ * @see {@link DateTimeUtcFromMillis} for decoding epoch milliseconds into UTC values
+ * @see {@link DateTimeZoned} for preserving zoned DateTime values
  *
  * @category DateTime
  * @since 3.10.0
@@ -11028,6 +11218,11 @@ export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
 /**
  * A transformation schema that decodes a `Date` into a `DateTime.Utc`.
  *
+ * **When to use**
+ *
+ * Use when a boundary provides valid JavaScript `Date` objects but the decoded
+ * model should use `DateTime.Utc`.
+ *
  * **Details**
  *
  * Decoding:
@@ -11035,6 +11230,11 @@ export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
  *
  * Encoding:
  * - A `DateTime.Utc` is encoded as a `Date`
+ *
+ * @see {@link DateTimeUtc} for validating values that are already `DateTime.Utc`
+ * @see {@link DateTimeUtcFromString} for decoding date-time strings into UTC values
+ * @see {@link DateTimeUtcFromMillis} for decoding epoch milliseconds into UTC values
+ * @see {@link DateValid} for validating Date instances without converting them
  *
  * @category DateTime
  * @since 3.12.0
@@ -11659,7 +11859,7 @@ type MissingSelfGeneric<Usage extends string> =
 /**
  * Creates a schema-backed class whose constructor validates input against a
  * {@link Struct} schema. Construction throws a {@link SchemaError} on invalid
- * input (unless `disableChecks` is set in the options).
+ * input.
  *
  * **When to use**
  *
@@ -11671,6 +11871,10 @@ type MissingSelfGeneric<Usage extends string> =
  *
  * Pass the desired class type as the first type parameter. The second optional
  * type parameter can be used to add nominal brands.
+ *
+ * **Gotchas**
+ *
+ * Passing `disableChecks` in the options skips constructor validation.
  *
  * **Example** (Basic class)
  *
@@ -12206,7 +12410,7 @@ export function toRepresentation(schema: Top): SchemaRepresentation.Document {
 /**
  * Options for {@link toJsonSchemaDocument}.
  *
- * @category models
+ * @category JsonSchema
  * @since 4.0.0
  */
 export interface ToJsonSchemaOptions {

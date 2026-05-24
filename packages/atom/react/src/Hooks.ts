@@ -75,10 +75,15 @@ const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Ato
 /**
  * Seeds initial atom values in the current React atom registry.
  *
- * **Details**
+ * **When to use**
  *
- * Each atom is initialized at most once for a given registry, so subsequent
- * renders do not overwrite values that have already been established.
+ * Use to seed atom values from a React component after the current registry
+ * already exists.
+ *
+ * **Gotchas**
+ *
+ * Each atom is initialized at most once for a given registry by this hook, so
+ * later calls for the same atom in that registry are ignored.
  *
  * @category hooks
  * @since 4.0.0
@@ -101,6 +106,19 @@ export const useAtomInitialValues = (initialValues: Iterable<readonly [Atom.Atom
 /**
  * Subscribes to an atom in the current React registry and returns its current
  * value, optionally mapped through a selector.
+ *
+ * **When to use**
+ *
+ * Use when a React component needs to render from an atom value without also
+ * returning a setter.
+ *
+ * **Details**
+ *
+ * When a selector is provided, the hook maps the atom before subscribing so the
+ * component reads the selected value from the current `RegistryContext`.
+ *
+ * @see {@link useAtom} for reading and updating a writable atom from one component
+ * @see {@link useAtomRef} for reading an `AtomRef` directly
  *
  * @category hooks
  * @since 4.0.0
@@ -185,6 +203,19 @@ export const useAtomMount = <A>(atom: Atom.Atom<A>): void => {
 /**
  * Mounts a writable atom and returns a setter without subscribing to its value.
  *
+ * **When to use**
+ *
+ * Use when a React component needs to update a writable atom without rendering
+ * from that atom's value.
+ *
+ * **Details**
+ *
+ * The hook mounts the atom and returns a setter. In value mode the setter
+ * accepts a write value or updater function; for `AsyncResult` atoms, `promise`
+ * and `promiseExit` modes return a promise for the success value or full `Exit`.
+ *
+ * @see {@link useAtom} for reading and updating the same writable atom
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -213,6 +244,18 @@ export const useAtomSet = <
 /**
  * Mounts an atom and returns a callback that refreshes it in the current React
  * registry.
+ *
+ * **When to use**
+ *
+ * Use to expose a React callback that requests a refresh for an atom without
+ * reading or writing its value.
+ *
+ * **Details**
+ *
+ * The hook uses the current `RegistryContext`, mounts the atom for the
+ * component lifetime, and returns a callback that calls `registry.refresh`.
+ *
+ * @see {@link useAtomMount} for mounting an atom without returning a refresh callback
  *
  * @category hooks
  * @since 4.0.0
@@ -307,6 +350,23 @@ function atomResultOrSuspend<A, E>(
  * Reads an `AsyncResult` atom through React Suspense, suspending while the
  * result is initial or configured as waiting.
  *
+ * **When to use**
+ *
+ * Use when a React component should render only after an `AsyncResult` atom has
+ * left its initial state, with loading delegated to a Suspense boundary.
+ *
+ * **Details**
+ *
+ * `suspendOnWaiting` defaults to `false`. When `includeFailure` is `true`, a
+ * failure result is returned instead of being thrown.
+ *
+ * **Gotchas**
+ *
+ * Without `includeFailure`, failure results are thrown with
+ * `Cause.squash(result.cause)`, so callers need an error boundary for failures.
+ *
+ * @see {@link useAtomValue} for reading the raw `AsyncResult` value without Suspense
+ *
  * @category hooks
  * @since 4.0.0
  */
@@ -328,6 +388,19 @@ export const useAtomSuspense = <A, E, const IncludeFailure extends boolean = fal
 /**
  * Subscribes a callback to an atom in the current React registry for the
  * component lifetime.
+ *
+ * **When to use**
+ *
+ * Use when a React component needs to run a callback for atom changes without
+ * reading the atom value during render.
+ *
+ * **Details**
+ *
+ * The subscription is installed in a React effect and cleaned up on unmount or
+ * dependency change. When `options.immediate` is enabled, the callback receives
+ * the current value when the effect subscribes.
+ *
+ * @see {@link useAtomValue} for reading an atom value during render instead of running a callback
  *
  * @category hooks
  * @since 4.0.0
@@ -394,6 +467,20 @@ export const useAtomRefProp = <A, K extends keyof A>(ref: AtomRef.AtomRef<A>, pr
 /**
  * Subscribes to a property ref derived from an atom ref and returns its current
  * value.
+ *
+ * **When to use**
+ *
+ * Use when a React component needs only the current value of one property from
+ * an object-shaped `AtomRef`.
+ *
+ * **Details**
+ *
+ * The hook composes `useAtomRefProp(ref, prop)` with `useAtomRef`, so the
+ * property ref is memoized for the `[ref, prop]` pair and then subscribed
+ * through `ref.subscribe`.
+ *
+ * @see {@link useAtomRefProp} for returning the property ref directly
+ * @see {@link useAtomRef} for subscribing to a whole atom ref value
  *
  * @category hooks
  * @since 4.0.0

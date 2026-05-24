@@ -102,11 +102,24 @@ export declare namespace ManagedRuntime {
  * A runtime built from a layer that can execute effects requiring that layer's
  * services.
  *
+ * **When to use**
+ *
+ * Use as the reusable runtime value returned by `make` when application entry
+ * points or integration code need to run many effects against the same
+ * layer-built services.
+ *
  * **Details**
  *
- * The runtime builds and caches its service context, owns the scope for
- * resources acquired by the layer, and should be disposed with `dispose` or
- * `disposeEffect` when it is no longer needed.
+ * The runtime builds and caches its service context and owns the scope for
+ * resources acquired by the layer.
+ *
+ * **Gotchas**
+ *
+ * Dispose the runtime with `dispose` or `disposeEffect` when it is no longer
+ * needed.
+ *
+ * @see {@link make} for constructing a managed runtime from a layer
+ * @see {@link Layer.build} for lower-level scoped layer construction
  *
  * @category models
  * @since 2.0.0

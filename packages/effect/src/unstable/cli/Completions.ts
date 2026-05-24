@@ -88,6 +88,19 @@ export type ArgumentType =
 /**
  * Generates a shell completion script for a command descriptor.
  *
+ * **When to use**
+ *
+ * Use to produce an installable completion script when you already have a
+ * `CommandDescriptor`.
+ *
+ * **Details**
+ *
+ * Dispatches by `shell` to Bash, Zsh, or Fish generation and returns a static
+ * script string for `executableName`.
+ *
+ * @see {@link Shell} for supported shell names
+ * @see {@link CommandDescriptor} for the command shape used by completion generation
+ *
  * @category constructors
  * @since 4.0.0
  */

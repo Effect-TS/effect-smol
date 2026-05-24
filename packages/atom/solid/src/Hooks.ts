@@ -38,10 +38,16 @@ const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<Atom.Ato
 /**
  * Seeds initial atom values in the current Solid atom registry.
  *
+ * **When to use**
+ *
+ * Use to seed atom values from a Solid component after the current registry
+ * already exists.
+ *
  * **Details**
  *
- * Each atom is initialized at most once for a given registry, so subsequent
- * computations do not overwrite values that have already been established.
+ * For each atom in the current registry, this hook applies the first value
+ * supplied through the hook. Later calls for the same atom in that registry are
+ * ignored.
  *
  * @category hooks
  * @since 4.0.0
@@ -343,6 +349,24 @@ export const useAtomRefProp = <A, K extends keyof A>(
 /**
  * Returns a Solid accessor for the value of a property ref derived from an atom
  * ref.
+ *
+ * **When to use**
+ *
+ * Use when a Solid component or computation needs the value of one property
+ * from an object-shaped `AtomRef` without keeping the intermediate property ref.
+ *
+ * **Details**
+ *
+ * The hook composes `useAtomRefProp(ref, prop)` with `useAtomRef`, returning a
+ * Solid accessor for the selected property value.
+ *
+ * **Gotchas**
+ *
+ * The `prop` argument is captured as a plain value. Recreate the hook call when
+ * the property key should change.
+ *
+ * @see {@link useAtomRef} for subscribing to a whole atom ref value
+ * @see {@link useAtomRefProp} for returning the property ref directly
  *
  * @category hooks
  * @since 4.0.0

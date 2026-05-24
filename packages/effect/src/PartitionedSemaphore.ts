@@ -390,12 +390,25 @@ export const capacity = <K>(self: PartitionedSemaphore<K>): number => self.capac
  * Returns an effect that acquires the requested number of permits for the
  * given partition key.
  *
+ * **When to use**
+ *
+ * Use to manually acquire permits for a partition when acquisition and release
+ * must be controlled as separate effects.
+ *
  * **Details**
  *
  * If enough permits are available, the effect completes immediately. Otherwise
- * it waits until released permits are assigned to this partition. Requests for
- * more permits than the semaphore capacity never complete. Requests for zero
- * or a negative number of permits complete without acquiring anything.
+ * it waits until released permits are assigned to this partition.
+ *
+ * **Gotchas**
+ *
+ * Requests for more permits than the semaphore capacity never complete.
+ * Requests for zero or a negative number of permits complete without acquiring
+ * anything.
+ *
+ * @see {@link release} for manually returning permits to the shared pool
+ * @see {@link withPermits} for automatic acquire and release around an effect
+ * @see {@link withPermit} for acquiring exactly one permit around an effect
  *
  * @category combinators
  * @since 4.0.0
@@ -409,11 +422,20 @@ export const take: {
  * Returns an effect that releases permits back to the shared pool and returns
  * the current available permit count.
  *
+ * **When to use**
+ *
+ * Use to manually return permits acquired with `take` when a lower-level
+ * partitioned permit protocol needs explicit release control.
+ *
  * **Details**
  *
  * Released permits are first assigned to waiting partitions in round-robin
  * order. Only permits not needed by waiters increase the available count,
  * which is capped at the semaphore capacity.
+ *
+ * @see {@link take} for manual acquisition
+ * @see {@link withPermits} for automatic acquire and release around an effect
+ * @see {@link available} for reading the permit count without releasing
  *
  * @category combinators
  * @since 4.0.0
@@ -427,12 +449,27 @@ export const release: {
  * Runs an effect after acquiring permits for a partition, then releases those
  * permits when the effect exits.
  *
+ * **When to use**
+ *
+ * Use to guard weighted partitioned work with automatic permit acquisition and
+ * release around an effect.
+ *
  * **Details**
  *
  * Permit acquisition may wait according to `take` semantics. Once acquired,
  * the permits are released even if the wrapped effect fails or is interrupted.
+ *
+ * **Gotchas**
+ *
+ * Requests for more permits than the semaphore capacity never complete.
  * Requests for zero or a negative number of permits run the effect without
  * acquiring anything.
+ *
+ * @see {@link withPermit} for the single-permit variant
+ * @see {@link withPermitsIfAvailable} for running only when permits are
+ * immediately available
+ * @see {@link take} for manual acquisition
+ * @see {@link release} for manual release
  *
  * @category combinators
  * @since 4.0.0
@@ -462,10 +499,21 @@ export const withPermits: {
  * Runs an effect after acquiring one permit for a partition, then releases the
  * permit when the effect exits.
  *
+ * **When to use**
+ *
+ * Use to guard partitioned work with exactly one permit and automatic release
+ * when the effect exits.
+ *
  * **Details**
  *
  * This is the single-permit variant of `withPermits`. The permit is released
  * even if the wrapped effect fails or is interrupted.
+ *
+ * @see {@link withPermits} for acquiring a weighted number of permits
+ * @see {@link withPermitsIfAvailable} for running only when permits are
+ * immediately available
+ * @see {@link take} for manual acquisition
+ * @see {@link release} for manual release
  *
  * @category combinators
  * @since 4.0.0
@@ -490,12 +538,20 @@ export const withPermit: {
  * Runs an effect only when the requested permits can be acquired immediately,
  * returning the result in `Some`.
  *
+ * **When to use**
+ *
+ * Use when guarded work should run only if the shared permit pool can provide
+ * the requested permits immediately.
+ *
  * **Details**
  *
  * If the permits are not available, the effect is not run and the result is
  * `None`. When permits are acquired, they are released after the wrapped
  * effect completes, fails, or is interrupted. Requests for zero or a negative
  * number of permits run the effect and return `Some`.
+ *
+ * @see {@link withPermits} for the keyed variant that waits until permits are
+ * available for a partition
  *
  * @category combinators
  * @since 4.0.0

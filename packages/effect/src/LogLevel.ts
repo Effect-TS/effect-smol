@@ -89,6 +89,17 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "
  * Log levels that represent actual message severities, excluding the `All` and
  * `None` sentinel levels.
  *
+ * **When to use**
+ *
+ * Use when typing emitted log message severities, such as explicit log calls,
+ * current log level references, or error-report severity annotations, where
+ * `All` and `None` are not valid values.
+ *
+ * @see {@link LogLevel} for the wider log-level type that also accepts the
+ * `All` and `None` sentinel levels
+ * @see {@link values} for the runtime list of all accepted `LogLevel` values,
+ * including sentinels
+ *
  * @category models
  * @since 4.0.0
  */

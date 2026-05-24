@@ -1838,11 +1838,20 @@ export const annotations: <E>(self: Cause<E>) => Context.Context<never> = effect
 /**
  * `Context` key for the stack frame captured at the point of failure.
  *
+ * **When to use**
+ *
+ * Use to read the failure stack-frame annotation from a `Reason` when building
+ * diagnostics, logging, or custom cause renderers.
+ *
  * **Details**
  *
  * The runtime annotates every reason with this when a stack frame is
  * available. Retrieve it via
  * `Context.get(Cause.reasonAnnotations(reason), Cause.StackTrace)`.
+ *
+ * @see {@link reasonAnnotations} for reading annotations from a single reason
+ * @see {@link annotations} for reading merged annotations from a cause
+ * @see {@link InterruptorStackTrace} for the interrupt-specific stack-frame annotation
  *
  * @category annotations
  * @since 4.0.0
@@ -1853,9 +1862,18 @@ export class StackTrace extends Context.Service<StackTrace, StackFrame>()("effec
  * `Context` key for the stack frame captured at the point of
  * interruption.
  *
+ * **When to use**
+ *
+ * Use when attaching or reading the stack-frame annotation consumed by
+ * interrupt-only cause rendering.
+ *
  * **Details**
  *
  * Similar to `StackTrace` but specific to `Interrupt` reasons.
+ *
+ * @see {@link StackTrace} for stack frames attached to failures
+ * @see {@link reasonAnnotations} for reading annotations from a single reason
+ * @see {@link annotate} for attaching annotations to a cause
  *
  * @category annotations
  * @since 4.0.0

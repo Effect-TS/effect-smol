@@ -107,6 +107,13 @@ export type TypeId = "~effect/Stream"
  * Runtime identifier stored on `Stream` values and used by `isStream` to
  * recognize them.
  *
+ * **When to use**
+ *
+ * Use when implementing low-level `Stream` integrations that need direct access
+ * to the runtime brand checked by `isStream`.
+ *
+ * @see {@link isStream} for the public guard that checks this identifier
+ *
  * @category Type Identifiers
  * @since 4.0.0
  */

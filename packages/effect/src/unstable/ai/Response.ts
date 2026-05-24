@@ -1889,6 +1889,11 @@ export interface FilePartMetadata extends ProviderMetadata {}
 /**
  * Schema for validation and encoding of file parts.
  *
+ * **Details**
+ *
+ * Decoded `data` is a `Uint8Array`; encoded `data` is a base64 string through
+ * `Schema.Uint8ArrayFromBase64`.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -1981,6 +1986,20 @@ export interface DocumentSourcePartMetadata extends ProviderMetadata {}
 
 /**
  * Schema for validation and encoding of document source parts.
+ *
+ * **When to use**
+ *
+ * Use to validate or encode document source references returned as response
+ * content parts.
+ *
+ * **Details**
+ *
+ * Validates `type: "source"`, `sourceType: "document"`, required `id`,
+ * `mediaType`, and `title`, optional `fileName`, and the metadata fields
+ * inherited from response parts.
+ *
+ * @see {@link UrlSourcePart} for URL source references
+ * @see {@link DocumentSourcePartEncoded} for the encoded document source representation
  *
  * @category schemas
  * @since 4.0.0
@@ -2471,7 +2490,12 @@ export interface FinishPartEncoded extends BasePartEncoded<"finish", FinishPartM
 export interface FinishPartMetadata extends ProviderMetadata {}
 
 /**
- * Schema for validation and encoding of finish parts.
+ * Runtime schema and codec for finish response parts.
+ *
+ * **Details**
+ *
+ * Validates `type: "finish"`, `reason` through `FinishReason`, `usage`
+ * through `Usage`, and optional provider HTTP response details.
  *
  * @category schemas
  * @since 4.0.0
@@ -2547,6 +2571,16 @@ export interface ErrorPartMetadata extends ProviderMetadata {}
 
 /**
  * Schema for validation and encoding of error parts.
+ *
+ * **Details**
+ *
+ * Validates and encodes error parts with `type: "error"` and an `error` payload
+ * kept as `unknown`.
+ *
+ * **Gotchas**
+ *
+ * The decoded `error` value is not guaranteed to be an `Error`; narrow it before
+ * reading `Error`-specific fields.
  *
  * @category schemas
  * @since 4.0.0

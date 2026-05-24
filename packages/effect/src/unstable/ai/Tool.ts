@@ -1860,6 +1860,18 @@ export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Str
 /**
  * Returns the strict mode setting for a tool, or `undefined` if not set.
  *
+ * **When to use**
+ *
+ * Use to inspect the per-tool strict JSON Schema override attached through
+ * `Tool.Strict`.
+ *
+ * **Gotchas**
+ *
+ * `undefined` means no per-tool override is set. It is distinct from `false`;
+ * provider or global configuration determines the final behavior.
+ *
+ * @see {@link Strict} for the annotation read by this helper
+ *
  * @category utils
  * @since 4.0.0
  */
@@ -1942,8 +1954,17 @@ function filter(obj: any) {
 }
 
 /**
- * **Unsafe**: This function will throw an error if an insecure property is
- * found in the parsed JSON or if the provided JSON text is not parseable.
+ * Parses JSON text while rejecting prototype-pollution keys.
+ *
+ * **When to use**
+ *
+ * Use when thrown parse and security failures are acceptable.
+ *
+ * **Gotchas**
+ *
+ * Invalid JSON throws through `JSON.parse`. Parsed objects containing an own
+ * `__proto__` property or a dangerous `constructor.prototype` shape throw a
+ * `SyntaxError`.
  *
  * @category utils
  * @since 4.0.0
@@ -1974,6 +1995,17 @@ export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never>
 
 /**
  * A schema for tools that accept no parameters.
+ *
+ * **When to use**
+ *
+ * Use when a tool needs an explicit no-parameter `parameters` schema.
+ *
+ * **Details**
+ *
+ * This is `Schema.Record(Schema.String, Schema.Never)`, representing an empty
+ * object parameter shape with no additional properties.
+ *
+ * @see {@link make} for the tool constructor that defaults omitted parameters to this schema
  *
  * @category schemas
  * @since 4.0.0

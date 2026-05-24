@@ -123,10 +123,25 @@ const RedactedOpenAiHeaders = {
 /**
  * Constructs an OpenAI-compatible client service from explicit options.
  *
+ * **When to use**
+ *
+ * Use to construct the OpenAI-compatible client service inside an effect when
+ * you need the service value directly.
+ *
  * **Details**
  *
- * The returned service applies the configured base URL, authentication, and
- * OpenAI organization/project headers to the underlying HTTP client.
+ * The returned service uses the current `HttpClient`, prepends `apiUrl` or
+ * `https://api.openai.com/v1`, adds authentication and OpenAI
+ * organization/project headers, accepts JSON responses, and applies
+ * `transformClient` when provided.
+ *
+ * **Gotchas**
+ *
+ * A scoped `OpenAiConfig.withClientTransform` is applied when request helpers
+ * run, after the `transformClient` option supplied to `make`.
+ *
+ * @see {@link layer} for providing this client from explicit options
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category constructors
  * @since 4.0.0

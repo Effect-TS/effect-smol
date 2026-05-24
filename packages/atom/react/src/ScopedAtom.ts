@@ -24,7 +24,7 @@ import type * as Atom from "effect/unstable/reactivity/Atom"
 import * as React from "react"
 
 /**
- * Type identifier for ScopedAtom.
+ * Literal type used as the `ScopedAtom` type identifier.
  *
  * **Details**
  *
@@ -38,6 +38,11 @@ export type TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
  * Type identifier for ScopedAtom.
+ *
+ * **Details**
+ *
+ * Used as the computed property key and marker value stored on `ScopedAtom`
+ * objects.
  *
  * @category type IDs
  * @since 4.0.0

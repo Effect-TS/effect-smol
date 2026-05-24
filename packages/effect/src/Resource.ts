@@ -50,6 +50,16 @@ const TypeId = "~effect/Resource" as const
  * A `Resource` is a value loaded into memory that can be refreshed manually or
  * automatically according to a schedule.
  *
+ * **When to use**
+ *
+ * Use to model a scoped value whose latest acquisition result is kept available
+ * for repeated reads and can be refreshed manually or on a schedule.
+ *
+ * @see {@link manual} for creating a resource refreshed by the caller
+ * @see {@link auto} for creating a resource refreshed according to a schedule
+ * @see {@link get} for reading the currently stored acquisition result
+ * @see {@link refresh} for forcing a new acquisition
+ *
  * @category models
  * @since 2.0.0
  */

@@ -34,7 +34,7 @@ const TypeId = "~effect/cluster/ClusterError"
 
 /**
  * Represents an error that occurs when a Runner receives a message for an entity
- * that it is not assigned to it.
+ * that is not assigned to the receiving runner.
  *
  * @category errors
  * @since 4.0.0
@@ -63,8 +63,13 @@ export class EntityNotAssignedToRunner
 }
 
 /**
- * Represents an error that occurs when a message fails to be properly
- * deserialized by an entity.
+ * Represents an error that occurs when a message fails at a schema
+ * serialization or deserialization boundary.
+ *
+ * **Details**
+ *
+ * `cause` carries the underlying failure. `refail` maps encode and decode
+ * failures into `MalformedMessage` values.
  *
  * @category errors
  * @since 4.0.0
@@ -176,7 +181,16 @@ export class RunnerUnavailable extends Schema.ErrorClass<RunnerUnavailable>(`${T
 }
 
 /**
- * Represents an error that occurs when the entities mailbox is full.
+ * Represents an error that occurs when the entity mailbox is full.
+ *
+ * **Details**
+ *
+ * Carries the `address` whose bounded mailbox is at capacity.
+ *
+ * **Gotchas**
+ *
+ * Volatile requests fail immediately. Persisted or durable messages are retried
+ * or resumed from storage when the mailbox is full.
  *
  * @category errors
  * @since 4.0.0
@@ -203,8 +217,12 @@ export class MailboxFull extends Schema.ErrorClass<MailboxFull>(`${TypeId}/Mailb
 }
 
 /**
- * Represents an error that occurs when the entity is already processing a
- * request.
+ * Represents an error that occurs when the same request envelope is already
+ * being processed.
+ *
+ * **Details**
+ *
+ * Carries the `address` and `envelopeId` for the affected request envelope.
  *
  * @category errors
  * @since 4.0.0

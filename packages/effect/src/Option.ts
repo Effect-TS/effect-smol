@@ -149,6 +149,13 @@ export interface None<out A> extends Pipeable, Inspectable {
  * Iterator protocol used to yield an `Option` inside {@link gen}, returning the
  * contained value type back to the generator.
  *
+ * **When to use**
+ *
+ * Use when defining or typing `[Symbol.iterator]()` for `Option` values so
+ * `yield*` can pass the contained value type back into `Option.gen`.
+ *
+ * @see {@link gen} for writing generator-based `Option` code that consumes this iterator protocol
+ *
  * @category Generators
  * @since 4.0.0
  */

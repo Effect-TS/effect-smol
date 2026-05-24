@@ -69,6 +69,23 @@ const TypeId = "~effect/collections/Graph"
 /**
  * Node index for node identification using plain numbers.
  *
+ * **When to use**
+ *
+ * Use when storing or passing the stable identifier of a graph node between
+ * `Graph` operations.
+ *
+ * **Details**
+ *
+ * `addNode` allocates node identifiers from the graph's next node index.
+ *
+ * **Gotchas**
+ *
+ * A `NodeIndex` is an identifier, not an array offset. Removed node identifiers
+ * are not reused.
+ *
+ * @see {@link EdgeIndex} for edge identifiers instead of node identifiers
+ * @see {@link addNode} for creating node identifiers
+ *
  * @category models
  * @since 3.18.0
  */
@@ -77,6 +94,21 @@ export type NodeIndex = number
 /**
  * Edge index for edge identification using plain numbers.
  *
+ * **When to use**
+ *
+ * Use when you need to keep the identifier for a graph edge so you can later
+ * read, update, remove, or compare that edge.
+ *
+ * **Gotchas**
+ *
+ * An `EdgeIndex` is an identifier, not an array offset. Removed edge
+ * identifiers are not reused.
+ *
+ * @see {@link NodeIndex} for node identifiers instead of edge identifiers
+ * @see {@link Edge} for the edge value addressed by this identifier
+ * @see {@link addEdge} for creating edge identifiers
+ * @see {@link getEdge} for reading edges by identifier
+ *
  * @category models
  * @since 3.18.0
  */
@@ -84,6 +116,15 @@ export type EdgeIndex = number
 
 /**
  * Edge data containing source, target, and user data.
+ *
+ * **When to use**
+ *
+ * Use as the graph edge value returned by `getEdge` and `edges` when you need
+ * the source node, target node, and stored edge data together.
+ *
+ * @see {@link getEdge} for reading a single edge by identifier
+ * @see {@link addEdge} for adding edges to a graph
+ * @see {@link edges} for iterating graph edges
  *
  * @category models
  * @since 3.18.0
@@ -96,6 +137,14 @@ export class Edge<E> extends Data.Class<{
 
 /**
  * Graph type for distinguishing directed and undirected graphs.
+ *
+ * **When to use**
+ *
+ * Use when writing graph-polymorphic types or helpers that need to preserve
+ * whether a graph is directed or undirected.
+ *
+ * @see {@link Graph} for immutable graphs parameterized by kind
+ * @see {@link MutableGraph} for mutable graphs parameterized by kind
  *
  * @category models
  * @since 3.18.0
@@ -127,6 +176,15 @@ export interface Proto<out N, out E> extends Iterable<readonly [NodeIndex, N]>, 
 /**
  * Immutable graph interface.
  *
+ * **When to use**
+ *
+ * Use as the immutable graph model for code that queries, traverses,
+ * transforms, or analyzes graph structure without mutating it.
+ *
+ * @see {@link MutableGraph} for the mutable counterpart used inside mutation scopes
+ * @see {@link DirectedGraph} for a `Graph` fixed to directed edges
+ * @see {@link UndirectedGraph} for a `Graph` fixed to undirected edges
+ *
  * @category models
  * @since 3.18.0
  */
@@ -138,6 +196,16 @@ export interface Graph<out N, out E, T extends Kind = "directed"> extends Proto<
 /**
  * Mutable graph interface.
  *
+ * **When to use**
+ *
+ * Use when adding, removing, or updating nodes and edges inside a graph
+ * mutation scope.
+ *
+ * @see {@link Graph} for the immutable graph interface
+ * @see {@link mutate} for scoped mutation of an immutable graph
+ * @see {@link beginMutation} for opening a mutable graph manually
+ * @see {@link endMutation} for returning to an immutable graph
+ *
  * @category models
  * @since 3.18.0
  */
@@ -147,7 +215,22 @@ export interface MutableGraph<out N, out E, T extends Kind = "directed"> extends
 }
 
 /**
- * Directed graph type alias.
+ * Immutable graph type for source-to-target relationships.
+ *
+ * **When to use**
+ *
+ * Use as the immutable graph type when edge direction is part of the model and
+ * traversal or neighbor queries should follow source-to-target edges.
+ *
+ * **Details**
+ *
+ * `DirectedGraph<N, E>` is a `Graph<N, E, "directed">` with node data of type
+ * `N` and edge data of type `E`.
+ *
+ * @see {@link directed} for constructing directed graphs
+ * @see {@link Graph} for the generic immutable graph type
+ * @see {@link UndirectedGraph} for graphs whose edges connect both endpoints
+ * @see {@link MutableDirectedGraph} for the mutable directed graph type
  *
  * @category models
  * @since 3.18.0
@@ -155,7 +238,20 @@ export interface MutableGraph<out N, out E, T extends Kind = "directed"> extends
 export type DirectedGraph<N, E> = Graph<N, E, "directed">
 
 /**
- * Undirected graph type alias.
+ * Immutable graph type for relationships without source-to-target direction.
+ *
+ * **When to use**
+ *
+ * Use when modeling relationships where each edge connects both endpoints
+ * without a source-to-target direction.
+ *
+ * **Details**
+ *
+ * `UndirectedGraph<N, E>` is a `Graph<N, E, "undirected">`.
+ *
+ * @see {@link undirected} for constructing undirected graphs
+ * @see {@link DirectedGraph} for graphs whose edges have source-to-target direction
+ * @see {@link MutableUndirectedGraph} for the mutable undirected graph type
  *
  * @category models
  * @since 3.18.0
@@ -165,6 +261,15 @@ export type UndirectedGraph<N, E> = Graph<N, E, "undirected">
 /**
  * Mutable directed graph type alias.
  *
+ * **When to use**
+ *
+ * Use when annotating a temporary graph value that can be changed in place and
+ * whose edges have source-to-target direction.
+ *
+ * @see {@link MutableGraph} for the generic mutable graph type
+ * @see {@link DirectedGraph} for the immutable directed graph type
+ * @see {@link MutableUndirectedGraph} for mutable graphs without edge direction
+ *
  * @category models
  * @since 3.18.0
  */
@@ -172,6 +277,15 @@ export type MutableDirectedGraph<N, E> = MutableGraph<N, E, "directed">
 
 /**
  * Mutable undirected graph type alias.
+ *
+ * **When to use**
+ *
+ * Use when annotating a temporary graph value that can be changed in place and
+ * whose edges connect both endpoints without direction.
+ *
+ * @see {@link MutableDirectedGraph} for mutable graphs with directed edges
+ * @see {@link UndirectedGraph} for the immutable undirected graph type
+ * @see {@link MutableGraph} for the generic mutable graph type
  *
  * @category models
  * @since 3.18.0
@@ -264,6 +378,11 @@ const ProtoGraph = {
  * invalid, such as referencing a missing node or using unsupported edge
  * weights.
  *
+ * **When to use**
+ *
+ * Use when handling failures thrown by graph operations that reject invalid
+ * graph structure or unsupported algorithm inputs.
+ *
  * @category errors
  * @since 3.18.0
  */
@@ -281,6 +400,15 @@ const missingNode = (node: number) => new GraphError({ message: `Node ${node} do
 /**
  * Returns `true` if a value has the graph runtime type identifier, narrowing
  * it to a `Graph`.
+ *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a graph value.
+ *
+ * **Gotchas**
+ *
+ * This guard checks the shared graph runtime type identifier and does not
+ * distinguish immutable graphs from mutable graphs.
  *
  * @category guards
  * @since 4.0.0
@@ -2850,10 +2978,26 @@ export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
 /**
  * Result of a shortest path computation.
  *
+ * **When to use**
+ *
+ * Use to read the successful source-to-target shortest path returned by
+ * path-finding algorithms, including the ordered node indices, total distance,
+ * and traversed edge data.
+ *
  * **Details**
  *
  * Contains the node-index path, the total numeric distance, and the edge data
  * encountered along the path.
+ *
+ * **Gotchas**
+ *
+ * `costs` contains original edge data, not the numeric output of the cost
+ * function unless the edge data is numeric.
+ *
+ * @see {@link dijkstra} for shortest paths with non-negative edge costs
+ * @see {@link astar} for heuristic shortest-path search
+ * @see {@link bellmanFord} for shortest paths that may include negative edge weights
+ * @see {@link AllPairsResult} for the all-pairs shortest-path result shape
  *
  * @category models
  * @since 3.18.0
@@ -2867,10 +3011,24 @@ export interface PathResult<E> {
 /**
  * Configuration for finding a shortest path with Dijkstra's algorithm.
  *
+ * **When to use**
+ *
+ * Use when configuring `dijkstra` to find a shortest path between two existing
+ * node indices with non-negative edge costs.
+ *
  * **Details**
  *
  * Specifies the source and target node indices, plus a cost function that maps
  * each edge's data to a non-negative numeric weight.
+ *
+ * **Gotchas**
+ *
+ * `dijkstra` throws a `GraphError` when either endpoint does not exist or when
+ * the cost function returns a negative weight.
+ *
+ * @see {@link dijkstra} for the algorithm that consumes this configuration
+ * @see {@link AstarConfig} for heuristic shortest-path search
+ * @see {@link BellmanFordConfig} for shortest paths that may include negative edge weights
  *
  * @category models
  * @since 3.18.0
@@ -3057,10 +3215,19 @@ export const dijkstra: {
 /**
  * Result of an all-pairs shortest path computation.
  *
+ * **When to use**
+ *
+ * Use when storing or passing around the complete output of `floydWarshall` so
+ * callers can look up shortest distances, node paths, and edge data for any
+ * source and target node pair.
+ *
  * **Details**
  *
  * Contains distance, node-path, and edge-data maps keyed by source and target
  * node indices.
+ *
+ * @see {@link floydWarshall} for computing an all-pairs shortest path result
+ * @see {@link PathResult} for the single source-to-target result shape used by path-finding algorithms
  *
  * @category models
  * @since 3.18.0
@@ -3225,10 +3392,19 @@ export const floydWarshall: {
 /**
  * Configuration for finding a shortest path with the A* algorithm.
  *
+ * **When to use**
+ *
+ * Use when configuring `astar` for point-to-point shortest-path searches where
+ * node data can provide a heuristic estimate toward the target.
+ *
  * **Details**
  *
  * Specifies the source and target node indices, an edge-cost function, and a
  * heuristic that estimates the remaining cost from a node to the target.
+ *
+ * @see {@link astar} for the algorithm that consumes this configuration
+ * @see {@link DijkstraConfig} for shortest paths without a heuristic
+ * @see {@link BellmanFordConfig} for shortest paths that may include negative edge weights
  *
  * @category models
  * @since 3.18.0
@@ -3447,10 +3623,19 @@ export const astar: {
 /**
  * Configuration for finding a shortest path with the Bellman-Ford algorithm.
  *
+ * **When to use**
+ *
+ * Use when configuring `bellmanFord` to find a shortest path where edge
+ * weights may be negative.
+ *
  * **Details**
  *
  * Specifies the source and target node indices, plus a cost function that maps
  * each edge's data to a numeric weight.
+ *
+ * @see {@link bellmanFord} for the algorithm that consumes this configuration
+ * @see {@link DijkstraConfig} for non-negative edge costs
+ * @see {@link AstarConfig} for heuristic shortest-path search
  *
  * @category models
  * @since 3.18.0
@@ -3761,6 +3946,14 @@ export class Walker<T, N> implements Iterable<[T, N]> {
  * Type alias for node iteration using Walker.
  * NodeWalker is represented as Walker<NodeIndex, N>.
  *
+ * **When to use**
+ *
+ * Use as the shared node walker type returned by graph traversal and node
+ * listing APIs.
+ *
+ * @see {@link Walker} for the generic lazy iterator wrapper
+ * @see {@link EdgeWalker} for edge iterators
+ *
  * @category models
  * @since 3.18.0
  */
@@ -3769,6 +3962,16 @@ export type NodeWalker<N> = Walker<NodeIndex, N>
 /**
  * Type alias for edge iteration using Walker.
  * EdgeWalker is represented as Walker<EdgeIndex, Edge<E>>.
+ *
+ * **When to use**
+ *
+ * Use to type helpers or parameters that consume edge iterators returned by
+ * `Graph` APIs, where each item is keyed by an `EdgeIndex` and carries the
+ * full `Edge`.
+ *
+ * @see {@link Walker} for the generic lazy iterator wrapper
+ * @see {@link NodeWalker} for node iterators
+ * @see {@link edges} for creating edge walkers
  *
  * @category models
  * @since 3.18.0
@@ -3851,11 +4054,25 @@ export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>
 /**
  * Configuration for DFS, BFS, and postorder graph traversals.
  *
+ * **When to use**
+ *
+ * Use to configure the starting node indices and edge-following direction for
+ * lazy graph traversals.
+ *
  * **Details**
  *
  * `start` supplies the node indices where traversal begins. If it is omitted,
  * the iterator is empty. `direction` chooses whether traversal follows
  * outgoing or incoming edges.
+ *
+ * **Gotchas**
+ *
+ * Traversal creation throws a `GraphError` when any configured `start` node
+ * does not exist.
+ *
+ * @see {@link dfs} for depth-first traversal
+ * @see {@link bfs} for breadth-first traversal
+ * @see {@link dfsPostOrder} for depth-first postorder traversal
  *
  * @category models
  * @since 3.18.0
@@ -4060,11 +4277,18 @@ export const bfs: {
 /**
  * Configuration for the topological sort iterator.
  *
+ * **When to use**
+ *
+ * Use to seed a topological sort with specific initial node indices instead of
+ * starting from every zero in-degree node.
+ *
  * **Details**
  *
  * `initials` optionally supplies the node indices used as initial queue
  * entries. When omitted, topological sorting starts from all nodes with zero
  * in-degree.
+ *
+ * @see {@link topo} for the iterator that consumes this configuration
  *
  * @category models
  * @since 3.18.0
@@ -4415,11 +4639,19 @@ export const edges = <N, E, T extends Kind = "directed">(
 /**
  * Configuration for selecting external nodes.
  *
+ * **When to use**
+ *
+ * Use to configure how `externals` identifies graph boundary nodes when you
+ * need sinks with no outgoing edges or sources with no incoming edges.
+ *
  * **Details**
  *
  * `direction` chooses which missing edge direction makes a node external:
  * `"outgoing"` selects nodes with no outgoing edges, and `"incoming"` selects
- * nodes with no incoming edges.
+ * nodes with no incoming edges. If omitted, `direction` defaults to
+ * `"outgoing"`.
+ *
+ * @see {@link externals} for the iterator that consumes this configuration
  *
  * @category models
  * @since 3.18.0

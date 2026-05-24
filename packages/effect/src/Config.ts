@@ -504,6 +504,14 @@ export const option = <A>(self: Config<A>): Config<Option.Option<A>> =>
 /**
  * Extracts the successfully parsed value type from a `Config`.
  *
+ * **When to use**
+ *
+ * Use to derive the parsed value type from an existing `Config` value when
+ * declaring reusable config-driven types.
+ *
+ * @see {@link Config} for the config type whose parsed value is extracted
+ * @see {@link Effect.Success} for extracting the success type from any `Effect`
+ *
  * @category utility types
  * @since 2.5.0
  */

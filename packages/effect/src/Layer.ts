@@ -55,6 +55,12 @@ const TypeId = "~effect/Layer"
 /**
  * A `Layer` describes how to build one or more services for dependency injection.
  *
+ * **When to use**
+ *
+ * Use to model construction of application services for dependency injection,
+ * especially when services have dependencies, can fail during construction, or
+ * need scoped setup and release.
+ *
  * **Details**
  *
  * A `Layer<ROut, E, RIn>` represents `ROut` as the services this layer
@@ -118,10 +124,21 @@ export interface Variance<in ROut, out E, out RIn> {
 /**
  * A type-level constraint for working with any `Layer` type.
  *
+ * **When to use**
+ *
+ * Use to constrain generic parameters or layer collections to any `Layer`
+ * value while preserving its provided, error, and required service types for
+ * inference.
+ *
  * **Details**
  *
  * This interface is used to constrain generic types to `Layer` values without
  * specifying exact type parameters.
+ *
+ * @see {@link Layer} for the concrete layer interface
+ * @see {@link Services} for extracting required services from a layer type
+ * @see {@link Error} for extracting construction errors from a layer type
+ * @see {@link Success} for extracting provided services from a layer type
  *
  * @category utility types
  * @since 3.9.0
@@ -136,6 +153,14 @@ export interface Any {
 /**
  * Extracts the service requirements (`RIn`) from a `Layer` type.
  *
+ * **When to use**
+ *
+ * Use to derive the dependency requirements of a generic or inferred `Layer`
+ * without restating its `RIn` type parameter.
+ *
+ * @see {@link Success} for extracting the services provided by the same `Layer`
+ * @see {@link Error} for extracting the construction failure type from the same `Layer`
+ *
  * @category utility types
  * @since 4.0.0
  */
@@ -145,12 +170,28 @@ export type Services<T extends Any> = T extends infer L
 /**
  * Extracts the error type (`E`) from a `Layer` type.
  *
+ * **When to use**
+ *
+ * Use to derive a layer construction error type for helper types, wrappers, or
+ * APIs that preserve a layer failure channel.
+ *
+ * @see {@link Success} for extracting the services provided by the same `Layer`
+ * @see {@link Services} for extracting the dependency requirements of the same `Layer`
+ *
  * @category utility types
  * @since 2.0.0
  */
 export type Error<T extends Any> = T extends Layer<infer _ROut, infer _E, infer _RIn> ? _E : never
 /**
  * Extracts the service output type (`ROut`) from a `Layer` type.
+ *
+ * **When to use**
+ *
+ * Use to derive the services provided by an existing or generic `Layer` without
+ * restating its `ROut` type parameter.
+ *
+ * @see {@link Error} for extracting the layer construction error type instead
+ * @see {@link Services} for extracting the layer input service requirements instead
  *
  * @category utility types
  * @since 2.0.0
@@ -2148,11 +2189,19 @@ export const launch = <RIn, E, ROut>(self: Layer<ROut, E, RIn>): Effect<never, E
 /**
  * A utility type for creating partial mocks of services in testing.
  *
+ * **When to use**
+ *
+ * Use to type partial test service implementations where only exercised
+ * effectful members are stubbed.
+ *
  * **Details**
  *
- * This type makes Effect methods and Effect-returning functions optional,
- * while keeping non-Effect properties required. This allows you to provide
- * only the methods you need to test while leaving others unimplemented.
+ * This type makes `Effect`, `Stream`, and `Channel` values and functions
+ * returning them optional, while keeping non-effectful properties required.
+ * This allows you to provide only the methods you need to test while leaving
+ * others unimplemented.
+ *
+ * @see {@link mock} for creating a mock layer from a partial service implementation
  *
  * @category testing
  * @since 3.17.0
@@ -2396,6 +2445,20 @@ export const satisfiesServicesType =
 /**
  * Represents options that can be used to control the behavior of spans created
  * for layers.
+ *
+ * **When to use**
+ *
+ * Use to configure tracing metadata, stack trace capture, and `onEnd`
+ * finalization for spans created by `Layer.span` and `Layer.withSpan` during
+ * layer construction.
+ *
+ * **Details**
+ *
+ * Extends `Tracer.SpanOptions` with `onEnd`, which runs when the layer span
+ * ends as the layer scope closes.
+ *
+ * @see {@link span} for creating a layer span
+ * @see {@link withSpan} for wrapping layer construction in a span
  *
  * @category models
  * @since 4.0.0

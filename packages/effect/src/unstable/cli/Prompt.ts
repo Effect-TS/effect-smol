@@ -158,7 +158,7 @@ export interface ConfirmOptions {
    */
   readonly message: string
   /**
-   * The intitial value of the confirm prompt (defaults to `false`).
+   * The initial value of the confirm prompt (defaults to `false`).
    */
   readonly initial?: boolean
   /**
@@ -708,6 +708,17 @@ const annotateErrorLine = (line: string): string => Ansi.annotate(line, Ansi.com
  * Creates a confirmation prompt that asks the user to choose a boolean yes/no
  * value.
  *
+ * **When to use**
+ *
+ * Use to ask for a yes/no answer that can be submitted directly.
+ *
+ * **Details**
+ *
+ * `initial` defaults to `false`. Enter submits the current default, yes-style
+ * input submits `true`, no-style input submits `false`, and other input beeps.
+ *
+ * @see {@link toggle} for an interactive switch-before-submit boolean prompt
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -766,6 +777,20 @@ export const custom = <State, Output>(
 /**
  * Creates a date prompt that lets the user edit a formatted date value and
  * validates the final `Date` before submission.
+ *
+ * **Details**
+ *
+ * `initial` defaults to the current `Date`, `dateMask` defaults to
+ * `YYYY-MM-DD HH:mm:ss`, mask parsing creates editable date parts plus literal
+ * tokens, `locales` customizes month and weekday labels, and `validate` runs on
+ * submission.
+ *
+ * **Gotchas**
+ *
+ * A supplied `initial` `Date` is edited in place during prompt interaction.
+ * Date edits use JavaScript `Date` setters, so out-of-range typed values can
+ * normalize before validation. If the prompt is meant to be editable,
+ * `dateMask` should contain at least one editable date token.
  *
  * @category constructors
  * @since 4.0.0
