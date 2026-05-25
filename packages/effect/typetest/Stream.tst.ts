@@ -83,7 +83,6 @@ describe("Stream.catchFilter", () => {
     expect(result).type.toBe<Stream.Stream<string, ErrorB, "dep-1">>()
   })
 
-  // Soundness guard for https://github.com/Effect-TS/effect-smol/issues/2142
   it("keeps unhandled errors under an explicit annotation (orElse omitted)", () => {
     // @ts-expect-error is not assignable to type 'Stream<string, never, "dep-1">'
     const _s: Stream.Stream<string, never, "dep-1"> = pipe(
@@ -128,7 +127,6 @@ describe("Stream.catchTags", () => {
     expect(result).type.toBe<Stream.Stream<string, ErrorB, "dep-1">>()
   })
 
-  // Soundness guard for https://github.com/Effect-TS/effect-smol/issues/2142
   it("keeps unhandled errors under an explicit annotation (orElse omitted)", () => {
     // @ts-expect-error is not assignable to type 'Stream<string, never, "dep-1">'
     const _s: Stream.Stream<string, never, "dep-1"> = pipe(
@@ -154,8 +152,6 @@ describe("Stream.catchTags", () => {
 })
 
 describe("Stream.catchReason", () => {
-  // Soundness guard for https://github.com/Effect-TS/effect-smol/issues/2142: a re-failing orElse
-  // (success type `never`) must not erase the other unhandled error tags via conditional distribution.
   it("keeps other error tags when orElse re-fails", () => {
     const result = pipe(
       aiStream,

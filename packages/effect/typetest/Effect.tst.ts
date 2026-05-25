@@ -265,8 +265,6 @@ describe("Effect.catchReasons", () => {
     expect(result).type.toBe<Effect.Effect<string>>()
   })
 
-  // Soundness guard for https://github.com/Effect-TS/effect-smol/issues/2142: a re-failing `orElse`
-  // (success type `never`) must not erase the other unhandled error tags via conditional distribution.
   it("keeps other error tags when orElse re-fails", () => {
     const result = pipe(
       mixedEffect,
@@ -320,8 +318,6 @@ describe("Effect.catchTag", () => {
     expect(result).type.toBe<Effect.Effect<string, SimpleError>>()
   })
 
-  // Regression test for https://github.com/Effect-TS/effect-smol/issues/2142:
-  // an explicit result annotation must not let unhandled errors be silently dropped.
   it("keeps unhandled errors under an explicit annotation (orElse omitted)", () => {
     // @ts-expect-error is not assignable to type 'Effect<string, SimpleError, never>'
     const _program: Effect.Effect<string, SimpleError> = pipe(
@@ -341,7 +337,6 @@ describe("Effect.catchTags", () => {
     expect(result).type.toBe<Effect.Effect<string, OtherError>>()
   })
 
-  // Regression test for https://github.com/Effect-TS/effect-smol/issues/2142
   it("keeps unhandled errors under an explicit annotation (orElse omitted)", () => {
     // @ts-expect-error is not assignable to type 'Effect<string, SimpleError, never>'
     const _program: Effect.Effect<string, SimpleError> = pipe(
@@ -417,7 +412,6 @@ describe("Effect.catchIf", () => {
     expect(result).type.toBe<Effect.Effect<string, SimpleError>>()
   })
 
-  // Regression test for https://github.com/Effect-TS/effect-smol/issues/2142
   it("keeps unhandled errors under an explicit annotation (orElse omitted)", () => {
     // @ts-expect-error is not assignable to type 'Effect<string, SimpleError, never>'
     const _program: Effect.Effect<string, SimpleError> = pipe(
@@ -455,7 +449,6 @@ describe("Effect.catchFilter", () => {
     expect(result).type.toBe<Effect.Effect<string, SimpleError>>()
   })
 
-  // Regression test for https://github.com/Effect-TS/effect-smol/issues/2142
   it("keeps unhandled errors under an explicit annotation (orElse omitted)", () => {
     // @ts-expect-error is not assignable to type 'Effect<string, SimpleError, never>'
     const _program: Effect.Effect<string, SimpleError> = pipe(
