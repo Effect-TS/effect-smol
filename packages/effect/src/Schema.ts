@@ -3752,7 +3752,7 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
  *
  * The decoded type is `ReadonlyArray<S["Type"]>`, the encoded type is
  * `ReadonlyArray<S["Encoded"]>`, and the element schema is available as
- * `schema`.
+ * `value`.
  *
  * @category models
  * @since 4.0.0
@@ -3769,7 +3769,7 @@ export interface $Array<S extends Top> extends
     ReadonlyArray<S["Iso"]>
   >
 {
-  readonly schema: S
+  readonly value: S
 }
 
 interface ArrayLambda extends Lambda {
@@ -3781,7 +3781,9 @@ interface ArrayLambda extends Lambda {
  * @category constructors
  * @since 4.0.0
  */
-const ArraySchema = Struct_.lambda<ArrayLambda>((schema) => make(new AST.Arrays(false, [], [schema.ast]), { schema }))
+const ArraySchema = Struct_.lambda<ArrayLambda>((schema) =>
+  make(new AST.Arrays(false, [], [schema.ast]), { value: schema })
+)
 
 export {
   /**
@@ -3808,6 +3810,12 @@ export {
 /**
  * Companion type for a non-empty `ReadonlyArray`. Produced by {@link NonEmptyArray}.
  *
+ * **Details**
+ *
+ * The decoded type is `readonly [S["Type"], ...Array<S["Type"]>]`, the encoded type is
+ * `readonly [S["Encoded"], ...Array<S["Encoded"]>]`, and the element schema is available as
+ * `value`.
+ *
  * @category models
  * @since 3.10.0
  */
@@ -3823,7 +3831,7 @@ export interface NonEmptyArray<S extends Top> extends
     readonly [S["Iso"], ...Array<S["Iso"]>]
   >
 {
-  readonly schema: S
+  readonly value: S
 }
 
 interface NonEmptyArrayLambda extends Lambda {
@@ -3850,7 +3858,7 @@ interface NonEmptyArrayLambda extends Lambda {
  * @since 3.10.0
  */
 export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
-  make(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
+  make(new AST.Arrays(false, [schema.ast], [schema.ast]), { value: schema })
 )
 
 /**

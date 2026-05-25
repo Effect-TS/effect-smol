@@ -937,10 +937,10 @@ Unexpected key with value "c"
   })
 
   describe("Array", () => {
-    it("should expose the item schema", () => {
+    it("should expose the element schema via .value", () => {
       const schema = Schema.Array(Schema.String)
-      strictEqual(schema.schema, Schema.String)
-      strictEqual(schema.annotate({}).schema, Schema.String)
+      strictEqual(schema.value, Schema.String)
+      strictEqual(schema.annotate({}).value, Schema.String)
     })
 
     it("readonly string[]", async () => {
@@ -991,9 +991,9 @@ Unexpected key with value "c"
   })
 
   describe("NonEmptyArray", () => {
-    it("should expose the item schema", () => {
+    it("should expose the element schema via .value", () => {
       const schema = Schema.NonEmptyArray(Schema.String)
-      strictEqual(schema.schema, Schema.String)
+      strictEqual(schema.value, Schema.String)
     })
 
     it("readonly string[]", async () => {
