@@ -6877,9 +6877,9 @@ export function isDateValid(annotations?: Annotations.Filter) {
  *
  * Arbitrary:
  *
- * When generating test data with fast-check, this applies a `min` constraint
- * with `minExcluded: true` to ensure generated Date objects are greater than the
- * specified value.
+ * When generating test data with fast-check, this applies a `min` constraint of
+ * one millisecond after the specified value to ensure generated Date objects are
+ * greater than it.
  *
  * @category Date checks
  * @since 4.0.0
@@ -6893,8 +6893,7 @@ export const isGreaterThanDate = makeIsGreaterThan({
     },
     toArbitraryConstraint: {
       date: {
-        min: exclusiveMinimum,
-        minExcluded: true
+        min: new globalThis.Date(exclusiveMinimum.getTime() + 1)
       }
     }
   })
@@ -6942,9 +6941,9 @@ export const isGreaterThanOrEqualToDate = makeIsGreaterThanOrEqualTo({
  *
  * Arbitrary:
  *
- * When generating test data with fast-check, this applies a `max` constraint
- * with `maxExcluded: true` to ensure generated Date objects are less than the
- * specified value.
+ * When generating test data with fast-check, this applies a `max` constraint of
+ * one millisecond before the specified value to ensure generated Date objects
+ * are less than it.
  *
  * @category Date checks
  * @since 4.0.0
@@ -6958,8 +6957,7 @@ export const isLessThanDate = makeIsLessThan({
     },
     toArbitraryConstraint: {
       date: {
-        max: exclusiveMaximum,
-        maxExcluded: true
+        max: new globalThis.Date(exclusiveMaximum.getTime() - 1)
       }
     }
   })
@@ -7014,7 +7012,8 @@ export const isLessThanOrEqualToDate = makeIsLessThanOrEqualTo({
  * Arbitrary:
  *
  * When generating test data with fast-check, this applies `min` and `max`
- * constraints to ensure generated Date objects fall within the specified range.
+ * constraints to ensure generated Date objects fall within the specified range,
+ * shifting exclusive bounds by one millisecond.
  *
  * @category Date checks
  * @since 4.0.0
@@ -7028,8 +7027,8 @@ export const isBetweenDate = makeIsBetween({
     },
     toArbitraryConstraint: {
       date: {
-        min: options.minimum,
-        max: options.maximum
+        min: options.exclusiveMinimum ? new globalThis.Date(options.minimum.getTime() + 1) : options.minimum,
+        max: options.exclusiveMaximum ? new globalThis.Date(options.maximum.getTime() - 1) : options.maximum
       }
     }
   })
@@ -7042,8 +7041,8 @@ export const isBetweenDate = makeIsBetween({
  *
  * Arbitrary:
  *
- * When generating test data with fast-check, this applies a `min` constraint
- * with `minExcluded: true` to ensure generated BigInts are greater than the
+ * When generating test data with fast-check, this applies a `min` constraint of
+ * `exclusiveMinimum + 1n` to ensure generated BigInts are greater than the
  * specified value.
  *
  * @category BigInt checks
@@ -7058,8 +7057,7 @@ export const isGreaterThanBigInt = makeIsGreaterThan({
     },
     toArbitraryConstraint: {
       bigint: {
-        min: exclusiveMinimum,
-        minExcluded: true
+        min: exclusiveMinimum + globalThis.BigInt(1)
       }
     }
   })
@@ -7102,8 +7100,8 @@ export const isGreaterThanOrEqualToBigInt = makeIsGreaterThanOrEqualTo({
  *
  * Arbitrary:
  *
- * When generating test data with fast-check, this applies a `max` constraint
- * with `maxExcluded: true` to ensure generated BigInts are less than the
+ * When generating test data with fast-check, this applies a `max` constraint of
+ * `exclusiveMaximum - 1n` to ensure generated BigInts are less than the
  * specified value.
  *
  * @category BigInt checks
@@ -7118,8 +7116,7 @@ export const isLessThanBigInt = makeIsLessThan({
     },
     toArbitraryConstraint: {
       bigint: {
-        max: exclusiveMaximum,
-        maxExcluded: true
+        max: exclusiveMaximum - globalThis.BigInt(1)
       }
     }
   })
@@ -7179,8 +7176,8 @@ export const isBetweenBigInt = makeIsBetween({
     },
     toArbitraryConstraint: {
       bigint: {
-        min: options.minimum,
-        max: options.maximum
+        min: options.exclusiveMinimum ? options.minimum + globalThis.BigInt(1) : options.minimum,
+        max: options.exclusiveMaximum ? options.maximum - globalThis.BigInt(1) : options.maximum
       }
     }
   })
