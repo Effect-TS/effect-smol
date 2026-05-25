@@ -7191,6 +7191,10 @@ export const isBetweenBigInt = makeIsBetween({
   })
 })
 
+const nextBigDecimal = (n: BigDecimal_.BigDecimal) => BigDecimal_.make(n.value + 1n, n.scale)
+
+const previousBigDecimal = (n: BigDecimal_.BigDecimal) => BigDecimal_.make(n.value - 1n, n.scale)
+
 /**
  * Validates that a BigDecimal is greater than the specified value (exclusive).
  *
@@ -7199,6 +7203,13 @@ export const isBetweenBigInt = makeIsBetween({
  */
 export const isGreaterThanBigDecimal = makeIsGreaterThan({
   order: BigDecimal_.Order,
+  annotate: (exclusiveMinimum) => ({
+    toArbitraryConstraint: {
+      bigDecimal: {
+        min: nextBigDecimal(exclusiveMinimum)
+      }
+    }
+  }),
   formatter: (bd) => BigDecimal_.format(bd)
 })
 
@@ -7211,6 +7222,13 @@ export const isGreaterThanBigDecimal = makeIsGreaterThan({
  */
 export const isGreaterThanOrEqualToBigDecimal = makeIsGreaterThanOrEqualTo({
   order: BigDecimal_.Order,
+  annotate: (minimum) => ({
+    toArbitraryConstraint: {
+      bigDecimal: {
+        min: minimum
+      }
+    }
+  }),
   formatter: (bd) => BigDecimal_.format(bd)
 })
 
@@ -7222,6 +7240,13 @@ export const isGreaterThanOrEqualToBigDecimal = makeIsGreaterThanOrEqualTo({
  */
 export const isLessThanBigDecimal = makeIsLessThan({
   order: BigDecimal_.Order,
+  annotate: (exclusiveMaximum) => ({
+    toArbitraryConstraint: {
+      bigDecimal: {
+        max: previousBigDecimal(exclusiveMaximum)
+      }
+    }
+  }),
   formatter: (bd) => BigDecimal_.format(bd)
 })
 
@@ -7234,6 +7259,13 @@ export const isLessThanBigDecimal = makeIsLessThan({
  */
 export const isLessThanOrEqualToBigDecimal = makeIsLessThanOrEqualTo({
   order: BigDecimal_.Order,
+  annotate: (maximum) => ({
+    toArbitraryConstraint: {
+      bigDecimal: {
+        max: maximum
+      }
+    }
+  }),
   formatter: (bd) => BigDecimal_.format(bd)
 })
 
@@ -7250,6 +7282,14 @@ export const isLessThanOrEqualToBigDecimal = makeIsLessThanOrEqualTo({
  */
 export const isBetweenBigDecimal = makeIsBetween({
   order: BigDecimal_.Order,
+  annotate: (options) => ({
+    toArbitraryConstraint: {
+      bigDecimal: {
+        min: options.exclusiveMinimum ? nextBigDecimal(options.minimum) : options.minimum,
+        max: options.exclusiveMaximum ? previousBigDecimal(options.maximum) : options.maximum
+      }
+    }
+  }),
   formatter: (bd) => BigDecimal_.format(bd)
 })
 
@@ -10061,9 +10101,31 @@ export const BigDecimal: BigDecimal = declare(
         BigDecimalString,
         Transformation.bigDecimalFromString
       ),
-    toArbitrary: () => (fc) =>
-      fc.tuple(fc.bigInt(), fc.integer({ min: 0, max: 20 }))
-        .map(([value, scale]) => BigDecimal_.make(value, scale)),
+    toArbitrary: () => (fc, ctx) => {
+      const constraints = ctx.constraints?.bigDecimal
+
+      return fc.integer({ min: 0, max: 20 }).map(
+        (scale) => {
+          const min = Predicate.isNotUndefined(constraints?.min) ?
+            BigDecimal_.scale(BigDecimal_.ceil(constraints.min, scale), scale).value :
+            undefined
+
+          const max = Predicate.isNotUndefined(constraints?.max) ?
+            BigDecimal_.scale(BigDecimal_.floor(constraints.max, scale), scale).value :
+            undefined
+
+          return { min, max, scale }
+        }
+      )
+        // Skip scales where the rounded bounds are too narrow and cause min > max.
+        .filter(({ min, max }) => min === undefined || max === undefined || min <= max)
+        .chain(({ min, max, scale }) =>
+          fc.bigInt({
+            ...(Predicate.isNotUndefined(min) ? { min } : undefined),
+            ...(Predicate.isNotUndefined(max) ? { max } : undefined)
+          }).map((value) => BigDecimal_.make(value, scale))
+        )
+    },
     toFormatter: () => (bd) => BigDecimal_.format(bd),
     toEquivalence: () => BigDecimal_.Equivalence
   }
@@ -13546,6 +13608,18 @@ export declare namespace Annotations {
     export interface BigIntConstraints extends FastCheck.BigIntConstraints {}
 
     /**
+     * BigDecimal constraints used when deriving arbitraries for `BigDecimal`
+     * schemas.
+     *
+     * @category models
+     * @since 4.0.0
+     */
+    export interface BigDecimalConstraints {
+      readonly min?: BigDecimal_.BigDecimal
+      readonly max?: BigDecimal_.BigDecimal
+    }
+
+    /**
      * fast-check array constraints plus an optional comparator used when deriving
      * unique-array arbitraries.
      *
@@ -13575,6 +13649,7 @@ export declare namespace Annotations {
     export interface Constraint {
       readonly string?: StringConstraints | undefined
       readonly number?: NumberConstraints | undefined
+      readonly bigDecimal?: BigDecimalConstraints | undefined
       readonly bigint?: BigIntConstraints | undefined
       readonly array?: ArrayConstraints | undefined
       readonly date?: DateConstraints | undefined

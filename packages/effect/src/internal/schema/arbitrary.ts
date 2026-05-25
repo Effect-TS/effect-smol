@@ -1,9 +1,12 @@
 import * as Array from "../../Array.ts"
+import * as BigDecimal from "../../BigDecimal.ts"
+import * as BigInt_ from "../../BigInt.ts"
 import * as Boolean from "../../Boolean.ts"
-import type * as Combiner from "../../Combiner.ts"
+import * as Combiner from "../../Combiner.ts"
 import { memoize } from "../../Function.ts"
 import * as Number from "../../Number.ts"
 import * as Option from "../../Option.ts"
+import * as Order from "../../Order.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
@@ -43,58 +46,71 @@ function array(fc: typeof FastCheck, ctx: Schema.Annotations.ToArbitrary.Context
   return out
 }
 
-const max = UndefinedOr.makeReducer(Number.ReducerMax)
-const min = UndefinedOr.makeReducer(Number.ReducerMin)
+const numberMax = UndefinedOr.makeReducer(Number.ReducerMax)
+const numberMin = UndefinedOr.makeReducer(Number.ReducerMin)
 const or = UndefinedOr.makeReducer(Boolean.ReducerOr)
-const concat = UndefinedOr.makeReducer(Array.makeReducerConcat())
 
-const combiner: Combiner.Combiner<any> = Struct.makeCombiner({
-  isInteger: or,
-  max: min,
-  maxExcluded: or,
-  maxLength: min,
-  min: max,
-  minExcluded: or,
-  minLength: max,
-  noDefaultInfinity: or,
-  noInteger: or,
-  noInvalidDate: or,
-  noNaN: or,
-  patterns: concat,
-  comparator: or
-}, {
-  omitKeyWhen: Predicate.isUndefined
-})
+type ConstraintKey = keyof Schema.Annotations.ToArbitrary.Constraint
+type ConstraintFor<K extends ConstraintKey> = NonNullable<Schema.Annotations.ToArbitrary.Constraint[K]>
+type CombinerFields<A> = { readonly [K in keyof A]: Combiner.Combiner<A[K]> }
 
-type FastCheckConstraint =
-  | Schema.Annotations.ToArbitrary.StringConstraints
-  | Schema.Annotations.ToArbitrary.NumberConstraints
-  | Schema.Annotations.ToArbitrary.BigIntConstraints
-  | Schema.Annotations.ToArbitrary.ArrayConstraints
-  | Schema.Annotations.ToArbitrary.DateConstraints
+interface AsCombiner extends Struct.Lambda {
+  <A>(combiners: CombinerFields<A>): Combiner.Combiner<A>
+  readonly "~lambda.out": this["~lambda.in"] extends CombinerFields<infer A> ? Combiner.Combiner<A> : never
+}
 
-function merge(
-  _tag: "string" | "number" | "bigint" | "array" | "date",
+const constraintCombiners = Struct.map({
+  string: {
+    maxLength: numberMin,
+    minLength: numberMax,
+    patterns: UndefinedOr.makeReducer(Array.getReadonlyReducerConcat()) as Combiner.Combiner<
+      Schema.Annotations.ToArbitrary.StringConstraints["patterns"]
+    >
+  },
+  number: {
+    isInteger: or,
+    max: numberMin,
+    maxExcluded: or,
+    min: numberMax,
+    minExcluded: or,
+    noDefaultInfinity: or,
+    noInteger: or,
+    noNaN: or
+  },
+  bigDecimal: {
+    max: UndefinedOr.makeReducer(Combiner.min(BigDecimal.Order)),
+    min: UndefinedOr.makeReducer(Combiner.max(BigDecimal.Order))
+  },
+  bigint: {
+    max: UndefinedOr.makeReducer(BigInt_.CombinerMin),
+    min: UndefinedOr.makeReducer(BigInt_.CombinerMax)
+  },
+  array: {
+    comparator: UndefinedOr.makeReducer(Combiner.first()),
+    maxLength: numberMin,
+    minLength: numberMax
+  },
+  date: {
+    max: UndefinedOr.makeReducer(Combiner.min(Order.Date)),
+    min: UndefinedOr.makeReducer(Combiner.max(Order.Date)),
+    noInvalidDate: or
+  }
+}, Struct.lambda<AsCombiner>((combiners) => Struct.makeCombiner(combiners, { omitKeyWhen: Predicate.isUndefined })))
+
+function merge<K extends ConstraintKey>(
+  _tag: K,
   constraints: Schema.Annotations.ToArbitrary.Constraint,
-  constraint: FastCheckConstraint
+  constraint: ConstraintFor<K>
 ): Schema.Annotations.ToArbitrary.Constraint {
   const c = constraints[_tag]
   return {
     ...constraints,
-    [_tag]: c ? combiner.combine(c, constraint) : constraint
+    [_tag]: c ? constraintCombiners[_tag].combine(c, constraint) : constraint
   }
 }
 
-const constraintsKeys = {
-  string: null,
-  number: null,
-  bigint: null,
-  array: null,
-  date: null
-}
-
 function isConstraintKey(key: string): key is keyof Schema.Annotations.ToArbitrary.Constraint {
-  return key in constraintsKeys
+  return key in constraintCombiners
 }
 
 /** @internal */
