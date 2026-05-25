@@ -79,7 +79,9 @@ const constraintCombiners = Struct.map({
   },
   bigDecimal: {
     max: UndefinedOr.makeReducer(Combiner.min(BigDecimal.Order)),
-    min: UndefinedOr.makeReducer(Combiner.max(BigDecimal.Order))
+    maxExcluded: or,
+    min: UndefinedOr.makeReducer(Combiner.max(BigDecimal.Order)),
+    minExcluded: or
   },
   bigint: {
     max: UndefinedOr.makeReducer(BigInt_.CombinerMin),

@@ -1167,10 +1167,13 @@ describe("Arbitrary generation", () => {
     })
 
     it("isGreaterThanBigDecimal", () => {
-      assertContext(Schema.BigDecimal.check(Schema.isGreaterThanBigDecimal(BigDecimal.make(0n, 0))), {
+      const min = BigDecimal.make(0n, 0)
+
+      assertContext(Schema.BigDecimal.check(Schema.isGreaterThanBigDecimal(min)), {
         constraints: {
           bigDecimal: {
-            min: BigDecimal.make(1n, 0)
+            min,
+            minExcluded: true
           }
         }
       })
@@ -1189,10 +1192,13 @@ describe("Arbitrary generation", () => {
     })
 
     it("isLessThanBigDecimal", () => {
-      assertContext(Schema.BigDecimal.check(Schema.isLessThanBigDecimal(BigDecimal.make(10n, 0))), {
+      const max = BigDecimal.make(10n, 0)
+
+      assertContext(Schema.BigDecimal.check(Schema.isLessThanBigDecimal(max)), {
         constraints: {
           bigDecimal: {
-            max: BigDecimal.make(9n, 0)
+            max,
+            maxExcluded: true
           }
         }
       })
@@ -1218,18 +1224,22 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetweenBigDecimal with exclusive bounds", () => {
+      const min = BigDecimal.make(0n, 0)
+      const max = BigDecimal.make(10n, 0)
       assertContext(
         Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
-          minimum: BigDecimal.make(0n, 0),
-          maximum: BigDecimal.make(10n, 0),
+          minimum: min,
+          maximum: max,
           exclusiveMinimum: true,
           exclusiveMaximum: true
         })),
         {
           constraints: {
             bigDecimal: {
-              min: BigDecimal.make(1n, 0),
-              max: BigDecimal.make(9n, 0)
+              min,
+              max,
+              minExcluded: true,
+              maxExcluded: true
             }
           }
         }

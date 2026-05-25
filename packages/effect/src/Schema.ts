@@ -7191,10 +7191,6 @@ export const isBetweenBigInt = makeIsBetween({
   })
 })
 
-const nextBigDecimal = (n: BigDecimal_.BigDecimal) => BigDecimal_.make(n.value + 1n, n.scale)
-
-const previousBigDecimal = (n: BigDecimal_.BigDecimal) => BigDecimal_.make(n.value - 1n, n.scale)
-
 /**
  * Validates that a BigDecimal is greater than the specified value (exclusive).
  *
@@ -7206,7 +7202,8 @@ export const isGreaterThanBigDecimal = makeIsGreaterThan({
   annotate: (exclusiveMinimum) => ({
     toArbitraryConstraint: {
       bigDecimal: {
-        min: nextBigDecimal(exclusiveMinimum)
+        min: exclusiveMinimum,
+        minExcluded: true
       }
     }
   }),
@@ -7243,7 +7240,8 @@ export const isLessThanBigDecimal = makeIsLessThan({
   annotate: (exclusiveMaximum) => ({
     toArbitraryConstraint: {
       bigDecimal: {
-        max: previousBigDecimal(exclusiveMaximum)
+        max: exclusiveMaximum,
+        maxExcluded: true
       }
     }
   }),
@@ -7285,8 +7283,10 @@ export const isBetweenBigDecimal = makeIsBetween({
   annotate: (options) => ({
     toArbitraryConstraint: {
       bigDecimal: {
-        min: options.exclusiveMinimum ? nextBigDecimal(options.minimum) : options.minimum,
-        max: options.exclusiveMaximum ? previousBigDecimal(options.maximum) : options.maximum
+        min: options.minimum,
+        max: options.maximum,
+        ...(options.exclusiveMinimum && { minExcluded: true }),
+        ...(options.exclusiveMaximum && { maxExcluded: true })
       }
     }
   }),
@@ -10121,8 +10121,8 @@ export const BigDecimal: BigDecimal = declare(
         .filter(({ min, max }) => min === undefined || max === undefined || min <= max)
         .chain(({ min, max, scale }) =>
           fc.bigInt({
-            ...(Predicate.isNotUndefined(min) ? { min } : undefined),
-            ...(Predicate.isNotUndefined(max) ? { max } : undefined)
+            ...(Predicate.isNotUndefined(min) ? { min: min + (constraints?.minExcluded ? 1n : 0n) } : undefined),
+            ...(Predicate.isNotUndefined(max) ? { max: max - (constraints?.maxExcluded ? 1n : 0n) } : undefined)
           }).map((value) => BigDecimal_.make(value, scale))
         )
     },
@@ -13617,6 +13617,8 @@ export declare namespace Annotations {
     export interface BigDecimalConstraints {
       readonly min?: BigDecimal_.BigDecimal
       readonly max?: BigDecimal_.BigDecimal
+      readonly minExcluded?: boolean
+      readonly maxExcluded?: boolean
     }
 
     /**
