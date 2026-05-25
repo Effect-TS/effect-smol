@@ -6870,6 +6870,10 @@ export function isDateValid(annotations?: Annotations.Filter) {
   )
 }
 
+const nextDate = (date: globalThis.Date) => new globalThis.Date(date.getTime() + 1)
+
+const previousDate = (date: globalThis.Date) => new globalThis.Date(date.getTime() - 1)
+
 /**
  * Validates that a Date is greater than the specified value (exclusive).
  *
@@ -6893,7 +6897,7 @@ export const isGreaterThanDate = makeIsGreaterThan({
     },
     toArbitraryConstraint: {
       date: {
-        min: new globalThis.Date(exclusiveMinimum.getTime() + 1)
+        min: nextDate(exclusiveMinimum)
       }
     }
   })
@@ -6957,7 +6961,7 @@ export const isLessThanDate = makeIsLessThan({
     },
     toArbitraryConstraint: {
       date: {
-        max: new globalThis.Date(exclusiveMaximum.getTime() - 1)
+        max: previousDate(exclusiveMaximum)
       }
     }
   })
@@ -7027,12 +7031,16 @@ export const isBetweenDate = makeIsBetween({
     },
     toArbitraryConstraint: {
       date: {
-        min: options.exclusiveMinimum ? new globalThis.Date(options.minimum.getTime() + 1) : options.minimum,
-        max: options.exclusiveMaximum ? new globalThis.Date(options.maximum.getTime() - 1) : options.maximum
+        min: options.exclusiveMinimum ? nextDate(options.minimum) : options.minimum,
+        max: options.exclusiveMaximum ? previousDate(options.maximum) : options.maximum
       }
     }
   })
 })
+
+const nextBigInt = (n: bigint) => n + globalThis.BigInt(1)
+
+const previousBigInt = (n: bigint) => n - globalThis.BigInt(1)
 
 /**
  * Validates that a BigInt is greater than the specified value (exclusive).
@@ -7057,7 +7065,7 @@ export const isGreaterThanBigInt = makeIsGreaterThan({
     },
     toArbitraryConstraint: {
       bigint: {
-        min: exclusiveMinimum + globalThis.BigInt(1)
+        min: nextBigInt(exclusiveMinimum)
       }
     }
   })
@@ -7116,7 +7124,7 @@ export const isLessThanBigInt = makeIsLessThan({
     },
     toArbitraryConstraint: {
       bigint: {
-        max: exclusiveMaximum - globalThis.BigInt(1)
+        max: previousBigInt(exclusiveMaximum)
       }
     }
   })
@@ -7176,8 +7184,8 @@ export const isBetweenBigInt = makeIsBetween({
     },
     toArbitraryConstraint: {
       bigint: {
-        min: options.exclusiveMinimum ? options.minimum + globalThis.BigInt(1) : options.minimum,
-        max: options.exclusiveMaximum ? options.maximum - globalThis.BigInt(1) : options.maximum
+        min: options.exclusiveMinimum ? nextBigInt(options.minimum) : options.minimum,
+        max: options.exclusiveMaximum ? previousBigInt(options.maximum) : options.maximum
       }
     }
   })
