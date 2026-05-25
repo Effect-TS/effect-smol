@@ -1,55 +1,67 @@
 /**
  * The `Queue` module provides asynchronous queues for communicating between
- * fibers. A `Queue<A, E>` can receive values of type `A`, deliver them to
- * consumers in order, and eventually complete or fail with an error of type
- * `E`.
+ * fibers. A `Queue<A, E>` accepts values of type `A`, hands each value to one
+ * consumer in offer order, and can later complete, fail, interrupt, or shut
+ * down through the queue lifecycle.
  *
  * **Mental model**
  *
- * - A queue is a fiber-aware channel with one write side ({@link Enqueue}) and
- *   one read side ({@link Dequeue})
+ * - A queue is a fiber-aware channel with a write side ({@link Enqueue}) and a
+ *   read side ({@link Dequeue}).
  * - Producers add values with {@link offer} or {@link offerAll}; consumers
  *   remove values with {@link take}, {@link takeN}, {@link takeBetween}, or
- *   {@link takeAll}
+ *   {@link takeAll}.
+ * - Unlike publish-subscribe hubs, consumers compete for values; a successful
+ *   take removes the value from the queue.
  * - Bounded queues use an overflow strategy: {@link bounded} suspends
  *   producers, {@link dropping} rejects new values, and {@link sliding} drops
- *   old values
- * - Queues can be completed with {@link end}, failed with {@link fail} or
- *   {@link failCause}, interrupted with {@link interrupt}, and shut down with
- *   {@link shutdown}
- * - Operations are expressed as `Effect` values so waiting producers and
- *   consumers compose with interruption, scheduling, and structured
- *   concurrency
+ *   old values.
+ * - Operations are `Effect` values, so waiting producers and consumers compose
+ *   with interruption, scheduling, and structured concurrency.
  *
  * **Common tasks**
  *
  * - Create queues: {@link make}, {@link bounded}, {@link dropping},
- *   {@link sliding}, {@link unbounded}
- * - Restrict capabilities: {@link asEnqueue}, {@link asDequeue}
- * - Produce values: {@link offer}, {@link offerAll}
+ *   {@link sliding}, {@link unbounded}.
+ * - Restrict capabilities: {@link asEnqueue}, {@link asDequeue}.
+ * - Produce values: {@link offer}, {@link offerAll}.
  * - Consume values: {@link take}, {@link takeN}, {@link takeBetween},
- *   {@link takeAll}, {@link poll}, {@link peek}
- * - Drain or reset buffered values: {@link collect}, {@link clear}
+ *   {@link takeAll}, {@link poll}, {@link peek}.
+ * - Drain or reset buffered values: {@link collect}, {@link clear}.
  * - Signal lifecycle: {@link end}, {@link fail}, {@link failCause},
- *   {@link interrupt}, {@link shutdown}
- * - Inspect state: {@link size}, {@link isFull}
+ *   {@link interrupt}, {@link shutdown}.
+ * - Inspect state: {@link size}, {@link isFull}.
+ *
+ * **Example** (One producer and one consumer)
+ *
+ * ```ts
+ * import { Effect, Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<string>(16)
+ *
+ *   yield* Queue.offer(queue, "work")
+ *
+ *   return yield* Queue.take(queue)
+ * })
+ * ```
  *
  * **Gotchas**
  *
- * - `take` waits when the queue is empty; use {@link poll} when absence should
- *   be represented as `Option.None`
- * - `dropping` and `sliding` queues can lose values by design; use
- *   {@link bounded} when every offered value must be preserved
+ * - {@link take} waits when the queue is empty; use {@link poll} when absence
+ *   should be represented as an empty `Option`.
+ * - {@link dropping} and {@link sliding} queues can lose values by design; use
+ *   {@link bounded} when every offered value must be preserved.
  * - Completion and failure are observed by consumers through the queue's error
- *   channel, so include `Cause.Done` in the error type when using {@link end}
+ *   channel, so include `Cause.Done` in the error type when using {@link end}.
  * - The `Unsafe` variants are synchronous, low-level operations; prefer the
- *   effectful APIs in application code
+ *   effectful APIs in application code.
  *
  * **See also**
  *
- * - {@link Enqueue} for write-only queue handles
- * - {@link Dequeue} for read-only queue handles
- * - {@link Pull} for stream-style completion errors
+ * - {@link Enqueue} for write-only queue handles.
+ * - {@link Dequeue} for read-only queue handles.
+ * - {@link Pull} for stream-style completion errors.
  *
  * @since 3.8.0
  */
@@ -76,6 +88,14 @@ const DequeueTypeId = "~effect/Queue/Dequeue"
 /**
  * Type guard to check if a value is a Queue.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value to a full `Queue` before passing it to APIs
+ * that need both offering and taking capabilities.
+ *
+ * @see {@link isEnqueue} for checking values that only need write access
+ * @see {@link isDequeue} for checking values that only need read access
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -85,6 +105,20 @@ export const isQueue = <A = unknown, E = unknown>(
 
 /**
  * Type guard to check if a value is an Enqueue.
+ *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before calling queue operations that require
+ * write-side access.
+ *
+ * **Gotchas**
+ *
+ * A full `Queue` also satisfies this guard because every queue includes the
+ * enqueue side.
+ *
+ * @see {@link isQueue} for checking for a full read-write queue handle
+ * @see {@link isDequeue} for checking for the read side of a queue
+ * @see {@link asEnqueue} for narrowing an existing `Queue` to its write-only interface
  *
  * @category guards
  * @since 2.0.0
@@ -96,6 +130,16 @@ export const isEnqueue = <A = unknown, E = unknown>(
 /**
  * Type guard to check if a value is a Dequeue.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before passing it to read-side queue
+ * operations.
+ *
+ * @see {@link Dequeue} for the read-side queue handle checked by this guard
+ * @see {@link isQueue} for checking for a full read-write queue handle
+ * @see {@link isEnqueue} for checking for the write side of a queue
+ * @see {@link asDequeue} for narrowing an existing `Queue` to its read-only interface
+ *
  * @category guards
  * @since 2.0.0
  */
@@ -104,7 +148,20 @@ export const isDequeue = <A = unknown, E = unknown>(
 ): u is Dequeue<A, E> => hasProperty(u, DequeueTypeId)
 
 /**
- * Converts a Queue to an Enqueue (write-only interface).
+ * Converts a `Queue` to its write-only `Enqueue` interface.
+ *
+ * **When to use**
+ *
+ * Use to expose only the producer side of a `Queue` to code that should offer
+ * values or signal queue lifecycle.
+ *
+ * **Gotchas**
+ *
+ * This is a type-level capability restriction. It returns the same queue
+ * object, so it does not hide read operations at runtime.
+ *
+ * @see {@link asDequeue} for exposing only the read side of a `Queue`
+ * @see {@link Enqueue} for the write-only queue handle returned by this conversion
  *
  * @category converting
  * @since 4.0.0
@@ -112,7 +169,20 @@ export const isDequeue = <A = unknown, E = unknown>(
 export const asEnqueue = <A, E>(self: Queue<A, E>): Enqueue<A, E> => self
 
 /**
- * Convert a Queue to a Dequeue, allowing only read operations.
+ * Narrows a `Queue` to a `Dequeue`, exposing the consumer side of the queue.
+ *
+ * **When to use**
+ *
+ * Use to pass a queue to code that should consume values while keeping
+ * producer-side operations out of that code's TypeScript type.
+ *
+ * **Gotchas**
+ *
+ * This is a type-level narrowing operation. It returns the same queue object
+ * and does not create a runtime wrapper.
+ *
+ * @see {@link asEnqueue} for narrowing a queue to its producer side
+ * @see {@link Dequeue} for the consumer-side queue handle returned by this function
  *
  * @category converting
  * @since 4.0.0
@@ -121,6 +191,8 @@ export const asDequeue: <A, E>(self: Queue<A, E>) => Dequeue<A, E> = identity
 
 /**
  * An `Enqueue` is a queue that can be offered to.
+ *
+ * **Details**
  *
  * This interface represents the write-only part of a Queue, allowing you to offer
  * elements to the queue but not take elements from it.
@@ -166,6 +238,8 @@ export declare namespace Enqueue {
   /**
    * Type-level variance marker for `Enqueue`.
    *
+   * **Details**
+   *
    * `Enqueue` is contravariant in both its offered value type `A` and failure
    * type `E`, because values and failures flow into the queue through this
    * handle.
@@ -181,6 +255,8 @@ export declare namespace Enqueue {
 
 /**
  * A `Dequeue` is a queue that can be taken from.
+ *
+ * **Details**
  *
  * This interface represents the read-only part of a Queue, allowing you to take
  * elements from the queue but not offer elements to it.
@@ -228,6 +304,8 @@ export declare namespace Dequeue {
   /**
    * Type-level variance marker for `Dequeue`.
    *
+   * **Details**
+   *
    * `Dequeue` is covariant in both the taken value type `A` and failure type
    * `E`, because values and failures are observed through this handle.
    *
@@ -242,6 +320,8 @@ export declare namespace Dequeue {
 
 /**
  * A `Queue` is an asynchronous queue that can be offered to and taken from.
+ *
+ * **Details**
  *
  * It also supports signaling that it is done or failed.
  *
@@ -284,6 +364,8 @@ export declare namespace Queue {
   /**
    * Type-level variance marker for `Queue`.
    *
+   * **Details**
+   *
    * A full `Queue` is invariant in both `A` and `E` because the same handle can
    * both produce and consume values and failures.
    *
@@ -297,6 +379,8 @@ export declare namespace Queue {
 
   /**
    * Tagged state of a `Queue`.
+   *
+   * **Details**
    *
    * `Open` queues can accept offers and takers, `Closing` queues are
    * completing with a stored failure exit, and `Done` queues have finished.
@@ -327,6 +411,8 @@ export declare namespace Queue {
 
   /**
    * Represents a suspended offer waiting to be admitted to a bounded queue.
+   *
+   * **Details**
    *
    * An entry is either a single message or a batch with an offset into its
    * remaining messages, plus a resume callback that completes the suspended
@@ -369,6 +455,8 @@ const QueueProto = {
 
 /**
  * Creates a `Queue` with optional capacity and overflow strategy.
+ *
+ * **Details**
  *
  * By default the queue is unbounded and uses the `"suspend"` strategy. Provide
  * `capacity` for a bounded queue and choose `"suspend"`, `"dropping"`, or
@@ -432,6 +520,8 @@ export const make = <A, E = never>(
 /**
  * Creates a bounded queue with the specified capacity that uses backpressure strategy.
  *
+ * **Details**
+ *
  * When the queue reaches capacity, producers will be suspended until space becomes available.
  * This ensures all messages are processed but may slow down producers.
  *
@@ -461,7 +551,9 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * Creates a bounded queue with sliding strategy. When the queue reaches capacity,
  * new elements are added and the oldest elements are dropped.
  *
- * This strategy prevents producers from being blocked but may result in message loss.
+ * **When to use**
+ *
+ * Use when producers should not block and message loss is acceptable.
  * Useful when you want to maintain a rolling window of the most recent messages.
  *
  * **Example** (Creating sliding queues)
@@ -494,7 +586,9 @@ export const sliding = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  * Creates a bounded queue with dropping strategy. When the queue reaches capacity,
  * new elements are dropped and the offer operation returns false.
  *
- * This strategy prevents producers from being blocked and preserves existing messages,
+ * **When to use**
+ *
+ * Use when producers should not block and existing messages should be preserved,
  * but new messages may be lost when the queue is full.
  *
  * **Example** (Creating dropping queues)
@@ -528,7 +622,9 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
 /**
  * Creates an unbounded queue that can grow to any size without blocking producers.
  *
- * Unlike bounded queues, unbounded queues never apply backpressure - producers
+ * **When to use**
+ *
+ * Use when producers should never be blocked; unbounded queues never apply backpressure, so producers
  * can always add messages successfully. This is useful when you want to prioritize
  * producer throughput over memory usage control.
  *
@@ -562,6 +658,8 @@ export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
 
 /**
  * Add a message to the queue. Returns `false` if the queue is done.
+ *
+ * **Details**
  *
  * For bounded queues, this operation may suspend if the queue is at capacity,
  * depending on the backpressure strategy. For dropping/sliding queues, it may
@@ -618,6 +716,8 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
 /**
  * Add a message to the queue synchronously. Returns `false` if the queue is done.
  *
+ * **Gotchas**
+ *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  * Use this only when you're certain about the synchronous nature of the operation.
  *
@@ -668,6 +768,8 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
  * Add multiple messages to the queue. Returns the remaining messages that
  * were not added.
  *
+ * **Details**
+ *
  * For bounded queues, this operation may suspend if the queue doesn't have
  * enough capacity. The operation returns an array of messages that couldn't
  * be added (empty array means all messages were successfully added).
@@ -706,6 +808,8 @@ export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effe
 /**
  * Add multiple messages to the queue synchronously. Returns the remaining messages that
  * were not added.
+ *
+ * **Gotchas**
  *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
@@ -830,6 +934,8 @@ export const failCause: {
  * Fail the queue with a cause synchronously. If the queue is already done, `false` is
  * returned.
  *
+ * **Gotchas**
+ *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
  * **Example** (Failing queues with a cause synchronously)
@@ -909,6 +1015,8 @@ export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCa
  * Signal that the queue is complete synchronously. If the queue is already done, `false` is
  * returned.
  *
+ * **Gotchas**
+ *
  * This is an unsafe operation that directly modifies the queue without Effect wrapping.
  *
  * **Example** (Ending queues synchronously)
@@ -946,6 +1054,8 @@ export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(s
 
 /**
  * Interrupts the queue gracefully, transitioning it to a closing state.
+ *
+ * **Details**
  *
  * This operation stops accepting new offers but allows existing messages to be consumed.
  * Once all messages are drained, the queue transitions to the Done state with an interrupt cause.
@@ -1263,6 +1373,8 @@ export const takeBetween = <A, E>(
  * Take a single message from the queue, or wait for a message to be
  * available.
  *
+ * **Details**
+ *
  * If the queue is done, it will fail with `Done`. If the
  * queue fails, the Effect will fail with the error.
  *
@@ -1350,6 +1462,8 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
 
 /**
  * Views the next item without removing it.
+ *
+ * **Details**
  *
  * Blocks until an item is available. If the queue is done or fails, the error is propagated.
  *
@@ -1457,7 +1571,29 @@ const await_ = <A, E>(self: Dequeue<A, E>): Effect<void, Exclude<E, Done>> =>
 
 export {
   /**
-   * Wait for the queue to be done.
+   * Waits until a queue reaches the `Done` state.
+   *
+   * **When to use**
+   *
+   * Use to suspend a fiber until no further values can be taken from the queue
+   * and its terminal outcome is known.
+   *
+   * **Details**
+   *
+   * The effect succeeds with `void` for normal `Done` completion. Other
+   * terminal causes are preserved, so failures and interruptions complete this
+   * effect with the same terminal outcome.
+   *
+   * **Gotchas**
+   *
+   * A queue can be closing before it is done. `await` resumes at `Done`, not at
+   * the first completion signal, so buffered messages may need to be drained
+   * first.
+   *
+   * @see {@link end} for signaling normal completion while preserving buffered messages for consumers
+   * @see {@link fail} for signaling an error while preserving buffered messages for consumers
+   * @see {@link interrupt} for graceful interruption after buffered messages are drained
+   * @see {@link shutdown} for immediately discarding buffered messages and resuming pending operations
    *
    * @category Completion
    * @since 4.0.0

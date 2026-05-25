@@ -1,5 +1,76 @@
 /**
- * This module provides utility functions for working with records in TypeScript.
+ * Tools for working with plain JavaScript records as immutable key-value
+ * dictionaries. The module covers construction, lookup, updates, mapping,
+ * filtering, folding, set-like combination, and typed conversions between
+ * records and iterable entries.
+ *
+ * Reach for `Record` when your data is already represented as a plain object
+ * with string or symbol keys and you want typed, data-first or data-last
+ * helpers that return new records instead of mutating the input.
+ *
+ * **Mental model**
+ *
+ * - A `ReadonlyRecord<K, A>` is a plain object whose keys are known by type and
+ *   whose values share a common type.
+ * - Operations such as {@link set}, {@link remove}, {@link map}, and
+ *   {@link filter} allocate new plain objects.
+ * - Lookups and updates that might miss a key return `Option` values through
+ *   APIs such as {@link get}, {@link modify}, {@link replace}, and {@link pop}.
+ * - Many APIs are dual, so they work both as `Record.map(record, f)` and in
+ *   pipelines as `pipe(record, Record.map(f))`.
+ *
+ * **Common tasks**
+ *
+ * - Create records: {@link empty}, {@link singleton}, {@link fromEntries},
+ *   {@link fromIterableBy}, {@link fromIterableWith}
+ * - Inspect records: {@link isEmptyRecord}, {@link size}, {@link has},
+ *   {@link get}, {@link keys}, {@link values}, {@link toEntries}
+ * - Add, update, or remove entries: {@link set}, {@link modify},
+ *   {@link replace}, {@link remove}, {@link pop}
+ * - Transform entries: {@link map}, {@link mapKeys}, {@link mapEntries},
+ *   {@link collect}
+ * - Filter or partition: {@link filter}, {@link filterMap}, {@link getSomes},
+ *   {@link getFailures}, {@link getSuccesses}, {@link partition},
+ *   {@link separate}
+ * - Fold and search: {@link reduce}, {@link every}, {@link some},
+ *   {@link findFirst}
+ * - Combine records: {@link union}, {@link intersection}, {@link difference},
+ *   {@link makeReducerUnion}, {@link makeReducerIntersection}
+ * - Compare records: {@link isSubrecord}, {@link isSubrecordBy},
+ *   {@link makeEquivalence}
+ *
+ * **Gotchas**
+ *
+ * - Iteration-based APIs use `Object.keys`, so they visit enumerable string
+ *   keys. Targeted APIs such as {@link has}, {@link get}, {@link set}, and
+ *   {@link remove} can work with symbol keys, but {@link keys}, {@link values},
+ *   {@link map}, and similar traversal APIs do not visit symbols.
+ * - When duplicate keys are produced by constructors or key-mapping APIs, later
+ *   writes overwrite earlier values according to normal object assignment.
+ *
+ * **Quickstart**
+ *
+ * **Example** (Transforming a record without mutation)
+ *
+ * ```ts
+ * import { Record } from "effect"
+ *
+ * const scores = { alice: 1, bob: 2 }
+ *
+ * const next = Record.set(scores, "carol", 3)
+ * const doubled = Record.map(next, (score) => score * 2)
+ *
+ * console.log(scores) // { alice: 1, bob: 2 }
+ * console.log(doubled) // { alice: 2, bob: 4, carol: 6 }
+ * console.log(Record.get(doubled, "alice")) // Option.some(2)
+ * ```
+ *
+ * **See also**
+ *
+ * - {@link Struct} for fixed-shape objects where each field may have a
+ *   different type
+ * - {@link HashMap} for immutable maps with arbitrary key types and Effect
+ *   equality / hashing semantics
  *
  * @since 2.0.0
  */
@@ -282,6 +353,8 @@ export const fromIterableBy = <A, K extends string | symbol>(
 /**
  * Builds a record from an iterable of key-value pairs.
  *
+ * **Details**
+ *
  * If there are conflicting keys when using `fromEntries`, the last occurrence of the key/value pair will overwrite the
  * previous ones. So the resulting record will only have the value of the last occurrence of each key.
  *
@@ -478,6 +551,8 @@ export const modify: {
 /**
  * Replaces the value at an existing key and returns the updated record in
  * `Option.some`.
+ *
+ * **Details**
  *
  * If the key is not present, returns `Option.none()` and leaves the record
  * unchanged.
@@ -893,6 +968,8 @@ export const getSuccesses = <K extends string, A, E>(
  * Applies a function to each record entry and partitions the returned `Result`
  * values into two records.
  *
+ * **Details**
+ *
  * Failure values are collected in the left record, and success values are
  * collected in the right record, preserving the original keys.
  *
@@ -1083,6 +1160,8 @@ export const isSubrecordBy = <A>(equivalence: Equivalence<A>): {
 
 /**
  * Checks whether the first record is a subrecord of the second record.
+ *
+ * **Details**
  *
  * Returns `true` when every key and value in `self` is also present in `that`.
  * Values are compared with Effect equality via `Equal.asEquivalence()`.
@@ -1427,9 +1506,23 @@ export const singleton = <K extends string | symbol, A>(key: K, value: A): Recor
 } as any)
 
 /**
- * A `Reducer` for combining `Record`s using union.
+ * Creates a `Reducer` for combining `Record`s using union, with values for keys that exist in both records combined
+ * using the provided `Combiner`.
  *
- * Values for keys that exist in both records are combined using the provided `Combiner`.
+ * **When to use**
+ *
+ * Use to build a reusable reducer for accumulating many records into one
+ * union-shaped record, preserving keys from every input and combining
+ * overlapping values with the supplied combiner.
+ *
+ * **Details**
+ *
+ * The returned reducer uses `Record.union` for combine and an empty record as
+ * `initialValue`, so the default `combineAll` folds from `{}` and accumulates
+ * keys from each input record.
+ *
+ * @see {@link union} for one-off record merging with the same union semantics
+ * @see {@link makeReducerIntersection} for a reducer that keeps only keys present on both sides
  *
  * @category combining
  * @since 4.0.0
@@ -1445,9 +1538,19 @@ export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combine
  * Creates a `Reducer` whose `combine` operation intersects two records and
  * combines values for keys present in both records.
  *
+ * **When to use**
+ *
+ * Use to build a `Reducer` that combines records by retaining only keys shared
+ * by both inputs and combining matching values with a `Combiner`.
+ *
+ * **Gotchas**
+ *
  * The reducer's `initialValue` is an empty record. Because intersection with
  * an empty record is empty, the default `combineAll` folds from `{}` and
  * therefore produces `{}` for ordinary non-empty inputs.
+ *
+ * @see {@link makeReducerUnion} for a reducer that preserves keys from either input record
+ * @see {@link intersection} for applying the shared-key merge to one pair of records
  *
  * @category combining
  * @since 4.0.0

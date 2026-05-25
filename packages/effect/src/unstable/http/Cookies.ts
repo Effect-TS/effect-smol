@@ -1,17 +1,63 @@
 /**
- * Utilities for representing, validating, parsing, and serializing HTTP cookies.
+ * Immutable HTTP cookie values and collections for request and response
+ * workflows.
  *
- * This module provides an immutable `Cookies` collection keyed by cookie name,
- * constructors for validated `Cookie` values, and helpers for common server and
- * client flows such as reading `Cookie` request headers, emitting `Set-Cookie`
- * response headers, merging cookie sets, and expiring cookies.
+ * The module models a validated {@link Cookie}, an immutable {@link Cookies}
+ * collection keyed by cookie name, and the conversions needed around HTTP
+ * headers. Use it to read request `Cookie` headers, build cookies with standard
+ * attributes, merge or remove cookies immutably, expire cookies, and emit
+ * response `Set-Cookie` headers.
  *
- * Cookie parsing is intentionally tolerant of malformed input: unsupported or
- * invalid `Set-Cookie` attributes are ignored, values are percent-decoded on a
- * best-effort basis, and collections keep one cookie per name. Security
- * attributes such as `HttpOnly`, `Secure`, `SameSite`, and `Partitioned` are
- * serialized when present, but browsers enforce their final behavior, so set
- * them explicitly for session, cross-site, and HTTPS-sensitive cookies.
+ * **Mental model**
+ *
+ * - A `Cookie` stores both the decoded `value` and the encoded `valueEncoded`
+ *   used in headers
+ * - A `Cookies` collection contains at most one cookie per name; later writes,
+ *   merges, and iterable inputs replace earlier cookies with the same name
+ * - `Cookie` request headers carry name/value pairs, while `Set-Cookie`
+ *   response headers carry one cookie plus optional attributes
+ * - Safe constructors return `Result` failures for invalid names, values,
+ *   domains, paths, or infinite `Max-Age` values
+ *
+ * **Common tasks**
+ *
+ * - Create cookies: {@link makeCookie}, {@link makeCookieUnsafe}
+ * - Build collections: {@link empty}, {@link fromIterable},
+ *   {@link fromSetCookie}, {@link fromReadonlyRecord}
+ * - Read values: {@link get}, {@link getValue}, {@link toRecord},
+ *   {@link isEmpty}
+ * - Update collections: {@link set}, {@link setUnsafe}, {@link setAll},
+ *   {@link setCookie}, {@link setAllCookie}, {@link remove}, {@link merge}
+ * - Expire cookies: {@link expireCookie}, {@link expireCookieUnsafe}
+ * - Encode and decode headers: {@link toCookieHeader},
+ *   {@link toSetCookieHeaders}, {@link serializeCookie}, {@link parseHeader}
+ *
+ * **Gotchas**
+ *
+ * - Use {@link toCookieHeader} for an outbound request `Cookie` header and
+ *   {@link toSetCookieHeaders} for response `Set-Cookie` headers.
+ * - Parsing is intentionally tolerant: malformed `Set-Cookie` input can be
+ *   ignored, unsupported attributes are skipped, and percent-decoding falls
+ *   back to the original text.
+ * - Security attributes such as `HttpOnly`, `Secure`, `SameSite`, and
+ *   `Partitioned` are serialized when present, but browser policy enforces
+ *   their final behavior.
+ *
+ * **Example** (Serializing a session cookie)
+ *
+ * ```ts
+ * import { Cookies } from "effect/unstable/http"
+ *
+ * const cookies = Cookies.setUnsafe(Cookies.empty, "session", "abc123", {
+ *   httpOnly: true,
+ *   path: "/",
+ *   sameSite: "lax",
+ *   secure: true
+ * })
+ *
+ * console.log(Cookies.toSetCookieHeaders(cookies))
+ * // ["session=abc123; Path=/; HttpOnly; Secure; SameSite=Lax"]
+ * ```
  *
  * @since 4.0.0
  */
@@ -59,6 +105,8 @@ export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRe
 
 /**
  * Schema for `Cookies` collections.
+ *
+ * **Details**
  *
  * JSON encoding uses `Set-Cookie` header strings, while isomorphic encoding uses
  * a readonly record of cookie values.
@@ -183,6 +231,8 @@ export class CookiesErrorReason extends Data.Error<{
 
 /**
  * Error returned when a cookie name, value, domain, path, or max-age option is invalid.
+ *
+ * **Details**
  *
  * Inspect `reason` to determine the specific validation failure.
  *
@@ -443,6 +493,8 @@ const CookieProto = {
 /**
  * Creates a cookie, validating the name, encoded value, domain, path, and finite `maxAge`.
  *
+ * **Details**
+ *
  * Returns a `CookiesError` in the `Result` failure channel when validation fails.
  *
  * @category constructors
@@ -574,6 +626,8 @@ export const get: {
 /**
  * Gets the decoded value of a cookie by name.
  *
+ * **Details**
+ *
  * Returns `Option.none()` when the cookie is not present.
  *
  * @category combinators
@@ -589,6 +643,8 @@ export const getValue: {
 
 /**
  * Creates and adds a cookie by name and value.
+ *
+ * **Details**
  *
  * The cookie fields are validated first; invalid input returns a `CookiesError` in the `Result` failure channel.
  *
@@ -646,6 +702,8 @@ export const setUnsafe: {
 
 /**
  * Adds an expired cookie with an empty value, `Max-Age=0`, and an epoch `Expires` value.
+ *
+ * **Details**
  *
  * Returns a `CookiesError` in the `Result` failure channel when the name or options are invalid.
  *
@@ -709,6 +767,8 @@ export const expireCookieUnsafe: {
 /**
  * Creates and adds multiple cookies from name/value/options tuples.
  *
+ * **Details**
+ *
  * If any tuple is invalid, returns the first `CookiesError` and leaves the original collection unchanged.
  *
  * @category combinators
@@ -759,6 +819,8 @@ export const setAllUnsafe: {
 
 /**
  * Serialize a cookie into a string
+ *
+ * **Details**
  *
  * Adapted from https://github.com/fastify/fastify-cookie under MIT License
  *
@@ -886,6 +948,8 @@ export const toSetCookieHeaders = (self: Cookies): Array<string> => Object.value
 
 /**
  * Parse a cookie header into a record of key-value pairs
+ *
+ * **Details**
  *
  * Adapted from https://github.com/fastify/fastify-cookie under MIT License
  *

@@ -1,24 +1,35 @@
 /**
- * Server-side worker runner primitives shared by the browser, Node, and Bun
- * platform packages.
+ * Platform-neutral primitives for code running inside worker-like runtimes.
  *
- * A `WorkerRunnerPlatform` is installed in code that is already running inside
- * a worker-like runtime. Starting it yields a `WorkerRunner`, which listens for
- * parent or client requests, identifies each connection with a numeric port id,
- * and sends responses back through the same transport. The main Effect use case
- * is `RpcServer.layerProtocolWorkerRunner`, but platform adapters can also use
- * these types to expose lower-level request handlers for dedicated workers,
- * shared workers, worker threads, or child-process channels.
+ * This module gives browser workers, shared workers, Node worker threads, Bun
+ * workers, and child-process adapters the same server-side shape: start a
+ * runner, receive messages tagged by a numeric port id, and send replies back
+ * through the matching transport.
  *
- * The wire protocol is intentionally small: inbound messages are
- * `PlatformMessage` values where `[0, payload]` is a request and `[1]` closes a
- * port. Higher-level protocols are responsible for encoding request and
- * response payloads before they cross the worker boundary. Values must still be
- * accepted by the selected runtime's message mechanism, so structured-clone
- * support, transfer lists, `messageerror` events, and single-port runtimes such
- * as Node or Bun should be considered when choosing payload schemas and
- * resource lifetimes. Handler effects run on the runtime captured by `run`, so
- * services required by the handler must be provided to the running effect.
+ * **Mental model**
+ *
+ * `WorkerRunnerPlatform` is installed inside the worker-like runtime. Starting
+ * it yields a `WorkerRunner`, and `WorkerRunner.run` attaches the message
+ * handler. Incoming values use the small `PlatformMessage` protocol:
+ * `[0, payload]` delivers a request and `[1]` closes a port. Higher-level
+ * protocols, such as RPC over workers, decide how payloads are encoded before
+ * they reach this layer.
+ *
+ * **Common tasks**
+ *
+ * - Start the current platform from the {@link WorkerRunnerPlatform} service
+ * - Handle inbound messages with `WorkerRunner.run`
+ * - Send responses or notifications with `WorkerRunner.send`
+ * - Observe optional disconnect notifications through `WorkerRunner.disconnects`
+ *
+ * **Gotchas**
+ *
+ * This module does not serialize payloads; values must already be acceptable to
+ * the selected runtime's message mechanism. Structured-clone support, transfer
+ * lists, `messageerror` events, and single-port runtimes such as Node or Bun
+ * all affect which payloads and resource lifetimes are safe. Handler effects
+ * run on the runtime captured by `run`, so services required by a handler must
+ * be provided to that running effect.
  *
  * @since 4.0.0
  */

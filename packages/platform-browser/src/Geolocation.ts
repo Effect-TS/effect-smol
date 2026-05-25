@@ -1,19 +1,35 @@
 /**
- * Browser geolocation support for Effect programs.
+ * Browser geolocation integration for Effect programs.
  *
- * This module provides a `Geolocation` service and browser-backed layer for
- * reading device location through `navigator.geolocation`. Use
- * `getCurrentPosition` when an application needs one location fix, such as a
- * nearby-search, check-in, or delivery estimate, and `watchPosition` when it
- * needs a stream of updates for navigation, tracking, or location-aware UI.
+ * This module exposes a `Geolocation` service backed by
+ * `navigator.geolocation`. Use it for browser features that need a single
+ * position fix, such as nearby search or delivery estimates, or a stream of
+ * position updates for navigation, tracking, and location-aware interfaces.
+ * Browser failures are represented as typed `GeolocationError` values instead
+ * of raw callback errors.
  *
- * The implementation is browser-only and relies on the browser permission and
- * policy model for geolocation. Calls may prompt the user, fail when permission
- * is denied, time out, or report that position data is unavailable because of
- * device, browser, privacy, origin, or secure-context restrictions. Watched
- * positions are scoped so the underlying browser watch is cleared when the
- * stream is finalized, and slow consumers should account for the sliding
- * buffer used by `watchPosition`.
+ * **Mental model**
+ *
+ * - The service delegates to the browser Geolocation API and follows the
+ *   browser's permission, privacy, origin, and secure-context rules.
+ * - `getCurrentPosition` reads one position fix from the service.
+ * - {@link watchPosition} turns browser position callbacks into a `Stream` and
+ *   clears the underlying browser watch when the stream is finalized.
+ *
+ * **Common tasks**
+ *
+ * - Provide the live browser implementation with {@link layer}.
+ * - Read a one-shot position from the `Geolocation` service.
+ * - Stream position updates with {@link watchPosition}.
+ * - Handle denied permissions, timeouts, and unavailable position data with
+ *   {@link GeolocationError}.
+ *
+ * **Gotchas**
+ *
+ * - Browsers may prompt the user, reject access outside secure contexts, block
+ *   access by permissions policy, or report that position data is unavailable.
+ * - {@link watchPosition} uses a sliding buffer; increase `bufferSize` if slow
+ *   consumers must not skip older positions.
  *
  * @since 4.0.0
  */
@@ -30,6 +46,26 @@ const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 
 /**
  * Service interface for browser geolocation, providing effects for the current position and streams of watched positions.
+ *
+ * **When to use**
+ *
+ * Use when browser code needs a typed Effect service for one-shot location
+ * reads or streamed location updates.
+ *
+ * **Details**
+ *
+ * `getCurrentPosition` returns one position effect. `watchPosition` returns a
+ * stream and accepts the browser `PositionOptions` plus an optional sliding
+ * `bufferSize`.
+ *
+ * **Gotchas**
+ *
+ * Browser permission prompts, denied permissions, timeouts, unavailable
+ * position data, secure-context restrictions, and policy restrictions are
+ * surfaced as `GeolocationError`.
+ *
+ * @see {@link GeolocationError} for represented browser geolocation failures
+ * @see {@link layer} for the browser-backed service implementation
  *
  * @category models
  * @since 4.0.0
@@ -50,6 +86,13 @@ export interface Geolocation {
 
 /**
  * Service tag for the browser `Geolocation` service.
+ *
+ * **When to use**
+ *
+ * Use when an Effect needs to access or provide geolocation capabilities
+ * through the context.
+ *
+ * @see {@link layer} for providing the browser-backed geolocation service
  *
  * @category services
  * @since 4.0.0

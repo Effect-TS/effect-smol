@@ -1,23 +1,39 @@
 /**
- * Utilities for applying Effect SQL migrations to PostgreSQL databases.
+ * PostgreSQL migration support for Effect SQL applications.
  *
- * This module re-exports the shared `Migrator` loaders and error types, then
- * provides `run` and `layer` helpers for applying ordered migrations through
- * the current PostgreSQL `SqlClient` and `PgClient`. It is typically used at
- * application startup, during deployment, in integration tests that provision a
- * temporary PostgreSQL database, or in layer graphs that must prepare the
- * schema before dependent services are acquired.
+ * This module adapts the shared SQL migrator to PostgreSQL. It re-exports the
+ * common migration loaders and errors, then provides {@link run} and
+ * {@link layer} helpers that execute pending migrations with the current
+ * `SqlClient` and `PgClient`.
  *
- * Migrations are recorded in `effect_sql_migrations` by default and are loaded
- * using the shared `<id>_<name>` file or record-key convention. Only migrations
- * with an id greater than the latest recorded id are applied, so concurrent
- * application instances should coordinate startup against the same database and
- * avoid racing to install the same changes. When `schemaDirectory` is enabled,
- * this adapter shells out to `pg_dump` using the active `PgClient`
- * configuration, so `pg_dump` must be available on `PATH` and the layer must
- * provide child process, filesystem, and path services. The generated dumps
- * intentionally strip comments, session settings, ownership, and privilege
- * statements to keep schema snapshots portable across PostgreSQL environments.
+ * **Mental model**
+ *
+ * Migrations are numbered operations loaded from files, records, or bundler
+ * glob results. The migrator ensures the migrations table exists, reads the
+ * latest recorded id, and runs only migrations with a greater id. PostgreSQL
+ * runs use the configured `PgClient` connection details for both migration SQL
+ * and optional schema dumps.
+ *
+ * **Common tasks**
+ *
+ * - Run migrations explicitly with {@link run} during startup or deployment
+ * - Add migrations to a layer graph with {@link layer} so dependent services
+ *   are acquired after the schema is prepared
+ * - Reuse the shared loaders such as `fromGlob`, `fromRecord`, and
+ *   `fromFileSystem`
+ * - Enable `schemaDirectory` to write a portable schema snapshot after a
+ *   successful migration run
+ *
+ * **Gotchas**
+ *
+ * - The default migrations table is `effect_sql_migrations`; use `table` when a
+ *   database needs a different name
+ * - Only migrations with an id greater than the latest recorded id are run, so
+ *   editing an older migration does not make it run again
+ * - Schema dumps shell out to `pg_dump`, so `pg_dump` must be on `PATH` and the
+ *   layer must provide child process, filesystem, and path services
+ * - Generated dumps intentionally omit comments, session settings, ownership,
+ *   and privilege statements to keep snapshots portable
  *
  * @since 4.0.0
  */

@@ -1,15 +1,46 @@
 /**
- * The `Request` module provides a way to model requests to external data sources
- * in a functional and composable manner. Requests represent descriptions of
- * operations that can be batched, cached, and executed efficiently.
+ * The `Request` module defines typed request values for data loading with
+ * `Effect.request`. A request is a description of work, not the execution of
+ * that work: it records the success type, typed error, service requirements,
+ * and the fields needed by a resolver to perform one logical operation.
  *
- * A `Request<A, E, R>` represents a request that:
- * - Yields a value of type `A` on success
- * - Can fail with an error of type `E`
- * - Requires services of type `R`
+ * Requests are designed to be paired with a `RequestResolver`, which receives
+ * pending request entries, batches or caches them when possible, and completes
+ * each entry with a result. This lets calling code ask for data declaratively
+ * while resolver code owns the backend-specific loading logic.
  *
- * Requests are primarily used with RequestResolver to implement efficient
- * data fetching patterns, including automatic batching and caching.
+ * **Mental model**
+ *
+ * - `Request<A, E, R>` describes one operation that succeeds with `A`, fails
+ *   with `E`, and may require services `R`
+ * - Constructors such as {@link of}, {@link tagged}, {@link Class}, and
+ *   {@link TaggedClass} attach the request marker and structural behavior
+ *   expected by the request runtime
+ * - A resolver receives {@link Entry} values; each entry contains the original
+ *   request, the captured context, and a completion callback
+ * - Completion helpers such as {@link succeed}, {@link fail},
+ *   {@link failCause}, {@link complete}, and {@link completeEffect} turn
+ *   resolver results into the `Exit` expected by the waiting fiber
+ *
+ * **Common tasks**
+ *
+ * - Define request shapes with {@link Request}, {@link Class}, or
+ *   {@link TaggedClass}
+ * - Build lightweight request constructors with {@link of} or {@link tagged}
+ * - Check unknown values with {@link isRequest}
+ * - Complete pending resolver entries with {@link succeed}, {@link fail},
+ *   {@link failCause}, {@link complete}, or {@link completeEffect}
+ * - Extract request type members with {@link Success}, {@link Error},
+ *   {@link Services}, and {@link Result}
+ *
+ * **Gotchas**
+ *
+ * - Creating a request value does not run anything; it must be submitted with
+ *   `Effect.request` and handled by a resolver
+ * - Resolver implementations must complete every {@link Entry} they receive,
+ *   otherwise the fiber waiting for that request will not receive a value
+ * - Cached and deduplicated requests depend on request identity and structural
+ *   equality, so include only stable fields that describe the logical operation
  *
  * @since 2.0.0
  */
@@ -56,6 +87,17 @@ export interface Request<out A, out E = never, out R = never> extends Variance<A
  * Alias for any `Request`, regardless of its success, error, or service
  * requirements.
  *
+ * **When to use**
+ *
+ * Use as a generic constraint for APIs that accept any request while preserving
+ * each concrete request's success, error, and service types.
+ *
+ * @see {@link Request} for the request interface
+ * @see {@link Success} for extracting a request's success type
+ * @see {@link Error} for extracting a request's error type
+ * @see {@link Services} for extracting a request's service requirements
+ * @see {@link Result} for the exit type produced by completing a request
+ *
  * @category models
  * @since 4.0.0
  */
@@ -64,7 +106,7 @@ export type Any = Request<any, any, any>
 /**
  * Variance marker carried by every `Request`.
  *
- * **Notes**
+ * **Details**
  *
  * This marker preserves the success, error, and service requirement types for
  * Effect's type-level machinery. Users normally get it by extending `Request`.
@@ -199,7 +241,7 @@ const requestVariance = Equal.byReferenceUnsafe({
 /**
  * Prototype used by Effect's request constructors.
  *
- * **Notes**
+ * **Details**
  *
  * This low-level value provides the structural request marker for values
  * created by `Request.of`, `Request.tagged`, `Request.Class`, and
@@ -403,8 +445,17 @@ export const TaggedClass = <Tag extends string>(
 }
 
 /**
- * Completes a request entry with the provided result. This is typically used
- * within RequestResolver implementations to fulfill pending requests.
+ * Completes a request entry with the provided result.
+ *
+ * **When to use**
+ *
+ * Use to finish a `Request.Entry` when you already have the request's final
+ * `Exit` result.
+ *
+ * @see {@link completeEffect} for completing an entry from an effect that may succeed or fail
+ * @see {@link succeed} for completing an entry with a successful value
+ * @see {@link fail} for completing an entry with a typed failure
+ * @see {@link failCause} for completing an entry with a failure `Cause`
  *
  * @category completion
  * @since 2.0.0
@@ -421,11 +472,24 @@ export const complete: {
 /**
  * Completes a request entry with the result of an effect.
  *
+ * **When to use**
+ *
+ * Use to finish a `Request.Entry` by running an effect whose success or typed
+ * failure should become the request result.
+ *
  * **Details**
  *
  * If the effect succeeds, the entry is completed successfully with its value.
- * If the effect fails, the entry is completed with that failure. The returned
- * effect itself does not fail with the request error.
+ * If the effect fails, the entry is completed with that failure.
+ *
+ * **Gotchas**
+ *
+ * The returned effect itself does not fail with the request error.
+ *
+ * @see {@link complete} for completing an entry with a prebuilt `Exit`
+ * @see {@link succeed} for completing an entry with a successful value
+ * @see {@link fail} for completing an entry with a typed failure
+ * @see {@link failCause} for completing an entry with a failure `Cause`
  *
  * @category completion
  * @since 2.0.0
@@ -445,6 +509,16 @@ export const completeEffect: {
 /**
  * Completes a request entry with a typed failure.
  *
+ * **When to use**
+ *
+ * Use to report a request-specific typed error while implementing a
+ * `RequestResolver`.
+ *
+ * @see {@link failCause} for completing an entry with a full `Cause`
+ * @see {@link complete} for completing an entry with an existing `Exit`
+ * @see {@link completeEffect} for completing an entry from an effect result
+ * @see {@link succeed} for completing an entry successfully
+ *
  * @category completion
  * @since 2.0.0
  */
@@ -459,10 +533,15 @@ export const fail: {
 /**
  * Completes a request entry with a failure `Cause`.
  *
- * **Details**
+ * **When to use**
  *
- * Use this when the request should fail with structured cause information
- * rather than only the request's typed error value.
+ * Use when a `RequestResolver` needs to complete an entry with structured cause
+ * information rather than only the request's typed error value.
+ *
+ * @see {@link fail} for completing an entry with a typed error value
+ * @see {@link complete} for completing an entry with an existing `Exit`
+ * @see {@link completeEffect} for completing an entry from an effect result
+ * @see {@link succeed} for completing an entry successfully
  *
  * @category completion
  * @since 2.0.0
@@ -478,6 +557,16 @@ export const failCause: {
 
 /**
  * Completes a request entry successfully with the supplied value.
+ *
+ * **When to use**
+ *
+ * Use to finish a `Request.Entry` when you have a successful value for the
+ * request.
+ *
+ * @see {@link complete} for completing an entry with a prebuilt `Exit`
+ * @see {@link completeEffect} for completing an entry from an effect result
+ * @see {@link fail} for completing an entry with a typed failure
+ * @see {@link failCause} for completing an entry with a failure `Cause`
  *
  * @category completion
  * @since 2.0.0
@@ -520,7 +609,7 @@ export interface Entry<out R> {
 /**
  * Creates a `Request.Entry` from its component fields.
  *
- * **Notes**
+ * **Details**
  *
  * This is a low-level helper for request runtime and resolver infrastructure;
  * most application code receives entries from a `RequestResolver` instead of

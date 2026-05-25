@@ -1,18 +1,26 @@
 /**
- * Defines typed groups of event-log event definitions.
+ * Describes typed event groups for the unstable event-log system.
  *
- * Event groups describe the events that belong to one event-log domain, such as
- * commands for an aggregate, application workflow, or synced local store. Start
- * from `empty`, add event tags with their payload, success, and error schemas,
- * then use the group with `EventLog.group` to provide the handlers that execute
- * and commit those events.
+ * An `EventGroup` is an immutable catalog of event definitions that belong to one
+ * domain, such as an aggregate, workflow, or synced store. Start with `empty`,
+ * add tags with their payload, success, and error schemas, and then pass the
+ * resulting group to `EventLog.schema` for clients and `EventLog.group` for
+ * server-side handlers. The group itself does not execute writes; it preserves
+ * the event tags and schema services that the event-log runtime uses later.
  *
- * Each event tag becomes the key in the group's events record, so tags should be
- * unique within a group. The `primaryKey` function is part of the event
- * definition and should derive the stable partition key from the decoded
- * payload. Omitted schemas default to `Schema.Void` for payload and success, and
- * `Schema.Never` for errors; use `addError` when every event in the group shares
- * an additional error schema.
+ * **Mental model**
+ *
+ * Each tag in a group is the durable name of an event. Its `primaryKey` function
+ * derives the entity or aggregate partition from the decoded payload, while its
+ * schemas describe the bytes written to the journal and the typed result returned
+ * by the handler.
+ *
+ * **Gotchas**
+ *
+ * Keep tags unique within a group and stable once entries have been persisted.
+ * Omitted schemas default to `Schema.Void` for payload and success and
+ * `Schema.Never` for errors. Use `addError` only for errors shared by every
+ * event in the group.
  *
  * @since 4.0.0
  */
@@ -50,7 +58,9 @@ export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, T
  * Typed collection of event definitions that represents a portion of an event log
  * domain.
  *
- * Build groups from `empty.add(...)`, then provide implementations for the events
+ * **When to use**
+ *
+ * Use when build groups from `empty.add(...)`, then provide implementations for the events
  * with `EventLog.group`.
  *
  * @category models
@@ -187,7 +197,9 @@ const makeProto = <
 /**
  * Empty event group used as the starting point for defining a group.
  *
- * Call `.add(...)` to add event definitions and build a typed `EventGroup`.
+ * **When to use**
+ *
+ * Use when call `.add(...)` to add event definitions and build a typed `EventGroup`.
  *
  * @category constructors
  * @since 4.0.0

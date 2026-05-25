@@ -230,7 +230,7 @@ export * as HelpDoc from "./HelpDoc.ts"
  *   value; this is important for argument ordering and variadic parameters.
  * - Some parsers require CLI services such as filesystem, path, terminal, or
  *   child-process support through the parsing environment.
- * @internal
+ *
  * @since 4.0.0
  */
 export * as Param from "./Param.ts"

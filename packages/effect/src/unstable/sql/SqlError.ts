@@ -1,21 +1,37 @@
 /**
- * Structured SQL errors used by the unstable SQL APIs.
+ * Structured SQL failures for unstable SQL clients and driver integrations.
  *
- * This module defines the top-level `SqlError` wrapper, the concrete
- * `SqlErrorReason` variants used by drivers and adapters, and helpers for
- * recognizing and classifying database failures. It is useful when turning
- * native driver errors into typed Effect failures, choosing retry policies from
- * `isRetryable`, or distinguishing user-facing query problems such as syntax
- * and constraint failures from infrastructure problems such as connection,
- * lock, statement timeout, deadlock, and serialization failures.
+ * This module provides the top-level `SqlError` wrapper, the concrete
+ * `SqlErrorReason` variants used by adapters, schemas for encoding or decoding
+ * those errors, guards for recognizing them, and a SQLite classifier for native
+ * driver causes. The model keeps query mistakes, authentication and
+ * authorization failures, constraint violations, connection failures, lock
+ * waits, deadlocks, serialization conflicts, statement timeouts, and unknown
+ * failures distinguishable in the Effect error channel.
  *
- * Query, connection, and migration code should preserve the original cause and
- * operation metadata when constructing these errors. Retrying can be appropriate
- * for transient connection and concurrency failures, but syntax, authorization,
- * authentication, and constraint failures generally require changing the query,
- * credentials, permissions, or migration data. When classifying SQLite errors,
- * the helpers inspect `code` and `errno` values and extract unique constraint
- * names when available.
+ * **Mental model**
+ *
+ * `SqlError` wraps exactly one reason. Its `message`, `cause`, and
+ * `isRetryable` values are delegated to that reason, so recovery code can branch
+ * on either the reason tag or the retryability flag without losing the original
+ * native cause. Reasons are intentionally driver-neutral; adapters translate
+ * database-specific error codes into this shared vocabulary.
+ *
+ * **Common tasks**
+ *
+ * Construct a reason when adapting a driver failure, wrap it in `SqlError` for
+ * client APIs, use `isSqlError` or `isSqlErrorReason` at boundaries that receive
+ * unknown failures, and use `classifySqliteError` when mapping SQLite `code` or
+ * `errno` values.
+ *
+ * **Gotchas**
+ *
+ * Preserve the native `cause` and `operation` metadata when constructing these
+ * errors; they are often the only way to diagnose dialect-specific failures.
+ * Retryable reasons represent transient infrastructure or concurrency problems,
+ * while syntax, credential, permission, and constraint failures generally need a
+ * changed query, configuration, or data set. SQLite unique violations include a
+ * best-effort constraint name when one can be extracted.
  *
  * @since 4.0.0
  */

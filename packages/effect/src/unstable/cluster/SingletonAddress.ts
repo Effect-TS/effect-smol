@@ -1,17 +1,31 @@
 /**
- * The `SingletonAddress` module defines the address used by cluster sharding to
- * identify a registered singleton. A singleton address combines the singleton
- * name with the `ShardId` that owns it, giving the runtime a stable key for
- * registration events, equality checks, hashing, and runner-local fiber
- * tracking.
+ * The `SingletonAddress` module models the runtime address assigned to a cluster
+ * singleton registration. The address pairs the singleton `name` with the
+ * `ShardId` selected from that name and its shard group, giving sharding one
+ * stable value for registration events, equality, hashing, and local singleton
+ * fiber tracking.
  *
- * Use this module when observing singleton registrations or working with
- * sharding internals that need to tell which shard currently owns a singleton.
- * The shard id is derived from the singleton name and shard group at
- * registration time, so changing either value changes ownership and routing.
- * Ownership can also move as shard locks are acquired or released, so an address
- * identifies the target shard rather than guaranteeing that a particular runner
- * is currently executing the singleton.
+ * **Mental model**
+ *
+ * A singleton does not have an entity id supplied by the caller. During
+ * registration, `Sharding` hashes the singleton name within a shard group and
+ * records the resulting shard id next to the name. When the local runner
+ * acquires that shard, the singleton can run; when ownership moves away, the
+ * address stays the same and the local singleton fiber is stopped.
+ *
+ * **Common tasks**
+ *
+ * - Read the address carried by singleton registration events
+ * - Compare singleton registrations by both name and shard id
+ * - Include the name and shard id in logs or diagnostics about singleton
+ *   ownership changes
+ *
+ * **Gotchas**
+ *
+ * - The same singleton name in different shard groups produces different
+ *   addresses
+ * - An address identifies the shard responsible for a singleton, not the runner
+ *   currently executing it
  *
  * @since 4.0.0
  */

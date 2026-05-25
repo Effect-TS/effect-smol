@@ -43,9 +43,8 @@ import { Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 const TypeId = "~effect/cluster/Reply"
 
 /**
- * Returns `true` when the supplied value is a runtime cluster reply.
- *
- * The check is based on the reply type identifier.
+ * Returns `true` when the supplied value is a runtime cluster reply, based on the
+ * reply type identifier.
  *
  * @category guards
  * @since 4.0.0
@@ -53,9 +52,8 @@ const TypeId = "~effect/cluster/Reply"
 export const isReply = (u: unknown): u is Reply<Rpc.Any> => hasProperty(u, TypeId)
 
 /**
- * Runtime reply sent for an RPC request.
- *
- * A reply is either a final exit or a chunk of a streaming success value.
+ * Runtime reply sent for an RPC request, either as a final exit or a chunk of a
+ * streaming success value.
  *
  * @category models
  * @since 4.0.0
@@ -72,6 +70,8 @@ export type Encoded = WithExitEncoded | ChunkEncoded
 
 /**
  * Codec used for reply values that are already in encoded form.
+ *
+ * **Details**
  *
  * Per-RPC payload validation is performed by `Reply(rpc)`.
  *

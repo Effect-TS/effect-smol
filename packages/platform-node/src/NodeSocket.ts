@@ -1,20 +1,35 @@
 /**
- * Node platform socket entry point for Effect sockets backed by Node streams
- * and WebSocket implementations.
+ * Node.js socket constructors and layers for Effect sockets.
  *
- * This module re-exports the shared Node socket constructors for TCP clients,
- * Unix domain socket clients, and adapters from existing Node `Duplex` streams,
- * then adds Node-specific WebSocket constructor layers. Use it when connecting
- * to raw socket protocols, wiring RPC transports over TCP or Unix sockets, or
- * opening WebSocket clients in Node.
+ * This module combines shared Node stream-backed socket support with
+ * Node-specific WebSocket constructor layers. Use it to open TCP clients, Unix
+ * domain socket clients, adapt existing Node `Duplex` streams, or provide
+ * WebSocket clients to protocols built on Effect's `Socket.Socket`.
  *
- * TCP and Unix socket behavior comes from the shared Node layer: Unix sockets
- * are selected with `NetConnectOpts.path`, scoped sockets close or destroy the
- * underlying stream on finalization, and Node open, read, write, and close
- * events are translated into `SocketError` values. For WebSockets,
- * `layerWebSocketConstructor` prefers `globalThis.WebSocket` when available
- * and falls back to `ws`; use `layerWebSocketConstructorWS` when you need the
- * `ws` implementation consistently across Node versions.
+ * **Mental model**
+ *
+ * TCP and Unix sockets come from `node:net` and are exposed as scoped
+ * `Socket.Socket` values. Stream open, read, write, and close events are
+ * translated to `SocketError` values, and finalization closes or destroys the
+ * underlying stream. WebSocket layers provide only the constructor service used
+ * by `Socket.makeWebSocket`; `layerWebSocket` combines that constructor with a
+ * URL to provide a socket layer.
+ *
+ * **Common tasks**
+ *
+ * - Use `makeNet`, `makeNetChannel`, or `layerNet` for TCP connections.
+ * - Set `NetConnectOpts.path` for Unix domain sockets.
+ * - Use `fromDuplex` when another library already owns a Node `Duplex`.
+ * - Use `layerWebSocketConstructor` for the native WebSocket when present, with
+ *   fallback to `ws`; use `layerWebSocketConstructorWS` to force `ws`.
+ *
+ * **Gotchas**
+ *
+ * Socket lifetime is scoped, so release the layer or scope to close the
+ * connection. Writes complete when Node accepts or flushes the chunk, not when
+ * a peer processes it. Remote `end` events complete the socket run, while
+ * abnormal closes, open timeouts, and stream errors surface through
+ * `SocketError`; handle them in the Effect that runs the socket.
  *
  * @since 4.0.0
  */

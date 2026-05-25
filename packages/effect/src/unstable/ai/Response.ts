@@ -1,25 +1,49 @@
 /**
- * The `Response` module provides data structures to represent responses from
- * large language models.
+ * The `Response` module defines Effect AI's provider-neutral representation of
+ * model output. Text, reasoning, tool calls, tool results, files, source
+ * citations, metadata, finish information, usage, and provider errors are all
+ * modeled as typed response parts.
  *
- * This module defines the complete structure of AI model responses, including
- * various content parts for text, reasoning, tool calls, files, and metadata,
- * supporting both streaming and non-streaming responses.
+ * **Mental model**
  *
- * **Example** (Creating response parts)
+ * - A response is an ordered sequence of parts.
+ * - Non-streaming responses use complete parts such as `TextPart`,
+ *   `ReasoningPart`, `ToolCallPart`, `ToolResultPart`, and `FinishPart`.
+ * - Streaming responses use start, delta, and end parts for text, reasoning,
+ *   and tool parameters before final tool-call or finish parts appear.
+ * - Tool-aware schemas are built from a toolkit, so tool call parameters and
+ *   tool result payloads stay aligned with each tool definition.
+ *
+ * **Common tasks**
+ *
+ * - Construct individual parts with {@link makePart}, {@link toolCallPart},
+ *   {@link toolResultPart}, or {@link toolApprovalRequestPart}.
+ * - Decode or encode parts with {@link Part}, {@link StreamPart}, or
+ *   {@link AllParts}.
+ * - Read completion metadata from {@link FinishPart}, {@link FinishReason},
+ *   and {@link Usage}.
+ *
+ * **Gotchas**
+ *
+ * - `metadata` is reserved for provider-specific JSON and defaults to an empty
+ *   object.
+ * - Streaming text, reasoning, and tool parameter deltas are incremental events;
+ *   accumulate them before treating them as final content.
+ * - Tool result parts encode success and failure values according to the
+ *   corresponding tool schemas.
+ *
+ * **Example** (Constructing response parts)
  *
  * ```ts
  * import { Response } from "effect/unstable/ai"
  *
- * // Create a simple text response part
- * const textResponse = Response.makePart("text", {
- *   text: "The weather is sunny today!"
+ * const text = Response.makePart("text", {
+ *   text: "The weather is sunny today."
  * })
  *
- * // Create a tool call response part
- * const toolCallResponse = Response.makePart("tool-call", {
+ * const toolCall = Response.toolCallPart({
  *   id: "call_123",
- *   name: "get_weather",
+ *   name: "GetWeather",
  *   params: { city: "San Francisco" },
  *   providerExecuted: false
  * })
@@ -164,6 +188,8 @@ export type AllPartsEncoded =
 
 /**
  * Creates a Schema for all response parts based on a toolkit.
+ *
+ * **Details**
  *
  * Generates a schema that includes all possible response parts, with tool call
  * and tool result parts dynamically created based on the provided toolkit.
@@ -459,9 +485,8 @@ export const ProviderMetadata: Schema.$Record<
 export type ProviderMetadata = typeof ProviderMetadata.Type
 
 /**
- * Base interface for all response content parts.
- *
- * Provides common structure including type identifier and optional metadata.
+ * Base interface for all response content parts, including the type identifier
+ * and optional metadata.
  *
  * @category models
  * @since 4.0.0
@@ -637,9 +662,8 @@ export const TextPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the start of streaming text content.
- *
- * Marks the beginning of a text chunk with a unique identifier.
+ * Response part indicating the start of streaming text content with a unique
+ * text chunk identifier.
  *
  * @category models
  * @since 4.0.0
@@ -766,9 +790,7 @@ export const TextDeltaPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the end of streaming text content.
- *
- * Marks the completion of a text chunk.
+ * Response part indicating the completion of a streaming text chunk.
  *
  * @category models
  * @since 4.0.0
@@ -897,9 +919,8 @@ export const ReasoningPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the start of streaming reasoning content.
- *
- * Marks the beginning of a reasoning chunk with a unique identifier.
+ * Response part indicating the start of streaming reasoning content with a
+ * unique reasoning chunk identifier.
  *
  * @category models
  * @since 4.0.0
@@ -1026,9 +1047,7 @@ export const ReasoningDeltaPart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part indicating the end of streaming reasoning content.
- *
- * Marks the completion of a chunk of reasoning content.
+ * Response part indicating the completion of a streaming reasoning chunk.
  *
  * @category models
  * @since 4.0.0
@@ -1087,6 +1106,8 @@ export const ReasoningEndPart: Schema.Struct<{
 
 /**
  * Response part indicating the start of streaming tool parameters.
+ *
+ * **Details**
  *
  * Marks the beginning of tool parameter streaming with metadata about the tool
  * call.
@@ -1174,6 +1195,8 @@ export const ToolParamsStartPart: Schema.Struct<{
 /**
  * Response part containing incremental tool parameter content.
  *
+ * **Details**
+ *
  * Represents a chunk of tool parameters being streamed, containing the
  * incremental JSON content that forms the tool parameters.
  *
@@ -1247,6 +1270,8 @@ export const ToolParamsDeltaPart: Schema.Struct<{
 
 /**
  * Response part indicating the end of streaming tool parameters.
+ *
+ * **Details**
  *
  * Marks the completion of a tool parameter stream, indicating that all
  * parameter data has been sent and the tool call is ready to be executed.
@@ -1467,9 +1492,13 @@ export interface BaseToolResult<Name extends string> extends BasePart<"tool-resu
   /**
    * Whether this is a preliminary (intermediate) result.
    *
+   * **Details**
+   *
    * Preliminary results represent progress updates during streaming tool
    * execution. Only the final result (where `preliminary` is `false` or
    * `undefined`) should be used as the authoritative output.
+   *
+   * **Gotchas**
    *
    * Only applicable for framework-executed tools during streaming.
    */
@@ -1584,6 +1613,8 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
   readonly providerExecuted?: boolean | undefined
   /**
    * Whether this is a preliminary (intermediate) result.
+   *
+   * **Gotchas**
    *
    * Only applicable for framework-executed tools during streaming.
    */
@@ -1721,6 +1752,8 @@ export const toolResultPart = <const Params extends ConstructorParams<ToolResult
 /**
  * Response part representing a tool approval request.
  *
+ * **Details**
+ *
  * Emitted when a tool requires user approval before execution. The framework
  * checks the tool's `needsApproval` property and emits this part instead of
  * executing the tool when approval is required.
@@ -1822,6 +1855,8 @@ export const toolApprovalRequestPart = (
 /**
  * Response part representing a file attachment.
  *
+ * **Details**
+ *
  * Supports various file types including images, documents, and binary data.
  *
  * **Example** (Creating a file part)
@@ -1878,6 +1913,11 @@ export interface FilePartMetadata extends ProviderMetadata {}
 /**
  * Schema for validation and encoding of file parts.
  *
+ * **Details**
+ *
+ * Decoded `data` is a `Uint8Array`; encoded `data` is a base64 string through
+ * `Schema.Uint8ArrayFromBase64`.
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -1901,9 +1941,8 @@ export const FilePart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part representing a document source reference.
- *
- * Used to reference documents that were used in generating the response.
+ * Response part representing a document source reference used in generating the
+ * response.
  *
  * @category models
  * @since 4.0.0
@@ -1972,6 +2011,20 @@ export interface DocumentSourcePartMetadata extends ProviderMetadata {}
 /**
  * Schema for validation and encoding of document source parts.
  *
+ * **When to use**
+ *
+ * Use to validate or encode document source references returned as response
+ * content parts.
+ *
+ * **Details**
+ *
+ * Validates `type: "source"`, `sourceType: "document"`, required `id`,
+ * `mediaType`, and `title`, optional `fileName`, and the metadata fields
+ * inherited from response parts.
+ *
+ * @see {@link UrlSourcePart} for URL source references
+ * @see {@link DocumentSourcePartEncoded} for the encoded document source representation
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -2001,9 +2054,8 @@ export const DocumentSourcePart: Schema.Struct<{
 // =============================================================================
 
 /**
- * Response part representing a URL source reference.
- *
- * Used to reference web URLs that were used in generating the response.
+ * Response part representing a URL source reference used in generating the
+ * response.
  *
  * @category models
  * @since 4.0.0
@@ -2093,6 +2145,8 @@ export const UrlSourcePart: Schema.Struct<{
 /**
  * Schema for HTTP request details associated with an AI response.
  *
+ * **Details**
+ *
  * Captures comprehensive information about the HTTP request made to the
  * AI provider, enabling inspection of request metadata for debugging and
  * observability purposes.
@@ -2130,6 +2184,8 @@ export const HttpRequestDetails = Schema.Struct({
 
 /**
  * Schema for HTTP response details associated with an AI response.
+ *
+ * **Details**
  *
  * Captures essential information about the HTTP response received from
  * the AI provider, including status codes and headers for debugging and
@@ -2280,6 +2336,8 @@ export const ResponseMetadataPart: Schema.Struct<{
 /**
  * Represents the reason why a model finished generation of a response.
  *
+ * **Details**
+ *
  * Possible finish reasons:
  * - `"stop"`: The model generated a stop sequence.
  * - `"length"`: The model exceeded its token budget.
@@ -2316,6 +2374,8 @@ export const FinishReason: Schema.Literals<[
 /**
  * Type of the reason why a model stopped generating a response.
  *
+ * **Details**
+ *
  * Values include normal stops, token-limit stops, content filtering,
  * tool-call pauses, provider errors, and unknown provider-specific finish
  * reasons.
@@ -2327,6 +2387,8 @@ export type FinishReason = typeof FinishReason.Type
 
 /**
  * Represents usage information for a request to a large language model provider.
+ *
+ * **Details**
  *
  * If the model provider returns additional usage information than what is
  * specified here, you can generally find that information under the provider
@@ -2452,7 +2514,12 @@ export interface FinishPartEncoded extends BasePartEncoded<"finish", FinishPartM
 export interface FinishPartMetadata extends ProviderMetadata {}
 
 /**
- * Schema for validation and encoding of finish parts.
+ * Runtime schema and codec for finish response parts.
+ *
+ * **Details**
+ *
+ * Validates `type: "finish"`, `reason` through `FinishReason`, `usage`
+ * through `Usage`, and optional provider HTTP response details.
  *
  * @category schemas
  * @since 4.0.0
@@ -2528,6 +2595,16 @@ export interface ErrorPartMetadata extends ProviderMetadata {}
 
 /**
  * Schema for validation and encoding of error parts.
+ *
+ * **Details**
+ *
+ * Validates and encodes error parts with `type: "error"` and an `error` payload
+ * kept as `unknown`.
+ *
+ * **Gotchas**
+ *
+ * The decoded `error` value is not guaranteed to be an `Error`; narrow it before
+ * reading `Error`-specific fields.
  *
  * @category schemas
  * @since 4.0.0

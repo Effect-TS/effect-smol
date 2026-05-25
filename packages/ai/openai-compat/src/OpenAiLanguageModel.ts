@@ -1,8 +1,34 @@
 /**
- * OpenAI Language Model implementation.
+ * The `OpenAiLanguageModel` module adapts OpenAI-compatible chat-completions
+ * providers to the shared Effect AI `LanguageModel` interface. It translates
+ * provider-neutral prompts, tools, structured output schemas, and streaming
+ * responses into the request and response shapes used by `OpenAiClient`.
  *
- * Provides a LanguageModel implementation for OpenAI's chat completions API,
- * supporting text generation, structured output, tool calling, and streaming.
+ * Use this module when an application wants to talk to OpenAI-compatible
+ * endpoints through Effect AI abstractions rather than constructing provider
+ * payloads directly. The exported constructors build a language model service
+ * from a model id, while `Config` and {@link withConfigOverride} provide scoped
+ * defaults for request fields such as temperature, reasoning options, text
+ * format, and provider-specific file handling.
+ *
+ * **Common tasks**
+ *
+ * - Create a model descriptor with {@link model}
+ * - Build or provide the `LanguageModel` service with {@link make} or
+ *   {@link layer}
+ * - Scope request defaults with {@link Config} and {@link withConfigOverride}
+ * - Send tool calls, structured output schemas, images, files, and reasoning
+ *   metadata through the provider-neutral Effect AI prompt types
+ *
+ * **Gotchas**
+ *
+ * - The module requires an `OpenAiClient` service; configure authentication,
+ *   base URL, and HTTP behavior through that client layer.
+ * - Compatibility depends on the provider supporting the OpenAI request fields
+ *   being used. Optional capabilities such as strict JSON schemas, reasoning
+ *   metadata, and tool status fields may vary across providers.
+ * - `fileIdPrefixes` tells the prompt conversion which file references are
+ *   provider file IDs instead of base64 file contents.
  *
  * @since 4.0.0
  */
@@ -60,6 +86,14 @@ type ImageDetail = "auto" | "low" | "high"
 
 /**
  * Service definition for OpenAI language model configuration.
+ *
+ * **When to use**
+ *
+ * Use as the context service for OpenAI-compatible language model request
+ * configuration, especially when a scoped operation should override the defaults
+ * supplied to `model`, `make`, or `layer`.
+ *
+ * @see {@link withConfigOverride} for scoping language model request overrides
  *
  * @category context
  * @since 4.0.0
@@ -506,7 +540,15 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * Creates an AI model descriptor for an OpenAI-compatible language model.
+ * Creates an OpenAI-compatible model descriptor that can be provided with `Effect.provide`.
+ *
+ * **When to use**
+ *
+ * Use when you want an OpenAI-compatible language model value that carries
+ * provider and model metadata and can be supplied directly to an Effect program.
+ *
+ * @see {@link layer} for creating a `LanguageModel.LanguageModel` layer directly
+ * @see {@link make} for constructing the language model service effectfully
  *
  * @category constructors
  * @since 4.0.0
@@ -529,7 +571,22 @@ export const model = (
 //   AiModel.make("openai", model, layerWithTokenizer({ model, config }))
 
 /**
- * Creates an OpenAI language model service.
+ * Creates an OpenAI-compatible `LanguageModel` service from a model identifier and optional request defaults.
+ *
+ * **When to use**
+ *
+ * Use when an Effect needs to construct a `LanguageModel.Service` value backed
+ * by `OpenAiClient`.
+ *
+ * **Details**
+ *
+ * The returned effect requires `OpenAiClient`. Request defaults from the
+ * `config` option are merged with any `Config` service in the context, with
+ * context values taking precedence. The service supports both `generateText` and
+ * `streamText`.
+ *
+ * @see {@link layer} for providing the service as a `Layer`
+ * @see {@link model} for creating a model descriptor for `AiModel.provide`
  *
  * @category constructors
  * @since 4.0.0
@@ -628,7 +685,16 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 })
 
 /**
- * Creates a layer for the OpenAI language model.
+ * Creates a layer for the OpenAI-compatible language model.
+ *
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenAI-compatible APIs to
+ * satisfy `LanguageModel.LanguageModel` while supplying `OpenAiClient` from
+ * another layer.
+ *
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link model} for creating an AI model descriptor
  *
  * @category layers
  * @since 4.0.0
@@ -640,7 +706,19 @@ export const layer = (options: {
   Layer.effect(LanguageModel.LanguageModel, make(options))
 
 /**
- * Provides config overrides for OpenAI language model operations.
+ * Provides scoped config overrides for OpenAI-compatible language model operations.
+ *
+ * **When to use**
+ *
+ * Use to override request configuration for a single language model effect
+ * without changing the defaults supplied to `model`, `make`, or `layer`.
+ *
+ * **Details**
+ *
+ * Existing `Config` values from the Effect context are merged with `overrides`,
+ * and the override values take precedence.
+ *
+ * @see {@link Config} for the configuration shape
  *
  * @category configuration
  * @since 4.0.0

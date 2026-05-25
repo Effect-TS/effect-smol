@@ -1,19 +1,34 @@
 /**
- * Defines typed event-log events for use with `EventLog` and event groups.
+ * Typed event definitions for the unstable event-log system.
  *
- * An event definition names a durable domain event with a tag, derives the
- * aggregate or entity primary key from the payload, and records the schemas used
- * to encode the payload and decode handler success or failure values. These
- * definitions are the shared contract between clients that write events and
- * servers that register handlers, so they are useful for command-style writes,
- * replicated logs, audit trails, and workflows that need replayable domain
- * facts.
+ * An `Event` is the durable contract shared by writers, handlers, journals, and
+ * replicas. It gives an event a stable tag, derives the aggregate or entity
+ * primary key from the decoded payload, and records the schemas used for the
+ * payload and handler result. The payload schema also derives the MessagePack
+ * schema used when entries are written to an event journal or sent to a remote
+ * replica.
  *
- * Payloads are serialized with MessagePack, while success and error values are
- * described separately for the handler result. Keep payload schemas stable once
- * events have been persisted or replicated, prefer explicit versioned event tags
- * or backward-compatible schemas for changes, and make primary keys deterministic
- * so related entries are grouped consistently across stores and remotes.
+ * **Mental model**
+ *
+ * The tag names the event kind, the primary key chooses the partition or entity
+ * affected by the event, the payload schema describes the persisted fact, and
+ * the success and error schemas describe the handler boundary. Type helpers in
+ * this module derive payload, success, error, and service types from either a
+ * single event definition or a union selected by tag.
+ *
+ * **Common tasks**
+ *
+ * Use `make` to define a single event, `addError` to add a shared handler error
+ * to an existing definition, and the tag-based helper types when a client or
+ * server API needs the payload, success, or error type for one event in a group.
+ *
+ * **Gotchas**
+ *
+ * Persisted tags and payload schemas should remain stable. Prefer a new tag or a
+ * backward-compatible schema when an event shape changes, and keep
+ * `primaryKey` deterministic so related entries group consistently across
+ * local journals and remote replicas. Omitted payload and success schemas
+ * default to `Schema.Void`; omitted error schemas default to `Schema.Never`.
  *
  * @since 4.0.0
  */
@@ -49,6 +64,8 @@ export const isEvent = (u: unknown): u is Event<any, any, any, any> => Predicate
 /**
  * Definition of an event type that can be written to an `EventLog`.
  *
+ * **Details**
+ *
  * An event definition contains its tag, primary-key function, payload schema,
  * MessagePack payload schema, success schema, and error schema.
  *
@@ -73,6 +90,8 @@ export interface Event<
 /**
  * Marker service associated with the handler for an event tag.
  *
+ * **Details**
+ *
  * `ToService` derives this service from an `Event` so handler layers can expose
  * which events they implement.
  *
@@ -86,6 +105,8 @@ export interface EventHandler<in out Tag extends string> {
 
 /**
  * Type-erased event log event definition.
+ *
+ * **Details**
  *
  * It preserves the runtime tag, primary-key function, payload schema, success
  * schema, and error schema without retaining the original type parameters.
@@ -216,6 +237,8 @@ export type Payload<A extends Any> = Schema.Schema.Type<PayloadSchema<A>>
 /**
  * Tagged payload value for an event definition.
  *
+ * **Details**
+ *
  * The result contains `_tag` set to the event tag and `payload` set to the
  * decoded payload value.
  *
@@ -258,6 +281,8 @@ export type Success<A extends Any> = Schema.Schema.Type<SuccessSchema<A>>
 /**
  * Schema services required by a client for an event definition.
  *
+ * **Details**
+ *
  * This includes payload encoding services plus success and error decoding
  * services.
  *
@@ -277,6 +302,8 @@ export type ServicesClient<A> = A extends Event<
 
 /**
  * Schema services required by a server for an event definition.
+ *
+ * **Details**
  *
  * This includes payload decoding services plus success and error encoding
  * services.
@@ -375,6 +402,8 @@ const Proto = {
 /**
  * Creates an event log event definition.
  *
+ * **Details**
+ *
  * If omitted, the payload and success schemas default to `Schema.Void`, the error
  * schema defaults to `Schema.Never`, and the MessagePack payload schema is derived
  * from the payload schema.
@@ -416,6 +445,8 @@ export function make(options: {
 
 /**
  * Adds another error schema to an event definition.
+ *
+ * **Details**
  *
  * The returned event keeps the same tag, primary key, payload, and success schema
  * while replacing the error schema with a union of the existing and new errors.

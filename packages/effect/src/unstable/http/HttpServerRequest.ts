@@ -1,20 +1,37 @@
 /**
- * Utilities for working with the request visible to HTTP server handlers.
+ * Server-side access to the current incoming HTTP request.
  *
- * This module defines `HttpServerRequest`, the request-scoped context service
- * used by server effects, middleware, schema decoders, multipart parsers,
- * WebSocket upgrades, and conversions between Effect HTTP requests, client
- * requests, and Web `Request` values. Handlers commonly use it to inspect the
- * method, URL, headers, cookies, remote address, and body, or to decode those
- * parts with schemas instead of parsing raw values by hand.
+ * This module defines the `HttpServerRequest` context service used by HTTP
+ * handlers, middleware, schema decoders, multipart parsers, WebSocket upgrades,
+ * and adapters. A request value carries the method, URL, original URL, headers,
+ * cookies, remote address, body stream, and platform source object, plus helpers
+ * for converting to and from Effect client requests and Web `Request` values.
  *
- * Body access is effectful because reading, parsing, schema decoding, or
- * multipart persistence can fail. Streaming request bodies may be single-use
- * depending on the underlying platform, while cached accessors such as text,
- * JSON, URL parameters, array buffers, and persisted multipart data reuse the
- * first read. Multipart persistence also requires `Scope`, `FileSystem`, and
- * `Path` services, and search parameter decoding depends on the
- * `ParsedSearchParams` service being provided by the router or adapter.
+ * **Mental model**
+ *
+ * Server handlers read the current request from context. Metadata such as the
+ * method, URL, headers, and cookies is available directly, while body access is
+ * effectful because reading, parsing, schema decoding, or multipart persistence
+ * can fail. Schema helpers decode cookies, headers, search parameters, JSON
+ * bodies, URL-encoded bodies, multipart bodies, and form JSON without each
+ * handler needing to parse raw values by hand.
+ *
+ * **Common tasks**
+ *
+ * - Inspect request metadata or derive a modified request view.
+ * - Decode cookies, headers, search parameters, or body content with schemas.
+ * - Upgrade a request to a WebSocket channel.
+ * - Convert between server requests, client requests, and Web `Request` values.
+ *
+ * **Gotchas**
+ *
+ * Streaming request bodies may be single-use depending on the underlying
+ * platform. Cached accessors such as text, JSON, URL parameters, array buffers,
+ * and persisted multipart data reuse the first read. Multipart persistence
+ * requires `Scope`, `FileSystem`, and `Path` services. Search parameter decoding
+ * depends on the `ParsedSearchParams` service being provided by the router or
+ * adapter, and body size limits are controlled through the re-exported
+ * `MaxBodySize` fiber reference.
  *
  * @since 4.0.0
  */
@@ -45,6 +62,8 @@ import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
+   * Re-exports the `MaxBodySize` fiber reference for configuring request body limits.
+   *
    * @category fiber refs
    * @since 4.0.0
    */
@@ -61,6 +80,8 @@ export const TypeId = "~effect/http/HttpServerRequest"
 
 /**
  * Server-side representation of an incoming HTTP request.
+ *
+ * **Details**
  *
  * It extends `HttpIncomingMessage` with request metadata, parsed cookies,
  * multipart accessors, WebSocket upgrade support, and a `modify` method for
@@ -108,6 +129,8 @@ export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerReq
 /**
  * Request-scoped service containing parsed search parameters.
  *
+ * **Details**
+ *
  * Each key maps to a string value, or to an array when the parameter appears more
  * than once.
  *
@@ -121,6 +144,8 @@ export class ParsedSearchParams extends Context.Service<
 
 /**
  * Converts a `URL` object's search parameters into a record.
+ *
+ * **Details**
  *
  * Repeated parameters are represented as arrays in insertion order.
  *
@@ -146,6 +171,8 @@ export const searchParamsFromURL = (url: URL): ReadonlyRecord<string, string | A
 
 /**
  * Creates a channel backed by the current request's upgraded socket.
+ *
+ * **Details**
  *
  * The channel reads incoming socket messages and writes byte chunks to the
  * socket, failing if the request cannot be upgraded or the socket fails.
@@ -217,6 +244,8 @@ export const schemaSearchParams = <
 /**
  * Reads the current request body as JSON and decodes it with the supplied schema.
  *
+ * **Details**
+ *
  * The effect can fail if the body cannot be read or parsed, or if schema decoding
  * fails.
  *
@@ -237,6 +266,8 @@ const isMultipart = (request: HttpServerRequest) =>
 
 /**
  * Decodes the current request body as form data.
+ *
+ * **Details**
  *
  * Multipart requests are persisted and decoded as multipart data; other form
  * requests are decoded from URL-encoded body parameters.
@@ -286,6 +317,8 @@ export const schemaBodyUrlParams = <
  * Persists the current multipart request body and decodes it with the supplied
  * schema.
  *
+ * **Details**
+ *
  * The effect requires the services needed to persist multipart files, including a
  * scope, file system, and path service.
  *
@@ -309,6 +342,8 @@ export const schemaBodyMultipart = <A, I extends Partial<Multipart.Persisted>, R
 
 /**
  * Creates a decoder for a JSON value stored in a form field.
+ *
+ * **Details**
  *
  * For multipart requests, the named multipart field is decoded as JSON. For
  * URL-encoded requests, the named parameter is decoded as JSON and then decoded
@@ -355,6 +390,8 @@ export const schemaBodyFormJson = <A, I, RD, RE>(
 /**
  * Creates an `HttpServerRequest` view of an `HttpClientRequest`.
  *
+ * **Details**
+ *
  * If the client request can be converted to an absolute URL, that URL is used as
  * the original URL.
  *
@@ -372,6 +409,8 @@ export const fromClientRequest = (request: HttpClientRequest.HttpClientRequest):
 /**
  * Wraps a Web `Request` as an `HttpServerRequest`.
  *
+ * **Details**
+ *
  * The request's current URL is stored without the scheme and host, while the
  * original Web URL remains available as `originalUrl`.
  *
@@ -383,6 +422,8 @@ export const fromWeb = (request: globalThis.Request): HttpServerRequest =>
 
 /**
  * Converts an `HttpServerRequest` into an `HttpClientRequest`.
+ *
+ * **Details**
  *
  * The converted request preserves the method, headers, body stream, and a URL
  * derived from the request when possible.
@@ -967,6 +1008,8 @@ const textDecoder = new TextDecoder()
 /**
  * Attempts to construct an absolute `URL` for a server request.
  *
+ * **Details**
+ *
  * The host comes from the `host` header, defaulting to `localhost`, and the
  * protocol is `https` only when `x-forwarded-proto` is `https`; invalid URLs
  * return `Option.none`.
@@ -986,6 +1029,8 @@ export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
 
 /**
  * Converts an `HttpServerRequest` to a Web `Request` as a `Result`.
+ *
+ * **Details**
  *
  * If the source is already a Web `Request`, it is returned unchanged. Otherwise
  * an absolute URL is derived from the request; invalid URLs fail with a
@@ -1026,6 +1071,8 @@ export const toWebResult = (self: HttpServerRequest, options?: {
 
 /**
  * Converts an `HttpServerRequest` to a Web `Request` in `Effect`.
+ *
+ * **Details**
  *
  * The current context is used when streaming the request body into the Web
  * request.

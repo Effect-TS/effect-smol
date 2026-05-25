@@ -1,21 +1,40 @@
 /**
- * The `K8sHttpClient` module provides an HTTP client service for talking to the
- * Kubernetes API from code running inside a cluster.
+ * HTTP client support for talking to the Kubernetes API from code running
+ * inside a cluster. The module builds a `K8sHttpClient` service on top of the
+ * shared HTTP client, points requests at the in-cluster API endpoint, and uses
+ * the mounted service-account token when one is available.
  *
- * It configures requests for the in-cluster service endpoint, attaches the
- * mounted service-account token when present, and exposes helpers for common
- * cluster tasks such as discovering running pods by namespace or label selector
- * and creating scoped pods that are cleaned up automatically.
+ * **Mental model**
+ *
+ * - {@link layer} adapts an existing `HttpClient` so relative requests target
+ *   `https://kubernetes.default.svc/api`.
+ * - {@link K8sHttpClient} is the service tag consumed by the cluster helpers in
+ *   this module.
+ * - {@link makeGetPods} returns a cached effect that lists running pods and
+ *   indexes them by pod IP address.
+ * - {@link makeCreatePod} returns a scoped creator that creates a pod when it
+ *   is missing, waits for readiness, and deletes it when the scope closes.
+ * - {@link Pod} and {@link PodStatus} model only the status fields needed by
+ *   these helpers.
+ *
+ * **Common tasks**
+ *
+ * - Discover running pods in a namespace or behind a label selector.
+ * - Create short-lived pods for cluster workflows and let scope finalization
+ *   clean them up.
+ * - Reuse the configured `K8sHttpClient` for Kubernetes API calls that share
+ *   the same in-cluster endpoint, token, status filtering, and retry policy.
  *
  * **Gotchas**
  *
- * - The default layer targets `https://kubernetes.default.svc/api`, so it is
- *   intended for workloads with Kubernetes DNS and service-account mounts.
- * - Pod discovery is keyed by pod IP address and only includes pods whose phase
- *   is `Running`; callers should choose selectors that match the intended
- *   service topology.
- * - Network policies, RBAC, and service-account token availability can all
- *   prevent the client from reaching or authorizing with the Kubernetes API.
+ * - The default layer assumes Kubernetes DNS and the standard service-account
+ *   mount path used by in-cluster workloads.
+ * - Pod discovery filters to `status.phase=Running`; pods without the expected
+ *   status shape fail schema decoding.
+ * - Pod maps are keyed by pod IP address, so selectors should match the service
+ *   topology the caller actually wants to route to.
+ * - RBAC, network policies, and missing service-account tokens can still block
+ *   requests even when the layer is present.
  *
  * @since 4.0.0
  */
@@ -48,6 +67,8 @@ export class K8sHttpClient extends Context.Service<
 /**
  * Layer that configures `K8sHttpClient` for the in-cluster Kubernetes API.
  *
+ * **Details**
+ *
  * It targets `https://kubernetes.default.svc/api`, adds the service-account
  * bearer token when available, requires successful HTTP statuses, and retries
  * transient failures.
@@ -79,6 +100,8 @@ export const layer: Layer.Layer<
 
 /**
  * Creates a cached effect that fetches running Kubernetes pods.
+ *
+ * **Details**
  *
  * The request can be limited by namespace and label selector, and the result is a
  * map keyed by pod IP address.
@@ -126,6 +149,8 @@ export const makeGetPods: (
 /**
  * Creates a scoped function that ensures a Kubernetes pod exists and waits until
  * it is ready.
+ *
+ * **Details**
  *
  * The pod defaults to the `default` namespace and is deleted when the surrounding
  * scope closes.
@@ -250,6 +275,8 @@ export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpC
 
 /**
  * Schema for Kubernetes Pod values used by cluster helpers.
+ *
+ * **Details**
  *
  * The model exposes readiness helpers derived from the pod status conditions.
  *

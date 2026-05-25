@@ -1,19 +1,32 @@
 /**
- * The `Stdio` module defines the service interface used by Effect programs to
- * interact with process standard I/O. It models command-line arguments,
- * standard output, standard error, and standard input as Effects, Sinks, and
- * Streams so programs can depend on console I/O through `Context` instead of
- * directly coupling to a specific runtime.
+ * Service contract for process standard input, output, error output, and
+ * command-line arguments.
  *
- * Use this module when building command-line programs, tests, or platform
- * integrations that need to read bytes from stdin, write text or bytes to
- * stdout/stderr, or provide deterministic replacements for those capabilities.
- * The `layerTest` helper is useful for tests because it supplies inert defaults
- * and lets individual fields be overridden.
+ * `Stdio` lets command-line programs depend on standard I/O through the Effect
+ * environment instead of reading from or writing to global process handles
+ * directly. The service exposes arguments as an `Effect`, stdout and stderr as
+ * `Sink`s that accept strings or bytes, and stdin as a byte `Stream`.
  *
- * Standard I/O operations are platform capabilities and may fail with
- * `PlatformError`; handle those failures in the Effect error channel rather than
- * assuming writes or reads are infallible.
+ * **Mental model**
+ *
+ * Application code describes what it needs from standard I/O, and a runtime
+ * layer supplies the concrete streams. Platform packages provide real process
+ * implementations, while tests can use `Stdio.layerTest` to replace only the
+ * fields that matter for a scenario and keep the rest inert.
+ *
+ * **Common tasks**
+ *
+ * - Read command-line arguments from the service's `args` effect.
+ * - Write text or bytes by running values into the service's `stdout()` or
+ *   `stderr()` sinks.
+ * - Consume `stdin` as a stream of `Uint8Array` chunks.
+ * - Build deterministic tests with `Stdio.layerTest`.
+ *
+ * **Gotchas**
+ *
+ * Standard I/O is a platform capability. Reads and writes can fail with
+ * `PlatformError`, so handle failures in the Effect error channel instead of
+ * assuming the process streams are always available.
  *
  * @since 4.0.0
  */
@@ -27,6 +40,10 @@ import * as Stream from "./Stream.ts"
 /**
  * String literal type used as the unique brand for the `Stdio` service.
  *
+ * **When to use**
+ *
+ * Use to type the runtime identifier stored on `Stdio` service implementations.
+ *
  * @category type IDs
  * @since 4.0.0
  */
@@ -34,6 +51,10 @@ export type TypeId = "~effect/Stdio"
 
 /**
  * Runtime identifier stored on `Stdio` service implementations.
+ *
+ * **When to use**
+ *
+ * Use to mark and recognize concrete `Stdio` service values at runtime.
  *
  * @category type IDs
  * @since 4.0.0
@@ -43,9 +64,16 @@ export const TypeId: TypeId = "~effect/Stdio"
 /**
  * Service interface for process standard I/O.
  *
- * It provides command-line arguments, sinks for standard output and standard
- * error, and a stream of standard input bytes. I/O operations can fail with
- * `PlatformError`.
+ * **When to use**
+ *
+ * Use to depend on command-line arguments and standard I/O through the Effect
+ * environment.
+ *
+ * **Details**
+ *
+ * The service provides command-line arguments, sinks for standard output and
+ * standard error, and a stream of standard input bytes. I/O operations can fail
+ * with `PlatformError`.
  *
  * @category models
  * @since 4.0.0
@@ -64,6 +92,14 @@ export interface Stdio {
 /**
  * Context service tag for the `Stdio` service.
  *
+ * **When to use**
+ *
+ * Use when an effect needs command-line arguments or standard I/O streams
+ * supplied by its environment.
+ *
+ * @see {@link make} for constructing a `Stdio` service directly
+ * @see {@link layerTest} for a test layer with defaults and overrides
+ *
  * @category services
  * @since 4.0.0
  */
@@ -72,6 +108,19 @@ export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeI
 /**
  * Creates a `Stdio` service implementation from the provided fields and
  * attaches the `Stdio` type identifier.
+ *
+ * **When to use**
+ *
+ * Use to assemble a concrete `Stdio` service when you already have
+ * implementations for command-line arguments, standard output, standard error,
+ * and standard input.
+ *
+ * **Details**
+ *
+ * The returned service reuses the supplied fields unchanged and only adds the
+ * `Stdio` type identifier; it does not create a `Layer` or provide defaults.
+ *
+ * @see {@link layerTest} for a test layer with default fields that can be overridden
  *
  * @category constructors
  * @since 4.0.0
@@ -84,9 +133,18 @@ export const make = (options: Omit<Stdio, TypeId>): Stdio => ({
 /**
  * Creates a test layer for `Stdio`.
  *
+ * **When to use**
+ *
+ * Use to provide deterministic standard I/O in tests while overriding only the
+ * command-line arguments, input stream, or output sinks relevant to the case.
+ *
+ * **Details**
+ *
  * Any provided fields override defaults. By default, arguments are empty,
  * standard output and error are draining sinks, and standard input is an empty
  * stream.
+ *
+ * @see {@link make} for constructing a `Stdio` service directly without a `Layer` or defaults
  *
  * @category layers
  * @since 4.0.0

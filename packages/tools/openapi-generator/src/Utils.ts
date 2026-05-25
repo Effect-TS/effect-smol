@@ -14,6 +14,8 @@ import * as UndefinedOr from "effect/UndefinedOr"
 /**
  * Converts an OpenAPI name into the generator's camel-case form.
  *
+ * **Details**
+ *
  * Separators are removed, leading digits are ignored, and letters following a
  * separator or digit are upper-cased without otherwise changing letter casing.
  *
@@ -55,6 +57,8 @@ export const identifier = (operationId: string) => String.capitalize(camelize(op
 /**
  * Extracts a trimmed, non-empty string from an unknown value.
  *
+ * **Details**
+ *
  * Returns `undefined` for non-string values and for strings containing only
  * whitespace.
  *
@@ -73,6 +77,8 @@ export const nonEmptyString = (a: unknown): string | undefined => {
 /**
  * Renders an optional description as a JSDoc block for generated TypeScript.
  *
+ * **Details**
+ *
  * Returns an empty string when the description is absent and escapes any
  * closing comment marker so generated source remains syntactically valid.
  *
@@ -89,6 +95,8 @@ export const toComment = UndefinedOr.match({
 
 /**
  * Appends every element from `source` into `destination` in order.
+ *
+ * **Details**
  *
  * This mutates `destination` directly, which avoids allocating an intermediate
  * array when generator code needs to merge collections.

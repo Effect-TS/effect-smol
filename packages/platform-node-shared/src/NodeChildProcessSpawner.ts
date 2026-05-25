@@ -1,5 +1,19 @@
 /**
- * Node.js implementation of `ChildProcessSpawner`.
+ * Shared Node.js implementation of the child process spawner service.
+ *
+ * This module adapts `node:child_process.spawn` to the Effect
+ * `ChildProcessSpawner` service. Provide {@link layer} to run `ChildProcess`
+ * commands in Node-compatible runtimes: commands get scoped process handles
+ * with stdin sinks, stdout and stderr streams, exit-code waiting,
+ * interruption-time cleanup, process killing, and custom file-descriptor pipes.
+ *
+ * The implementation sits below the command-building API. It validates and
+ * resolves `cwd` through the Effect `FileSystem` and `Path` services,
+ * translates Node errno failures to `PlatformError`, and uses scopes to
+ * terminate referenced children when the owning effect is interrupted or
+ * finalized. Pipelines are flattened by {@link flattenCommand} and spawned one
+ * process at a time, wiring the selected source stream (`stdout`, `stderr`,
+ * `all`, or `fdN`) to the destination `stdin` or `fdN`.
  *
  * @since 4.0.0
  */

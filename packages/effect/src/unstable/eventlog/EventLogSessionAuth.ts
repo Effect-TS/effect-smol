@@ -1,21 +1,39 @@
 /**
- * Utilities for authenticating event log sessions with short-lived challenges
- * and Ed25519 signatures.
+ * Challenge-response helpers for authenticating event log sessions with Ed25519
+ * signatures.
  *
- * This module builds and verifies the canonical payload that a remote peer signs
- * when proving control of a session signing key. It is used by event log
- * transports that need to bind a connection attempt to a remote identifier,
- * session challenge, advertised event log public key, and signing public key
- * before accepting session traffic.
+ * Event log transports use this module when a remote peer must prove control of
+ * a session signing key before sending session traffic. The signed payload binds
+ * the remote identifier, a short-lived challenge, the advertised event log public
+ * key, and the signing public key into one canonical byte sequence.
  *
- * Callers are responsible for issuing fresh challenges, enforcing the challenge
- * time-to-live, and tracking whether a challenge has already been consumed. The
- * helpers here provide deterministic payload encoding, algorithm checks,
- * signature validation, and Web Crypto integration; they do not establish peer
- * trust by themselves. Trust decisions still need to compare the supplied keys
- * and remote identity against the application's authorization policy, and
- * signed payloads should be treated as bearer authentication material until the
- * challenge expires.
+ * **Mental model**
+ *
+ * Authentication is split into canonicalization and cryptographic proof.
+ * {@link encodeSessionAuthPayload} produces a deterministic, length-prefixed
+ * payload that includes {@link AuthPayloadContext} for domain separation.
+ * Signing proves possession of the Ed25519 private key for exactly those fields;
+ * authorization still belongs to the caller's event log policy.
+ *
+ * **Common tasks**
+ *
+ * - Generate a fresh challenge with {@link makeSessionAuthChallenge}
+ * - Sign a payload with {@link signSessionAuthPayload} or pre-encoded bytes with
+ *   {@link signSessionAuthPayloadBytes}
+ * - Verify an incoming authentication message with
+ *   {@link verifySessionAuthenticateRequest}
+ * - Encode or decode canonical bytes with {@link encodeSessionAuthPayload} and
+ *   {@link decodeSessionAuthPayload}
+ *
+ * **Gotchas**
+ *
+ * - Callers must enforce {@link SessionAuthChallengeTimeToLiveMillis} and track
+ *   whether a challenge has already been consumed
+ * - Raw Ed25519 public keys must be {@link Ed25519PublicKeyLength} bytes and
+ *   signatures must be {@link Ed25519SignatureLength} bytes
+ * - Signing private keys must be PKCS#8 bytes importable by Web Crypto
+ * - Verified signatures prove key possession, not peer trust; compare the keys
+ *   and remote identity against your authorization policy
  *
  * @since 4.0.0
  */
@@ -241,7 +259,11 @@ const encodeRemoteIdField = (remoteId: string | Uint8Array): Uint8Array =>
     : textEncoder.encode(bytesToHex(remoteId))
 
 /**
- * Canonical payload format uses ordered big-endian length-prefixed fields:
+ * Encodes a session authentication payload into the canonical byte format.
+ *
+ * **Details**
+ *
+ * The canonical payload format uses ordered big-endian length-prefixed fields:
  *
  * 1. context (fixed: eventlog-auth-v1)
  * 2. remoteId
@@ -281,6 +303,8 @@ export const encodeSessionAuthPayload = Effect.fnUntraced(function*(payload: Ses
 
 /**
  * Decodes a canonical session authentication payload.
+ *
+ * **Details**
  *
  * The decoder validates the context field, UTF-8 fields, signing public key
  * length, and rejects truncated or trailing bytes.
@@ -326,6 +350,8 @@ export const decodeSessionAuthPayload = Effect.fnUntraced(
  * Signs canonical session authentication payload bytes with an Ed25519 private
  * key.
  *
+ * **Details**
+ *
  * The private key must be PKCS#8-encoded bytes importable by `SubtleCrypto`.
  *
  * @category signing
@@ -370,6 +396,8 @@ export const signSessionAuthPayloadBytes = Effect.fnUntraced(function*(options: 
 /**
  * Verifies an Ed25519 signature for canonical session authentication payload
  * bytes.
+ *
+ * **Details**
  *
  * The payload, signing public key, and signature lengths are validated before
  * calling `SubtleCrypto.verify`.

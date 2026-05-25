@@ -691,6 +691,11 @@ export const getUnsafe: {
 /**
  * Appends the specified element to the end of the `Chunk`.
  *
+ * **When to use**
+ *
+ * Use to add one element after the existing elements and get a non-empty
+ * result.
+ *
  * **Example** (Appending an element)
  *
  * ```ts
@@ -705,6 +710,9 @@ export const getUnsafe: {
  * const singleElement = Chunk.append(emptyChunk, 42)
  * console.log(Chunk.toArray(singleElement)) // [42]
  * ```
+ *
+ * @see {@link prepend} for adding one element before the existing elements
+ * @see {@link appendAll} for appending all elements from another chunk
  *
  * @category concatenating
  * @since 2.0.0
@@ -937,6 +945,11 @@ export const prependAll: {
  * Concatenates two chunks, combining their elements.
  * If either chunk is non-empty, the result is also a non-empty chunk.
  *
+ * **When to use**
+ *
+ * Use to concatenate two chunks when the second chunk's elements should come
+ * after the first.
+ *
  * **Example** (Appending all elements)
  *
  * ```ts
@@ -950,6 +963,9 @@ export const prependAll: {
  * console.log(result)
  * // [ 1, 2, "a", "b" ]
  * ```
+ *
+ * @see {@link prependAll} for concatenating chunks in the opposite order
+ * @see {@link append} for adding a single element to the end
  *
  * @category concatenating
  * @since 2.0.0
@@ -1267,6 +1283,20 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
 /**
  * Groups elements in chunks of up to `n` elements.
  *
+ * **When to use**
+ *
+ * Use to divide a chunk into ordered, non-overlapping batches with at most `n`
+ * elements each.
+ *
+ * **Details**
+ *
+ * The final chunk may contain fewer than `n` elements. Empty input produces an
+ * empty chunk of chunks.
+ *
+ * **Gotchas**
+ *
+ * Values of `n` less than or equal to zero produce singleton chunks.
+ *
  * **Example** (Splitting into fixed-size chunks)
  *
  * ```ts
@@ -1284,6 +1314,8 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
  * console.log(Chunk.toArray(chunked2).map(Chunk.toArray))
  * // [[1, 2], [3, 4], [5]]
  * ```
+ *
+ * @see {@link split} for splitting into a target number of chunks instead of a fixed chunk size
  *
  * @category elements
  * @since 2.0.0
@@ -1308,9 +1340,11 @@ export const chunksOf: {
 })
 
 /**
- * Creates a Chunk of unique values that are included in all given Chunks.
+ * Creates a `Chunk` of values that are included in both chunks.
  *
- * The order and references of result values are determined by the Chunk.
+ * **Details**
+ *
+ * The order and references of result values are determined by the first chunk.
  *
  * **Example** (Intersecting chunks)
  *
@@ -1399,7 +1433,9 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
 /**
  * Returns the first element of this chunk.
  *
- * It will throw an error if the chunk is empty.
+ * **Gotchas**
+ *
+ * Throws an error if the chunk is empty.
  *
  * **Example** (Getting the first element unsafely)
  *
@@ -1464,7 +1500,9 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
 /**
  * Returns the last element of this chunk.
  *
- * It will throw an error if the chunk is empty.
+ * **Gotchas**
+ *
+ * Throws an error if the chunk is empty.
  *
  * **Example** (Getting the last element unsafely)
  *
@@ -1731,8 +1769,9 @@ export const mapAccum: {
 /**
  * Splits a chunk using a `Filter` into failures and successes.
  *
- * - Returns `[excluded, satisfying]`.
- * - The filter receives `(element, index)`.
+ * **Details**
+ *
+ * Returns `[excluded, satisfying]`. The filter receives `(element, index)`.
  *
  * **Example** (Partitioning with a Result)
  *
@@ -1772,6 +1811,8 @@ export const partition: {
 /**
  * Separates a chunk of `Result` values into a chunk of failures and a chunk of
  * successes.
+ *
+ * **Details**
  *
  * The returned tuple is `[failures, successes]`, preserving the original order
  * within each side.
@@ -1936,6 +1977,8 @@ export const splitAt: {
  * Splits a `NonEmptyChunk` at `n`, returning a non-empty prefix and the
  * remaining suffix.
  *
+ * **Details**
+ *
  * `n` is floored and normalized to at least `1`. If `n` is greater than or
  * equal to the chunk length, the first result is the original chunk and the
  * second result is empty.
@@ -1974,6 +2017,8 @@ export const splitNonEmptyAt: {
 
 /**
  * Splits a chunk into up to `n` chunks, distributing elements in order.
+ *
+ * **Details**
  *
  * The chunk size is derived from the input length and `n`; the final chunk may
  * contain fewer elements than the others.
@@ -2254,9 +2299,11 @@ export const dedupe = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupe
 export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupeAdjacent(self))
 
 /**
- * Takes a `Chunk` of pairs and return two corresponding `Chunk`s.
+ * Takes a `Chunk` of pairs and returns two corresponding `Chunk`s.
  *
- * Note: The function is reverse of `zip`.
+ * **Details**
+ *
+ * This function is the reverse of `zip`.
  *
  * **Example** (Unzipping pairs)
  *
@@ -2447,9 +2494,11 @@ export const replace: {
 } = dual(3, <A, B>(self: Chunk<A>, i: number, b: B): O.Option<Chunk<B | A>> => modify(self, i, () => b))
 
 /**
- * Return a Chunk of length n with element i initialized with f(i).
+ * Returns a non-empty `Chunk` of length `n` with element `i` initialized by `f(i)`.
  *
- * **Note**. `n` is normalized to an integer >= 1.
+ * **Details**
+ *
+ * `n` is normalized to an integer greater than or equal to `1`.
  *
  * **Example** (Generating chunks from indices)
  *
@@ -2471,6 +2520,8 @@ export const makeBy: {
 /**
  * Creates a non-empty `Chunk` of consecutive integers from `start` through
  * `end`, inclusive.
+ *
+ * **Details**
  *
  * If `start` is greater than `end`, returns a single-element chunk containing
  * `start`.

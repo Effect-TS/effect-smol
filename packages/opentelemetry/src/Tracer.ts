@@ -222,6 +222,16 @@ export const layerWithoutOtelTracer: Layer.Layer<never, never, OtelTracer> = Lay
 /**
  * Layer that creates an OpenTelemetry tracer from a provider and resource, then installs it as the Effect tracer.
  *
+ * **When to use**
+ *
+ * Use when your application already supplies an `OtelTracerProvider` and a
+ * `Resource`, and you want Effect spans to be created by an OpenTelemetry
+ * tracer derived from those services.
+ *
+ * @see {@link layerTracer} for creating only the OpenTelemetry tracer service
+ * @see {@link layerGlobal} for installing the Effect tracer from the global provider
+ * @see {@link layerWithoutOtelTracer} for installing an already-provided `OtelTracer`
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -237,13 +247,14 @@ const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
 
 /**
- * Get the current OpenTelemetry span.
+ * Gets the current OpenTelemetry span.
  *
- * Works with both the official OpenTelemetry API (via `Tracer.layer`,
- * `NodeSdk.layer`, etc.) and the lightweight OTLP module (`OtlpTracer.layer`).
+ * **Details**
  *
- * When using OTLP, the returned span is a wrapper that conforms to the
- * OpenTelemetry `Span` interface.
+ * This accessor works with both the official OpenTelemetry API, such as
+ * `Tracer.layer` and `NodeSdk.layer`, and the lightweight OTLP module, such as
+ * `OtlpTracer.layer`. When using OTLP, the returned span is a wrapper that
+ * conforms to the OpenTelemetry `Span` interface.
  *
  * @category accessors
  * @since 4.0.0
@@ -343,12 +354,14 @@ const convertOtelTimeInput = (input: Otel.TimeInput | undefined, clock: Clock.Cl
 }
 
 /**
- * Set the effect's parent span from the given opentelemetry `SpanContext`.
+ * Sets an effect's parent span from the given OpenTelemetry `SpanContext`.
  *
- * This is handy when you set up OpenTelemetry outside of Effect and want to
- * attach to a parent span.
+ * **When to use**
  *
- * @category Propagation
+ * Use when OpenTelemetry instrumentation outside Effect has already
+ * produced a parent span context and an effect should continue that trace.
+ *
+ * @category propagation
  * @since 4.0.0
  */
 export const withSpanContext: {

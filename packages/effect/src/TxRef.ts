@@ -1,10 +1,63 @@
 /**
- * TxRef is a transactional value, it can be read and modified within the body of a transaction.
+ * The `TxRef` module provides transactional references for coordinating mutable
+ * state with Effect transactions. A `TxRef<A>` stores a current value, but
+ * reads and writes inside `Effect.tx` are recorded in a transaction journal and
+ * committed together only when the outermost transaction succeeds.
  *
- * Accessed values are tracked by the transaction in order to detect conflicts and in order to
- * track changes, a transaction will retry whenever a conflict is detected or whenever the
- * transaction explicitely calls to `Effect.txRetry` and any of the accessed TxRef values
- * change.
+ * **Mental model**
+ *
+ * - {@link make} creates a reference whose value can participate in
+ *   optimistic transactions.
+ * - {@link get}, {@link set}, {@link update}, and {@link modify} read and
+ *   write the transaction journal when a transaction is active.
+ * - At commit time, the transaction checks whether any accessed reference was
+ *   changed by another transaction. If so, it retries with a fresh journal.
+ * - `Effect.txRetry` suspends the transaction until one of the `TxRef` values
+ *   read by the transaction changes.
+ *
+ * **Common tasks**
+ *
+ * - Create transactional state with {@link make}.
+ * - Read the current value with {@link get}.
+ * - Replace or transform the value with {@link set} and {@link update}.
+ * - Return a derived result while writing a new value with {@link modify}.
+ * - Wrap related reads and writes in one `Effect.tx` boundary so they commit or
+ *   roll back as a unit.
+ *
+ * **Example** (Committing multiple updates atomically)
+ *
+ * ```ts
+ * import { Effect, TxRef } from "effect"
+ *
+ * const transfer = Effect.gen(function*() {
+ *   const checking = yield* TxRef.make(100)
+ *   const savings = yield* TxRef.make(0)
+ *
+ *   yield* Effect.tx(Effect.gen(function*() {
+ *     const balance = yield* TxRef.get(checking)
+ *     if (balance < 30) {
+ *       return yield* Effect.fail("insufficient funds")
+ *     }
+ *     yield* TxRef.set(checking, balance - 30)
+ *     yield* TxRef.update(savings, (amount) => amount + 30)
+ *   }))
+ *
+ *   return {
+ *     checking: yield* TxRef.get(checking),
+ *     savings: yield* TxRef.get(savings)
+ *   }
+ * })
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - Group related operations in the same `Effect.tx` call; separate
+ *   transactions can observe and commit intermediate states.
+ * - A transaction body can run more than once after a conflict or
+ *   `Effect.txRetry`, so keep externally visible effects outside the
+ *   transaction body or make them idempotent.
+ * - If a transaction fails, its journal is discarded and other fibers continue
+ *   to see the last committed values.
  *
  * @since 4.0.0
  */
@@ -18,6 +71,13 @@ const TypeId = "~effect/transactions/TxRef"
 
 /**
  * TxRef is a transactional value, it can be read and modified within the body of a transaction.
+ *
+ * **When to use**
+ *
+ * Use to store mutable state that must be read and modified inside Effect
+ * transactions.
+ *
+ * **Details**
  *
  * Accessed values are tracked by the transaction in order to detect conflicts and in order to
  * track changes, a transaction will retry whenever a conflict is detected or whenever the
@@ -58,6 +118,10 @@ export interface TxRef<in out A> extends Pipeable {
 /**
  * Creates a new `TxRef` with the specified initial value.
  *
+ * **When to use**
+ *
+ * Use to create a transactional reference inside an `Effect` workflow.
+ *
  * **Example** (Creating transactional references)
  *
  * ```ts
@@ -87,8 +151,10 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 /**
  * Synchronously creates a new `TxRef` with the specified initial value.
  *
- * Prefer `make` in Effect code so allocation stays inside the Effect workflow.
- * Use `makeUnsafe` only when a `TxRef` must be constructed outside an effect.
+ * **When to use**
+ *
+ * Use to construct a transactional reference synchronously when it must be
+ * created outside an `Effect` workflow.
  *
  * **Example** (Creating transactional references unsafely)
  *
@@ -119,6 +185,11 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
 
 /**
  * Modifies the value of the `TxRef` using the provided function.
+ *
+ * **When to use**
+ *
+ * Use to update a transactional reference and return a computed result from the
+ * same transaction step.
  *
  * **Example** (Modifying transactional references)
  *
@@ -164,6 +235,10 @@ export const modify: {
 /**
  * Updates the value of the `TxRef` using the provided function.
  *
+ * **When to use**
+ *
+ * Use to transform a transactional reference when no result value is needed.
+ *
  * **Example** (Updating transactional references)
  *
  * ```ts
@@ -195,6 +270,10 @@ export const update: {
 /**
  * Reads the current value of the `TxRef`.
  *
+ * **When to use**
+ *
+ * Use to read the current value of a transactional reference.
+ *
  * **Example** (Reading transactional references)
  *
  * ```ts
@@ -219,6 +298,10 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
 
 /**
  * Sets the value of the `TxRef`.
+ *
+ * **When to use**
+ *
+ * Use to replace the value of a transactional reference.
  *
  * **Example** (Setting transactional references)
  *

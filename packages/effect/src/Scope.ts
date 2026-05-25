@@ -1,15 +1,46 @@
 /**
- * The `Scope` module provides functionality for managing resource lifecycles
- * and cleanup operations in a functional and composable manner.
+ * The `Scope` module manages resource lifetimes by collecting finalizers and
+ * running them when a scope is closed. It is the low-level mechanism behind
+ * scoped resource acquisition: acquire work registers cleanup with the current
+ * scope, and closing the scope releases those resources with the same `Exit`
+ * that ended the scoped workflow.
  *
- * A `Scope` represents a context where resources can be acquired and automatically
- * cleaned up when the scope is closed. This is essential for managing resources
- * like file handles, database connections, or any other resources that need
- * proper cleanup.
+ * Scopes are useful when code needs explicit control over a lifetime boundary,
+ * for example when building services, sharing a resource across multiple
+ * effects, or wiring lower-level infrastructure. Most application code can use
+ * higher-level scoped APIs, but this module exposes the primitives those APIs
+ * are built from.
  *
- * Scopes support both sequential and parallel finalization strategies:
- * - Sequential: Finalizers run one after another in reverse order of registration
- * - Parallel: Finalizers run concurrently for better performance
+ * **Mental model**
+ *
+ * - A {@link Scope} is a mutable lifetime boundary that can accept finalizers
+ *   while open and run them when closed
+ * - A {@link Closeable} scope can be closed explicitly with {@link close} or
+ *   automatically around an effect with {@link use}
+ * - Sequential scopes run finalizers one after another in reverse registration
+ *   order; parallel scopes run registered finalizers concurrently
+ * - {@link addFinalizer} registers cleanup that ignores the closing exit, while
+ *   {@link addFinalizerExit} registers cleanup that can inspect it
+ * - {@link fork} creates a child scope whose lifetime is connected to a parent
+ *   scope
+ *
+ * **Common tasks**
+ *
+ * - Create scopes with {@link make} or the lower-level {@link makeUnsafe}
+ * - Provide an existing scope to an effect with {@link provide}
+ * - Register cleanup with {@link addFinalizer} or {@link addFinalizerExit}
+ * - Create child scopes with {@link fork} or {@link forkUnsafe}
+ * - Close scopes with {@link close}, or run and close with {@link use}
+ *
+ * **Gotchas**
+ *
+ * - Closing a scope is itself an `Effect`; finalizers run only when that effect
+ *   is executed
+ * - Adding a finalizer to an already closed scope runs the finalizer
+ *   immediately with the stored exit value
+ * - The unsafe constructors and closing helpers are for low-level integration;
+ *   prefer the effectful APIs when ordinary Effect code can express the
+ *   lifetime
  *
  * @since 2.0.0
  */
@@ -110,9 +141,11 @@ export interface Closeable extends Scope {
  *
  * @since 4.0.0
  */
-export namespace State {
+export declare namespace State {
   /**
    * Represents an open scope with no registered finalizers yet.
+   *
+   * **Details**
    *
    * Adding the first finalizer transitions the scope to `Open`; closing an
    * empty scope transitions directly to `Closed` without producing a finalizer
@@ -306,6 +339,8 @@ export const provide: {
 /**
  * Registers an exit-aware finalizer on a scope.
  *
+ * **Details**
+ *
  * If the scope is open, the finalizer runs when the scope closes and receives
  * the scope's exit value. If the scope is already closed, the finalizer runs
  * immediately with the stored exit value.
@@ -346,6 +381,8 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
 /**
  * Registers a finalizer effect on a scope.
  *
+ * **Details**
+ *
  * If the scope is open, the finalizer runs when the scope closes, regardless of
  * whether the scope closes successfully or with an error. If the scope is
  * already closed, the finalizer runs immediately.
@@ -378,6 +415,8 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
 
 /**
  * Creates a closeable child scope registered with a parent scope.
+ *
+ * **Details**
  *
  * Closing the parent closes the child with the same exit value, and closing the
  * child detaches it from the parent. The optional finalizer strategy configures
@@ -416,6 +455,8 @@ export const fork: (
 
 /**
  * Synchronously creates a closeable child scope registered with a parent scope.
+ *
+ * **Details**
  *
  * Closing the parent closes the child with the same exit value, and closing the
  * child detaches it from the parent. The optional finalizer strategy configures
@@ -480,10 +521,22 @@ export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effe
 /**
  * Unsafely transitions a scope to `Closed` with the provided exit value.
  *
+ * **When to use**
+ *
+ * Use when implementing lower-level scope machinery that must transition a
+ * scope to `Closed` immediately and can run the returned finalizer effect when
+ * one is produced.
+ *
+ * **Details**
+ *
  * Returns an effect that runs registered finalizers, or `undefined` when the
- * scope was already closed or no finalizers need to run. Prefer `close` unless
- * you are implementing lower-level scope machinery and can correctly run the
- * returned effect.
+ * scope was already closed or no finalizers need to run.
+ *
+ * **Gotchas**
+ *
+ * Ignoring the returned effect skips registered finalizers.
+ *
+ * @see {@link close} for the usual effectful close operation that always returns an `Effect`
  *
  * @category unsafe
  * @since 4.0.0
@@ -495,9 +548,19 @@ export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void,
  * Runs an effect with the provided closeable scope in its context and closes
  * that scope when the effect exits.
  *
+ * **When to use**
+ *
+ * Use when you already have a `Closeable` scope and want to run an effect that
+ * requires `Scope` while automatically closing that scope when the effect exits.
+ *
+ * **Details**
+ *
  * The scope is closed with the same exit value as the effect, so registered
  * finalizers can observe whether the effect succeeded, failed, or was
  * interrupted.
+ *
+ * @see {@link provide} for providing a scope without closing it automatically
+ * @see `Effect.scoped` for creating and closing a fresh scope around a workflow
  *
  * @category combinators
  * @since 2.0.0

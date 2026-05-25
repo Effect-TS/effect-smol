@@ -1,31 +1,54 @@
 /**
- * This module provides utility functions for working with Iterables in TypeScript.
+ * The `Iterable` module works with any JavaScript value that implements
+ * `[Symbol.iterator]`, including arrays, strings, generators, sets, and custom
+ * lazy sequences. It provides constructors, transformations, searches, grouping,
+ * and folding helpers that can be used without converting to an array first.
  *
- * Iterables are objects that implement the iterator protocol, allowing them to be
- * consumed with `for...of` loops, spread syntax, and other iteration constructs.
- * This module provides a comprehensive set of functions for creating, transforming,
- * and working with iterables in a functional programming style.
+ * **Mental model**
  *
- * Unlike arrays, iterables can be lazy and potentially infinite, making them suitable
- * for stream processing and memory-efficient data manipulation. All functions in this
- * module preserve the lazy nature of iterables where possible.
+ * - An `Iterable<A>` creates an `Iterator<A>` when it is consumed.
+ * - Transformations such as {@link map}, {@link filter}, {@link flatMap},
+ *   {@link take}, and {@link drop} return new iterables and usually do no work
+ *   until the result is iterated.
+ * - Consumers such as {@link reduce}, {@link size}, {@link head},
+ *   {@link findFirst}, and `Array.from` pull values from an iterator.
+ * - Constructors such as {@link range}, {@link makeBy}, {@link repeat},
+ *   {@link forever}, and {@link unfold} can represent unbounded sequences.
  *
- * **Example** (Working with iterables)
+ * **Common tasks**
+ *
+ * - Create sequences: {@link empty}, {@link of}, {@link range}, {@link makeBy},
+ *   {@link replicate}, {@link unfold}
+ * - Transform values: {@link map}, {@link flatMap}, {@link flatten},
+ *   {@link filter}, {@link filterMap}
+ * - Slice and search: {@link take}, {@link drop}, {@link takeWhile},
+ *   {@link findFirst}, {@link findLast}, {@link contains}
+ * - Combine and group: {@link appendAll}, {@link zipWith}, {@link chunksOf},
+ *   {@link groupBy}, {@link cartesian}
+ * - Fold or collect: {@link reduce}, {@link scan}, {@link countBy},
+ *   `Array.from`
+ *
+ * **Gotchas**
+ *
+ * - Laziness depends on the operation. Functions such as {@link size} and
+ *   {@link reduce} consume the iterable immediately.
+ * - Some JavaScript iterables are single-use iterators. Reusing the same value
+ *   after it has been consumed may produce no elements.
+ * - Unbounded iterables must be limited before full collection, for example
+ *   with {@link take}.
+ *
+ * **Example** (Building a lazy pipeline)
  *
  * ```ts
- * import { Iterable, Option } from "effect"
+ * import { Iterable } from "effect"
  *
- * // Create iterables
- * const numbers = Iterable.range(1, 5)
- * const doubled = Iterable.map(numbers, (x) => x * 2)
- * const filtered = Iterable.filter(doubled, (x) => x > 5)
+ * const naturals = Iterable.range(1)
+ * const squares = Iterable.map(naturals, (n) => n * n)
+ * const evenSquares = Iterable.filter(squares, (n) => n % 2 === 0)
+ * const firstFive = Iterable.take(evenSquares, 5)
  *
- * console.log(Array.from(filtered)) // [6, 8, 10]
- *
- * // Infinite iterables
- * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => Option.some([a, [b, a + b]]))
- * const first10 = Iterable.take(fibonacci, 10)
- * console.log(Array.from(first10)) // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+ * console.log(Array.from(firstFive))
+ * // [4, 16, 36, 64, 100]
  * ```
  *
  * @since 2.0.0
@@ -46,9 +69,11 @@ import type { NoInfer } from "./Types.ts"
 /**
  * Creates an iterable by applying a function to consecutive integers.
  *
- * This is a fundamental constructor that generates iterables by calling a function
- * with each index starting from 0. If no length is specified, the iterable will
- * be infinite. This is useful for generating sequences, patterns, or any indexed data.
+ * **Details**
+ *
+ * The function is called with each index starting from `0`. If no length is
+ * specified, the iterable is infinite. This is useful for generating
+ * sequences, patterns, or any indexed data.
  *
  * **Example** (Generating values by index)
  *
@@ -94,6 +119,8 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
 /**
  * Returns an iterable of integers starting at `start` and increasing by `1`.
  *
+ * **Details**
+ *
  * When `end` is provided and `start <= end`, both endpoints are included. When
  * `end` is omitted, the iterable is unbounded. When `start > end`, the
  * iterable contains only `start`.
@@ -122,7 +149,9 @@ export const range = (start: number, end?: number): Iterable<number> => {
 /**
  * Return a `Iterable` containing a value repeated the specified number of times.
  *
- * **Note**. `n` is normalized to an integer >= 1.
+ * **Details**
+ *
+ * `n` is normalized to an integer greater than or equal to `1`.
  *
  * **Example** (Repeating a value)
  *
@@ -145,8 +174,16 @@ export const replicate: {
  * Repeats an iterable `n` times, yielding the full contents of `self` for each
  * repetition.
  *
+ * **When to use**
+ *
+ * Use to repeat an iterable's contents a specific number of times.
+ *
+ * **Details**
+ *
  * The result is lazy. Each repetition obtains a new iterator from `self`.
  *
+ * @see {@link forever} for repeating without an upper bound
+ * @see {@link replicate} for repeating a single value
  * @category constructors
  * @since 4.0.0
  */
@@ -158,8 +195,18 @@ export const repeat: {
 /**
  * Repeats an iterable without an upper bound.
  *
+ * **When to use**
+ *
+ * Use to cycle a reusable iterable without an upper bound when a downstream
+ * consumer controls how many values are taken.
+ *
+ * **Gotchas**
+ *
  * The returned iterable is lazy and should usually be bounded with `take` or
  * another terminating consumer before materializing it.
+ *
+ * @see {@link repeat} for repeating an iterable a specific number of times
+ * @see {@link take} for bounding the unbounded result before materializing it
  *
  * @category constructors
  * @since 4.0.0
@@ -250,6 +297,21 @@ export const prependAll: {
 /**
  * Append an element to the end of an `Iterable`, creating a new `Iterable`.
  *
+ * **When to use**
+ *
+ * Use to add one element after all elements of an iterable while keeping the
+ * result as a lazy `Iterable`.
+ *
+ * **Details**
+ *
+ * The result yields every element from `self` first, then yields `last` after
+ * `self` is exhausted.
+ *
+ * **Gotchas**
+ *
+ * If `self` is infinite or never completes, the appended element is never
+ * reached.
+ *
  * **Example** (Appending an element)
  *
  * ```ts
@@ -267,6 +329,9 @@ export const prependAll: {
  * console.log(Array.from(result)) // [1, 2, 3, 4]
  * ```
  *
+ * @see {@link prepend} for adding one element before the existing elements
+ * @see {@link appendAll} for appending all elements from another iterable
+ *
  * @category concatenating
  * @since 2.0.0
  */
@@ -277,6 +342,20 @@ export const append: {
 
 /**
  * Concatenates two iterables, combining their elements.
+ *
+ * **When to use**
+ *
+ * Use to lazily concatenate two iterables while preserving order, yielding all
+ * elements from `self` before `that`.
+ *
+ * **Details**
+ *
+ * The result is lazy. The iterator for `that` is not created or read until
+ * `self` is exhausted.
+ *
+ * **Gotchas**
+ *
+ * If `self` is infinite or never completes, `that` is never reached.
  *
  * **Example** (Concatenating iterables)
  *
@@ -300,6 +379,9 @@ export const append: {
  * const result = Iterable.take(Iterable.appendAll(finite, infinite), 5)
  * console.log(Array.from(result)) // [0, -1, -2, 1, 2]
  * ```
+ *
+ * @see {@link append} for appending one value instead of another iterable
+ * @see {@link prependAll} for yielding another iterable before `self`
  *
  * @category concatenating
  * @since 2.0.0
@@ -507,7 +589,9 @@ export const headUnsafe = <A>(self: Iterable<A>): A => {
 /**
  * Keep only a max number of elements from the start of an `Iterable`, creating a new `Iterable`.
  *
- * **Note**. `n` is normalized to a non negative integer.
+ * **Details**
+ *
+ * `n` is normalized to a non-negative integer.
  *
  * **Example** (Taking from the start)
  *
@@ -612,7 +696,9 @@ export const takeWhile: {
 /**
  * Drop a max number of elements from the start of an `Iterable`
  *
- * **Note**. `n` is normalized to a non negative integer.
+ * **Details**
+ *
+ * `n` is normalized to a non-negative integer.
  *
  * **Example** (Dropping from the start)
  *
@@ -1017,6 +1103,8 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
  * Checks whether an iterable contains a value using Effect's default `Equal`
  * equivalence.
  *
+ * **Details**
+ *
  * Can be called as `contains(self, value)` or curried as
  * `contains(value)(self)`.
  *
@@ -1241,6 +1329,8 @@ export const group: <A>(self: Iterable<A>) => Iterable<NonEmptyArray<A>> = group
 /**
  * Groups all elements by the string or symbol key returned by `f`.
  *
+ * **Details**
+ *
  * Each property in the returned record contains a non-empty array of elements
  * that produced that key. Unlike `group`, matching elements do not need to be
  * consecutive.
@@ -1324,8 +1414,10 @@ const constEmptyIterator: Iterator<never> = {
 /**
  * Creates an empty iterable that yields no elements.
  *
- * This function returns a reusable empty iterable that can be used as a base case
- * for operations or when you need to represent "no data" in a type-safe way.
+ * **When to use**
+ *
+ * Use as a base case for operations or when you
+ * need to represent "no data" in a type-safe way.
  *
  * **Example** (Creating an empty iterable)
  *
@@ -1351,8 +1443,10 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
 /**
  * Creates an iterable containing a single element.
  *
- * This is useful for wrapping a single value in an iterable context,
- * allowing it to be used with other iterable operations.
+ * **When to use**
+ *
+ * Use to wrap a single value in an iterable context so it can be combined
+ * with other iterable operations.
  *
  * **Example** (Wrapping a single value)
  *
@@ -1385,6 +1479,8 @@ export const of = <A>(a: A): Iterable<A> => [a]
 
 /**
  * Transforms each element of an iterable using a function.
+ *
+ * **Details**
  *
  * This is one of the most fundamental operations for working with iterables.
  * It applies a transformation function to each element, creating a new iterable
@@ -1543,6 +1639,8 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
 
 /**
  * Transforms elements of an iterable using a function that returns a `Result`, keeping only successful values.
+ *
+ * **Details**
  *
  * This combines mapping and filtering in a single operation - the function is applied to each element,
  * and only elements that result in `Result.succeed` are included in the result.
@@ -1804,6 +1902,8 @@ export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0>
 /**
  * Filters an iterable to only include elements that match a predicate.
  *
+ * **Details**
+ *
  * This function creates a new iterable containing only the elements for which
  * the predicate function returns true. Like map, this operation is lazy and
  * elements are only tested when the iterable is consumed.
@@ -1872,8 +1972,10 @@ export const filter: {
 /**
  * Transforms elements using a function that may return null or undefined, filtering out the null/undefined results.
  *
- * This is useful when working with APIs or functions that return nullable values,
- * providing a clean way to filter out null/undefined while transforming.
+ * **When to use**
+ *
+ * Use when working with APIs or functions that return nullable values,
+ * providing a clean way to filter out null or undefined while transforming.
  *
  * **Example** (FlatMapping nullable results)
  *
@@ -1985,6 +2087,8 @@ export const some: {
  * Generates an iterable by repeatedly applying a function that produces the
  * next element and state.
  *
+ * **Details**
+ *
  * This is useful for creating iterables from a generating function that
  * maintains state. The function should return `Option.some([value, nextState])`
  * to continue or `Option.none()` to stop.
@@ -2086,6 +2190,8 @@ export const forEach: {
 
 /**
  * Reduce an iterable to a single value by applying a function to each element and accumulating the result.
+ *
+ * **Details**
  *
  * This function applies a reducing function against an accumulator and each element
  * of the iterable (from left to right) to reduce it to a single value.

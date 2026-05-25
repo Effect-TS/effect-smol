@@ -1,19 +1,33 @@
 /**
- * Typed event-log runtime for appending domain events to an `EventJournal` and
- * replaying entries from remote replicas.
+ * High-level runtime for writing typed event-log events and replaying replicated
+ * journal entries.
  *
- * This module is used to define event-log schemas, register handlers for event
- * groups, build clients that write typed payloads, and connect local journals to
- * authenticated remote sessions. It is useful for event-sourced state,
- * offline-first synchronization, audit trails, and replicated stores where each
- * event must run its handler before the entry is committed.
+ * This module connects event definitions, handler layers, an `EventJournal`, and
+ * optional remote replicas. Applications define groups with `EventGroup`, build
+ * an `EventLogSchema`, register handlers with `group`, and obtain a typed client
+ * with `makeClient`; the `EventLog` service then encodes payloads, runs the
+ * matching handler, and commits the entry only after the handler succeeds.
  *
- * Local appends encode payloads with the event schema and commit only after the
- * registered handler succeeds. Remote replay decodes entries with the same
- * schema, passes duplicate or conflicting entries to handlers, may run
- * compaction before committing, and invalidates registered reactivity keys.
- * Remote sessions depend on the current `Identity` and `CurrentStoreId`, so use
- * stable values when multiple replicas or stores must share the same log.
+ * **Mental model**
+ *
+ * Local writes are command-like: encode the payload, derive the primary key, run
+ * the handler, then commit the journal entry. Remote replay is journal-like:
+ * entries are decoded with the same schemas, conflict entries are supplied to
+ * handlers, optional compaction can rewrite imported entries, and reactivity keys
+ * are invalidated after successful handling.
+ *
+ * **Common tasks**
+ *
+ * Use `schema` to combine event groups, `layer` or `layerEventLog` to install
+ * the runtime, `group` to register required handlers, `groupCompaction` to
+ * collapse remote history before replay, and `groupReactivity` to invalidate
+ * projections keyed by event primary key.
+ *
+ * **Gotchas**
+ *
+ * Remote synchronization depends on the current `Identity` and `CurrentStoreId`.
+ * Keep both stable for replicas that should share a log, and provide handlers for
+ * every event tag before writing through a client.
  *
  * @since 4.0.0
  */
@@ -45,6 +59,8 @@ import type { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
  * Service for writing typed event-log events through registered handlers.
+ *
+ * **Details**
  *
  * `write` encodes the event payload, runs the matching handler, commits the entry
  * only when the handler succeeds, and exposes access to the underlying journal
@@ -175,6 +191,8 @@ export const layerRegistry = Layer.effect(
 /**
  * Event-log identity containing a public key and redacted private key material.
  *
+ * **Details**
+ *
  * The identity is used by remote replication for authentication and by the
  * encryption service to derive signing and encryption keys.
  *
@@ -257,6 +275,8 @@ export const HandlersTypeId: HandlersTypeId = "~effect/eventlog/EventLog/Handler
 /**
  * Builder for the handlers associated with an `EventGroup`.
  *
+ * **Details**
+ *
  * The `Events` type parameter tracks the event tags that still need handlers, and
  * each call to `handle` records a handler while accumulating any required
  * services.
@@ -337,6 +357,8 @@ export declare namespace Handlers {
   /**
    * Validates that a handler builder returned all required handlers.
    *
+   * **Details**
+   *
    * If any event tag remains unhandled, the type evaluates to an explanatory
    * compile-time error string.
    *
@@ -402,6 +424,8 @@ export declare namespace Handlers {
  * Context reference for the store id used by event-log writes and remote
  * replication.
  *
+ * **Details**
+ *
  * Defaults to the branded store id `"default"`.
  *
  * @category models
@@ -441,6 +465,8 @@ const IdentityStringSchema = Schema.StringFromBase64Url.pipe(
 
 /**
  * Decodes a base64url identity string produced by `encodeIdentityString`.
+ *
+ * **Gotchas**
  *
  * Invalid input throws a schema decoding error.
  *
@@ -514,6 +540,8 @@ const makeHandlers = (options: {
 /**
  * Creates a layer that registers handlers for every event in an event group.
  *
+ * **Details**
+ *
  * The callback receives a `Handlers` builder; its return type is checked so every
  * event in the group is handled.
  *
@@ -548,6 +576,8 @@ export const group = <Events extends Event.Any, Return>(
 
 /**
  * Registers a compaction handler for an event group.
+ *
+ * **Details**
  *
  * During remote replay, matching entries are decoded, grouped by primary key, and
  * passed to the compaction effect, which may write replacement entries.
@@ -646,6 +676,8 @@ export const groupCompaction = <Events extends Event.Any, R>(
  * Registers reactivity keys to invalidate when events from a group are written or
  * replayed.
  *
+ * **Details**
+ *
  * Pass a single key list for all events or a mapping from event tag to key list.
  *
  * @category reactivity
@@ -674,6 +706,8 @@ export const groupReactivity = <Events extends Event.Any>(
 
 /**
  * Builds the effect used to replay entries received from a remote event log.
+ *
+ * **Details**
  *
  * The returned handler decodes the entry and conflicts with the registered event
  * schema, runs the matching handler with the supplied identity and store id, logs
@@ -941,6 +975,29 @@ export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal
 /**
  * Combines event-group handler layers with the `EventLog` runtime for a schema.
  *
+ * **When to use**
+ *
+ * Use when an application has an `EventLogSchema` and event-group handler layer
+ * and wants one layer that installs the shared `EventLog` runtime and registers
+ * the handlers for typed writes.
+ *
+ * **Details**
+ *
+ * The supplied handler layer is provided with `layerEventLog`. The returned
+ * layer provides `EventLog | Registry`, preserves the handler layer's error
+ * type, and still requires its remaining services plus `EventJournal` and
+ * `Identity`.
+ *
+ * **Gotchas**
+ *
+ * The schema argument does not register handlers by itself. Handler registration
+ * comes from the supplied layer, and writing an event without a registered
+ * handler dies with `Event handler not found for: "<tag>"`.
+ *
+ * @see {@link schema} for creating the schema argument from event groups
+ * @see {@link group} for building the handler layer consumed by this layer
+ * @see {@link layerEventLog} for installing the runtime and registry without combining a handler layer
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -959,6 +1016,8 @@ export const layer = <Groups extends EventGroup.Any, E, R>(
 /**
  * Creates a typed client function for writing events defined by an
  * `EventLogSchema`.
+ *
+ * **Details**
  *
  * The returned function delegates to the `EventLog` service and preserves each
  * event's success and error types.

@@ -32,11 +32,12 @@ scratchpad/**/*
 # Claude Code
 .claude/
 
-# Codex
-.agents/
-
 # OpenCode local tooling
 .opencode/
+opencode.json
 
 # Repositories
 .repos/
+
+# oxlint data
+.data/

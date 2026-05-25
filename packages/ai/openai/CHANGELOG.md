@@ -1,5 +1,21 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- [#2224](https://github.com/Effect-TS/effect-smol/pull/2224) [`74d8f37`](https://github.com/Effect-TS/effect-smol/commit/74d8f37a05ce755ff09cff48f992cb80ce9e4769) Thanks @aniravi24! - Fix `OpenAIFile` schema decode failure on responses where `expires_at` and `status_details` are returned as literal `null`. The OpenAI files endpoint returns `null` (not omitted) for these fields when no expiration / status detail applies (e.g. uploads with `purpose: "user_data"`), but the upstream OpenAPI spec marks them only as optional. Codegen patches widen both fields to allow `null`, which now decodes cleanly via `OpenAiClient.createFile`, `retrieveFile`, `listFiles`, and any other endpoint returning the `OpenAIFile` shape.
+
+- Updated dependencies [[`af7782d`](https://github.com/Effect-TS/effect-smol/commit/af7782d3008d08b043f3a3f261516001514b2b4e), [`7212d70`](https://github.com/Effect-TS/effect-smol/commit/7212d701a3eee7b3553ff502e2c066126e52e839)]:
+  - effect@4.0.0-beta.70
+
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [[`70ea04a`](https://github.com/Effect-TS/effect-smol/commit/70ea04aa96a2a7859d738d414e1f0e3ed081a27a), [`d0ea8b0`](https://github.com/Effect-TS/effect-smol/commit/d0ea8b03f7d73ae076c1db12666141e480d11178), [`a57674b`](https://github.com/Effect-TS/effect-smol/commit/a57674b64845e9e75a456cf907bfdcb858859118), [`59aa334`](https://github.com/Effect-TS/effect-smol/commit/59aa334fbd0a504dda3c36f6d2ef1be7449b4b8b), [`8f4208e`](https://github.com/Effect-TS/effect-smol/commit/8f4208ee83bc7bdaa6793b5429847b45aab72470)]:
+  - effect@4.0.0-beta.69
+
 ## 4.0.0-beta.68
 
 ### Patch Changes

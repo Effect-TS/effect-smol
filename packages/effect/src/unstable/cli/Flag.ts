@@ -161,7 +161,19 @@ export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [str
 ): Flag<Choice[number][1]> => Param.choiceWithValue(Param.flagKind, name, choices)
 
 /**
- * Simpler variant of `choiceWithValue` which maps each string to itself.
+ * Creates a flag that accepts one of the provided string choices and returns
+ * the selected string.
+ *
+ * **When to use**
+ *
+ * Use when a named option must be restricted to a fixed set of string values
+ * and no custom value mapping is needed.
+ *
+ * **Gotchas**
+ *
+ * An empty choices array compiles, but no input value can parse successfully.
+ *
+ * @see {@link choiceWithValue} for mapping accepted strings to different typed values
  *
  * @category constructors
  * @since 4.0.0
@@ -253,8 +265,10 @@ export const directory = (name: string, options?: {
 }): Flag<string> => Param.directory(Param.flagKind, name, options)
 
 /**
- * Creates a string flag whose parsed value is wrapped in `Redacted.Redacted`
- * so stringification and logging redact the value.
+ * Creates a string flag whose parsed value is wrapped in `Redacted.Redacted` so
+ * stringification and logging redact the value.
+ *
+ * **Gotchas**
  *
  * Values supplied on the command line may still be visible to the operating
  * system or shell history.
@@ -301,6 +315,8 @@ export const fileText = (name: string): Flag<string> => Param.fileText(Param.fla
 
 /**
  * Creates a flag that reads and parses the content of the specified file.
+ *
+ * **Details**
  *
  * The parser that is utilized will depend on the specified `format`, or the
  * extension of the file passed on the command-line if no `format` is specified.
@@ -355,10 +371,15 @@ export const fileSchema = <A>(
 
 /**
  * Creates a flag that parses key=value pairs.
- * Useful for options that accept configuration values.
  *
- * Note: Requires at least one key=value pair. Multiple pairs are merged
- * into a single record.
+ * **When to use**
+ *
+ * Use when you use this for options that accept configuration values.
+ *
+ * **Details**
+ *
+ * Requires at least one key=value pair. Multiple pairs are merged into a single
+ * record.
  *
  * **Example** (Parsing key-value pairs)
  *
@@ -459,8 +480,10 @@ export const withDescription: {
 /**
  * Sets a custom metavar (placeholder name) for the flag in help documentation.
  *
- * The metavar is displayed in usage text to indicate what value the user should provide.
- * For example, `--output FILE` shows `FILE` as the metavar.
+ * **Details**
+ *
+ * The metavar is displayed in usage text to indicate what value the user should
+ * provide. For example, `--output FILE` shows `FILE` as the metavar.
  *
  * **Example** (Setting metavars)
  *
@@ -486,6 +509,32 @@ export const withMetavar: {
   <A>(metavar: string): (self: Flag<A>) => Flag<A>
   <A>(self: Flag<A>, metavar: string): Flag<A>
 } = dual(2, <A>(self: Flag<A>, metavar: string) => Param.withMetavar(self, metavar))
+
+/**
+ * Hides a flag from generated help output and shell completions while keeping
+ * it fully parseable on the command line.
+ *
+ * **When to use**
+ *
+ * Use when you use this for experimental or internal flags that should be accepted but not
+ * advertised, such as `--experimental-foo`, debug toggles, or escape hatches
+ * that are not yet committed to the public CLI surface.
+ *
+ * **Example** (Hiding a flag from help)
+ *
+ * ```ts
+ * import { Flag } from "effect/unstable/cli"
+ *
+ * // Flag still parses --experimental-foo, but it does not appear in --help.
+ * const experimental = Flag.boolean("experimental-foo").pipe(
+ *   Flag.withHidden
+ * )
+ * ```
+ *
+ * @category metadata
+ * @since 4.0.0
+ */
+export const withHidden = <A>(self: Flag<A>): Flag<A> => Param.withHidden(self)
 
 /**
  * Makes a flag optional, returning an Option type that can be None if not provided.

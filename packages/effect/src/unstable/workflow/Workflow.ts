@@ -157,12 +157,15 @@ export interface Workflow<
   ) => Effect.Effect<string>
 
   /**
-   * Add compensation logic to an effect inside a Workflow. The compensation finalizer will be
-   * called if the entire workflow fails, allowing you to perform cleanup or
-   * other actions based on the success value and the cause of the workflow failure.
+   * Add compensation logic to an effect inside a Workflow.
    *
-   * NOTE: Compensation will not work for nested activities. Compensation
-   * finalizers are only registered for top-level effects in the workflow.
+   * **Details**
+   *
+   * The compensation finalizer is called if the entire workflow fails, allowing you to perform cleanup or other actions based on the success value and the cause of the workflow failure.
+   *
+   * **Gotchas**
+   *
+   * Compensation finalizers are only registered for top-level effects in the workflow and do not work for nested activities.
    */
   readonly withCompensation: {
     <A, R2>(
@@ -743,10 +746,7 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
 })
 
 /**
- * Accesses the workflow scope.
- *
- * The workflow scope is only closed when the workflow execution fully
- * completes.
+ * Accesses the workflow scope, which is only closed when the workflow execution fully completes.
  *
  * @category Scope
  * @since 4.0.0
@@ -761,10 +761,7 @@ export const scope: Effect.Effect<
 )
 
 /**
- * Provides the workflow scope to the given effect.
- *
- * The workflow scope is only closed when the workflow execution fully
- * completes.
+ * Provides the workflow scope to the given effect, and closes the scope only when the workflow execution fully completes.
  *
  * @category Scope
  * @since 4.0.0
@@ -796,12 +793,15 @@ export const addFinalizer: <R>(
 })
 
 /**
- * Add compensation logic to an effect inside a Workflow. The compensation finalizer will be
- * called if the entire workflow fails, allowing you to perform cleanup or
- * other actions based on the success value and the cause of the workflow failure.
+ * Add compensation logic to an effect inside a Workflow.
  *
- * NOTE: Compensation will not work for nested activities. Compensation
- * finalizers are only registered for top-level effects in the workflow.
+ * **Details**
+ *
+ * The compensation finalizer is called if the entire workflow fails, allowing you to perform cleanup or other actions based on the success value and the cause of the workflow failure.
+ *
+ * **Gotchas**
+ *
+ * Compensation finalizers are only registered for top-level effects in the workflow and do not work for nested activities.
  *
  * @category Compensation
  * @since 4.0.0
@@ -842,10 +842,11 @@ export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<ne
   }))
 
 /**
- * If you set this annotation to `true` for a workflow, it will capture defects
- * and include them in the result of the workflow or it's activities.
+ * Captures defects for a workflow and includes them in the result of the workflow or its activities.
  *
- * By default, this is set to `true`, meaning that defects will be captured.
+ * **Details**
+ *
+ * By default, this annotation is set to `true`, meaning defects are captured.
  *
  * @category annotations
  * @since 4.0.0
@@ -858,10 +859,11 @@ export const CaptureDefects = Context.Reference<boolean>(
 )
 
 /**
- * Annotation that causes a workflow to suspend when it encounters any error.
+ * Causes a workflow to suspend when it encounters any error.
  *
- * The suspended execution can later be resumed with the workflow's `resume`
- * method, for example `MyWorkflow.resume(executionId)`.
+ * **Details**
+ *
+ * The suspended execution can later be resumed with the workflow's `resume` method, for example `MyWorkflow.resume(executionId)`.
  *
  * @category annotations
  * @since 4.0.0

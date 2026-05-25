@@ -45,6 +45,8 @@ export const TypeId = "~effect/cluster/Envelope"
 /**
  * Union of cluster envelopes exchanged for an RPC request.
  *
+ * **Details**
+ *
  * An envelope is either a request, an acknowledgement for a streamed reply chunk,
  * or an interrupt signal.
  *
@@ -79,6 +81,8 @@ export declare namespace Envelope {
 /**
  * Runtime envelope for an RPC request addressed to a specific entity.
  *
+ * **Details**
+ *
  * It carries the request ID, entity address, RPC tag, decoded payload, request
  * headers, and optional tracing context.
  *
@@ -101,6 +105,8 @@ export interface Request<in out Rpc extends Rpc.Any> {
 /**
  * Schema for a request envelope before its RPC payload has been decoded.
  *
+ * **Details**
+ *
  * The envelope metadata is decoded, while the payload remains `unknown` until it
  * is decoded with the target RPC payload schema.
  *
@@ -121,6 +127,8 @@ export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struc
 
 /**
  * Serialized JSON shape of a request envelope.
+ *
+ * **Details**
  *
  * Identifiers are encoded as strings and the RPC payload remains unknown until
  * decoded with the RPC schema.
@@ -149,6 +157,8 @@ export interface PartialRequestEncoded {
 
 /**
  * Envelope acknowledging receipt of a streamed reply chunk for a request.
+ *
+ * **Details**
  *
  * The `replyId` identifies the chunk reply that has been received.
  *
@@ -258,6 +268,8 @@ export interface InterruptEncoded {
 /**
  * Schema union for partially decoded cluster envelopes.
  *
+ * **Details**
+ *
  * It accepts `PartialRequest`, `AckChunk`, and `Interrupt` envelope values.
  *
  * @category schemas
@@ -318,6 +330,8 @@ export declare namespace Request {
 /**
  * Returns `true` when the supplied value is a runtime cluster envelope.
  *
+ * **Details**
+ *
  * The check is based on the envelope type identifier.
  *
  * @category refinements
@@ -327,6 +341,8 @@ export const isEnvelope = (u: unknown): u is Envelope<any> => Predicate.hasPrope
 
 /**
  * Constructs a runtime request envelope and attaches the envelope type identifier.
+ *
+ * **Details**
  *
  * Tracing fields are included only when a `traceId` is provided.
  *

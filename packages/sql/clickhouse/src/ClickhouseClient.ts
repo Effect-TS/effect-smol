@@ -1,23 +1,39 @@
 /**
- * ClickHouse client implementation for Effect SQL, backed by
- * `@clickhouse/client`.
+ * ClickHouse driver for Effect SQL, backed by `@clickhouse/client`.
  *
- * This module exposes constructors and layers for providing both the
- * ClickHouse-specific `ClickhouseClient` service and the generic `SqlClient`
- * service. It is intended for analytical application queries, migrations,
- * background jobs, bulk inserts, and streaming reads that need Effect SQL query
- * compilation, scoped lifecycle management, interruption, and consistent
- * `SqlError` classification for ClickHouse failures.
+ * Use this module to provide both the ClickHouse-specific
+ * {@link ClickhouseClient} service and the generic {@link Client.SqlClient}
+ * service. The client is intended for analytical application queries,
+ * migrations, background jobs, bulk inserts, and streaming reads that need
+ * Effect SQL query compilation, scoped lifecycle management, interruption, and
+ * consistent `SqlError` classification for ClickHouse failures.
  *
- * The client uses the ClickHouse HTTP client APIs for `query`, `command`, and
- * `insert` operations. Regular queries read JSON result sets, `executeValues`
- * requests `JSONCompact`, streams request `JSONEachRow`, and `insertQuery`
- * defaults inserts to `JSONEachRow`. Interrupting an operation aborts the
- * underlying HTTP request and attempts to kill the generated or supplied
- * `query_id`. The statement compiler emits ClickHouse typed placeholders such
- * as `{p1: Type}`; use `param` when the inferred type is too broad, and write
- * ClickHouse-specific clauses such as engines, `SETTINGS`, `FORMAT`, or
- * cluster directives explicitly.
+ * **Mental model**
+ *
+ * A client owns one scoped `@clickhouse/client` instance and verifies startup
+ * with `SELECT 1`. Regular queries use the ClickHouse HTTP `query` API,
+ * command-mode effects use `command`, and inserts use `insert`. Interrupting an
+ * operation aborts the HTTP request and attempts to kill the generated or
+ * supplied `query_id`.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layer} with a concrete `ClickhouseClientConfig`,
+ * {@link layerConfig} when settings should come from Effect `Config`, and
+ * {@link make} when a scoped client value is needed directly. Use
+ * `client.param` when a placeholder needs an explicit ClickHouse type,
+ * `client.asCommand` for statements that should run through `command`,
+ * `client.insertQuery` for bulk inserts, and `client.withClickhouseSettings`
+ * or `client.withQueryId` for per-effect request options.
+ *
+ * **Gotchas**
+ *
+ * Regular queries read JSON result sets, `executeValues` requests
+ * `JSONCompact`, streams request `JSONEachRow`, and `insertQuery` defaults
+ * inserts to `JSONEachRow`. The statement compiler emits typed ClickHouse
+ * placeholders such as `{p1: Type}`; use `param` when the inferred type is too
+ * broad. ClickHouse-specific clauses such as engines, `SETTINGS`, `FORMAT`, or
+ * cluster directives must be written explicitly in SQL.
  *
  * @since 4.0.0
  */

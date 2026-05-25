@@ -32,6 +32,17 @@ import { createComponent, createContext, onCleanup } from "solid-js"
  * A Solid context that carries the `AtomRegistry` used by atom hooks in the
  * current owner tree.
  *
+ * **When to use**
+ *
+ * Use when integrating lower-level Solid atom APIs that need direct access to,
+ * or direct provisioning of, the `AtomRegistry` for the current owner tree.
+ *
+ * **Details**
+ *
+ * When no provider is present, the context uses a standalone default registry.
+ *
+ * @see {@link RegistryProvider} for creating and providing a registry for a Solid subtree
+ *
  * @category context
  * @since 4.0.0
  */
@@ -41,6 +52,24 @@ export const RegistryContext = createContext<AtomRegistry.AtomRegistry>(AtomRegi
  * Creates an `AtomRegistry` for a Solid subtree, optionally seeding initial atom
  * values and scheduler settings, and disposes the registry when the owner is
  * cleaned up.
+ *
+ * **When to use**
+ *
+ * Use to scope atom state, scheduling, and cleanup to a Solid subtree.
+ *
+ * **Details**
+ *
+ * The provider creates an `AtomRegistry` with `AtomRegistry.make`, forwards
+ * `initialValues`, `scheduleTask`, `timeoutResolution`, and
+ * `defaultIdleTTL`, and supplies the registry through `RegistryContext`.
+ *
+ * **Gotchas**
+ *
+ * Provider options are consumed when the registry is created; they are not
+ * reactive updates. A custom `scheduleTask` should return a cancellation
+ * function that is safe to call during Solid cleanup.
+ *
+ * @see {@link RegistryContext} for the context supplied by this provider
  *
  * @category context
  * @since 4.0.0

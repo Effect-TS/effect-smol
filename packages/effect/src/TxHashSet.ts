@@ -56,21 +56,11 @@ const TxHashSetProto = {
 }
 
 /**
- * A TxHashSet is a transactional hash set data structure that provides atomic operations
- * on unique values within Effect transactions. It uses an immutable HashSet internally
- * with TxRef for transactional semantics, ensuring all operations are performed atomically.
+ * A TxHashSet is a transactional hash set data structure that provides atomic operations on unique values within Effect transactions. It uses an immutable HashSet internally with TxRef for transactional semantics, ensuring all operations are performed atomically.
  *
- * ## Mutation vs Return Behavior
+ * **Details**
  *
- * **Mutation operations** (add, remove, clear) modify the original TxHashSet and return `Effect<void>` or `Effect<boolean>`:
- * - These operations mutate the TxHashSet in place
- * - They do not create new TxHashSet instances
- * - Examples: `add`, `remove`, `clear`
- *
- * **Transform operations** (union, intersection, difference, map, filter) create new TxHashSet instances:
- * - These operations return `Effect<TxHashSet<T>>` with a new instance
- * - The original TxHashSet remains unchanged
- * - Examples: `union`, `intersection`, `difference`, `map`, `filter`
+ * Mutation operations such as `add`, `remove`, and `clear` update the original TxHashSet and return `Effect<void>` or `Effect<boolean>`. Transform operations such as `union`, `intersection`, `difference`, `map`, and `filter` create new TxHashSet instances and leave the original TxHashSet unchanged.
  *
  * **Example** (Using transactional hash sets)
  *
@@ -320,8 +310,9 @@ export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(
 /**
  * Adds a value to the TxHashSet. If the value already exists, the operation has no effect.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by adding
- * the specified value. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by adding the specified value. It does not return a new TxHashSet reference.
  *
  * **Example** (Adding values)
  *
@@ -355,8 +346,9 @@ export const add: {
 /**
  * Removes a value from the TxHashSet.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by removing
- * the specified value. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by removing the specified value. It does not return a new TxHashSet reference.
  *
  * **Example** (Removing values)
  *
@@ -501,8 +493,9 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
 /**
  * Removes all values from the TxHashSet.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by clearing
- * all values. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by clearing all values. It does not return a new TxHashSet reference.
  *
  * **Example** (Clearing all values)
  *

@@ -1,23 +1,38 @@
 /**
- * Utilities for representing, transforming, and serializing URL query
- * parameters.
+ * Immutable URL query parameters represented as ordered string pairs.
  *
- * This module provides an immutable `UrlParams` collection backed by ordered
- * string key-value pairs. It is used for HTTP client request queries,
- * URL-encoded form bodies, and server-side decoding workflows where query
- * parameters need to be built from records, iterables, or native
- * `URLSearchParams`, then inspected, appended, replaced, removed, converted to a
- * URL, or decoded with schemas.
+ * This module is the shared query-parameter model for HTTP client request
+ * queries, URL-encoded form bodies, and server-side decoding. A `UrlParams`
+ * value can be built from records, iterables, or native `URLSearchParams`, then
+ * inspected, appended, replaced, removed, serialized, converted to a `URL`, or
+ * decoded with schemas.
  *
- * Duplicate keys are preserved by the core representation and by append-style
- * operations; use `getAll` when all values matter, and note that `set` and
- * `setAll` replace existing values for matching keys. Serialization through
- * `toString` and `makeUrl` delegates to the platform `URLSearchParams` / `URL`
- * implementations, so provide decoded strings rather than pre-encoded query
- * fragments. Record-based and schema-based conversions intentionally collapse
- * repeated keys into string arrays and do not preserve the full global pair
- * ordering; `schemaJsonField` reads the first matching value for the selected
- * field.
+ * **Mental model**
+ *
+ * The core representation is a list of `[key, value]` string pairs. Duplicate
+ * keys and pair order are preserved by `make`, `fromInput`, iteration, and
+ * append-style operations. Record input is a convenience layer: primitive values
+ * become strings, arrays become repeated parameters, nested records use bracket
+ * notation, and `undefined` fields are skipped.
+ *
+ * **Common tasks**
+ *
+ * - Build query parameters from plain records, tuples, or `URLSearchParams`.
+ * - Read the first, last, or all values for a key.
+ * - Replace, append, transform, or remove keys without mutating the original.
+ * - Serialize a query string, merge parameters into a URL, or decode records and
+ *   JSON fields with schemas.
+ *
+ * **Gotchas**
+ *
+ * Use `getAll` when every duplicate value matters. `set` and `setAll` replace
+ * existing values for matching keys, while `append` and `appendAll` preserve
+ * them. Serialization through `toString` and `makeUrl` delegates to the platform
+ * `URLSearchParams` / `URL` implementations, so pass decoded strings rather
+ * than pre-encoded query fragments. Record-based and schema-based conversions
+ * collapse repeated keys into string arrays and do not preserve the full global
+ * pair ordering; `schemaJsonField` reads the first matching value for the
+ * selected field.
  *
  * @since 4.0.0
  */
@@ -45,6 +60,8 @@ const TypeId = "~effect/http/UrlParams"
 /**
  * Immutable collection of URL query parameters.
  *
+ * **Details**
+ *
  * Parameters are stored as ordered string key-value pairs and can contain multiple
  * values for the same key.
  *
@@ -67,6 +84,8 @@ export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId
 /**
  * Input accepted when constructing `UrlParams`.
  *
+ * **Details**
+ *
  * Values can be provided as a coercible record, an iterable of key-value pairs, or
  * a native `URLSearchParams` value.
  *
@@ -84,6 +103,8 @@ type CoercibleRecordInput = CoercibleRecord & {
 
 /**
  * Primitive value that can be converted into a URL parameter string.
+ *
+ * **Gotchas**
  *
  * `undefined` values are skipped when constructing from input.
  *
@@ -103,6 +124,8 @@ type CoercibleRecordField<A> = A extends Coercible ? A
 
 /**
  * Record input whose fields can be coerced into URL parameter values.
+ *
+ * **Details**
  *
  * Nested records are rendered using bracket notation, and arrays produce repeated
  * parameters.
@@ -137,6 +160,8 @@ const Proto = {
 /**
  * Creates `UrlParams` from ordered string key-value pairs.
  *
+ * **Details**
+ *
  * The input pairs are used as-is and are not coerced or normalized.
  *
  * @category constructors
@@ -150,6 +175,8 @@ export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParam
 
 /**
  * Creates `UrlParams` from a supported input shape.
+ *
+ * **Details**
  *
  * Primitive values are converted to strings, arrays produce repeated parameters,
  * nested records use bracket notation, and `undefined` values are omitted.
@@ -198,6 +225,8 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
 /**
  * Order-sensitive equivalence for `UrlParams`.
  *
+ * **Details**
+ *
  * Two values are equivalent when they contain the same key-value pairs in the same
  * order.
  *
@@ -222,6 +251,8 @@ export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray
 
 /**
  * Schema for `UrlParams`.
+ *
+ * **Details**
  *
  * The encoded representation is an array of string key-value tuples.
  *
@@ -264,6 +295,8 @@ export const empty: UrlParams = make([])
 /**
  * Returns all values for a query parameter key in insertion order.
  *
+ * **Details**
+ *
  * Returns an empty array when the key is absent.
  *
  * @category combinators
@@ -286,6 +319,8 @@ export const getAll: {
 /**
  * Returns the first value for a query parameter key.
  *
+ * **Details**
+ *
  * Returns `Option.none` when the key is absent.
  *
  * @category combinators
@@ -305,6 +340,8 @@ export const getFirst: {
 /**
  * Returns the last value for a query parameter key.
  *
+ * **Details**
+ *
  * Returns `Option.none` when the key is absent.
  *
  * @category combinators
@@ -320,6 +357,8 @@ export const getLast: {
 
 /**
  * Sets a query parameter to a single value.
+ *
+ * **Details**
  *
  * Existing values for the same key are removed, and the new value is appended to
  * the end.
@@ -341,6 +380,8 @@ export const set: {
 /**
  * Transforms the underlying ordered key-value pairs of `UrlParams`.
  *
+ * **Details**
+ *
  * The result is wrapped in a new `UrlParams` value.
  *
  * @category combinators
@@ -356,6 +397,8 @@ export const transform: {
 
 /**
  * Sets multiple query parameters from input.
+ *
+ * **Details**
  *
  * Keys present in the input replace existing values for those keys, while
  * unmentioned existing parameters are preserved.
@@ -398,6 +441,8 @@ export const append: {
 /**
  * Appends all query parameters produced from the supplied input.
  *
+ * **Details**
+ *
  * Existing parameters are preserved.
  *
  * @category combinators
@@ -431,6 +476,8 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
 
 /**
  * Creates a `URL` by appending `UrlParams` and an optional hash to a URL string.
+ *
+ * **Details**
  *
  * Returns a `Result` that fails with `UrlParamsError` if the URL cannot be
  * constructed.
@@ -526,6 +573,8 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
 /**
  * Builds a readonly record from `UrlParams`.
  *
+ * **Details**
+ *
  * Keys with one value map to a string, and keys with multiple values map to a
  * non-empty readonly array of strings.
  *
@@ -603,6 +652,8 @@ export interface schemaRecord extends
 
 /**
  * Schema that decodes `UrlParams` into a record of key-value pairs.
+ *
+ * **Details**
  *
  * Keys with one value decode to a string, and keys with multiple values decode to
  * a non-empty readonly array of strings.

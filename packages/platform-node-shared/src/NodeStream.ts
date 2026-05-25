@@ -1,19 +1,28 @@
 /**
- * Interoperability between Node streams and Effect streams and channels.
+ * Adapters between Node streams and Effect streams, channels, and readables.
  *
- * This module adapts `Readable` and `Duplex` instances at the boundary with
- * Node APIs: wrapping sources such as files, HTTP responses, child process
- * output, and compression transforms as Effect `Stream`s or `Channel`s, piping
- * Effect streams through Node duplex transforms, exposing an Effect `Stream`
- * back to Node as a `Readable`, and collecting small readable payloads into
- * strings or binary buffers.
+ * This module is the stream boundary for Node APIs: wrap `Readable` or
+ * `Duplex` values as Effect `Stream`s and `Channel`s, pipe an Effect stream
+ * through a Node duplex transform, expose an Effect `Stream` back to Node as a
+ * `Readable`, or collect bounded readable payloads into strings, array
+ * buffers, and `Uint8Array`s. Common sources include files, HTTP bodies, child
+ * process stdio, sockets, and compression or crypto transforms.
  *
- * The adapters preserve the Node stream semantics that matter for production
- * code. Writes wait for `drain` when a writable side applies backpressure,
- * readable streams are destroyed on scope finalization by default, and stream
- * failures are routed through `onError` or `Cause.UnknownError`. For long-lived
- * or externally owned streams, pass `closeOnDone` or `endOnDone` carefully, and
- * use `maxBytes` on collection helpers to avoid buffering unbounded input.
+ * **Mental model**
+ *
+ * Read adapters pull from Node's readable side into Effect. Duplex adapters
+ * write upstream Effect chunks to Node while reading transformed chunks back.
+ * `toReadable` runs an Effect stream from the caller's context, while
+ * `toReadableNever` is for streams that need no services.
+ *
+ * **Gotchas**
+ *
+ * Node backpressure is preserved: writes pause until `drain` before more input
+ * is pulled. Readables are destroyed on scope finalization by default, and
+ * duplex writable sides are ended when upstream completes unless configured
+ * otherwise. For externally owned or long-lived streams, choose `closeOnDone`
+ * and `endOnDone` deliberately; for collection helpers, set `maxBytes` when
+ * input size is not already bounded.
  *
  * @since 4.0.0
  */

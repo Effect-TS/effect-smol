@@ -123,6 +123,25 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
 /**
  * Service tag for an open IndexedDB database, its `IDBKeyRange` constructor, reactivity service, and rebuild effect.
  *
+ * **When to use**
+ *
+ * Use when an effect needs access to the live database service after an
+ * `IndexedDbSchema` layer has been provided, especially for `rebuild` or
+ * lower-level database primitives.
+ *
+ * **Details**
+ *
+ * `database` is a mutable reference to the current `IDBDatabase`. `IDBKeyRange`
+ * and `reactivity` are shared with query builders created from the schema.
+ *
+ * **Gotchas**
+ *
+ * `rebuild` closes and deletes the browser database, then reopens it and reruns
+ * migrations. Records not recreated by migrations are removed.
+ *
+ * @see {@link IndexedDb.IndexedDb} for the lower-level browser IndexedDB primitives
+ * @see {@link make} for creating a schema that provides this service as a layer
+ *
  * @category models
  * @since 4.0.0
  */

@@ -39,6 +39,14 @@ import * as Result from "./Result.ts"
  * An effectful pull step that either produces a value, fails with `E`, or
  * signals completion with `Cause.Done<Done>`.
  *
+ * **When to use**
+ *
+ * Use to model one low-level pull step when a consumer repeatedly evaluates an
+ * effect that may emit a value, fail normally, or signal normal completion
+ * through `Cause.Done`.
+ *
+ * **Details**
+ *
  * `Pull` represents completion in the error channel so low-level stream
  * consumers can distinguish ordinary failures from end-of-input and carry a
  * leftover value when needed.
@@ -53,6 +61,15 @@ export interface Pull<out A, out E = never, out Done = void, out R = never>
 /**
  * Extracts the success type from a Pull type.
  *
+ * **When to use**
+ *
+ * Use to derive the value produced by an existing `Pull` when declaring
+ * reusable type aliases, low-level stream helpers, or function signatures.
+ *
+ * @see {@link Error} for extracting the ordinary failure type
+ * @see {@link Leftover} for extracting the completion leftover type
+ * @see {@link Services} for extracting the required services type instead
+ *
  * @category type extractors
  * @since 4.0.0
  */
@@ -60,6 +77,16 @@ export type Success<P> = P extends Effect<infer _A, infer _E, infer _R> ? _A : n
 
 /**
  * Extracts the error type from a Pull type, excluding Done errors.
+ *
+ * **When to use**
+ *
+ * Use to derive only the ordinary failure type from a `Pull` when declaring
+ * wrappers or APIs that handle completion separately.
+ *
+ * @see {@link Success} for extracting the pulled value type instead
+ * @see {@link Leftover} for extracting the completion leftover type
+ * @see {@link Services} for extracting the required services type instead
+ * @see {@link ExcludeDone} for excluding `Cause.Done` from an error union
  *
  * @category type extractors
  * @since 4.0.0
@@ -70,6 +97,16 @@ export type Error<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E exten
 /**
  * Extracts the leftover type from a Pull type.
  *
+ * **When to use**
+ *
+ * Use to derive the completion leftover type from an existing `Pull` when
+ * declaring reusable type aliases or helper signatures that preserve a pull's
+ * done value.
+ *
+ * @see {@link Success} for extracting the pulled value type instead
+ * @see {@link Error} for extracting the ordinary failure type, excluding `Cause.Done`
+ * @see {@link Services} for extracting the required services type instead
+ *
  * @category type extractors
  * @since 4.0.0
  */
@@ -79,13 +116,30 @@ export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E ex
 /**
  * Extracts the service requirements (context) type from a Pull type.
  *
+ * **When to use**
+ *
+ * Use to derive the context requirements of a generic or inferred `Pull`
+ * without restating its `R` type parameter.
+ *
+ * @see {@link Success} for extracting the pulled value type instead
+ * @see {@link Error} for extracting the ordinary failure type
+ * @see {@link Leftover} for extracting the completion leftover type
+ *
  * @category type extractors
  * @since 4.0.0
  */
 export type Services<P> = P extends Effect<infer _A, infer _E, infer _R> ? _R : never
 
 /**
- * Excludes done errors from an error type union.
+ * Excludes `Cause.Done` completion signals from an error type union.
+ *
+ * **When to use**
+ *
+ * Use to describe the ordinary error type that remains after `Cause.Done`
+ * completion signals have been handled or filtered out of an error union.
+ *
+ * @see {@link Error} for extracting ordinary failures from a `Pull`
+ * @see {@link Leftover} for extracting the completion leftover type
  *
  * @category type extractors
  * @since 4.0.0
@@ -100,8 +154,19 @@ export type ExcludeDone<E> = Exclude<E, Cause.Done<any>>
  * Handles `Cause.Done` failures in an effect while leaving ordinary failures
  * in the error channel.
  *
+ * **When to use**
+ *
+ * Use to recover from a `Cause.Done` completion signal in an effect, such as
+ * turning a pull leftover value into a successful recovery effect while
+ * preserving ordinary failures.
+ *
+ * **Details**
+ *
  * The handler receives the done leftover value and may recover with a new
  * effect. Non-done errors are preserved.
+ *
+ * @see {@link matchEffect} for handling success, ordinary failure, and done outcomes explicitly
+ * @see {@link filterDoneLeftover} for extracting a done leftover from an existing `Cause`
  *
  * @category Done
  * @since 4.0.0
@@ -123,13 +188,31 @@ export const catchDone: {
 /**
  * Checks if a Cause contains any done errors.
  *
+ * **When to use**
+ *
+ * Use to test a whole pull failure cause for normal completion when you only
+ * need a boolean branch and do not need the done payload.
+ *
+ * @see {@link isDoneFailure} for checking a single `Cause.Reason`
+ * @see {@link filterDone} for extracting the `Cause.Done` value from a `Cause`
+ * @see {@link filterNoDone} for selecting causes with no done failures
+ *
  * @category Done
  * @since 4.0.0
  */
 export const isDoneCause = <E>(cause: Cause.Cause<E>): boolean => cause.reasons.some(isDoneFailure)
 
 /**
- * Checks if a Cause failure is a done error.
+ * Checks whether a `Cause.Reason` is a `Fail` reason whose error is a
+ * `Cause.Done` signal.
+ *
+ * **When to use**
+ *
+ * Use as a predicate when traversing `cause.reasons` and you need to identify
+ * done completion reasons before handling ordinary failures.
+ *
+ * @see {@link isDoneCause} for checking an entire `Cause` for any done reason
+ * @see {@link filterDone} for extracting the `Cause.Done` value from a `Cause`
  *
  * @category Done
  * @since 4.0.0
@@ -140,6 +223,13 @@ export const isDoneFailure = <E>(
 
 /**
  * Finds a `Cause.Done` failure in a `Cause`.
+ *
+ * **When to use**
+ *
+ * Use to separate `Cause.Done` completion from ordinary causes while preserving
+ * the typed done value.
+ *
+ * **Details**
  *
  * Returns a successful `Result` with the `Cause.Done` value when one is
  * present, otherwise returns a failed `Result` containing the non-done cause.
@@ -158,8 +248,19 @@ export const filterDone: <E>(
 /**
  * Finds a `Cause.Done` failure in a cause whose done value is not used.
  *
+ * **When to use**
+ *
+ * Use to detect `Cause.Done` completion in a `Cause` when the completion value
+ * is not part of the downstream logic.
+ *
+ * **Details**
+ *
  * Returns a successful `Result` with the done marker when present, otherwise
  * returns a failed `Result` with the non-done cause.
+ *
+ * @see {@link filterDone} for preserving the typed `Cause.Done` value when the done payload matters
+ * @see {@link filterDoneLeftover} for extracting only the done leftover value
+ * @see {@link filterNoDone} for the inverse filter that succeeds only when no done failure is present
  *
  * @category Done
  * @since 4.0.0
@@ -174,8 +275,18 @@ export const filterDoneVoid: <E extends Cause.Done>(
 /**
  * Keeps a `Cause` only when it contains no `Cause.Done` failures.
  *
+ * **When to use**
+ *
+ * Use to select ordinary failure causes for handling while leaving `Cause.Done`
+ * completion causes outside that handler.
+ *
+ * **Details**
+ *
  * Returns a successful `Result` with the cause when every failure is non-done;
  * otherwise returns a failed `Result` with the original cause.
+ *
+ * @see {@link filterDone} for the inverse typed done filter
+ * @see {@link filterDoneVoid} for done detection when the payload is not needed
  *
  * @category Done
  * @since 4.0.0
@@ -192,6 +303,11 @@ export const filterNoDone: <E>(
 /**
  * Filters a Cause to extract the leftover value from done errors.
  *
+ * **When to use**
+ *
+ * Use to extract only the leftover value carried by a `Cause.Done` completion
+ * signal.
+ *
  * @category Done
  * @since 4.0.0
  */
@@ -206,8 +322,19 @@ export const filterDoneLeftover: <E>(
  * Converts a `Cause` into an `Exit`, treating `Cause.Done` as successful
  * completion.
  *
+ * **When to use**
+ *
+ * Use to produce an `Exit` for finalizing a low-level pull workflow when a
+ * `Cause.Done` signal should be treated as success and any remaining cause
+ * should fail.
+ *
+ * **Details**
+ *
  * If the cause contains a done value, that leftover becomes the successful
  * value. Otherwise the non-done cause becomes the failure cause.
+ *
+ * @see {@link filterDone} for extracting the done signal without converting the cause to an `Exit`
+ * @see {@link matchEffect} for handling `Pull` success, failure, and done outcomes directly
  *
  * @category Done
  * @since 4.0.0
@@ -219,6 +346,10 @@ export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Don
 
 /**
  * Pattern matches on a Pull, handling success, failure, and done cases.
+ *
+ * **When to use**
+ *
+ * Use to handle all three `Pull` outcomes with effectful handlers.
  *
  * **Example** (Matching Pull outcomes)
  *

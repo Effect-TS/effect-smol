@@ -1,17 +1,57 @@
 /**
- * Utilities and data types for describing outgoing HTTP body content.
+ * Describes the body attached to outgoing HTTP requests and server responses.
  *
- * This module provides a small set of `HttpBody` variants used by HTTP client
- * requests and server responses: empty bodies, raw runtime values, in-memory
- * bytes, `FormData`, and byte streams. Constructors cover the common cases of
- * text, JSON, URL-encoded forms, multipart forms, and files while carrying the
- * content type and, when known, the content length used by platform adapters.
+ * `HttpBody` is the transport-facing representation used by the HTTP modules
+ * before a platform adapter turns a request or response into a concrete Web,
+ * Node, or other runtime value. Each body variant carries the payload plus the
+ * metadata an adapter can safely know ahead of time, such as `contentType` and
+ * `contentLength`.
  *
- * Streaming bodies are represented as streams of `Uint8Array` chunks and may
- * omit `contentLength` when the size is not known ahead of time. Multipart
- * `FormData` intentionally leaves `contentType` unset so the runtime can add
- * the required boundary; setting that header manually can produce invalid
- * requests.
+ * **Mental model**
+ *
+ * - {@link empty} represents an absent body.
+ * - {@link uint8Array}, {@link text}, {@link jsonUnsafe}, {@link json}, and
+ *   {@link urlParams} build in-memory byte bodies with content metadata.
+ * - {@link formData} and {@link formDataRecord} keep multipart data as
+ *   `FormData` so the runtime can generate the boundary.
+ * - {@link stream} represents a stream of `Uint8Array` chunks and may omit the
+ *   content length when the final size is not known.
+ * - {@link raw} is the escape hatch for platform-specific body values that an
+ *   adapter already knows how to send.
+ *
+ * **Common tasks**
+ *
+ * - Send text, bytes, JSON, URL-encoded data, multipart forms, or files.
+ * - Use {@link json} or {@link jsonSchema} when JSON encoding failures should
+ *   be represented as `HttpBodyError` values.
+ * - Use {@link file} or {@link fileFromInfo} when file metadata should become
+ *   `contentType` / `contentLength` metadata for the adapter.
+ * - Use {@link isHttpBody} when accepting unknown values at an integration
+ *   boundary.
+ *
+ * **Gotchas**
+ *
+ * - {@link jsonUnsafe} calls `JSON.stringify` directly and can throw; prefer
+ *   {@link json} in effectful code.
+ * - `FormData` bodies intentionally leave `contentType` unset because setting a
+ *   multipart header without the generated boundary produces invalid requests.
+ * - Stream bodies may not have a `contentLength`; code that requires one must
+ *   provide it explicitly when constructing the stream body.
+ *
+ * **Example** (Creating common body variants)
+ *
+ * ```ts
+ * import { HttpBody, UrlParams } from "effect/unstable/http"
+ * import * as assert from "node:assert"
+ *
+ * const textBody = HttpBody.text("hello")
+ * const jsonBody = HttpBody.jsonUnsafe({ name: "Ada" })
+ * const formBody = HttpBody.urlParams(UrlParams.fromInput({ q: "effect" }))
+ *
+ * assert.equal(textBody.contentType, "text/plain")
+ * assert.equal(jsonBody.contentType, "application/json")
+ * assert.equal(formBody.contentType, "application/x-www-form-urlencoded")
+ * ```
  *
  * @since 4.0.0
  */
@@ -42,6 +82,8 @@ export const isHttpBody = (u: unknown): u is HttpBody => Predicate.hasProperty(u
 /**
  * Represents an HTTP request body.
  *
+ * **Details**
+ *
  * Supported variants include empty bodies, raw bodies, byte arrays, `FormData`, and streams of bytes.
  *
  * @category models
@@ -57,6 +99,8 @@ export type HttpBody = Empty | Raw | Uint8Array | FormData | Stream
 export declare namespace HttpBody {
   /**
    * Common protocol implemented by all HTTP body variants.
+   *
+   * **Details**
    *
    * It carries the variant tag plus optional `contentType` and `contentLength` metadata.
    *
@@ -107,6 +151,8 @@ export class HttpBodyError extends Data.TaggedError("HttpBodyError")<{
 
 /**
  * Reason for an `HttpBodyError`.
+ *
+ * **Details**
  *
  * `JsonError` represents a `JSON.stringify` failure; `SchemaError` represents a schema encoding issue.
  *
@@ -209,6 +255,8 @@ export const raw = (
 /**
  * HTTP body variant backed by a `Uint8Array`.
  *
+ * **Details**
+ *
  * It stores the bytes, content type, and byte length.
  *
  * @category models
@@ -245,6 +293,8 @@ export class Uint8Array extends Proto {
 /**
  * Creates a byte-array HTTP body.
  *
+ * **Details**
+ *
  * The content type defaults to `application/octet-stream`, and the content length is the byte array length.
  *
  * @category constructors
@@ -258,6 +308,8 @@ const encoder = new TextEncoder()
 /**
  * Creates a UTF-8 encoded text HTTP body.
  *
+ * **Details**
+ *
  * The content type defaults to `text/plain`.
  *
  * @category constructors
@@ -269,6 +321,8 @@ export const text = (body: string, contentType?: string): Uint8Array =>
 /**
  * Creates a JSON HTTP body using `JSON.stringify`, throwing if serialization fails.
  *
+ * **Details**
+ *
  * The content type defaults to `application/json`.
  *
  * @category constructors
@@ -279,6 +333,8 @@ export const jsonUnsafe = (body: unknown, contentType?: string): Uint8Array =>
 
 /**
  * Creates a JSON HTTP body in an `Effect`.
+ *
+ * **Details**
  *
  * `JSON.stringify` failures are captured as `HttpBodyError` values, and the content type defaults to `application/json`.
  *
@@ -293,6 +349,8 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
 
 /**
  * Creates a JSON body constructor that first encodes values with the schema's JSON codec.
+ *
+ * **Details**
  *
  * Schema encoding issues and JSON serialization failures are returned as `HttpBodyError` values.
  *
@@ -322,6 +380,8 @@ export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string):
 
 /**
  * HTTP body variant backed by Web `FormData`.
+ *
+ * **Details**
  *
  * The content type and content length are left unset so the runtime can supply multipart boundaries.
  *
@@ -360,6 +420,8 @@ export const formData = (body: globalThis.FormData): FormData => new FormData(bo
 /**
  * Record input accepted by `formDataRecord`.
  *
+ * **Details**
+ *
  * Each field may be a single coercible value or an array of coercible values.
  *
  * @category models
@@ -369,6 +431,8 @@ export type FormDataInput = Record<string, FormDataCoercible | ReadonlyArray<For
 
 /**
  * Value that can be appended by `formDataRecord`.
+ *
+ * **Details**
  *
  * `File` and `Blob` values are appended directly, primitive values are converted to strings, and `null` or `undefined` values are skipped.
  *
@@ -390,6 +454,8 @@ const appendFormDataValue = (formData: globalThis.FormData, key: string, value: 
 
 /**
  * Creates a `FormData` HTTP body from a record.
+ *
+ * **Details**
  *
  * Array fields append each item under the same key; primitive values are stringified, `File` and `Blob` values are appended directly, and nullish values are skipped.
  *
@@ -445,6 +511,8 @@ export class Stream extends Proto {
 /**
  * Creates a streaming HTTP body from a stream of byte chunks.
  *
+ * **Details**
+ *
  * The content type defaults to `application/octet-stream`; content length is optional.
  *
  * @category constructors
@@ -458,6 +526,8 @@ export const stream = (
 
 /**
  * Creates a streaming HTTP body for a file path.
+ *
+ * **Details**
  *
  * The effect requires `FileSystem`, stats the file to set the content length, and can fail with `PlatformError`.
  *
@@ -486,6 +556,8 @@ export const file = (
 
 /**
  * Creates a streaming HTTP body for a file path using already-known file information.
+ *
+ * **Details**
  *
  * The effect requires `FileSystem`, uses the provided file size as the content length, and can fail with `PlatformError`.
  *

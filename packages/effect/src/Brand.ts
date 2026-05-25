@@ -1,7 +1,53 @@
 /**
- * This module provides types and utility functions to create and work with
- * branded types, which are TypeScript types with an added type tag to prevent
- * accidental usage of a value in the wrong context.
+ * The `Brand` module adds compile-time names to ordinary TypeScript values so
+ * structurally identical values cannot be mixed accidentally. A branded value
+ * has the same runtime representation as its unbranded value; the extra
+ * information lives in the type system unless you choose a validating
+ * constructor.
+ *
+ * **Mental model**
+ *
+ * - {@link Branded} is an existing value type plus a phantom {@link Brand}
+ *   marker
+ * - {@link nominal} creates constructors for purely nominal brands and
+ *   performs no runtime validation
+ * - {@link make} and {@link check} create constructors that validate input
+ *   before returning the branded value
+ * - A {@link Constructor} can throw, return `Option`, return `Result`, or act
+ *   as a type guard through its `is` method
+ * - {@link all} combines multiple brand constructors with the same base type so
+ *   a value can carry several brands
+ *
+ * **Common tasks**
+ *
+ * - Distinguish identifiers with the same primitive representation, such as
+ *   `UserId` and `OrderId`
+ * - Constrain primitive values after validation, such as positive numbers,
+ *   non-empty strings, or normalized tokens
+ * - Keep public APIs precise without wrapping values in runtime classes
+ *
+ * **Quickstart**
+ *
+ * **Example** (Validated identifier)
+ *
+ * ```ts
+ * import { Brand } from "effect"
+ *
+ * type UserId = Brand.Branded<number, "UserId">
+ *
+ * const UserId = Brand.make<UserId>(
+ *   (n) => Number.isInteger(n) && n > 0 || "Expected a positive integer"
+ * )
+ *
+ * const id = UserId(1)
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - Brands do not change the runtime value; `id` above is still a number at
+ *   runtime
+ * - {@link nominal} accepts every value of the base type, so use
+ *   {@link make} or {@link check} at trust boundaries that need validation
  *
  * @since 2.0.0
  */
@@ -18,6 +64,15 @@ const TypeId = "~effect/Brand"
 /**
  * A generic interface that defines a branded type.
  *
+ * **When to use**
+ *
+ * Use to define a branded type such as `number & Brand<"Positive">` when
+ * TypeScript should keep structurally identical values separate without
+ * changing their runtime value.
+ *
+ * @see {@link Branded} for applying a brand key to a base type
+ * @see {@link Constructor} for validating or constructing branded values
+ *
  * @category models
  * @since 2.0.0
  */
@@ -30,6 +85,17 @@ export interface Brand<in out Keys extends string> {
 /**
  * A constructor for a branded type that provides validation and safe
  * construction methods.
+ *
+ * **When to use**
+ *
+ * Use as the shared callable interface for branded values when an API accepts
+ * or returns a brand constructor and callers need throwing, `Option`, `Result`,
+ * or type-guard validation forms.
+ *
+ * @see {@link nominal} for a constructor without runtime validation
+ * @see {@link make} for creating a constructor from a validation predicate
+ * @see {@link check} for creating a constructor from schema checks
+ * @see {@link all} for combining brand constructors
  *
  * @category models
  * @since 2.0.0
@@ -68,6 +134,16 @@ export interface Constructor<in out B extends Brand<any>> {
 /**
  * A `BrandError` is returned when a branded type is constructed from an invalid
  * value.
+ *
+ * **Details**
+ *
+ * The error wraps a `SchemaIssue.Issue`, exposes `message` through
+ * `issue.toString()`, and formats as `BrandError(<message>)`.
+ *
+ * **Gotchas**
+ *
+ * `BrandError` is an error-like model with `_tag`, `name`, `message`, and
+ * `toString`; it does not extend JavaScript `Error`.
  *
  * @category models
  * @since 4.0.0
@@ -180,13 +256,14 @@ export declare namespace Brand {
 export type Branded<A, Key extends string> = A & Brand<Key>
 
 /**
- * This function returns a `Constructor` that **does not apply any runtime
- * checks**, it just returns the provided value. It can be used to create
- * nominal types that allow distinguishing between two values of the same type
- * but with different meanings.
+ * Returns a `Constructor` that **does not apply any runtime checks** and just
+ * returns the provided value.
  *
- * If you also want to perform some validation, see {@link make} or
- * {@link check}.
+ * **When to use**
+ *
+ * Use to create nominal types that allow distinguishing between two values
+ * of the same type but with different meanings. If you also want to perform
+ * some validation, see {@link make} or {@link check}.
  *
  * @category constructors
  * @since 2.0.0
@@ -200,12 +277,14 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
 }
 
 /**
- * Returns a `Constructor` that can construct a branded type from an
- * unbranded value using the provided `filter` predicate as validation of
- * the input data.
+ * Returns a `Constructor` that can construct a branded type from an unbranded
+ * value using the provided `filter` predicate as validation of the input data.
  *
- * If you don't want to perform any validation but only distinguish between two
- * values of the same type but with different meanings, see {@link nominal}.
+ * **When to use**
+ *
+ * Use when you want validation while constructing the branded type. If you
+ * don't want to perform any validation but only distinguish between two values
+ * of the same type but with different meanings, see {@link nominal}.
  *
  * @category constructors
  * @since 4.0.0
@@ -219,10 +298,19 @@ export function make<A extends Brand<any>>(
 /**
  * Creates a branded type `Constructor` from one or more schema checks.
  *
+ * **When to use**
+ *
+ * Use when you need a branded type constructor that performs runtime validation
+ * via schema checks.
+ *
+ * **Details**
+ *
  * Calling the returned constructor validates the unbranded value and throws on
  * failure. Use the returned `option`, `result`, or `is` methods for
  * non-throwing validation.
  *
+ * @see {@link nominal} for a brand constructor without runtime validation
+ * @see {@link all} for combining multiple brand constructors
  * @category constructors
  * @since 4.0.0
  */
@@ -244,9 +332,18 @@ export function check<A extends Brand<any>>(
 }
 
 /**
- * Combines two or more brands together to form a single branded type. This API
- * is useful when you want to validate that the input data passes multiple brand
- * validators.
+ * Combines one or more brand constructors to form a single branded type.
+ *
+ * **When to use**
+ *
+ * Use to require an input to satisfy every runtime check collected by the
+ * provided brand constructors.
+ *
+ * **Details**
+ *
+ * If the provided constructors contain runtime checks, the combined
+ * constructor succeeds only when all checks pass. If no runtime checks are
+ * present, it behaves as a nominal constructor.
  *
  * @category combining
  * @since 2.0.0

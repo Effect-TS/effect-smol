@@ -1,32 +1,60 @@
 /**
- * This module provides utilities for working with publish-subscribe (PubSub) systems.
+ * The `PubSub` module provides asynchronous publish-subscribe hubs for
+ * broadcasting values to many subscribers. Publishers add messages with
+ * {@link publish} or {@link publishAll}; each active {@link Subscription}
+ * receives its own copy of every accepted message.
  *
- * A PubSub is an asynchronous message hub where publishers can publish messages and subscribers
- * can subscribe to receive those messages. PubSub supports various backpressure strategies,
- * message replay, and concurrent access from multiple producers and consumers.
+ * Unlike a queue, subscribers do not compete for messages. A published value is
+ * retained until all subscribers that were active for that value have taken it
+ * or unsubscribed.
  *
- * **Example** (Creating and using a PubSub)
+ * **Mental model**
+ *
+ * - A `PubSub<A>` is the shared publish side, and each `Subscription<A>` is an
+ *   independent read side
+ * - {@link subscribe} is scoped; leaving the scope automatically unsubscribes
+ *   the subscription and releases any retained messages for it
+ * - {@link bounded} applies back pressure when the buffer is full,
+ *   {@link dropping} drops new messages, and {@link sliding} drops old messages
+ * - {@link unbounded} removes the capacity limit but can retain an unbounded
+ *   number of messages for slow subscribers
+ * - The optional replay buffer lets late subscribers first consume recently
+ *   published messages
+ *
+ * **Common tasks**
+ *
+ * - Create hubs: {@link bounded}, {@link dropping}, {@link sliding},
+ *   {@link unbounded}
+ * - Publish values: {@link publish}, {@link publishAll}
+ * - Subscribe and consume: {@link subscribe}, {@link take}, {@link takeAll},
+ *   {@link takeUpTo}, {@link takeBetween}
+ * - Inspect lifecycle and capacity: {@link capacity}, {@link size},
+ *   {@link isFull}, {@link isEmpty}, {@link isShutdown}
+ * - Stop a hub: {@link shutdown}, {@link awaitShutdown}
+ *
+ * **Example** (Publishing to one scoped subscriber)
  *
  * ```ts
  * import { Effect, PubSub } from "effect"
  *
- * const program = Effect.gen(function*() {
- *   const pubsub = yield* PubSub.bounded<string>(10)
- *
- *   yield* Effect.scoped(Effect.gen(function*() {
+ * const program = Effect.scoped(
+ *   Effect.gen(function*() {
+ *     const pubsub = yield* PubSub.bounded<string>(16)
  *     const subscription = yield* PubSub.subscribe(pubsub)
  *
- *     // Publisher
- *     yield* PubSub.publish(pubsub, "Hello")
- *     yield* PubSub.publish(pubsub, "World")
+ *     yield* PubSub.publish(pubsub, "ready")
  *
- *     // Subscriber
- *     const message1 = yield* PubSub.take(subscription)
- *     const message2 = yield* PubSub.take(subscription)
- *     console.log(message1, message2) // "Hello", "World"
- *   }))
- * })
+ *     return yield* PubSub.take(subscription)
+ *   })
+ * )
  * ```
+ *
+ * **Gotchas**
+ *
+ * - `bounded` can suspend publishers when a subscriber is slow
+ * - `dropping` and `sliding` can lose messages by design
+ * - Replay buffers are for late subscribers; they do not make the hub a
+ *   permanent event log
  *
  * @since 2.0.0
  */
@@ -99,7 +127,7 @@ export interface PubSub<in out A> extends Pipeable {
  *
  * @since 2.0.0
  */
-export namespace PubSub {
+export declare namespace PubSub {
   /**
    * Low-level atomic PubSub interface that handles the core message storage and retrieval.
    *
@@ -135,7 +163,7 @@ export namespace PubSub {
   /**
    * Tracks the pollers currently waiting on each backing subscription.
    *
-   * **Notes**
+   * **Details**
    *
    * This type is part of the low-level `PubSub.Strategy` contract. Most
    * application code should use `subscribe`, `take`, and the other `PubSub`
@@ -312,12 +340,12 @@ export const make = <A>(
  * Creates a bounded `PubSub` that applies backpressure when it reaches
  * capacity.
  *
+ * **Details**
+ *
  * Published messages are retained until all current subscribers have taken
  * them. When the capacity is full, publishers suspend until space is available.
  * Pass an options object to configure both `capacity` and an optional replay
  * buffer for late subscribers.
- *
- *                   with capacity and optional replay buffer size
  *
  * **Example** (Creating a bounded PubSub)
  *
@@ -353,6 +381,8 @@ export const bounded = <A>(
 /**
  * Creates a bounded `PubSub` with the dropping strategy. The `PubSub` will drop new
  * messages if the `PubSub` is at capacity.
+ *
+ * **Details**
  *
  * For best performance use capacities that are powers of two.
  *
@@ -404,6 +434,8 @@ export const dropping = <A>(
 /**
  * Creates a bounded `PubSub` with the sliding strategy. The `PubSub` will add new
  * messages and drop old messages if the `PubSub` is at capacity.
+ *
+ * **Details**
  *
  * For best performance use capacities that are powers of two.
  *
@@ -496,6 +528,28 @@ export const unbounded = <A>(options?: {
 /**
  * Creates a bounded atomic PubSub implementation with optional replay buffer.
  *
+ * **When to use**
+ *
+ * Use to provide bounded message storage when building a custom `PubSub` with
+ * `make` and an explicit delivery strategy.
+ *
+ * **Details**
+ *
+ * Pass either a capacity number or an options object with `capacity` and
+ * optional `replay`. A positive `replay` value enables a replay buffer for late
+ * subscribers, and fractional replay sizes are rounded up.
+ *
+ * **Gotchas**
+ *
+ * The capacity must be greater than zero; invalid capacities throw
+ * synchronously before an atomic implementation is created.
+ *
+ * @see {@link make} for constructing a `PubSub` from an atomic implementation and delivery strategy
+ * @see {@link makeAtomicUnbounded} for an atomic implementation without a bounded capacity
+ * @see {@link bounded} for the higher-level backpressure constructor
+ * @see {@link dropping} for the higher-level dropping constructor
+ * @see {@link sliding} for the higher-level sliding constructor
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -519,6 +573,20 @@ export const makeAtomicBounded = <A>(
 
 /**
  * Creates an unbounded atomic PubSub implementation with optional replay buffer.
+ *
+ * **When to use**
+ *
+ * Use to create the low-level storage layer for a custom `PubSub` whose active
+ * subscribers may retain an unbounded number of pending messages.
+ *
+ * **Gotchas**
+ *
+ * Messages published while subscribers are active can be retained without a
+ * capacity limit until those subscribers take them or unsubscribe.
+ *
+ * @see {@link makeAtomicBounded} for a bounded atomic implementation that enforces capacity
+ * @see {@link make} for wrapping an atomic implementation with a delivery strategy
+ * @see {@link unbounded} for the high-level effectful constructor for unbounded `PubSub` values
  *
  * @category constructors
  * @since 4.0.0
@@ -554,6 +622,8 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
 /**
  * Returns the current number of messages retained by the `PubSub` for active
  * subscribers.
+ *
+ * **Details**
  *
  * If the `PubSub` has been shut down, the returned effect succeeds with `0`.
  * The size is not a count of waiting subscribers or suspended publishers.
@@ -593,7 +663,7 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * Synchronously returns the current number of messages retained by the `PubSub`
  * for active subscribers.
  *
- * **Notes**
+ * **Details**
  *
  * Returns `0` after shutdown. Because this is an unsafe synchronous snapshot,
  * prefer `size` in effectful code.
@@ -622,6 +692,8 @@ export const sizeUnsafe = <A>(self: PubSub<A>): number => {
 
 /**
  * Returns `true` when the `PubSub` has reached its configured capacity.
+ *
+ * **Details**
  *
  * For unbounded PubSubs this is normally `false`.
  *
@@ -695,6 +767,8 @@ export const isEmpty = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.ma
 /**
  * Shuts down the `PubSub`, interrupting suspended publishers and subscribers
  * and finalizing active subscriptions.
+ *
+ * **Details**
  *
  * After shutdown, `publish` and `publishAll` succeed with `false`,
  * `publishUnsafe` returns `false`, and subscription operations such as `take`
@@ -825,6 +899,8 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
 /**
  * Attempts to publish a message synchronously without applying the PubSub
  * strategy's effectful surplus handling.
+ *
+ * **Details**
  *
  * Returns `false` if the `PubSub` is shut down or the message cannot be
  * accepted immediately, for example when a bounded PubSub is full. Prefer
@@ -1321,6 +1397,8 @@ const takeRemainderLoop = <A>(
 
 /**
  * Synchronously checks how many messages can be taken from a subscription.
+ *
+ * **Details**
  *
  * Returns `Option.some(count)` while the subscription is active, including
  * replay-buffered messages, and `Option.none()` after the subscription has
@@ -2274,6 +2352,16 @@ const ensureCapacity = (capacity: number): void => {
  * published to the `PubSub` while they are subscribed. However, it creates the
  * risk that a slow subscriber will slow down the rate at which messages
  * are published and received by other subscribers.
+ *
+ * **When to use**
+ *
+ * Use to preserve every message for current subscribers when a bounded custom
+ * `PubSub` should make publishers wait for capacity instead of dropping or
+ * evicting messages.
+ *
+ * @see {@link bounded} for creating bounded PubSubs with back pressure by default
+ * @see {@link DroppingStrategy} for dropping new messages when capacity is full
+ * @see {@link SlidingStrategy} for evicting old messages when capacity is full
  *
  * @category models
  * @since 4.0.0

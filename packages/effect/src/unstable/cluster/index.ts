@@ -438,7 +438,7 @@ export * as K8sHttpClient from "./K8sHttpClient.ts"
  *
  * **When to use**
  *
- * - Persisting or exchanging the machine id assigned to a cluster runner
+ * Use to persist or exchanging the machine id assigned to a cluster runner
  * - Passing a runner-specific identity to the cluster snowflake generator
  * - Decoding machine ids from storage while keeping them distinct from plain numbers
  *
@@ -740,7 +740,7 @@ export * as ShardId from "./ShardId.ts"
  * transparency for stateful entities, singleton workloads that should run once
  * per shard group, or durable message processing backed by cluster storage.
  * Registered entity handlers are started on demand for shards owned by the
- * current runner, while clients produced by {@link Sharding.makeClient} route
+ * current runner, while clients produced by the {@link Sharding} service route
  * requests through the sharding service instead of calling handlers directly.
  *
  * **Gotchas**

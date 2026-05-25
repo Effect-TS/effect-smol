@@ -122,6 +122,19 @@ function resetContext(ctx: Schema.Annotations.ToArbitrary.Context): Schema.Annot
   return { ...ctx, constraints: undefined }
 }
 
+function toIntegerConstraints(
+  constraint: Schema.Annotations.ToArbitrary.NumberConstraints
+): FastCheck.IntegerConstraints {
+  const out: FastCheck.IntegerConstraints = {}
+  if (constraint.min !== undefined) {
+    out.min = constraint.minExcluded ? Math.floor(constraint.min) + 1 : Math.ceil(constraint.min)
+  }
+  if (constraint.max !== undefined) {
+    out.max = constraint.maxExcluded ? Math.ceil(constraint.max) - 1 : Math.floor(constraint.max)
+  }
+  return out
+}
+
 interface LazyArbitraryWithContext<T> {
   (fc: typeof FastCheck, ctx: Schema.Annotations.ToArbitrary.Context): FastCheck.Arbitrary<T>
 }
@@ -199,7 +212,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
       return (fc, ctx) => {
         const constraint = ctx.constraints?.number
         if (constraint?.isInteger) {
-          return fc.integer(constraint)
+          return fc.integer(toIntegerConstraints(constraint))
         }
         return fc.float(constraint)
       }

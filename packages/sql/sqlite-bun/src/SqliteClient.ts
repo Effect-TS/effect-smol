@@ -1,20 +1,46 @@
 /**
  * Bun SQLite client implementation for Effect SQL, backed by `bun:sqlite`.
  *
- * This module provides constructors and layers for using a Bun-managed SQLite database as both the
- * SQLite-specific `SqliteClient` service and the generic `SqlClient` service. It is intended for
- * file-backed or in-memory databases in Bun applications, local development tools, migrations,
- * integration tests, and embedded persistence use cases that need Effect SQL query compilation plus
- * SQLite-specific helpers such as database export and native extension loading.
+ * This module provides the Bun-specific SQLite driver used by Effect SQL. It
+ * can create a scoped {@link SqliteClient} directly with {@link make}, or
+ * provide both the SQLite-specific client and the generic `SqlClient` service
+ * with {@link layer} or {@link layerConfig}. It is intended for Bun
+ * applications, local tools, migrations, integration tests, and embedded
+ * persistence that use file-backed or in-memory SQLite databases.
  *
- * Each client owns one scoped `bun:sqlite` `Database` handle and serializes access through it, which
- * is important because Bun executes SQLite statements synchronously. WAL mode is enabled by default,
- * so set `disableWAL` when opening read-only databases or when the database file or directory cannot
- * be updated with SQLite's WAL side files. A transaction holds the serialized connection permit for
- * the transaction scope, so concurrent fibers using the same client wait until it completes, while
- * separate database handles or processes can still contend for SQLite write locks. Safe integer
- * handling follows the `SqlClient` fiber-local setting, `executeStream` is not implemented, and
- * SQLite does not support `updateValues`.
+ * ## Mental model
+ *
+ * A client owns one scoped `bun:sqlite` `Database` handle. Because Bun's SQLite
+ * API executes statements synchronously, this implementation serializes access
+ * to that handle. A transaction keeps the serialized connection permit for the
+ * transaction scope, so other fibers using the same client wait until the
+ * transaction completes.
+ *
+ * The client uses the Effect SQL statement compiler and result-name transforms,
+ * then adds SQLite-specific capabilities such as database export and native
+ * extension loading.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} when a Bun service should provide both `SqliteClient` and
+ *   the generic `SqlClient` from a concrete configuration.
+ * - Use {@link layerConfig} when the filename or open flags should come from
+ *   Effect `Config`.
+ * - Use {@link make} inside a custom scoped layer when the surrounding runtime
+ *   needs to manage the client lifecycle explicitly.
+ * - Use `client.export` to serialize the database, or `client.loadExtension` to
+ *   load a native SQLite extension.
+ *
+ * ## Gotchas
+ *
+ * WAL mode is enabled by default. Set `disableWAL` for read-only databases or
+ * when the database file or directory cannot be updated with SQLite WAL side
+ * files. Separate database handles or processes can still contend for SQLite
+ * write locks even though access through a single client is serialized.
+ *
+ * Safe integer handling follows the generic `SqlClient` fiber-local setting.
+ * `executeStream` is not implemented for this driver, and SQLite does not
+ * support `updateValues`.
  *
  * @since 4.0.0
  */

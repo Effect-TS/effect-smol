@@ -1,25 +1,44 @@
 /**
- * The `Sharding` module coordinates cluster-wide placement and delivery for
- * entities and singletons. It hashes entity ids into shard ids, tracks which
- * runner owns each shard, acquires local shard locks, and routes RPC messages
- * to the runner that is responsible for the addressed entity.
+ * The `Sharding` module provides the runtime service that maps entity ids to
+ * shard ids, decides which runner owns each shard, and delivers cluster
+ * messages to the owning runner. It connects typed entity protocols with runner
+ * membership, shard locks, mailbox storage, and the transport used between
+ * runners.
  *
- * Use this module when building clustered services that need location
- * transparency for stateful entities, singleton workloads that should run once
- * per shard group, or durable message processing backed by cluster storage.
- * Registered entity handlers are started on demand for shards owned by the
- * current runner, while clients produced by the {@link Sharding} service route
- * requests through the sharding service instead of calling handlers directly.
+ * **Mental model**
+ *
+ * - Entity ids are hashed into shard ids inside a shard group.
+ * - Healthy runners are placed on a hash ring for each shard group.
+ * - The local runner starts handlers only for shards it currently owns.
+ * - Clients created by {@link Sharding.Service.makeClient} route encoded RPC requests
+ *   to the current owner instead of calling handlers directly.
+ * - Persisted messages are polled from storage and replayed only for shards the
+ *   local runner owns.
+ *
+ * **Common tasks**
+ *
+ * - Register entity handlers with {@link Sharding.Service.registerEntity}.
+ * - Register singleton effects that run once per shard group with
+ *   {@link Sharding.Service.registerSingleton}.
+ * - Build typed entity clients with {@link Sharding.Service.makeClient}.
+ * - Send an already encoded incoming message with {@link Sharding.Service.send}.
+ * - Generate runner-local snowflake ids with {@link Sharding.Service.getSnowflake}.
  *
  * **Gotchas**
  *
- * - Shard assignment and shard acquisition are distinct: a runner may be
- *   assigned a shard before it has acquired the storage lock for that shard.
- * - Routing depends on the entity shard group and the configured shard count,
- *   so changing either value affects where entity ids are placed.
- * - Persisted messages are only read and dispatched for shards currently owned
- *   by the local runner; shutdown and runner health changes can temporarily
- *   move work between runners.
+ * - Assignment and acquisition are separate: a runner may be assigned a shard
+ *   before it has acquired the storage lock.
+ * - Changing shard group names, shard counts, or runner weights changes
+ *   placement for entity ids.
+ * - Ownership can move during shutdown, runner failure, or health refreshes, so
+ *   callers must handle routing and mailbox errors.
+ * - Durable replay depends on the configured message storage; in-memory storage
+ *   does not provide process restart recovery.
+ *
+ * **See also**
+ *
+ * - {@link ShardingConfig} for runner identity, shard counts, and timing.
+ * - {@link Runner} for the membership record used during shard assignment.
  *
  * @since 4.0.0
  */
@@ -1460,6 +1479,25 @@ const make = Effect.gen(function*() {
  * Layer that constructs the `Sharding` service from sharding configuration,
  * runner communication, message storage, runner storage, runner health, the
  * snowflake generator, and the entity reaper.
+ *
+ * **When to use**
+ *
+ * Use when assembling a cluster sharding runtime from explicit sharding
+ * configuration, runner communication, message storage, runner storage, and
+ * runner health layers.
+ *
+ * **Details**
+ *
+ * The layer provides the `Sharding` service and installs its own snowflake
+ * generator and entity reaper. Callers still provide `ShardingConfig`,
+ * `Runners`, `MessageStorage`, `RunnerStorage`, and `RunnerHealth`.
+ *
+ * **Gotchas**
+ *
+ * Persisted messages require a non-no-op `MessageStorage`; if this layer is
+ * provided with `MessageStorage.layerNoop`, persisted sends defect.
+ *
+ * @see {@link Sharding} for the service provided by this layer
  *
  * @category layers
  * @since 4.0.0

@@ -1,20 +1,35 @@
 /**
- * Utilities for moving serializable reactivity state between atom registries.
+ * Moves serializable reactivity state between `AtomRegistry` instances.
  *
- * `dehydrate` snapshots atoms marked with `Atom.serializable` from an
- * `AtomRegistry`, preserving their serialization keys, encoded values, and
- * dehydration time so another registry can preload the same state with `hydrate`.
- * This is useful for server rendering, browser bootstrapping, route transitions,
- * and other handoffs where a registry should start from values that were already
- * computed elsewhere.
+ * The `Hydration` module snapshots atoms marked with `Atom.serializable` and
+ * loads those encoded values into another registry before the atoms are read. It
+ * is useful for server rendering, browser bootstrapping, route transitions, and
+ * other handoffs where a new registry should start from values computed by a
+ * previous one.
  *
- * Only serializable atoms are included, and the receiving registry needs atoms
- * with matching stable keys and compatible schemas. Values crossing a
- * client/server boundary should be the encoded JSON-safe values produced by the
- * atom codecs. The optional `resultPromise` used for `AsyncResult.Initial`
- * handoffs is a live JavaScript promise, so it cannot be sent through JSON and
- * should be omitted or replaced by an application-level streaming protocol when
- * dehydrated state leaves the current runtime.
+ * **Mental model**
+ *
+ * `dehydrate` walks the source registry and produces `DehydratedAtomValue`
+ * records keyed by each atom's serialization key. `hydrate` stores those encoded
+ * values in the target registry so the matching atom can decode them with its own
+ * serializable codec. Atom identity is not transferred; only the stable key,
+ * encoded value, dehydration timestamp, and optional async handoff are.
+ *
+ * **Common tasks**
+ *
+ * Use `dehydrate` before rendering or crossing a route boundary, then call
+ * `hydrate` on the registry that will serve the next read. Use `toValues` when
+ * code accepts generic `DehydratedAtom` entries but needs the concrete record
+ * shape, and use `encodeInitialAs` to choose how `AsyncResult.Initial` values
+ * should appear in the snapshot.
+ *
+ * **Gotchas**
+ *
+ * Only serializable atoms are included, and the target registry must contain
+ * atoms with matching stable keys and compatible codecs. The optional
+ * `resultPromise` used for `AsyncResult.Initial` is a live JavaScript promise; it
+ * can be handed to another registry in the same runtime, but it cannot be sent
+ * through JSON or across process boundaries.
  *
  * @since 4.0.0
  */
@@ -35,6 +50,8 @@ export interface DehydratedAtom {
 /**
  * A dehydrated serializable atom value.
  *
+ * **Details**
+ *
  * It stores the atom serialization key, encoded value, dehydration timestamp, and
  * an optional promise used when an `AsyncResult.Initial` value is encoded as a
  * future non-initial value.
@@ -52,6 +69,8 @@ export interface DehydratedAtomValue extends DehydratedAtom {
 /**
  * Encodes the serializable atoms currently stored in a registry into dehydrated
  * state.
+ *
+ * **Details**
  *
  * Only atoms marked with `Atom.serializable` are included. `encodeInitialAs`
  * controls whether `AsyncResult.Initial` values are ignored, encoded as values, or
@@ -114,6 +133,8 @@ export const toValues = (state: ReadonlyArray<DehydratedAtom>): Array<Dehydrated
 
 /**
  * Loads dehydrated atom state into a registry.
+ *
+ * **Details**
  *
  * Encoded values are preloaded by serialization key. Entries with a
  * `resultPromise` update the matching registry node, or preload the resolved value,

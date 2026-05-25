@@ -46,7 +46,10 @@ import { OpenAiConfig } from "./OpenAiConfig.ts"
  * Effect service interface for OpenAI-compatible chat completions and embeddings.
  *
  * **Details**
- * Exposes the configured HTTP client plus helpers for non-streaming chat completions, streaming chat completions, and embeddings. Transport and schema decoding failures are mapped to `AiError`.
+ *
+ * Exposes the configured HTTP client plus helpers for non-streaming chat
+ * completions, streaming chat completions, and embeddings. Transport and
+ * schema decoding failures are mapped to `AiError`.
  *
  * @category models
  * @since 4.0.0
@@ -74,8 +77,22 @@ export interface Service {
 }
 
 /**
- * Context service tag for accessing an OpenAI-compatible client from the
- * Effect context.
+ * Context service tag for the OpenAI-compatible chat completions and embeddings client.
+ *
+ * **When to use**
+ *
+ * Use when building effects that depend on the low-level OpenAI-compatible
+ * client through context rather than receiving the client as a value.
+ *
+ * **Details**
+ *
+ * The tagged service is the `Service` interface produced by `make` and provided
+ * by `layer` or `layerConfig`.
+ *
+ * @see {@link Service} for the operations provided by the service
+ * @see {@link make} for constructing the service from explicit options
+ * @see {@link layer} for providing the service from explicit options
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category services
  * @since 4.0.0
@@ -106,8 +123,25 @@ const RedactedOpenAiHeaders = {
 /**
  * Constructs an OpenAI-compatible client service from explicit options.
  *
- * The returned service applies the configured base URL, authentication, and
- * OpenAI organization/project headers to the underlying HTTP client.
+ * **When to use**
+ *
+ * Use to construct the OpenAI-compatible client service inside an effect when
+ * you need the service value directly.
+ *
+ * **Details**
+ *
+ * The returned service uses the current `HttpClient`, prepends `apiUrl` or
+ * `https://api.openai.com/v1`, adds authentication and OpenAI
+ * organization/project headers, accepts JSON responses, and applies
+ * `transformClient` when provided.
+ *
+ * **Gotchas**
+ *
+ * A scoped `OpenAiConfig.withClientTransform` is applied when request helpers
+ * run, after the `transformClient` option supplied to `make`.
+ *
+ * @see {@link layer} for providing this client from explicit options
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category constructors
  * @since 4.0.0
@@ -252,6 +286,14 @@ export const make = Effect.fnUntraced(
 /**
  * Creates a layer that provides an OpenAI-compatible client from explicit options.
  *
+ * **When to use**
+ *
+ * Use to install `OpenAiClient` in an application layer when the client options
+ * are already available as values rather than loaded from `Config`.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layerConfig} for loading client settings from `Config`
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -261,6 +303,20 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
 /**
  * Creates a layer that loads OpenAI-compatible client settings from `Config`
  * values before constructing the service.
+ *
+ * **When to use**
+ *
+ * Use when OpenAI-compatible client settings should be read from Effect
+ * `Config` values while providing `OpenAiClient` as a layer.
+ *
+ * **Details**
+ *
+ * Only config values supplied in `options` are loaded. Omitted fields are
+ * passed to `make` as `undefined`, and `transformClient` is forwarded as a
+ * plain option.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layer} for providing the client from already-resolved options
  *
  * @category layers
  * @since 4.0.0
@@ -501,6 +557,8 @@ type ItemReference = {
 
 /**
  * Item shapes accepted by a Responses-style `input` field.
+ *
+ * **Details**
  *
  * Supports input messages, output messages, tool calls, tool outputs, reasoning
  * items, custom tool interactions, and item references.

@@ -108,6 +108,8 @@ export declare namespace HashSet {
   /**
    * Extracts the element type from a `HashSet`.
    *
+   * **Details**
+   *
    * For `HashSet.HashSet<A>`, `HashSet.Value<...>` resolves to `A`.
    *
    * **Example** (Extracting a HashSet value type)

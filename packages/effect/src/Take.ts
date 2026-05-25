@@ -1,21 +1,32 @@
 /**
- * The `Take` module provides the representation used by stream-like producers
- * to describe a single pull result. A `Take<A, E, Done>` is either a
- * non-empty batch of emitted values, a failed `Exit`, or a successful `Exit`
- * carrying the stream's completion value.
+ * The `Take` module provides the stored representation of one pull result from
+ * a stream-like producer. A `Take<A, E, Done>` is either a non-empty batch of
+ * emitted values, a failed `Exit`, or a successful `Exit` carrying the
+ * completion value.
  *
- * `Take` is useful at boundaries where pull results need to be stored,
- * transferred, or interpreted later while preserving the distinction between
- * emitted elements, failures, and normal completion. Use {@link toPull} to turn
- * a `Take` back into a `Pull`: value batches become successful pulls, failure
- * exits are propagated, and successful exits signal completion with `Done`.
+ * **Mental model**
+ *
+ * - A value batch represents elements that were pulled successfully
+ * - A failed `Exit` represents an ordinary pull failure
+ * - A successful `Exit` represents normal completion and carries `Done`
+ * - {@link toPull} interprets the stored result as a `Pull.Pull` step
+ *
+ * **Common tasks**
+ *
+ * - Store or transfer one pull result as {@link Take}
+ * - Turn a stored result back into a pull step with {@link toPull}
  *
  * **Gotchas**
  *
- * - A value batch is always represented by a `NonEmptyReadonlyArray`; empty
- *   batches are not valid `Take` values.
- * - Successful `Exit` values do not emit elements. They represent pull
- *   completion and carry the `Done` value.
+ * - Value batches are `NonEmptyReadonlyArray` values; empty arrays are not
+ *   valid `Take` values
+ * - Successful `Exit` values do not emit elements; they signal completion
+ * - `Take` is a representation, not a queue or stream by itself
+ *
+ * **See also**
+ *
+ * - {@link Pull.Pull} for the pull-step effect interpreted by {@link toPull}
+ * - {@link Exit.Exit} for the success and failure outcomes stored by `Take`
  *
  * @since 2.0.0
  */
@@ -29,6 +40,13 @@ import type * as Pull from "./Pull.ts"
  * Represents one pull result: either a non-empty batch of values, a failure
  * `Exit`, or a successful `Exit` that signals completion with a `Done` value.
  *
+ * **When to use**
+ *
+ * Use to store, transfer, or interpret pull results later while preserving
+ * emitted values, failures, and normal completion.
+ *
+ * @see {@link toPull} for interpreting a `Take` as a `Pull` step
+ *
  * @category models
  * @since 2.0.0
  */
@@ -37,6 +55,11 @@ export type Take<A, E = never, Done = void> = NonEmptyReadonlyArray<A> | Exit.Ex
 /**
  * Converts a `Take` into a `Pull`, succeeding with value batches, failing with
  * failure exits, and translating successful exits into pull completion.
+ *
+ * **When to use**
+ *
+ * Use to interpret a stored or transferred `Take` as a `Pull` step while
+ * preserving emitted batches, ordinary failures, and completion values.
  *
  * @category converting
  * @since 4.0.0

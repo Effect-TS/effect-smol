@@ -15,6 +15,23 @@ function assertContext(schema: Schema.Schema<any>, ctx: Schema.Annotations.ToArb
   deepStrictEqual(f({}), ctx)
 }
 
+function assertIntegerConstraints(
+  schema: Schema.Schema<any>,
+  expected: { readonly min?: number; readonly max?: number }
+) {
+  let constraints: { readonly min?: number; readonly max?: number } | undefined
+  const arbitrary = {
+    filter: () => arbitrary
+  }
+  Schema.toArbitraryLazy(schema)({
+    integer: (c: { readonly min?: number; readonly max?: number }) => {
+      constraints = c
+      return arbitrary
+    }
+  } as any)
+  deepStrictEqual(constraints, expected)
+}
+
 function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknown>>(schema: S) {
   const asserts = new TestSchema.Asserts(schema)
   asserts.arbitrary().verifyGeneration()
@@ -495,6 +512,23 @@ describe("Arbitrary generation", () => {
       verifyGeneration(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })))
     })
 
+    it("isInt & isGreaterThan(1.2)", () => {
+      verifyGeneration(Schema.Int.check(Schema.isGreaterThan(1.2)))
+    })
+
+    it("isInt & isLessThan(10.8)", () => {
+      verifyGeneration(Schema.Int.check(Schema.isLessThan(10.8)))
+    })
+
+    it("isInt & isBetween(1, 10) with exclusive bounds", () => {
+      verifyGeneration(Schema.Int.check(Schema.isBetween({
+        minimum: 1,
+        maximum: 10,
+        exclusiveMinimum: true,
+        exclusiveMaximum: true
+      })))
+    })
+
     it("isInt32", () => {
       verifyGeneration(Schema.Number.check(Schema.isInt32()))
     })
@@ -517,12 +551,29 @@ describe("Arbitrary generation", () => {
       verifyGeneration(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))))
     })
 
+    it("isGreaterThanDate", () => {
+      verifyGeneration(Schema.Date.check(Schema.isGreaterThanDate(new Date(0))))
+    })
+
     it("isLessThanOrEqualToDate", () => {
       verifyGeneration(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(10))))
     })
 
+    it("isLessThanDate", () => {
+      verifyGeneration(Schema.Date.check(Schema.isLessThanDate(new Date(10))))
+    })
+
     it("isBetweenDate", () => {
       verifyGeneration(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })))
+    })
+
+    it("isBetweenDate with exclusive bounds", () => {
+      verifyGeneration(Schema.Date.check(Schema.isBetweenDate({
+        minimum: new Date(0),
+        maximum: new Date(10),
+        exclusiveMinimum: true,
+        exclusiveMaximum: true
+      })))
     })
 
     it("DateValid", () => {
@@ -533,12 +584,29 @@ describe("Arbitrary generation", () => {
       verifyGeneration(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(0))))
     })
 
+    it("isGreaterThanBigInt", () => {
+      verifyGeneration(Schema.BigInt.check(Schema.isGreaterThanBigInt(BigInt(0))))
+    })
+
     it("isLessThanOrEqualToBigInt", () => {
       verifyGeneration(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))))
     })
 
+    it("isLessThanBigInt", () => {
+      verifyGeneration(Schema.BigInt.check(Schema.isLessThanBigInt(BigInt(10))))
+    })
+
     it("isBetweenBigInt", () => {
       verifyGeneration(Schema.BigInt.check(Schema.isBetweenBigInt({ minimum: BigInt(0), maximum: BigInt(10) })))
+    })
+
+    it("isBetweenBigInt with exclusive bounds", () => {
+      verifyGeneration(Schema.BigInt.check(Schema.isBetweenBigInt({
+        minimum: BigInt(0),
+        maximum: BigInt(10),
+        exclusiveMinimum: true,
+        exclusiveMaximum: true
+      })))
     })
   })
 
@@ -814,11 +882,69 @@ describe("Arbitrary generation", () => {
       })
     })
 
+    it("isInt & isGreaterThan", () => {
+      assertIntegerConstraints(Schema.Int.check(Schema.isGreaterThan(1)), { min: 2 })
+    })
+
+    it("isInt & isGreaterThan fractional", () => {
+      assertIntegerConstraints(Schema.Int.check(Schema.isGreaterThan(1.2)), { min: 2 })
+    })
+
+    it("isInt & isLessThan", () => {
+      assertIntegerConstraints(Schema.Int.check(Schema.isLessThan(10)), { max: 9 })
+    })
+
+    it("isInt & isLessThan fractional", () => {
+      assertIntegerConstraints(Schema.Int.check(Schema.isLessThan(10.8)), { max: 10 })
+    })
+
+    it("isInt & isBetween with fractional bounds", () => {
+      assertIntegerConstraints(Schema.Int.check(Schema.isBetween({ minimum: 1.2, maximum: 10.8 })), {
+        min: 2,
+        max: 10
+      })
+    })
+
+    it("isInt & isBetween with exclusive bounds", () => {
+      assertIntegerConstraints(
+        Schema.Int.check(Schema.isBetween({
+          minimum: 1,
+          maximum: 10,
+          exclusiveMinimum: true,
+          exclusiveMaximum: true
+        })),
+        {
+          min: 2,
+          max: 9
+        }
+      )
+    })
+
+    it("isGreaterThanDate", () => {
+      assertContext(Schema.Date.check(Schema.isGreaterThanDate(new Date(0))), {
+        constraints: {
+          date: {
+            min: new Date(1)
+          }
+        }
+      })
+    })
+
     it("isGreaterThanOrEqualToDate", () => {
       assertContext(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))), {
         constraints: {
           date: {
             min: new Date(0)
+          }
+        }
+      })
+    })
+
+    it("isLessThanDate", () => {
+      assertContext(Schema.Date.check(Schema.isLessThanDate(new Date(10))), {
+        constraints: {
+          date: {
+            max: new Date(9)
           }
         }
       })
@@ -843,6 +969,25 @@ describe("Arbitrary generation", () => {
           }
         }
       })
+    })
+
+    it("isBetweenDate with exclusive bounds", () => {
+      assertContext(
+        Schema.Date.check(Schema.isBetweenDate({
+          minimum: new Date(0),
+          maximum: new Date(10),
+          exclusiveMinimum: true,
+          exclusiveMaximum: true
+        })),
+        {
+          constraints: {
+            date: {
+              min: new Date(1),
+              max: new Date(9)
+            }
+          }
+        }
+      )
     })
 
     it("isValidDate", () => {
@@ -876,11 +1021,31 @@ describe("Arbitrary generation", () => {
       })
     })
 
+    it("isGreaterThanBigInt", () => {
+      assertContext(Schema.BigInt.check(Schema.isGreaterThanBigInt(BigInt(0))), {
+        constraints: {
+          bigint: {
+            min: BigInt(1)
+          }
+        }
+      })
+    })
+
     it("isLessThanOrEqualToBigInt", () => {
       assertContext(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))), {
         constraints: {
           bigint: {
             max: BigInt(10)
+          }
+        }
+      })
+    })
+
+    it("isLessThanBigInt", () => {
+      assertContext(Schema.BigInt.check(Schema.isLessThanBigInt(BigInt(10))), {
+        constraints: {
+          bigint: {
+            max: BigInt(9)
           }
         }
       })
@@ -895,6 +1060,25 @@ describe("Arbitrary generation", () => {
           }
         }
       })
+    })
+
+    it("isBetweenBigInt with exclusive bounds", () => {
+      assertContext(
+        Schema.BigInt.check(Schema.isBetweenBigInt({
+          minimum: BigInt(0),
+          maximum: BigInt(10),
+          exclusiveMinimum: true,
+          exclusiveMaximum: true
+        })),
+        {
+          constraints: {
+            bigint: {
+              min: BigInt(1),
+              max: BigInt(9)
+            }
+          }
+        }
+      )
     })
 
     it("UniqueArray", () => {

@@ -1,17 +1,31 @@
 /**
- * The `ShardingRegistrationEvent` module defines the events emitted by
- * `Sharding` when the local runner registers entity handlers or singleton
- * workloads. These events are useful for observing the set of capabilities a
- * runner has made available, coordinating startup hooks, and writing tests or
- * integrations that need to react when registrations are complete.
+ * The `ShardingRegistrationEvent` module models the live notifications emitted
+ * by `Sharding` when the local runner registers an entity handler or singleton.
+ * Consumers can use these events to wait for registrations during startup,
+ * inspect which capabilities a runner made available, or assert registration
+ * behavior in tests.
  *
- * Registration events describe local registration, not shard ownership or
- * execution. A runner may register an entity or singleton before it owns the
- * shard that will run it, and the events are in-memory notifications from the
- * `Sharding` service rather than persisted cluster state. For persisted
- * messages, treat registration as the point where the handler is available to
- * the runner; it does not imply that existing storage work has already been
- * read or processed.
+ * **Mental model**
+ *
+ * Registration is local capability discovery. An `EntityRegistered` event means
+ * this runner has installed handlers for an entity type; a `SingletonRegistered`
+ * event carries the `SingletonAddress` computed for the singleton name and shard
+ * group. Neither event means the runner currently owns the relevant shard or has
+ * started processing stored messages.
+ *
+ * **Common tasks**
+ *
+ * - Consume `Sharding.getRegistrationEvents` in tests or startup coordination
+ * - Match on entity and singleton registrations with the generated `match`
+ *   helper
+ * - Record registered entity types and singleton addresses for diagnostics
+ *
+ * **Gotchas**
+ *
+ * - Events are live in-memory notifications; they are not stored or replayed for
+ *   later subscribers
+ * - Shard acquisition, singleton execution, and persisted mailbox polling happen
+ *   after registration and may move as runner membership changes
  *
  * @since 4.0.0
  */

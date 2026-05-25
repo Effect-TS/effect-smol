@@ -415,22 +415,18 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
           return options.interrupt(self, executionId)
         })
       }
-
-      if (opts.discard) {
-        yield* options.execute(self, {
-          executionId,
-          payload: payload as object,
-          discard: true
-        })
-        return executionId
-      }
-
       const run = options.execute(self, {
         executionId,
         payload: payload as object,
-        discard: false,
+        discard: opts.discard ?? false,
         parent: Option.getOrUndefined(parentInstance)
-      })
+      }) as Effect.Effect<Workflow.Result<Success["Type"], Error["Type"]>>
+
+      if (opts.discard) {
+        yield* run
+        return executionId
+      }
+
       if (Option.isSome(parentInstance)) {
         const wrapped = yield* Workflow.wrapActivityResult(
           run,

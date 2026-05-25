@@ -1,17 +1,26 @@
 /**
- * Defines the wire messages used by event-log remotes to authenticate clients,
- * write event batches, and stream changes back to replicas.
+ * Defines the remote event-log protocol messages and RPC group.
  *
- * This module is the protocol boundary between `EventLogRemote` clients and
- * event-log servers: it provides schemas for store identifiers, protocol
- * errors, session handshake payloads, authenticated RPCs, and the msgpack
- * payloads used to carry encrypted or plaintext journal entries.
+ * This module is the shared boundary between `EventLogRemote` clients and
+ * event-log servers. It provides branded store ids, structured protocol errors,
+ * the hello/authenticate session handshake, authenticated write and changes
+ * RPCs, and msgpack payloads for encrypted or plaintext journal entries.
  *
- * Event batches are serialized as binary payloads before transport. Small
- * payloads can be sent as a single frame, while larger payloads are split into
- * `ChunkedMessage` parts and must be reassembled by message id after every part
- * has arrived. Transports should preserve `Uint8Array` bytes exactly and avoid
- * treating msgpack data as text.
+ * **Mental model**
+ *
+ * A remote session starts with `HelloRpc`, then proves control of the client's
+ * signing key with `AuthenticateRpc`. After authentication, writes flow from the
+ * client to the server as encoded entry batches, and `ChangesRpc` streams
+ * encoded remote entries back to replicas from a requested sequence number. The
+ * `EventLogAuthentication` middleware marks the RPCs that require an
+ * authenticated event-log identity.
+ *
+ * **Gotchas**
+ *
+ * Entry batches are binary payloads. Small payloads travel as `SingleMessage`,
+ * while larger payloads are split into `ChunkedMessage` parts and reassembled by
+ * message id after every part arrives. Transports must preserve `Uint8Array`
+ * bytes exactly; do not treat msgpack payloads as text or JSON.
  *
  * @since 4.0.0
  */
@@ -62,6 +71,8 @@ export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
 /**
  * Structured error returned by event-log remote RPCs.
  *
+ * **Details**
+ *
  * It records the request tag, optional identity and store information, a protocol
  * error code, and a human-readable message.
  *
@@ -93,6 +104,8 @@ export class EventLogAuthentication extends RpcMiddleware.Service<EventLogAuthen
 
 /**
  * Response sent by the remote server during the authentication handshake.
+ *
+ * **Details**
  *
  * It contains the server remote id and a challenge that must be signed by the
  * client.
@@ -155,7 +168,9 @@ export class SingleMessage
 /**
  * Transport message for one part of a large encoded event-log payload.
  *
- * Use `split` to divide data into chunks and `join` to reassemble all chunks with
+ * **When to use**
+ *
+ * Use to divide data into chunks and `join` to reassemble all chunks with
  * the same id once every part has arrived.
  *
  * @category protocol
@@ -252,6 +267,8 @@ export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
 /**
  * Msgpack-encodable payload for writing encrypted entries to a remote store.
  *
+ * **Details**
+ *
  * It includes the client public key, target store id, AES-GCM initialization
  * vector, and encrypted entries.
  *
@@ -310,6 +327,8 @@ export class WriteSingleRpc extends Rpc.make("EventLog.WriteSingle", {
 /**
  * Authenticated streaming RPC for reading remote event-log changes for a public
  * key and store id starting at a sequence number.
+ *
+ * **Details**
  *
  * Responses are encoded as either `SingleMessage` values or `ChunkedMessage`
  * parts.

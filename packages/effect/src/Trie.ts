@@ -1,17 +1,56 @@
 /**
- * A `Trie` is used for locating specific `string` keys from within a set.
+ * Immutable string-keyed maps optimized for prefix lookup.
  *
- * It works similar to `HashMap`, but with keys required to be `string`.
- * This constraint unlocks some performance optimizations and new methods to get string prefixes (e.g. `keysWithPrefix`, `longestPrefixOf`).
+ * A `Trie<Value>` stores values under `string` keys, similar to a `HashMap`
+ * whose key type is fixed to `string`. That restriction lets the data
+ * structure organize keys by their shared prefixes, which is useful for
+ * autocomplete, route tables, dictionaries, command lookup, and any workflow
+ * that needs to ask "which entries start with this string?".
  *
- * Prefix search is also the main feature that makes a `Trie` more suited than `HashMap` for certain usecases.
+ * **Mental model**
  *
- * A `Trie` is often used to store a dictionary (list of words) that can be searched
- * in a manner that allows for efficient generation of completion lists
- * (e.g. predict the rest of a word a user is typing).
+ * - Exact-key lookup uses {@link get}, {@link has}, or {@link getUnsafe}.
+ * - Prefix lookup uses {@link keysWithPrefix}, {@link valuesWithPrefix},
+ *   {@link entriesWithPrefix}, {@link toEntriesWithPrefix}, or
+ *   {@link longestPrefixOf}.
+ * - Updates such as {@link insert}, {@link remove}, {@link insertMany}, and
+ *   {@link removeMany} return new tries; existing tries are not mutated.
+ * - Iteration yields entries in key order, not insertion order.
+ * - Lookup work is proportional to the key or prefix length rather than the
+ *   total number of entries.
  *
- * A `Trie` has O(n) lookup time where `n` is the size of the key,
- * or even less than `n` on search misses.
+ * **Common tasks**
+ *
+ * - Create tries with {@link empty}, {@link make}, or {@link fromIterable}.
+ * - Read all keys, values, or entries with {@link keys}, {@link values},
+ *   {@link entries}, and {@link toEntries}.
+ * - Transform values with {@link map}, {@link filter}, {@link filterMap},
+ *   {@link compact}, {@link forEach}, and {@link reduce}.
+ *
+ * **Gotchas**
+ *
+ * - Keys must be strings. Use `HashMap` when keys need structural equality or
+ *   are not naturally represented as strings.
+ * - {@link get} returns an `Option`; {@link getUnsafe} throws when the key is
+ *   absent.
+ * - Sorted iteration is convenient for presentation, but it also means
+ *   insertion order is not preserved.
+ *
+ * **Example** (Finding entries by prefix)
+ *
+ * ```ts
+ * import { Trie } from "effect"
+ * import * as assert from "node:assert"
+ *
+ * const commands = Trie.make(
+ *   ["commit", "Record changes"],
+ *   ["checkout", "Switch branches"],
+ *   ["clone", "Copy a repository"]
+ * )
+ *
+ * const matches = Trie.toEntriesWithPrefix(commands, "ch")
+ * assert.deepStrictEqual(matches, [["checkout", "Switch branches"]])
+ * ```
  *
  * @since 2.0.0
  */
@@ -188,6 +227,8 @@ export const insert: {
 /**
  * Returns an `IterableIterator` of the keys within the `Trie`.
  *
+ * **Details**
+ *
  * The keys are returned in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading keys in alphabetical order)
@@ -213,6 +254,8 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
 
 /**
  * Returns an `IterableIterator` of the values within the `Trie`.
+ *
+ * **Details**
  *
  * Values are ordered based on their key in alphabetical order, regardless of insertion order.
  *
@@ -240,6 +283,8 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
 /**
  * Returns an `IterableIterator` of the entries within the `Trie`.
  *
+ * **Details**
+ *
  * The entries are returned by keys in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading entries in alphabetical order)
@@ -264,6 +309,8 @@ export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.e
 
 /**
  * Returns an `Array<[string, V]>` of the entries within the `Trie`.
+ *
+ * **Details**
  *
  * Equivalent to `Array.from(Trie.entries(trie))`.
  *
@@ -551,10 +598,12 @@ export const has: {
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
 /**
- * Unsafely lookup the value for the specified key in the `Trie`.
+ * Unsafely looks up the value for the specified key in the `Trie`.
  *
- * `getUnsafe` will throw if the key is not found. Use `get` instead to safely
- * get a value from the `Trie`.
+ * **Gotchas**
+ *
+ * `getUnsafe` throws if the key is not found. Use `get` instead to safely get
+ * a value from the `Trie`.
  *
  * **Example** (Looking up values unsafely)
  *

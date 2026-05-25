@@ -1,23 +1,45 @@
 /**
- * Server-side HTTP response values and constructors for Effect HTTP handlers.
+ * The `HttpServerResponse` module provides immutable response values for Effect
+ * HTTP servers. Handlers return an {@link HttpServerResponse}, then the runtime
+ * converts it to a platform response such as a Web `Response`.
  *
- * This module defines `HttpServerResponse`, the immutable response model returned
- * from routers and server effects, together with constructors for empty,
- * redirect, text, HTML, JSON, URL-encoded, raw, form-data, stream, and file
- * bodies. It also includes combinators for adjusting status, headers, cookies,
- * and bodies, plus conversions to and from Web `Response` and client responses.
+ * **Mental model**
  *
- * Response constructors choose status defaults for common cases: `204` for
- * `empty`, `302` for `redirect`, and `200` for responses with bodies. Body
- * metadata is mirrored into headers, so content type and content length carried
- * by the body are written to `content-type` and `content-length`, overriding
- * existing values when present. JSON helpers can fail while encoding or
- * serializing unless the unsafe constructor is used.
+ * - A response is a status, optional status text, headers, cookies, and an HTTP
+ *   body.
+ * - Constructors set practical defaults: {@link empty} uses `204`,
+ *   {@link redirect} uses `302`, and body constructors use `200`.
+ * - Body metadata is reflected into headers when a response is created or when
+ *   the body is replaced.
+ * - Cookies are stored separately from the normal header map and become
+ *   `Set-Cookie` headers during conversion.
+ * - Constructors that encode data can return effects when encoding may fail.
  *
- * Cookies are tracked separately from the normal header map so they can be
- * encoded as `Set-Cookie` headers when converting to platform responses. Use the
- * effectful cookie helpers when invalid cookie names, values, or options should
- * stay in the Effect error channel.
+ * **Common tasks**
+ *
+ * - Create empty, redirect, text, HTML, JSON, or URL-encoded responses with
+ *   {@link empty}, {@link redirect}, {@link text}, {@link html}, {@link json},
+ *   {@link schemaJson}, or {@link urlParams}.
+ * - Send binary, raw, form-data, stream, or file bodies with {@link uint8Array},
+ *   {@link raw}, {@link formData}, {@link stream}, {@link file}, or
+ *   {@link fileWeb}.
+ * - Adjust status, headers, and bodies with {@link setStatus},
+ *   {@link setHeader}, {@link setHeaders}, and {@link setBody}.
+ * - Manage cookies with {@link setCookie}, {@link expireCookie},
+ *   {@link removeCookie}, and their unsafe variants.
+ * - Convert responses with {@link toWeb}, {@link fromWeb},
+ *   {@link toClientResponse}, and {@link fromClientResponse}.
+ *
+ * **Gotchas**
+ *
+ * - Body content type and content length override existing `content-type` and
+ *   `content-length` headers when body metadata is present.
+ * - {@link json} and {@link schemaJson} capture encoding failures in the Effect
+ *   error channel; {@link jsonUnsafe} throws instead.
+ * - {@link setCookie} and {@link expireCookie} validate cookie output in the
+ *   Effect error channel; unsafe cookie helpers throw on invalid cookies.
+ * - `Set-Cookie` headers are produced from the response cookie collection, not
+ *   by manually editing the normal header map.
  *
  * @since 4.0.0
  */
@@ -52,6 +74,8 @@ const TypeId = "~effect/http/HttpServerResponse"
 
 /**
  * Server-side HTTP response model.
+ *
+ * **Details**
  *
  * A response contains a status, optional status text, headers, cookies, and an
  * HTTP body that can later be converted to platform-specific response types.
@@ -120,6 +144,8 @@ export const isHttpServerResponse = (u: unknown): u is HttpServerResponse => has
 /**
  * Creates an empty HTTP response.
  *
+ * **Details**
+ *
  * The default status is `204`.
  *
  * @category constructors
@@ -137,6 +163,8 @@ export const empty = (
 
 /**
  * Creates a redirect response with a `Location` header.
+ *
+ * **Details**
  *
  * The default status is `302`; custom headers are merged with the generated
  * `Location` header.
@@ -217,6 +245,8 @@ export const text = (
 /**
  * Creates an HTML response with the `text/html` content type.
  *
+ * **Details**
+ *
  * Passing a string returns a response directly. Using it as a template tag returns
  * an effect so interpolated values can be rendered with their required services
  * and errors.
@@ -247,6 +277,8 @@ export const html: {
 
 /**
  * Creates a streaming HTML response from a template.
+ *
+ * **Details**
  *
  * The template is encoded as a byte stream and can use streaming interpolated
  * values from the current context.
@@ -279,6 +311,8 @@ export const htmlStream = <
 /**
  * Creates a JSON HTTP response.
  *
+ * **Details**
+ *
  * The body is serialized with `JSON.stringify`; serialization errors are captured
  * as `HttpBodyError` failures.
  *
@@ -302,6 +336,8 @@ export const json = (
 
 /**
  * Creates a JSON response constructor backed by a schema encoder.
+ *
+ * **Details**
  *
  * The returned function encodes the value with the supplied schema before
  * serializing it as JSON, and can fail with `HttpBodyError` if schema encoding or
@@ -333,6 +369,8 @@ export const schemaJson = <A, I, RD, RE>(
 
 /**
  * Creates a JSON HTTP response synchronously.
+ *
+ * **Gotchas**
  *
  * Unlike `json`, serialization errors from `JSON.stringify` are not captured in
  * `Effect`.
@@ -381,7 +419,9 @@ export const urlParams = (
 /**
  * Creates a response with a raw body value.
  *
- * Use this when the underlying runtime already understands the body value, such
+ * **When to use**
+ *
+ * Use when the underlying runtime already understands the body value, such
  * as a Web `Response`, `Blob`, or `ReadableStream`; the body is passed through
  * for later platform conversion.
  *
@@ -424,6 +464,8 @@ export const formData = (
 /**
  * Creates a streaming response from a stream of byte chunks.
  *
+ * **Details**
+ *
  * Optional response metadata can supply the status, headers, content type, and
  * content length.
  *
@@ -458,6 +500,8 @@ const HttpPlatformKey = Context.Service<
 /**
  * Creates a streamed file response for a file system path.
  *
+ * **Details**
+ *
  * The effect requires `HttpPlatform`, can fail with a platform error, and supports
  * options for status, headers, offset, and byte range.
  *
@@ -478,6 +522,8 @@ export const file = (
 
 /**
  * Creates a streamed file response for a Web `File`-like value.
+ *
+ * **Details**
  *
  * The effect requires `HttpPlatform` and supports options for status, headers,
  * offset, and byte range.
@@ -571,6 +617,8 @@ export const replaceCookies: {
 /**
  * Sets a cookie on the response.
  *
+ * **Details**
+ *
  * The effect fails with `CookiesError` if the cookie name, value, or options are
  * invalid.
  *
@@ -612,6 +660,8 @@ export const setCookie: {
 /**
  * Expires a cookie on an `HttpServerResponse`.
  *
+ * **Details**
+ *
  * Returns an effect because cookie encoding can fail. The original response is not
  * mutated; the effect succeeds with a response containing the updated cookie set.
  *
@@ -651,7 +701,9 @@ export const expireCookie: {
  * Sets a cookie on an `HttpServerResponse`, throwing if the cookie cannot be
  * encoded.
  *
- * Use `setCookie` when cookie errors should be represented as `CookiesError`
+ * **When to use**
+ *
+ * Use when cookie errors should be represented as `CookiesError`
  * failures.
  *
  * @category combinators
@@ -687,7 +739,9 @@ export const setCookieUnsafe: {
  * Expires a cookie on an `HttpServerResponse`, throwing if the expiration cookie
  * cannot be encoded.
  *
- * Use `expireCookie` when cookie errors should be represented as `CookiesError`
+ * **When to use**
+ *
+ * Use when cookie errors should be represented as `CookiesError`
  * failures.
  *
  * @category combinators
@@ -720,6 +774,8 @@ export const expireCookieUnsafe: {
  * Updates the cookies attached to an `HttpServerResponse` using the supplied
  * function.
  *
+ * **Details**
+ *
  * The original response is not mutated; a new response is returned with the
  * callback result as its cookie collection.
  *
@@ -750,6 +806,8 @@ export const updateCookies: {
  * Merges additional cookies into the cookies attached to an
  * `HttpServerResponse`.
  *
+ * **Details**
+ *
  * The original response is not mutated; a new response is returned with the merged
  * cookie collection.
  *
@@ -767,6 +825,8 @@ export const mergeCookies: {
 
 /**
  * Sets multiple cookies on an `HttpServerResponse`.
+ *
+ * **Details**
  *
  * Each input entry contains a cookie name, value, and optional cookie options. The
  * returned effect fails with `CookiesError` if any cookie cannot be encoded.
@@ -819,7 +879,9 @@ export const setCookies: {
  * Sets multiple cookies on an `HttpServerResponse`, throwing if any cookie cannot
  * be encoded.
  *
- * Use `setCookies` when cookie errors should be represented as `CookiesError`
+ * **When to use**
+ *
+ * Use when cookie errors should be represented as `CookiesError`
  * failures.
  *
  * @category combinators
@@ -866,6 +928,8 @@ export const setCookiesUnsafe: {
 /**
  * Replaces the body of an `HttpServerResponse`.
  *
+ * **Details**
+ *
  * When the body carries a content type or content length, the returned response
  * includes the corresponding headers.
  *
@@ -882,6 +946,8 @@ export const setBody: {
 
 /**
  * Sets the HTTP status code of an `HttpServerResponse`.
+ *
+ * **Details**
  *
  * When `statusText` is omitted, the existing status text is preserved.
  *
@@ -914,6 +980,8 @@ export const setStatus: {
 
 /**
  * Converts an `HttpServerResponse` to a Web `Response`.
+ *
+ * **Details**
  *
  * Cookies are appended as `Set-Cookie` headers. Stream bodies are converted using
  * the supplied context, and `withoutBody` can be used for responses such as HEAD
@@ -991,6 +1059,8 @@ export const toWeb = (
 
 /**
  * Wraps an `HttpServerResponse` as an `HttpClientResponse`.
+ *
+ * **Details**
  *
  * An optional request can be supplied for client-response metadata and decode
  * errors.
@@ -1211,6 +1281,8 @@ const textDecoder = new TextDecoder()
 /**
  * Converts an `HttpClientResponse` to an `HttpServerResponse`.
  *
+ * **Details**
+ *
  * The response body is streamed from the client response. `Set-Cookie` headers are
  * removed from the header map and represented in the response cookie collection.
  *
@@ -1301,6 +1373,8 @@ const makeResponse = (options: {
 
 /**
  * Converts a Web `Response` to an `HttpServerResponse`.
+ *
+ * **Details**
  *
  * `Set-Cookie` headers are parsed into the response cookie collection and removed
  * from the header map. A present Web body is exposed as a stream body.

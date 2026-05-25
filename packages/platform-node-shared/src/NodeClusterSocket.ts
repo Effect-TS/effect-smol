@@ -1,21 +1,34 @@
 /**
- * Node TCP socket integration for Effect Cluster runner communication.
+ * Node TCP socket transport for Effect Cluster runner-to-runner RPC.
  *
  * This module provides the shared Node layers used by socket-based cluster
- * transports: a client protocol that opens TCP sockets to runner addresses and
- * a socket server that listens for incoming runner RPC traffic. It is useful
- * when wiring Node or Node-compatible cluster runners, sharing the same socket
- * implementation across platform packages, or building tests and deployments
- * that need direct runner-to-runner RPC over TCP rather than HTTP.
+ * transports. `layerClientProtocol` opens TCP sockets to peer runner addresses
+ * and wraps them in the current RPC serialization protocol. `layerSocketServer`
+ * exposes the socket server that receives incoming runner RPC traffic.
  *
- * Cluster runners must advertise an address that peers can reach while the
- * server may listen on a different address via `runnerListenAddress`, which is
- * common behind containers, port mappings, or Kubernetes services. Serialization
- * is supplied by the surrounding layer, and gossip, shard discovery, health
- * checks, and storage-backed delivery are coordinated by the cluster services
- * that use this transport. Keep those responsibilities separate when debugging:
- * a reachable socket does not by itself guarantee that runner membership,
- * shard ownership, or persisted message notification is current.
+ * **Mental model**
+ *
+ * The cluster runtime decides which runners exist, which shards they own, and
+ * which messages must be delivered. This module only provides the TCP transport
+ * those services use after a runner address has been selected. The client side
+ * dials an advertised runner address; the server side listens on the address
+ * configured for the local runner.
+ *
+ * **Common tasks**
+ *
+ * Add these layers when a Node or Node-compatible cluster deployment should use
+ * direct socket RPC instead of an HTTP transport. Configure `runnerAddress` as
+ * the address other runners can reach, and configure `runnerListenAddress` when
+ * the local process must bind a different host or port.
+ *
+ * **Gotchas**
+ *
+ * Containers, port mappings, and Kubernetes services often require different
+ * advertised and listening addresses. Serialization is provided by the
+ * surrounding layer, not by this module. A reachable socket confirms only that
+ * TCP transport is available; gossip, shard ownership, health checks, and
+ * persisted message notification are coordinated by the cluster services that
+ * use this transport.
  *
  * @since 4.0.0
  */

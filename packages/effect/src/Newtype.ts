@@ -76,13 +76,18 @@ const TypeId = "~effect/Newtype"
  * A tagged interface that wraps a carrier type under a unique key, preventing
  * accidental interchange of structurally identical values.
  *
- * - Define your newtype as an `interface` extending
- *   `Newtype<"MyKey", CarrierType>`.
- * - The tag is compile-time only; no runtime wrapper is allocated.
- * - Use {@link makeIso} to create a two-way conversion, or {@link value} to
- *   unwrap.
+ * **When to use**
  *
- * **Example** (defining a newtype)
+ * Use to define a newtype as an `interface` extending
+ * `Newtype<"MyKey", CarrierType>` when structurally identical carrier types
+ * should remain distinct in TypeScript.
+ *
+ * **Details**
+ *
+ * The tag is compile-time only, so no runtime wrapper is allocated. Use
+ * {@link makeIso} to create a two-way conversion, or {@link value} to unwrap.
+ *
+ * **Example** (Defining a newtype)
  *
  * ```ts
  * import { Newtype } from "effect"
@@ -111,12 +116,21 @@ export interface Newtype<in out Key extends string, out Carrier> {
  * Namespace containing type-level helpers for `Newtype` values, including
  * constraints and utilities for extracting a newtype's key and carrier type.
  *
+ * **When to use**
+ *
+ * Use to access generic constraints and type-level utilities for `Newtype`
+ * values.
+ *
  * @since 4.0.0
  */
 export declare namespace Newtype {
   /**
    * A type that matches any `Newtype`, useful as a generic constraint:
    * `<N extends Newtype.Any>`.
+   *
+   * **When to use**
+   *
+   * Use as a generic constraint when a type parameter can be any `Newtype`.
    *
    * @see {@link Newtype} — the base tagged interface
    *
@@ -128,7 +142,9 @@ export declare namespace Newtype {
   /**
    * Extracts the key literal type from a newtype.
    *
-   * - Useful in generic code that needs to inspect or constrain the key.
+   * **When to use**
+   *
+   * Use to inspect or constrain a newtype's key in generic code.
    *
    * @category utility types
    * @since 4.0.0
@@ -138,7 +154,9 @@ export declare namespace Newtype {
   /**
    * Extracts the carrier (underlying) type from a newtype.
    *
-   * - Useful when you need to refer to the wrapped type in generic utilities.
+   * **When to use**
+   *
+   * Use when you need to refer to the wrapped type in generic utilities.
    *
    * @category utility types
    * @since 4.0.0
@@ -149,12 +167,16 @@ export declare namespace Newtype {
 /**
  * Unwraps a newtype value, returning the underlying carrier value.
  *
- * - Use when you only need to read the inner value and do not need to wrap new
- *   values.
- * - For both wrapping and unwrapping, prefer {@link makeIso}.
- * - Zero runtime cost: this is an identity cast.
+ * **When to use**
  *
- * **Example** (unwrapping a newtype)
+ * Use when you only need to read the inner value and do not need to wrap
+ * new values. For both wrapping and unwrapping, prefer {@link makeIso}.
+ *
+ * **Details**
+ *
+ * This has zero runtime cost because it is an identity cast.
+ *
+ * **Example** (Unwrapping a newtype)
  *
  * ```ts
  * import { Newtype } from "effect"
@@ -178,11 +200,16 @@ export const value: <N extends Newtype.Any>(newtype: N) => Newtype.Carrier<N> = 
  * Creates an `Optic.Iso` for a newtype, providing both wrapping (`set`) and
  * unwrapping (`get`).
  *
- * - Use this as the primary way to construct and deconstruct newtype values.
- * - The returned iso composes with other optics via the standard `Optic` API.
- * - Zero runtime cost: both directions are identity casts.
+ * **When to use**
  *
- * **Example** (wrapping and unwrapping with an iso)
+ * Use as the primary way to construct and deconstruct newtype values.
+ *
+ * **Details**
+ *
+ * The returned iso composes with other optics via the standard `Optic` API.
+ * Both directions have zero runtime cost because they are identity casts.
+ *
+ * **Example** (Wrapping and unwrapping with an iso)
  *
  * ```ts
  * import { Newtype } from "effect"
@@ -208,11 +235,16 @@ export function makeIso<N extends Newtype.Any>(): Optic.Iso<N, Newtype.Carrier<N
  * Lifts an `Equivalence` for the carrier type into an `Equivalence` for the
  * newtype.
  *
- * - Use when you need to compare two newtype values for equality.
- * - The returned equivalence delegates to the provided carrier equivalence.
- * - Zero runtime cost beyond the underlying equivalence check.
+ * **When to use**
  *
- * **Example** (comparing newtypes)
+ * Use when you need to compare two newtype values for equality.
+ *
+ * **Details**
+ *
+ * The returned equivalence delegates to the provided carrier equivalence and
+ * has zero runtime cost beyond the underlying equivalence check.
+ *
+ * **Example** (Comparing newtypes)
  *
  * ```ts
  * import { Equivalence, Newtype } from "effect"
@@ -238,10 +270,15 @@ export const makeEquivalence: <N extends Newtype.Any>(
 /**
  * Lifts an `Order` for the carrier type into an `Order` for the newtype.
  *
- * - Use when you need to sort or compare newtype values.
- * - The returned order delegates to the provided carrier order.
+ * **When to use**
  *
- * **Example** (ordering newtypes)
+ * Use when you need to sort or compare newtype values.
+ *
+ * **Details**
+ *
+ * The returned order delegates to the provided carrier order.
+ *
+ * **Example** (Ordering newtypes)
  *
  * ```ts
  * import { Newtype, Order } from "effect"
@@ -264,10 +301,15 @@ export const makeOrder: <N extends Newtype.Any>(order: Order.Order<Newtype.Carri
 /**
  * Lifts a `Combiner` for the carrier type into a `Combiner` for the newtype.
  *
- * - Use when you need to combine (e.g. concatenate, add) newtype values.
- * - The returned combiner delegates to the provided carrier combiner.
+ * **When to use**
  *
- * **Example** (combining newtypes)
+ * Use when you need to combine newtype values.
+ *
+ * **Details**
+ *
+ * The returned combiner delegates to the provided carrier combiner.
+ *
+ * **Example** (Combining newtypes)
  *
  * ```ts
  * import { Combiner, Newtype } from "effect"
@@ -294,10 +336,16 @@ export const makeCombiner: <N extends Newtype.Any>(
 /**
  * Lifts a `Reducer` for the carrier type into a `Reducer` for the newtype.
  *
- * - Use when you need to fold/reduce over a collection of newtype values.
- * - The returned reducer delegates to the provided carrier reducer.
+ * **When to use**
  *
- * **Example** (reducing newtypes)
+ * Use when you need to fold or reduce over a collection of newtype
+ * values.
+ *
+ * **Details**
+ *
+ * The returned reducer delegates to the provided carrier reducer.
+ *
+ * **Example** (Reducing newtypes)
  *
  * ```ts
  * import { Newtype, Reducer } from "effect"

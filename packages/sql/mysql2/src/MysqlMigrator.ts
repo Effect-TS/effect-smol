@@ -1,21 +1,33 @@
 /**
- * Utilities for applying Effect SQL migrations to MySQL databases through the
- * mysql2-backed `SqlClient`.
+ * MySQL adapter for the shared Effect SQL migration runner.
  *
  * This module re-exports the shared `Migrator` loaders and error types, then
- * provides `run` and `layer` helpers for applying ordered migrations using the
- * currently configured MySQL `SqlClient`. It is commonly used during application
- * startup, in integration tests that provision a temporary schema, or in layer
- * graphs where dependent services should not start until the database schema is
- * current.
+ * provides `run` and `layer` helpers that apply ordered migrations through the
+ * current mysql2-backed `SqlClient`. Use it during application startup,
+ * deployment, or integration tests when MySQL schema changes must be applied
+ * before dependent services start reading or writing data.
  *
- * Applied migrations are stored in `effect_sql_migrations` by default and use
- * the shared `<id>_<name>` loader convention. Only migrations with ids greater
- * than the latest recorded id are run. MySQL DDL can cause implicit commits, and
- * this adapter relies on migration table constraints to detect concurrent
- * runners, so coordinate startup runners and write migrations to tolerate
- * MySQL's transactional semantics. Schema dump support is not enabled in this
- * adapter, so `schemaDirectory` does not emit a MySQL dump.
+ * **Mental model**
+ *
+ * Migrations are loaded with the shared `<id>_<name>` convention and recorded in
+ * `effect_sql_migrations` by default. The runner reads the latest recorded id
+ * and applies only migrations with larger ids, returning the ids and names that
+ * were applied in the current run.
+ *
+ * **Common tasks**
+ *
+ * - Call `run` when an effect should explicitly migrate a MySQL database.
+ * - Use `layer` when schema setup should happen while building a layer graph.
+ * - Reuse the shared `Migrator` loaders from this module for file-based or
+ *   in-memory migration definitions.
+ *
+ * **Gotchas**
+ *
+ * MySQL DDL can cause implicit commits, and this adapter relies on migration
+ * table constraints to detect concurrent runners. Coordinate startup runners and
+ * write migrations to tolerate MySQL's transactional semantics. Schema dump
+ * support is not enabled in this adapter, so `schemaDirectory` does not emit a
+ * MySQL dump.
  *
  * @since 4.0.0
  */

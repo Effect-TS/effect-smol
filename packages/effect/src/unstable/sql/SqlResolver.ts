@@ -102,12 +102,14 @@ export const SqlRequest = <In, A, E, R>(payload: In): SqlRequest<In, A, E, R> =>
 }
 
 /**
- * Create a resolver for a sql query with a request schema and a result schema.
+ * Creates a resolver for a SQL query with a request schema and a result schema.
  *
- * The request schema is used to validate the input of the query.
- * The result schema is used to validate the output of the query.
+ * **Details**
  *
- * Results are mapped to the requests in order, so the length of the results must match the length of the requests.
+ * The request schema is used to validate the input of the query, and the result
+ * schema is used to validate the output of the query. Results are mapped to the
+ * requests in order, so the length of the results must match the length of the
+ * requests.
  *
  * @category resolvers
  * @since 4.0.0

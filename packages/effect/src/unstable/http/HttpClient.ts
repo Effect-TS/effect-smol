@@ -1,22 +1,38 @@
 /**
- * Composable HTTP client service for executing `HttpClientRequest` values and
- * receiving `HttpClientResponse` values inside Effect programs.
+ * Dependency-injected HTTP client for executing outgoing requests from Effect
+ * programs.
  *
- * This module provides the `HttpClient` service tag, method-specific accessors,
- * constructors for low-level runtimes, and middleware-style combinators for
- * common client concerns such as request rewriting, response filtering, retries,
- * redirects, cookies, rate limiting, and tracing. It is intended for code that
- * needs dependency-injected outbound HTTP calls, reusable clients customized for
- * an API, or cross-cutting behavior layered around a concrete platform client.
+ * This module defines the `HttpClient` service used by platform clients,
+ * tests, and API-specific clients. It executes immutable `HttpClientRequest`
+ * values, returns `HttpClientResponse` values, and keeps outbound HTTP behind a
+ * service boundary so call sites do not depend on a concrete runtime transport.
  *
- * Responses are successful Effects even for non-2xx status codes unless a
- * filter such as `filterStatus` or `filterStatusOk` is applied. Request
- * middleware is ordered by whether it prepends to or appends after the existing
- * preprocessing pipeline, so use `mapRequestInput` for transformations that
- * should run before previously installed request middleware and `mapRequest`
- * for transformations that should run after it. Non-scoped responses are tied to
- * an abort controller for interruption cleanup; use `withScope` when the request
- * lifetime should instead be controlled by a surrounding `Scope`.
+ * **Mental model**
+ *
+ * A client is an `execute` function plus method helpers such as `get`, `post`,
+ * and `del`. Before a request reaches the runtime, it passes through a
+ * preprocessing pipeline. After the runtime returns a response, it passes
+ * through a postprocessing pipeline. Combinators such as `mapRequest`,
+ * `filterStatusOk`, `retry`, `followRedirects`, `withCookiesRef`, and
+ * `withRateLimiter` return a new client with behavior layered around the
+ * previous one.
+ *
+ * **Common tasks**
+ *
+ * Use method helpers for straightforward calls, construct `HttpClientRequest`
+ * values directly when a request is assembled across several steps, and use
+ * `make` or `makeWith` when adapting a lower-level transport. Use
+ * `filterStatus` or `filterStatusOk` when non-success HTTP statuses should fail
+ * the Effect. Use `withScope` when response resources should live for a
+ * surrounding scope instead of only the individual request.
+ *
+ * **Gotchas**
+ *
+ * Receiving a response is a successful Effect even for non-2xx statuses unless
+ * a status filter has been applied. `mapRequestInput` prepends work before
+ * existing request middleware, while `mapRequest` appends after it. Without
+ * `withScope`, non-scoped responses are attached to an abort controller so
+ * interruption can clean up the request.
  *
  * @since 4.0.0
  */
@@ -77,6 +93,8 @@ export interface HttpClient extends HttpClient.With<Error.HttpClientError> {}
 export declare namespace HttpClient {
   /**
    * Parameterized HTTP client that may fail with `E` and require environment `R`.
+   *
+   * **Details**
    *
    * It exposes preprocessing, postprocessing, direct request execution, and method-specific helpers.
    *
@@ -255,6 +273,8 @@ export const options: (url: string | URL, options?: HttpClientRequest.Options.No
 /**
  * Transforms a client by wrapping the response effect for each request.
  *
+ * **Details**
+ *
  * The transformation receives both the response effect and the original request, allowing it to change success, error, and environment behavior.
  *
  * @category mapping & sequencing
@@ -329,6 +349,8 @@ const catch_: {
 
 export {
   /**
+   * Handles all client failures with an effectful recovery function and returns a transformed client.
+   *
    * @category error handling
    * @since 4.0.0
    */
@@ -562,6 +584,8 @@ export const filterStatusOk: <E, R>(self: HttpClient.With<E, R>) => HttpClient.W
 /**
  * Constructs an `HttpClient.With` from a preprocessing function and a postprocessing function.
  *
+ * **Details**
+ *
  * `execute` applies preprocessing to the request and then passes the resulting request effect to postprocessing.
  *
  * @category constructors
@@ -604,6 +628,8 @@ const Proto = {
 
 /**
  * Constructs an `HttpClient` from a low-level request runner.
+ *
+ * **Details**
  *
  * The runner receives the request, resolved URL, abort signal, and current fiber. The client wrapper handles URL construction failures, tracing and propagation, header redaction, and aborting non-scoped requests on interruption.
  *
@@ -806,6 +832,8 @@ export declare namespace Retry {
   /**
    * Computes the client type returned by `retry` for a given set of retry options.
    *
+   * **Details**
+   *
    * The result includes errors and requirements introduced by schedules and effectful retry predicates.
    *
    * @category error handling
@@ -857,7 +885,11 @@ export const retry: {
 /**
  * Retries common transient errors, such as rate limiting, timeouts or network issues.
  *
- * Use `retryOn` to focus on retrying errors, transient responses, or both.
+ * **When to use**
+ *
+ * Use to focus on retrying errors, transient responses, or both.
+ *
+ * **Details**
  *
  * Specifying a `while` predicate allows you to consider other errors as
  * transient, and is ignored in "response-only" mode.
@@ -966,6 +998,8 @@ export declare namespace WithRateLimiter {
   /**
    * Options used to configure `withRateLimiter`.
    *
+   * **Details**
+   *
    * They define the backing limiter, initial limit window, keying strategy, algorithm, token cost, and whether response headers update future limits.
    *
    * @category rate limiting
@@ -1007,6 +1041,8 @@ export declare namespace WithRateLimiter {
 
 /**
  * Applies request rate limiting using the `RateLimiter` service.
+ *
+ * **Details**
  *
  * It can update limits by inspecting common rate limit response headers and
  * automatically retries HTTP `429` responses (or `HttpClientError` values

@@ -1,20 +1,32 @@
 /**
- * Bun layers for Effect's `Path` service.
+ * Bun-backed layers for Effect's {@link Path} service.
  *
- * Use this module when an Effect program running on Bun needs path
- * manipulation from the `Path` service, such as joining and normalizing local
- * filesystem locations, resolving configuration or static asset paths, handling
- * CLI path arguments, or converting between filesystem paths and `file:` URLs.
+ * This module provides the `Path` service for Bun programs by reusing the
+ * shared Node-compatible path implementation. Provide one of these layers when
+ * Bun code should receive path operations from the Effect environment instead
+ * of importing runtime path helpers directly.
  *
- * Bun exposes Node-compatible path behavior, so these layers reuse the shared
- * Node path implementation. The default `layer` follows the host operating
- * system's path rules, including separators, absolute paths, drive letters, and
- * UNC paths where applicable. Use `layerPosix` or `layerWin32` when code needs
- * stable POSIX or Windows semantics regardless of where Bun is running. These
- * layers only manipulate path strings; they do not read the filesystem, validate
- * that paths exist, or turn request URLs into safe local paths. `BunServices`
- * already includes the default Bun path layer, so provide this module directly
- * when you need only `Path` or one of the platform-specific variants.
+ * **Mental model**
+ *
+ * Bun exposes Node-compatible path and file URL behavior, so the default
+ * {@link layer} follows the host operating system's rules. The
+ * {@link layerPosix} and {@link layerWin32} variants pin parsing and formatting
+ * to POSIX or Windows semantics for portable tests, generated paths, and
+ * cross-platform tooling.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layer} for normal Bun applications and CLIs. Use
+ * {@link layerPosix} or {@link layerWin32} when code must produce stable path
+ * syntax regardless of the machine running Bun. `BunServices.layer` already
+ * includes {@link layer}, so import this module directly when only `Path` or a
+ * fixed platform variant is needed.
+ *
+ * **Gotchas**
+ *
+ * Path operations are syntactic. They normalize and convert strings and
+ * `file:` URLs, but they do not read the filesystem, check permissions, confirm
+ * that a path exists, or make request URLs safe to use as local paths.
  *
  * @since 4.0.0
  */

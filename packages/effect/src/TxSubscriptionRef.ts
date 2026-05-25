@@ -1,6 +1,39 @@
 /**
- * TxSubscriptionRef is a TxRef that allows subscribing to all committed changes. Subscribers
- * receive the current value followed by every subsequent update via a transactional queue.
+ * The `TxSubscriptionRef` module provides a transactional reference that can
+ * also be observed as a stream of committed values. It combines the read and
+ * update behavior of a `TxRef.TxRef` with a subscription channel, so each
+ * subscriber first receives the current value and then receives every value
+ * published by later updates.
+ *
+ * **Mental model**
+ *
+ * - The current value is stored transactionally and can be read with
+ *   {@link get}
+ * - Mutations such as {@link set}, {@link update}, and {@link modify} commit a
+ *   new value and publish that value to active subscribers
+ * - {@link changes} creates a scoped transactional queue for one subscriber
+ * - {@link changesStream} exposes the same change feed as a `Stream.Stream`
+ * - Subscriptions are per subscriber; each subscriber gets its own queue of
+ *   committed values
+ *
+ * **Common tasks**
+ *
+ * - Create observable transactional state with {@link make}
+ * - Read or replace the current value with {@link get} and {@link set}
+ * - Derive new values atomically with {@link update} or {@link modify}
+ * - Consume changes from transactional code with {@link changes}
+ * - Consume changes from stream pipelines with {@link changesStream}
+ *
+ * **Gotchas**
+ *
+ * - A subscription starts with the value current at subscription time, not just
+ *   future updates
+ * - The queue returned by {@link changes} is scoped; leaving the scope removes
+ *   the subscriber
+ * - Updates are published even when the new value is equal to the previous
+ *   value
+ * - Subscriber queues are unbounded, so long-lived slow subscribers can retain
+ *   pending values until they catch up or their scope closes
  *
  * @since 4.0.0
  */
@@ -24,6 +57,11 @@ const TypeId = "~effect/transactions/TxSubscriptionRef"
  * committed changes. Subscribers receive the current value followed by every subsequent
  * update via a transactional dequeue.
  *
+ * **When to use**
+ *
+ * Use to store transactional state whose committed changes must be observable by
+ * subscribers.
+ *
  * **Example** (Subscribing to transactional changes)
  *
  * ```ts
@@ -45,6 +83,10 @@ const TypeId = "~effect/transactions/TxSubscriptionRef"
  *   )
  * })
  * ```
+ *
+ * @see {@link make} for creating a transactional subscription reference
+ * @see {@link changes} for subscribing through a transactional queue
+ * @see {@link changesStream} for subscribing through a `Stream`
  *
  * @category models
  * @since 4.0.0
@@ -79,6 +121,11 @@ const TxSubscriptionRefProto: Omit<TxSubscriptionRef<any>, typeof TypeId | "ref"
 /**
  * Creates a new TxSubscriptionRef with the specified initial value.
  *
+ * **When to use**
+ *
+ * Use to create transactional state that also publishes every committed update
+ * to subscribers.
+ *
  * **Example** (Creating a transactional subscription reference)
  *
  * ```ts
@@ -90,6 +137,8 @@ const TxSubscriptionRefProto: Omit<TxSubscriptionRef<any>, typeof TypeId | "ref"
  *   console.log(value) // 42
  * })
  * ```
+ *
+ * @see {@link changes} for subscribing to the created reference
  *
  * @category constructors
  * @since 3.10.0
@@ -112,6 +161,11 @@ export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
 /**
  * Reads the current value of the TxSubscriptionRef.
  *
+ * **When to use**
+ *
+ * Use to read the current transactional value without subscribing to future
+ * changes.
+ *
  * **Example** (Reading the current value)
  *
  * ```ts
@@ -123,6 +177,8 @@ export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
  *   console.log(value) // "hello"
  * })
  * ```
+ *
+ * @see {@link changes} for reading the current value and subsequent updates
  *
  * @category getters
  * @since 3.10.0
@@ -137,6 +193,11 @@ export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.ge
  * Modifies the value of the TxSubscriptionRef using a function that returns both a
  * result and the new value. The new value is published to all subscribers atomically.
  *
+ * **When to use**
+ *
+ * Use to compute a separate return value and next state in one transactional
+ * update.
+ *
  * **Example** (Modifying and returning a value)
  *
  * ```ts
@@ -149,6 +210,9 @@ export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.ge
  *   console.log(yield* TxSubscriptionRef.get(ref)) // 11
  * })
  * ```
+ *
+ * @see {@link update} for deriving the next value without a separate return value
+ * @see {@link set} for replacing the value directly
  *
  * @category mutations
  * @since 3.10.0
@@ -179,6 +243,10 @@ export const modify: {
 /**
  * Sets the value of the TxSubscriptionRef and publishes the new value to all subscribers.
  *
+ * **When to use**
+ *
+ * Use to replace the current value with a known value and publish it.
+ *
  * **Example** (Setting a new value)
  *
  * ```ts
@@ -190,6 +258,9 @@ export const modify: {
  *   console.log(yield* TxSubscriptionRef.get(ref)) // 42
  * })
  * ```
+ *
+ * @see {@link update} for deriving the new value from the current value
+ * @see {@link getAndSet} for setting while returning the previous value
  *
  * @category mutations
  * @since 3.10.0
@@ -206,6 +277,10 @@ export const set: {
  * Updates the value of the TxSubscriptionRef using a function and publishes the new
  * value to all subscribers.
  *
+ * **When to use**
+ *
+ * Use to derive the next value from the current value and publish it.
+ *
  * **Example** (Updating a value)
  *
  * ```ts
@@ -217,6 +292,9 @@ export const set: {
  *   console.log(yield* TxSubscriptionRef.get(ref)) // 10
  * })
  * ```
+ *
+ * @see {@link set} for replacing the value directly
+ * @see {@link updateAndGet} for returning the new value after the update
  *
  * @category mutations
  * @since 3.10.0
@@ -234,6 +312,10 @@ export const update: {
  * Gets the current value and sets a new value atomically. Publishes the new value
  * to all subscribers.
  *
+ * **When to use**
+ *
+ * Use to replace the value while returning the previous value.
+ *
  * **Example** (Getting and setting atomically)
  *
  * ```ts
@@ -246,6 +328,9 @@ export const update: {
  *   console.log(yield* TxSubscriptionRef.get(ref)) // "b"
  * })
  * ```
+ *
+ * @see {@link set} for setting without returning the previous value
+ * @see {@link getAndUpdate} for deriving the new value from the previous value
  *
  * @category mutations
  * @since 3.10.0
@@ -262,6 +347,10 @@ export const getAndSet: {
  * Gets the current value and updates it using a function atomically. Publishes
  * the new value to all subscribers.
  *
+ * **When to use**
+ *
+ * Use to derive and publish a new value while returning the previous value.
+ *
  * **Example** (Getting and updating atomically)
  *
  * ```ts
@@ -274,6 +363,9 @@ export const getAndSet: {
  *   console.log(yield* TxSubscriptionRef.get(ref)) // 11
  * })
  * ```
+ *
+ * @see {@link update} for updating without returning the previous value
+ * @see {@link updateAndGet} for returning the new value instead
  *
  * @category mutations
  * @since 3.10.0
@@ -291,6 +383,10 @@ export const getAndUpdate: {
  * Updates the value using a function and returns the new value. Publishes the
  * new value to all subscribers.
  *
+ * **When to use**
+ *
+ * Use to derive and publish a new value while returning that new value.
+ *
  * **Example** (Updating and reading atomically)
  *
  * ```ts
@@ -302,6 +398,9 @@ export const getAndUpdate: {
  *   console.log(result) // 9
  * })
  * ```
+ *
+ * @see {@link update} for updating without returning the new value
+ * @see {@link getAndUpdate} for returning the previous value instead
  *
  * @category mutations
  * @since 3.10.0
@@ -326,6 +425,10 @@ export const updateAndGet: {
  * Subscribes to all changes of the TxSubscriptionRef. Returns a scoped TxDequeue
  * that first yields the current value, then every subsequent update.
  *
+ * **When to use**
+ *
+ * Use to subscribe to committed changes through a scoped transactional queue.
+ *
  * **Example** (Subscribing to changes)
  *
  * ```ts
@@ -347,6 +450,8 @@ export const updateAndGet: {
  *   )
  * })
  * ```
+ *
+ * @see {@link changesStream} for subscribing through a `Stream`
  *
  * @category subscriptions
  * @since 3.10.0
@@ -370,6 +475,10 @@ export const changes = <A>(
  * Returns a Stream of all changes to the TxSubscriptionRef, starting with the
  * current value followed by every subsequent update.
  *
+ * **When to use**
+ *
+ * Use to consume committed changes as a `Stream`.
+ *
  * **Example** (Streaming changes)
  *
  * ```ts
@@ -386,6 +495,8 @@ export const changes = <A>(
  *   console.log(values) // [2]
  * })
  * ```
+ *
+ * @see {@link changes} for subscribing through a transactional queue
  *
  * @category subscriptions
  * @since 3.10.0
@@ -405,6 +516,10 @@ export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, n
 /**
  * Checks if the given value is a TxSubscriptionRef.
  *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a `TxSubscriptionRef`.
+ *
  * **Example** (Checking transactional subscription references)
  *
  * ```ts
@@ -416,6 +531,8 @@ export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, n
  *   console.log("This is a TxSubscriptionRef")
  * }
  * ```
+ *
+ * @see {@link make} for creating a `TxSubscriptionRef`
  *
  * @category guards
  * @since 4.0.0

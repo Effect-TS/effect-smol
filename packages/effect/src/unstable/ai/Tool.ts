@@ -1,28 +1,57 @@
 /**
- * The `Tool` module provides functionality for defining and managing tools
- * that language models can call to augment their capabilities.
+ * The `Tool` module describes callable capabilities that a language model can
+ * request during a workflow. A tool definition names the operation, describes
+ * its parameter shape, declares the success and failure payloads, and carries
+ * annotations that providers or MCP adapters can expose to clients.
  *
- * This module enables creation of both user-defined and provider-defined tools,
- * with full schema validation, type safety, and handler support. Tools allow
- * AI models to perform actions like searching databases, calling APIs, or
- * executing code within your application context.
+ * **Mental model**
  *
- * **Example** (Defining a calculator tool)
+ * - `Tool.make` defines an application-owned tool whose handler is supplied by
+ *   a toolkit.
+ * - `dynamic` represents tools discovered at runtime, including tools backed by
+ *   raw JSON Schema.
+ * - `providerDefined` represents native provider features such as web search or
+ *   code execution, optionally with an application handler for returned data.
+ * - Schemas validate tool-call parameters and encode/decode handler results;
+ *   `failureMode` controls whether handler failures fail the effect or become a
+ *   returned tool-result value.
+ *
+ * **Common tasks**
+ *
+ * - Define typed application tools with {@link make}.
+ * - Register runtime-discovered tools with {@link dynamic}.
+ * - Model provider-native tools with {@link providerDefined}.
+ * - Generate provider-facing parameter JSON Schema with {@link getJsonSchema}.
+ * - Add tool metadata with annotations such as {@link Title}, {@link Readonly},
+ *   {@link Destructive}, {@link Idempotent}, {@link OpenWorld}, and
+ *   {@link Strict}.
+ *
+ * **Gotchas**
+ *
+ * - Tool names are runtime lookup keys for toolkits; choose stable names.
+ * - Tool definitions do not execute anything by themselves. Handlers are bound
+ *   when tools are placed in a toolkit.
+ * - Dynamic tools created from raw JSON Schema receive `unknown` parameters in
+ *   handlers. Use Effect `Schema` values when you need typed parameters.
+ * - Provider-defined tools have both a custom Effect name and a provider name
+ *   so multiple providers can expose similarly named native tools.
+ *
+ * **Example** (Defining a typed tool)
  *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
- * // Define a simple calculator tool
- * const Calculator = Tool.make("Calculator", {
- *   description: "Performs basic arithmetic operations",
+ * const SearchDocs = Tool.make("SearchDocs", {
+ *   description: "Search project documentation",
  *   parameters: Schema.Struct({
- *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
- *     a: Schema.Number,
- *     b: Schema.Number
+ *     query: Schema.String,
+ *     limit: Schema.optional(Schema.Number)
  *   }),
- *   success: Schema.Number
- * })
+ *   success: Schema.Array(Schema.String),
+ *   failure: Schema.String,
+ *   needsApproval: ({ limit }) => limit !== undefined && limit > 20
+ * }).annotate(Tool.Readonly, true)
  * ```
  *
  * @since 4.0.0
@@ -48,6 +77,8 @@ import type * as Prompt from "./Prompt.ts"
 /**
  * Runtime type identifier carried by Effect AI tool values.
  *
+ * **Details**
+ *
  * The tool type guards use this marker, together with more specific markers,
  * to distinguish user-defined, provider-defined, and dynamic tools.
  *
@@ -66,6 +97,8 @@ export type TypeId = "~effect/ai/Tool"
 
 /**
  * Runtime type identifier carried by provider-defined tools.
+ *
+ * **Details**
  *
  * `isProviderDefined` uses this marker to distinguish tools that are built into
  * an AI provider from user-defined and dynamic tools.
@@ -86,6 +119,8 @@ export type ProviderDefinedTypeId = "~effect/ai/Tool/ProviderDefined"
 
 /**
  * Runtime type identifier carried by dynamic tools.
+ *
+ * **Details**
  *
  * `isDynamic` uses this marker to distinguish tools whose schema may be
  * provided at runtime from user-defined and provider-defined tools.
@@ -110,6 +145,8 @@ export type DynamicTypeId = "~effect/ai/Tool/Dynamic"
 /**
  * The strategy used for handling errors returned from tool call handler
  * execution.
+ *
+ * **Details**
  *
  * If set to `"error"` (the default), errors that occur during tool call handler
  * execution will be returned in the error channel of the calling effect.
@@ -154,6 +191,8 @@ export type NeedsApprovalFunction<Params extends Schema.Top> = (
 /**
  * Specifies whether user approval is required before executing a tool.
  *
+ * **Details**
+ *
  * Can be:
  * - `boolean`: Static approval requirement
  * - `NeedsApprovalFunction`: Dynamic approval based on parameters/context
@@ -167,6 +206,8 @@ export type NeedsApproval<Params extends Schema.Top> =
 
 /**
  * A user-defined tool that language models can call to perform actions.
+ *
+ * **Details**
  *
  * Tools represent actionable capabilities that large language models can invoke
  * to extend their functionality beyond text generation. Each tool has a defined
@@ -229,6 +270,8 @@ export interface Tool<
    * The strategy used for handling errors returned from tool call handler
    * execution.
    *
+   * **Details**
+   *
    * If set to `"error"` (the default), errors that occur during tool call
    * handler execution will be returned in the error channel of the calling
    * effect.
@@ -264,6 +307,8 @@ export interface Tool<
   /**
    * Specifies whether user approval is required before executing this tool.
    *
+   * **Details**
+   *
    * - If `undefined` or `false`, the tool executes immediately.
    * - If `true`, the tool always requires approval.
    * - If a function, it is called with the tool parameters and context to
@@ -275,6 +320,8 @@ export interface Tool<
   /**
    * Adds a _request-level_ dependency which must be provided before the tool
    * call handler can be executed.
+   *
+   * **Details**
    *
    * This can be useful when you want to enforce that a particular dependency
    * **MUST** be provided to each request to the large language model provider
@@ -346,6 +393,8 @@ export interface Tool<
 /**
  * A provider-defined tool is a tool which is built into a large language model
  * provider (e.g. web search, code execution).
+ *
+ * **Details**
  *
  * These tools are executed by the large language model provider rather than
  * by your application. However, they can optionally require custom handlers
@@ -433,6 +482,8 @@ export interface ProviderDefined<
 
 /**
  * A dynamic tool is a tool where the schema may not be known at compile time.
+ *
+ * **Details**
  *
  * Dynamic tools support two modes:
  * - **Effect Schema mode**: Full type safety with validation (like `Tool.make`)
@@ -836,6 +887,8 @@ export type FailureResultEncoded<T> = T extends Tool<
  * A utility type to extract the type of the tool call result whether it
  * succeeds or fails.
  *
+ * **Details**
+ *
  * When `failureMode` is `"return"`, the result may also be an `AiError`.
  *
  * @category utility types
@@ -852,6 +905,8 @@ export type Result<T> = T extends Tool<
 /**
  * A utility type to extract the encoded type of the tool call result whether
  * it succeeds or fails.
+ *
+ * **Details**
  *
  * When `failureMode` is `"return"`, the result may also be an encoded `AiError`.
  *
@@ -957,6 +1012,8 @@ export interface HandlerResult<Tool extends Any> {
 
 /**
  * Tagged union for incremental handler output.
+ *
+ * **Details**
  *
  * When a tool handler returns a `Stream`, each emitted value is tagged as
  * either:
@@ -1154,6 +1211,8 @@ const dynamicProto = <
 /**
  * Creates a user-defined tool with the specified name and configuration.
  *
+ * **Details**
+ *
  * This is the primary constructor for creating custom tools that AI models
  * can call. The tool definition includes parameter validation, success/failure
  * schemas, and optional service dependencies.
@@ -1205,6 +1264,8 @@ export const make = <
    * The strategy used for handling errors returned from tool call handler
    * execution.
    *
+   * **Details**
+   *
    * If set to `"error"` (the default), errors that occur during tool call handler
    * execution will be returned in the error channel of the calling effect.
    *
@@ -1218,6 +1279,8 @@ export const make = <
   readonly dependencies?: Dependencies | undefined
   /**
    * Specifies whether user approval is required before executing this tool.
+   *
+   * **Details**
    *
    * - If `undefined` or `false`, the tool executes immediately.
    * - If `true`, the tool always requires approval.
@@ -1253,8 +1316,12 @@ export const make = <
  * Creates a dynamic tool that can accept either an Effect Schema or a raw
  * JSON Schema for its parameters.
  *
- * This is useful for tools where the schema isn't known at compile time,
+ * **When to use**
+ *
+ * Use when this is useful for tools where the schema isn't known at compile time,
  * such as MCP tools discovered at runtime or tools from external configurations.
+ *
+ * **Details**
  *
  * - When `parameters` is an Effect Schema: full type safety with validation
  * - When `parameters` is a JSON Schema: handler receives `unknown`, no validation
@@ -1348,6 +1415,8 @@ export const dynamic: {
 /**
  * Creates a provider-defined tool which leverages functionality built into a
  * large language model provider (e.g. web search, code execution).
+ *
+ * **Details**
  *
  * These tools are executed by the large language model provider rather than
  * by your application. However, they can optionally require custom handlers
@@ -1478,6 +1547,8 @@ export const providerDefined = <
  * A utility which allows mapping between a provider-defined name for a tool
  * and the name given to the tool by the Effect AI SDK.
  *
+ * **Details**
+ *
  * The custom names used by the Effect AI SDK are to allow for toolkits which
  * contain tools from multiple different providers that would otherwise have
  * naming conflicts (i.e. `"web_search"`) to instead use custom names (i.e.
@@ -1517,6 +1588,8 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
    * Returns the user-specified tool name that corresponds with the provided
    * provider-specified tool name.
    *
+   * **Details**
+   *
    * If the provider-specified tool name was not registered with the name mapper,
    * then the provider-specified tool name is returned.
    */
@@ -1528,6 +1601,8 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
    * Returns the provider-specified tool name that corresponds with the provided
    * user-specified tool name.
    *
+   * **Details**
+   *
    * If the user-specified tool name was not registered with the name mapper,
    * then the user-specified tool name is returned.
    */
@@ -1538,6 +1613,8 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
 
 /**
  * Extracts the description from a tool's metadata.
+ *
+ * **Details**
  *
  * Returns the tool's description if explicitly set, otherwise attempts to
  * extract it from the parameter schema's AST annotations.
@@ -1570,6 +1647,8 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
 
 /**
  * Generates a JSON Schema for a tool.
+ *
+ * **Details**
  *
  * This function creates a JSON Schema representation that can be used by
  * large language models to indicate the structure and type of the parameters
@@ -1618,6 +1697,8 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
 
 /**
  * Generates a JSON Schema from an Effect `Schema`.
+ *
+ * **Details**
  *
  * If a `CodecTransformer` is supplied, the transformed schema's JSON Schema is
  * returned. Otherwise, the schema is converted with
@@ -1681,6 +1762,8 @@ export class Meta extends Context.Service<Meta, Record<string, unknown>>()("effe
 /**
  * Annotation indicating whether a tool only reads data without making changes.
  *
+ * **Details**
+ *
  * This is emitted as the MCP `readOnlyHint`; unannotated tools default to
  * `false`.
  *
@@ -1702,6 +1785,8 @@ export const Readonly = Context.Reference<boolean>("effect/ai/Tool/Readonly", {
 
 /**
  * Annotation indicating whether a tool may perform destructive operations.
+ *
+ * **Details**
  *
  * This is emitted as the MCP `destructiveHint`; unannotated tools default to
  * `true`, so annotate safe tools with `false`.
@@ -1726,6 +1811,8 @@ export const Destructive = Context.Reference<boolean>("effect/ai/Tool/Destructiv
  * Annotation indicating whether a tool can be called repeatedly with the same
  * parameters without changing the result beyond the first call.
  *
+ * **Details**
+ *
  * This is emitted as the MCP `idempotentHint`; unannotated tools default to
  * `false`.
  *
@@ -1749,6 +1836,8 @@ export const Idempotent = Context.Reference<boolean>("effect/ai/Tool/Idempotent"
  * Annotation indicating whether a tool may interact with arbitrary external
  * data or systems.
  *
+ * **Details**
+ *
  * This is emitted as the MCP `openWorldHint`; unannotated tools default to
  * `true`.
  *
@@ -1770,6 +1859,8 @@ export const OpenWorld = Context.Reference<boolean>("effect/ai/Tool/OpenWorld", 
 
 /**
  * Annotation controlling whether strict JSON schema mode is enabled for a tool.
+ *
+ * **Details**
  *
  * When `true`, providers that support strict mode will send `strict: true` to
  * the model API (e.g. OpenAI's Structured Outputs).
@@ -1797,6 +1888,18 @@ export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Str
 
 /**
  * Returns the strict mode setting for a tool, or `undefined` if not set.
+ *
+ * **When to use**
+ *
+ * Use to inspect the per-tool strict JSON Schema override attached through
+ * `Tool.Strict`.
+ *
+ * **Gotchas**
+ *
+ * `undefined` means no per-tool override is set. It is distinct from `false`;
+ * provider or global configuration determines the final behavior.
+ *
+ * @see {@link Strict} for the annotation read by this helper
  *
  * @category utils
  * @since 4.0.0
@@ -1880,8 +1983,17 @@ function filter(obj: any) {
 }
 
 /**
- * **Unsafe**: This function will throw an error if an insecure property is
- * found in the parsed JSON or if the provided JSON text is not parseable.
+ * Parses JSON text while rejecting prototype-pollution keys.
+ *
+ * **When to use**
+ *
+ * Use when thrown parse and security failures are acceptable.
+ *
+ * **Gotchas**
+ *
+ * Invalid JSON throws through `JSON.parse`. Parsed objects containing an own
+ * `__proto__` property or a dangerous `constructor.prototype` shape throw a
+ * `SyntaxError`.
  *
  * @category utils
  * @since 4.0.0
@@ -1900,6 +2012,8 @@ export const unsafeSecureJsonParse = (text: string): unknown => {
 /**
  * Type of the `EmptyParams` schema used for tools with no parameters.
  *
+ * **Details**
+ *
  * It is a record schema with string keys and `never` values, so the generated
  * parameter schema accepts an empty object shape with no properties.
  *
@@ -1910,6 +2024,17 @@ export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never>
 
 /**
  * A schema for tools that accept no parameters.
+ *
+ * **When to use**
+ *
+ * Use when a tool needs an explicit no-parameter `parameters` schema.
+ *
+ * **Details**
+ *
+ * This is `Schema.Record(Schema.String, Schema.Never)`, representing an empty
+ * object parameter shape with no additional properties.
+ *
+ * @see {@link make} for the tool constructor that defaults omitted parameters to this schema
  *
  * @category schemas
  * @since 4.0.0

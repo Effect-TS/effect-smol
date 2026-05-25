@@ -1,20 +1,38 @@
 /**
- * PostgreSQL client implementation for Effect SQL, backed by `pg`.
+ * PostgreSQL driver for Effect SQL, backed by the `pg` package.
  *
- * This module exposes constructors for creating a scoped `PgClient` from a
- * managed `pg` pool, a single managed `pg` client, or lower-level connection
- * acquirers. The resulting service can be provided as both `PgClient` and the
- * generic `SqlClient`, and is intended for application database access,
- * migrations, transactional workflows, row streaming, JSON parameters, and
- * PostgreSQL LISTEN/NOTIFY integration.
+ * Use this module to provide a {@link PgClient} and the generic `SqlClient`
+ * service from pool settings, a single managed `pg.Client`, an existing
+ * `pg.Pool`, or custom connection acquirers. The client uses Effect SQL's
+ * PostgreSQL compiler, classifies common PostgreSQL failures as `SqlError`s,
+ * and adds PostgreSQL-specific JSON fragments plus LISTEN/NOTIFY operations.
  *
- * Pool-backed clients acquire connections per operation and reserve dedicated
- * connections for transactions and cursor streams. Clients built from one
- * `pg.Client` serialize shared access; enable `acquireForStream` when streams
- * or listeners need their own client instead of sharing the query connection.
- * LISTEN uses a scoped long-lived client and automatically issues `UNLISTEN`
- * when the stream scope closes, so listeners should be scoped for as long as
- * notifications are needed.
+ * ## Mental model
+ *
+ * Pool-backed clients acquire a connection for each operation. Transactions and
+ * cursor streams keep a dedicated connection for their scope, so they consume
+ * pool capacity while active. Clients built from one `pg.Client` serialize
+ * query access through that client; set `acquireForStream` in
+ * {@link makeClient} when streams or listeners need separate clients.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} with concrete pool settings, or {@link layerConfig} when
+ *   settings should come from `Config`.
+ * - Use {@link make} for a scoped pool-backed client without immediately
+ *   turning it into a layer.
+ * - Use {@link fromPool} or {@link fromClient} when another component owns
+ *   acquisition of the underlying `pg` resources.
+ * - Use `client.json`, `client.listen`, and `client.notify` for
+ *   PostgreSQL-specific values and notifications.
+ *
+ * ## Gotchas
+ *
+ * LISTEN opens a scoped long-lived client and issues `UNLISTEN` when the stream
+ * scope closes, so keep listener streams scoped for exactly the period
+ * notifications are needed. Long-running transactions, streams, and listeners
+ * can hold onto database connections even while other fibers continue to use
+ * the same `PgClient`.
  *
  * @since 4.0.0
  */

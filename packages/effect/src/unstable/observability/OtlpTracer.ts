@@ -43,8 +43,9 @@ import * as OtlpResource from "./OtlpResource.ts"
 import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
- * Creates a `Tracer` that exports ended sampled spans to an OTLP traces
- * endpoint.
+ * Creates a `Tracer` that exports ended sampled spans to an OTLP traces endpoint.
+ *
+ * **Details**
  *
  * Spans are batched using the configured interval and batch size, serialized
  * with `OtlpSerialization`, and flushed when the surrounding `Scope` closes.

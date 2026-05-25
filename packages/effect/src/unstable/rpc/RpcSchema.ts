@@ -1,25 +1,35 @@
 /**
- * The `RpcSchema` module contains the RPC-specific schema markers and cause
- * annotations shared by the RPC declaration, client, and server layers. It is
- * used when an RPC response is a `Stream`, and when server-side interruption
- * logic needs to identify a client-initiated abort.
+ * RPC schema markers and interruption annotations.
  *
- * Use {@link Stream} to mark an RPC success schema as a streamed response,
- * {@link isStreamSchema} to detect that marker, and the stored success and
- * error schemas to encode or decode stream chunks. Request payload schemas live
- * on the `Rpc` definition itself; this module only describes the streamed
- * response shape. For streaming RPCs, the success schema passed to
- * `RpcSchema.Stream` is the stream element schema, while the error schema is
- * the stream error schema. When the marker is installed by the `Rpc`
- * constructor's `stream` option, the immediate RPC exit succeeds with `void`,
- * the ordinary RPC error schema is set to `Schema.Never`, and the stream error
- * schema is used for stream failures.
- *
- * Streaming schemas are not general-purpose codecs for arbitrary stream values:
- * they are RPC metadata that lets the protocol distinguish one-shot successes
- * from streamed elements and keep stream errors on the chunk stream. Use
- * {@link ClientAbort} when annotating interruptions caused by a remote client
+ * This module contains the small pieces of schema metadata that the RPC
+ * declaration, client, server, cluster, and reactivity layers share. It marks
+ * streamed responses and annotates interruptions that came from a remote client
  * closing or cancelling a request.
+ *
+ * **Mental model**
+ *
+ * A streaming RPC still has a normal RPC exit, but its success schema is marked
+ * with {@link Stream}. The marker stores the stream element schema and the
+ * stream error schema so transports can encode and decode each chunk while
+ * keeping stream failures on the chunk stream.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link Stream} when constructing RPC metadata directly
+ * - Use {@link isStreamSchema} to branch between one-shot and streaming
+ *   responses in protocol implementations
+ * - Read the stored `success` and `error` schemas when encoding or decoding
+ *   stream chunks
+ * - Use {@link ClientAbort} to tag interruptions caused by client disconnects
+ *
+ * **Gotchas**
+ *
+ * - `Rpc.make(..., { stream: true })` installs this marker for you
+ * - For streaming RPCs, the immediate RPC exit succeeds with `void`; stream
+ *   elements and stream errors are encoded separately
+ * - Request payload schemas live on the `Rpc` definition, not in this module
+ * - `Stream` is RPC metadata, not a general-purpose codec for arbitrary
+ *   `Stream` values
  *
  * @since 4.0.0
  */

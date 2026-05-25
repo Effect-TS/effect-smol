@@ -139,6 +139,8 @@ export type TimeToLiveFn<K extends Any> = (exit: Exit.Exit<Success<K>, Error<K>>
 /**
  * Creates request classes that implement `Persistable` and `Request.Request`.
  *
+ * **Details**
+ *
  * The generated class stores the supplied tag, derives its primary key from
  * the payload, and carries schemas for persisted success and error exits.
  *

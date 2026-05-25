@@ -1,17 +1,49 @@
 /**
- * The `EmbeddingModel` module provides provider-agnostic text embedding capabilities.
+ * The `EmbeddingModel` module defines the provider-neutral service for turning
+ * text into embedding vectors. It exposes single-input `embed` and ordered
+ * batch `embedMany` operations, and keeps provider failures represented as
+ * `AiError` values.
  *
- * **Example** (Embedding text with a model)
+ * **Mental model**
+ *
+ * Providers supply one batch embedding function through `make`. The module
+ * derives single-input `embed` calls from a request resolver, so concurrent
+ * single-input requests can be batched into one provider call. Provider
+ * vectors are wrapped as `EmbedResponse` values, while `EmbedManyResponse`
+ * preserves input order and carries token usage when the provider reports it.
+ *
+ * **Common tasks**
+ *
+ * - Build an `EmbeddingModel` service from a provider implementation.
+ * - Use `embed` for one query or document, and `embedMany` when the caller
+ *   already has a batch.
+ * - Read `Dimensions` when downstream code needs the configured vector size.
+ *
+ * **Example** (Building a small embedding model)
  *
  * ```ts
  * import { Effect } from "effect"
  * import { EmbeddingModel } from "effect/unstable/ai"
  *
  * const program = Effect.gen(function*() {
- *   const model = yield* EmbeddingModel.EmbeddingModel
- *   return yield* model.embed("hello world")
+ *   const model = yield* EmbeddingModel.make({
+ *     embedMany: ({ inputs }) =>
+ *       Effect.succeed({
+ *         results: inputs.map((input) => [input.length]),
+ *         usage: { inputTokens: inputs.join(" ").length }
+ *       })
+ *   })
+ *
+ *   const response = yield* model.embed("hello")
+ *   return response.vector
  * })
  * ```
+ *
+ * **Gotchas**
+ *
+ * - `embedMany([])` returns an empty response without invoking the provider.
+ * - Provider batch responses must contain exactly one vector for each input,
+ *   in the same order as the input array.
  *
  * @since 4.0.0
  */
@@ -26,6 +58,15 @@ import * as AiError from "./AiError.ts"
 /**
  * Service tag for embedding model operations.
  *
+ * **When to use**
+ *
+ * Use to retrieve or provide an `EmbeddingModel.Service` when an `Effect`
+ * program needs to embed text into vectors.
+ *
+ * @see {@link Service} for the service contract provided by this tag
+ * @see {@link make} for constructing an embedding model service from a provider
+ * @see {@link Dimensions} for the current embedding vector size service
+ *
  * @category services
  * @since 4.0.0
  */
@@ -36,6 +77,13 @@ export class EmbeddingModel extends Context.Service<EmbeddingModel, Service>()(
 /**
  * Service tag that provides the current embedding dimensions.
  *
+ * **When to use**
+ *
+ * Use to retrieve or provide the configured embedding vector size through
+ * context.
+ *
+ * @see {@link EmbeddingModel} for the embedding service that uses these dimensions
+ *
  * @category services
  * @since 4.0.0
  */
@@ -45,6 +93,12 @@ export class Dimensions extends Context.Service<Dimensions, number>()(
 
 /**
  * Token usage metadata for embedding operations.
+ *
+ * **Details**
+ *
+ * Contains optional provider-reported `inputTokens`. The value may be
+ * `undefined` when the provider does not report usage or when `embedMany([])`
+ * bypasses the provider.
  *
  * @category models
  * @since 4.0.0
@@ -68,7 +122,15 @@ export class EmbedResponse extends Schema.Class<EmbedResponse>(
 }) {}
 
 /**
- * Response for multiple embeddings.
+ * Batch embedding response containing per-input embeddings and usage metadata.
+ *
+ * **Details**
+ *
+ * `embeddings` preserves batch order, and `usage` carries token metadata for
+ * the operation.
+ *
+ * @see {@link EmbedResponse} for individual embedding responses
+ * @see {@link EmbeddingUsage} for token usage metadata
  *
  * @category models
  * @since 4.0.0
@@ -106,6 +168,15 @@ export interface ProviderResponse {
 /**
  * Tagged request used by request resolvers for embedding operations.
  *
+ * **When to use**
+ *
+ * Use when building or calling a low-level embedding request resolver and you
+ * need a typed request for one input that resolves to `EmbedResponse`.
+ *
+ * @see {@link Service} for the resolver-bearing service contract
+ * @see {@link make} for constructing the request resolver from a provider implementation
+ * @see {@link EmbedResponse} for the response produced by this request
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -136,6 +207,30 @@ const invalidProviderResponse = (description: string): AiError.AiError =>
 
 /**
  * Creates an EmbeddingModel service from a provider embedMany implementation.
+ *
+ * **When to use**
+ *
+ * Use to adapt a provider's batch embedding implementation into an
+ * `EmbeddingModel.Service` that offers single-input and batch embedding
+ * operations.
+ *
+ * **Details**
+ *
+ * The returned service builds single-input `embed` calls through a request
+ * resolver, so concurrent `embed` requests can be batched into one provider
+ * `embedMany` call. Direct `embedMany` calls pass the input array to the
+ * provider, while `embedMany([])` returns an empty response without calling the
+ * provider.
+ *
+ * **Gotchas**
+ *
+ * Provider responses are interpreted positionally and must contain exactly one
+ * result for each requested input. If the provider returns a different number
+ * of results, `embed` and `embedMany` fail with `AiError.InvalidOutputError`.
+ *
+ * @see {@link Service} for the service shape returned by this constructor
+ * @see {@link ProviderOptions} for the input passed to the provider implementation
+ * @see {@link ProviderResponse} for the provider response contract consumed by this constructor
  *
  * @category constructors
  * @since 4.0.0

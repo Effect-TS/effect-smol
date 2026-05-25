@@ -1,28 +1,52 @@
 /**
- * The `HttpApiMiddleware` module defines middleware services that can wrap
- * `HttpApi` endpoint execution on the server and request execution in generated
- * clients.
+ * The `HttpApiMiddleware` module defines middleware service keys for
+ * declarative HTTP APIs. Middleware wraps endpoint execution on the server and,
+ * when required by an API, can also wrap requests made by generated clients.
  *
- * Use this module for cross-cutting HTTP API behavior such as authentication and
- * authorization, request logging or tracing, rate limiting, adding request-scoped
- * services to the endpoint context, normalizing schema errors, or installing
- * client-side request middleware for APIs that require the same concern on both
- * sides. Middleware services carry type-level metadata describing the services
- * they require and provide, the error schemas they may fail with, whether they
- * implement security schemes, and whether generated clients must provide a
- * matching client middleware.
+ * Middleware is where you put cross-cutting behavior that belongs to the API
+ * contract: authentication, authorization, request logging, tracing, rate
+ * limiting, request-scoped services, schema-error normalization, and client
+ * request decoration.
  *
- * Security middleware is declared with non-empty `security` schemes and receives
- * decoded credentials from `HttpApiSecurity`; ordinary middleware receives only
- * endpoint and group metadata. Error declarations must be `Schema` values (or an
- * array of them) because middleware failures are added to the endpoint error
- * surface and must be encodable by the HTTP API builder. If a middleware turns
- * `HttpApiSchemaError` failures into API errors, use
- * `layerSchemaErrorTransform` and make sure the transformed error is covered by
- * the middleware's declared schema. Client middleware installed with
- * `layerClient` is made available through the `ForClient` marker and captures
- * its surrounding context, so client requirements should be declared explicitly
- * when `requiredForClient` is enabled.
+ * **Mental model**
+ *
+ * - A middleware is declared with {@link Service}; the declaration is both a
+ *   `Context.Service` key and a typed description of the middleware contract.
+ * - Server implementations receive the endpoint response effect plus endpoint
+ *   and group metadata. Security middleware also receives decoded credentials
+ *   from the configured `HttpApiSecurity` scheme.
+ * - The service metadata records provided services, required services, declared
+ *   error schemas, client error types, security schemes, and whether generated
+ *   clients must install a matching client middleware.
+ * - Client middleware is published through the {@link ForClient} marker by
+ *   {@link layerClient} and participates in the generated client's request
+ *   pipeline.
+ *
+ * **Common tasks**
+ *
+ * - Declare middleware services with {@link Service}.
+ * - Detect security middleware with {@link isSecurity}.
+ * - Convert `HttpApiSchemaError` failures into declared API errors with
+ *   {@link layerSchemaErrorTransform}.
+ * - Install a generated-client middleware with {@link layerClient}.
+ *
+ * **Gotchas**
+ *
+ * - Middleware error declarations must be `Schema` values, or arrays of
+ *   `Schema` values, because builders and clients encode and decode them as
+ *   part of the endpoint error surface.
+ * - A security middleware must declare at least one security scheme. Ordinary
+ *   middleware does not receive credentials.
+ * - A schema-error transform must fail with an error covered by the middleware's
+ *   declared error schema.
+ * - `requiredForClient` adds a client-side requirement. Provide it with
+ *   {@link layerClient}; the layer captures its surrounding context.
+ *
+ * **See also**
+ *
+ * - {@link Service} for declaring middleware service keys.
+ * - {@link layerSchemaErrorTransform} for mapping schema failures.
+ * - {@link layerClient} for generated-client middleware.
  *
  * @since 4.0.0
  */
@@ -66,6 +90,8 @@ type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Top> ? E[numb
 /**
  * Server-side middleware function for an HTTP API endpoint.
  *
+ * **Details**
+ *
  * It receives the endpoint response effect and endpoint/group metadata, and returns
  * a new response effect that may require additional services and fail with the
  * middleware's declared error schema.
@@ -83,6 +109,8 @@ export type HttpApiMiddleware<Provides, E extends ErrorConstraint, Requires> = (
 
 /**
  * Server-side middleware implementations for one or more security schemes.
+ *
+ * **Details**
  *
  * Each property handles the credential decoded for that scheme and wraps the
  * endpoint response effect with the middleware's declared requirements and errors.
@@ -112,6 +140,8 @@ export type HttpApiMiddlewareSecurity<
 
 /**
  * Client-side middleware function for generated HTTP API clients.
+ *
+ * **Details**
  *
  * It receives endpoint/group metadata, the outgoing request, and a `next` function
  * for continuing the request pipeline.
@@ -269,6 +299,8 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
 /**
  * Class type produced by `Service` for an HTTP API middleware service.
  *
+ * **Details**
+ *
  * It combines a `Context.Service` class with the middleware metadata used by
  * endpoints, builders, and generated clients.
  *
@@ -314,7 +346,9 @@ export type ServiceClass<
 /**
  * Creates a `Context.Service` class for an HTTP API middleware implementation.
  *
- * Use the optional configuration to declare required services, provided services,
+ * **When to use**
+ *
+ * Use when you use the optional configuration to declare required services, provided services,
  * typed error schemas, security schemes, client errors, and whether generated
  * clients must provide a matching client middleware.
  *
@@ -390,6 +424,8 @@ function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Top> {
 /**
  * Creates a middleware layer that transforms `HttpApiSchemaError` failures.
  *
+ * **Details**
+ *
  * The middleware catches schema errors produced while running an endpoint and uses
  * the supplied `transform` function to convert them into the middleware's declared
  * error schema.
@@ -444,6 +480,8 @@ export const layerSchemaErrorTransform = <Id, E extends ErrorConstraint, Require
 
 /**
  * Provides a client-side middleware implementation for a middleware that is required by generated clients.
+ *
+ * **Details**
  *
  * The layer captures the surrounding services and makes the middleware available
  * through the `ForClient` service marker used by HTTP API clients.

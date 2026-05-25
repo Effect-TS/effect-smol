@@ -1,7 +1,35 @@
 /**
- * The `Toolkit` module allows for creating and implementing a collection of
- * `Tool`s which can be used to enhance the capabilities of a large language
- * model beyond simple text generation.
+ * The `Toolkit` module groups AI `Tool` definitions into a single typed service
+ * that can execute tool calls by name. A toolkit is the runtime bridge between
+ * declarative tool schemas and the handler functions your application provides
+ * for a language model workflow.
+ *
+ * **Mental model**
+ *
+ * - A `Tool` describes one callable operation: its name, parameter schema,
+ *   success schema, and failure behavior.
+ * - A `Toolkit` is a record of tools that also carries the handler requirements
+ *   needed to execute those tools.
+ * - `toolkit.toLayer(...)` and `toolkit.toHandlers(...)` bind handlers into
+ *   `Context`, so yielding a toolkit produces a value with a `handle` function.
+ * - `handle` validates parameters, runs the matching handler, and returns a
+ *   `Stream` of preliminary and final encoded results.
+ *
+ * **Common tasks**
+ *
+ * - Build a toolkit from tools: {@link make}
+ * - Merge independently defined toolkits: {@link merge}
+ * - Provide handlers with `toolkit.toLayer(...)` or `toolkit.toHandlers(...)`
+ * - Emit progress from a long-running handler with `context.preliminary(...)`
+ *
+ * **Gotchas**
+ *
+ * - Tool names are runtime lookup keys. When toolkits are merged, later tools
+ *   replace earlier tools with the same name.
+ * - Handler output is validated and encoded against the tool schemas; invalid
+ *   output is reported as an AI error.
+ * - The result of `handle` is a stream because handlers can emit preliminary
+ *   results before the final value.
  *
  * **Example** (Creating and implementing toolkits)
  *
@@ -149,6 +177,8 @@ export interface HandlerContext<Tool extends Tool.Any> {
   /**
    * Emit a preliminary result during long-running tool calls.
    *
+   * **Details**
+   *
    * Preliminary results are streamed to the caller before the handler completes,
    * enabling real-time progress updates for lengthy operations.
    */
@@ -190,6 +220,8 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
 /**
  * A utility type that maps tool names to their required handler functions.
  *
+ * **Details**
+ *
  * Handlers can return either the tool's custom failure type, an `AiErrorReason`
  * (which will be wrapped in `AiError`), or a full `AiError`.
  *
@@ -221,6 +253,8 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
 
   /**
    * Executes a tool call by name.
+   *
+   * **Details**
    *
    * Validates the input parameters, executes the corresponding handler, and
    * streams back both the typed result and encoded result. Streaming allows
@@ -461,7 +495,9 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
 /**
  * An empty toolkit with no tools.
  *
- * Useful as a starting point for building toolkits or as a default value. Can
+ * **When to use**
+ *
+ * Use as a starting point for building toolkits or as a default value. Can
  * be extended using the merge function to add tools.
  *
  * @category constructors
@@ -471,6 +507,8 @@ export const empty: Toolkit<{}> = makeProto({})
 
 /**
  * Creates a new toolkit from the specified tools.
+ *
+ * **Details**
  *
  * This is the primary constructor for creating toolkits. It accepts multiple
  * tools and organizes them into a toolkit that can be provided to AI language
@@ -540,6 +578,8 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
 
 /**
  * Merges multiple toolkits into a single toolkit.
+ *
+ * **Details**
  *
  * Combines all tools from the provided toolkits into one unified toolkit.
  * If there are naming conflicts, tools from later toolkits will override

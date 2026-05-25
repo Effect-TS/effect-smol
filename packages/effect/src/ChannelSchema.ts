@@ -53,8 +53,18 @@ import * as Schema from "./Schema.ts"
  * Creates a channel that encodes non-empty chunks of schema values into the
  * schema's encoded representation.
  *
+ * **When to use**
+ *
+ * Use to encode typed channel input into the schema's encoded representation
+ * before passing chunks to an encoded downstream boundary.
+ *
+ * **Details**
+ *
  * Encoding failures are emitted as `SchemaError`, and any encoding services
  * required by the schema become channel requirements.
+ *
+ * @see {@link encodeUnknown} for encoded output chunks that should be typed as `unknown`
+ * @see {@link decode} for the inverse channel that decodes encoded chunks into schema values
  *
  * @category constructors
  * @since 4.0.0
@@ -79,9 +89,12 @@ export const encode = <S extends Schema.Top>(
  * Creates an `encode` channel variant whose encoded output chunks are typed as
  * `unknown`.
  *
- * Use this at channel boundaries where the encoded representation is
- * intentionally untyped, while still encoding typed input chunks with the
- * provided schema.
+ * **When to use**
+ *
+ * Use when a channel boundary should encode typed input chunks while the encoded
+ * output representation is intentionally untyped.
+ *
+ * @see {@link encode} for the variant that preserves the schema encoded type
  *
  * @category constructors
  * @since 4.0.0
@@ -102,8 +115,18 @@ export const encodeUnknown: <S extends Schema.Top>(
  * Creates a channel that decodes non-empty chunks from the schema's encoded
  * representation into schema values.
  *
+ * **When to use**
+ *
+ * Use to validate and decode encoded channel output into typed schema values
+ * before application code consumes it.
+ *
+ * **Details**
+ *
  * Decoding failures are emitted as `SchemaError`, and any decoding services
  * required by the schema become channel requirements.
+ *
+ * @see {@link decodeUnknown} for boundaries where the encoded input side is intentionally untyped
+ * @see {@link encode} for the inverse adapter that encodes typed schema values
  *
  * @category constructors
  * @since 4.0.0
@@ -127,9 +150,18 @@ export const decode = <S extends Schema.Top>(
 /**
  * Creates a `decode` channel variant for schema-decoding channel boundaries.
  *
+ * **When to use**
+ *
+ * Use when the encoded input type is intentionally unknown or untyped, so
+ * that only the decoded output is statically typed according to the schema.
+ *
+ * **Details**
+ *
  * The channel decodes non-empty encoded chunks into schema values, emits
  * `SchemaError` when decoding fails, and requires the schema's decoding
  * services.
+ *
+ * @see {@link decode} for the typed variant that preserves the schema's encoded type
  *
  * @category constructors
  * @since 4.0.0
@@ -150,10 +182,21 @@ export const decodeUnknown: <S extends Schema.Top>(
  * Wraps a channel so callers work with typed input and output chunks while the
  * wrapped channel uses encoded chunks.
  *
+ * **When to use**
+ *
+ * Use to expose typed input and output at a bidirectional channel boundary
+ * while the wrapped channel continues to operate on schema-encoded chunks.
+ *
+ * **Details**
+ *
  * Values sent into the resulting channel are encoded with `inputSchema` before
  * reaching the wrapped channel. Values emitted by the wrapped channel are
  * decoded with `outputSchema` before they are emitted downstream. Schema
  * failures are surfaced as `SchemaError`.
+ *
+ * @see {@link duplexUnknown} for the variant whose encoded side is intentionally untyped
+ * @see {@link encode} for encoding typed chunks at one-way channel boundaries
+ * @see {@link decode} for decoding encoded chunks at one-way channel boundaries
  *
  * @category combinators
  * @since 4.0.0
@@ -235,9 +278,19 @@ export const duplex: {
 /**
  * Like `duplex`, but for channels whose encoded side is not statically typed.
  *
+ * **When to use**
+ *
+ * Use when a bidirectional channel crosses an encoded boundary whose chunk types
+ * are intentionally erased, while callers should send and receive schema-typed
+ * chunks.
+ *
+ * **Details**
+ *
  * The resulting channel accepts typed input chunks, encodes them with
  * `inputSchema`, decodes unknown output chunks with `outputSchema`, and
  * surfaces schema failures as `SchemaError`.
+ *
+ * @see {@link duplex} for the variant that preserves the schema encoded types on the wrapped channel
  *
  * @category combinators
  * @since 4.0.0

@@ -1,24 +1,42 @@
 /**
- * The `Reactivity` module provides an in-memory service for connecting writes to
- * dependent reads through explicit invalidation keys. It is useful for keeping
- * query results, UI subscriptions, read models, or other derived views fresh
- * after mutations without coupling the writer to every consumer that should
- * rerun.
+ * The `Reactivity` module provides process-local invalidation for connecting
+ * writes to dependent reads. It does not cache values itself; it tracks keys,
+ * registers query handlers, and reruns effects when matching keys are
+ * invalidated so queues, streams, UI subscriptions, and read models can stay
+ * fresh after successful writes.
  *
- * Reads are modeled with {@link query} and {@link stream}: the effect runs once
- * immediately and then runs again whenever one of its keys is invalidated.
- * Writes can use {@link mutation} to invalidate keys only after the wrapped
- * effect succeeds, or call {@link invalidate} directly. Keys may be supplied as
- * a flat collection or as a record of namespaces with ids, which lets callers
- * invalidate both broad groups and individual records.
+ * **Mental model**
  *
- * The service tracks handlers by hashed keys and does not cache values by
- * itself; consumers receive fresh queue or stream emissions and decide how to
- * store them. Registrations are tied to the surrounding scope, failures from a
- * query fail the queue or stream, and invalidations that arrive while a query is
- * already running schedule a single follow-up run. Use stable key values, be
- * aware that the default layer is process-local, and use the {@link Reactivity}
- * service when many invalidations should be coalesced until the batch exits.
+ * A query registers one or more keys, runs once immediately, and publishes each
+ * result to a queue or stream. Invalidating any registered key schedules the
+ * query to rerun. Mutations wrap an effect and invalidate keys only after it
+ * succeeds. Keys can be a flat array, or a record whose property names act as
+ * broad namespaces and whose ids address individual records.
+ *
+ * **Common tasks**
+ *
+ * - Provide the default in-memory service with {@link layer}.
+ * - Use {@link query} when callers need a queue of rerun results.
+ * - Use {@link stream} when downstream code should consume reruns as a stream.
+ * - Wrap writes with {@link mutation}, or call {@link invalidate} directly when
+ *   invalidation is already part of the workflow.
+ * - Use the {@link Reactivity} service directly when many invalidations should
+ *   be coalesced until a batch exits.
+ *
+ * **Gotchas**
+ *
+ * - The default layer is process-local; it does not coordinate invalidations
+ *   across processes or cluster runners.
+ * - Non-primitive keys are matched by their `Hash.hash` value, so prefer stable
+ *   key values over mutable objects.
+ * - If a query fails, its queue or stream fails with the same cause.
+ * - Invalidations that arrive while a query is already running coalesce into one
+ *   follow-up run.
+ *
+ * **See also**
+ *
+ * - {@link query}, {@link stream}, {@link mutation}, and {@link invalidate}
+ * - {@link layer} and {@link Reactivity}
  *
  * @since 4.0.0
  */
@@ -37,9 +55,11 @@ import * as Stream from "../../Stream.ts"
 /**
  * A service for key-based reactive invalidation.
  *
- * It can register handlers for keys, invalidate those keys, wrap mutations so
- * successful effects invalidate keys, and turn query effects into queues or
- * streams that rerun when keys are invalidated.
+ * **Details**
+ *
+ * The service can register handlers for keys, invalidate those keys, wrap
+ * mutations so successful effects invalidate keys, and turn query effects into
+ * queues or streams that rerun when keys are invalidated.
  *
  * @category tags
  * @since 4.0.0
@@ -73,6 +93,8 @@ export class Reactivity extends Context.Service<
 
 /**
  * Creates an in-memory `Reactivity` service.
+ *
+ * **Details**
  *
  * The service tracks handlers by hashed keys and runs the registered handlers when
  * matching keys are invalidated.
@@ -222,6 +244,8 @@ class PendingInvalidation extends Context.Service<PendingInvalidation, Set<strin
 /**
  * Wraps an effect so the supplied keys are invalidated after the effect succeeds.
  *
+ * **Gotchas**
+ *
  * If the effect fails, the keys are not invalidated.
  *
  * @category accessors
@@ -242,6 +266,8 @@ export const mutation: {
 
 /**
  * Runs an effect as a query tied to the supplied invalidation keys.
+ *
+ * **Details**
  *
  * The returned queue receives the initial result and each later result after the
  * keys are invalidated. The registration is removed when the current scope closes.
@@ -269,6 +295,8 @@ export const query: {
  * Runs an effect as a stream of query results tied to the supplied invalidation
  * keys.
  *
+ * **Details**
+ *
  * The effect runs initially and reruns whenever the keys are invalidated.
  *
  * @category accessors
@@ -293,6 +321,8 @@ export const stream: {
 
 /**
  * Invalidates the supplied keys through the `Reactivity` service.
+ *
+ * **Details**
  *
  * Registered queries for matching keys are rerun immediately, or collected until
  * the enclosing reactivity batch completes.

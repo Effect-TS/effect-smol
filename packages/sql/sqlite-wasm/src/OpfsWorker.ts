@@ -1,22 +1,42 @@
 /**
- * Worker-side entry point for SQLite WASM databases stored in the browser
- * Origin Private File System.
+ * Worker-side entry point for SQLite WASM databases stored in the browser's
+ * Origin Private File System (OPFS).
  *
  * This module opens `@effect/wa-sqlite` with the OPFS access-handle VFS and
- * serves the message protocol used by `SqliteClient.make`. Run it from a
- * dedicated worker, or from a `SharedWorker` connection port, when an
- * application needs durable local SQLite storage for local-first data, offline
- * caches, client-side migrations, or import/export workflows that keep the
- * database off the main thread.
+ * serves the message protocol used by the worker-backed SQLite WASM client.
+ * Run it from a dedicated worker, or from a `SharedWorker` connection port, to
+ * keep durable local SQLite storage off the main thread while preserving the
+ * database in OPFS.
  *
- * The worker owns the SQLite connection for the lifetime of `run`: it posts a
- * `ready` message after opening the database, responds to query, import,
- * export, and update-hook messages, and releases the database when the client
- * sends `close` or the surrounding scope is interrupted. Because OPFS support
- * depends on the browser and origin, applications should start this worker only
- * in supported secure contexts, close unused ports so access handles are
- * released, and coordinate multiple tabs or workers before opening or migrating
- * the same OPFS database.
+ * **Mental model**
+ *
+ * - {@link run} owns one SQLite connection for one OPFS database name.
+ * - The worker posts `ready` after opening the database and then handles the
+ *   client protocol for SQL statements, import, export, update hooks, and
+ *   close.
+ * - The port in {@link OpfsWorkerConfig} is the only communication channel
+ *   between the client and the worker loop.
+ * - Closing the port, sending `close`, or interrupting the surrounding scope
+ *   releases the SQLite database handle.
+ *
+ * **Common tasks**
+ *
+ * Use this module for local-first browser data, offline caches,
+ * client-side migrations, and import/export workflows that need OPFS
+ * durability. Start {@link run} in the worker script, then connect the
+ * application through the worker-backed `SqliteClient` constructor.
+ *
+ * **Gotchas**
+ *
+ * OPFS requires browser support and a secure origin. Coordinate multiple tabs
+ * or workers before opening or migrating the same database, because this module
+ * owns a single connection and does not provide cross-tab locking. Close unused
+ * ports so access handles are released promptly.
+ *
+ * **See also**
+ *
+ * - {@link OpfsWorkerConfig} for the required worker port and database name.
+ * - {@link run} for starting the worker message loop.
  *
  * @since 4.0.0
  */

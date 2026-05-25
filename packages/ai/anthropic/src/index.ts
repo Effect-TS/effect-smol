@@ -54,9 +54,9 @@ export * as AnthropicError from "./AnthropicError.ts"
  * and converts Anthropic responses and streams back into Effect AI response
  * parts with Anthropic-specific metadata.
  *
- * **Common tasks**
+ * **When to use**
  *
- * - Create an Anthropic-backed model with {@link model}
+ * Use when create an Anthropic-backed model with {@link model}
  * - Build or provide a `LanguageModel.LanguageModel` layer with {@link layer}
  *   or {@link make}
  * - Supply default request options through {@link Config}

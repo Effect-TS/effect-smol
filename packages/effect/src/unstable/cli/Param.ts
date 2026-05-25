@@ -50,6 +50,8 @@ const TypeId = "~effect/cli/Param"
 /**
  * Polymorphic CLI parameter shared by `Argument` and `Flag`.
  *
+ * **Details**
+ *
  * A parameter knows whether it consumes positional arguments or flags and
  * parses a `ParsedArgs` value into its typed result.
  *
@@ -83,6 +85,14 @@ export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal 
 /**
  * Kind discriminator for positional argument parameters.
  *
+ * **When to use**
+ *
+ * Use to build low-level `Param` constructors or type positions for positional
+ * argument parameters.
+ *
+ * @see {@link flagKind} for the named flag parameter discriminator
+ * @see {@link ParamKind} for the full parameter kind union
+ *
  * @category constants
  * @since 4.0.0
  */
@@ -90,6 +100,13 @@ export const argumentKind: "argument" = "argument" as const
 
 /**
  * Kind discriminator for flag parameters.
+ *
+ * **When to use**
+ *
+ * Use to build low-level `Param` constructors or type positions for named flag
+ * parameters.
+ *
+ * @see {@link argumentKind} for the positional argument parameter discriminator
  *
  * @category constants
  * @since 4.0.0
@@ -123,6 +140,8 @@ export type AnyFlag = Param<typeof flagKind, unknown>
 /**
  * Function type used by parameters to parse currently available flags and
  * positional arguments.
+ *
+ * **Details**
  *
  * It returns the remaining positional arguments together with the parsed value,
  * or fails with a `CliError` while requiring the CLI parsing environment.
@@ -191,6 +210,8 @@ export type FallbackPrompt<A> =
 /**
  * Leaf parameter that reads one named argument or flag with a primitive parser.
  *
+ * **Details**
+ *
  * Single parameters carry the user-facing name, aliases, description, primitive
  * type, and optional metavar/type name used in help output.
  *
@@ -205,6 +226,7 @@ export interface Single<Kind extends ParamKind, out A> extends Param<Kind, A> {
   readonly aliases: ReadonlyArray<string>
   readonly primitiveType: Primitive.Primitive<A>
   readonly typeName?: string | undefined
+  readonly hidden: boolean
 }
 
 /**
@@ -333,6 +355,8 @@ export const isFlagParam = <A>(
  * Constructs a leaf `Single` parameter from its kind, name, primitive parser,
  * and optional help metadata.
  *
+ * **Details**
+ *
  * The returned parser reads either one positional argument or the named flag,
  * depending on `kind`.
  *
@@ -346,6 +370,7 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
   readonly typeName?: string | undefined
   readonly description?: Option.Option<string> | undefined
   readonly aliases?: ReadonlyArray<string> | undefined
+  readonly hidden?: boolean | undefined
 }): Single<Kind, A> => {
   const parse: Parse<A> = (args) =>
     params.kind === argumentKind
@@ -356,6 +381,7 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
     ...params,
     description: params.description ?? Option.none(),
     aliases: params.aliases ?? [],
+    hidden: params.hidden ?? false,
     parse
   })
 }
@@ -638,6 +664,8 @@ export const path = <Kind extends ParamKind>(
 /**
  * Creates a directory path parameter.
  *
+ * **Details**
+ *
  * This is a convenience function that creates a path parameter with the
  * `pathType` set to `"directory"` and a default type name of `"directory"`.
  *
@@ -675,6 +703,8 @@ export const directory = <Kind extends ParamKind>(
 
 /**
  * Creates a file path parameter.
+ *
+ * **Details**
  *
  * This is a convenience function that creates a path parameter with a
  * `pathType` set to `"file"` and a default type name of `"file"`.
@@ -776,6 +806,8 @@ export const fileText = <Kind extends ParamKind>(kind: Kind, name: string): Para
 /**
  * Creates a param that reads and parses the content of the specified file.
  *
+ * **Details**
+ *
  * The parser that is utilized will depend on the specified `format`, or the
  * extension of the file passed on the command-line if no `format` is specified.
  *
@@ -855,10 +887,15 @@ export const fileSchema = <Kind extends ParamKind, A>(
 
 /**
  * Creates a param that parses key=value pairs.
- * Useful for options that accept configuration values.
  *
- * Note: Requires at least one key=value pair. The parsed pairs are merged
- * into a single record object.
+ * **When to use**
+ *
+ * Use when you use it for options that accept configuration values.
+ *
+ * **Details**
+ *
+ * Requires at least one key=value pair. The parsed pairs are merged into a
+ * single record object.
  *
  * **Example** (Parsing key-value pairs)
  *
@@ -896,7 +933,9 @@ export const keyValuePair = <Kind extends ParamKind>(
 /**
  * Creates an empty sentinel parameter that always fails to parse.
  *
- * This is useful for creating placeholder parameters or for combinators.
+ * **When to use**
+ *
+ * Use when this is useful for creating placeholder parameters or for combinators.
  *
  * **Example** (Creating sentinel parameters)
  *
@@ -929,8 +968,12 @@ const FLAG_DASH_REGEXP = /^-+/
 /**
  * Adds an alias to an option.
  *
- * Aliases allow params to be specified with alternative names,
+ * **When to use**
+ *
+ * Use when aliases allow params to be specified with alternative names,
  * typically single-character shortcuts like "-f" for "--force".
+ *
+ * **Details**
  *
  * This works on any param structure by recursively finding the underlying
  * `Single` node and applying the alias there.
@@ -971,6 +1014,8 @@ export const withAlias: {
 /**
  * Adds a description to an option for help text.
  *
+ * **Details**
+ *
  * Descriptions provide users with information about what the option does
  * when they view help documentation.
  *
@@ -1000,6 +1045,37 @@ export const withDescription: {
       description: Option.some(description)
     }))
 })
+
+/**
+ * Hides a parameter from generated help output and completions while keeping
+ * it parseable on the command line.
+ *
+ * **When to use**
+ *
+ * Use when experimental, internal, or deprecated flags that should be
+ * accepted but not advertised.
+ *
+ * **Example** (Hiding a flag from help)
+ *
+ * ```ts
+ * import { Param } from "effect/unstable/cli"
+ *
+ * // @internal - this module is not exported publicly
+ *
+ * const experimental = Param.boolean(Param.flagKind, "experimental-foo").pipe(
+ *   Param.withHidden
+ * )
+ * ```
+ *
+ * @category metadata
+ * @since 4.0.0
+ */
+export const withHidden = <Kind extends ParamKind, A>(self: Param<Kind, A>): Param<Kind, A> =>
+  transformSingle(self, <X>(single: Single<Kind, X>) =>
+    makeSingle({
+      ...single,
+      hidden: true
+    }))
 
 /**
  * Transforms the parsed value of an option using a mapping function.
@@ -1165,6 +1241,8 @@ export const mapTryCatch: {
 /**
  * Makes a flag or positional argument optional.
  *
+ * **Details**
+ *
  * When the parameter is absent, parsing succeeds with `Option.none()` instead
  * of failing with a missing option or missing argument error. When present, the
  * parsed value is wrapped in `Option.some()`.
@@ -1220,6 +1298,8 @@ export const optional = <Kind extends ParamKind, A>(
 /**
  * Makes a flag or positional argument optional by supplying a fallback value.
  *
+ * **Details**
+ *
  * The fallback may be a pure value or an effect. It is used only when the
  * parameter is absent; provided values are parsed normally.
  *
@@ -1273,6 +1353,24 @@ export const withDefault: {
 /**
  * Adds a fallback config that is loaded when a required parameter is missing.
  *
+ * **When to use**
+ *
+ * Use when config should provide a fallback source for required flags or
+ * arguments that are absent from CLI input.
+ *
+ * **Details**
+ *
+ * Provided CLI values win. Config is loaded only after a missing option or
+ * missing argument error.
+ *
+ * **Gotchas**
+ *
+ * Missing config preserves the original missing-parameter error. Config parse
+ * failure becomes `CliError.InvalidValue`.
+ *
+ * @see {@link withDefault} for a pure default value
+ * @see {@link withFallbackPrompt} for prompting interactively when input is missing
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1312,6 +1410,25 @@ export const withFallbackConfig: {
 
 /**
  * Adds a fallback prompt that is shown when a required parameter is missing.
+ *
+ * **When to use**
+ *
+ * Use when a CLI should ask interactively for a missing required flag or
+ * argument.
+ *
+ * **Details**
+ *
+ * `FallbackPrompt` accepts either a `Prompt` or an effect that builds one.
+ * Effectful prompt creation is lazy and runs only when the fallback is needed.
+ *
+ * **Gotchas**
+ *
+ * This only handles missing options and missing arguments. Invalid values do not
+ * prompt, and prompt cancellation re-fails with the original missing error.
+ *
+ * @see {@link FallbackPrompt} for accepted fallback prompt forms
+ * @see {@link withFallbackConfig} for loading a fallback from config
+ * @see {@link withDefault} for a pure default value
  *
  * @category combinators
  * @since 4.0.0
@@ -1356,6 +1473,8 @@ export type VariadicParamOptions = {
 
 /**
  * Creates a variadic parameter that can be specified multiple times.
+ *
+ * **Details**
  *
  * This is the base combinator for creating parameters that accept multiple values.
  * The min and max parameters are optional - if not provided, the parameter can be
@@ -1412,6 +1531,8 @@ export const variadic = <Kind extends ParamKind, A>(
 /**
  * Wraps an option to allow it to be specified multiple times within a range.
  *
+ * **Details**
+ *
  * This combinator transforms an option to accept between `min` and `max`
  * occurrences on the command line, returning an array of all provided values.
  *
@@ -1460,6 +1581,8 @@ export const between: {
 /**
  * Wraps an option to allow it to be specified at most `max` times.
  *
+ * **Details**
+ *
  * This combinator transforms an option to accept between 0 and `max`
  * occurrences on the command line, returning an array of all provided values.
  *
@@ -1494,6 +1617,8 @@ export const atMost: {
 
 /**
  * Wraps an option to require it to be specified at least `min` times.
+ *
+ * **Details**
  *
  * This combinator transforms an option to accept at least `min`
  * occurrences on the command line, returning an array of all provided values.
@@ -1530,9 +1655,11 @@ export const atLeast: {
 
 /**
  * Filters and transforms parsed values, failing with a custom error message
- * if the filter function returns None.
+ * if the filter function returns `Option.none()`.
  *
- * This combinator is useful for validation and transformation in a single step.
+ * **When to use**
+ *
+ * Use when you use this combinator for validation and transformation in a single step.
  *
  * **Example** (Filtering and transforming values)
  *
@@ -1623,6 +1750,8 @@ export const filter: {
 
 /**
  * Sets a custom metavar (placeholder name) for the param in help documentation.
+ *
+ * **Details**
  *
  * The metavar is displayed in usage text to indicate what value the user should provide.
  * For example, `--output FILE` shows `FILE` as the metavar.
@@ -1741,6 +1870,8 @@ export const orElse: {
 /**
  * Provides a fallback param and returns a `Result` indicating which param
  * succeeded.
+ *
+ * **Details**
  *
  * The original param's value is returned as `Result.succeed`, while the
  * fallback param's value is returned as `Result.fail`.

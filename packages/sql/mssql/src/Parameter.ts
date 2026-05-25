@@ -1,23 +1,38 @@
 /**
- * Typed metadata for SQL Server stored procedure parameters.
+ * Typed SQL Server stored procedure parameter metadata.
  *
- * This module records the bare parameter name, Tedious `DataType`, Tedious
- * `ParameterOptions`, and phantom TypeScript value type used by
- * `Procedure.param` and `Procedure.outputParam`. `MssqlClient.call` later
- * forwards input parameters to Tedious with `Request.addParameter` and output
- * parameters with `Request.addOutputParameter`, so names should match the
- * stored procedure parameter name without a leading `@`.
+ * This module builds {@link Parameter} values that pair a stored procedure
+ * parameter name with a Tedious `DataType`, Tedious `ParameterOptions`, and a
+ * phantom TypeScript value type. `Procedure.param` and
+ * `Procedure.outputParam` use this metadata, and `MssqlClient.call` forwards it
+ * to Tedious when registering input and output parameters.
  *
- * Use these values when defining stored procedures that need explicit SQL
- * Server parameter metadata, such as sized strings or binary values, decimal
- * precision/scale, table-valued parameters, and output parameters. The generic
- * type parameter is only a compile-time guide for the value record accepted by
- * `Procedure.compile`; Tedious still validates and encodes the runtime value.
- * In particular, TVP values must use Tedious' table shape with `name`,
- * optional `schema`, `columns`, and `rows`, and output parameters are registered
- * with no initial value, so SQL Server input-output parameters need separate
- * care rather than assuming an output parameter is populated from compiled
- * input values.
+ * **Mental model**
+ *
+ * A `Parameter<A>` describes how Tedious should bind a value; it is not the
+ * value itself. The `A` type guides the record accepted by
+ * `Procedure.compile`, while Tedious validates and encodes the runtime value
+ * when the request is executed.
+ *
+ * **Common tasks**
+ *
+ * - Annotate inputs that need explicit SQL Server data types, sizes, precision,
+ *   scale, or table-valued parameter options.
+ * - Define output parameters so `MssqlClient.call` can collect returned values
+ *   by name.
+ * - Reuse the same metadata shape from direct `make` calls and the `Procedure`
+ *   builders.
+ *
+ * **Gotchas**
+ *
+ * Names should match the stored procedure parameter name expected by Tedious,
+ * normally without a leading `@`. Table-valued parameter values must use
+ * Tedious' table shape with `name`, optional `schema`, `columns`, and `rows`.
+ * Output parameters are registered without an initial value, so input-output
+ * parameters need explicit modeling instead of assuming compiled input values
+ * are reused.
+ *
+ * @see {@link make} for constructing parameter metadata directly.
  *
  * @since 4.0.0
  */

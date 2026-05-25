@@ -43,6 +43,8 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 /**
  * Creates an in-memory client for testing selected groups of an `HttpApi`.
  *
+ * **Details**
+ *
  * Handlers for the selected groups are taken from the environment; unselected
  * groups are wired with placeholder handlers that fail if called.
  *

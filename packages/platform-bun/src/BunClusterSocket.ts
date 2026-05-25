@@ -59,11 +59,17 @@ import * as BunFileSystem from "./BunFileSystem.ts"
 
 export {
   /**
+   * Provides the cluster `RpcClientProtocol` using the shared socket client
+   * implementation.
+   *
    * @category re-exports
    * @since 4.0.0
    */
   layerClientProtocol,
   /**
+   * Provides the socket server used by Bun cluster runners through the shared
+   * socket server implementation.
+   *
    * @category re-exports
    * @since 4.0.0
    */

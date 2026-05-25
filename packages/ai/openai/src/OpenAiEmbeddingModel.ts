@@ -1,7 +1,33 @@
 /**
- * OpenAI Embedding Model implementation.
+ * The `OpenAiEmbeddingModel` module provides the OpenAI implementation of
+ * Effect AI's `EmbeddingModel` service. It adapts the OpenAI embeddings
+ * endpoint into Effect AI's batch embedding interface, preserving input order
+ * and returning numeric vectors for each requested input.
  *
- * Provides an EmbeddingModel implementation for OpenAI's embeddings API.
+ * **Mental model**
+ *
+ * `OpenAiClient` owns transport, authentication, and provider request
+ * execution. This module owns embedding-specific configuration, response
+ * validation, and the `EmbeddingModel.EmbeddingModel` layer. Use {@link model}
+ * when you want an `AiModel` descriptor that also provides the configured
+ * embedding dimensions, or {@link layer} / {@link make} when the dimensions are
+ * managed separately.
+ *
+ * **Common tasks**
+ *
+ * - Provide an OpenAI-backed `EmbeddingModel.EmbeddingModel` from an existing
+ *   `OpenAiClient`
+ * - Configure the OpenAI embedding model id, dimensions, encoding format, and
+ *   other create-embedding request fields
+ * - Scope per-request defaults with {@link Config} and
+ *   {@link withConfigOverride}
+ *
+ * **Gotchas**
+ *
+ * - The service expects OpenAI to return floating-point embedding arrays.
+ *   Requesting base64 embeddings causes an `InvalidOutputError`.
+ * - Provider results are checked for missing, duplicate, or out-of-range
+ *   indexes before they are exposed as Effect AI embedding results.
  *
  * @since 4.0.0
  */
@@ -27,6 +53,19 @@ export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-
 /**
  * Service definition for OpenAI embedding model configuration.
  *
+ * **When to use**
+ *
+ * Use when embedding requests need scoped OpenAI request defaults or overrides
+ * from Effect context.
+ *
+ * **Details**
+ *
+ * The service stores the OpenAI create-embedding request payload without
+ * `input`, carrying options such as `model`, `dimensions`, `encoding_format`,
+ * and `user`.
+ *
+ * @see {@link withConfigOverride} for scoping embedding request overrides
+ *
  * @category services
  * @since 4.0.0
  */
@@ -47,6 +86,14 @@ export class Config extends Context.Service<
 
 /**
  * Creates an `AiModel` for an OpenAI embedding model with its configured vector dimensions.
+ *
+ * **When to use**
+ *
+ * Use to provide an OpenAI `EmbeddingModel` and its `Dimensions` service to an
+ * Effect program.
+ *
+ * @see {@link layer} for providing only the embedding model service
+ * @see {@link withConfigOverride} for scoped request configuration overrides
  *
  * @category constructors
  * @since 4.0.0
@@ -76,6 +123,29 @@ export const model = (
 /**
  * Creates an OpenAI embedding model service.
  *
+ * **When to use**
+ *
+ * Use to construct the `EmbeddingModel.Service` effectfully when
+ * `OpenAiClient` is already available in the environment or when the service
+ * value is needed directly.
+ *
+ * **Details**
+ *
+ * The `model` option is sent with each embedding request. Constructor `config`
+ * supplies create-embedding request fields other than `model` and `input`, and
+ * scoped overrides from `withConfigOverride` are merged last for each request.
+ *
+ * **Gotchas**
+ *
+ * The service expects numeric embedding vectors. It fails with
+ * `InvalidOutputError` when the provider returns base64 embeddings,
+ * out-of-range indexes, duplicate indexes, or an unexpected number of
+ * embeddings.
+ *
+ * @see {@link layer} for providing the embedding model service as a layer
+ * @see {@link model} for creating an `AiModel` that also provides dimensions
+ * @see {@link withConfigOverride} for scoped request configuration overrides
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -102,6 +172,21 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 /**
  * Creates a layer for the OpenAI embedding model.
  *
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenAI to satisfy
+ * `EmbeddingModel.EmbeddingModel` while supplying `OpenAiClient` from another
+ * layer.
+ *
+ * **Gotchas**
+ *
+ * Use the default floating-point embedding format. The service expects numeric
+ * vectors and fails with `InvalidOutputError` if OpenAI returns base64
+ * embeddings.
+ *
+ * @see {@link make} for constructing the embedding model service effectfully
+ * @see {@link model} for creating an `AiModel` that also provides embedding dimensions
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -113,6 +198,19 @@ export const layer = (options: {
 
 /**
  * Provides config overrides for OpenAI embedding model operations.
+ *
+ * **When to use**
+ *
+ * Use when a single effect or workflow needs scoped OpenAI embedding request
+ * defaults without rebuilding the embedding model service.
+ *
+ * **Details**
+ *
+ * Supports both data-first and data-last forms. Existing scoped config is read
+ * first, then the provided overrides are applied so override fields take
+ * precedence.
+ *
+ * @see {@link Config} for the scoped embedding request configuration service
  *
  * @category configuration
  * @since 4.0.0

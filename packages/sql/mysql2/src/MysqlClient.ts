@@ -1,20 +1,34 @@
 /**
- * MySQL client implementation for Effect SQL, backed by the `mysql2` driver.
+ * MySQL adapter for Effect SQL, backed by the `mysql2` driver.
  *
- * This module exposes constructors and layers for providing both the MySQL-specific
- * `MysqlClient` service and the generic `SqlClient` service. It is intended for server
- * applications, background workers, migrations, and tests that need Effect SQL query
- * compilation, scoped resource management, streaming queries, and consistent `SqlError`
- * classification for MySQL driver failures.
+ * This module provides constructors and layers for a {@link MysqlClient} and
+ * the generic Effect SQL client service. Use it in server applications,
+ * background workers, migrations, and tests that need MySQL query compilation,
+ * scoped pool management, streaming queries, and consistent `SqlError`
+ * classification for mysql2 driver failures.
  *
- * Each client owns a scoped mysql2 pool, validates connectivity with `SELECT 1` during
- * acquisition, and closes the pool when the surrounding scope is released. You can configure
- * the pool from a connection URI or discrete connection fields; when `url` is supplied it
- * takes precedence over the host, port, database, username, and password fields. Regular
- * queries run through the shared pool, while transactions acquire a dedicated pooled
- * connection for their lifetime, so long-running transactions and streams can occupy pool
- * capacity. Size `maxConnections`, `connectionTTL`, and any mysql2 `poolConfig` with that in
- * mind.
+ * **Mental model**
+ *
+ * {@link make} allocates a mysql2 pool inside the current scope, verifies it
+ * with `SELECT 1`, and closes it when the scope is released. Regular queries
+ * use the shared pool, transactions acquire a dedicated pooled connection for
+ * their lifetime, and streams stay tied to mysql2 stream resources until they
+ * are consumed or closed.
+ *
+ * **Common tasks**
+ *
+ * Use {@link layer} when configuration is already available, or
+ * {@link layerConfig} when it should be read through `Config`. Pass `url` for a
+ * connection URI, or pass `host`, `port`, `database`, `username`, and
+ * `password` for discrete connection settings. Use `poolConfig` for additional
+ * mysql2 pool options when configuring discrete fields.
+ *
+ * **Gotchas**
+ *
+ * When `url` is supplied it takes precedence over the discrete connection
+ * fields and does not merge in `poolConfig`. Long-running transactions and
+ * streams occupy pool capacity, so tune `maxConnections` and `connectionTTL`
+ * for those workloads.
  *
  * @since 4.0.0
  */

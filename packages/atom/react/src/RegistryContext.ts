@@ -47,6 +47,14 @@ export function scheduleTask(f: () => void): () => void {
  * hydration helpers, defaulting to a standalone registry when no provider is
  * present.
  *
+ * **When to use**
+ *
+ * Use to supply an existing `AtomRegistry` through React context when hooks or
+ * hydration helpers need to share registry state that is managed outside
+ * `RegistryProvider`.
+ *
+ * @see {@link RegistryProvider} for creating and providing a registry for a React subtree
+ *
  * @category context
  * @since 4.0.0
  */
@@ -58,6 +66,25 @@ export const RegistryContext = React.createContext<AtomRegistry.AtomRegistry>(At
 /**
  * Provides a stable `AtomRegistry` to a React subtree, optionally seeding
  * initial atom values and overriding registry scheduling or idle settings.
+ *
+ * **When to use**
+ *
+ * Use to scope atom state, scheduling, and idle cleanup to a React subtree.
+ *
+ * **Details**
+ *
+ * The provider creates one `AtomRegistry` with `AtomRegistry.make`, passes it
+ * through `RegistryContext.Provider`, and forwards `initialValues`,
+ * `scheduleTask`, `timeoutResolution`, and `defaultIdleTTL` only when that
+ * registry is created.
+ *
+ * **Gotchas**
+ *
+ * Option changes after the first render do not rebuild the registry. When the
+ * provider unmounts, registry disposal is delayed briefly and canceled if the
+ * provider remounts before the timeout fires.
+ *
+ * @see {@link RegistryContext} for the React context supplied by this provider
  *
  * @category context
  * @since 4.0.0

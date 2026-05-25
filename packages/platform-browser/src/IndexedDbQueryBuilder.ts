@@ -84,6 +84,14 @@ export type ErrorReason =
 /**
  * Tagged error for IndexedDB query operations, carrying a query error reason and the original cause.
  *
+ * **Details**
+ *
+ * `reason` is the query failure category, `cause` preserves the underlying
+ * schema, IndexedDB request, transaction, or user callback failure, and
+ * `message` is set to the reason.
+ *
+ * @see {@link ErrorReason} for the supported failure categories
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -465,7 +473,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -552,7 +562,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Stream the selected data.
      *
-     * Defaults to a chunk size of 100.
+     * **Details**
+     *
+     * The default chunk size is 100.
      */
     readonly stream: (options?: {
       readonly chunkSize?: number | undefined
@@ -565,7 +577,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -604,7 +618,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -617,7 +633,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactiveQueue: (
       keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
@@ -673,7 +691,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -702,7 +722,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -1136,13 +1158,18 @@ const applyModifyAll = Effect.fnUntraced(
       Array<globalThis.IDBValidKey>,
       IndexedDbQueryError
     >((resume) => {
+      if (encodedValues.length === 0) {
+        return resume(Effect.succeed([]))
+      }
+
       const database = query.from.database
       const transaction = getOrCreateTransaction(database.current, [query.from.table.tableName], "readwrite", {
         durability: query.from.table.durability
       })
       const objectStore = transaction.objectStore(query.from.table.tableName)
 
-      const results: Array<globalThis.IDBValidKey> = []
+      const results: Array<globalThis.IDBValidKey> = new Array(encodedValues.length)
+      let remaining = encodedValues.length
 
       if (query.operation === "add") {
         for (let i = 0; i < encodedValues.length; i++) {
@@ -1163,7 +1190,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else if (query.operation === "put") {
@@ -1185,7 +1216,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else {
@@ -1201,10 +1236,6 @@ const applyModifyAll = Effect.fnUntraced(
             })
           )
         )
-      }
-
-      objectStore.transaction.oncomplete = () => {
-        resume(Effect.succeed(results))
       }
     })
   },

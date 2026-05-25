@@ -1,20 +1,36 @@
 /**
- * Mutable reactive references for local, in-memory state that should be read,
- * updated, and observed without going through an `AtomRegistry`.
+ * Mutable reactive references for local, in-memory state.
  *
- * `AtomRef` is useful for small state models, form-like state, and collections
- * of item references where callers need direct mutation methods together with
- * subscriptions. A ref exposes its current `value`, notifies subscribers after
- * `set` or `update`, can derive read-only views with `map`, and can focus on
- * nested object or array properties with `prop`.
+ * `AtomRef` provides small observable state cells that can be read, updated,
+ * focused, and subscribed to without going through an `AtomRegistry`. It is
+ * suited to form state, local view models, and collections of item references
+ * where callers need direct mutation methods together with change notifications.
  *
- * Notifications are equality-aware: setting a value that is `Equal.equals` to
- * the current value is ignored, and mapped or property subscriptions only emit
- * when their derived value changes. Mutate state through `set`, `update`, or a
- * property ref so subscribers are notified; direct mutation of the stored value
- * does not notify listeners. Collection subscribers are notified when items are
- * inserted, removed, or when an item ref changes, while `toArray` returns the
- * current raw item values.
+ * **Mental model**
+ *
+ * An `AtomRef` is a value cell with a stable key and a subscriber list.
+ * {@link make} creates a mutable cell, `map` derives read-only views, and `prop`
+ * focuses on nested object or array properties while preserving mutation
+ * helpers. {@link collection} stores ordered item refs and emits collection
+ * updates when items are inserted, removed, or changed through their refs.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link make} for standalone local state.
+ * - Use `ref.set` or `ref.update` to replace the current value.
+ * - Use `ref.map` for derived read-only values.
+ * - Use `ref.prop` to update nested object fields or array entries.
+ * - Use {@link collection} for ordered lists whose items should remain
+ *   individually mutable.
+ *
+ * **Gotchas**
+ *
+ * Notifications are equality-aware: values that are `Equal.equals` to the
+ * current value do not notify subscribers, and mapped or property subscriptions
+ * only emit when their derived value changes. Directly mutating an object or
+ * array stored in a ref does not notify listeners; use `set`, `update`, or a
+ * property ref instead. `toArray` returns the current raw item values, not the
+ * item refs.
  *
  * @since 4.0.0
  */
@@ -40,6 +56,8 @@ export const TypeId: TypeId = "~effect/reactivity/AtomRef"
 /**
  * A read-only reactive reference.
  *
+ * **Details**
+ *
  * It exposes a stable key, the current value, subscriptions to value changes, and
  * `map` for creating derived read-only references. Equality and hashing are based
  * on the current value.
@@ -58,6 +76,8 @@ export interface ReadonlyRef<A> extends Equal.Equal {
 /**
  * A mutable reactive reference.
  *
+ * **Details**
+ *
  * It supports replacing the whole value, updating it from the current value, and
  * creating mutable references to nested properties.
  *
@@ -72,6 +92,8 @@ export interface AtomRef<A> extends ReadonlyRef<A> {
 
 /**
  * A reactive collection of mutable item references.
+ *
+ * **Details**
  *
  * The collection can push, insert, and remove item refs, and `toArray` returns the
  * current raw item values.
@@ -96,6 +118,8 @@ export const make = <A>(value: A): AtomRef<A> => new AtomRefImpl(value)
 
 /**
  * Creates a reactive collection from an iterable of initial item values.
+ *
+ * **Details**
  *
  * Each item is wrapped in an `AtomRef`, and changes to item refs notify the
  * collection subscribers.

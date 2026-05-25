@@ -1129,6 +1129,33 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
+          await encoding.succeed(
+            Redacted.make(Option.none()),
+            { _tag: "None" }
+          )
+          await encoding.succeed(
+            Redacted.make(Option.some("a")),
+            { _tag: "Some", value: "a" }
+          )
+
+          const decoding = asserts.decoding()
+          await decoding.succeed(
+            { _tag: "None" },
+            Redacted.make(Option.none())
+          )
+          await decoding.succeed(
+            { _tag: "Some", value: "a" },
+            Redacted.make(Option.some("a"))
+          )
+        })
+
+        it("Redacted(Option(String)) disallowJsonEncode", async () => {
+          const schema = Schema.Redacted(Schema.Option(Schema.String), {
+            disallowJsonEncode: true
+          })
+          const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+          const encoding = asserts.encoding()
           await encoding.fail(
             Redacted.make(Option.none()),
             `Cannot serialize Redacted`
@@ -1166,9 +1193,9 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.fail(
+          await encoding.succeed(
             Redacted.make("a", { label: "API key" }),
-            `Cannot serialize Redacted with label: "API key"`
+            "a"
           )
         })
       })
@@ -2383,13 +2410,40 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()
+        await encoding.succeed(
+          Redacted.make(Option.none()),
+          { _tag: "None" }
+        )
+        await encoding.succeed(
+          Redacted.make(Option.some("a")),
+          { _tag: "Some", value: "a" }
+        )
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          { _tag: "None" },
+          Redacted.make(Option.none())
+        )
+        await decoding.succeed(
+          { _tag: "Some", value: "a" },
+          Redacted.make(Option.some("a"))
+        )
+      })
+
+      it("Redacted(Option(String)) disallowJsonEncode", async () => {
+        const schema = Schema.Redacted(Schema.Option(Schema.String), {
+          disallowJsonEncode: true
+        })
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
+
+        const encoding = asserts.encoding()
         await encoding.fail(
           Redacted.make(Option.none()),
-          `Cannot serialize Redacted`
+          "Cannot serialize Redacted"
         )
         await encoding.fail(
           Redacted.make(Option.some("a")),
-          `Cannot serialize Redacted`
+          "Cannot serialize Redacted"
         )
 
         const decoding = asserts.decoding()

@@ -1,16 +1,33 @@
 /**
- * The `Unify` module contains the type-level protocol Effect uses to normalize
- * unions of data types that opt in to unification. It is primarily a library
- * authoring tool: data types expose hidden symbol properties describing how
- * their variants should be widened, and {@link Unify} turns those protocol
- * entries into the user-facing union type that TypeScript should infer.
+ * The `Unify` module defines the type-level protocol Effect uses to collapse
+ * unions of protocol-enabled values into their public data types. It is mostly
+ * for maintainers of Effect data types and advanced library authors; ordinary
+ * application code usually benefits from unification through APIs such as
+ * `Effect`, `Option`, `Result`, `Stream`, `Layer`, and `Match`.
  *
- * Most application code does not need to interact with these symbols directly.
- * The main runtime helper, {@link unify}, is an identity function that preserves
- * values and functions at runtime while applying {@link Unify} to the relevant
- * static type. This is useful when authoring APIs that return branded or
- * protocol-enabled values and need inference to collapse to the public Effect
- * data type rather than exposing implementation details.
+ * **Mental model**
+ *
+ * A type opts in by carrying phantom entries keyed by {@link typeSymbol} and
+ * {@link unifySymbol}. {@link Unify} reads those entries, ignores any protocol
+ * members listed through {@link ignoreSymbol}, and widens matching union
+ * members to the public type each entry returns. The runtime helper
+ * {@link unify} is an identity function; it changes only the static type that
+ * TypeScript sees.
+ *
+ * **Common tasks**
+ *
+ * - Add unification support to a new Effect data type so mixed unions infer as
+ *   the public container type instead of an implementation shape.
+ * - Normalize the return type of branching APIs, matchers, or builders that can
+ *   produce several protocol-enabled values.
+ * - Apply unification to a value or curried function result with {@link unify}
+ *   while preserving the original runtime behavior.
+ *
+ * **Gotchas**
+ *
+ * - Unification is a compile-time protocol, not a runtime conversion hook.
+ * - Protocol entries should be specific to the data type they widen; overly
+ *   broad entries can make inferred unions less precise.
  *
  * @since 2.0.0
  */
@@ -20,8 +37,18 @@ import { identity } from "./Function.ts"
 /**
  * A unique symbol used to identify unification behavior in Effect types.
  *
+ * **When to use**
+ *
+ * Use to implement the unification protocol on library data types that should
+ * widen to a public union type.
+ *
+ * **Details**
+ *
  * This symbol is used internally by the Effect type system to enable automatic
  * unification of Effect types in unions and complex type operations.
+ *
+ * @see {@link typeSymbol} for storing the source type information used during unification
+ * @see {@link ignoreSymbol} for excluding protocol entries from unification
  *
  * @category symbols
  * @since 2.0.0
@@ -30,6 +57,13 @@ export declare const unifySymbol: unique symbol
 
 /**
  * The type of the unifySymbol.
+ *
+ * **When to use**
+ *
+ * Use to reference the `unifySymbol` property key in type-level protocol
+ * definitions.
+ *
+ * **Details**
  *
  * This type represents the unique symbol used for identifying unification
  * behavior in Effect types. It's typically used in type-level operations
@@ -43,8 +77,17 @@ export type unifySymbol = typeof unifySymbol
 /**
  * A unique symbol used to identify the type information for unification.
  *
+ * **When to use**
+ *
+ * Use to implement the unification protocol on types that need to expose their
+ * original type information.
+ *
+ * **Details**
+ *
  * This symbol is used internally by the Effect type system to store type
  * information that can be used during type unification operations.
+ *
+ * @see {@link unifySymbol} for defining how protocol entries widen
  *
  * @category symbols
  * @since 2.0.0
@@ -53,6 +96,13 @@ export declare const typeSymbol: unique symbol
 
 /**
  * The type of the typeSymbol.
+ *
+ * **When to use**
+ *
+ * Use to reference the `typeSymbol` property key in type-level protocol
+ * definitions.
+ *
+ * **Details**
  *
  * This type represents the unique symbol used for storing type information
  * in types that support unification. It's used in type-level operations
@@ -66,9 +116,17 @@ export type typeSymbol = typeof typeSymbol
 /**
  * A unique symbol used to specify types that should be ignored during unification.
  *
+ * **When to use**
+ *
+ * Use to exclude specific protocol properties from type unification.
+ *
+ * **Details**
+ *
  * This symbol is used internally by the Effect type system to mark types
  * that should be excluded from the unification process, allowing for more
  * precise type handling in complex scenarios.
+ *
+ * @see {@link unifySymbol} for defining the protocol entries being filtered
  *
  * @category symbols
  * @since 2.0.0
@@ -77,6 +135,13 @@ export declare const ignoreSymbol: unique symbol
 
 /**
  * The type of the ignoreSymbol.
+ *
+ * **When to use**
+ *
+ * Use to reference the `ignoreSymbol` property key in type-level protocol
+ * definitions.
+ *
+ * **Details**
  *
  * This type represents the unique symbol used for marking types that should
  * be ignored during unification operations. It's used in type-level operations
@@ -121,6 +186,12 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
 /**
  * Unifies types that implement the unification protocol.
  *
+ * **When to use**
+ *
+ * Use to normalize unions of types that expose Effect's unification protocol.
+ *
+ * **Details**
+ *
  * This type performs automatic type unification for types that contain
  * the unification symbols (`unifySymbol`, `typeSymbol`, `ignoreSymbol`).
  * It's primarily used internally by the Effect type system to handle
@@ -148,6 +219,8 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
  * type Unified = Unify.Unify<UnifiableA | UnifiableB>
  * // Results in a properly unified type
  * ```
+ *
+ * @see {@link unify} for applying this normalization to a value or function
  *
  * @category models
  * @since 2.0.0
@@ -178,6 +251,13 @@ export type Unify<A> = Values<
 /**
  * Applies `Unify` to a value or function return type at compile time.
  *
+ * **When to use**
+ *
+ * Use to keep a value or function unchanged at runtime while normalizing its
+ * inferred type with Effect's unification protocol.
+ *
+ * **Details**
+ *
  * This is an identity function at runtime. For functions, the returned function
  * has the same runtime behavior while its return type is normalized with the
  * Effect unification protocol.
@@ -206,6 +286,8 @@ export type Unify<A> = Values<
  * const unifiedCurried = Unify.unify(curriedFunction)
  * // Type: (a: string) => (b: number) => Unify<{ result: string }>
  * ```
+ *
+ * @see {@link Unify} for the type-level normalization applied by this helper
  *
  * @category utils
  * @since 2.0.0

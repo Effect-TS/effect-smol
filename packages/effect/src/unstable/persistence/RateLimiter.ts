@@ -82,6 +82,8 @@ export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Se
 /**
  * Creates a `RateLimiter` from the current `RateLimiterStore`.
  *
+ * **Details**
+ *
  * The limiter supports fixed-window and token-bucket algorithms and either
  * fails or returns a delay when a limit is exceeded.
  *
@@ -352,6 +354,8 @@ export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 /**
  * Error reason for a rate-limit check that exceeded the configured limit.
  *
+ * **Details**
+ *
  * Includes the affected key, limit, remaining token count, and retry delay.
  *
  * @category errors
@@ -455,9 +459,8 @@ export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorT
 export interface ConsumeResult {
   /**
    * The amount of delay to wait before making the next request, when the rate
-   * limiter is using the "delay" `onExceeded` strategy.
-   *
-   * It will be Duration.zero if the request is allowed immediately.
+   * limiter is using the "delay" `onExceeded` strategy. It will be
+   * Duration.zero if the request is allowed immediately.
    */
   readonly delay: Duration.Duration
 
