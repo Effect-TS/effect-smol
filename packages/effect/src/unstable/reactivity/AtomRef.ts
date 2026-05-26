@@ -157,8 +157,9 @@ class ReadonlyRefImpl<A> implements ReadonlyRef<A> {
   listenerCount = 0
 
   notify(a: A) {
-    for (let i = 0; i < this.listenerCount; i++) {
-      this.listeners[i](a)
+    const listeners = this.listeners.slice(0, this.listenerCount)
+    for (let i = 0; i < listeners.length; i++) {
+      listeners[i](a)
     }
   }
 
