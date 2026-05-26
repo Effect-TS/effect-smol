@@ -39,6 +39,10 @@
  * - `taggedEnum()` creates **plain objects**, not class instances. If you need
  *   class-based variants, use `TaggedClass` or `TaggedError` instead.
  * - `TaggedEnum.WithGenerics` supports up to 4 generic type parameters.
+ * - `$is(tag)` only checks the `_tag` field, not the full structure. It is safe
+ *   when the tag value is globally unique across your application and the value
+ *   was produced by your constructors. For untrusted input, validate with
+ *   the {@link Schema} module before using `$is`.
  *
  * ## Quickstart
  *
@@ -424,7 +428,9 @@ export declare namespace TaggedEnum {
    *
    * Includes:
    * - A constructor function for each variant (keyed by tag name)
-   * - `$is(tag)` — returns a type-guard for the given variant
+   * - `$is(tag)` — returns a type-guard that checks only the `_tag` field;
+   *   safe when the tag is globally unique and the value was produced by your
+   *   constructors. For untrusted input, validate with the {@link Schema} module first.
    * - `$match` — exhaustive pattern matching (data-last or data-first)
    *
    * **Example** (Using the constructor object)
@@ -589,12 +595,15 @@ export declare namespace TaggedEnum {
  *
  * Returns an object with:
  * - One constructor per variant (keyed by tag name)
- * - `$is(tag)` — returns a type-guard function
+ * - `$is(tag)` — returns a type-guard function that checks only the `_tag` field
  * - `$match` — exhaustive pattern matching (data-first or data-last)
  *
  * **Gotchas**
  *
- * Constructors produce **plain objects**, not class instances.
+ * - Constructors produce **plain objects**, not class instances.
+ * - `$is(tag)` only checks the `_tag` field, not the full structure. It relies
+ *   on the tag being globally unique and the value being produced by your
+ *   constructors. For untrusted input, validate with the {@link Schema} module first.
  *
  * **Example** (Basic usage)
  *
