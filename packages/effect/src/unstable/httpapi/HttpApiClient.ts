@@ -21,10 +21,10 @@ import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaIssue from "../../SchemaIssue.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
-import type * as Stream from "../../Stream.ts"
+import * as Stream from "../../Stream.ts"
 import type { Simplify } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
-import type * as Sse from "../encoding/Sse.ts"
+import * as Sse from "../encoding/Sse.ts"
 import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientError from "../http/HttpClientError.ts"
@@ -337,6 +337,10 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
         successes.forEach((schemas, status) => {
           decodeMap[status] = schemasToResponse(schemas)
         })
+        const streamSuccess = getStreamSuccessDeclaration(endpoint)
+        if (streamSuccess !== undefined) {
+          decodeMap[streamSuccessStatus] = streamSuccessToResponse(streamSuccess)
+        }
 
         // encoders
         const encodeParams = UndefinedOr.map(endpoint.params, Schema.encodeUnknownEffect)
@@ -668,6 +672,52 @@ function schemasToResponse(schemas: readonly [Schema.Top, ...Array<Schema.Top>])
   const codec = toCodecArrayBuffer(schemas)
   const decode = Schema.decodeEffect(codec)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
+}
+
+const streamSuccessStatus = 200
+const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
+
+function getStreamSuccessDeclaration(endpoint: HttpApiEndpoint.AnyWithProps) {
+  for (const schema of endpoint.success) {
+    if (HttpApiSchema.isStreamDeclaration(schema)) {
+      return schema
+    }
+  }
+}
+
+function streamSuccessToResponse(declaration: HttpApiSchema.StreamDeclaration) {
+  return (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.map(Effect.context<never>(), (context) =>
+      Stream.provideContext(
+        HttpApiSchema.isStreamUint8Array(declaration) ?
+          response.stream :
+          decodeSseStream(response.stream, declaration),
+        context as Context.Context<unknown>
+      ))
+}
+
+function decodeSseStream(
+  stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
+  declaration: HttpApiSchema.StreamSse<Schema.Top, Schema.Top>
+): Stream.Stream<unknown, unknown, unknown> {
+  const decodeEvent = Schema.decodeUnknownEffect(Sse.EventEncoded.pipe(Schema.decodeTo(declaration.events)))
+  const decodeCause = Schema.decodeUnknownEffect(
+    Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect)))
+  )
+  return stream.pipe(
+    Stream.decodeText,
+    Stream.pipeThroughChannel(Sse.decode<HttpClientError.HttpClientError, unknown>()),
+    Stream.mapEffect((event) => {
+      const encoded = {
+        id: event.id,
+        event: event.event,
+        data: event.data
+      }
+      return event.event === reservedStreamFailureEvent ?
+        Effect.flatMap(decodeCause(event.data), (cause) => Effect.failCause(cause)) :
+        decodeEvent(encoded)
+    })
+  )
 }
 
 const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {
