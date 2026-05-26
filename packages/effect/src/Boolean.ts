@@ -68,8 +68,8 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * Use when you want native `Boolean` constructor coercion from the Effect module
- * namespace.
+ * Use when code in this module namespace needs native JavaScript truthiness
+ * coercion.
  *
  * **Gotchas**
  *
@@ -164,8 +164,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for booleans with `false` before
- * `true`.
+ * Use when sorting or comparing boolean values through APIs that accept an
+ * ordering instance where `false` comes before `true`.
  *
  * **Example** (Comparing booleans)
  *
@@ -187,7 +187,8 @@ export const Order: order.Order<boolean> = order.Boolean
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for boolean equality.
+ * Use when checking boolean equality through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Comparing booleans for equivalence)
  *

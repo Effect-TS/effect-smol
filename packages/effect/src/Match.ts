@@ -1516,8 +1516,7 @@ export {
    *
    * **When to use**
    *
-   * Use when a matcher should handle only inputs whose value is exactly
-   * `undefined`.
+   * Use when a matcher should handle only inputs with no defined value.
    *
    * **Details**
    *

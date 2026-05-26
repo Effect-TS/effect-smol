@@ -82,8 +82,8 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * Use when you want the native `BigInt` constructor behavior from the Effect
- * module namespace.
+ * Use when code in this module namespace needs native JavaScript bigint
+ * constructor coercion.
  *
  * **Gotchas**
  *
@@ -333,7 +333,8 @@ export const decrement = (n: bigint): bigint => n - bigint1
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for `bigint` values.
+ * Use when sorting or comparing bigint values through APIs that accept an
+ * ordering instance.
  *
  * **Example** (Comparing bigints with Order)
  *
@@ -359,7 +360,8 @@ export const Order: order.Order<bigint> = order.BigInt
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for `bigint` equality.
+ * Use when checking bigint equality through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Comparing bigints for equivalence)
  *

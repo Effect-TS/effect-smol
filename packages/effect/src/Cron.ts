@@ -998,7 +998,8 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
  *
  * **When to use**
  *
- * Use to compare cron schedules through APIs that accept an `Equivalence`.
+ * Use to compare cron schedules through APIs that accept an equivalence
+ * relation.
  *
  * **Details**
  *

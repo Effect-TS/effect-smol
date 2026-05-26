@@ -754,7 +754,8 @@ function taggedMatch<
  *
  * **When to use**
  *
- * Use when you use `Error` for errors that do **not** need tag-based discrimination. If you need `Effect.catchTag` support, use {@link TaggedError}.
+ * Use when defining yieldable errors that do **not** need tag-based
+ * discrimination. If you need tag-based recovery, use {@link TaggedError}.
  *
  * **Details**
  *

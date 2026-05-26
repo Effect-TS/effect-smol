@@ -911,8 +911,8 @@ export class Never extends Base {
  *
  * **When to use**
  *
- * Use to reuse the canonical `Never` AST node when constructing, comparing, or
- * returning ASTs that represent the `never` type.
+ * Use to reuse the canonical bottom-type AST node when constructing,
+ * comparing, or returning ASTs.
  *
  * @see {@link Never} for the AST node class
  * @see {@link isNever} for narrowing an AST to a `Never` node
@@ -988,8 +988,8 @@ export class Unknown extends Base {
  *
  * **When to use**
  *
- * Use when you need the reusable AST singleton for an `unknown` schema node
- * that accepts every value while keeping the parsed type as `unknown`.
+ * Use when you need the reusable AST singleton for a schema node that accepts
+ * every value while keeping parsed values opaque.
  *
  * @see {@link any} for the singleton that accepts every value as `any`
  *

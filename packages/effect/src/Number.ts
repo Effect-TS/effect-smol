@@ -71,8 +71,8 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * Use when you want native `Number` constructor coercion from the Effect module
- * namespace.
+ * Use when code in this module namespace needs native JavaScript numeric
+ * coercion.
  *
  * **Gotchas**
  *
@@ -305,7 +305,8 @@ export const decrement = (n: number): number => n - 1
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for numbers.
+ * Use when sorting or comparing numbers through APIs that accept an ordering
+ * instance.
  *
  * **Example** (Comparing numbers)
  *
@@ -327,7 +328,8 @@ export const Order: order.Order<number> = order.Number
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for numeric equality.
+ * Use when checking numeric equality through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Comparing numbers for equivalence)
  *

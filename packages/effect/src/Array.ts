@@ -108,8 +108,8 @@ import type { NoInfer, TupleOf } from "./Types.ts"
  *
  * **When to use**
  *
- * Use when you need the native `Array` constructor while the `Array`
- * namespace is in scope (e.g. `Array.Array.isArray`, `Array.Array.from`).
+ * Use when the module namespace shadows the native JavaScript constructor and
+ * code needs constructor methods such as `isArray` or `from`.
  *
  * **Example** (Using the Array constructor)
  *

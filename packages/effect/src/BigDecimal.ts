@@ -708,7 +708,8 @@ export const divideUnsafe: {
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for `BigDecimal` values.
+ * Use when sorting or comparing decimal values through APIs that accept an
+ * ordering instance.
  *
  * **Example** (Comparing decimals)
  *
@@ -1218,7 +1219,8 @@ export const remainderUnsafe: {
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for decimal equality.
+ * Use when comparing decimal values through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Checking decimal equivalence)
  *

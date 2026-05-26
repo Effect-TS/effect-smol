@@ -2761,12 +2761,9 @@ export const catchTag: {
  *
  * **When to use**
  *
- * Use when `catchTags` is a convenient way to handle multiple error types at
- * once. Instead of using {@link catchTag} multiple times, you can pass an
- * object where each key is an error type's `_tag`, and the value is the handler
- * for that specific error. This allows you to catch and recover from multiple
- * error types in a single call. You can also provide a fallback handler for
- * unhandled errors.
+ * Use when one recovery step should handle several tagged error types by
+ * matching their readonly `_tag` fields. Pass a handler table whose keys are
+ * tags, plus an optional fallback for unmatched errors.
  *
  * The error type must have a readonly `_tag` field to use `catchTag`. This
  * field is used to identify and match errors.
@@ -3166,10 +3163,8 @@ export const unwrapReason: {
  *
  * **When to use**
  *
- * Use when the `catchCause` function allows you to handle all errors, including
- * unrecoverable defects, by providing a recovery effect. The recovery logic is
- * based on the `Cause` of the error, which provides detailed information about
- * the failure.
+ * Use when recovery needs the full `Cause`, including recoverable failures,
+ * defects, and interruptions, instead of only the typed error value.
  *
  * **Details**
  *
@@ -4162,9 +4157,8 @@ export const sandbox: <A, E, R>(
  *
  * **When to use**
  *
- * Use when `ignore` allows you to run an effect without caring about its result, whether
- * it succeeds or fails. This is useful when you only care about the side
- * effects of the effect and do not need to handle or process its outcome.
+ * Use when an effect should run for its side effects while both success and
+ * failure values are discarded.
  *
  * Use the `log` option to emit the full {@link Cause} when the effect fails,
  * and `message` to prepend a custom log message.
@@ -7091,13 +7085,9 @@ export const cachedWithTTL: {
  *
  * **When to use**
  *
- * Use when you use this function when you have an effect whose result needs to be cached for
- * a certain period, but you also want the option to refresh the cache manually
- * before the expiration time.
- *
- * This is useful when you need to ensure that the cached data remains valid for
- * a certain period but still want to invalidate it if the underlying data
- * changes or if you want to force a recomputation.
+ * Use when an effect result should be cached for a bounded time and callers
+ * also need a manual invalidation effect to force recomputation before
+ * expiration.
  *
  * **Details**
  *
@@ -8749,12 +8739,9 @@ export interface RunOptions {
  *
  * **When to use**
  *
- * Use when `runFork` is used to run an effect in the background by creating a
- * fiber. It is the base function for all other run functions. It starts a fiber
- * that can be observed or interrupted.
- *
- * Unless you specifically need a `Promise` or synchronous operation,
- * `runFork` is a good default choice.
+ * Use when an effect should start in the background and return a fiber that can
+ * be observed or interrupted. Prefer this when you do not need a `Promise` or
+ * synchronous result.
  *
  * **Example** (Running an effect in the background)
  *
@@ -14932,9 +14919,8 @@ export const satisfiesServicesType = <R>() => <A, E, R2 extends R>(effect: Effec
  *
  * **When to use**
  *
- * Use when `mapEager` provides better performance for effects that are already resolved
- * by applying the transformation immediately instead of deferring it through
- * the effect pipeline.
+ * Use when an already-resolved effect should apply a success transformation
+ * immediately while pending effects still use regular mapping.
  *
  * **Details**
  *
@@ -14972,9 +14958,9 @@ export const mapEager: {
  *
  * **When to use**
  *
- * Use when `mapErrorEager` provides better performance for effects that are already resolved
- * by applying the error transformation immediately instead of deferring it through
- * the effect pipeline.
+ * Use when an already-resolved failed effect should apply an error
+ * transformation immediately while pending effects still use regular error
+ * mapping.
  *
  * **Details**
  *
@@ -15015,9 +15001,8 @@ export const mapErrorEager: {
  *
  * **When to use**
  *
- * Use when `mapBothEager` provides better performance for effects that are already resolved
- * by applying the transformation immediately instead of deferring it through
- * the effect pipeline.
+ * Use when an already-resolved effect should transform either success or
+ * failure immediately while pending effects still use regular channel mapping.
  *
  * **Details**
  *
@@ -15065,9 +15050,8 @@ export const mapBothEager: {
  *
  * **When to use**
  *
- * Use when `flatMapEager` provides better performance for effects that are already resolved
- * by applying the transformation immediately instead of deferring it through
- * the effect pipeline.
+ * Use when an already-resolved successful effect should bind immediately to the
+ * next effect while pending effects still use regular flat mapping.
  *
  * **Details**
  *
@@ -15108,9 +15092,8 @@ export const flatMapEager: {
  *
  * **When to use**
  *
- * Use when `catchEager` provides better performance for effects that are already resolved
- * by applying the error recovery immediately instead of deferring it through
- * the effect pipeline.
+ * Use when an already-resolved failed effect should recover immediately while
+ * pending effects still use regular error recovery.
  *
  * **Details**
  *
