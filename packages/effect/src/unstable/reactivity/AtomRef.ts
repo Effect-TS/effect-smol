@@ -153,27 +153,21 @@ class ReadonlyRefImpl<A> implements ReadonlyRef<A> {
     return Hash.hash(this.value)
   }
 
-  listeners: Array<(a: A) => void> = []
-  listenerCount = 0
+  listeners: Set<{ readonly f: (a: A) => void }> = new Set()
 
   notify(a: A) {
-    const listeners = this.listeners.slice(0, this.listenerCount)
+    const listeners = Array.from(this.listeners)
     for (let i = 0; i < listeners.length; i++) {
-      listeners[i](a)
+      listeners[i].f(a)
     }
   }
 
   subscribe(f: (a: A) => void): () => void {
-    this.listeners.push(f)
-    this.listenerCount++
+    const listener = { f }
+    this.listeners.add(listener)
 
     return () => {
-      const index = this.listeners.indexOf(f)
-      if (index !== -1) {
-        this.listeners[index] = this.listeners[this.listenerCount - 1]
-        this.listeners.pop()
-        this.listenerCount--
-      }
+      this.listeners.delete(listener)
     }
   }
 
