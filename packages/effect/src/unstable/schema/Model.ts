@@ -383,7 +383,7 @@ export interface BooleanSqlite extends
 {}
 
 /**
- * A schema for sqlite booleans that are represented as `0 | 1` in database
+ * Schema for sqlite booleans that are represented as `0 | 1` in database
  * variants and `boolean` in JSON variants.
  *
  * @category booleans
@@ -408,7 +408,7 @@ export const BooleanSqlite: BooleanSqlite = Field({
 export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.String> {}
 
 /**
- * A schema for a `DateTime.Utc` that is serialized as a date string in the
+ * Schema for a `DateTime.Utc` that is serialized as a date string in the
  * format `YYYY-MM-DD`.
  *
  * @category date & time

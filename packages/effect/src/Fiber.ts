@@ -573,7 +573,7 @@ export const interruptAllAs: {
 } = effect.fiberInterruptAllAs
 
 /**
- * Tests if a value is a Fiber. This is a type guard that can be used to
+ * Tests whether a value is a Fiber. This is a type guard that can be used to
  * determine if an unknown value is a Fiber instance.
  *
  * **When to use**

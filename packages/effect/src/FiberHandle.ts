@@ -426,7 +426,7 @@ export const set: {
   ))
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Synchronously retrieves the fiber from the FiberHandle.
  *
  * **Example** (Reading the current fiber unsafely)
  *
@@ -455,7 +455,7 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fi
 }
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Effectfully retrieves the fiber from the FiberHandle.
  *
  * **Example** (Reading the current fiber)
  *

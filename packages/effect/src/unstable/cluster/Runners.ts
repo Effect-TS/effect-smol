@@ -67,7 +67,7 @@ import * as Snowflake from "./Snowflake.ts"
  */
 export class Runners extends Context.Service<Runners, {
   /**
-   * Checks if a Runner is responsive.
+   * Checks whether a Runner is responsive.
    */
   readonly ping: (address: RunnerAddress) => Effect.Effect<void, RunnerUnavailable>
 

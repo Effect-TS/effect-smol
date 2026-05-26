@@ -562,7 +562,7 @@ export const writeLocks = (self: TxReentrantLock): Effect.Effect<number> =>
   })
 
 /**
- * Checks if the lock is held by any fiber (read or write).
+ * Checks whether the lock is held by any fiber (read or write).
  *
  * **Example** (Checking whether a lock is held)
  *
@@ -586,7 +586,7 @@ export const locked = (self: TxReentrantLock): Effect.Effect<boolean> =>
   })
 
 /**
- * Checks if any fiber holds a read lock.
+ * Checks whether any fiber holds a read lock.
  *
  * **Example** (Checking whether a read lock is held)
  *
@@ -610,7 +610,7 @@ export const readLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
   })
 
 /**
- * Checks if any fiber holds a write lock.
+ * Checks whether any fiber holds a write lock.
  *
  * **Example** (Checking whether a write lock is held)
  *
@@ -638,7 +638,7 @@ export const writeLocked = (self: TxReentrantLock): Effect.Effect<boolean> =>
 // =============================================================================
 
 /**
- * Checks if the given value is a TxReentrantLock.
+ * Checks whether the given value is a TxReentrantLock.
  *
  * **Example** (Checking for TxReentrantLock values)
  *

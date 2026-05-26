@@ -1133,8 +1133,8 @@ export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null
 }
 
 /**
- * Decodes `T | undefined` into `Option<T>` and encodes `Option<T>` back
- * to `T | undefined`.
+ * Decodes `T | undefined` into `Option<T>` and encodes `Option.none()` back to
+ * `undefined`.
  *
  * **When to use**
  *
@@ -1264,8 +1264,8 @@ export function optionFromOptionalKey<T>(): Transformation<Option.Option<T>, T> 
 }
 
 /**
- * Decodes `T | undefined` into `Option<T>` and encodes `Option<T>` back
- * to `T | undefined`.
+ * Decodes optional values into `Option<T>` and encodes `Option.none()` back to
+ * an omitted optional value.
  *
  * **When to use**
  *

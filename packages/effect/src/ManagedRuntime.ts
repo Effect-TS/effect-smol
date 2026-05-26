@@ -51,7 +51,7 @@ import type { Mutable } from "./Types.ts"
 const TypeId = "~effect/ManagedRuntime"
 
 /**
- * Checks if the provided argument is a `ManagedRuntime`.
+ * Checks whether the provided argument is a `ManagedRuntime`.
  *
  * **When to use**
  *

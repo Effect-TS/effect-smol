@@ -279,7 +279,7 @@ export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
   : never
 
 /**
- * Tests if a value is an `Effect`.
+ * Tests whether a value is an `Effect`.
  *
  * **Example** (Checking whether a value is an Effect)
  *
@@ -3763,7 +3763,7 @@ export const tapCause: {
 } = internal.tapCause
 
 /**
- * Conditionally executes a side effect based on the cause of a failed effect.
+ * Conditionally executes a side effect when a failed effect's cause matches a predicate.
  *
  * **Details**
  *
@@ -3806,7 +3806,7 @@ export const tapCauseIf: {
 } = internal.tapCauseIf
 
 /**
- * Conditionally executes a side effect based on the cause of a failed effect.
+ * Conditionally executes a side effect when a failed effect's cause passes a filter.
  *
  * **When to use**
  *
@@ -6842,8 +6842,8 @@ export const onExitPrimitive: <A, E, R, XE = never, XR = never>(
 ) => Effect<A, E | XE, R | XR> = internal.onExitPrimitive
 
 /**
- * Ensures that a cleanup functions runs, whether this effect succeeds, fails,
- * or is interrupted.
+ * Ensures that a cleanup function runs whether this effect succeeds, fails, or
+ * is interrupted.
  *
  * **Example** (Observing every exit)
  *
@@ -8249,7 +8249,7 @@ export const useSpan: {
 } = internal.useSpan
 
 /**
- * Wraps the effect with a new span for tracing.
+ * Wraps the effect with a child span for tracing.
  *
  * **Example** (Wrapping an effect in a child span)
  *
@@ -8286,7 +8286,7 @@ export const withSpan: {
 } = internal.withSpan
 
 /**
- * Wraps the effect with a new span for tracing.
+ * Wraps the effect with a scoped child span for tracing.
  *
  * **Details**
  *
@@ -14291,12 +14291,12 @@ export const trackDuration: {
 // -----------------------------------------------------------------------------
 
 /**
- * Service that holds the current transaction state, it includes
+ * Service that holds the current transaction state.
  *
  * **Details**
  *
- * - a journal that stores any non committed change to TxRef values
- * - a retry flag to know if the transaction should be retried
+ * It includes a journal that stores non-committed changes to `TxRef` values and
+ * a retry flag that records whether the transaction should be retried.
  *
  * **Example** (Building transactions)
  *

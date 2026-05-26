@@ -2242,7 +2242,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
 )
 
 /**
- * Checks if an `Option` contains a value equivalent to the given one, using a
+ * Checks whether an `Option` contains a value equivalent to the given one, using a
  * custom `Equivalence`.
  *
  * **When to use**
@@ -2282,7 +2282,7 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
 } => dual(2, (self: Option<A>, a: A): boolean => isNone(self) ? false : isEquivalent(self.value, a))
 
 /**
- * Checks if an `Option` contains a value equal to the given one, using default
+ * Checks whether an `Option` contains a value equal to the given one, using default
  * structural equality.
  *
  * **When to use**
@@ -2321,7 +2321,7 @@ export const contains: {
 } = containsWith(Equal.asEquivalence())
 
 /**
- * Tests if the value in a `Some` satisfies a predicate or refinement.
+ * Tests whether the value in a `Some` satisfies a predicate or refinement.
  *
  * **When to use**
  *

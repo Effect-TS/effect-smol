@@ -577,7 +577,7 @@ export const hasInterrupts: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = 
  * **When to use**
  *
  * Use when composing Exit checks with `Filter` or other `Result`-based
- * filtering APIs.
+ * filtering APIs and you want the full Success wrapper.
  *
  * **Details**
  *
@@ -654,7 +654,7 @@ export const filterValue: <A, E>(self: Exit<A, E>) => Result.Result<A, Failure<n
  * **When to use**
  *
  * Use when composing Exit checks with `Filter` or other `Result`-based
- * filtering APIs.
+ * filtering APIs and you want the full Failure wrapper.
  *
  * **Details**
  *

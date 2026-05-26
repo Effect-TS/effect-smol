@@ -124,7 +124,7 @@ export type TypeId = "~effect/Channel"
 export const TypeId: TypeId = "~effect/Channel"
 
 /**
- * Tests if a value is a `Channel`.
+ * Tests whether a value is a `Channel`.
  *
  * **Example** (Checking for channels)
  *
@@ -926,7 +926,7 @@ export const endSync = <A>(evaluate: LazyArg<A>): Channel<never, never, A> =>
 export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.sync(evaluate))
 
 /**
- * Represents an Channel that emits no elements
+ * Represents a `Channel` that emits no elements.
  *
  * **Example** (Using empty channels)
  *
@@ -951,7 +951,7 @@ export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.s
 export const empty: Channel<never> = fromPull(Effect.succeed(Cause.done()))
 
 /**
- * Represents an Channel that never completes
+ * Represents a `Channel` that never completes.
  *
  * **Example** (Using non-terminating channels)
  *
@@ -1220,7 +1220,7 @@ export const fromEffectTake = <A, E, Done, E2, R>(
   fromPull(Effect.succeed(Effect.flatMap(effect, Take.toPull)))
 
 /**
- * Create a channel from a queue
+ * Creates a channel from a queue.
  *
  * **Example** (Creating channels from queues)
  *
@@ -1263,7 +1263,7 @@ export const fromQueue = <A, E>(
 ): Channel<A, Exclude<E, Cause.Done>> => fromPull(Effect.succeed(Queue.take(queue)))
 
 /**
- * Create a channel from a queue that emits arrays of elements
+ * Creates a channel from a queue that emits arrays of elements.
  *
  * **Example** (Creating batched channels from queues)
  *
@@ -1320,7 +1320,7 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
   fromTransform((upstream, _scope) => Effect.succeed(upstream))
 
 /**
- * Create a channel from a PubSub subscription
+ * Creates a channel from a PubSub subscription.
  *
  * **Example** (Creating channels from subscriptions)
  *
@@ -1368,7 +1368,7 @@ export const fromSubscription = <A>(
 ): Channel<A> => fromPull(Effect.succeed(Effect.onInterrupt(PubSub.take(subscription), () => Cause.done())))
 
 /**
- * Create a channel from a PubSub subscription that outputs arrays of values.
+ * Creates a channel from a PubSub subscription that outputs arrays of values.
  *
  * **Details**
  *
@@ -1475,7 +1475,7 @@ export const fromSubscriptionArray = <A>(
   fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), () => Cause.done())))
 
 /**
- * Create a channel from a PubSub that outputs individual values.
+ * Creates a channel from a PubSub that outputs individual values.
  *
  * **Details**
  *
@@ -1572,7 +1572,7 @@ export const fromPubSub = <A>(
 ): Channel<A> => unwrap(Effect.map(PubSub.subscribe(pubsub), fromSubscription))
 
 /**
- * Create a channel from a PubSub that outputs arrays of values.
+ * Creates a channel from a PubSub that outputs arrays of values.
  *
  * **Details**
  *
@@ -6714,8 +6714,8 @@ export const embedInput: {
 )
 
 /**
- * Allows a faster producer to progress independently of a slower consumer by
- * buffering up to `capacity` elements in a queue.
+ * Buffers individual output elements in a queue with the configured `capacity`
+ * so a faster producer can progress independently of a slower consumer.
  *
  * **Details**
  *
@@ -6773,8 +6773,8 @@ export const buffer: {
   })))
 
 /**
- * Allows a faster producer to progress independently of a slower consumer by
- * buffering up to `capacity` elements in a queue.
+ * Buffers array output elements in a queue with the configured `capacity` so a
+ * faster producer can progress independently of a slower consumer.
  *
  * **Details**
  *
@@ -6935,9 +6935,8 @@ export const onError: {
   onExit(self, (exit) => Exit.isFailure(exit) ? finalizer(exit.cause) : Effect.void))
 
 /**
- * Returns a new channel with an attached finalizer. The finalizer is
- * guaranteed to be executed so long as the channel begins execution (and
- * regardless of whether or not it completes).
+ * Returns a channel with an exit-aware finalizer that is guaranteed to run once
+ * the channel begins execution, whether it succeeds or fails.
  *
  * **Example** (Running exit finalizers)
  *
@@ -7079,9 +7078,8 @@ export const onEnd: {
     ))))
 
 /**
- * Returns a new channel with an attached finalizer. The finalizer is
- * guaranteed to be executed so long as the channel begins execution (and
- * regardless of whether or not it completes).
+ * Returns a channel with a finalizer effect that is guaranteed to run once the
+ * channel begins execution, whether it succeeds or fails.
  *
  * **Example** (Ensuring cleanup runs)
  *
@@ -7144,7 +7142,7 @@ const runWith = <
   })
 
 /**
- * Create a channel from the specified services.
+ * Creates a channel from the specified services.
  *
  * @category services
  * @since 2.0.0

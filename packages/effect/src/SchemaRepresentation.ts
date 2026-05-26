@@ -816,7 +816,7 @@ const toJsonAnnotationsBlacklist: Set<string> = new Set([
 export type PrimitiveTree = Schema.Tree<null | number | boolean | bigint | symbol | string>
 
 /**
- * Schema codec for {@link PrimitiveTree}.
+ * Schema for {@link PrimitiveTree}.
  *
  * **When to use**
  *
@@ -843,8 +843,9 @@ export const $PrimitiveTree: Schema.Codec<PrimitiveTree> = Schema.Tree(
 const isPrimitiveTree = Schema.is($PrimitiveTree)
 
 /**
- * Schema codec for `Schema.Annotations.Annotations`. Filters out internal
- * annotation keys and non-primitive values during encoding.
+ * Schema for serializing public `Schema.Annotations.Annotations` values. It
+ * filters out internal annotation keys and non-primitive values during
+ * encoding.
  *
  * **When to use**
  *
@@ -877,7 +878,7 @@ export const $Annotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
 ).annotate({ identifier: "Annotations" })
 
 /**
- * Schema codec for the {@link Null} representation node.
+ * Schema for the {@link Null} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -888,7 +889,7 @@ export const $Null = Schema.Struct({
 }).annotate({ identifier: "Null" })
 
 /**
- * Schema codec for the {@link Undefined} representation node.
+ * Schema for the {@link Undefined} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -899,7 +900,7 @@ export const $Undefined = Schema.Struct({
 }).annotate({ identifier: "Undefined" })
 
 /**
- * Schema codec for the {@link Void} representation node.
+ * Schema for the {@link Void} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -910,7 +911,7 @@ export const $Void = Schema.Struct({
 }).annotate({ identifier: "Void" })
 
 /**
- * Schema codec for the {@link Never} representation node.
+ * Schema for the {@link Never} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -921,7 +922,7 @@ export const $Never = Schema.Struct({
 }).annotate({ identifier: "Never" })
 
 /**
- * Schema codec for the {@link Unknown} representation node.
+ * Schema for the {@link Unknown} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -932,7 +933,7 @@ export const $Unknown = Schema.Struct({
 }).annotate({ identifier: "Unknown" })
 
 /**
- * Schema codec for the {@link Any} representation node.
+ * Schema for the {@link Any} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1045,7 +1046,7 @@ const $IsPattern = Schema.Struct({
 }).annotate({ identifier: "IsPattern" })
 
 /**
- * Schema codec for {@link StringMeta}.
+ * Schema for {@link StringMeta}.
  *
  * @category schemas
  * @since 4.0.0
@@ -1090,7 +1091,7 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
 }
 
 /**
- * Schema codec for the {@link String} representation node.
+ * Schema for the {@link String} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1145,7 +1146,7 @@ const $IsBetween = Schema.Struct({
 }).annotate({ identifier: "IsBetween" })
 
 /**
- * Schema codec for {@link NumberMeta}.
+ * Schema for {@link NumberMeta}.
  *
  * @category schemas
  * @since 4.0.0
@@ -1162,7 +1163,7 @@ export const $NumberMeta = Schema.Union([
 ]).annotate({ identifier: "NumberMeta" })
 
 /**
- * Schema codec for the {@link Number} representation node.
+ * Schema for the {@link Number} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1174,7 +1175,7 @@ export const $Number = Schema.Struct({
 }).annotate({ identifier: "Number" })
 
 /**
- * Schema codec for the {@link Boolean} representation node.
+ * Schema for the {@link Boolean} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1221,7 +1222,7 @@ const $BigIntMeta = Schema.Union([
 ]).annotate({ identifier: "BigIntMeta" })
 
 /**
- * Schema codec for the {@link BigInt} representation node.
+ * Schema for the {@link BigInt} representation node.
  *
  * **When to use**
  *
@@ -1245,7 +1246,7 @@ export const $BigInt = Schema.Struct({
 }).annotate({ identifier: "BigInt" })
 
 /**
- * Schema codec for the {@link Symbol} representation node.
+ * Schema for the {@link Symbol} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1256,7 +1257,7 @@ export const $Symbol = Schema.Struct({
 }).annotate({ identifier: "Symbol" })
 
 /**
- * Schema codec for the literal value types allowed in a {@link Literal} node
+ * Schema for the literal value types allowed in a {@link Literal} node
  * (string, finite number, boolean, or bigint).
  *
  * @category schemas
@@ -1270,7 +1271,7 @@ export const $LiteralValue = Schema.Union([
 ]).annotate({ identifier: "LiteralValue" })
 
 /**
- * Schema codec for the {@link Literal} representation node.
+ * Schema for the {@link Literal} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1282,7 +1283,7 @@ export const $Literal = Schema.Struct({
 }).annotate({ identifier: "Literal" })
 
 /**
- * Schema codec for the {@link UniqueSymbol} representation node.
+ * Schema for the {@link UniqueSymbol} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1294,7 +1295,7 @@ export const $UniqueSymbol = Schema.Struct({
 }).annotate({ identifier: "UniqueSymbol" })
 
 /**
- * Schema codec for the {@link ObjectKeyword} representation node.
+ * Schema for the {@link ObjectKeyword} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1305,7 +1306,7 @@ export const $ObjectKeyword = Schema.Struct({
 }).annotate({ identifier: "ObjectKeyword" })
 
 /**
- * Schema codec for the {@link Enum} representation node.
+ * Schema for the {@link Enum} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1325,7 +1326,7 @@ export const $Enum = Schema.Struct({
 }).annotate({ identifier: "Enum" })
 
 /**
- * Schema codec for the {@link TemplateLiteral} representation node.
+ * Schema for the {@link TemplateLiteral} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1337,7 +1338,7 @@ export const $TemplateLiteral = Schema.Struct({
 }).annotate({ identifier: "TemplateLiteral" })
 
 /**
- * Schema codec for the {@link Element} type (positional tuple element).
+ * Schema for the {@link Element} type (positional tuple element).
  *
  * @category schemas
  * @since 4.0.0
@@ -1360,7 +1361,7 @@ const $ArraysMeta = Schema.Union([
 ]).annotate({ identifier: "ArraysMeta" })
 
 /**
- * Schema codec for the {@link Arrays} representation node.
+ * Schema for the {@link Arrays} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1374,7 +1375,7 @@ export const $Arrays = Schema.Struct({
 }).annotate({ identifier: "Arrays" })
 
 /**
- * Schema codec for the {@link PropertySignature} type.
+ * Schema for the {@link PropertySignature} type.
  *
  * @category schemas
  * @since 4.0.0
@@ -1388,7 +1389,7 @@ export const $PropertySignature = Schema.Struct({
 }).annotate({ identifier: "PropertySignature" })
 
 /**
- * Schema codec for the {@link IndexSignature} type.
+ * Schema for the {@link IndexSignature} type.
  *
  * @category schemas
  * @since 4.0.0
@@ -1420,7 +1421,7 @@ const $IsPropertyNames = Schema.Struct({
 }).annotate({ identifier: "IsPropertyNames" })
 
 /**
- * Schema codec for {@link ObjectsMeta}.
+ * Schema for {@link ObjectsMeta}.
  *
  * @category schemas
  * @since 4.0.0
@@ -1433,7 +1434,7 @@ export const $ObjectsMeta = Schema.Union([
 ]).annotate({ identifier: "ObjectsMeta" })
 
 /**
- * Schema codec for the {@link Objects} representation node.
+ * Schema for the {@link Objects} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1447,7 +1448,7 @@ export const $Objects = Schema.Struct({
 }).annotate({ identifier: "Objects" })
 
 /**
- * Schema codec for the {@link Union} representation node.
+ * Schema for the {@link Union} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1460,7 +1461,7 @@ export const $Union = Schema.Struct({
 }).annotate({ identifier: "Union" })
 
 /**
- * Schema codec for the {@link Reference} representation node.
+ * Schema for the {@link Reference} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1503,7 +1504,7 @@ const $IsBetweenDate = Schema.Struct({
 }).annotate({ identifier: "IsBetweenDate" })
 
 /**
- * Schema codec for {@link DateMeta}.
+ * Schema for {@link DateMeta}.
  *
  * @category schemas
  * @since 4.0.0
@@ -1534,7 +1535,7 @@ const $IsSizeBetween = Schema.Struct({
 }).annotate({ identifier: "IsSizeBetween" })
 
 /**
- * Schema codec for {@link SizeMeta}.
+ * Schema for {@link SizeMeta}.
  *
  * @category schemas
  * @since 4.0.0
@@ -1546,7 +1547,7 @@ export const $SizeMeta = Schema.Union([
 ]).annotate({ identifier: "SizeMeta" })
 
 /**
- * Schema codec for {@link DeclarationMeta}.
+ * Schema for {@link DeclarationMeta}.
  *
  * @category schemas
  * @since 4.0.0
@@ -1557,7 +1558,7 @@ export const $DeclarationMeta = Schema.Union([
 ]).annotate({ identifier: "DeclarationMeta" })
 
 /**
- * Schema codec for the {@link Declaration} representation node.
+ * Schema for the {@link Declaration} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1571,7 +1572,7 @@ export const $Declaration = Schema.Struct({
 }).annotate({ identifier: "Declaration" })
 
 /**
- * Schema codec for the {@link Suspend} representation node.
+ * Schema for the {@link Suspend} representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1592,8 +1593,8 @@ export const $Suspend = Schema.Struct({
 export interface $Representation extends Schema.Codec<Representation> {}
 
 /**
- * Schema codec for the full {@link Representation} union. This is the
- * recursive codec that can validate/encode any representation node.
+ * Schema for the full {@link Representation} union. It recursively validates
+ * and encodes any representation node.
  *
  * @category schemas
  * @since 4.0.0
@@ -1624,7 +1625,7 @@ export const $Representation: $Representation = Schema.Union([
 ]).annotate({ identifier: "Schema" })
 
 /**
- * Schema codec for {@link Document}.
+ * Schema for {@link Document}.
  *
  * **When to use**
  *
@@ -1648,7 +1649,7 @@ export const $Document = Schema.Struct({
 }).annotate({ identifier: "Document" })
 
 /**
- * Schema codec for {@link MultiDocument}.
+ * Schema for {@link MultiDocument}.
  *
  * @category schemas
  * @since 4.0.0

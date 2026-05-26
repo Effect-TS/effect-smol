@@ -72,7 +72,7 @@ const TypeId = "~effect/rpc/Rpc"
 export const isRpc = (u: unknown): u is Rpc<any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * A schema for RPC defects.
+ * Schema for RPC defects.
  *
  * **Details**
  *

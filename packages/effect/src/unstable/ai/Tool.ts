@@ -2023,7 +2023,7 @@ export const unsafeSecureJsonParse = (text: string): unknown => {
 export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never> {}
 
 /**
- * A schema for tools that accept no parameters.
+ * Schema for tools that accept no parameters.
  *
  * **When to use**
  *

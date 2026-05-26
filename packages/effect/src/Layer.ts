@@ -479,7 +479,7 @@ class MemoMapImpl implements MemoMap {
 }
 
 /**
- * Constructs a `MemoMap` that can be used to build additional layers.
+ * Constructs a `MemoMap` synchronously so it can be used to build additional layers.
  *
  * **Example** (Creating a memo map unsafely)
  *
@@ -510,8 +510,8 @@ class MemoMapImpl implements MemoMap {
 export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 
 /**
- * Constructs a child `MemoMap` that can reuse layers already memoized in the
- * parent while isolating any new layer allocations to the child map.
+ * Synchronously constructs a child `MemoMap` that can reuse layers already
+ * memoized in the parent while isolating any new layer allocations to the child map.
  *
  * **When to use**
  *
@@ -528,7 +528,7 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(parent)
 
 /**
- * Constructs a `MemoMap` that can be used to build additional layers.
+ * Constructs a `MemoMap` effectfully so it can be used to build additional layers.
  *
  * **Example** (Creating a memo map in an effect)
  *
@@ -559,8 +559,8 @@ export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(p
 export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsafe)
 
 /**
- * Constructs a child `MemoMap` that can reuse layers already memoized in the
- * parent while isolating any new layer allocations to the child map.
+ * Effectfully constructs a child `MemoMap` that can reuse layers already
+ * memoized in the parent while isolating any new layer allocations to the child map.
  *
  * **When to use**
  *

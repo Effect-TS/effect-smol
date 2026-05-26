@@ -146,7 +146,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
 }
 
 /**
- * Tests if an arbitrary value is a `Cause`.
+ * Tests whether an arbitrary value is a `Cause`.
  *
  * **Example** (runtime type check)
  *
@@ -163,7 +163,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
 export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
 
 /**
- * Tests if an arbitrary value is a `Reason` (`Fail`, `Die`, or `Interrupt`).
+ * Tests whether an arbitrary value is a `Reason` (`Fail`, `Die`, or `Interrupt`).
  *
  * **Example** (runtime type check)
  *
@@ -608,8 +608,8 @@ export const interrupt: (fiberId?: number | undefined) => Cause<never> = effect.
  *
  * **When to use**
  *
- * Use when you need to construct individual reasons for
- * {@link fromReasons} or for direct comparison.
+ * Use when constructing a standalone typed failure reason for
+ * {@link fromReasons} or direct comparison.
  *
  * **Example** (creating a Fail reason)
  *
@@ -634,8 +634,8 @@ export const makeFailReason = <E>(error: E): Fail<E> => new core.Fail(error)
  *
  * **When to use**
  *
- * Use when you need to construct individual reasons for
- * {@link fromReasons} or for direct comparison.
+ * Use when constructing a standalone defect reason for {@link fromReasons} or
+ * direct comparison.
  *
  * **Example** (creating a Die reason)
  *
@@ -661,8 +661,8 @@ export const makeDieReason = (defect: unknown): Die => new core.Die(defect)
  *
  * **When to use**
  *
- * Use when you need to construct individual reasons for
- * {@link fromReasons} or for direct comparison.
+ * Use when constructing a standalone interrupt reason for {@link fromReasons}
+ * or direct comparison.
  *
  * **Example** (creating an Interrupt reason)
  *
@@ -1256,7 +1256,7 @@ export interface YieldableError extends Error, Pipeable, Inspectable {
 }
 
 /**
- * Tests if an arbitrary value is a `NoSuchElementError`.
+ * Tests whether an arbitrary value is a `NoSuchElementError`.
  *
  * **Example** (runtime type check)
  *
@@ -1342,7 +1342,7 @@ export interface NoSuchElementError extends YieldableError {
 export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
- * Tests if an arbitrary value is a `Done` signal.
+ * Tests whether an arbitrary value is a `Done` signal.
  *
  * **Example** (runtime type check)
  *
@@ -1481,7 +1481,7 @@ export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core
 export const TimeoutErrorTypeId: "~effect/Cause/TimeoutError" = effect.TimeoutErrorTypeId
 
 /**
- * Tests if an arbitrary value is a `TimeoutError`.
+ * Tests whether an arbitrary value is a `TimeoutError`.
  *
  * **Example** (runtime type check)
  *
@@ -1549,7 +1549,7 @@ export const TimeoutError: new(message?: string) => TimeoutError = effect.Timeou
 export const IllegalArgumentErrorTypeId: "~effect/Cause/IllegalArgumentError" = effect.IllegalArgumentErrorTypeId
 
 /**
- * Tests if an arbitrary value is an `IllegalArgumentError`.
+ * Tests whether an arbitrary value is an `IllegalArgumentError`.
  *
  * **Example** (runtime type check)
  *
@@ -1609,7 +1609,7 @@ export interface IllegalArgumentError extends YieldableError {
 export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = effect.IllegalArgumentError
 
 /**
- * Tests if an arbitrary value is an `ExceededCapacityError`.
+ * Tests whether an arbitrary value is an `ExceededCapacityError`.
  *
  * **Example** (runtime type check)
  *
@@ -1697,7 +1697,7 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
 export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
 
 /**
- * Tests if an arbitrary value is an `AsyncFiberError`.
+ * Tests whether an arbitrary value is an `AsyncFiberError`.
  *
  * **Example** (runtime type check)
  *
@@ -1789,7 +1789,7 @@ export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberE
 export const UnknownErrorTypeId: "~effect/Cause/UnknownError" = effect.UnknownErrorTypeId
 
 /**
- * Tests if an arbitrary value is an `UnknownError`.
+ * Tests whether an arbitrary value is an `UnknownError`.
  *
  * **Example** (runtime type check)
  *

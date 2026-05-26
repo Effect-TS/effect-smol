@@ -319,7 +319,7 @@ const makeChunk = <A>(backing: Backing<A>): Chunk<A> => {
 }
 
 /**
- * Checks if `u` is a `Chunk<unknown>`
+ * Checks whether `u` is a `Chunk<unknown>`
  *
  * **Example** (Checking for chunks)
  *
@@ -592,7 +592,8 @@ export const get: {
 )
 
 /**
- * Wraps an array into a chunk without copying, unsafe on mutable arrays
+ * Wraps an array into a chunk without copying, so mutating the source array can
+ * mutate the chunk.
  *
  * **Example** (Creating chunks without copying arrays)
  *
@@ -615,7 +616,8 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
   self.length === 0 ? empty() : self.length === 1 ? of(self[0]) : makeChunk({ _tag: "IArray", array: self })
 
 /**
- * Wraps an array into a chunk without copying, unsafe on mutable arrays
+ * Wraps a non-empty array into a non-empty chunk without copying, so mutating
+ * the source array can mutate the chunk.
  *
  * **Example** (Creating non-empty chunks without copying arrays)
  *
@@ -2097,7 +2099,7 @@ export const splitWhere: {
 })
 
 /**
- * Returns every elements after the first.
+ * Returns every element after the first, or `None` when the chunk is empty.
  *
  * **Example** (Getting the tail safely)
  *
@@ -2120,7 +2122,7 @@ export const splitWhere: {
 export const tail = <A>(self: Chunk<A>): O.Option<Chunk<A>> => self.length > 0 ? O.some(drop(self, 1)) : O.none()
 
 /**
- * Returns every elements after the first.
+ * Returns every element after the first from a non-empty chunk.
  *
  * **Example** (Getting the tail of a non-empty chunk)
  *
@@ -2745,7 +2747,7 @@ export const findLastIndex: {
 )
 
 /**
- * Check if a predicate holds true for every `Chunk` element.
+ * Checks whether a predicate holds true for every `Chunk` element.
  *
  * **Example** (Checking every element)
  *
@@ -2783,7 +2785,7 @@ export const every: {
 )
 
 /**
- * Check if a predicate holds true for some `Chunk` element.
+ * Checks whether a predicate holds true for some `Chunk` element.
  *
  * **Example** (Checking for some matching element)
  *

@@ -116,7 +116,7 @@ export const allShort = [
 ] as const
 
 /**
- * Tests if a value is a `HttpMethod`.
+ * Tests whether a value is a `HttpMethod`.
  *
  * **Example** (Checking HTTP method values)
  *

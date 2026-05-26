@@ -689,9 +689,8 @@ export const addDelay: {
   ))
 
 /**
- * Returns a new `Schedule` that will first execute the left (i.e. `self`)
- * schedule to completion. Once the left schedule is complete, the right (i.e.
- * `other`) schedule will be executed to completion.
+ * Returns a schedule that runs `self` to completion, then runs `other`, and
+ * merges their outputs.
  *
  * **Example** (Sequencing quick and slow retries)
  *
@@ -746,9 +745,8 @@ export const andThen: {
   map(andThenResult(self, other), (result) => effect.succeed(Result.merge(result))))
 
 /**
- * Returns a new `Schedule` that will first execute the left (i.e. `self`)
- * schedule to completion. Once the left schedule is complete, the right (i.e.
- * `other`) schedule will be executed to completion.
+ * Returns a schedule that runs `self` to completion, then runs `other`, and
+ * preserves which schedule produced each output.
  *
  * **Details**
  *

@@ -650,7 +650,7 @@ export const makeOrder = order.Tuple
 
 export {
   /**
-   * Checks if an array has exactly `N` elements, narrowing the type to a
+   * Checks whether an array has exactly `N` elements, narrowing the type to a
    * fixed-length tuple.
    *
    * **When to use**
@@ -684,7 +684,7 @@ export {
    */
   isTupleOf,
   /**
-   * Checks if an array has at least `N` elements, narrowing the type to a
+   * Checks whether an array has at least `N` elements, narrowing the type to a
    * tuple with a minimum length.
    *
    * **When to use**

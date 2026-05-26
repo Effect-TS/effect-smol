@@ -186,7 +186,7 @@ export const catchDone: {
   internalEffect.catchCauseFilter(effect, filterDoneLeftover as any, (l: any) => f(l)) as any)
 
 /**
- * Checks if a Cause contains any done errors.
+ * Checks whether a Cause contains any done errors.
  *
  * **When to use**
  *

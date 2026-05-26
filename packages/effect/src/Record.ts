@@ -237,7 +237,7 @@ export const empty = <K extends string | symbol = never, V = never>(): Record<
 > => ({} as any)
 
 /**
- * Determine if a record is empty.
+ * Determines if a mutable record is empty.
  *
  * **Example** (Checking for an empty record)
  *
@@ -256,7 +256,7 @@ export const isEmptyRecord = <K extends string, A>(self: Record<K, A>): self is 
   Object.keys(self).length === 0
 
 /**
- * Determine if a record is empty.
+ * Determines if a readonly record is empty.
  *
  * **Example** (Checking for an empty readonly record)
  *
@@ -448,7 +448,7 @@ export const toEntries: <K extends string, A>(self: ReadonlyRecord<K, A>) => Arr
 export const size = <K extends string, A>(self: ReadonlyRecord<K, A>): number => keys(self).length
 
 /**
- * Check if a given `key` exists in a record.
+ * Checks whether a given `key` exists in a record.
  *
  * **Example** (Checking key membership)
  *
@@ -1113,7 +1113,7 @@ export const set: {
 )
 
 /**
- * Check if all the keys and values in one record are also found in another record.
+ * Checks whether all the keys and values in one record are also found in another record.
  * Uses the provided equivalence function to compare values.
  *
  * **Example** (Checking subrecords with a custom equivalence)
@@ -1230,7 +1230,7 @@ export const reduce: {
 )
 
 /**
- * Check if all entries in a record meet a specific condition.
+ * Checks whether all entries in a record meet a specific condition.
  *
  * **Example** (Checking every record value)
  *
@@ -1271,7 +1271,7 @@ export const every: {
 )
 
 /**
- * Check if any entry in a record meets a specific condition.
+ * Checks whether any entry in a record meets a specific condition.
  *
  * **Example** (Checking for any matching value)
  *

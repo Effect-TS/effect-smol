@@ -257,7 +257,7 @@ export const RequestPrototype: Request<any, any, any> = {
 }
 
 /**
- * Tests if a value is a `Request`.
+ * Tests whether a value is a `Request`.
  *
  * **Example** (Checking request values)
  *

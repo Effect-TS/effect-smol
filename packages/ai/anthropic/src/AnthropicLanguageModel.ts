@@ -2827,7 +2827,7 @@ const groupMessages = (prompt: Prompt.Prompt): Array<ContentGroup> => {
 }
 
 /**
- * Checks if data is a URL (either a URL object or a URL string).
+ * Checks whether data is a URL (either a URL object or a URL string).
  */
 const isUrlData = (
   data: typeof Prompt.FilePart.Type["data"]

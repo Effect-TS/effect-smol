@@ -412,7 +412,7 @@ const make = (input: number | bigint): Duration => {
 }
 
 /**
- * Checks if a value is a Duration.
+ * Checks whether a value is a Duration.
  *
  * **Example** (Checking for durations)
  *
@@ -429,7 +429,7 @@ const make = (input: number | bigint): Duration => {
 export const isDuration = (u: unknown): u is Duration => hasProperty(u, TypeId)
 
 /**
- * Checks if a Duration is finite (not infinite).
+ * Checks whether a Duration is finite (not infinite).
  *
  * **Example** (Checking finite durations)
  *
@@ -447,7 +447,7 @@ export const isFinite = (self: Duration): boolean =>
   self.value._tag !== "Infinity" && self.value._tag !== "NegativeInfinity"
 
 /**
- * Checks if a Duration is zero.
+ * Checks whether a Duration is zero.
  *
  * **Example** (Checking for zero durations)
  *
@@ -909,7 +909,7 @@ export const toWeeks = (self: Input): number =>
   })
 
 /**
- * Get the duration in nanoseconds as a bigint.
+ * Gets the duration in nanoseconds as a bigint, throwing for infinite durations.
  *
  * **Gotchas**
  *
@@ -945,7 +945,7 @@ export const toNanosUnsafe = (input: Input): bigint => {
 }
 
 /**
- * Get the duration in nanoseconds as a bigint.
+ * Safely gets the duration in nanoseconds as an `Option<bigint>`.
  *
  * **Details**
  *
@@ -1533,7 +1533,7 @@ export const sum: {
 )
 
 /**
- * Checks if the first Duration is less than the second.
+ * Checks whether the first Duration is less than the second.
  *
  * **Example** (Comparing durations with less than)
  *
@@ -1553,7 +1553,7 @@ export const isLessThan: {
 } = order.isLessThan(Order)
 
 /**
- * Checks if the first Duration is less than or equal to the second.
+ * Checks whether the first Duration is less than or equal to the second.
  *
  * **Example** (Comparing durations with less than or equal)
  *
@@ -1576,7 +1576,7 @@ export const isLessThanOrEqualTo: {
 } = order.isLessThanOrEqualTo(Order)
 
 /**
- * Checks if the first Duration is greater than the second.
+ * Checks whether the first Duration is greater than the second.
  *
  * **Example** (Comparing durations with greater than)
  *
@@ -1596,7 +1596,7 @@ export const isGreaterThan: {
 } = order.isGreaterThan(Order)
 
 /**
- * Checks if the first Duration is greater than or equal to the second.
+ * Checks whether the first Duration is greater than or equal to the second.
  *
  * **Example** (Comparing durations with greater than or equal)
  *
@@ -1619,7 +1619,7 @@ export const isGreaterThanOrEqualTo: {
 } = order.isGreaterThanOrEqualTo(Order)
 
 /**
- * Checks if two Durations are equal.
+ * Checks whether two Durations are equal.
  *
  * **Example** (Checking duration equality)
  *

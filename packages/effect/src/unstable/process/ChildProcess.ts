@@ -534,7 +534,7 @@ const Proto = {
 }
 
 /**
- * Check if a value is a `Command`.
+ * Checks whether a value is a `Command`.
  *
  * @category guards
  * @since 4.0.0
@@ -542,7 +542,7 @@ const Proto = {
 export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, TypeId)
 
 /**
- * Check if a command is a `StandardCommand`.
+ * Checks whether a command is a `StandardCommand`.
  *
  * @category guards
  * @since 4.0.0
@@ -550,7 +550,7 @@ export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, 
 export const isStandardCommand = (command: Command): command is StandardCommand => command._tag === "StandardCommand"
 
 /**
- * Check if a command is a `PipedCommand`.
+ * Checks whether a command is a `PipedCommand`.
  *
  * @category guards
  * @since 4.0.0

@@ -1939,7 +1939,7 @@ export class RootsListChangedNotification extends Rpc.make("notifications/roots/
 // =============================================================================
 
 /**
- * The client's response to an elicitation request
+ * Schema for an accepted client response to an elicitation request.
  *
  * @category elicitation
  * @since 4.0.0
@@ -1963,7 +1963,7 @@ export class ElicitAcceptResult extends Schema.Class<ElicitAcceptResult>(
 }) {}
 
 /**
- * The client's response to an elicitation request
+ * Schema for a declined or canceled client response to an elicitation request.
  *
  * @category elicitation
  * @since 4.0.0
@@ -1982,7 +1982,7 @@ export class ElicitDeclineResult extends Schema.Class<ElicitDeclineResult>(
 }) {}
 
 /**
- * The client's response to an elicitation request
+ * Schema for every client response to an elicitation request.
  *
  * @category elicitation
  * @since 4.0.0

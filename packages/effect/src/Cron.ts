@@ -239,7 +239,7 @@ const CronProto = {
 }
 
 /**
- * Checks if a given value is a Cron instance.
+ * Checks whether a given value is a Cron instance.
  *
  * **When to use**
  *
@@ -521,7 +521,7 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 }
 
 /**
- * Checks if a given value is a CronParseError instance.
+ * Checks whether a given value is a CronParseError instance.
  *
  * **When to use**
  *

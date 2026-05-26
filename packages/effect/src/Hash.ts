@@ -312,7 +312,7 @@ export const combine: {
 export const optimize = (n: number): number => (n & 0xbfffffff) | ((n >>> 1) & 0x40000000)
 
 /**
- * Checks if a value implements the Hash interface.
+ * Checks whether a value implements the Hash interface.
  *
  * **When to use**
  *

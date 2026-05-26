@@ -470,7 +470,7 @@ export const set: {
 ): Effect.Effect<void> => Effect.sync(() => setUnsafe(self, key, fiber, options)))
 
 /**
- * Retrieve a fiber from the FiberMap.
+ * Synchronously retrieves a fiber from the FiberMap.
  *
  * **Example** (Retrieving a fiber unsafely)
  *
@@ -510,7 +510,7 @@ export const getUnsafe: {
 )
 
 /**
- * Retrieve a fiber from the FiberMap.
+ * Effectfully retrieves a fiber from the FiberMap.
  *
  * **Details**
  *
@@ -553,7 +553,7 @@ export const get: {
 )
 
 /**
- * Check if a key exists in the FiberMap.
+ * Checks whether a key exists in the FiberMap.
  *
  * **Example** (Checking if a key exists unsafely)
  *
@@ -585,7 +585,7 @@ export const hasUnsafe: {
 )
 
 /**
- * Check if a key exists in the FiberMap.
+ * Checks whether a key exists in the FiberMap.
  * This is the Effect-wrapped version of `hasUnsafe`.
  *
  * **Example** (Checking if a key exists)

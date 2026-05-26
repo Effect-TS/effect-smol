@@ -381,7 +381,7 @@ const invalidNegatedFlagValue = (
   })
 
 /**
- * Checks if a token is a boolean literal value.
+ * Checks whether a token is a boolean literal value.
  * Recognizes: true/false, yes/no, on/off, 1/0
  */
 const asBooleanLiteral = (token: Token | undefined): string | undefined =>

@@ -543,7 +543,7 @@ export const get: {
 } = TR.get
 
 /**
- * Check if the given key exists in the `Trie`.
+ * Checks whether the given key exists in the `Trie`.
  *
  * **Example** (Checking key membership)
  *

@@ -115,7 +115,7 @@ const bigint1 = BigInt(1)
 const bigint2 = BigInt(2)
 
 /**
- * Tests if a value is a `bigint`.
+ * Tests whether a value is a `bigint`.
  *
  * **When to use**
  *
@@ -480,7 +480,7 @@ export const isGreaterThanOrEqualTo: {
 } = order.isGreaterThanOrEqualTo(Order)
 
 /**
- * Checks if a `bigint` is between a `minimum` and `maximum` value (inclusive).
+ * Checks whether a `bigint` is between a `minimum` and `maximum` value (inclusive).
  *
  * **When to use**
  *

@@ -975,7 +975,8 @@ export type ComputerUseLeftClickDragAction = typeof ComputerUseLeftClickDragActi
  *
  * **When to use**
  *
- * Use when you use this for fine-grained click control.
+ * Use when constructing a manual click or drag sequence that should press and
+ * hold the left mouse button before a later release.
  *
  * @category Computer Use
  * @since 4.0.0
@@ -1001,7 +1002,8 @@ export type ComputerUseLeftMouseDownAction = typeof ComputerUseLeftMouseDownActi
  *
  * **When to use**
  *
- * Use when you use this for fine-grained click control.
+ * Use when constructing a manual click or drag sequence that should release the
+ * left mouse button after it was previously held down.
  *
  * @category Computer Use
  * @since 4.0.0

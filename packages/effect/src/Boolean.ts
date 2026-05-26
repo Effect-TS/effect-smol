@@ -97,7 +97,7 @@ import * as Reducer from "./Reducer.ts"
 export const Boolean = globalThis.Boolean
 
 /**
- * Tests if a value is a `boolean`.
+ * Tests whether a value is a `boolean`.
  *
  * **When to use**
  *

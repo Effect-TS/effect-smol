@@ -65,7 +65,7 @@ import * as predicate from "./Predicate.ts"
 export const RegExp = globalThis.RegExp
 
 /**
- * Tests if a value is a `RegExp`.
+ * Tests whether a value is a `RegExp`.
  *
  * **When to use**
  *

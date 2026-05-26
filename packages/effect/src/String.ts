@@ -100,7 +100,7 @@ import * as Reducer from "./Reducer.ts"
 export const String = globalThis.String
 
 /**
- * Tests if a value is a `string`.
+ * Tests whether a value is a `string`.
  *
  * **Example** (Checking for strings)
  *
@@ -614,7 +614,7 @@ export const charCodeAt: {
 export const substring = (start: number, end?: number) => (self: string): string => self.substring(start, end)
 
 /**
- * Returns the character at the specified index, or `None` if the index is out of bounds.
+ * Returns the character at the specified relative index, or `None` if the index is out of bounds.
  *
  * **Example** (Accessing characters safely)
  *
@@ -634,7 +634,7 @@ export const at: {
 } = dual(2, (self: string, index: number): Option.Option<string> => Option.fromUndefinedOr(self.at(index)))
 
 /**
- * Returns the character at the specified index, or `None` if the index is out of bounds.
+ * Returns the character at the specified non-negative index, or `None` if the index is out of bounds.
  *
  * **Example** (Reading characters safely)
  *

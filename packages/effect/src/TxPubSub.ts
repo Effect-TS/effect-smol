@@ -331,7 +331,7 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the TxPubSub has no pending messages (all subscriber queues are empty).
+ * Checks whether the TxPubSub has no pending messages (all subscriber queues are empty).
  *
  * **Example** (Checking whether a pub/sub is empty)
  *
@@ -351,7 +351,7 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
 export const isEmpty = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => Effect.map(size(self), (s) => s === 0)
 
 /**
- * Checks if any subscriber queue is at capacity.
+ * Checks whether any subscriber queue is at capacity.
  *
  * **Example** (Checking whether a pub/sub is full)
  *
@@ -379,7 +379,7 @@ export const isFull = <A>(self: TxPubSub<A>): Effect.Effect<boolean> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the TxPubSub has been shut down.
+ * Checks whether the TxPubSub has been shut down.
  *
  * **Example** (Checking whether a pub/sub is shut down)
  *
@@ -702,7 +702,7 @@ export const awaitShutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
 // =============================================================================
 
 /**
- * Checks if the given value is a TxPubSub.
+ * Checks whether the given value is a TxPubSub.
  *
  * **Example** (Checking for a TxPubSub)
  *

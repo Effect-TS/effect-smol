@@ -1651,7 +1651,7 @@ export function asClass<S extends Top>(schema: S): S & { new(_: never): {} } {
 }
 
 /**
- * Tests if a value is a `Schema`.
+ * Tests whether a value is a `Schema`.
  *
  * @category guards
  * @since 3.10.0
@@ -7785,7 +7785,7 @@ export interface NonEmptyString extends String {
 }
 
 /**
- * A schema for non-empty strings. Validates that a string has at least one
+ * Schema for non-empty strings. Validates that a string has at least one
  * character.
  *
  * @category String
@@ -7805,7 +7805,7 @@ export interface Char extends String {
 }
 
 /**
- * A schema for strings whose JavaScript `length` is exactly `1`.
+ * Schema for strings whose JavaScript `length` is exactly `1`.
  *
  * **When to use**
  *
@@ -8771,7 +8771,7 @@ const ErrorJsonEncoded = Struct({
 })
 
 /**
- * A schema for JavaScript `Error` objects.
+ * Schema for JavaScript `Error` objects.
  *
  * **Details**
  *
@@ -8797,7 +8797,7 @@ export const Error: Error = instanceOf(globalThis.Error, {
 })
 
 /**
- * A schema for JavaScript `Error` objects that preserves stack traces in the JSON
+ * Schema for JavaScript `Error` objects that preserves stack traces in the JSON
  * encoded form.
  *
  * **Details**
@@ -8865,7 +8865,7 @@ const defectTransformation = new Transformation.Transformation(
 )
 
 /**
- * A schema for defect values, accepting either JavaScript `Error` values encoded
+ * Schema for defect values, accepting either JavaScript `Error` values encoded
  * with `message` and optional `name`, or arbitrary unknown defect values.
  *
  * **Details**
@@ -9648,7 +9648,7 @@ export interface URL extends instanceOf<globalThis.URL> {
 const URLString = String.annotate({ expected: "a string that will be decoded as a URL" })
 
 /**
- * A schema for JavaScript `URL` objects.
+ * Schema for JavaScript `URL` objects.
  *
  * **Details**
  *
@@ -9692,7 +9692,7 @@ export interface URLFromString extends decodeTo<URL, String> {
 }
 
 /**
- * A transformation schema that decodes a `string` into a `URL`.
+ * Schema that decodes a `string` into a `URL`.
  *
  * **Details**
  *
@@ -9721,7 +9721,7 @@ export interface Date extends instanceOf<globalThis.Date> {
 const DateString = String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
 
 /**
- * A schema for JavaScript `Date` objects.
+ * Schema for JavaScript `Date` objects.
  *
  * **When to use**
  *
@@ -9780,7 +9780,7 @@ export interface DateFromString extends decodeTo<Date, String> {
 }
 
 /**
- * A transformation schema that decodes a string into a JavaScript `Date`.
+ * Schema that decodes a string into a JavaScript `Date`.
  *
  * **When to use**
  *
@@ -9820,7 +9820,7 @@ export interface DateValid extends Date {
 }
 
 /**
- * A schema for **valid** JavaScript `Date` objects.
+ * Schema for **valid** JavaScript `Date` objects.
  *
  * **Details**
  *
@@ -9843,7 +9843,7 @@ export interface Duration extends declare<Duration_.Duration> {
 }
 
 /**
- * A schema for `Duration` values.
+ * Schema for `Duration` values.
  *
  * **Details**
  *
@@ -9936,7 +9936,7 @@ export interface DurationFromString extends decodeTo<Duration, String> {
 }
 
 /**
- * A transformation schema that parses a string into a `Duration`.
+ * Schema that parses a string into a `Duration`.
  *
  * **Details**
  *
@@ -9968,7 +9968,7 @@ export interface DurationFromNanos extends decodeTo<Duration, BigInt> {
 const bigint0 = globalThis.BigInt(0)
 
 /**
- * A transformation schema that decodes a non-negative `bigint` into a
+ * Schema that decodes a non-negative `bigint` into a
  * `Duration`, treating the bigint as nanoseconds.
  *
  * **Details**
@@ -10000,7 +10000,7 @@ export interface DurationFromMillis extends decodeTo<Duration, Number> {
 }
 
 /**
- * A transformation schema that decodes a non-negative (possibly infinite)
+ * Schema that decodes a non-negative (possibly infinite)
  * integer into a `Duration`, treating the integer value as the duration in
  * milliseconds.
  *
@@ -10034,7 +10034,7 @@ export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {
 const BigDecimalString = String.annotate({ expected: "a string that will be decoded as a BigDecimal" })
 
 /**
- * A schema for `BigDecimal` values.
+ * Schema for `BigDecimal` values.
  *
  * **When to use**
  *
@@ -10089,7 +10089,7 @@ export interface BigDecimalFromString extends decodeTo<BigDecimal, String> {
 }
 
 /**
- * A transformation schema that parses a string into a `BigDecimal`.
+ * Schema that parses a string into a `BigDecimal`.
  *
  * **When to use**
  *
@@ -10131,7 +10131,7 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
 }
 
 /**
- * A transformation schema that decodes a JSON-encoded string into an `unknown` value.
+ * Schema that decodes a JSON-encoded string into an `unknown` value.
  *
  * **Details**
  *
@@ -10626,7 +10626,7 @@ export interface Finite extends Number {
 }
 
 /**
- * A schema for finite numbers, rejecting `NaN`, `Infinity`, and `-Infinity`.
+ * Schema for finite numbers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @category Number
  * @since 3.10.0
@@ -10645,7 +10645,7 @@ export interface Int extends Number {
 }
 
 /**
- * A schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
+ * Schema for integers, rejecting `NaN`, `Infinity`, and `-Infinity`.
  *
  * @category Number
  * @since 3.10.0
@@ -10664,7 +10664,7 @@ export interface NumberFromString extends decodeTo<Finite, String> {
 }
 
 /**
- * A transformation schema that parses a string into a `number` using JavaScript
+ * Schema that parses a string into a `number` using JavaScript
  * number coercion.
  *
  * **Details**
@@ -10696,7 +10696,7 @@ export interface FiniteFromString extends decodeTo<Finite, String> {
 }
 
 /**
- * A transformation schema that parses a string into a finite number.
+ * Schema that parses a string into a finite number.
  *
  * **Details**
  *
@@ -10726,7 +10726,7 @@ export interface BigIntFromString extends decodeTo<BigInt, String> {
 }
 
 /**
- * A transformation schema that parses a string into a `bigint`.
+ * Schema that parses a string into a `bigint`.
  *
  * **When to use**
  *
@@ -10769,7 +10769,7 @@ export interface Trimmed extends String {
 }
 
 /**
- * A schema for strings that contains no leading or trailing whitespaces.
+ * Schema for strings that contains no leading or trailing whitespaces.
  *
  * @category String
  * @since 3.10.0
@@ -10788,7 +10788,7 @@ export interface Trim extends decodeTo<Trimmed, String> {
 }
 
 /**
- * A transformation schema that trims whitespace from a string.
+ * Schema that trims whitespace from a string.
  *
  * **Details**
  *
@@ -11033,7 +11033,7 @@ const Base64String = String.annotate({
 })
 
 /**
- * A schema for JavaScript `Uint8Array` objects.
+ * Schema for JavaScript `Uint8Array` objects.
  *
  * **Details**
  *
@@ -11073,7 +11073,7 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {
 }
 
 /**
- * A transformation schema that decodes a base64 encoded string into a
+ * Schema that decodes a base64 encoded string into a
  * `Uint8Array`.
  *
  * **Details**
@@ -11103,7 +11103,7 @@ export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {
 }
 
 /**
- * A transformation schema that decodes a base64 (URL) encoded string into a
+ * Schema that decodes a base64 (URL) encoded string into a
  * `Uint8Array`.
  *
  * **Details**
@@ -11138,7 +11138,7 @@ export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {
 }
 
 /**
- * A transformation schema that decodes a hex encoded string into a
+ * Schema that decodes a hex encoded string into a
  * `Uint8Array`.
  *
  * **Details**
@@ -11173,7 +11173,7 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {
 }
 
 /**
- * A schema for `DateTime.Utc` values.
+ * Schema for `DateTime.Utc` values.
  *
  * **When to use**
  *
@@ -11229,7 +11229,7 @@ export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
 }
 
 /**
- * A transformation schema that decodes a `Date` into a `DateTime.Utc`.
+ * Schema that decodes a `Date` into a `DateTime.Utc`.
  *
  * **When to use**
  *
@@ -11271,7 +11271,7 @@ export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
 }
 
 /**
- * A transformation schema that decodes a date-time string into a `DateTime.Utc`.
+ * Schema that decodes a date-time string into a `DateTime.Utc`.
  *
  * **Details**
  *
@@ -11308,7 +11308,7 @@ export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>
 }
 
 /**
- * A transformation schema that decodes a number into a `DateTime.Utc`.
+ * Schema that decodes a number into a `DateTime.Utc`.
  *
  * **Details**
  *
@@ -11340,7 +11340,7 @@ export interface TimeZoneOffset extends declare<DateTime.TimeZone.Offset> {
 }
 
 /**
- * A schema for `DateTime.TimeZone.Offset` values.
+ * Schema for `DateTime.TimeZone.Offset` values.
  *
  * **Details**
  *
@@ -11389,7 +11389,7 @@ export interface TimeZoneNamed extends declare<DateTime.TimeZone.Named> {
 const TimeZoneNamedString = String.annotate({ expected: "an IANA time zone identifier" })
 
 /**
- * A schema for `DateTime.TimeZone.Named` values.
+ * Schema for `DateTime.TimeZone.Named` values.
  *
  * **Details**
  *
@@ -11440,7 +11440,7 @@ export interface TimeZoneNamedFromString extends decodeTo<TimeZoneNamed, String>
 }
 
 /**
- * A transformation schema that parses an IANA time zone identifier string into a `DateTime.TimeZone.Named`.
+ * Schema that parses an IANA time zone identifier string into a `DateTime.TimeZone.Named`.
  *
  * **Details**
  *
@@ -11473,7 +11473,7 @@ const TimeZoneString = String.annotate({
 })
 
 /**
- * A schema for `DateTime.TimeZone` values.
+ * Schema for `DateTime.TimeZone` values.
  *
  * **Details**
  *
@@ -11528,7 +11528,7 @@ export interface TimeZoneFromString extends decodeTo<TimeZone, String> {
 }
 
 /**
- * A transformation schema that parses a time zone string into a `DateTime.TimeZone`.
+ * Schema that parses a time zone string into a `DateTime.TimeZone`.
  *
  * **Details**
  *
@@ -11561,7 +11561,7 @@ const DateTimeZonedString = String.annotate({
 })
 
 /**
- * A schema for `DateTime.Zoned` values.
+ * Schema for `DateTime.Zoned` values.
  *
  * **Details**
  *
@@ -11619,7 +11619,7 @@ export interface DateTimeZonedFromString extends decodeTo<DateTimeZoned, String>
 }
 
 /**
- * A transformation schema that parses a zoned DateTime string into a `DateTime.Zoned`.
+ * Schema that parses a zoned DateTime string into a `DateTime.Zoned`.
  *
  * **Details**
  *

@@ -106,7 +106,7 @@ export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable
 }
 
 /**
- * Checks if the specified value is a `MutableHashMap`, `false` otherwise.
+ * Checks whether the specified value is a `MutableHashMap`, `false` otherwise.
  *
  * **When to use**
  *
@@ -410,7 +410,7 @@ const getFromBucket = <K, V>(
 }
 
 /**
- * Checks if the MutableHashMap contains the specified key.
+ * Checks whether the MutableHashMap contains the specified key.
  *
  * **When to use**
  *

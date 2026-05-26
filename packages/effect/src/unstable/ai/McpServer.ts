@@ -804,7 +804,13 @@ export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
 }
 
 /**
- * Register a resource with the McpServer.
+ * Registers an MCP resource or resource template from an Effect program.
+ *
+ * **When to use**
+ *
+ * Use to add a resource to an existing MCP server from an Effect program.
+ *
+ * @see {@link resource} for the layer-based resource registration wrapper
  *
  * @category resources
  * @since 4.0.0
@@ -960,7 +966,13 @@ export const registerResource: {
 } as any
 
 /**
- * Register a resource with the McpServer.
+ * Creates a layer that registers an MCP resource or resource template.
+ *
+ * **When to use**
+ *
+ * Use to compose resource registration into an MCP server layer.
+ *
+ * @see {@link registerResource} for the Effect-level resource registration API
  *
  * @category resources
  * @since 4.0.0
@@ -1020,7 +1032,7 @@ export const resource: {
 } as any
 
 /**
- * Register a prompt with the McpServer.
+ * Registers an MCP prompt from an Effect program.
  *
  * **When to use**
  *
@@ -1127,7 +1139,7 @@ export const registerPrompt = <
 }
 
 /**
- * Register a prompt with the McpServer.
+ * Creates a layer that registers an MCP prompt.
  *
  * **When to use**
  *

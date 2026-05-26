@@ -1642,7 +1642,7 @@ export {
 export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => sizeUnsafe(self))
 
 /**
- * Check if the queue is full.
+ * Checks whether the queue is full.
  *
  * **Example** (Checking if queues are full)
  *
@@ -1710,7 +1710,7 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
 export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
 
 /**
- * Check if the queue is full synchronously.
+ * Checks whether the queue is full synchronously.
  *
  * **Example** (Checking fullness synchronously)
  *

@@ -1464,7 +1464,8 @@ export const boolean = new Boolean()
  *
  * **When to use**
  *
- * Use when building an AST that should match any JavaScript symbol value.
+ * Use when defining or inspecting the AST node class for schemas that match any
+ * JavaScript symbol value.
  *
  * **Details**
  *
@@ -1497,7 +1498,8 @@ export class Symbol extends Base {
  *
  * **When to use**
  *
- * Use when building an AST that should match any JavaScript symbol value.
+ * Use to reuse the singleton AST node for schemas that match any JavaScript
+ * symbol value.
  *
  * **Gotchas**
  *

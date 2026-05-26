@@ -27,7 +27,7 @@
 import * as predicate from "./Predicate.ts"
 
 /**
- * Tests if a value is a `symbol`.
+ * Tests whether a value is a `symbol`.
  *
  * **When to use**
  *

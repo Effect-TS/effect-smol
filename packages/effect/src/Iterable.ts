@@ -2027,7 +2027,7 @@ export const flatMapNullishOr: {
 )
 
 /**
- * Check if a predicate holds true for some `Iterable` element.
+ * Checks whether a predicate holds true for some `Iterable` element.
  *
  * **Example** (Checking whether some element matches)
  *

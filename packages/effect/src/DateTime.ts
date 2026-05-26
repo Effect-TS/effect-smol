@@ -457,7 +457,7 @@ export type Disambiguation = "compatible" | "earlier" | "later" | "reject"
 export const isDateTime: (u: unknown) => u is DateTime = Internal.isDateTime
 
 /**
- * Checks if a value is a `TimeZone`.
+ * Checks whether a value is a `TimeZone`.
  *
  * **When to use**
  *
@@ -473,7 +473,7 @@ export const isDateTime: (u: unknown) => u is DateTime = Internal.isDateTime
 export const isTimeZone: (u: unknown) => u is TimeZone = Internal.isTimeZone
 
 /**
- * Checks if a value is an offset-based `TimeZone`.
+ * Checks whether a value is an offset-based `TimeZone`.
  *
  * **When to use**
  *
@@ -489,7 +489,7 @@ export const isTimeZone: (u: unknown) => u is TimeZone = Internal.isTimeZone
 export const isTimeZoneOffset: (u: unknown) => u is TimeZone.Offset = Internal.isTimeZoneOffset
 
 /**
- * Checks if a value is a named `TimeZone` (IANA time zone).
+ * Checks whether a value is a named `TimeZone` (IANA time zone).
  *
  * **When to use**
  *
@@ -505,7 +505,7 @@ export const isTimeZoneOffset: (u: unknown) => u is TimeZone.Offset = Internal.i
 export const isTimeZoneNamed: (u: unknown) => u is TimeZone.Named = Internal.isTimeZoneNamed
 
 /**
- * Checks if a `DateTime` is a UTC `DateTime` (no time zone information).
+ * Checks whether a `DateTime` is a UTC `DateTime` (no time zone information).
  *
  * **When to use**
  *
@@ -521,7 +521,7 @@ export const isTimeZoneNamed: (u: unknown) => u is TimeZone.Named = Internal.isT
 export const isUtc: (self: DateTime) => self is Utc = Internal.isUtc
 
 /**
- * Checks if a `DateTime` is a zoned `DateTime` (has time zone information).
+ * Checks whether a `DateTime` is a zoned `DateTime` (has time zone information).
  *
  * **When to use**
  *
@@ -1052,7 +1052,7 @@ export const zoneMakeNamedUnsafe: (zoneId: string) => TimeZone.Named = Internal.
 export const zoneMakeOffset: (offset: number) => TimeZone.Offset = Internal.zoneMakeOffset
 
 /**
- * Create a named time zone from a IANA time zone identifier.
+ * Safely creates a named time zone from an IANA time zone identifier.
  *
  * **Details**
  *
@@ -1076,7 +1076,7 @@ export const zoneMakeOffset: (offset: number) => TimeZone.Offset = Internal.zone
 export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = Internal.zoneMakeNamed
 
 /**
- * Create a named time zone from a IANA time zone identifier.
+ * Effectfully creates a named time zone from an IANA time zone identifier.
  *
  * **Details**
  *
@@ -1149,7 +1149,7 @@ export const zoneMakeLocal: () => TimeZone.Named = Internal.zoneMakeLocal
 export const zoneFromString: (zone: string) => Option.Option<TimeZone> = Internal.zoneFromString
 
 /**
- * Format a `TimeZone` as a string.
+ * Formats a `TimeZone` as a string.
  *
  * **Example** (Formatting time zones)
  *
@@ -1311,7 +1311,7 @@ export const max: {
 } = Internal.max
 
 /**
- * Checks if the first `DateTime` is after the second `DateTime`.
+ * Checks whether the first `DateTime` is after the second `DateTime`.
  *
  * **Example** (Checking whether a DateTime is later)
  *
@@ -1334,7 +1334,7 @@ export const isGreaterThan: {
 } = Internal.isGreaterThan
 
 /**
- * Checks if the first `DateTime` is after or equal to the second `DateTime`.
+ * Checks whether the first `DateTime` is after or equal to the second `DateTime`.
  *
  * **Example** (Checking whether a DateTime is later or equal)
  *
@@ -1359,7 +1359,7 @@ export const isGreaterThanOrEqualTo: {
 } = Internal.isGreaterThanOrEqualTo
 
 /**
- * Checks if the first `DateTime` is before the second `DateTime`.
+ * Checks whether the first `DateTime` is before the second `DateTime`.
  *
  * **Example** (Checking whether a DateTime is earlier)
  *
@@ -1382,7 +1382,7 @@ export const isLessThan: {
 } = Internal.isLessThan
 
 /**
- * Checks if the first `DateTime` is before or equal to the second `DateTime`.
+ * Checks whether the first `DateTime` is before or equal to the second `DateTime`.
  *
  * **Example** (Checking whether a DateTime is earlier or equal)
  *
@@ -1407,7 +1407,7 @@ export const isLessThanOrEqualTo: {
 } = Internal.isLessThanOrEqualTo
 
 /**
- * Checks if a `DateTime` is between two other `DateTime` values (inclusive).
+ * Checks whether a `DateTime` is between two other `DateTime` values (inclusive).
  *
  * **Example** (Checking whether a DateTime is within bounds)
  *
@@ -1430,7 +1430,7 @@ export const between: {
 } = Internal.between
 
 /**
- * Checks if a `DateTime` is in the future compared to the current time.
+ * Checks effectfully if a `DateTime` is in the future compared to the current time.
  *
  * **Details**
  *
@@ -1454,7 +1454,7 @@ export const between: {
 export const isFuture: (self: DateTime) => Effect.Effect<boolean> = Internal.isFuture
 
 /**
- * Checks if a `DateTime` is in the future compared to the current time.
+ * Checks synchronously if a `DateTime` is in the future compared to the current time.
  *
  * **Details**
  *
@@ -1478,7 +1478,7 @@ export const isFuture: (self: DateTime) => Effect.Effect<boolean> = Internal.isF
 export const isFutureUnsafe: (self: DateTime) => boolean = Internal.isFutureUnsafe
 
 /**
- * Checks if a `DateTime` is in the past compared to the current time.
+ * Checks effectfully if a `DateTime` is in the past compared to the current time.
  *
  * **Details**
  *
@@ -1502,7 +1502,7 @@ export const isFutureUnsafe: (self: DateTime) => boolean = Internal.isFutureUnsa
 export const isPast: (self: DateTime) => Effect.Effect<boolean> = Internal.isPast
 
 /**
- * Checks if a `DateTime` is in the past compared to the current time.
+ * Checks synchronously if a `DateTime` is in the past compared to the current time.
  *
  * **Details**
  *
@@ -1684,7 +1684,7 @@ export const removeTime: (self: DateTime) => Utc = Internal.removeTime
 // =============================================================================
 
 /**
- * Get the different parts of a `DateTime` as an object.
+ * Gets the time-zone-adjusted parts of a `DateTime` as an object.
  *
  * **Details**
  *
@@ -1717,7 +1717,7 @@ export const removeTime: (self: DateTime) => Utc = Internal.removeTime
 export const toParts: (self: DateTime) => DateTime.PartsWithWeekday = Internal.toParts
 
 /**
- * Get the different parts of a `DateTime` as an object.
+ * Gets the UTC parts of a `DateTime` as an object.
  *
  * **Details**
  *
@@ -1743,7 +1743,7 @@ export const toParts: (self: DateTime) => DateTime.PartsWithWeekday = Internal.t
 export const toPartsUtc: (self: DateTime) => DateTime.PartsWithWeekday = Internal.toPartsUtc
 
 /**
- * Get a part of a `DateTime` as a number.
+ * Gets one UTC part of a `DateTime` as a number.
  *
  * **Details**
  *
@@ -1768,7 +1768,7 @@ export const getPartUtc: {
 } = Internal.getPartUtc
 
 /**
- * Get a part of a `DateTime` as a number.
+ * Gets one time-zone-adjusted part of a `DateTime` as a number.
  *
  * **Details**
  *
@@ -1795,7 +1795,7 @@ export const getPart: {
 } = Internal.getPart
 
 /**
- * Set the different parts of a `DateTime` as an object.
+ * Sets time-zone-adjusted parts on a `DateTime`.
  *
  * **Details**
  *
@@ -1825,7 +1825,7 @@ export const setParts: {
 } = Internal.setParts
 
 /**
- * Set the different parts of a `DateTime` as an object.
+ * Sets UTC parts on a `DateTime`.
  *
  * **Details**
  *
@@ -2518,7 +2518,8 @@ export const format: {
 } = Internal.format
 
 /**
- * Format a `DateTime` as a string using the `DateTimeFormat` API.
+ * Formats a `DateTime` with `Intl.DateTimeFormat` using the system local time
+ * zone and locale.
  *
  * **Details**
  *
@@ -2565,7 +2566,7 @@ export const formatLocal: {
 } = Internal.formatLocal
 
 /**
- * Format a `DateTime` as a string using the `DateTimeFormat` API.
+ * Formats a `DateTime` with `Intl.DateTimeFormat` using the UTC time zone.
  *
  * **Details**
  *
@@ -2660,7 +2661,7 @@ export const formatIntl: {
 } = Internal.formatIntl
 
 /**
- * Format a `DateTime` as a UTC ISO string.
+ * Formats a `DateTime` as a UTC ISO string.
  *
  * **Details**
  *
@@ -2686,7 +2687,7 @@ export const formatIntl: {
 export const formatIso: (self: DateTime) => string = Internal.formatIso
 
 /**
- * Format a `DateTime` as a time zone adjusted ISO date string.
+ * Formats a `DateTime` as a time zone adjusted ISO date string.
  *
  * **Details**
  *
@@ -2712,7 +2713,7 @@ export const formatIso: (self: DateTime) => string = Internal.formatIso
 export const formatIsoDate: (self: DateTime) => string = Internal.formatIsoDate
 
 /**
- * Format a `DateTime` as a UTC ISO date string.
+ * Formats a `DateTime` as a UTC ISO date string.
  *
  * **Details**
  *
@@ -2738,7 +2739,7 @@ export const formatIsoDate: (self: DateTime) => string = Internal.formatIsoDate
 export const formatIsoDateUtc: (self: DateTime) => string = Internal.formatIsoDateUtc
 
 /**
- * Format a `DateTime.Zoned` as an ISO string with an offset.
+ * Formats a `DateTime.Zoned` as an ISO string with an offset.
  *
  * **Details**
  *
@@ -2765,7 +2766,7 @@ export const formatIsoDateUtc: (self: DateTime) => string = Internal.formatIsoDa
 export const formatIsoOffset: (self: DateTime) => string = Internal.formatIsoOffset
 
 /**
- * Format a `DateTime.Zoned` as a string.
+ * Formats a `DateTime.Zoned` as a string.
  *
  * **Details**
  *

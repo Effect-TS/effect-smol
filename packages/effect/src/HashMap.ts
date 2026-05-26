@@ -269,7 +269,7 @@ export declare namespace HashMap {
 }
 
 /**
- * Checks if a value is a HashMap.
+ * Checks whether a value is a HashMap.
  *
  * **Example** (Checking HashMap values)
  *
@@ -477,7 +477,7 @@ export const getUnsafe: {
 } = internal.getUnsafe
 
 /**
- * Checks if the specified key has an entry in the `HashMap`.
+ * Checks whether the specified key has an entry in the `HashMap`.
  *
  * **Example** (Checking for keys)
  *
@@ -503,7 +503,7 @@ export const has: {
 } = internal.has
 
 /**
- * Checks if the specified key has an entry in the `HashMap` using a custom
+ * Checks whether the specified key has an entry in the `HashMap` using a custom
  * hash.
  *
  * **Example** (Checking keys with a hash)
@@ -538,7 +538,7 @@ export const hasHash: {
 } = internal.hasHash
 
 /**
- * Checks if an element matching the given predicate exists in the given `HashMap`.
+ * Checks whether an element matching the given predicate exists in the given `HashMap`.
  *
  * **Example** (Checking entries by predicate)
  *
@@ -1252,7 +1252,7 @@ export const findFirst: {
 } = internal.findFirst
 
 /**
- * Checks if any entry in a hashmap meets a specific condition.
+ * Checks whether any entry in a hashmap meets a specific condition.
  *
  * **Example** (Checking for any matching entry)
  *
@@ -1274,7 +1274,7 @@ export const some: {
 } = internal.some
 
 /**
- * Checks if all entries in a hashmap meets a specific condition.
+ * Checks whether all entries in a hashmap meets a specific condition.
  *
  * **Example** (Checking all entries)
  *

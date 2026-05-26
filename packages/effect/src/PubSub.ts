@@ -808,7 +808,8 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
   }))
 
 /**
- * Returns `true` if `shutdown` has been called, otherwise returns `false`.
+ * Checks effectfully whether `shutdown` has been called, returning `true`
+ * after shutdown and `false` otherwise.
  *
  * **Example** (Checking whether a PubSub is shutdown)
  *
@@ -836,7 +837,8 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
 export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.sync(() => isShutdownUnsafe(self))
 
 /**
- * Returns `true` if `shutdown` has been called, otherwise returns `false`.
+ * Checks synchronously whether `shutdown` has been called, returning `true`
+ * after shutdown and `false` otherwise.
  *
  * **Example** (Checking shutdown synchronously)
  *

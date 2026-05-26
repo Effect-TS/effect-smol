@@ -99,7 +99,7 @@ import * as Reducer from "./Reducer.ts"
 export const Number = globalThis.Number
 
 /**
- * Tests if a value is a `number`.
+ * Tests whether a value is a `number`.
  *
  * **When to use**
  *
@@ -449,7 +449,7 @@ export const isGreaterThanOrEqualTo: {
 } = order.isGreaterThanOrEqualTo(Order)
 
 /**
- * Checks if a `number` is between a `minimum` and `maximum` value (inclusive).
+ * Checks whether a `number` is between a `minimum` and `maximum` value (inclusive).
  *
  * **When to use**
  *

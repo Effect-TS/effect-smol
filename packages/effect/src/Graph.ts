@@ -719,7 +719,7 @@ export const getNode: {
 ): Option.Option<N> => graph.nodes.has(nodeIndex) ? Option.some(graph.nodes.get(nodeIndex)!) : Option.none())
 
 /**
- * Checks if a node with the given index exists in the graph.
+ * Checks whether a node with the given index exists in the graph.
  *
  * **Example** (Checking node existence)
  *
@@ -1689,7 +1689,7 @@ export const getEdge: {
 ): Option.Option<Edge<E>> => Option.fromUndefinedOr(graph.edges.get(edgeIndex)))
 
 /**
- * Checks if an edge exists between two nodes in the graph.
+ * Checks whether an edge exists between two nodes in the graph.
  *
  * **Example** (Checking edge existence)
  *
@@ -2567,7 +2567,7 @@ export type Direction = "outgoing" | "incoming"
 // =============================================================================
 
 /**
- * Checks if the graph is acyclic (contains no cycles).
+ * Checks whether the graph is acyclic (contains no cycles).
  *
  * **Details**
  *
@@ -2680,7 +2680,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Checks if an undirected graph is bipartite.
+ * Checks whether an undirected graph is bipartite.
  *
  * **Details**
  *

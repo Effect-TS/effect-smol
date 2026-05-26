@@ -11406,7 +11406,7 @@ export const runIntoPubSub: {
 ): Effect.Effect<void, E, R> => Channel.runIntoPubSubArray(self.channel, pubsub, options))
 
 /**
- * Converts a stream to a PubSub for concurrent consumption.
+ * Converts a stream to a PubSub of emitted values for concurrent consumption.
  *
  * **Details**
  *
@@ -11476,7 +11476,7 @@ export const toPubSub: {
 )
 
 /**
- * Converts a stream to a PubSub for concurrent consumption.
+ * Converts a stream to a PubSub of `Take` values for concurrent consumption.
  *
  * **Details**
  *

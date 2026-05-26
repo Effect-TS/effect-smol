@@ -213,7 +213,7 @@ const SinkProto = {
 }
 
 /**
- * Checks if a value is a Sink.
+ * Checks whether a value is a Sink.
  *
  * **Example** (Checking for a sink)
  *
@@ -1232,8 +1232,8 @@ export const flatMap: {
   }))
 
 /**
- * A sink that reduces its inputs using the provided function `f` starting from
- * the provided `initial` state while the specified `predicate` returns `true`.
+ * A sink that reduces input elements from the provided `initial` state with
+ * `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1268,9 +1268,8 @@ export const reduceWhile = <S, In>(
   })
 
 /**
- * A sink that reduces its inputs using the provided effectful function `f`
- * starting from the provided `initial` state while the specified `predicate`
- * returns `true`.
+ * A sink that effectfully reduces input elements from the provided `initial`
+ * state with `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1310,8 +1309,8 @@ export const reduceWhileEffect = <S, In, E, R>(
   })
 
 /**
- * A sink that reduces its inputs using the provided function `f` starting from
- * the provided `initial` state while the specified `predicate` returns `true`.
+ * A sink that reduces non-empty input arrays from the provided `initial` state
+ * with `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1342,9 +1341,8 @@ export const reduceWhileArray = <S, In>(
   })
 
 /**
- * A sink that reduces its inputs using the provided effectful function `f`
- * starting from the provided `initial` state while the specified `predicate`
- * returns `true`.
+ * A sink that effectfully reduces non-empty input arrays from the provided
+ * `initial` state with `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1466,7 +1464,7 @@ const last_ = reduceArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
 export const last = <In>(): Sink<Option.Option<In>, In> => last_ as any
 
 /**
- * Creates a sink containing the first matching value.
+ * Creates a sink containing the first value matched by a synchronous predicate.
  *
  * **When to use**
  *
@@ -1496,7 +1494,7 @@ export const find: {
   )
 
 /**
- * Creates a sink containing the first matching value.
+ * Creates a sink containing the first value matched by an effectful predicate.
  *
  * **When to use**
  *
