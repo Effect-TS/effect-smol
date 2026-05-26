@@ -849,7 +849,7 @@ export const make: <A extends DateTime.Input>(input: A) => Option.Option<DateTim
 export const makeZonedFromString: (input: string) => Option.Option<Zoned> = Internal.makeZonedFromString
 
 /**
- * Get the current time using the `Clock` service and convert it to a `DateTime`.
+ * Gets the current time using the `Clock` service and convert it to a `DateTime`.
  *
  * **Example** (Getting the current DateTime)
  *
@@ -887,7 +887,7 @@ export const now: Effect.Effect<Utc> = Internal.now
 export const nowAsDate: Effect.Effect<Date> = Internal.nowAsDate
 
 /**
- * Get the current time using `Date.now`.
+ * Gets the current time using `Date.now`.
  *
  * **Details**
  *
@@ -934,7 +934,7 @@ export const nowUnsafe: LazyArg<Utc> = Internal.nowUnsafe
 export const toUtc: (self: DateTime) => Utc = Internal.toUtc
 
 /**
- * Set the time zone of a `DateTime`, returning a new `DateTime.Zoned`.
+ * Sets the time zone of a `DateTime`, returning a new `DateTime.Zoned`.
  *
  * **Example** (Setting time zones)
  *
@@ -965,7 +965,7 @@ export const setZone: {
 } = Internal.setZone
 
 /**
- * Add a fixed offset time zone to a `DateTime`.
+ * Adds a fixed offset time zone to a `DateTime`.
  *
  * **Details**
  *
@@ -1169,7 +1169,7 @@ export const zoneFromString: (zone: string) => Option.Option<TimeZone> = Interna
 export const zoneToString: (self: TimeZone) => string = Internal.zoneToString
 
 /**
- * Set the time zone of a `DateTime` from an IANA time zone identifier. If the
+ * Sets the time zone of a `DateTime` from an IANA time zone identifier. If the
  * time zone is invalid, `None` will be returned.
  *
  * **Example** (Setting named time zones safely)
@@ -1199,7 +1199,7 @@ export const setZoneNamed: {
 } = Internal.setZoneNamed
 
 /**
- * Set the time zone of a `DateTime` from an IANA time zone identifier. If the
+ * Sets the time zone of a `DateTime` from an IANA time zone identifier. If the
  * time zone is invalid, an `IllegalArgumentError` will be thrown.
  *
  * **Example** (Setting named time zones unsafely)
@@ -1530,7 +1530,7 @@ export const isPastUnsafe: (self: DateTime) => boolean = Internal.isPastUnsafe
 // =============================================================================
 
 /**
- * Get the UTC `Date` of a `DateTime`.
+ * Gets the UTC `Date` of a `DateTime`.
  *
  * **Details**
  *
@@ -1555,7 +1555,7 @@ export const isPastUnsafe: (self: DateTime) => boolean = Internal.isPastUnsafe
 export const toDateUtc: (self: DateTime) => Date = Internal.toDateUtc
 
 /**
- * Convert a `DateTime` to a `Date`, applying the time zone first.
+ * Converts a `DateTime` to a `Date`, applying the time zone first.
  *
  * **Details**
  *
@@ -1608,7 +1608,7 @@ export const toDate: (self: DateTime) => Date = Internal.toDate
 export const zonedOffset: (self: Zoned) => number = Internal.zonedOffset
 
 /**
- * Format the time zone offset of a `DateTime.Zoned` as an ISO string.
+ * Formats the time zone offset of a `DateTime.Zoned` as an ISO string.
  *
  * **Details**
  *
@@ -1633,7 +1633,7 @@ export const zonedOffset: (self: Zoned) => number = Internal.zonedOffset
 export const zonedOffsetIso: (self: Zoned) => string = Internal.zonedOffsetIso
 
 /**
- * Get the milliseconds since the Unix epoch of a `DateTime`.
+ * Gets the milliseconds since the Unix epoch of a `DateTime`.
  *
  * **Details**
  *
@@ -1656,7 +1656,7 @@ export const zonedOffsetIso: (self: Zoned) => string = Internal.zonedOffsetIso
 export const toEpochMillis: (self: DateTime) => number = Internal.toEpochMillis
 
 /**
- * Remove the time aspect of a `DateTime`, first adjusting for the time
+ * Removes the time aspect of a `DateTime`, first adjusting for the time
  * zone. It will return a `DateTime.Utc` only containing the date.
  *
  * **Example** (Removing time components)
@@ -1891,7 +1891,7 @@ export class CurrentTimeZone extends Context.Service<CurrentTimeZone, TimeZone>(
 ) {}
 
 /**
- * Set the time zone of a `DateTime` to the current time zone, which is
+ * Sets the time zone of a `DateTime` to the current time zone, which is
  * determined by the `CurrentTimeZone` service.
  *
  * **Example** (Setting the current time zone)
@@ -1914,7 +1914,7 @@ export const setZoneCurrent = (self: DateTime): Effect.Effect<Zoned, never, Curr
   Effect.map(CurrentTimeZone, (zone) => setZone(self, zone))
 
 /**
- * Provide the `CurrentTimeZone` to an effect.
+ * Provides the `CurrentTimeZone` to an effect.
  *
  * **Example** (Providing the current time zone)
  *
@@ -1937,7 +1937,7 @@ export const withCurrentZone: {
 } = provideService(CurrentTimeZone)
 
 /**
- * Provide the `CurrentTimeZone` to an effect, using the system's local time
+ * Provides the `CurrentTimeZone` to an effect, using the system's local time
  * zone.
  *
  * **Example** (Providing the local time zone)
@@ -1960,7 +1960,7 @@ export const withCurrentZoneLocal = <A, E, R>(
   Effect.provideServiceEffect(effect, CurrentTimeZone, Effect.sync(zoneMakeLocal))
 
 /**
- * Provide the `CurrentTimeZone` to an effect, using a offset.
+ * Provides the `CurrentTimeZone` to an effect, using an offset.
  *
  * **Example** (Providing a fixed-offset time zone)
  *
@@ -1988,7 +1988,7 @@ export const withCurrentZoneOffset: {
 )
 
 /**
- * Provide the `CurrentTimeZone` to an effect using an IANA time zone
+ * Provides the `CurrentTimeZone` to an effect using an IANA time zone
  * identifier.
  *
  * **Details**
@@ -2027,7 +2027,7 @@ export const withCurrentZoneNamed: {
 )
 
 /**
- * Get the current time as a `DateTime.Zoned`, using the `CurrentTimeZone`.
+ * Gets the current time as a `DateTime.Zoned`, using the `CurrentTimeZone`.
  *
  * **Example** (Getting the current time in the current zone)
  *
@@ -2121,7 +2121,7 @@ export const mutateUtc: {
 } = Internal.mutateUtc
 
 /**
- * Transform a `DateTime` by applying a function to the number of milliseconds
+ * Transforms a `DateTime` by applying a function to the number of milliseconds
  * since the Unix epoch.
  *
  * **Example** (Mapping epoch milliseconds)
@@ -2287,7 +2287,7 @@ export const addDuration: {
 } = Internal.addDuration
 
 /**
- * Subtract the given `Duration` from a `DateTime`.
+ * Subtracts the given `Duration` from a `DateTime`.
  *
  * **Example** (Subtracting durations)
  *
@@ -2309,7 +2309,7 @@ export const subtractDuration: {
 } = Internal.subtractDuration
 
 /**
- * Add the given `amount` of `unit`'s to a `DateTime`.
+ * Adds the given `amount` of `unit` to a `DateTime`.
  *
  * **Details**
  *
@@ -2336,7 +2336,7 @@ export const add: {
 } = Internal.add
 
 /**
- * Subtract the given `amount` of `unit`'s from a `DateTime`.
+ * Subtracts the given `amount` of `unit` from a `DateTime`.
  *
  * **Example** (Subtracting date and time parts)
  *

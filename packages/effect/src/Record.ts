@@ -507,7 +507,7 @@ export const get: {
 )
 
 /**
- * Apply a function to the element at the specified key, creating a new record,
+ * Applies a function to the element at the specified key, creating a new record,
  * or return `Option.none()` if the key doesn't exist.
  *
  * **Example** (Modifying a value at a key)
@@ -1076,7 +1076,7 @@ export const keys = <K extends string | symbol, A>(self: ReadonlyRecord<K, A>): 
 export const values = <K extends string, A>(self: ReadonlyRecord<K, A>): Array<A> => collect(self, (_, a) => a)
 
 /**
- * Add a new key-value pair or update an existing key's value in a record.
+ * Adds a new key-value pair or update an existing key's value in a record.
  *
  * **Example** (Setting a record value)
  *
@@ -1191,7 +1191,7 @@ export const isSubrecord: {
 } = isSubrecordBy(Equal.asEquivalence())
 
 /**
- * Reduce a record to a single value by combining its entries with a specified function.
+ * Reduces a record to a single value by combining its entries with a specified function.
  *
  * **Example** (Reducing record values)
  *

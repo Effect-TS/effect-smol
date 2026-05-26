@@ -84,8 +84,8 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * Use when code in this module namespace needs native JavaScript string
- * coercion or constructor behavior.
+ * Use to access native JavaScript string coercion or constructor behavior from
+ * the Effect module namespace.
  *
  * **Gotchas**
  *
@@ -944,7 +944,7 @@ export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: str
   self.toLocaleUpperCase(locale)
 
 /**
- * Keep the specified number of characters from the start of a string.
+ * Keeps the specified number of characters from the start of a string.
  *
  * **Details**
  *
@@ -973,7 +973,7 @@ export const takeLeft: {
 } = dual(2, (self: string, n: number): string => self.slice(0, Math.max(n, 0)))
 
 /**
- * Keep the specified number of characters from the end of a string.
+ * Keeps the specified number of characters from the end of a string.
  *
  * **Details**
  *

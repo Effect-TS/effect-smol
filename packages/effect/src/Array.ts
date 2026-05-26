@@ -108,8 +108,8 @@ import type { NoInfer, TupleOf } from "./Types.ts"
  *
  * **When to use**
  *
- * Use when the module namespace shadows the native JavaScript constructor and
- * code needs constructor methods such as `isArray` or `from`.
+ * Use to access native JavaScript array constructor methods such as `isArray`
+ * or `from` from the Effect module namespace.
  *
  * **Example** (Using the Array constructor)
  *

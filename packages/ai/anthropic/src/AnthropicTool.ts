@@ -1248,7 +1248,7 @@ const ComputerUse_20250124_Actions = Schema.Union([
 // -----------------------------------------------------------------------------
 
 /**
- * Zoom into a specific region of the screen at full resolution.
+ * Zooms into a specific region of the screen at full resolution.
  *
  * **Details**
  *
@@ -1796,7 +1796,7 @@ export const TextEditorStrReplaceCommand = Schema.Struct({
 export type TextEditorStrReplaceCommand = typeof TextEditorStrReplaceCommand.Type
 
 /**
- * Insert text at a specific line number in a file.
+ * Inserts text at a specific line number in a file.
  *
  * **Details**
  *
@@ -1830,7 +1830,7 @@ export const TextEditorInsertCommand = Schema.Struct({
 export type TextEditorInsertCommand = typeof TextEditorInsertCommand.Type
 
 /**
- * Undo the last edit made to a file.
+ * Undoes the last edit made to a file.
  *
  * **Details**
  *

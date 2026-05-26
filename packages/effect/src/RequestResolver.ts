@@ -793,7 +793,7 @@ export const batchN: {
   }))
 
 /**
- * Transform a request resolver by grouping requests using the specified key
+ * Transforms a request resolver by grouping requests using the specified key
  * function.
  *
  * **Example** (Grouping resolver requests)
@@ -919,7 +919,7 @@ export const race: {
   ))
 
 /**
- * Add a tracing span to the request resolver, which will also add any span
+ * Adds a tracing span to the request resolver, which will also add any span
  * links from the request's.
  *
  * **Example** (Adding a tracing span)

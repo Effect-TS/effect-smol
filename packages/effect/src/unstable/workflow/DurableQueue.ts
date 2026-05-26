@@ -194,7 +194,7 @@ const getQueueSchema = <Payload extends Schema.Top>(
 }
 
 /**
- * Add an item to the queue and wait for a worker to process it.
+ * Adds an item to the queue and wait for a worker to process it.
  *
  * @category Processing
  * @since 4.0.0

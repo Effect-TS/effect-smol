@@ -68,8 +68,8 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * Use when code in this module namespace needs native JavaScript truthiness
- * coercion.
+ * Use to access native JavaScript truthiness coercion from the Effect module
+ * namespace.
  *
  * **Gotchas**
  *

@@ -82,8 +82,8 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * Use when code in this module namespace needs native JavaScript bigint
- * constructor coercion.
+ * Use to access native JavaScript bigint constructor coercion from the Effect
+ * module namespace.
  *
  * **Gotchas**
  *

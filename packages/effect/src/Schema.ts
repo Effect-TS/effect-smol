@@ -1219,9 +1219,16 @@ export const asserts: <S extends Top, I>(schema: S, input: I) => asserts input i
 
 /**
  * Decodes an `unknown` input against a schema, returning an `Effect` that
- * succeeds with the decoded value or fails with a {@link SchemaError}. Use this
- * when the input type is not statically known. Prefer {@link decodeEffect} when
- * the input is already typed as the schema's `Encoded` type.
+ * succeeds with the decoded value or fails with a {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when decoding input whose type is not statically known.
+ *
+ * **Details**
+ *
+ * Prefer {@link decodeEffect} when the input is already typed as the schema's
+ * `Encoded` type.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1238,8 +1245,15 @@ export function decodeUnknownEffect<S extends Top>(schema: S, options?: AST.Pars
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning an `Effect` that succeeds with the decoded value or fails with a
- * {@link SchemaError}. Use this when the input is already typed; for `unknown`
- * input use {@link decodeUnknownEffect}.
+ * {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when the input is already typed as the schema's `Encoded` type.
+ *
+ * **Details**
+ *
+ * For `unknown` input use {@link decodeUnknownEffect}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1255,9 +1269,18 @@ export const decodeEffect: <S extends Top>(
 /**
  * Decodes an `unknown` input against a schema synchronously, returning an
  * `Exit` that is either a `Success` with the decoded value or a `Failure` with
- * a {@link SchemaError}. Only usable with schemas that have no
- * `DecodingServices` requirement. Prefer {@link decodeExit} when the input is
- * already typed as the schema's `Encoded` type.
+ * a {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when the input type is not statically known and decoding should return an
+ * `Exit` instead of failing or throwing.
+ *
+ * **Details**
+ *
+ * Only usable with schemas that have no `DecodingServices` requirement. Prefer
+ * {@link decodeExit} when the input is already typed as the schema's `Encoded`
+ * type.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1274,9 +1297,17 @@ export function decodeUnknownExit<S extends Decoder<unknown>>(schema: S, options
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema
  * synchronously, returning an `Exit` that is either a `Success` with the
- * decoded value or a `Failure` with a {@link SchemaError}. Only usable with
- * schemas that have no `DecodingServices` requirement. For `unknown` input use
- * {@link decodeUnknownExit}.
+ * decoded value or a `Failure` with a {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be decoded into an `Exit` instead of failing or
+ * throwing.
+ *
+ * **Details**
+ *
+ * Only usable with schemas that have no `DecodingServices` requirement. For
+ * `unknown` input use {@link decodeUnknownExit}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1290,10 +1321,17 @@ export const decodeExit: <S extends Decoder<unknown>>(
 
 /**
  * Decodes an `unknown` input against a schema, returning an `Option` that is
- * `Some` with the decoded value on success or `None` on failure. Prefer this
- * over {@link decodeUnknownExit} or {@link decodeUnknownEffect} when you only
- * need to know whether decoding succeeded and don't need error details. For
- * typed input use {@link decodeOption}.
+ * `Some` with the decoded value on success or `None` on failure.
+ *
+ * **When to use**
+ *
+ * Use when the input type is not statically known and you only need to know
+ * whether decoding succeeded.
+ *
+ * **Details**
+ *
+ * Prefer this over {@link decodeUnknownExit} or {@link decodeUnknownEffect}
+ * when you don't need error details. For typed input use {@link decodeOption}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1305,7 +1343,15 @@ export const decodeUnknownOption = Parser.decodeUnknownOption
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning an `Option` that is `Some` with the decoded value on success or
- * `None` on failure. For `unknown` input use {@link decodeUnknownOption}.
+ * `None` on failure.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be decoded and only success or failure matters.
+ *
+ * **Details**
+ *
+ * For `unknown` input use {@link decodeUnknownOption}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1316,8 +1362,16 @@ export const decodeOption = Parser.decodeOption
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Result` that
- * succeeds with the decoded value or fails with a schema issue. For typed input
- * use {@link decodeResult}.
+ * succeeds with the decoded value or fails with a schema issue.
+ *
+ * **When to use**
+ *
+ * Use when the input type is not statically known and decoding should return a
+ * `Result` with structured issue data.
+ *
+ * **Details**
+ *
+ * For typed input use {@link decodeResult}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1329,7 +1383,16 @@ export const decodeUnknownResult = Parser.decodeUnknownResult
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning a `Result` that succeeds with the decoded value or fails with a
- * schema issue. For `unknown` input use {@link decodeUnknownResult}.
+ * schema issue.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be decoded into a `Result` with structured issue
+ * data.
+ *
+ * **Details**
+ *
+ * For `unknown` input use {@link decodeUnknownResult}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1340,9 +1403,15 @@ export const decodeResult = Parser.decodeResult
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Promise` that
- * resolves with the decoded value or rejects with a schema issue. Useful for
- * integrating with Promise-based APIs. For typed input use
- * {@link decodePromise}.
+ * resolves with the decoded value or rejects with a schema issue.
+ *
+ * **When to use**
+ *
+ * Use when integrating unknown input validation with Promise-based APIs.
+ *
+ * **Details**
+ *
+ * For typed input use {@link decodePromise}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1354,10 +1423,15 @@ export const decodeUnknownPromise = Parser.decodeUnknownPromise
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning a `Promise` that resolves with the decoded value or rejects with a
- * schema issue. For `unknown` input use `decodeUnknownPromise`.
+ * schema issue.
+ *
+ * **When to use**
+ *
+ * Use when integrating typed input decoding with Promise-based APIs.
  *
  * **Details**
  *
+ * For `unknown` input use `decodeUnknownPromise`.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1369,11 +1443,15 @@ export const decodePromise = Parser.decodePromise
 /**
  * Decodes an `unknown` input against a schema synchronously, returning the
  * decoded value or throwing an `Error` whose cause contains the schema issue.
- * Use this when you want to validate data at a boundary and treat a schema
- * mismatch as an exception. For typed input use `decodeSync`.
+ *
+ * **When to use**
+ *
+ * Use when validating unknown data at a boundary and treating schema mismatches
+ * as exceptions.
  *
  * **Details**
  *
+ * For typed input use `decodeSync`.
  * Only service-free schemas can be decoded synchronously. For non-throwing
  * alternatives see `decodeUnknownOption`, `decodeUnknownExit`, or
  * `decodeUnknownEffect`. Options may be provided either when creating the
@@ -1404,10 +1482,16 @@ export const decodeUnknownSync = Parser.decodeUnknownSync
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema
  * synchronously, returning the decoded value or throwing an `Error` whose cause
- * contains the schema issue. For `unknown` input use `decodeUnknownSync`.
+ * contains the schema issue.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be decoded synchronously and schema mismatches
+ * should throw.
  *
  * **Details**
  *
+ * For `unknown` input use `decodeUnknownSync`.
  * Only service-free schemas can be decoded synchronously. Options may be
  * provided either when creating the decoder or when applying it; application
  * options override creation options.
@@ -1419,9 +1503,16 @@ export const decodeSync = Parser.decodeSync
 
 /**
  * Encodes an `unknown` input against a schema, returning an `Effect` that
- * succeeds with the encoded value or fails with a {@link SchemaError}. Use this
- * when the input type is not statically known. Prefer {@link encodeEffect} when
- * the input is already typed as the schema's `Type`.
+ * succeeds with the encoded value or fails with a {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when encoding input whose type is not statically known.
+ *
+ * **Details**
+ *
+ * Prefer {@link encodeEffect} when the input is already typed as the schema's
+ * `Type`.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1452,8 +1543,15 @@ export function encodeUnknownEffect<S extends Top>(schema: S, options?: AST.Pars
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning an
  * `Effect` that succeeds with the encoded value or fails with a
- * {@link SchemaError}. Use this when the input is already typed; for `unknown`
- * input use {@link encodeUnknownEffect}.
+ * {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when the input is already typed as the schema's `Type`.
+ *
+ * **Details**
+ *
+ * For `unknown` input use {@link encodeUnknownEffect}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1469,9 +1567,17 @@ export const encodeEffect: <S extends Top>(
 /**
  * Encodes an `unknown` input against a schema synchronously, returning an
  * `Exit` that is either a `Success` with the encoded value or a `Failure` with
- * a {@link SchemaError}. Only usable with schemas that have no
- * `EncodingServices` requirement. Prefer {@link encodeExit} when the input is
- * already typed as the schema's `Type`.
+ * a {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when the input type is not statically known and encoding should return an
+ * `Exit` instead of failing or throwing.
+ *
+ * **Details**
+ *
+ * Only usable with schemas that have no `EncodingServices` requirement. Prefer
+ * {@link encodeExit} when the input is already typed as the schema's `Type`.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1488,9 +1594,17 @@ export function encodeUnknownExit<S extends Encoder<unknown>>(schema: S, options
 /**
  * Encodes a typed input (the schema's `Type`) against a schema synchronously,
  * returning an `Exit` that is either a `Success` with the encoded value or a
- * `Failure` with a {@link SchemaError}. Only usable with schemas that have no
- * `EncodingServices` requirement. For `unknown` input use
- * {@link encodeUnknownExit}.
+ * `Failure` with a {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be encoded into an `Exit` instead of failing or
+ * throwing.
+ *
+ * **Details**
+ *
+ * Only usable with schemas that have no `EncodingServices` requirement. For
+ * `unknown` input use {@link encodeUnknownExit}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1504,10 +1618,17 @@ export const encodeExit: <S extends Encoder<unknown>>(
 
 /**
  * Encodes an `unknown` input against a schema, returning an `Option` that is
- * `Some` with the encoded value on success or `None` on failure. Prefer this
- * over {@link encodeUnknownExit} or {@link encodeUnknownEffect} when you only
- * need to know whether encoding succeeded and don't need error details. For
- * typed input use {@link encodeOption}.
+ * `Some` with the encoded value on success or `None` on failure.
+ *
+ * **When to use**
+ *
+ * Use when the input type is not statically known and you only need to know
+ * whether encoding succeeded.
+ *
+ * **Details**
+ *
+ * Prefer this over {@link encodeUnknownExit} or {@link encodeUnknownEffect}
+ * when you don't need error details. For typed input use {@link encodeOption}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1519,7 +1640,15 @@ export const encodeUnknownOption = Parser.encodeUnknownOption
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning an
  * `Option` that is `Some` with the encoded value on success or `None` on
- * failure. For `unknown` input use {@link encodeUnknownOption}.
+ * failure.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be encoded and only success or failure matters.
+ *
+ * **Details**
+ *
+ * For `unknown` input use {@link encodeUnknownOption}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1530,8 +1659,16 @@ export const encodeOption = Parser.encodeOption
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Result` that
- * succeeds with the encoded value or fails with a schema issue. For typed input
- * use {@link encodeResult}.
+ * succeeds with the encoded value or fails with a schema issue.
+ *
+ * **When to use**
+ *
+ * Use when the input type is not statically known and encoding should return a
+ * `Result` with structured issue data.
+ *
+ * **Details**
+ *
+ * For typed input use {@link encodeResult}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1543,6 +1680,14 @@ export const encodeUnknownResult = Parser.encodeUnknownResult
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning a
  * `Result` that succeeds with the encoded value or fails with a schema issue.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be encoded into a `Result` with structured issue
+ * data.
+ *
+ * **Details**
+ *
  * For `unknown` input use {@link encodeUnknownResult}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
@@ -1554,9 +1699,15 @@ export const encodeResult = Parser.encodeResult
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Promise` that
- * resolves with the encoded value or rejects with a schema issue. Useful for
- * integrating with Promise-based APIs. For typed input use
- * {@link encodePromise}.
+ * resolves with the encoded value or rejects with a schema issue.
+ *
+ * **When to use**
+ *
+ * Use when integrating unknown input serialization with Promise-based APIs.
+ *
+ * **Details**
+ *
+ * For typed input use {@link encodePromise}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1568,7 +1719,15 @@ export const encodeUnknownPromise = Parser.encodeUnknownPromise
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning a
  * `Promise` that resolves with the encoded value or rejects with a
- * {@link SchemaError}. For `unknown` input use {@link encodeUnknownPromise}.
+ * {@link SchemaError}.
+ *
+ * **When to use**
+ *
+ * Use when integrating typed input serialization with Promise-based APIs.
+ *
+ * **Details**
+ *
+ * For `unknown` input use {@link encodeUnknownPromise}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1579,9 +1738,16 @@ export const encodePromise = Parser.encodePromise
 
 /**
  * Encodes an `unknown` input against a schema synchronously, throwing a
- * {@link SchemaError} on failure. Use this when you want to serialize data at a
- * boundary and treat a schema mismatch as an unrecoverable error. For
- * non-throwing alternatives see {@link encodeUnknownOption},
+ * {@link SchemaError} on failure.
+ *
+ * **When to use**
+ *
+ * Use when serializing unknown data at a boundary and treating schema
+ * mismatches as unrecoverable errors.
+ *
+ * **Details**
+ *
+ * For non-throwing alternatives see {@link encodeUnknownOption},
  * {@link encodeUnknownExit}, or {@link encodeUnknownEffect}. For typed input
  * use {@link encodeSync}.
  * Options may be provided either when creating the encoder or when applying it;
@@ -1594,8 +1760,16 @@ export const encodeUnknownSync = Parser.encodeUnknownSync
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema synchronously,
- * throwing a {@link SchemaError} on failure. For `unknown` input use
- * {@link encodeUnknownSync}.
+ * throwing a {@link SchemaError} on failure.
+ *
+ * **When to use**
+ *
+ * Use when typed input should be encoded synchronously and schema mismatches
+ * should throw.
+ *
+ * **Details**
+ *
+ * For `unknown` input use {@link encodeUnknownSync}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -12367,8 +12541,12 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
 
 /**
  * Overrides the equivalence derivation for a schema by supplying a custom
- * `Equivalence`. Use this when the default structural equivalence derived by
- * {@link toEquivalence} is not appropriate for a type.
+ * `Equivalence`.
+ *
+ * **When to use**
+ *
+ * Use when the default structural equivalence derived by {@link toEquivalence}
+ * is not appropriate for a type.
  *
  * @category Equivalence
  * @since 4.0.0

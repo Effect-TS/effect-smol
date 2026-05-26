@@ -192,7 +192,7 @@ export const make: <Entries extends Array<readonly [string, any]>>(
 ) => Trie<Entries[number] extends readonly [any, infer V] ? V : never> = TR.make
 
 /**
- * Insert a new entry in the `Trie`.
+ * Inserts a new entry in the `Trie`.
  *
  * **Example** (Inserting entries)
  *
@@ -628,7 +628,7 @@ export const getUnsafe: {
 } = TR.getUnsafe
 
 /**
- * Remove the entry for the specified key in the `Trie`.
+ * Removes the entry for the specified key in the `Trie`.
  *
  * **Example** (Removing entries)
  *
@@ -660,7 +660,7 @@ export const remove: {
 } = TR.remove
 
 /**
- * Reduce a state over the entries of the `Trie`.
+ * Reduces a state over the entries of the `Trie`.
  *
  * **Example** (Reducing entries)
  *
@@ -957,7 +957,7 @@ export const removeMany: {
 } = TR.removeMany
 
 /**
- * Insert multiple entries in the `Trie` at once.
+ * Inserts multiple entries in the `Trie` at once.
  *
  * **Example** (Inserting multiple entries)
  *

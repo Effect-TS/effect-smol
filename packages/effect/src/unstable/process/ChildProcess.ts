@@ -776,7 +776,7 @@ const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
 }
 
 /**
- * Set the current working directory for a command.
+ * Sets the current working directory for a command.
  *
  * **Details**
  *
@@ -861,7 +861,7 @@ const isTemplateString = (u: unknown): u is TemplateStringsArray =>
 // =============================================================================
 
 /**
- * Parse an fd name like "fd3" to its numeric index.
+ * Parses an fd name like "fd3" to its numeric index.
  * Returns undefined if the name is invalid.
  *
  * @category utils

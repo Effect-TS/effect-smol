@@ -725,7 +725,7 @@ export const append: {
 } = dual(2, <A, A2>(self: Chunk<A>, a: A2): NonEmptyChunk<A | A2> => appendAll(self, of(a)))
 
 /**
- * Prepend an element to the front of a `Chunk`, creating a new `NonEmptyChunk`.
+ * Prepends an element to the front of a `Chunk`, creating a new `NonEmptyChunk`.
  *
  * **Example** (Prepending an element)
  *
@@ -1139,7 +1139,7 @@ export const filterMapWhile: {
 })
 
 /**
- * Filter out optional values
+ * Filters out optional values
  *
  * **Example** (Compacting optional values)
  *
@@ -1870,7 +1870,7 @@ export const separate = <A, B>(self: Chunk<Result<B, A>>): [Chunk<A>, Chunk<B>] 
 export const size = <A>(self: Chunk<A>): number => self.length
 
 /**
- * Sort the elements of a Chunk in increasing order, creating a new Chunk.
+ * Sorts the elements of a `Chunk` in increasing order, creating a new `Chunk`.
  *
  * **Example** (Sorting chunks)
  *
@@ -1903,7 +1903,7 @@ export const sort: {
 )
 
 /**
- * Sorts the elements of a Chunk based on a projection function.
+ * Sorts the elements of a `Chunk` based on a projection function.
  *
  * **Example** (Sorting chunks by a derived value)
  *
@@ -2400,7 +2400,7 @@ export const zip: {
 )
 
 /**
- * Delete the element at the specified index, creating a new `Chunk`.
+ * Deletes the element at the specified index, creating a new `Chunk`.
  *
  * **Example** (Removing an element)
  *
@@ -2466,7 +2466,7 @@ export const modify: {
 )
 
 /**
- * Change the element at the specified index, creating a new `Chunk`,
+ * Changes the element at the specified index, creating a new `Chunk`,
  * or returns `None` if the index is out of bounds.
  *
  * **Example** (Replacing an element)
@@ -2651,7 +2651,7 @@ export const findFirst: {
 } = RA.findFirst
 
 /**
- * Return the first index for which a predicate holds.
+ * Returns the first index for which a predicate holds.
  *
  * **Example** (Finding the first matching index)
  *
@@ -2683,7 +2683,7 @@ export const findFirstIndex: {
 )
 
 /**
- * Find the last element for which a predicate holds.
+ * Finds the last element for which a predicate holds.
  *
  * **Example** (Finding the last matching element)
  *
@@ -2715,7 +2715,7 @@ export const findLast: {
 } = RA.findLast
 
 /**
- * Return the last index for which a predicate holds.
+ * Returns the last index for which a predicate holds.
  *
  * **Example** (Finding the last matching index)
  *

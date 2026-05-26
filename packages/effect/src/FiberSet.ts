@@ -357,7 +357,7 @@ export const addUnsafe: {
 })
 
 /**
- * Add a fiber to the FiberSet. When the fiber completes, it will be removed.
+ * Adds a fiber to the FiberSet. When the fiber completes, it will be removed.
  *
  * **Example** (Adding a fiber)
  *
@@ -450,7 +450,7 @@ const constInterruptedFiber = (function() {
 })()
 
 /**
- * Fork an Effect and add the forked fiber to the FiberSet.
+ * Forks an Effect and add the forked fiber to the FiberSet.
  * When the fiber completes, it will be removed from the FiberSet.
  *
  * **Example** (Forking effects into a set)
@@ -642,7 +642,7 @@ export const runtimePromise = <A, E>(self: FiberSet<A, E>): <R = never>() => Eff
   )
 
 /**
- * Get the number of fibers currently in the FiberSet.
+ * Gets the number of fibers currently in the FiberSet.
  *
  * **Example** (Checking the set size)
  *
@@ -669,7 +669,7 @@ export const size = <A, E>(self: FiberSet<A, E>): Effect.Effect<number> =>
   Effect.sync(() => self.state._tag === "Closed" ? 0 : self.state.backing.size)
 
 /**
- * Join all fibers in the FiberSet. If any of the Fiber's in the set terminate with a failure,
+ * Joins all fibers in the FiberSet. If any fiber in the set terminates with a failure,
  * the returned Effect will terminate with the first failure that occurred.
  *
  * **Example** (Joining failing fibers)
@@ -693,7 +693,7 @@ export const join = <A, E>(self: FiberSet<A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
 
 /**
- * Wait until the fiber set is empty.
+ * Waits until the fiber set is empty.
  *
  * **Example** (Waiting for an empty set)
  *

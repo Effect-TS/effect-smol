@@ -66,7 +66,7 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 }
 
 /**
- * Run a sql query with a request schema and a result schema.
+ * Runs a sql query with a request schema and a result schema.
  *
  * @category constructors
  * @since 4.0.0
@@ -106,7 +106,7 @@ const void_ = <Req extends Schema.Top, E, R>(
 }
 export {
   /**
-   * Run a sql query with a request schema and discard the result.
+   * Runs a sql query with a request schema and discard the result.
    *
    * @category constructors
    * @since 4.0.0

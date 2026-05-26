@@ -793,7 +793,7 @@ export const addFinalizer: <R>(
 })
 
 /**
- * Add compensation logic to an effect inside a Workflow.
+ * Adds compensation logic to an effect inside a Workflow.
  *
  * **Details**
  *

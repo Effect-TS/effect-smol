@@ -6162,7 +6162,7 @@ export const retry: {
 )
 
 /**
- * Apply an `ExecutionPlan` to a stream, retrying with step-provided resources
+ * Applies an `ExecutionPlan` to a stream, retrying with step-provided resources
  * until it succeeds or the plan is exhausted.
  *
  * **Details**

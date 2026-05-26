@@ -657,7 +657,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
 export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
 
 /**
- * Add a message to the queue. Returns `false` if the queue is done.
+ * Adds a message to the queue. Returns `false` if the queue is done.
  *
  * **Details**
  *
@@ -714,7 +714,7 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
   })
 
 /**
- * Add a message to the queue synchronously. Returns `false` if the queue is done.
+ * Adds a message to the queue synchronously. Returns `false` if the queue is done.
  *
  * **Gotchas**
  *
@@ -765,7 +765,7 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
 }
 
 /**
- * Add multiple messages to the queue. Returns the remaining messages that
+ * Adds multiple messages to the queue. Returns the remaining messages that
  * were not added.
  *
  * **Details**
@@ -806,7 +806,7 @@ export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effe
   })
 
 /**
- * Add multiple messages to the queue synchronously. Returns the remaining messages that
+ * Adds multiple messages to the queue synchronously. Returns the remaining messages that
  * were not added.
  *
  * **Gotchas**
@@ -1236,7 +1236,7 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
   takeBetween(self, 1, Number.POSITIVE_INFINITY) as any
 
 /**
- * Take all messages from the queue, until the queue has errored or is done.
+ * Takes all messages from the queue, until the queue has errored or is done.
  *
  * **Example** (Collecting values until completion)
  *
@@ -1370,7 +1370,7 @@ export const takeBetween = <A, E>(
   )
 
 /**
- * Take a single message from the queue, or wait for a message to be
+ * Takes a single message from the queue, or wait for a message to be
  * available.
  *
  * **Details**
@@ -1735,7 +1735,7 @@ export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag
 export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(self) === self.capacity
 
 /**
- * Run an `Effect` into a `Queue`, where success ends the queue and failure
+ * Runs an `Effect` into a `Queue`, where success ends the queue and failure
  * fails the queue.
  *
  * **Example** (Running effects into queues)

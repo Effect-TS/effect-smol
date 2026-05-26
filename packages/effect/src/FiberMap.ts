@@ -620,7 +620,7 @@ export const has: {
 )
 
 /**
- * Remove a fiber from the FiberMap, interrupting it if it exists.
+ * Removes a fiber from the FiberMap, interrupting it if it exists.
  *
  * **Example** (Removing a fiber)
  *
@@ -670,7 +670,7 @@ export const remove: {
   }))
 
 /**
- * Remove all fibers from the FiberMap, interrupting them.
+ * Removes all fibers from the FiberMap, interrupting them.
  *
  * **Example** (Clearing all fibers)
  *
@@ -949,7 +949,7 @@ export const runtimePromise = <K, A, E>(self: FiberMap<K, A, E>): <R = never>() 
   )
 
 /**
- * Get the number of fibers currently in the FiberMap.
+ * Gets the number of fibers currently in the FiberMap.
  *
  * **Example** (Checking the map size)
  *
@@ -1006,7 +1006,7 @@ export const join = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
 
 /**
- * Wait for the FiberMap to be empty.
+ * Waits for the FiberMap to be empty.
  * This will wait for all currently running fibers to complete.
  *
  * **Example** (Waiting for an empty map)

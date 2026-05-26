@@ -82,7 +82,7 @@ export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
   method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE"
 
 /**
- * Set containing every supported `HttpMethod` literal.
+ * Sets containing every supported `HttpMethod` literal.
  *
  * @category models
  * @since 4.0.0

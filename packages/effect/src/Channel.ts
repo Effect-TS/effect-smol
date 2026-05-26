@@ -1126,7 +1126,7 @@ export const failCauseSync = <E>(
 export const die = (defect: unknown): Channel<never, never, never> => failCause(Cause.die(defect))
 
 /**
- * Use an effect to write a single value to the channel.
+ * Uses an effect to write a single value to the channel.
  *
  * **Example** (Creating channels from effects)
  *
@@ -1193,7 +1193,7 @@ export const fromEffectDone = <A, E, R>(
   fromPull(Effect.succeed(Effect.flatMap(effect, Cause.done)))
 
 /**
- * Use an effect and discard its result.
+ * Uses an effect and discards its result.
  *
  * @category constructors
  * @since 4.0.0
@@ -2861,7 +2861,7 @@ export const orElseIfEmpty: {
   ))
 
 /**
- * Flatten a channel of channels.
+ * Flattens a channel of channels.
  *
  * **Example** (Flattening nested channels)
  *

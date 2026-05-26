@@ -1847,7 +1847,7 @@ export const neighbors: {
 })
 
 /**
- * Get neighbors of a node in a specific direction for bidirectional traversal.
+ * Gets neighbors of a node in a specific direction for bidirectional traversal.
  *
  * **Example** (Traversing directed neighbors)
  *
@@ -2795,7 +2795,7 @@ const getUndirectedNeighbors = <N, E>(
 }
 
 /**
- * Find connected components in an undirected graph.
+ * Finds connected components in an undirected graph.
  * Each component is represented as an array of node indices.
  *
  * **Example** (Finding connected components)
@@ -2854,7 +2854,7 @@ export const connectedComponents = <N, E>(
 }
 
 /**
- * Find strongly connected components in a directed graph using Kosaraju's algorithm.
+ * Finds strongly connected components in a directed graph using Kosaraju's algorithm.
  * Each SCC is represented as an array of node indices.
  *
  * **Example** (Finding strongly connected components)

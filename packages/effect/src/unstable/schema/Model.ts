@@ -335,7 +335,7 @@ export interface FieldOption<S extends Schema.Top> extends
 {}
 
 /**
- * Convert a field to one that is optional for all variants.
+ * Converts a field to one that is optional for all variants.
  *
  * **Details**
  *

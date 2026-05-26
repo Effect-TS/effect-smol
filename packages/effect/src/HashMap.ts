@@ -975,7 +975,7 @@ export const union: {
 } = internal.union
 
 /**
- * Remove the entry for the specified key in the `HashMap` using the internal
+ * Removes the entry for the specified key in the `HashMap` using the internal
  * hashing function.
  *
  * **Example** (Removing a key)

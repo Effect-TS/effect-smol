@@ -593,7 +593,7 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
 export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
 
 /**
- * Extract a JSON value from the first occurrence of the given `field` in the
+ * Extracts a JSON value from the first occurrence of the given `field` in the
  * `UrlParams`.
  *
  * **Example** (Decoding JSON parameter fields)

@@ -4248,7 +4248,7 @@ export const ignoreCause: <
   : <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignoreCause
 
 /**
- * Apply an `ExecutionPlan` to an effect, retrying with step-provided resources
+ * Applies an `ExecutionPlan` to an effect, retrying with step-provided resources
  * until it succeeds or the plan is exhausted.
  *
  * **Details**

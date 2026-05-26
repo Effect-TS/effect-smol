@@ -548,7 +548,7 @@ export const makeCookieUnsafe = (
 ): Cookie => Result.getOrThrow(makeCookie(name, value, options))
 
 /**
- * Add a cookie to a Cookies object
+ * Adds a cookie to a Cookies object
  *
  * @category combinators
  * @since 4.0.0
@@ -567,7 +567,7 @@ export const setCookie: {
 )
 
 /**
- * Add multiple cookies to a Cookies object
+ * Adds multiple cookies to a Cookies object
  *
  * @category combinators
  * @since 4.0.0
@@ -584,7 +584,7 @@ export const setAllCookie: {
 })
 
 /**
- * Combine two Cookies objects, removing duplicates from the first
+ * Combines two Cookies objects, removing duplicates from the first
  *
  * @category combinators
  * @since 4.0.0
@@ -599,7 +599,7 @@ export const merge: {
   }))
 
 /**
- * Remove a cookie by name
+ * Removes a cookie by name
  *
  * @category combinators
  * @since 4.0.0
@@ -610,7 +610,7 @@ export const remove: {
 } = dual(2, (self: Cookies, name: string) => fromReadonlyRecord(Record.remove(self.cookies, name)))
 
 /**
- * Get a cookie from a Cookies object
+ * Gets a cookie from a Cookies object
  *
  * @category combinators
  * @since 4.0.0
@@ -735,7 +735,7 @@ export const expireCookie: {
 )
 
 /**
- * Add an expired cookie to a Cookies object, throwing an error if invalid
+ * Adds an expired cookie to a Cookies object, throwing an error if invalid
  *
  * @category combinators
  * @since 4.0.0
@@ -801,7 +801,7 @@ export const setAll: {
 )
 
 /**
- * Add multiple cookies to a Cookies object, throwing an error if invalid
+ * Adds multiple cookies to a Cookies object, throwing an error if invalid
  *
  * @category combinators
  * @since 4.0.0
@@ -947,7 +947,7 @@ export const schemaRecord = CookiesSchema.pipe(
 export const toSetCookieHeaders = (self: Cookies): Array<string> => Object.values(self.cookies).map(serializeCookie)
 
 /**
- * Parse a cookie header into a record of key-value pairs
+ * Parses a cookie header into a record of key-value pairs
  *
  * **Details**
  *
