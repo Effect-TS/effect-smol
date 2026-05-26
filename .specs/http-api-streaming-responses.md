@@ -372,15 +372,17 @@ This distinction is important because `application/octet-stream` can represent e
 
 ## Implementation Plan
 
-1. Add `StreamSse` and `StreamUint8Array` declarations in `HttpApiSchema.ts`.
-2. Add response declaration metadata and predicates for streaming responses.
-3. Add endpoint construction validation for streaming success rules in `HttpApiEndpoint.ts`.
-4. Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming declarations.
-5. Add SSE and binary stream response encoding in `HttpApiBuilder.ts`.
-6. Add SSE and binary stream response decoding in `HttpApiClient.ts`.
-7. Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
-8. Update OpenAPI generator parsing and `HttpApiTransformer.ts` rendering for declared streaming responses.
-9. Add runtime tests and typetests.
+- [x] Add `StreamSse` and `StreamUint8Array` declarations in `HttpApiSchema.ts`.
+- [x] Add response declaration metadata and predicates for streaming responses.
+- [ ] Add endpoint construction validation for streaming success rules in `HttpApiEndpoint.ts`.
+- [ ] Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming declarations.
+- [ ] Add SSE and binary stream response encoding in `HttpApiBuilder.ts`.
+- [ ] Add SSE and binary stream response decoding in `HttpApiClient.ts`.
+- [ ] Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
+- [ ] Update OpenAPI generator parsing and `HttpApiTransformer.ts` rendering for declared streaming responses.
+- [x] Add focused constructor runtime tests and typetests.
+
+Current implementation note: the first step introduced `HttpApiSchema.StreamSse` and `HttpApiSchema.StreamUint8Array` as schema-like streaming success declarations with their own metadata and predicates. They are intentionally not represented with the existing buffered response encoding annotation, so later endpoint/server/client/OpenAPI work must branch on the streaming declaration predicates before using ordinary schema response encoders.
 
 ## Tests
 

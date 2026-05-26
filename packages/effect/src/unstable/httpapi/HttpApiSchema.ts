@@ -10,6 +10,7 @@
  * @since 4.0.0
  */
 import { constVoid, type LazyArg } from "../../Function.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
@@ -248,6 +249,135 @@ export function asNoContent<S extends Schema.Top>(options: {
         })
       )
     )
+  }
+}
+
+const StreamTypeId = "~effect/httpapi/HttpApiSchema/Stream"
+
+type StreamMode = "sse" | "uint8array"
+
+/**
+ * A schema-like declaration for a Server-Sent Events success response.
+ *
+ * **Details**
+ *
+ * `events` describes successful application events emitted by the stream, and
+ * `error` describes typed stream failures that will be encoded by later
+ * endpoint/server/client integrations using the reserved failure event.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface StreamSse<Events extends Schema.Top, Error extends Schema.Top> {
+  readonly [StreamTypeId]: typeof StreamTypeId
+  readonly _tag: "StreamSse"
+  readonly mode: "sse"
+  readonly contentType: string
+  readonly events: Events
+  readonly error: Error
+}
+
+/**
+ * A schema-like declaration for a streaming `Uint8Array` success response.
+ *
+ * **Details**
+ *
+ * This declaration stores the response content type for later endpoint,
+ * server, client, and OpenAPI integrations. It is intentionally separate from
+ * the buffered `asUint8Array` response encoding.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface StreamUint8Array {
+  readonly [StreamTypeId]: typeof StreamTypeId
+  readonly _tag: "StreamUint8Array"
+  readonly mode: "uint8array"
+  readonly contentType: string
+}
+
+/** @internal */
+export type StreamDeclaration = StreamSse<Schema.Top, Schema.Top> | StreamUint8Array
+
+/** @internal */
+export type StreamDeclarationMetadata =
+  | {
+    readonly mode: "sse"
+    readonly contentType: string
+    readonly events: Schema.Top
+    readonly error: Schema.Top
+  }
+  | {
+    readonly mode: "uint8array"
+    readonly contentType: string
+  }
+
+/**
+ * Declares a Server-Sent Events streaming success response.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const StreamSse = <Events extends Schema.Top, Error extends Schema.Top>(options: {
+  readonly contentType?: string | undefined
+  readonly events: Events
+  readonly error: Error
+}): StreamSse<Events, Error> => ({
+  [StreamTypeId]: StreamTypeId,
+  _tag: "StreamSse",
+  mode: "sse",
+  contentType: options.contentType ?? defaultStreamContentType("sse"),
+  events: options.events,
+  error: options.error
+})
+
+/**
+ * Declares a streaming `Uint8Array` success response.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const StreamUint8Array = (options?: {
+  readonly contentType?: string | undefined
+}): StreamUint8Array => ({
+  [StreamTypeId]: StreamTypeId,
+  _tag: "StreamUint8Array",
+  mode: "uint8array",
+  contentType: options?.contentType ?? defaultStreamContentType("uint8array")
+})
+
+/** @internal */
+export const isStreamDeclaration = (u: unknown): u is StreamDeclaration => Predicate.hasProperty(u, StreamTypeId)
+
+/** @internal */
+export const isStreamSse = (u: unknown): u is StreamSse<Schema.Top, Schema.Top> =>
+  isStreamDeclaration(u) && u._tag === "StreamSse"
+
+/** @internal */
+export const isStreamUint8Array = (u: unknown): u is StreamUint8Array =>
+  isStreamDeclaration(u) && u._tag === "StreamUint8Array"
+
+/** @internal */
+export function getStreamDeclarationMetadata(self: StreamDeclaration): StreamDeclarationMetadata {
+  return self._tag === "StreamSse" ?
+    {
+      mode: self.mode,
+      contentType: self.contentType,
+      events: self.events,
+      error: self.error
+    } :
+    {
+      mode: self.mode,
+      contentType: self.contentType
+    }
+}
+
+function defaultStreamContentType(mode: StreamMode): string {
+  switch (mode) {
+    case "sse":
+      return "text/event-stream"
+    case "uint8array":
+      return "application/octet-stream"
   }
 }
 
