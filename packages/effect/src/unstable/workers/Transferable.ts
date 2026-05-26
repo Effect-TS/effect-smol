@@ -179,8 +179,7 @@ const passthroughLink = Schema.link()(Schema.Any, {
 })
 
 /**
- * Transferable schema for `ImageData` values that records the underlying pixel
- * data buffer.
+ * Schema for transferring `ImageData` values with their pixel data buffer.
  *
  * @category schemas
  * @since 4.0.0
@@ -191,8 +190,7 @@ export const ImageData: Transferable<Schema.declare<ImageData>> = schema(
 )
 
 /**
- * Transferable schema for `MessagePort` values that records the port itself as
- * transferable.
+ * Schema for transferring `MessagePort` values as transferable objects.
  *
  * @category schemas
  * @since 4.0.0
@@ -203,8 +201,7 @@ export const MessagePort: Transferable<Schema.declare<MessagePort>> = schema(
 )
 
 /**
- * Transferable schema for `Uint8Array` values that records the array's backing
- * buffer.
+ * Schema for transferring `Uint8Array` values with their backing buffer.
  *
  * @category schemas
  * @since 4.0.0

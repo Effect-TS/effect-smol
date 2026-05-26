@@ -860,7 +860,8 @@ export const filter: {
 )
 
 /**
- * Given a record with `Option` values, returns a new record containing only the `Some` values, preserving the original keys.
+ * Returns a new record containing only the `Some` values from a record of
+ * `Option` values, preserving the original keys.
  *
  * **Example** (Extracting Some values)
  *
@@ -893,7 +894,8 @@ export const getSomes: <K extends string, A>(
 }
 
 /**
- * Given a record with `Result` values, returns a new record containing only the `Err` values, preserving the original keys.
+ * Returns a new record containing only the `Err` values from a record of
+ * `Result` values, preserving the original keys.
  *
  * **Example** (Extracting Result failures)
  *
@@ -929,7 +931,8 @@ export const getFailures = <K extends string, A, E>(
 }
 
 /**
- * Given a record with `Result` values, returns a new record containing only the `Ok` values, preserving the original keys.
+ * Returns a new record containing only the `Ok` values from a record of
+ * `Result` values, preserving the original keys.
  *
  * **Example** (Extracting Result successes)
  *
@@ -1302,7 +1305,7 @@ export const some: {
 )
 
 /**
- * Merge two records, preserving entries that exist in either of the records.
+ * Merges two records, preserving entries that exist in either of the records.
  * For keys that exist in both records, the provided combine function is used to merge the values.
  *
  * **Example** (Merging records with union)
@@ -1361,7 +1364,7 @@ export const union: {
 )
 
 /**
- * Merge two records, retaining only the entries that exist in both records.
+ * Merges two records, retaining only the entries that exist in both records.
  * For intersecting keys, the provided combine function is used to merge the values.
  *
  * **Example** (Merging intersecting keys)
@@ -1410,7 +1413,7 @@ export const intersection: {
 )
 
 /**
- * Merge two records, preserving only the entries that are unique to each record.
+ * Merges two records, preserving only the entries that are unique to each record.
  * Keys that exist in both records are excluded from the result.
  *
  * **Example** (Keeping keys unique to each record)

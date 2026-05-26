@@ -60,8 +60,8 @@ export declare const unifySymbol: unique symbol
  *
  * **When to use**
  *
- * Use to reference the `unifySymbol` property key in type-level protocol
- * definitions.
+ * Use to reference the unification behavior property key in type-level
+ * protocol definitions.
  *
  * **Details**
  *
@@ -99,7 +99,7 @@ export declare const typeSymbol: unique symbol
  *
  * **When to use**
  *
- * Use to reference the `typeSymbol` property key in type-level protocol
+ * Use to reference the type information property key in type-level protocol
  * definitions.
  *
  * **Details**
@@ -138,7 +138,7 @@ export declare const ignoreSymbol: unique symbol
  *
  * **When to use**
  *
- * Use to reference the `ignoreSymbol` property key in type-level protocol
+ * Use to reference the ignored-property key in type-level protocol
  * definitions.
  *
  * **Details**

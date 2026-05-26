@@ -193,8 +193,8 @@ export declare namespace ServiceClass {
  *
  * **When to use**
  *
- * Use when you use `Service` for dependencies that must be provided by the surrounding
- * context. Use `Reference` when a dependency should have a default value.
+ * Use when a dependency must be provided by the surrounding context. Use
+ * `Reference` when a dependency should have a default value.
  *
  * **Details**
  *
@@ -860,8 +860,8 @@ export const getOrElse: {
  *
  * **When to use**
  *
- * Use when you use `getOrUndefined` for raw map-style lookup. Use `getOption` when you want
- * the usual `Context.Reference` default-value behavior.
+ * Use when you need raw map-style lookup. Use `getOption` when you want the
+ * usual `Context.Reference` default-value behavior.
  *
  * **Gotchas**
  *
@@ -887,9 +887,9 @@ export const getOrUndefined: {
  *
  * **When to use**
  *
- * Use when you use `getUnsafe` only when the context type cannot prove that the service is
- * present. Use `get` when the service requirement is tracked in the context
- * type, or `getOption` when absence is expected.
+ * Use when the context type cannot prove that the service is present. Use
+ * `get` when the service requirement is tracked in the context type, or
+ * `getOption` when absence is expected.
  *
  * **Details**
  *

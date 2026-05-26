@@ -2457,8 +2457,9 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * **When to use**
  *
- * Use when you use `recurs` for a counter schedule with no additional delay. Use `take` to
- * limit an existing schedule while preserving its output and delay behavior.
+ * Use when you need a counter schedule with no additional delay. Use `take`
+ * to limit an existing schedule while preserving its output and delay
+ * behavior.
  *
  * **Gotchas**
  *

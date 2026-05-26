@@ -140,8 +140,9 @@ export declare namespace Exit {
  *
  * **When to use**
  *
- * Use when you use {@link isSuccess} to narrow an `Exit` to `Success`
- * - Access the value via the `value` property after narrowing
+ * Use when working with the successful branch of an `Exit` after narrowing
+ * with {@link isSuccess}. Access the value via the `value` property after
+ * narrowing.
  *
  * **Example** (Accessing the success value)
  *
@@ -172,8 +173,9 @@ export interface Success<out A, out E = never> extends Exit.Proto<A, E> {
  *
  * **When to use**
  *
- * Use when you use {@link isFailure} to narrow an `Exit` to `Failure`
- * - Access the cause via the `cause` property after narrowing
+ * Use when working with the failed branch of an `Exit` after narrowing with
+ * {@link isFailure}. Access the cause via the `cause` property after
+ * narrowing.
  *
  * **Details**
  *

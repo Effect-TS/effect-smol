@@ -945,11 +945,9 @@ export const promise: <A>(
  *
  * **When to use**
  *
- * Use when in situations where you need to perform asynchronous operations that might
- * fail, such as fetching data from an API, you can use the `tryPromise`
- * constructor. This constructor is designed to handle operations that could
- * throw exceptions by capturing those exceptions and transforming them into
- * manageable errors.
+ * Use when you need to perform asynchronous operations that might fail, such
+ * as fetching data from an API, and want thrown exceptions or rejected promises
+ * captured as Effect errors.
  *
  * **Details**
  *
@@ -2563,9 +2561,8 @@ export const zip: {
  *
  * **When to use**
  *
- * Use when the `zipWith` function is similar to {@link zip}, but instead of returning a
- * tuple of results, it applies a provided function to the results of the two
- * effects, combining them into a single value.
+ * Use when you need to run two effects sequentially and combine their results
+ * with a function instead of keeping the results as a tuple.
  *
  * **Details**
  *
@@ -3256,7 +3253,7 @@ export const catchDefect: {
  *
  * **When to use**
  *
- * Use when `catchIf` lets you recover from errors that match a condition. Use a
+ * Use when you need to recover from errors that match a condition. Use a
  * `Refinement` for type narrowing or a `Predicate` for simple boolean
  * matching. Non-matching errors re-fail with the original cause. Defects and
  * interrupts are not caught.
@@ -9064,7 +9061,8 @@ export const runPromiseExitWith: <R>(
  *
  * **When to use**
  *
- * Use when you use `runSync` only for effects that can complete synchronously.
+ * Use when you need to execute an effect that is guaranteed to complete
+ * synchronously.
  *
  * **Details**
  *

@@ -758,10 +758,9 @@ export interface References {
  *
  * **When to use**
  *
- * Use when you use {@link fromAST} to create a `Document` from a Schema AST, {@link toSchema}
- * to reconstruct a runtime Schema, {@link toJsonSchemaDocument} to convert to
- * JSON Schema, and {@link toMultiDocument} to wrap it as a
- * {@link MultiDocument}.
+ * Use when representing a single Schema AST together with its named references
+ * before reconstructing a runtime Schema, converting to JSON Schema, or
+ * wrapping it as a {@link MultiDocument}.
  *
  * @see {@link MultiDocument}
  * @see {@link fromAST}

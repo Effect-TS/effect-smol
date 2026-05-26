@@ -3458,8 +3458,8 @@ export declare namespace StructWithRest {
  *
  * **When to use**
  *
- * Use as the schema type returned by `StructWithRest` when generic code needs to
- * retain the base struct schema and all rest record schemas.
+ * Use as the schema type when generic code needs to retain the base struct
+ * schema and all rest record schemas.
  *
  * @see {@link StructWithRest} for constructing this schema type
  * @see {@link Record} for constructing record schemas used as rest index signatures
@@ -4041,8 +4041,8 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
  *
  * **When to use**
  *
- * Use as the schema type returned by `ArrayEnsure` when generic code needs to
- * retain the original item schema.
+ * Use as the schema type when generic code needs to retain the original item
+ * schema.
  *
  * **Details**
  *
@@ -4538,8 +4538,8 @@ type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string 
  *
  * **When to use**
  *
- * Use as the schema type returned by `brand` when generic code needs to retain
- * the wrapped schema and nominal brand type.
+ * Use as the schema type when generic code needs to retain the wrapped schema
+ * and nominal brand type.
  *
  * @see {@link brand} for adding the brand tag to an existing schema
  *
@@ -8624,8 +8624,8 @@ export function RedactedFromValue<S extends Top>(value: S, options?: {
  *
  * **When to use**
  *
- * Use as the schema type returned by `CauseReason` when generic code needs to
- * retain the typed failure and defect schemas.
+ * Use as the schema type when generic code needs to retain the typed failure
+ * and defect schemas for a single cause reason.
  *
  * **Details**
  *
@@ -8806,8 +8806,8 @@ function causeReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknow
  *
  * **When to use**
  *
- * Use as the schema type returned by `Cause` when generic code needs to retain
- * the typed failure and defect schemas.
+ * Use as the schema type when generic code needs to retain the typed failure
+ * and defect schemas for a full cause.
  *
  * **Details**
  *

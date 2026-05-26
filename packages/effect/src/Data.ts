@@ -794,7 +794,8 @@ export const Error: new<A extends Record<string, any> = {}>(
  *
  * **When to use**
  *
- * Use when you use `TaggedError` for domain errors in Effect applications where you want discriminated-union error handling.
+ * Use when modeling domain errors in Effect applications where you want
+ * discriminated-union error handling.
  *
  * **Details**
  *

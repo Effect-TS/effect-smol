@@ -923,7 +923,8 @@ export const toRecord = (self: Cookies): Record<string, string> => {
 }
 
 /**
- * Schema transformation between `Cookies` and a record of decoded string values keyed by cookie name.
+ * Schema for transforming `Cookies` into records of decoded string values keyed
+ * by cookie name.
  *
  * @category schemas
  * @since 4.0.0

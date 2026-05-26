@@ -71,8 +71,8 @@ export const symbol = "~effect/interfaces/PrimaryKey"
  *
  * **When to use**
  *
- * Use to define values that expose a stable string identifier through the
- * `PrimaryKey` protocol.
+ * Use to define values that expose a stable string identifier for equality,
+ * hashing, caching, or persistence.
  *
  * **Details**
  *

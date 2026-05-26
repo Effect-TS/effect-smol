@@ -928,8 +928,8 @@ export interface Formatter<out Format> extends FormatterI<Issue, Format> {}
  *
  * **When to use**
  *
- * Use when passing a custom `LeafHook` to {@link makeFormatterStandardSchemaV1} to
- *   override how terminal issues are rendered.
+ * Use when customizing how {@link makeFormatterStandardSchemaV1} renders
+ * terminal issues.
  *
  * @see {@link defaultLeafHook} — the built-in implementation
  * @see {@link Leaf} — the union of terminal issue types
@@ -999,9 +999,8 @@ export const defaultLeafHook: LeafHook = (issue): string => {
  *
  * **When to use**
  *
- * Use when passing a custom `CheckHook` to
- * {@link makeFormatterStandardSchemaV1} to override how filter failures are
- * rendered.
+ * Use when customizing how {@link makeFormatterStandardSchemaV1} renders
+ * filter failures.
  *
  * **Details**
  *
