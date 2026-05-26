@@ -2,14 +2,18 @@
 
 ## Summary
 
-Add first-class `HttpApiEndpoint` support for success responses whose body is a stream.
+Add first-class `HttpApiEndpoint` support for success responses whose body is a stream, focused on two initial use cases:
+
+- Server-Sent Events with typed events and a reserved failure event that carries the full stream failure `Cause`.
+- Binary byte streams backed by `Stream.Stream<Uint8Array, unknown>`.
 
 Today, `HttpApi` definitions support schema-backed buffered responses and streaming multipart request payloads via `HttpApiSchema.asMultipartStream()`. Handlers can manually return `HttpServerResponse.stream(...)`, but that bypasses schema-backed success typing, generated clients, and OpenAPI response modeling. This specification adds declared streaming success responses while preserving the existing `HttpApi` architecture.
 
 ## Goals
 
 - Allow endpoint `success` definitions to declare streaming response bodies.
-- Preserve schema-driven item encoding and decoding for structured streams.
+- Support typed SSE streams where the server handler returns `Stream<A, E>`, a failure is sent as an encoded `Cause<E>`, and the client receives `Stream<A, E | HttpErrors>` while preserving the full failure cause.
+- Support binary byte streams where the server handler returns `Stream<Uint8Array, unknown>` and the client receives `Stream<Uint8Array, HttpErrors>`.
 - Preserve generated `HttpApiClient` type safety.
 - Preserve `responseMode` behavior for decoded, decoded-with-response, and raw response access.
 - Emit useful OpenAPI metadata for streaming responses.
@@ -17,131 +21,229 @@ Today, `HttpApi` definitions support schema-backed buffered responses and stream
 
 ## Non-Goals
 
+- Do not add NDJSON streaming in the initial design.
+- Do not add text streaming in the initial design.
 - Do not add new request streaming support beyond existing multipart streaming payloads.
-- Do not add streaming error responses.
+- Do not add streaming endpoint error HTTP responses beyond the pre-stream status phase.
 - Do not add bidirectional streaming.
 - Do not add WebSocket support.
 - Do not buffer streams to fit existing JSON response encoding.
 - Do not infer streaming from `application/octet-stream` alone.
 
-## Supported Stream Modes
+## Public API
 
-The MVP should support declared streaming success responses for bytes, NDJSON, and Server-Sent Events.
+Add constructor-style streaming success schemas to `HttpApiSchema`.
+
+```ts
+export const StreamSse: <Events extends Schema.Top, Error extends Schema.Top>(options: {
+  readonly contentType?: string | undefined
+  readonly events: Events
+  readonly error: Error
+}) => StreamSse<Events, Error>
+
+export const StreamUint8Array: (options?: {
+  readonly contentType?: string | undefined
+}) => StreamUint8Array
+```
+
+These are schema-like endpoint success declarations, not regular value schemas. They exist to participate in `HttpApiEndpoint` type derivation, server response encoding, client response decoding, and OpenAPI generation. For SSE, `error` is the typed stream failure schema used inside `Schema.Cause(error, Schema.Defect)` when encoding the reserved failure event.
+
+Example SSE declaration:
+
+```ts
+import { Schema } from "effect"
+import { HttpApiEndpoint, HttpApiSchema } from "effect/unstable/httpapi"
+
+const Events = Schema.Union([
+  Schema.Struct({
+    event: Schema.Literal("user.created"),
+    data: Schema.Struct({ id: Schema.String })
+  }),
+  Schema.Struct({
+    event: Schema.Literal("user.deleted"),
+    data: Schema.Struct({ id: Schema.String })
+  })
+])
+
+const StreamError = Schema.Struct({
+  reason: Schema.String
+})
+
+HttpApiEndpoint.get("events", "/events", {
+  success: HttpApiSchema.StreamSse({
+    events: Events,
+    error: StreamError
+  }),
+  error: []
+})
+```
+
+Example binary stream declaration:
+
+```ts
+HttpApiEndpoint.get("download", "/download", {
+  success: HttpApiSchema.StreamUint8Array({
+    contentType: "application/octet-stream"
+  }),
+  error: []
+})
+```
+
+## Supported Stream Modes
 
 | Mode | Default content type | Server handler success | Client decoded success |
 | --- | --- | --- | --- |
-| Byte stream | `application/octet-stream` | `Stream.Stream<Uint8Array, never>` | `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>` |
-| NDJSON stream | `application/x-ndjson` | `Stream.Stream<A, never>` | `Stream.Stream<A, HttpClientError.HttpClientError | Schema.SchemaError | Ndjson.NdjsonError>` |
-| SSE stream | `text/event-stream` | `Stream.Stream<SseEvent<A>, never>` | `Stream.Stream<SseEvent<A>, HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry>` |
+| SSE stream | `text/event-stream` | `Stream.Stream<Events["Type"], Error["Type"]>` | `Stream.Stream<Events["Type"], Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry>` |
+| Byte stream | `application/octet-stream` | `Stream.Stream<Uint8Array, unknown>` | `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>` |
 
-`SseEvent<A>` is the decoded application event shape:
+The endpoint constructor continues to support buffered success schemas. Streaming declarations are additional success declaration variants.
+
+## SSE Event Model
+
+`StreamSse` is event-oriented. The `events` schema describes the decoded application events emitted by the server stream and consumed by the client stream.
+
+Each event value must encode to this wire event shape:
 
 ```ts
-export interface SseEvent<A> {
+export interface StreamSseEventEncoded {
   readonly event: string
-  readonly id: string | undefined
-  readonly data: A
+  readonly id?: string | undefined
+  readonly data: string
 }
 ```
 
-Text streaming can be added later as `asTextStream()`. It is useful, but not required for the MVP because byte streams, NDJSON, and SSE cover the primary protocol cases.
+The recommended application pattern is to define event variants whose encoded side includes an `event` discriminator and JSON-string data. The implementation may provide convenience schemas later, but the initial contract should only require that `events` encodes to the SSE event shape.
 
-## Public API
-
-Add response-stream annotations to `HttpApiSchema`.
+Example event schema shape:
 
 ```ts
-export function asUint8ArrayStream(options?: {
-  readonly contentType?: string | undefined
-}): <S extends typeof Schema.Uint8Array>(self: S) => Uint8ArrayStream<S>
-
-export function asNdjsonStream(options?: {
-  readonly contentType?: string | undefined
-}): <S extends Schema.Top>(self: S) => NdjsonStream<S>
-
-export function asSseStream(options?: {
-  readonly contentType?: string | undefined
-}): <S extends Schema.Top>(self: S) => SseStream<S>
+const UserCreated = Schema.Struct({
+  event: Schema.Literal("user.created"),
+  id: Schema.optional(Schema.String),
+  data: Schema.Struct({
+    id: Schema.String,
+    name: Schema.String
+  }).pipe(Schema.encodeJsonString)
+})
 ```
 
-Optional follow-up API:
+If the existing schema toolkit does not expose a direct `encodeJsonString` helper, implementation should use the repository's established schema transformation pattern for JSON string encoding.
+
+## SSE Failure Sentinel
+
+SSE is the only initial streaming mode with a typed stream error protocol. The protocol uses a reserved sentinel event to communicate that the server stream failed after the HTTP response had already started.
+
+`StreamSse({ events, error })` means:
+
+- Server handlers return `Stream.Stream<events.Type, error.Type>`.
+- Stream failures are encoded into the SSE stream as a reserved failure event containing the full `Cause<error.Type>`.
+- Clients decode that reserved failure event and fail the returned stream with the decoded cause.
+
+Reserved failure event:
 
 ```ts
-export function asTextStream(options?: {
-  readonly contentType?: string | undefined
-}): <S extends Schema.Top & { readonly Encoded: string }>(self: S) => TextStream<S>
+const failureEvent = {
+  event: "effect/httpapi/stream/failure",
+  data: "encoded cause"
+}
 ```
 
-The helper names mirror existing `HttpApiSchema.asUint8Array()`, `asText()`, and multipart helpers. They should be payload-invalid and response-valid, except `asUint8ArrayStream()` may also be considered for future request body stream support in a separate design.
-
-## Encoding Metadata
-
-Extend `HttpApiSchema.Encoding` with response stream metadata.
+The `data` field is the encoded full `Cause` of the server stream failure, not only the typed error value. The cause schema is derived as:
 
 ```ts
-export type ResponseStreamEncoding =
-  | {
-      readonly _tag: "Uint8ArrayStream"
-      readonly contentType: string
-    }
-  | {
-      readonly _tag: "NdjsonStream"
-      readonly contentType: string
-    }
-  | {
-      readonly _tag: "SseStream"
-      readonly contentType: string
-    }
+const FailureCause = Schema.Cause(error, Schema.Defect)
 ```
 
-Keep payload and response encodings explicit:
+The encoded cause should be serialized into the SSE `data` field as JSON. This preserves typed failures, defects, interrupts, parallel/sequential cause structure, and any cause metadata supported by `Schema.Cause`.
+
+Rules:
+
+- `effect/httpapi/stream/failure` is reserved by `HttpApiSchema.StreamSse`.
+- User event schemas must not emit `event: "effect/httpapi/stream/failure"`.
+- If `events` can encode `effect/httpapi/stream/failure`, endpoint construction should reject it when statically detectable. Runtime encoding should still guard and fail the stream if a user event emits the reserved event name.
+- A server stream failure should write one `effect/httpapi/stream/failure` event and then complete the transport stream.
+- Client decoding of `effect/httpapi/stream/failure` should decode `data` with `Schema.Cause(error, Schema.Defect)` and fail the returned stream with that cause.
+- Client decoding failures for malformed failure events should fail with `Schema.SchemaError`.
+
+This gives the intended API shape:
 
 ```ts
-export type Encoding = PayloadEncoding | ResponseEncoding | ResponseStreamEncoding
-export type ResponseEncoding = BufferedResponseEncoding | ResponseStreamEncoding
+// server
+Stream.Stream<A, E>
+
+// client
+Stream.Stream<A, E | HttpErrors>
 ```
 
-`getResponseEncoding(ast)` should return buffered or streaming response encodings. Multipart remains payload-only and must still be rejected for responses.
+The client type remains `E | HttpErrors` because Effect stream error channels are typed by failure values. The implementation should use cause-level failure, not value-level failure, when the sentinel is received so the decoded full cause is preserved.
+
+## Binary Stream Errors
+
+`StreamUint8Array` does not define a typed stream error protocol.
+
+Server handlers return:
+
+```ts
+Stream.Stream<Uint8Array, unknown>
+```
+
+Client methods return:
+
+```ts
+Stream.Stream<Uint8Array, HttpClientError.HttpClientError>
+```
+
+Server-side stream failures are transport failures. They are not encoded into declared endpoint errors because byte streams have no framing contract for typed failures.
 
 ## Type Semantics
 
-Streaming response helpers still return `Schema.Top` values so they fit into the existing `success` field without adding a parallel endpoint constructor.
-
-The endpoint success type should be transformed at the `HttpApiEndpoint.Success` level:
+Add a success type mapping for streaming declarations.
 
 ```ts
-type SuccessType<S extends Schema.Top> =
-  S extends HttpApiSchema.Uint8ArrayStream<infer _Item> ? Stream.Stream<Uint8Array, never> :
-  S extends HttpApiSchema.NdjsonStream<infer Item> ? Stream.Stream<Item["Type"], never> :
-  S extends HttpApiSchema.SseStream<infer Item> ? Stream.Stream<SseEvent<Item["Type"]>, never> :
-  S["Type"]
+type SuccessType<S> =
+  S extends HttpApiSchema.StreamSse<infer Events, infer Error>
+    ? Stream.Stream<Events["Type"], Error["Type"]>
+    : S extends HttpApiSchema.StreamUint8Array
+      ? Stream.Stream<Uint8Array, unknown>
+      : S extends Schema.Top
+        ? S["Type"]
+        : never
 ```
 
-The stream error channel for server handler success values must be `never`.
+Add a client success type mapping.
 
-Reasoning:
+```ts
+type ClientSuccessType<S> =
+  S extends HttpApiSchema.StreamSse<infer Events, infer Error>
+    ? Stream.Stream<
+        Events["Type"],
+        Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry
+      >
+    : S extends HttpApiSchema.StreamUint8Array
+      ? Stream.Stream<Uint8Array, HttpClientError.HttpClientError>
+      : S extends Schema.Top
+        ? S["Type"]
+        : never
+```
 
-- Declared endpoint errors are HTTP responses.
-- Once a stream has started sending bytes, normal endpoint error encoding is no longer possible.
-- Fallible server streams should encode errors into the stream protocol, recover internally, or use raw `HttpServerResponse.stream(...)`.
-
-Client stream errors remain transport, framing, and schema errors because they occur while consuming the returned stream.
+These mappings should be used by handler return types, client return types, and endpoint helper types. The existing stored endpoint shape can still keep the `success` set internally, but it needs to distinguish buffered schemas from streaming response declarations.
 
 ## Endpoint Declaration Rules
 
-- Streaming response schemas are valid only in `success`.
-- Streaming response schemas are invalid in `error`.
+- Streaming declarations are valid only in `success`.
+- Streaming declarations are invalid in `error`.
 - `HEAD` endpoints cannot declare streaming success responses.
 - `HttpApiSchema.NoContent` cannot be combined with a streaming success for the same status.
 - An endpoint can declare at most one streaming success for a given status code.
 - Buffered and streaming successes cannot share the same status code.
-- Multiple streaming content types for the same status are rejected in the MVP. Content negotiation can be specified later.
+- Multiple streaming content types for the same status are rejected in the initial design. Content negotiation can be specified later.
+- `StreamSse` event schemas must not use the reserved `effect/httpapi/stream/failure` event name.
 
-Invalid endpoint definitions should fail early during endpoint construction, matching current validation for incompatible payload encodings.
+Invalid endpoint definitions should fail early during endpoint construction when possible, matching current validation for incompatible payload encodings.
 
 ## Server Runtime
 
-`HttpApiBuilder` should detect streaming success encodings when building the success encoder.
+`HttpApiBuilder` should detect streaming success declarations when building the success encoder.
 
 Buffered success responses continue to use the existing path:
 
@@ -152,29 +254,38 @@ handler result -> Schema.encodeUnknownEffect(makeSuccessSchema(endpoint)) -> Htt
 Streaming success responses use a stream response encoder:
 
 ```ts
-handler result -> stream item encoder -> HttpServerResponse.stream(...)
+handler result -> stream encoder -> HttpServerResponse.stream(...)
 ```
 
 Mode-specific server behavior:
 
 | Mode | Server encoding |
 | --- | --- |
-| Byte stream | Pass `Stream.Stream<Uint8Array, never>` to `HttpServerResponse.stream` |
-| NDJSON stream | Encode each item with the declared schema, frame with `Ndjson.encodeSchema(schema)`, send bytes |
-| SSE stream | Encode each event `data` with the declared schema, render via `Sse.encode`, UTF-8 encode strings |
+| SSE stream | Encode `events.Type` values to SSE events, encode stream failure causes as reserved `effect/httpapi/stream/failure` events, UTF-8 encode rendered SSE text |
+| Byte stream | Pass `Stream.Stream<Uint8Array, unknown>` to `HttpServerResponse.stream` |
 
 Response metadata:
 
-- Use the schema `httpApiStatus` annotation, defaulting to `200`.
-- Use the stream content type from the annotation.
+- Use the declaration `httpApiStatus` annotation, defaulting to `200`.
+- Use the stream content type from the declaration.
 - Do not set `content-length` by default.
 - Do not compute schema-level ETags for streams.
 - Existing middleware and pre-response handlers still apply before the body is sent.
 
-Stream failure behavior:
+SSE failure encoding:
 
-- If stream item encoding fails before bytes are pulled, the response stream fails before the adapter sends body chunks.
-- If stream item encoding fails after bytes have been sent, the transport stream fails.
+1. Encode each successful stream item with `events`.
+2. Reject any successful event whose encoded event name is `effect/httpapi/stream/failure`.
+3. On stream failure, capture the full `Cause<error.Type>`.
+4. Encode the cause with `Schema.Cause(error, Schema.Defect)`.
+5. JSON-serialize the encoded cause into the SSE `data` field.
+6. Render a single SSE event with `event: "effect/httpapi/stream/failure"` and the encoded cause in `data`.
+7. End the stream after the failure event.
+
+Binary stream failure behavior:
+
+- If the stream fails before bytes are pulled, the response stream fails before the adapter sends body chunks.
+- If the stream fails after bytes have been sent, the transport stream fails.
 - These failures are not converted to declared endpoint error responses.
 
 ## Client Runtime
@@ -187,25 +298,45 @@ For a streaming endpoint with default `responseMode`, the outer effect executes 
 
 | Response mode | Return value |
 | --- | --- |
-| `decoded-only` | `Effect.Effect<Stream.Stream<Item, StreamError>, RequestError, R>` |
-| `decoded-and-response` | `Effect.Effect<[Stream.Stream<Item, StreamError>, HttpClientResponse.HttpClientResponse], RequestError, R>` |
+| `decoded-only` | `Effect.Effect<ClientStream, RequestError, R>` |
+| `decoded-and-response` | `Effect.Effect<[ClientStream, HttpClientResponse.HttpClientResponse], RequestError, R>` |
 | `response-only` | `Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError, R>` |
 
-`RequestError` includes the current request execution errors, middleware errors, declared endpoint errors, and schema errors needed to decode non-streaming error responses.
+`RequestError` includes request execution errors, middleware errors, declared endpoint errors, and schema errors needed to decode non-streaming error responses.
 
-`StreamError` by mode:
+`ClientStream` by mode:
 
-| Mode | Stream error |
+| Mode | Client stream |
 | --- | --- |
-| Byte stream | `HttpClientError.HttpClientError` |
-| NDJSON stream | `HttpClientError.HttpClientError | Schema.SchemaError | Ndjson.NdjsonError` |
-| SSE stream | `HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry` |
+| SSE stream | `Stream.Stream<Events["Type"], Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry>` |
+| Byte stream | `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>` |
 
-The client should capture decoding services while constructing the returned stream, so consuming the returned stream does not require services that were already required by the outer client call.
+The client should capture decoding services while constructing the returned stream, so consuming the returned stream does not require services that were already required by the outer client call. When the client receives the reserved `effect/httpapi/stream/failure` event, it must decode the JSON `data` field with `Schema.Cause(error, Schema.Defect)` and fail the stream with the decoded cause.
 
 ## OpenAPI Output
 
 OpenAPI has no universal first-class stream item model. Emit standard media types plus an Effect-specific extension.
+
+SSE stream response:
+
+```json
+{
+  "content": {
+    "text/event-stream": {
+      "schema": {
+        "$ref": "#/components/schemas/Event"
+      },
+      "x-effect-stream": {
+        "encoding": "sse",
+        "causeSchema": {
+          "$ref": "#/components/schemas/StreamError"
+        },
+        "failureEvent": "effect/httpapi/stream/failure"
+      }
+    }
+  }
+}
+```
 
 Byte stream response:
 
@@ -225,106 +356,72 @@ Byte stream response:
 }
 ```
 
-NDJSON stream response:
-
-```json
-{
-  "content": {
-    "application/x-ndjson": {
-      "schema": {
-        "$ref": "#/components/schemas/Event"
-      },
-      "x-effect-stream": {
-        "encoding": "ndjson"
-      }
-    }
-  }
-}
-```
-
-SSE stream response:
-
-```json
-{
-  "content": {
-    "text/event-stream": {
-      "schema": {
-        "$ref": "#/components/schemas/EventData"
-      },
-      "x-effect-stream": {
-        "encoding": "sse"
-      }
-    }
-  }
-}
-```
-
-The schema for SSE is the `data` payload schema, not the full wire event frame. The `x-effect-stream.encoding` value determines the stream framing.
+For SSE, the OpenAPI schema describes successful application events. The `x-effect-stream.causeSchema` extension describes the typed stream failure cause. It may point at the typed `error` schema with the understanding that Effect tooling wraps it in `Schema.Cause(error, Schema.Defect)`, or it may point at the generated encoded cause schema if the OpenAPI generator can materialize it directly.
 
 ## OpenAPI Generator Changes
 
 Once declared streaming responses exist:
 
-- Stop skipping successful `text/event-stream` responses for `HttpApi` generation.
-- Map successful `text/event-stream` responses to `HttpApiSchema.asSseStream()`.
-- Map `application/x-ndjson` responses to `HttpApiSchema.asNdjsonStream()`.
-- Map explicit `x-effect-stream.encoding = "uint8array"` responses to `HttpApiSchema.asUint8ArrayStream()`.
+- Stop skipping successful `text/event-stream` responses for `HttpApi` generation when the response has enough metadata to generate `StreamSse`.
+- Map `x-effect-stream.encoding = "sse"` responses to `HttpApiSchema.StreamSse({ events, error })`.
+- Map `x-effect-stream.encoding = "uint8array"` responses to `HttpApiSchema.StreamUint8Array()`.
 - Preserve existing buffered `application/octet-stream` behavior as `HttpApiSchema.asUint8Array()` unless streaming is explicit.
+- Continue warning or skipping unannotated `text/event-stream` responses if the cause/error schema cannot be recovered.
 
 This distinction is important because `application/octet-stream` can represent either a buffered binary response or a streaming byte response.
 
 ## Implementation Plan
 
-1. Add stream response metadata in `HttpApiSchema.ts`.
-2. Add endpoint construction validation for streaming success rules in `HttpApiEndpoint.ts`.
-3. Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming schemas.
-4. Add stream response encoding in `HttpApiBuilder.ts`.
-5. Add stream response decoding in `HttpApiClient.ts`.
-6. Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
-7. Update OpenAPI generator parsing and `HttpApiTransformer.ts` rendering for declared streaming responses.
-8. Add runtime tests and typetests.
+1. Add `StreamSse` and `StreamUint8Array` declarations in `HttpApiSchema.ts`.
+2. Add response declaration metadata and predicates for streaming responses.
+3. Add endpoint construction validation for streaming success rules in `HttpApiEndpoint.ts`.
+4. Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming declarations.
+5. Add SSE and binary stream response encoding in `HttpApiBuilder.ts`.
+6. Add SSE and binary stream response decoding in `HttpApiClient.ts`.
+7. Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
+8. Update OpenAPI generator parsing and `HttpApiTransformer.ts` rendering for declared streaming responses.
+9. Add runtime tests and typetests.
 
 ## Tests
 
 Typetests:
 
-- `asUint8ArrayStream()` makes a handler return `Stream.Stream<Uint8Array, never>`.
-- `asNdjsonStream(Item)` makes a handler return `Stream.Stream<Item, never>`.
-- `asSseStream(Item)` makes a handler return `Stream.Stream<SseEvent<Item>, never>`.
-- `HttpApiClient` returns `Effect.Effect<Stream.Stream<Item, ...>, ...>` for streaming endpoints.
+- `StreamSse({ events, error })` makes a handler return `Stream.Stream<events.Type, error.Type>`.
+- `StreamSse({ events, error })` makes a client return `Effect.Effect<Stream.Stream<events.Type, error.Type | HttpErrors>, ...>`.
+- `StreamUint8Array()` makes a handler return `Stream.Stream<Uint8Array, unknown>`.
+- `StreamUint8Array()` makes a client return `Effect.Effect<Stream.Stream<Uint8Array, HttpClientError.HttpClientError>, ...>`.
 - `responseMode: "decoded-and-response"` returns `[stream, response]`.
 - `responseMode: "response-only"` returns `HttpClientResponse`.
-- Streaming success schemas are rejected in `error` definitions.
+- Streaming declarations are rejected in `error` definitions.
 
 Runtime tests:
 
-- Server streams bytes and client consumes bytes incrementally.
-- Server streams NDJSON records and client decodes records incrementally.
 - Server streams SSE events and client decodes events incrementally.
-- Non-success responses from streaming endpoints still decode through declared error schemas.
+- Server SSE stream fails and emits a reserved `effect/httpapi/stream/failure` event containing the encoded full `Cause`.
+- Client receives `effect/httpapi/stream/failure`, decodes the full cause, and fails the stream with that cause.
+- User SSE event named `effect/httpapi/stream/failure` is rejected.
+- Server streams bytes and client consumes bytes incrementally.
+- Non-success HTTP responses from streaming endpoints still decode through declared endpoint error schemas before returning a stream.
 - `responseMode: "response-only"` allows manual `response.stream` consumption.
-- Stream item schema encoding failures fail the stream.
 
 OpenAPI tests:
 
+- SSE stream response emits `text/event-stream`, `x-effect-stream.encoding = "sse"`, `causeSchema`, and `failureEvent`.
 - Byte stream response emits `application/octet-stream`, binary schema, and `x-effect-stream.encoding = "uint8array"`.
-- NDJSON stream response emits `application/x-ndjson` and `x-effect-stream.encoding = "ndjson"`.
-- SSE stream response emits `text/event-stream` and `x-effect-stream.encoding = "sse"`.
 
 Negative tests:
 
 - `HEAD` with streaming success is rejected.
 - Mixed buffered and streaming successes for the same status are rejected.
-- Multiple streaming successes for the same status are rejected in the MVP.
+- Multiple streaming successes for the same status are rejected in the initial design.
 
 ## Recommended MVP Boundary
 
-Implement these helpers first:
+Implement these constructors first:
 
 ```ts
-HttpApiSchema.asUint8ArrayStream()
-HttpApiSchema.asNdjsonStream()
-HttpApiSchema.asSseStream()
+HttpApiSchema.StreamSse({ events, error })
+HttpApiSchema.StreamUint8Array()
 ```
 
-Defer `asTextStream()` and Accept negotiation until there is a concrete use case.
+Defer NDJSON, text streaming, request body streams, and Accept negotiation until there is a concrete use case.
