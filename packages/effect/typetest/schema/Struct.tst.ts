@@ -151,6 +151,24 @@ describe("Struct", () => {
   })
 
   describe("mapFields", () => {
+    it("preserves encoded keys", () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.encodedKey("c"))
+      }).mapFields(Struct.assign({
+        b: Schema.String.pipe(Schema.encodedKey("d"))
+      }))
+
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<{ readonly a: number; readonly b: string }, { readonly c: string; readonly d: string }, never, never>
+      >()
+      expect(schema).type.toBe<
+        Schema.Struct<{
+          readonly a: Schema.encodedKey<Schema.FiniteFromString, "c">
+          readonly b: Schema.encodedKey<Schema.String, "d">
+        }>
+      >()
+    })
+
     describe("assign", () => {
       it("non-overlapping fields", () => {
         const schema = Schema.Struct({ a: Schema.String }).mapFields(Struct.assign({ b: Schema.String }))
