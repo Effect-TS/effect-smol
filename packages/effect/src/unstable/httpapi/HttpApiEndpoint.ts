@@ -57,11 +57,28 @@ export type PayloadMap = ReadonlyMap<string, {
 /** @internal */
 export type SuccessSchema = Schema.Top | HttpApiSchema.StreamDeclaration
 
-type SuccessType<S> = S extends Schema.Top ? S["Type"] : never
+type SuccessType<S> = S extends
+  HttpApiSchema.StreamSse<infer Events extends Schema.Top, infer Error extends Schema.Top> ?
+  Stream.Stream<Events["Type"], Error["Type"]>
+  : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, unknown>
+  : S extends Schema.Top ? S["Type"]
+  : never
 
-type SuccessEncodingServices<S> = S extends Schema.Top ? S["EncodingServices"] : never
+type SuccessEncodingServices<S> = S extends HttpApiSchema.StreamSse<
+  infer Events extends Schema.Top,
+  infer Error extends Schema.Top
+> ? Events["EncodingServices"] | Error["EncodingServices"]
+  : S extends HttpApiSchema.StreamUint8Array ? never
+  : S extends Schema.Top ? S["EncodingServices"]
+  : never
 
-type SuccessDecodingServices<S> = S extends Schema.Top ? S["DecodingServices"] : never
+type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
+  infer Events extends Schema.Top,
+  infer Error extends Schema.Top
+> ? Events["DecodingServices"] | Error["DecodingServices"]
+  : S extends HttpApiSchema.StreamUint8Array ? never
+  : S extends Schema.Top ? S["DecodingServices"]
+  : never
 
 type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<SuccessSchema> ? S[number] : S
 

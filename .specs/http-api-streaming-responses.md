@@ -375,7 +375,7 @@ This distinction is important because `application/octet-stream` can represent e
 - [x] Add `StreamSse` and `StreamUint8Array` declarations in `HttpApiSchema.ts`.
 - [x] Add response declaration metadata and predicates for streaming responses.
 - [x] Add endpoint construction validation for streaming success rules in `HttpApiEndpoint.ts`.
-- [ ] Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming declarations.
+- [x] Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming declarations.
 - [ ] Add SSE and binary stream response encoding in `HttpApiBuilder.ts`.
 - [ ] Add SSE and binary stream response decoding in `HttpApiClient.ts`.
 - [ ] Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
@@ -384,7 +384,9 @@ This distinction is important because `application/octet-stream` can represent e
 
 Current implementation note: the first step introduced `HttpApiSchema.StreamSse` and `HttpApiSchema.StreamUint8Array` as schema-like streaming success declarations with their own metadata and predicates. They are intentionally not represented with the existing buffered response encoding annotation, so later endpoint/server/client/OpenAPI work must branch on the streaming declaration predicates before using ordinary schema response encoders.
 
-Current endpoint note: `HttpApiEndpoint` now accepts streaming declarations in `success`, stores them without JSON/string-tree codec conversion, rejects them in `error`, and validates the initial streaming success constraints during construction. Streaming declarations currently have no status annotation API, so endpoint validation treats them as success status `200`; same-status conflict checks are therefore based on that default until a future status customization design exists. Handler/client decoded stream mappings, server/client runtime streaming support, and OpenAPI output remain intentionally deferred.
+Current endpoint note: `HttpApiEndpoint` now accepts streaming declarations in `success`, stores them without JSON/string-tree codec conversion, rejects them in `error`, and validates the initial streaming success constraints during construction. Streaming declarations currently have no status annotation API, so endpoint validation treats them as success status `200`; same-status conflict checks are therefore based on that default until a future status customization design exists. Server/client runtime streaming support and OpenAPI output remain intentionally deferred.
+
+Current type helper note: `HttpApiEndpoint` handler helpers now map `StreamSse({ events, error })` to `Stream.Stream<events.Type, error.Type>` and `StreamUint8Array()` to `Stream.Stream<Uint8Array, unknown>`. Generated client method helpers now map decoded streaming successes to stream values while preserving `decoded-and-response` and `response-only` response modes. Streaming SSE success service helpers include both event and stream-error schema services; byte streams do not add success schema services.
 
 ## Tests
 
