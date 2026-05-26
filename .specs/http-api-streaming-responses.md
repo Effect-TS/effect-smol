@@ -378,7 +378,7 @@ This distinction is important because `application/octet-stream` can represent e
 - [x] Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming declarations.
 - [x] Add SSE and binary stream response encoding in `HttpApiBuilder.ts`.
 - [x] Add SSE and binary stream response decoding in `HttpApiClient.ts`.
-- [ ] Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
+- [x] Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
 - [ ] Update OpenAPI generator parsing and `HttpApiTransformer.ts` rendering for declared streaming responses.
 - [x] Add focused constructor runtime tests and typetests.
 
@@ -395,6 +395,8 @@ Current server runtime test note: focused `HttpApiBuilder` tests now cover byte-
 Current client runtime note: `HttpApiClient` now detects declared streaming success responses at status `200` before buffered success decoding. `StreamUint8Array` successes return the raw response byte stream after status/error-schema handling. `StreamSse` successes decode UTF-8 response bytes through the SSE parser, decode ordinary events with the declaration `events` schema, and treat `effect/httpapi/stream/failure` as a reserved failure event whose `data` is decoded with `Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(error, Schema.Defect)))` before failing the returned stream with the decoded full cause. The returned stream is provided with the call-time context so schema decoding services are captured by the outer client call; `response-only` still bypasses stream decoding and returns the raw response.
 
 Current client runtime test note: focused `HttpApiClient` tests now cover incremental SSE event consumption, reserved SSE failure event cause preservation, incremental byte stream consumption, declared endpoint error decoding before stream return for non-success statuses, and manual raw response stream consumption with `responseMode: "response-only"`.
+
+Current OpenAPI note: `OpenApi.fromApi` now emits declared streaming success responses at status `200`, matching the current endpoint/runtime limitation that streaming declarations have no status annotation API. SSE declarations use the declared/default `text/event-stream` content type, describe successful events with the `events` schema, and attach `x-effect-stream` metadata with `encoding: "sse"`, the reserved failure event name, and a `causeSchema` generated from `Schema.toCodecJson(Schema.Cause(error, Schema.Defect))` to mirror the server/client failure sentinel codec. Byte stream declarations use the declared/default `application/octet-stream` content type, the same binary string schema shape as buffered `asUint8Array`, and `x-effect-stream: { encoding: "uint8array" }`.
 
 ## Tests
 
