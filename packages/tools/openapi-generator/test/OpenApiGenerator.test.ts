@@ -1156,6 +1156,127 @@ export const CreatePayloadRequestText = Schema.String`,
         ]
       ))
 
+    it.effect("maps explicit uint8array stream responses to HttpApiSchema.StreamUint8Array", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/download": {
+              get: {
+                operationId: "download",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Download",
+                    content: {
+                      "application/octet-stream": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        },
+                        "x-effect-stream": {
+                          encoding: "uint8array"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Downloads"],
+                security: []
+              }
+            },
+            "/download/custom": {
+              get: {
+                operationId: "downloadCustom",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Custom download",
+                    content: {
+                      "application/custom-bytes": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        },
+                        "x-effect-stream": {
+                          encoding: "uint8array"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Downloads"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Downloads" }]
+        },
+        [
+          `HttpApiEndpoint.get("download", "/download", { success: HttpApiSchema.StreamUint8Array() })`,
+          `HttpApiEndpoint.get("downloadCustom", "/download/custom", { success: HttpApiSchema.StreamUint8Array({ contentType: "application/custom-bytes" }) })`
+        ],
+        [
+          `Download200Binary.pipe(HttpApiSchema.asUint8Array())`,
+          `DownloadCustom200ApplicationCustomBytes.pipe(HttpApiSchema.asUint8Array({ contentType: "application/custom-bytes" }))`
+        ]
+      ))
+
+    it.effect("keeps unannotated octet-stream responses as buffered Uint8Array schemas", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/download/buffered": {
+              get: {
+                operationId: "downloadBuffered",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Buffered download",
+                    content: {
+                      "application/octet-stream": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Downloads"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Downloads" }]
+        },
+        [
+          `HttpApiEndpoint.get("downloadBuffered", "/download/buffered", { success: DownloadBuffered200Binary.pipe(HttpApiSchema.asUint8Array()) })`
+        ],
+        [
+          `HttpApiSchema.StreamUint8Array()`
+        ]
+      ))
+
     it.effect("maps multipart schemas referenced through components to Multipart file schemas", () =>
       assertHttpApiIncludes(
         {

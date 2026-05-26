@@ -511,7 +511,24 @@ const parseOpenApi = (
             if (contentType === "application/json") {
               continue
             }
-            if (!Predicate.isObject(mediaType) || Predicate.isUndefined(mediaType.schema)) {
+            if (!Predicate.isObject(mediaType)) {
+              continue
+            }
+
+            const statusMajorNumber = Number(parsedStatus[0])
+            const streamEncoding = !Number.isNaN(statusMajorNumber) && statusMajorNumber < 4
+              ? getEffectStreamEncoding(mediaType)
+              : undefined
+            if (streamEncoding === "uint8array") {
+              representable.push({
+                contentType,
+                encoding: "binary",
+                effectStream: "uint8array"
+              })
+              continue
+            }
+
+            if (Predicate.isUndefined(mediaType.schema)) {
               continue
             }
             const encoding = getResponseMediaTypeEncoding(contentType)
@@ -922,6 +939,11 @@ const getResponseMediaTypeEncoding = (
     return "binary"
   }
   return
+}
+
+const getEffectStreamEncoding = (mediaType: object): "uint8array" | undefined => {
+  const stream = (mediaType as Record<string, unknown>)["x-effect-stream"]
+  return Predicate.isObject(stream) && stream.encoding === "uint8array" ? "uint8array" : undefined
 }
 
 const resolveReference = (input: unknown, resolveRef: (ref: string) => unknown): any => {
