@@ -29,6 +29,7 @@ import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
+import * as Sse from "../encoding/Sse.ts"
 import type { Cookie } from "../http/Cookies.ts"
 import type * as Etag from "../http/Etag.ts"
 import * as HttpEffect from "../http/HttpEffect.ts"
@@ -673,9 +674,14 @@ function handlerToHttpEffect(
         }
       }
       const response = yield* handler(request)
-      return Response.isHttpServerResponse(response)
-        ? response
-        : yield* HttpApiSchemaError.wrap("Body", encodeSuccess(response))
+      if (Response.isHttpServerResponse(response)) {
+        return response
+      }
+      const streamResponse = encodeStreamSuccess(endpoint, response, context)
+      if (streamResponse !== undefined) {
+        return yield* HttpApiSchemaError.wrap("Body", streamResponse)
+      }
+      return yield* HttpApiSchemaError.wrap("Body", encodeSuccess(response))
     })
   ).pipe(
     Effect.withErrorReporting,
@@ -780,6 +786,124 @@ const makeSecurityMiddleware = (
 }
 
 const $HttpServerResponse = Schema.declare(Response.isHttpServerResponse)
+
+const streamSuccessStatus = 200
+const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
+const textEncoder = new TextEncoder()
+
+type SseStreamItem =
+  | { readonly _tag: "User"; readonly value: unknown }
+  | { readonly _tag: "Encoded"; readonly value: Sse.EventEncoded }
+
+function encodeStreamSuccess(
+  endpoint: HttpApiEndpoint.AnyWithProps,
+  response: unknown,
+  context: Context.Context<never>
+): Effect.Effect<HttpServerResponse, Schema.SchemaError, unknown> | undefined {
+  const declaration = getStreamSuccessDeclaration(endpoint)
+  if (declaration === undefined) return undefined
+  if (!Stream.isStream(response)) {
+    return hasBufferedSuccess(endpoint) ?
+      undefined :
+      Effect.fail(makeSchemaError(
+        new Issue.InvalidValue(Option.some(response), {
+          message: "Expected stream success response"
+        })
+      ))
+  }
+  if (HttpApiSchema.isStreamUint8Array(declaration)) {
+    return Effect.succeed(Response.stream(
+      Stream.provideContext(
+        response as Stream.Stream<Uint8Array, unknown, unknown>,
+        context as Context.Context<unknown>
+      ),
+      {
+        status: streamSuccessStatus,
+        contentType: declaration.contentType
+      }
+    ))
+  }
+  return Effect.succeed(Response.stream(
+    Stream.provideContext(
+      encodeSseStream(response, declaration),
+      context as Context.Context<unknown>
+    ),
+    {
+      status: streamSuccessStatus,
+      contentType: declaration.contentType
+    }
+  ))
+}
+
+function getStreamSuccessDeclaration(endpoint: HttpApiEndpoint.AnyWithProps) {
+  for (const schema of endpoint.success) {
+    if (HttpApiSchema.isStreamDeclaration(schema)) {
+      return schema
+    }
+  }
+}
+
+function hasBufferedSuccess(endpoint: HttpApiEndpoint.AnyWithProps): boolean {
+  for (const schema of endpoint.success) {
+    if (Schema.isSchema(schema)) return true
+  }
+  return endpoint.success.size === 0
+}
+
+function encodeSseStream(
+  stream: Stream.Stream<unknown, unknown, unknown>,
+  declaration: HttpApiSchema.StreamSse<Schema.Top, Schema.Top>
+): Stream.Stream<Uint8Array, unknown, unknown> {
+  const encodeEvent = Schema.encodeUnknownEffect(declaration.events)
+  const decodeEvent = Schema.decodeUnknownEffect(Sse.EventEncoded)
+  const encodeCause = Schema.encodeUnknownEffect(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect)))
+  return stream.pipe(
+    Stream.map((value): SseStreamItem => ({ _tag: "User", value })),
+    Stream.catchCause((cause) =>
+      Stream.fromEffect(
+        Effect.map(encodeCause(cause), (encodedCause): SseStreamItem => ({
+          _tag: "Encoded",
+          value: {
+            event: reservedStreamFailureEvent,
+            id: undefined,
+            data: JSON.stringify(encodedCause)
+          }
+        }))
+      )
+    ),
+    Stream.mapEffect((item) =>
+      item._tag === "Encoded" ?
+        Effect.succeed(item.value) :
+        Effect.flatMap(encodeEvent(item.value), (encoded) =>
+          Effect.flatMap(decodeEvent(normalizeSseEventEncoded(encoded)), (event) =>
+            event.event === reservedStreamFailureEvent ?
+              Effect.fail(
+                makeSchemaError(
+                  new Issue.InvalidValue(Option.some(event), {
+                    message: `SSE event name is reserved: ${reservedStreamFailureEvent}`
+                  })
+                )
+              ) :
+              Effect.succeed(event)))
+    ),
+    Stream.map((event) =>
+      textEncoder.encode(Sse.encoder.write({
+        _tag: "Event",
+        event: event.event,
+        id: event.id,
+        data: event.data
+      }))
+    )
+  )
+}
+
+function normalizeSseEventEncoded(encoded: unknown): unknown {
+  return typeof encoded === "object" && encoded !== null ? { id: undefined, ...encoded } : encoded
+}
+
+function makeSchemaError(issue: Issue.Issue): Schema.SchemaError {
+  return new Schema.SchemaError(issue)
+}
 
 const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)

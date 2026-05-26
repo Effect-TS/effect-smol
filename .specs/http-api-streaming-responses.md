@@ -376,7 +376,7 @@ This distinction is important because `application/octet-stream` can represent e
 - [x] Add response declaration metadata and predicates for streaming responses.
 - [x] Add endpoint construction validation for streaming success rules in `HttpApiEndpoint.ts`.
 - [x] Update `HttpApiEndpoint` helper types so handler success values and client decoded success values become streams for streaming declarations.
-- [ ] Add SSE and binary stream response encoding in `HttpApiBuilder.ts`.
+- [x] Add SSE and binary stream response encoding in `HttpApiBuilder.ts`.
 - [ ] Add SSE and binary stream response decoding in `HttpApiClient.ts`.
 - [ ] Update `OpenApi.ts` to emit streaming media types and `x-effect-stream` metadata.
 - [ ] Update OpenAPI generator parsing and `HttpApiTransformer.ts` rendering for declared streaming responses.
@@ -387,6 +387,10 @@ Current implementation note: the first step introduced `HttpApiSchema.StreamSse`
 Current endpoint note: `HttpApiEndpoint` now accepts streaming declarations in `success`, stores them without JSON/string-tree codec conversion, rejects them in `error`, and validates the initial streaming success constraints during construction. Streaming declarations currently have no status annotation API, so endpoint validation treats them as success status `200`; same-status conflict checks are therefore based on that default until a future status customization design exists. Server/client runtime streaming support and OpenAPI output remain intentionally deferred.
 
 Current type helper note: `HttpApiEndpoint` handler helpers now map `StreamSse({ events, error })` to `Stream.Stream<events.Type, error.Type>` and `StreamUint8Array()` to `Stream.Stream<Uint8Array, unknown>`. Generated client method helpers now map decoded streaming successes to stream values while preserving `decoded-and-response` and `response-only` response modes. Streaming SSE success service helpers include both event and stream-error schema services; byte streams do not add success schema services.
+
+Current server runtime note: `HttpApiBuilder` now preserves raw `HttpServerResponse` returns, detects declared streaming success responses before buffered success encoding, streams `Uint8Array` chunks with the declaration content type, and renders SSE success events as UTF-8 encoded event-stream chunks. SSE user events are encoded with the declaration `events` schema and guarded against the reserved `effect/httpapi/stream/failure` event name. SSE stream failures are recovered into exactly one reserved failure event and then complete the transport stream. The failure cause is encoded through `Schema.toCodecJson(Schema.Cause(error, Schema.Defect))` before JSON serialization so the `data` field contains a JSON-safe full-cause representation; client decoding should mirror that JSON codec. The implementation also normalizes a missing encoded `id` to `undefined` before validating the SSE wire shape because the current `Sse.EventEncoded` schema accepts `undefined` but still expects the key to be present.
+
+Current server runtime test note: focused `HttpApiBuilder` tests now cover byte-stream content type and chunks, incremental SSE success rendering, SSE failure sentinel rendering with a decodable full cause, and runtime rejection of a successful user event with the reserved failure name. End-to-end client streaming coverage remains deferred until `HttpApiClient` stream decoding is implemented.
 
 ## Tests
 
