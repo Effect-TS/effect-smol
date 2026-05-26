@@ -1539,10 +1539,13 @@ export const fail: <E>(error: E) => Effect<never, E> = internal.fail
 /**
  * Creates an `Effect` that represents a recoverable error using a lazy evaluation.
  *
+ * **When to use**
+ *
+ * Use to defer computing a recoverable error value until the effect is run.
+ *
  * **Details**
  *
- * This function is useful when you need to create an error effect but want to
- * defer the computation of the error value until the effect is actually run.
+ * The error-producing function is evaluated each time the effect is executed.
  *
  * **Example** (Lazily creating failures)
  *
@@ -1591,10 +1594,13 @@ export const failCause: <E>(cause: Cause.Cause<E>) => Effect<never, E> = interna
 /**
  * Creates an `Effect` that represents a failure with a `Cause` computed lazily.
  *
+ * **When to use**
+ *
+ * Use to defer computing a full `Cause` until the effect is run.
+ *
  * **Details**
  *
- * This function is useful when you need to create a failure effect with a
- * complex cause but want to defer the computation until the effect is run.
+ * The cause-producing function is evaluated each time the effect is executed.
  *
  * **Example** (Lazily creating a Cause)
  *
@@ -2436,15 +2442,16 @@ export const asSome: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
 export const asVoid: <A, E, R>(self: Effect<A, E, R>) => Effect<void, E, R> = internal.asVoid
 
 /**
- * The `flip` function swaps the success and error channels of an effect,
- * so that the success becomes the error, and the error becomes the success.
+ * Swaps an effect's success and failure channels.
+ *
+ * **When to use**
+ *
+ * Use to handle the failure value as a success, or to move the success value
+ * into the failure channel.
  *
  * **Details**
  *
- * This function is useful when you need to reverse the flow of an effect,
- * treating the previously successful values as errors and vice versa. This can
- * be helpful in scenarios where you want to handle a success as a failure or
- * treat an error as a valid result.
+ * For an `Effect<A, E, R>`, the returned effect has type `Effect<E, A, R>`.
  *
  * **Example** (Swapping success and failure channels)
  *
@@ -3480,8 +3487,7 @@ export const catchCauseFilter: {
 } = internal.catchCauseFilter
 
 /**
- * The `mapError` function is used to transform or modify the error
- * produced by an effect, without affecting its success value.
+ * Transforms the failure value of an effect without changing its success value.
  *
  * **When to use**
  *
@@ -3489,10 +3495,8 @@ export const catchCauseFilter: {
  *
  * **Details**
  *
- * This function is helpful when you want to enhance the error with additional
- * information, change the error type, or apply custom error handling while
- * keeping the original behavior of the effect's success values intact. It only
- * operates on the error channel and leaves the success channel unchanged.
+ * Only the failure channel is transformed. The success channel and requirements
+ * are preserved.
  *
  * **Example** (Transforming the error channel)
  *
@@ -4550,8 +4554,8 @@ export const timeoutOption: {
  *
  * **Details**
  *
- * This function is useful when you want to set a maximum duration for an operation
- * and provide an alternative action if the timeout is exceeded.
+ * The fallback effect is created lazily by `orElse` and may introduce its own
+ * success, failure, and requirement types.
  *
  * **Gotchas**
  *
@@ -6092,8 +6096,7 @@ export const updateService: {
 } = internal.updateService
 
 /**
- * The `provideService` function is used to provide an actual
- * implementation for a service in the context of an effect.
+ * Provides one concrete service implementation to an effect.
  *
  * **When to use**
  *
@@ -6101,11 +6104,8 @@ export const updateService: {
  *
  * **Details**
  *
- * This function allows you to associate a service with its implementation so
- * that it can be used in your program. You define the service (e.g., a random
- * number generator), and then you use `provideService` to link that
- * service to its implementation. Once the implementation is provided, the
- * effect can be run successfully without further requirements.
+ * The service requirement identified by the `Context.Key` is removed from the
+ * effect requirements after the implementation is provided.
  *
  * **Example** (Providing a service value)
  *
@@ -6312,9 +6312,16 @@ export const withConcurrency: {
 export const scope: Effect<Scope, never, Scope> = internal.scope
 
 /**
- * Scopes all resources used in this workflow to the lifetime of the workflow,
- * ensuring that their finalizers are run as soon as this workflow completes
- * execution, whether by success, failure, or interruption.
+ * Runs an effect with a scope that closes when the effect completes.
+ *
+ * **When to use**
+ *
+ * Use to acquire scoped resources for the duration of a single workflow.
+ *
+ * **Details**
+ *
+ * Finalizers for resources acquired inside the workflow run as soon as the
+ * workflow completes, whether by success, failure, or interruption.
  *
  * **Example** (Running a scoped acquisition)
  *
@@ -6458,8 +6465,7 @@ export const acquireRelease: <A, E, R, R2>(
 ) => Effect<A, E, R | R2 | Scope> = internal.acquireRelease
 
 /**
- * This function constructs a scoped resource from an Effect that acquires a
- * disposable value.
+ * Acquires a scoped resource that implements JavaScript disposal protocols.
  *
  * **When to use**
  *
@@ -6508,10 +6514,7 @@ export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
 ) => Effect<A, E, R | Scope> = internal.acquireDisposable
 
 /**
- * This function is used to ensure that an `Effect` value that represents the
- * acquisition of a resource (for example, opening a file, launching a thread,
- * etc.) will not be interrupted, and that the resource will always be released
- * when the `Effect` value completes execution.
+ * Runs resource acquisition, usage, and release as one bracketed effect.
  *
  * **When to use**
  *
@@ -6594,9 +6597,7 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
 ) => Effect<A, E | E2 | E3, R | R2 | R3> = internal.acquireUseRelease
 
 /**
- * This function adds a finalizer to the scope of the calling `Effect` value.
- * The finalizer is guaranteed to be run when the scope is closed, and it may
- * depend on the `Exit` value that the scope is closed with.
+ * Adds a finalizer to the current scope.
  *
  * **When to use**
  *
@@ -6604,9 +6605,8 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  *
  * **Details**
  *
- * Finalizers are useful for cleanup operations that must run regardless of
- * whether the effect succeeds or fails. They're commonly used for resource
- * cleanup, logging, or other side effects that should always occur.
+ * The finalizer runs when the surrounding scope is closed and receives the
+ * `Exit` value used to close the scope.
  *
  * **Example** (Registering scope finalizers)
  *

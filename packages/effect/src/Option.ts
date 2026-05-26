@@ -759,12 +759,12 @@ export const orElseSome: {
 )
 
 /**
- * Like {@link orElse}, but wraps the result in a `Result` to indicate the
- * source of the value.
+ * Returns the first available value and marks whether it came from the fallback.
  *
  * **When to use**
  *
- * Use when distinguishing whether a value came from the primary or fallback `Option`
+ * Use when distinguishing whether a value came from the primary or fallback
+ * `Option`.
  *
  * **Details**
  *

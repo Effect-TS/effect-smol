@@ -292,8 +292,12 @@ export const Role: Schema.Literals<["user", "assistant"]> = Schema.Literals(["us
 export type Role = typeof Role.Type
 
 /**
- * Optional annotations for the client. The client can use annotations to
- * inform how objects are used or displayed.
+ * Optional client-facing annotations for MCP objects.
+ *
+ * **When to use**
+ *
+ * Use to describe intended audience and priority metadata for objects shown or
+ * processed by a client.
  *
  * @category common
  * @since 4.0.0
@@ -329,9 +333,17 @@ export class Implementation extends Schema.Opaque<Implementation>()(Schema.Struc
 })) {}
 
 /**
- * Capabilities a client may support. Known capabilities are defined here, in
- * this schema, but this is not a closed set: any client can define its own,
- * additional capabilities.
+ * Capabilities advertised by an MCP client.
+ *
+ * **When to use**
+ *
+ * Use to describe which optional MCP features a client supports during
+ * initialization.
+ *
+ * **Details**
+ *
+ * Known capabilities are represented by this schema, but the capability set is
+ * open and clients may define additional capabilities.
  *
  * @category common
  * @since 4.0.0
@@ -368,9 +380,17 @@ export class ClientCapabilities extends Schema.Class<ClientCapabilities>(
 }) {}
 
 /**
- * Capabilities that a server may support. Known capabilities are defined
- * here, in this schema, but this is not a closed set: any server can define
- * its own, additional capabilities.
+ * Capabilities advertised by an MCP server.
+ *
+ * **When to use**
+ *
+ * Use to describe which optional MCP features a server supports during
+ * initialization.
+ *
+ * **Details**
+ *
+ * Known capabilities are represented by this schema, but the capability set is
+ * open and servers may define additional capabilities.
  *
  * @category common
  * @since 4.0.0
@@ -498,8 +518,16 @@ export const INTERNAL_ERROR_CODE = -32603 as const
 export const PARSE_ERROR_CODE = -32700 as const
 
 /**
- * MCP/JSON-RPC error for invalid JSON that could not be parsed. This error
- * uses the standard parse error code `-32700`.
+ * MCP/JSON-RPC error for invalid JSON that could not be parsed.
+ *
+ * **When to use**
+ *
+ * Use to report a JSON parse failure before a valid JSON-RPC request object is
+ * available.
+ *
+ * **Details**
+ *
+ * Uses the standard JSON-RPC parse error code `-32700`.
  *
  * @category errors
  * @since 4.0.0
@@ -511,8 +539,16 @@ export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSche
 }) {}
 
 /**
- * MCP/JSON-RPC error for a request object that is not valid. This error uses
- * the standard invalid request code `-32600`.
+ * MCP/JSON-RPC error for a request object that is not valid.
+ *
+ * **When to use**
+ *
+ * Use to report a syntactically parsed JSON-RPC request that is not a valid
+ * request object.
+ *
+ * **Details**
+ *
+ * Uses the standard JSON-RPC invalid request code `-32600`.
  *
  * @category errors
  * @since 4.0.0
@@ -524,8 +560,15 @@ export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai
 }) {}
 
 /**
- * MCP/JSON-RPC error for a method that does not exist or is not available.
- * This error uses the standard method not found code `-32601`.
+ * MCP/JSON-RPC error for an unavailable method.
+ *
+ * **When to use**
+ *
+ * Use to report a JSON-RPC method that does not exist or is not available.
+ *
+ * **Details**
+ *
+ * Uses the standard JSON-RPC method-not-found code `-32601`.
  *
  * @category errors
  * @since 4.0.0
@@ -537,8 +580,16 @@ export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai
 }) {}
 
 /**
- * MCP/JSON-RPC error for invalid method parameters. This error uses the
- * standard invalid params code `-32602`.
+ * MCP/JSON-RPC error for invalid method parameters.
+ *
+ * **When to use**
+ *
+ * Use to report a request whose method parameters do not match the method
+ * schema.
+ *
+ * **Details**
+ *
+ * Uses the standard JSON-RPC invalid params code `-32602`.
  *
  * @category errors
  * @since 4.0.0
@@ -550,8 +601,16 @@ export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/M
 }) {}
 
 /**
- * MCP/JSON-RPC error for unexpected internal server failures. This error uses
- * the standard internal error code `-32603` and includes
+ * MCP/JSON-RPC error for unexpected internal server failures.
+ *
+ * **When to use**
+ *
+ * Use to report an unexpected server-side failure while handling a valid
+ * request.
+ *
+ * **Details**
+ *
+ * Uses the standard JSON-RPC internal error code `-32603` and includes
  * `InternalError.notImplemented` for unimplemented handlers.
  *
  * @category errors
@@ -586,9 +645,15 @@ export const McpError = Schema.Union([
 // =============================================================================
 
 /**
- * A ping, issued by either the server or the client, to check that the other
- * party is still alive. The receiver must promptly respond, or else may be
- * disconnected.
+ * MCP ping request used to check whether the peer is still alive.
+ *
+ * **When to use**
+ *
+ * Use to implement client or server liveness checks.
+ *
+ * **Details**
+ *
+ * The receiver should respond promptly; otherwise the sender may disconnect.
  *
  * @category ping
  * @since 4.0.0
@@ -973,9 +1038,15 @@ export class ReadResource extends Rpc.make("resources/read", {
 }) {}
 
 /**
- * An optional notification from the server to the client, informing it that the
- * list of resources it can read from has changed. This may be issued by servers
- * without any previous subscription from the client.
+ * Notification that the server's resource list changed.
+ *
+ * **When to use**
+ *
+ * Use to notify clients that `resources/list` should be requested again.
+ *
+ * **Details**
+ *
+ * Servers may send this notification without a previous client subscription.
  *
  * @category resources
  * @since 4.0.0
@@ -1293,9 +1364,15 @@ export class GetPrompt extends Rpc.make("prompts/get", {
 }) {}
 
 /**
- * An optional notification from the server to the client, informing it that
- * the list of prompts it offers has changed. This may be issued by servers
- * without any previous subscription from the client.
+ * Notification that the server's prompt list changed.
+ *
+ * **When to use**
+ *
+ * Use to notify clients that `prompts/list` should be requested again.
+ *
+ * **Details**
+ *
+ * Servers may send this notification without a previous client subscription.
  *
  * @category prompts
  * @since 4.0.0
@@ -1482,9 +1559,15 @@ export class CallTool extends Rpc.make("tools/call", {
 }) {}
 
 /**
- * An optional notification from the server to the client, informing it that
- * the list of tools it offers has changed. This may be issued by servers
- * without any previous subscription from the client.
+ * Notification that the server's tool list changed.
+ *
+ * **When to use**
+ *
+ * Use to notify clients that `tools/list` should be requested again.
+ *
+ * **Details**
+ *
+ * Servers may send this notification without a previous client subscription.
  *
  * @category tools
  * @since 4.0.0
@@ -1681,10 +1764,16 @@ export class ModelPreferences extends Schema.Class<ModelPreferences>(
 }) {}
 
 /**
- * The client's response to a sampling/create_message request from the server.
- * The client should inform the user before returning the sampled message, to
- * allow them to inspect the response (human in the loop) and decide whether to
- * allow the server to see it.
+ * Client response to an MCP sampling request.
+ *
+ * **When to use**
+ *
+ * Use to return the message produced by client-side model sampling.
+ *
+ * **Details**
+ *
+ * The client should let the user inspect the sampled message before returning
+ * it to the server.
  *
  * @category sampling
  * @since 4.0.0
@@ -1703,10 +1792,17 @@ export class CreateMessageResult extends Schema.Class<CreateMessageResult>(
 }) {}
 
 /**
- * A request from the server to sample an LLM via the client. The client has
- * full discretion over which model to select. The client should also inform the
- * user before beginning sampling, to allow them to inspect the request (human
- * in the loop) and decide whether to approve it.
+ * Server request for the client to sample an LLM.
+ *
+ * **When to use**
+ *
+ * Use when an MCP server needs the client to perform model sampling on its
+ * behalf.
+ *
+ * **Details**
+ *
+ * The client chooses the model and should ask the user to approve the sampling
+ * request before it begins.
  *
  * @category sampling
  * @since 4.0.0
@@ -1887,9 +1983,11 @@ export class Root extends Schema.Class<Root>(
 }) {}
 
 /**
- * The client's response to a roots/list request from the server. This result
- * contains an array of Root objects, each representing a root directory or file
- * that the server can operate on.
+ * Client response containing the roots available to the server.
+ *
+ * **When to use**
+ *
+ * Use to return the directories or files that an MCP server may operate on.
  *
  * @category roots
  * @since 4.0.0
@@ -1922,10 +2020,15 @@ export class ListRoots extends Rpc.make("roots/list", {
 }) {}
 
 /**
- * A notification from the client to the server, informing it that the list of
- * roots has changed. This notification should be sent whenever the client adds,
- * removes, or modifies any root. The server should then request an updated list
- * of roots using the ListRootsRequest.
+ * Notification that the client's root list changed.
+ *
+ * **When to use**
+ *
+ * Use to tell the server that it should request an updated roots list.
+ *
+ * **Details**
+ *
+ * Send this when the client adds, removes, or modifies a root.
  *
  * @category roots
  * @since 4.0.0

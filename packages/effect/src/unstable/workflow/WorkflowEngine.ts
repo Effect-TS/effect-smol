@@ -551,9 +551,17 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
 )
 
 /**
- * A in-memory implementation of the WorkflowEngine. This is useful for testing
- * and local development, but is not suitable for production use as it does not
- * provide durability guarantees.
+ * In-memory `WorkflowEngine` layer.
+ *
+ * **When to use**
+ *
+ * Use to run tests and local development workflows where durability is not
+ * needed.
+ *
+ * **Gotchas**
+ *
+ * This layer keeps state only in memory and is not suitable for production
+ * workflows that require durability.
  *
  * @category layers
  * @since 4.0.0

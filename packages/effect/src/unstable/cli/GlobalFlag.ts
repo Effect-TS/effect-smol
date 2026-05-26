@@ -179,8 +179,11 @@ export const Help: Action<boolean> = action({
 })
 
 /**
- * The `--version` global flag.
- * Shows version information for the command.
+ * Global action flag for showing command version information.
+ *
+ * **When to use**
+ *
+ * Use to add a built-in `--version` flag to a command runner.
  *
  * @category references
  * @since 4.0.0
@@ -226,8 +229,12 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
 })
 
 /**
- * The `--log-level` global flag.
- * Sets the minimum log level for the command.
+ * Global setting flag for command log level.
+ *
+ * **When to use**
+ *
+ * Use to add a built-in `--log-level` option that configures the minimum log
+ * level for the command.
  *
  * @category references
  * @since 4.0.0

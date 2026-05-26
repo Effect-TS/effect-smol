@@ -485,9 +485,17 @@ export const externalSpan = (
 })
 
 /**
- * Reference used to disable trace propagation. When set on the fiber or span
- * annotations, new spans are created as non-propagating no-op spans and
- * disabled spans are skipped when deriving a parent span.
+ * Reference used to disable trace propagation.
+ *
+ * **When to use**
+ *
+ * Use to prevent spans in a scope from propagating tracing context.
+ *
+ * **Details**
+ *
+ * When enabled on fiber or span annotations, new spans are created as
+ * non-propagating no-op spans and disabled spans are skipped when deriving a
+ * parent span.
  *
  * **Example** (Disabling span propagation)
  *

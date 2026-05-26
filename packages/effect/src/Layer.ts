@@ -713,11 +713,17 @@ export const build = <RIn, E, ROut>(
   )
 
 /**
- * Builds a layer into an `Effect` value. Any resources associated with this
- * layer will be released when the specified scope is closed unless their scope
- * has been extended. This allows building layers where the lifetime of some of
- * the services output by the layer exceed the lifetime of the effect the
- * layer is provided to.
+ * Builds a layer using an explicit scope.
+ *
+ * **When to use**
+ *
+ * Use to control the lifetime of layer resources with a scope supplied by the
+ * caller.
+ *
+ * **Details**
+ *
+ * Resources created by the layer are released when the supplied scope is
+ * closed, unless a resource extends its own scope.
  *
  * **Example** (Building a layer with an explicit scope)
  *

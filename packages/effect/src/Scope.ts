@@ -306,8 +306,16 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Clo
 export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Closeable = effect.scopeMakeUnsafe
 
 /**
- * Provides a `Scope` to an `Effect`, removing the `Scope` requirement from its context.
- * This allows you to run effects that require a scope by explicitly providing one.
+ * Provides a concrete `Scope` to an effect.
+ *
+ * **When to use**
+ *
+ * Use to run an effect that requires `Scope` with a scope managed by the
+ * caller.
+ *
+ * **Details**
+ *
+ * Providing the scope removes the `Scope` requirement from the effect context.
  *
  * **Example** (Providing a scope)
  *
@@ -488,8 +496,16 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
   effect.scopeForkUnsafe
 
 /**
- * Closes a scope, running all registered finalizers in the appropriate order.
- * The exit value is passed to each finalizer.
+ * Closes a scope and runs its registered finalizers.
+ *
+ * **When to use**
+ *
+ * Use to close a scope manually with a specific exit value.
+ *
+ * **Details**
+ *
+ * Finalizers run in the scope's configured order and receive the supplied
+ * `Exit`.
  *
  * **Example** (Running scope finalizers)
  *
@@ -559,7 +575,7 @@ export const closeUnsafe: <A, E>(self: Scope, exit_: Exit<A, E>) => Effect<void,
  * finalizers can observe whether the effect succeeded, failed, or was
  * interrupted.
  *
- * @see {@link provide} for providing a scope without closing it automatically
+ * @see `provide` for providing a scope without closing it automatically
  * @see `Effect.scoped` for creating and closing a fresh scope around a workflow
  *
  * @category combinators

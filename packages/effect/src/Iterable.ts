@@ -987,7 +987,14 @@ export const zipWith: {
 }))
 
 /**
- * Places an element in between members of an `Iterable`.
+ * Places a separator between members of an `Iterable`.
+ *
+ * **When to use**
+ *
+ * Use to lazily insert a separator between adjacent values.
+ *
+ * **Details**
+ *
  * If the input is a non-empty array, the result is also a non-empty array.
  *
  * **Example** (Interspersing separators)

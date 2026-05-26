@@ -536,7 +536,17 @@ export const map: {
 })
 
 /**
- * Flat maps a success result with a function returning another `AsyncResult`, leaves initial results unchanged, and preserves failure causes while remapping stored previous successes when possible.
+ * Flat maps the success value of an `AsyncResult`.
+ *
+ * **When to use**
+ *
+ * Use to sequence computations that may return another `AsyncResult` while
+ * preserving initial and failure states.
+ *
+ * **Details**
+ *
+ * Initial results are left unchanged. Failures preserve their cause and remap
+ * the stored previous success when the mapping function returns a success.
  *
  * @category combinators
  * @since 4.0.0

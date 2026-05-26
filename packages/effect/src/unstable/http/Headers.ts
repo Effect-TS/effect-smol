@@ -70,7 +70,7 @@ import * as Transformation from "../../SchemaTransformation.ts"
 import type { Mutable } from "../../Types.ts"
 
 /**
- * This is a symbol to allow direct access of keys without conflicts.
+ * Runtime type identifier for `Headers` values.
  *
  * @category type IDs
  * @since 4.0.0

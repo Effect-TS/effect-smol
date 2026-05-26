@@ -2638,11 +2638,18 @@ export const concat: {
 > => concatWith(self, (_) => that))
 
 /**
- * Combines the elements from this channel and the specified channel by
- * repeatedly applying the function `f` to extract an element using both sides
- * and conceptually "offer" it to the destination channel. `f` can maintain
- * some internal state to control the combining process, with the initial
- * state being specified by `s`.
+ * Combines two channels with a stateful pull function.
+ *
+ * **When to use**
+ *
+ * Use to coordinate pulling from two channels when each output element depends
+ * on both sides and local state.
+ *
+ * **Details**
+ *
+ * The combining function receives the current state and pull functions for the
+ * left and right channels. It returns the next output element together with the
+ * next state.
  *
  * @category sequencing
  * @since 4.0.0
@@ -6834,13 +6841,18 @@ export const bufferArray: {
   })))
 
 /**
- * Returns a new channel, which is the same as this one, except it will be
- * interrupted when the specified effect completes. If the effect completes
- * successfully before the underlying channel is done, then the returned
- * channel will yield the success value of the effect as its terminal value.
- * On the other hand, if the underlying channel finishes first, then the
- * returned channel will yield the success value of the underlying channel as
- * its terminal value.
+ * Interrupts a channel when another effect completes.
+ *
+ * **When to use**
+ *
+ * Use to race channel execution against an external effect whose success can
+ * become the channel's done value.
+ *
+ * **Details**
+ *
+ * If the effect completes first, its success value becomes the returned
+ * channel's done value. If the channel completes first, the original channel's
+ * done value is preserved.
  *
  * @category utils
  * @since 2.0.0

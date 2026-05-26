@@ -913,7 +913,16 @@ export const nowUnsafe: LazyArg<Utc> = Internal.nowUnsafe
 // =============================================================================
 
 /**
- * For a `DateTime` returns a new `DateTime.Utc`.
+ * Converts a `DateTime` to a UTC `DateTime`.
+ *
+ * **When to use**
+ *
+ * Use to represent the same instant in UTC instead of its current time zone.
+ *
+ * **Details**
+ *
+ * The returned value keeps the same epoch milliseconds and changes only the
+ * `DateTime` representation to UTC.
  *
  * **Example** (Converting DateTime values to UTC)
  *
@@ -2050,7 +2059,12 @@ export const nowInCurrentZone: Effect.Effect<Zoned, never, CurrentTimeZone> = Ef
 // =============================================================================
 
 /**
- * Modify a `DateTime` by applying a function to a cloned `Date` instance.
+ * Modifies a `DateTime` with a mutable local `Date` copy.
+ *
+ * **When to use**
+ *
+ * Use to adjust calendar fields in the `DateTime`'s own time zone with an
+ * existing `Date` mutation API.
  *
  * **Details**
  *
@@ -2094,7 +2108,12 @@ export const mutate: {
 } = Internal.mutate
 
 /**
- * Modify a `DateTime` by applying a function to a cloned UTC `Date` instance.
+ * Modifies a `DateTime` with a mutable UTC `Date` copy.
+ *
+ * **When to use**
+ *
+ * Use to adjust the instant with an existing `Date` mutation API that works on
+ * UTC calendar fields.
  *
  * **Example** (Mutating DateTime values with UTC Dates)
  *

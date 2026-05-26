@@ -589,8 +589,16 @@ export const replace: {
 )
 
 /**
- * If the given key exists in the record, returns a new record with the key removed.
- * If the key does not exist, returns a shallow copy of the original record.
+ * Removes a key from a record.
+ *
+ * **When to use**
+ *
+ * Use to create a shallow copy of a record without one property.
+ *
+ * **Details**
+ *
+ * If the key is not present, the result is still a shallow copy of the original
+ * record.
  *
  * **Example** (Removing a key)
  *

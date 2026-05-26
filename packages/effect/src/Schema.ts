@@ -1186,11 +1186,15 @@ export const is = Parser.is
  * Creates an assertion function that throws an error if the input doesn't match
  * the schema.
  *
+ * **When to use**
+ *
+ * Use to validate unknown input at runtime while narrowing the value with a
+ * TypeScript `asserts` predicate.
+ *
  * **Details**
  *
- * This function is useful for runtime type checking with TypeScript's `asserts`
- * type guard. It narrows the type of the input if the assertion succeeds, or
- * throws an error if it fails.
+ * The input is narrowed if the assertion succeeds. If validation fails, the
+ * assertion throws.
  *
  * **Example** (Basic Usage)
  *
@@ -1900,8 +1904,12 @@ interface requiredKeyLambda extends Lambda {
 }
 
 /**
- * Reverses {@link optionalKey}, returning the inner required schema. Only
- * applicable to schemas already wrapped with `optionalKey`.
+ * Reverses `optionalKey` and returns the inner required schema.
+ *
+ * **When to use**
+ *
+ * Use to remove optional-key wrapping from a schema field that was previously
+ * wrapped with {@link optionalKey}.
  *
  * @category combinators
  * @since 4.0.0
@@ -1962,8 +1970,16 @@ interface requiredLambda extends Lambda {
 }
 
 /**
- * Reverses {@link optional}, returning the inner schema (unwrapping `UndefinedOr`).
- * Only applicable to schemas already wrapped with `optional`.
+ * Reverses `optional` and returns the inner schema.
+ *
+ * **When to use**
+ *
+ * Use to remove optional wrapping from a schema field that was previously
+ * wrapped with {@link optional}.
+ *
+ * **Details**
+ *
+ * This also unwraps the `UndefinedOr` member added by `optional`.
  *
  * @category combinators
  * @since 3.10.0
@@ -2020,8 +2036,12 @@ interface readonlyKeyLambda extends Lambda {
 }
 
 /**
- * Reverses {@link mutableKey}, returning the inner schema as readonly again.
- * Only applicable to schemas already wrapped with `mutableKey`.
+ * Reverses `mutableKey` and returns the inner readonly schema.
+ *
+ * **When to use**
+ *
+ * Use to remove mutable-key wrapping from a schema field that was previously
+ * wrapped with {@link mutableKey}.
  *
  * @category combinators
  * @since 4.0.0
@@ -2147,8 +2167,15 @@ function isFlip$(schema: Top): schema is flip<any> {
 }
 
 /**
- * Swaps the `Type` and `Encoded` of a schema, inverting the transformation
- * direction. Calling `flip` twice returns the original schema.
+ * Swaps the decoded and encoded sides of a schema.
+ *
+ * **When to use**
+ *
+ * Use to invert a schema transformation direction.
+ *
+ * **Details**
+ *
+ * Calling `flip` twice returns the original schema.
  *
  * **Example** (Flip a number-from-string schema)
  *
@@ -2372,8 +2399,17 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
 }
 
 /**
- * Like {@link TemplateLiteral} but decodes the matched string into a readonly tuple of typed values,
- * one element per schema part.
+ * Schema for parsing template literal matches into typed tuple parts.
+ *
+ * **When to use**
+ *
+ * Use to validate a template literal string and decode the matched parts into
+ * typed values.
+ *
+ * **Details**
+ *
+ * Unlike {@link TemplateLiteral}, this schema decodes the matched string into a
+ * readonly tuple with one element per schema part.
  *
  * **Example** (Parse path parameters)
  *
@@ -2995,8 +3031,16 @@ interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
 }
 
 /**
- * A shortcut for `MyStruct.mapFields(Struct.assign(fields))`. This is useful
- * when you want to add new fields to an existing struct or a union of structs.
+ * Adds fields to a struct schema through a struct-mapping lambda.
+ *
+ * **When to use**
+ *
+ * Use to add the same fields to an existing struct or to every struct member of
+ * a union.
+ *
+ * **Details**
+ *
+ * This is a shortcut for `MyStruct.mapFields(Struct.assign(fields))`.
  *
  * **Example** (Adding fields to a union of structs)
  *
@@ -4781,7 +4825,7 @@ export function catchDecoding<S extends Top>(
 }
 
 /**
- * Like {@link catchDecoding}, but the handler may require Effect services (`R`).
+ * Recovers from a decoding error with a handler that may require Effect services.
  *
  * **When to use**
  *
@@ -4825,7 +4869,7 @@ export function catchEncoding<S extends Top>(
 }
 
 /**
- * Like {@link catchEncoding}, but the handler may require Effect services (`R`).
+ * Recovers from an encoding error with a handler that may require Effect services.
  *
  * **When to use**
  *
@@ -5026,13 +5070,17 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
 }
 
 /**
- * Like {@link decodeTo} but reverses the direction: the `from` schema acts as the target (decoded type)
- * and `to` acts as the encoded source.
+ * Reverses a schema transformation so the encoded schema is supplied first.
+ *
+ * **When to use**
+ *
+ * Use to define a transformation by naming the encoded schema before the
+ * decoded schema.
  *
  * **Details**
  *
- * `encodeTo(to)(from)` is equivalent to `to.pipe(decodeTo(from))` — useful when it reads more
- * naturally to specify the encoded schema first.
+ * `encodeTo(to)(from)` is equivalent to `to.pipe(decodeTo(from))`. The `from`
+ * schema acts as the target decoded schema and `to` acts as the encoded source.
  *
  * **Example** (Encode a number back to string)
  *
@@ -5467,9 +5515,17 @@ export function tag<Tag extends AST.LiteralValue>(literal: Tag): tag<Tag> {
 }
 
 /**
- * Like {@link tag}, but additionally omits the tag field from the encoded output.
- * Useful when the encoded form (e.g. JSON) does not include the discriminator key,
- * but the decoded type and constructor still need it.
+ * Creates a literal `_tag` schema that is omitted from encoded output.
+ *
+ * **When to use**
+ *
+ * Use to decode data that omits the discriminator field while still constructing
+ * values with a `_tag` for tagged union matching.
+ *
+ * **Details**
+ *
+ * The tag is filled during decoding and construction, like {@link tag}, but is
+ * omitted when encoding.
  *
  * **Example** (Tag omitted during encoding)
  *
@@ -5506,9 +5562,11 @@ export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fie
 >
 
 /**
- * A tagged struct is a struct that includes a `_tag` field. This field is used
- * to identify the specific variant of the object, which is especially useful
- * when working with union types.
+ * Creates a struct schema with an automatically populated `_tag` field.
+ *
+ * **When to use**
+ *
+ * Use to define a tagged union case from a literal tag and a set of fields.
  *
  * **Details**
  *
@@ -10562,9 +10620,11 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
 }
 
 /**
- * `Schema.fromFormData` returns a schema that reads a `FormData` instance,
- * converts it into a tree record using bracket notation, and then decodes the
- * resulting structure using the provided schema.
+ * Schema for decoding `FormData` through a bracket-notation tree.
+ *
+ * **When to use**
+ *
+ * Use to decode browser or multipart form data into a structured schema value.
  *
  * **Details**
  *
@@ -10703,9 +10763,11 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
 }
 
 /**
- * `Schema.fromURLSearchParams` returns a schema that reads a `URLSearchParams`
- * instance, converts it into a tree record using bracket notation, and then
- * decodes the resulting structure using the provided schema.
+ * Schema for decoding `URLSearchParams` through a bracket-notation tree.
+ *
+ * **When to use**
+ *
+ * Use to decode query parameters into a structured schema value.
  *
  * **Details**
  *
@@ -12130,9 +12192,12 @@ export const Class: {
 }
 
 /**
- * Like {@link Class} but automatically adds a `_tag` literal field set to the
- * given `tag` value. This makes instances compatible with tagged union
- * discrimination patterns.
+ * Defines a schema-backed class with an automatically populated `_tag` field.
+ *
+ * **When to use**
+ *
+ * Use to define class instances that are validated by a schema and participate
+ * in tagged union matching.
  *
  * **Details**
  *
@@ -12247,9 +12312,13 @@ export const ErrorClass: {
 }
 
 /**
- * Like {@link ErrorClass} but automatically adds a `_tag` literal field. The
- * resulting class is both a schema-validated, yieldable error and a tagged
- * union member.
+ * Defines a schema-backed yieldable error class with an automatically populated
+ * `_tag` field.
+ *
+ * **When to use**
+ *
+ * Use to define typed errors that are schema validated, yielded in `Effect.gen`,
+ * and matched as tagged union members.
  *
  * **Example** (Tagged error class)
  *
@@ -13190,11 +13259,18 @@ export interface overrideToCodecIso<S extends Top, Iso> extends
 }
 
 /**
- * Overrides the ISO codec derivation for a schema by providing a target codec
- * and explicit `decode`/`encode` getters. The resulting schema carries a
- * custom `Iso` type, which changes the schema's type parameter — use
- * {@link overrideToCodecIso} when the default ISO transformation is not
+ * Overrides a schema's derived ISO codec with an explicit target codec.
+ *
+ * **When to use**
+ *
+ * Use to provide a custom ISO transformation when the default derivation is not
  * appropriate.
+ *
+ * **Details**
+ *
+ * The resulting schema carries a custom `Iso` type parameter and uses the
+ * provided `decode` and `encode` getters to transform between the schema type
+ * and the target codec.
  *
  * @category Optic
  * @since 4.0.0

@@ -977,8 +977,16 @@ export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boo
 }
 
 /**
- * Signal that the queue is complete. If the queue is already done, `false` is
- * returned.
+ * Signals queue completion.
+ *
+ * **When to use**
+ *
+ * Use to stop accepting new offers while allowing already queued messages to be
+ * consumed.
+ *
+ * **Details**
+ *
+ * Returns `false` if the queue is already done.
  *
  * **Example** (Ending queues)
  *
@@ -1012,8 +1020,16 @@ export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boo
 export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCause(self, core.causeFail(core.Done()))
 
 /**
- * Signal that the queue is complete synchronously. If the queue is already done, `false` is
- * returned.
+ * Signals queue completion synchronously.
+ *
+ * **When to use**
+ *
+ * Use when implementing low-level queue integrations that must complete a queue
+ * without wrapping the operation in `Effect`.
+ *
+ * **Details**
+ *
+ * Returns `false` if the queue is already done.
  *
  * **Gotchas**
  *

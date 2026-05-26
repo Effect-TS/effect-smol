@@ -263,9 +263,18 @@ export const Mcp = Tool.providerDefined({
 })
 
 /**
- * OpenAI Function Shell tool that enables the model to execute one or more shell
- * commands in a managed environment. This local tool runs in your environment
- * and requires a handler to execute commands.
+ * OpenAI shell tool for model-requested command execution.
+ *
+ * **When to use**
+ *
+ * Use to let an OpenAI model request shell commands that your application
+ * executes through a handler.
+ *
+ * **Details**
+ *
+ * The tool exposes a provider-defined `shell` call. It is marked as
+ * handler-required, so applications must provide the command execution policy
+ * and implementation.
  *
  * @category tools
  * @since 4.0.0

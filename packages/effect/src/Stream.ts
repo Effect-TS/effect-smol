@@ -1705,9 +1705,17 @@ export const unfold = <S, A, E, R>(
   }))
 
 /**
- * Like `Stream.unfold`, but allows the emission of values to end one step further
- * than the unfolding of the state. This is useful for embedding paginated APIs,
- * hence the name.
+ * Creates a stream by repeatedly evaluating an effectful page function.
+ *
+ * **When to use**
+ *
+ * Use to consume paginated APIs where each step returns a batch of values
+ * together with an optional next state.
+ *
+ * **Details**
+ *
+ * This is similar to {@link unfold}, but each step can emit zero or more values
+ * and independently decide whether another state should be requested.
  *
  * **Example** (Paginating stream state)
  *
@@ -7295,11 +7303,18 @@ export const combine: {
   ))
 
 /**
- * Combines the arrays (chunks) from this stream and the specified stream by
- * repeatedly applying the function `f` to extract an array using both sides and
- * conceptually "offer" it to the destination stream. `f` can maintain some
- * internal state to control the combining process, with the initial state
- * being specified by `s`.
+ * Combines two streams chunk-by-chunk with a stateful pull function.
+ *
+ * **When to use**
+ *
+ * Use to coordinate pulling chunks from two streams when each emitted chunk
+ * depends on both sides and local state.
+ *
+ * **Details**
+ *
+ * The combining function receives the current state and pull functions for the
+ * left and right streams. It returns the next non-empty chunk together with the
+ * next state.
  *
  * **Example** (Combining stream chunks with state)
  *
@@ -7873,12 +7888,16 @@ export const debounce: {
 )
 
 /**
- * Delays the arrays of this stream according to the given bandwidth
- * parameters using the token bucket algorithm. Allows for burst processing by
- * allowing the bucket to accumulate tokens up to a `units + burst` threshold.
- * The weight of each array is determined by the effectful `cost` function.
+ * Rate-limits stream chunks with an effectful cost function.
+ *
+ * **When to use**
+ *
+ * Use to throttle chunks when computing each chunk's cost requires an effect.
  *
  * **Details**
+ *
+ * Uses a token bucket. The bucket can accumulate up to `units + burst` tokens,
+ * and each chunk consumes the cost returned by the effectful `cost` function.
  *
  * If using the "enforce" strategy, arrays that do not meet the bandwidth
  * constraints are dropped. If using the "shape" strategy, arrays are delayed
@@ -8033,11 +8052,16 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
     }))
 
 /**
- * Delays the arrays of this stream using a token bucket and a per-array cost.
- * Allows bursts by letting the bucket accumulate up to a `units + burst`
- * threshold. The weight of each array is determined by the `cost` function.
+ * Rate-limits stream chunks with a synchronous cost function.
+ *
+ * **When to use**
+ *
+ * Use to throttle chunks when each chunk's cost can be computed synchronously.
  *
  * **Details**
+ *
+ * Uses a token bucket. The bucket can accumulate up to `units + burst` tokens,
+ * and each chunk consumes the cost returned by `cost`.
  *
  * If using the "enforce" strategy, arrays that do not meet the bandwidth
  * constraints are dropped. If using the "shape" strategy, arrays are delayed
@@ -9674,7 +9698,21 @@ export const interruptWhen: {
 )
 
 /**
- * Halts evaluation after the current element once the provided effect completes; the effect is forked, its success is discarded, failures fail the stream, and it does not interrupt an in-progress pull (use `interruptWhen` for that).
+ * Halts a stream after the current element when an effect completes.
+ *
+ * **When to use**
+ *
+ * Use to stop before the next pull after an external signal completes.
+ *
+ * **Details**
+ *
+ * The effect is forked, its success value is discarded, and its failure fails
+ * the stream.
+ *
+ * **Gotchas**
+ *
+ * This does not interrupt an in-progress pull. Use {@link interruptWhen} when
+ * the stream should be interrupted immediately.
  *
  * **Example** (Halting a stream after an effect completes)
  *

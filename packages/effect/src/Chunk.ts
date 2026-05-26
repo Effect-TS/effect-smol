@@ -542,7 +542,15 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
 
 /**
  * Reverses the order of elements in a `Chunk`.
- * Importantly, if the input chunk is a `NonEmptyChunk`, the reversed chunk will also be a `NonEmptyChunk`.
+ *
+ * **When to use**
+ *
+ * Use to read or process chunk elements in reverse order.
+ *
+ * **Details**
+ *
+ * If the input chunk is a `NonEmptyChunk`, the reversed chunk is also a
+ * `NonEmptyChunk`.
  *
  * **Example** (Reversing chunks)
  *

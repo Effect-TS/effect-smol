@@ -119,8 +119,7 @@ export const Boolean = globalThis.Boolean
 export const isBoolean: (input: unknown) => input is boolean = predicate.isBoolean
 
 /**
- * This function returns the result of either of the given functions depending on the value of the boolean parameter.
- * It is useful when you have to run one of two functions depending on the boolean value.
+ * Chooses between two lazy branches based on a boolean value.
  *
  * **When to use**
  *
