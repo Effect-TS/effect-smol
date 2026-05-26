@@ -3222,6 +3222,11 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
  * Synchronously captures a snapshot of all registered metrics using the provided
  * service context.
  *
+ * **When to use**
+ *
+ * Use to read metric snapshots from an explicit `Context` in low-level
+ * integrations, exporters, or debugging tools that already have the context.
+ *
  * **Details**
  *
  * This is the "unsafe" version that bypasses Effect's safety guarantees and requires

@@ -7229,6 +7229,11 @@ export const provideService: {
  * Evaluates an effect to obtain a service, then provides that service to the
  * channel.
  *
+ * **When to use**
+ *
+ * Use to supply a channel dependency when constructing the service itself is
+ * effectful or can fail.
+ *
  * **Details**
  *
  * If the service effect fails, the returned channel fails. The provided service

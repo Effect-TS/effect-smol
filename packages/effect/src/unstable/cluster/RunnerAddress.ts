@@ -45,6 +45,11 @@ const TypeId = "~effect/cluster/RunnerAddress"
 /**
  * Network address of a cluster runner, identified by host and port.
  *
+ * **When to use**
+ *
+ * Use to represent the host and port that identify a runner in cluster routing,
+ * registration, and health checks.
+ *
  * @category models
  * @since 4.0.0
  */

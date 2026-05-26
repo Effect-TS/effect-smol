@@ -53,12 +53,17 @@ import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecret
 /**
  * Service representing a remote event-log replica.
  *
+ * **When to use**
+ *
+ * Use to access or provide a remote event-log replica that can write local
+ * entries and stream remote changes.
+ *
  * **Details**
  *
  * It can write local entries to the remote, stream remote changes from a sequence
  * number, and run effects only after the supplied identity has authenticated.
  *
- * @category models
+ * @category tags
  * @since 4.0.0
  */
 export class EventLogRemote extends Context.Service<EventLogRemote, {
@@ -119,7 +124,12 @@ const makeAuthenticate = Effect.fnUntraced(function*(options: {
 /**
  * Typed RPC client service for the `EventLogRemoteRpcs` protocol.
  *
- * @category RpcClient
+ * **When to use**
+ *
+ * Use to provide the RPC client used by remote event-log replicas to
+ * authenticate, write entries, and subscribe to changes.
+ *
+ * @category RPC client
  * @since 4.0.0
  */
 export class EventLogRemoteClient extends Context.Service<

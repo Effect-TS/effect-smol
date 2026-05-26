@@ -257,12 +257,17 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 /**
  * Low-level backing store service used by `PersistedQueue`.
  *
+ * **When to use**
+ *
+ * Use to provide the persistence backend that stores queued elements, scoped
+ * takes, retry attempts, and acknowledgements.
+ *
  * **Details**
  *
  * The store persists offered elements and returns taken elements in a scope so
  * the finalizer can complete or retry them based on the processing exit.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export class PersistedQueueStore extends Context.Service<

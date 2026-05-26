@@ -5963,6 +5963,11 @@ export const service: <I, S>(service: Context.Key<I, S>) => Effect<S, never, I> 
 /**
  * Optionally accesses a service from the environment.
  *
+ * **When to use**
+ *
+ * Use to read an optional dependency from the current context without making
+ * that dependency part of the effect's required environment.
+ *
  * **Details**
  *
  * This function attempts to access a service from the environment. If the

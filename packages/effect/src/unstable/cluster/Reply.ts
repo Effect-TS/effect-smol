@@ -84,6 +84,11 @@ export const Encoded: Schema.Codec<Encoded> = Schema.Any as any
  * A cluster reply paired with the RPC definition and service context required to
  * serialize it for transport.
  *
+ * **When to use**
+ *
+ * Use to carry a runtime reply together with the RPC schema and services needed
+ * to encode it for storage or transport.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -292,6 +297,11 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
 /**
  * A terminal RPC reply for a request, carrying the final `Exit` for the remote
  * call.
+ *
+ * **When to use**
+ *
+ * Use to represent the final success, typed failure, defect, or interruption
+ * for a clustered RPC request.
  *
  * @category models
  * @since 4.0.0

@@ -474,6 +474,11 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
  * Optionally accesses a service from the context and emits the result as a
  * single element.
  *
+ * **When to use**
+ *
+ * Use to emit an optional dependency as a stream element without requiring that
+ * dependency to be present.
+ *
  * **Example** (Accessing an optional service as a stream)
  *
  * ```ts

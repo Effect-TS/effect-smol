@@ -574,6 +574,11 @@ export const fromClient = Effect.fnUntraced(function*(
 /**
  * Low-level constructor for a `PgClient` from SQL connection acquirers, a LISTEN acquirer, client configuration, and transformation options.
  *
+ * **When to use**
+ *
+ * Use to build a PostgreSQL client from custom connection acquisition logic
+ * instead of the built-in pool or single-client constructors.
+ *
  * @category constructors
  * @since 4.0.0
  */

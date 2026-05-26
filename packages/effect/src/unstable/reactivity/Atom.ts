@@ -824,7 +824,12 @@ export const runtime: RuntimeFactory = context({ memoMap: defaultMemoMap })
  * An alias to `Rx.runtime.withReactivity`, for refreshing an atom whenever the
  * keys change in the `Reactivity` service.
  *
- * @category Reactivity
+ * **When to use**
+ *
+ * Use to refresh an atom whenever one or more invalidation keys change in the
+ * default reactivity runtime.
+ *
+ * @category reactivity
  * @since 4.0.0
  */
 export const withReactivity: (
@@ -1543,6 +1548,10 @@ export const withLabel: {
 
 /**
  * Pairs an atom with an initial value for registry initialization.
+ *
+ * **When to use**
+ *
+ * Use to preload an atom value when constructing or seeding a registry.
  *
  * **Details**
  *
@@ -2361,6 +2370,11 @@ export const getResult = <A, E>(
 
 /**
  * Requests a refresh of an atom through the `AtomRegistry` service.
+ *
+ * **When to use**
+ *
+ * Use to invalidate and recompute an atom from an Effect that has access to the
+ * active registry.
  *
  * @category converting
  * @since 4.0.0

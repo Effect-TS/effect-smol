@@ -107,7 +107,12 @@ import * as Snowflake from "./Snowflake.ts"
  * messages to owned shards, generating runner-local snowflake ids, and polling
  * storage for persisted work.
  *
- * @category models
+ * **When to use**
+ *
+ * Use to access or provide cluster routing, shard ownership, entity
+ * registration, singleton registration, and persisted-work polling.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export class Sharding extends Context.Service<Sharding, {

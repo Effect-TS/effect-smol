@@ -204,6 +204,11 @@ export interface Rpc<
 /**
  * Server-side metadata for the client associated with an RPC request.
  *
+ * **When to use**
+ *
+ * Use to inspect or annotate the connected client while handling an RPC request
+ * on the server.
+ *
  * **Details**
  *
  * It stores the client id and request annotations that handlers can read or

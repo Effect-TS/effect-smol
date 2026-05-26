@@ -852,6 +852,11 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
  * encoded client messages, sending encoded responses, tracking clients, and
  * declaring transport capabilities.
  *
+ * **When to use**
+ *
+ * Use to provide the transport boundary for RPC servers over HTTP, WebSocket,
+ * workers, sockets, or custom protocols.
+ *
  * @category protocol
  * @since 4.0.0
  */

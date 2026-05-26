@@ -737,12 +737,16 @@ export type OpenFlag =
   | "ax+"
 
 /**
- * The service identifier for the FileSystem service.
+ * Context tag for platform file-system operations.
+ *
+ * **When to use**
+ *
+ * Use to access or provide operations for files, directories, permissions,
+ * streams, and sinks through the Effect context.
  *
  * **Details**
  *
  * This key is used to provide and access the FileSystem service in the Effect context.
- * Use this to inject file system implementations or access file system operations.
  *
  * **Example** (Accessing and providing FileSystem)
  *
@@ -774,7 +778,7 @@ export type OpenFlag =
  * )
  * ```
  *
- * @category tag
+ * @category tags
  * @since 4.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")

@@ -488,7 +488,12 @@ export interface ConsumeResult {
 /**
  * Low-level backing store for fixed-window counters and token-bucket state.
  *
- * @category RateLimiterStore
+ * **When to use**
+ *
+ * Use to provide the shared counter storage used by persistent rate-limit
+ * checks.
+ *
+ * @category store
  * @since 4.0.0
  */
 export class RateLimiterStore extends Context.Service<

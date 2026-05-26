@@ -295,6 +295,11 @@ export const layerHttp: Layer.Layer<
 /**
  * Client-only HTTP runner layer.
  *
+ * **When to use**
+ *
+ * Use to provide runner clients over HTTP from a process that should not serve
+ * runner routes.
+ *
  * **Details**
  *
  * It configures runner clients to communicate over HTTP without serving runner
@@ -342,6 +347,11 @@ export const layerWebsocket: Layer.Layer<
 
 /**
  * Client-only WebSocket runner layer.
+ *
+ * **When to use**
+ *
+ * Use to provide runner clients over WebSocket from a process that should not
+ * serve runner routes.
  *
  * **Details**
  *

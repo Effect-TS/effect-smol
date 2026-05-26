@@ -55,6 +55,11 @@ import * as Stream from "../../Stream.ts"
 /**
  * A service for key-based reactive invalidation.
  *
+ * **When to use**
+ *
+ * Use to provide the invalidation service that refreshes queries, streams, and
+ * atoms when application keys change.
+ *
  * **Details**
  *
  * The service can register handlers for keys, invalidate those keys, wrap

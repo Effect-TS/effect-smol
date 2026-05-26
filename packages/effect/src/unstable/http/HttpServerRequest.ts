@@ -64,6 +64,11 @@ export {
   /**
    * Re-exports the `MaxBodySize` fiber reference for configuring request body limits.
    *
+   * **When to use**
+   *
+   * Use to configure the maximum body size accepted while reading server
+   * request bodies.
+   *
    * @category fiber refs
    * @since 4.0.0
    */

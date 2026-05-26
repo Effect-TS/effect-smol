@@ -156,6 +156,11 @@ export class Override extends Context.Service<Override, Record<string, unknown>>
 /**
  * OpenAPI annotation reference that excludes an annotated group or endpoint from the generated specification.
  *
+ * **When to use**
+ *
+ * Use to hide internal, experimental, or otherwise undocumented HTTP API groups
+ * and endpoints from generated OpenAPI output.
+ *
  * @category annotations
  * @since 4.0.0
  */

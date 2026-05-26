@@ -134,6 +134,11 @@ export const toValues = (state: ReadonlyArray<DehydratedAtom>): Array<Dehydrated
 /**
  * Loads dehydrated atom state into a registry.
  *
+ * **When to use**
+ *
+ * Use to preload serialized atom values into a target registry before those
+ * atoms are read.
+ *
  * **Details**
  *
  * Encoded values are preloaded by serialization key. Entries with a

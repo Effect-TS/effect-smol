@@ -112,6 +112,11 @@ export interface SqliteClientConfig {
 /**
  * Fiber-local flag that makes the React Native SQLite client run queries through the asynchronous `execute` API instead of `executeSync`.
  *
+ * **When to use**
+ *
+ * Use to switch React Native SQLite query execution to the asynchronous driver
+ * API for a scoped effect.
+ *
  * @category fiber refs
  * @since 4.0.0
  */

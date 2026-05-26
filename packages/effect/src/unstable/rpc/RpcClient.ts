@@ -827,6 +827,11 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
  * A fiber-local reference containing headers that are merged into outgoing RPC
  * client requests.
  *
+ * **When to use**
+ *
+ * Use to set request headers that should be automatically merged into outgoing
+ * RPC client messages.
+ *
  * @category headers
  * @since 4.0.0
  */
@@ -853,6 +858,11 @@ export const withHeaders: {
 /**
  * Service interface for an RPC client transport, responsible for running the
  * receive loop and sending encoded client messages.
+ *
+ * **When to use**
+ *
+ * Use to provide the transport boundary for RPC clients over HTTP, WebSocket,
+ * workers, sockets, or custom protocols.
  *
  * @category protocol
  * @since 4.0.0
@@ -1368,7 +1378,12 @@ export const layerProtocolWorker: (
  * Optional client protocol hooks that run when a transport connects and
  * disconnects.
  *
- * @category ConnectionHooks
+ * **When to use**
+ *
+ * Use to run setup or cleanup effects when an RPC client transport opens or
+ * closes.
+ *
+ * @category connection hooks
  * @since 4.0.0
  */
 export class ConnectionHooks extends Context.Service<ConnectionHooks, {

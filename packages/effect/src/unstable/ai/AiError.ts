@@ -383,6 +383,11 @@ export const UsageInfo = Schema.Struct({
 /**
  * Combined HTTP context for error reporting.
  *
+ * **When to use**
+ *
+ * Use to attach request details, optional response details, and optional body
+ * text to AI provider errors.
+ *
  * **Details**
  *
  * Includes the required request details plus optional response details and raw

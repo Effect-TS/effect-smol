@@ -1359,6 +1359,11 @@ export const tapRequest: {
 /**
  * Associates a `Ref` of cookies with the client for handling cookies across requests.
  *
+ * **When to use**
+ *
+ * Use to add shared cookie storage to a client so response cookies are retained
+ * and sent by later requests.
+ *
  * @category cookies
  * @since 4.0.0
  */
