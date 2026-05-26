@@ -206,6 +206,28 @@ describe("HttpApiEndpoint", () => {
         HttpApiEndpoint.Json<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>
       >()
     })
+
+    it("should accept StreamSse", () => {
+      const stream = HttpApiSchema.StreamSse({
+        events: Schema.Struct({
+          event: Schema.Literal("user.created"),
+          data: Schema.String
+        }),
+        error: Schema.Struct({ reason: Schema.String })
+      })
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: stream
+      })
+      expect(endpoint["~Success"]).type.toBe<typeof stream>()
+    })
+
+    it("should accept StreamUint8Array", () => {
+      const stream = HttpApiSchema.StreamUint8Array()
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: stream
+      })
+      expect(endpoint["~Success"]).type.toBe<typeof stream>()
+    })
   })
 
   describe("error option", () => {
@@ -235,6 +257,21 @@ describe("HttpApiEndpoint", () => {
           | Schema.Uint8Array
         >
       >()
+    })
+
+    it("should not accept streaming declarations", () => {
+      expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
+        error: HttpApiSchema.StreamUint8Array()
+      })
+      expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
+        error: HttpApiSchema.StreamSse({
+          events: Schema.Struct({
+            event: Schema.Literal("user.created"),
+            data: Schema.String
+          }),
+          error: Schema.Struct({ reason: Schema.String })
+        })
+      })
     })
   })
 })

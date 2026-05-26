@@ -1,0 +1,96 @@
+import { assert, describe, it } from "@effect/vitest"
+import { Schema } from "effect"
+import { HttpApiEndpoint, HttpApiSchema } from "effect/unstable/httpapi"
+
+const Events = Schema.Struct({
+  event: Schema.Literal("user.created"),
+  data: Schema.String
+})
+const StreamError = Schema.Struct({ reason: Schema.String })
+
+const sse = () => HttpApiSchema.StreamSse({ events: Events, error: StreamError })
+
+describe("HttpApiEndpoint streaming success declarations", () => {
+  it("GET endpoint accepts StreamSse success", () => {
+    const stream = sse()
+    const endpoint = HttpApiEndpoint.get("events", "/events", {
+      success: stream
+    })
+
+    assert.isTrue(endpoint.success.has(stream))
+  })
+
+  it("GET endpoint accepts StreamUint8Array success", () => {
+    const stream = HttpApiSchema.StreamUint8Array()
+    const endpoint = HttpApiEndpoint.get("download", "/download", {
+      success: stream
+    })
+
+    assert.isTrue(endpoint.success.has(stream))
+  })
+
+  it("streaming declaration in error throws during endpoint construction", () => {
+    assert.throws(() =>
+      HttpApiEndpoint.get("events", "/events", {
+        error: sse() as any
+      })
+    )
+  })
+
+  it("HEAD with streaming success throws", () => {
+    assert.throws(() =>
+      HttpApiEndpoint.head("events", "/events", {
+        success: sse()
+      })
+    )
+  })
+
+  it("streaming success mixed with NoContent at the same status throws", () => {
+    assert.throws(() =>
+      HttpApiEndpoint.get("events", "/events", {
+        success: [
+          sse(),
+          HttpApiSchema.NoContent.pipe(HttpApiSchema.status(200))
+        ]
+      })
+    )
+  })
+
+  it("streaming success mixed with a buffered success at the same status throws", () => {
+    assert.throws(() =>
+      HttpApiEndpoint.get("events", "/events", {
+        success: [
+          sse(),
+          Schema.Struct({ ok: Schema.Boolean })
+        ]
+      })
+    )
+  })
+
+  it("two streaming successes for the same status throw", () => {
+    assert.throws(() =>
+      HttpApiEndpoint.get("events", "/events", {
+        success: [
+          sse(),
+          HttpApiSchema.StreamUint8Array({ contentType: "application/custom-stream" })
+        ]
+      })
+    )
+  })
+
+  it("statically detectable SSE reserved failure event name throws", () => {
+    const stream = HttpApiSchema.StreamSse({
+      events: Schema.Struct({
+        event: Schema.Literal("effect/httpapi/stream/failure"),
+        data: Schema.String
+      }),
+      error: StreamError
+    })
+
+    assert.throws(() =>
+      HttpApiEndpoint.get("events", "/events", {
+        success: stream
+      })
+    )
+  })
+})
