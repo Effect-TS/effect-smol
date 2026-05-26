@@ -71,9 +71,14 @@ export {
    */
   layer as layerFetch,
   /**
-   * Service containing default `RequestInit` options for the fetch-based HTTP client.
+   * Service containing default fetch options for the browser fetch client.
    *
-   * @category Fetch
+   * **When to use**
+   *
+   * Use to provide default credentials, cache, redirect, integrity, or other
+   * fetch options for browser HTTP requests.
+   *
+   * @category fetch
    * @since 4.0.0
    */
   RequestInit

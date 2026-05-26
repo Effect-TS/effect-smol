@@ -290,14 +290,19 @@ export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
 )
 
 /**
- * Request-scoped service containing information about the matched route.
+ * Request-scoped service for the matched HTTP route.
+ *
+ * **When to use**
+ *
+ * Use to read captured path parameters and route metadata while handling a
+ * request matched by the router.
  *
  * **Details**
  *
  * It provides the route definition and the path parameters captured by the route
  * matcher.
  *
- * @category RouteContext
+ * @category route context
  * @since 4.0.0
  */
 export class RouteContext extends Context.Service<RouteContext, {

@@ -352,7 +352,12 @@ export const layerStoreMappingStatic = (options: {
   })
 
 /**
- * Storage service used by the unencrypted event-log server.
+ * Backing store service used by the unencrypted event-log server.
+ *
+ * **When to use**
+ *
+ * Use to provide durable event-log persistence for an unencrypted event-log
+ * server layer.
  *
  * **Details**
  *

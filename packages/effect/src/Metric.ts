@@ -1708,8 +1708,13 @@ export declare namespace Metric {
 export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes" as const
 
 /**
- * `Context.Reference` for metric attributes applied from the current Effect
+ * Context reference for metric attributes applied from the current Effect
  * context.
+ *
+ * **When to use**
+ *
+ * Use to provide default attributes that should be merged into metric updates
+ * and reads in a scoped part of a program.
  *
  * **Details**
  *
@@ -3636,7 +3641,13 @@ export interface FiberRuntimeMetricsService {
 }
 
 /**
- * `Context.Reference` for the optional fiber runtime metrics service.
+ * Context reference for the optional service that records fiber runtime
+ * metrics.
+ *
+ * **When to use**
+ *
+ * Use to provide or inspect the service that receives fiber start and end
+ * notifications for automatic runtime metrics.
  *
  * **Details**
  *
@@ -3684,7 +3695,7 @@ export interface FiberRuntimeMetricsService {
  * })
  * ```
  *
- * @category Runtime Metrics
+ * @category runtime metrics
  * @since 4.0.0
  */
 export const FiberRuntimeMetrics = Context.Reference<FiberRuntimeMetricsService | undefined>(

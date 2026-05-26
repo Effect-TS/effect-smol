@@ -480,7 +480,12 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
 ): Entity<Type, Rpcs[number]> => fromRpcGroup(type, RpcGroup.make(...protocol))
 
 /**
- * A Context.Tag to access the current entity address.
+ * Context tag for the entity address currently being processed.
+ *
+ * **When to use**
+ *
+ * Use to read the current entity identity and shard address from entity
+ * handlers and keep-alive logic.
  *
  * @category context
  * @since 4.0.0
@@ -491,7 +496,12 @@ export class CurrentAddress extends Context.Service<
 >()("effect/cluster/Entity/EntityAddress") {}
 
 /**
- * A Context.Tag to access the current Runner address.
+ * Context tag for the runner address currently registering entity handlers.
+ *
+ * **When to use**
+ *
+ * Use to read the runner address associated with the current entity handler
+ * registration.
  *
  * @category context
  * @since 4.0.0

@@ -72,9 +72,14 @@ export interface RateLimiter {
 }
 
 /**
- * Context service tag for the `RateLimiter` service.
+ * Context tag for persistent token-consumption services.
  *
- * @category Tags
+ * **When to use**
+ *
+ * Use to access or provide rate-limit checks backed by fixed-window counters or
+ * token-bucket state.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)

@@ -155,7 +155,12 @@ export type SpanStatus = {
 export type AnySpan = Span | ExternalSpan
 
 /**
- * The string key used to identify the `ParentSpan` context service.
+ * String key for the parent-span context service.
+ *
+ * **When to use**
+ *
+ * Use when integrating lower-level tracing code that needs the raw context key
+ * for parent span lookup.
  *
  * **Example** (Reading the parent span key)
  *
@@ -570,7 +575,12 @@ export const MinimumTraceLevel = Context.Reference<
 >("effect/Tracer/MinimumTraceLevel", { defaultValue: () => "All" })
 
 /**
- * The string key used to identify the active `Tracer` context reference.
+ * String key for the active tracer context reference.
+ *
+ * **When to use**
+ *
+ * Use when integrating lower-level tracing code that needs the raw context key
+ * for active tracer lookup.
  *
  * @category references
  * @since 4.0.0

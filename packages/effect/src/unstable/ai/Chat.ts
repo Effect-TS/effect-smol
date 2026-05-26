@@ -79,7 +79,12 @@ import type * as Response from "./Response.ts"
 import type * as Tool from "./Tool.ts"
 
 /**
- * The `Chat` service tag for dependency injection.
+ * Context tag for stateful AI conversation sessions.
+ *
+ * **When to use**
+ *
+ * Use to access or provide conversational AI sessions through the Effect
+ * context.
  *
  * **Details**
  *
@@ -102,7 +107,7 @@ import type * as Tool from "./Tool.ts"
  * })
  * ```
  *
- * @category services
+ * @category tags
  * @since 4.0.0
  */
 export class Chat extends Context.Service<Chat, Service>()(
@@ -708,9 +713,14 @@ export class ChatNotFoundError extends Schema.ErrorClass<ChatNotFoundError>(
 }) {}
 
 /**
- * The context tag for chat persistence.
+ * Context tag for persistence-backed AI conversation storage.
  *
- * @category services
+ * **When to use**
+ *
+ * Use to provide the storage operations needed by persisted conversation
+ * sessions.
+ *
+ * @category tags
  * @since 4.0.0
  */
 // @effect-diagnostics effect/leakingRequirements:off

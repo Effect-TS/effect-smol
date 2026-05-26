@@ -220,9 +220,19 @@ export class WorkflowEngine extends Context.Service<
 >()("effect/workflow/WorkflowEngine") {}
 
 /**
- * Per-execution workflow service containing the execution ID, workflow
- * definition, long-lived scope, suspension state, interruption state, and
- * activity coordination state.
+ * Per-execution service containing workflow runtime state.
+ *
+ * **When to use**
+ *
+ * Use to read or update workflow execution, suspension, interruption,
+ * lifetime, failure, and activity coordination state inside workflow engine
+ * internals.
+ *
+ * **Details**
+ *
+ * The service stores the execution ID, workflow definition, long-lived scope,
+ * suspension and interruption flags, the stored failure cause, and activity
+ * coordination state for a single workflow run.
  *
  * @category services
  * @since 4.0.0

@@ -117,7 +117,12 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
 }
 
 /**
- * Service tag for the current `HttpServerRequest`.
+ * Context tag for the active server-side HTTP request.
+ *
+ * **When to use**
+ *
+ * Use to access the request currently being handled by HTTP server routes and
+ * middleware.
  *
  * @category context
  * @since 4.0.0
@@ -127,7 +132,12 @@ export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerReq
 )
 
 /**
- * Request-scoped service containing parsed search parameters.
+ * Request-scoped service containing decoded URL query parameters.
+ *
+ * **When to use**
+ *
+ * Use to access query parameters that have already been parsed for the current
+ * server request.
  *
  * **Details**
  *

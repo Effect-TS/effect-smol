@@ -161,7 +161,12 @@ export declare namespace HttpClient {
 }
 
 /**
- * Service tag for the default `HttpClient` used by HTTP client accessors.
+ * Context tag for the default outgoing HTTP client service.
+ *
+ * **When to use**
+ *
+ * Use to provide the HTTP client implementation consumed by the module's
+ * request accessor functions.
  *
  * @category tags
  * @since 4.0.0

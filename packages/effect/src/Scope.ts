@@ -229,7 +229,12 @@ export declare namespace State {
 }
 
 /**
- * The service tag for `Scope`, used for dependency injection in the Effect system.
+ * Context tag for the active resource lifetime.
+ *
+ * **When to use**
+ *
+ * Use to access the active lifetime when registering finalizers or sharing
+ * resources with the surrounding scope.
  *
  * **Example** (Accessing the scope service)
  *
