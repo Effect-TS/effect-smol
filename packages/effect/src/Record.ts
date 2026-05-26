@@ -67,9 +67,9 @@
  *
  * **See also**
  *
- * - {@link Struct} for fixed-shape objects where each field may have a
+ * - `Struct` for fixed-shape objects where each field may have a
  *   different type
- * - {@link HashMap} for immutable maps with arbitrary key types and Effect
+ * - `HashMap` for immutable maps with arbitrary key types and Effect
  *   equality / hashing semantics
  *
  * @since 2.0.0

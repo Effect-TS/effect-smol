@@ -45,9 +45,9 @@
  *
  * ## See also
  *
- * - {@link Equal} - For structural equality (can convert to Equivalence)
- * - {@link Array_.dedupeWith} - Remove duplicates using an equivalence
- * - {@link Chunk} - Collections that use equivalences for operations
+ * - `Equal` - For structural equality (can convert to Equivalence)
+ * - `Array.dedupeWith` - Remove duplicates using an equivalence
+ * - `Chunk` - Collections that use equivalences for operations
  *
  * @since 2.0.0
  */
@@ -243,7 +243,7 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
  * ```
  *
  * @see {@link make}
- * @see {@link Equal} for structural equality
+ * @see `Equal` for structural equality
  * @category constructors
  * @since 4.0.0
  */

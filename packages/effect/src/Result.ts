@@ -330,7 +330,7 @@ export declare namespace Result {
  * ```
  *
  * @see {@link fail} to create a Failure
- * @see {@link void} for a pre-built `Success<void>`
+ * @see {@link void_ void} for a pre-built `Success<void>`
  *
  * @category constructors
  * @since 4.0.0

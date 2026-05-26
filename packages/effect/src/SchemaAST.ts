@@ -179,7 +179,7 @@ export const isDeclaration = makeGuard("Declaration")
  * inspecting, traversing, or transforming schema ASTs.
  *
  * @see {@link Null} for the AST node type narrowed by this guard
- * @see {@link null} for the singleton `Null` AST instance
+ * @see {@link null_ null} for the singleton `Null` AST instance
  * @see {@link isLiteral} for exact primitive literal AST nodes
  *
  * @category guards
@@ -757,7 +757,7 @@ export class Declaration extends Base {
  *
  * Parsing succeeds only when the input is exactly `null`.
  *
- * @see {@link null}
+ * @see {@link null_ null}
  * @see {@link isNull}
  * @category models
  * @since 4.0.0
@@ -840,7 +840,7 @@ export {
  * Behaves like {@link Undefined} for parsing but represents the TypeScript
  * `void` type semantically.
  *
- * @see {@link void}
+ * @see {@link void_ void}
  * @see {@link isVoid}
  * @category models
  * @since 4.0.0

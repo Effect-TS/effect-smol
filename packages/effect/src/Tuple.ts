@@ -13,7 +13,7 @@
  *   (`Tuple.get(t, 0)`) and data-last (`pipe(t, Tuple.get(0))`) style.
  * - **Immutability**: All operations return a new tuple; the original is
  *   never modified.
- * - **Lambda**: A type-level function interface (from {@link Struct}) used by
+ * - **Lambda**: A type-level function interface (from `Struct`) used by
  *   {@link map}, {@link mapPick}, and {@link mapOmit} so the compiler can
  *   track how element types change.
  *
@@ -29,8 +29,7 @@
  *   {@link mapOmit}
  * - Compare tuples → {@link makeEquivalence}, {@link makeOrder}
  * - Combine / reduce tuples → {@link makeCombiner}, {@link makeReducer}
- * - Check tuple length at runtime → {@link isTupleOf},
- *   {@link isTupleOfAtLeast}
+ * - Check tuple length at runtime → `isTupleOf`, `isTupleOfAtLeast`
  *
  * ## Gotchas
  *
@@ -39,7 +38,7 @@
  *   (e.g., `["2", "1", "0"]`), not arbitrary names.
  * - {@link map}, {@link mapPick}, {@link mapOmit} require a Lambda value
  *   created with `Struct.lambda`; a plain function won't type-check.
- * - {@link isTupleOf} and {@link isTupleOfAtLeast} only check length, not
+ * - `isTupleOf` and `isTupleOfAtLeast` only check length, not
  *   element types.
  *
  * ## Quickstart
@@ -64,7 +63,7 @@
  *
  * ## See also
  *
- * - {@link Struct} – similar utilities for objects with named keys
+ * - `Struct` – similar utilities for objects with named keys
  * - {@link Array} – operations on variable-length arrays
  *
  * @since 2.0.0
@@ -679,7 +678,7 @@ export {
    * }
    * ```
    *
-   * @see {@link isTupleOfAtLeast} – check for a minimum length
+   * @see `isTupleOfAtLeast` – check for a minimum length
    * @category guards
    * @since 3.3.0
    */
@@ -714,7 +713,7 @@ export {
    * }
    * ```
    *
-   * @see {@link isTupleOf} – check for an exact length
+   * @see `isTupleOf` – check for an exact length
    * @category guards
    * @since 3.3.0
    */

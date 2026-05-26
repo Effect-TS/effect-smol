@@ -55,7 +55,7 @@
  *
  * **See also**
  *
- * - {@link JsonPointer} for escaping and unescaping JSON Pointer path tokens.
+ * - `JsonPointer` for escaping and unescaping JSON Pointer path tokens.
  * - {@link Schema.Json} for the JSON value shape accepted by this module.
  *
  * @since 4.0.0

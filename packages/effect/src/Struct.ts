@@ -67,7 +67,7 @@
  * ## See also
  *
  * - {@link Equivalence} – building equivalence relations for structs
- * - {@link Order} – ordering structs by their fields
+ * - `Order` – ordering structs by their fields
  * - {@link Combiner} – combining two values of the same type
  * - {@link Reducer} – combining with an initial value
  *

@@ -4522,7 +4522,7 @@ export const tapError: {
  * are handled by `orElse` when provided. Without `orElse`, non-matching errors
  * are re-failed.
  *
- * @see {@link catch} for recovering from every typed channel error
+ * @see {@link catch_ catch} for recovering from every typed channel error
  * @see {@link catchFilter} for selecting typed errors with a `Filter`
  * @see {@link catchTag} for selecting tagged typed errors
  * @see {@link catchCauseFilter} for selecting full causes with a `Filter`
@@ -7595,7 +7595,7 @@ export const bind: {
  *
  * @see {@link Do} for starting Do notation from an empty object
  * @see {@link bind} for adding a field produced by another channel
- * @see {@link let} for adding a computed field
+ * @see {@link let_ let} for adding a computed field
  *
  * @category Do notation
  * @since 4.0.0

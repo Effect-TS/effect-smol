@@ -68,9 +68,9 @@
  *
  * **See also**
  *
- * - {@link HashSet} for immutable sets backed by hash semantics
+ * - `HashSet` for immutable sets backed by hash semantics
  * - {@link Equal} for structural equality
- * - {@link Hash} for hash implementations used by hashed collections
+ * - `Hash` for hash implementations used by hashed collections
  *
  * @since 2.0.0
  */

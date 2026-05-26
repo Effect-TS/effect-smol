@@ -42,7 +42,7 @@
  * - `$is(tag)` only checks the `_tag` field, not the full structure. It is safe
  *   when the tag value is globally unique across your application and the value
  *   was produced by your constructors. For untrusted input, validate with
- *   the {@link Schema} module before using `$is`.
+ *   the `Schema` module before using `$is`.
  *
  * ## Quickstart
  *
@@ -430,7 +430,7 @@ export declare namespace TaggedEnum {
    * - A constructor function for each variant (keyed by tag name)
    * - `$is(tag)` — returns a type-guard that checks only the `_tag` field;
    *   safe when the tag is globally unique and the value was produced by your
-   *   constructors. For untrusted input, validate with the {@link Schema} module first.
+   *   constructors. For untrusted input, validate with the `Schema` module first.
    * - `$match` — exhaustive pattern matching (data-last or data-first)
    *
    * **Example** (Using the constructor object)
@@ -603,7 +603,7 @@ export declare namespace TaggedEnum {
  * - Constructors produce **plain objects**, not class instances.
  * - `$is(tag)` only checks the `_tag` field, not the full structure. It relies
  *   on the tag being globally unique and the value being produced by your
- *   constructors. For untrusted input, validate with the {@link Schema} module first.
+ *   constructors. For untrusted input, validate with the `Schema` module first.
  *
  * **Example** (Basic usage)
  *

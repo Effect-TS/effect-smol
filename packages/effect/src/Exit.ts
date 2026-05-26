@@ -257,7 +257,7 @@ export const isExit: (u: unknown) => u is Exit<unknown, unknown> = core.isExit
  * ```
  *
  * @see {@link fail} to create a failed Exit
- * @see {@link void} for a pre-allocated success with no value
+ * @see {@link void_ void} for a pre-allocated success with no value
  *
  * @category constructors
  * @since 2.0.0
@@ -1001,7 +1001,7 @@ export const mapBoth: {
  * console.log(Exit.isSuccess(voided)) // true
  * ```
  *
- * @see {@link void} for a pre-allocated void success
+ * @see {@link void_ void} for a pre-allocated void success
  * @see {@link asVoidAll} to combine multiple exits into a single void Exit
  *
  * @category combinators

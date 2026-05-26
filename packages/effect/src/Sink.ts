@@ -2089,7 +2089,7 @@ export const orElse: {
  * becomes the sink result. If the handler fails, the returned sink fails with
  * that error.
  *
- * @see {@link catch} for recovering from typed errors only
+ * @see {@link catch_ catch} for recovering from typed errors only
  * @see {@link orElse} for recovering by switching to another sink
  *
  * @category error handling

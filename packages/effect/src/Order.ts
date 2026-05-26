@@ -73,7 +73,7 @@
  * **See also**
  *
  * - {@link Ordering} for the normalized comparison result type.
- * - {@link Equivalence} for equality without less-than or greater-than.
+ * - `Equivalence` for equality without less-than or greater-than.
  * - {@link Reducer} for combining orders with reducer-style APIs.
  *
  * @since 2.0.0

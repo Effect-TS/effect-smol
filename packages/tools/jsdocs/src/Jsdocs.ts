@@ -386,7 +386,6 @@ interface ParsedCoreJSDoc {
 
 interface ProgramCacheEntry {
   readonly program?: ts.Program
-  readonly modulesByName?: ReadonlyMap<string, ts.Symbol>
   readonly error?: string
   reported: boolean
 }
@@ -1522,72 +1521,16 @@ export function getProgram(tsconfigPath: string): ProgramCacheEntry {
     return entry
   }
   const program = ts.createProgram(Array.from(fileNames), result.parsed.options)
-  const entry = { program, ...createProgramSymbolIndex(program), reported: false }
+  const entry = { program, reported: false }
   programCache.set(tsconfigPath, entry)
   return entry
 }
 
-function createProgramSymbolIndex(program: ts.Program) {
-  const checker = program.getTypeChecker()
-  const modulesByName = new Map<string, ts.Symbol>()
-  for (const sourceFile of program.getSourceFiles()) {
-    if (sourceFile.isDeclarationFile) continue
-    const moduleSymbol = checker.getSymbolAtLocation(sourceFile)
-    if (moduleSymbol === undefined) continue
-    const moduleName = path.basename(sourceFile.fileName, path.extname(sourceFile.fileName))
-    modulesByName.set(moduleName, moduleSymbol)
-    modulesByName.set(`${moduleName}_`, moduleSymbol)
-  }
-  return { modulesByName }
-}
-
-function getExport(symbol: ts.Symbol, name: string, checker: ts.TypeChecker, location: ts.Node): ts.Symbol | undefined {
-  const target = (symbol.flags & ts.SymbolFlags.Alias) === 0 ? symbol : checker.getAliasedSymbol(symbol)
-  if (target.exports?.has(name as ts.__String)) return target.exports.get(name as ts.__String)
-  if (target.members?.has(name as ts.__String)) return target.members.get(name as ts.__String)
-  return checker.getTypeOfSymbolAtLocation(target, location).getProperty(name) ??
-    checker.getDeclaredTypeOfSymbol(target).getProperty(name)
-}
-
-function resolveDottedSymbol(
-  root: ts.Symbol | undefined,
-  parts: ReadonlyArray<string>,
-  checker: ts.TypeChecker,
-  location: ts.Node
-): ts.Symbol | undefined {
-  let current = root
-  for (const part of parts) {
-    if (current === undefined) return undefined
-    current = getExport(current, part, checker, location)
-  }
-  return current
-}
-
 function resolveJSDocLinkSymbol(
   link: ts.JSDocLink,
-  target: string,
-  sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
-  entry: ProgramCacheEntry
+  checker: ts.TypeChecker
 ): ts.Symbol | undefined {
-  if (link.name !== undefined) {
-    const symbol = checker.getSymbolAtLocation(link.name)
-    if (symbol !== undefined) return symbol
-  }
-  const parts = target.split(".")
-  if (parts.some((part) => part === "")) return undefined
-  const [root, ...members] = parts
-  if (root === undefined) return undefined
-  const sourceModule = checker.getSymbolAtLocation(sourceFile)
-  const lexical = checker.resolveName(root, sourceFile, ts.SymbolFlags.All, false)
-  const candidates = [
-    lexical,
-    sourceModule === undefined ? undefined : getExport(sourceModule, root, checker, sourceFile),
-    entry.modulesByName?.get(root)
-  ]
-  return candidates.map((candidate) => resolveDottedSymbol(candidate, members, checker, sourceFile)).find((symbol) =>
-    symbol !== undefined
-  )
+  return link.name === undefined ? undefined : checker.getSymbolAtLocation(link.name)
 }
 
 function isInlineLinkStart(source: string, index: number): boolean {
@@ -1748,7 +1691,7 @@ function attachSeeLinkSymbolsFromSourceFile<
     const text = link.getText(sourceFile)
     const target = extractInlineLinkTarget(text)
     if (target === "" || urlRegex.test(target)) continue
-    const symbol = resolveJSDocLinkSymbol(link, target, sourceFile, linkContext.checker, linkContext.entry)
+    const symbol = resolveJSDocLinkSymbol(link, linkContext.checker)
     const info = symbol === undefined ? undefined : inlineLinkSymbol(symbol, linkContext.cwd, linkContext.checker)
     const items = resolved.get(text) ?? []
     items.push(info === undefined ? { range: [link.pos, link.end] } : { range: [link.pos, link.end], symbol: info })
@@ -2555,7 +2498,7 @@ function addJSDocLinkDiagnostics(
         ...diagnostic("url-link", `JSDoc inline link must target a TypeScript symbol: ${text}`),
         range: [link.pos, link.end]
       })
-    } else if (resolveJSDocLinkSymbol(link, target, sourceFile, linkContext.checker, linkContext.entry) === undefined) {
+    } else if (resolveJSDocLinkSymbol(link, linkContext.checker) === undefined) {
       diagnostics.push({
         ...diagnostic("unresolved-link", `Unresolved JSDoc inline link: ${text}`),
         range: [link.pos, link.end]
@@ -2566,7 +2509,7 @@ function addJSDocLinkDiagnostics(
     const text = link.getText(sourceFile)
     const target = extractInlineLinkTarget(text)
     if (target === "" || urlRegex.test(target)) continue
-    const symbol = resolveJSDocLinkSymbol(link, target, sourceFile, linkContext.checker, linkContext.entry)
+    const symbol = resolveJSDocLinkSymbol(link, linkContext.checker)
     if (symbol === undefined) continue
     if (undocumentedSeeLinkTarget(symbol, linkContext.checker, linkContext.cwd) !== undefined) {
       diagnostics.push({

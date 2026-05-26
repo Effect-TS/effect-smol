@@ -22,7 +22,7 @@
  * **Common tasks**
  *
  * - Create a cell with {@link make}
- * - Wait for a result with {@link await}
+ * - Wait for a result with {@link _await await}
  * - Complete with a value or failure using {@link succeed}, {@link fail},
  *   {@link failCause}, {@link die}, or {@link interrupt}
  * - Complete from another effect using {@link complete} or {@link completeWith}

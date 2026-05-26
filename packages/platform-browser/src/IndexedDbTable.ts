@@ -212,7 +212,7 @@ const Proto = {
  * IndexedDB keys, and declared indexes still need to be created during
  * database migrations.
  *
- * @see {@link IndexedDbVersion.make} for grouping table definitions into a schema version
+ * @see `IndexedDbVersion.make` for grouping table definitions into a schema version
  *
  * @category constructors
  * @since 4.0.0

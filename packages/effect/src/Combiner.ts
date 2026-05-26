@@ -3,7 +3,7 @@
  *
  * A `Combiner<A>` wraps a single binary function `(self: A, that: A) => A`.
  * It describes *how* two values merge but carries no initial/empty value
- * (for that, see {@link Reducer} which extends `Combiner` with an
+ * (for that, see `Reducer` which extends `Combiner` with an
  * `initialValue`).
  *
  * ## Mental model
@@ -13,7 +13,7 @@
  * - **Argument order** – `self` is the "left" / accumulator side, `that` is
  *   the "right" / incoming side.
  * - **No identity element** – unlike a monoid, a `Combiner` does not require
- *   a neutral element. Use {@link Reducer} when you need one.
+ *   a neutral element. Use `Reducer` when you need one.
  * - **Purity** – all combiners produced by this module are pure; they never
  *   mutate their arguments.
  * - **Composability** – combiners can be lifted into `Option`, `Struct`,
