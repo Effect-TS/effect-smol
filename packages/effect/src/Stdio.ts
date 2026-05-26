@@ -52,9 +52,10 @@ export type TypeId = "~effect/Stdio"
 /**
  * Runtime identifier stored on `Stdio` service implementations.
  *
- * **When to use**
+ * **Details**
  *
- * Use to mark and recognize concrete `Stdio` service values at runtime.
+ * This marker is part of the runtime representation of `Stdio` service
+ * implementations.
  *
  * @category type IDs
  * @since 4.0.0

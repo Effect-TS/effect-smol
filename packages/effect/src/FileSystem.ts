@@ -1074,10 +1074,10 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * Runtime type identifier attached to `FileSystem.File` handles and used by
  * `isFile` to recognize them.
  *
- * **When to use**
+ * **Details**
  *
- * Use when implementing a custom `FileSystem` file handle that should be
- * recognized by `isFile`.
+ * This marker is part of the runtime representation of file handles. Prefer
+ * `isFile` when narrowing unknown values.
  *
  * @see {@link File} for the open file handle shape that carries this marker
  * @see {@link isFile} for the public guard that checks this marker

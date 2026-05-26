@@ -40,14 +40,11 @@ import { BadArgument } from "./PlatformError.ts"
 /**
  * Runtime type identifier used to mark implementations of the `Path` service.
  *
- * **When to use**
- *
- * Use when implementing or inspecting a custom `Path` service value that must
- * carry the runtime marker.
- *
  * **Details**
  *
  * The marker is the exact string stored on `Path` service implementations.
+ * Most code should depend on the `Path` service instead of inspecting this
+ * value directly.
  *
  * @see {@link layer} for the built-in POSIX `Path` service layer
  *

@@ -44,14 +44,10 @@ import * as Option from "./Option.ts"
  * Runtime type identifier used to mark values that implement
  * `PartitionedSemaphore`.
  *
- * **When to use**
- *
- * Use to mark and recognize `PartitionedSemaphore` values at runtime.
- *
  * **Details**
  *
- * This constant is stored on partitioned semaphore instances and can be used by
- * library code that needs to recognize the data type at runtime.
+ * This marker is part of the runtime representation of partitioned semaphore
+ * values.
  *
  * @category models
  * @since 4.0.0

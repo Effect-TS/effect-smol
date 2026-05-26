@@ -60,9 +60,12 @@ import * as Result from "./Result.ts"
  * Type identifier stored on `EncodingError` values and used by
  * `isEncodingError`.
  *
- * **When to use**
+ * **Details**
  *
- * Use to identify `EncodingError` values at runtime.
+ * This marker is part of the runtime representation of `EncodingError`. Prefer
+ * `isEncodingError` when narrowing unknown values.
+ *
+ * @see {@link isEncodingError} for the public guard that checks this marker
  *
  * @category symbols
  * @since 4.0.0

@@ -37,15 +37,10 @@ import { identity } from "./Function.ts"
 /**
  * A unique symbol used to identify unification behavior in Effect types.
  *
- * **When to use**
- *
- * Use to implement the unification protocol on library data types that should
- * widen to a public union type.
- *
  * **Details**
  *
- * This symbol is used internally by the Effect type system to enable automatic
- * unification of Effect types in unions and complex type operations.
+ * This symbol is a type-level protocol key. It describes how a protocol-enabled
+ * type widens during unification and has no runtime behavior.
  *
  * @see {@link typeSymbol} for storing the source type information used during unification
  * @see {@link ignoreSymbol} for excluding protocol entries from unification
@@ -77,15 +72,10 @@ export type unifySymbol = typeof unifySymbol
 /**
  * A unique symbol used to identify the type information for unification.
  *
- * **When to use**
- *
- * Use to implement the unification protocol on types that need to expose their
- * original type information.
- *
  * **Details**
  *
- * This symbol is used internally by the Effect type system to store type
- * information that can be used during type unification operations.
+ * This symbol is a type-level protocol key. It stores the source type that
+ * unification reads when widening protocol-enabled values.
  *
  * @see {@link unifySymbol} for defining how protocol entries widen
  *
@@ -116,15 +106,10 @@ export type typeSymbol = typeof typeSymbol
 /**
  * A unique symbol used to specify types that should be ignored during unification.
  *
- * **When to use**
- *
- * Use to exclude specific protocol properties from type unification.
- *
  * **Details**
  *
- * This symbol is used internally by the Effect type system to mark types
- * that should be excluded from the unification process, allowing for more
- * precise type handling in complex scenarios.
+ * This symbol is a type-level protocol key. It lists protocol entries that
+ * unification should ignore when computing the widened type.
  *
  * @see {@link unifySymbol} for defining the protocol entries being filtered
  *

@@ -109,7 +109,7 @@ import type * as Unify from "./Unify.ts"
 /**
  * String literal type used as the unique brand for `Channel` values.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/Channel"
@@ -118,7 +118,7 @@ export type TypeId = "~effect/Channel"
  * Runtime identifier stored on `Channel` values and used by `isChannel` to
  * recognize them.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Channel"

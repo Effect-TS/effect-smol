@@ -69,7 +69,7 @@ import type * as Scope from "./Scope.ts"
  *
  * Use to refer to the runtime type identifier type in low-level integrations.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/ErrorReporter"
@@ -77,11 +77,13 @@ export type TypeId = "~effect/ErrorReporter"
 /**
  * Runtime type identifier attached to `ErrorReporter` values.
  *
- * **When to use**
+ * **Details**
  *
- * Use to compare or attach the runtime identifier for `ErrorReporter` values.
+ * This marker is part of the runtime representation of `ErrorReporter`
+ * implementations. Most code should create reporters with `make` and register
+ * them with `layer`.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/ErrorReporter"
