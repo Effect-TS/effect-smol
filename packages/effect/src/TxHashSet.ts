@@ -677,7 +677,7 @@ export const isSubset: {
   }).pipe(Effect.tx))
 
 /**
- * Tests whether at least one value in the TxHashSet satisfies the predicate.
+ * Checks whether at least one value in the TxHashSet satisfies the predicate.
  *
  * **Example** (Testing whether some values match)
  *
@@ -711,7 +711,7 @@ export const some: {
   }))
 
 /**
- * Tests whether all values in the TxHashSet satisfy the predicate.
+ * Checks whether all values in the TxHashSet satisfy the predicate.
  *
  * **Example** (Testing whether every value matches)
  *

@@ -373,7 +373,7 @@ export const fromIterable: <K, V>(entries: Iterable<readonly [K, V]>) => HashMap
 export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
 
 /**
- * Safely lookup the value for the specified key in the `HashMap` using the
+ * Looks up the value for the specified key in the `HashMap` using the
  * internal hashing function.
  *
  * **Example** (Looking up values)

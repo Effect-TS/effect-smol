@@ -749,7 +749,7 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
 }
 
 /**
- * Tests whether one value is strictly less than another according to the given order.
+ * Checks whether one value is strictly less than another according to the given order.
  *
  * **When to use**
  *
@@ -787,7 +787,7 @@ export const isLessThan = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => O(self, that) === -1)
 
 /**
- * Tests whether one value is strictly greater than another according to the given order.
+ * Checks whether one value is strictly greater than another according to the given order.
  *
  * **When to use**
  *
@@ -825,7 +825,7 @@ export const isGreaterThan = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => O(self, that) === 1)
 
 /**
- * Tests whether one value is less than or equal to another according to the given order.
+ * Checks whether one value is less than or equal to another according to the given order.
  *
  * **When to use**
  *
@@ -863,7 +863,7 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => O(self, that) !== 1)
 
 /**
- * Tests whether one value is greater than or equal to another according to the given order.
+ * Checks whether one value is greater than or equal to another according to the given order.
  *
  * **When to use**
  *
@@ -1031,7 +1031,7 @@ export const clamp = <A>(O: Order<A>): {
   )
 
 /**
- * Tests whether a value is between a minimum and a maximum (inclusive) according to the given order.
+ * Checks whether a value is between a minimum and a maximum (inclusive) according to the given order.
  *
  * **When to use**
  *

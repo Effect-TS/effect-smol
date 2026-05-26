@@ -146,7 +146,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
 }
 
 /**
- * Tests whether an arbitrary value is a `Cause`.
+ * Checks whether an arbitrary value is a `Cause`.
  *
  * **Example** (runtime type check)
  *
@@ -163,7 +163,7 @@ export interface Cause<out E> extends Pipeable, Inspectable, Equal {
 export const isCause: (self: unknown) => self is Cause<unknown> = core.isCause
 
 /**
- * Tests whether an arbitrary value is a `Reason` (`Fail`, `Die`, or `Interrupt`).
+ * Checks whether an arbitrary value is a `Reason` (`Fail`, `Die`, or `Interrupt`).
  *
  * **Example** (runtime type check)
  *
@@ -1256,7 +1256,7 @@ export interface YieldableError extends Error, Pipeable, Inspectable {
 }
 
 /**
- * Tests whether an arbitrary value is a `NoSuchElementError`.
+ * Checks whether an arbitrary value is a `NoSuchElementError`.
  *
  * **Example** (runtime type check)
  *
@@ -1342,7 +1342,7 @@ export interface NoSuchElementError extends YieldableError {
 export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
- * Tests whether an arbitrary value is a `Done` signal.
+ * Checks whether an arbitrary value is a `Done` signal.
  *
  * **Example** (runtime type check)
  *
@@ -1481,7 +1481,7 @@ export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core
 export const TimeoutErrorTypeId: "~effect/Cause/TimeoutError" = effect.TimeoutErrorTypeId
 
 /**
- * Tests whether an arbitrary value is a `TimeoutError`.
+ * Checks whether an arbitrary value is a `TimeoutError`.
  *
  * **Example** (runtime type check)
  *
@@ -1549,7 +1549,7 @@ export const TimeoutError: new(message?: string) => TimeoutError = effect.Timeou
 export const IllegalArgumentErrorTypeId: "~effect/Cause/IllegalArgumentError" = effect.IllegalArgumentErrorTypeId
 
 /**
- * Tests whether an arbitrary value is an `IllegalArgumentError`.
+ * Checks whether an arbitrary value is an `IllegalArgumentError`.
  *
  * **Example** (runtime type check)
  *
@@ -1609,7 +1609,7 @@ export interface IllegalArgumentError extends YieldableError {
 export const IllegalArgumentError: new(message?: string) => IllegalArgumentError = effect.IllegalArgumentError
 
 /**
- * Tests whether an arbitrary value is an `ExceededCapacityError`.
+ * Checks whether an arbitrary value is an `ExceededCapacityError`.
  *
  * **Example** (runtime type check)
  *
@@ -1697,7 +1697,7 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
 export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
 
 /**
- * Tests whether an arbitrary value is an `AsyncFiberError`.
+ * Checks whether an arbitrary value is an `AsyncFiberError`.
  *
  * **Example** (runtime type check)
  *
@@ -1789,7 +1789,7 @@ export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberE
 export const UnknownErrorTypeId: "~effect/Cause/UnknownError" = effect.UnknownErrorTypeId
 
 /**
- * Tests whether an arbitrary value is an `UnknownError`.
+ * Checks whether an arbitrary value is an `UnknownError`.
  *
  * **Example** (runtime type check)
  *

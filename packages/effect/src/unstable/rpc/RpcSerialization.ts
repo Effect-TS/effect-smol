@@ -505,12 +505,13 @@ export const makeMsgPack = (options?: Msgpackr.Options | undefined): RpcSerializ
 export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: true })
 
 /**
- * A rpc serialization layer that uses JSON for serialization.
+ * RPC serialization layer that uses JSON for serialization.
  *
  * **When to use**
  *
- * Use when you use this if your protocol supports framing for messages, otherwise use
- * {@link layerNdjson}.
+ * Use when the transport protocol already provides message framing.
+ *
+ * @see {@link layerNdjson} for transports that need newline-delimited framing
  *
  * @category serialization
  * @since 4.0.0
@@ -518,12 +519,13 @@ export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: tr
 export const layerJson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSerialization)(json)
 
 /**
- * A rpc serialization layer that uses NDJSON for serialization.
+ * RPC serialization layer that uses NDJSON for serialization.
  *
  * **When to use**
  *
- * Use when you use this if your protocol does not support framing for messages, otherwise
- * use {@link layerJson}.
+ * Use when the transport protocol does not provide message framing.
+ *
+ * @see {@link layerJson} for transports that already provide message framing
  *
  * @category serialization
  * @since 4.0.0
@@ -531,7 +533,7 @@ export const layerJson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSeriali
 export const layerNdjson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSerialization)(ndjson)
 
 /**
- * A rpc serialization layer that uses JSON-RPC for serialization.
+ * RPC serialization layer that uses JSON-RPC for serialization.
  *
  * @category serialization
  * @since 4.0.0
@@ -541,8 +543,8 @@ export const layerJsonRpc = (options?: {
 }): Layer.Layer<RpcSerialization> => Layer.succeed(RpcSerialization)(jsonRpc(options))
 
 /**
- * A rpc serialization layer that uses JSON-RPC for serialization seperated by
- * new lines.
+ * RPC serialization layer that uses newline-delimited JSON-RPC for
+ * serialization.
  *
  * @category serialization
  * @since 4.0.0
@@ -552,7 +554,7 @@ export const layerNdJsonRpc = (options?: {
 }): Layer.Layer<RpcSerialization> => Layer.succeed(RpcSerialization)(ndJsonRpc(options))
 
 /**
- * A rpc serialization layer that uses MessagePack for serialization.
+ * RPC serialization layer that uses MessagePack for serialization.
  *
  * **Details**
  *

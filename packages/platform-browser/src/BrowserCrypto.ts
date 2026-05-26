@@ -62,7 +62,7 @@ export const WebCrypto = Context.Reference<Crypto>("@effect/platform-browser/Cry
 })
 
 /**
- * A layer that directly interfaces with the Web Crypto API.
+ * Layer that directly interfaces with the Web Crypto API.
  *
  * **When to use**
  *

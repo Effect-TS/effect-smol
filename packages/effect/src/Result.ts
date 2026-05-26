@@ -562,7 +562,7 @@ export {
 }
 
 /**
- * Tests whether a value is a `Result` (either `Success` or `Failure`).
+ * Checks whether a value is a `Result` (either `Success` or `Failure`).
  *
  * **When to use**
  *

@@ -279,7 +279,7 @@ export type Services<T> = T extends Effect<infer _A, infer _E, infer _R> ? _R
   : never
 
 /**
- * Tests whether a value is an `Effect`.
+ * Checks whether a value is an `Effect`.
  *
  * **Example** (Checking whether a value is an Effect)
  *
@@ -2400,9 +2400,7 @@ export const as: {
 } = internal.as
 
 /**
- * This function maps the success value of an `Effect` value to a `Some` value
- * in an `Option` value. If the original `Effect` value fails, the returned
- * `Effect` value will also fail.
+ * Maps the success value of an `Effect` to `Some`, preserving failures.
  *
  * **Example** (Wrapping success in Option.some)
  *
@@ -2421,10 +2419,7 @@ export const as: {
 export const asSome: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R> = internal.asSome
 
 /**
- * This function maps the success value of an `Effect` value to `void`. If the
- * original `Effect` value succeeds, the returned `Effect` value will also
- * succeed. If the original `Effect` value fails, the returned `Effect` value
- * will fail with the same error.
+ * Maps the success value of an `Effect` to `void`, preserving failures.
  *
  * **Example** (Discarding success values)
  *
@@ -7298,9 +7293,8 @@ export const uninterruptibleMask: <A, E, R>(
 ) => Effect<A, E, R> = internal.uninterruptibleMask
 
 /**
- * This function behaves like {@link interruptible}, but it also provides a
- * `restore` function. This function can be used to restore the interruptibility
- * of any specific region of code.
+ * Runs an effect in an interruptible region while providing `restore` for
+ * locally restoring the previous interruptibility.
  *
  * **Example** (Controlling interruptibility locally)
  *
@@ -8657,7 +8651,7 @@ export const forkDetach: <
 export const awaitAllChildren: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = internal.awaitAllChildren
 
 /**
- * Access the fiber currently executing the effect.
+ * Accesses the fiber currently executing the effect.
  *
  * **Example** (Accessing the current fiber)
  *
@@ -8676,7 +8670,7 @@ export const awaitAllChildren: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, 
 export const fiber: Effect<Fiber<unknown, unknown>> = internal.fiber
 
 /**
- * Access the current fiber id executing the effect.
+ * Accesses the current fiber id executing the effect.
  *
  * **Example** (Accessing the current fiber id)
  *

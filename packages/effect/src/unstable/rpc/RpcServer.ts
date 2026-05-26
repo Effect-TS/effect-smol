@@ -900,7 +900,7 @@ export const makeProtocolSocketServer = Effect.gen(function*() {
 })
 
 /**
- * A rpc protocol that uses `SocketServer` for communication.
+ * RPC protocol that uses `SocketServer` for communication.
  *
  * @category protocol
  * @since 4.0.0
@@ -967,7 +967,7 @@ export const makeProtocolWebsocket: (options: {
 })
 
 /**
- * A rpc protocol that uses websockets for communication.
+ * RPC protocol that uses WebSockets for communication.
  *
  * @category protocol
  * @since 4.0.0

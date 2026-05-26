@@ -116,7 +116,7 @@ export const make = (
   })
 
 /**
- * A layer that directly interfaces with the navigator.clipboard api
+ * Layer that directly interfaces with the browser Clipboard API.
  *
  * @category layers
  * @since 4.0.0

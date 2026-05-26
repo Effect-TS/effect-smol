@@ -509,7 +509,7 @@ export const longestPrefixOf: {
 export const size: <V>(self: Trie<V>) => number = TR.size
 
 /**
- * Safely lookup the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie`.
  *
  * **Example** (Looking up values safely)
  *

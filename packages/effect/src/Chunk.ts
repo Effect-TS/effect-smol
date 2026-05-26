@@ -561,7 +561,8 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
 export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Infer<S>> = reverseChunk as any
 
 /**
- * This function provides a safe way to read a value at a particular index from a `Chunk`.
+ * Gets the value at an index in a `Chunk`, returning `None` when the index is
+ * out of bounds.
  *
  * **Example** (Accessing elements safely)
  *

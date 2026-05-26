@@ -549,7 +549,7 @@ export const filter: {
 >(2, internal.filter)
 
 /**
- * Tests whether at least one value in the HashSet satisfies the predicate.
+ * Checks whether at least one value in the HashSet satisfies the predicate.
  *
  * **Example** (Testing whether some values match)
  *
@@ -577,7 +577,7 @@ export const some: {
 >(2, internal.some)
 
 /**
- * Tests whether all values in the HashSet satisfy the predicate.
+ * Checks whether all values in the HashSet satisfy the predicate.
  *
  * **Example** (Testing whether every value matches)
  *

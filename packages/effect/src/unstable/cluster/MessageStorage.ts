@@ -215,7 +215,7 @@ export class MessageStorage extends Context.Service<MessageStorage, {
 export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Duplicate<R>
 
 /**
- * Tagged enum constructor for creating and matching `SaveResult` values.
+ * Constructors and matchers for decoded save results.
  *
  * @category SaveResult
  * @since 4.0.0
@@ -223,7 +223,7 @@ export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Dupl
 export const SaveResult = Data.taggedEnum<SaveResult.Constructor>()
 
 /**
- * Tagged enum constructor for encoded save results returned by encoded storage
+ * Constructors and matchers for encoded save results returned by storage
  * drivers.
  *
  * @category SaveResult

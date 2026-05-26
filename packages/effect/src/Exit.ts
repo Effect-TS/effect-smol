@@ -204,7 +204,7 @@ export interface Failure<out A, out E> extends Exit.Proto<A, E> {
 }
 
 /**
- * Tests whether an unknown value is an Exit.
+ * Checks whether an unknown value is an Exit.
  *
  * **When to use**
  *
@@ -420,7 +420,7 @@ export {
 }
 
 /**
- * Tests whether an Exit is a Success.
+ * Checks whether an Exit is a Success.
  *
  * **When to use**
  *
@@ -448,7 +448,7 @@ export {
 export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effect.exitIsSuccess
 
 /**
- * Tests whether an Exit is a Failure.
+ * Checks whether an Exit is a Failure.
  *
  * **When to use**
  *
@@ -476,7 +476,7 @@ export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effe
 export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitIsFailure
 
 /**
- * Tests whether a failed Exit contains typed errors (Fail reasons).
+ * Checks whether a failed Exit contains typed errors (Fail reasons).
  *
  * **When to use**
  *
@@ -508,7 +508,7 @@ export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effe
 export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasFails
 
 /**
- * Tests whether a failed Exit contains defects (Die reasons).
+ * Checks whether a failed Exit contains defects (Die reasons).
  *
  * **When to use**
  *
@@ -540,7 +540,7 @@ export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effec
 export const hasDies: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasDies
 
 /**
- * Tests whether a failed Exit contains interruptions (Interrupt reasons).
+ * Checks whether a failed Exit contains interruptions (Interrupt reasons).
  *
  * **When to use**
  *

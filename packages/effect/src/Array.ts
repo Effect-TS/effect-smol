@@ -839,7 +839,7 @@ export const scanRight: {
 })
 
 /**
- * Tests whether a value is an `Array`.
+ * Checks whether a value is an `Array`.
  *
  * **When to use**
  *
@@ -871,7 +871,7 @@ export const isArray: {
 } = Array.isArray
 
 /**
- * Tests whether a mutable `Array` is empty, narrowing the type to `[]`.
+ * Checks whether a mutable `Array` is empty, narrowing the type to `[]`.
  *
  * **Example** (Checking for an empty array)
  *
@@ -891,7 +891,7 @@ export const isArray: {
 export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
 
 /**
- * Tests whether a `ReadonlyArray` is empty, narrowing the type to `readonly []`.
+ * Checks whether a `ReadonlyArray` is empty, narrowing the type to `readonly []`.
  *
  * **Example** (Checking for an empty readonly array)
  *
@@ -911,7 +911,7 @@ export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
 export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readonly [] = isArrayEmpty as any
 
 /**
- * Tests whether a mutable `Array` is non-empty, narrowing the type to
+ * Checks whether a mutable `Array` is non-empty, narrowing the type to
  * `NonEmptyArray`.
  *
  * **Example** (Checking for a non-empty array)
@@ -932,7 +932,7 @@ export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readon
 export const isArrayNonEmpty: <A>(self: Array<A>) => self is NonEmptyArray<A> = internalArray.isArrayNonEmpty
 
 /**
- * Tests whether a `ReadonlyArray` is non-empty, narrowing the type to
+ * Checks whether a `ReadonlyArray` is non-empty, narrowing the type to
  * `NonEmptyReadonlyArray`.
  *
  * **Example** (Checking for a non-empty readonly array)
@@ -2605,7 +2605,7 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
   })
 
 /**
- * Tests whether an array contains a value, using `Equal.equivalence()` for
+ * Checks whether an array contains a value, using `Equal.equivalence()` for
  * comparison.
  *
  * **When to use**
@@ -4158,7 +4158,7 @@ export const liftResult = <A extends Array<unknown>, E, B>(
 }
 
 /**
- * Tests whether all elements satisfy the predicate. Supports refinements for
+ * Checks whether all elements satisfy the predicate. Supports refinements for
  * type narrowing.
  *
  * **When to use**
@@ -4194,7 +4194,7 @@ export const every: {
 )
 
 /**
- * Tests whether at least one element satisfies the predicate. Narrows the type
+ * Checks whether at least one element satisfies the predicate. Narrows the type
  * to `NonEmptyReadonlyArray` on success.
  *
  * **Example** (Testing for any match)

@@ -465,7 +465,7 @@ export const scan: {
 }))
 
 /**
- * Determine if an `Iterable` is empty
+ * Checks whether an `Iterable` is empty.
  *
  * **Example** (Checking for emptiness)
  *

@@ -124,7 +124,7 @@ export type TypeId = "~effect/Channel"
 export const TypeId: TypeId = "~effect/Channel"
 
 /**
- * Tests whether a value is a `Channel`.
+ * Checks whether a value is a `Channel`.
  *
  * **Example** (Checking for channels)
  *

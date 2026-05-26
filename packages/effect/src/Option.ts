@@ -2321,7 +2321,7 @@ export const contains: {
 } = containsWith(Equal.asEquivalence())
 
 /**
- * Tests whether the value in a `Some` satisfies a predicate or refinement.
+ * Checks whether the value in a `Some` satisfies a predicate or refinement.
  *
  * **When to use**
  *

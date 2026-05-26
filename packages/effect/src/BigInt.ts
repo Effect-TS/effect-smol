@@ -115,7 +115,7 @@ const bigint1 = BigInt(1)
 const bigint2 = BigInt(2)
 
 /**
- * Tests whether a value is a `bigint`.
+ * Checks whether a value is a `bigint`.
  *
  * **When to use**
  *

@@ -1960,7 +1960,8 @@ export const eitherWith: {
   )))
 
 /**
- * A schedule that always recurs and returns the total elapsed duration since the first recurrence.
+ * Schedule that always recurs and returns the total elapsed duration since the
+ * first recurrence.
  *
  * **Details**
  *
@@ -1994,7 +1995,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
 )
 
 /**
- * A schedule that always recurs, but will wait a certain amount between
+ * Schedule that always recurs, but will wait a certain amount between
  * repetitions, given by `base * factor.pow(n)`, where `n` is the number of
  * repetitions so far. Returns the current duration between recurrences.
  *
@@ -2054,7 +2055,7 @@ export const exponential = (
 }
 
 /**
- * A schedule that always recurs, increasing delays by summing the preceding
+ * Schedule that always recurs, increasing delays by summing the preceding
  * two delays (similar to the Fibonacci sequence). Returns the current
  * duration between recurrences.
  *
@@ -3320,7 +3321,7 @@ export {
 }
 
 /**
- * A schedule that divides the timeline to `interval`-long windows, and sleeps
+ * Schedule that divides the timeline to `interval`-long windows, and sleeps
  * until the nearest window boundary every time it recurs.
  *
  * **Details**

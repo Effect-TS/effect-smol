@@ -360,7 +360,7 @@ export const fromIterable = <K, V>(
   })
 
 /**
- * Safely lookup the value for the specified key in the TxHashMap.
+ * Looks up the value for the specified key in the TxHashMap.
  *
  * **Example** (Looking up values safely)
  *

@@ -97,8 +97,7 @@ export const fromString: {
   })
 
 /**
- * This function clones the original `URL` object and applies a callback to the
- * clone, allowing multiple updates at once.
+ * Updates a cloned `URL` with a callback, allowing multiple changes at once.
  *
  * **Example** (Mutating URL credentials)
  *

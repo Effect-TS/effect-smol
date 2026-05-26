@@ -100,7 +100,7 @@ import * as Reducer from "./Reducer.ts"
 export const String = globalThis.String
 
 /**
- * Tests whether a value is a `string`.
+ * Checks whether a value is a `string`.
  *
  * **Example** (Checking for strings)
  *
@@ -437,7 +437,7 @@ export const trimEnd = <A extends string>(self: A): TrimEnd<A> => self.trimEnd()
 export const slice = (start?: number, end?: number) => (self: string): string => self.slice(start, end)
 
 /**
- * Test whether a `string` is empty.
+ * Checks whether a `string` is empty.
  *
  * **Example** (Checking for empty strings)
  *
@@ -455,7 +455,7 @@ export const slice = (start?: number, end?: number) => (self: string): string =>
 export const isEmpty = (self: string): self is "" => self.length === 0
 
 /**
- * Test whether a `string` is non empty.
+ * Checks whether a `string` is non-empty.
  *
  * **Example** (Checking for non-empty strings)
  *
@@ -1266,7 +1266,7 @@ class LinesIterator implements IterableIterator<string> {
 }
 
 /**
- * Test if the provided character is a line break character (i.e. either `"\r"`
+ * Checks whether the provided character is a line break character (i.e. either `"\r"`
  * or `"\n"`).
  */
 const isLineBreak = (char: string): boolean => {
@@ -1275,7 +1275,7 @@ const isLineBreak = (char: string): boolean => {
 }
 
 /**
- * Test if the provided characters combine to form a carriage return/line-feed
+ * Checks whether the provided characters combine to form a carriage return/line-feed
  * (i.e. `"\r\n"`).
  */
 const isLineBreak2 = (char0: string, char1: string): boolean => char0.charCodeAt(0) === CR && char1.charCodeAt(0) === LF

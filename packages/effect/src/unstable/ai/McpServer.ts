@@ -1223,7 +1223,7 @@ export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>
 }, Effect.scoped)
 
 /**
- * Access the current client's capabilities.
+ * Accesses the current client's capabilities.
  *
  * @category capabilities
  * @since 4.0.0

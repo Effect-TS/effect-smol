@@ -870,7 +870,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
 }
 
 /**
- * Fail the queue with an error. If the queue is already done, `false` is
+ * Fails the queue with an error. If the queue is already done, `false` is
  * returned.
  *
  * **Example** (Failing queues with an error)
@@ -897,7 +897,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
 export const fail = <A, E>(self: Enqueue<A, E>, error: E) => failCause(self, core.causeFail(error))
 
 /**
- * Fail the queue with a cause. If the queue is already done, `false` is
+ * Fails the queue with a cause. If the queue is already done, `false` is
  * returned.
  *
  * **Example** (Failing queues with a cause)
@@ -931,7 +931,7 @@ export const failCause: {
 )
 
 /**
- * Fail the queue with a cause synchronously. If the queue is already done, `false` is
+ * Fails the queue with a cause synchronously. If the queue is already done, `false` is
  * returned.
  *
  * **Gotchas**
