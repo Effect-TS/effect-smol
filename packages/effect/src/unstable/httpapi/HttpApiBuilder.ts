@@ -446,13 +446,13 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
     case "Bearer": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+        (request) => Redacted.make(decodeAuthorizationToken(request.headers.authorization, "Bearer")) as any
       )
     }
     case "DPoP": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(dpopLen)) as any
+        (request) => Redacted.make(decodeAuthorizationToken(request.headers.authorization, "DPoP")) as any
       )
     }
     case "ApiKey": {
@@ -481,7 +481,9 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
       } as any
       return HttpServerRequest.pipe(
         Effect.flatMap((request) =>
-          Effect.fromResult(Encoding.decodeBase64String((request.headers.authorization ?? "").slice(basicLen)))
+          Effect.fromResult(
+            Encoding.decodeBase64String(decodeAuthorizationToken(request.headers.authorization, "Basic"))
+          )
         ),
         Effect.match({
           onFailure: () => empty,
@@ -527,9 +529,12 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const bearerLen = `Bearer `.length
-const dpopLen = `DPoP `.length
-const basicLen = `Basic `.length
+const authorizationToken = /^([^ ]+) +([-A-Za-z0-9._~+/]+=*)$/
+
+const decodeAuthorizationToken = (authorization: string | undefined, scheme: string): string => {
+  const match = authorizationToken.exec(authorization ?? "")
+  return match !== null && match[1].toLowerCase() === scheme.toLowerCase() ? match[2] : ""
+}
 
 const HandlersProto = {
   [HandlersTypeId]: {

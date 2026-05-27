@@ -974,6 +974,15 @@ const parseSecuritySchemes = (
           key: undefined,
           in: undefined
         })
+      } else if (normalizedScheme === "dpop") {
+        parsed.push({
+          name,
+          type: "dpop",
+          description: Utils.nonEmptyString(scheme.description),
+          bearerFormat: undefined,
+          key: undefined,
+          in: undefined
+        })
       }
       continue
     }

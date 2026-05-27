@@ -1312,6 +1312,7 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
                 security: [
                   { apiKeyAuth: [] },
                   { bearerAuth: [] },
+                  { dpopAuth: [] },
                   { apiKeyAuth: [], basicAuth: [] }
                 ]
               }
@@ -1348,6 +1349,11 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
               basicAuth: {
                 type: "http",
                 scheme: "basic"
+              },
+              dpopAuth: {
+                type: "http",
+                scheme: "DPoP",
+                description: "DPoP-bound token"
               }
             }
           },
@@ -1359,9 +1365,10 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
             `const ApiKeyAuthSecurity = HttpApiSecurity.apiKey({ key: "x-api-key", in: "header" }).pipe(HttpApiSecurity.annotate(OpenApi.Description, "API key"))`,
             `const BearerAuthSecurity = HttpApiSecurity.bearer.pipe(HttpApiSecurity.annotate(OpenApi.Description, "Bearer token")).pipe(HttpApiSecurity.annotate(OpenApi.Format, "JWT"))`,
             `const BasicAuthSecurity = HttpApiSecurity.basic`,
-            `class ApiKeyAuthOrBearerAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthOrBearerAuthSecurityMiddleware>()("apiKeyAuth | bearerAuth security", { security: { "apiKeyAuth": ApiKeyAuthSecurity, "bearerAuth": BearerAuthSecurity } }) {}`,
+            `const DpopAuthSecurity = HttpApiSecurity.dpop.pipe(HttpApiSecurity.annotate(OpenApi.Description, "DPoP-bound token"))`,
+            `class ApiKeyAuthOrBearerAuthOrDpopAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthOrBearerAuthOrDpopAuthSecurityMiddleware>()("apiKeyAuth | bearerAuth | dpopAuth security", { security: { "apiKeyAuth": ApiKeyAuthSecurity, "bearerAuth": BearerAuthSecurity, "dpopAuth": DpopAuthSecurity } }) {}`,
             `class ApiKeyAuthAndBasicAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthAndBasicAuthSecurityMiddleware>()("apiKeyAuth & basicAuth security") {}`,
-            `HttpApiEndpoint.get("getSecure", "/secure", { success: HttpApiSchema.Empty(200) })\n      .middleware(ApiKeyAuthOrBearerAuthSecurityMiddleware)\n      .middleware(ApiKeyAuthAndBasicAuthSecurityMiddleware)`,
+            `HttpApiEndpoint.get("getSecure", "/secure", { success: HttpApiSchema.Empty(200) })\n      .middleware(ApiKeyAuthOrBearerAuthOrDpopAuthSecurityMiddleware)\n      .middleware(ApiKeyAuthAndBasicAuthSecurityMiddleware)`,
             `HttpApiEndpoint.get("getPublic", "/public", { success: HttpApiSchema.Empty(200) })`
           ],
           excludes: [

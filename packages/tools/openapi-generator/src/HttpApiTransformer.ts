@@ -473,6 +473,10 @@ const renderSecurityScheme = (securityScheme: ParsedOpenApiSecurityScheme): stri
       source = "HttpApiSecurity.bearer"
       break
     }
+    case "dpop": {
+      source = "HttpApiSecurity.dpop"
+      break
+    }
     case "apiKey": {
       source = `HttpApiSecurity.apiKey({ key: ${JSON.stringify(securityScheme.key!)}, in: ${
         JSON.stringify(securityScheme.in!)

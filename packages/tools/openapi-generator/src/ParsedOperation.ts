@@ -54,7 +54,7 @@ export interface ParsedOpenApiTag {
  */
 export interface ParsedOpenApiSecurityScheme {
   readonly name: string
-  readonly type: "basic" | "bearer" | "apiKey"
+  readonly type: "basic" | "bearer" | "dpop" | "apiKey"
   readonly description: string | undefined
   readonly bearerFormat: string | undefined
   readonly key: string | undefined

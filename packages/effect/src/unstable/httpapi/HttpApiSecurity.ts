@@ -28,10 +28,11 @@
  * Middleware must reject empty or invalid credentials. Bearer and DPoP tokens
  * and API-key values are delivered as `Redacted` values; Basic credentials
  * expose the username and redact the password. Bearer, DPoP, and Basic schemes
- * read the `Authorization` header, API-key headers use HTTP header name
- * normalization, and API-key query or cookie names are matched exactly. A DPoP
- * scheme does not decode or validate the required `DPoP` proof header. OpenAPI
- * annotations do not change runtime decoding.
+ * read the `Authorization` header and yield empty credentials when its
+ * authentication scheme or token syntax does not match. API-key headers use
+ * HTTP header name normalization, and API-key query or cookie names are
+ * matched exactly. A DPoP scheme does not decode or validate the required
+ * `DPoP` proof header. OpenAPI annotations do not change runtime decoding.
  *
  * **See also**
  *
