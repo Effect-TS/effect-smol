@@ -567,7 +567,7 @@ const makeSocket = Effect.gen(function*() {
           const event = decodeEvent(text)
           if (event.type === "error" && "status" in event) {
             const status = Number(event.status)
-            const error = "error" in event ? event.error : event
+            const error = "error" in event ? event.error as typeof ErrorEvent.Type.error : event
             const json = JSON.stringify(error)
             return Effect.fail(
               AiError.make({
@@ -575,7 +575,7 @@ const makeSocket = Effect.gen(function*() {
                 method: "createResponseStream",
                 reason: AiError.reasonFromHttpStatus({
                   description: json,
-                  status: isNaN(status) ? 500 : status,
+                  status: isNaN(status) ? errorTypeToStatus[error.type] ?? 500 : status,
                   metadata: error as any,
                   http: {
                     body: json,
@@ -677,6 +677,14 @@ const ErrorEvent = Schema.Struct({
     message: Schema.String
   })
 })
+
+const errorTypeToStatus: Record<string, number> = {
+  invalid_request_error: 400,
+  invalid_api_key_error: 401,
+  insufficient_quota_error: 429,
+  rate_limit_error: 429,
+  service_unavailable_error: 503
+}
 
 const AllEvents = Schema.Union([ErrorEvent, OpenAiSchema.ResponseStreamEvent])
 const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
