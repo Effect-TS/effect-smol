@@ -1795,7 +1795,7 @@ export const format = (self: Duration): string => {
 }
 
 /**
- * A `Reducer` for summing `Duration`s.
+ * Reducer for summing `Duration`s.
  *
  * **When to use**
  *
@@ -1816,7 +1816,7 @@ export const format = (self: Duration): string => {
 export const ReducerSum: Reducer.Reducer<Duration> = Reducer.make(sum, zero)
 
 /**
- * A `Combiner` that returns the maximum `Duration`.
+ * Combiner that returns the maximum `Duration`.
  *
  * **When to use**
  *
@@ -1831,7 +1831,7 @@ export const ReducerSum: Reducer.Reducer<Duration> = Reducer.make(sum, zero)
 export const CombinerMax: Combiner.Combiner<Duration> = Combiner.max(Order)
 
 /**
- * A `Combiner` that returns the minimum `Duration`.
+ * Combiner that returns the minimum `Duration`.
  *
  * **When to use**
  *

@@ -1468,7 +1468,7 @@ export const snakeCase: (self: string) => string = noCase({
 })
 
 /**
- * A `Reducer` for concatenating `string`s.
+ * Reducer for concatenating `string`s.
  *
  * **When to use**
  *

@@ -993,7 +993,7 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
 }
 
 /**
- * An `Equivalence` instance for comparing the field restrictions of two `Cron`
+ * Equivalence instance for comparing the field restrictions of two `Cron`
  * schedules.
  *
  * **When to use**

@@ -173,7 +173,7 @@ export const match: {
 ): A | B | C => self === -1 ? onLessThan() : self === 0 ? onEqual() : onGreaterThan())
 
 /**
- * A `Reducer` for combining `Ordering`s.
+ * Reducer for combining `Ordering`s.
  *
  * **When to use**
  *

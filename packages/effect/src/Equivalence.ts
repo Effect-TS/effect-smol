@@ -247,7 +247,7 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
 export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
 
 /**
- * An `Equivalence` instance for strings using strict equality (`===`).
+ * Equivalence instance for strings using strict equality (`===`).
  *
  * **When to use**
  *
@@ -268,7 +268,7 @@ export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
 export const String: Equivalence<string> = isStrictEquivalent
 
 /**
- * An `Equivalence` instance for numbers.
+ * Equivalence instance for numbers.
  *
  * **When to use**
  *
@@ -297,7 +297,7 @@ export const Number: Equivalence<number> = make((self, that) =>
 )
 
 /**
- * An `Equivalence` instance for booleans using strict equality (`===`).
+ * Equivalence instance for booleans using strict equality (`===`).
  *
  * **When to use**
  *
@@ -318,7 +318,7 @@ export const Number: Equivalence<number> = make((self, that) =>
 export const Boolean: Equivalence<boolean> = isStrictEquivalent
 
 /**
- * An `Equivalence` instance for bigints using strict equality (`===`).
+ * Equivalence instance for bigints using strict equality (`===`).
  *
  * **When to use**
  *
@@ -884,7 +884,7 @@ export function makeReducer<A>() {
 }
 
 /**
- * An `Equivalence` instance for `Date` objects that compares their `getTime()` values using `Equivalence.Number`.
+ * Equivalence instance for `Date` objects that compares their `getTime()` values using `Equivalence.Number`.
  *
  * **When to use**
  *

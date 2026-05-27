@@ -186,7 +186,7 @@ export function make<A>(
 }
 
 /**
- * An `Order` instance for strings that compares them lexicographically using JavaScript's `<` operator.
+ * Order instance for strings that compares them lexicographically using JavaScript's `<` operator.
  *
  * **When to use**
  *
@@ -218,7 +218,7 @@ export function make<A>(
 export const String: Order<string> = make((self, that) => self < that ? -1 : 1)
 
 /**
- * An `Order` instance for numbers that compares them numerically.
+ * Order instance for numbers that compares them numerically.
  *
  * **When to use**
  *
@@ -259,7 +259,7 @@ export const Number: Order<number> = make((self, that) => {
 })
 
 /**
- * An `Order` instance for booleans where `false` is considered less than `true`.
+ * Order instance for booleans where `false` is considered less than `true`.
  *
  * **When to use**
  *
@@ -289,7 +289,7 @@ export const Number: Order<number> = make((self, that) => {
 export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1)
 
 /**
- * An `Order` instance for bigints that compares them numerically.
+ * Order instance for bigints that compares them numerically.
  *
  * **When to use**
  *
@@ -543,7 +543,7 @@ export const mapInput: {
 )
 
 /**
- * An `Order` instance for `Date` objects that compares them chronologically by their timestamp.
+ * Order instance for `Date` objects that compares them chronologically by their timestamp.
  *
  * **When to use**
  *

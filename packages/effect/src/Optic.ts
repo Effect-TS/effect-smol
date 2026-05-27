@@ -1552,7 +1552,7 @@ export function id<S>(): Iso<S, S> {
 }
 
 /**
- * An {@link Iso} that converts a `Record<string, A>` to an array of
+ * Iso that converts a `Record<string, A>` to an array of
  * `[key, value]` entries and back.
  *
  * **When to use**
@@ -1591,7 +1591,7 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
 }
 
 /**
- * A {@link Prism} that focuses on the value inside `Option.Some`.
+ * Prism that focuses on the value inside `Option.Some`.
  *
  * **When to use**
  *
@@ -1639,7 +1639,7 @@ export function some<A>(): Prism<Option.Option<A>, A> {
 }
 
 /**
- * A {@link Prism} that focuses on `Option.None`, exposing `undefined`.
+ * Prism that focuses on `Option.None`, exposing `undefined`.
  *
  * **When to use**
  *
@@ -1684,7 +1684,7 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
 }
 
 /**
- * A {@link Prism} that focuses on the success value of a `Result`.
+ * Prism that focuses on the success value of a `Result`.
  *
  * **When to use**
  *
@@ -1729,7 +1729,7 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
 }
 
 /**
- * A {@link Prism} that focuses on the failure value of a `Result`.
+ * Prism that focuses on the failure value of a `Result`.
  *
  * **When to use**
  *

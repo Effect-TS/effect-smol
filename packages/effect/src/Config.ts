@@ -759,7 +759,7 @@ export const TrueValues = Schema.Literals(["true", "yes", "on", "1", "y"])
 export const FalseValues = Schema.Literals(["false", "no", "off", "0", "n"])
 
 /**
- * A `Schema.Codec` for boolean values encoded as strings.
+ * Schema for boolean values encoded as strings.
  *
  * **When to use**
  *
@@ -787,7 +787,7 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
 )
 
 /**
- * A `Schema.Codec` for port numbers (integers in 1–65535).
+ * Schema for port numbers (integers in 1–65535).
  *
  * **When to use**
  *
@@ -802,7 +802,7 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
 export const Port = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65535 }))
 
 /**
- * A `Schema.Codec` for `LogLevel` string literals.
+ * Schema for `LogLevel` string literals.
  *
  * **When to use**
  *
@@ -822,7 +822,7 @@ export const Port = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 655
 export const LogLevel = Schema.Literals(LogLevel_.values)
 
 /**
- * A `Schema.Codec` for key-value record types that can also be parsed from
+ * Schema for key-value record types that can also be parsed from
  * a flat comma-separated string.
  *
  * **When to use**

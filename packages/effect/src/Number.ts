@@ -301,7 +301,7 @@ export const increment = (n: number): number => n + 1
 export const decrement = (n: number): number => n - 1
 
 /**
- * An `Order` instance for `number` values.
+ * Order instance for `number` values.
  *
  * **When to use**
  *
@@ -324,7 +324,7 @@ export const decrement = (n: number): number => n - 1
 export const Order: order.Order<number> = order.Number
 
 /**
- * An `Equivalence` instance for numbers where `NaN` is considered equal to `NaN`.
+ * Equivalence instance for numbers where `NaN` is considered equal to `NaN`.
  *
  * **When to use**
  *
@@ -810,7 +810,7 @@ export const round: {
 })
 
 /**
- * A `Reducer` for combining `number`s using addition.
+ * Reducer for combining `number`s using addition.
  *
  * **When to use**
  *
@@ -829,7 +829,7 @@ export const round: {
 export const ReducerSum: Reducer.Reducer<number> = Reducer.make((a, b) => a + b, 0)
 
 /**
- * A `Reducer` for combining `number`s using multiplication.
+ * Reducer for combining `number`s using multiplication.
  *
  * **When to use**
  *
@@ -859,7 +859,7 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 })
 
 /**
- * A `Reducer` for reducing `number`s by keeping the maximum value.
+ * Reducer for reducing `number`s by keeping the maximum value.
  *
  * **When to use**
  *
@@ -883,7 +883,7 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.max(a, b), -Infinity)
 
 /**
- * A `Reducer` for reducing `number`s by keeping the minimum value.
+ * Reducer for reducing `number`s by keeping the minimum value.
  *
  * **When to use**
  *

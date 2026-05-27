@@ -182,7 +182,7 @@ export const match: {
 export const Order: order.Order<boolean> = order.Boolean
 
 /**
- * An `Equivalence` instance for booleans using strict equality (`===`).
+ * Equivalence instance for booleans using strict equality (`===`).
  *
  * **When to use**
  *
@@ -483,7 +483,7 @@ export const some = (collection: Iterable<boolean>): boolean => {
 }
 
 /**
- * A `Reducer` for combining `boolean`s using AND.
+ * Reducer for combining `boolean`s using AND.
  *
  * **When to use**
  *
@@ -508,7 +508,7 @@ export const some = (collection: Iterable<boolean>): boolean => {
 export const ReducerAnd: Reducer.Reducer<boolean> = Reducer.make((a, b) => a && b, true)
 
 /**
- * A `Reducer` for combining `boolean`s using OR.
+ * Reducer for combining `boolean`s using OR.
  *
  * **When to use**
  *

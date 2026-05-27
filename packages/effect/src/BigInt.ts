@@ -356,7 +356,7 @@ export const decrement = (n: bigint): bigint => n - bigint1
 export const Order: order.Order<bigint> = order.BigInt
 
 /**
- * An `Equivalence` instance for bigints using strict equality (`===`).
+ * Equivalence instance for bigints using strict equality (`===`).
  *
  * **When to use**
  *
@@ -1013,7 +1013,7 @@ export const remainder: {
 } = dual(2, (self: bigint, divisor: bigint): bigint => self % divisor)
 
 /**
- * A `Reducer` for combining `bigint`s using addition.
+ * Reducer for combining `bigint`s using addition.
  *
  * **When to use**
  *
@@ -1032,7 +1032,7 @@ export const remainder: {
 export const ReducerSum: Reducer.Reducer<bigint> = Reducer.make((a, b) => a + b, bigint0)
 
 /**
- * A `Reducer` for combining `bigint`s using multiplication.
+ * Reducer for combining `bigint`s using multiplication.
  *
  * **When to use**
  *
@@ -1058,7 +1058,7 @@ export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a
 })
 
 /**
- * A `Combiner` that returns the maximum `bigint`.
+ * Combiner that returns the maximum `bigint`.
  *
  * **When to use**
  *
@@ -1073,7 +1073,7 @@ export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a
 export const CombinerMax: Combiner.Combiner<bigint> = Combiner.max(Order)
 
 /**
- * A `Combiner` that returns the minimum `bigint`.
+ * Combiner that returns the minimum `bigint`.
  *
  * **When to use**
  *
