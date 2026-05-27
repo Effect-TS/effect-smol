@@ -1,4 +1,8 @@
+import * as Arr from "effect/Array"
 import * as Effect from "effect/Effect"
+import { pipe } from "effect/Function"
+import * as Option from "effect/Option"
+import * as Str from "effect/String"
 import { ParseError } from "./errors.ts"
 
 /** @internal */
@@ -26,8 +30,8 @@ export interface ParsedStep {
   readonly kind: StepKind
   readonly text: string
   readonly line: number
-  table?: DataTable
-  docString?: DocString
+  readonly table?: DataTable
+  readonly docString?: DocString
 }
 
 /** @internal */
@@ -59,17 +63,43 @@ export interface Feature {
 
 interface ScenarioBuilder {
   readonly name: string
-  readonly description: Array<string>
+  readonly description: ReadonlyArray<string>
   readonly line: number
-  readonly steps: Array<ParsedStep>
+  readonly steps: ReadonlyArray<ParsedStep>
   readonly tags: ReadonlyArray<string>
 }
 
 interface BackgroundBuilder {
-  readonly description: Array<string>
+  readonly description: ReadonlyArray<string>
   readonly line: number
-  readonly steps: Array<ParsedStep>
+  readonly steps: ReadonlyArray<ParsedStep>
   readonly tags: ReadonlyArray<string>
+}
+
+interface FeatureBuilder {
+  readonly name: string
+  readonly description: ReadonlyArray<string>
+  readonly line: number
+  readonly tags: ReadonlyArray<string>
+}
+
+type Active =
+  | { readonly _tag: "Background"; readonly background: BackgroundBuilder }
+  | { readonly _tag: "Scenario"; readonly scenario: ScenarioBuilder }
+
+interface ParseState {
+  readonly feature: FeatureBuilder | undefined
+  readonly background: BackgroundBuilder | undefined
+  readonly scenarios: ReadonlyArray<ScenarioBuilder>
+  readonly active: Active | undefined
+  readonly lastStep: ParsedStep | undefined
+  readonly lastConcreteKind: StepKind | undefined
+  readonly pendingTags: ReadonlyArray<string>
+}
+
+interface LineResult {
+  readonly state: ParseState
+  readonly nextIndex: number
 }
 
 const featureRegex = /^Feature:\s*(.*)$/
@@ -78,192 +108,477 @@ const scenarioRegex = /^Scenario:\s*(.*)$/
 const stepRegex = /^(Given|When|Then|And|But)\s+(.*)$/
 
 /** @internal */
-export const parse = (source: string): Effect.Effect<Feature, ParseError> => {
-  const lines = source.replace(/\r\n?/g, "\n").split("\n")
-  let feature: { name: string; line: number; description: Array<string>; tags: ReadonlyArray<string> } | undefined
-  let background: BackgroundBuilder | undefined
-  const scenarios: Array<ScenarioBuilder> = []
-  let currentScenario: ScenarioBuilder | undefined
-  let lastStep: ParsedStep | undefined
-  let lastConcreteKind: StepKind | undefined
-  let pendingTags: Array<string> = []
+export const parse = (source: string): Effect.Effect<Feature, ParseError> =>
+  pipe(
+    source,
+    Str.replace(/\r\n?/g, "\n"),
+    Str.split("\n"),
+    (lines) => parseLines(lines, 0, initialState),
+    Effect.flatMap(finalizeFeature)
+  )
 
-  for (let index = 0; index < lines.length; index++) {
-    const lineNumber = index + 1
-    const raw = lines[index]
-    const line = raw.trim()
-    if (line === "" || line.startsWith("#")) {
-      continue
+const initialState: ParseState = {
+  feature: undefined,
+  background: undefined,
+  scenarios: [],
+  active: undefined,
+  lastStep: undefined,
+  lastConcreteKind: undefined,
+  pendingTags: []
+}
+
+const parseLines = (
+  lines: ReadonlyArray<string>,
+  index: number,
+  state: ParseState
+): Effect.Effect<ParseState, ParseError> =>
+  index >= lines.length
+    ? Effect.succeed(closeActive(state))
+    : pipe(
+      parseLine(lines, index, state),
+      Effect.flatMap(({ state, nextIndex }) => parseLines(lines, nextIndex, state))
+    )
+
+const parseLine = (
+  lines: ReadonlyArray<string>,
+  index: number,
+  state: ParseState
+): Effect.Effect<LineResult, ParseError> => {
+  const lineNumber = index + 1
+  const nextIndex = index + 1
+  const raw = lines[index]
+  const line = Str.trim(raw)
+  const next = (state: ParseState, nextIndex = index + 1): LineResult => ({ state, nextIndex })
+
+  if (Str.isEmpty(line) || pipe(line, Str.startsWith("#"))) {
+    return Effect.succeed(next(state))
+  }
+
+  if (pipe(line, Str.startsWith("\"\"\""))) {
+    if (state.lastStep === undefined) {
+      return parseError("DocString found before a step", lineNumber, raw.indexOf("\"\"\"") + 1)
     }
-
-    if (line.startsWith("\"\"\"")) {
-      if (lastStep === undefined) {
-        return parseError("DocString found before a step", lineNumber, raw.indexOf("\"\"\"") + 1)
-      }
-      if (lastStep.table !== undefined || lastStep.docString !== undefined) {
-        return parseError("Step already has an argument", lineNumber, raw.indexOf("\"\"\"") + 1)
-      }
-      const result = parseDocString(lines, index, lineNumber, raw)
-      if (result._tag === "Left") {
-        return Effect.fail(result.left)
-      }
-      lastStep.docString = result.right.docString
-      index = result.right.nextIndex
-      continue
+    if (state.lastStep.table !== undefined || state.lastStep.docString !== undefined) {
+      return parseError("Step already has an argument", lineNumber, raw.indexOf("\"\"\"") + 1)
     }
+    return pipe(
+      parseDocString(lines, index, lineNumber, raw),
+      Effect.flatMap(({ docString, nextIndex }) =>
+        pipe(
+          updateLastStep(state, lineNumber, raw.indexOf("\"\"\"") + 1, (step) => withDocString(step, docString)),
+          Effect.map((state) => next(state, nextIndex + 1))
+        )
+      )
+    )
+  }
 
-    if (line.startsWith("|")) {
-      if (lastStep === undefined) {
-        return parseError("DataTable found before a step", lineNumber, raw.indexOf("|") + 1)
-      }
-      if (lastStep.docString !== undefined) {
-        return parseError("Step already has an argument", lineNumber, raw.indexOf("|") + 1)
-      }
-      const row = parseTableRow(line)
-      if (lastStep.table === undefined) {
-        lastStep.table = { rows: [row], line: lineNumber }
-      } else {
-        lastStep.table = { ...lastStep.table, rows: [...lastStep.table.rows, row] }
-      }
-      continue
+  if (pipe(line, Str.startsWith("|"))) {
+    if (state.lastStep === undefined) {
+      return parseError("DataTable found before a step", lineNumber, raw.indexOf("|") + 1)
     }
-
-    if (line.startsWith("@")) {
-      const tags = parseTags(line)
-      if (tags === undefined) {
-        return parseError(`Malformed tag line: ${line}`, lineNumber, 1)
-      }
-      pendingTags.push(...tags)
-      lastStep = undefined
-      continue
+    if (state.lastStep.docString !== undefined) {
+      return parseError("Step already has an argument", lineNumber, raw.indexOf("|") + 1)
     }
+    return pipe(
+      updateLastStep(state, lineNumber, raw.indexOf("|") + 1, (step) => withTableRow(step, line, lineNumber)),
+      Effect.map((state) => next(state))
+    )
+  }
 
-    const featureMatch = featureRegex.exec(line)
-    if (featureMatch !== null) {
-      if (feature !== undefined) {
-        return parseError("Feature declared more than once", lineNumber, raw.indexOf("Feature:") + 1)
-      }
-      feature = { name: featureMatch[1].trim(), line: lineNumber, description: [], tags: pendingTags }
-      pendingTags = []
-      continue
-    }
+  if (pipe(line, Str.startsWith("@"))) {
+    const tags = parseTags(line)
+    const closed = closeActive(state)
+    return tags === undefined
+      ? parseError(`Malformed tag line: ${line}`, lineNumber, 1)
+      : Effect.succeed(next({
+        ...closed,
+        lastStep: undefined,
+        pendingTags: Arr.appendAll(closed.pendingTags, tags)
+      }))
+  }
 
-    if (feature === undefined) {
-      return parseError("Expected a Feature declaration", lineNumber, 1)
-    }
+  return pipe(
+    parseFeatureLine(state, line, lineNumber, raw, nextIndex),
+    Option.orElse(() => parseAfterFeature(state, line, lineNumber, raw, nextIndex)),
+    Option.match({
+      onNone: () => parseError(`Unexpected Gherkin line: ${line}`, lineNumber, 1),
+      onSome: (effect) => effect
+    })
+  )
+}
 
-    const unsupported = unsupportedKeyword(line)
-    if (unsupported !== undefined) {
-      return parseError(`${unsupported} is not supported in @effect/bdd v1`, lineNumber, raw.indexOf(unsupported) + 1)
-    }
+const parseAfterFeature = (
+  state: ParseState,
+  line: string,
+  lineNumber: number,
+  raw: string,
+  nextIndex: number
+): Option.Option<Effect.Effect<LineResult, ParseError>> => {
+  if (state.feature === undefined) {
+    return Option.some(parseError("Expected a Feature declaration", lineNumber, 1))
+  }
 
-    const backgroundMatch = backgroundRegex.exec(line)
-    if (backgroundMatch !== null) {
-      if (background !== undefined) {
+  const unsupported = unsupportedKeyword(line)
+  if (unsupported !== undefined) {
+    return Option.some(
+      parseError(`${unsupported} is not supported in @effect/bdd v1`, lineNumber, raw.indexOf(unsupported) + 1)
+    )
+  }
+
+  return pipe(
+    parseBackgroundLine(state, line, lineNumber, raw, nextIndex),
+    Option.orElse(() => parseScenarioLine(state, line, lineNumber, nextIndex)),
+    Option.orElse(() => parseStepLine(state, line, lineNumber, raw, nextIndex)),
+    Option.orElse(() => parseDescriptionLine(state, line, nextIndex))
+  )
+}
+
+const parseFeatureLine = (
+  state: ParseState,
+  line: string,
+  lineNumber: number,
+  raw: string,
+  nextIndex: number
+): Option.Option<Effect.Effect<LineResult, ParseError>> =>
+  pipe(
+    line,
+    Str.match(featureRegex),
+    Option.map((match) =>
+      state.feature !== undefined
+        ? parseError("Feature declared more than once", lineNumber, raw.indexOf("Feature:") + 1)
+        : Effect.succeed({
+          state: {
+            ...state,
+            feature: {
+              name: Str.trim(match[1]),
+              description: [],
+              line: lineNumber,
+              tags: state.pendingTags
+            },
+            pendingTags: []
+          },
+          nextIndex
+        })
+    )
+  )
+
+const parseBackgroundLine = (
+  state: ParseState,
+  line: string,
+  lineNumber: number,
+  raw: string,
+  nextIndex: number
+): Option.Option<Effect.Effect<LineResult, ParseError>> =>
+  pipe(
+    line,
+    Str.match(backgroundRegex),
+    Option.map(() => {
+      const closed = closeActive(state)
+      if (closed.background !== undefined) {
         return parseError("Background declared more than once", lineNumber, raw.indexOf("Background:") + 1)
       }
-      if (scenarios.length > 0) {
+      if (closed.scenarios.length > 0) {
         return parseError("Background must be declared before Scenario", lineNumber, raw.indexOf("Background:") + 1)
       }
-      background = { description: [], line: lineNumber, steps: [], tags: pendingTags }
-      pendingTags = []
-      currentScenario = undefined
-      lastStep = undefined
-      lastConcreteKind = undefined
-      continue
-    }
+      return Effect.succeed({
+        state: {
+          ...closed,
+          active: {
+            _tag: "Background",
+            background: {
+              description: [],
+              line: lineNumber,
+              steps: [],
+              tags: closed.pendingTags
+            }
+          },
+          lastStep: undefined,
+          lastConcreteKind: undefined,
+          pendingTags: []
+        },
+        nextIndex
+      })
+    })
+  )
 
-    const scenarioMatch = scenarioRegex.exec(line)
-    if (scenarioMatch !== null) {
-      currentScenario = {
-        name: scenarioMatch[1].trim(),
-        description: [],
-        line: lineNumber,
-        steps: [],
-        tags: pendingTags
-      }
-      scenarios.push(currentScenario)
-      pendingTags = []
-      lastStep = undefined
-      lastConcreteKind = undefined
-      continue
-    }
+const parseScenarioLine = (
+  state: ParseState,
+  line: string,
+  lineNumber: number,
+  nextIndex: number
+): Option.Option<Effect.Effect<LineResult, ParseError>> =>
+  pipe(
+    line,
+    Str.match(scenarioRegex),
+    Option.map((match) => {
+      const closed = closeActive(state)
+      return Effect.succeed({
+        state: {
+          ...closed,
+          active: {
+            _tag: "Scenario",
+            scenario: {
+              name: Str.trim(match[1]),
+              description: [],
+              line: lineNumber,
+              steps: [],
+              tags: closed.pendingTags
+            }
+          },
+          lastStep: undefined,
+          lastConcreteKind: undefined,
+          pendingTags: []
+        },
+        nextIndex
+      })
+    })
+  )
 
-    const stepMatch = stepRegex.exec(line)
-    if (stepMatch !== null) {
-      const target = currentScenario ?? background
-      if (target === undefined) {
-        return parseError("Step found before a Scenario or Background", lineNumber, raw.indexOf(stepMatch[1]) + 1)
+const parseStepLine = (
+  state: ParseState,
+  line: string,
+  lineNumber: number,
+  raw: string,
+  nextIndex: number
+): Option.Option<Effect.Effect<LineResult, ParseError>> =>
+  pipe(
+    line,
+    Str.match(stepRegex),
+    Option.map((match) => {
+      if (state.active === undefined) {
+        return parseError("Step found before a Scenario or Background", lineNumber, raw.indexOf(match[1]) + 1)
       }
-      const keyword = stepMatch[1] as Keyword
-      const kind = effectiveKind(keyword, lastConcreteKind)
+
+      const keyword = match[1] as Keyword
+      const kind = effectiveKind(keyword, state.lastConcreteKind)
       if (kind === undefined) {
         return parseError(`${keyword} found before a Given, When, or Then step`, lineNumber, raw.indexOf(keyword) + 1)
       }
+
       const step: ParsedStep = {
         keyword,
         kind,
-        text: stepMatch[2].trim(),
+        text: Str.trim(match[2]),
         line: lineNumber
       }
-      target.steps.push(step)
-      lastStep = step
-      lastConcreteKind = kind
-      continue
-    }
 
-    if (currentScenario !== undefined && currentScenario.steps.length === 0) {
-      currentScenario.description.push(line)
-      continue
-    }
-    if (background !== undefined && currentScenario === undefined && background.steps.length === 0) {
-      background.description.push(line)
-      continue
-    }
-    if (scenarios.length === 0 && background === undefined) {
-      feature.description.push(line)
-      continue
-    }
+      return Effect.succeed({
+        state: appendStep(state, step),
+        nextIndex
+      })
+    })
+  )
 
-    return parseError(`Unexpected Gherkin line: ${line}`, lineNumber, 1)
+const parseDescriptionLine = (
+  state: ParseState,
+  line: string,
+  nextIndex: number
+): Option.Option<Effect.Effect<LineResult, ParseError>> => {
+  if (state.active !== undefined && activeHasNoSteps(state.active)) {
+    return Option.some(Effect.succeed({
+      state: updateActiveDescription(state, line),
+      nextIndex
+    }))
   }
+  if (
+    state.feature !== undefined && state.active === undefined && state.background === undefined &&
+    state.scenarios.length === 0
+  ) {
+    return Option.some(Effect.succeed({
+      state: {
+        ...state,
+        feature: {
+          ...state.feature,
+          description: Arr.append(state.feature.description, line)
+        }
+      },
+      nextIndex
+    }))
+  }
+  return Option.none()
+}
 
-  if (feature === undefined) {
+const finalizeFeature = (state: ParseState): Effect.Effect<Feature, ParseError> => {
+  if (state.feature === undefined) {
     return parseError("Expected a Feature declaration", 1, 1)
   }
-  if (scenarios.length === 0) {
-    return parseError("Expected at least one Scenario", feature.line, 1)
+  if (state.scenarios.length === 0) {
+    return parseError("Expected at least one Scenario", state.feature.line, 1)
   }
 
-  const parsedFeature: Feature = {
-    name: feature.name,
-    description: joinDescription(feature.description),
-    line: feature.line,
-    ...(background === undefined ? {} : {
+  return Effect.succeed({
+    name: state.feature.name,
+    description: joinDescription(state.feature.description),
+    line: state.feature.line,
+    ...(state.background === undefined ? {} : {
       background: {
-        description: joinDescription(background.description),
-        line: background.line,
-        steps: background.steps,
-        tags: background.tags
+        description: joinDescription(state.background.description),
+        line: state.background.line,
+        steps: state.background.steps,
+        tags: state.background.tags
       }
     }),
-    scenarios: scenarios.map((scenario) => ({
+    scenarios: Arr.map(state.scenarios, (scenario) => ({
       ...scenario,
       description: joinDescription(scenario.description)
     })),
-    tags: feature.tags
-  }
-  return Effect.succeed(parsedFeature)
+    tags: state.feature.tags
+  })
 }
 
+const closeActive = (state: ParseState): ParseState => {
+  if (state.active === undefined) {
+    return state
+  }
+  if (state.active._tag === "Background") {
+    return {
+      ...state,
+      background: state.active.background,
+      active: undefined,
+      lastStep: undefined,
+      lastConcreteKind: undefined
+    }
+  }
+  return {
+    ...state,
+    scenarios: Arr.append(state.scenarios, state.active.scenario),
+    active: undefined,
+    lastStep: undefined,
+    lastConcreteKind: undefined
+  }
+}
+
+const appendStep = (state: ParseState, step: ParsedStep): ParseState => {
+  if (state.active?._tag === "Background") {
+    return {
+      ...state,
+      active: {
+        _tag: "Background",
+        background: {
+          ...state.active.background,
+          steps: Arr.append(state.active.background.steps, step)
+        }
+      },
+      lastStep: step,
+      lastConcreteKind: step.kind
+    }
+  }
+  if (state.active?._tag === "Scenario") {
+    return {
+      ...state,
+      active: {
+        _tag: "Scenario",
+        scenario: {
+          ...state.active.scenario,
+          steps: Arr.append(state.active.scenario.steps, step)
+        }
+      },
+      lastStep: step,
+      lastConcreteKind: step.kind
+    }
+  }
+  return state
+}
+
+const updateLastStep = (
+  state: ParseState,
+  lineNumber: number,
+  column: number,
+  f: (step: ParsedStep) => ParsedStep
+): Effect.Effect<ParseState, ParseError> => {
+  if (state.lastStep === undefined || state.active === undefined) {
+    return parseError("Step argument found before a step", lineNumber, column)
+  }
+  return Effect.succeed(replaceLastStep(state, f(state.lastStep)))
+}
+
+const replaceLastStep = (state: ParseState, step: ParsedStep): ParseState => {
+  if (state.active?._tag === "Background") {
+    return {
+      ...state,
+      active: {
+        _tag: "Background",
+        background: {
+          ...state.active.background,
+          steps: replaceLast(state.active.background.steps, step)
+        }
+      },
+      lastStep: step
+    }
+  }
+  if (state.active?._tag === "Scenario") {
+    return {
+      ...state,
+      active: {
+        _tag: "Scenario",
+        scenario: {
+          ...state.active.scenario,
+          steps: replaceLast(state.active.scenario.steps, step)
+        }
+      },
+      lastStep: step
+    }
+  }
+  return state
+}
+
+const replaceLast = <A>(self: ReadonlyArray<A>, value: A): ReadonlyArray<A> =>
+  Arr.map(self, (item, index) => index === self.length - 1 ? value : item)
+
+const activeHasNoSteps = (active: Active): boolean =>
+  active._tag === "Background" ? active.background.steps.length === 0 : active.scenario.steps.length === 0
+
+const updateActiveDescription = (state: ParseState, line: string): ParseState => {
+  if (state.active?._tag === "Background") {
+    return {
+      ...state,
+      active: {
+        _tag: "Background",
+        background: {
+          ...state.active.background,
+          description: Arr.append(state.active.background.description, line)
+        }
+      }
+    }
+  }
+  if (state.active?._tag === "Scenario") {
+    return {
+      ...state,
+      active: {
+        _tag: "Scenario",
+        scenario: {
+          ...state.active.scenario,
+          description: Arr.append(state.active.scenario.description, line)
+        }
+      }
+    }
+  }
+  return state
+}
+
+const withTableRow = (step: ParsedStep, line: string, lineNumber: number): ParsedStep => {
+  const row = parseTableRow(line)
+  return {
+    ...step,
+    table: step.table === undefined
+      ? { rows: [row], line: lineNumber }
+      : { ...step.table, rows: Arr.append(step.table.rows, row) }
+  }
+}
+
+const withDocString = (step: ParsedStep, docString: DocString): ParsedStep => ({
+  ...step,
+  docString
+})
+
 const parseTableRow = (line: string): ReadonlyArray<string> => {
-  const body = line.endsWith("|") ? line.slice(1, -1) : line.slice(1)
-  return body.split("|").map((cell) => cell.trim())
+  const body = pipe(line, Str.endsWith("|")) ? line.slice(1, -1) : line.slice(1)
+  return pipe(body, Str.split("|"), Arr.map(Str.trim))
 }
 
 const unsupportedKeyword = (line: string): string | undefined => {
-  if (line.startsWith("Scenario Outline:")) return "Scenario Outline"
-  if (line.startsWith("Rule:")) return "Rule"
+  if (pipe(line, Str.startsWith("Scenario Outline:"))) return "Scenario Outline"
+  if (pipe(line, Str.startsWith("Rule:"))) return "Rule"
   return undefined
 }
 
@@ -275,11 +590,11 @@ const effectiveKind = (keyword: Keyword, previous: StepKind | undefined): StepKi
 }
 
 const parseTags = (line: string): ReadonlyArray<string> | undefined => {
-  const tags = line.split(/\s+/)
-  return tags.every((tag) => /^@[A-Za-z0-9][A-Za-z0-9_-]*$/.test(tag)) ? tags : undefined
+  const tags = pipe(line, Str.split(/\s+/))
+  return Arr.every(tags, (tag) => /^@[A-Za-z0-9][A-Za-z0-9_-]*$/.test(tag)) ? tags : undefined
 }
 
-const joinDescription = (lines: ReadonlyArray<string>): string => lines.join("\n")
+const joinDescription = (lines: ReadonlyArray<string>): string => Arr.join(lines, "\n")
 
 const parseError = (message: string, line: number, column: number): Effect.Effect<never, ParseError> =>
   Effect.fail(new ParseError({ message, line, column }))
@@ -289,48 +604,57 @@ const parseDocString = (
   startIndex: number,
   lineNumber: number,
   raw: string
-): { readonly _tag: "Left"; readonly left: ParseError } | {
-  readonly _tag: "Right"
-  readonly right: {
-    readonly docString: DocString
-    readonly nextIndex: number
+): Effect.Effect<{
+  readonly docString: DocString
+  readonly nextIndex: number
+}, ParseError> => {
+  const opening = Str.trim(raw)
+  const mediaType = Str.trim(opening.slice(3))
+  const contentType = Str.isEmpty(mediaType) ? undefined : mediaType
+  return collectDocString(lines, startIndex + 1, [], lineNumber, raw.indexOf("\"\"\"") + 1, contentType)
+}
+
+const collectDocString = (
+  lines: ReadonlyArray<string>,
+  index: number,
+  content: ReadonlyArray<string>,
+  lineNumber: number,
+  column: number,
+  contentType: string | undefined
+): Effect.Effect<{
+  readonly docString: DocString
+  readonly nextIndex: number
+}, ParseError> => {
+  if (index >= lines.length) {
+    return parseError("Unterminated DocString", lineNumber, column)
   }
-} => {
-  const opening = raw.trim()
-  const contentType = opening.slice(3).trim() || undefined
-  const content: Array<string> = []
-  for (let index = startIndex + 1; index < lines.length; index++) {
-    const line = lines[index]
-    if (line.trim().startsWith("\"\"\"")) {
-      return {
-        _tag: "Right",
-        right: {
-          docString: {
-            content: dedent(content).join("\n"),
-            contentType,
-            line: lineNumber
-          },
-          nextIndex: index
-        }
-      }
-    }
-    content.push(line)
-  }
-  return {
-    _tag: "Left",
-    left: new ParseError({
-      message: "Unterminated DocString",
-      line: lineNumber,
-      column: raw.indexOf("\"\"\"") + 1
+
+  const line = lines[index]
+  return pipe(Str.trim(line), Str.startsWith("\"\"\""))
+    ? Effect.succeed({
+      docString: {
+        content: pipe(dedent(content), Arr.join("\n")),
+        contentType,
+        line: lineNumber
+      },
+      nextIndex: index
     })
-  }
+    : collectDocString(lines, index + 1, Arr.append(content, line), lineNumber, column, contentType)
 }
 
 const dedent = (lines: ReadonlyArray<string>): ReadonlyArray<string> => {
-  const nonEmpty = lines.filter((line) => line.trim() !== "")
+  const nonEmpty = Arr.filter(lines, (line) => !Str.isEmpty(Str.trim(line)))
   if (nonEmpty.length === 0) {
     return []
   }
-  const indent = Math.min(...nonEmpty.map((line) => line.match(/^ */)?.[0].length ?? 0))
-  return lines.map((line) => line.slice(indent))
+  const indent = Arr.reduce(nonEmpty, Number.POSITIVE_INFINITY, (min, line) => Math.min(min, indentation(line)))
+  return Arr.map(lines, (line) => line.slice(indent))
 }
+
+const indentation = (line: string): number =>
+  pipe(
+    line,
+    Str.match(/^ */),
+    Option.map((match) => match[0].length),
+    Option.getOrElse(() => 0)
+  )
