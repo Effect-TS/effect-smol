@@ -36,6 +36,7 @@
  *
  * @since 4.0.0
  */
+import * as Effect from "effect/Effect"
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 
@@ -868,7 +869,9 @@ export const Response = Schema.Struct({
   object: Schema.optionalKey(Schema.Literal("response")),
   model: Schema.String,
   created_at: Schema.Number,
-  output: Schema.Array(OutputItem),
+  output: Schema.Array(OutputItem).pipe(
+    Schema.withDecodingDefault(Effect.succeed([]))
+  ),
   usage: Schema.optionalKey(Schema.NullOr(ResponseUsage)),
   incomplete_details: Schema.optionalKey(
     Schema.NullOr(
