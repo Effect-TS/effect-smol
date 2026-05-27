@@ -16,7 +16,7 @@ const usersList = Command.make("list", {
   ),
   // Option with both short and long aliases
   verbose: Flag.boolean("verbose").pipe(
-    Flag.withAlias("v"),
+    Flag.withAlias("V"),
     Flag.withDescription("Show detailed information")
   )
 }, (config) =>
@@ -193,7 +193,7 @@ const remove = Command.make("remove", {
     Flag.withDescription("Force removal without prompts")
   ),
   verbose: Flag.boolean("verbose").pipe(
-    Flag.withAlias("v"),
+    Flag.withAlias("V"),
     Flag.withDescription("Explain what is being done")
   )
 }, (config) =>
@@ -213,7 +213,7 @@ const build = Command.make("build", {
     Flag.withDescription("Output directory")
   ),
   verbose: Flag.boolean("verbose").pipe(
-    Flag.withAlias("v"),
+    Flag.withAlias("V"),
     Flag.withDescription("Enable verbose output")
   ),
   configFile: Flag.string("config-file").pipe(

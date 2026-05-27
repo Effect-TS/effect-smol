@@ -56,7 +56,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
 
@@ -248,7 +248,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
 
@@ -292,7 +292,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)"
       `)
@@ -318,11 +318,11 @@ describe("Command help output", () => {
           --quiet, -q          Suppress non-error output
           --recursive, -r      Remove directories and contents
           --force, -f          Force removal without prompts
-          --verbose, -v        Explain what is being done
+          --verbose, -V        Explain what is being done
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)"
       `)
@@ -346,11 +346,11 @@ describe("Command help output", () => {
           --sudo               Run with elevated privileges
           --format string      Output format (json, table, csv)
           --active             Show only active users
-          --verbose, -v        Show detailed information
+          --verbose, -V        Show detailed information
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)"
       `)
@@ -381,7 +381,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)"
       `)
@@ -407,7 +407,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
 
@@ -441,7 +441,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)"
       `)
@@ -519,7 +519,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
 
@@ -561,7 +561,7 @@ describe("Command help output", () => {
 
         GLOBAL FLAGS
           --help, -h              Show help information
-          --version               Show version information
+          --version, -v           Show version information
           --completions choice    Print shell completion script (choices: bash, zsh, fish, sh)
           --log-level choice      Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
 
