@@ -430,7 +430,7 @@ export const endpoint = <
 
 /**
  * Decodes credentials for an HTTP API security scheme from the current request,
- * supporting bearer, API key, and basic authentication inputs.
+ * supporting bearer, DPoP, API key, and basic authentication inputs.
  *
  * @category security
  * @since 4.0.0
@@ -447,6 +447,12 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
       return Effect.map(
         HttpServerRequest,
         (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+      )
+    }
+    case "DPoP": {
+      return Effect.map(
+        HttpServerRequest,
+        (request) => Redacted.make((request.headers.authorization ?? "").slice(dpopLen)) as any
       )
     }
     case "ApiKey": {
@@ -522,6 +528,7 @@ export const securitySetCookie = (
 // -----------------------------------------------------------------------------
 
 const bearerLen = `Bearer `.length
+const dpopLen = `DPoP `.length
 const basicLen = `Basic `.length
 
 const HandlersProto = {

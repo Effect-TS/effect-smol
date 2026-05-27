@@ -8,6 +8,7 @@ import {
   HttpApiGroup,
   HttpApiMiddleware,
   HttpApiSchema,
+  HttpApiSecurity,
   OpenApi
 } from "effect/unstable/httpapi"
 
@@ -76,6 +77,31 @@ describe("OpenAPI spec", () => {
         }))
       const spec = OpenApi.fromApi(Api)
       assert.deepStrictEqual(spec.tags, [{ name: "A" }])
+    })
+  })
+
+  describe("security", () => {
+    it("DPoP", () => {
+      class Authorization extends HttpApiMiddleware.Service<Authorization>()("Authorization", {
+        security: {
+          dpop: HttpApiSecurity.dpop
+        }
+      }) {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group")
+          .add(HttpApiEndpoint.get("a", "/a"))
+          .middleware(Authorization)
+      )
+      const spec = OpenApi.fromApi(Api)
+
+      assert.deepStrictEqual(spec.components.securitySchemes, {
+        dpop: {
+          type: "http",
+          scheme: "DPoP"
+        }
+      })
+      assert.deepStrictEqual(spec.paths["/a"].get?.security, [{ dpop: [] }])
     })
   })
 

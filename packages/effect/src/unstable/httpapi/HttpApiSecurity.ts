@@ -8,27 +8,30 @@
  *
  * **Mental model**
  *
- * Create a scheme with {@link bearer}, {@link apiKey}, or {@link basic}, attach
- * it to middleware, and let the HTTP API builder decode the matching credential
- * shape from each request. OpenAPI generation emits the same declaration as
- * `components.securitySchemes` plus operation security requirements.
+ * Create a scheme with {@link bearer}, {@link dpop}, {@link apiKey}, or
+ * {@link basic}, attach it to middleware, and let the HTTP API builder decode
+ * the matching credential shape from each request. OpenAPI generation emits
+ * the same declaration as `components.securitySchemes` plus operation security
+ * requirements.
  *
  * **Common tasks**
  *
- * Use {@link bearer} for `Authorization: Bearer ...` tokens, {@link basic} for
- * HTTP Basic username/password credentials, and {@link apiKey} for keys passed
- * through headers, query parameters, or cookies. Use {@link annotate} or
+ * Use {@link bearer} for `Authorization: Bearer ...` tokens, {@link dpop} for
+ * `Authorization: DPoP ...` access tokens, {@link basic} for HTTP Basic
+ * username/password credentials, and {@link apiKey} for keys passed through
+ * headers, query parameters, or cookies. Use {@link annotate} or
  * {@link annotateMerge} to add documentation metadata for generated OpenAPI
  * descriptions.
  *
  * **Gotchas**
  *
- * Middleware must reject empty or invalid credentials. Bearer tokens and API-key
- * values are delivered as `Redacted` values; Basic credentials expose the
- * username and redact the password. Bearer and Basic schemes read the
- * `Authorization` header, API-key headers use HTTP header name normalization,
- * and API-key query or cookie names are matched exactly. OpenAPI annotations do
- * not change runtime decoding.
+ * Middleware must reject empty or invalid credentials. Bearer and DPoP tokens
+ * and API-key values are delivered as `Redacted` values; Basic credentials
+ * expose the username and redact the password. Bearer, DPoP, and Basic schemes
+ * read the `Authorization` header, API-key headers use HTTP header name
+ * normalization, and API-key query or cookie names are matched exactly. A DPoP
+ * scheme does not decode or validate the required `DPoP` proof header. OpenAPI
+ * annotations do not change runtime decoding.
  *
  * **See also**
  *
@@ -51,7 +54,7 @@ const TypeId = "~effect/httpapi/HttpApiSecurity"
  * @category models
  * @since 4.0.0
  */
-export type HttpApiSecurity = Bearer | ApiKey | Basic
+export type HttpApiSecurity = Bearer | DPoP | ApiKey | Basic
 
 /**
  * Helper types for HTTP API security schemes.
@@ -89,6 +92,16 @@ export declare namespace HttpApiSecurity {
  */
 export interface Bearer extends HttpApiSecurity.Proto<Redacted> {
   readonly _tag: "Bearer"
+}
+
+/**
+ * DPoP-bound access-token security scheme whose decoded credential is a redacted token.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface DPoP extends HttpApiSecurity.Proto<Redacted> {
+  readonly _tag: "DPoP"
 }
 
 /**
@@ -144,6 +157,7 @@ const Proto = {
  * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
  * security scheme.
  *
+ * @see {@link dpop} for a DPoP-bound access-token security scheme
  * @see {@link apiKey} for an API-key security scheme
  * @see {@link basic} for an HTTP Basic security scheme
  * @category constructors
@@ -151,6 +165,29 @@ const Proto = {
  */
 export const bearer: Bearer = Object.assign(Object.create(Proto), {
   _tag: "Bearer",
+  annotations: Context.empty()
+})
+
+/**
+ * Creates a DPoP-bound access-token security scheme.
+ *
+ * **When to use**
+ *
+ * Use to require `Authorization: DPoP ...` credentials for an HTTP API group
+ * or endpoint.
+ *
+ * **Gotchas**
+ *
+ * This scheme extracts only the access-token parameter. Validate the required
+ * `DPoP` proof JWT header in middleware or request schemas.
+ *
+ * @see {@link bearer} for a Bearer token security scheme
+ * @see {@link apiKey} for an API-key security scheme
+ * @category constructors
+ * @since 4.0.0
+ */
+export const dpop: DPoP = Object.assign(Object.create(Proto), {
+  _tag: "DPoP",
   annotations: Context.empty()
 })
 
@@ -171,6 +208,7 @@ export const bearer: Bearer = Object.assign(Object.create(Proto), {
  * handler. By default, `in` is `"header"`.
  *
  * @see {@link bearer} for a Bearer token security scheme
+ * @see {@link dpop} for a DPoP-bound access-token security scheme
  * @see {@link basic} for an HTTP Basic security scheme
  * @category constructors
  * @since 4.0.0
@@ -199,6 +237,7 @@ export const apiKey = (options: {
  * security scheme.
  *
  * @see {@link bearer} for a Bearer token security scheme
+ * @see {@link dpop} for a DPoP-bound access-token security scheme
  * @see {@link apiKey} for an API-key security scheme
  * @category constructors
  * @since 4.0.0

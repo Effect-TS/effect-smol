@@ -1313,6 +1313,24 @@ describe("HttpApi", () => {
           )
           assert.strictEqual(Redacted.value(redacted), "foo")
         }).pipe(Effect.provide(HttpLive)))
+
+      it.effect("DPoP authorization security", () =>
+        Effect.gen(function*() {
+          const redacted = yield* HttpApiBuilder.securityDecode(securityDPoP).pipe(
+            Effect.provideService(
+              HttpServerRequest.HttpServerRequest,
+              HttpServerRequest.fromWeb(
+                new Request("http://localhost:3000/", {
+                  headers: {
+                    authorization: "DPoP foo"
+                  }
+                })
+              )
+            ),
+            Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
+          )
+          assert.strictEqual(Redacted.value(redacted), "foo")
+        }).pipe(Effect.provide(HttpLive)))
     })
 
     it.effect("client responseMode decoded-and-response", () =>
@@ -1525,6 +1543,8 @@ const securityQuery = HttpApiSecurity.apiKey({
   in: "query",
   key: "api_key"
 })
+
+const securityDPoP = HttpApiSecurity.dpop
 
 class CurrentUser extends Context.Service<CurrentUser, User>()("CurrentUser") {}
 

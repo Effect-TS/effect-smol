@@ -742,6 +742,13 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
         ...format
       }
     }
+    case "DPoP": {
+      return {
+        ...meta,
+        type: "http",
+        scheme: "DPoP"
+      }
+    }
     case "ApiKey": {
       return {
         ...meta,
@@ -954,7 +961,7 @@ export interface OpenAPIComponents {
 }
 
 /**
- * Generated OpenAPI HTTP security scheme, such as bearer or basic authentication.
+ * Generated OpenAPI HTTP security scheme, such as bearer, DPoP, or basic authentication.
  *
  * @category models
  * @since 4.0.0
