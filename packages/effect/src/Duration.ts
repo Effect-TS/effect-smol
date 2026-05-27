@@ -559,7 +559,7 @@ export const abs = (self: Duration): Duration => {
 }
 
 /**
- * Negates the duration.
+ * Returns the negated duration.
  *
  * **Example** (Negating durations)
  *
@@ -1249,7 +1249,7 @@ export const Equivalence: Equ.Equivalence<Duration> = (self, that) =>
  * console.log(Duration.toSeconds(shorter)) // 3
  * ```
  *
- * @category order
+ * @category ordering
  * @since 2.0.0
  */
 export const min: {
@@ -1278,7 +1278,7 @@ export const max: {
 } = order.max(Order)
 
 /**
- * Clamps a Duration between a minimum and maximum value.
+ * Returns a `Duration` constrained between a minimum and maximum value.
  *
  * **Example** (Clamping durations to a range)
  *
@@ -1403,7 +1403,7 @@ export const divideUnsafe: {
 )
 
 /**
- * Multiplies a `Duration` by a number.
+ * Returns a `Duration` multiplied by a number.
  *
  * **Details**
  *

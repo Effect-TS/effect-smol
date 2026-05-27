@@ -3357,8 +3357,7 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
 // Metric Boundaries
 
 /**
- * A helper method to create histogram bucket boundaries from an iterable set
- * of values.
+ * Creates histogram bucket boundaries from an iterable set of values.
  *
  * **Details**
  *
@@ -3421,7 +3420,7 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
  * })
  * ```
  *
- * @category Boundaries
+ * @category boundaries
  * @since 4.0.0
  */
 export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArray<number> =>
@@ -3472,7 +3471,7 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
  * })
  * ```
  *
- * @category Boundaries
+ * @category boundaries
  * @since 4.0.0
  */
 export const linearBoundaries = (options: {
@@ -3483,8 +3482,7 @@ export const linearBoundaries = (options: {
   boundariesFromIterable(Arr.makeBy(options.count - 1, (n) => options.start + n + options.width))
 
 /**
- * A helper method to create histogram bucket boundaries with exponentially
- * increasing values.
+ * Creates histogram bucket boundaries with exponentially increasing values.
  *
  * **Details**
  *
@@ -3533,7 +3531,7 @@ export const linearBoundaries = (options: {
  * })
  * ```
  *
- * @category Boundaries
+ * @category boundaries
  * @since 4.0.0
  */
 export const exponentialBoundaries = (options: {
@@ -3595,7 +3593,7 @@ const fiberFailures = counter("child_fiber_failures", {
  * })
  * ```
  *
- * @category Runtime Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export const FiberRuntimeMetricsKey: "effect/observability/Metric/FiberRuntimeMetricsKey" =
@@ -3637,7 +3635,7 @@ export const FiberRuntimeMetricsKey: "effect/observability/Metric/FiberRuntimeMe
  * })
  * ```
  *
- * @category Runtime Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export interface FiberRuntimeMetricsService {
@@ -3750,7 +3748,7 @@ export const FiberRuntimeMetrics = Context.Reference<FiberRuntimeMetricsService 
  * })
  * ```
  *
- * @category Runtime Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
@@ -3863,13 +3861,13 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  * )
  * ```
  *
- * @category Runtime Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(FiberRuntimeMetricsImpl)
 
 /**
- * A Layer that disables automatic collection of fiber runtime metrics.
+ * Layer that disables automatic collection of fiber runtime metrics.
  *
  * **Example** (Disabling runtime metrics with a layer)
  *
@@ -3904,7 +3902,7 @@ export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(Fibe
  * })
  * ```
  *
- * @category Runtime Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(undefined)
@@ -3988,7 +3986,7 @@ export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(und
  * )
  * ```
  *
- * @category Runtime Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = InternalEffect.provideService(
@@ -4076,7 +4074,7 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  * )
  * ```
  *
- * @category Runtime Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export const disableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R> = InternalEffect.provideService(

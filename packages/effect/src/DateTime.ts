@@ -595,7 +595,7 @@ export const Equivalence: Equ.Equivalence<DateTime> = Internal.Equivalence
 export const Order: order.Order<DateTime> = Internal.Order
 
 /**
- * Clamps a `DateTime` between a minimum and maximum value.
+ * Returns a `DateTime` constrained between a minimum and maximum value.
  *
  * **Details**
  *
@@ -1242,7 +1242,7 @@ export const setZoneNamedUnsafe: {
 // =============================================================================
 
 /**
- * Calculates the difference between two `DateTime` values, returning a
+ * Computes the difference between two `DateTime` values, returning a
  * `Duration` representing the amount of time between them.
  *
  * **Details**
@@ -1591,7 +1591,7 @@ export const toDateUtc: (self: DateTime) => Date = Internal.toDateUtc
 export const toDate: (self: DateTime) => Date = Internal.toDate
 
 /**
- * Calculates the time zone offset of a `DateTime.Zoned` in milliseconds.
+ * Computes the time zone offset of a `DateTime.Zoned` in milliseconds.
  *
  * **Details**
  *

@@ -1180,7 +1180,7 @@ export const prompt = <
   )
 
 /**
- * Requests structured input from the current MCP client and decodes the
+ * Collects structured input from the current MCP client and decodes the
  * accepted response with `schema`.
  *
  * **Details**

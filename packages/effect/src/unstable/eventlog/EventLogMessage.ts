@@ -93,7 +93,7 @@ export class EventLogProtocolError extends Schema.TaggedErrorClass<EventLogProto
  * RPC middleware that authenticates event-log requests and provides the client
  * `Identity` to authenticated handlers.
  *
- * @category Middleware
+ * @category middleware
  * @since 4.0.0
  */
 export class EventLogAuthentication extends RpcMiddleware.Service<EventLogAuthentication, {

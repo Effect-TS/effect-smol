@@ -846,7 +846,7 @@ const MiddlewareTypeId = "~effect/http/HttpRouter/Middleware"
  * while tracking provided services, handled errors, and remaining requirements at
  * the type level.
  *
- * @category Middleware
+ * @category middleware
  * @since 4.0.0
  */
 export interface Middleware<
@@ -947,7 +947,7 @@ export interface Middleware<
  * )
  * ```
  *
- * @category Middleware
+ * @category middleware
  * @since 4.0.0
  */
 export const middleware:
@@ -1085,7 +1085,7 @@ export declare namespace middleware {
    * layer that installs middleware for all routes. The type tracks provided
    * services, handled errors, middleware failures, and remaining requirements.
    *
-   * @category Middleware
+   * @category middleware
    * @since 4.0.0
    */
   export type Make<Provides = never, Handles = never> = {
@@ -1170,7 +1170,7 @@ export declare namespace middleware {
    * Function that transforms an HTTP response effect into another HTTP response
    * effect.
    *
-   * @category Middleware
+   * @category middleware
    * @since 4.0.0
    */
   export type Fn = (
@@ -1179,9 +1179,9 @@ export declare namespace middleware {
 }
 
 /**
- * A middleware that applies CORS headers to the HTTP response.
+ * Middleware that applies CORS headers to the HTTP response.
  *
- * @category Middleware
+ * @category middleware
  * @since 4.0.0
  */
 export const cors = (
@@ -1196,7 +1196,7 @@ export const cors = (
 ): Layer.Layer<never, never, HttpRouter> => middleware(HttpMiddleware.cors(options), { global: true })
 
 /**
- * A middleware that disables the logger for some routes.
+ * Middleware that disables the logger for some routes.
  *
  * **Example** (Disabling route logging)
  *
@@ -1214,7 +1214,7 @@ export const cors = (
  * )
  * ```
  *
- * @category Middleware
+ * @category middleware
  * @since 4.0.0
  */
 export const disableLogger: Layer.Layer<never> = middleware(HttpMiddleware.withLoggerDisabled).layer
@@ -1222,7 +1222,7 @@ export const disableLogger: Layer.Layer<never> = middleware(HttpMiddleware.withL
 /**
  * Provides request-level dependencies to some routes.
  *
- * @category Middleware
+ * @category middleware
  * @since 4.0.0
  */
 export const provideRequest =

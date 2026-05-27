@@ -1626,7 +1626,7 @@ export const make: (params: {
 // =============================================================================
 
 /**
- * Generate text using a language model.
+ * Generates text using a language model.
  *
  * **Example** (Generating text with options)
  *
@@ -1695,7 +1695,7 @@ export const generateText: {
   )
 
 /**
- * Generate a structured object from a schema using a language model.
+ * Generates a structured object from a schema using a language model.
  *
  * **Example** (Generating an object)
  *
@@ -1747,7 +1747,7 @@ export const generateObject = <
   ) as any
 
 /**
- * Generate text using a language model with streaming output.
+ * Generates text using a language model with streaming output.
  *
  * **Details**
  *

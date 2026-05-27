@@ -1291,8 +1291,8 @@ export const callback: <A, E = never, R = never>(
 export const never: Effect<never> = internal.never
 
 /**
- * An `Effect` containing an empty record `{}`, used as the starting point for
- * do notation chains.
+ * Effect that succeeds with an empty record `{}`, used as the starting point
+ * for do notation chains.
  *
  * **Example** (Starting do notation)
  *
@@ -4667,7 +4667,7 @@ export const delay: {
 export const sleep: (duration: Duration.Input) => Effect<void> = internal.sleep
 
 /**
- * Measures the runtime of an effect and returns the duration with its result.
+ * Returns the runtime duration of an effect together with its result.
  *
  * **Details**
  *
@@ -8079,7 +8079,7 @@ export const spanAnnotations: Effect<Readonly<Record<string, unknown>>> = intern
 export const spanLinks: Effect<ReadonlyArray<SpanLink>> = internal.spanLinks
 
 /**
- * For all spans in this effect, add a link with the provided span.
+ * Adds a link with the provided span to all spans in this effect.
  *
  * **Details**
  *

@@ -182,7 +182,7 @@ export interface Ping {
 }
 
 /**
- * The reusable `Eof` message value.
+ * Represents the reusable `Eof` message value.
  *
  * @category request
  * @since 4.0.0
@@ -190,7 +190,7 @@ export interface Ping {
 export const constEof: Eof = { _tag: "Eof" }
 
 /**
- * The reusable `Ping` message value.
+ * Represents the reusable `Ping` message value.
  *
  * @category request
  * @since 4.0.0
@@ -420,7 +420,7 @@ export interface Pong {
 }
 
 /**
- * The reusable `Pong` message value.
+ * Represents the reusable `Pong` message value.
  *
  * @category response
  * @since 4.0.0

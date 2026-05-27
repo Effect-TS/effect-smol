@@ -32,13 +32,18 @@ Normalize high-confidence aliases, for example:
 - `Combinators` -> `combinators`
 - `Accessors` -> `accessors`
 - `Guards` / `Guard` -> `guards`
+- `Middleware` -> `middleware`
 - `error` -> `errors`
 - `Error Handling` -> `error handling`
+- `Equivalence` -> `instances`
 - `Type IDs` / `type ids` -> `type IDs`
 - `Services` / `Service` / `service` -> `services`
 - `Re-exports` -> `re-exports`
 - `protocol` -> `protocols`
 - `Result` -> `results`
+- `Boundaries` -> `boundaries`
+- `Taking` -> `taking`
+- `order` -> `ordering`
 - `date & time` -> `DateTime`
 - `serialization / deserialization` -> `serialization`
 - `conversions` -> `converting`

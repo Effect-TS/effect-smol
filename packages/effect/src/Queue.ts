@@ -1171,7 +1171,7 @@ export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   })
 
 /**
- * Drains and returns all currently buffered messages without waiting for more.
+ * Takes and returns all currently buffered messages without waiting for more.
  *
  * **Details**
  *
@@ -1203,7 +1203,7 @@ export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 4.0.0
  */
 export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeDone<E>> =>
@@ -1477,7 +1477,7 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
   })
 
 /**
- * Views the next item without removing it.
+ * Peeks at the next item without removing it.
  *
  * **Details**
  *
@@ -1498,7 +1498,7 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 4.0.0
  */
 export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>

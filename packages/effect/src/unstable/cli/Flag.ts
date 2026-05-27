@@ -735,7 +735,7 @@ export const mapTryCatch: {
 ) => Param.mapTryCatch(self, f, onError))
 
 /**
- * Requires a flag to be specified at least a minimum number of times.
+ * Ensures a flag is specified at least a minimum number of times.
  *
  * **Example** (Requiring repeated values)
  *
@@ -761,7 +761,7 @@ export const atLeast: {
 } = dual(2, <A>(self: Flag<A>, min: number) => Param.atLeast(self, min))
 
 /**
- * Limits a flag to be specified at most a maximum number of times.
+ * Ensures a flag is specified at most a maximum number of times.
  *
  * **Example** (Limiting repeated values)
  *
@@ -787,7 +787,7 @@ export const atMost: {
 } = dual(2, <A>(self: Flag<A>, max: number) => Param.atMost(self, max))
 
 /**
- * Constrains a flag to be specified between a minimum and maximum number of times.
+ * Ensures a flag is specified between a minimum and maximum number of times.
  *
  * **Example** (Bounding repeated values)
  *

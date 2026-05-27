@@ -223,14 +223,14 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
 }
 
 /**
- * Order-sensitive equivalence for `UrlParams`.
+ * Provides an order-sensitive `Equivalence` instance for `UrlParams`.
  *
  * **Details**
  *
  * Two values are equivalent when they contain the same key-value pairs in the same
  * order.
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<UrlParams> = Equ.make<UrlParams>((a, b) =>

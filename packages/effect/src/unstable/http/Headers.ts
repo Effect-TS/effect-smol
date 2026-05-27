@@ -146,9 +146,10 @@ const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
   Object.assign(Object.create(Proto), input) as Headers
 
 /**
- * Equivalence instance that compares `Headers` by their header names and string values.
+ * Provides an `Equivalence` instance that compares `Headers` by header names
+ * and string values.
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<Headers> = Record.makeEquivalence(Equ.strictEqual<string>())

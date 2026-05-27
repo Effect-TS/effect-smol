@@ -761,8 +761,8 @@ export class InitializedNotification extends Rpc.make("notifications/initialized
 // =============================================================================
 
 /**
- * Notification sent by either peer to cancel a previously issued request in
- * the same direction.
+ * Sent from either peer to cancel a previously issued request in the same
+ * direction.
  *
  * **Details**
  *
@@ -795,8 +795,7 @@ export class CancelledNotification extends Rpc.make("notifications/cancelled", {
 // =============================================================================
 
 /**
- * An out-of-band notification used to inform the receiver of a progress update
- * for a long-running request.
+ * Sent from either peer to report progress for a long-running request.
  *
  * @category progress
  * @since 4.0.0
@@ -1703,7 +1702,7 @@ export class SamplingMessage extends Schema.Opaque<SamplingMessage>()(Schema.Str
 })) {}
 
 /**
- * Hints to use for model selection.
+ * Schema for model selection hints.
  *
  * **Details**
  *
@@ -1730,8 +1729,8 @@ export class ModelHint extends Schema.Opaque<ModelHint>()(Schema.Struct({
 })) {}
 
 /**
- * The server's preferences for model selection, requested of the client during
- * sampling.
+ * Schema for the server's model selection preferences requested of the client
+ * during sampling.
  *
  * **Details**
  *
@@ -2519,7 +2518,7 @@ export interface Param<Name extends string, S extends Schema.Top> extends
 }
 
 /**
- * Helper to create a param for a resource URI template.
+ * Creates a parameter for a resource URI template.
  *
  * @category parameters
  * @since 4.0.0
