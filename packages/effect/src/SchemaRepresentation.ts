@@ -1744,8 +1744,7 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
 export const DocumentFromJson: Schema.Codec<Document, Schema.Json> = Schema.toCodecJson($Document)
 
 /**
- * Schema codec that decodes a {@link MultiDocument} from JSON and encodes it
- * back.
+ * Schema for `MultiDocument` values encoded as JSON.
  *
  * @see {@link $MultiDocument}
  * @see {@link DocumentFromJson}

@@ -691,8 +691,7 @@ export class Ping extends Rpc.make("ping", {
 // =============================================================================
 
 /**
- * After receiving an initialize request from the client, the server sends this
- * response.
+ * Schema for the server's response to an initialize request from the client.
  *
  * @category initialization
  * @since 4.0.0
@@ -718,8 +717,8 @@ export class InitializeResult extends Schema.Opaque<InitializeResult>()(Schema.S
 })) {}
 
 /**
- * This request is sent from the client to the server when it first connects,
- * asking it to begin initialization.
+ * Sent from the client to the server when it first connects, asking it to begin
+ * initialization.
  *
  * @category initialization
  * @since 4.0.0
@@ -748,8 +747,7 @@ export class Initialize extends Rpc.make("initialize", {
 }) {}
 
 /**
- * This notification is sent from the client to the server after initialization
- * has finished.
+ * Sent from the client to the server after initialization has finished.
  *
  * @category initialization
  * @since 4.0.0
@@ -832,7 +830,7 @@ export class ProgressNotification extends Rpc.make("notifications/progress", {
 // =============================================================================
 
 /**
- * A known resource that the server is capable of reading.
+ * Schema for a known resource that the server is capable of reading.
  *
  * @category resources
  * @since 4.0.0
@@ -884,7 +882,7 @@ export class Resource extends Schema.Class<Resource>(
 }) {}
 
 /**
- * A template description for resources available on the server.
+ * Schema for a template description of resources available on the server.
  *
  * @category resources
  * @since 4.0.0
@@ -930,7 +928,7 @@ export class ResourceTemplate extends Schema.Class<ResourceTemplate>(
 }) {}
 
 /**
- * The contents of a specific resource or sub-resource.
+ * Schema for the contents of a specific resource or sub-resource.
  *
  * @category resources
  * @since 4.0.0
@@ -951,7 +949,7 @@ export class ResourceContents extends Schema.Opaque<ResourceContents>()(Schema.S
 })) {}
 
 /**
- * The contents of a text resource, which can be represented as a string.
+ * Schema for text resource contents represented as a string.
  *
  * @category resources
  * @since 4.0.0
@@ -966,7 +964,7 @@ export class TextResourceContents extends Schema.Opaque<TextResourceContents>()(
 })) {}
 
 /**
- * The contents of a binary resource, which can be represented as a Uint8Array.
+ * Schema for binary resource contents represented as a `Uint8Array`.
  *
  * @category resources
  * @since 4.0.0
@@ -980,7 +978,7 @@ export class BlobResourceContents extends Schema.Opaque<BlobResourceContents>()(
 })) {}
 
 /**
- * The server's response to a resources/list request from the client.
+ * Schema for the server's response to a resources/list request from the client.
  *
  * @category resources
  * @since 4.0.0
@@ -1005,7 +1003,8 @@ export class ListResources extends Rpc.make("resources/list", {
 }) {}
 
 /**
- * The server's response to a resources/templates/list request from the client.
+ * Schema for the server's response to a resources/templates/list request from
+ * the client.
  *
  * @category resources
  * @since 4.0.0
@@ -1030,7 +1029,7 @@ export class ListResourceTemplates extends Rpc.make("resources/templates/list", 
 }) {}
 
 /**
- * The server's response to a resources/read request from the client.
+ * Schema for the server's response to a resources/read request from the client.
  *
  * @category resources
  * @since 4.0.0
@@ -1117,7 +1116,7 @@ export class Unsubscribe extends Rpc.make("resources/unsubscribe", {
 }) {}
 
 /**
- * Notification sent by the server when a subscribed resource URI has changed.
+ * Sent from the server when a subscribed resource URI has changed.
  *
  * **Details**
  *
@@ -1407,7 +1406,7 @@ export class PromptListChangedNotification extends Rpc.make("notifications/promp
 // =============================================================================
 
 /**
- * Additional properties describing a Tool to clients.
+ * Schema for additional properties describing a tool to clients.
  *
  * **Details**
  *
@@ -1464,7 +1463,7 @@ export class ToolAnnotations extends Schema.Opaque<ToolAnnotations>()(Schema.Str
 })) {}
 
 /**
- * Definition for a tool the client can call.
+ * Schema for the definition of a tool the client can call.
  *
  * @category tools
  * @since 4.0.0
@@ -1501,7 +1500,7 @@ export class Tool extends Schema.Class<Tool>(
 }) {}
 
 /**
- * The server's response to a tools/list request from the client.
+ * Schema for the server's response to a tools/list request from the client.
  *
  * @category tools
  * @since 4.0.0
@@ -1526,7 +1525,7 @@ export class ListTools extends Rpc.make("tools/list", {
 }) {}
 
 /**
- * The server's response to a tool call.
+ * Schema for the server's response to a tool call.
  *
  * **Details**
  *
@@ -1602,8 +1601,8 @@ export class ToolListChangedNotification extends Rpc.make("notifications/tools/l
 // =============================================================================
 
 /**
- * The severity of a log message, mapped to syslog message severities as
- * specified in RFC 5424 section 6.2.1:
+ * Schema for log message severity levels, mapped to syslog message severities
+ * as specified in RFC 5424 section 6.2.1:
  * https://datatracker.ietf.org/doc/html/rfc5424#section-6.2.1.
  *
  * @category logging
@@ -1640,7 +1639,7 @@ export const LoggingLevel: Schema.Literals<[
 export type LoggingLevel = typeof LoggingLevel.Type
 
 /**
- * A request from the client to the server, to enable or adjust logging.
+ * Sent from the client to the server to enable or adjust logging.
  *
  * @category logging
  * @since 4.0.0
@@ -1659,7 +1658,7 @@ export class SetLevel extends Rpc.make("logging/setLevel", {
 }) {}
 
 /**
- * Server notification carrying a log message for the client.
+ * Sent from the server to the client carrying a log message.
  *
  * **Details**
  *
@@ -1868,7 +1867,7 @@ export class CreateMessage extends Rpc.make("sampling/createMessage", {
 // =============================================================================
 
 /**
- * A reference to a resource or resource template definition.
+ * Schema for a reference to a resource or resource template definition.
  *
  * @category autocomplete
  * @since 4.0.0
@@ -1882,7 +1881,7 @@ export class ResourceReference extends Schema.Opaque<ResourceReference>()(Schema
 })) {}
 
 /**
- * Identifies a prompt.
+ * Schema for a prompt reference used in autocomplete requests.
  *
  * @category autocomplete
  * @since 4.0.0
@@ -1897,7 +1896,7 @@ export class PromptReference extends Schema.Opaque<PromptReference>()(Schema.Str
 })) {}
 
 /**
- * The server's response to a completion/complete request
+ * Schema for the server's response to a completion/complete request.
  *
  * @category autocomplete
  * @since 4.0.0
@@ -1935,7 +1934,7 @@ export class CompleteResult extends Schema.Opaque<CompleteResult>()(Schema.Struc
 }
 
 /**
- * A request from the client to the server, to ask for completion options.
+ * Sent from the client to the server to ask for completion options.
  *
  * @category autocomplete
  * @since 4.0.0
@@ -2117,8 +2116,8 @@ export const ElicitResult = Schema.Union([
 ])
 
 /**
- * Request sent by the server asking the client to collect structured input
- * from the user.
+ * Sent from the server asking the client to collect structured input from the
+ * user.
  *
  * **Details**
  *

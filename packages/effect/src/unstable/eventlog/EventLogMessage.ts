@@ -69,7 +69,7 @@ export type StoreId = string & Brand<StoreIdTypeId>
 export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
 
 /**
- * Structured error returned by event-log remote RPCs.
+ * Error returned by event-log remote RPCs.
  *
  * **Details**
  *
@@ -129,8 +129,9 @@ export class HelloRpc extends Rpc.make("EventLog.Hello", {
 }) {}
 
 /**
- * Authentication request containing the client public key, Ed25519 signing public
- * key, signature over the session challenge payload, and algorithm name.
+ * Schema for an authentication request containing the client public key,
+ * Ed25519 signing public key, signature over the session challenge payload, and
+ * algorithm name.
  *
  * @category protocols
  * @since 4.0.0
@@ -154,7 +155,7 @@ export class AuthenticateRpc extends Rpc.make("EventLog.Authenticate", {
 }) {}
 
 /**
- * Transport message containing an entire encoded event-log payload in one frame.
+ * Represents an entire encoded event-log payload in one transport frame.
  *
  * @category protocols
  * @since 4.0.0
@@ -254,7 +255,7 @@ export class ChunkedMessage
 }
 
 /**
- * Authenticated RPC for sending one chunk of a large encoded write payload.
+ * RPC used to send one chunk of a large encoded write payload.
  *
  * @category protocols
  * @since 4.0.0
@@ -265,7 +266,7 @@ export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
 }).middleware(EventLogAuthentication) {}
 
 /**
- * Msgpack-encodable payload for writing encrypted entries to a remote store.
+ * Schema for encrypted event-log write payloads sent to a remote store.
  *
  * **Details**
  *
@@ -290,7 +291,7 @@ export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/Ev
 }
 
 /**
- * Msgpack-encodable payload for writing plaintext entries to a remote store.
+ * Schema for plaintext event-log write payloads sent to a remote store.
  *
  * @category protocols
  * @since 4.0.0
@@ -311,8 +312,7 @@ export class WriteEntriesUnencrypted
 }
 
 /**
- * Authenticated RPC for sending an encoded write payload that fits in one
- * message.
+ * RPC used to send an encoded write payload that fits in one message.
  *
  * @category protocols
  * @since 4.0.0
@@ -325,8 +325,8 @@ export class WriteSingleRpc extends Rpc.make("EventLog.WriteSingle", {
 }).middleware(EventLogAuthentication) {}
 
 /**
- * Authenticated streaming RPC for reading remote event-log changes for a public
- * key and store id starting at a sequence number.
+ * RPC used to stream remote event-log changes for a public key and store id
+ * starting at a sequence number.
  *
  * **Details**
  *

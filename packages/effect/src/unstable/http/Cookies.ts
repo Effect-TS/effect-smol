@@ -818,7 +818,7 @@ export const setAllUnsafe: {
 )
 
 /**
- * Serialize a cookie into a string
+ * Serializes a cookie into a string.
  *
  * **Details**
  *
@@ -898,7 +898,7 @@ export function serializeCookie(self: Cookie): string {
 }
 
 /**
- * Serialize a Cookies object into a Cookie header
+ * Serializes a `Cookies` object into a Cookie header.
  *
  * @category encoding
  * @since 4.0.0

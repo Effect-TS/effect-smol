@@ -368,7 +368,7 @@ export interface UnknownErrorMetadata extends ProviderMetadata {}
  *
  * **Details**
  *
- * Contains optional provider-reported token counts for prompt tokens,
+ * Schema for optional provider-reported token counts for prompt tokens,
  * completion tokens, and total tokens.
  *
  * @category schemas

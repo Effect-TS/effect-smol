@@ -460,7 +460,7 @@ export function declare<T, Iso = T>(
 }
 
 /**
- * Widens a schema's type to the fully-parameterized {@link Bottom} interface,
+ * Returns a schema widened to the fully-parameterized {@link Bottom} interface,
  * making all 14 type parameters visible to TypeScript.
  *
  * **Details**
@@ -889,8 +889,8 @@ export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknow
 }
 
 /**
- * Identity function that widens a value to the full {@link Codec} interface,
- * prompting TypeScript to infer all four type parameters (`T`, `E`, `RD`, `RE`).
+ * Returns a codec widened to the full {@link Codec} interface, prompting
+ * TypeScript to infer all four type parameters (`T`, `E`, `RD`, `RE`).
  *
  * **Details**
  *
@@ -1115,7 +1115,7 @@ function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Targ
 }
 
 /**
- * Experimental support for converting a schema to a Standard JSON Schema V1.
+ * Converts a schema to an experimental Standard JSON Schema V1 representation.
  *
  * **Details**
  *
@@ -4502,8 +4502,8 @@ export function suspend<S extends Top>(f: () => S): suspend<S> {
 }
 
 /**
- * Pipeable function that attaches one or more filter checks to a schema without
- * changing the TypeScript type.
+ * Attaches one or more filter checks to a schema without changing the
+ * TypeScript type.
  *
  * **Example** (Adding checks to a schema)
  *
@@ -9121,8 +9121,7 @@ export const Defect: Defect = Union([
 ])
 
 /**
- * A schema that represents defects, that also includes stack traces in the
- * encoded form.
+ * Schema for defects that also includes stack traces in the encoded form.
  *
  * @category Defect
  * @since 4.0.0
@@ -11181,7 +11180,7 @@ export const StringFromUriComponent: StringFromUriComponent = String.annotate({
 )
 
 /**
- * A union schema for property keys accepted by Effect schemas: finite `number`,
+ * Schema for property keys accepted by Effect schemas: finite `number`,
  * `symbol`, or `string`.
  *
  * @category PropertyKey
@@ -12434,7 +12433,7 @@ export function toArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Ty
 // -----------------------------------------------------------------------------
 
 /**
- * Annotates a schema with a custom formatter used by `toFormatter`.
+ * Attaches a custom formatter used by `toFormatter`.
  *
  * **Details**
  *
@@ -12879,8 +12878,8 @@ function toCodecIsoBase(ast: AST.AST, recur: (ast: AST.AST) => AST.AST): AST.AST
 export type StringTree = Tree<string | undefined>
 
 /**
- * The StringTree canonical codec converts **every leaf value to a string**, while
- * preserving the original structure.
+ * Converts a schema to the StringTree canonical codec, where every leaf value
+ * becomes a string while preserving the original structure.
  *
  * **Details**
  *

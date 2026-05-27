@@ -1920,8 +1920,7 @@ export const unwrap = <A, In, L, E, R, R2>(
 ): Sink<A, In, L, E, Exclude<R, Scope.Scope> | R2> => fromChannel(Channel.unwrap(Effect.map(effect, toChannel)))
 
 /**
- * Summarize a sink by running an effect when the sink starts and again when
- * it completes.
+ * Runs a summary effect when the sink starts and again when it completes.
  *
  * @category utils
  * @since 2.0.0

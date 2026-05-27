@@ -679,7 +679,7 @@ export const layerHttp = (options: {
   )
 
 /**
- * Register a `Toolkit` with the `McpServer`.
+ * Registers a `Toolkit` with the `McpServer`.
  *
  * @category tools
  * @since 4.0.0
@@ -755,7 +755,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
 })
 
 /**
- * Register an AiToolkit with the McpServer.
+ * Registers an `AiToolkit` with the `McpServer`.
  *
  * @category tools
  * @since 4.0.0

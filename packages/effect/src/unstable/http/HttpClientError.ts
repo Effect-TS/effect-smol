@@ -313,7 +313,8 @@ export type ResponseError = StatusCodeError | DecodeError | EmptyBodyError
 export type HttpClientErrorReason = RequestError | ResponseError
 
 /**
- * Serializable schema representation of an `HttpClientError`, preserving the specific error kind and cause.
+ * Schema for serializable HTTP client errors, preserving the specific error kind
+ * and cause.
  *
  * @category schemas
  * @since 4.0.0

@@ -1135,7 +1135,7 @@ export const matchPair: {
 })
 
 /**
- * Order instance for `Duration`, allowing comparison operations.
+ * Provides an `Order` instance for comparing `Duration` values.
  *
  * **Details**
  *
@@ -1216,7 +1216,7 @@ export const between: {
 } = order.isBetween(Order)
 
 /**
- * Equivalence instance for `Duration`, allowing equality comparisons.
+ * Provides an `Equivalence` instance for comparing `Duration` values.
  *
  * **Example** (Comparing durations for equivalence)
  *

@@ -1052,7 +1052,7 @@ export const separate: <K extends string, A, B>(
 ) => [Record<ReadonlyRecord.NonLiteralKey<K>, A>, Record<ReadonlyRecord.NonLiteralKey<K>, B>] = partition(identity)
 
 /**
- * Retrieve the keys of a given record as an array.
+ * Retrieves the keys of a given record as an array.
  *
  * **Example** (Getting record keys)
  *
@@ -1070,7 +1070,7 @@ export const keys = <K extends string | symbol, A>(self: ReadonlyRecord<K, A>): 
   Object.keys(self) as Array<K & string>
 
 /**
- * Retrieve the values of a given record as an array.
+ * Retrieves the values of a given record as an array.
  *
  * **Example** (Getting record values)
  *

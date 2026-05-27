@@ -267,7 +267,7 @@ export interface InterruptEncoded {
 }
 
 /**
- * Schema union for partially decoded cluster envelopes.
+ * Schema for partially decoded cluster envelopes.
  *
  * **Details**
  *
@@ -304,7 +304,7 @@ export const PartialJson: Schema.Codec<
 > = Schema.toCodecJson(Partial) as any
 
 /**
- * Mutable array schema for JSON-encoded partial cluster envelopes.
+ * Schema for mutable arrays of JSON-encoded partial cluster envelopes.
  *
  * @category schemas
  * @since 4.0.0

@@ -118,7 +118,8 @@ export const String = globalThis.String
 export const isString: Refinement<unknown, string> = predicate.isString
 
 /**
- * `Order` instance for comparing strings using lexicographic ordering.
+ * Provides an `Order` instance for comparing strings using lexicographic
+ * ordering.
  *
  * **Example** (Comparing strings lexicographically)
  *
@@ -136,7 +137,7 @@ export const isString: Refinement<unknown, string> = predicate.isString
 export const Order: order.Order<string> = order.String
 
 /**
- * An `Equivalence` instance for strings using strict equality (`===`).
+ * Provides an `Equivalence` instance for strings using strict equality (`===`).
  *
  * **Example** (Comparing strings for equality)
  *
@@ -1048,9 +1049,8 @@ export const linesIterator = (self: string): LinesIterator => linesSeparated(sel
 export const linesWithSeparators = (s: string): LinesIterator => linesSeparated(s, false)
 
 /**
- * For every line in this string, strip a leading prefix consisting of blanks
- * or control characters followed by the character specified by `marginChar`
- * from the line.
+ * Strips a leading margin prefix from every line using the supplied margin
+ * character.
  *
  * **Example** (Stripping custom margins)
  *
@@ -1089,8 +1089,7 @@ export const stripMarginWith: {
 })
 
 /**
- * For every line in this string, strip a leading prefix consisting of blanks
- * or control characters followed by the `"|"` character from the line.
+ * Strips a leading `|` margin prefix from every line.
  *
  * **Example** (Stripping pipe margins)
  *

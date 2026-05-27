@@ -371,7 +371,7 @@ export type SqlErrorReason =
   | UnknownError
 
 /**
- * Schema union for encoding and decoding `SqlErrorReason` values.
+ * Schema for encoding and decoding SQL error reasons.
  *
  * @category schemas
  * @since 4.0.0

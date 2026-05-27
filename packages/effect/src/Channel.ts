@@ -6878,7 +6878,7 @@ export const interruptWhen: {
   ))
 
 /**
- * Halts a channel when the specified effect completes or fails.
+ * Stops a channel when the specified effect completes or fails.
  *
  * **Details**
  *

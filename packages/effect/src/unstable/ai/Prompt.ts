@@ -1770,7 +1770,7 @@ const $Prompt = Schema.declare((u) => isPrompt(u), { identifier: "Prompt" })
 // TODO: shoudn't the name be `PromptFrom...`?
 // TODO: is the explicit encoding necessary? maybe use the default JSON serializer?
 /**
- * Describes a schema that represents a `Prompt` instance.
+ * Schema for AI prompt instances.
  *
  * @category schemas
  * @since 4.0.0

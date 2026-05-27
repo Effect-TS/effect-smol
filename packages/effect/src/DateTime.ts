@@ -541,7 +541,7 @@ export const isZoned: (self: DateTime) => self is Zoned = Internal.isZoned
 // =============================================================================
 
 /**
- * An `Equivalence` for comparing two `DateTime` values for equality.
+ * Provides an `Equivalence` for comparing two `DateTime` values for equality.
  *
  * **Details**
  *
@@ -567,7 +567,7 @@ export const isZoned: (self: DateTime) => self is Zoned = Internal.isZoned
 export const Equivalence: Equ.Equivalence<DateTime> = Internal.Equivalence
 
 /**
- * An `Order` for comparing and sorting `DateTime` values.
+ * Provides an `Order` for comparing and sorting `DateTime` values.
  *
  * **Details**
  *
@@ -595,7 +595,7 @@ export const Equivalence: Equ.Equivalence<DateTime> = Internal.Equivalence
 export const Order: order.Order<DateTime> = Internal.Order
 
 /**
- * Clamp a `DateTime` between a minimum and maximum value.
+ * Clamps a `DateTime` between a minimum and maximum value.
  *
  * **Details**
  *
@@ -616,7 +616,7 @@ export const Order: order.Order<DateTime> = Internal.Order
  * // clamped equals max (2024-12-31)
  * ```
  *
- * @category instances
+ * @category ordering
  * @since 3.6.0
  */
 export const clamp: {
@@ -1008,7 +1008,7 @@ export const setZoneOffset: {
 } = Internal.setZoneOffset
 
 /**
- * Attempt to create a named time zone from a IANA time zone identifier.
+ * Attempts to create a named time zone from an IANA time zone identifier.
  *
  * **Details**
  *
@@ -1242,7 +1242,7 @@ export const setZoneNamedUnsafe: {
 // =============================================================================
 
 /**
- * Calulate the difference between two `DateTime` values, returning a
+ * Calculates the difference between two `DateTime` values, returning a
  * `Duration` representing the amount of time between them.
  *
  * **Details**
@@ -1591,7 +1591,7 @@ export const toDateUtc: (self: DateTime) => Date = Internal.toDateUtc
 export const toDate: (self: DateTime) => Date = Internal.toDate
 
 /**
- * Calculate the time zone offset of a `DateTime.Zoned` in milliseconds.
+ * Calculates the time zone offset of a `DateTime.Zoned` in milliseconds.
  *
  * **Details**
  *

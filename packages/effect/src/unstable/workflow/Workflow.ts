@@ -507,8 +507,7 @@ export interface CompleteSchema<
 }
 
 /**
- * Workflow result representing a completed execution with its success or
- * failure `Exit`.
+ * Represents a completed workflow execution with its success or failure `Exit`.
  *
  * @category results
  * @since 4.0.0
@@ -579,8 +578,8 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
 }
 
 /**
- * Workflow result representing a suspended execution, optionally carrying the
- * cause that triggered suspension.
+ * Represents a suspended workflow execution, optionally carrying the cause that
+ * triggered suspension.
  *
  * @category results
  * @since 4.0.0
@@ -617,7 +616,7 @@ export const Result = <
 const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
 
 /**
- * Codec for encoded workflow results with generic success and error payloads.
+ * Schema for encoded workflow results with generic success and error payloads.
  *
  * @category results
  * @since 4.0.0

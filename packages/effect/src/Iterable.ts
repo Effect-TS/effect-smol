@@ -639,7 +639,8 @@ export const take: {
 }))
 
 /**
- * Calculate the longest initial Iterable for which all element satisfy the specified predicate, creating a new `Iterable`.
+ * Takes the longest initial `Iterable` prefix for which all elements satisfy the
+ * specified predicate.
  *
  * **Example** (Taking while a predicate holds)
  *
@@ -2148,7 +2149,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => Option<readonly [A, B]>): Iterab
 })
 
 /**
- * Iterate over the `Iterable` applying `f`.
+ * Iterates over the `Iterable`, applying `f` to each element.
  *
  * **Example** (Iterating with side effects)
  *

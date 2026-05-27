@@ -2351,8 +2351,8 @@ export const tapBoth: {
   ))
 
 /**
- * Sends all elements emitted by this stream to the specified sink in addition
- * to emitting them.
+ * Taps all elements emitted by this stream into the specified sink while still
+ * emitting them downstream.
  *
  * **Example** (Tapping values with a sink)
  *
@@ -6112,7 +6112,7 @@ export const ignoreCause: <
   )
 
 /**
- * When the stream fails, retry it according to the given schedule.
+ * Retries the stream according to the given schedule when it fails.
  *
  * **Details**
  *
@@ -6446,7 +6446,7 @@ export const takeUntil: {
 )
 
 /**
- * Effectful predicate version of `takeUntil`.
+ * Takes stream elements until an effectful predicate returns `true`.
  *
  * **Example** (Taking until an effectful predicate matches)
  *
@@ -6994,7 +6994,7 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
   )
 
 /**
- * Re-chunks the stream into arrays of the specified size, preserving element order.
+ * Rechunks the stream into arrays of the specified size, preserving element order.
  *
  * **Details**
  *
@@ -8722,7 +8722,7 @@ export const aggregateWithin: {
   }))))
 
 /**
- * Fan out the stream, producing a fixed-size tuple of streams that each emit
+ * Fans out the stream, producing a fixed-size tuple of streams that each emit
  * the same elements as the source stream.
  *
  * **Details**
@@ -9483,7 +9483,7 @@ export const intersperse: {
   }))
 
 /**
- * Intersperse stream elements with a middle value, adding a start and end value.
+ * Intersperses stream elements with a middle value, adding a start and end value.
  *
  * **Details**
  *
