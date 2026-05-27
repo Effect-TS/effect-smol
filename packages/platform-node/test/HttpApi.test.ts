@@ -1332,70 +1332,73 @@ describe("HttpApi", () => {
           assert.strictEqual(Redacted.value(redacted), "foo")
         }).pipe(Effect.provide(HttpLive)))
 
-      it.effect("DPoP authorization security rejects invalid credentials", () =>
+      it.effect.each(["Bearer foo", "", "DPoP", "DPoP ", "DPoP foo bar", "DPoP foo!"])(
+        "DPoP authorization security rejects %s",
+        (authorization) =>
+          HttpApiBuilder.securityDecode(securityDPoP).pipe(
+            Effect.provideService(
+              HttpServerRequest.HttpServerRequest,
+              HttpServerRequest.fromWeb(
+                new Request("http://localhost:3000/", {
+                  headers: {
+                    authorization
+                  }
+                })
+              )
+            ),
+            Effect.provideService(HttpServerRequest.ParsedSearchParams, {}),
+            Effect.map((redacted) => {
+              assert.strictEqual(Redacted.value(redacted), "")
+            }),
+            Effect.provide(HttpLive)
+          )
+      )
+
+      it.effect.each(
+        [
+          ["bearer  foo", "foo"],
+          ["DPoP foo", ""]
+        ] as const
+      )("Bearer authorization security decodes %s", ([authorization, expected]) =>
         Effect.gen(function*() {
-          for (const authorization of ["Bearer foo", "", "DPoP", "DPoP ", "DPoP foo bar", "DPoP foo!"]) {
-            const redacted = yield* HttpApiBuilder.securityDecode(securityDPoP).pipe(
-              Effect.provideService(
-                HttpServerRequest.HttpServerRequest,
-                HttpServerRequest.fromWeb(
-                  new Request("http://localhost:3000/", {
-                    headers: {
-                      authorization
-                    }
-                  })
-                )
-              ),
-              Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
-            )
-            assert.strictEqual(Redacted.value(redacted), "")
-          }
+          const redacted = yield* HttpApiBuilder.securityDecode(securityBearer).pipe(
+            Effect.provideService(
+              HttpServerRequest.HttpServerRequest,
+              HttpServerRequest.fromWeb(
+                new Request("http://localhost:3000/", {
+                  headers: {
+                    authorization
+                  }
+                })
+              )
+            ),
+            Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
+          )
+          assert.strictEqual(Redacted.value(redacted), expected)
         }).pipe(Effect.provide(HttpLive)))
 
-      it.effect("Bearer authorization security validates the scheme", () =>
+      it.effect.each(
+        [
+          ["basic  Zm9vOmJhcg==", "foo", "bar"],
+          ["Bearer Zm9vOmJhcg==", "", ""]
+        ] as const
+      )("Basic authorization security decodes %s", ([authorization, username, password]) =>
         Effect.gen(function*() {
-          for (const [authorization, expected] of [["bearer  foo", "foo"], ["DPoP foo", ""]] as const) {
-            const redacted = yield* HttpApiBuilder.securityDecode(securityBearer).pipe(
-              Effect.provideService(
-                HttpServerRequest.HttpServerRequest,
-                HttpServerRequest.fromWeb(
-                  new Request("http://localhost:3000/", {
-                    headers: {
-                      authorization
-                    }
-                  })
-                )
-              ),
-              Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
-            )
-            assert.strictEqual(Redacted.value(redacted), expected)
-          }
-        }).pipe(Effect.provide(HttpLive)))
-
-      it.effect("Basic authorization security validates the scheme", () =>
-        Effect.gen(function*() {
-          for (
-            const [authorization, username, password] of [
-              ["basic  Zm9vOmJhcg==", "foo", "bar"],
-              ["Bearer Zm9vOmJhcg==", "", ""]
-            ] as const
-          ) {
-            const credentials = yield* HttpApiBuilder.securityDecode(securityBasic).pipe(
-              Effect.provideService(
-                HttpServerRequest.HttpServerRequest,
-                HttpServerRequest.fromWeb(
-                  new Request("http://localhost:3000/", {
-                    headers: {
-                      authorization
-                    }
-                  })
-                )
-              ),
-              Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
-            )
-            assert.strictEqual(credentials.username, username)
-            assert.strictEqual(Redacted.value(credentials.password), password)
-          }
+          const credentials = yield* HttpApiBuilder.securityDecode(securityBasic).pipe(
+            Effect.provideService(
+              HttpServerRequest.HttpServerRequest,
+              HttpServerRequest.fromWeb(
+                new Request("http://localhost:3000/", {
+                  headers: {
+                    authorization
+                  }
+                })
+              )
+            ),
+            Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
+          )
+          assert.strictEqual(credentials.username, username)
+          assert.strictEqual(Redacted.value(credentials.password), password)
         }).pipe(Effect.provide(HttpLive)))
     })
 
