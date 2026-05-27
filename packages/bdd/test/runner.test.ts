@@ -1,6 +1,6 @@
 import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Schema } from "effect"
+import { Cause, Effect, Option, Schema } from "effect"
 
 type Cart = {
   readonly items: ReadonlyArray<{
@@ -113,6 +113,192 @@ Feature: Shopping cart
       ))
 
       assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "MatchError")
+        assert.strictEqual((error as { readonly scenario: string }).scenario, "Missing transition")
+      }
+    })
+  })
+
+  it.effect("fails with MatchError when multiple transitions match", () => {
+    const cart = Bdd.feature("Shopping cart", { initial: emptyCart }).pipe(
+      Bdd.step`an empty cart`(() => Effect.succeed(emptyCart)),
+      Bdd.given`an empty cart`(() => Effect.succeed(emptyCart))
+    )
+
+    return Effect.gen(function*() {
+      const result = yield* Effect.exit(Bdd.run(
+        cart,
+        `
+Feature: Shopping cart
+
+  Scenario: Ambiguous transition
+    Given an empty cart
+`
+      ))
+
+      assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "MatchError")
+        assert.strictEqual((error as { readonly candidates: ReadonlyArray<string> }).candidates.length, 2)
+      }
+    })
+  })
+
+  it.effect("preserves DataTable decode causes on MatchError", () => {
+    const Item = Schema.Struct({
+      sku: Schema.String,
+      qty: Schema.Literal("2")
+    })
+
+    const cart = Bdd.feature("Shopping cart", { initial: emptyCart }).pipe(
+      Bdd.when`the following items are added:`(
+        Bdd.table(Item),
+        (_captures, _items, state) => Effect.succeed(state)
+      )
+    )
+
+    return Effect.gen(function*() {
+      const result = yield* Effect.exit(Bdd.run(
+        cart,
+        `
+Feature: Shopping cart
+
+  Scenario: Invalid table
+    When the following items are added:
+      | sku  | qty |
+      | book | nope |
+`
+      ))
+
+      assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "MatchError")
+        assert.notStrictEqual(error.cause, undefined)
+      }
+    })
+  })
+
+  it.effect("fails when a step requires a DataTable but source omits it", () => {
+    const Item = Schema.Struct({
+      sku: Schema.String
+    })
+    const cart = Bdd.feature("Shopping cart", { initial: emptyCart }).pipe(
+      Bdd.when`the following items are added:`(
+        Bdd.table(Item),
+        (_captures, _items, state) => Effect.succeed(state)
+      )
+    )
+
+    return Effect.gen(function*() {
+      const result = yield* Effect.exit(Bdd.run(
+        cart,
+        `
+Feature: Shopping cart
+
+  Scenario: Missing table
+    When the following items are added:
+`
+      ))
+
+      assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "MatchError")
+        assert.strictEqual(error.message, `Step "the following items are added:" requires a DataTable`)
+      }
+    })
+  })
+
+  it.effect("fails when source supplies an unexpected DocString", () => {
+    const cart = Bdd.feature("Payload", { initial: emptyCart }).pipe(
+      Bdd.when`the request body is:`((_captures, state) => Effect.succeed(state))
+    )
+
+    return Effect.gen(function*() {
+      const result = yield* Effect.exit(Bdd.run(
+        cart,
+        `
+Feature: Payload
+
+  Scenario: Unexpected docstring
+    When the request body is:
+      """
+      text
+      """
+`
+      ))
+
+      assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "MatchError")
+        assert.strictEqual(error.message, `Step "the request body is:" has an unexpected argument`)
+      }
+    })
+  })
+
+  it.effect("preserves DocString decode causes on MatchError", () => {
+    const Payload = Schema.Struct({
+      sku: Schema.String
+    })
+    const feature = Bdd.feature("Payload", { initial: emptyCart }).pipe(
+      Bdd.when`the request body is:`(
+        Bdd.docString(Schema.fromJsonString(Payload)),
+        (_captures, _payload, state) => Effect.succeed(state)
+      )
+    )
+
+    return Effect.gen(function*() {
+      const result = yield* Effect.exit(Bdd.run(
+        feature,
+        `
+Feature: Payload
+
+  Scenario: Invalid payload
+    When the request body is:
+      """json
+      { bad json
+      """
+`
+      ))
+
+      assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "MatchError")
+        assert.notStrictEqual(error.cause, undefined)
+      }
+    })
+  })
+
+  it.effect("fails with StepError when a step implementation fails", () => {
+    const cart = Bdd.feature("Shopping cart", { initial: emptyCart }).pipe(
+      Bdd.then`the cart total is wrong`((_captures, _state) =>
+        Effect.fail("wrong total" as const) as Effect.Effect<Cart, "wrong total">
+      )
+    )
+
+    return Effect.gen(function*() {
+      const result = yield* Effect.exit(Bdd.run(
+        cart,
+        `
+Feature: Shopping cart
+
+  Scenario: Failed assertion
+    Then the cart total is wrong
+`
+      ))
+
+      assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "StepError")
+        assert.strictEqual(error.cause, "wrong total")
+      }
     })
   })
 

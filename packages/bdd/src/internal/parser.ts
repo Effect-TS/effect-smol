@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as Option from "effect/Option"
 import * as Str from "effect/String"
-import { ParseError } from "./errors.ts"
+import { ParseError } from "../Errors.ts"
 
 /** @internal */
 export type Keyword = "Given" | "When" | "Then" | "And" | "But"

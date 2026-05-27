@@ -4,7 +4,7 @@ import { pipe } from "effect/Function"
 import * as Option from "effect/Option"
 import * as Record from "effect/Record"
 import * as Schema from "effect/Schema"
-import { MatchError, type ParseError, StepError } from "./errors.ts"
+import { MatchError, type ParseError, StepError } from "../Errors.ts"
 import * as Parser from "./parser.ts"
 
 /** @internal */
@@ -23,14 +23,22 @@ export interface Matcher<A> {
 }
 
 /** @internal */
+export type StepArgument =
+  | {
+    readonly _tag: "TableArg"
+    readonly decode: (argument: DataTableInput) => Effect.Effect<unknown, unknown>
+  }
+  | {
+    readonly _tag: "DocStringArg"
+    readonly decode: (argument: DocStringInput) => Effect.Effect<unknown, unknown>
+  }
+
+/** @internal */
 export interface Transition<State, E, R> {
   readonly kind: StepKind
-  readonly expression: Matcher<any>
-  readonly argument?: {
-    readonly _tag: "TableArg" | "DocStringArg"
-    readonly decode: (argument: any) => Effect.Effect<any, unknown>
-  }
-  readonly run: (captures: any, table: any, state: State) => Effect.Effect<State, E, R>
+  readonly expression: Matcher<unknown>
+  readonly argument?: StepArgument
+  readonly run: (captures: unknown, argument: unknown, state: State) => Effect.Effect<State, E, R>
 }
 
 /** @internal */
@@ -61,22 +69,21 @@ interface ResolvedTransition<State, E, R> {
 type ScenarioReport = Report["scenarios"][number]
 
 /** @internal */
-export const decodeTable = <S extends Schema.Top>(row: S) => {
+export const decodeTable = <S extends Schema.Decoder<unknown, never>>(row: S) => {
   const decode = Schema.decodeUnknownEffect(row)
-  return (table: Parser.DataTable): Effect.Effect<ReadonlyArray<Schema.Schema.Type<S>>, unknown> => {
+  return (table: Parser.DataTable): Effect.Effect<ReadonlyArray<S["Type"]>, unknown> => {
     const [headers, ...rows] = table.rows
     if (headers === undefined) {
       return Effect.succeed([])
     }
-    return Effect.forEach(rows, (cells: ReadonlyArray<string>) => decode(rowObject(headers, cells))) as any
+    return Effect.forEach(rows, (cells: ReadonlyArray<string>) => decode(rowObject(headers, cells)))
   }
 }
 
 /** @internal */
-export const decodeDocString = <S extends Schema.Top>(schema: S) => {
+export const decodeDocString = <S extends Schema.Decoder<unknown, never>>(schema: S) => {
   const decode = Schema.decodeUnknownEffect(schema)
-  return (docString: Parser.DocString): Effect.Effect<Schema.Schema.Type<S>, unknown> =>
-    decode(docString.content) as any
+  return (docString: Parser.DocString): Effect.Effect<S["Type"], unknown> => decode(docString.content)
 }
 
 /** @internal */
@@ -171,7 +178,7 @@ const decodeArgument = <State, E, R>(
   transition: Transition<State, E, R>,
   scenario: string,
   step: Parser.ParsedStep
-): Effect.Effect<any, MatchError> => {
+): Effect.Effect<unknown, MatchError> => {
   const candidates = [transition.expression.source]
   if (transition.argument === undefined) {
     return hasStepArgument(step)
@@ -184,8 +191,8 @@ const decodeArgument = <State, E, R>(
       ? failMatch(`Step "${step.text}" requires a DataTable`, scenario, step, candidates)
       : pipe(
         transition.argument.decode(step.table),
-        Effect.mapError(() =>
-          matchError(`Could not decode DataTable for step "${step.text}"`, scenario, step, candidates)
+        Effect.mapError((cause) =>
+          matchError(`Could not decode DataTable for step "${step.text}"`, scenario, step, candidates, cause)
         )
       )
   }
@@ -194,8 +201,8 @@ const decodeArgument = <State, E, R>(
     ? failMatch(`Step "${step.text}" requires a DocString`, scenario, step, candidates)
     : pipe(
       transition.argument.decode(step.docString),
-      Effect.mapError(() =>
-        matchError(`Could not decode DocString for step "${step.text}"`, scenario, step, candidates)
+      Effect.mapError((cause) =>
+        matchError(`Could not decode DocString for step "${step.text}"`, scenario, step, candidates, cause)
       )
     )
 }
@@ -267,19 +274,22 @@ const failMatch = (
   message: string,
   scenario: string,
   step: Parser.ParsedStep,
-  candidates: ReadonlyArray<string>
-): Effect.Effect<never, MatchError> => Effect.fail(matchError(message, scenario, step, candidates))
+  candidates: ReadonlyArray<string>,
+  cause?: unknown
+): Effect.Effect<never, MatchError> => Effect.fail(matchError(message, scenario, step, candidates, cause))
 
 const matchError = (
   message: string,
   scenario: string,
   step: Parser.ParsedStep,
-  candidates: ReadonlyArray<string>
+  candidates: ReadonlyArray<string>,
+  cause?: unknown
 ): MatchError =>
   new MatchError({
     message,
     scenario,
     step: step.text,
     line: step.line,
-    candidates
+    candidates,
+    ...(cause === undefined ? {} : { cause })
   })

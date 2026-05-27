@@ -54,4 +54,46 @@ describe("Bdd", () => {
       }
     )
   })
+
+  test("data tables infer readonly decoded row arrays", () => {
+    const Item = Schema.Struct({
+      sku: Schema.String,
+      qty: Schema.NumberFromString
+    })
+
+    Bdd.when`the following items are added:`(
+      Bdd.table(Item),
+      (_captures, items, state: number) => {
+        expect(items).type.toBe<ReadonlyArray<{ readonly sku: string; readonly qty: number }>>()
+        expect(state).type.toBe<number>()
+        return Effect.succeed(state)
+      }
+    )
+  })
+
+  test("step is keyword agnostic and feature accumulates errors and services", () => {
+    interface Inventory {
+      readonly _: unique symbol
+    }
+
+    const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
+      Bdd.step`zero`((_captures, state) => Effect.succeed(state)),
+      Bdd.when`fail with service`((_captures, state) =>
+        Effect.succeed(state) as Effect.Effect<number, "boom", Inventory>
+      )
+    )
+
+    expect(feature).type.toBe<Bdd.Feature<number, "boom", Inventory>>()
+  })
+
+  test("step argument handlers reject the wrong decoded argument type", () => {
+    const Payload = Schema.Struct({
+      sku: Schema.String
+    })
+
+    expect(Bdd.when`the request body is:`).type.not.toBeCallableWith(
+      Bdd.docString(Schema.fromJsonString(Payload)),
+      (_captures: {}, _payload: { readonly sku: number }, state: number) => Effect.succeed(state)
+    )
+  })
 })

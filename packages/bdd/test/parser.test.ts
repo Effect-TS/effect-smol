@@ -1,6 +1,6 @@
 import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Schema } from "effect"
+import { Cause, Effect, Option, Schema } from "effect"
 
 describe("parser", () => {
   it.effect("parses scenarios, steps, and data tables through run", () => {
@@ -11,7 +11,7 @@ describe("parser", () => {
 
     const feature = Bdd.feature("Shopping cart", { initial: [] as ReadonlyArray<Schema.Schema.Type<typeof Item>> })
       .pipe(
-        Bdd.given`an empty cart`(() => Effect.succeed([])),
+        Bdd.given`an empty cart`(() => Effect.succeed([] as ReadonlyArray<Schema.Schema.Type<typeof Item>>)),
         Bdd.when`the following items are added:`(Bdd.table(Item), (_captures, items) => Effect.succeed(items)),
         Bdd.then`the cart has items`((_captures, items) =>
           Effect.sync(() => {
@@ -55,6 +55,11 @@ Feature: Shopping cart
       ))
 
       assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "ParseError")
+        assert.strictEqual(error.line, 5)
+      }
     }))
 
   it.effect("ignores comments and accepts descriptions", () => {
@@ -96,5 +101,31 @@ Feature: Shopping cart
       ))
 
       assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "ParseError")
+        assert.strictEqual(error.line, 2)
+      }
+    }))
+
+  it.effect("rejects unsupported Scenario Outline syntax", () =>
+    Effect.gen(function*() {
+      const feature = Bdd.feature("Shopping cart", { initial: 0 })
+      const result = yield* Effect.exit(Bdd.run(
+        feature,
+        `
+Feature: Shopping cart
+
+  Scenario Outline: Adding items
+    Given an empty cart
+`
+      ))
+
+      assert.strictEqual(result._tag, "Failure")
+      if (result._tag === "Failure") {
+        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+        assert.strictEqual(error._tag, "ParseError")
+        assert.strictEqual(error.line, 4)
+      }
     }))
 })

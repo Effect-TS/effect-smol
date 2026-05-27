@@ -1,6 +1,6 @@
 {
   "name": "@effect/bdd",
-  "version": "0.1.0",
+  "version": "4.0.0-beta.70",
   "type": "module",
   "license": "MIT",
   "description": "An Effect-native API for testing Gherkin feature files",
@@ -12,6 +12,25 @@
   },
   "bugs": {
     "url": "https://github.com/Effect-TS/effect-smol/issues"
+  },
+  "tags": [
+    "bdd",
+    "gherkin",
+    "testing",
+    "typescript",
+    "algebraic-data-types",
+    "functional-programming"
+  ],
+  "keywords": [
+    "bdd",
+    "gherkin",
+    "testing",
+    "typescript",
+    "algebraic-data-types",
+    "functional-programming"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
   },
   "sideEffects": [],
   "exports": {
