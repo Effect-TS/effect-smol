@@ -34,7 +34,12 @@ import type { PersistenceError } from "./Persistence.ts"
  * Property key used to attach success and error schemas to persistable
  * requests.
  *
- * @category Symbols
+ * **When to use**
+ *
+ * Use to implement persistable request values by attaching success and error
+ * schemas at this property key.
+ *
+ * @category symbols
  * @since 4.0.0
  */
 export const symbol = "~effect/persistence/Persistable" as const

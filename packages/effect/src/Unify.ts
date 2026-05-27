@@ -37,6 +37,11 @@ import { identity } from "./Function.ts"
 /**
  * A unique symbol used to identify unification behavior in Effect types.
  *
+ * **When to use**
+ *
+ * Use to define the widened type produced by the `Unify` protocol for a custom
+ * protocol-enabled data type.
+ *
  * **Details**
  *
  * This symbol is a type-level protocol key. It describes how a protocol-enabled
@@ -72,6 +77,11 @@ export type unifySymbol = typeof unifySymbol
 /**
  * A unique symbol used to identify the type information for unification.
  *
+ * **When to use**
+ *
+ * Use with `unifySymbol` to expose the source type that unification should read
+ * from a protocol-enabled data type.
+ *
  * **Details**
  *
  * This symbol is a type-level protocol key. It stores the source type that
@@ -105,6 +115,11 @@ export type typeSymbol = typeof typeSymbol
 
 /**
  * A unique symbol used to specify types that should be ignored during unification.
+ *
+ * **When to use**
+ *
+ * Use to hide helper protocol entries from `Unify` when they should not
+ * contribute to the widened type.
  *
  * **Details**
  *

@@ -101,7 +101,7 @@ import { hasProperty } from "./Predicate.ts"
  *
  * @see {@link Redactable} for the interface this symbol belongs to
  * @see {@link isRedactable} to check whether a value has this symbol
- * @category symbol
+ * @category symbols
  * @since 3.10.0
  */
 export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")

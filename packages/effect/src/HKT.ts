@@ -56,6 +56,11 @@ import type * as Types from "./Types.ts"
 /**
  * A unique symbol used to associate `TypeClass` implementations with their `TypeLambda`.
  *
+ * **When to use**
+ *
+ * Use when defining a custom type class that needs to expose the `TypeLambda` it
+ * operates on.
+ *
  * **Details**
  *
  * This symbol links a type class shape with its compile-time type lambda. It is

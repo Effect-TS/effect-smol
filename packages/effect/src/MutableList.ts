@@ -175,6 +175,11 @@ export declare namespace MutableList {
  * A unique symbol used to represent an empty result when taking elements from a MutableList.
  * This symbol is returned by `take` when the list is empty, allowing for safe type checking.
  *
+ * **When to use**
+ *
+ * Use to detect that `take` returned no element before handling the result as a
+ * list item.
+ *
  * **Example** (Checking for empty results)
  *
  * ```ts
@@ -205,7 +210,7 @@ export declare namespace MutableList {
  * console.log(empty === MutableList.Empty) // true, list is empty
  * ```
  *
- * @category Symbols
+ * @category symbols
  * @since 4.0.0
  */
 export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
@@ -255,7 +260,7 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * }
  * ```
  *
- * @category Symbols
+ * @category symbols
  * @since 4.0.0
  */
 export type Empty = typeof Empty
