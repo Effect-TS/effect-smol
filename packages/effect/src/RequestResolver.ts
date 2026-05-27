@@ -654,8 +654,7 @@ export const setDelay: {
 )
 
 /**
- * A request resolver aspect that executes requests between two effects, `before`
- * and `after`, where the result of `before` can be used by `after`.
+ * Wraps request resolver execution between `before` and `after` effects.
  *
  * **Example** (Running effects around request resolution)
  *

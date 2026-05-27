@@ -222,7 +222,7 @@ const neverRpc = Rpc.make("Never", {
  * Control envelopes pass through unchanged. Requests are encoded with their RPC
  * payload schema, reusing the cached encoded request when available.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serialize = <Rpc extends Rpc.Any>(
@@ -245,7 +245,7 @@ export const serialize = <Rpc extends Rpc.Any>(
  *
  * Schema encoding failures are converted to `MalformedMessage`.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeEnvelope = <Rpc extends Rpc.Any>(
@@ -264,7 +264,7 @@ export const serializeEnvelope = <Rpc extends Rpc.Any>(
  *
  * The result is a `PartialRequest` suitable for storage or transport.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeRequest = <Rpc extends Rpc.Any>(
@@ -290,7 +290,7 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
  * `OutgoingRequest` so the payload can be decoded with the correct RPC schema and
  * context.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const deserializeLocal = <Rpc extends Rpc.Any>(

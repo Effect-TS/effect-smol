@@ -1498,7 +1498,7 @@ export const keepAlive = <A extends Atom<any>>(self: A): A =>
   })
 
 /**
- * Reverts the `keepAlive` behavior of a reactive value, allowing it to be disposed of when not in use.
+ * Allows a reactive value to be disposed of when it is not in use.
  *
  * **Details**
  *

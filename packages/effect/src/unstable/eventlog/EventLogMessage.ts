@@ -76,7 +76,7 @@ export const StoreId = Schema.String.pipe(Schema.brand(StoreIdTypeId))
  * It records the request tag, optional identity and store information, a protocol
  * error code, and a human-readable message.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class EventLogProtocolError extends Schema.TaggedErrorClass<EventLogProtocolError>(
@@ -110,7 +110,7 @@ export class EventLogAuthentication extends RpcMiddleware.Service<EventLogAuthen
  * It contains the server remote id and a challenge that must be signed by the
  * client.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class HelloResponse extends Schema.Class<HelloResponse>("effect/eventlog/EventLogRemote/HelloResponse")({
@@ -121,7 +121,7 @@ export class HelloResponse extends Schema.Class<HelloResponse>("effect/eventlog/
 /**
  * RPC used to start an event-log remote session and receive a `HelloResponse`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class HelloRpc extends Rpc.make("EventLog.Hello", {
@@ -132,7 +132,7 @@ export class HelloRpc extends Rpc.make("EventLog.Hello", {
  * Authentication request containing the client public key, Ed25519 signing public
  * key, signature over the session challenge payload, and algorithm name.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class Authenticate extends Schema.Class<Authenticate>("effect/eventlog/EventLogRemote/Authenticate")({
@@ -145,7 +145,7 @@ export class Authenticate extends Schema.Class<Authenticate>("effect/eventlog/Ev
 /**
  * RPC used to authenticate a remote event-log session after `HelloRpc`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class AuthenticateRpc extends Rpc.make("EventLog.Authenticate", {
@@ -156,7 +156,7 @@ export class AuthenticateRpc extends Rpc.make("EventLog.Authenticate", {
 /**
  * Transport message containing an entire encoded event-log payload in one frame.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class SingleMessage
@@ -173,7 +173,7 @@ export class SingleMessage
  * Use to divide data into chunks and `join` to reassemble all chunks with
  * the same id once every part has arrived.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class ChunkedMessage
@@ -256,7 +256,7 @@ export class ChunkedMessage
 /**
  * Authenticated RPC for sending one chunk of a large encoded write payload.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
@@ -272,7 +272,7 @@ export class WriteChunkedRpc extends Rpc.make("EventLog.WriteChunked", {
  * It includes the client public key, target store id, AES-GCM initialization
  * vector, and encrypted entries.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/EventLogRemote/WriteEntries")({
@@ -292,7 +292,7 @@ export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/Ev
 /**
  * Msgpack-encodable payload for writing plaintext entries to a remote store.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class WriteEntriesUnencrypted
@@ -314,7 +314,7 @@ export class WriteEntriesUnencrypted
  * Authenticated RPC for sending an encoded write payload that fits in one
  * message.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class WriteSingleRpc extends Rpc.make("EventLog.WriteSingle", {
@@ -333,7 +333,7 @@ export class WriteSingleRpc extends Rpc.make("EventLog.WriteSingle", {
  * Responses are encoded as either `SingleMessage` values or `ChunkedMessage`
  * parts.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class ChangesRpc extends Rpc.make("EventLog.Changes", {
@@ -358,7 +358,7 @@ export class ChangesRpc extends Rpc.make("EventLog.Changes", {
  * RPC group containing the event-log remote handshake, authentication, write, and
  * changes endpoints.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class EventLogRemoteRpcs extends RpcGroup.make(

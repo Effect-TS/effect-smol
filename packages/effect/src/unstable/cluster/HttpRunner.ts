@@ -220,8 +220,7 @@ export const layerClient: Layer.Layer<
 )
 
 /**
- * A HTTP layer for the `Runners` services, that adds a route to the provided
- * `HttpRouter`.
+ * Layer that adds HTTP runner routes to the provided `HttpRouter`.
  *
  * @category layers
  * @since 4.0.0
@@ -244,8 +243,7 @@ export const layerHttpOptions = (options: {
   )
 
 /**
- * WebSocket layer for the `Runners` services that adds a route to the provided
- * `HttpRouter`.
+ * Layer that adds WebSocket runner routes to the provided `HttpRouter`.
  *
  * @category layers
  * @since 4.0.0
@@ -268,7 +266,7 @@ export const layerWebsocketOptions = (options: {
   )
 
 /**
- * Complete HTTP runner layer.
+ * Layer that serves runner routes at `/` and configures HTTP runner clients.
  *
  * **Details**
  *
@@ -321,7 +319,7 @@ export const layerHttpClientOnly: Layer.Layer<
 )
 
 /**
- * Complete WebSocket runner layer.
+ * Layer that serves runner routes at `/` and configures WebSocket runner clients.
  *
  * **Details**
  *

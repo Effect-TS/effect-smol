@@ -401,7 +401,7 @@ export const BooleanSqlite: BooleanSqlite = Field({
  * Schema type for a `DateTime.Utc` date-only value encoded as a `YYYY-MM-DD`
  * string.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, Schema.String> {}
@@ -410,7 +410,7 @@ export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, S
  * Schema for a `DateTime.Utc` that is serialized as a date string in the
  * format `YYYY-MM-DD`.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const Date: Date = Schema.String.pipe(
@@ -421,10 +421,10 @@ export const Date: Date = Schema.String.pipe(
 )
 
 /**
- * Overrideable date-only UTC schema whose constructor default is the current date
- * with the time component removed.
+ * Schema for an overrideable UTC date-only field whose constructor default is
+ * the current date with the time component removed.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateWithNow = VariantSchema.Overrideable(Date, {
@@ -432,10 +432,10 @@ export const DateWithNow = VariantSchema.Overrideable(Date, {
 })
 
 /**
- * Overrideable UTC date-time schema encoded as a string, with a constructor
- * default of the current `DateTime.Utc`.
+ * Schema for an overrideable UTC date-time field encoded as a string and
+ * defaulted to the current `DateTime.Utc`.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromString, {
@@ -443,10 +443,10 @@ export const DateTimeWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFrom
 })
 
 /**
- * Overrideable UTC date-time schema encoded as a JavaScript `Date`, with a
- * constructor default of the current `DateTime.Utc`.
+ * Schema for an overrideable UTC date-time field encoded as a JavaScript `Date`
+ * and defaulted to the current `DateTime.Utc`.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromDate, {
@@ -454,10 +454,10 @@ export const DateTimeFromDateWithNow = VariantSchema.Overrideable(Schema.DateTim
 })
 
 /**
- * Overrideable UTC date-time schema encoded as milliseconds, with a constructor
- * default of the current `DateTime.Utc`.
+ * Schema for an overrideable UTC date-time field encoded as milliseconds and
+ * defaulted to the current `DateTime.Utc`.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.DateTimeUtcFromMillis, {
@@ -468,7 +468,7 @@ export const DateTimeFromNumberWithNow = VariantSchema.Overrideable(Schema.DateT
  * Variant field type for a UTC date-time stored as a string, defaulted to the
  * current time on insert, available for selection, and omitted from updates.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export interface DateTimeInsert extends
@@ -487,7 +487,7 @@ export interface DateTimeInsert extends
  *
  * It is omitted from updates and is available for selection.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeInsert: DateTimeInsert = Field({
@@ -500,7 +500,7 @@ export const DateTimeInsert: DateTimeInsert = Field({
  * Variant field type for a UTC date-time stored as a JavaScript `Date` in
  * database variants, encoded as a string for JSON, and defaulted on insert.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export interface DateTimeInsertFromDate extends
@@ -519,7 +519,7 @@ export interface DateTimeInsertFromDate extends
  *
  * It is omitted from updates and is available for selection.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
@@ -532,7 +532,7 @@ export const DateTimeInsertFromDate: DateTimeInsertFromDate = Field({
  * Variant field type for a UTC date-time encoded as milliseconds and defaulted to
  * the current time on insert.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export interface DateTimeInsertFromNumber extends
@@ -551,7 +551,7 @@ export interface DateTimeInsertFromNumber extends
  *
  * It is omitted from updates and is available for selection.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeInsertFromNumber: DateTimeInsertFromNumber = Field({
@@ -564,7 +564,7 @@ export const DateTimeInsertFromNumber: DateTimeInsertFromNumber = Field({
  * Variant field type for a UTC date-time stored as a string and defaulted to the
  * current time on both inserts and updates.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export interface DateTimeUpdate extends
@@ -585,7 +585,7 @@ export interface DateTimeUpdate extends
  * It is set to the current `DateTime.Utc` on updates and inserts and is
  * available for selection.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeUpdate: DateTimeUpdate = Field({
@@ -600,7 +600,7 @@ export const DateTimeUpdate: DateTimeUpdate = Field({
  * database variants, encoded as a string for JSON, and defaulted on inserts and
  * updates.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export interface DateTimeUpdateFromDate extends
@@ -621,7 +621,7 @@ export interface DateTimeUpdateFromDate extends
  * It is set to the current `DateTime.Utc` on updates and inserts and is
  * available for selection.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
@@ -635,7 +635,7 @@ export const DateTimeUpdateFromDate: DateTimeUpdateFromDate = Field({
  * Variant field type for a UTC date-time encoded as milliseconds and defaulted to
  * the current time on both inserts and updates.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export interface DateTimeUpdateFromNumber extends
@@ -656,7 +656,7 @@ export interface DateTimeUpdateFromNumber extends
  * It is set to the current `DateTime.Utc` on updates and inserts and is
  * available for selection.
  *
- * @category date & time
+ * @category DateTime
  * @since 4.0.0
  */
 export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({

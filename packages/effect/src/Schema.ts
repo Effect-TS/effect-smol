@@ -8405,7 +8405,7 @@ export function OptionFromOptionalNullOr<S extends Top>(
  * Schema for the `Result<A, E>` type, representing a computation that either
  * succeeds with `A` or fails with `E`.
  *
- * @category Result
+ * @category schemas
  * @since 4.0.0
  */
 export interface Result<A extends Top, E extends Top> extends
@@ -8429,7 +8429,7 @@ export interface Result<A extends Top, E extends Top> extends
  * Successful results are represented as `{ _tag: "Success", success }`, while
  * failed results are represented as `{ _tag: "Failure", failure }`.
  *
- * @category Result
+ * @category schemas
  * @since 4.0.0
  */
 export type ResultIso<A extends Top, E extends Top> =
@@ -8439,7 +8439,7 @@ export type ResultIso<A extends Top, E extends Top> =
 /**
  * Schema for `Result<A, E>` values.
  *
- * @category Result
+ * @category schemas
  * @since 4.0.0
  */
 export function Result<A extends Top, E extends Top>(

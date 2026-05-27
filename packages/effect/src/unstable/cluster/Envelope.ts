@@ -379,10 +379,9 @@ export const makeRequest = <Rpc extends Rpc.Any>(
 })
 
 /**
- * Schema declaration that recognizes runtime `Envelope` values by their type
- * identifier.
+ * Schema for runtime `Envelope` values recognized by their type identifier.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const Envelope = Schema.declare(isEnvelope, {
@@ -390,9 +389,9 @@ export const Envelope = Schema.declare(isEnvelope, {
 })
 
 /**
- * Schema declaration that recognizes runtime request envelopes.
+ * Schema for runtime request envelopes.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const Request = Schema.declare(
@@ -401,10 +400,10 @@ export const Request = Schema.declare(
 )
 
 /**
- * Transformation that decodes plain request data with `makeRequest` and encodes
+ * Transforms plain request data with `makeRequest` and encodes
  * request envelopes back to their raw representation.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const RequestTransform: Transformation.Transformation<

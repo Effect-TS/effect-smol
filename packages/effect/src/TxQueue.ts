@@ -1148,7 +1148,7 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
     : Effect.map(size(self), (currentSize) => currentSize >= self.capacity)
 
 /**
- * Gracefully interrupts the queue with the current fiber's interruption cause.
+ * Interrupts the queue gracefully with the current fiber's interruption cause.
  *
  * **Details**
  *

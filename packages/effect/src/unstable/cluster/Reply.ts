@@ -426,7 +426,7 @@ export const Reply = <R extends Rpc.Any>(
  * reply's RPC schema and context and refailing encoding errors as
  * `MalformedMessage`.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serialize = <R extends Rpc.Any>(
@@ -446,7 +446,7 @@ export const serialize = <R extends Rpc.Any>(
  * `None` when no reply has been received and refailing encoding errors as
  * `MalformedMessage`.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeLastReceived = <R extends Rpc.Any>(

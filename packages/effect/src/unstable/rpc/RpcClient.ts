@@ -864,7 +864,7 @@ export const withHeaders: {
  * Use to provide the transport boundary for RPC clients over HTTP, WebSocket,
  * workers, sockets, or custom protocols.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export class Protocol extends Context.Service<Protocol, {
@@ -892,7 +892,7 @@ export class Protocol extends Context.Service<Protocol, {
  * Creates a client `Protocol` that sends each RPC request through the supplied
  * `HttpClient` and decodes responses with the current `RpcSerialization`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
@@ -983,7 +983,7 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
  * Provides a client `Protocol` backed by `HttpClient`, targeting the configured
  * URL and optionally transforming the client before use.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolHttp = (options: {
@@ -1005,7 +1005,7 @@ export const layerProtocolHttp = (options: {
  * `RpcSerialization`, connection hooks, ping timeouts, and the configured retry
  * policy.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolSocket = (options?: {
@@ -1172,7 +1172,7 @@ const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect
  * Provides a client `Protocol` backed by the current `Socket` and
  * `RpcSerialization` services.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolSocket = (options?: {
@@ -1187,7 +1187,7 @@ export const layerProtocolSocket = (options?: {
  * Creates a client `Protocol` backed by a pool of workers, routing RPC requests
  * to workers and supporting transferable values when the platform does.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolWorker = (
@@ -1353,7 +1353,7 @@ export const makeProtocolWorker = (
  * Provides a client `Protocol` backed by a worker pool using the current worker
  * platform and spawner services.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolWorker: (

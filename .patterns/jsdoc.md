@@ -13,7 +13,7 @@ When adding or vetting JSDoc categories in public source files:
 
 ## Common Shared Categories
 
-- API shapes: `constructors`, `destructors`, `models`, `schemas`, `guards`, `predicates`, `getters`, `accessors`, `instances`, `constants`, `protocol`, `prototypes`, `re-exports`, `unsafe`, `testing`
+- API shapes: `constructors`, `destructors`, `models`, `schemas`, `guards`, `predicates`, `getters`, `accessors`, `instances`, `constants`, `protocols`, `prototypes`, `re-exports`, `unsafe`, `testing`
 - Effect/service concepts: `services`, `tags`, `layers`, `context`, `resource management`, `running`
 - Type-level APIs: `utility types` for type-level helpers/contracts; use `models` for exported type/interface/class shapes that represent domain data
 - Error APIs: `errors` for error models/classes/types, `error handling` for recovery/catching/mapping APIs
@@ -30,11 +30,17 @@ Normalize high-confidence aliases, for example:
 - `Layers` / `layer` -> `layers`
 - `Models` / `Model` / `model` -> `models`
 - `Combinators` -> `combinators`
+- `Accessors` -> `accessors`
 - `Guards` / `Guard` -> `guards`
+- `error` -> `errors`
 - `Error Handling` -> `error handling`
 - `Type IDs` / `type ids` -> `type IDs`
 - `Services` / `Service` / `service` -> `services`
 - `Re-exports` -> `re-exports`
+- `protocol` -> `protocols`
+- `Result` -> `results`
+- `date & time` -> `DateTime`
+- `serialization / deserialization` -> `serialization`
 - `conversions` -> `converting`
 - `transformations` -> `transforming`
 - `Resource Management & Finalization` -> `resource management`

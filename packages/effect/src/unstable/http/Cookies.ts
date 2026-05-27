@@ -213,8 +213,8 @@ export const CookieSchema: CookieSchema = Schema.declare(
 const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
 
 /**
- * Structured reason describing why cookie construction failed, such as invalid
- * name, value, domain, path, or infinite max-age.
+ * Error reason describing why cookie construction failed, such as invalid name,
+ * value, domain, path, or infinite max-age.
  *
  * @category errors
  * @since 4.0.0

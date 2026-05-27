@@ -548,7 +548,7 @@ const try_: {
 
 export {
   /**
- * Wraps a synchronous computation that may throw into a `Result` safely.
+   * Wraps a synchronous computation that may throw into a `Result` safely.
    *
    * **Details**
    *

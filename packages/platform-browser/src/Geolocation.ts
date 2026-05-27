@@ -237,9 +237,10 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
 )
 
 /**
- * Streams positions from the `Geolocation` service using `watchPosition`, with an optional sliding buffer size.
+ * Streams geolocation positions from the `Geolocation` service, with an
+ * optional sliding buffer size.
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const watchPosition = (

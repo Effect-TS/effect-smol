@@ -668,7 +668,7 @@ export const make: {
 }
 
 /**
- * Pipe the output of one command to the input of another.
+ * Pipes the output of one command to the input of another.
  *
  * **Details**
  *
@@ -708,7 +708,7 @@ export const pipeTo: {
 )
 
 /**
- * Prefix a command with another command.
+ * Prepends another command to a command.
  *
  * **Details**
  *

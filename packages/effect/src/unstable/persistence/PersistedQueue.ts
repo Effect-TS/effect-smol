@@ -131,7 +131,7 @@ export class PersistedQueueFactory extends Context.Service<
  * Accesses `PersistedQueueFactory` to create a named persisted queue for a
  * schema.
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const make = <S extends Schema.Top>(options: {

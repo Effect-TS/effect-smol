@@ -859,8 +859,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
 }
 
 /**
- * Sequences prompts by using the output of this prompt to create the next
- * prompt.
+ * Composes prompts by using the output of this prompt to create the next prompt.
  *
  * @category combinators
  * @since 4.0.0

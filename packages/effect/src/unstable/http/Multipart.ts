@@ -213,7 +213,7 @@ export interface Persisted {
 const MultipartErrorTypeId = "~effect/http/Multipart/MultipartError"
 
 /**
- * Reason carried by a `MultipartError`.
+ * Error reason carried by a `MultipartError`.
  *
  * **Details**
  *

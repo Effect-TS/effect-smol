@@ -168,7 +168,7 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
 
 export {
   /**
-   * Awaits the durable deferred, suspending the current workflow when no
+   * Waits for the durable deferred, suspending the current workflow when no
    * persisted completion is available.
    *
    * @category combinators

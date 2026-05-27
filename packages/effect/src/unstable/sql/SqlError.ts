@@ -403,7 +403,7 @@ export const SqlErrorReason: Schema.Union<[
 ])
 
 /**
- * Top-level SQL error wrapper whose `message`, `cause`, and `isRetryable`
+ * Error wrapper for SQL failures whose `message`, `cause`, and `isRetryable`
  * values are derived from its `SqlErrorReason`.
  *
  * @category errors

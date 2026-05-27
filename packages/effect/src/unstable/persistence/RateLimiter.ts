@@ -240,7 +240,7 @@ export const layer: Layer.Layer<
 > = Layer.effect(RateLimiter, make)
 
 /**
- * Access a function that applies rate limiting to an effect.
+ * Accesses a function that applies rate limiting to an effect.
  *
  * **Example** (Applying rate limits to effects)
  *
@@ -265,7 +265,7 @@ export const layer: Layer.Layer<
  * })
  * ```
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const makeWithRateLimiter: Effect.Effect<
@@ -289,7 +289,7 @@ export const makeWithRateLimiter: Effect.Effect<
 )
 
 /**
- * Access a function that sleeps when the rate limit is exceeded.
+ * Accesses a function that sleeps when the rate limit is exceeded.
  *
  * **Example** (Sleeping until rate limit permits)
  *
@@ -312,7 +312,7 @@ export const makeWithRateLimiter: Effect.Effect<
  * })
  * ```
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const makeSleep: Effect.Effect<

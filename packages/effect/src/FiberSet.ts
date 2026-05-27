@@ -405,7 +405,7 @@ export const add: {
 )
 
 /**
- * Interrupt all fibers in the FiberSet and clear the set.
+ * Interrupts all fibers in the `FiberSet` and clears the set.
  *
  * **Example** (Clearing all fibers)
  *
@@ -520,7 +520,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
   })
 
 /**
- * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberSet.
+ * Captures a `Runtime` and uses it to fork effects into the `FiberSet`.
  *
  * **Example** (Capturing a runtime)
  *

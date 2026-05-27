@@ -38,7 +38,7 @@ import * as Sharding from "./Sharding.ts"
 import * as ShardingConfig from "./ShardingConfig.ts"
 
 /**
- * An in-memory cluster that can be used for testing purposes.
+ * Layer that provides an in-memory cluster for testing.
  *
  * **Details**
  *

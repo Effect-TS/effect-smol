@@ -46,8 +46,8 @@ import { ShardingConfig } from "./ShardingConfig.ts"
 const constVoid = constant(Effect.void)
 
 /**
- * Layer of RPC handlers for the runner protocol, forwarding ping, notify, effect,
- * stream, and envelope requests to `Sharding` and `MessageStorage`.
+ * Layer that handles runner protocol RPCs by forwarding requests to `Sharding`
+ * and `MessageStorage`.
  *
  * @category layers
  * @since 4.0.0
@@ -187,7 +187,8 @@ export const layer: Layer.Layer<
 }).pipe(Layer.provide(layerHandlers))
 
 /**
- * A `RunnerServer` layer that includes the `Runners` & `Sharding` clients.
+ * Layer that provides `RunnerServer` together with `Runners` and `Sharding`
+ * clients.
  *
  * @category layers
  * @since 4.0.0
