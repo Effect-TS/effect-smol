@@ -30,7 +30,7 @@ import * as Runtime from "../../Runtime.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 const TypeId = "~effect/cli/CliError"

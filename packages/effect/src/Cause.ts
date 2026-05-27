@@ -91,7 +91,7 @@ import type * as Types from "./Types.ts"
 /**
  * Unique brand for `Cause` values, used for runtime type checks via {@link isCause}.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: "~effect/Cause" = core.CauseTypeId
@@ -99,7 +99,7 @@ export const TypeId: "~effect/Cause" = core.CauseTypeId
 /**
  * Unique brand for `Reason` values, used for runtime type checks via {@link isReason}.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const ReasonTypeId: "~effect/Cause/Reason" = core.CauseReasonTypeId
@@ -1275,7 +1275,7 @@ export const isNoSuchElementError: (u: unknown) => u is NoSuchElementError = cor
 /**
  * Unique brand for `NoSuchElementError`.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core.NoSuchElementErrorTypeId
@@ -1361,7 +1361,7 @@ export const isDone: (u: unknown) => u is Done<any> = core.isDone
 /**
  * Unique brand for `Done` values.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
@@ -1475,7 +1475,7 @@ export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core
 /**
  * Unique brand for `TimeoutError`.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const TimeoutErrorTypeId: "~effect/Cause/TimeoutError" = effect.TimeoutErrorTypeId
@@ -1543,7 +1543,7 @@ export const TimeoutError: new(message?: string) => TimeoutError = effect.Timeou
 /**
  * Unique brand for `IllegalArgumentError`.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const IllegalArgumentErrorTypeId: "~effect/Cause/IllegalArgumentError" = effect.IllegalArgumentErrorTypeId
@@ -1628,7 +1628,7 @@ export const isExceededCapacityError: (u: unknown) => u is ExceededCapacityError
 /**
  * Unique brand for `ExceededCapacityError`.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" = effect.ExceededCapacityErrorTypeId
@@ -1691,7 +1691,7 @@ export const ExceededCapacityError: new(message?: string) => ExceededCapacityErr
  * Unique brand present on `AsyncFiberError` values and used by
  * `isAsyncFiberError` for runtime checks.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const AsyncFiberErrorTypeId: "~effect/Cause/AsyncFiberError" = effect.AsyncFiberErrorTypeId
@@ -1783,7 +1783,7 @@ export const AsyncFiberError: new(fiber: Fiber<unknown, unknown>) => AsyncFiberE
 /**
  * Unique brand for `UnknownError`.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const UnknownErrorTypeId: "~effect/Cause/UnknownError" = effect.UnknownErrorTypeId

@@ -1082,7 +1082,7 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * @see {@link File} for the open file handle shape that carries this marker
  * @see {@link isFile} for the public guard that checks this marker
  *
- * @category File
+ * @category type IDs
  * @since 4.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"

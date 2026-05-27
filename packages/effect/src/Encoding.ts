@@ -67,7 +67,7 @@ import * as Result from "./Result.ts"
  *
  * @see {@link isEncodingError} for the public guard that checks this marker
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export const EncodingErrorTypeId = "~effect/encoding/EncodingError" as const
@@ -79,7 +79,7 @@ export const EncodingErrorTypeId = "~effect/encoding/EncodingError" as const
  *
  * Use to type the marker carried by `EncodingError` values.
  *
- * @category symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export type EncodingErrorTypeId = typeof EncodingErrorTypeId

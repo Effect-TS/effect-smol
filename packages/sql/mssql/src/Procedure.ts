@@ -44,7 +44,7 @@ import * as Parameter from "./Parameter.ts"
 /**
  * Runtime type identifier used to mark SQL Server stored procedure definitions.
  *
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-mssql/Procedure"
@@ -52,7 +52,7 @@ export const TypeId: TypeId = "~@effect/sql-mssql/Procedure"
 /**
  * Type-level identifier used to mark SQL Server stored procedure definitions.
  *
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-mssql/Procedure"

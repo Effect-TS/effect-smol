@@ -207,7 +207,7 @@ export class Identity extends Context.Service<Identity, {
 /**
  * Type-level identifier used to brand `EventLogSchema` values.
  *
- * @category schemas
+ * @category type IDs
  * @since 4.0.0
  */
 export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
@@ -215,7 +215,7 @@ export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 /**
  * Runtime property key used to identify `EventLogSchema` values.
  *
- * @category schemas
+ * @category type IDs
  * @since 4.0.0
  */
 export const SchemaTypeId: SchemaTypeId = "~effect/eventlog/EventLog/Schema"
@@ -259,7 +259,7 @@ export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
 /**
  * Type-level identifier used to brand `Handlers` values.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export type HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
@@ -267,7 +267,7 @@ export type HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
 /**
  * Runtime property key used to identify `Handlers` values.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export const HandlersTypeId: HandlersTypeId = "~effect/eventlog/EventLog/Handlers"

@@ -45,7 +45,7 @@ export class SocketServer extends Context.Service<SocketServer, {
 /**
  * Runtime type identifier attached to `SocketServerError` values.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"
@@ -53,7 +53,7 @@ export const ErrorTypeId: ErrorTypeId = "@effect/platform/SocketServer/SocketSer
 /**
  * Type-level identifier used to mark `SocketServerError` values.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export type ErrorTypeId = "@effect/platform/SocketServer/SocketServerError"

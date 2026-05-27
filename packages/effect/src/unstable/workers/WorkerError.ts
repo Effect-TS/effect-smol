@@ -44,7 +44,7 @@ const TypeId = "~effect/workers/WorkerError" as const
 /**
  * Type-level identifier used to brand `WorkerError` values.
  *
- * @category Symbols
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = typeof TypeId

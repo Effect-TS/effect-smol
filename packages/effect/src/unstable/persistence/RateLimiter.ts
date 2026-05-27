@@ -343,7 +343,7 @@ export const makeSleep: Effect.Effect<
 /**
  * Runtime type identifier for `RateLimiterError`.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
@@ -351,7 +351,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateL
 /**
  * Type-level identifier used to brand `RateLimiterError` values.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"

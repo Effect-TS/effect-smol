@@ -2403,7 +2403,7 @@ export const mount = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry
 /**
  * The type id used to mark atoms that carry serialization metadata.
  *
- * @category Serializable
+ * @category type IDs
  * @since 4.0.0
  */
 export const SerializableTypeId: SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
@@ -2411,7 +2411,7 @@ export const SerializableTypeId: SerializableTypeId = "~effect-atom/atom/Atom/Se
 /**
  * The literal type of the serializable atom marker.
  *
- * @category Serializable
+ * @category type IDs
  * @since 4.0.0
  */
 export type SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
@@ -2482,7 +2482,7 @@ export const serializable: {
 /**
  * The type id used to mark atoms with a server-side read override.
  *
- * @category ServerValue
+ * @category type IDs
  * @since 4.0.0
  */
 export const ServerValueTypeId = "~effect-atom/atom/Atom/ServerValue" as const

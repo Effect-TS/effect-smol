@@ -156,7 +156,7 @@ export class EventJournalError extends Data.TaggedError("EventJournalError")<{
 /**
  * Brand identifier used for `RemoteId` values.
  *
- * @category remote
+ * @category type IDs
  * @since 4.0.0
  */
 export type RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
@@ -164,7 +164,7 @@ export type RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
 /**
  * Runtime brand identifier used for `RemoteId` values.
  *
- * @category remote
+ * @category type IDs
  * @since 4.0.0
  */
 export const RemoteIdTypeId: RemoteIdTypeId = "effect/eventlog/EventJournal/RemoteId"
@@ -201,7 +201,7 @@ export const makeRemoteIdUnsafe = (): RemoteId => Uuid.v4({}, new globalThis.Uin
 /**
  * Runtime brand identifier used for `EntryId` values.
  *
- * @category entry
+ * @category type IDs
  * @since 4.0.0
  */
 export const EntryIdTypeId: EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"
@@ -209,7 +209,7 @@ export const EntryIdTypeId: EntryIdTypeId = "effect/eventlog/EventJournal/EntryI
 /**
  * Brand identifier used for `EntryId` values.
  *
- * @category entry
+ * @category type IDs
  * @since 4.0.0
  */
 export type EntryIdTypeId = "effect/eventlog/EventJournal/EntryId"

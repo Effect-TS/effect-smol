@@ -39,7 +39,7 @@ import { EncryptedEntry, EncryptedRemoteEntry } from "./EventLogEncryption.ts"
 /**
  * Type-level identifier used to brand event-log store ids.
  *
- * @category StoreId
+ * @category type IDs
  * @since 4.0.0
  */
 export type StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
@@ -47,7 +47,7 @@ export type StoreIdTypeId = "effect/eventlog/EventLog/StoreId"
 /**
  * Runtime brand identifier for event-log store ids.
  *
- * @category StoreId
+ * @category type IDs
  * @since 4.0.0
  */
 export const StoreIdTypeId: StoreIdTypeId = "effect/eventlog/EventLog/StoreId"

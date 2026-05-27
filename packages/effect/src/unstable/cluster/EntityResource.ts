@@ -38,7 +38,7 @@ import type { Sharding } from "./Sharding.ts"
 /**
  * Type identifier used to brand `EntityResource` values.
  *
- * @category Type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/cluster/EntityResource"
@@ -46,7 +46,7 @@ export const TypeId: TypeId = "~effect/cluster/EntityResource"
 /**
  * Literal type of the `EntityResource` type identifier.
  *
- * @category Type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/cluster/EntityResource"
