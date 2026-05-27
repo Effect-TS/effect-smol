@@ -470,10 +470,6 @@ export class Decoding<S extends Schema.Top> {
    *
    * Use when the schema's decoder requires a service dependency.
    *
-   * **Details**
-   *
-   * This method does not mutate the current instance.
-   *
    * @see {@link Encoding.provide}
    */
   provide<Id, Service>(
@@ -613,10 +609,6 @@ export class Encoding<S extends Schema.Top> {
    * **When to use**
    *
    * Use when the schema's encoder requires a service dependency.
-   *
-   * **Details**
-   *
-   * This method does not mutate the current instance.
    *
    * @see {@link Decoding.provide}
    */

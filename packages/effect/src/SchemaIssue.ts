@@ -100,7 +100,6 @@ const TypeId = "~effect/SchemaIssue/Issue"
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Checks for the internal `TypeId` brand on the value.
  *
  * **Example** (Type-guarding an unknown error)
@@ -828,7 +827,6 @@ export class OneOf extends Base {
  *
  * **Details**
  *
- * - Pure; does not mutate the issue.
  * - Returns `Option.none()` for `Pointer` and `MissingKey` (they carry no
  *   value).
  * - Returns the existing `Option` for variants that already store `actual` as

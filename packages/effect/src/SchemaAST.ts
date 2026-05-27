@@ -3143,7 +3143,6 @@ export function withConstructorDefault<A extends AST>(
  * `Schema.transformOrFail`. It appends a {@link Link} to the `to` node's
  * encoding chain.
  *
- * - Does not mutate either input.
  * - Returns a new AST with the same type as `to`.
  *
  * @see {@link Link}
@@ -3243,7 +3242,6 @@ export function isMutable(ast: AST): boolean {
  * - Memoized: same input reference → same output reference.
  * - Recursively walks into composite nodes ({@link Arrays}, {@link Objects},
  *   {@link Union}, {@link Suspend}).
- * - Does not mutate the input.
  *
  * **Example** (Getting the type AST)
  *
@@ -3278,7 +3276,6 @@ export const toType = memoize(<A extends AST>(ast: A): A => {
  * the shape of the serialized/encoded data.
  *
  * - Memoized: same input reference → same output reference.
- * - Does not mutate the input.
  *
  * **Example** (Getting the encoded AST)
  *
@@ -3328,7 +3325,6 @@ function flipEncoding(ast: AST, encoding: Encoding): AST {
  *
  * - Memoized: same input reference → same output reference.
  * - Recursively walks composite nodes.
- * - Does not mutate the input.
  *
  * @see {@link toType}
  * @see {@link toEncoded}

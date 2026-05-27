@@ -468,7 +468,7 @@ export interface Interrupt extends Cause.ReasonProto<"Interrupt"> {
  *
  * **Details**
  *
- * - Returns a new `Cause`; does not mutate the input array.
+ * - Returns a new `Cause`.
  * - An empty array produces a cause equivalent to `empty`.
  *
  * **Gotchas**
@@ -722,8 +722,7 @@ export const hasInterruptsOnly: <E>(self: Cause<E>) => boolean = effect.hasInter
  *
  * If at least one `Fail` reason exists, this returns a new `Cause`
  * containing the mapped failures. If the cause has no `Fail` reasons, the
- * original cause is returned unchanged. In either case, the original cause is
- * not mutated.
+ * original cause is returned unchanged.
  *
  * **Example** (mapping errors to uppercase)
  *
@@ -1864,7 +1863,7 @@ export const UnknownError: new(cause: unknown, message?: string) => UnknownError
  * retrieved later via {@link reasonAnnotations} or {@link annotations}.
  * The runtime uses this to attach stack traces and spans.
  *
- * - Returns a new `Cause`; does not mutate the input.
+ * - Returns a new `Cause`.
  * - By default, existing keys are preserved. Pass `{ overwrite: true }` to
  *   replace them.
  *

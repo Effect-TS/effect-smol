@@ -99,7 +99,6 @@ export interface Formatter<in Value, out Format = string> {
  *
  * **Details**
  *
- * - Does not mutate input.
  * - Output is **not** valid JSON; use {@link formatJson} when you need
  *   parseable JSON.
  * - Primitives: stringified naturally (`null`, `undefined`, `123`, `true`).
@@ -295,7 +294,6 @@ function safeToString(input: any): string {
  *
  * **Details**
  *
- * - Does not mutate input.
  * - Uses `JSON.stringify` internally with a replacer that tracks the
  *   current object ancestry.
  * - Circular references are replaced with `undefined` (omitted from

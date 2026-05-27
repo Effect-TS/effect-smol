@@ -157,7 +157,6 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - The returned optic can be composed with any other optic.
  *
  * **Example** (wrapping/unwrapping a branded type)
@@ -239,7 +238,6 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - `replace(a, s)` should return a structurally new `S` with `a` in place
  *   of the old focus.
  *
@@ -328,7 +326,6 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - `getResult` should return `Result.fail(message)` on mismatch.
  *
  * **Example** (parsing a string to a number)
@@ -375,7 +372,6 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * - `getResult` runs all checks; fails with a combined error message when
  *   any check fails.
  * - `set` is identity — the value passes through unchanged.
- * - Does not mutate inputs.
  *
  * **Example** (positive integer prism)
  *
@@ -1034,7 +1030,6 @@ export interface Optional<in out S, in out A> {
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - `getResult` should return `Result.fail(message)` on mismatch.
  * - `set` should return `Result.fail(message)` when the update cannot be
  *   applied.
@@ -1480,7 +1475,6 @@ function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
  *
  * - Returns an empty array when the traversal cannot focus.
  * - Always returns a fresh array (safe to mutate).
- * - Does not mutate the source.
  *
  * **Example** (collecting positive numbers)
  *

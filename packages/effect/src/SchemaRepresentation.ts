@@ -1671,7 +1671,6 @@ export const $MultiDocument = Schema.Struct({
  *
  * **Details**
  *
- * This is a pure function and does not mutate the input AST.
  * Shared/recursive sub-schemas are extracted into the `references` map.
  *
  * **Example** (Converting a Schema to a Document)
@@ -1706,8 +1705,7 @@ export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAS
  *
  * **Details**
  *
- * This is a pure function and does not mutate the input ASTs. All schemas share
- * a single `references` map.
+ * All schemas share a single `references` map.
  *
  * @see {@link MultiDocument}
  * @see {@link fromAST}
@@ -1762,10 +1760,6 @@ export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = S
  *
  * Use when an API expects a `MultiDocument` but you only have a single
  * `Document`.
- *
- * **Details**
- *
- * This is a pure function and does not mutate the input.
  *
  * @see {@link Document}
  * @see {@link MultiDocument}
@@ -2244,10 +2238,6 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
  * Use to produce a standard JSON Schema from an Effect Schema
  * representation.
  *
- * **Details**
- *
- * This is a pure function and does not mutate the input.
- *
  * **Example** (Generating JSON Schema)
  *
  * ```ts
@@ -2278,10 +2268,6 @@ export const toJsonSchemaDocument: (
  * **When to use**
  *
  * Use when you have multiple schemas sharing references.
- *
- * **Details**
- *
- * This is a pure function and does not mutate the input.
  *
  * @see {@link MultiDocument}
  * @see {@link toJsonSchemaDocument}

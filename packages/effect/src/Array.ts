@@ -47,8 +47,6 @@
  *
  * - {@link fromIterable} returns the original array reference when the input is
  *   already an array. Use {@link copy} when you need a fresh shallow copy.
- * - {@link sort}, {@link reverse}, {@link rotate}, and update operations
- *   allocate new arrays; they do not mutate the input.
  * - {@link makeBy}, {@link range}, and {@link replicate} always return
  *   non-empty arrays. `range(start, end)` is inclusive and returns `[start]`
  *   when `start > end`.
@@ -622,7 +620,6 @@ export const matchRight: {
  * **Details**
  *
  * - Always returns a non-empty array.
- * - Does not mutate the input.
  *
  * **Example** (Prepending an element)
  *
@@ -654,7 +651,6 @@ export const prepend: {
  * **Details**
  *
  * - If either input is non-empty, the result is a `NonEmptyArray`.
- * - Does not mutate the input.
  *
  * **Example** (Prepending multiple elements)
  *
@@ -694,7 +690,6 @@ export const prependAll: {
  * **Details**
  *
  * - Always returns a non-empty array.
- * - Does not mutate the input.
  *
  * **Example** (Appending an element)
  *
@@ -727,7 +722,6 @@ export const append: {
  * **Details**
  *
  * - If either input is non-empty, the result is a `NonEmptyArray`.
- * - Does not mutate the inputs.
  *
  * **Example** (Concatenating arrays)
  *
@@ -1929,7 +1923,6 @@ export const findLast: {
  * **Details**
  *
  * - Valid indices: `0` to `length` (inclusive — inserting at `length` appends).
- * - Does not mutate the input.
  *
  * **Example** (Inserting at an index)
  *
@@ -1968,7 +1961,6 @@ export const insertAt: {
  * **Details**
  *
  * - Returns `Option.none()` when the index is out of bounds.
- * - Does not mutate the input.
  *
  * **Example** (Replacing an element)
  *
@@ -2010,7 +2002,6 @@ export const replace: {
  * **Details**
  *
  * - Returns `Option.none()` when the index is out of bounds.
- * - Does not mutate the input.
  *
  * **Example** (Modifying an element)
  *
@@ -2057,10 +2048,6 @@ export const modify: {
  *
  * Use to remove a single element at a known index.
  *
- * **Details**
- *
- * Does not mutate the input.
- *
  * **Example** (Removing an element)
  *
  * ```ts
@@ -2097,7 +2084,6 @@ export const remove: {
  *
  * **Details**
  *
- * - Does not mutate the input.
  * - Preserves `NonEmptyArray` in the return type.
  *
  * **Example** (Reversing an array)
@@ -2125,7 +2111,6 @@ export const reverse = <S extends Iterable<any>>(
  *
  * **Details**
  *
- * - Does not mutate the input.
  * - Preserves `NonEmptyArray` in the return type.
  * - Use {@link sortWith} to sort by a derived key, or {@link sortBy} for
  *   multi-key sorting.
@@ -2168,7 +2153,6 @@ export const sort: {
  * **Details**
  *
  * - Equivalent to `sort(Order.mapInput(order, f))` but more convenient.
- * - Does not mutate the input.
  *
  * **Example** (Sorting strings by length)
  *

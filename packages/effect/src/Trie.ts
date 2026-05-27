@@ -13,8 +13,6 @@
  * - Prefix lookup uses {@link keysWithPrefix}, {@link valuesWithPrefix},
  *   {@link entriesWithPrefix}, {@link toEntriesWithPrefix}, or
  *   {@link longestPrefixOf}.
- * - Updates such as {@link insert}, {@link remove}, {@link insertMany}, and
- *   {@link removeMany} return new tries; existing tries are not mutated.
  * - Iteration yields entries in key order, not insertion order.
  * - Lookup work is proportional to the key or prefix length rather than the
  *   total number of entries.

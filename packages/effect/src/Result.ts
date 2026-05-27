@@ -316,7 +316,6 @@ export declare namespace Result {
  *
  * - Use when you have a value and want to lift it into the `Result` type
  * - The error type `E` defaults to `never`
- * - Does not mutate input; allocates a new `Success` wrapper
  *
  * **Example** (Wrapping a value)
  *
@@ -347,7 +346,6 @@ export const succeed: <A>(right: A) => Result<A> = result.succeed
  * **Details**
  *
  * - The success type `A` defaults to `never`
- * - Does not mutate input; allocates a new `Failure` wrapper
  *
  * **Example** (Creating a failure)
  *
@@ -795,7 +793,6 @@ export const makeEquivalence = <A, E>(
  *
  * - Applies `onSuccess` if the result is a `Success`
  * - Applies `onFailure` if the result is a `Failure`
- * - Returns a new `Result`; does not mutate the input
  *
  * **Example** (Mapping both channels)
  *
@@ -848,7 +845,6 @@ export const mapBoth: {
  *
  * - If the result is a `Failure`, applies `f` to the error and returns a new `Failure`
  * - If the result is a `Success`, returns it as-is
- * - Does not mutate the input
  *
  * **Example** (Adding context to an error)
  *
@@ -890,7 +886,6 @@ export const mapError: {
  *
  * - If the result is a `Success`, applies `f` to the value and returns a new `Success`
  * - If the result is a `Failure`, returns it as-is
- * - Does not mutate the input
  * - Use {@link flatMap} if `f` returns a `Result` (to avoid nested Results)
  *
  * **Example** (Doubling the success value)

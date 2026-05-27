@@ -170,7 +170,7 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  * **Details**
  *
  * This function calls {@link isRedactable} and, when it returns `true`,
- * delegates to {@link getRedacted}. It does not mutate the input.
+ * delegates to {@link getRedacted}.
  *
  * **Gotchas**
  *
@@ -199,7 +199,7 @@ export function redact(u: unknown): unknown {
  * **Details**
  *
  * This function reads the current fiber's `Context` from the global fiber
- * reference and passes it to the redaction method. It does not mutate the input.
+ * reference and passes it to the redaction method.
  *
  * **Gotchas**
  *

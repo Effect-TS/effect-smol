@@ -146,7 +146,7 @@ export type Node =
  *
  * **Details**
  *
- * The function does not mutate input and returns a new plain object.
+ * The function returns a new plain object.
  *
  * **Example** (Creating a value node)
  *

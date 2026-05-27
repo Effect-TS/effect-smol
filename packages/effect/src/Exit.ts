@@ -863,7 +863,7 @@ export const match: {
  *
  * - Has no effect on failures, which pass through unchanged
  *
- * Allocates a new Exit if successful. Does not mutate the input.
+ * Allocates a new Exit if successful.
  * Supports both curried and direct call styles.
  *
  * **Example** (Mapping over a success)
@@ -898,7 +898,7 @@ export const map: {
  *
  * - Has no effect on successes, which pass through unchanged
  *
- * Allocates a new Exit if the error is transformed. Does not mutate the input.
+ * Allocates a new Exit if the error is transformed.
  * Supports both curried and direct call styles.
  *
  * **Gotchas**
@@ -941,7 +941,7 @@ export const mapError: {
  * - `onSuccess` transforms the value if the Exit is a Success
  * - `onFailure` transforms the typed error if the Exit is a Failure with a Fail reason
  *
- * Allocates a new Exit. Does not mutate the input.
+ * Allocates a new Exit.
  * Supports both curried and direct call styles.
  *
  * **Gotchas**
@@ -991,7 +991,7 @@ export const mapBoth: {
  *
  * - Failures pass through unchanged
  *
- * Allocates a new Exit if successful. Does not mutate the input.
+ * Allocates a new Exit if successful.
  *
  * **Example** (Discarding the success value)
  *

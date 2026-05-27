@@ -112,7 +112,6 @@ import * as Issue from "./SchemaIssue.ts"
  * `Middleware` receives the full `Effect` produced by the inner schema and can
  * intercept, modify, retry, or replace it.
  *
- * - Immutable — constructing a Middleware does not mutate existing instances.
  * - `decode` receives an `Effect<Option<E>, Issue, RDE>` and returns
  *   `Effect<Option<T>, Issue, RDT>`.
  * - `encode` receives an `Effect<Option<T>, Issue, RET>` and returns
@@ -280,7 +279,6 @@ export function isTransformation(u: unknown): u is Transformation<any, any, unkn
  *
  * **Details**
  *
- * - Does not mutate the input.
  * - Returns the input unchanged if it is already a `Transformation`.
  *
  * **Example** (Wrapping existing getters)

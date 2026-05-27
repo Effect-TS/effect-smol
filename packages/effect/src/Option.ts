@@ -1191,7 +1191,6 @@ export const getOrThrow: <A>(self: Option<A>) => A = getOrThrowWith(() => new Er
  *
  * - `Some` → applies `f` and wraps the result in a new `Some`
  * - `None` → returns `None` unchanged
- * - Does not mutate the input
  *
  * **Example** (Mapping over an Option)
  *

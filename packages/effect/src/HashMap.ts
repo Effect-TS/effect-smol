@@ -7,8 +7,6 @@
  * **Mental model**
  *
  * - A `HashMap<Key, Value>` is an immutable collection of key-value pairs
- * - Operations such as {@link set}, {@link remove}, and {@link modifyAt} return
- *   new maps; existing maps are not mutated
  * - Keys are compared using the `Equal` protocol and are grouped by hashes from
  *   the `Hash` protocol
  * - Plain JavaScript primitives work as keys, and custom objects can define
