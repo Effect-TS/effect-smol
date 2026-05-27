@@ -821,7 +821,7 @@ export const defaultMemoMap: Layer.MemoMap = Layer.makeMemoMapUnsafe()
 export const runtime: RuntimeFactory = context({ memoMap: defaultMemoMap })
 
 /**
- * An alias to `Rx.runtime.withReactivity`, for refreshing an atom whenever the
+ * Returns `Rx.runtime.withReactivity` for refreshing an atom whenever the
  * keys change in the `Reactivity` service.
  *
  * **When to use**
@@ -1104,7 +1104,7 @@ export interface AtomResultFn<Arg, A, E = never>
 {}
 
 /**
- * Control symbol that can be written to an `AtomResultFn` to reset it to its initial state.
+ * Defines the control symbol that can be written to an `AtomResultFn` to reset it to its initial state.
  *
  * **When to use**
  *
@@ -1125,7 +1125,7 @@ export const Reset = Symbol.for("effect/reactivity/atom/Atom/Reset")
 export type Reset = typeof Reset
 
 /**
- * Control symbol that can be written to an `AtomResultFn` to interrupt the current asynchronous computation.
+ * Defines the control symbol that can be written to an `AtomResultFn` to interrupt the current asynchronous computation.
  *
  * **When to use**
  *
@@ -2379,7 +2379,7 @@ export const getResult = <A, E>(
 ): Effect.Effect<A, E, AtomRegistry> => AtomRegistry.use(Registry.getResult(self, options))
 
 /**
- * Requests a refresh of an atom through the `AtomRegistry` service.
+ * Runs a refresh request for an atom through the `AtomRegistry` service.
  *
  * **When to use**
  *

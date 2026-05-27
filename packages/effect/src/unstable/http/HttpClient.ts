@@ -1357,7 +1357,7 @@ export const tapRequest: {
 )
 
 /**
- * Associates a `Ref` of cookies with the client for handling cookies across requests.
+ * Adds a `Ref` of cookies to the client for handling cookies across requests.
  *
  * **When to use**
  *

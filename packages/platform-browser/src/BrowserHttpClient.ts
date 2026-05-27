@@ -71,7 +71,7 @@ export {
    */
   layer as layerFetch,
   /**
-   * Service containing default fetch options for the browser fetch client.
+   * Service that contains default fetch options for the browser fetch client.
    *
    * **When to use**
    *

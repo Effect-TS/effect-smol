@@ -54,7 +54,7 @@
 import type * as Types from "./Types.ts"
 
 /**
- * A unique symbol used to associate `TypeClass` implementations with their `TypeLambda`.
+ * Defines the unique symbol used to associate `TypeClass` implementations with their `TypeLambda`.
  *
  * **When to use**
  *

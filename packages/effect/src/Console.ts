@@ -109,7 +109,7 @@ export interface Console {
 }
 
 /**
- * A reference to the current console service in the Effect system, allowing access to the active console implementation from within the Effect context.
+ * Context reference for the current console service in the Effect system, allowing access to the active console implementation from within the Effect context.
  *
  * **When to use**
  *
@@ -186,7 +186,7 @@ export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.
   )
 
 /**
- * Invokes the current console service's clear operation.
+ * Runs the current console service's clear operation.
  *
  * **When to use**
  *

@@ -272,7 +272,7 @@ export const normalize = (self: BigDecimal): BigDecimal => {
 }
 
 /**
- * Scales a `BigDecimal` to the specified scale.
+ * Changes a `BigDecimal` to the specified scale.
  *
  * **When to use**
  *
@@ -1766,7 +1766,7 @@ export type RoundingMode =
   | "half-odd"
 
 /**
- * Rounds a `BigDecimal` at the given scale with the specified rounding mode.
+ * Computes a rounded `BigDecimal` at the given scale with the specified rounding mode.
  *
  * **When to use**
  *
@@ -1846,7 +1846,7 @@ export const round: {
 })
 
 /**
- * Truncate a `BigDecimal` at the given scale. This removes fractional digits beyond the scale,
+ * Computes a truncated `BigDecimal` at the given scale. This removes fractional digits beyond the scale,
  * rounding toward zero.
  *
  * **When to use**

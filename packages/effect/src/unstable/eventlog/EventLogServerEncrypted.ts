@@ -149,7 +149,7 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
 }
 
 /**
- * Backing store service used by the encrypted event-log server.
+ * Defines the backing store service used by the encrypted event-log server.
  *
  * **When to use**
  *

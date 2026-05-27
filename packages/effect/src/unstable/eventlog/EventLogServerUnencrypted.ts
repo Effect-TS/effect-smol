@@ -71,7 +71,7 @@ import {
 import * as EventLogServer from "./EventLogServer.ts"
 
 /**
- * Server-side service for writing plaintext event-log entries directly to
+ * Service that writes plaintext event-log entries directly to
  * unencrypted storage through registered event handlers.
  *
  * **When to use**
@@ -282,7 +282,7 @@ export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAut
 }> {}
 
 /**
- * Authorization service used by the unencrypted event-log server to validate
+ * Service that validates unencrypted event-log server
  * write access, read access, and identities.
  *
  * **When to use**
@@ -367,7 +367,7 @@ export const layerStoreMappingStatic = (options: {
   })
 
 /**
- * Backing store service used by the unencrypted event-log server.
+ * Defines the backing store service used by the unencrypted event-log server.
  *
  * **When to use**
  *
@@ -499,7 +499,7 @@ const toCompactedRemoteEntries = (options: {
 }
 
 /**
- * Compacts a backlog of remote entries using the registered compactors.
+ * Runs the registered compactors over a backlog of remote entries.
  *
  * **When to use**
  *

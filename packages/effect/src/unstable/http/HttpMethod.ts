@@ -82,7 +82,7 @@ export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
   method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE"
 
 /**
- * Readonly set containing every supported `HttpMethod` literal.
+ * Provides a readonly set containing every supported `HttpMethod` literal.
  *
  * **When to use**
  *
@@ -104,7 +104,8 @@ export const all: ReadonlySet<HttpMethod> = new Set([
 ])
 
 /**
- * Tuples mapping each supported HTTP method to its short request-constructor name.
+ * Provides tuples mapping each supported HTTP method to its short
+ * request-constructor name.
  *
  * **When to use**
  *

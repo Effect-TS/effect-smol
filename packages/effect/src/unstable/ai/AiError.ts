@@ -381,7 +381,7 @@ export const UsageInfo = Schema.Struct({
 }).annotate({ identifier: "UsageInfo" })
 
 /**
- * Combined HTTP context for error reporting.
+ * Schema for the combined HTTP context used in error reporting.
  *
  * **When to use**
  *
@@ -1493,7 +1493,7 @@ export const AiErrorReason: Schema.Union<[
 const TypeId = "~effect/unstable/ai/AiError/AiError" as const
 
 /**
- * Top-level AI error wrapper using the `reason` pattern.
+ * Schema for the top-level AI error wrapper using the `reason` pattern.
  *
  * **When to use**
  *

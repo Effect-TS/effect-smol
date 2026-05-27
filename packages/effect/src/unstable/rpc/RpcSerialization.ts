@@ -43,7 +43,7 @@ import { hasProperty } from "../../Predicate.ts"
 import type * as RpcMessage from "./RpcMessage.ts"
 
 /**
- * Service describing how RPC protocol messages are encoded and decoded,
+ * Service that describes how RPC protocol messages are encoded and decoded,
  * including the content type and whether the serialization format provides
  * message framing.
  *

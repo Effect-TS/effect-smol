@@ -91,7 +91,7 @@ export function escapeToken(token: string): string {
 }
 
 /**
- * Unescapes a JSON Pointer reference token according to RFC 6901 by decoding escaped characters to recover the original token value.
+ * Decodes a JSON Pointer reference token according to RFC 6901 escaping rules.
  *
  * **When to use**
  *

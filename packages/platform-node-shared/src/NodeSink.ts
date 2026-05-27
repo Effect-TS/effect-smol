@@ -82,7 +82,7 @@ export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
   })
 
 /**
- * Pulls Effect chunks into a Node writable stream.
+ * Writes Effect chunks into a Node writable stream.
  *
  * **When to use**
  *

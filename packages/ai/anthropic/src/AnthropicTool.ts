@@ -100,7 +100,7 @@ export type AnthropicTool =
 // =============================================================================
 
 /**
- * Anthropic Bash tool (2024-10-22 version).
+ * Defines the Anthropic Bash tool (2024-10-22 version).
  *
  * **When to use**
  *
@@ -130,7 +130,7 @@ export const Bash_20241022 = Tool.providerDefined({
 })
 
 /**
- * Anthropic Bash tool (2025-01-24 version).
+ * Defines the Anthropic Bash tool (2025-01-24 version).
  *
  * **When to use**
  *
@@ -438,7 +438,7 @@ export type CodeExecution_20250825_Parameters = typeof CodeExecution_20250825_Pa
 // -----------------------------------------------------------------------------
 
 /**
- * Anthropic Code Execution tool (2025-05-22 version).
+ * Defines the Anthropic Code Execution tool (2025-05-22 version).
  *
  * **When to use**
  *
@@ -466,7 +466,7 @@ export const CodeExecution_20250522 = Tool.providerDefined({
 })
 
 /**
- * Anthropic Code Execution tool (2025-08-25 version).
+ * Defines the Anthropic Code Execution tool (2025-08-25 version).
  *
  * **When to use**
  *
@@ -872,7 +872,7 @@ export const ComputerUseDoubleClickAction = Schema.Struct({
 export type ComputerUseDoubleClickAction = typeof ComputerUseDoubleClickAction.Type
 
 /**
- * Hold a key for a specified duration during computer-use execution.
+ * Keeps a key pressed for a specified duration during computer-use execution.
  *
  * **When to use**
  *
@@ -971,7 +971,7 @@ export const ComputerUseLeftClickDragAction = Schema.Struct({
 export type ComputerUseLeftClickDragAction = typeof ComputerUseLeftClickDragAction.Type
 
 /**
- * Press the left mouse button down (without releasing).
+ * Starts a left mouse button press without releasing it.
  *
  * **When to use**
  *
@@ -998,7 +998,7 @@ export const ComputerUseLeftMouseDownAction = Schema.Struct({
 export type ComputerUseLeftMouseDownAction = typeof ComputerUseLeftMouseDownAction.Type
 
 /**
- * Release the left mouse button.
+ * Releases the left mouse button.
  *
  * **When to use**
  *
@@ -1391,7 +1391,7 @@ export const ComputerUse_20251124 = Tool.providerDefined({
 // -----------------------------------------------------------------------------
 
 /**
- * A `[start, end]` line range for viewing file contents.
+ * Defines a `[start, end]` line range for viewing file contents.
  *
  * **When to use**
  *
@@ -1656,7 +1656,7 @@ export const Memory_20250818 = Tool.providerDefined({
 // -----------------------------------------------------------------------------
 
 /**
- * View the contents of a file or list directory contents.
+ * Reads the contents of a file or lists directory contents.
  *
  * **When to use**
  *
@@ -1744,7 +1744,7 @@ export const TextEditorCreateCommand = Schema.Struct({
 export type TextEditorCreateCommand = typeof TextEditorCreateCommand.Type
 
 /**
- * Replace a specific string in a file with a new string.
+ * Replaces a specific string in a file with a new string.
  *
  * **When to use**
  *
@@ -2019,7 +2019,7 @@ export const TextEditor_20250728 = Tool.providerDefined({
 // -----------------------------------------------------------------------------
 
 /**
- * User location for localizing search results.
+ * Describes user location for localizing search results.
  *
  * **When to use**
  *
@@ -2065,7 +2065,7 @@ export const WebSearchUserLocation = Schema.Struct({
 // -----------------------------------------------------------------------------
 
 /**
- * Configuration arguments for the web search tool.
+ * Defines configuration arguments for the web search tool.
  *
  * **When to use**
  *
@@ -2163,7 +2163,7 @@ export type WebSearchParameters = typeof WebSearchParameters.Type
 // -----------------------------------------------------------------------------
 
 /**
- * Web search tool for Claude models.
+ * Defines the web search tool for Claude models.
  *
  * **When to use**
  *
@@ -2199,7 +2199,7 @@ export const WebSearch_20250305 = Tool.providerDefined({
 // -----------------------------------------------------------------------------
 
 /**
- * Citation configuration for web fetch.
+ * Defines citation configuration for web fetch.
  *
  * **When to use**
  *
@@ -2241,7 +2241,7 @@ export type WebFetchCitationsConfig = typeof WebFetchCitationsConfig.Type
 // -----------------------------------------------------------------------------
 
 /**
- * Configuration arguments for the web fetch tool.
+ * Defines configuration arguments for the web fetch tool.
  *
  * **When to use**
  *
@@ -2360,7 +2360,7 @@ export type WebFetchParameters = typeof WebFetchParameters.Type
 // -----------------------------------------------------------------------------
 
 /**
- * Web fetch tool for Claude models.
+ * Defines the web fetch tool for Claude models.
  *
  * **When to use**
  *
@@ -2426,7 +2426,7 @@ export const ToolSearchRegexParameters = Schema.Struct({
 export type ToolSearchRegexParameters = typeof ToolSearchRegexParameters.Type
 
 /**
- * Input parameters for BM25/natural language tool search.
+ * Defines input parameters for BM25/natural language tool search.
  *
  * **When to use**
  *
@@ -2484,7 +2484,7 @@ export const ToolSearchRegex_20251119 = Tool.providerDefined({
 })
 
 /**
- * BM25/natural language tool search for Claude models.
+ * Defines BM25/natural language tool search for Claude models.
  *
  * **When to use**
  *

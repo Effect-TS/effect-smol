@@ -1761,7 +1761,7 @@ export const CurrentMetricAttributes = Context.Reference<Metric.AttributeSet>(Cu
 const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
 
 /**
- * `Context.Reference` for the metric registry in the current context.
+ * Context reference for the metric registry in the current context.
  *
  * **When to use**
  *
@@ -3767,7 +3767,7 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
 }
 
 /**
- * A Layer that enables automatic collection of fiber runtime metrics across
+ * Layer that enables automatic collection of fiber runtime metrics across
  * an entire Effect application.
  *
  * **When to use**

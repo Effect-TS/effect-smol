@@ -65,7 +65,7 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
 const TypeId = "~effect/http/HttpRouter"
 
 /**
- * Service interface for registering HTTP routes and middleware.
+ * Defines the service interface for registering HTTP routes and middleware.
  *
  * **Details**
  *
@@ -290,7 +290,7 @@ export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
 )
 
 /**
- * Request-scoped service for the matched HTTP route.
+ * Service for the matched HTTP route in the current request.
  *
  * **When to use**
  *

@@ -75,7 +75,7 @@ import { byReferenceInstances, getAllObjectKeys } from "./internal/equal.ts"
 import { hasProperty } from "./Predicate.ts"
 
 /**
- * The unique string identifier for the {@link Equal} interface.
+ * Defines the unique string identifier for the `Equal` interface.
  *
  * **When to use**
  *
@@ -170,7 +170,7 @@ export interface Equal extends Hash.Hash {
 }
 
 /**
- * Compares two values for deep structural equality.
+ * Checks whether two values are deeply structurally equal.
  *
  * **When to use**
  *
@@ -576,8 +576,7 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
 export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(new Proxy(obj, {}))
 
 /**
- * Permanently marks an object to use reference equality, without creating a
- * proxy.
+ * Marks an object permanently to use reference equality, without creating a proxy.
  *
  * **When to use**
  *

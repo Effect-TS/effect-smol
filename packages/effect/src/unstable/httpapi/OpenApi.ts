@@ -154,7 +154,8 @@ export class Deprecated extends Context.Service<Deprecated, boolean>()("effect/h
 export class Override extends Context.Service<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override") {}
 
 /**
- * OpenAPI annotation reference that excludes an annotated group or endpoint from the generated specification.
+ * Annotation that excludes an annotated group or endpoint from the generated
+ * OpenAPI specification.
  *
  * **When to use**
  *

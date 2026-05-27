@@ -440,7 +440,7 @@ export const getSuccess: {
 )
 
 /**
- * Stores a successful value for a key without running the lookup function.
+ * Sets a successful value for a key without running the lookup function.
  *
  * **When to use**
  *

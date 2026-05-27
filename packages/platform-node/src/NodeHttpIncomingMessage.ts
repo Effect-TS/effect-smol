@@ -38,7 +38,7 @@ import type * as Http from "node:http"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
- * Base adapter from Node `IncomingMessage` to Effect HTTP incoming messages.
+ * Adapts a Node `IncomingMessage` to Effect HTTP incoming messages.
  *
  * **When to use**
  *

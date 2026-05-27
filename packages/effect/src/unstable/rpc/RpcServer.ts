@@ -848,7 +848,7 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
   )
 
 /**
- * Service interface for an RPC server transport, responsible for receiving
+ * Defines the service interface for an RPC server transport, responsible for receiving
  * encoded client messages, sending encoded responses, tracking clients, and
  * declaring transport capabilities.
  *

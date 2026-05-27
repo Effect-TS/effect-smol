@@ -11218,7 +11218,7 @@ export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 
 }
 
 /**
- * A boolean parsed from 0 or 1.
+ * Schema for a boolean parsed from 0 or 1.
  *
  * **When to use**
  *

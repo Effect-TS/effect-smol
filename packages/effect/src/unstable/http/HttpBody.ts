@@ -198,7 +198,7 @@ export class Empty extends Proto {
 }
 
 /**
- * Singleton empty HTTP body.
+ * Provides the singleton empty HTTP body.
  *
  * **When to use**
  *

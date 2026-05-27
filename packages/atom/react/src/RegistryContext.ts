@@ -43,7 +43,7 @@ export function scheduleTask(f: () => void): () => void {
 }
 
 /**
- * React context that supplies the `AtomRegistry` used by Atom hooks and
+ * Provides a React context that supplies the `AtomRegistry` used by Atom hooks and
  * hydration helpers, defaulting to a standalone registry when no provider is
  * present.
  *

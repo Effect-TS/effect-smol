@@ -790,7 +790,8 @@ export const updateAndGet: {
 >(2, (self, f) => setAndGet(self, f(get(self))))
 
 /**
- * Toggles a boolean MutableRef (true becomes false, false becomes true) and returns the reference.
+ * Switches a boolean `MutableRef` between `true` and `false`, then returns the
+ * reference.
  *
  * **When to use**
  *

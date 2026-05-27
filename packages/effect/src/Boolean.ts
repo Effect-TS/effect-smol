@@ -63,7 +63,7 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global `Boolean` constructor for JavaScript truthiness
+ * Exposes the global boolean constructor for JavaScript truthiness
  * coercion.
  *
  * **When to use**

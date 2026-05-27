@@ -111,7 +111,7 @@ const TypeId = "~effect/Config"
 export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasProperty(u, TypeId)
 
 /**
- * The error type produced when config loading or validation fails.
+ * Represents the error type produced when config loading or validation fails.
  *
  * **When to use**
  *
@@ -196,8 +196,7 @@ const Proto = {
  * **When to use**
  *
  * Use to build a custom config that cannot be expressed with {@link schema} or
- *   the convenience constructors.
- * - Composing configs programmatically.
+ * convenience constructors, or to compose configs programmatically.
  *
  * **Details**
  *
@@ -306,7 +305,7 @@ export const mapOrFail: {
 })
 
 /**
- * Falls back to another config when parsing fails with a `ConfigError`.
+ * Provides a fallback config when parsing fails with a `ConfigError`.
  *
  * **When to use**
  *

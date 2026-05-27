@@ -55,7 +55,7 @@ export const Fetch = Context.Reference<typeof globalThis.fetch>("effect/http/Fet
 })
 
 /**
- * Service containing default fetch options for the fetch-based HTTP client.
+ * Service that contains default fetch options for the fetch-based HTTP client.
  *
  * **When to use**
  *

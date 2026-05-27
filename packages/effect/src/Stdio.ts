@@ -63,7 +63,7 @@ export type TypeId = "~effect/Stdio"
 export const TypeId: TypeId = "~effect/Stdio"
 
 /**
- * Service interface for process standard I/O.
+ * Defines the service interface for process standard I/O.
  *
  * **When to use**
  *
@@ -91,7 +91,7 @@ export interface Stdio {
   readonly stdin: Stream.Stream<Uint8Array, PlatformError>
 }
 /**
- * Service tag for the `Stdio` service.
+ * Service tag for process standard I/O.
  *
  * **When to use**
  *

@@ -351,7 +351,7 @@ type Evolved<S, E> = Simplify<
 >
 
 /**
- * Selectively transforms values of a struct using per-key functions. Keys
+ * Transforms values of a struct selectively using per-key functions. Keys
  * without a corresponding function are copied unchanged.
  *
  * **When to use**
@@ -401,7 +401,7 @@ type KeyEvolved<S, E> = Simplify<
 >
 
 /**
- * Selectively transforms keys of a struct using per-key functions. Keys without
+ * Transforms keys of a struct selectively using per-key functions. Keys without
  * a corresponding function are copied unchanged.
  *
  * **When to use**
@@ -456,7 +456,7 @@ type EntryEvolved<S, E> = {
 }
 
 /**
- * Selectively transforms both keys and values of a struct. Each per-key
+ * Transforms both keys and values of a struct selectively. Each per-key
  * function receives `(key, value)` and must return a `[newKey, newValue]`
  * tuple. Keys without a corresponding function are copied unchanged.
  *

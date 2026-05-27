@@ -143,7 +143,7 @@
  */
 
 /**
- * Type-level symbol used to brand the `NonEmptyIterable` type.
+ * Defines the type-level symbol used to brand the `NonEmptyIterable` type.
  *
  * **When to use**
  *

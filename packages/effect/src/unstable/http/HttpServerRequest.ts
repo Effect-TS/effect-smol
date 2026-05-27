@@ -62,7 +62,7 @@ import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
-   * Re-exports the `MaxBodySize` fiber reference for configuring request body limits.
+   * Provides the `MaxBodySize` fiber reference for configuring request body limits.
    *
    * **When to use**
    *
@@ -137,7 +137,7 @@ export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerReq
 )
 
 /**
- * Request-scoped service containing decoded URL query parameters.
+ * Service that contains decoded URL query parameters for the current request.
  *
  * **When to use**
  *

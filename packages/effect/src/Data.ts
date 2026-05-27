@@ -83,7 +83,7 @@ import type * as Types from "./Types.ts"
 import type { Unify } from "./Unify.ts"
 
 /**
- * Base class for immutable data types.
+ * Provides a base class for immutable data types.
  *
  * **When to use**
  *
@@ -127,7 +127,7 @@ export const Class: new<A extends Record<string, any> = {}>(
 } as any
 
 /**
- * Base class for immutable data types with a `_tag` discriminator.
+ * Provides a base class for immutable data types with a `_tag` discriminator.
  *
  * **When to use**
  *
@@ -747,7 +747,7 @@ function taggedMatch<
 }
 
 /**
- * Base class for yieldable errors.
+ * Provides a base class for yieldable errors.
  *
  * **When to use**
  *

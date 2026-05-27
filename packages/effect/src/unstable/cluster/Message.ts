@@ -177,7 +177,7 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
 }
 
 /**
- * Outgoing control envelope paired with RPC metadata.
+ * Represents an outgoing control envelope paired with RPC metadata.
  *
  * **When to use**
  *

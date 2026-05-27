@@ -167,7 +167,7 @@ export interface ProviderResponse {
 }
 
 /**
- * Tagged request used by request resolvers for embedding operations.
+ * Represents a tagged request used by request resolvers for embedding operations.
  *
  * **When to use**
  *
@@ -188,7 +188,7 @@ export class EmbeddingRequest extends Request.TaggedClass("EmbeddingRequest")<
 > {}
 
 /**
- * Service interface for embedding operations.
+ * Defines the service interface for embedding operations.
  *
  * @category models
  * @since 4.0.0

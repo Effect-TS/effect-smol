@@ -499,7 +499,7 @@ export const fromReasons: <E>(
 ) => Cause<E> = core.causeFromReasons
 
 /**
- * A `Cause` with an empty `reasons` array.
+ * Represents a `Cause` with an empty `reasons` array.
  *
  * **When to use**
  *
@@ -1177,8 +1177,7 @@ export const filterInterruptors: <E>(self: Cause<E>) => Result.Result<Set<number
 export const prettyErrors: <E>(self: Cause<E>) => Array<Error> = effect.causePrettyErrors
 
 /**
- * Renders a `Cause` as a human-readable string for logging or
- * debugging.
+ * Formats a `Cause` as a human-readable string for logging or debugging.
  *
  * **When to use**
  *
@@ -1961,7 +1960,7 @@ export const reasonAnnotations: <E>(self: Reason<E>) => Context.Context<never> =
 export const annotations: <E>(self: Cause<E>) => Context.Context<never> = effect.causeAnnotations
 
 /**
- * `Context` key for the stack frame captured at the point of failure.
+ * Context annotation used to store the stack frame captured at the point of failure.
  *
  * **When to use**
  *
@@ -1984,7 +1983,7 @@ export const annotations: <E>(self: Cause<E>) => Context.Context<never> = effect
 export class StackTrace extends Context.Service<StackTrace, StackFrame>()("effect/Cause/StackTrace") {}
 
 /**
- * `Context` key for the stack frame captured at the point of
+ * Context annotation used to store the stack frame captured at the point of
  * interruption.
  *
  * **When to use**

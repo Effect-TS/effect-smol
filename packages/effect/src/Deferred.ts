@@ -375,7 +375,7 @@ export const completeWith: {
 )
 
 /**
- * Exits the `Deferred` with the specified `Exit` value, which will be
+ * Completes the `Deferred` with the specified `Exit` value, which will be
  * propagated to all fibers waiting on the value of the `Deferred`.
  *
  * **When to use**

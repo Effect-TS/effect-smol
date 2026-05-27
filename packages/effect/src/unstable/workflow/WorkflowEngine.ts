@@ -220,7 +220,7 @@ export class WorkflowEngine extends Context.Service<
 >()("effect/workflow/WorkflowEngine") {}
 
 /**
- * Per-execution service containing workflow runtime state.
+ * Service that contains workflow runtime state for one execution.
  *
  * **When to use**
  *
@@ -561,7 +561,7 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
 )
 
 /**
- * In-memory `WorkflowEngine` layer.
+ * Layer that provides an in-memory `WorkflowEngine`.
  *
  * **When to use**
  *

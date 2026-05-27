@@ -31,7 +31,7 @@ import type * as Types from "../../Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 
 /**
- * Property key used to attach success and error schemas to persistable
+ * Defines the property key used to attach success and error schemas to persistable
  * requests.
  *
  * **When to use**

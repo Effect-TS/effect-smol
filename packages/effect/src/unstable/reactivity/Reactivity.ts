@@ -53,7 +53,7 @@ import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 
 /**
- * A service for key-based reactive invalidation.
+ * Service for key-based reactive invalidation.
  *
  * **When to use**
  *

@@ -51,7 +51,7 @@ import { encodeSessionAuthPayload, signSessionAuthPayloadBytes } from "./EventLo
 import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecretDerivation.ts"
 
 /**
- * Service representing a remote event-log replica.
+ * Service that represents a remote event-log replica.
  *
  * **When to use**
  *
@@ -122,7 +122,7 @@ const makeAuthenticate = Effect.fnUntraced(function*(options: {
 })
 
 /**
- * Typed RPC client service for the `EventLogRemoteRpcs` protocol.
+ * Service that provides a typed RPC client for the `EventLogRemoteRpcs` protocol.
  *
  * **When to use**
  *

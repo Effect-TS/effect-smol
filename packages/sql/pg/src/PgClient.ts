@@ -572,7 +572,7 @@ export const fromClient = Effect.fnUntraced(function*(
 })
 
 /**
- * Low-level constructor for a `PgClient` from SQL connection acquirers, a LISTEN acquirer, client configuration, and transformation options.
+ * Creates a `PgClient` from SQL connection acquirers, a LISTEN acquirer, client configuration, and transformation options.
  *
  * **When to use**
  *

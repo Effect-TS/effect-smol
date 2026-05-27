@@ -1716,7 +1716,7 @@ export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAS
 export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalRepresentation.fromASTs
 
 /**
- * Schema codec that decodes a {@link Document} from JSON and encodes it back.
+ * Schema that decodes a {@link Document} from JSON and encodes it back.
  *
  * **When to use**
  *
@@ -1885,7 +1885,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
 }
 
 /**
- * Reconstructs a runtime Schema from a {@link Document}.
+ * Creates a runtime Schema from a {@link Document}.
  *
  * **When to use**
  *

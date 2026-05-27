@@ -824,7 +824,7 @@ const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
 }
 
 /**
- * A fiber-local reference containing headers that are merged into outgoing RPC
+ * Fiber reference containing headers that are merged into outgoing RPC
  * client requests.
  *
  * **When to use**
@@ -856,7 +856,7 @@ export const withHeaders: {
 )
 
 /**
- * Service interface for an RPC client transport, responsible for running the
+ * Defines the service interface for an RPC client transport, responsible for running the
  * receive loop and sending encoded client messages.
  *
  * **When to use**
@@ -1375,8 +1375,8 @@ export const layerProtocolWorker: (
 > = flow(makeProtocolWorker, Layer.effect(Protocol))
 
 /**
- * Optional client protocol hooks that run when a transport connects and
- * disconnects.
+ * Represents optional client protocol hooks that run when a transport connects
+ * and disconnects.
  *
  * **When to use**
  *

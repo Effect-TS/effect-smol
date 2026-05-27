@@ -291,7 +291,7 @@ export const Role: Schema.Literals<["user", "assistant"]> = Schema.Literals(["us
 export type Role = typeof Role.Type
 
 /**
- * Optional client-facing annotations for MCP objects.
+ * Schema for optional client-facing annotations on MCP objects.
  *
  * **When to use**
  *
@@ -332,7 +332,7 @@ export class Implementation extends Schema.Opaque<Implementation>()(Schema.Struc
 })) {}
 
 /**
- * Capabilities advertised by an MCP client.
+ * Describes capabilities advertised by an MCP client.
  *
  * **When to use**
  *
@@ -379,7 +379,7 @@ export class ClientCapabilities extends Schema.Class<ClientCapabilities>(
 }) {}
 
 /**
- * Capabilities advertised by an MCP server.
+ * Describes capabilities advertised by an MCP server.
  *
  * **When to use**
  *
@@ -480,7 +480,7 @@ export class McpErrorBase extends Schema.Class<McpErrorBase>(
 }) {}
 
 /**
- * JSON-RPC error code for requests that are not valid request objects.
+ * Represents the JSON-RPC error code for requests that are not valid request objects.
  *
  * **When to use**
  *
@@ -492,7 +492,7 @@ export class McpErrorBase extends Schema.Class<McpErrorBase>(
  */
 export const INVALID_REQUEST_ERROR_CODE = -32600 as const
 /**
- * JSON-RPC error code for requests whose method does not exist or is not
+ * Represents the JSON-RPC error code for requests whose method does not exist or is not
  * available.
  *
  * **When to use**
@@ -505,7 +505,7 @@ export const INVALID_REQUEST_ERROR_CODE = -32600 as const
  */
 export const METHOD_NOT_FOUND_ERROR_CODE = -32601 as const
 /**
- * JSON-RPC error code for invalid method parameters.
+ * Represents the JSON-RPC error code for invalid method parameters.
  *
  * **When to use**
  *
@@ -516,7 +516,7 @@ export const METHOD_NOT_FOUND_ERROR_CODE = -32601 as const
  */
 export const INVALID_PARAMS_ERROR_CODE = -32602 as const
 /**
- * JSON-RPC error code for internal server errors.
+ * Represents the JSON-RPC error code for internal server errors.
  *
  * **When to use**
  *
@@ -527,7 +527,7 @@ export const INVALID_PARAMS_ERROR_CODE = -32602 as const
  */
 export const INTERNAL_ERROR_CODE = -32603 as const
 /**
- * JSON-RPC error code for invalid JSON that could not be parsed.
+ * Represents the JSON-RPC error code for invalid JSON that could not be parsed.
  *
  * **When to use**
  *
@@ -540,7 +540,7 @@ export const INTERNAL_ERROR_CODE = -32603 as const
 export const PARSE_ERROR_CODE = -32700 as const
 
 /**
- * MCP/JSON-RPC error for invalid JSON that could not be parsed.
+ * Represents an MCP/JSON-RPC error for invalid JSON that could not be parsed.
  *
  * **When to use**
  *
@@ -561,7 +561,7 @@ export class ParseError extends Schema.ErrorClass<ParseError>("effect/ai/McpSche
 }) {}
 
 /**
- * MCP/JSON-RPC error for a request object that is not valid.
+ * Represents an MCP/JSON-RPC error for a request object that is not valid.
  *
  * **When to use**
  *
@@ -582,7 +582,7 @@ export class InvalidRequest extends Schema.ErrorClass<InvalidRequest>("effect/ai
 }) {}
 
 /**
- * MCP/JSON-RPC error for an unavailable method.
+ * Represents an MCP/JSON-RPC error for an unavailable method.
  *
  * **When to use**
  *
@@ -602,7 +602,7 @@ export class MethodNotFound extends Schema.ErrorClass<MethodNotFound>("effect/ai
 }) {}
 
 /**
- * MCP/JSON-RPC error for invalid method parameters.
+ * Represents an MCP/JSON-RPC error for invalid method parameters.
  *
  * **When to use**
  *
@@ -623,7 +623,7 @@ export class InvalidParams extends Schema.ErrorClass<InvalidParams>("effect/ai/M
 }) {}
 
 /**
- * MCP/JSON-RPC error for unexpected internal server failures.
+ * Represents an MCP/JSON-RPC error for unexpected internal server failures.
  *
  * **When to use**
  *
@@ -667,7 +667,7 @@ export const McpError = Schema.Union([
 // =============================================================================
 
 /**
- * MCP ping request used to check whether the peer is still alive.
+ * Represents an MCP ping request used to check whether the peer is still alive.
  *
  * **When to use**
  *
@@ -1058,7 +1058,7 @@ export class ReadResource extends Rpc.make("resources/read", {
 }) {}
 
 /**
- * Notification that the server's resource list changed.
+ * Represents a notification that the server's resource list changed.
  *
  * **When to use**
  *
@@ -1383,7 +1383,7 @@ export class GetPrompt extends Rpc.make("prompts/get", {
 }) {}
 
 /**
- * Notification that the server's prompt list changed.
+ * Represents a notification that the server's prompt list changed.
  *
  * **When to use**
  *
@@ -1551,7 +1551,7 @@ export class CallToolResult extends Schema.Class<CallToolResult>("@effect/ai/Mcp
 }) {}
 
 /**
- * Used by the client to invoke a tool provided by the server.
+ * Represents a client request to invoke a tool provided by the server.
  *
  * **When to use**
  *
@@ -1578,7 +1578,7 @@ export class CallTool extends Rpc.make("tools/call", {
 }) {}
 
 /**
- * Notification that the server's tool list changed.
+ * Represents a notification that the server's tool list changed.
  *
  * **When to use**
  *
@@ -1783,7 +1783,7 @@ export class ModelPreferences extends Schema.Class<ModelPreferences>(
 }) {}
 
 /**
- * Client response to an MCP sampling request.
+ * Represents a client response to an MCP sampling request.
  *
  * **When to use**
  *
@@ -1811,7 +1811,7 @@ export class CreateMessageResult extends Schema.Class<CreateMessageResult>(
 }) {}
 
 /**
- * Server request for the client to sample an LLM.
+ * Represents a server request for the client to sample an LLM.
  *
  * **When to use**
  *
@@ -2002,7 +2002,7 @@ export class Root extends Schema.Class<Root>(
 }) {}
 
 /**
- * Client response containing the roots available to the server.
+ * Represents a client response containing the roots available to the server.
  *
  * **When to use**
  *
@@ -2039,7 +2039,7 @@ export class ListRoots extends Rpc.make("roots/list", {
 }) {}
 
 /**
- * Notification that the client's root list changed.
+ * Represents a notification that the client's root list changed.
  *
  * **When to use**
  *

@@ -102,7 +102,7 @@ import * as Tuple from "./Tuple.ts"
 import type { NoInfer, TupleOf } from "./Types.ts"
 
 /**
- * Reference to the global `Array` constructor.
+ * Exposes the global array constructor.
  *
  * **When to use**
  *
@@ -751,7 +751,7 @@ export const appendAll: {
 )
 
 /**
- * Left-to-right fold that keeps every intermediate accumulator value.
+ * Folds left-to-right while keeping every intermediate accumulator value.
  *
  * **When to use**
  *
@@ -792,7 +792,7 @@ export const scan: {
 })
 
 /**
- * Right-to-left fold that keeps every intermediate accumulator value.
+ * Folds right-to-left while keeping every intermediate accumulator value.
  *
  * **When to use**
  *
@@ -2503,7 +2503,7 @@ export const setLastNonEmpty: {
 )
 
 /**
- * Rotates an array by `n` steps. Positive `n` rotates right; negative `n`
+ * Transforms an array by rotating it `n` steps. Positive `n` rotates right; negative `n`
  * rotates left.
  *
  * **When to use**
@@ -2616,8 +2616,8 @@ export const contains: {
 } = containsWith(Equal.asEquivalence())
 
 /**
- * Repeatedly applies a function that consumes a prefix of the array and
- * produces a value plus the remaining elements, collecting the values.
+ * Applies a function repeatedly to consume prefixes of the array and collect
+ * the values it produces.
  *
  * **When to use**
  *
@@ -4687,7 +4687,7 @@ export const cartesian: {
 // -------------------------------------------------------------------------------------
 
 /**
- * Starting point for the "do simulation" — an array comprehension pattern.
+ * Provides the starting point for the "do simulation" — an array comprehension pattern.
  *
  * **When to use**
  *
@@ -4720,7 +4720,7 @@ export const cartesian: {
 export const Do: ReadonlyArray<{}> = of({})
 
 /**
- * Introduces a new array variable into a do-notation scope, producing the cartesian product with all previous bindings.
+ * Adds a new array variable to a do-notation scope, producing the cartesian product with all previous bindings.
  *
  * **When to use**
  *
@@ -4769,7 +4769,7 @@ export const bind: {
 } = internalDoNotation.bind<ReadonlyArrayTypeLambda>(map, flatMap) as any
 
 /**
- * Names the elements of an array by wrapping each in an object with the given key, starting a do-notation scope.
+ * Wraps each array element in an object with the given key, starting a do-notation scope.
  *
  * **When to use**
  *
@@ -4875,7 +4875,7 @@ export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
 }
 
 /**
- * Counts the elements in an iterable that satisfy a predicate.
+ * Computes the number of elements in an iterable that satisfy a predicate.
  *
  * **When to use**
  *

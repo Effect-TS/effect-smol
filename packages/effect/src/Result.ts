@@ -369,7 +369,7 @@ export const fail: <E>(left: E) => Result<never, E> = result.fail
 const void_: Result<void> = succeed(void 0)
 export {
   /**
-   * A pre-built successful `Result` that carries `undefined`.
+   * Provides a pre-built successful `Result` that carries `undefined`.
    *
    * **When to use**
    *
@@ -401,7 +401,7 @@ export {
 }
 
 /**
- * A pre-built failed `Result` whose failure value is `undefined`.
+ * Provides a pre-built failed `Result` whose failure value is `undefined`.
  *
  * **When to use**
  *
@@ -1386,7 +1386,7 @@ export const flatMap: {
 )
 
 /**
- * A flexible variant of {@link flatMap} that accepts multiple input shapes.
+ * Provides a flexible variant of {@link flatMap} that accepts multiple input shapes.
  *
  * **When to use**
  *
@@ -1564,7 +1564,7 @@ export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
   isFailure(self) ? succeed(self.failure) : fail(self.success)
 
 /**
- * Generator-based syntax for composing `Result` values sequentially.
+ * Provides generator-based syntax for composing `Result` values sequentially.
  *
  * **When to use**
  *
@@ -1618,7 +1618,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
 // -------------------------------------------------------------------------------------
 
 /**
- * Starting point for the "do notation" simulation with `Result`.
+ * Provides the starting point for the "do notation" simulation with `Result`.
  *
  * **When to use**
  *
@@ -1870,7 +1870,7 @@ export const transposeMapOption = dual<
 >(2, (self, f) => option_.isNone(self) ? succeedNone : map(f(self.value), option_.some))
 
 /**
- * A pre-built `Result<Option<never>>` that succeeds with `None`.
+ * Provides a pre-built `Result<Option<never>>` that succeeds with `None`.
  *
  * **When to use**
  *

@@ -701,7 +701,7 @@ export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink
   mapEnd(self, ([a]) => [a])
 
 /**
- * Drains elements from the stream by ignoring all inputs.
+ * Consumes and ignores all stream inputs.
  *
  * **When to use**
  *
@@ -901,7 +901,7 @@ export const map: {
 )
 
 /**
- * Set the sink's result to a constant value.
+ * Sets the sink's result to a constant value.
  *
  * **When to use**
  *

@@ -67,7 +67,7 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * The global `Number` constructor.
+ * Exposes the global number constructor.
  *
  * **When to use**
  *

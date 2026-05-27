@@ -57,7 +57,7 @@ export const entities = Metric.gauge("effect_cluster_entities", { bigint: true }
 export const singletons = Metric.gauge("effect_cluster_singletons", { bigint: true })
 
 /**
- * Gauge tracking the number of registered cluster runners.
+ * Represents a gauge tracking the number of registered cluster runners.
  *
  * **When to use**
  *
@@ -75,7 +75,7 @@ export const singletons = Metric.gauge("effect_cluster_singletons", { bigint: tr
 export const runners = Metric.gauge("effect_cluster_runners", { bigint: true })
 
 /**
- * Gauge tracking the number of cluster runners currently considered healthy.
+ * Represents a gauge tracking the number of cluster runners currently considered healthy.
  *
  * **When to use**
  *
@@ -98,7 +98,7 @@ export const runners = Metric.gauge("effect_cluster_runners", { bigint: true })
 export const runnersHealthy = Metric.gauge("effect_cluster_runners_healthy", { bigint: true })
 
 /**
- * Gauge tracking the number of shards currently acquired by the current runner.
+ * Represents a gauge tracking the number of shards currently acquired by the current runner.
  *
  * **When to use**
  *

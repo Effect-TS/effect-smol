@@ -78,7 +78,7 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global `BigInt` constructor for JavaScript bigint coercion.
+ * Exposes the global bigint constructor for JavaScript bigint coercion.
  *
  * **When to use**
  *

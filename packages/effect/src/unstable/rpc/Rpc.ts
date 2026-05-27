@@ -202,7 +202,7 @@ export interface Rpc<
 }
 
 /**
- * Server-side metadata for the client associated with an RPC request.
+ * Represents server-side metadata for the client associated with an RPC request.
  *
  * **When to use**
  *

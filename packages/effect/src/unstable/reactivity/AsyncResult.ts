@@ -537,7 +537,7 @@ export const map: {
 })
 
 /**
- * Flat maps the success value of an `AsyncResult`.
+ * Maps the success value of an `AsyncResult` and flattens the result.
  *
  * **When to use**
  *

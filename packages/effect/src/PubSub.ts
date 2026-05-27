@@ -2349,7 +2349,7 @@ const ensureCapacity = (capacity: number): void => {
 // -----------------------------------------------------------------------------
 
 /**
- * Back-pressure strategy for bounded `PubSub` values.
+ * Represents the back-pressure strategy for bounded `PubSub` values.
  *
  * **When to use**
  *
@@ -2466,7 +2466,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
 }
 
 /**
- * Dropping strategy for bounded `PubSub` values.
+ * Represents the dropping strategy for bounded `PubSub` values.
  *
  * **When to use**
  *
@@ -2553,7 +2553,7 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
 }
 
 /**
- * Sliding strategy for bounded `PubSub` values.
+ * Represents the sliding strategy for bounded `PubSub` values.
  *
  * **When to use**
  *

@@ -602,10 +602,8 @@ export const modify: {
 })
 
 /**
- * Sets or removes the specified key in the MutableHashMap using an update function.
- * The function receives the current value as an Option and returns an Option.
- * If the function returns Some, the key is set to that value.
- * If the function returns None, the key is removed.
+ * Updates or removes the specified key using a function from the current
+ * optional value to the next optional value.
  *
  * **When to use**
  *

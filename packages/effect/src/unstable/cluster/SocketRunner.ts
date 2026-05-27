@@ -91,7 +91,7 @@ export const layer: Layer.Layer<
 )
 
 /**
- * Client-only socket runner layer that provides `Sharding` and `Runners` clients
+ * Provides a client-only socket runner layer that provides `Sharding` and `Runners` clients
  * without starting a runner server or receiving shard assignments.
  *
  * **When to use**

@@ -71,7 +71,7 @@ import { pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 
 /**
- * Symbol used to identify objects that implement the {@link Redactable}
+ * Defines the symbol used to identify objects that implement the {@link Redactable}
  * protocol.
  *
  * **When to use**
@@ -159,7 +159,7 @@ export interface Redactable {
 export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symbolRedactable)
 
 /**
- * Redacts a value if it implements {@link Redactable}, otherwise returns it
+ * Returns a redacted value if it implements {@link Redactable}, otherwise returns it
  * unchanged.
  *
  * **When to use**
@@ -188,8 +188,8 @@ export function redact(u: unknown): unknown {
 }
 
 /**
- * Calls `[symbolRedactable]` on a value that is already known to be
- * {@link Redactable} and returns the result.
+ * Returns the result of calling `[symbolRedactable]` on a value that is
+ * already known to be {@link Redactable}.
  *
  * **When to use**
  *

@@ -167,7 +167,7 @@ export class SingleMessage
 {}
 
 /**
- * Transport message for one part of a large encoded event-log payload.
+ * Represents one part of a large encoded event-log payload.
  *
  * **When to use**
  *

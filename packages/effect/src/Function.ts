@@ -264,7 +264,7 @@ export type LazyArg<A> = () => A
 export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 
 /**
- * The identity function, i.e. A function that returns its input argument.
+ * Returns its input argument unchanged.
  *
  * **When to use**
  *
@@ -285,7 +285,7 @@ export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 export const identity = <A>(a: A): A => a
 
 /**
- * A function that ensures that the type of an expression matches some type,
+ * Ensures that the type of an expression matches some type,
  * without changing the resulting type of that expression.
  *
  * **When to use**
@@ -583,7 +583,7 @@ export const absurd = <A>(_: never): A => {
 export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): (a: A) => B => (a) => f(...a)
 
 /**
- * Inverse function of `tupled`
+ * Converts a tupled function back to an uncurried function.
  *
  * **When to use**
  *
@@ -1395,7 +1395,7 @@ export function flow(
 export const hole: <T>() => T = cast(absurd)
 
 /**
- * The SK combinator, also known as the "S-K combinator" or "S-combinator", is
+ * Returns the second argument and discards the first. The SK combinator is
  * a fundamental combinator in the lambda calculus and the SKI combinator
  * calculus.
  *
@@ -1418,8 +1418,8 @@ export const hole: <T>() => T = cast(absurd)
 export const SK = <A, B>(_: A, b: B): B => b
 
 /**
- * Memoizes a function whose input is an object, caching results by object
- * identity.
+ * Creates a memoized function whose input is an object, caching results by
+ * object identity.
  *
  * **When to use**
  *

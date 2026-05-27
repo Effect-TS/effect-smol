@@ -111,7 +111,7 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "
 export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 
 /**
- * All `LogLevel` values in order from `All` through the concrete severities to
+ * Returns all `LogLevel` values in order from `All` through the concrete severities to
  * `None`.
  *
  * **When to use**

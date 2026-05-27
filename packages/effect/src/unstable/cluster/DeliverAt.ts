@@ -27,7 +27,7 @@ import type { DateTime } from "../../DateTime.ts"
 import { hasProperty } from "../../Predicate.ts"
 
 /**
- * Property key used by values that provide a scheduled delivery time.
+ * Defines the property key used by values that provide a scheduled delivery time.
  *
  * **When to use**
  *

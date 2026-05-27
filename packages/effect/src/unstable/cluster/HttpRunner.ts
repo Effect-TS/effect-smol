@@ -291,7 +291,7 @@ export const layerHttp: Layer.Layer<
 )
 
 /**
- * Client-only HTTP runner layer.
+ * Provides a client-only HTTP runner layer.
  *
  * **When to use**
  *
@@ -344,7 +344,7 @@ export const layerWebsocket: Layer.Layer<
 )
 
 /**
- * Client-only WebSocket runner layer.
+ * Provides a client-only WebSocket runner layer.
  *
  * **When to use**
  *

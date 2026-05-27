@@ -124,7 +124,7 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
 }
 
 /**
- * Service tag for the browser `Permissions` service.
+ * Service tag for browser permission querying.
  *
  * **When to use**
  *

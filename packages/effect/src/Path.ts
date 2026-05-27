@@ -54,7 +54,7 @@ import { BadArgument } from "./PlatformError.ts"
 export const TypeId = "~effect/platform/Path"
 
 /**
- * Service interface for platform-specific path manipulation.
+ * Defines the service interface for platform-specific path manipulation.
  *
  * **When to use**
  *

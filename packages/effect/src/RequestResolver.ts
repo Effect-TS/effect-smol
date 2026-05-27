@@ -186,7 +186,7 @@ const RequestResolverProto = {
 export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasProperty(u, TypeId)
 
 /**
- * Low-level constructor for creating a request resolver with fine-grained
+ * Creates a request resolver with fine-grained
  * control over its behavior.
  *
  * **When to use**
@@ -720,7 +720,7 @@ export const around: {
   }))
 
 /**
- * A request resolver that never executes requests.
+ * Creates a request resolver that never executes requests.
  *
  * **When to use**
  *

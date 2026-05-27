@@ -354,9 +354,7 @@ export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: s
 }
 
 /**
- * Distributes `count` shards across the nodes in the ring, attempting to
- * balance the number of shards allocated to each node. Returns undefined if
- * the hashring has no elements with weight.
+ * Computes a balanced shard distribution across the nodes in the ring.
  *
  * **When to use**
  *

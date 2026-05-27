@@ -1140,7 +1140,7 @@ export const tagsExhaustive: <
   internal.tagsExhaustive
 
 /**
- * Excludes a specific value from matching while allowing all others.
+ * Creates a pattern that excludes a specific value while allowing all others.
  *
  * **When to use**
  *
@@ -1772,7 +1772,7 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
 ) => SafeRefinement<InstanceType<A>, never> = internal.instanceOf
 
 /**
- * Unsafe variant of `instanceOf` that allows matching without type narrowing.
+ * Checks whether a value is an instance of a constructor without type-safe narrowing.
  *
  * **When to use**
  *
@@ -1864,7 +1864,7 @@ export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
 
 // TODO(4.0): Rename to "orThrow"? Like Result.getOrThrow
 /**
- * Throws an error if no pattern matches.
+ * Returns a matcher that throws an error if no pattern matches.
  *
  * **When to use**
  *
@@ -2003,7 +2003,7 @@ export const option: <I, F, R, A, Pr, Ret>(
 ) => [Pr] extends [never] ? (input: I) => Option.Option<Unify<A>> : Option.Option<Unify<A>> = internal.option
 
 /**
- * Finalizes a matcher that handles every remaining input case.
+ * Completes a matcher that handles every remaining input case.
  *
  * **When to use**
  *

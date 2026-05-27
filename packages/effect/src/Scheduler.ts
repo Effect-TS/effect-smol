@@ -130,7 +130,7 @@ class PriorityBuckets {
 }
 
 /**
- * A scheduler implementation that batches queued tasks and dispatches them by
+ * Provides a scheduler implementation that batches queued tasks and dispatches them by
  * priority.
  *
  * **When to use**
@@ -245,7 +245,7 @@ class MixedSchedulerDispatcher implements SchedulerDispatcher {
 }
 
 /**
- * A service reference that controls the maximum number of operations a fiber
+ * Context reference that controls the maximum number of operations a fiber
  * can perform before yielding control back to the scheduler.
  *
  * **When to use**
@@ -269,7 +269,7 @@ export const MaxOpsBeforeYield = Context.Reference<number>("effect/Scheduler/Max
 })
 
 /**
- * A service reference that controls whether the runtime should bypass scheduler
+ * Context reference that controls whether the runtime should bypass scheduler
  * yield checks. When set to `true`, the fiber run loop won't call
  * `Scheduler.shouldYield`.
  *

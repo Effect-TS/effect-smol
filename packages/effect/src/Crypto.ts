@@ -198,7 +198,7 @@ export interface Crypto {
 }
 
 /**
- * The service identifier for the platform `Crypto` service.
+ * Service tag for platform cryptography.
  *
  * **When to use**
  *

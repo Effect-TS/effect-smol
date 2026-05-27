@@ -172,7 +172,7 @@ export declare namespace MutableList {
 }
 
 /**
- * A unique symbol used to represent an empty result when taking elements from a MutableList.
+ * Defines the unique symbol used to represent an empty result when taking elements from a MutableList.
  * This symbol is returned by `take` when the list is empty, allowing for safe type checking.
  *
  * **When to use**

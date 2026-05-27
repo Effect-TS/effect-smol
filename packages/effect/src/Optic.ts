@@ -1516,12 +1516,11 @@ export function getAll<S, A>(traversal: Traversal<S, A>): (s: S) => Array<A> {
 const identityIso = make(identityNode)
 
 /**
- * The identity {@link Iso}. Focuses on the whole value unchanged.
+ * Iso that focuses on the whole value unchanged.
  *
  * **When to use**
  *
- * Use when as the starting point of an optic chain: `Optic.id<S>().key("x")...`
- * - Anywhere an `Iso<S, S>` is needed.
+ * Use when starting an optic chain with a focus on the whole value.
  *
  * **Details**
  *

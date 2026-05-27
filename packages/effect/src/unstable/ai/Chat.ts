@@ -699,7 +699,7 @@ export const fromJson = (data: string): Effect.Effect<
 // =============================================================================
 
 /**
- * An error that occurs when attempting to retrieve a persisted `Chat` that
+ * Represents an error that occurs when attempting to retrieve a persisted `Chat` that
  * does not exist in the backing persistence store.
  *
  * **When to use**

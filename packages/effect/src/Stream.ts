@@ -9701,7 +9701,7 @@ export const interruptWhen: {
 )
 
 /**
- * Halts a stream after the current element when an effect completes.
+ * Stops a stream after the current element when an effect completes.
  *
  * **When to use**
  *

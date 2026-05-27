@@ -135,7 +135,7 @@ export interface Clock {
 }
 
 /**
- * A reference to the current Clock service in the environment.
+ * Context reference for the current Clock service in the environment.
  *
  * **When to use**
  *

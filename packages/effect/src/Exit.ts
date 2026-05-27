@@ -392,7 +392,7 @@ export const interrupt: (fiberId?: number | undefined) => Exit<never> = effect.e
 const void_: Exit<void> = effect.exitVoid
 export {
   /**
-   * A pre-allocated successful Exit with a `void` value.
+   * Provides a pre-allocated successful Exit with a `void` value.
    *
    * **When to use**
    *

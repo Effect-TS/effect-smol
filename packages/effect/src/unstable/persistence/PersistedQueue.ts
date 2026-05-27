@@ -255,7 +255,7 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 }
 
 /**
- * Low-level backing store service used by `PersistedQueue`.
+ * Defines the low-level backing store service used by `PersistedQueue`.
  *
  * **When to use**
  *

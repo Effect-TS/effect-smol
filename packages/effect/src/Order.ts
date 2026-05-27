@@ -956,7 +956,7 @@ export const max = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => self === that || O(self, that) > -1 ? self : that)
 
 /**
- * Clamps a value between a minimum and a maximum according to the given order.
+ * Restricts a value between a minimum and a maximum according to the given order.
  *
  * **When to use**
  *

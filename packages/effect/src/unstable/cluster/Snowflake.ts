@@ -147,7 +147,7 @@ const constBigInt1024 = BigInt(1024)
 const constBigInt4096 = BigInt(4096)
 
 /**
- * Packs a timestamp, machine id, and sequence number into a branded snowflake id,
+ * Creates a branded snowflake id from a timestamp, machine id, and sequence number,
  * using the custom snowflake epoch and 10-bit machine id and 12-bit sequence
  * fields.
  *

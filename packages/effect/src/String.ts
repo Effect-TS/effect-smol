@@ -80,7 +80,7 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global `String` constructor.
+ * Exposes the global string constructor.
  *
  * **When to use**
  *
@@ -154,7 +154,7 @@ export const Order: order.Order<string> = order.String
 export const Equivalence: Equ.Equivalence<string> = Equ.String
 
 /**
- * The empty string `""`.
+ * Provides the empty string `""`.
  *
  * **When to use**
  *

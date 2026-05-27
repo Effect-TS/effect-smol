@@ -777,7 +777,7 @@ export class Null extends Base {
 const null_ = new Null()
 export {
   /**
-   * Singleton {@link Null} AST instance.
+   * Provides the singleton {@link Null} AST instance.
    *
    * **When to use**
    *
@@ -829,7 +829,7 @@ const undefinedToNull = new Link(
 const undefined_ = new Undefined()
 export {
   /**
-   * Singleton {@link Undefined} AST instance.
+   * Provides the singleton {@link Undefined} AST instance.
    *
    * **When to use**
    *
@@ -874,7 +874,7 @@ export class Void extends Base {
 const void_ = new Void()
 export {
   /**
-   * Singleton {@link Void} AST instance.
+   * Provides the singleton {@link Void} AST instance.
    *
    * **When to use**
    *
@@ -917,7 +917,7 @@ export class Never extends Base {
 }
 
 /**
- * Singleton {@link Never} AST instance.
+ * Provides the singleton {@link Never} AST instance.
  *
  * **When to use**
  *
@@ -954,7 +954,7 @@ export class Any extends Base {
 }
 
 /**
- * Singleton {@link Any} AST instance.
+ * Provides the singleton {@link Any} AST instance.
  *
  * **When to use**
  *
@@ -994,7 +994,7 @@ export class Unknown extends Base {
 }
 
 /**
- * Singleton {@link Unknown} AST instance.
+ * Provides the singleton {@link Unknown} AST instance.
  *
  * **When to use**
  *
@@ -1031,7 +1031,7 @@ export class ObjectKeyword extends Base {
 }
 
 /**
- * Singleton {@link ObjectKeyword} AST instance.
+ * Provides the singleton {@link ObjectKeyword} AST instance.
  *
  * **When to use**
  *
@@ -1345,7 +1345,7 @@ export class String extends Base {
 }
 
 /**
- * Singleton {@link String} AST instance.
+ * Provides the singleton {@link String} AST instance.
  *
  * **When to use**
  *
@@ -1417,7 +1417,7 @@ function hasCheck(checks: ReadonlyArray<Check<unknown>>, tag: string): boolean {
 }
 
 /**
- * Singleton {@link Number} AST instance.
+ * Provides the singleton {@link Number} AST instance.
  *
  * **When to use**
  *
@@ -1454,7 +1454,7 @@ export class Boolean extends Base {
 }
 
 /**
- * Singleton {@link Boolean} AST instance.
+ * Provides the singleton {@link Boolean} AST instance.
  *
  * **When to use**
  *
@@ -1504,7 +1504,7 @@ export class Symbol extends Base {
 }
 
 /**
- * Singleton {@link Symbol} AST instance.
+ * Provides the singleton {@link Symbol} AST instance.
  *
  * **When to use**
  *
@@ -1553,7 +1553,7 @@ export class BigInt extends Base {
 }
 
 /**
- * Singleton {@link BigInt} AST instance.
+ * Provides the singleton {@link BigInt} AST instance.
  *
  * **When to use**
  *

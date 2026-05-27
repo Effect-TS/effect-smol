@@ -68,7 +68,7 @@ import * as Predicate from "./Predicate.ts"
 import { redact } from "./Redactable.ts"
 
 /**
- * Symbol used by Node.js for custom object inspection.
+ * Defines the symbol used by Node.js for custom object inspection.
  *
  * **When to use**
  *
@@ -296,7 +296,7 @@ export const BaseProto: Inspectable = {
 }
 
 /**
- * Abstract base class that implements the Inspectable interface.
+ * Provides an abstract base class that implements the Inspectable interface.
  *
  * **When to use**
  *

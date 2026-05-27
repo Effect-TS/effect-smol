@@ -97,7 +97,7 @@ import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
 
 /**
- * A middleware that wraps the entire parsing `Effect` pipeline for both
+ * Middleware that wraps the entire parsing `Effect` pipeline for both
  * decode and encode directions.
  *
  * **When to use**
@@ -170,7 +170,7 @@ export class Middleware<in out T, in out E, RDE, RDT, RET, REE> {
 const TypeId = "~effect/SchemaTransformation/Transformation"
 
 /**
- * A bidirectional transformation between a decoded type `T` and an encoded
+ * Represents a bidirectional transformation between a decoded type `T` and an encoded
  * type `E`, built from a pair of `Getter`s.
  *
  * **When to use**
@@ -462,7 +462,7 @@ export function transformOptional<T, E>(options: {
 }
 
 /**
- * A string-to-string transformation that trims whitespace on decode.
+ * Transforms strings by trimming whitespace on decode.
  * Encode is passthrough (no change).
  *
  * **When to use**
@@ -500,7 +500,7 @@ export function trim(): Transformation<string, string> {
 }
 
 /**
- * A string-to-string transformation that converts snake_case to camelCase
+ * Transforms strings by converting snake_case to camelCase
  * on decode and camelCase to snake_case on encode.
  *
  * **When to use**
@@ -537,7 +537,7 @@ export function snakeToCamel(): Transformation<string, string> {
 }
 
 /**
- * A string-to-string transformation that lowercases on decode.
+ * Transforms strings by lowercasing on decode.
  * Encode is passthrough.
  *
  * **When to use**
@@ -574,7 +574,7 @@ export function toLowerCase(): Transformation<string, string> {
 }
 
 /**
- * A string-to-string transformation that uppercases on decode.
+ * Transforms strings by uppercasing on decode.
  * Encode is passthrough.
  *
  * **When to use**
@@ -611,7 +611,7 @@ export function toUpperCase(): Transformation<string, string> {
 }
 
 /**
- * A string-to-string transformation that capitalizes the first character on
+ * Transforms strings by capitalizing the first character on
  * decode. Encode is passthrough.
  *
  * **When to use**
@@ -647,7 +647,7 @@ export function capitalize(): Transformation<string, string> {
 }
 
 /**
- * A string-to-string transformation that lowercases the first character on
+ * Transforms strings by lowercasing the first character on
  * decode. Encode is passthrough.
  *
  * **When to use**
@@ -683,7 +683,7 @@ export function uncapitalize(): Transformation<string, string> {
 }
 
 /**
- * A transformation that decodes a string into a record of key-value pairs and
+ * Transforms a string into a record of key-value pairs and
  * encodes a record of key-value pairs into a string.
  *
  * **When to use**
@@ -733,7 +733,7 @@ const passthrough_ = new Transformation(
 )
 
 /**
- * The identity transformation — returns the input unchanged in both
+ * Transforms values by returning the input unchanged in both
  * directions.
  *
  * **When to use**
@@ -773,7 +773,7 @@ export function passthrough<T>(): Transformation<T, T> {
 }
 
 /**
- * A passthrough transformation typed so that `T extends E`, where the decoded
+ * Transforms values without changing them, typed so that `T extends E`, where the decoded
  * type `T` is a subtype of the encoded type `E`.
  *
  * **When to use**
@@ -806,7 +806,7 @@ export function passthroughSupertype<T>(): Transformation<T, T> {
 }
 
 /**
- * A passthrough transformation typed so that `E extends T` — the encoded
+ * Transforms values without changing them, typed so that `E extends T` — the encoded
  * type is a subtype of the decoded type.
  *
  * **When to use**

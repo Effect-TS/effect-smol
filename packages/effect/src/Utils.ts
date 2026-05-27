@@ -61,7 +61,7 @@ import type { Kind, TypeLambda } from "./HKT.ts"
 import type * as Types from "./Types.ts"
 
 /**
- * An `IterableIterator` that yields its wrapped value exactly once.
+ * Yields its wrapped value exactly once through an `IterableIterator`.
  *
  * **When to use**
  *

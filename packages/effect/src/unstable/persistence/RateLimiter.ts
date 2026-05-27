@@ -486,7 +486,7 @@ export interface ConsumeResult {
 }
 
 /**
- * Low-level backing store for fixed-window counters and token-bucket state.
+ * Defines the low-level backing store for fixed-window counters and token-bucket state.
  *
  * **When to use**
  *

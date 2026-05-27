@@ -129,7 +129,7 @@ export interface UserInput {
 const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
 
 /**
- * A `QuitError` represents an error that occurs when a user attempts to
+ * Represents an error that occurs when a user attempts to
  * quit out of a `Terminal` prompt for input (usually by entering `ctrl`+`c`).
  *
  * **When to use**

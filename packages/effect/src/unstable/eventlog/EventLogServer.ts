@@ -229,7 +229,7 @@ export const layerRpcHandlers = (options: {
   )
 
 /**
- * Client annotation storing partial `ChunkedMessage` data while chunked writes are
+ * Annotation that stores partial `ChunkedMessage` data while chunked writes are
  * being reassembled.
  *
  * **When to use**

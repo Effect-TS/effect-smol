@@ -52,7 +52,7 @@ import * as Layer from "effect/Layer"
 import * as PlatformError from "effect/PlatformError"
 
 /**
- * Browser Web Crypto APIs used by the Crypto service implementation.
+ * Provides Browser Web Crypto APIs used by the Crypto service implementation.
  *
  * **When to use**
  *

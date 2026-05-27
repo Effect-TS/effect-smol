@@ -1075,7 +1075,7 @@ export const succeedNone: Effect<Option<never>> = internal.succeedNone
 export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedSome
 
 /**
- * Delays the creation of an `Effect` until it is actually needed.
+ * Creates an `Effect` lazily, delaying construction until it is needed.
  *
  * **When to use**
  *
@@ -2156,7 +2156,7 @@ export const tap: {
 } = internal.tap
 
 /**
- * Encapsulates both success and failure of an `Effect` into a `Result` type.
+ * Converts both success and failure of an `Effect` into a `Result` type.
  *
  * **When to use**
  *
@@ -2212,7 +2212,7 @@ export const tap: {
 export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A, E>, never, R> = internal.result
 
 /**
- * Convert success to `Option.some` and failure to `Option.none`.
+ * Converts success to `Option.some` and failure to `Option.none`.
  *
  * **When to use**
  *
@@ -5448,7 +5448,7 @@ export const matchCauseEager: {
 } = internal.matchCauseEager
 
 /**
- * Eagerly handles success or failure with effectful handlers when the effect is already resolved.
+ * Handles success or failure eagerly with effectful handlers when the effect is already resolved.
  *
  * **When to use**
  *
@@ -7077,7 +7077,7 @@ export const cachedWithTTL: {
 } = internal.cachedWithTTL
 
 /**
- * Caches an effect's result for a specified duration and allows manual
+ * Creates a cached effect result for a specified duration and allows manual
  * invalidation before expiration.
  *
  * **When to use**
@@ -8387,7 +8387,7 @@ export const request: {
 } = internalRequest.request
 
 /**
- * Low-level entry point that registers a request with a resolver and delivers the exit value via `onExit`.
+ * Registers a request with a resolver and delivers the exit value via `onExit`.
  *
  * **When to use**
  *
@@ -8730,7 +8730,7 @@ export interface RunOptions {
 }
 
 /**
- * The foundational function for running effects, returning a "fiber" that can
+ * Runs an effect in the background, returning a fiber that can
  * be observed or interrupted.
  *
  * **When to use**
@@ -14911,8 +14911,7 @@ export const satisfiesErrorType = <E>() => <A, E2 extends E, R>(effect: Effect<A
 export const satisfiesServicesType = <R>() => <A, E, R2 extends R>(effect: Effect<A, E, R2>): Effect<A, E, R2> => effect
 
 /**
- * An optimized version of `map` that checks if an effect is already resolved
- * and applies the mapping function eagerly when possible.
+ * Applies `map` eagerly when an effect is already resolved.
  *
  * **When to use**
  *
@@ -14950,8 +14949,7 @@ export const mapEager: {
 } = internal.mapEager
 
 /**
- * An optimized version of `mapError` that checks if an effect is already resolved
- * and applies the error mapping function eagerly when possible.
+ * Applies `mapError` eagerly when an effect is already resolved.
  *
  * **When to use**
  *
@@ -14993,8 +14991,7 @@ export const mapErrorEager: {
 } = internal.mapErrorEager
 
 /**
- * An optimized version of `mapBoth` that checks if an effect is already resolved
- * and applies the appropriate mapping function eagerly when possible.
+ * Applies `mapBoth` eagerly when an effect is already resolved.
  *
  * **When to use**
  *
@@ -15042,8 +15039,7 @@ export const mapBothEager: {
 } = internal.mapBothEager
 
 /**
- * An optimized version of `flatMap` that checks if an effect is already resolved
- * and applies the flatMap function eagerly when possible.
+ * Applies `flatMap` eagerly when an effect is already resolved.
  *
  * **When to use**
  *
@@ -15084,8 +15080,7 @@ export const flatMapEager: {
 } = internal.flatMapEager
 
 /**
- * An optimized version of `catch` that checks if an effect is already resolved
- * and applies the catch function eagerly when possible.
+ * Applies `catch` eagerly when an effect is already resolved.
  *
  * **When to use**
  *

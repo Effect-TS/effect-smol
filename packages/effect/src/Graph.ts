@@ -115,7 +115,7 @@ export type NodeIndex = number
 export type EdgeIndex = number
 
 /**
- * Edge data containing source, target, and user data.
+ * Represents edge data containing source, target, and user data.
  *
  * **When to use**
  *

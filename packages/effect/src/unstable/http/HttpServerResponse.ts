@@ -736,7 +736,7 @@ export const setCookieUnsafe: {
 )
 
 /**
- * Expires a cookie on an `HttpServerResponse`, throwing if the expiration cookie
+ * Sets an expired cookie on an `HttpServerResponse`, throwing if the expiration cookie
  * cannot be encoded.
  *
  * **When to use**

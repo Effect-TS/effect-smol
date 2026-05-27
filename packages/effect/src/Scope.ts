@@ -540,7 +540,7 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
 export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effect.scopeClose
 
 /**
- * Transitions a scope to `Closed` unsafely with the provided exit value.
+ * Closes a scope unsafely with the provided exit value.
  *
  * **When to use**
  *

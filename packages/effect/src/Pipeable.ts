@@ -621,7 +621,7 @@ export const Prototype: Pipeable = {
 }
 
 /**
- * Base constructor whose instances implement the standard `Pipeable.pipe`
+ * Provides a base constructor whose instances implement the standard `Pipeable.pipe`
  * method.
  *
  * **When to use**

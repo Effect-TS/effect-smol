@@ -43,7 +43,8 @@ import * as Schema from "../../Schema.ts"
 const TypeId = "~effect/cluster/RunnerAddress"
 
 /**
- * Network address of a cluster runner, identified by host and port.
+ * Represents the network address of a cluster runner, identified by host and
+ * port.
  *
  * **When to use**
  *

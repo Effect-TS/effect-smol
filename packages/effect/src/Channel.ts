@@ -7226,8 +7226,7 @@ export const provideService: {
   ))
 
 /**
- * Evaluates an effect to obtain a service, then provides that service to the
- * channel.
+ * Provides a service to the channel after obtaining it from an effect.
  *
  * **When to use**
  *

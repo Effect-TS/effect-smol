@@ -1288,7 +1288,7 @@ export const asVoid: <_>(self: Option<_>) => Option<void> = as(undefined)
 const void_: Option<void> = some(undefined)
 export {
   /**
-   * A pre-built `Some(undefined)` constant.
+   * Provides a pre-built `Some(undefined)` constant.
    *
    * **When to use**
    *
@@ -2495,7 +2495,7 @@ export const bind: {
 } = doNotation.bind<OptionTypeLambda>(map, flatMap)
 
 /**
- * An `Option` containing an empty record `{}`, used as the starting point for
+ * Provides an `Option` containing an empty record `{}`, used as the starting point for
  * do notation chains.
  *
  * **When to use**
@@ -2528,7 +2528,7 @@ export const bind: {
 export const Do: Option<{}> = some({})
 
 /**
- * Generator-based syntax for `Option`, similar to `async`/`await` but for
+ * Provides generator-based syntax for `Option`, similar to `async`/`await` but for
  * optional values. Yielding a `None` short-circuits the generator to `None`.
  *
  * **When to use**

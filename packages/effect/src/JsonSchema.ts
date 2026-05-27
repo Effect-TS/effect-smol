@@ -235,7 +235,7 @@ export interface MultiDocument<D extends Dialect> {
 }
 
 /**
- * The `$schema` meta-schema URI for JSON Schema Draft-07.
+ * Represents the `$schema` meta-schema URI for JSON Schema Draft-07.
  *
  * **When to use**
  *
@@ -255,7 +255,7 @@ export interface MultiDocument<D extends Dialect> {
 export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
 
 /**
- * The `$schema` meta-schema URI for JSON Schema Draft 2020-12.
+ * Represents the `$schema` meta-schema URI for JSON Schema Draft 2020-12.
  *
  * **When to use**
  *
@@ -975,10 +975,7 @@ export function resolve$ref($ref: string, definitions: Definitions): JsonSchema 
 }
 
 /**
- * If the root schema of a document is a `$ref`, resolves it against the
- * document's definitions and returns a new document with the inlined
- * schema. Returns the original document unchanged if the root schema is
- * not a `$ref` or if the referenced definition is not found.
+ * Resolves a document whose root schema is a top-level `$ref`.
  *
  * **When to use**
  *

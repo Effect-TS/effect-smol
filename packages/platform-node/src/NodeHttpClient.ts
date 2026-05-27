@@ -71,7 +71,7 @@ import * as Undici from "./Undici.ts"
 
 export {
   /**
-   * Fetch-based HTTP client implementation for Node.js.
+   * Provides a fetch-based HTTP client implementation for Node.js.
    *
    * **When to use**
    *
@@ -90,7 +90,7 @@ export {
    */
   layer as layerFetch,
   /**
-   * Request initialization options accepted by the fetch-based HTTP client.
+   * Provides request initialization options accepted by the fetch-based HTTP client.
    *
    * **When to use**
    *

@@ -179,7 +179,7 @@ export const Help: Action<boolean> = action({
 })
 
 /**
- * Global action flag for showing command version information.
+ * Defines the global action flag for showing command version information.
  *
  * **When to use**
  *
@@ -229,7 +229,7 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
 })
 
 /**
- * Global setting flag for command log level.
+ * Defines the global setting flag for command log level.
  *
  * **When to use**
  *

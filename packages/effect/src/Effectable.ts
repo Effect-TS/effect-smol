@@ -82,7 +82,7 @@ const Base: new<A, E, R>() => Effect.Effect<A, E, R> = (() => {
 })()
 
 /**
- * An abstract class that can be extended to create an `Effect`.
+ * Provides an abstract class that can be extended to create an `Effect`.
  *
  * **When to use**
  *

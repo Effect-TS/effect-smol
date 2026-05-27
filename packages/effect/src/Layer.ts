@@ -579,7 +579,7 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
 export const forkMemoMap = (parent: MemoMap): Effect<MemoMap> => internalEffect.sync(() => forkMemoMapUnsafe(parent))
 
 /**
- * A service reference for the current `MemoMap` used in layer construction.
+ * Context service for the current `MemoMap` used in layer construction.
  *
  * **When to use**
  *
@@ -892,7 +892,7 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
 export const empty: Layer<never> = succeedContext(Context.empty())
 
 /**
- * Lazily constructs a layer that provides a single service.
+ * Constructs a layer lazily that provides a single service.
  *
  * **When to use**
  *
@@ -935,7 +935,7 @@ export const sync: {
 } as any
 
 /**
- * Lazily constructs a layer that provides all services in a `Context`.
+ * Constructs a layer lazily that provides all services in a `Context`.
  *
  * **When to use**
  *

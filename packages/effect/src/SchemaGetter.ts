@@ -98,7 +98,7 @@ import * as Issue from "./SchemaIssue.ts"
 import * as Str from "./String.ts"
 
 /**
- * A composable transformation from an encoded type `E` to a decoded type `T`.
+ * Represents a composable transformation from an encoded type `E` to a decoded type `T`.
  *
  * **When to use**
  *

@@ -46,7 +46,8 @@ const textDecoder = new TextDecoder("utf-8", { fatal: true })
 const constLengthPrefixBytes = 4
 
 /**
- * Domain-separation string embedded in canonical session authentication payloads.
+ * Defines the domain-separation string embedded in canonical session
+ * authentication payloads.
  *
  * **When to use**
  *
@@ -59,7 +60,7 @@ const constLengthPrefixBytes = 4
 export const AuthPayloadContext = "eventlog-auth-v1"
 
 /**
- * Required byte length for raw Ed25519 public keys used in session
+ * Defines the required byte length for raw Ed25519 public keys used in session
  * authentication.
  *
  * **When to use**
@@ -73,7 +74,7 @@ export const AuthPayloadContext = "eventlog-auth-v1"
 export const Ed25519PublicKeyLength = 32
 
 /**
- * Required byte length for Ed25519 signatures used in session authentication.
+ * Defines the required byte length for Ed25519 signatures used in session authentication.
  *
  * **When to use**
  *
@@ -86,7 +87,8 @@ export const Ed25519PublicKeyLength = 32
 export const Ed25519SignatureLength = 64
 
 /**
- * Number of random bytes generated for a session authentication challenge.
+ * Defines the number of random bytes generated for a session authentication
+ * challenge.
  *
  * **When to use**
  *
@@ -98,7 +100,8 @@ export const Ed25519SignatureLength = 64
 export const SessionAuthChallengeLength = 32
 
 /**
- * Time-to-live, in milliseconds, for a pending session authentication challenge.
+ * Defines the time-to-live, in milliseconds, for a pending session
+ * authentication challenge.
  *
  * **When to use**
  *

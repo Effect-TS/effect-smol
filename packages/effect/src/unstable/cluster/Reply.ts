@@ -81,7 +81,7 @@ export type Encoded = WithExitEncoded | ChunkEncoded
 export const Encoded: Schema.Codec<Encoded> = Schema.Any as any
 
 /**
- * A cluster reply paired with the RPC definition and service context required to
+ * Represents a cluster reply paired with the RPC definition and service context required to
  * serialize it for transport.
  *
  * **When to use**
@@ -295,7 +295,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
 }
 
 /**
- * A terminal RPC reply for a request, carrying the final `Exit` for the remote
+ * Represents a terminal RPC reply for a request, carrying the final `Exit` for the remote
  * call.
  *
  * **When to use**

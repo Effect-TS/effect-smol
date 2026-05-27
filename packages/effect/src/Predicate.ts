@@ -974,7 +974,7 @@ export function isNotNullish<A>(input: A): input is NonNullable<A> {
 }
 
 /**
- * A guard that always returns `false`.
+ * Type guard that always returns `false`.
  *
  * **When to use**
  *
@@ -1001,7 +1001,7 @@ export function isNever(_: unknown): _ is never {
 }
 
 /**
- * A guard that always returns `true`.
+ * Type guard that always returns `true`.
  *
  * **When to use**
  *

@@ -650,7 +650,7 @@ export const isFiber = (
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
 
 /**
- * Links a fiber to a `Scope` and returns the same fiber.
+ * Adds a fiber to a `Scope` and returns the same fiber.
  *
  * **When to use**
  *
