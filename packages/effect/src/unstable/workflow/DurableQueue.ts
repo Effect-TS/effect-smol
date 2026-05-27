@@ -81,8 +81,8 @@ export interface DurableQueue<
 }
 
 /**
- * A `DurableQueue` wraps a `PersistedQueue`, providing a way to wait for items
- * to finish processing using a `DurableDeferred`.
+ * Creates a `DurableQueue` that waits for persisted items to finish processing
+ * using a `DurableDeferred`.
  *
  * **Example** (Defining a durable queue with workers)
  *

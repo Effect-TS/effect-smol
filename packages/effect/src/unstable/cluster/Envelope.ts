@@ -156,7 +156,8 @@ export interface PartialRequestEncoded {
 }
 
 /**
- * Envelope acknowledging receipt of a streamed reply chunk for a request.
+ * Represents an envelope acknowledging receipt of a streamed reply chunk for a
+ * request.
  *
  * **Details**
  *
@@ -214,7 +215,7 @@ export interface AckChunkEncoded {
 }
 
 /**
- * Envelope used to interrupt an in-flight entity request.
+ * Represents an envelope used to interrupt an in-flight entity request.
  *
  * @category models
  * @since 4.0.0

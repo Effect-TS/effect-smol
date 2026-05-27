@@ -292,7 +292,7 @@ export const set = dual<
 >(2, <A>(self: Ref<A>, value: A) => Effect.sync(() => MutableRef.set(self.ref, value)))
 
 /**
- * Atomically gets the current value of the Ref, sets it to the specified value, and returns the previous value.
+ * Gets the current value of the Ref, sets it to the specified value, and returns the previous value atomically.
  *
  * **When to use**
  *
@@ -332,7 +332,7 @@ export const getAndSet = dual<
   }))
 
 /**
- * Atomically gets the current value of the Ref, updates it with the given function, and returns the previous value.
+ * Gets the current value of the Ref, updates it with the given function, and returns the previous value atomically.
  *
  * **When to use**
  *
@@ -372,7 +372,7 @@ export const getAndUpdate = dual<
   }))
 
 /**
- * Atomically gets the current value of the Ref and updates it with the given partial function.
+ * Gets the current value of the Ref and updates it atomically with the given partial function.
  *
  * **When to use**
  *
@@ -434,7 +434,7 @@ export const getAndUpdateSome = dual<
   }))
 
 /**
- * Atomically sets the value of the Ref to the specified value and returns the new value.
+ * Sets the value of the Ref atomically to the specified value and returns the new value.
  *
  * **When to use**
  *
@@ -476,7 +476,7 @@ export const setAndGet = dual<
 >(2, <A>(self: Ref<A>, value: A) => Effect.sync(() => self.ref.current = value))
 
 /**
- * Atomically modifies the value of the Ref using the given function.
+ * Modifies the value of the Ref atomically using the given function.
  *
  * **When to use**
  *
@@ -539,7 +539,7 @@ export const modify = dual<
   }))
 
 /**
- * Atomically computes a result and optionally updates the value of the `Ref`.
+ * Computes a result atomically and optionally updates the value of the `Ref`.
  *
  * **When to use**
  *
@@ -614,7 +614,7 @@ export const modifySome: {
   }))
 
 /**
- * Atomically updates the value of the Ref using the given function.
+ * Updates the value of the Ref atomically using the given function.
  *
  * **When to use**
  *
@@ -659,7 +659,7 @@ export const update = dual<
   }))
 
 /**
- * Atomically updates the value of the Ref using the given function and returns the new value.
+ * Updates the value of the Ref atomically using the given function and returns the new value.
  *
  * **When to use**
  *
@@ -695,7 +695,7 @@ export const updateAndGet = dual<
 >(2, <A>(self: Ref<A>, f: (a: A) => A) => Effect.sync(() => self.ref.current = f(self.ref.current)))
 
 /**
- * Atomically updates the value of the Ref using the given partial function.
+ * Updates the value of the Ref atomically using the given partial function.
  *
  * **When to use**
  *
@@ -753,7 +753,7 @@ export const updateSome = dual<
   }))
 
 /**
- * Atomically updates the value of the Ref using the given partial function and returns the current value.
+ * Updates the value of the Ref atomically using the given partial function and returns the current value.
  *
  * **When to use**
  *

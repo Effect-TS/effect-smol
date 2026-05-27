@@ -422,9 +422,10 @@ export const touch = <A extends AsyncResult<any, any>>(result: A): A => {
 }
 
 /**
- * For a `Failure`, replaces its stored previous success with the latest success found in another result; non-failures are returned unchanged.
+ * Replaces a `Failure` value's stored previous success with the latest success
+ * found in another result.
  *
- * @category constructors
+ * @category combinators
  * @since 4.0.0
  */
 export const replacePrevious = <R extends AsyncResult<any, any>, XE, A>(

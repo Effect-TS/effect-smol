@@ -229,7 +229,7 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
 }
 
 /**
- * Safely extracts the first element and remaining elements from a non-empty iterable.
+ * Extracts the first element and remaining elements from a non-empty iterable safely.
  *
  * **When to use**
  *

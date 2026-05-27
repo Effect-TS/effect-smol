@@ -927,8 +927,8 @@ export const invalidate: {
   }))
 
 /**
- * Conditionally invalidates the entry associated with the specified key in the cache
- * if the predicate returns true for the cached value.
+ * Invalidates the entry associated with the specified key in the cache when the
+ * predicate returns true for the cached value.
  *
  * **Example** (Invalidating entries conditionally)
  *

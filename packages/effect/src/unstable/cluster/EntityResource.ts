@@ -84,8 +84,7 @@ export class CloseScope extends Context.Service<
 >()("effect/cluster/EntityResource/CloseScope") {}
 
 /**
- * A `EntityResource` is a resource that can be acquired inside a cluster
- * entity, which will keep the entity alive even across restarts.
+ * Creates an `EntityResource` that can be acquired inside a cluster entity.
  *
  * **Details**
  *

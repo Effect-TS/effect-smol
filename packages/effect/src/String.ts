@@ -155,6 +155,10 @@ export const Equivalence: Equ.Equivalence<string> = Equ.String
 /**
  * The empty string `""`.
  *
+ * **When to use**
+ *
+ * Use when you need the canonical empty string value from the `String` module.
+ *
  * **Example** (Using the empty string)
  *
  * ```ts
@@ -164,7 +168,7 @@ export const Equivalence: Equ.Equivalence<string> = Equ.String
  * console.log(String.isEmpty(String.empty)) // true
  * ```
  *
- * @category constructors
+ * @category constants
  * @since 2.0.0
  */
 export const empty: "" = "" as const
@@ -573,7 +577,7 @@ export const endsWith = (searchString: string, position?: number) => (self: stri
   self.endsWith(searchString, position)
 
 /**
- * Returns the character code at the specified index, or `None` if the index is out of bounds.
+ * Returns the character code at the specified index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Reading character codes)
  *
@@ -614,7 +618,7 @@ export const charCodeAt: {
 export const substring = (start: number, end?: number) => (self: string): string => self.substring(start, end)
 
 /**
- * Returns the character at the specified relative index, or `None` if the index is out of bounds.
+ * Returns the character at the specified relative index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Accessing characters safely)
  *
@@ -634,7 +638,7 @@ export const at: {
 } = dual(2, (self: string, index: number): Option.Option<string> => Option.fromUndefinedOr(self.at(index)))
 
 /**
- * Returns the character at the specified non-negative index, or `None` if the index is out of bounds.
+ * Returns the character at the specified non-negative index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Reading characters safely)
  *
@@ -657,7 +661,7 @@ export const charAt: {
 )
 
 /**
- * Returns the Unicode code point at the specified index, or `None` if the index is out of bounds.
+ * Returns the Unicode code point at the specified index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Reading code points)
  *
@@ -677,7 +681,7 @@ export const codePointAt: {
 } = dual(2, (self: string, index: number): Option.Option<number> => Option.fromUndefinedOr(self.codePointAt(index)))
 
 /**
- * Returns the index of the first occurrence of a substring, or `None` if not found.
+ * Returns the index of the first occurrence of a substring safely, or `None` if not found.
  *
  * **Example** (Finding the first substring index)
  *
@@ -695,7 +699,7 @@ export const indexOf = (searchString: string) => (self: string): Option.Option<n
   Option.filter(Option.some(self.indexOf(searchString)), number.isGreaterThanOrEqualTo(0))
 
 /**
- * Returns the index of the last occurrence of a substring, or `None` if not found.
+ * Returns the index of the last occurrence of a substring safely, or `None` if not found.
  *
  * **Example** (Finding the last substring index)
  *
@@ -736,7 +740,7 @@ export const localeCompare =
     number.sign(self.localeCompare(that, locales, options))
 
 /**
- * Matches a string against a pattern and returns `Option.some` with the match
+ * Matches a string against a pattern safely and returns `Option.some` with the match
  * array, or `Option.none` when the pattern does not match.
  *
  * **Example** (Matching regular expressions)
@@ -880,7 +884,7 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
   self.replaceAll(searchValue, replaceValue)
 
 /**
- * Returns the index of the first match for a string or regular expression, or
+ * Returns the index of the first match for a string or regular expression safely, or
  * `Option.none` when no match is found.
  *
  * **Example** (Searching strings)

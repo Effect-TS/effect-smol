@@ -56,9 +56,10 @@ export type TypeId = typeof TypeId
 export type Snowflake = Brand.Branded<bigint, TypeId>
 
 /**
- * Constructs a branded `Snowflake` from a bigint or bigint-compatible string.
+ * Constructs a branded cluster snowflake id from a bigint or bigint-compatible
+ * string.
  *
- * @category models
+ * @category constructors
  * @since 4.0.0
  */
 export const Snowflake = (input: string | bigint): Snowflake =>

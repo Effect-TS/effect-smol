@@ -213,7 +213,7 @@ export const subtract: {
 } = dual(2, (self: bigint, that: bigint): bigint => self - that)
 
 /**
- * Safely divides one `bigint` by another.
+ * Divides one `bigint` by another safely.
  *
  * **When to use**
  *
@@ -767,7 +767,7 @@ export const sqrtUnsafe = (n: bigint): bigint => {
 }
 
 /**
- * Safely returns the integer square root of a `bigint`.
+ * Computes the integer square root of a `bigint` safely.
  *
  * **When to use**
  *
@@ -863,7 +863,7 @@ export const multiplyAll = (collection: Iterable<bigint>): bigint => {
 }
 
 /**
- * Converts a `bigint` to a `number`.
+ * Converts a `bigint` to a `number` safely.
  *
  * **When to use**
  *
@@ -898,7 +898,7 @@ export const toNumber = (b: bigint): Option.Option<number> => {
 }
 
 /**
- * Converts a string to a `bigint`.
+ * Parses a string into a `bigint` safely.
  *
  * **When to use**
  *

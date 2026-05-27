@@ -200,7 +200,11 @@ export class Empty extends Proto {
 /**
  * Singleton empty HTTP body.
  *
- * @category constructors
+ * **When to use**
+ *
+ * Use when you need an HTTP body value that represents no body content.
+ *
+ * @category constants
  * @since 4.0.0
  */
 export const empty: Empty = new Empty()

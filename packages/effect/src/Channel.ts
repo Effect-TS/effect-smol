@@ -3576,7 +3576,7 @@ export const filterMapArrayEffect: {
     ))))
 
 /**
- * Statefully maps over a channel with an accumulator, where each element can produce multiple output values.
+ * Maps over a channel statefully with an accumulator, where each element can produce multiple output values.
  *
  * **Example** (Mapping with accumulated state)
  *
@@ -3717,7 +3717,7 @@ export const mapAccum: {
 )
 
 /**
- * Statefully transforms a channel by scanning over its output with an accumulator function.
+ * Transforms a channel statefully by scanning over its output with an accumulator function.
  * Emits the intermediate results of the scan operation.
  *
  * **Example** (Scanning channel output)
@@ -3776,7 +3776,7 @@ export const scan: {
   scanEffect(self, initial, (s, a) => Effect.succeed(f(s, a))))
 
 /**
- * Statefully transforms a channel by scanning over its output with an effectful accumulator function.
+ * Transforms a channel statefully by scanning over its output with an effectful accumulator function.
  * Emits the intermediate results of the scan operation.
  *
  * **Example** (Scanning channel output with effects)

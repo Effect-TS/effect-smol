@@ -85,7 +85,7 @@ import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
- * Register an `HttpApi` with a `HttpRouter`.
+ * Registers an `HttpApi` with a `HttpRouter`.
  *
  * @category constructors
  * @since 4.0.0

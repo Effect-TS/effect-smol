@@ -184,7 +184,7 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? base64EncodeUint8Array(encoder.encode(input)) : base64EncodeUint8Array(input)
 
 /**
- * Decodes a base64 (RFC4648) string into bytes.
+ * Decodes a base64 (RFC4648) string into bytes safely.
  *
  * **When to use**
  *
@@ -264,7 +264,7 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingErr
 }
 
 /**
- * Decodes a base64 (RFC4648) string into a UTF-8 string.
+ * Decodes a base64 (RFC4648) string into a UTF-8 string safely.
  *
  * **When to use**
  *
@@ -333,7 +333,7 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
   typeof input === "string" ? base64UrlEncodeUint8Array(encoder.encode(input)) : base64UrlEncodeUint8Array(input)
 
 /**
- * Decodes a URL-safe base64 string into bytes.
+ * Decodes a URL-safe base64 string into bytes safely.
  *
  * **When to use**
  *
@@ -394,7 +394,7 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, Encoding
 }
 
 /**
- * Decodes a URL-safe base64 string into a UTF-8 string.
+ * Decodes a URL-safe base64 string into a UTF-8 string safely.
  *
  * **When to use**
  *
@@ -454,7 +454,7 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input)
 
 /**
- * Decodes a hexadecimal string into bytes.
+ * Decodes a hexadecimal string into bytes safely.
  *
  * **When to use**
  *
@@ -516,7 +516,7 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError>
 }
 
 /**
- * Decodes a hexadecimal string into a UTF-8 string.
+ * Decodes a hexadecimal string into a UTF-8 string safely.
  *
  * **When to use**
  *

@@ -69,13 +69,13 @@ export type Reply<R extends Rpc.Any> = WithExit<R> | Chunk<R>
 export type Encoded = WithExitEncoded | ChunkEncoded
 
 /**
- * Codec used for reply values that are already in encoded form.
+ * Schema for reply values that are already in encoded form.
  *
  * **Details**
  *
  * Per-RPC payload validation is performed by `Reply(rpc)`.
  *
- * @category models
+ * @category schemas
  * @since 4.0.0
  */
 export const Encoded: Schema.Codec<Encoded> = Schema.Any as any
@@ -176,8 +176,8 @@ export interface ChunkEncoded {
 const schemaCache = new WeakMap<Rpc.Any, Schema.Top>()
 
 /**
- * A streaming RPC reply chunk for a request, carrying a non-empty batch of success
- * values together with the reply id and sequence number.
+ * Represents a streaming RPC reply chunk for a request, carrying a non-empty
+ * batch of success values together with the reply id and sequence number.
  *
  * @category models
  * @since 4.0.0

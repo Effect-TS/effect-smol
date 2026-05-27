@@ -373,7 +373,7 @@ export const fromIterable: <K, V>(entries: Iterable<readonly [K, V]>) => HashMap
 export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
 
 /**
- * Looks up the value for the specified key in the `HashMap` using the
+ * Looks up the value for the specified key in the `HashMap` safely using the
  * internal hashing function.
  *
  * **Example** (Looking up values)
@@ -400,7 +400,7 @@ export const get: {
 } = internal.get
 
 /**
- * Lookup the value for the specified key in the `HashMap` using a custom hash.
+ * Looks up the value for the specified key in the `HashMap` safely using a custom hash.
  *
  * **Example** (Looking up values with a hash)
  *
@@ -435,7 +435,7 @@ export const getHash: {
 } = internal.getHash
 
 /**
- * Unsafely lookup the value for the specified key in the `HashMap` using the
+ * Looks up the value for the specified key in the `HashMap` unsafely using the
  * internal hashing function.
  *
  * **Gotchas**

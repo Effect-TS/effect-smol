@@ -728,7 +728,7 @@ export const makeZonedUnsafe: (input: DateTime.Input, options?: {
 }) => Zoned = Internal.makeZonedUnsafe
 
 /**
- * Creates a `DateTime.Zoned` from an input and a time zone.
+ * Creates a `DateTime.Zoned` safely from an input and a time zone.
  *
  * **Details**
  *
@@ -776,7 +776,7 @@ export const makeZoned: (
 ) => Option.Option<Zoned> = Internal.makeZoned
 
 /**
- * Creates a `DateTime` from supported input values.
+ * Creates a `DateTime` safely from supported input values.
  *
  * **Details**
  *
@@ -817,7 +817,7 @@ export const makeZoned: (
 export const make: <A extends DateTime.Input>(input: A) => Option.Option<DateTime.PreserveZone<A>> = Internal.make
 
 /**
- * Parses an ISO zoned date-time string into a `DateTime.Zoned`.
+ * Parses an ISO zoned date-time string into a `DateTime.Zoned` safely.
  *
  * **Details**
  *
@@ -1061,7 +1061,7 @@ export const zoneMakeNamedUnsafe: (zoneId: string) => TimeZone.Named = Internal.
 export const zoneMakeOffset: (offset: number) => TimeZone.Offset = Internal.zoneMakeOffset
 
 /**
- * Safely creates a named time zone from an IANA time zone identifier.
+ * Creates a named time zone safely from an IANA time zone identifier.
  *
  * **Details**
  *
@@ -1085,7 +1085,7 @@ export const zoneMakeOffset: (offset: number) => TimeZone.Offset = Internal.zone
 export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = Internal.zoneMakeNamed
 
 /**
- * Effectfully creates a named time zone from an IANA time zone identifier.
+ * Creates a named time zone effectfully from an IANA time zone identifier.
  *
  * **Details**
  *
@@ -1132,7 +1132,7 @@ export const zoneMakeNamedEffect: (zoneId: string) => Effect.Effect<TimeZone.Nam
 export const zoneMakeLocal: () => TimeZone.Named = Internal.zoneMakeLocal
 
 /**
- * Try to parse a `TimeZone` from a string.
+ * Tries to parse a `TimeZone` from a string safely.
  *
  * **Details**
  *
@@ -1178,7 +1178,7 @@ export const zoneFromString: (zone: string) => Option.Option<TimeZone> = Interna
 export const zoneToString: (self: TimeZone) => string = Internal.zoneToString
 
 /**
- * Sets the time zone of a `DateTime` from an IANA time zone identifier. If the
+ * Sets the time zone of a `DateTime` safely from an IANA time zone identifier. If the
  * time zone is invalid, `None` will be returned.
  *
  * **Example** (Setting named time zones safely)

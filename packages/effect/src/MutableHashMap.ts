@@ -265,7 +265,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
 }
 
 /**
- * Looks up a key in the `MutableHashMap`.
+ * Looks up a key in the `MutableHashMap` safely.
  *
  * **When to use**
  *

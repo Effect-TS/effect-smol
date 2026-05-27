@@ -611,7 +611,7 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
  * Use when classes or object prototypes can reuse this value when they need the
  * standard pipe implementation backed by `pipeArguments`.
  *
- * @category models
+ * @category prototypes
  * @since 3.15.0
  */
 export const Prototype: Pipeable = {

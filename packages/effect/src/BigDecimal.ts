@@ -583,7 +583,7 @@ export const roundTerminal = (n: bigint): bigint => {
 }
 
 /**
- * Provides a division operation on `BigDecimal`s.
+ * Divides `BigDecimal`s safely.
  *
  * **When to use**
  *
@@ -1105,8 +1105,8 @@ export const abs = (n: BigDecimal): BigDecimal => n.value < bigint0 ? make(-n.va
 export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
 
 /**
- * Safely returns the decimal remainder left over when one operand is divided by
- * a second operand.
+ * Computes the decimal remainder safely when one operand is divided by a second
+ * operand.
  *
  * **When to use**
  *
@@ -1340,7 +1340,7 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
 }
 
 /**
- * Safely creates a `BigDecimal` from a finite `number`.
+ * Creates a `BigDecimal` safely from a finite `number`.
  *
  * **When to use**
  *
@@ -1391,7 +1391,7 @@ export const fromNumber = (n: number): Option.Option<BigDecimal> => {
 }
 
 /**
- * Safely parses a decimal string into a `BigDecimal`.
+ * Parses a decimal string into a `BigDecimal` safely.
  *
  * **When to use**
  *

@@ -442,7 +442,7 @@ export const isUnion = makeGuard("Union")
 export const isSuspend = makeGuard("Suspend")
 
 /**
- * A single step in an {@link Encoding} chain.
+ * Represents a single step in an {@link Encoding} chain.
  *
  * **Details**
  *
@@ -584,7 +584,7 @@ export interface ParseOptions {
 export const defaultParseOptions: ParseOptions = {}
 
 /**
- * Per-property metadata attached to AST nodes via {@link Base.context}.
+ * Represents per-property metadata attached to AST nodes via {@link Base.context}.
  *
  * **Details**
  *
@@ -645,7 +645,7 @@ export type Checks = readonly [Check<any>, ...Array<Check<any>>]
 const TypeId = "~effect/Schema"
 
 /**
- * Abstract base class for all {@link AST} node variants.
+ * Represents the abstract base class for all {@link AST} node variants.
  *
  * **Details**
  *
@@ -779,7 +779,12 @@ export {
   /**
    * Singleton {@link Null} AST instance.
    *
-   * @category constructors
+   * **When to use**
+   *
+   * Use when you need the shared AST node for exact null values while inspecting
+   * or constructing schema ASTs.
+   *
+   * @category constants
    * @since 4.0.0
    */
   null_ as null
@@ -826,7 +831,12 @@ export {
   /**
    * Singleton {@link Undefined} AST instance.
    *
-   * @category constructors
+   * **When to use**
+   *
+   * Use when you need the shared AST node for exact undefined values while
+   * inspecting or constructing schema ASTs.
+   *
+   * @category constants
    * @since 4.0.0
    */
   undefined_ as undefined
@@ -1814,7 +1824,7 @@ export function getIndexSignatureKeys(
 }
 
 /**
- * A named property within an {@link Objects} node.
+ * Represents a named property within an {@link Objects} node.
  *
  * **Details**
  *
@@ -1840,7 +1850,7 @@ export class PropertySignature {
 }
 
 /**
- * Bidirectional merge strategy for index signature key-value pairs.
+ * Represents a bidirectional merge strategy for index signature key-value pairs.
  *
  * **Details**
  *
@@ -1871,7 +1881,7 @@ export class KeyValueCombiner {
 }
 
 /**
- * An index signature entry within an {@link Objects} node.
+ * Represents an index signature entry within an {@link Objects} node.
  *
  * **Details**
  *
@@ -2748,7 +2758,7 @@ export class Suspend extends Base {
 // -----------------------------------------------------------------------------
 
 /**
- * A single validation check attached to an AST node.
+ * Represents a single validation check attached to an AST node.
  *
  * **Details**
  *
@@ -2803,7 +2813,7 @@ export class Filter<in E> extends Pipeable.Class {
 }
 
 /**
- * A composite validation check grouping multiple {@link Check} values.
+ * Represents a composite validation check grouping multiple {@link Check} values.
  *
  * **Details**
  *

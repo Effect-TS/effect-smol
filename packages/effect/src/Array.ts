@@ -981,7 +981,7 @@ export function isOutOfBounds<A>(i: number, as: ReadonlyArray<A>): boolean {
 const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.min(Math.max(0, i), as.length))
 
 /**
- * Safely reads an element at the given index, returning `Option.some` or
+ * Reads an element at the given index safely, returning `Option.some` or
  * `Option.none` if the index is out of bounds.
  *
  * **When to use**
@@ -1124,7 +1124,7 @@ export const unappend = <A>(
 ): [arrayWithoutLastElement: Array<A>, lastElement: A] => [initNonEmpty(self), lastNonEmpty(self)]
 
 /**
- * Returns the first element of an array wrapped in `Option.some`, or
+ * Returns the first element of an array safely wrapped in `Option.some`, or
  * `Option.none` if the array is empty.
  *
  * **When to use**
@@ -1173,7 +1173,7 @@ export const head: <A>(self: ReadonlyArray<A>) => Option.Option<A> = get(0)
 export const headNonEmpty: <A>(self: NonEmptyReadonlyArray<A>) => A = getUnsafe(0)
 
 /**
- * Returns the last element of an array wrapped in `Option.some`, or
+ * Returns the last element of an array safely wrapped in `Option.some`, or
  * `Option.none` if the array is empty.
  *
  * **When to use**
@@ -1223,7 +1223,7 @@ export const last = <A>(self: ReadonlyArray<A>): Option.Option<A> =>
 export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.length - 1]
 
 /**
- * Returns all elements except the first, wrapped in an `Option`.
+ * Returns all elements except the first safely, wrapped in an `Option`.
  *
  * **When to use**
  *
@@ -1278,7 +1278,7 @@ export function tail<A>(self: Iterable<A>): Option.Option<Array<A>> {
 export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => self.slice(1)
 
 /**
- * Returns all elements except the last, wrapped in an `Option`.
+ * Returns all elements except the last safely, wrapped in an `Option`.
  *
  * **When to use**
  *
@@ -1919,7 +1919,7 @@ export const findLast: {
 )
 
 /**
- * Inserts an element at the specified index, returning a new `NonEmptyArray`
+ * Inserts an element at the specified index safely, returning a new `NonEmptyArray`
  * wrapped in an `Option`.
  *
  * **When to use**
@@ -1958,7 +1958,7 @@ export const insertAt: {
 })
 
 /**
- * Replaces the element at the specified index with a new value, returning the
+ * Replaces the element at the specified index safely with a new value, returning the
  * updated array in `Option.some`.
  *
  * **When to use**
@@ -1999,7 +1999,7 @@ export const replace: {
 )
 
 /**
- * Applies a function to the element at the specified index, returning the
+ * Applies a function to the element at the specified index safely, returning the
  * updated array in `Option.some`.
  *
  * **When to use**

@@ -285,7 +285,7 @@ function safeToString(input: any): string {
 }
 
 /**
- * Safely stringifies a value to JSON, silently dropping circular references.
+ * Stringifies a value to JSON safely, silently dropping circular references.
  *
  * **When to use**
  *

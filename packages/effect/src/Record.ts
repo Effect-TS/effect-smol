@@ -480,7 +480,7 @@ export const has: {
 )
 
 /**
- * Retrieve a value at a particular key from a record, returning it wrapped in an `Option`.
+ * Retrieves a value at a particular key from a record safely, returning it wrapped in an `Option`.
  *
  * **Example** (Getting a value as an Option)
  *
@@ -507,7 +507,7 @@ export const get: {
 )
 
 /**
- * Applies a function to the element at the specified key, creating a new record,
+ * Applies a function to the element at the specified key safely, creating a new record,
  * or return `Option.none()` if the key doesn't exist.
  *
  * **Example** (Modifying a value at a key)
@@ -549,7 +549,7 @@ export const modify: {
 )
 
 /**
- * Replaces the value at an existing key and returns the updated record in
+ * Replaces the value at an existing key safely and returns the updated record in
  * `Option.some`.
  *
  * **Details**
@@ -628,7 +628,7 @@ export const remove: {
 )
 
 /**
- * Retrieves the value of the property with the given `key` from a record and returns an `Option`
+ * Retrieves the value of the property with the given `key` from a record safely and returns an `Option`
  * of a tuple with the value and the record with the removed property.
  * If the key is not present, returns `Option.none()`.
  *

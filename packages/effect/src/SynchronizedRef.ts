@@ -134,7 +134,7 @@ export const getUnsafe = <A>(self: SynchronizedRef<A>): A => self.backing.ref.cu
 export const get = <A>(self: SynchronizedRef<A>): Effect.Effect<A> => Effect.sync(() => getUnsafe(self))
 
 /**
- * Atomically sets a new value and returns the previous value, serialized by the
+ * Sets a new value atomically and returns the previous value, serialized by the
  * ref's semaphore.
  *
  * **When to use**
@@ -159,7 +159,7 @@ export const getAndSet: {
 )
 
 /**
- * Atomically updates the current value with a function and returns the previous
+ * Updates the current value atomically with a function and returns the previous
  * value, serialized by the ref's semaphore.
  *
  * **When to use**
@@ -183,7 +183,7 @@ export const getAndUpdate: {
 )
 
 /**
- * Atomically runs an effectful update while holding the ref's semaphore, sets
+ * Runs an effectful update atomically while holding the ref's semaphore, sets
  * the new value if the effect succeeds, and returns the previous value.
  *
  * **When to use**
@@ -215,7 +215,7 @@ export const getAndUpdateEffect: {
 )
 
 /**
- * Atomically applies a partial update and returns the previous value. If the
+ * Applies a partial update atomically and returns the previous value. If the
  * function returns `Option.some`, the ref is updated; if it returns
  * `Option.none`, the ref is left unchanged.
  *
@@ -239,7 +239,7 @@ export const getAndUpdateSome: {
 )
 
 /**
- * Atomically runs an effectful partial update while holding the ref's semaphore
+ * Runs an effectful partial update atomically while holding the ref's semaphore
  * and returns the previous value. `Option.some` updates the ref; `Option.none`
  * leaves it unchanged.
  *
@@ -273,7 +273,7 @@ export const getAndUpdateSomeEffect: {
 )
 
 /**
- * Atomically computes a return value and a new ref value, stores the new value,
+ * Computes a return value and a new ref value atomically, stores the new value,
  * and returns the computed result.
  *
  * **When to use**
@@ -298,7 +298,7 @@ export const modify: {
 )
 
 /**
- * Atomically runs an effectful modification while holding the ref's semaphore,
+ * Runs an effectful modification atomically while holding the ref's semaphore,
  * stores the new value if the effect succeeds, and returns the computed result.
  *
  * **When to use**
@@ -328,7 +328,7 @@ export const modifyEffect: {
 )
 
 /**
- * Atomically computes a return value and an optional new ref value.
+ * Computes a return value and an optional new ref value atomically.
  * `Option.some` updates the ref; `Option.none` leaves it unchanged.
  *
  * **When to use**
@@ -358,7 +358,7 @@ export const modifySome: {
 )
 
 /**
- * Atomically runs an effectful modification while holding the ref's semaphore.
+ * Runs an effectful modification atomically while holding the ref's semaphore.
  * The effect computes a return value and an optional new ref value;
  * `Option.some` updates the ref and `Option.none` leaves it unchanged.
  *

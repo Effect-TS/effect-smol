@@ -189,14 +189,15 @@ export const layerRegistry = Layer.effect(
 )
 
 /**
- * Event-log identity containing a public key and redacted private key material.
+ * Context service for an event-log identity containing a public key and redacted
+ * private key material.
  *
  * **Details**
  *
  * The identity is used by remote replication for authentication and by the
  * encryption service to derive signing and encryption keys.
  *
- * @category models
+ * @category services
  * @since 4.0.0
  */
 export class Identity extends Context.Service<Identity, {

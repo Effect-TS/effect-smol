@@ -197,7 +197,7 @@ export const subtract: {
 } = dual(2, (self: number, that: number): number => self - that)
 
 /**
- * Provides a division operation on `number`s, returning `Option.none()` if the divisor is `0`.
+ * Divides `number`s safely, returning `Option.none()` if the divisor is `0`.
  *
  * **When to use**
  *
@@ -739,7 +739,7 @@ export const nextPow2 = (n: number): number => {
 }
 
 /**
- * Tries to parse a `number` from a `string` using the `Number()` function.
+ * Parses a `number` from a `string` safely using the `Number()` function.
  * The following special string values are supported: "NaN", "Infinity", "-Infinity".
  *
  * **When to use**

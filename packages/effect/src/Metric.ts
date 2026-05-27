@@ -3219,7 +3219,7 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.contex
 })
 
 /**
- * Synchronously captures a snapshot of all registered metrics using the provided
+ * Captures a snapshot of all registered metrics synchronously using the provided
  * service context.
  *
  * **When to use**

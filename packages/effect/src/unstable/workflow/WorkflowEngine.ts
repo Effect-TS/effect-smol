@@ -136,7 +136,7 @@ export class WorkflowEngine extends Context.Service<
     ) => Effect.Effect<void>
 
     /**
-     * Unsafely interrupt a registered workflow, potentially ignoring
+     * Interrupts a registered workflow unsafely, potentially ignoring
      * compensation finalizers and orphaning child workflows.
      */
     readonly interruptUnsafe: (

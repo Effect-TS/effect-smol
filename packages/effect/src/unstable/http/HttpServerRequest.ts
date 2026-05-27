@@ -1021,7 +1021,7 @@ const isFormData = (u: unknown): u is FormData => typeof FormData !== "undefined
 const textDecoder = new TextDecoder()
 
 /**
- * Attempts to construct an absolute `URL` for a server request.
+ * Attempts to construct an absolute `URL` for a server request safely.
  *
  * **Details**
  *
@@ -1043,7 +1043,7 @@ export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
 }
 
 /**
- * Converts an `HttpServerRequest` to a Web `Request` as a `Result`.
+ * Converts an `HttpServerRequest` safely to a Web `Request` as a `Result`.
  *
  * **Details**
  *

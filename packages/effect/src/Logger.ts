@@ -786,7 +786,7 @@ export const formatStructured: Logger<unknown, {
 export const formatJson = map(formatStructured, Formatter.formatJson)
 
 /**
- * Creates, in a scope, a logger that batches the output of another logger.
+ * Creates a scoped logger that batches the output of another logger.
  *
  * **Details**
  *

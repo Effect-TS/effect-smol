@@ -557,8 +557,8 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 export const isCronParseError = (u: unknown): u is CronParseError => hasProperty(u, CronParseErrorTypeId)
 
 /**
- * Parses a cron expression into a `Cron` instance, returning a `Result` instead
- * of throwing.
+ * Parses a cron expression safely into a `Cron` instance, returning a `Result`
+ * instead of throwing.
  *
  * **When to use**
  *

@@ -509,7 +509,7 @@ export const longestPrefixOf: {
 export const size: <V>(self: Trie<V>) => number = TR.size
 
 /**
- * Looks up the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` safely.
  *
  * **Example** (Looking up values safely)
  *
@@ -598,7 +598,7 @@ export const has: {
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
 /**
- * Unsafely looks up the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` unsafely.
  *
  * **Gotchas**
  *

@@ -569,7 +569,7 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
 export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Infer<S>> = reverseChunk as any
 
 /**
- * Gets the value at an index in a `Chunk`, returning `None` when the index is
+ * Gets the value at an index in a `Chunk` safely, returning `None` when the index is
  * out of bounds.
  *
  * **Example** (Accessing elements safely)
@@ -1425,7 +1425,7 @@ export const isEmpty = <A>(self: Chunk<A>): boolean => self.length === 0
 export const isNonEmpty = <A>(self: Chunk<A>): self is NonEmptyChunk<A> => self.length > 0
 
 /**
- * Returns the first element of this chunk if it exists.
+ * Returns the first element of this chunk safely if it exists.
  *
  * **Example** (Getting the first element)
  *
@@ -1492,7 +1492,7 @@ export const headUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, 0)
 export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
 
 /**
- * Returns the last element of this chunk if it exists.
+ * Returns the last element of this chunk safely if it exists.
  *
  * **Example** (Getting the last element)
  *
@@ -1740,7 +1740,7 @@ export const map: {
     fromArrayUnsafe(pipe(toReadonlyArray(self), RA.map((a, i) => f(a, i)))))
 
 /**
- * Statefully maps over the chunk, producing new elements of type `B`.
+ * Maps over the chunk statefully, producing new elements of type `B`.
  *
  * **Example** (Mapping with accumulated state)
  *
@@ -2108,7 +2108,7 @@ export const splitWhere: {
 })
 
 /**
- * Returns every element after the first, or `None` when the chunk is empty.
+ * Returns every element after the first safely, or `None` when the chunk is empty.
  *
  * **Example** (Getting the tail safely)
  *
@@ -2441,7 +2441,7 @@ export const remove: {
 )
 
 /**
- * Applies a function to the element at the specified index, creating a new `Chunk`,
+ * Applies a function to the element at the specified index safely, creating a new `Chunk`,
  * or returns `None` if the index is out of bounds.
  *
  * **Example** (Modifying an element)
@@ -2475,7 +2475,7 @@ export const modify: {
 )
 
 /**
- * Changes the element at the specified index, creating a new `Chunk`,
+ * Changes the element at the specified index safely, creating a new `Chunk`,
  * or returns `None` if the index is out of bounds.
  *
  * **Example** (Replacing an element)

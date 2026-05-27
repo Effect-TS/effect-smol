@@ -92,7 +92,7 @@ export class Dimensions extends Context.Service<Dimensions, number>()(
 ) {}
 
 /**
- * Token usage metadata for embedding operations.
+ * Represents token usage metadata for embedding operations.
  *
  * **Details**
  *
@@ -122,7 +122,8 @@ export class EmbedResponse extends Schema.Class<EmbedResponse>(
 }) {}
 
 /**
- * Batch embedding response containing per-input embeddings and usage metadata.
+ * Response for batch embedding requests containing per-input embeddings and usage
+ * metadata.
  *
  * **Details**
  *

@@ -470,7 +470,7 @@ export const set: {
 ): Effect.Effect<void> => Effect.sync(() => setUnsafe(self, key, fiber, options)))
 
 /**
- * Synchronously retrieves a fiber from the FiberMap.
+ * Retrieves a fiber from the FiberMap synchronously.
  *
  * **Example** (Retrieving a fiber unsafely)
  *
@@ -510,7 +510,7 @@ export const getUnsafe: {
 )
 
 /**
- * Effectfully retrieves a fiber from the FiberMap.
+ * Retrieves a fiber from the FiberMap effectfully.
  *
  * **Details**
  *

@@ -101,7 +101,7 @@ export const fromAcquire: <A, E, R>(
 }, Effect.uninterruptible)
 
 /**
- * Synchronously retrieves the current value of the scoped reference.
+ * Retrieves the current value of the scoped reference synchronously.
  *
  * **When to use**
  *
@@ -116,7 +116,7 @@ export const fromAcquire: <A, E, R>(
 export const getUnsafe = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.current[1]
 
 /**
- * Effectfully retrieves the current value of the scoped reference.
+ * Retrieves the current value of the scoped reference effectfully.
  *
  * **When to use**
  *

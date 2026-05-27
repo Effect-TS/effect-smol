@@ -510,8 +510,9 @@ class MemoMapImpl implements MemoMap {
 export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 
 /**
- * Synchronously constructs a child `MemoMap` that can reuse layers already
- * memoized in the parent while isolating any new layer allocations to the child map.
+ * Constructs a child `MemoMap` synchronously, allowing it to reuse layers
+ * already memoized in the parent while isolating any new layer allocations to
+ * the child map.
  *
  * **When to use**
  *
@@ -559,8 +560,9 @@ export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(p
 export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsafe)
 
 /**
- * Effectfully constructs a child `MemoMap` that can reuse layers already
- * memoized in the parent while isolating any new layer allocations to the child map.
+ * Constructs a child `MemoMap` effectfully, allowing it to reuse layers already
+ * memoized in the parent while isolating any new layer allocations to the child
+ * map.
  *
  * **When to use**
  *
@@ -1100,7 +1102,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
   effectContext(internalEffect.as(effect, Context.empty()))
 
 /**
- * Lazily constructs a layer using the specified factory.
+ * Constructs a layer lazily using the specified factory.
  *
  * **Details**
  *

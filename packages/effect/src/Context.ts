@@ -1047,7 +1047,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
 }
 
 /**
- * Gets the service for a key wrapped in an `Option`.
+ * Gets the service for a key safely wrapped in an `Option`.
  *
  * **When to use**
  *

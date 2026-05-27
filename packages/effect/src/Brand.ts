@@ -132,8 +132,7 @@ export interface Constructor<in out B extends Brand<any>> {
 }
 
 /**
- * A `BrandError` is returned when a branded type is constructed from an invalid
- * value.
+ * Error returned when a branded type is constructed from an invalid value.
  *
  * **Details**
  *
@@ -145,7 +144,7 @@ export interface Constructor<in out B extends Brand<any>> {
  * `BrandError` is an error-like model with `_tag`, `name`, `message`, and
  * `toString`; it does not extend JavaScript `Error`.
  *
- * @category models
+ * @category errors
  * @since 4.0.0
  */
 export class BrandError {

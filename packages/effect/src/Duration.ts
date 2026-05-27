@@ -327,7 +327,7 @@ const invalid = (input: unknown): never => {
 }
 
 /**
- * Safely decodes a `Input` value into a `Duration`, returning
+ * Decodes a `Input` value into a `Duration` safely, returning
  * `Option.none()` if decoding fails.
  *
  * **Example** (Safely decoding duration inputs)
@@ -945,7 +945,7 @@ export const toNanosUnsafe = (input: Input): bigint => {
 }
 
 /**
- * Safely gets the duration in nanoseconds as an `Option<bigint>`.
+ * Gets the duration in nanoseconds safely as an `Option<bigint>`.
  *
  * **Details**
  *
@@ -1301,7 +1301,7 @@ export const clamp: {
 } = order.clamp(Order)
 
 /**
- * Safely divides a `Duration` by a finite, non-zero number.
+ * Divides a `Duration` by a finite, non-zero number safely.
  *
  * **Details**
  *

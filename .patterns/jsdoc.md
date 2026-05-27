@@ -13,7 +13,7 @@ When adding or vetting JSDoc categories in public source files:
 
 ## Common Shared Categories
 
-- API shapes: `constructors`, `destructors`, `models`, `schemas`, `guards`, `predicates`, `getters`, `accessors`, `instances`, `constants`, `protocol`, `re-exports`, `unsafe`, `testing`
+- API shapes: `constructors`, `destructors`, `models`, `schemas`, `guards`, `predicates`, `getters`, `accessors`, `instances`, `constants`, `protocol`, `prototypes`, `re-exports`, `unsafe`, `testing`
 - Effect/service concepts: `services`, `tags`, `layers`, `context`, `resource management`, `running`
 - Type-level APIs: `utility types` for type-level helpers/contracts; use `models` for exported type/interface/class shapes that represent domain data
 - Error APIs: `errors` for error models/classes/types, `error handling` for recovery/catching/mapping APIs

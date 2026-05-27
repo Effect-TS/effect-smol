@@ -528,7 +528,7 @@ export interface EventEncoded {
 const RetryTypeId = "~effect/encoding/Sse/Retry" as const
 
 /**
- * Server-Sent Events retry directive.
+ * Represents a Server-Sent Events retry directive.
  *
  * **Details**
  *

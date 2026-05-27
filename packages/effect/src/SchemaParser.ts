@@ -340,7 +340,8 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
 }
 
 /**
- * Creates a synchronous decoder for `unknown` input that returns an `Exit`.
+ * Creates a synchronous decoder for `unknown` input that reports failure safely
+ * as an `Exit`.
  *
  * **When to use**
  *
@@ -376,7 +377,7 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
 
 /**
  * Creates a synchronous decoder for input already typed as the schema's `Encoded`
- * type, returning an `Exit`.
+ * type, reporting failure safely as an `Exit`.
  *
  * **When to use**
  *
@@ -400,7 +401,7 @@ export const decodeExit: <S extends Schema.Decoder<unknown>>(
 ) => (input: S["Encoded"], options?: AST.ParseOptions) => Exit.Exit<S["Type"], Issue.Issue> = decodeUnknownExit
 
 /**
- * Creates a decoder for `unknown` input that returns an `Option`.
+ * Creates a decoder for `unknown` input that returns an `Option` safely.
  *
  * **When to use**
  *
@@ -426,7 +427,7 @@ export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
 }
 
 /**
- * Creates a decoder for input already typed as the schema's `Encoded` type,
+ * Creates a decoder safely for input already typed as the schema's `Encoded` type,
  * returning an `Option`.
  *
  * **When to use**
@@ -451,7 +452,8 @@ export const decodeOption: <S extends Schema.Decoder<unknown>>(
 ) => (input: S["Encoded"], options?: AST.ParseOptions) => Option.Option<S["Type"]> = decodeUnknownOption
 
 /**
- * Creates a decoder for `unknown` input that returns a `Result`.
+ * Creates a decoder for `unknown` input that reports failure safely as a
+ * `Result`.
  *
  * **When to use**
  *
@@ -483,7 +485,7 @@ export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
 
 /**
  * Creates a decoder for input already typed as the schema's `Encoded` type,
- * returning a `Result`.
+ * reporting failure safely as a `Result`.
  *
  * **When to use**
  *
@@ -673,7 +675,8 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
 ) => (input: S["Type"], options?: AST.ParseOptions) => Promise<S["Encoded"]> = encodeUnknownPromise
 
 /**
- * Creates a synchronous encoder for `unknown` input that returns an `Exit`.
+ * Creates a synchronous encoder for `unknown` input that reports failure safely
+ * as an `Exit`.
  *
  * **When to use**
  *
@@ -700,7 +703,7 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
 
 /**
  * Creates a synchronous encoder for input already typed as the schema's decoded
- * `Type`, returning an `Exit`.
+ * `Type`, reporting failure safely as an `Exit`.
  *
  * **When to use**
  *
@@ -724,7 +727,7 @@ export const encodeExit: <S extends Schema.Encoder<unknown>>(
 ) => (input: S["Type"], options?: AST.ParseOptions) => Exit.Exit<S["Encoded"], Issue.Issue> = encodeUnknownExit
 
 /**
- * Creates an encoder for `unknown` input that returns an `Option`.
+ * Creates an encoder for `unknown` input that returns an `Option` safely.
  *
  * **When to use**
  *
@@ -750,7 +753,7 @@ export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
 }
 
 /**
- * Creates an encoder for input already typed as the schema's decoded `Type`,
+ * Creates an encoder safely for input already typed as the schema's decoded `Type`,
  * returning an `Option`.
  *
  * **When to use**
@@ -775,7 +778,8 @@ export const encodeOption: <S extends Schema.Encoder<unknown>>(
 ) => (input: S["Type"], options?: AST.ParseOptions) => Option.Option<S["Encoded"]> = encodeUnknownOption
 
 /**
- * Creates an encoder for `unknown` input that returns a `Result`.
+ * Creates an encoder for `unknown` input that reports failure safely as a
+ * `Result`.
  *
  * **When to use**
  *
@@ -803,7 +807,7 @@ export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
 
 /**
  * Creates an encoder for input already typed as the schema's decoded `Type`,
- * returning a `Result`.
+ * reporting failure safely as a `Result`.
  *
  * **When to use**
  *

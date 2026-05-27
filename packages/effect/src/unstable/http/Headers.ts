@@ -250,7 +250,7 @@ export const fromInput: (input?: Input) => Headers = (input) => {
 }
 
 /**
- * Unsafely treats an existing record as `Headers`.
+ * Treats an existing record as `Headers` unsafely.
  *
  * **Gotchas**
  *
@@ -281,7 +281,7 @@ export const has: {
 >(2, (self, key) => key.toLowerCase() in self)
 
 /**
- * Gets a header value by name.
+ * Gets a header value by name safely.
  *
  * **Details**
  *

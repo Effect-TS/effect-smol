@@ -244,7 +244,7 @@ export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = intern
 export const open = (self: Latch): Effect.Effect<boolean> => self.open
 
 /**
- * Synchronously opens the latch and releases fibers waiting on it.
+ * Opens the latch synchronously and releases fibers waiting on it.
  *
  * **When to use**
  *
@@ -340,7 +340,7 @@ export {
 export const close = (self: Latch): Effect.Effect<boolean> => self.close
 
 /**
- * Synchronously closes the latch so future `await` and `whenOpen` calls
+ * Closes the latch synchronously so future `await` and `whenOpen` calls
  * suspend.
  *
  * **When to use**

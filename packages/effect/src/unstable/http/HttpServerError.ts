@@ -350,7 +350,7 @@ export const causeResponse = <E>(
 }
 
 /**
- * Synchronously derives an HTTP response from a failed handler cause.
+ * Derives an HTTP response from a failed handler cause synchronously.
  *
  * **Details**
  *

@@ -166,7 +166,8 @@ const decoder = new TextDecoder()
 const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
 
 /**
- * Socket close event value carrying a close code and optional reason.
+ * Represents a socket close event value carrying a close code and optional
+ * reason.
  *
  * @category models
  * @since 4.0.0

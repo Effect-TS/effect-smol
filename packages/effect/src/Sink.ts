@@ -937,7 +937,7 @@ export const mapInput: {
 )
 
 /**
- * Effectfully transforms this sink's input elements.
+ * Transforms this sink's input elements effectfully.
  *
  * @category mapping
  * @since 2.0.0
@@ -982,7 +982,7 @@ export const mapInputArray: {
 )
 
 /**
- * Effectfully transforms each non-empty array of upstream input before it is
+ * Transforms each non-empty array of upstream input effectfully before it is
  * fed to this sink.
  *
  * @category mapping
@@ -1045,7 +1045,7 @@ const transformEffect = <A, In, L, E, R, A2, E2, R2, L2 = never>(
 ): Sink<A2, In, L2, E2, R2> => fromTransform((upstream, scope) => f(self.transform(upstream, scope)))
 
 /**
- * Effectfully transforms the full `End` produced by this sink.
+ * Transforms the full `End` produced by this sink effectfully.
  *
  * **Details**
  *
@@ -1069,7 +1069,7 @@ export const mapEffectEnd: {
 ): Sink<A2, In, L2, E | E2, R | R2> => transformEffect(self, Effect.flatMap(f)))
 
 /**
- * Effectfully transforms this sink's result.
+ * Transforms this sink's result effectfully.
  *
  * **When to use**
  *
@@ -1639,7 +1639,7 @@ export const takeWhileFilter = <In, Out, X>(
   })
 
 /**
- * Effectfully collects input elements while the predicate succeeds.
+ * Collects input elements effectfully while the predicate succeeds.
  *
  * **Details**
  *
@@ -1688,7 +1688,7 @@ export const takeWhileEffect: {
   })
 
 /**
- * Effectfully applies a `FilterEffect` to input elements while it succeeds,
+ * Applies a `FilterEffect` to input elements effectfully while it succeeds,
  * collecting each successful output.
  *
  * **Details**
@@ -1747,7 +1747,7 @@ export const takeUntil = <In>(predicate: Predicate<In>): Sink<Array<In>, In, In>
   })
 
 /**
- * Effectfully collects input elements until the predicate returns `true`,
+ * Collects input elements effectfully until the predicate returns `true`,
  * including the matching element in the result.
  *
  * **Details**

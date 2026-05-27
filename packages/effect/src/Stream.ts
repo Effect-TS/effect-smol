@@ -412,8 +412,7 @@ export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
 ) => Stream<Arr extends Arr.NonEmptyReadonlyArray<infer A> ? A : never, E, R> = internal.fromChannel
 
 /**
- * Either emits the success value of this effect or terminates the stream
- * with the failure value of this effect.
+ * Creates a stream from an effect.
  *
  * **Example** (Creating a stream from an effect)
  *
@@ -688,7 +687,7 @@ export const fromPull = <A, E, R, EX, RX>(
 ): Stream<A, Pull.ExcludeDone<E> | EX, R | RX> => fromChannel(Channel.fromPull(pull))
 
 /**
- * Derive a stream by transforming its pull effect.
+ * Derives a stream by transforming its pull effect.
  *
  * **Example** (Transforming a pull effect)
  *
@@ -2154,7 +2153,7 @@ export const flattenEffect: <
   )
 
 /**
- * Effectfully maps over non-empty array chunks emitted by the stream.
+ * Maps over non-empty array chunks emitted by the stream effectfully.
  *
  * **Example** (Effectfully mapping stream chunks)
  *
@@ -4366,7 +4365,7 @@ export const filterMap: {
 )
 
 /**
- * Effectfully filters elements in a single pass.
+ * Filters elements in a single pass effectfully.
  *
  * **Example** (Effectfully filtering stream values)
  *
@@ -4404,7 +4403,7 @@ export const filterEffect: {
 )
 
 /**
- * Effectfully filters and maps elements in one pass using a `FilterEffect`.
+ * Filters and maps elements in one pass effectfully using a `FilterEffect`.
  *
  * **When to use**
  *
@@ -5054,7 +5053,7 @@ export {
 }
 
 /**
- * Effectfully peeks at errors without changing the stream unless the tap fails.
+ * Peeks at errors effectfully without changing the stream unless the tap fails.
  *
  * **Example** (Effectfully peeking at errors)
  *
@@ -7388,7 +7387,7 @@ export const combineArray: {
   )))
 
 /**
- * Statefully maps elements, emitting zero or more outputs per input.
+ * Maps elements statefully, emitting zero or more outputs per input.
  *
  * **Example** (Statefully mapping stream values)
  *
@@ -7461,7 +7460,7 @@ export const mapAccum: {
   )))
 
 /**
- * Statefully maps over non-empty chunk arrays, emitting zero or more values per chunk.
+ * Maps over non-empty chunk arrays statefully, emitting zero or more values per chunk.
  *
  * **Details**
  *
@@ -7536,7 +7535,7 @@ export const mapAccumArray: {
 const emptyArr = Arr.empty<never>()
 
 /**
- * Statefully and effectfully maps each element, emitting zero or more output
+ * Maps each element statefully and effectfully, emitting zero or more output
  * values per input.
  *
  * **Details**
@@ -7617,7 +7616,7 @@ export const mapAccumEffect: {
   ))
 
 /**
- * Statefully and effectfully maps each non-empty input chunk, emitting zero or
+ * Maps each non-empty input chunk statefully and effectfully, emitting zero or
  * more output values per chunk.
  *
  * **Details**
@@ -7753,7 +7752,7 @@ export const scan: {
   }))
 
 /**
- * Effectfully accumulates state and emits the initial state plus each accumulated state.
+ * Accumulates state effectfully and emits the initial state plus each accumulated state.
  *
  * **Example** (Effectfully scanning stream state)
  *

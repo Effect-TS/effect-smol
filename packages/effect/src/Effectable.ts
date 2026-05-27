@@ -55,7 +55,7 @@ import { evaluate, makePrimitiveProto } from "./internal/core.ts"
  *
  * @see {@link Class} for a class-based approach to defining custom Effect values
  *
- * @category Prototypes
+ * @category prototypes
  * @since 4.0.0
  */
 export const Prototype = <A extends Effect.Effect<any, any, any>>(options: {

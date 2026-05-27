@@ -683,7 +683,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Gets the data associated with a node index, if it exists.
+ * Gets the data associated with a node index safely, if it exists.
  *
  * **Example** (Getting node data)
  *
@@ -1649,7 +1649,7 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
 // =============================================================================
 
 /**
- * Gets the edge data associated with an edge index, if it exists.
+ * Gets the edge data associated with an edge index safely, if it exists.
  *
  * **Example** (Getting edge data)
  *
@@ -3823,7 +3823,7 @@ export const bellmanFord: {
 })
 
 /**
- * Iterable wrapper used by graph traversal and listing APIs.
+ * Represents an iterable wrapper used by graph traversal and listing APIs.
  *
  * **Details**
  *

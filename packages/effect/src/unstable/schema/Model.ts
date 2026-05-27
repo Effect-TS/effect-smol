@@ -78,8 +78,7 @@ export type VariantsJson = "json" | "jsonCreate" | "jsonUpdate"
 
 export {
   /**
-   * A base class used for creating domain model schemas with common database and
-   * JSON API variants.
+   * Creates domain model schemas with common database and JSON API variants.
    *
    * **Example** (Defining a variant model class)
    *

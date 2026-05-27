@@ -660,8 +660,8 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  */
 export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync(() => sizeUnsafe(self))
 /**
- * Synchronously returns the current number of messages retained by the `PubSub`
- * for active subscribers.
+ * Returns the current number of messages retained by the `PubSub` for active
+ * subscribers synchronously.
  *
  * **Details**
  *
@@ -1398,7 +1398,7 @@ const takeRemainderLoop = <A>(
 }
 
 /**
- * Synchronously checks how many messages can be taken from a subscription.
+ * Checks how many messages can be taken from a subscription synchronously.
  *
  * **Details**
  *

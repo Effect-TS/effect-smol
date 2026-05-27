@@ -467,7 +467,7 @@ export const fork: (
 ) => Effect<Closeable> = effect.scopeFork
 
 /**
- * Synchronously creates a closeable child scope registered with a parent scope.
+ * Creates a closeable child scope synchronously and registers it with a parent scope.
  *
  * **Details**
  *
@@ -540,7 +540,7 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
 export const close: <A, E>(self: Scope, exit: Exit<A, E>) => Effect<void> = effect.scopeClose
 
 /**
- * Unsafely transitions a scope to `Closed` with the provided exit value.
+ * Transitions a scope to `Closed` unsafely with the provided exit value.
  *
  * **When to use**
  *

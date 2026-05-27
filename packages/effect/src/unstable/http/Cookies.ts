@@ -610,7 +610,7 @@ export const remove: {
 } = dual(2, (self: Cookies, name: string) => fromReadonlyRecord(Record.remove(self.cookies, name)))
 
 /**
- * Gets a cookie from a Cookies object
+ * Gets a cookie from a Cookies object safely.
  *
  * @category combinators
  * @since 4.0.0
@@ -624,7 +624,7 @@ export const get: {
 )
 
 /**
- * Gets the decoded value of a cookie by name.
+ * Gets the decoded value of a cookie by name safely.
  *
  * **Details**
  *
@@ -642,7 +642,7 @@ export const getValue: {
 )
 
 /**
- * Creates and adds a cookie by name and value.
+ * Creates and adds a cookie safely by name and value.
  *
  * **Details**
  *
@@ -701,7 +701,7 @@ export const setUnsafe: {
 )
 
 /**
- * Adds an expired cookie with an empty value, `Max-Age=0`, and an epoch `Expires` value.
+ * Adds an expired cookie safely with an empty value, `Max-Age=0`, and an epoch `Expires` value.
  *
  * **Details**
  *
@@ -765,7 +765,7 @@ export const expireCookieUnsafe: {
 )
 
 /**
- * Creates and adds multiple cookies from name/value/options tuples.
+ * Creates and adds multiple cookies safely from name/value/options tuples.
  *
  * **Details**
  *

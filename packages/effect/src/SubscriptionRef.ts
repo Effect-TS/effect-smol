@@ -207,7 +207,7 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
 export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream.fromPubSub(self.pubsub)
 
 /**
- * Unsafely retrieves the current value of the `SubscriptionRef`.
+ * Retrieves the current value of the `SubscriptionRef` unsafely.
  *
  * **Gotchas**
  *
@@ -255,7 +255,7 @@ export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.value
 export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.sync(() => self.value)
 
 /**
- * Atomically retrieves the current value and sets a new value, notifying
+ * Retrieves the current value and sets a new value atomically, notifying
  * subscribers of the change.
  *
  * **Example** (Getting and setting a value)
@@ -293,7 +293,7 @@ const setUnsafe = <A>(self: SubscriptionRef<A>, value: A) => {
 }
 
 /**
- * Atomically retrieves the current value and updates it with the result of
+ * Retrieves the current value and updates it atomically with the result of
  * applying a function, notifying subscribers of the change.
  *
  * **Example** (Getting and updating a value)
@@ -327,7 +327,7 @@ export const getAndUpdate: {
   })))
 
 /**
- * Atomically retrieves the current value and updates it with the result of
+ * Retrieves the current value and updates it atomically with the result of
  * applying an effectful function, notifying subscribers of the change.
  *
  * **Example** (Getting and updating with an effect)
@@ -478,7 +478,7 @@ export const getAndUpdateSomeEffect: {
   })))
 
 /**
- * Atomically modifies the `SubscriptionRef` with a function that computes a
+ * Modifies the `SubscriptionRef` atomically with a function that computes a
  * return value and a new value, notifying subscribers of the change.
  *
  * **Example** (Modifying a value)
@@ -517,7 +517,7 @@ export const modify: {
   })))
 
 /**
- * Atomically modifies the `SubscriptionRef` with an effectful function that
+ * Modifies the `SubscriptionRef` atomically with an effectful function that
  * computes a return value and a new value, notifying subscribers of the
  * change.
  *

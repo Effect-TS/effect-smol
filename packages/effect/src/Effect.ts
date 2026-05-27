@@ -3754,7 +3754,7 @@ export const tapCause: {
 } = internal.tapCause
 
 /**
- * Conditionally executes a side effect when a failed effect's cause matches a predicate.
+ * Executes a side effect conditionally when a failed effect's cause matches a predicate.
  *
  * **Details**
  *
@@ -3797,7 +3797,7 @@ export const tapCauseIf: {
 } = internal.tapCauseIf
 
 /**
- * Conditionally executes a side effect when a failed effect's cause passes a filter.
+ * Executes a side effect conditionally when a failed effect's cause passes a filter.
  *
  * **When to use**
  *
@@ -4961,7 +4961,7 @@ export const filterMap: {
 } = internal.filterMap
 
 /**
- * Effectfully filters and maps elements of an iterable with a `FilterEffect`.
+ * Filters and maps elements of an iterable effectfully with a `FilterEffect`.
  *
  * **When to use**
  *
@@ -5189,7 +5189,7 @@ export const filterMapOrFail: {
 // -----------------------------------------------------------------------------
 
 /**
- * Conditionally runs an effect based on the result of an effectful boolean
+ * Runs an effect conditionally based on the result of an effectful boolean
  * condition.
  *
  * **When to use**
@@ -9158,7 +9158,7 @@ export const runSyncWith: <R>(
 ) => <A, E>(effect: Effect<A, E, R>) => A = internal.runSyncWith
 
 /**
- * Runs an effect synchronously and returns the result as an `Exit` type, which
+ * Runs an effect synchronously and captures the outcome safely as an `Exit` type, which
  * represents the outcome (success or failure) of the effect.
  *
  * **When to use**
@@ -9233,7 +9233,7 @@ export const runSyncWith: <R>(
 export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = internal.runSyncExit
 
 /**
- * Runs an effect synchronously with provided services, returning an Exit result.
+ * Runs an effect synchronously with provided services, returning an Exit result safely.
  *
  * **Example** (Running synchronously with services as Exit)
  *

@@ -172,7 +172,7 @@ export interface Semaphore {
 }
 
 /**
- * Synchronously creates a `Semaphore` initialized with the specified total
+ * Creates a `Semaphore` synchronously with the specified total
  * number of permits.
  *
  * **When to use**

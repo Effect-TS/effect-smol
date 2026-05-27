@@ -184,7 +184,7 @@ export interface Inspectable {
 }
 
 /**
- * Safely converts a value to a JSON-serializable representation.
+ * Converts a value to a JSON-serializable representation safely.
  *
  * **When to use**
  *
@@ -280,7 +280,7 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
  * MyClass.prototype.constructor = MyClass
  * ```
  *
- * @category models
+ * @category prototypes
  * @since 2.0.0
  */
 export const BaseProto: Inspectable = {

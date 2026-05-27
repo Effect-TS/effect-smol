@@ -317,7 +317,7 @@ export const getAll: {
 )
 
 /**
- * Returns the first value for a query parameter key.
+ * Returns the first value for a query parameter key safely.
  *
  * **Details**
  *
@@ -338,7 +338,7 @@ export const getFirst: {
 )
 
 /**
- * Returns the last value for a query parameter key.
+ * Returns the last value for a query parameter key safely.
  *
  * **Details**
  *
@@ -475,7 +475,7 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
 }> {}
 
 /**
- * Creates a `URL` by appending `UrlParams` and an optional hash to a URL string.
+ * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
  *
  * **Details**
  *
