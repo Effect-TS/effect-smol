@@ -279,6 +279,10 @@ export interface IntegerOptions {
    */
   readonly message: string
   /**
+   * The default value of the integer prompt.
+   */
+  readonly default?: number
+  /**
    * The minimum value that can be entered by the user (defaults to `-Infinity`).
    */
   readonly min?: number
@@ -896,6 +900,7 @@ export const flatMap: {
  */
 export const float = (options: FloatOptions): Prompt<number> => {
   const opts: FloatOptionsReq = {
+    default: 0,
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -912,9 +917,10 @@ export const float = (options: FloatOptions): Prompt<number> => {
     },
     ...options
   }
+  const initialValue = options.default === undefined ? "" : `${opts.default}`
   const initialState: NumberState = {
-    cursor: 0,
-    value: "",
+    cursor: initialValue.length,
+    value: initialValue,
     error: Option.none()
   }
   return custom(initialState, {
@@ -947,6 +953,7 @@ export const hidden = (
  */
 export const integer = (options: IntegerOptions): Prompt<number> => {
   const opts: IntegerOptionsReq = {
+    default: 0,
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -962,9 +969,10 @@ export const integer = (options: IntegerOptions): Prompt<number> => {
     },
     ...options
   }
+  const initialValue = options.default === undefined ? "" : `${opts.default}`
   const initialState: NumberState = {
-    cursor: 0,
-    value: "",
+    cursor: initialValue.length,
+    value: initialValue,
     error: Option.none()
   }
   return custom(initialState, {

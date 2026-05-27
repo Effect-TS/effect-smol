@@ -51,6 +51,41 @@ const toRawFrames = (lines: ReadonlyArray<unknown>) =>
 
 const findFrame = (frames: ReadonlyArray<string>, text: string) => frames.find((frame) => frame.includes(text))
 
+describe("Prompt.integer", () => {
+  it.effect("submits the default value", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.integer({ message: "Count", default: 42 })
+
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, 42)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("starts from the default value so it can be edited", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.integer({ message: "Count", default: 4 })
+
+      yield* MockTerminal.inputText("2")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, 42)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("clears the default value on ctrl-u", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.integer({ message: "Count", default: 42 })
+
+      yield* MockTerminal.inputKey("u", { ctrl: true })
+      yield* MockTerminal.inputText("7")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, 7)
+    }).pipe(Effect.provide(TestLayer)))
+})
+
 describe("Prompt.float", () => {
   it.effect("renders appended input without literal parsed", () =>
     Effect.gen(function*() {
