@@ -899,14 +899,19 @@ export const isShutdownUnsafe = <A>(self: PubSub<A>): boolean => self.shutdownFl
 export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.shutdownHook.await
 
 /**
- * Attempts to publish a message synchronously without applying the PubSub
- * strategy's effectful surplus handling.
+ * Publishes a message to the `PubSub` as an `Effect`, returning whether the
+ * message was accepted.
+ *
+ * **When to use**
+ *
+ * Use when publishing from effectful code and the configured PubSub strategy
+ * should handle surplus messages.
  *
  * **Details**
  *
- * Returns `false` if the `PubSub` is shut down or the message cannot be
- * accepted immediately, for example when a bounded PubSub is full. Prefer
- * `publish` when backpressure or sliding behavior should be honored.
+ * The effect succeeds with `false` if the `PubSub` is shut down. If the message
+ * cannot be accepted immediately, the configured strategy decides how surplus
+ * messages are handled.
  *
  * **Example** (Publishing a message)
  *
@@ -929,6 +934,8 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
  *   }))
  * })
  * ```
+ *
+ * @see {@link publishUnsafe} for a synchronous non-blocking attempt that does not run effectful surplus handling
  *
  * @category publishing
  * @since 2.0.0
@@ -956,8 +963,19 @@ export const publish: {
   }))
 
 /**
- * Publishes a message to the `PubSub`, returning whether the message was published
- * to the `PubSub`.
+ * Attempts to publish a message synchronously without applying the PubSub
+ * strategy's effectful surplus handling.
+ *
+ * **When to use**
+ *
+ * Use when you need a non-blocking synchronous publish attempt and can handle
+ * `false` when the message cannot be accepted immediately.
+ *
+ * **Details**
+ *
+ * Returns `false` if the `PubSub` is shut down or the message cannot be
+ * accepted immediately, for example when a bounded PubSub is full. Prefer
+ * `publish` when backpressure or sliding behavior should be honored.
  *
  * **Example** (Publishing without suspending)
  *
@@ -980,6 +998,8 @@ export const publish: {
  *   messages.filter((msg) => PubSub.publishUnsafe(pubsub, msg)).length
  * console.log(`Published ${publishedCount} out of ${messages.length} messages`)
  * ```
+ *
+ * @see {@link publish} for effectful publishing that honors the configured surplus strategy
  *
  * @category publishing
  * @since 4.0.0
@@ -1398,13 +1418,18 @@ const takeRemainderLoop = <A>(
 }
 
 /**
- * Checks how many messages can be taken from a subscription synchronously.
+ * Returns the number of messages currently available in the subscription as an
+ * `Effect`.
+ *
+ * **When to use**
+ *
+ * Use when checking a subscription from effectful code and shutdown should
+ * interrupt the effect.
  *
  * **Details**
  *
- * Returns `Option.some(count)` while the subscription is active, including
- * replay-buffered messages, and `Option.none()` after the subscription has
- * been shut down. Prefer `remaining` in effectful code.
+ * The count includes replay-buffered messages. If the subscription has been
+ * shut down, the effect interrupts.
  *
  * **Example** (Checking remaining messages)
  *
@@ -1433,6 +1458,8 @@ const takeRemainderLoop = <A>(
  * })
  * ```
  *
+ * @see {@link remainingUnsafe} for a synchronous check that reports shutdown as `Option.none()`
+ *
  * @category getters
  * @since 4.0.0
  */
@@ -1444,7 +1471,13 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
   )
 
 /**
- * Returns the number of messages currently available in the subscription.
+ * Synchronously returns the number of messages currently available in the
+ * subscription, or `Option.none()` when it is shut down.
+ *
+ * **When to use**
+ *
+ * Use when polling from synchronous code and you can handle the `Option.none()`
+ * shutdown case directly.
  *
  * **Example** (Checking remaining messages synchronously)
  *
@@ -1466,6 +1499,8 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  *   // Process messages in batch
  * }
  * ```
+ *
+ * @see {@link remaining} for the effectful variant that interrupts on shutdown
  *
  * @category getters
  * @since 4.0.0

@@ -581,7 +581,13 @@ export const runtime: <A, E>(
   )
 
 /**
- * Captures a Runtime and uses it to fork Effects into the `FiberSet`.
+ * Captures a `Runtime` and returns a Promise-based runner that forks effects
+ * into the `FiberSet`.
+ *
+ * **When to use**
+ *
+ * Use when you need to bridge effects to `Promise` values while still tracking
+ * their fibers in a `FiberSet`.
  *
  * **Details**
  *
@@ -606,6 +612,8 @@ export const runtime: <A, E>(
  *   console.log(result1, result2) // "hello" "world"
  * })
  * ```
+ *
+ * @see {@link runtime} for a runner that returns the forked `Fiber`
  *
  * @category combinators
  * @since 3.13.0

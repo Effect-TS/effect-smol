@@ -835,7 +835,10 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  *
  * **When to use**
  *
- * Use when the copied elements should also be removed from the list.
+ * Use when you need to inspect or snapshot a bounded prefix of the list without
+ * consuming it.
+ *
+ * @see {@link takeN} for removing up to `n` values and returning them as an array
  *
  * @category elements
  * @since 4.0.0
@@ -861,8 +864,10 @@ export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
  *
  * **When to use**
  *
- * Use when the list should be emptied after converting it to an
- * array.
+ * Use when you need a snapshot of all current elements while keeping the list
+ * unchanged.
+ *
+ * @see {@link takeAll} for converting all elements to an array and clearing the list
  *
  * @category elements
  * @since 4.0.0

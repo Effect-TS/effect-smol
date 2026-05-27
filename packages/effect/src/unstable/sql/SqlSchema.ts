@@ -41,8 +41,15 @@ import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * Builds a query function that encodes the request, decodes all result rows,
- * and fails with `NoSuchElementError` when the result set is empty.
+ * Builds a query function that encodes the request and decodes all result rows,
+ * allowing an empty result set.
+ *
+ * **When to use**
+ *
+ * Use when a query may return zero or more rows and an empty result should be
+ * represented as an empty array.
+ *
+ * @see {@link findNonEmpty} for queries where an empty result is a failure
  *
  * @category constructors
  * @since 4.0.0
@@ -66,7 +73,15 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 }
 
 /**
- * Runs a sql query with a request schema and a result schema.
+ * Builds a query function that encodes the request, decodes all result rows,
+ * and fails with `NoSuchElementError` when the result set is empty.
+ *
+ * **When to use**
+ *
+ * Use when a query must return at least one row and an empty result should be
+ * treated as a failure.
+ *
+ * @see {@link findAll} for queries where an empty result should return an empty array
  *
  * @category constructors
  * @since 4.0.0
