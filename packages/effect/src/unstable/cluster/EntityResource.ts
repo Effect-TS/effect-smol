@@ -69,13 +69,13 @@ export interface EntityResource<out A, out E = never> {
 }
 
 /**
- * A `Scope` that is only closed when the resource is explicitly closed.
+ * Context service for a Scope that is only closed when the resource is explicitly closed.
  *
  * **Gotchas**
  *
  * It is not closed during restarts, due to shard movement or node shutdowns.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export class CloseScope extends Context.Service<

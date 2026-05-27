@@ -379,7 +379,7 @@ export const makeRequest = <Rpc extends Rpc.Any>(
 })
 
 /**
- * Schema for runtime `Envelope` values recognized by their type identifier.
+ * Schema for runtime cluster envelopes recognized by their type identifier.
  *
  * @category serialization
  * @since 4.0.0

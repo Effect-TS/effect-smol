@@ -26,7 +26,7 @@
 import * as Metric from "../../Metric.ts"
 
 /**
- * Gauge tracking the number of active entity instances for each entity type on
+ * Creates a gauge tracking the number of active entity instances for each entity type on
  * the current runner.
  *
  * **Details**
@@ -48,7 +48,7 @@ import * as Metric from "../../Metric.ts"
 export const entities = Metric.gauge("effect_cluster_entities", { bigint: true })
 
 /**
- * Gauge tracking the number of singleton processes currently running on the
+ * Creates a gauge tracking the number of singleton processes currently running on the
  * current runner.
  *
  * @category metrics

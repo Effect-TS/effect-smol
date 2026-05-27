@@ -1108,7 +1108,7 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Reverses all edge directions in a mutable graph by swapping source and target nodes.
+ * Swaps source and target nodes for every edge in a mutable graph.
  *
  * **Example** (Reversing edge directions)
  *

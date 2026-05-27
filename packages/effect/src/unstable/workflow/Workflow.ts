@@ -747,7 +747,7 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
 /**
  * Accesses the workflow scope, which is only closed when the workflow execution fully completes.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const scope: Effect.Effect<
@@ -762,7 +762,7 @@ export const scope: Effect.Effect<
 /**
  * Provides the workflow scope to the given effect, and closes the scope only when the workflow execution fully completes.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const provideScope = <A, E, R>(
@@ -774,7 +774,7 @@ export const provideScope = <A, E, R>(
  * Adds an exit finalizer to the current workflow scope, preserving the
  * services available when the finalizer is registered.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const addFinalizer: <R>(
@@ -858,7 +858,7 @@ export const CaptureDefects = Context.Reference<boolean>(
 )
 
 /**
- * Causes a workflow to suspend when it encounters any error.
+ * Marks a workflow to suspend when it encounters any error.
  *
  * **Details**
  *

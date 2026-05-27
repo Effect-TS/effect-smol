@@ -233,7 +233,7 @@ export const EntryId = (Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayB
 )
 
 /**
- * Ordering for `EntryId` values based on their raw UUID bytes.
+ * Provides an Ordering instance for entry identifiers based on their raw UUID bytes.
  *
  * @category entry
  * @since 4.0.0
@@ -275,7 +275,7 @@ export const entryIdMillis = (entryId: EntryId): number => {
 }
 
 /**
- * Schema model for a committed event journal entry.
+ * Schema for a committed event journal entry.
  *
  * **Details**
  *
@@ -348,7 +348,7 @@ export class Entry extends Schema.Class<Entry>("effect/eventlog/EventJournal/Ent
 }
 
 /**
- * Schema model for an event journal entry received from a remote source.
+ * Schema for an event journal entry received from a remote source.
  *
  * **Details**
  *

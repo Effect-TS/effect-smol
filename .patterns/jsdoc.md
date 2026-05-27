@@ -36,6 +36,22 @@ Normalize high-confidence aliases, for example:
 - `error` -> `errors`
 - `Error Handling` -> `error handling`
 - `Equivalence` -> `instances`
+- `Scope` -> `resource management`
+- `Wrapper` -> `wrapping`
+- `Rate Limiting` -> `rate limiting`
+- `Memory` -> `memory`
+- `Config` -> `configuration`
+- `Epoch` -> `constants`
+- `Registry` -> `services`
+- `Reflection` -> `reflection`
+- `Modifiers` -> `modifiers`
+- `Testing` -> `testing`
+- `Token` -> `token`
+- `Grouping` -> `grouping`
+- `tranferables` -> `transferables`
+- `Computer Use` -> `computer use`
+- `Text Editor` -> `text editor`
+- `Tool Search` -> `tool search`
 - `Type IDs` / `type ids` -> `type IDs`
 - `Services` / `Service` / `service` -> `services`
 - `Re-exports` -> `re-exports`

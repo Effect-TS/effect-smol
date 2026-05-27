@@ -1072,7 +1072,7 @@ export const map: {
 } = internal.map
 
 /**
- * Chains over the entries of the `HashMap` using the specified function.
+ * Maps each entry to a `HashMap` and flattens the results.
  *
  * **Gotchas**
  *

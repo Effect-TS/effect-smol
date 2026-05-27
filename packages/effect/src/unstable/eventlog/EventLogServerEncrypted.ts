@@ -126,7 +126,7 @@ export const layer: Layer.Layer<never, never, RpcServer.Protocol | Storage> = Rp
 )
 
 /**
- * Encrypted entry representation persisted by the encrypted event-log server.
+ * Schema for encrypted entries persisted by the encrypted event-log server.
  *
  * @category storage
  * @since 4.0.0

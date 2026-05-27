@@ -83,10 +83,10 @@ export class EventLog extends Context.Service<EventLog, {
 }>()("effect/eventlog/EventLog") {}
 
 /**
- * Scoped registry used by `EventLog` to collect event handlers, compaction
- * handlers, remote replicas, and reactivity invalidation keys.
+ * Service that collects event handlers, compaction handlers, remote replicas,
+ * and reactivity invalidation keys.
  *
- * @category Registry
+ * @category services
  * @since 4.0.0
  */
 export class Registry extends Context.Service<Registry, {
@@ -125,7 +125,7 @@ export class Registry extends Context.Service<Registry, {
  * Provides an in-memory `Registry` for event handlers, compactors, remote
  * replicas, and reactivity keys.
  *
- * @category Registry
+ * @category layers
  * @since 4.0.0
  */
 export const layerRegistry = Layer.effect(

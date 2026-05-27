@@ -364,7 +364,7 @@ export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 export interface UnknownErrorMetadata extends ProviderMetadata {}
 
 /**
- * Token usage information from AI operations.
+ * Schema for token usage information from AI operations.
  *
  * **Details**
  *
@@ -955,7 +955,7 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
 }
 
 /**
- * Catch-all error for unknown or unexpected errors.
+ * Error data for unknown or unexpected AI failures.
  *
  * **Details**
  *

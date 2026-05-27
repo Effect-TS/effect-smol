@@ -97,7 +97,7 @@ export const json: RpcSerialization["Service"] = RpcSerialization.of({
 })
 
 /**
- * Newline-delimited JSON RPC serialization that frames each protocol message
+ * Serializes RPC protocol messages as newline-delimited JSON, framing each message
  * with a trailing newline.
  *
  * @category serialization

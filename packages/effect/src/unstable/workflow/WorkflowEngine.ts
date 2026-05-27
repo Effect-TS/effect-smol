@@ -39,7 +39,7 @@ import type * as DurableDeferred from "./DurableDeferred.ts"
 import * as Workflow from "./Workflow.ts"
 
 /**
- * Service interface for workflow runtimes, responsible for registering and
+ * Service that represents workflow runtimes, responsible for registering and
  * executing workflows and coordinating activities, durable deferreds,
  * interrupts, resumes, and clocks.
  *

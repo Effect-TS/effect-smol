@@ -1245,7 +1245,7 @@ export const provideRequest =
     )
 
 /**
- * Serves the provided application layer as an HTTP server.
+ * Runs the provided application layer as an HTTP server.
  *
  * @category Server
  * @since 4.0.0

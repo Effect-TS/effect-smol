@@ -2057,7 +2057,7 @@ export const batch: (f: () => void) => void = Registry.batch
 // -----------------------------------------------------------------------------
 
 /**
- * A browser-only signal atom that increments when the document becomes visible.
+ * Creates a browser-only signal atom that increments when the document becomes visible.
  *
  * **Details**
  *
@@ -2498,7 +2498,7 @@ export const serializable: {
 export const ServerValueTypeId = "~effect-atom/atom/Atom/ServerValue" as const
 
 /**
- * Overrides the value of an Atom when read on the server.
+ * Sets the value of an Atom when read on the server.
  *
  * @category ServerValue
  * @since 4.0.0

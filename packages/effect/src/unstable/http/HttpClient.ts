@@ -1395,9 +1395,9 @@ export const withCookiesRef: {
 )
 
 /**
- * Ties the lifetime of the `HttpClientRequest` to a `Scope`.
+ * Attaches the lifetime of the `HttpClientRequest` to a `Scope`.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const withScope = <E, R>(
@@ -1416,7 +1416,7 @@ export const withScope = <E, R>(
   )
 
 /**
- * Follows HTTP redirects up to a specified number of times.
+ * Enables following HTTP redirects up to a specified number of times.
  *
  * @category redirects
  * @since 4.0.0

@@ -14447,7 +14447,7 @@ function clearTransaction(state: Transaction["Service"]) {
 }
 
 /**
- * Signals that the current transaction needs to be retried.
+ * Retries the current transaction by signaling that it must be retried.
  *
  * **Details**
  *

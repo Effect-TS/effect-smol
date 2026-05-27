@@ -2482,7 +2482,7 @@ export const cartesian: {
 )
 
 /**
- * Counts all the element of the given iterable that pass the given predicate
+ * Computes how many elements of the iterable pass the given predicate.
  *
  * **Example** (Counting matching elements)
  *

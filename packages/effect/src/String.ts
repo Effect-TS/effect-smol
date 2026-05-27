@@ -718,7 +718,7 @@ export const lastIndexOf = (searchString: string) => (self: string): Option.Opti
   Option.filter(Option.some(self.lastIndexOf(searchString)), number.isGreaterThanOrEqualTo(0))
 
 /**
- * Compares two strings using locale-aware collation, with optional locales and
+ * Computes locale-aware ordering for two strings, with optional locales and
  * collator options, and returns the result as an `Ordering` (`-1`, `0`, or
  * `1`).
  *

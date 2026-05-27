@@ -2351,8 +2351,7 @@ export const tapBoth: {
   ))
 
 /**
- * Taps all elements emitted by this stream into the specified sink while still
- * emitting them downstream.
+ * Runs a sink for all stream elements while still emitting them downstream.
  *
  * **Example** (Tapping values with a sink)
  *
@@ -2756,7 +2755,7 @@ export const repeat: {
 ): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
 
 /**
- * Spaces the stream's elements according to the provided `schedule`.
+ * Schedules the stream's elements according to the provided schedule.
  *
  * **Example** (Scheduling stream elements)
  *
@@ -2776,7 +2775,7 @@ export const repeat: {
  * // Output: [ 1, 2, 3 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const schedule: {
@@ -2819,7 +2818,7 @@ export const schedule: {
  * // Output: [ 1 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const timeout: {
@@ -2855,7 +2854,7 @@ export const timeout: {
  *
  * @see {@link timeout} for ending the stream instead of switching to a fallback stream
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 4.0.0
  */
 export const timeoutOrElse: {
@@ -3024,7 +3023,7 @@ export const repeatElements: {
 export const forever = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => fromChannel(Channel.forever(self.channel))
 
 /**
- * Submerges the iterables emitted by this stream into the stream's structure.
+ * Flattens the iterables emitted by this stream into the stream's structure.
  *
  * **Example** (Flattening iterable values)
  *
@@ -4840,7 +4839,7 @@ export const peel: {
  * // Output: [ 1, 2, 3 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const buffer: {
@@ -4892,7 +4891,7 @@ export const buffer: {
  * // Output: [ 1, 2, 3, 4 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 4.0.0
  */
 export const bufferArray: {
@@ -6984,7 +6983,7 @@ export const dropRight: {
  * // Output: [ [ 1, 2 ], [ 3, 4 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
@@ -6994,7 +6993,7 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
   )
 
 /**
- * Rechunks the stream into arrays of the specified size, preserving element order.
+ * Groups the stream into arrays of the specified size, preserving element order.
  *
  * **Details**
  *
@@ -7018,7 +7017,7 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
  * // Output: [ [ 1, 2 ], [ 3, 4 ], [ 5 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const rechunk: {
@@ -7089,7 +7088,7 @@ export const rechunk: {
  * // Output: [ [1, 2], [2, 3], [3, 4], [4, 5] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const sliding: {
@@ -7121,7 +7120,7 @@ export const sliding: {
  * // Output: [ [ 1, 2, 3 ], [ 3, 4, 5 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const slidingSize: {
@@ -7194,7 +7193,7 @@ export const slidingSize: {
  * // Output: [ [1, 2, 3], [5, 6, 7], [9] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const split: {
@@ -7815,7 +7814,7 @@ export const scanEffect: {
  * })
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const debounce: {
@@ -7931,7 +7930,7 @@ export const debounce: {
  * // Output: [0, 1, 2, 3, 4, 5]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const throttleEffect: {
@@ -8095,7 +8094,7 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
  * })
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const throttle: {
@@ -8158,7 +8157,7 @@ export const throttle: {
  * // Output: [ [ 1, 2, 3 ], [ 4, 5, 6 ], [ 7, 8 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const grouped: {
@@ -8190,7 +8189,7 @@ export const grouped: {
  * // Output: [ [ 1, 2 ], [ 3 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupedWithin: {
@@ -8239,7 +8238,7 @@ export const groupedWithin: {
  * // Output: [ [ "odd", [ 1, 3, 5 ] ], [ "even", [ 2, 4 ] ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupBy: {
@@ -8309,7 +8308,7 @@ export const groupBy: {
  * // Output: [ [ "odd", [ 1, 3, 5 ] ], [ "even", [ 2, 4 ] ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupByKey: {
@@ -8431,7 +8430,7 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
  * @see {@link groupByKey} for grouping all elements with the same key across the stream
  * @see {@link groupBy} for custom grouped stream construction
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupAdjacentBy: {
@@ -8722,7 +8721,7 @@ export const aggregateWithin: {
   }))))
 
 /**
- * Fans out the stream, producing a fixed-size tuple of streams that each emit
+ * Creates a fixed-size tuple of streams that each emit
  * the same elements as the source stream.
  *
  * **Details**
@@ -9483,7 +9482,7 @@ export const intersperse: {
   }))
 
 /**
- * Intersperses stream elements with a middle value, adding a start and end value.
+ * Adds a start value, middle value, and end value around stream elements.
  *
  * **Details**
  *

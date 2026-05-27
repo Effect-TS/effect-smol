@@ -115,7 +115,7 @@ export const fromString: {
  * // Output: Mutated: https://user:pass@example.com/
  * ```
  *
- * @category Modifiers
+ * @category modifiers
  * @since 4.0.0
  */
 export const mutate: {
@@ -318,7 +318,7 @@ export const setUrlParams: {
 export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(url.searchParams)
 
 /**
- * Reads, modifies, and updates the query parameters of a URL.
+ * Reads the query parameters of a URL, modifies them, and updates the URL.
  *
  * **Details**
  *
@@ -340,7 +340,7 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * // Output: https://example.com/?foo=bar&key=value
  * ```
  *
- * @category Modifiers
+ * @category modifiers
  * @since 4.0.0
  */
 export const modifyUrlParams: {

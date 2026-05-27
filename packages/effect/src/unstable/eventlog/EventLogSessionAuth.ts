@@ -371,8 +371,7 @@ export const decodeSessionAuthPayload = Effect.fnUntraced(
 )
 
 /**
- * Signs canonical session authentication payload bytes with an Ed25519 private
- * key.
+ * Creates a canonical session authentication signature with an Ed25519 private key.
  *
  * **Details**
  *

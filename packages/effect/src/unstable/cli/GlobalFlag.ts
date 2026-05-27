@@ -156,7 +156,7 @@ let settingIdCounter = 0
 /* ========================================================================== */
 
 /**
- * The `--help` / `-h` global flag, which shows help documentation for the
+ * Defines the `--help` / `-h` global flag, which shows help documentation for the
  * active command path.
  *
  * @see {@link BuiltIns} for the default list containing this flag
@@ -200,7 +200,7 @@ export const Version: Action<boolean> = action({
 })
 
 /**
- * The `--completions` global flag, which prints a shell completion script for
+ * Defines the `--completions` global flag, which prints a shell completion script for
  * the given shell.
  *
  * **Details**

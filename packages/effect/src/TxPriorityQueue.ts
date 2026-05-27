@@ -518,7 +518,7 @@ export const removeIf: {
 )
 
 /**
- * Retains only elements matching the predicate.
+ * Keeps only elements matching the predicate.
  *
  * **Example** (Retaining matching values)
  *

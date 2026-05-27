@@ -567,7 +567,7 @@ export declare namespace Replier {
 }
 
 /**
- * Entity request envelope delivered to entity handlers.
+ * Represents an entity request envelope delivered to entity handlers.
  *
  * **Details**
  *
@@ -614,7 +614,7 @@ const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/clust
  * The returned function creates a no-serialization RPC client for each entity ID,
  * using a test sharding service instead of the cluster transport.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE, LR>(
@@ -772,7 +772,7 @@ export const keepAlive: (
   ))
 
 /**
- * Internal persisted RPC used to keep an entity active while a resource is held.
+ * RPC used internally to keep an entity active while a resource is held.
  *
  * **Details**
  *

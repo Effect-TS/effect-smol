@@ -66,7 +66,7 @@ const SqlRequestProto = {
 }
 
 /**
- * Submits a payload as a `SqlRequest` to a request resolver, either directly
+ * Runs a payload as a `SqlRequest` through a request resolver, either directly
  * with a payload and resolver or curried by resolver.
  *
  * @category requests

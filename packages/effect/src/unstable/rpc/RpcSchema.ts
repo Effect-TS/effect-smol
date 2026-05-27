@@ -105,7 +105,7 @@ export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, e
 }
 
 /**
- * Cause annotation used to mark interruptions that originate from an RPC client
+ * Annotation that marks interruptions that originate from an RPC client
  * abort.
  *
  * @category Cause annotations

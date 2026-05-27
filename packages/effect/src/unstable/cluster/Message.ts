@@ -91,7 +91,7 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
 }
 
 /**
- * Incoming persisted request whose payload has not yet been decoded with the RPC
+ * Represents an incoming persisted request whose payload has not yet been decoded with the RPC
  * schema.
  *
  * **Details**
@@ -109,14 +109,14 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
 }> {}
 
 /**
- * Incoming request for local delivery with a decoded payload.
+ * Represents an incoming request for local delivery with a decoded payload.
  *
  * **Details**
  *
  * It includes dynamic annotations, the last sent reply, and a callback for
  * replying with decoded replies.
  *
- * @category outgoing
+ * @category incoming
  * @since 4.0.0
  */
 export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequestLocal")<{
@@ -127,7 +127,7 @@ export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("I
 }> {}
 
 /**
- * Incoming control envelope carrying an `AckChunk` or `Interrupt`.
+ * Represents an incoming control envelope carrying an `AckChunk` or `Interrupt`.
  *
  * @category incoming
  * @since 4.0.0
@@ -150,7 +150,7 @@ export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
 export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 
 /**
- * Outgoing entity request with decoded payload and RPC metadata.
+ * Represents an outgoing entity request with decoded payload and RPC metadata.
  *
  * **Details**
  *

@@ -860,7 +860,7 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
 }
 
 /**
- * Trims whitespace from both ends of a string.
+ * Strips whitespace from both ends of a string.
  *
  * **Details**
  *
@@ -904,7 +904,7 @@ export function capitalize<E extends string>(): Getter<string, E> {
 }
 
 /**
- * Lowercases the first character of a string.
+ * Uncapitalizes the first character of a string.
  *
  * **Details**
  *

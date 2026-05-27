@@ -166,7 +166,7 @@ const statusCodeByLiteral = {
 export type StatusLiteral = keyof typeof statusCodeByLiteral
 
 /**
- * A convenience function to set the HTTP status code of a schema.
+ * Sets the HTTP status code of a schema.
  *
  * **Details**
  *

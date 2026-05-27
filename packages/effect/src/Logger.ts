@@ -1229,7 +1229,7 @@ export const layer = <
   )
 
 /**
- * Creates, in a scope, a logger that writes string logger output to a file.
+ * Creates a scoped logger that writes string logger output to a file.
  *
  * **Details**
  *

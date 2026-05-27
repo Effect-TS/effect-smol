@@ -133,9 +133,9 @@ export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(
 )
 
 /**
- * Custom snowflake epoch in Unix milliseconds, set to January 1, 2025 UTC.
+ * Defines the custom snowflake epoch in Unix milliseconds.
  *
- * @category Epoch
+ * @category constants
  * @since 4.0.0
  */
 export const constEpochMillis: number = Date.UTC(2025, 0, 1)

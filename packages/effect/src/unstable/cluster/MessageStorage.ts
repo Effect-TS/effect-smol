@@ -822,7 +822,7 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
  * It stores the encoded envelope, last acknowledged chunk, accumulated replies,
  * and optional delivery time.
  *
- * @category Memory
+ * @category memory
  * @since 4.0.0
  */
 export type MemoryEntry = {
@@ -833,9 +833,9 @@ export type MemoryEntry = {
 }
 
 /**
- * Can be used in tests to simulate a transaction.
+ * Provides a context reference used in tests to simulate a transaction.
  *
- * @category Memory
+ * @category memory
  * @since 4.0.0
  */
 export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/MessageStorage/MemoryTransaction", {
@@ -843,7 +843,7 @@ export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/Mess
 })
 
 /**
- * In-memory message storage driver with inspectable backing state.
+ * Service that provides an in-memory message storage driver with inspectable backing state.
  *
  * **Details**
  *
@@ -851,7 +851,7 @@ export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/Mess
  * maps used to track requests, primary keys, unprocessed envelopes, reply IDs,
  * and the journal.
  *
- * @category Memory
+ * @category memory
  * @since 4.0.0
  */
 export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
