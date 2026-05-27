@@ -1,5 +1,15 @@
 # effect
 
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- [#2287](https://github.com/Effect-TS/effect-smol/pull/2287) [`73e67d1`](https://github.com/Effect-TS/effect-smol/commit/73e67d119a84d697773eaecb4865c6a71eb1a9cb) Thanks @tim-smart! - Ensure ClusterWorkflowEngine routes durable clock wakeups and registered workflow deferred completions through the owning workflow's shard group.
+
+- [#2286](https://github.com/Effect-TS/effect-smol/pull/2286) [`01d71ec`](https://github.com/Effect-TS/effect-smol/commit/01d71ec5a75f3c2747a8d3b1ad9701d1e27b7ce5) Thanks @tim-smart! - Add default value support to `Prompt.file`.
+
+- [#2285](https://github.com/Effect-TS/effect-smol/pull/2285) [`fcd707e`](https://github.com/Effect-TS/effect-smol/commit/fcd707e091a16e1b35343c901cc4052274e32239) Thanks @tim-smart! - Add default value support to CLI integer prompts.
+
 ## 4.0.0-beta.71
 
 ### Patch Changes

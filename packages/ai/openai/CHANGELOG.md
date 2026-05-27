@@ -1,5 +1,14 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- [#2280](https://github.com/Effect-TS/effect-smol/pull/2280) [`fa07f9e`](https://github.com/Effect-TS/effect-smol/commit/fa07f9e7138bde3e9404aa91c22b41e273aba091) Thanks @tim-smart! - improve openai websocket error status
+
+- Updated dependencies [[`73e67d1`](https://github.com/Effect-TS/effect-smol/commit/73e67d119a84d697773eaecb4865c6a71eb1a9cb), [`01d71ec`](https://github.com/Effect-TS/effect-smol/commit/01d71ec5a75f3c2747a8d3b1ad9701d1e27b7ce5), [`fcd707e`](https://github.com/Effect-TS/effect-smol/commit/fcd707e091a16e1b35343c901cc4052274e32239)]:
+  - effect@4.0.0-beta.72
+
 ## 4.0.0-beta.71
 
 ### Patch Changes
