@@ -96,7 +96,7 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
 // =============================================================================
 
 /**
- * Service identifier for the OpenRouter client.
+ * Service tag for the OpenRouter client.
  *
  * **When to use**
  *
@@ -120,7 +120,7 @@ export class OpenRouterClient extends Context.Service<
 // =============================================================================
 
 /**
- * Configuration options for creating an OpenRouter client.
+ * Configuration for creating an OpenRouter client.
  *
  * @category models
  * @since 4.0.0

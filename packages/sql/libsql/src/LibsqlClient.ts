@@ -84,7 +84,7 @@ export interface LibsqlClient extends Client.SqlClient {
 }
 
 /**
- * Context tag for the libSQL client service.
+ * Service tag for the libSQL client service.
  *
  * **When to use**
  *

@@ -97,7 +97,7 @@ export {
 export type XHRResponseType = "arraybuffer" | "text"
 
 /**
- * Reference that controls the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
+ * Context reference for the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
  *
  * **When to use**
  *

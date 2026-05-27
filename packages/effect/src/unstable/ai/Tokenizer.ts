@@ -55,7 +55,7 @@ import type * as AiError from "./AiError.ts"
 import * as Prompt from "./Prompt.ts"
 
 /**
- * Context tag for model tokenization services.
+ * Service tag for model tokenization services.
  *
  * **When to use**
  *

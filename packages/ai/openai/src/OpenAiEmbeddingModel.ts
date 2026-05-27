@@ -51,7 +51,7 @@ import type * as OpenAiSchema from "./OpenAiSchema.ts"
 export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-embedding-3-large"
 
 /**
- * Service definition for OpenAI embedding model configuration.
+ * Context service for OpenAI embedding model configuration.
  *
  * **When to use**
  *

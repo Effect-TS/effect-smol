@@ -79,7 +79,7 @@ import type * as Response from "./Response.ts"
 import type * as Tool from "./Tool.ts"
 
 /**
- * Context tag for stateful AI conversation sessions.
+ * Service tag for stateful AI conversation sessions.
  *
  * **When to use**
  *
@@ -718,7 +718,7 @@ export class ChatNotFoundError extends Schema.ErrorClass<ChatNotFoundError>(
 }) {}
 
 /**
- * Context tag for persistence-backed AI conversation storage.
+ * Service tag for persistence-backed AI conversation storage.
  *
  * **When to use**
  *

@@ -98,7 +98,7 @@ export interface PgliteClient extends Client.SqlClient {
 }
 
 /**
- * Context tag for the PGlite client service.
+ * Service tag for the PGlite client service.
  *
  * **When to use**
  *

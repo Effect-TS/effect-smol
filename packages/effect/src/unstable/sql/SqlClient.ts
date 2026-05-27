@@ -95,7 +95,7 @@ export interface SqlClient extends Constructor {
 }
 
 /**
- * Context tag for the active SQL client service.
+ * Service tag for the active SQL client service.
  *
  * **When to use**
  *

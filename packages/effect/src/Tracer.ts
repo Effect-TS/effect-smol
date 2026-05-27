@@ -490,7 +490,7 @@ export const externalSpan = (
 })
 
 /**
- * Reference used to disable trace propagation.
+ * Context reference for disabling trace propagation.
  *
  * **When to use**
  *
@@ -524,7 +524,7 @@ export const DisablePropagation = Context.Reference<boolean>(
 )
 
 /**
- * Reference for controlling the current trace level for dynamic filtering.
+ * Context reference for controlling the current trace level for dynamic filtering.
  *
  * **When to use**
  *
@@ -547,7 +547,7 @@ export const CurrentTraceLevel: Context.Reference<LogLevel> = Context.Reference<
 )
 
 /**
- * Reference for setting the minimum trace level threshold. Spans and their
+ * Context reference for setting the minimum trace level threshold. Spans and their
  * descendants below this level will have their sampling decision forced to
  * false, preventing them from being exported.
  *

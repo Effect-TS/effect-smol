@@ -118,7 +118,7 @@ export interface Service {
 // =============================================================================
 
 /**
- * Service identifier for the OpenAI client.
+ * Service tag for the OpenAI client.
  *
  * **When to use**
  *

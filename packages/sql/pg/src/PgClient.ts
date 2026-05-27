@@ -110,7 +110,7 @@ export interface PgClient extends Client.SqlClient {
 }
 
 /**
- * Context tag for the PostgreSQL client service.
+ * Service tag for the PostgreSQL client service.
  *
  * **When to use**
  *

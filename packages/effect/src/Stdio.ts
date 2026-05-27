@@ -91,7 +91,7 @@ export interface Stdio {
   readonly stdin: Stream.Stream<Uint8Array, PlatformError>
 }
 /**
- * Context service tag for the `Stdio` service.
+ * Service tag for the `Stdio` service.
  *
  * **When to use**
  *

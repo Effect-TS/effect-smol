@@ -480,7 +480,7 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
 ): Entity<Type, Rpcs[number]> => fromRpcGroup(type, RpcGroup.make(...protocol))
 
 /**
- * Context tag for the entity address currently being processed.
+ * Service tag for the entity address currently being processed.
  *
  * **When to use**
  *
@@ -496,7 +496,7 @@ export class CurrentAddress extends Context.Service<
 >()("effect/cluster/Entity/EntityAddress") {}
 
 /**
- * Context tag for the runner address currently registering entity handlers.
+ * Service tag for the runner address currently registering entity handlers.
  *
  * **When to use**
  *

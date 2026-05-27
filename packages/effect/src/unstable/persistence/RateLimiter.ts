@@ -72,7 +72,7 @@ export interface RateLimiter {
 }
 
 /**
- * Context tag for persistent token-consumption services.
+ * Service tag for persistent token-consumption services.
  *
  * **When to use**
  *

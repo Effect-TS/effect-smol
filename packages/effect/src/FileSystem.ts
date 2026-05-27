@@ -737,7 +737,7 @@ export type OpenFlag =
   | "ax+"
 
 /**
- * Context tag for platform file-system operations.
+ * Service tag for platform file-system operations.
  *
  * **When to use**
  *

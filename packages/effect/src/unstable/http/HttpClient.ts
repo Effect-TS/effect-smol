@@ -161,7 +161,7 @@ export declare namespace HttpClient {
 }
 
 /**
- * Context tag for the default outgoing HTTP client service.
+ * Service tag for the default outgoing HTTP client service.
  *
  * **When to use**
  *

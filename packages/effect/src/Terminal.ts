@@ -174,7 +174,7 @@ export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
 export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty(u, QuitErrorTypeId)
 
 /**
- * Context tag for command-line input and output services.
+ * Service tag for command-line input and output services.
  *
  * **When to use**
  *

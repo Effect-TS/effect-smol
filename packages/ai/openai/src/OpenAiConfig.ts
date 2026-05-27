@@ -37,8 +37,7 @@ import { dual } from "effect/Function"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
- * Context service carrying scoped OpenAI configuration for provider
- * operations.
+ * Context service for scoped OpenAI configuration used by provider operations.
  *
  * **When to use**
  *

@@ -78,7 +78,7 @@ export type Model = typeof Generated.Model.Type
 // =============================================================================
 
 /**
- * Configuration options for the Anthropic language model.
+ * Context service for Anthropic language model configuration.
  *
  * **When to use**
  *

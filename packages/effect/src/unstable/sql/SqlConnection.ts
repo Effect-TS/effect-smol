@@ -79,7 +79,7 @@ export interface Connection {
 export type Acquirer = Effect<Connection, SqlError, Scope>
 
 /**
- * Context service tag for a low-level SQL `Connection`.
+ * Service tag for a low-level SQL `Connection`.
  *
  * @category tag
  * @since 4.0.0

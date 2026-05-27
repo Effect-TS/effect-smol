@@ -73,7 +73,7 @@ export interface CodeGenerator {
 }
 
 /**
- * Context service tag for generating Effect client code from OpenAPI specifications.
+ * Service tag for generating Effect client code from OpenAPI specifications.
  *
  * @category tags
  * @since 4.0.0

@@ -207,7 +207,7 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
 }
 
 /**
- * Context tag for string and binary key/value storage.
+ * Service tag for string and binary key/value storage.
  *
  * **When to use**
  *

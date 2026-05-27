@@ -212,7 +212,7 @@ export declare namespace Path {
 }
 
 /**
- * Context service tag for accessing the current `Path` implementation.
+ * Service tag for accessing the current `Path` implementation.
  *
  * **When to use**
  *

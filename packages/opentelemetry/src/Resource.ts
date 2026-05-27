@@ -41,7 +41,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 
 /**
- * Context tag for OpenTelemetry metadata attached to emitted telemetry.
+ * Service tag for OpenTelemetry metadata attached to emitted telemetry.
  *
  * **When to use**
  *

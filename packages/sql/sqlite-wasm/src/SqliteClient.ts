@@ -88,7 +88,7 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
- * Context service tag for the SQLite WASM client.
+ * Service tag for the SQLite WASM client.
  *
  * @category tags
  * @since 4.0.0

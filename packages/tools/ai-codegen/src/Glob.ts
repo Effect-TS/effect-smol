@@ -34,7 +34,7 @@ export interface Glob {
 }
 
 /**
- * Context service tag for glob pattern matching used by AI codegen tooling.
+ * Service tag for glob pattern matching used by AI codegen tooling.
  *
  * @category tags
  * @since 4.0.0

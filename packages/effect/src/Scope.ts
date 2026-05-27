@@ -229,7 +229,7 @@ export declare namespace State {
 }
 
 /**
- * Context tag for the active resource lifetime.
+ * Service tag for the active resource lifetime.
  *
  * **When to use**
  *

@@ -55,7 +55,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Random from "../../Random.ts"
 
 /**
- * Context tag for AI identifier generation services.
+ * Service tag for AI identifier generation services.
  *
  * **When to use**
  *

@@ -82,7 +82,7 @@ import * as Toolkit from "./Toolkit.ts"
 // =============================================================================
 
 /**
- * Context tag for AI model services.
+ * Service tag for AI model services.
  *
  * **When to use**
  *

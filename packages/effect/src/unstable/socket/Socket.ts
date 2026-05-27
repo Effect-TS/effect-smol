@@ -59,7 +59,7 @@ export const TypeId = "~effect/socket/Socket"
 export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, TypeId)
 
 /**
- * Context tag for bidirectional socket transports.
+ * Service tag for bidirectional socket transports.
  *
  * **When to use**
  *

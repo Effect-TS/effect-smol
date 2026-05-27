@@ -148,7 +148,7 @@ export type MessageStreamEvent =
 // =============================================================================
 
 /**
- * Service identifier for the Anthropic client.
+ * Service tag for the Anthropic client.
  *
  * **When to use**
  *
@@ -171,7 +171,7 @@ export class AnthropicClient extends Context.Service<AnthropicClient, Service>()
 // =============================================================================
 
 /**
- * Configuration options for creating an Anthropic client.
+ * Configuration for creating an Anthropic client.
  *
  * **When to use**
  *

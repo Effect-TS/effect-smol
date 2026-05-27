@@ -197,7 +197,7 @@ export const make = (
   )
 
 /**
- * Context tag for the active atom runtime cache.
+ * Service tag for the active atom runtime cache.
  *
  * **When to use**
  *

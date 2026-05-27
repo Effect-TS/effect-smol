@@ -122,7 +122,7 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
 }
 
 /**
- * Context tag for the active server-side HTTP request.
+ * Service tag for the active server-side HTTP request.
  *
  * **When to use**
  *
