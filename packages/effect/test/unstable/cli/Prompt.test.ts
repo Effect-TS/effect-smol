@@ -388,6 +388,19 @@ describe("Prompt.file", () => {
     TerminalLayer
   )
 
+  it.effect("starts from the default value so it can be submitted", () =>
+    Effect.gen(function*() {
+      const prompt = Prompt.file({
+        message: "Pick file",
+        default: "/workspace/banana.txt"
+      })
+
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "/workspace/banana.txt")
+    }).pipe(Effect.provide(FilePromptLayer)))
+
   it.effect("filters files as you type", () =>
     Effect.gen(function*() {
       const prompt = Prompt.file({
