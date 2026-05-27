@@ -419,7 +419,7 @@ export const implies: {
 } = dual(2, (self, that) => self ? that : true)
 
 /**
- * This utility function is used to check if all the elements in a collection of boolean values are `true`.
+ * Checks whether every boolean in a collection is `true`.
  *
  * **When to use**
  *
@@ -451,7 +451,7 @@ export const every = (collection: Iterable<boolean>): boolean => {
 }
 
 /**
- * This utility function is used to check if at least one of the elements in a collection of boolean values is `true`.
+ * Checks whether at least one boolean in a collection is `true`.
  *
  * **When to use**
  *

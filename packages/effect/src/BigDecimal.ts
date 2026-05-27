@@ -1882,7 +1882,7 @@ export const truncate: {
 })
 
 /**
- * Calculate the ceiling of a `BigDecimal` at the given scale.
+ * Computes the ceiling of a `BigDecimal` at the given scale.
  *
  * **When to use**
  *
@@ -1947,7 +1947,7 @@ export const digitAt: {
 })
 
 /**
- * Calculate the floor of a `BigDecimal` at the given scale.
+ * Computes the floor of a `BigDecimal` at the given scale.
  *
  * **When to use**
  *

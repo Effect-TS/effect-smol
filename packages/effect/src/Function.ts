@@ -193,7 +193,7 @@ export const dual: {
   }
 }
 /**
- * Apply a function to a given value.
+ * Applies a function to a given value.
  *
  * **When to use**
  *
@@ -361,7 +361,7 @@ export const cast: <A, B>(a: A) => B = identity as any
 export const constant = <A>(value: A): LazyArg<A> => () => value
 
 /**
- * A thunk that returns always `true`.
+ * Returns `true` when called.
  *
  * **When to use**
  *
@@ -382,7 +382,7 @@ export const constant = <A>(value: A): LazyArg<A> => () => value
 export const constTrue: LazyArg<boolean> = constant(true)
 
 /**
- * A thunk that returns always `false`.
+ * Returns `false` when called.
  *
  * **When to use**
  *
@@ -403,7 +403,7 @@ export const constTrue: LazyArg<boolean> = constant(true)
 export const constFalse: LazyArg<boolean> = constant(false)
 
 /**
- * A thunk that returns always `null`.
+ * Returns `null` when called.
  *
  * **When to use**
  *
@@ -424,7 +424,7 @@ export const constFalse: LazyArg<boolean> = constant(false)
 export const constNull: LazyArg<null> = constant(null)
 
 /**
- * A thunk that returns always `undefined`.
+ * Returns `undefined` when called.
  *
  * **When to use**
  *
@@ -446,7 +446,7 @@ export const constNull: LazyArg<null> = constant(null)
 export const constUndefined: LazyArg<undefined> = constant(undefined)
 
 /**
- * A thunk that returns always `void`.
+ * Returns no meaningful value when called.
  *
  * **When to use**
  *

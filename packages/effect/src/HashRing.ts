@@ -166,7 +166,7 @@ const Proto = {
 }
 
 /**
- * Add new nodes to the ring. If a node already exists in the ring, it
+ * Adds new nodes to the ring. If a node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
  *
  * **When to use**
@@ -229,7 +229,7 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
 }
 
 /**
- * Add a new node to the ring. If the node already exists in the ring, it
+ * Adds a new node to the ring. If the node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
  *
  * **When to use**

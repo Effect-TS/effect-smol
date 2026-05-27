@@ -2265,7 +2265,7 @@ export const match: {
 // =============================================================================
 
 /**
- * Add the given `Duration` to a `DateTime`.
+ * Adds the given `Duration` to a `DateTime`.
  *
  * **When to use**
  *
