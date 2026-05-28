@@ -102,6 +102,7 @@ export class CloseScope extends Context.Service<
 export const make: <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
   readonly idleTimeToLive?: Duration.Input | undefined
+  readonly acquireEagerly?: boolean | undefined
 }) => Effect.Effect<
   EntityResource<A, E>,
   E,
@@ -109,13 +110,14 @@ export const make: <A, E, R>(options: {
 > = Effect.fnUntraced(function*<A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
   readonly idleTimeToLive?: Duration.Input | undefined
+  readonly acquireEagerly?: boolean | undefined
 }) {
   let shuttingDown = false
 
-  yield* Entity.keepAlive(true)
-
   const ref = yield* RcRef.make({
     acquire: Effect.gen(function*() {
+      yield* Entity.keepAlive(true)
+
       const closeable = yield* Scope.make()
 
       yield* Effect.addFinalizer(
@@ -138,8 +140,10 @@ export const make: <A, E, R>(options: {
     return Effect.void
   })
 
-  // Initialize the resource
-  yield* Effect.scoped(RcRef.get(ref))
+  if (options.acquireEagerly) {
+    // Initialize the resource
+    yield* Effect.scoped(RcRef.get(ref))
+  }
 
   return identity<EntityResource<A, E>>({
     [TypeId]: TypeId,
