@@ -333,8 +333,7 @@ class SendEmailError extends Schema.ErrorClass<SendEmailError>("SendEmailError")
   message: Schema.String
 }) {}
 
-const EmailWorkflow = Workflow.make({
-  name: "EmailWorkflow",
+const EmailWorkflow = Workflow.make("EmailWorkflow", {
   payload: {
     to: Schema.String,
     id: Schema.String
@@ -418,8 +417,7 @@ const EmailTrigger = DurableDeferred.make("EmailTrigger", {
   success: Schema.String
 })
 
-const RaceWorkflow = Workflow.make({
-  name: "RaceWorkflow",
+const RaceWorkflow = Workflow.make("RaceWorkflow", {
   payload: {
     id: Schema.String
   },
@@ -467,8 +465,7 @@ const RaceWorkflowLayer = RaceWorkflow.toLayer(Effect.fnUntraced(function*() {
   ])
 }))
 
-const DurableRaceWorkflow = Workflow.make({
-  name: "DurableRaceWorkflow",
+const DurableRaceWorkflow = Workflow.make("DurableRaceWorkflow", {
   payload: {
     id: Schema.String
   },
@@ -525,8 +522,7 @@ const DurableRaceWorkflowLayer = DurableRaceWorkflow.toLayer(Effect.fnUntraced(f
   ])
 }))
 
-const ParentWorkflow = Workflow.make({
-  name: "ParentWorkflow",
+const ParentWorkflow = Workflow.make("ParentWorkflow", {
   payload: {
     id: Schema.String
   },
@@ -535,8 +531,7 @@ const ParentWorkflow = Workflow.make({
   }
 })
 
-const ChildWorkflow = Workflow.make({
-  name: "ChildWorkflow",
+const ChildWorkflow = Workflow.make("ChildWorkflow", {
   payload: {
     id: Schema.String
   },
@@ -565,8 +560,7 @@ const ChildWorkflowLayer = ChildWorkflow.toLayer(Effect.fnUntraced(function*() {
   flags.set("child-end", true)
 }))
 
-const ShardedClockWorkflow = Workflow.make({
-  name: "ShardedClockWorkflow",
+const ShardedClockWorkflow = Workflow.make("ShardedClockWorkflow", {
   payload: {
     id: Schema.String
   },
@@ -585,8 +579,7 @@ const ShardedClockWorkflowLayer = ShardedClockWorkflow.toLayer(Effect.fnUntraced
 
 const ShardedDeferred = DurableDeferred.make("ShardedDeferred")
 
-const ShardedDeferredWorkflow = Workflow.make({
-  name: "ShardedDeferredWorkflow",
+const ShardedDeferredWorkflow = Workflow.make("ShardedDeferredWorkflow", {
   payload: {
     id: Schema.String
   },
@@ -595,8 +588,7 @@ const ShardedDeferredWorkflow = Workflow.make({
   }
 }).annotate(ClusterSchema.ShardGroup, () => "workflow")
 
-const SuspendOnFailureWorkflow = Workflow.make({
-  name: "SuspendOnFailureWorkflow",
+const SuspendOnFailureWorkflow = Workflow.make("SuspendOnFailureWorkflow", {
   payload: {
     id: Schema.String
   },
@@ -620,8 +612,7 @@ const SuspendOnFailureWorkflowLayer = SuspendOnFailureWorkflow.toLayer(Effect.fn
   })
 }))
 
-const CatchWorkflow = Workflow.make({
-  name: "CatchWorkflow",
+const CatchWorkflow = Workflow.make("CatchWorkflow", {
   payload: {
     id: Schema.String
   },

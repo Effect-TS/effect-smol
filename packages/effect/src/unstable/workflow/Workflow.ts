@@ -15,7 +15,7 @@
  * effects, not nested activities.
  *
  * When exposing workflows through `WorkflowProxy`, remember that proxy APIs are
- * derived from the workflow name and schemas. Discard execution returns the
+ * derived from the workflow tag and schemas. Discard execution returns the
  * `executionId` instead of the workflow result, resume requires the persisted
  * `executionId`, and idempotency keys must remain stable for the same logical
  * request.
@@ -55,17 +55,21 @@ const TypeId = "~effect/workflow/Workflow"
  * @since 4.0.0
  */
 export interface Workflow<
-  Name extends string,
+  Tag extends string,
   Payload extends AnyStructSchema,
   Success extends Schema.Top,
   Error extends Schema.Top
 > {
+  new(_: never): {}
+
   readonly [TypeId]: typeof TypeId
-  readonly name: Name
+  readonly _tag: Tag
   readonly payloadSchema: Payload
   readonly successSchema: Success
   readonly errorSchema: Error
   readonly annotations: Context.Context<never>
+  readonly idempotencyKey: (payload: Payload["Type"]) => string
+  readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
 
   /**
    * Add an annotation to the workflow.
@@ -73,14 +77,14 @@ export interface Workflow<
   annotate<I, S>(
     key: Context.Key<I, S>,
     value: S
-  ): Workflow<Name, Payload, Success, Error>
+  ): Workflow<Tag, Payload, Success, Error>
 
   /**
    * Merge multiple annotations into the workflow.
    */
   annotateMerge<I>(
     annotations: Context.Context<I>
-  ): Workflow<Name, Payload, Success, Error>
+  ): Workflow<Tag, Payload, Success, Error>
 
   /**
    * Execute the workflow with the given payload.
@@ -139,7 +143,7 @@ export interface Workflow<
     | WorkflowEngine
     | Exclude<
       R,
-      WorkflowEngine | WorkflowInstance | Execution<Name> | Scope.Scope
+      WorkflowEngine | WorkflowInstance | Execution<Tag> | Scope.Scope
     >
     | Payload["DecodingServices"]
     | Payload["EncodingServices"]
@@ -178,7 +182,7 @@ export interface Workflow<
     ) => Effect.Effect<
       A,
       E,
-      R | R2 | WorkflowInstance | Execution<Name> | Scope.Scope
+      R | R2 | WorkflowInstance | Execution<Tag> | Scope.Scope
     >
     <A, E, R, R2>(
       effect: Effect.Effect<A, E, R>,
@@ -189,7 +193,7 @@ export interface Workflow<
     ): Effect.Effect<
       A,
       E,
-      R | R2 | WorkflowInstance | Execution<Name> | Scope.Scope
+      R | R2 | WorkflowInstance | Execution<Tag> | Scope.Scope
     >
   }
 }
@@ -206,14 +210,14 @@ export interface AnyStructSchema extends Schema.Top {
 
 /**
  * Type-level marker for services associated with a specific workflow
- * execution name.
+ * execution tag.
  *
  * @category models
  * @since 4.0.0
  */
-export interface Execution<Name extends string> {
+export interface Execution<Tag extends string> {
   readonly _: unique symbol
-  readonly name: Name
+  readonly _tag: Tag
 }
 
 /**
@@ -224,13 +228,17 @@ export interface Execution<Name extends string> {
  * @since 4.0.0
  */
 export interface Any {
+  new(_: never): {}
+
   readonly [TypeId]: typeof TypeId
-  readonly name: string
+  readonly _tag: string
   readonly executionId: (payload: any) => Effect.Effect<string>
   readonly payloadSchema: AnyStructSchema
   readonly successSchema: Schema.Top
   readonly errorSchema: Schema.Top
   readonly annotations: Context.Context<never>
+  readonly idempotencyKey: (payload: any) => string
+  readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
 }
 
 /**
@@ -317,21 +325,125 @@ const InstanceTag = Context.Service<
   "effect/workflow/WorkflowEngine/WorkflowInstance" satisfies typeof WorkflowInstance.key
 )
 
+const makeExecutionIdFromPayload = (self: AnyWithProps, payload: unknown) =>
+  makeHashDigest(`${self._tag}-${self.idempotencyKey(payload)}`)
+
+const Proto = {
+  [TypeId]: TypeId,
+  annotate(this: AnyWithProps, tag: Context.Key<any, any>, value: any) {
+    return makeProto({
+      _tag: this._tag,
+      payloadSchema: this.payloadSchema,
+      successSchema: this.successSchema,
+      errorSchema: this.errorSchema,
+      annotations: Context.add(this.annotations, tag, value),
+      idempotencyKey: this.idempotencyKey,
+      suspendedRetrySchedule: this.suspendedRetrySchedule
+    })
+  },
+  annotateMerge(this: AnyWithProps, context: Context.Context<any>) {
+    return makeProto({
+      _tag: this._tag,
+      payloadSchema: this.payloadSchema,
+      successSchema: this.successSchema,
+      errorSchema: this.errorSchema,
+      annotations: Context.merge(this.annotations, context),
+      idempotencyKey: this.idempotencyKey,
+      suspendedRetrySchedule: this.suspendedRetrySchedule
+    })
+  },
+  execute<const Discard extends boolean = false>(
+    this: AnyWithProps,
+    fields: any,
+    opts?: { readonly discard?: Discard } | undefined
+  ) {
+    return Effect.suspend(() => {
+      const payload = this.payloadSchema.make(fields)
+      return Effect.flatMap(
+        EngineTag,
+        (engine) =>
+          Effect.flatMap(makeExecutionIdFromPayload(this, payload), (executionId) =>
+            Effect.andThen(
+              Effect.annotateCurrentSpan({ executionId }),
+              engine.execute(this as any, {
+                executionId,
+                payload,
+                discard: opts?.discard,
+                suspendedRetrySchedule: this.suspendedRetrySchedule
+              })
+            ))
+      )
+    }).pipe(
+      Effect.withSpan(
+        `${this._tag}.execute`,
+        {},
+        { captureStackTrace: false }
+      )
+    ) as any
+  },
+  poll(this: Workflow<string, AnyStructSchema, Schema.Top, Schema.Top>, executionId: string) {
+    return Effect.flatMap(EngineTag, (engine) => engine.poll(this, executionId)).pipe(
+      Effect.withSpan(`${this._tag}.poll`, { attributes: { executionId } }, { captureStackTrace: false })
+    )
+  },
+  interrupt(this: AnyWithProps, executionId: string) {
+    return Effect.flatMap(EngineTag, (engine) => engine.interrupt(this, executionId)).pipe(
+      Effect.withSpan(`${this._tag}.interrupt`, { attributes: { executionId } }, { captureStackTrace: false })
+    )
+  },
+  resume(this: Workflow<string, AnyStructSchema, Schema.Top, Schema.Top>, executionId: string) {
+    return Effect.flatMap(EngineTag, (engine) => engine.resume(this, executionId)).pipe(
+      Effect.withSpan(`${this._tag}.resume`, { attributes: { executionId } }, { captureStackTrace: false })
+    )
+  },
+  toLayer(this: Workflow<string, AnyStructSchema, Schema.Top, Schema.Top>, execute: any) {
+    return Layer.effectDiscard(
+      Effect.flatMap(EngineTag, (engine) => engine.register(this, execute))
+    )
+  },
+  executionId(this: AnyWithProps, payload: any) {
+    return Effect.flatMap(
+      Effect.orDie(this.payloadSchema.makeEffect(payload)),
+      (payload) => makeExecutionIdFromPayload(this, payload)
+    )
+  },
+  withCompensation: ((...args: ReadonlyArray<any>) => (withCompensation as any)(...args))
+}
+
+const makeProto = <
+  const Tag extends string,
+  Payload extends AnyStructSchema,
+  Success extends Schema.Top,
+  Error extends Schema.Top
+>(options: {
+  readonly _tag: Tag
+  readonly payloadSchema: Payload
+  readonly successSchema: Success
+  readonly errorSchema: Error
+  readonly annotations: Context.Context<never>
+  readonly idempotencyKey: (payload: Payload["Type"]) => string
+  readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
+}): Workflow<Tag, Payload, Success, Error> => {
+  function Workflow() {}
+  Object.setPrototypeOf(Workflow, Proto)
+  Object.assign(Workflow, options)
+  return Workflow as any
+}
+
 /**
  * Creates a durable workflow definition with schemas, annotations, and
- * deterministic execution IDs derived from the workflow name and idempotency
+ * deterministic execution IDs derived from the workflow tag and idempotency
  * key.
  *
  * @category constructors
  * @since 4.0.0
  */
 export const make = <
-  const Name extends string,
+  const Tag extends string,
   Payload extends Schema.Struct.Fields | AnyStructSchema,
   Success extends Schema.Top = Schema.Void,
   Error extends Schema.Top = Schema.Never
->(options: {
-  readonly name: Name
+>(tag: Tag, options: {
   readonly payload: Payload
   readonly idempotencyKey: (
     payload: Payload extends Schema.Struct.Fields ? Schema.Struct.Type<Payload>
@@ -342,105 +454,23 @@ export const make = <
   readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
   readonly annotations?: Context.Context<never>
 }): Workflow<
-  Name,
+  Tag,
   Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload,
   Success,
   Error
-> => {
-  const makeExecutionId = (payload: any) => makeHashDigest(`${options.name}-${options.idempotencyKey(payload)}`)
-  const self: Workflow<Name, any, Success, Error> = {
-    [TypeId]: TypeId,
-    name: options.name,
-    payloadSchema: Schema.isSchema(options.payload)
+> =>
+  makeProto<Tag, Payload extends Schema.Struct.Fields ? Schema.Struct<Payload> : Payload, Success, Error>({
+    _tag: tag,
+    payloadSchema: (Schema.isSchema(options.payload)
       ? options.payload
-      : Schema.Struct(options.payload as any),
+      : Schema.Struct(options.payload as any)) as Payload extends Schema.Struct.Fields ? Schema.Struct<Payload>
+        : Payload,
     successSchema: options.success ?? (Schema.Void as any),
     errorSchema: options.error ?? (Schema.Never as any),
     annotations: options.annotations ?? Context.empty(),
-    annotate(tag, value) {
-      return make({
-        ...options,
-        annotations: Context.add(self.annotations, tag, value)
-      })
-    },
-    annotateMerge(context) {
-      return make({
-        ...options,
-        annotations: Context.merge(self.annotations, context)
-      })
-    },
-    execute: Effect.fnUntraced(
-      function*<const Discard extends boolean = false>(
-        fields: any,
-        opts?: { readonly discard?: Discard } | undefined
-      ) {
-        const payload = self.payloadSchema.make(fields)
-        const engine = yield* EngineTag
-        const executionId = yield* makeExecutionId(payload)
-        yield* Effect.annotateCurrentSpan({ executionId })
-        return yield* engine.execute(self, {
-          executionId,
-          payload,
-          discard: opts?.discard,
-          suspendedRetrySchedule: options.suspendedRetrySchedule
-        })
-      },
-      Effect.withSpan(
-        `${options.name}.execute`,
-        {},
-        { captureStackTrace: false }
-      )
-    ) as any,
-    poll: Effect.fnUntraced(
-      function*(executionId: string) {
-        const engine = yield* EngineTag
-        return yield* engine.poll(self, executionId)
-      },
-      (effect, executionId) =>
-        Effect.withSpan(effect, `${options.name}.poll`, {
-          captureStackTrace: false,
-          attributes: { executionId }
-        })
-    ),
-    interrupt: Effect.fnUntraced(
-      function*(executionId: string) {
-        const engine = yield* EngineTag
-        yield* engine.interrupt(self, executionId)
-      },
-      (effect, executionId) =>
-        Effect.withSpan(effect, `${options.name}.interrupt`, {
-          captureStackTrace: false,
-          attributes: { executionId }
-        })
-    ),
-    resume: Effect.fnUntraced(
-      function*(executionId: string) {
-        const engine = yield* EngineTag
-        yield* engine.resume(self, executionId)
-      },
-      (effect, executionId) =>
-        Effect.withSpan(effect, `${options.name}.resume`, {
-          captureStackTrace: false,
-          attributes: { executionId }
-        })
-    ),
-    toLayer: (execute) =>
-      Layer.effectDiscard(
-        Effect.gen(function*() {
-          const engine = yield* EngineTag
-          return yield* engine.register(self, execute)
-        })
-      ),
-    executionId: (payload) =>
-      Effect.flatMap(
-        Effect.orDie(self.payloadSchema.makeEffect(payload)),
-        makeExecutionId
-      ),
-    withCompensation
-  }
-
-  return self
-}
+    idempotencyKey: options.idempotencyKey as any,
+    suspendedRetrySchedule: options.suspendedRetrySchedule
+  })
 
 const ResultTypeId = "~effect/workflow/Workflow/Result"
 

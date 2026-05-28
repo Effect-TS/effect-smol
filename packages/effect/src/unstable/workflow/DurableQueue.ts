@@ -104,8 +104,7 @@ export interface DurableQueue<
  *   }
  * })
  *
- * const MyWorkflow = Workflow.make({
- *   name: "MyWorkflow",
+ * const MyWorkflow = Workflow.make("MyWorkflow", {
  *   payload: {
  *     id: Schema.String
  *   },

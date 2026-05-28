@@ -120,11 +120,11 @@ export const make = Effect.gen(function*() {
     >
   >()
   const ensureEntity = (workflow: Workflow.Any) => {
-    let entity = entities.get(workflow.name)
+    let entity = entities.get(workflow._tag)
     if (!entity) {
       entity = makeWorkflowEntity(workflow) as any
-      workflows.set(workflow.name, workflow)
-      entities.set(workflow.name, entity as any)
+      workflows.set(workflow._tag, workflow)
+      entities.set(workflow._tag, entity as any)
     }
     return entity!
   }
@@ -248,7 +248,7 @@ export const make = Effect.gen(function*() {
     }) {
       const requestId = yield* requestIdFor({
         workflow: options.workflow,
-        entityType: `Workflow/${options.workflow.name}`,
+        entityType: `Workflow/${options.workflow._tag}`,
         executionId: options.executionId,
         tag: "activity",
         id: activityPrimaryKey(options.activity.name, options.attempt)
@@ -283,7 +283,7 @@ export const make = Effect.gen(function*() {
   const resume = Effect.fnUntraced(function*(workflow: Workflow.Any, executionId: string) {
     const maybeReply = yield* requestReply({
       workflow,
-      entityType: `Workflow/${workflow.name}`,
+      entityType: `Workflow/${workflow._tag}`,
       executionId,
       tag: "run",
       id: ""
@@ -324,7 +324,7 @@ export const make = Effect.gen(function*() {
       ensureEntity(workflow)
       const requestId = yield* requestIdFor({
         workflow,
-        entityType: `Workflow/${workflow.name}`,
+        entityType: `Workflow/${workflow._tag}`,
         executionId,
         tag: "run",
         id: ""
@@ -343,7 +343,7 @@ export const make = Effect.gen(function*() {
       }
 
       yield* engine.deferredDone(InterruptSignal, {
-        workflowName: workflow.name,
+        workflowName: workflow._tag,
         executionId,
         deferredName: InterruptSignal.name,
         exit: Exit.void
@@ -457,13 +457,13 @@ export const make = Effect.gen(function*() {
 
     execute: (workflow, { discard, executionId, parent, payload }) => {
       ensureEntity(workflow)
-      return RcMap.get(clients, workflow.name).pipe(
+      return RcMap.get(clients, workflow._tag).pipe(
         Effect.flatMap((make) =>
           make(executionId).run(
             parent ?
               {
                 ...payload,
-                [payloadParentKey]: { workflowName: parent.workflow.name, executionId: parent.executionId }
+                [payloadParentKey]: { workflowName: parent.workflow._tag, executionId: parent.executionId }
               } :
               payload,
             { discard }
@@ -479,7 +479,7 @@ export const make = Effect.gen(function*() {
       const exitSchema = Schema.toCodecJson(Rpc.exitSchema(entity.protocol.requests.get("run")!))
       const reply = yield* requestReply({
         workflow,
-        entityType: `Workflow/${workflow.name}`,
+        entityType: `Workflow/${workflow._tag}`,
         executionId,
         tag: "run",
         id: ""
@@ -505,7 +505,7 @@ export const make = Effect.gen(function*() {
             id: yield* sharding.getSnowflake,
             address: entityAddressFor({
               workflow,
-              entityType: `Workflow/${workflow.name}`,
+              entityType: `Workflow/${workflow._tag}`,
               executionId
             }),
             requestId: requestId.value
@@ -523,7 +523,7 @@ export const make = Effect.gen(function*() {
         const instance = Context.get(services, WorkflowEngine.WorkflowInstance)
         yield* Effect.annotateCurrentSpan("executionId", instance.executionId)
         const activityId = `${instance.executionId}/${activity.name}`
-        const client = (yield* RcMap.get(clientsPartial, instance.workflow.name))(instance.executionId)
+        const client = (yield* RcMap.get(clientsPartial, instance.workflow._tag))(instance.executionId)
         while (true) {
           if (!activities.has(activityId)) {
             activities.set(activityId, { activity, context: services })
@@ -563,7 +563,7 @@ export const make = Effect.gen(function*() {
         Effect.flatMap((instance) =>
           requestReply({
             workflow: instance.workflow,
-            entityType: `Workflow/${instance.workflow.name}`,
+            entityType: `Workflow/${instance.workflow._tag}`,
             executionId: instance.executionId,
             tag: "deferred",
             id: deferred.name
@@ -628,7 +628,7 @@ export const make = Effect.gen(function*() {
             }),
             payload: {
               name: options.clock.name,
-              workflowName: workflow.name,
+              workflowName: workflow._tag,
               wakeUp: DateTime.addDuration(now, options.clock.duration)
             }
           })
@@ -701,7 +701,7 @@ const ResumeRpc = Rpc.make("resume", {
 const payloadParentKey = "~effect/cluster/ClusterWorkflowEngine/payloadParentKey"
 
 const makeWorkflowEntity = (workflow: Workflow.Any) =>
-  Entity.make(`Workflow/${workflow.name}`, [
+  Entity.make(`Workflow/${workflow._tag}`, [
     Rpc.make("run", {
       payload: {
         ...workflow.payloadSchema.fields,

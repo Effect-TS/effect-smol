@@ -461,7 +461,7 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
         ).pipe(
           Effect.catch(() =>
             Effect.die(
-              `${self.name}.execute: suspendedRetrySchedule exhausted`
+              `${self._tag}.execute: suspendedRetrySchedule exhausted`
             )
           )
         )
@@ -616,7 +616,7 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
         return
       }
 
-      const entry = workflows.get(state.instance.workflow.name)!
+      const entry = workflows.get(state.instance.workflow._tag)!
       const instance = WorkflowInstance.initial(state.instance.workflow, state.instance.executionId)
       instance.interrupted = state.instance.interrupted
       state.instance = instance
@@ -647,16 +647,16 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
 
     const engine = makeUnsafe({
       register: Effect.fnUntraced(function*(workflow, execute) {
-        workflows.set(workflow.name, {
+        workflows.set(workflow._tag, {
           workflow,
           execute,
           scope: yield* Effect.scope
         })
       }),
       execute: Effect.fnUntraced(function*(workflow, options) {
-        const entry = workflows.get(workflow.name)
+        const entry = workflows.get(workflow._tag)
         if (!entry) {
-          return yield* Effect.orDie(Effect.fail(`Workflow ${workflow.name} is not registered`))
+          return yield* Effect.orDie(Effect.fail(`Workflow ${workflow._tag} is not registered`))
         }
 
         let state = executions.get(options.executionId)
@@ -745,7 +745,7 @@ export const layerMemory: Layer.Layer<WorkflowEngine> = Layer.effect(WorkflowEng
         }),
       scheduleClock: (workflow, options) =>
         engine.deferredDone(options.clock.deferred, {
-          workflowName: workflow.name,
+          workflowName: workflow._tag,
           executionId: options.executionId,
           deferredName: options.clock.deferred.name,
           exit: Exit.void

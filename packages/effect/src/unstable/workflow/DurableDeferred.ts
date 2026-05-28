@@ -246,7 +246,7 @@ export const into: {
               }
             }
             yield* engine.deferredDone(self, {
-              workflowName: instance.workflow.name,
+              workflowName: instance.workflow._tag,
               executionId: instance.executionId,
               deferredName: self.name,
               exit
@@ -455,7 +455,7 @@ export const tokenFromExecutionId: {
     }
   ): Token =>
     new TokenParsed({
-      workflowName: options.workflow.name,
+      workflowName: options.workflow._tag,
       executionId: options.executionId,
       deferredName: self.name
     }).asToken
