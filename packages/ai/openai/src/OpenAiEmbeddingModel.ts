@@ -55,8 +55,8 @@ export type Model = "text-embedding-ada-002" | "text-embedding-3-small" | "text-
  *
  * **When to use**
  *
- * Use when embedding requests need scoped OpenAI request defaults or overrides
- * from Effect context.
+ * Use when you need scoped OpenAI request defaults or overrides for embedding
+ * requests from Effect context.
  *
  * **Details**
  *
@@ -201,8 +201,8 @@ export const layer = (options: {
  *
  * **When to use**
  *
- * Use when a single effect or workflow needs scoped OpenAI embedding request
- * defaults without rebuilding the embedding model service.
+ * Use when you need scoped OpenAI embedding request defaults for a single
+ * effect or workflow without rebuilding the embedding model service.
  *
  * **Details**
  *

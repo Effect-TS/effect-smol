@@ -1868,7 +1868,8 @@ export const zipWith: {
  *
  * **When to use**
  *
- * Use when aggregating values from a collection where some may be absent
+ * Use when you need to aggregate values from a collection where some may be
+ * absent.
  *
  * **Details**
  *
@@ -2036,8 +2037,8 @@ export const filterMap: {
  *
  * **When to use**
  *
- * Use when discarding values that don't meet a condition
- * - Narrowing the type via a refinement predicate
+ * Use when you need to discard values that don't meet a condition and narrow
+ * the type via a refinement predicate.
  *
  * **Details**
  *

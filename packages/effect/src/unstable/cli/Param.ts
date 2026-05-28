@@ -1659,7 +1659,8 @@ export const atLeast: {
  *
  * **When to use**
  *
- * Use when validation and transformation should happen in a single parameter combinator.
+ * Use when you need validation and transformation in a single parameter
+ * combinator.
  *
  * **Example** (Filtering and transforming values)
  *

@@ -403,8 +403,8 @@ export type errorReported = "~effect/Runtime/errorReported"
  *
  * **When to use**
  *
- * Use when error classes are already reported by application code and should
- * not be logged again by the default main runner.
+ * Use when you need error classes reported by application code to avoid being
+ * logged again by the default main runner.
  *
  * **Details**
  *

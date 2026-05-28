@@ -46,8 +46,8 @@ import * as Schema from "../../Schema.ts"
  *
  * **When to use**
  *
- * Use when a query may return zero or more rows and an empty result should be
- * represented as an empty array.
+ * Use when you need to run a query that may return zero or more rows and
+ * represent an empty result as an empty array.
  *
  * @see {@link findNonEmpty} for queries where an empty result is a failure
  *
@@ -78,8 +78,8 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
  *
  * **When to use**
  *
- * Use when a query must return at least one row and an empty result should be
- * treated as a failure.
+ * Use when you need to run a query that must return at least one row and treat
+ * an empty result as a failure.
  *
  * @see {@link findAll} for queries where an empty result should return an empty array
  *

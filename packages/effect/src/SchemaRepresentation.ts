@@ -1758,8 +1758,8 @@ export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = S
  *
  * **When to use**
  *
- * Use when an API expects a `MultiDocument` but you only have a single
- * `Document`.
+ * Use when you need to pass a single `Document` where an API expects a
+ * `MultiDocument`.
  *
  * @see {@link Document}
  * @see {@link MultiDocument}

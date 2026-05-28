@@ -4568,8 +4568,8 @@ export const partitionQueue: {
  *
  * **When to use**
  *
- * Use when each stream element must be classified by an effectful `Filter` and
- * both passing and failing mapped values need to be consumed as streams.
+ * Use when you need to classify each stream element with an effectful `Filter`
+ * and consume both passing and failing mapped values as streams.
  *
  * **Details**
  *

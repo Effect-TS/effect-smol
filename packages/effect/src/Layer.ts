@@ -933,8 +933,8 @@ export const sync: {
  *
  * **When to use**
  *
- * Use when multiple services can be created synchronously and should be deferred until
- * the layer is built.
+ * Use when you need to create multiple services synchronously but defer that
+ * work until the layer is built.
  *
  * **Details**
  *
@@ -1028,7 +1028,8 @@ const effectImpl = <I, S, E, R>(
  *
  * **When to use**
  *
- * Use when effectful construction needs to provide multiple services at once.
+ * Use when you need effectful construction to provide multiple services at
+ * once.
  *
  * **Details**
  *
@@ -1440,7 +1441,7 @@ export const provide: {
  *
  * **When to use**
  *
- * Use when callers need access to both the service being built and the
+ * Use when you need callers to access both the service being built and the
  * dependency used to build it, such as a health check that needs both a
  * repository and its database. Prefer `provide` when the dependency should stay
  * private.
@@ -1934,8 +1935,8 @@ export const catchTag: {
  *
  * **When to use**
  *
- * Use when recovery needs more than the typed error, such as defects or interruption
- * information.
+ * Use when you need recovery to inspect more than the typed error, such as
+ * defects or interruption information.
  *
  * **Details**
  *
@@ -2047,7 +2048,7 @@ export const updateService: {
  *
  * **When to use**
  *
- * Use when two parts of an application must receive separate instances
+ * Use when you need two parts of an application to receive separate instances
  * of a resource, such as two independent client sessions. Do not use it just to
  * work around confusing composition: by default, sharing the same layer value is
  * usually the desired behavior.

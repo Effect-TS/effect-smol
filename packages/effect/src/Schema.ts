@@ -10025,7 +10025,7 @@ const BigDecimalString = String.annotate({ expected: "a string that will be deco
  *
  * **When to use**
  *
- * Use when values are already Effect decimal instances and need schema
+ * Use when you already have Effect decimal instances and need schema
  * validation, formatting, equivalence, and JSON string serialization.
  *
  * **Details**

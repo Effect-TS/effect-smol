@@ -193,7 +193,7 @@ export declare namespace ServiceClass {
  *
  * **When to use**
  *
- * Use when a dependency must be provided by the surrounding context.
+ * Use when you need a dependency to be provided by the surrounding context.
  *
  * **Details**
  *
@@ -1043,7 +1043,8 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  *
  * **When to use**
  *
- * Use when service absence is expected and should be represented as data.
+ * Use when you expect a service to be absent and want absence represented as
+ * data.
  *
  * **Details**
  *

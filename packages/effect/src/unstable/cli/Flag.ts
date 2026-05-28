@@ -166,8 +166,8 @@ export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [str
  *
  * **When to use**
  *
- * Use when a named option must be restricted to a fixed set of string values
- * and no custom value mapping is needed.
+ * Use when you need a named option restricted to a fixed set of string values
+ * and do not need custom value mapping.
  *
  * **Gotchas**
  *

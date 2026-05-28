@@ -58,8 +58,8 @@ import type * as Types from "./Types.ts"
  *
  * **When to use**
  *
- * Use when defining a custom type class that needs to expose the `TypeLambda` it
- * operates on.
+ * Use when you need to define a custom type class that exposes the `TypeLambda`
+ * it operates on.
  *
  * **Details**
  *

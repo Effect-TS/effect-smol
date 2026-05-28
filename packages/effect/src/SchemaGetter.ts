@@ -271,8 +271,8 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  *
  * **When to use**
  *
- * Use when no transformation is needed between encoded and decoded types.
- * - One side of a `decodeTo` pair (encode or decode) should be a no-op.
+ * Use when you need one side of a `decodeTo` pair, either encode or decode, to
+ * pass values through unchanged.
  *
  * **Details**
  *
@@ -313,9 +313,8 @@ export function passthrough<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when no runtime conversion is needed but the getter should be typed
- * as producing a decoded/output type that is narrower than the encoded/input
- * type.
+ * Use when you need an identity getter whose decoded/output type is narrower
+ * than the encoded/input type.
  *
  * **Details**
  *
@@ -415,8 +414,8 @@ export function onNone<T, E extends T = T, R = never>(
  *
  * **When to use**
  *
- * Use when a struct field must be present in the encoded input.
- * - You want schema validation to report a missing key error.
+ * Use when you need a struct field to be present in the encoded input and want
+ * schema validation to report a missing key error.
  *
  * **Details**
  *
@@ -679,7 +678,8 @@ export function omit<T>(): Getter<never, T> {
  *
  * **When to use**
  *
- * Use when a field may be `undefined` in the encoded input and should have a fallback.
+ * Use when you need a fallback for a field that may be `undefined` in the
+ * encoded input.
  *
  * **Details**
  *
@@ -1029,7 +1029,7 @@ type ParseJsonOptions = {
  *
  * **When to use**
  *
- * Use when an encoded value is a JSON string that needs to be parsed during decoding.
+ * Use when you need to parse an encoded JSON string during decoding.
  *
  * **Details**
  *
@@ -1555,7 +1555,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  *
  * **When to use**
  *
- * Use when an encoded value represents a date/time and should be decoded to a `DateTime.Utc`.
+ * Use when you need to decode an encoded date/time value to a `DateTime.Utc`.
  *
  * **Details**
  *

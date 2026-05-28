@@ -778,8 +778,8 @@ export function passthrough<T>(): Transformation<T, T> {
  *
  * **When to use**
  *
- * Use when the runtime value is unchanged but the decoded side should be
- * narrower than the encoded side.
+ * Use when you need a no-op transformation whose decoded side is narrower than
+ * the encoded side.
  *
  * **Details**
  *

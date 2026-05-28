@@ -188,7 +188,8 @@ export const getAndUpdate: {
  *
  * **When to use**
  *
- * Use when an effectful state transition must return the previous stored value.
+ * Use when you need an effectful state transition to return the previous stored
+ * value.
  *
  * @see {@link getAndUpdate} for pure updates that return the previous value
  * @see {@link updateEffect} for effectful updates without returning a value

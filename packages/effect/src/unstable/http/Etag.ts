@@ -119,9 +119,8 @@ const fromFileWeb = (file: Body.HttpBody.FileLike) => {
  *
  * **When to use**
  *
- * Use when file size and modification time reliably change for every byte-level
- * change and the consuming HTTP code needs strong ETags from the `Generator`
- * service.
+ * Use when you need the `Generator` service to produce strong ETags and file
+ * size plus modification time reliably change for every byte-level change.
  *
  * **Gotchas**
  *

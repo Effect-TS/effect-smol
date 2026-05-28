@@ -703,8 +703,8 @@ export const expireCookie: {
  *
  * **When to use**
  *
- * Use when setting one trusted cookie and encoding failures should throw
- * instead of being represented as `CookiesError` failures.
+ * Use when you need to set one trusted cookie and want encoding failures to
+ * throw instead of being represented as `CookiesError` failures.
  *
  * @category combinators
  * @since 4.0.0
@@ -741,8 +741,8 @@ export const setCookieUnsafe: {
  *
  * **When to use**
  *
- * Use when expiring one trusted cookie and encoding failures should throw
- * instead of being represented as `CookiesError` failures.
+ * Use when you need to expire one trusted cookie and want encoding failures to
+ * throw instead of being represented as `CookiesError` failures.
  *
  * @category combinators
  * @since 4.0.0
@@ -881,8 +881,8 @@ export const setCookies: {
  *
  * **When to use**
  *
- * Use when setting multiple trusted cookies and encoding failures should throw
- * instead of being represented as `CookiesError` failures.
+ * Use when you need to set multiple trusted cookies and want encoding failures
+ * to throw instead of being represented as `CookiesError` failures.
  *
  * @category combinators
  * @since 4.0.0

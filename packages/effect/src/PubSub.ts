@@ -904,8 +904,8 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
  *
  * **When to use**
  *
- * Use when publishing from effectful code and the configured PubSub strategy
- * should handle surplus messages.
+ * Use when you need to publish from effectful code and let the configured
+ * PubSub strategy handle surplus messages.
  *
  * **Details**
  *

@@ -1652,8 +1652,8 @@ export const dropWhile: {
  *
  * **When to use**
  *
- * Use when dropping a prefix requires computing a `Result` per element instead
- * of a simple boolean predicate.
+ * Use when you need to drop a prefix by computing a `Result` per element
+ * instead of using a simple boolean predicate.
  *
  * **Details**
  *
@@ -2147,8 +2147,8 @@ export const sort: {
  *
  * **When to use**
  *
- * Use when values need to be sorted by a derived key, such as a string length
- * or object field, while the output should keep the original values.
+ * Use when you need to sort values by a derived key, such as a string length or
+ * object field, while keeping the original values.
  *
  * **Details**
  *
@@ -2621,8 +2621,8 @@ export const contains: {
  *
  * **When to use**
  *
- * Use when the grouping logic is custom and each step needs to return both a
- * value and the remaining input.
+ * Use when you need custom grouping logic where each step returns both a value
+ * and the remaining input.
  *
  * **Details**
  *
@@ -3210,8 +3210,8 @@ export const union: {
  *
  * **When to use**
  *
- * Use when keeping only values present in both arrays and equality must be
- * defined by a custom comparator, such as matching objects by id.
+ * Use when you need to keep only values present in both arrays and equality
+ * must be defined by a custom comparator, such as matching objects by id.
  *
  * **Example** (Intersection with custom equality)
  *
@@ -3275,8 +3275,8 @@ export const intersection: {
  *
  * **When to use**
  *
- * Use when keeping only values from the first array and equality must be
- * defined by a custom comparator, such as matching objects by id.
+ * Use when you need to keep only values from the first array and equality must
+ * be defined by a custom comparator, such as matching objects by id.
  *
  * **Example** (Difference with custom equality)
  *
@@ -3939,8 +3939,7 @@ export const reduce: {
  *
  * **When to use**
  *
- * Use when folding order matters and values must be combined from right to
- * left.
+ * Use when you need to fold values from right to left.
  *
  * **Details**
  *
@@ -4082,7 +4081,7 @@ export const liftNullishOr = <A extends Array<unknown>, B>(
  *
  * **When to use**
  *
- * Use when mapping and filtering in one step, where the mapper can return
+ * Use when you need to map and filter in one step, where the mapper can return
  * `null` or `undefined` to skip elements.
  *
  * **Example** (FlatMapping with nullable)
@@ -4560,8 +4559,8 @@ export const join: {
  *
  * **When to use**
  *
- * Use when mapping needs state threaded through each element and the final state
- * is also needed.
+ * Use when you need to map while threading state through each element and keep
+ * the final state.
  *
  * **Details**
  *

@@ -448,7 +448,7 @@ export declare namespace make {
  *
  * **When to use**
  *
- * Use when the effect needs to provide both the result value and optional
+ * Use when you need an effect to provide both the result value and optional
  * leftovers.
  *
  * @category constructors
@@ -1498,8 +1498,7 @@ export const find: {
  *
  * **When to use**
  *
- * Use when deciding whether an input matches requires an effect, can fail, or
- * needs services.
+ * Use when you need matching an input to run effects, fail, or use services.
  *
  * **Details**
  *

@@ -199,7 +199,7 @@ export const make = (
  *
  * **When to use**
  *
- * Use when low-level code needs to read or replace the current set of reporters
+ * Use when you need to read or replace the current set of error reporters
  * directly.
  *
  * @category references

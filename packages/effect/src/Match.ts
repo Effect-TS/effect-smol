@@ -1776,7 +1776,7 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
  *
  * **When to use**
  *
- * Use when constructor matching needs the unsafe refinement type.
+ * Use when you need constructor matching to use the unsafe refinement type.
  *
  * **Details**
  *

@@ -437,9 +437,8 @@ export const failVoid: Result<never, void> = fail(void 0)
  *
  * **When to use**
  *
- * Use when an input may be `null` or `undefined` and absence should be
- * represented as a `Failure` while present values should remain available as
- * `Success`.
+ * Use when you need `null` or `undefined` input to become a `Failure` while
+ * present values remain available as `Success`.
  *
  * **Details**
  *

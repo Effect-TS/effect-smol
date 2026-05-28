@@ -535,8 +535,8 @@ export const fail: {
  *
  * **When to use**
  *
- * Use when a `RequestResolver` needs to complete an entry with structured cause
- * information rather than only the request's typed error value.
+ * Use when you need a `RequestResolver` to complete an entry with structured
+ * cause information rather than only the request's typed error value.
  *
  * @see {@link fail} for completing an entry with a typed error value
  * @see {@link complete} for completing an entry with an existing `Exit`

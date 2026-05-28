@@ -340,8 +340,8 @@ export const cast: <A, B>(a: A) => B = identity as any
  *
  * **When to use**
  *
- * Use when an API expects a thunk or callback and every invocation
- * should return the same value.
+ * Use when you need a thunk or callback that returns the same value on every
+ * invocation.
  *
  * **Example** (Creating a constant thunk)
  *
@@ -365,7 +365,7 @@ export const constant = <A>(value: A): LazyArg<A> => () => value
  *
  * **When to use**
  *
- * Use when an API expects a thunk and every invocation should return `true`.
+ * Use when you need a thunk that returns `true` on every invocation.
  *
  * **Example** (Returning true from a thunk)
  *
@@ -386,7 +386,7 @@ export const constTrue: LazyArg<boolean> = constant(true)
  *
  * **When to use**
  *
- * Use when an API expects a thunk and every invocation should return `false`.
+ * Use when you need a thunk that returns `false` on every invocation.
  *
  * **Example** (Returning false from a thunk)
  *
@@ -407,7 +407,7 @@ export const constFalse: LazyArg<boolean> = constant(false)
  *
  * **When to use**
  *
- * Use when an API expects a thunk and every invocation should return `null`.
+ * Use when you need a thunk that returns `null` on every invocation.
  *
  * **Example** (Returning null from a thunk)
  *
@@ -428,8 +428,7 @@ export const constNull: LazyArg<null> = constant(null)
  *
  * **When to use**
  *
- * Use when an API expects a thunk and every invocation should return
- * `undefined`.
+ * Use when you need a thunk that returns `undefined` on every invocation.
  *
  * **Example** (Returning undefined from a thunk)
  *
@@ -450,7 +449,7 @@ export const constUndefined: LazyArg<undefined> = constant(undefined)
  *
  * **When to use**
  *
- * Use when an API expects a thunk used only for its call effect and not for a
+ * Use when you need a thunk that is called only for its effect and has no
  * meaningful return value.
  *
  * **Example** (Returning void from a thunk)
@@ -532,8 +531,8 @@ export const compose: {
  *
  * **When to use**
  *
- * Use when exhaustive checks prove a branch cannot be reached, but
- * TypeScript still needs a return value.
+ * Use when you need a return value in a branch that exhaustive checks prove
+ * cannot be reached.
  *
  * **Gotchas**
  *

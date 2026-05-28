@@ -378,7 +378,7 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
  *
  * **When to use**
  *
- * Use when client settings should be read from Effect `Config` values while
+ * Use when you want client settings read from Effect `Config` values while
  * providing `OpenAiClient` as a `Layer`.
  *
  * **Details**
@@ -461,7 +461,7 @@ export type ResponseStreamEvent = typeof OpenAiSchema.ResponseStreamEvent.Type
  *
  * **When to use**
  *
- * Use when code needs direct access to the WebSocket-backed response streaming
+ * Use when you need direct access to the WebSocket-backed response streaming
  * service rather than wrapping an effect with WebSocket mode.
  *
  * **Details**

@@ -48,8 +48,8 @@ import { WorkerError, WorkerReceiveError } from "effect/unstable/workers/WorkerE
  *
  * **When to use**
  *
- * Use when browser parent or client code needs both the browser
- * `WorkerPlatform` and a `Spawner` from one layer.
+ * Use when you need both the browser `WorkerPlatform` and a `Spawner` from one
+ * layer.
  *
  * **Details**
  *

@@ -1228,8 +1228,8 @@ export {
  *
  * **When to use**
  *
- * Use when integrating APIs that complete through callbacks
- * instead of returning a `Promise`.
+ * Use when you need to integrate APIs that complete through callbacks instead
+ * of returning a `Promise`.
  *
  * **Details**
  *
@@ -1996,8 +1996,8 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  *
  * **When to use**
  *
- * Use when one effect must run after another and the second effect
- * may depend on the first effect's success value.
+ * Use when you need one effect to run after another and the second effect may
+ * depend on the first effect's success value.
  *
  * **Details**
  *
@@ -3155,8 +3155,8 @@ export const unwrapReason: {
  *
  * **When to use**
  *
- * Use when recovery needs the full `Cause`, including recoverable failures,
- * defects, and interruptions, instead of only the typed error value.
+ * Use when you need recovery to inspect the full `Cause`, including recoverable
+ * failures, defects, and interruptions, instead of only the typed error value.
  *
  * **Details**
  *
@@ -3203,7 +3203,7 @@ export const catchCause: {
  *
  * **When to use**
  *
- * Use when defects must be reported or translated at integration boundaries.
+ * Use when you need to report or translate defects at integration boundaries.
  *
  * **Details**
  *
@@ -3576,8 +3576,8 @@ export const mapBoth: {
  *
  * **When to use**
  *
- * Use when a typed failure represents an unrecoverable bug or invalid
- * state and should not be handled as a recoverable error.
+ * Use when you need to turn a typed failure that represents an unrecoverable bug
+ * or invalid state into a defect.
  *
  * **Example** (Converting typed failures into defects)
  *
@@ -4951,8 +4951,8 @@ export const filterMap: {
  *
  * **When to use**
  *
- * Use when filtering each iterable element requires effects and accepted
- * elements should be transformed into successful output values.
+ * Use when you need to filter each iterable element effectfully and transform
+ * accepted elements into successful output values.
  *
  * **Details**
  *
@@ -5230,8 +5230,8 @@ export const when: {
  *
  * **When to use**
  *
- * Use when code should respond differently to success or failure without triggering side
- * effects.
+ * Use when you need to respond differently to success or failure without
+ * triggering side effects.
  *
  * **Details**
  *
@@ -5394,7 +5394,7 @@ export const matchCause: {
  *
  * **When to use**
  *
- * Use when effects are likely to be already resolved and matching the cause should avoid
+ * Use when you expect effects to already be resolved and want to match the cause without
  * the overhead of the regular effect pipeline. For pending effects, it automatically falls
  * back to the regular `matchCause` behavior.
  *
@@ -5474,8 +5474,8 @@ export const matchCauseEffectEager: {
  *
  * **When to use**
  *
- * Use when both success and failure handling must return effects and the
- * failure branch needs the full `Cause`.
+ * Use when you need both success and failure handlers to return effects and the
+ * failure handler to inspect the full `Cause`.
  *
  * **Details**
  *
@@ -5547,7 +5547,7 @@ export const matchCauseEffect: {
  *
  * **When to use**
  *
- * Use when the failure or success branch must run additional effects.
+ * Use when you need the failure or success handler to run additional effects.
  *
  * **Details**
  *

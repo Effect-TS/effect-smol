@@ -323,8 +323,8 @@ export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
  *
  * **When to use**
  *
- * Use when every fiber must succeed and you want the successful values rather
- * than the `Exit` values.
+ * Use when you need every fiber to succeed and want the successful values
+ * rather than the `Exit` values.
  *
  * **Details**
  *

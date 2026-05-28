@@ -1311,8 +1311,8 @@ export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
  *
  * **When to use**
  *
- * Use when a finite JavaScript number must become a `BigDecimal` and invalid
- * input should throw.
+ * Use when you need to convert a finite JavaScript number to a `BigDecimal` and
+ * invalid input should throw.
  *
  * **Gotchas**
  *
@@ -1474,7 +1474,7 @@ export const fromString = (s: string): Option.Option<BigDecimal> => {
  *
  * **When to use**
  *
- * Use when decimal text is expected to be valid and parse errors should throw.
+ * Use when you expect decimal text to be valid and want parse errors to throw.
  *
  * **Details**
  *
@@ -1606,7 +1606,7 @@ export const toExponential = (n: BigDecimal): string => {
  *
  * **When to use**
  *
- * Use when an interop boundary requires a JavaScript number and can tolerate
+ * Use when you need a JavaScript number at an interop boundary and can tolerate
  * precision loss.
  *
  * **Gotchas**

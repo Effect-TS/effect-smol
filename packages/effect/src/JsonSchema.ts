@@ -478,7 +478,7 @@ export function fromSchemaDraft2020_12(js: JsonSchema): Document<"draft-2020-12"
  *
  * **When to use**
  *
- * Use when consuming schemas from an OpenAPI 3.1 specification.
+ * Use when you need to consume schemas from an OpenAPI 3.1 specification.
  *
  * **Details**
  *
@@ -517,7 +517,7 @@ export function fromSchemaOpenApi3_1(js: JsonSchema): Document<"draft-2020-12"> 
  *
  * **When to use**
  *
- * Use when consuming schemas from an OpenAPI 3.0 specification.
+ * Use when you need to consume schemas from an OpenAPI 3.0 specification.
  *
  * **Details**
  *
