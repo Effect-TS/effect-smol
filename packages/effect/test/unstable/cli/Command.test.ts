@@ -1450,17 +1450,17 @@ describe("Command", () => {
     it.effect("should keep shared flags before subcommands over globals", () =>
       Effect.gen(function*() {
         const captured: Array<boolean> = []
-        const child = Command.make("child", {}, () =>
-          Effect.gen(function*() {
-            const parent = yield* command
-            captured.push(parent.version)
-          }))
-        const command = Command.make("tool", {}, () => Effect.void).pipe(
+        const root = Command.make("tool", {}, () => Effect.void).pipe(
           Command.withSharedFlags({
             version: Flag.boolean("version")
-          }),
-          Command.withSubcommands([child])
+          })
         )
+        const child = Command.make("child", {}, () =>
+          Effect.gen(function*() {
+            const parent = yield* root
+            captured.push(parent.version)
+          }))
+        const command = root.pipe(Command.withSubcommands([child]))
 
         const runCommand = Command.runWith(command, { version: "1.0.0" })
         yield* runCommand(["--version", "child"])
