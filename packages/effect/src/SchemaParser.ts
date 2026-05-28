@@ -97,7 +97,7 @@ const recurDefaults = memoize((ast: AST.AST): AST.AST => {
  * runs type-side validation unless checks are disabled, and fails with a
  * `SchemaIssue.Issue` when construction fails.
  *
- * @category Constructing
+ * @category constructors
  * @since 4.0.0
  */
 export function makeEffect<S extends Schema.Top>(schema: S) {
@@ -122,7 +122,7 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
  * Use when you only need to know whether constructor input is valid and do
  * not need error details.
  *
- * @category Constructing
+ * @category constructors
  * @since 4.0.0
  */
 export function makeOption<S extends Schema.Top>(schema: S) {
@@ -145,7 +145,7 @@ export function makeOption<S extends Schema.Top>(schema: S) {
  * The returned function constructs a value from constructor input and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` when construction fails.
  *
- * @category Constructing
+ * @category constructors
  * @since 4.0.0
  */
 export function make<S extends Schema.Top>(schema: S) {

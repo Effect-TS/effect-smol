@@ -891,7 +891,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const fail = <A, E>(self: Enqueue<A, E>, error: E) => failCause(self, core.causeFail(error))
@@ -918,7 +918,7 @@ export const fail = <A, E>(self: Enqueue<A, E>, error: E) => failCause(self, cor
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const failCause: {
@@ -956,7 +956,7 @@ export const failCause: {
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boolean => {
@@ -1014,7 +1014,7 @@ export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boo
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCause(self, core.causeFail(core.Done()))
@@ -1063,7 +1063,7 @@ export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCa
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(self, core.causeFail(core.Done()))
@@ -1109,7 +1109,7 @@ export const endUnsafe = <A, E>(self: Enqueue<A, E | Done>) => failCauseUnsafe(s
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
@@ -1146,7 +1146,7 @@ export const interrupt = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 2.0.0
  */
 export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
@@ -1245,7 +1245,7 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeD
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 2.0.0
  */
 export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>, E> =>
@@ -1273,7 +1273,7 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 4.0.0
  */
 export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull.ExcludeDone<E>> =>
@@ -1331,7 +1331,7 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Pull
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 2.0.0
  */
 export const takeN = <A, E>(
@@ -1373,7 +1373,7 @@ export const takeN = <A, E>(
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 2.0.0
  */
 export const takeBetween = <A, E>(
@@ -1423,7 +1423,7 @@ export const takeBetween = <A, E>(
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 2.0.0
  */
 export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
@@ -1461,7 +1461,7 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 2.0.0
  */
 export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
@@ -1547,7 +1547,7 @@ export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 4.0.0
  */
 export const takeUnsafe = <A, E>(self: Dequeue<A, E>): Exit<A, E> | undefined => {
@@ -1611,7 +1611,7 @@ export {
    * @see {@link interrupt} for graceful interruption after buffered messages are drained
    * @see {@link shutdown} for immediately discarding buffered messages and resuming pending operations
    *
-   * @category Completion
+   * @category completion
    * @since 4.0.0
    */
   await_ as await
@@ -1781,7 +1781,7 @@ export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(s
  * })
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const into: {

@@ -2599,7 +2599,7 @@ export interface Boolean extends Bottom<boolean, boolean, never, never, AST.Bool
  *
  * @see {@link BooleanFromBit} for a schema that decodes bit literals `0` or `1` into a boolean
  *
- * @category Boolean
+ * @category boolean
  * @since 4.0.0
  */
 export const Boolean: Boolean = make(AST.boolean)
@@ -5832,7 +5832,7 @@ export function link<T>() {
  * //   at ["c"])]))
  * ```
  *
- * @category Checks Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeFilter: <T>(
@@ -5897,7 +5897,7 @@ export type FilterOutput =
  * Groups multiple checks into a single {@link AST.FilterGroup}, applying
  * optional shared annotations to the group as a whole.
  *
- * @category Checks Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeFilterGroup<T>(
@@ -7853,7 +7853,7 @@ export function isUnique<T>(annotations?: Annotations.Filter) {
 /**
  * Type-level representation of {@link NonEmptyString}.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export interface NonEmptyString extends String {
@@ -7864,7 +7864,7 @@ export interface NonEmptyString extends String {
  * Schema for non-empty strings. Validates that a string has at least one
  * character.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
@@ -7872,7 +7872,7 @@ export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
 /**
  * Type-level representation of {@link Char}.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export interface Char extends String {
@@ -7895,7 +7895,7 @@ export interface Char extends String {
  * @see {@link NonEmptyString} for strings with length greater than zero
  * @see {@link isLengthBetween} for the underlying length check
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export const Char: Char = String.check(isLengthBetween(1, 1))
@@ -10229,7 +10229,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
 /**
  * Type-level representation of {@link File}.
  *
- * @category File
+ * @category file
  * @since 4.0.0
  */
 export interface File extends instanceOf<globalThis.File> {
@@ -10244,7 +10244,7 @@ export interface File extends instanceOf<globalThis.File> {
  * The default JSON serializer encodes a `File` as `{ data, type, name, lastModified }`
  * where `data` is base64-encoded.
  *
- * @category File
+ * @category file
  * @since 4.0.0
  */
 export const File: File = instanceOf(globalThis.File, {
@@ -10469,7 +10469,7 @@ export function fromFormData<S extends Top>(schema: S): fromFormData<S> {
 /**
  * Type-level representation of {@link URLSearchParams}.
  *
- * @category URLSearchParams
+ * @category search params
  * @since 4.0.0
  */
 export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> {
@@ -10483,7 +10483,7 @@ export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> 
  *
  * The default JSON serializer encodes a `URLSearchParams` as a query string.
  *
- * @category URLSearchParams
+ * @category search params
  * @since 4.0.0
  */
 export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchParams, {
@@ -10508,7 +10508,7 @@ export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchP
 /**
  * Type-level representation returned by {@link fromURLSearchParams}.
  *
- * @category URLSearchParams
+ * @category search params
  * @since 4.0.0
  */
 export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearchParams> {
@@ -10740,7 +10740,7 @@ export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString)
 /**
  * Type-level representation of {@link Trimmed}.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export interface Trimmed extends String {
@@ -10750,7 +10750,7 @@ export interface Trimmed extends String {
 /**
  * Schema for strings that contains no leading or trailing whitespaces.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export const Trimmed: Trimmed = String.check(isTrimmed())
@@ -10758,7 +10758,7 @@ export const Trimmed: Trimmed = String.check(isTrimmed())
 /**
  * Type-level representation of {@link Trim}.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export interface Trim extends decodeTo<Trimmed, String> {
@@ -10776,7 +10776,7 @@ export interface Trim extends decodeTo<Trimmed, String> {
  * Encoding:
  * - The trimmed string is encoded as is.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export const Trim: Trim = String.annotate({
@@ -10786,7 +10786,7 @@ export const Trim: Trim = String.annotate({
 /**
  * Type-level representation of {@link StringFromBase64}.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export interface StringFromBase64 extends decodeTo<String, String> {
@@ -10804,7 +10804,7 @@ export interface StringFromBase64 extends decodeTo<String, String> {
  * Encoding:
  * - A `string` is encoded as a base64-encoded string.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export const StringFromBase64: StringFromBase64 = String.annotate({
@@ -10816,7 +10816,7 @@ export const StringFromBase64: StringFromBase64 = String.annotate({
 /**
  * Type-level representation of {@link StringFromBase64Url}.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export interface StringFromBase64Url extends decodeTo<String, String> {
@@ -10834,7 +10834,7 @@ export interface StringFromBase64Url extends decodeTo<String, String> {
  * Encoding:
  * - A `string` is encoded as a base64 (URL) encoded string.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export const StringFromBase64Url: StringFromBase64Url = String.annotate({
@@ -10846,7 +10846,7 @@ export const StringFromBase64Url: StringFromBase64Url = String.annotate({
 /**
  * Type-level representation of {@link StringFromHex}.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export interface StringFromHex extends decodeTo<String, String> {
@@ -10864,7 +10864,7 @@ export interface StringFromHex extends decodeTo<String, String> {
  * Encoding:
  * - A `string` is encoded as a hex string.
  *
- * @category String
+ * @category string
  * @since 3.10.0
  */
 export const StringFromHex: StringFromHex = String.annotate({
@@ -10876,7 +10876,7 @@ export const StringFromHex: StringFromHex = String.annotate({
 /**
  * Type-level representation of {@link StringFromUriComponent}.
  *
- * @category String
+ * @category string
  * @since 3.12.0
  */
 export interface StringFromUriComponent extends decodeTo<String, String> {
@@ -10913,7 +10913,7 @@ export interface StringFromUriComponent extends decodeTo<String, String> {
  * // %7B%22maxItemPerPage%22%3A10%2C%22page%22%3A1%7D
  * ```
  *
- * @category String
+ * @category string
  * @since 3.12.0
  */
 export const StringFromUriComponent: StringFromUriComponent = String.annotate({
@@ -10952,7 +10952,7 @@ export const StandardSchemaV1FailureResult = Struct({
 /**
  * Type-level representation of {@link BooleanFromBit}.
  *
- * @category Boolean
+ * @category boolean
  * @since 4.0.0
  */
 export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 1]>> {
@@ -10975,7 +10975,7 @@ export interface BooleanFromBit extends decodeTo<Boolean, Literals<readonly [0, 
  * @see {@link Boolean} for validating values that are already booleans
  * @see {@link Literals} for keeping bit literals instead of decoding them
  *
- * @category Boolean
+ * @category boolean
  * @since 4.0.0
  */
 export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
@@ -12331,7 +12331,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
  * Use when the default structural equivalence derived by {@link toEquivalence}
  * is not appropriate for a type.
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equivalence.Equivalence<S["Type"]>) {
@@ -12354,7 +12354,7 @@ export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equiva
  * console.log(eq({ id: 1, name: "Alice" }, { id: 2, name: "Alice" })) // false
  * ```
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {

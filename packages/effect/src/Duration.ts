@@ -1269,7 +1269,7 @@ export const min: {
  * console.log(Duration.toSeconds(longer)) // 5
  * ```
  *
- * @category order
+ * @category ordering
  * @since 2.0.0
  */
 export const max: {
@@ -1292,7 +1292,7 @@ export const max: {
  * console.log(Duration.toSeconds(clamped)) // 5
  * ```
  *
- * @category order
+ * @category ordering
  * @since 2.0.0
  */
 export const clamp: {

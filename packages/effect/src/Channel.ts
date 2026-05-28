@@ -7435,7 +7435,7 @@ const withSpanImpl = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
 /**
  * The starting channel for Do notation, emitting an empty object.
  *
- * @category Do notation
+ * @category do notation
  * @since 4.0.0
  */
 export const Do: Channel<{}> = succeed({})
@@ -7489,7 +7489,7 @@ export {
   /**
    * Adds a computed field to each object emitted by a channel.
    *
-   * @category Do notation
+   * @category do notation
    * @since 4.0.0
    */
   let_ as let
@@ -7505,7 +7505,7 @@ export {
  * channel's output becomes the value of the new field. `options.concurrency`
  * and `options.bufferSize` control how derived channels are flattened.
  *
- * @category Do notation
+ * @category do notation
  * @since 4.0.0
  */
 export const bind: {
@@ -7611,7 +7611,7 @@ export const bind: {
  * @see {@link bind} for adding a field produced by another channel
  * @see {@link let_ let} for adding a computed field
  *
- * @category Do notation
+ * @category do notation
  * @since 4.0.0
  */
 export const bindTo: {

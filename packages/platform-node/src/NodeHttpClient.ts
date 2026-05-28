@@ -85,7 +85,7 @@ export {
   /**
    * Layer that provides the fetch-based HTTP client implementation.
    *
-   * @category Fetch
+   * @category fetch
    * @since 4.0.0
    */
   layer as layerFetch,
@@ -150,7 +150,7 @@ export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatc
  * Fiber reference containing default Undici request options applied to requests
  * sent by `makeUndici`.
  *
- * @category undici
+ * @category Undici
  * @since 4.0.0
  */
 export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.RequestOptions>>(
@@ -163,7 +163,7 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
  * `Dispatcher`, converts Effect HTTP bodies to Undici bodies, and maps
  * transport and decode failures to `HttpClientError`.
  *
- * @category undici
+ * @category Undici
  * @since 4.0.0
  */
 export const makeUndici = Effect.gen(function*() {

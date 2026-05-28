@@ -373,7 +373,7 @@ export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => 
  * // Output: 4096
  * ```
  *
- * @category Constants
+ * @category constants
  * @since 2.0.0
  */
 export const DefaultChunkSize: number = Channel.DefaultChunkSize
@@ -464,7 +464,7 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * // Output: [ "Hello, World!" ]
  * ```
  *
- * @category Context
+ * @category context
  * @since 4.0.0
  */
 export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> => fromEffect(Effect.service(service))
@@ -509,7 +509,7 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
  * // Output: [ "Hello, World!" ]
  * ```
  *
- * @category Context
+ * @category context
  * @since 4.0.0
  */
 export const serviceOption = <I, S>(service: Context.Key<I, S>): Stream<Option.Option<S>> =>
@@ -4212,7 +4212,7 @@ export const zipLatestWith: {
  * // Output: [ 0, 1, 2 ]
  * ```
  *
- * @category Racing
+ * @category racing
  * @since 3.5.0
  */
 export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
@@ -4273,7 +4273,7 @@ export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
  * // Output: [ 0, 1, 2 ]
  * ```
  *
- * @category Racing
+ * @category racing
  * @since 3.7.0
  */
 export const race: {
@@ -9688,7 +9688,7 @@ export const interleaveWith: {
  * // => [1, 2]
  * ```
  *
- * @category Interruption
+ * @category interruption
  * @since 2.0.0
  */
 export const interruptWhen: {
@@ -9737,7 +9737,7 @@ export const interruptWhen: {
  * // [1, 2]
  * ```
  *
- * @category Interruption
+ * @category interruption
  * @since 2.0.0
  */
 export const haltWhen: {
@@ -10353,7 +10353,7 @@ export const withSpan: {
  * //=> [{ value: 1, next: 2 }, { value: 2, next: 3 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const Do: Stream<{}> = succeed({})
@@ -10397,7 +10397,7 @@ export {
    * // [{ x: 2, y: 6 }]
    * ```
    *
-   * @category Do Notation
+   * @category do notation
    * @since 2.0.0
    */
   let_ as let
@@ -10422,7 +10422,7 @@ export {
  * // [{ a: 1, b: 2 }, { a: 2, b: 3 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bind: {
@@ -10476,7 +10476,7 @@ export const bind: {
  * // [{ value: 1, double: 2 }, { value: 2, double: 4 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bindEffect: {
@@ -10527,7 +10527,7 @@ export const bindEffect: {
  * // [{ value: 1 }, { value: 2 }, { value: 3 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bindTo: {

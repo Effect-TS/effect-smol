@@ -235,7 +235,7 @@ const exitSchemaCache = new WeakMap<Persistable<any, any>, Schema.Exit<any, any,
  * Encodes an `Exit` for a persistable request using its success and error
  * schemas.
  *
- * @category Serialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
@@ -250,7 +250,7 @@ export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
  * Decodes a persisted value into an `Exit` for a persistable request using its
  * success and error schemas.
  *
- * @category Serialization
+ * @category serialization
  * @since 4.0.0
  */
 export const deserializeExit = <A extends Schema.Top, E extends Schema.Top>(

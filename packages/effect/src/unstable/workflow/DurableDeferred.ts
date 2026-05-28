@@ -261,7 +261,7 @@ export const into: {
  * Runs effects as a durable race, returning a previously persisted result when
  * present or completing a named deferred with the first result.
  *
- * @category Racing
+ * @category racing
  * @since 4.0.0
  */
 export const raceAll = <

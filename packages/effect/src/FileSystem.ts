@@ -1104,7 +1104,7 @@ export const FileTypeId = "~effect/platform/FileSystem/File"
  * @see {@link File} for the file-handle interface narrowed by this guard
  * @see {@link FileTypeId} for the runtime marker checked by this guard
  *
- * @category File
+ * @category file
  * @since 4.0.0
  */
 export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
@@ -1150,7 +1150,7 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * })
  * ```
  *
- * @category File
+ * @category file
  * @since 4.0.0
  */
 export interface File {
@@ -1181,7 +1181,7 @@ export declare namespace File {
    * File descriptors are numeric handles used by the operating system
    * to identify open files. The branded type ensures type safety.
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
@@ -1194,7 +1194,7 @@ export declare namespace File {
    * Represents the different types of entries that can exist in a file system,
    * from regular files to special device files and symbolic links.
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export type Type =
@@ -1249,7 +1249,7 @@ export declare namespace File {
    * })
    * ```
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export interface Info {

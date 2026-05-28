@@ -1247,7 +1247,7 @@ export const provideRequest =
 /**
  * Runs the provided application layer as an HTTP server.
  *
- * @category Server
+ * @category server
  * @since 4.0.0
  */
 export const serve = <A, E, R, HE, HR = Request.Only<"Requires", R> | Request.Only<"GlobalRequires", R>>(
@@ -1311,7 +1311,7 @@ export const serve = <A, E, R, HE, HR = Request.Only<"Requires", R> | Request.On
  * Web `Response` values and a `dispose` function for releasing the layer
  * resources.
  *
- * @category Server
+ * @category server
  * @since 4.0.0
  */
 export const toWebHandler = <

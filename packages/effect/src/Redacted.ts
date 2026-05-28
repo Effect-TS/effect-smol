@@ -340,7 +340,7 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRe
  * assert.equal(equivalence(API_KEY1, API_KEY3), true)
  * ```
  *
- * @category equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Redacted<A>> =>

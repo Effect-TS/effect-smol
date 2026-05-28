@@ -570,7 +570,7 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  * @see {@link byReferenceUnsafe} — same effect without a proxy (mutates the
  *   original)
  * @see {@link equals} — the comparison function affected by this opt-out
- * @category utility
+ * @category utils
  * @since 4.0.0
  */
 export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(new Proxy(obj, {}))
@@ -614,7 +614,7 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  *
  * @see {@link byReference} — safer alternative that creates a proxy
  * @see {@link equals} — the comparison function affected by this opt-out
- * @category utility
+ * @category utils
  * @since 4.0.0
  */
 export const byReferenceUnsafe = <T extends object>(obj: T): T => {

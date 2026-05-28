@@ -78,7 +78,7 @@ export interface Strong {
 /**
  * Formats an `Etag` as an HTTP header value, including quotes and the `W/` prefix for weak tags.
  *
- * @category convertions
+ * @category converting
  * @since 4.0.0
  */
 export const toString = (self: Etag): string => {

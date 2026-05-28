@@ -128,7 +128,7 @@ export interface HttpOptions extends FormatOptions {
  * })
  * ```
  *
- * @category Formatting
+ * @category formatting
  * @since 4.0.0
  */
 export const format: (options?: FormatOptions | undefined) => Effect.Effect<string> = Effect.fnUntraced(
@@ -146,7 +146,7 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
  * Use when you use this low-level function when you already have access to the context. Most
  * users should use `format` instead.
  *
- * @category Formatting
+ * @category formatting
  * @since 4.0.0
  */
 export const formatUnsafe = (

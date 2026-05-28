@@ -477,7 +477,7 @@ export const isSome: <A>(self: Option<A>) => self is Some<A> = option.isSome
  *
  * @see {@link getOrElse} for unwrapping with a default
  *
- * @category Pattern matching
+ * @category pattern matching
  * @since 2.0.0
  */
 export const match: {
@@ -1686,7 +1686,7 @@ export const tap: {
  * @see {@link zipWith} to combine with a function instead of a tuple
  * @see {@link all} to combine many `Option`s
  *
- * @category Combining
+ * @category combining
  * @since 2.0.0
  */
 export const product = <A, B>(self: Option<A>, that: Option<B>): Option<[A, B]> =>
@@ -1723,7 +1723,7 @@ export const product = <A, B>(self: Option<A>, that: Option<B>): Option<[A, B]> 
  * @see {@link product} for combining exactly two
  * @see {@link all} for tuples, structs, and iterables
  *
- * @category Combining
+ * @category combining
  * @since 2.0.0
  */
 export const productMany = <A>(
@@ -1785,7 +1785,7 @@ export const productMany = <A>(
  * @see {@link product} for combining exactly two
  * @see {@link productMany} for a homogeneous collection
  *
- * @category Combining
+ * @category combining
  * @since 2.0.0
  */
 // @ts-expect-error
@@ -1887,7 +1887,7 @@ export const zipWith: {
  * // Output: 3
  * ```
  *
- * @category Reducing
+ * @category reducing
  * @since 2.0.0
  */
 export const reduceCompact: {
@@ -2111,7 +2111,7 @@ export const filter: {
  * // Output: true
  * ```
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Option<A>> =>
@@ -2147,7 +2147,7 @@ export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Eq
  * // Output: -1
  * ```
  *
- * @category Sorting
+ * @category sorting
  * @since 4.0.0
  */
 export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
@@ -2181,7 +2181,7 @@ export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
  *
  * @see {@link zipWith} for a non-lifted variant
  *
- * @category Lifting
+ * @category lifting
  * @since 2.0.0
  */
 export const lift2 = <A, B, C>(f: (a: A, b: B) => C): {
@@ -2221,7 +2221,7 @@ export const lift2 = <A, B, C>(f: (a: A, b: B) => C): {
  * @see {@link filter} to apply a predicate to an existing `Option`
  * @see {@link toRefinement} for the inverse direction
  *
- * @category Lifting
+ * @category lifting
  * @since 2.0.0
  */
 export const liftPredicate: { // Note: I intentionally avoid using the NoInfer pattern here.
@@ -2272,7 +2272,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  *
  * @see {@link contains} for a version using default equality
  *
- * @category Elements
+ * @category elements
  * @since 2.0.0
  */
 export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
@@ -2311,7 +2311,7 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
  * @see {@link containsWith} for custom equality
  * @see {@link exists} to test with a predicate
  *
- * @category Elements
+ * @category elements
  * @since 2.0.0
  */
 export const contains: {
@@ -2353,7 +2353,7 @@ export const contains: {
  * @see {@link filter} to keep or discard based on a predicate
  * @see {@link contains} to test for a specific value
  *
- * @category Elements
+ * @category elements
  * @since 2.0.0
  */
 export const exists: {
@@ -2398,7 +2398,7 @@ export const exists: {
  * @see {@link bind} to add `Option` values
  * @see {@link let_ let} to add plain values
  *
- * @category Do notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bindTo: {
@@ -2445,7 +2445,7 @@ export {
    * @see {@link bind} to add `Option` values
    * @see {@link bindTo} to start by naming an existing `Option`
    *
-   * @category Do notation
+   * @category do notation
    * @since 2.0.0
    */
   let_ as let
@@ -2479,7 +2479,7 @@ export {
  * @see {@link let_ let} to add plain values
  * @see {@link bindTo} to start by naming an existing `Option`
  *
- * @category Do notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bind: {
@@ -2522,7 +2522,7 @@ export const bind: {
  * @see {@link let_ let} to add plain values
  * @see {@link bindTo} to start by naming an existing `Option`
  *
- * @category Do notation
+ * @category do notation
  * @since 2.0.0
  */
 export const Do: Option<{}> = some({})

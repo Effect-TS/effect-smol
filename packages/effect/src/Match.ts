@@ -1231,7 +1231,7 @@ export const not: <
  *
  * @see {@link string} for matching any string
  *
- * @category Predicates
+ * @category predicates
  * @since 4.0.0
  */
 export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptyString
@@ -1277,7 +1277,7 @@ export const nonEmptyString: SafeRefinement<string, never> = internal.nonEmptySt
  * // Output: "Unknown status: pending"
  * ```
  *
- * @category Predicates
+ * @category predicates
  * @since 4.0.0
  */
 export const is: <
@@ -1403,7 +1403,7 @@ export const number: Predicate.Refinement<unknown, number> = Predicate.isNumber
  * @see {@link defined} for matching only non-nullish values
  * @see {@link orElse} for providing a fallback after earlier cases
  *
- * @category Predicates
+ * @category predicates
  * @since 4.0.0
  */
 export const any: SafeRefinement<unknown, any> = internal.any
@@ -1452,7 +1452,7 @@ export const any: SafeRefinement<unknown, any> = internal.any
  *
  * @see {@link any} for matching every value without excluding nullish inputs
  *
- * @category Predicates
+ * @category predicates
  * @since 4.0.0
  */
 export const defined: <A>(u: A) => u is A & {} = internal.defined
@@ -1515,7 +1515,7 @@ export {
    * @see {@link defined} for matching non-nullish values
    * @see {@link is} for matching literal values
    *
-   * @category Predicates
+   * @category predicates
    * @since 4.0.0
    */
   _undefined as undefined
@@ -1538,7 +1538,7 @@ export {
    * @see {@link defined} for matching non-nullish values
    * @see {@link is} for matching literal values
    *
-   * @category Predicates
+   * @category predicates
    * @since 4.0.0
    */
   _null as null
@@ -1764,7 +1764,7 @@ export const record: Predicate.Refinement<unknown, { [x: PropertyKey]: unknown }
  * @see {@link instanceOfUnsafe} for constructor matching without the same type-safety guarantee
  * @see {@link record} for matching broad non-null, non-array objects
  *
- * @category Predicates
+ * @category predicates
  * @since 4.0.0
  */
 export const instanceOf: <A extends abstract new(...args: any) => any>(
@@ -1853,7 +1853,7 @@ export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
  * @see {@link result} for returning unmatched input as a `Result` failure
  * @see {@link orElseAbsurd} for finalizing when unmatched input should be impossible
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
@@ -1946,7 +1946,7 @@ export const orElseAbsurd: <I, R, RA, A, Pr, Ret>(
  * // Output: { _id: 'Result', _tag: 'Err', err: { role: 'viewer' } }
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const result: <I, F, R, A, Pr, Ret>(
@@ -1995,7 +1995,7 @@ export const result: <I, F, R, A, Pr, Ret>(
  * @see {@link result} for preserving unmatched input as a `Result` failure
  * @see {@link orElse} for replacing unmatched input with a fallback value
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const option: <I, F, R, A, Pr, Ret>(
@@ -2031,7 +2031,7 @@ export const option: <I, F, R, A, Pr, Ret>(
  * )
  * ```
  *
- * @category Completion
+ * @category completion
  * @since 4.0.0
  */
 export const exhaustive: <I, F, A, Pr, Ret>(

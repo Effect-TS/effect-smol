@@ -1027,7 +1027,7 @@ export const make = <
  * })
  * ```
  *
- * @category Custom constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const custom = <Def extends Custom>(
@@ -1080,7 +1080,7 @@ export const custom = <Def extends Custom>(
  * A custom constructor receives the original success, error, and defect schemas
  * and returns transformed output schemas through `out`.
  *
- * @category Custom constructors
+ * @category constructors
  * @since 4.0.0
  */
 export interface Custom {
@@ -1099,7 +1099,7 @@ export declare namespace Custom {
   /**
    * The transformed schemas produced by a custom RPC constructor.
    *
-   * @category Custom constructors
+   * @category constructors
    * @since 4.0.0
    */
   export interface Out<
@@ -1115,7 +1115,7 @@ export declare namespace Custom {
    * The default custom-constructor output shape for arbitrary success and error
    * schemas.
    *
-   * @category Custom constructors
+   * @category constructors
    * @since 4.0.0
    */
   export type OutDefault = Out<Schema.Top, Schema.Top>
@@ -1124,7 +1124,7 @@ export declare namespace Custom {
    * Applies a custom constructor definition to concrete success and error
    * schemas and returns its transformed output schema type.
    *
-   * @category Custom constructors
+   * @category constructors
    * @since 4.0.0
    */
   export type Kind<

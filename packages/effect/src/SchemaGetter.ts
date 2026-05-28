@@ -1048,7 +1048,7 @@ type ParseJsonOptions = {
  *
  * @see {@link stringifyJson} for the inverse operation
  *
- * @category Json
+ * @category JSON
  * @since 4.0.0
  */
 export function parseJson<E extends string>(): Getter<Schema.MutableJson, E>
@@ -1096,7 +1096,7 @@ type StringifyJsonOptions = {
  *
  * @see {@link parseJson} for the inverse operation
  *
- * @category Json
+ * @category JSON
  * @since 4.0.0
  */
 export function stringifyJson(options?: StringifyJsonOptions): Getter<string, unknown> {
@@ -1693,7 +1693,7 @@ export function encodeFormData(): Getter<FormData, unknown> {
  * @see {@link makeTreeRecord} for the underlying bracket-path parser
  * @see {@link decodeFormData} for the FormData variant
  *
- * @category URLSearchParams
+ * @category search params
  * @since 4.0.0
  */
 export function decodeURLSearchParams(): Getter<Schema.TreeRecord<string>, URLSearchParams> {
@@ -1728,7 +1728,7 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  * @see {@link collectBracketPathEntries} for the underlying flattener
  * @see {@link encodeFormData} for the FormData variant
  *
- * @category URLSearchParams
+ * @category search params
  * @since 4.0.0
  */
 export function encodeURLSearchParams(): Getter<URLSearchParams, unknown> {

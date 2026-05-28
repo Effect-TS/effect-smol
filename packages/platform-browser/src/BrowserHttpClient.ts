@@ -59,14 +59,14 @@ export {
   /**
    * Context reference for the `fetch` implementation used by the fetch-based HTTP client.
    *
-   * @category Fetch
+   * @category fetch
    * @since 4.0.0
    */
   Fetch,
   /**
    * Layer that provides an `HttpClient` implementation backed by the configured `Fetch` function.
    *
-   * @category Fetch
+   * @category fetch
    * @since 4.0.0
    */
   layer as layerFetch,

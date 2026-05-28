@@ -1022,7 +1022,7 @@ export const withSpan: {
  * @see {@link persisted} for storing persistable request results outside process memory
  * @see {@link Cache.Cache} for operations available on the returned cache
  *
- * @category Caching
+ * @category caching
  * @since 4.0.0
  */
 export const asCache: {
@@ -1106,7 +1106,7 @@ export const asCache: {
  * @see {@link asCache} for exposing the resolver as a `Cache` with time-to-live and service lookup controls
  * @see {@link persisted} for backing persistable requests with the configured persistence store
  *
- * @category Caching
+ * @category caching
  * @since 4.0.0
  */
 export const withCache: {

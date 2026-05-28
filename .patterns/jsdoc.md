@@ -61,7 +61,6 @@ Normalize high-confidence aliases, for example:
 - `Taking` -> `taking`
 - `order` -> `ordering`
 - `date & time` -> `DateTime`
-- `serialization / deserialization` -> `serialization`
 - `conversions` -> `converting`
 - `transformations` -> `transforming`
 - `Resource Management & Finalization` -> `resource management`

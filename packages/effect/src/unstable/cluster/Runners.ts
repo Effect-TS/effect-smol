@@ -702,7 +702,7 @@ export const layerRpc: Layer.Layer<
  * Service that creates an RPC client protocol for communicating with a runner at a
  * given address.
  *
- * @category Client
+ * @category client
  * @since 4.0.0
  */
 export class RpcClientProtocol extends Context.Service<

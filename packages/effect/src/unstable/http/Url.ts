@@ -140,7 +140,7 @@ const immutableURLSetter = <P extends keyof URL, A = never>(property: P): {
 /**
  * Updates the hash fragment of the URL.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setHash: {
@@ -151,7 +151,7 @@ export const setHash: {
 /**
  * Updates the host (domain and port) of the URL.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setHost: {
@@ -162,7 +162,7 @@ export const setHost: {
 /**
  * Updates the domain of the URL without modifying the port.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setHostname: {
@@ -173,7 +173,7 @@ export const setHostname: {
 /**
  * Replaces the entire URL string.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setHref: {
@@ -184,7 +184,7 @@ export const setHref: {
 /**
  * Updates the password used for authentication.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setPassword: {
@@ -200,7 +200,7 @@ export const setPassword: {
 /**
  * Updates the path of the URL.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setPathname: {
@@ -211,7 +211,7 @@ export const setPathname: {
 /**
  * Updates the port of the URL.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setPort: {
@@ -222,7 +222,7 @@ export const setPort: {
 /**
  * Updates the protocol (e.g., `http`, `https`).
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setProtocol: {
@@ -233,7 +233,7 @@ export const setProtocol: {
 /**
  * Updates the query string of the URL.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setSearch: {
@@ -244,7 +244,7 @@ export const setSearch: {
 /**
  * Updates the username used for authentication.
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setUsername: {
@@ -278,7 +278,7 @@ export const setUsername: {
  * // Output: https://example.com/?key=value
  * ```
  *
- * @category Setters
+ * @category setters
  * @since 4.0.0
  */
 export const setUrlParams: {

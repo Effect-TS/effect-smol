@@ -2194,7 +2194,7 @@ export const kvs = <S extends Schema.Codec<any, any>, const Mode extends "sync" 
  *
  * If you pass a schema, it has to be synchronous and have no context.
  *
- * @category URL search params
+ * @category search params
  * @since 4.0.0
  */
 export const searchParam = <S extends Schema.Codec<any, string> = never>(name: string, options?: {

@@ -607,7 +607,7 @@ export {
  *
  * @see {@link isSuccess} / {@link isFailure} to narrow to a specific variant
  *
- * @category Type Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isResult: (input: unknown) => input is Result<unknown, unknown> = result.isResult
@@ -640,7 +640,7 @@ export const isResult: (input: unknown) => input is Result<unknown, unknown> = r
  * @see {@link isSuccess} for the opposite check
  * @see {@link isResult} to check if a value is any Result
  *
- * @category Type Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isFailure: <A, E>(self: Result<A, E>) => self is Failure<A, E> = result.isFailure
@@ -673,7 +673,7 @@ export const isFailure: <A, E>(self: Result<A, E>) => self is Failure<A, E> = re
  * @see {@link isFailure} for the opposite check
  * @see {@link isResult} to check if a value is any Result
  *
- * @category Type Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isSuccess: <A, E>(self: Result<A, E>) => self is Success<A, E> = result.isSuccess
@@ -768,7 +768,7 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * // Output: false
  * ```
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const makeEquivalence = <A, E>(
@@ -947,7 +947,7 @@ export const map: {
  * @see {@link merge} to extract `A | E` without mapping
  * @see {@link getOrElse} to unwrap only the success with a fallback
  *
- * @category Pattern Matching
+ * @category pattern matching
  * @since 2.0.0
  */
 export const match: {
@@ -1652,7 +1652,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
  * @see {@link gen} for an alternative generator-based syntax
  * @see {@link bindTo} for starting a do-notation chain from an existing Result
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const Do: Result<{}> = succeed({})
@@ -1690,7 +1690,7 @@ export const Do: Result<{}> = succeed({})
  * @see {@link let_ let} for pure computed fields
  * @see {@link bindTo} to wrap an initial Result into a named field
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bind: {
@@ -1735,7 +1735,7 @@ export const bind: {
  * @see {@link Do} to start from an empty object
  * @see {@link bind} to add more fields
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bindTo: {
@@ -1787,7 +1787,7 @@ export {
    * @see {@link Do} to start the do-notation chain
    * @see {@link bind} for Result-producing fields
    *
-   * @category Do Notation
+   * @category do notation
    * @since 2.0.0
    */
   let_ as let

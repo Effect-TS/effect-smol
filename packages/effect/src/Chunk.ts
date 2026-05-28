@@ -225,7 +225,7 @@ const emptyArray: ReadonlyArray<never> = []
  * console.log(eq(chunk1, chunk3)) // false
  * ```
  *
- * @category equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Chunk<A>> =>

@@ -574,7 +574,7 @@ export declare namespace Replier {
  * It includes the underlying request envelope plus the last stream reply chunk
  * that was sent, allowing handlers to resume chunk sequencing after a restart.
  *
- * @category Request
+ * @category request
  * @since 4.0.0
  */
 export class Request<Rpc extends Rpc.Any> extends Data.Class<
