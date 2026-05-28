@@ -1422,6 +1422,51 @@ describe("Command", () => {
         assert.strictEqual(actions.length, 0)
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should let global flags before subcommands override non-shared parent locals", () =>
+      Effect.gen(function*() {
+        const captured: Array<boolean> = []
+        let childInvoked = false
+        const child = Command.make("child", {}, () =>
+          Effect.sync(() => {
+            childInvoked = true
+          }))
+        const command = Command.make("tool", {
+          version: Flag.boolean("version")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.version)
+          })).pipe(Command.withSubcommands([child]))
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["--version", "child"])
+
+        assert.deepStrictEqual(captured, [])
+        assert.isFalse(childInvoked)
+
+        const output = yield* TestConsole.logLines
+        assert.isTrue(output.some((line) => String(line).includes("1.0.0")))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should keep root local flags over globals when no subcommand is selected", () =>
+      Effect.gen(function*() {
+        const captured: Array<string> = []
+        const child = Command.make("child", {}, () => Effect.void)
+        const command = Command.make("tool", {
+          version: Flag.string("version")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.version)
+          })).pipe(Command.withSubcommands([child]))
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["--version", "canary"])
+
+        assert.deepStrictEqual(captured, ["canary"])
+
+        const output = yield* TestConsole.logLines
+        assert.isFalse(output.some((line) => String(line).includes("1.0.0")))
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should let local flags override global flags on the selected command", () =>
       Effect.gen(function*() {
         const captured: Array<string> = []

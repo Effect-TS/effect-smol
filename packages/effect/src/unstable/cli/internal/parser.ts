@@ -579,6 +579,29 @@ const preserveFlag = (
   remainder.push(...consumed.tokens)
 }
 
+const firstValueSelectsSubcommand = (
+  tokens: ReadonlyArray<Token>,
+  subIndex: Map<string, Command<string, unknown, unknown, unknown, unknown>>
+): boolean => {
+  for (const token of tokens) {
+    if (token._tag === "Value") {
+      return subIndex.has(token.value)
+    }
+  }
+  return false
+}
+
+const localFlagWouldPrecedeSubcommand = (
+  token: FlagToken,
+  remainingTokens: ReadonlyArray<Token>,
+  resolved: ResolvedFlag,
+  subIndex: Map<string, Command<string, unknown, unknown, unknown, unknown>>
+): boolean => {
+  const cursor = makeCursor(remainingTokens)
+  consumeFlagValueWithTokens(cursor, token, resolved.param, resolved.negated)
+  return firstValueSelectsSubcommand(cursor.rest(), subIndex)
+}
+
 /**
  * Consumes global flags while walking the command tree.
  *
@@ -617,12 +640,17 @@ export const consumeGlobalFlags = (
         }
 
         const local = resolveFlag(token, localRegistry)
+        const global = resolveFlag(token, registry)
         if (local !== undefined) {
-          preserveFlag(remainder, cursor, token, local)
-          continue
+          if (
+            global === undefined || !awaitingFirstValue ||
+            !localFlagWouldPrecedeSubcommand(token, cursor.rest(), local, subIndex)
+          ) {
+            preserveFlag(remainder, cursor, token, local)
+            continue
+          }
         }
 
-        const global = resolveFlag(token, registry)
         if (global !== undefined) {
           const consumed = consumeFlagValueWithTokens(cursor, token, global.param, global.negated)
           if (consumed._tag === "Error") {
