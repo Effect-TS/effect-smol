@@ -2983,8 +2983,8 @@ export const window: {
  *
  * **When to use**
  *
- * Use when a non-empty array is already arranged so matching elements are
- * adjacent and you need a custom equivalence function.
+ * Use when you already have a non-empty array arranged so matching elements are
+ * adjacent and need a custom equivalence function.
  *
  * **Details**
  *

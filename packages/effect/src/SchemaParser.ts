@@ -264,9 +264,9 @@ export function decodeUnknownEffect<S extends Schema.Top>(
  *
  * **When to use**
  *
- * Use when the input is already typed as the schema's `Encoded` type and
- * decoding should stay in `Effect`, including parse failures and required
- * decoding services.
+ * Use when you already have input typed as the schema's `Encoded` type and want
+ * decoding to stay in `Effect`, including parse failures and required decoding
+ * services.
  *
  * **Details**
  *
@@ -318,8 +318,8 @@ export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when the input is already typed as the schema's `Encoded` type and you
- * need a native `Promise` boundary.
+ * Use when you already have input typed as the schema's `Encoded` type and need
+ * a native `Promise` boundary.
  *
  * **Details**
  *
@@ -432,8 +432,8 @@ export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when the input is already typed as the schema's `Encoded` type and you
- * only need to know whether decoding succeeds.
+ * Use when you already have input typed as the schema's `Encoded` type and only
+ * need to know whether decoding succeeds.
  *
  * **Details**
  *
@@ -489,8 +489,8 @@ export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when the input is already typed as the schema's `Encoded` type and you
- * want schema decoding failures represented as `Result.fail`.
+ * Use when you already have input typed as the schema's `Encoded` type and want
+ * schema decoding failures represented as `Result.fail`.
  *
  * **Details**
  *
@@ -811,8 +811,8 @@ export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
  *
  * **When to use**
  *
- * Use when the input is already typed as the schema's decoded `Type` and
- * encoding failures should be returned as a `Result` instead of thrown or run in
+ * Use when you already have input typed as the schema's decoded `Type` and want
+ * encoding failures returned as a `Result` instead of thrown or run in
  * `Effect`.
  *
  * **Details**

@@ -448,7 +448,7 @@ export const interruptAs: {
  *
  * **When to use**
  *
- * Use when a group of forked fibers is no longer needed.
+ * Use when you no longer need a group of forked fibers.
  *
  * **Details**
  *

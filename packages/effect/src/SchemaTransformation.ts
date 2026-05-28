@@ -368,8 +368,8 @@ export function transformOrFail<T, E, RD = never, RE = never>(options: {
  *
  * **When to use**
  *
- * Use when the conversion cannot fail.
- * - No Effect services are needed.
+ * Use when you need an infallible conversion that does not require Effect
+ * services.
  *
  * **Details**
  *

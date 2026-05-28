@@ -345,8 +345,8 @@ export function passthroughSupertype<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when the encoded type is narrower than the decoded type.
- * - You need type-safe passthrough without `{ strict: false }`.
+ * Use when you need type-safe passthrough without `{ strict: false }` for an
+ * encoded type that narrows the decoded type.
  *
  * **Details**
  *
@@ -1197,7 +1197,8 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  *
  * **When to use**
  *
- * Use when an encoded string is a delimited list (e.g. CSV values).
+ * Use when you need to split an encoded string containing a delimited list,
+ * such as CSV values.
  *
  * **Details**
  *

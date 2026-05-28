@@ -258,7 +258,7 @@ const Proto = {
  *
  * **When to use**
  *
- * Use when the underlying sensitive value is required at a trusted boundary.
+ * Use when you need the underlying sensitive value at a trusted boundary.
  *
  * **Example** (Retrieving a redacted value)
  *

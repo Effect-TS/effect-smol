@@ -882,7 +882,8 @@ export const getOrUndefined: {
  *
  * **When to use**
  *
- * Use when the context type cannot prove that the service is present.
+ * Use when you need to read a service from a context whose type does not prove
+ * the service is present.
  *
  * **Details**
  *
@@ -930,7 +931,8 @@ export const getUnsafe: {
  *
  * **When to use**
  *
- * Use when the context type proves that the service is present.
+ * Use when you need type-checked access to a service already included in the
+ * context type.
  *
  * **Example** (Getting a service from a context)
  *

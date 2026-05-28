@@ -81,6 +81,12 @@ Use a normal multiline JSDoc comment in TypeScript source:
 - `**When to use**` describes the positive use case for the documented API. Do not use it as a routing section for sibling APIs. If neighboring APIs need to be mentioned, put that boundary in `@see` tag text instead.
 - `**When to use**` is important when the API has close alternatives, trade-offs, or `@see` tags. If `@see` tags are present, inspect the referenced APIs and add `**When to use**` when it clarifies the documented API's own use case.
 - `**When to use**` must start with one of these practical guidance forms: `Use to`, `Use when`, `Use as`, or `Use with`. Avoid bullet lists and vague openers such as `Use this...` or `Useful for...`.
+- Prefer reader-centered `**When to use**` wording, especially `Use when you ...`,
+  when the sentence describes a user's goal. Avoid third-person noun-phrase
+  subjects such as `the input is ...`, `a service needs ...`, or
+  `values should ...` when they would become awkward in generated prompts.
+- A good `**When to use**` sentence should still read naturally if reused as
+  a user intent prompt, for example after `I need ...` or `I have ...`.
 - Keep `short` and `**When to use**` distinct: the short description says what
   the API is or does; `**When to use**` says when to choose it.
 - Add internal `@see` tags only for semantically useful related public APIs.

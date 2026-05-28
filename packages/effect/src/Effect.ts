@@ -2212,7 +2212,7 @@ export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A,
  *
  * **When to use**
  *
- * Use when the failure value is not important and absence is enough.
+ * Use when you do not need the failure value and absence is enough.
  *
  * **Details**
  *

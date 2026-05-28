@@ -1318,8 +1318,8 @@ export const make = <
  *
  * **When to use**
  *
- * Use when a tool schema is not known at compile time, such as MCP tools discovered at
- * runtime or tools from external configurations.
+ * Use when you do not know a tool schema at compile time, such as MCP tools
+ * discovered at runtime or tools from external configurations.
  *
  * **Details**
  *

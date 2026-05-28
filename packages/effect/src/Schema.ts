@@ -1250,7 +1250,7 @@ export function decodeUnknownEffect<S extends Top>(schema: S, options?: AST.Pars
  *
  * **When to use**
  *
- * Use when the input is already typed as the schema's `Encoded` type.
+ * Use when you already have input typed as the schema's `Encoded` type.
  *
  * **Details**
  *
@@ -1274,8 +1274,8 @@ export const decodeEffect: <S extends Top>(
  *
  * **When to use**
  *
- * Use when the input type is not statically known and decoding should return an
- * `Exit` instead of failing or throwing.
+ * Use when you do not know the input type statically and want decoding to
+ * return an `Exit` instead of failing or throwing.
  *
  * **Details**
  *
@@ -1326,7 +1326,7 @@ export const decodeExit: <S extends Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when the input type is not statically known and you only need to know
+ * Use when you do not know the input type statically and only need to know
  * whether decoding succeeded.
  *
  * **Details**
@@ -1367,8 +1367,8 @@ export const decodeOption = Parser.decodeOption
  *
  * **When to use**
  *
- * Use when the input type is not statically known and decoding should return a
- * `Result` with structured issue data.
+ * Use when you do not know the input type statically and want decoding to
+ * return a `Result` with structured issue data.
  *
  * **Details**
  *
@@ -1548,7 +1548,7 @@ export function encodeUnknownEffect<S extends Top>(schema: S, options?: AST.Pars
  *
  * **When to use**
  *
- * Use when the input is already typed as the schema's `Type`.
+ * Use when you already have input typed as the schema's `Type`.
  *
  * **Details**
  *
@@ -1572,8 +1572,8 @@ export const encodeEffect: <S extends Top>(
  *
  * **When to use**
  *
- * Use when the input type is not statically known and encoding should return an
- * `Exit` instead of failing or throwing.
+ * Use when you do not know the input type statically and want encoding to
+ * return an `Exit` instead of failing or throwing.
  *
  * **Details**
  *
@@ -1623,7 +1623,7 @@ export const encodeExit: <S extends Encoder<unknown>>(
  *
  * **When to use**
  *
- * Use when the input type is not statically known and you only need to know
+ * Use when you do not know the input type statically and only need to know
  * whether encoding succeeded.
  *
  * **Details**
@@ -1664,8 +1664,8 @@ export const encodeOption = Parser.encodeOption
  *
  * **When to use**
  *
- * Use when the input type is not statically known and encoding should return a
- * `Result` with structured issue data.
+ * Use when you do not know the input type statically and want encoding to
+ * return a `Result` with structured issue data.
  *
  * **Details**
  *
@@ -12330,8 +12330,8 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
  *
  * **When to use**
  *
- * Use when the default structural equivalence derived by {@link toEquivalence}
- * is not appropriate for a type.
+ * Use when you need a custom equivalence instead of the default structural
+ * equivalence derived by {@link toEquivalence}.
  *
  * @category instances
  * @since 4.0.0

@@ -8417,9 +8417,9 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
  *
  * **When to use**
  *
- * Use when a stream is already ordered by the grouping key and you want to emit
- * each consecutive run as a non-empty array while keeping later non-adjacent
- * runs separate.
+ * Use when you already have a stream ordered by the grouping key and want to
+ * emit each consecutive run as a non-empty array while keeping later
+ * non-adjacent runs separate.
  *
  * **Details**
  *

@@ -80,7 +80,7 @@ import type { Apply, Lambda } from "./Struct.ts"
  *
  * **When to use**
  *
- * Use when a properly typed tuple is needed without writing `[a, b, c] as const`
+ * Use when you need a properly typed tuple without writing `[a, b, c] as const`
  * or another manual cast.
  *
  * **Details**

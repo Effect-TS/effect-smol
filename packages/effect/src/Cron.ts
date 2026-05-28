@@ -632,8 +632,8 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
  *
  * **When to use**
  *
- * Use when the input is expected to be valid and you want to avoid
- * handling the `Result` type.
+ * Use when you expect the input to be valid and want to avoid handling the
+ * `Result` type.
  *
  * **Example** (Parsing cron expressions unsafely)
  *

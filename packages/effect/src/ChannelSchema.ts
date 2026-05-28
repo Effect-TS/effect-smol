@@ -152,8 +152,8 @@ export const decode = <S extends Schema.Top>(
  *
  * **When to use**
  *
- * Use when the encoded input type is intentionally unknown or untyped, so
- * that only the decoded output is statically typed according to the schema.
+ * Use when you need an intentionally unknown or untyped encoded input while
+ * keeping only the decoded output statically typed according to the schema.
  *
  * **Details**
  *
