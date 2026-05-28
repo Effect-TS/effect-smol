@@ -1,5 +1,48 @@
 /**
- * @since 1.0.0
+ * Bun SQLite client implementation for Effect SQL, backed by `bun:sqlite`.
+ *
+ * This module provides the Bun-specific SQLite driver used by Effect SQL. It
+ * can create a scoped {@link SqliteClient} directly with {@link make}, or
+ * provide both the SQLite-specific client and the generic `SqlClient` service
+ * with {@link layer} or {@link layerConfig}. It is intended for Bun
+ * applications, local tools, migrations, integration tests, and embedded
+ * persistence that use file-backed or in-memory SQLite databases.
+ *
+ * ## Mental model
+ *
+ * A client owns one scoped `bun:sqlite` `Database` handle. Because Bun's SQLite
+ * API executes statements synchronously, this implementation serializes access
+ * to that handle. A transaction keeps the serialized connection permit for the
+ * transaction scope, so other fibers using the same client wait until the
+ * transaction completes.
+ *
+ * The client uses the Effect SQL statement compiler and result-name transforms,
+ * then adds SQLite-specific capabilities such as database export and native
+ * extension loading.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} when a Bun service should provide both `SqliteClient` and
+ *   the generic `SqlClient` from a concrete configuration.
+ * - Use {@link layerConfig} when the filename or open flags should come from
+ *   Effect `Config`.
+ * - Use {@link make} inside a custom scoped layer when the surrounding runtime
+ *   needs to manage the client lifecycle explicitly.
+ * - Use `client.export` to serialize the database, or `client.loadExtension` to
+ *   load a native SQLite extension.
+ *
+ * ## Gotchas
+ *
+ * WAL mode is enabled by default. Set `disableWAL` for read-only databases or
+ * when the database file or directory cannot be updated with SQLite WAL side
+ * files. Separate database handles or processes can still contend for SQLite
+ * write locks even though access through a single client is serialized.
+ *
+ * Safe integer handling follows the generic `SqlClient` fiber-local setting.
+ * `executeStream` is not implemented for this driver, and SQLite does not
+ * support `updateValues`.
+ *
+ * @since 4.0.0
  */
 import { Database } from "bun:sqlite"
 import * as Config from "effect/Config"
@@ -23,20 +66,26 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
   classifySqliteError(cause, { message, operation })
 
 /**
- * @category type ids
- * @since 1.0.0
+ * Runtime type identifier used to mark Bun `SqliteClient` values.
+ *
+ * @category type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
 
 /**
- * @category type ids
- * @since 1.0.0
+ * Type-level identifier used to mark Bun `SqliteClient` values.
+ *
+ * @category type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-bun/SqliteClient"
 
 /**
+ * Bun SQLite client service, extending `SqlClient` with database export and extension loading helpers. `updateValues` is not supported.
+ *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -49,14 +98,22 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
+ * Service tag for the Bun SQLite client service.
+ *
+ * **When to use**
+ *
+ * Use to access or provide a Bun SQLite client through the Effect context.
+ *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-bun/Client")
 
 /**
+ * Configuration for a Bun SQLite client, including filename, open mode flags, WAL behavior, span attributes, and query/result name transforms.
+ *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClientConfig {
   readonly filename: string
@@ -77,8 +134,10 @@ interface SqliteConnection extends Connection {
 }
 
 /**
- * @category constructor
- * @since 1.0.0
+ * Creates a scoped Bun SQLite client for a database file, enabling WAL by default and serializing access. Streaming queries are not implemented.
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   options: SqliteClientConfig
@@ -203,14 +262,16 @@ export const make = (
   })
 
 /**
+ * Creates a layer from a `Config`-wrapped Bun SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
   Layer.effectContext(
-    Config.unwrap(config).asEffect().pipe(
+    Config.unwrap(config).pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
         Context.make(SqliteClient, client).pipe(
@@ -221,8 +282,10 @@ export const layerConfig = (
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
+ * Creates a layer from a concrete Bun SQLite client configuration, providing both `SqliteClient` and `SqlClient`.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: SqliteClientConfig

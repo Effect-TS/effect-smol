@@ -1,4 +1,79 @@
 /**
+ * The `AtomRegistry` module provides the runtime cache for unstable reactivity
+ * atoms. A registry owns the node graph for a group of atoms, stores current
+ * values, records parent and child dependencies while atoms are read, and
+ * coordinates writes, refreshes, subscriptions, stream conversions, and node
+ * disposal.
+ *
+ * Use a separate registry for each UI root, request, test, route boundary, or
+ * other lifetime that needs isolated atom state. The same atom object can have
+ * different cached values in different registries, while serializable atoms use
+ * their stable serialization key so preloaded values can hydrate a node before
+ * the first read.
+ *
+ * **Mental model**
+ *
+ * - Reading an atom creates or reuses a registry node, evaluates the atom when
+ *   its value is missing or stale, and records any nested atom reads as
+ *   dependencies.
+ * - Writing a writable atom updates its node through the atom's write function,
+ *   invalidates dependent nodes, and notifies listeners after batching settles.
+ * - Subscriptions and scoped {@link mount} calls keep nodes alive. When the last
+ *   listener and dependent child disappear, non-`keepAlive` atoms can be
+ *   removed immediately or after their idle TTL.
+ * - Effects and streams started by atoms run with the registry scheduler and
+ *   are finalized when the node is rebuilt, removed, reset, or disposed.
+ * - Disposing a registry clears its nodes and makes later atom access an error.
+ *
+ * **Common tasks**
+ *
+ * - Create a registry directly with {@link make}, or provide one to Effect
+ *   programs with {@link layer} or {@link layerOptions}.
+ * - Read and write atom state with the registry instance methods `get`, `set`,
+ *   `modify`, `update`, and `refresh`.
+ * - Keep an atom alive for an Effect scope with {@link mount}; subscribe with
+ *   `subscribe` when integrating with callback-based UI code.
+ * - Convert observed atom values with {@link toStream} and
+ *   {@link toStreamResult}, or wait for an `AsyncResult` atom with
+ *   {@link getResult}.
+ * - Preload encoded serializable state with `setSerializable` before the
+ *   matching atom is read.
+ *
+ * **Quickstart**
+ *
+ * **Example** (Isolated atom state)
+ *
+ * ```ts
+ * import { Atom, AtomRegistry } from "effect/unstable/reactivity"
+ *
+ * const count = Atom.make(0)
+ * const doubled = Atom.make((get) => get(count) * 2)
+ *
+ * const registry = AtomRegistry.make()
+ *
+ * registry.set(count, 21)
+ * registry.get(doubled)
+ * // 42
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - Atom identity matters. Creating a new atom object creates a different node
+ *   unless the atom is serializable and uses the same serialization key.
+ * - Unobserved atoms without `keepAlive` can be removed, so later reads may
+ *   rebuild derived values, restart effects or streams, and rerun finalizers.
+ * - `subscribe` and the instance `mount` method return release callbacks; call
+ *   them when the external consumer is done. The exported {@link mount} helper
+ *   ties that release to an Effect scope.
+ * - `reset` and `dispose` remove every node in the registry. Use a new registry
+ *   when a whole lifetime should start from empty state.
+ *
+ * **See also**
+ *
+ * - {@link Atom.Atom} for defining reactive values read by a registry.
+ * - {@link Result.AsyncResult} for asynchronous atom results.
+ * - {@link Stream.Stream} for streams produced from observed atom values.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -18,26 +93,40 @@ import * as Result from "./AsyncResult.ts"
 import type * as Atom from "./Atom.ts"
 
 /**
+ * The literal type used to identify `AtomRegistry` services and values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category type ids
  */
 export type TypeId = "~effect/reactivity/AtomRegistry"
 
 /**
+ * The runtime type id used to identify `AtomRegistry` services and values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category type ids
  */
 export const TypeId: TypeId = "~effect/reactivity/AtomRegistry"
 
 /**
- * @since 4.0.0
+ * Returns `true` when the value has the `AtomRegistry` type id.
+ *
  * @category guards
+ * @since 4.0.0
  */
 export const isAtomRegistry = (u: unknown): u is AtomRegistry => hasProperty(u, TypeId)
 
 /**
- * @since 4.0.0
+ * The runtime registry that stores atom nodes and coordinates reads, writes,
+ * refreshes, subscriptions, and disposal.
+ *
+ * **Details**
+ *
+ * It also manages scheduler configuration, serializable preloaded values, and node
+ * addition/removal callbacks.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface AtomRegistry {
   readonly [TypeId]: TypeId
@@ -61,8 +150,15 @@ export interface AtomRegistry {
 }
 
 /**
- * @since 4.0.0
+ * A registry node for a single atom.
+ *
+ * **Details**
+ *
+ * Nodes expose the current value, parent and child dependency links, listener set,
+ * and current lifecycle state.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Node<A> {
   readonly atom: Atom.Atom<A>
@@ -74,8 +170,16 @@ export interface Node<A> {
 }
 
 /**
- * @since 4.0.0
+ * Creates an `AtomRegistry`.
+ *
+ * **Details**
+ *
+ * Options can preload initial atom values, provide a custom task scheduler,
+ * configure timeout bucket resolution, and set a default idle time-to-live for
+ * unused atoms.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   options?: {
@@ -93,14 +197,28 @@ export const make = (
   )
 
 /**
+ * Service tag for the active atom runtime cache.
+ *
+ * **When to use**
+ *
+ * Use to access or provide the registry that stores atom values,
+ * dependencies, subscriptions, and disposal state for a reactive lifetime.
+ *
+ * @category tags
  * @since 4.0.0
- * @category Tags
  */
 export const AtomRegistry = Context.Service<AtomRegistry>(TypeId)
 
 /**
+ * Creates a layer that provides an `AtomRegistry` configured with the supplied
+ * options.
+ *
+ * **Details**
+ *
+ * The registry is disposed when the layer scope is finalized.
+ *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layerOptions = (options?: {
   readonly initialValues?: Iterable<readonly [Atom.Atom<any>, any]> | undefined
@@ -122,8 +240,10 @@ export const layerOptions = (options?: {
   )
 
 /**
+ * The default layer that provides a fresh `AtomRegistry`.
+ *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layer: Layer.Layer<AtomRegistry> = layerOptions()
 
@@ -132,8 +252,15 @@ export const layer: Layer.Layer<AtomRegistry> = layerOptions()
 // -----------------------------------------------------------------------------
 
 /**
+ * Converts an atom in this registry into a stream.
+ *
+ * **Details**
+ *
+ * The stream emits the current value immediately, emits subsequent changes, and
+ * unsubscribes from the registry when the stream scope closes.
+ *
+ * @category converting
  * @since 4.0.0
- * @category Conversions
  */
 export const toStream: {
   <A>(atom: Atom.Atom<A>): (self: AtomRegistry) => Stream.Stream<A>
@@ -154,8 +281,16 @@ export const toStream: {
 )
 
 /**
+ * Converts an `AsyncResult` atom in this registry into a stream of successful
+ * values.
+ *
+ * **Details**
+ *
+ * Initial results are skipped, failures fail the stream with their cause, and
+ * duplicate stream values are dropped with `Stream.changes`.
+ *
+ * @category converting
  * @since 4.0.0
- * @category Conversions
  */
 export const toStreamResult: {
   <A, E>(atom: Atom.Atom<Result.AsyncResult<A, E>>): (self: AtomRegistry) => Stream.Stream<A, E>
@@ -173,8 +308,15 @@ export const toStreamResult: {
 )
 
 /**
+ * Reads an `AsyncResult` atom from this registry as an effect.
+ *
+ * **Details**
+ *
+ * The effect waits for the result to leave `Initial`, and also waits through
+ * waiting results when `suspendOnWaiting` is enabled.
+ *
+ * @category converting
  * @since 4.0.0
- * @category Conversions
  */
 export const getResult: {
   <A, E>(atom: Atom.Atom<Result.AsyncResult<A, E>>, options?: {
@@ -206,8 +348,15 @@ export const getResult: {
 )
 
 /**
+ * Mounts an atom in this registry for the lifetime of the current scope.
+ *
+ * **Details**
+ *
+ * The atom is subscribed with a no-op listener and the subscription is released
+ * when the scope finalizer runs.
+ *
+ * @category converting
  * @since 4.0.0
- * @category Conversions
  */
 export const mount: {
   <A>(atom: Atom.Atom<A>): (self: AtomRegistry) => Effect.Effect<void, never, Scope.Scope>

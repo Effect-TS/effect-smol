@@ -1,4 +1,45 @@
 /**
+ * The `Sharding` module provides the runtime service that maps entity ids to
+ * shard ids, decides which runner owns each shard, and delivers cluster
+ * messages to the owning runner. It connects typed entity protocols with runner
+ * membership, shard locks, mailbox storage, and the transport used between
+ * runners.
+ *
+ * **Mental model**
+ *
+ * - Entity ids are hashed into shard ids inside a shard group.
+ * - Healthy runners are placed on a hash ring for each shard group.
+ * - The local runner starts handlers only for shards it currently owns.
+ * - Clients created by {@link Sharding.Service.makeClient} route encoded RPC requests
+ *   to the current owner instead of calling handlers directly.
+ * - Persisted messages are polled from storage and replayed only for shards the
+ *   local runner owns.
+ *
+ * **Common tasks**
+ *
+ * - Register entity handlers with {@link Sharding.Service.registerEntity}.
+ * - Register singleton effects that run once per shard group with
+ *   {@link Sharding.Service.registerSingleton}.
+ * - Build typed entity clients with {@link Sharding.Service.makeClient}.
+ * - Send an already encoded incoming message with {@link Sharding.Service.send}.
+ * - Generate runner-local snowflake ids with {@link Sharding.Service.getSnowflake}.
+ *
+ * **Gotchas**
+ *
+ * - Assignment and acquisition are separate: a runner may be assigned a shard
+ *   before it has acquired the storage lock.
+ * - Changing shard group names, shard counts, or runner weights changes
+ *   placement for entity ids.
+ * - Ownership can move during shutdown, runner failure, or health refreshes, so
+ *   callers must handle routing and mailbox errors.
+ * - Durable replay depends on the configured message storage; in-memory storage
+ *   does not provide process restart recovery.
+ *
+ * **See also**
+ *
+ * - {@link ShardingConfig} for runner identity, shard counts, and timing.
+ * - {@link Runner} for the membership record used during shard assignment.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
@@ -56,14 +97,23 @@ import { Runners } from "./Runners.ts"
 import { RunnerStorage } from "./RunnerStorage.ts"
 import type { ShardId } from "./ShardId.ts"
 import { make as makeShardId } from "./ShardId.ts"
-import { ShardingConfig } from "./ShardingConfig.ts"
+import { shardGroupConfig, ShardingConfig } from "./ShardingConfig.ts"
 import { EntityRegistered, type ShardingRegistrationEvent, SingletonRegistered } from "./ShardingRegistrationEvent.ts"
 import { SingletonAddress } from "./SingletonAddress.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
+ * Service that registers entities and singletons, routes messages to owned
+ * shards, generates runner-local snowflake ids, and polls
+ * storage for persisted work.
+ *
+ * **When to use**
+ *
+ * Use to access or provide cluster routing, shard ownership, entity
+ * registration, singleton registration, and persisted-work polling.
+ *
+ * @category tags
  * @since 4.0.0
- * @category models
  */
 export class Sharding extends Context.Service<Sharding, {
   /**
@@ -199,6 +249,7 @@ interface EntityManagerState {
 
 const make = Effect.gen(function*() {
   const config = yield* ShardingConfig
+  const shardGroups = shardGroupConfig(config)
   const getRunnerAddress = () => Option.getOrUndefined(config.runnerAddress)
   const clock = yield* Clock
 
@@ -871,7 +922,7 @@ const make = Effect.gen(function*() {
   const selfRunner = initialRunnerAddress ?
     new Runner({
       address: initialRunnerAddress,
-      groups: config.shardGroups,
+      groups: Array.from(shardGroups.assigned),
       weight: config.runnerShardWeight
     }) :
     undefined
@@ -1430,8 +1481,31 @@ const make = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
+ * Layer that constructs the `Sharding` service from sharding configuration,
+ * runner communication, message storage, runner storage, runner health, the
+ * snowflake generator, and the entity reaper.
+ *
+ * **When to use**
+ *
+ * Use when assembling a cluster sharding runtime from explicit sharding
+ * configuration, runner communication, message storage, runner storage, and
+ * runner health layers.
+ *
+ * **Details**
+ *
+ * The layer provides the `Sharding` service and installs its own snowflake
+ * generator and entity reaper. Callers still provide `ShardingConfig`,
+ * `Runners`, `MessageStorage`, `RunnerStorage`, and `RunnerHealth`.
+ *
+ * **Gotchas**
+ *
+ * Persisted messages require a non-no-op `MessageStorage`; if this layer is
+ * provided with `MessageStorage.layerNoop`, persisted sends defect.
+ *
+ * @see {@link Sharding} for the service provided by this layer
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<
   Sharding,

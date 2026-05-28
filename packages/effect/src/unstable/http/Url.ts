@@ -1,4 +1,34 @@
 /**
+ * Immutable helpers for parsing and editing platform `URL` values.
+ *
+ * This module keeps the WHATWG `URL` object as the URL representation used by
+ * HTTP clients and servers, then adds safe parsing and pipeable setters for
+ * credentials, host, path, protocol, query, and hash components. Query strings
+ * can be read, replaced, or transformed through `UrlParams` so repeated keys and
+ * key/value encoding stay explicit.
+ *
+ * **Mental model**
+ *
+ * `fromString` returns a `Result` instead of throwing when URL construction
+ * fails. Setters never mutate the original `URL`; each one clones the input and
+ * assigns the requested component on the clone. Use `mutate` when several
+ * component assignments should happen on the same clone.
+ *
+ * **Common tasks**
+ *
+ * - Parse absolute URLs, or resolve relative URL strings against a base URL.
+ * - Pipe setters to adjust host, protocol, path, credentials, search, or hash.
+ * - Extract query parameters with `urlParams`.
+ * - Replace or transform query parameters with `setUrlParams` and
+ *   `modifyUrlParams`.
+ *
+ * **Gotchas**
+ *
+ * Relative input needs an explicit base. Component assignment and serialization
+ * follow platform `URL` rules, so values may be normalized or percent-encoded.
+ * `setPassword` accepts `Redacted` input, but the resulting `URL` still contains
+ * the actual credential and should be treated as sensitive when serialized.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
@@ -8,7 +38,7 @@ import * as Result from "../../Result.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 /**
- * Parses a URL string into a `URL` object, returning an `Result` type for safe
+ * Parses a URL string safely into a `URL` object, returning a `Result` type for
  * error handling.
  *
  * **Details**
@@ -24,11 +54,11 @@ import * as UrlParams from "./UrlParams.ts"
  * `base`. This is especially useful when dealing with URLs that might not be
  * fully qualified.
  *
- * **Example**
+ * **Example** (Parsing absolute and relative URLs)
  *
  * ```ts
- * import { Url } from "effect/unstable/http"
  * import { Result } from "effect"
+ * import { Url } from "effect/unstable/http"
  *
  * // Parse an absolute URL
  * //
@@ -54,8 +84,8 @@ import * as UrlParams from "./UrlParams.ts"
  * // Output: Parsed relative URL: https://example.com/relative-path
  * ```
  *
+ * @category constructors
  * @since 4.0.0
- * @category Constructors
  */
 export const fromString: {
   (url: string, base?: string | URL | undefined): Result.Result<URL, Cause.IllegalArgumentError>
@@ -67,10 +97,9 @@ export const fromString: {
   })
 
 /**
- * This function clones the original `URL` object and applies a callback to the
- * clone, allowing multiple updates at once.
+ * Updates a cloned `URL` with a callback, allowing multiple changes at once.
  *
- * **Example**
+ * **Example** (Mutating URL credentials)
  *
  * ```ts
  * import { Url } from "effect/unstable/http"
@@ -86,8 +115,8 @@ export const fromString: {
  * // Output: Mutated: https://user:pass@example.com/
  * ```
  *
+ * @category modifiers
  * @since 4.0.0
- * @category Modifiers
  */
 export const mutate: {
   (f: (url: URL) => void): (self: URL) => URL
@@ -111,8 +140,8 @@ const immutableURLSetter = <P extends keyof URL, A = never>(property: P): {
 /**
  * Updates the hash fragment of the URL.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setHash: {
   (hash: string): (url: URL) => URL
@@ -122,8 +151,8 @@ export const setHash: {
 /**
  * Updates the host (domain and port) of the URL.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setHost: {
   (host: string): (url: URL) => URL
@@ -133,8 +162,8 @@ export const setHost: {
 /**
  * Updates the domain of the URL without modifying the port.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setHostname: {
   (hostname: string): (url: URL) => URL
@@ -144,8 +173,8 @@ export const setHostname: {
 /**
  * Replaces the entire URL string.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setHref: {
   (href: string): (url: URL) => URL
@@ -155,8 +184,8 @@ export const setHref: {
 /**
  * Updates the password used for authentication.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setPassword: {
   (password: string | Redacted.Redacted): (url: URL) => URL
@@ -171,8 +200,8 @@ export const setPassword: {
 /**
  * Updates the path of the URL.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setPathname: {
   (pathname: string): (url: URL) => URL
@@ -182,8 +211,8 @@ export const setPathname: {
 /**
  * Updates the port of the URL.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setPort: {
   (port: string | number): (url: URL) => URL
@@ -193,8 +222,8 @@ export const setPort: {
 /**
  * Updates the protocol (e.g., `http`, `https`).
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setProtocol: {
   (protocol: string): (url: URL) => URL
@@ -204,8 +233,8 @@ export const setProtocol: {
 /**
  * Updates the query string of the URL.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setSearch: {
   (search: string): (url: URL) => URL
@@ -215,8 +244,8 @@ export const setSearch: {
 /**
  * Updates the username used for authentication.
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setUsername: {
   (username: string): (url: URL) => URL
@@ -232,7 +261,7 @@ export const setUsername: {
  * object using the provided `UrlParams`. It creates a new `URL` object with the
  * updated parameters, leaving the original object unchanged.
  *
- * **Example**
+ * **Example** (Replacing query parameters)
  *
  * ```ts
  * import { Url, UrlParams } from "effect/unstable/http"
@@ -249,8 +278,8 @@ export const setUsername: {
  * // Output: https://example.com/?key=value
  * ```
  *
- * @since 4.0.0
  * @category Setters
+ * @since 4.0.0
  */
 export const setUrlParams: {
   (urlParams: UrlParams.UrlParams): (url: URL) => URL
@@ -269,7 +298,7 @@ export const setUrlParams: {
  * them as `UrlParams`. The resulting structure can be easily manipulated or
  * inspected.
  *
- * **Example**
+ * **Example** (Reading query parameters)
  *
  * ```ts
  * import { Url } from "effect/unstable/http"
@@ -283,13 +312,13 @@ export const setUrlParams: {
  * // Output: [ [ 'foo', 'bar' ] ]
  * ```
  *
+ * @category getters
  * @since 4.0.0
- * @category Getters
  */
 export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(url.searchParams)
 
 /**
- * Reads, modifies, and updates the query parameters of a URL.
+ * Reads the query parameters of a URL, modifies them, and updates the URL.
  *
  * **Details**
  *
@@ -298,7 +327,7 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * writing the updated parameters back to the URL. It returns a new `URL` object
  * with the modified parameters, ensuring immutability.
  *
- * **Example**
+ * **Example** (Modifying query parameters)
  *
  * ```ts
  * import { Url, UrlParams } from "effect/unstable/http"
@@ -311,8 +340,8 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * // Output: https://example.com/?foo=bar&key=value
  * ```
  *
+ * @category modifiers
  * @since 4.0.0
- * @category Modifiers
  */
 export const modifyUrlParams: {
   (f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): (url: URL) => URL

@@ -1,4 +1,37 @@
 /**
+ * SQL-backed persistence for the unstable event-log journal.
+ *
+ * This module implements `EventJournal` on top of a `SqlClient`. It stores event
+ * entries as encoded bytes and stores per-remote sequence metadata in separate
+ * tables, giving event-log programs a durable journal that can be replayed after
+ * restart and synchronized with remote journals.
+ *
+ * **Mental model**
+ *
+ * The entry table is the append-only history used by `entries`, local writes,
+ * and remote imports. The remotes table records which entries are associated
+ * with a remote id and sequence number, so the journal can compute the next
+ * sequence to read from a remote and the local entries a remote has not yet
+ * seen. `changes` is a process-local stream of entries written by this service.
+ *
+ * **Common tasks**
+ *
+ * - Provide a persistent `EventJournal` with `layer`.
+ * - Customize entry and remotes table names when sharing a database.
+ * - Replay `entries` to rebuild projections after process restart.
+ * - Import remote entries and detect duplicates or conflicts during
+ *   synchronization.
+ *
+ * **Gotchas**
+ *
+ * Construction runs only minimal `CREATE TABLE IF NOT EXISTS` statements with
+ * dialect-specific UUID, binary, and timestamp column types; indexes,
+ * migrations, retention, and table-name changes remain application
+ * responsibilities. Payloads must stay compatible with the schemas that decode
+ * historical entries. Duplicate remote imports are ignored by primary key, and
+ * conflict lookup compares event name, primary key, and the timestamp derived
+ * from the UUID v7 entry id.
+ *
  * @since 4.0.0
  */
 import * as Uuid from "uuid"
@@ -14,8 +47,15 @@ import * as EventJournal from "./EventJournal.ts"
 type WriteFromRemoteOptions = Parameters<EventJournal.EventJournal["Service"]["writeFromRemote"]>[0]
 
 /**
- * @since 4.0.0
+ * Creates an `EventJournal` backed by a SQL database.
+ *
+ * **Details**
+ *
+ * The constructor creates the entry and remote metadata tables when needed,
+ * persists local and remote entries, and uses the configured `SqlClient`.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (options?: {
   readonly entryTable?: string
@@ -267,8 +307,32 @@ export const make = (options?: {
   })
 
 /**
- * @since 4.0.0
+ * Provides `EventJournal` using the SQL-backed implementation created by
+ * `make`.
+ *
+ * **When to use**
+ *
+ * Use when composing a Layer graph that should provide a persistent SQL-backed
+ * `EventJournal` from an existing `SqlClient` service.
+ *
+ * **Details**
+ *
+ * The layer delegates to `make(options)`, so the same optional `entryTable` and
+ * `remotesTable` settings are used and construction requires `SqlClient` and
+ * may fail with `SqlError`.
+ *
+ * **Gotchas**
+ *
+ * Layer construction performs the same minimal `CREATE TABLE IF NOT EXISTS`
+ * setup as `make`; manage indexes and schema migrations outside this layer when
+ * your SQL schema needs more than the built-in tables.
+ *
+ * @see {@link make} for constructing the SQL-backed service directly
+ * @see {@link EventJournal.layerMemory} for an in-memory `EventJournal` layer
+ * @see {@link EventJournal.layerIndexedDb} for an IndexedDB-backed `EventJournal` layer
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options?: {
   readonly entryTable?: string

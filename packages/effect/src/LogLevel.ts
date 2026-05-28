@@ -1,102 +1,41 @@
 /**
+ * The `LogLevel` module defines the levels used by Effect logging and the
+ * ordering operations used to compare, filter, and enable log output.
+ *
+ * **Mental model**
+ *
+ * - A `LogLevel` is one of `All`, `Fatal`, `Error`, `Warn`, `Info`, `Debug`,
+ *   `Trace`, or `None`
+ * - `Fatal` is the most severe concrete level and `Trace` is the least severe
+ * - `All` and `None` are sentinel levels: `All` enables every message and
+ *   `None` disables every message
+ * - Ordering follows logging severity, so higher levels are more important and
+ *   lower levels are more verbose
+ * - Filtering is usually expressed as "log this message when its level is
+ *   greater than or equal to the configured minimum"
+ *
+ * **Common tasks**
+ *
+ * - Enumerate levels with {@link values}
+ * - Compare exact levels with {@link Equivalence}
+ * - Sort or compare by severity with {@link Order} and {@link getOrdinal}
+ * - Check thresholds with {@link isGreaterThanOrEqualTo} and
+ *   {@link isLessThanOrEqualTo}
+ * - Test whether a level is enabled for the current fiber with
+ *   {@link isEnabled}
+ *
+ * **Gotchas**
+ *
+ * - `All` and `None` are useful for configuration boundaries, but they are not
+ *   concrete message severities; use {@link Severity} when only emitted message
+ *   levels are valid
+ * - The comparison helpers compare severity, not declaration position in source
+ *   code or alphabetical order
+ * - `isEnabled` reads the current fiber's `MinimumLogLevel` reference, so it is
+ *   context-sensitive; use the pure comparison helpers when checking an
+ *   explicit threshold
+ *
  * @since 2.0.0
- *
- * The `LogLevel` module provides utilities for managing log levels in Effect applications.
- * It defines a hierarchy of log levels and provides functions for comparing and filtering logs
- * based on their severity.
- *
- * ## Log Level Hierarchy
- *
- * The log levels are ordered from most severe to least severe:
- *
- * 1. **All** - Special level that allows all messages
- * 2. **Fatal** - System is unusable, immediate attention required
- * 3. **Error** - Error conditions that should be investigated
- * 4. **Warn** - Warning conditions that may indicate problems
- * 5. **Info** - Informational messages about normal operation
- * 6. **Debug** - Debug information useful during development
- * 7. **Trace** - Very detailed trace information
- * 8. **None** - Special level that suppresses all messages
- *
- * ## Basic Usage
- *
- * ```ts
- * import { Effect } from "effect"
- *
- * // Basic log level usage
- * const program = Effect.gen(function*() {
- *   yield* Effect.logFatal("System is shutting down")
- *   yield* Effect.logError("Database connection failed")
- *   yield* Effect.logWarning("Memory usage is high")
- *   yield* Effect.logInfo("User logged in")
- *   yield* Effect.logDebug("Processing request")
- *   yield* Effect.logTrace("Variable value: xyz")
- * })
- * ```
- *
- * ## Level Comparison
- *
- * ```ts
- * import { LogLevel } from "effect"
- *
- * // Check if one level is more severe than another
- * console.log(LogLevel.isGreaterThan("Error", "Info")) // true
- * console.log(LogLevel.isGreaterThan("Debug", "Error")) // false
- *
- * // Check if level meets minimum threshold
- * console.log(LogLevel.isGreaterThanOrEqualTo("Info", "Debug")) // true
- * console.log(LogLevel.isLessThan("Trace", "Info")) // true
- * ```
- *
- * ## Filtering by Level
- *
- * ```ts
- * import { Logger, LogLevel } from "effect"
- *
- * // Create a logger that only logs Error and above
- * const errorLogger = Logger.make((options) => {
- *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Error")) {
- *     console.log(`[${options.logLevel}] ${options.message}`)
- *   }
- * })
- *
- * // Production logger - Info and above
- * const productionLogger = Logger.make((options) => {
- *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Info")) {
- *     console.log(
- *       `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
- *     )
- *   }
- * })
- *
- * // Development logger - Debug and above
- * const devLogger = Logger.make((options) => {
- *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Debug")) {
- *     console.log(`[${options.logLevel}] ${options.message}`)
- *   }
- * })
- * ```
- *
- * ## Runtime Configuration
- *
- * ```ts
- * import { Config, Effect, Logger, LogLevel } from "effect"
- *
- * // Configure log level from environment
- * const logLevelConfig = Config.string("LOG_LEVEL").pipe(
- *   Config.withDefault("Info")
- * )
- *
- * const configurableLogger = Effect.gen(function*() {
- *   const minLevel = yield* logLevelConfig
- *
- *   return Logger.make((options) => {
- *     if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, minLevel)) {
- *       console.log(`[${options.logLevel}] ${options.message}`)
- *     }
- *   })
- * })
- * ```
  */
 import type * as Effect from "./Effect.ts"
 import * as Equ from "./Equivalence.ts"
@@ -106,7 +45,15 @@ import * as Ord from "./Order.ts"
 import * as References from "./References.ts"
 
 /**
- * Represents the severity level of a log message.
+ * Represents every level used by Effect logging, including concrete message
+ * severities and the `All` and `None` sentinel levels.
+ *
+ * **When to use**
+ *
+ * Use to type values that may be either concrete log message severities or
+ * logging configuration sentinels.
+ *
+ * **Details**
  *
  * The levels are ordered from most severe to least severe:
  * - `All` - Special level that allows all messages
@@ -118,7 +65,8 @@ import * as References from "./References.ts"
  * - `Trace` - Very detailed trace information
  * - `None` - Special level that suppresses all messages
  *
- * @example
+ * **Example** (Using log levels)
+ *
  * ```ts
  * import { Effect } from "effect"
  *
@@ -137,30 +85,72 @@ import * as References from "./References.ts"
  * const debugLevel = "Debug" // LogLevel
  * ```
  *
- * @since 4.0.0
  * @category models
+ * @since 2.0.0
  */
 export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None"
 
 /**
- * @since 4.0.0
+ * Log levels that represent actual message severities, excluding the `All` and
+ * `None` sentinel levels.
+ *
+ * **When to use**
+ *
+ * Use when typing emitted log message severities, such as explicit log calls,
+ * current log level references, or error-report severity annotations, where
+ * `All` and `None` are not valid values.
+ *
+ * @see {@link LogLevel} for the wider log-level type that also accepts the
+ * `All` and `None` sentinel levels
+ * @see {@link values} for the runtime list of all accepted `LogLevel` values,
+ * including sentinels
+ *
  * @category models
+ * @since 4.0.0
  */
 export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 
 /**
- * @since 4.0.0
+ * Returns all `LogLevel` values in order from `All` through the concrete severities to
+ * `None`.
+ *
+ * **When to use**
+ *
+ * Use to enumerate or validate all accepted `LogLevel` string values, including
+ * the `All` and `None` sentinel levels.
+ *
+ * **Details**
+ *
+ * The array order matches the module severity order: `All`, concrete
+ * severities from `Fatal` to `Trace`, then `None`.
+ *
+ * **Gotchas**
+ *
+ * This list includes `All` and `None`, so it is not limited to concrete emitted
+ * severities.
+ *
+ * @see {@link Severity} for the concrete message severity type that excludes `All` and `None`
+ * @see {@link Order} for comparing these levels by severity order
+ *
  * @category models
+ * @since 4.0.0
  */
 export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
 
 /**
- * An `Order` instance for `LogLevel` that defines the severity ordering.
+ * Order instance for `LogLevel` that defines the severity ordering.
+ *
+ * **When to use**
+ *
+ * Use to sort or compare log levels according to Effect's severity order.
+ *
+ * **Details**
  *
  * This order treats "All" as the least restrictive level and "None" as the most restrictive,
  * with Fatal being the most severe actual log level.
  *
- * @example
+ * **Example** (Ordering log levels)
+ *
  * ```ts
  * import { LogLevel } from "effect"
  *
@@ -170,21 +160,34 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
  * console.log(LogLevel.Order("Info", "Info")) // 0 (Info == Info)
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 2.0.0
  */
 export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
 
 /**
- * An `Equivalence` instance for log levels using strict equality (`===`).
+ * Equivalence instance for log levels using strict equality (`===`).
  *
- * @example
+ * **When to use**
+ *
+ * Use to compare two `LogLevel` values when only the exact same level should
+ * match.
+ *
+ * **Details**
+ *
+ * Each log level string, including `All` and `None`, only matches itself.
+ *
+ * **Example** (Comparing log levels)
+ *
  * ```ts
  * import { LogLevel } from "effect"
  *
  * console.log(LogLevel.Equivalence("Error", "Error")) // true
  * console.log(LogLevel.Equivalence("Error", "Info")) // false
  * ```
+ *
+ * @see {@link Order} for severity ordering rather than exact level equality
+ * @see {@link isGreaterThanOrEqualTo} for minimum-threshold checks
  *
  * @category instances
  * @since 4.0.0
@@ -194,18 +197,44 @@ export const Equivalence: Equ.Equivalence<LogLevel> = Equ.strictEqual<LogLevel>(
 /**
  * Returns the ordinal value of the log level.
  *
- * @since 4.0.0
+ * **When to use**
+ *
+ * Use to project a `LogLevel` into the numeric sort key used by
+ * `LogLevel.Order` when custom ordering code or an integration needs a number
+ * instead of an `Order` comparison.
+ *
+ * **Details**
+ *
+ * The mapping is `All` to `Number.MIN_SAFE_INTEGER`, `Trace` to `0`, `Debug` to
+ * `10000`, `Info` to `20000`, `Warn` to `30000`, `Error` to `40000`, `Fatal` to
+ * `50000`, and `None` to `Number.MAX_SAFE_INTEGER`.
+ *
+ * **Gotchas**
+ *
+ * These ordinals are internal sort keys; do not treat them as external severity
+ * numbers.
+ *
+ * @see {@link Order} for comparing log levels without exposing numeric keys
+ * @see {@link isGreaterThanOrEqualTo} for minimum-threshold filtering
+ *
  * @category ordering
+ * @since 4.0.0
  */
 export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(self)
 
 /**
  * Determines if the first log level is more severe than the second.
  *
- * Returns `true` if `self` represents a more severe level than `that`.
- * This is useful for filtering logs based on minimum severity requirements.
+ * **When to use**
  *
- * @example
+ * Use to check whether one log level is strictly more severe than another.
+ *
+ * **Details**
+ *
+ * Returns `true` if `self` represents a more severe level than `that`.
+ *
+ * **Example** (Checking higher severity)
+ *
  * ```ts
  * import { LogLevel } from "effect"
  *
@@ -227,8 +256,8 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  * console.log(isMoreSevereThanInfo("Debug")) // false
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 4.0.0
  */
 export const isGreaterThan: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -238,10 +267,17 @@ export const isGreaterThan: {
 /**
  * Determines if the first log level is more severe than or equal to the second.
  *
- * Returns `true` if `self` represents a level that is more severe than or equal to `that`.
- * This is the most common function for implementing minimum log level filtering.
+ * **When to use**
  *
- * @example
+ * Use to implement minimum log-level filtering by checking whether a message
+ * level meets a threshold.
+ *
+ * **Details**
+ *
+ * Returns `true` if `self` represents a level that is more severe than or equal to `that`.
+ *
+ * **Example** (Filtering by minimum log level)
+ *
  * ```ts
  * import { Logger, LogLevel } from "effect"
  *
@@ -271,8 +307,8 @@ export const isGreaterThan: {
  * const shouldLog = isInfoOrAbove("Error") // true
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 4.0.0
  */
 export const isGreaterThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -282,10 +318,16 @@ export const isGreaterThanOrEqualTo: {
 /**
  * Determines if the first log level is less severe than the second.
  *
- * Returns `true` if `self` represents a less severe level than `that`.
- * This is useful for filtering out logs that are too verbose.
+ * **When to use**
  *
- * @example
+ * Use to check whether one log level is strictly less severe than another.
+ *
+ * **Details**
+ *
+ * Returns `true` if `self` represents a less severe level than `that`.
+ *
+ * **Example** (Checking lower severity)
+ *
  * ```ts
  * import { LogLevel } from "effect"
  *
@@ -307,8 +349,8 @@ export const isGreaterThanOrEqualTo: {
  * console.log(isLessSevereThanError("Fatal")) // false
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 4.0.0
  */
 export const isLessThan: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -318,10 +360,17 @@ export const isLessThan: {
 /**
  * Determines if the first log level is less severe than or equal to the second.
  *
- * Returns `true` if `self` represents a level that is less severe than or equal to `that`.
- * This is useful for implementing maximum log level filtering.
+ * **When to use**
  *
- * @example
+ * Use to implement maximum log-level filtering by checking whether a level is
+ * at or below a threshold.
+ *
+ * **Details**
+ *
+ * Returns `true` if `self` represents a level that is less severe than or equal to `that`.
+ *
+ * **Example** (Filtering by maximum log level)
+ *
  * ```ts
  * import { Logger, LogLevel } from "effect"
  *
@@ -349,8 +398,8 @@ export const isLessThan: {
  * const shouldLog = isInfoOrBelow("Debug") // true
  * ```
  *
- * @since 2.0.0
  * @category ordering
+ * @since 4.0.0
  */
 export const isLessThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
@@ -360,10 +409,18 @@ export const isLessThanOrEqualTo: {
 /**
  * Checks whether a given log level is enabled for the current fiber.
  *
+ * **When to use**
+ *
+ * Use to check whether a log level would be emitted under the current fiber's
+ * minimum log level.
+ *
+ * **Details**
+ *
  * A log level is enabled when it is greater than or equal to
  * `References.MinimumLogLevel`.
  *
- * @example
+ * **Example** (Checking current fiber log level)
+ *
  * ```ts
  * import { Effect, LogLevel, References } from "effect"
  *
@@ -379,8 +436,8 @@ export const isLessThanOrEqualTo: {
  * )
  * ```
  *
- * @since 4.0.0
  * @category filtering
+ * @since 4.0.0
  */
 export const isEnabled = (self: LogLevel): Effect.Effect<boolean> =>
   core.withFiber((fiber) => effect.succeed(!isGreaterThan(fiber.getRef(References.MinimumLogLevel), self)))

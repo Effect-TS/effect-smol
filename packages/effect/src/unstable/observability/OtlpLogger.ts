@@ -1,4 +1,37 @@
 /**
+ * OTLP/HTTP log exporter for Effect's logging system.
+ *
+ * This module turns Effect log entries into OTLP log records and sends them to
+ * a logs endpoint such as an OpenTelemetry Collector or vendor OTLP intake. It
+ * is the signal-specific logger used by the higher-level `Otlp` module when an
+ * application wants logs, metrics, and traces configured together.
+ *
+ * **Mental model**
+ *
+ * Each call to Effect logging APIs becomes one OTLP log record. The logger
+ * serializes the message body, severity, timestamp, fiber id, log annotations,
+ * failure cause, and current trace/span identifiers. Active log spans are
+ * exported as duration attributes named `logSpan.<label>` unless
+ * `excludeLogSpans` is enabled.
+ *
+ * **Common tasks**
+ *
+ * - Use `layer` to install the logger in an application; it merges with
+ *   existing loggers by default.
+ * - Use `make` when composing a custom `Logger` or logger layer manually.
+ * - Pass the concrete `/v1/logs` endpoint, or use `Otlp` when a shared
+ *   `baseUrl` should construct all signal paths.
+ * - Provide `headers` for collector authentication or routing, and choose an
+ *   `OtlpSerialization` layer accepted by the endpoint.
+ *
+ * **Gotchas**
+ *
+ * Batches are flushed on `exportInterval`, when `maxBatchSize` is reached, and
+ * during scope finalization up to `shutdownTimeout`. Resource options are
+ * attached to every export and override OpenTelemetry resource environment
+ * variables, so ensure a stable `service.name` is available through options,
+ * `OTEL_RESOURCE_ATTRIBUTES`, or `OTEL_SERVICE_NAME`.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
@@ -19,8 +52,16 @@ import * as OtlpResource from "./OtlpResource.ts"
 import { OtlpSerialization } from "./OtlpSerialization.ts"
 
 /**
+ * Creates an Effect `Logger` that exports log records through OTLP.
+ *
+ * **Details**
+ *
+ * The logger serializes records with the configured resource, sends them
+ * through the OTLP exporter, and requires `Scope` so pending records can be
+ * flushed on shutdown.
+ *
+ * @category constructors
  * @since 4.0.0
- * @category Constructors
  */
 export const make: (
   options: {
@@ -76,8 +117,14 @@ export const make: (
 })
 
 /**
+ * Layer that installs the OTLP logger created by `make`.
+ *
+ * **Details**
+ *
+ * By default the OTLP logger is merged with any existing loggers.
+ *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layer = (options: {
   readonly url: string
@@ -98,6 +145,9 @@ export const layer = (options: {
   })
 
 /**
+ * OTLP logs payload serialized by `OtlpLogger`.
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface LogsData {

@@ -97,6 +97,36 @@ Expected an integer, got -1.2`
     })
   })
 
+  describe("parse options", () => {
+    it("decoders can receive options when they are created", () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      const decode = Schema.decodeUnknownExit(schema, { onExcessProperty: "error" })
+
+      const failure = decode({ a: "a", b: "b" })
+      assertTrue(Exit.isFailure(failure))
+
+      const success = decode({ a: "a", b: "b" }, { onExcessProperty: "preserve" })
+      assertTrue(Exit.isSuccess(success))
+      deepStrictEqual(success.value, { a: "a", b: "b" })
+    })
+
+    it("encoders can receive options when they are created", () => {
+      const schema = Schema.Struct({
+        a: Schema.String
+      })
+      const encode = Schema.encodeUnknownExit(schema, { onExcessProperty: "error" })
+
+      const failure = encode({ a: "a", b: "b" })
+      assertTrue(Exit.isFailure(failure))
+
+      const success = encode({ a: "a", b: "b" }, { onExcessProperty: "preserve" })
+      assertTrue(Exit.isSuccess(success))
+      deepStrictEqual(success.value, { a: "a", b: "b" })
+    })
+  })
+
   describe("Literal", () => {
     it("should throw an error if the literal is not a finite number", () => {
       throws(
@@ -907,10 +937,10 @@ Unexpected key with value "c"
   })
 
   describe("Array", () => {
-    it("should expose the item schema", () => {
+    it("should expose the element schema via .value", () => {
       const schema = Schema.Array(Schema.String)
-      strictEqual(schema.schema, Schema.String)
-      strictEqual(schema.annotate({}).schema, Schema.String)
+      strictEqual(schema.value, Schema.String)
+      strictEqual(schema.annotate({}).value, Schema.String)
     })
 
     it("readonly string[]", async () => {
@@ -961,9 +991,9 @@ Unexpected key with value "c"
   })
 
   describe("NonEmptyArray", () => {
-    it("should expose the item schema", () => {
+    it("should expose the element schema via .value", () => {
       const schema = Schema.NonEmptyArray(Schema.String)
-      strictEqual(schema.schema, Schema.String)
+      strictEqual(schema.value, Schema.String)
     })
 
     it("readonly string[]", async () => {
@@ -3189,6 +3219,45 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await make.succeed({}, { a: -1 })
       })
 
+      it("Effect failing with SchemaError propagates as parse failure", async () => {
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(
+            Effect.fail(
+              new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "ctor default failed" }))
+            )
+          ))
+        })
+        const asserts = new TestSchema.Asserts(schema)
+
+        const make = asserts.make()
+        await make.succeed({ a: 1 })
+        await make.fail(
+          {},
+          `ctor default failed
+  at ["a"]`
+        )
+      })
+
+      it("Effect failing via another schema's makeEffect propagates as parse failure", async () => {
+        const Inner = Schema.Struct({
+          n: Schema.FiniteFromString.pipe(Schema.check(Schema.isGreaterThan(0)))
+        })
+        const schema = Schema.Struct({
+          a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(
+            Inner.makeEffect({ n: -1 }).pipe(Effect.map((s) => s.n))
+          ))
+        })
+        const asserts = new TestSchema.Asserts(schema)
+
+        const make = asserts.make()
+        await make.succeed({ a: 1 })
+        await make.fail(
+          {},
+          `Expected a value greater than 0, got -1
+  at ["a"]["n"]`
+        )
+      })
+
       it("Struct & Effect async & service", async () => {
         class Service extends Context.Service<Service, { value: Effect.Effect<number> }>()("Service") {}
 
@@ -3210,7 +3279,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
         await make.succeed({ a: 1 })
         await make.succeed({}, { a: -1 })
-        const effect = await SchemaParser.makeEffect(schema)({}).pipe(
+        const effect = await schema.makeEffect({}).pipe(
           Effect.provideService(Service, { value: Effect.succeed(0) }),
           Effect.result,
           Effect.runPromise
@@ -6667,14 +6736,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("asserts", () => {
     it("FiniteFromString", () => {
       const schema = Schema.FiniteFromString
-      const asserts: Schema.Codec.ToAsserts<typeof schema> = Schema.asserts(schema)
       try {
-        asserts(1)
+        Schema.asserts(schema, 1)
       } catch {
         fail("Expected asserts to not throw an error")
       }
       try {
-        asserts("a")
+        Schema.asserts(schema, "a")
         fail("Expected asserts to throw an error")
       } catch (e) {
         ok(e instanceof Error)
@@ -7634,6 +7702,43 @@ pointed message
   at ["a"]["b"]`
       )
     })
+
+    it("Effect failing with SchemaError propagates as decode failure", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(
+          Effect.fail(
+            new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+          )
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.fail(
+        {},
+        `decoding default failed
+  at ["a"]`
+      )
+    })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed("3") })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
+    })
   })
 
   describe("withDecodingDefault", () => {
@@ -7693,6 +7798,25 @@ pointed message
       await decoding.succeed({ a: { b: undefined } }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: "2" } }, { a: { b: 2 } })
     })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed("3") })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
+      await decoding.succeed({ a: undefined }, { a: 3 })
+    })
   })
 
   describe("withDecodingDefaultTypeKey", () => {
@@ -7751,6 +7875,43 @@ pointed message
         `Expected string, got undefined
   at ["a"]["b"]`
       )
+    })
+
+    it("Effect failing with SchemaError propagates as decode failure", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(
+          Effect.fail(
+            new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+          )
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.fail(
+        {},
+        `decoding default failed
+  at ["a"]`
+      )
+    })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultTypeKey(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed(3) })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
     })
   })
 
@@ -7812,6 +7973,44 @@ pointed message
       await decoding.succeed({ a: undefined }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: undefined } }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: "2" } }, { a: { b: 2 } })
+    })
+
+    it("Effect failing with SchemaError propagates as decode failure", async () => {
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(
+          Effect.fail(
+            new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+          )
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.fail(
+        {},
+        `decoding default failed
+  at ["a"]`
+      )
+    })
+
+    it("default Effect can require a service", async () => {
+      class Service extends Context.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
+
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultType(
+          Effect.gen(function*() {
+            const service = yield* Service
+            return yield* service.fallback
+          })
+        ))
+      })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding().provide(Service, { fallback: Effect.succeed(3) })
+      await decoding.succeed({ a: "2" }, { a: 2 })
+      await decoding.succeed({}, { a: 3 })
+      await decoding.succeed({ a: undefined }, { a: 3 })
     })
   })
 

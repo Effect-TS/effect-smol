@@ -1,4 +1,24 @@
 /**
+ * The `HttpApiTest` module provides helpers for testing `HttpApi`
+ * implementations through the generated client interface without starting an
+ * HTTP server.
+ *
+ * Use this module when a test should exercise one or more implemented API
+ * groups with the same request encoding, routing, response encoding, and client
+ * decoding used by the production `HttpApiBuilder` and `HttpApiClient`
+ * pipeline. This is useful for focused handler tests, schema round-trip checks,
+ * middleware behavior, and tests that want to call an API through its typed
+ * client while keeping all traffic in memory.
+ *
+ * The selected groups must be provided in the test environment, usually by
+ * supplying the corresponding `HttpApiBuilder.group` layers. Groups that are not
+ * selected are still present on the returned client shape, but their handlers
+ * are placeholders that die if called, which helps catch accidental calls outside
+ * the test scope. The generated client is still a real `HttpApiClient`, so
+ * endpoint middleware, client middleware, platform services, and the optional
+ * `baseUrl` used for URL construction follow the same rules as normal clients;
+ * only the HTTP transport is replaced with an in-memory router dispatch.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -21,8 +41,15 @@ import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 
 /**
+ * Creates an in-memory client for testing selected groups of an `HttpApi`.
+ *
+ * **Details**
+ *
+ * Handlers for the selected groups are taken from the environment; unselected
+ * groups are wired with placeholder handlers that fail if called.
+ *
+ * @category testing
  * @since 4.0.0
- * @category Testing
  */
 export const groups = Effect.fnUntraced(function*<
   ApiId extends string,
@@ -31,7 +58,10 @@ export const groups = Effect.fnUntraced(function*<
   SelectedGroups = HttpApiGroup.WithName<Groups, Names[number]>
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  groupNames: Names
+  groupNames: Names,
+  options?: {
+    readonly baseUrl?: string | URL | undefined
+  }
 ): Effect.fn.Return<
   HttpApiClient.Client<Groups>,
   never,
@@ -90,6 +120,6 @@ export const groups = Effect.fnUntraced(function*<
 
   return yield* HttpApiClient.makeWith(api, {
     httpClient,
-    baseUrl: "http://localhost:3000"
+    baseUrl: options?.baseUrl ?? "http://localhost:3000"
   })
 })

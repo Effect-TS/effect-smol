@@ -1,4 +1,38 @@
 /**
+ * Redis service adapter for Effect persistence modules.
+ *
+ * This module defines the low-level {@link Redis} service used by Redis-backed
+ * persistence, persisted queues, and rate limiter stores. It adapts a Redis
+ * client or pool into Effect through a raw `send` command function and cached
+ * Lua script execution.
+ *
+ * **Mental model**
+ *
+ * The service does not create or own Redis connections. {@link make} wraps a
+ * caller-provided command sender, while {@link script} describes a Lua script's
+ * source, parameters, key count, and result type. The service loads scripts
+ * with `SCRIPT LOAD`, caches the returned SHA, and runs them with `EVALSHA`
+ * through `Redis.eval`.
+ *
+ * **Common tasks**
+ *
+ * - Wrap an existing Redis client by implementing `send`.
+ * - Use `Redis.send` for ordinary Redis commands.
+ * - Use {@link script} for typed Lua helpers shared by persistence stores.
+ * - Map client or network failures into {@link RedisError} in the provided
+ *   command sender.
+ *
+ * **Gotchas**
+ *
+ * Script parameters are stringified before execution. The script descriptor's
+ * key count controls how Redis splits `KEYS` from `ARGV`. Higher-level stores
+ * add key prefixes and store ids on top of this service, so those identifiers
+ * must stay stable when persisted data is expected to survive deployments.
+ *
+ * **See also**
+ *
+ * {@link Redis}, {@link make}, {@link script}, {@link RedisError}.
+ *
  * @since 4.0.0
  */
 import * as Cache from "../../Cache.ts"
@@ -10,8 +44,10 @@ import * as Hash from "../../Hash.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
+ * Service for sending Redis commands and evaluating cached Lua scripts.
+ *
+ * @category services
  * @since 4.0.0
- * @category Service
  */
 export class Redis extends Context.Service<Redis, {
   readonly send: <A = unknown>(command: string, ...args: ReadonlyArray<string>) => Effect.Effect<A, RedisError>
@@ -25,8 +61,15 @@ export class Redis extends Context.Service<Redis, {
 }>()("effect/persistence/Redis") {}
 
 /**
+ * Creates a `Redis` service from a raw command sender.
+ *
+ * **Details**
+ *
+ * Lua scripts are loaded through `SCRIPT LOAD`, cached, and then invoked with
+ * `EVALSHA`.
+ *
+ * @category constructors
  * @since 4.0.0
- * @category Constructors
  */
 export const make = Effect.fnUntraced(function*(
   options: {
@@ -65,14 +108,18 @@ type ErrorTypeId = "~effect/persistence/Redis/RedisError"
 const ErrorTypeId: ErrorTypeId = "~effect/persistence/Redis/RedisError"
 
 /**
+ * Error raised by Redis command or script execution.
+ *
+ * @category errors
  * @since 4.0.0
- * @category Errors
  */
 export class RedisError extends Schema.ErrorClass<RedisError>(ErrorTypeId)({
   _tag: Schema.tag("RedisError"),
   cause: Schema.Defect
 }) {
   /**
+   * Marks this value as a Redis persistence error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
@@ -82,8 +129,15 @@ type ScriptTypeId = "~effect/persistence/Redis/Script"
 const ScriptTypeId: ScriptTypeId = "~effect/persistence/Redis/Script"
 
 /**
- * @since 4.0.0
+ * Typed descriptor for a Redis Lua script.
+ *
+ * **Details**
+ *
+ * It defines the Lua source, parameter-to-argument mapping, Redis key count,
+ * and result type used by `Redis.eval`.
+ *
  * @category Scripting
+ * @since 4.0.0
  */
 export interface Script<
   Config extends {
@@ -125,8 +179,15 @@ const ScriptProto = {
 }
 
 /**
- * @since 4.0.0
+ * Constructs a typed Redis Lua script descriptor.
+ *
+ * **Details**
+ *
+ * The result type defaults to `void` and can be refined with
+ * `withReturnType`.
+ *
  * @category Scripting
+ * @since 4.0.0
  */
 export const script = <Params extends ReadonlyArray<any>>(
   f: (...params: Params) => ReadonlyArray<unknown>,

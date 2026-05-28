@@ -1,4 +1,42 @@
 /**
+ * The `ManagedRuntime` module provides a way to build a reusable runtime from
+ * a `Layer` and use it to run effects that require the services produced by
+ * that layer. A `ManagedRuntime<R, ER>` owns the lifecycle of the layer-built
+ * resources, caches the resulting `Context<R>`, and exposes runners for
+ * integrating Effect programs with JavaScript entry points.
+ *
+ * **Mental model**
+ *
+ * - A managed runtime is created from a `Layer` with {@link make}
+ * - The layer is built lazily the first time the runtime is used
+ * - The built context is cached and reused for subsequent effect executions
+ * - Resources acquired by the layer are owned by the runtime's internal scope
+ * - Disposing the runtime closes that scope and releases all managed resources
+ * - Effects run through the runtime receive the layer's services automatically
+ *
+ * **Common tasks**
+ *
+ * - Create a runtime from application services: {@link make}
+ * - Run an effect as a `Promise`: {@link ManagedRuntime.runPromise}
+ * - Run an effect and keep its `Exit`: {@link ManagedRuntime.runPromiseExit}
+ * - Fork an effect into a `Fiber`: {@link ManagedRuntime.runFork}
+ * - Bridge callback-style APIs: {@link ManagedRuntime.runCallback}
+ * - Run synchronous effects at program boundaries: {@link ManagedRuntime.runSync},
+ *   {@link ManagedRuntime.runSyncExit}
+ * - Access the cached service context: {@link ManagedRuntime.context}
+ * - Release layer resources: {@link ManagedRuntime.dispose},
+ *   {@link ManagedRuntime.disposeEffect}
+ *
+ * **Gotchas**
+ *
+ * - Always dispose a managed runtime when it is no longer needed, especially
+ *   when the layer acquires resources such as connections, servers, or files
+ * - Layer construction errors are included in the error channel of runtime
+ *   runners, so `ER` is combined with the effect's own error type
+ * - `runSync` can only execute effects without asynchronous boundaries; use
+ *   `runPromise` for asynchronous programs
+ * - After disposal, the runtime cannot be reused
+ *
  * @since 2.0.0
  */
 import type * as Context from "./Context.ts"
@@ -13,25 +51,62 @@ import type { Mutable } from "./Types.ts"
 const TypeId = "~effect/ManagedRuntime"
 
 /**
- * Checks if the provided argument is a `ManagedRuntime`.
+ * Checks whether the provided argument is a `ManagedRuntime`.
  *
- * @since 3.9.0
+ * **When to use**
+ *
+ * Use to narrow an unknown value before treating it as a `ManagedRuntime`.
+ *
+ * **Details**
+ *
+ * The guard checks the internal `ManagedRuntime` marker property. It does not
+ * build the layer or inspect the runtime's services.
+ *
+ * **Gotchas**
+ *
+ * Disposed runtimes still carry the marker, so this guard does not prove the
+ * runtime is still usable.
+ *
+ * @see {@link make} for creating managed runtimes this guard recognizes
+ *
  * @category guards
+ * @since 3.9.0
  */
 export const isManagedRuntime = (input: unknown): input is ManagedRuntime<unknown, unknown> =>
   hasProperty(input, TypeId)
 
 /**
+ * Type helpers associated with `ManagedRuntime`.
+ *
+ * **When to use**
+ *
+ * Use to reference type-level helpers for extracting managed runtime services
+ * and layer errors.
+ *
  * @since 3.4.0
  */
 export declare namespace ManagedRuntime {
   /**
+   * Extracts the services available from a `ManagedRuntime`.
+   *
+   * **When to use**
+   *
+   * Use to derive the service requirements provided by an existing
+   * `ManagedRuntime` type.
+   *
    * @category type-level
-   * @since 4.0.0
+   * @since 3.4.0
    */
   export type Services<T extends ManagedRuntime<never, any>> = [T] extends [ManagedRuntime<infer R, infer _E>] ? R
     : never
   /**
+   * Extracts the layer construction error type of a `ManagedRuntime`.
+   *
+   * **When to use**
+   *
+   * Use to derive the layer construction error type from an existing
+   * `ManagedRuntime` type.
+   *
    * @category type-level
    * @since 3.4.0
    */
@@ -39,8 +114,30 @@ export declare namespace ManagedRuntime {
 }
 
 /**
- * @since 2.0.0
+ * A runtime built from a layer that can execute effects requiring that layer's
+ * services.
+ *
+ * **When to use**
+ *
+ * Use as the reusable runtime value returned by `make` when application entry
+ * points or integration code need to run many effects against the same
+ * layer-built services.
+ *
+ * **Details**
+ *
+ * The runtime builds and caches its service context and owns the scope for
+ * resources acquired by the layer.
+ *
+ * **Gotchas**
+ *
+ * Dispose the runtime with `dispose` or `disposeEffect` when it is no longer
+ * needed.
+ *
+ * @see {@link make} for constructing a managed runtime from a layer
+ * @see {@link Layer.build} for lower-level scoped layer construction
+ *
  * @category models
+ * @since 2.0.0
  */
 export interface ManagedRuntime<in R, out ER> {
   readonly [TypeId]: typeof TypeId
@@ -56,6 +153,11 @@ export interface ManagedRuntime<in R, out ER> {
   /**
    * Executes the effect using the provided Scheduler or using the global
    * Scheduler if not provided
+   *
+   * **When to use**
+   *
+   * Use to fork an effect against this runtime's services and get the running
+   * fiber.
    */
   readonly runFork: <A, E>(
     self: Effect.Effect<A, E, R>,
@@ -65,7 +167,9 @@ export interface ManagedRuntime<in R, out ER> {
   /**
    * Executes the effect synchronously returning the exit.
    *
-   * This method is effectful and should only be invoked at the edges of your
+   * **When to use**
+   *
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runSyncExit: <A, E>(effect: Effect.Effect<A, E, R>) => Exit.Exit<A, ER | E>
@@ -73,7 +177,9 @@ export interface ManagedRuntime<in R, out ER> {
   /**
    * Executes the effect synchronously throwing in case of errors or async boundaries.
    *
-   * This method is effectful and should only be invoked at the edges of your
+   * **When to use**
+   *
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runSync: <A, E>(effect: Effect.Effect<A, E, R>) => A
@@ -82,7 +188,9 @@ export interface ManagedRuntime<in R, out ER> {
    * Executes the effect asynchronously, eventually passing the exit value to
    * the specified callback.
    *
-   * This method is effectful and should only be invoked at the edges of your
+   * **When to use**
+   *
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runCallback: <A, E>(
@@ -99,7 +207,9 @@ export interface ManagedRuntime<in R, out ER> {
    * with the value of the effect once the effect has been executed, or will be
    * rejected with the first error or exception throw by the effect.
    *
-   * This method is effectful and should only be used at the edges of your
+   * **When to use**
+   *
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runPromise: <A, E>(effect: Effect.Effect<A, E, R>, options?: Effect.RunOptions) => Promise<A>
@@ -108,7 +218,9 @@ export interface ManagedRuntime<in R, out ER> {
    * Runs the `Effect`, returning a JavaScript `Promise` that will be resolved
    * with the `Exit` state of the effect once the effect has been executed.
    *
-   * This method is effectful and should only be used at the edges of your
+   * **When to use**
+   *
+   * Use when invoking this effectful method at the edges of your
    * program.
    */
   readonly runPromiseExit: <A, E>(
@@ -118,44 +230,75 @@ export interface ManagedRuntime<in R, out ER> {
 
   /**
    * Dispose of the resources associated with the runtime.
+   *
+   * **When to use**
+   *
+   * Use to release this runtime's layer resources from Promise-based code.
    */
   readonly dispose: () => Promise<void>
 
   /**
    * Dispose of the resources associated with the runtime.
+   *
+   * **When to use**
+   *
+   * Use to release this runtime's layer resources from an `Effect` workflow.
    */
   readonly disposeEffect: Effect.Effect<void, never, never>
 }
 
 /**
- * Convert a Layer into an ManagedRuntime, that can be used to run Effect's using
- * your services.
+ * Creates a `ManagedRuntime` from a layer.
  *
- * @since 2.0.0
- * @category runtime class
- * @example
+ * **When to use**
+ *
+ * Use to create a reusable runtime from a `Layer` for application entry points
+ * or integration code that runs many effects without rebuilding services.
+ *
+ * **Details**
+ *
+ * The layer is built lazily on first use and its context is cached for
+ * subsequent runs. Resources acquired by the layer are owned by the runtime and
+ * are released when `dispose` or `disposeEffect` is run. `options.memoMap` can
+ * be used to share layer memoization with other layer builds.
+ *
+ * **Gotchas**
+ *
+ * Dispose the runtime when it is no longer needed. A runtime cannot be reused
+ * after disposal.
+ *
+ * **Example** (Creating a managed runtime)
+ *
  * ```ts
- * import { Console, Effect, Layer, ManagedRuntime, Context } from "effect"
+ * import { Context, Effect, Layer, ManagedRuntime } from "effect"
  *
  * class Notifications extends Context.Service<Notifications, {
  *   readonly notify: (message: string) => Effect.Effect<void>
  * }>()("Notifications") {
  *   static readonly layer = Layer.succeed(this)({
- *     notify: Effect.fn("Notifications.notify")((message) => Console.log(message))
+ *     notify: Effect.fn("Notifications.notify")((message) =>
+ *       Effect.sync(() => console.log(message))
+ *     )
  *   })
  * }
  *
- * async function main() {
- *   const runtime = ManagedRuntime.make(Notifications.layer)
- *   await runtime.runPromise(Effect.flatMap(
- *     Notifications.asEffect(),
- *     (_) => _.notify("Hello, world!")
- *   ))
- *   await runtime.dispose()
- * }
+ * const runtime = ManagedRuntime.make(Notifications.layer)
  *
- * main()
+ * const program = Effect.flatMap(
+ *   Notifications,
+ *   (_) => _.notify("Hello, world!")
+ * ).pipe(Effect.ensuring(runtime.disposeEffect))
+ *
+ * runtime.runPromise(program)
+ * // Hello, world!
  * ```
+ *
+ * @see {@link ManagedRuntime} for the returned runtime interface
+ * @see {@link Layer.MemoMap} for shared layer memoization
+ * @see {@link Layer.build} for lower-level scoped layer construction
+ *
+ * @category runtime class
+ * @since 2.0.0
  */
 export const make = <R, ER>(
   layer: Layer.Layer<R, ER, never>,

@@ -1,4 +1,34 @@
 /**
+ * Combines scoped memory caching with durable persistence for `Persistable`
+ * lookup keys.
+ *
+ * A `PersistedCache` first checks a process-local `Cache`, then a named
+ * `Persistence` store, before running the supplied lookup. It is designed for
+ * expensive or idempotent requests whose encoded `Exit` can be reused across
+ * fibers, process restarts, or multiple workers sharing the same backing store.
+ *
+ * **Mental model**
+ *
+ * `make` creates a scoped cache backed by a scoped persistence store. The memory
+ * cache controls repeated reads inside the current runtime with `inMemoryTTL`
+ * and capacity, while the persistence store controls durable reuse with
+ * `timeToLive`, `storeId`, and request primary keys. Both successes and failures
+ * are stored as `Exit` values when the persistent TTL allows the write.
+ *
+ * **Common tasks**
+ *
+ * Use `get` for lookups that should reuse memory and persisted values, and use
+ * `invalidate` when the underlying data changes so both layers forget the key.
+ * Use `requireServicesAt` to choose whether lookup services are supplied when
+ * constructing the cache or when reading from it.
+ *
+ * **Gotchas**
+ *
+ * Persisted entries are decoded with the key's success and error schemas.
+ * Changing schemas, primary-key formats, or `storeId` values is a persistence
+ * migration; old entries can stop being found or fail to decode. `invalidate`
+ * removes the persisted value first and then the in-memory entry.
+ *
  * @since 4.0.0
  */
 import * as Cache from "../../Cache.ts"
@@ -14,8 +44,10 @@ import * as Persistence from "./Persistence.ts"
 const TypeId = "~effect/persistence/PersistedCache" as const
 
 /**
+ * Cache that combines an in-memory `Cache` with a persisted backing store.
+ *
+ * @category models
  * @since 4.0.0
- * @category Models
  */
 export interface PersistedCache<K extends Persistable.Any, out R = never> {
   readonly [TypeId]: typeof TypeId
@@ -34,8 +66,16 @@ export interface PersistedCache<K extends Persistable.Any, out R = never> {
 }
 
 /**
+ * Creates a persisted cache for `Persistable` request keys.
+ *
+ * **Details**
+ *
+ * The cache reads persisted exits before running the lookup, stores lookup
+ * exits with the configured persistent TTL, and also keeps a scoped in-memory
+ * cache with its own capacity and TTL.
+ *
+ * @category constructors
  * @since 4.0.0
- * @category Constructors
  */
 export const make: <
   K extends Persistable.Any,

@@ -17,7 +17,8 @@
  * - **Testable**: Mock time control for deterministic testing
  * - **Resource-safe**: Automatic cleanup of time-based resources
  *
- * @example
+ * **Example** (Measuring elapsed time)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -36,7 +37,8 @@
  * })
  * ```
  *
- * @example
+ * **Example** (Using the Clock service)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -65,7 +67,13 @@ import * as effect from "./internal/effect.ts"
  * Represents a time-based clock which provides functionality related to time
  * and scheduling.
  *
- * @example
+ * **When to use**
+ *
+ * Use to define or provide a clock service for current-time and sleep
+ * operations.
+ *
+ * **Example** (Reading current time)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -78,36 +86,64 @@ import * as effect from "./internal/effect.ts"
  * })
  * ```
  *
- * @since 2.0.0
  * @category models
+ * @since 2.0.0
  */
 export interface Clock {
   /**
-   * Unsafely returns the current time in milliseconds.
+   * Returns the current time in milliseconds unsafely.
+   *
+   * **When to use**
+   *
+   * Use to read millisecond time synchronously when you already have a `Clock`
+   * service and can accept non-effectful access.
    */
   currentTimeMillisUnsafe(): number
   /**
    * Returns the current time in milliseconds.
+   *
+   * **When to use**
+   *
+   * Use to read millisecond time through this `Clock` service in `Effect`.
    */
   readonly currentTimeMillis: Effect<number>
   /**
-   * Unsafely returns the current time in nanoseconds.
+   * Returns the current time in nanoseconds unsafely.
+   *
+   * **When to use**
+   *
+   * Use to read nanosecond time synchronously when you already have a `Clock`
+   * service and can accept non-effectful access.
    */
   currentTimeNanosUnsafe(): bigint
   /**
    * Returns the current time in nanoseconds.
+   *
+   * **When to use**
+   *
+   * Use to read nanosecond time through this `Clock` service in `Effect`.
    */
   readonly currentTimeNanos: Effect<bigint>
   /**
    * Asynchronously sleeps for the specified duration.
+   *
+   * **When to use**
+   *
+   * Use to delay an `Effect` workflow by a duration through this `Clock` service.
    */
   sleep(duration: Duration.Duration): Effect<void>
 }
 
 /**
- * A reference to the current Clock service in the environment.
+ * Context reference for the current Clock service in the environment.
  *
- * @example
+ * **When to use**
+ *
+ * Use when you need to access or provide the full Clock service rather than a
+ * single timestamp accessor.
+ *
+ * **Example** (Accessing the Clock service)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -117,15 +153,25 @@ export interface Clock {
  * })
  * ```
  *
+ * @see {@link clockWith} for using the current Clock service inside an effect
+ * @see {@link currentTimeMillis} for reading the current time in milliseconds
+ * @see {@link currentTimeNanos} for reading the current time in nanoseconds
+ *
  * @category references
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const Clock: Context.Reference<Clock> = effect.ClockRef
 
 /**
  * Accesses the current Clock service and uses it to run the provided function.
  *
- * @example
+ * **When to use**
+ *
+ * Use when you need the full Clock service interface to perform multiple time
+ * operations or call unsafe variants within a single effect.
+ *
+ * **Example** (Using the current Clock service)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -138,6 +184,9 @@ export const Clock: Context.Reference<Clock> = effect.ClockRef
  * )
  * ```
  *
+ * @see {@link Clock} for the service reference
+ * @see {@link currentTimeMillis} for convenience accessor that returns milliseconds
+ * @see {@link currentTimeNanos} for convenience accessor that returns nanoseconds
  * @category constructors
  * @since 2.0.0
  */
@@ -146,7 +195,13 @@ export const clockWith: <A, E, R>(f: (clock: Clock) => Effect<A, E, R>) => Effec
 /**
  * Returns an Effect that succeeds with the current time in milliseconds.
  *
- * @example
+ * **When to use**
+ *
+ * Use to read wall-clock time from the active Clock service with millisecond
+ * precision.
+ *
+ * **Example** (Reading milliseconds)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *
@@ -157,6 +212,9 @@ export const clockWith: <A, E, R>(f: (clock: Clock) => Effect<A, E, R>) => Effec
  * })
  * ```
  *
+ * @see {@link currentTimeNanos} for nanosecond precision
+ * @see {@link clockWith} for accessing the full Clock service
+ *
  * @category constructors
  * @since 2.0.0
  */
@@ -165,7 +223,13 @@ export const currentTimeMillis: Effect<number> = effect.currentTimeMillis
 /**
  * Returns an Effect that succeeds with the current time in nanoseconds.
  *
- * @example
+ * **When to use**
+ *
+ * Use to read wall-clock time from the active `Clock` service with nanosecond
+ * precision.
+ *
+ * **Example** (Reading nanoseconds)
+ *
  * ```ts
  * import { Clock, Effect } from "effect"
  *

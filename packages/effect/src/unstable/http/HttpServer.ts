@@ -1,4 +1,35 @@
 /**
+ * Runtime boundary for serving Effect HTTP responses on a concrete HTTP server.
+ *
+ * `HttpServer` is the service implemented by platform adapters and consumed by
+ * routers, API layers, tests, and applications that start serving from a
+ * `Layer`. It exposes the listening address and a `serve` operation that runs
+ * an `HttpServerResponse` effect for each incoming request.
+ *
+ * **Mental model**
+ *
+ * The server owns the listener and supplies `HttpServerRequest` for every
+ * request. The application effect only describes how to produce a response, so
+ * request-scoped data comes from the server while the rest of the environment is
+ * still provided by the surrounding layer graph. `serve` ties listener lifetime
+ * to a layer scope, and `serveEffect` performs the same work inside an explicit
+ * `Scope`.
+ *
+ * **Common tasks**
+ *
+ * - Build a server service from a platform adapter with `make`.
+ * - Serve an HTTP app with `serve` or `serveEffect`.
+ * - Format or log the listening address with `formatAddress`,
+ *   `addressFormattedWith`, `logAddress`, or `withLogAddress`.
+ * - Create a test client that targets the running server with `makeTestClient`
+ *   or `layerTestClient`.
+ *
+ * **Gotchas**
+ *
+ * Middleware is applied at the server boundary, after the server has supplied
+ * the request service. Test clients only support TCP addresses, and rewrite
+ * `0.0.0.0` to `127.0.0.1` for local requests.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -17,8 +48,15 @@ import type { HttpServerRequest } from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 
 /**
- * @since 4.0.0
+ * Service tag for an HTTP server runtime.
+ *
+ * **Details**
+ *
+ * The service can serve an HTTP response effect and exposes the address where the
+ * server is listening.
+ *
  * @category models
+ * @since 4.0.0
  */
 export class HttpServer extends Context.Service<HttpServer, {
   readonly serve: {
@@ -41,14 +79,22 @@ export class HttpServer extends Context.Service<HttpServer, {
 }>()("effect/http/HttpServer") {}
 
 /**
- * @since 4.0.0
+ * Address where an HTTP server is listening.
+ *
+ * **Details**
+ *
+ * The address is either a TCP host and port or a Unix domain socket path.
+ *
  * @category address
+ * @since 4.0.0
  */
 export type Address = UnixAddress | TcpAddress
 
 /**
- * @since 4.0.0
+ * TCP address for an HTTP server, identified by hostname and port.
+ *
  * @category address
+ * @since 4.0.0
  */
 export interface TcpAddress {
   readonly _tag: "TcpAddress"
@@ -57,8 +103,10 @@ export interface TcpAddress {
 }
 
 /**
- * @since 4.0.0
+ * Unix domain socket address for an HTTP server.
+ *
  * @category address
+ * @since 4.0.0
  */
 export interface UnixAddress {
   readonly _tag: "UnixAddress"
@@ -66,8 +114,11 @@ export interface UnixAddress {
 }
 
 /**
- * @since 4.0.0
+ * Constructs an `HttpServer` service from a serving implementation and listening
+ * address.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   options: {
@@ -80,8 +131,17 @@ export const make = (
 ): HttpServer["Service"] => options
 
 /**
- * @since 4.0.0
+ * Creates a layer that starts serving an HTTP response effect with the current
+ * `HttpServer`.
+ *
+ * **Details**
+ *
+ * The request service is supplied by the server for each request; the returned
+ * layer still requires the server, a scope, and any non-request dependencies of
+ * the response effect or middleware.
+ *
  * @category accessors
+ * @since 4.0.0
  */
 export const serve: {
   (): <E, R>(
@@ -120,8 +180,17 @@ export const serve: {
   ) as any)
 
 /**
- * @since 4.0.0
+ * Effect that starts serving an HTTP response effect with the current
+ * `HttpServer`.
+ *
+ * **Details**
+ *
+ * The request service is supplied by the server for each request; the effect
+ * requires a scope and any non-request dependencies of the response effect or
+ * middleware.
+ *
  * @category accessors
+ * @since 4.0.0
  */
 export const serveEffect: {
   (): <E, R>(
@@ -157,8 +226,15 @@ export const serveEffect: {
 > => HttpServer.use((server) => server.serve(effect, middleware!)) as any)
 
 /**
- * @since 4.0.0
+ * Formats a server address as a display string.
+ *
+ * **Details**
+ *
+ * TCP addresses are formatted as `http://host:port`; Unix socket addresses are
+ * formatted as `unix://path`.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const formatAddress = (address: Address): string => {
   switch (address._tag) {
@@ -170,28 +246,35 @@ export const formatAddress = (address: Address): string => {
 }
 
 /**
- * @since 4.0.0
+ * Reads the current server address, formats it with `formatAddress`, and passes
+ * the formatted address to the supplied effectful function.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const addressFormattedWith = <A, E, R>(
   f: (address: string) => Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, HttpServer | R> =>
   Effect.flatMap(
-    HttpServer.asEffect(),
+    HttpServer,
     (server) => f(formatAddress(server.address))
   )
 
 /**
- * @since 4.0.0
+ * Logs the formatted address of the current HTTP server.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const logAddress: Effect.Effect<void, never, HttpServer> = addressFormattedWith((_) =>
   Effect.log(`Listening on ${_}`)
 )
 
 /**
- * @since 4.0.0
+ * Adds address logging to a layer that provides an `HttpServer`.
+ *
  * @category address
+ * @since 4.0.0
  */
 export const withLogAddress = <A, E, R>(
   layer: Layer.Layer<A, E, R>
@@ -201,8 +284,19 @@ export const withLogAddress = <A, E, R>(
   )
 
 /**
+ * Builds an `HttpClient` that sends requests to the current test HTTP server.
+ *
+ * **Details**
+ *
+ * For TCP servers, requests are prefixed with the server URL and `0.0.0.0` is
+ * rewritten to `127.0.0.1`.
+ *
+ * **Gotchas**
+ *
+ * Unix socket addresses are not supported.
+ *
+ * @category testing
  * @since 4.0.0
- * @category Testing
  */
 export const makeTestClient: Effect.Effect<
   HttpClient.HttpClient,
@@ -221,8 +315,10 @@ export const makeTestClient: Effect.Effect<
 })
 
 /**
+ * Layer that provides the test `HttpClient` created by `makeTestClient`.
+ *
+ * @category testing
  * @since 4.0.0
- * @category Testing
  */
 export const layerTestClient: Layer.Layer<
   HttpClient.HttpClient,
@@ -231,8 +327,16 @@ export const layerTestClient: Layer.Layer<
 > = Layer.effect(HttpClient.HttpClient)(makeTestClient)
 
 /**
+ * Layer that provides the platform services commonly needed by HTTP
+ * server tests.
+ *
+ * **Details**
+ *
+ * It includes `HttpPlatform`, `Path`, a weak ETag generator, and a no-op
+ * `FileSystem`.
+ *
+ * @category testing
  * @since 4.0.0
- * @category Testing
  */
 export const layerServices: Layer.Layer<
   | Path.Path

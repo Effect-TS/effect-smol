@@ -1,4 +1,41 @@
 /**
+ * The `TestConsole` module provides a test implementation of the Effect
+ * `Console` service. When {@link layer} is provided, calls made through the
+ * Effect console APIs are captured in memory instead of being written to the
+ * host console, so tests can assert on logged values deterministically.
+ *
+ * This module is intentionally small: it gives tests a console layer, helpers
+ * for reading captured `Console.log` and `Console.error` arguments, and a way
+ * to access the provided test console service directly.
+ *
+ * **Mental model**
+ *
+ * - {@link layer} replaces the current `Console` service with a fresh
+ *   in-memory test console for the effect it is provided to
+ * - Code under test must call Effect's `Console` APIs; direct calls to
+ *   `globalThis.console` are outside the service and are not captured
+ * - {@link logLines} returns the values passed to `Console.log` in call order
+ * - {@link errorLines} returns the values passed to `Console.error` in call
+ *   order
+ * - {@link testConsoleWith} gives direct access to the current `TestConsole`
+ *   service when a test needs to inspect or call it manually
+ *
+ * **Common tasks**
+ *
+ * - Capture console output by providing {@link layer}
+ * - Assert on logged values with {@link logLines}
+ * - Assert on error output with {@link errorLines}
+ * - Construct a standalone test console service with {@link make}
+ * - Access the provided service with {@link testConsoleWith}
+ *
+ * **Gotchas**
+ *
+ * - Captured log and error values are the original arguments, not formatted
+ *   strings
+ * - `logLines` and `errorLines` expose `Console.log` and `Console.error`
+ *   output; other console methods are implemented for compatibility but do not
+ *   have dedicated accessor effects in this module
+ *
  * @since 4.0.0
  */
 import * as Array from "../Array.ts"
@@ -11,13 +48,21 @@ import * as Layer from "../Layer.ts"
  * It captures all console output for testing purposes while maintaining full
  * compatibility with the standard Console API.
  *
+ * **When to use**
+ *
+ * Use to provide a console implementation that records calls for assertions in
+ * tests.
+ *
+ * **Details**
+ *
  * This interface extends the standard Console interface and adds methods to
  * retrieve logged messages for verification in tests.
  *
- * @example
+ * **Example** (Capturing console output in tests)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Hello, World!")
@@ -31,18 +76,32 @@ import * as Layer from "../Layer.ts"
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
+ * @see {@link layer} for providing `TestConsole` to an effect
+ * @see {@link logLines} for reading captured `Console.log` calls
+ * @see {@link errorLines} for reading captured `Console.error` calls
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface TestConsole extends Console.Console {
   /**
    * Returns an array of all items that have been logged by the program using
    * `Console.log` thus far.
+   *
+   * **When to use**
+   *
+   * Use to inspect captured `Console.log` calls through a `TestConsole`
+   * instance.
    */
   readonly logLines: Effect.Effect<ReadonlyArray<unknown>>
   /**
    * Returns an array of all items that have been logged by the program using
    * `Console.error` thus far.
+   *
+   * **When to use**
+   *
+   * Use to inspect captured `Console.error` calls through a `TestConsole`
+   * instance.
    */
   readonly errorLines: Effect.Effect<ReadonlyArray<unknown>>
 }
@@ -51,30 +110,34 @@ export interface TestConsole extends Console.Console {
  * The `TestConsole` namespace provides types and utilities for working with
  * test console implementations.
  *
- * @example
- * ```ts
- * // The TestConsole namespace provides types for testing
- * // Use TestConsole.make to create a test console instance
- * // Use TestConsole.layer to provide the service in tests
- * ```
+ * **When to use**
+ *
+ * Use when referring to types nested under the `TestConsole` namespace.
  *
  * @since 4.0.0
- * @category models
  */
 export declare namespace TestConsole {
   /**
    * Represents a console method name that can be invoked on the TestConsole.
    * This type includes all methods available on the Console interface.
    *
-   * @example
+   * **When to use**
+   *
+   * Use to type the console method name recorded in a captured test console
+   * entry.
+   *
+   * **Example** (Typing captured console methods)
+   *
    * ```ts
-   * // Method represents console method names like:
-   * // "log", "error", "warn", "debug", "info", etc.
-   * // All methods from the Console interface are supported
+   * import type { TestConsole } from "effect/testing"
+   *
+   * const method: TestConsole.TestConsole.Method = "log"
+   *
+   * console.log(method) // "log"
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export type Method = keyof Console.Console
 
@@ -82,15 +145,26 @@ export declare namespace TestConsole {
    * Represents a single console method invocation captured by the TestConsole.
    * Each entry contains the method name and the parameters passed to it.
    *
-   * @example
+   * **When to use**
+   *
+   * Use to inspect or type one captured console invocation.
+   *
+   * **Example** (Typing captured console entries)
+   *
    * ```ts
-   * // Entry represents captured console calls with their method and parameters
-   * // Each entry contains: { method: string, parameters: ReadonlyArray<unknown> }
-   * // Used internally by TestConsole to track all console operations
+   * import type { TestConsole } from "effect/testing"
+   *
+   * const entry: TestConsole.TestConsole.Entry = {
+   *   method: "error",
+   *   parameters: ["not found"]
+   * }
+   *
+   * console.log(entry.method) // "error"
+   * console.log(entry.parameters) // ["not found"]
    * ```
    *
-   * @since 4.0.0
    * @category models
+   * @since 4.0.0
    */
   export interface Entry {
     readonly method: Method
@@ -103,10 +177,15 @@ export declare namespace TestConsole {
  * The returned TestConsole implements the Console interface and provides
  * additional methods to retrieve logged messages.
  *
- * @example
+ * **When to use**
+ *
+ * Use to construct a test console service value directly.
+ *
+ * **Example** (Creating a test console)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Debug message")
@@ -120,8 +199,10 @@ export declare namespace TestConsole {
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
+ * @see {@link layer} for providing a `TestConsole` as a `Layer`
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const entries: Array<TestConsole.Entry> = []
@@ -167,10 +248,15 @@ export const make = Effect.gen(function*() {
  * Retrieves the `TestConsole` service for this test and uses it to run the
  * specified workflow.
  *
- * @example
+ * **When to use**
+ *
+ * Use to access the provided test console service inside an effect.
+ *
+ * **Example** (Accessing the test console service)
+ *
  * ```ts
  * import { Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = TestConsole.testConsoleWith((testConsole) =>
  *   Effect.gen(function*() {
@@ -186,8 +272,12 @@ export const make = Effect.gen(function*() {
  * ).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
+ * @see {@link layer} for providing the test console service
+ * @see {@link logLines} for reading captured `Console.log` calls directly
+ * @see {@link errorLines} for reading captured `Console.error` calls directly
+ *
  * @category utils
+ * @since 4.0.0
  */
 export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Console.consoleWith((console) => f(console as TestConsole))
@@ -197,10 +287,15 @@ export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Eff
  * This layer can be used to provide a TestConsole implementation
  * for testing purposes.
  *
- * @example
+ * **When to use**
+ *
+ * Use to run an effect with console calls captured by `TestConsole`.
+ *
+ * **Example** (Providing a test console layer)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("This will be captured")
@@ -214,8 +309,11 @@ export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Eff
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
+ * @see {@link make} for constructing the service value directly
+ * @see {@link testConsoleWith} for accessing the provided test console service
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(make) as any
 
@@ -223,10 +321,16 @@ export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(mak
  * Returns an array of all items that have been logged by the program using
  * `Console.log` thus far.
  *
- * @example
+ * **When to use**
+ *
+ * Use to assert on captured `Console.log` output from a program provided with
+ * `TestConsole.layer`.
+ *
+ * **Example** (Reading captured log lines)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("First message")
@@ -244,8 +348,11 @@ export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(mak
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
+ * @see {@link errorLines} for reading captured `Console.error` output
+ * @see {@link layer} for capturing console calls during a test
+ *
  * @category utils
+ * @since 4.0.0
  */
 export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = testConsoleWith(
   (console) => console.logLines
@@ -255,10 +362,16 @@ export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = tes
  * Returns an array of all items that have been logged by the program using
  * `Console.error` thus far.
  *
- * @example
+ * **When to use**
+ *
+ * Use to assert on captured `Console.error` output from a program provided
+ * with `TestConsole.layer`.
+ *
+ * **Example** (Reading captured error lines)
+ *
  * ```ts
  * import { Console, Effect } from "effect"
- * import * as TestConsole from "effect/testing/TestConsole"
+ * import { TestConsole } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.error("Error message")
@@ -274,8 +387,11 @@ export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = tes
  * }).pipe(Effect.provide(TestConsole.layer))
  * ```
  *
- * @since 4.0.0
+ * @see {@link logLines} for reading captured `Console.log` output
+ * @see {@link layer} for capturing console calls during a test
+ *
  * @category utils
+ * @since 4.0.0
  */
 export const errorLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = testConsoleWith(
   (console) => console.errorLines

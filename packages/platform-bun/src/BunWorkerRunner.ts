@@ -1,5 +1,37 @@
 /**
- * @since 1.0.0
+ * Worker-entrypoint support for Bun worker runners.
+ *
+ * This module provides the Bun `WorkerRunnerPlatform` for code already running
+ * inside a Bun `Worker`. It receives request messages from the parent-side
+ * `BunWorker` platform, runs the handler registered with `WorkerRunner.run`,
+ * and posts responses back through Bun's worker `postMessage` channel.
+ *
+ * **Mental model**
+ *
+ * The parent process installs `BunWorker.layer`; the worker entrypoint installs
+ * this `layer` and starts `WorkerRunner`. Bun exposes one worker port to this
+ * runner, so every message uses port id `0`. The first message sent by this
+ * layer is the ready signal consumed by the parent platform before buffered
+ * sends are flushed.
+ *
+ * **Common tasks**
+ *
+ * - Host Effect worker or RPC handlers inside a Bun worker entrypoint.
+ * - Move CPU-bound work or Bun-only services behind Effect's worker protocol.
+ * - Send structured-clone payloads and transferables back to the parent with
+ *   `WorkerRunner.send`.
+ *
+ * **Gotchas**
+ *
+ * Start this layer only in the worker entrypoint; it fails when
+ * `self.postMessage` is unavailable. Parent shutdown arrives as the worker
+ * close message and closes the port, so long-running handlers should stay
+ * interruptible and keep cleanup in scopes. Payloads, transfer lists, and
+ * `messageerror` events follow Bun's worker runtime behavior.
+ *
+ * @see {@link layer} for the Bun worker-runner platform layer.
+ *
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -15,8 +47,12 @@ import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 declare const self: MessagePort
 
 /**
- * @since 1.0.0
+ * Provides the `WorkerRunnerPlatform` for code running inside a Bun worker,
+ * routing parent messages to the registered handler and sending responses back
+ * through the worker port.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
@@ -62,7 +98,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                 message: "received messageerror event",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         function onError(error: MessageEvent) {
@@ -73,7 +109,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                 message: "received error event",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         yield* Scope.addFinalizer(

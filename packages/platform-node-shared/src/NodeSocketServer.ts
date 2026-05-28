@@ -1,5 +1,40 @@
 /**
- * @since 1.0.0
+ * Node socket server adapters for Effect's unstable socket server API.
+ *
+ * This module turns `node:net` TCP or Unix-domain servers and `ws` WebSocket
+ * servers into scoped `SocketServer.SocketServer` services. Use the TCP
+ * constructors when handlers should receive a `Socket.Socket` backed by a Node
+ * `net.Socket`; use the WebSocket constructors when handlers should receive a
+ * `Socket.Socket` backed by `ws` and have access to the per-connection
+ * WebSocket and `IncomingMessage` services.
+ *
+ * **Mental model**
+ *
+ * Calling {@link make} or {@link makeWebSocket} starts the underlying server in
+ * the current scope and returns the bound address. `run` installs the
+ * connection handler for that server, forks each accepted connection into a
+ * child scope, and closes those fibers when `run` finalizes. Connections
+ * accepted before `run` is installed are queued and then handed to the handler.
+ *
+ * **Common tasks**
+ *
+ * - Bind TCP ports or Unix socket paths with {@link make} or {@link layer}.
+ * - Expose `ws` WebSocket endpoints with {@link makeWebSocket} or
+ *   {@link layerWebSocket}.
+ * - Read the returned `address` after binding port `0` or a wildcard host.
+ * - Inspect `NodeSocket.NetSocket`, `Socket.WebSocket`, or
+ *   {@link IncomingMessage} from handler context when lower-level details are
+ *   needed.
+ *
+ * **Gotchas**
+ *
+ * A constructor listens before it returns, so open errors fail construction
+ * rather than the first `run`. The server lifetime belongs to the scope that
+ * created it, while each `run` call owns its connection fibers. WebSocket
+ * handlers run with the `ws` connection and Node request in context, but TCP
+ * handlers expose only the underlying Node socket context.
+ *
+ * @since 4.0.0
  */
 import type { Cause } from "effect/Cause"
 import * as Context from "effect/Context"
@@ -20,8 +55,11 @@ import * as NodeSocket from "./NodeSocket.ts"
 import { NodeWS } from "./NodeSocket.ts"
 
 /**
- * @since 1.0.0
+ * Service tag for the Node `IncomingMessage` associated with the current
+ * WebSocket server connection.
+ *
  * @category tags
+ * @since 4.0.0
  */
 export class IncomingMessage extends Context.Service<
   IncomingMessage,
@@ -29,8 +67,12 @@ export class IncomingMessage extends Context.Service<
 >()("@effect/platform-node-shared/NodeSocketServer/IncomingMessage") {}
 
 /**
- * @since 1.0.0
+ * Creates a scoped TCP `SocketServer` from a Node `net.Server`, starts
+ * listening with the supplied options, queues pending connections until `run`
+ * is called, and closes the server when the scope ends.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(
   options: Net.ServerOpts & Net.ListenOptions
@@ -144,8 +186,11 @@ export const make = Effect.fnUntraced(function*(
 })
 
 /**
- * @since 1.0.0
+ * Provides a TCP `SocketServer` by creating and managing a scoped Node
+ * `net.Server` with the supplied server and listen options.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer: (
   options: Net.ServerOpts & Net.ListenOptions
@@ -155,8 +200,12 @@ export const layer: (
 > = Function.flow(make, Layer.effect(SocketServer.SocketServer))
 
 /**
- * @since 1.0.0
+ * Creates a scoped WebSocket `SocketServer` backed by the `ws` package,
+ * providing the WebSocket and its Node `IncomingMessage` to connection
+ * handlers and closing the server when the scope ends.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWebSocket: (
   options: NodeWS.ServerOptions<typeof NodeWS.WebSocket, typeof Http.IncomingMessage>
@@ -255,8 +304,11 @@ export const makeWebSocket: (
 })
 
 /**
- * @since 1.0.0
+ * Provides a WebSocket `SocketServer` backed by the `ws` package and managed
+ * with the supplied server options.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerWebSocket: (
   options: NodeSocket.NodeWS.ServerOptions<typeof NodeSocket.NodeWS.WebSocket, typeof Http.IncomingMessage>

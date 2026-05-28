@@ -1,4 +1,35 @@
 /**
+ * Scalar documentation UI for declarative `HttpApi` contracts.
+ *
+ * Use this module to mount a browser-based API reference on an `HttpRouter`
+ * without writing or storing a separate OpenAPI file. The route renders an HTML
+ * page containing the OpenAPI document produced from the supplied `HttpApi` and
+ * boots Scalar in the browser.
+ *
+ * ## Mental model
+ *
+ * {@link layer} serves the UI with the bundled Scalar script. {@link layerCdn}
+ * serves the same UI while loading Scalar from jsDelivr, optionally pinned with
+ * `version`. Both helpers register a `GET` route, defaulting to `/docs`, and
+ * pass {@link ScalarConfig} through to Scalar's HTML configuration.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} when the application should serve the bundled Scalar
+ *   assets without depending on a CDN at runtime.
+ * - Use {@link layerCdn} when a CDN-loaded Scalar bundle is preferred, and pin
+ *   `version` when repeatable output matters.
+ * - Set `path` to mount the documentation UI somewhere other than `/docs`.
+ * - Set `proxyUrl`, theme, layout, and `baseServerURL` in `ScalarConfig` for
+ *   request testing, styling, and relative server URLs.
+ *
+ * ## Gotchas
+ *
+ * The mounted route is an HTML documentation page, not a raw OpenAPI JSON
+ * endpoint. If clients, gateways, or documentation pipelines need the OpenAPI
+ * document directly, expose it separately with `HttpApiBuilder.layer`'s
+ * `openapiPath` option.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -12,8 +43,10 @@ import * as internal from "./internal/httpApiScalar.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
+ * Theme preset identifier accepted by the Scalar API reference UI.
+ *
+ * @category models
  * @since 4.0.0
- * @category model
  */
 export type ScalarThemeId =
   | "alternate"
@@ -30,10 +63,15 @@ export type ScalarThemeId =
   | "none"
 
 /**
- * @see https://github.com/scalar/scalar/blob/main/documentation/configuration.md
+ * Configuration passed to the embedded Scalar API reference UI.
  *
+ * **Details**
+ *
+ * This configuration follows Scalar's API reference configuration:
+ * https://github.com/scalar/scalar/blob/main/documentation/configuration.md
+ *
+ * @category models
  * @since 4.0.0
- * @category model
  */
 export type ScalarConfig = {
   /** A string to use one of the color presets */
@@ -47,19 +85,19 @@ export type ScalarConfig = {
   /**
    * Whether to show models in the sidebar, search, and content.
    *
-   * Default: `false`
+   * @default false
    */
   hideModels?: boolean
   /**
    * Whether to show the "Test Request" button.
    *
-   * Default: `false`
+   * @default false
    */
   hideTestRequestButton?: boolean
   /**
    * Whether to show the sidebar search bar.
    *
-   * Default: `false`
+   * @default false
    */
   hideSearch?: boolean
   /** Whether dark mode is on or off initially (light mode) */
@@ -71,37 +109,56 @@ export type ScalarConfig = {
   /**
    * Path to a favicon image.
    *
-   * Default: `undefined`
-   * Example: "/favicon.svg"
+   * **Example** (Relative favicon)
+   *
+   * ```ts
+   * const favicon = "/favicon.svg"
+   * ```
+   *
+   * @default undefined
    */
   favicon?: string
   /** Custom CSS to be added to the page */
   customCss?: string
   /**
-   * The baseServerURL is used when the spec servers are relative paths and we are using SSR.
-   * On the client we can grab the window.location.origin but on the server we need
-   * to use this prop.
+   * Origin used when the OpenAPI document contains relative server URLs and is
+   * rendered during SSR.
    *
-   * Default: `undefined`
-   * Example: "http://localhost:3000"
+   * **Details**
+   *
+   * Browsers can derive the origin from `window.location.origin`; server
+   * rendering needs this value supplied explicitly.
+   *
+   * **Example** (Local server URL)
+   *
+   * ```ts
+   * const baseServerURL = "http://localhost:3000"
+   * ```
+   *
+   * @default undefined
    */
   baseServerURL?: string
   /**
-   * We use Inter and JetBrains Mono as the default fonts. If you want to use your own fonts, set this to false.
+   * Whether Scalar loads its default Inter and JetBrains Mono fonts.
    *
-   * Default: `true`
+   * **Details**
+   *
+   * Set this to `false` when supplying custom fonts.
+   *
+   * @default true
    */
   withDefaultFonts?: boolean
   /**
-   * By default we only open the relevant tag based on the url, however if you want all the tags open by default then set this configuration option.
+   * Whether all tags are open by default instead of only the tag matching the
+   * current URL.
    *
-   * Default: `false`
+   * @default false
    */
   defaultOpenAllTags?: boolean
   /**
    * Whether to display the operation ID in the operation reference.
    *
-   * Default: `false`
+   * @default false
    */
   showOperationId?: boolean
 }
@@ -165,8 +222,15 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
 }
 
 /**
- * @since 4.0.0
+ * Mounts a Scalar API reference page for an `HttpApi` using the bundled Scalar script.
+ *
+ * **Details**
+ *
+ * The route serves the OpenAPI specification generated from the API at the
+ * configured path, defaulting to `/docs`.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
@@ -188,8 +252,16 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   }))
 
 /**
- * @since 4.0.0
+ * Mounts a Scalar API reference page for an `HttpApi` that loads Scalar from jsDelivr.
+ *
+ * **Details**
+ *
+ * The route serves the OpenAPI specification generated from the API at the
+ * configured path, defaulting to `/docs`; `version` selects the Scalar package
+ * version loaded from the CDN.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,

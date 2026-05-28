@@ -26,7 +26,6 @@ export * as SqlError from "./SqlError.ts"
 
 /**
  * @since 4.0.0
- * @category models
  */
 export * as SqlModel from "./SqlModel.ts"
 

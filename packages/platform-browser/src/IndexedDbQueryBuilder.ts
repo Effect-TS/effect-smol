@@ -1,7 +1,34 @@
 /**
+ * Builds effectful, schema-aware queries for typed browser IndexedDB versions.
+ *
+ * An `IndexedDbQueryBuilder` is created from an open database and a version's
+ * table descriptors, then exposes `from(tableName)` as the entry point for
+ * table operations. The resulting query objects can select, count, delete,
+ * insert, upsert, clear tables, stream paged reads, react to invalidations, and
+ * run multiple effects in a shared `IDBTransaction` with `withTransaction`.
+ *
+ * Use this module for local browser persistence such as caches, offline-first
+ * state, background queues, drafts, and other client-side data where writes
+ * should be encoded through `Schema` and reads should be decoded before they
+ * reach application code.
+ *
+ * Index and range helpers are thinly typed wrappers around IndexedDB object
+ * stores, indexes, `IDBKeyRange`, and cursors. Index names must be declared on
+ * the table and created during migrations; without an index, queries use the
+ * object store key path. Range values are encoded IndexedDB key values, and
+ * compound key paths must follow the declared key order. Filters, offsets,
+ * reverse reads, out-of-line keys, and limited deletes require cursor-based
+ * scans, while simpler selects can use `getAll`.
+ *
+ * Table schema details affect runtime behavior: auto-increment writes may omit
+ * the generated numeric key, stores without a key path require an out-of-line
+ * `key` for writes and add that `key` back to selected rows, and schema
+ * mismatches surface as `EncodeError` or `DecodeError` query failures.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"
+import * as Cause from "effect/Cause"
 import * as Context from "effect/Context"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
@@ -43,19 +70,30 @@ const CommonProto = {
 }
 
 /**
- * @since 4.0.0
+ * String union describing IndexedDB query failure categories such as decoding, encoding, and transaction errors.
+ *
  * @category errors
+ * @since 4.0.0
  */
 export type ErrorReason =
-  | "NotFoundError"
   | "UnknownError"
   | "DecodeError"
   | "EncodeError"
   | "TransactionError"
 
 /**
- * @since 4.0.0
+ * Tagged error for IndexedDB query operations, carrying a query error reason and the original cause.
+ *
+ * **Details**
+ *
+ * `reason` is the query failure category, `cause` preserves the underlying
+ * schema, IndexedDB request, transaction, or user callback failure, and
+ * `message` is set to the reason.
+ *
+ * @see {@link ErrorReason} for the supported failure categories
+ *
  * @category errors
+ * @since 4.0.0
  */
 export class IndexedDbQueryError extends Data.TaggedError(
   "IndexedDbQueryError"
@@ -64,6 +102,8 @@ export class IndexedDbQueryError extends Data.TaggedError(
   cause: unknown
 }> {
   /**
+   * Marks this value as an IndexedDB query builder error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId
@@ -72,8 +112,10 @@ export class IndexedDbQueryError extends Data.TaggedError(
 }
 
 /**
- * @since 4.0.0
+ * Typed query builder for an IndexedDB version, with helpers for table queries, database access, clearing data, and running effects in a shared transaction.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface IndexedDbQueryBuilder<
   Source extends IndexedDbVersion.AnyWithProps
@@ -96,6 +138,9 @@ export interface IndexedDbQueryBuilder<
     table: Name
   ) => IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, Name>>
 
+  /** @internal */
+  readonly fromCache: Map<string, IndexedDbQuery.From<IndexedDbVersion.TableWithName<Source, any>>>
+
   readonly clearAll: Effect.Effect<void, IndexedDbQueryError>
 
   readonly withTransaction: <
@@ -111,29 +156,36 @@ export interface IndexedDbQueryBuilder<
 }
 
 /**
- * @since 4.0.0
+ * Valid key-path type for a table schema, using encoded fields whose values are IndexedDB-valid keys.
+ *
  * @category models
+ * @since 4.0.0
  */
 export type KeyPath<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | IndexedDbValidKeys<TableSchema>
   | NonEmptyReadonlyArray<IndexedDbValidKeys<TableSchema>>
 
 /**
- * @since 4.0.0
+ * Valid numeric key-path type for a table schema, used for auto-increment key paths.
+ *
  * @category models
+ * @since 4.0.0
  */
 export type KeyPathNumber<TableSchema extends IndexedDbTable.AnySchemaStruct> =
   | IndexedDbValidNumberKeys<TableSchema>
   | NonEmptyReadonlyArray<IndexedDbValidNumberKeys<TableSchema>>
 
 /**
+ * Namespace containing the typed IndexedDB query model interfaces and helper types.
+ *
  * @since 4.0.0
- * @category models
  */
 export declare namespace IndexedDbQuery {
   /**
-   * @since 4.0.0
+   * Decoded row type returned by select queries, adding a `key` field when the table does not define a key path.
+   *
    * @category models
+   * @since 4.0.0
    */
   export type SelectType<
     Table extends IndexedDbTable.AnyWithProps
@@ -143,8 +195,10 @@ export declare namespace IndexedDbQuery {
     IndexedDbTable.TableSchema<Table>["Type"]
 
   /**
-   * @since 4.0.0
+   * Input type for insert and upsert operations, adjusted for auto-increment keys and out-of-line keys.
+   *
    * @category models
+   * @since 4.0.0
    */
   export type ModifyType<
     Table extends IndexedDbTable.AnyWithProps
@@ -175,8 +229,10 @@ export declare namespace IndexedDbQuery {
       : {})
 
   /**
-   * @since 4.0.0
+   * Value type accepted by `equals` comparisons for a table key path or index.
+   *
    * @category models
+   * @since 4.0.0
    */
   export type EqualsType<
     Table extends IndexedDbTable.AnyWithProps,
@@ -187,8 +243,10 @@ export declare namespace IndexedDbQuery {
     : { [I in keyof KeyPath]: KeyPath[I] extends keyof Type ? Type[KeyPath[I]] | [] : never }
 
   /**
-   * @since 4.0.0
+   * Value type accepted by range comparisons for a table key path or index, including partial tuples for compound indexes.
+   *
    * @category models
+   * @since 4.0.0
    */
   export type ExtractIndexType<
     Table extends IndexedDbTable.AnyWithProps,
@@ -204,14 +262,18 @@ export declare namespace IndexedDbQuery {
     never
 
   /**
-   * @since 4.0.0
+   * Mutation input type for insert and upsert operations, including any required key fields.
+   *
    * @category models
+   * @since 4.0.0
    */
   export type ModifyWithKey<Table extends IndexedDbTable.AnyWithProps> = ModifyType<Table>
 
   /**
-   * @since 4.0.0
+   * Query entry point for a table, exposing clear, select, count, delete, insert, and upsert operations.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface From<Table extends IndexedDbTable.AnyWithProps> {
     readonly table: Table
@@ -228,6 +290,12 @@ export declare namespace IndexedDbQuery {
       (): Select<Table, never>
     }
 
+    /** @internal */
+    readonly selectCache: Map<
+      string | undefined,
+      IndexedDbQuery.Select<any, never>
+    >
+
     readonly count: {
       <Index extends IndexedDbDatabase.IndexFromTable<Table>>(
         index: Index
@@ -235,12 +303,24 @@ export declare namespace IndexedDbQuery {
       (): Count<Table, never>
     }
 
+    /** @internal */
+    readonly countCache: Map<
+      string | undefined,
+      IndexedDbQuery.Count<any, never>
+    >
+
     readonly delete: {
       <Index extends IndexedDbDatabase.IndexFromTable<Table>>(
         index: Index
       ): DeletePartial<Table, Index>
       (): DeletePartial<Table, never>
     }
+
+    /** @internal */
+    readonly deleteCache: Map<
+      string | undefined,
+      IndexedDbQuery.DeletePartial<any, never>
+    >
 
     readonly insert: (value: ModifyWithKey<Table>) => Modify<Table>
     readonly insertAll: (
@@ -253,8 +333,10 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
+   * Effect model for clearing all rows from a table.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface Clear<
     Table extends IndexedDbTable.AnyWithProps
@@ -265,8 +347,10 @@ export declare namespace IndexedDbQuery {
   type ComparisonKeys = "equals" | "gte" | "lte" | "gt" | "lt" | "between"
 
   /**
-   * @since 4.0.0
+   * Effect model for counting table rows, optionally constrained by an index and key-range comparisons.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface Count<
     Table extends IndexedDbTable.AnyWithProps,
@@ -308,8 +392,10 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
+   * Intermediate delete builder used to choose a key range or limit before producing an executable delete query.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface DeletePartial<
     Table extends IndexedDbTable.AnyWithProps,
@@ -356,8 +442,10 @@ export declare namespace IndexedDbQuery {
   > = Omit<Delete<Table, Index, ExcludedKeys>, ExcludedKeys>
 
   /**
-   * @since 4.0.0
+   * Effect model for deleting rows from a table, with optional key-range, limit, filter, and reactivity invalidation helpers.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface Delete<
     Table extends IndexedDbTable.AnyWithProps,
@@ -385,7 +473,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -399,8 +489,10 @@ export declare namespace IndexedDbQuery {
   > = Omit<Select<Table, Index, ExcludedKeys>, ExcludedKeys>
 
   /**
-   * @since 4.0.0
+   * Effect model for selecting rows from a table, with chainable range, paging, filtering, streaming, and reactive query helpers.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface Select<
     Table extends IndexedDbTable.AnyWithProps,
@@ -470,7 +562,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Stream the selected data.
      *
-     * Defaults to a chunk size of 100.
+     * **Details**
+     *
+     * The default chunk size is 100.
      */
     readonly stream: (options?: {
       readonly chunkSize?: number | undefined
@@ -483,7 +577,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -502,8 +598,10 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
+   * Effect model for selecting the first matching row, failing with `NoSuchElementError` when no row is found.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface First<
     Table extends IndexedDbTable.AnyWithProps,
@@ -511,7 +609,7 @@ export declare namespace IndexedDbQuery {
   > extends
     Effect.Effect<
       SelectType<Table>,
-      IndexedDbQueryError,
+      IndexedDbQueryError | Cause.NoSuchElementError,
       IndexedDbTable.Context<Table>
     >
   {
@@ -520,33 +618,39 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
     ) => Stream.Stream<
       SelectType<Table>,
-      IndexedDbQueryError,
+      IndexedDbQueryError | Cause.NoSuchElementError,
       IndexedDbTable.Context<Table>
     >
 
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactiveQueue: (
       keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
     ) => Effect.Effect<
-      Queue.Dequeue<SelectType<Table>, IndexedDbQueryError>,
+      Queue.Dequeue<SelectType<Table>, IndexedDbQueryError | Cause.NoSuchElementError>,
       never,
       Scope.Scope | IndexedDbTable.Context<Table>
     >
   }
 
   /**
-   * @since 4.0.0
+   * Effect model for a select query filtered by one or more predicates over encoded table rows.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface Filter<
     Table extends IndexedDbTable.AnyWithProps,
@@ -566,8 +670,10 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
+   * Effect model for inserting or upserting one row, returning the resulting IndexedDB key and supporting reactivity invalidation.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface Modify<
     Table extends IndexedDbTable.AnyWithProps
@@ -585,7 +691,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -593,8 +701,10 @@ export declare namespace IndexedDbQuery {
   }
 
   /**
-   * @since 4.0.0
+   * Effect model for inserting or upserting multiple rows, returning the resulting IndexedDB keys and supporting reactivity invalidation.
+   *
    * @category models
+   * @since 4.0.0
    */
   export interface ModifyAll<
     Table extends IndexedDbTable.AnyWithProps
@@ -612,7 +722,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -621,8 +733,10 @@ export declare namespace IndexedDbQuery {
 }
 
 /**
- * @since 4.0.0
+ * Service tag for the active `IDBTransaction` used to share a transaction across IndexedDB query effects.
+ *
  * @category models
+ * @since 4.0.0
  */
 export class IndexedDbTransaction extends Context.Service<IndexedDbTransaction, globalThis.IDBTransaction>()(
   "@effect/platform-browser/IndexedDbQueryBuilder/IndexedDbTransaction"
@@ -885,7 +999,7 @@ const applyFirst = Effect.fnUntraced(function*(
 ) {
   const keyPath = query.select.from.table.keyPath
 
-  const data = yield* Effect.callback<any, IndexedDbQueryError>((resume) => {
+  const data = yield* Effect.callback<any, IndexedDbQueryError | Cause.NoSuchElementError>((resume) => {
     const { keyRange, store } = getReadonlyObjectStore(query.select)
 
     if (keyRange !== undefined) {
@@ -925,12 +1039,7 @@ const applyFirst = Effect.fnUntraced(function*(
 
         if (value === undefined) {
           resume(
-            Effect.fail(
-              new IndexedDbQueryError({
-                reason: "NotFoundError",
-                cause: request.error
-              })
-            )
+            Effect.fail(new Cause.NoSuchElementError(`No such element in table ${query.select.from.table.tableName}`))
           )
         } else {
           resume(
@@ -964,15 +1073,11 @@ const applyModify = Effect.fnUntraced(function*({
   const autoIncrement = query.from.table.autoIncrement as boolean
   const keyPath = query.from.table.keyPath
   const table = query.from.table
-  const schema = autoIncrement && value[keyPath] === undefined
+  const schema: Schema.Top = autoIncrement && value[keyPath] === undefined
     ? table.autoincrementSchema
     : table.tableSchema
 
-  const encodedValue = yield* SchemaParser.makeEffect(
-    autoIncrement && value[keyPath] === undefined
-      ? table.autoincrementSchema
-      : table.tableSchema
-  )(value).pipe(
+  const encodedValue = yield* schema.makeEffect(value).pipe(
     Effect.flatMap(Schema.encodeUnknownEffect(schema)),
     Effect.mapError(
       (error) =>
@@ -1053,13 +1158,18 @@ const applyModifyAll = Effect.fnUntraced(
       Array<globalThis.IDBValidKey>,
       IndexedDbQueryError
     >((resume) => {
+      if (encodedValues.length === 0) {
+        return resume(Effect.succeed([]))
+      }
+
       const database = query.from.database
       const transaction = getOrCreateTransaction(database.current, [query.from.table.tableName], "readwrite", {
         durability: query.from.table.durability
       })
       const objectStore = transaction.objectStore(query.from.table.tableName)
 
-      const results: Array<globalThis.IDBValidKey> = []
+      const results: Array<globalThis.IDBValidKey> = new Array(encodedValues.length)
+      let remaining = encodedValues.length
 
       if (query.operation === "add") {
         for (let i = 0; i < encodedValues.length; i++) {
@@ -1080,7 +1190,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else if (query.operation === "put") {
@@ -1102,7 +1216,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else {
@@ -1118,10 +1236,6 @@ const applyModifyAll = Effect.fnUntraced(
             })
           )
         )
-      }
-
-      objectStore.transaction.oncomplete = () => {
-        resume(Effect.succeed(results))
       }
     })
   },
@@ -1229,34 +1343,52 @@ const FromProto: Omit<
   | "IDBKeyRange"
   | "transaction"
   | "reactivity"
+  | "selectCache"
+  | "countCache"
+  | "deleteCache"
 > = {
   ...CommonProto,
   select<Index extends IndexedDbDatabase.IndexFromTable<any>>(
     this: IndexedDbQuery.From<any>,
     index?: Index
   ) {
-    return makeSelect({
-      from: this,
-      index
-    }) as any
+    let select = this.selectCache.get(index)
+    if (select === undefined) {
+      select = makeSelect({
+        from: this,
+        index
+      })
+      this.selectCache.set(index, select)
+    }
+    return select
   },
   count<Index extends IndexedDbDatabase.IndexFromTable<any>>(
     this: IndexedDbQuery.From<any>,
     index?: Index
   ) {
-    return makeCount({
-      from: this,
-      index
-    }) as any
+    let count = this.countCache.get(index)
+    if (count === undefined) {
+      count = makeCount({
+        from: this,
+        index
+      })
+      this.countCache.set(index, count)
+    }
+    return count
   },
   delete<Index extends IndexedDbDatabase.IndexFromTable<any>>(
     this: IndexedDbQuery.From<any>,
     index?: Index
   ) {
-    return makeDeletePartial({
-      from: this,
-      index
-    }) as any
+    let cached = this.deleteCache.get(index)
+    if (cached === undefined) {
+      cached = makeDeletePartial({
+        from: this,
+        index
+      })
+      this.deleteCache.set(index, cached)
+    }
+    return cached
   },
   insert(this: IndexedDbQuery.From<any>, value: any) {
     return makeModify({ from: this, value, operation: "add" })
@@ -1292,6 +1424,9 @@ const makeFrom = <
   self.database = options.database
   self.IDBKeyRange = options.IDBKeyRange
   self.reactivity = options.reactivity
+  self.selectCache = new Map()
+  self.countCache = new Map()
+  self.deleteCache = new Map()
   return self
 }
 
@@ -1825,6 +1960,7 @@ const makeModifyAll = <
 
 const QueryBuilderProto: Omit<
   IndexedDbQueryBuilder<any>,
+  | "fromCache"
   | "tables"
   | "database"
   | "IDBKeyRange"
@@ -1843,12 +1979,17 @@ const QueryBuilderProto: Omit<
     })
   },
   from(this: IndexedDbQueryBuilder<any>, table: any) {
-    return makeFrom({
-      database: this.database,
-      IDBKeyRange: this.IDBKeyRange,
-      table: this.tables.get(table)!,
-      reactivity: this.reactivity
-    }) as any
+    let cached = this.fromCache.get(table)
+    if (cached === undefined) {
+      cached = makeFrom({
+        database: this.database,
+        IDBKeyRange: this.IDBKeyRange,
+        table: this.tables.get(table)!,
+        reactivity: this.reactivity
+      })
+      this.fromCache.set(table, cached)
+    }
+    return cached as any
   },
   get clearAll() {
     const self = this as IndexedDbQueryBuilder<any>
@@ -1871,8 +2012,10 @@ const QueryBuilderProto: Omit<
 }
 
 /**
- * @since 4.0.0
+ * Creates an `IndexedDbQueryBuilder` from an open database reference, key-range constructor, table map, and reactivity service.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <Source extends IndexedDbVersion.AnyWithProps>({
   IDBKeyRange,
@@ -1890,6 +2033,7 @@ export const make = <Source extends IndexedDbVersion.AnyWithProps>({
   self.database = database
   self.reactivity = reactivity
   self.IDBKeyRange = IDBKeyRange
+  self.fromCache = new Map()
   return self
 }
 

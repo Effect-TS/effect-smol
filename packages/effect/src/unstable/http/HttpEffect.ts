@@ -1,4 +1,39 @@
 /**
+ * Bridges Effect HTTP server programs with platform request handlers.
+ *
+ * This module runs effects that produce `HttpServerResponse` values at the edge
+ * of a server runtime. It can turn an Effect handler into a Web `Request`
+ * handler, build that handler from a `Layer`, adapt an existing Web handler back
+ * into an Effect server effect, apply HTTP middleware, translate failures into
+ * responses, and run pre-response hooks immediately before a response is sent.
+ *
+ * **Mental model**
+ *
+ * Each incoming platform request becomes an `HttpServerRequest` in the Effect
+ * context plus a request `Scope`. The server effect produces a response, or
+ * fails with a cause that is converted into an HTTP response. Web handler
+ * adapters fork the Effect program, resolve the platform `Response` promise when
+ * the response is handled, and interrupt the fiber when the request aborts.
+ * Streaming responses transfer scope ownership to the body stream so resources
+ * remain open until the stream exits.
+ *
+ * **Common tasks**
+ *
+ * Use `toWebHandler` for a handler with no extra services, `toWebHandlerWith`
+ * when each request may provide additional context, `toWebHandlerLayer` or
+ * `toWebHandlerLayerWith` when services come from a layer that must later be
+ * disposed, and `fromWebHandler` when embedding a Web-standard handler inside an
+ * Effect HTTP server. Use pre-response handlers to adjust headers, cookies, or
+ * status before the response is converted to the platform response type.
+ *
+ * **Gotchas**
+ *
+ * Layer-backed handlers return a `dispose` function for the layer scope; call it
+ * when the hosting runtime shuts down. Pre-response handlers run before bytes
+ * are sent, not after a streaming body has started. Web adapters handle
+ * streaming scope transfer automatically, but lower-level integrations that call
+ * `toHandled` directly must preserve request scope ownership themselves.
+ *
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
@@ -21,8 +56,10 @@ import * as Response from "./HttpServerResponse.ts"
 import { appendPreResponseHandlerUnsafe, requestPreResponseHandlers } from "./internal/preResponseHandler.ts"
 
 /**
- * @since 4.0.0
+ * Runs an HTTP server effect, sends the produced response with the supplied handler, and converts failures into HTTP responses.
+ *
  * @category combinators
+ * @since 4.0.0
  */
 export const toHandled = <E, R, EH, RH>(
   self: Effect.Effect<HttpServerResponse, E, R>,
@@ -107,19 +144,25 @@ export const toHandled = <E, R, EH, RH>(
 const handledSymbol = Symbol.for("effect/http/HttpEffect/handled")
 
 /**
- * If you want to finalize the http request scope elsewhere, you can use this
- * function to eject from the default scope closure.
+ * Disables automatic closing for an HTTP request scope.
  *
+ * **Gotchas**
+ *
+ * Use only when another owner will close the scope; otherwise resources attached
+ * to the request scope can leak.
+ *
+ * @category resource management
  * @since 4.0.0
- * @category Scope
  */
 export const scopeDisableClose = (scope: Scope.Scope): void => {
   ;(scope as any)[scopeEjected] = true
 }
 
 /**
+ * Returns a streaming server response that closes the request scope when the body stream exits.
+ *
+ * @category resource management
  * @since 4.0.0
- * @category Scope
  */
 export const scopeTransferToStream = (
   response: HttpServerResponse
@@ -155,8 +198,10 @@ const scoped = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   })
 
 /**
- * @since 4.0.0
+ * Function run with the current request and response just before the response is sent, allowing the response to be replaced or failing with `HttpServerError`.
+ *
  * @category Pre-response handlers
+ * @since 4.0.0
  */
 export type PreResponseHandler = (
   request: HttpServerRequest,
@@ -164,8 +209,10 @@ export type PreResponseHandler = (
 ) => Effect.Effect<HttpServerResponse, HttpServerError>
 
 /**
- * @since 4.0.0
+ * Registers an additional pre-response handler for the current HTTP server request.
+ *
  * @category fiber refs
+ * @since 4.0.0
  */
 export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Effect<void, never, HttpServerRequest> =>
   HttpServerRequest.use((request) => {
@@ -175,15 +222,19 @@ export const appendPreResponseHandler = (handler: PreResponseHandler): Effect.Ef
 
 export {
   /**
-   * @since 4.0.0
+   * Registers a pre-response handler for the supplied HTTP server request.
+   *
    * @category fiber refs
+   * @since 4.0.0
    */
   appendPreResponseHandlerUnsafe
 }
 
 /**
- * @since 4.0.0
+ * Runs an effect after registering a pre-response handler for the current HTTP server request.
+ *
  * @category fiber refs
+ * @since 4.0.0
  */
 export const withPreResponseHandler: {
   (handler: PreResponseHandler): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R | HttpServerRequest>
@@ -200,8 +251,10 @@ export const withPreResponseHandler: {
   }))
 
 /**
+ * Converts an HTTP server effect into a Web `Request` handler using the supplied base context and optional middleware.
+ *
+ * @category converting
  * @since 4.0.0
- * @category conversions
  */
 export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
   context: Context.Context<Provided>
@@ -240,8 +293,10 @@ export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided
 }
 
 /**
+ * Converts an HTTP server effect into a Web `Request` handler using an empty base context.
+ *
+ * @category converting
  * @since 4.0.0
- * @category conversions
  */
 export const toWebHandler: <E>(
   self: Effect.Effect<HttpServerResponse, E, HttpServerRequest | Scope.Scope>,
@@ -250,8 +305,10 @@ export const toWebHandler: <E>(
   toWebHandlerWith(Context.empty())
 
 /**
+ * Builds a Web `Request` handler from a layer and handler factory, returning the handler with a `dispose` function for the layer scope.
+ *
+ * @category converting
  * @since 4.0.0
- * @category conversions
  */
 export const toWebHandlerLayerWith = <
   E,
@@ -310,8 +367,10 @@ export const toWebHandlerLayerWith = <
 }
 
 /**
+ * Builds a Web `Request` handler for an HTTP server effect using a layer to provide its services, returning the handler with a `dispose` function.
+ *
+ * @category converting
  * @since 4.0.0
- * @category conversions
  */
 export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
   self: Effect.Effect<HttpServerResponse, E, R>,
@@ -335,8 +394,10 @@ export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided
   })
 
 /**
+ * Adapts a Web `Request` handler into an HTTP server effect for the current `HttpServerRequest`.
+ *
+ * @category converting
  * @since 4.0.0
- * @category conversions
  */
 export const fromWebHandler = (
   handler: (request: Request) => Promise<Response>

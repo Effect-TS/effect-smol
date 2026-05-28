@@ -1,4 +1,46 @@
 /**
+ * SQL storage for encrypted event-log server state.
+ *
+ * This module provides the durable `Storage` implementation used by
+ * `EventLogServerEncrypted` when remote entries should be stored in SQL without
+ * exposing plaintext event data to the database. The server assigns stable
+ * sequence numbers and streams changes, while clients remain responsible for
+ * encrypting writes and decrypting reads with their identity key material.
+ *
+ * **Mental model**
+ *
+ * The storage keeps a durable server remote id, one session authentication
+ * binding per public key, and one append-only entry table per public-key/store
+ * pair. Entry table names are derived from `entryTablePrefix` plus a truncated
+ * SHA-256 hash of the public key and store id. Each encrypted entry row stores
+ * the SQL sequence, initialization vector, entry id, and ciphertext bytes. A
+ * write inserts new entry ids in batches, ignores duplicates, reads back the
+ * ordered rows that are present, and publishes those rows to in-process change
+ * subscribers. A change stream first reads the SQL backlog from the requested
+ * sequence and then continues with entries published by this process.
+ *
+ * **Common tasks**
+ *
+ * - Persist an encrypted event-log server across process restarts.
+ * - Use SQL backup, replication, and transactional ordering while keeping event
+ *   payloads encrypted at rest.
+ * - Choose table names with `entryTablePrefix` and `remoteIdTable`, or tune
+ *   insert batching with `insertBatchSize`.
+ *
+ * **Gotchas**
+ *
+ * The database still contains protocol-sensitive ciphertext, IVs, entry ids,
+ * sequence numbers, public keys, and signing public key bindings, so backups and
+ * retention policies remain part of the security boundary. Live notifications
+ * are process-local after the initial SQL backlog read, so multi-process
+ * deployments need routing, reconnect/backfill behavior, or an external
+ * notification channel for writes made elsewhere. Entry tables are created
+ * dynamically, so migrations, monitoring, grants, table-prefix changes, and
+ * cleanup jobs must account for tables whose names are derived from identities
+ * and store ids. Encryption key material is not stored here; changing identity
+ * keys, encryption schemes, or data portability rules requires compatibility
+ * with the clients that produced the encrypted entries.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -15,8 +57,16 @@ import * as EventLogEncryption from "./EventLogEncryption.ts"
 import * as EventLogServerEncrypted from "./EventLogServerEncrypted.ts"
 
 /**
- * @since 4.0.0
+ * Creates encrypted event-log server `Storage` backed by SQL.
+ *
+ * **Details**
+ *
+ * It persists the server remote id, session authentication bindings, and encrypted
+ * entries in dialect-specific tables, creating per-identity/store entry tables as
+ * needed.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -287,8 +337,10 @@ const decodeSessionAuthBindings = (
 ): Effect.Effect<ReadonlyArray<SessionAuthBindingSql>, Schema.SchemaError> => decodeSessionAuthBindingRows(rows)
 
 /**
- * @since 4.0.0
+ * Provides encrypted server `Storage` using the SQL-backed implementation.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -301,8 +353,11 @@ export const layerStorage = (options?: {
 > => Layer.effect(EventLogServerEncrypted.Storage)(makeStorage(options))
 
 /**
- * @since 4.0.0
+ * Provides SQL-backed encrypted server `Storage` and supplies the default Web
+ * Crypto `EventLogEncryption` layer.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerStorageSubtle = (options?: {
   readonly entryTablePrefix?: string

@@ -1,4 +1,25 @@
 /**
+ * Runs the server side of the unstable Effect devtools socket protocol.
+ *
+ * Use this module when an integration needs to accept devtools clients over a
+ * `SocketServer`, decode newline-delimited JSON messages, and handle each
+ * connection with application-specific logic. It does not interpret spans or
+ * metrics itself; it gives handlers a typed surface for the telemetry described
+ * by `DevToolsSchema`.
+ *
+ * **Mental model**
+ *
+ * Each accepted socket becomes one `Client`. Incoming `Ping` requests are
+ * answered internally with `Pong`, while all other decoded requests are offered
+ * to the client's queue. Handler code reads that queue and sends non-pong
+ * responses such as `MetricsRequest` through `Client.send`.
+ *
+ * **Gotchas**
+ *
+ * The client queue is scoped to the socket-processing fiber and is shut down
+ * when that fiber terminates. Treat it as per-connection state, not as a
+ * process-wide telemetry bus.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -14,8 +35,15 @@ const RequestSchema = Schema.toCodecJson(DevToolsSchema.Request)
 const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
 
 /**
- * @since 4.0.0
+ * Handle for a connected devtools client.
+ *
+ * **Details**
+ *
+ * It exposes a queue of non-ping requests received from the socket and a
+ * `send` function for non-pong responses.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Client {
   readonly queue: Queue.Dequeue<DevToolsSchema.Request.WithoutPing>
@@ -23,8 +51,16 @@ export interface Client {
 }
 
 /**
- * @since 4.0.0
+ * Runs the devtools socket server.
+ *
+ * **Details**
+ *
+ * Each connection is decoded as NDJSON devtools protocol messages, `Ping`
+ * requests are answered with `Pong`, and all other requests are delivered
+ * through the `Client` passed to the handler.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const run: <_, E, R>(
   handle: (client: Client) => Effect.Effect<_, E, R>

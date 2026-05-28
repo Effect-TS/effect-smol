@@ -1,5 +1,30 @@
 /**
- * @since 1.0.0
+ * Adapter base for exposing Node `http.IncomingMessage` values as Effect HTTP
+ * incoming messages.
+ *
+ * Server requests and Node client responses both arrive as Node readable
+ * streams with raw header objects, socket metadata, and one-shot body
+ * consumption. This module's `NodeHttpIncomingMessage` class keeps the original
+ * Node message available while presenting Effect's `HttpIncomingMessage` shape:
+ * typed headers, remote address lookup, stream access, and text, JSON,
+ * URL-encoded, and array-buffer body readers.
+ *
+ * **Mental model**
+ *
+ * The Node message remains the source of truth. The adapter translates headers
+ * and remote address on demand, delegates raw streaming to `NodeStream`, and
+ * lets subclasses choose how unknown Node errors are mapped into their HTTP
+ * error type.
+ *
+ * **Gotchas**
+ *
+ * Node request and response bodies are one-shot streams. The `text` and
+ * `arrayBuffer` readers are cached and share decoded values with each other,
+ * but direct `stream` access is not cached and can consume the underlying Node
+ * stream before a decoder reads it. Body readers honor
+ * `HttpIncomingMessage.MaxBodySize`.
+ *
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/Inspectable"
@@ -13,14 +38,28 @@ import type * as Http from "node:http"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
- * @since 1.0.0
- * @category Constructors
+ * Adapts a Node `IncomingMessage` to Effect HTTP incoming messages.
+ *
+ * **When to use**
+ *
+ * Use to implement Node HTTP request or response adapters that expose the
+ * Effect HTTP incoming-message interface.
+ *
+ * **Details**
+ *
+ * The adapter exposes headers, remote address, stream access, and cached body
+ * decoders. Subclasses provide the error mapping for unknown Node errors.
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
   implements IncomingMessage.HttpIncomingMessage<E>
 {
   /**
-   * @since 1.0.0
+   * Marks this value as an HTTP incoming message for runtime guards.
+   *
+   * @since 4.0.0
    */
   readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
   readonly source: Http.IncomingMessage
@@ -54,7 +93,7 @@ export abstract class NodeHttpIncomingMessage<E> extends Inspectable.Class
     }
     this.textEffect = Effect.runSync(Effect.cached(
       Effect.flatMap(
-        IncomingMessage.MaxBodySize.asEffect(),
+        IncomingMessage.MaxBodySize,
         (maxBodySize) =>
           NodeStream.toString(() => this.source, {
             onError: this.onError,

@@ -1,5 +1,35 @@
 /**
- * @since 1.0.0
+ * Bun stream interoperability for Effect streams.
+ *
+ * This module is the Bun entry point for adapting runtime streams into Effect's
+ * streaming model. It re-exports the shared Node stream adapters for Bun's
+ * Node-compatible stream APIs and adds {@link fromReadableStream}, a Web
+ * `ReadableStream` adapter that uses Bun's `readMany` reader method to pull
+ * batches of values into an Effect `Stream`.
+ *
+ * **Mental model**
+ *
+ * Consuming the returned `Stream` drives reads from the underlying
+ * `ReadableStreamDefaultReader`. Each pull asks Bun for the next batch, empty
+ * batches are skipped, read failures are translated with `onError`, and the
+ * reader is finalized with the surrounding Effect scope.
+ *
+ * **Common tasks**
+ *
+ * Use {@link fromReadableStream} for Bun `Request` and `Response` bodies,
+ * multipart uploads, and other Web stream sources that should be transformed,
+ * decoded, or piped with Effect stream operators. Use the re-exported Node
+ * stream adapters for APIs that expose Bun's Node-compatible `stream` types.
+ *
+ * **Gotchas**
+ *
+ * Web stream readers hold an exclusive lock. Request and response bodies are
+ * also one-shot; once consumed they are disturbed and should not be read through
+ * another API. By default finalization cancels the reader; set
+ * `releaseLockOnEnd` when the stream is externally owned and only the reader
+ * lock should be released.
+ *
+ * @since 4.0.0
  */
 import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
@@ -11,15 +41,16 @@ import * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "@effect/platform-node-shared/NodeStream"
 
 /**
- * An optimized version of `Stream.fromReadableStream` that uses the Bun
- * .readMany API to read multiple values at once from a `ReadableStream`.
+ * Creates a stream from a `ReadableStream` using Bun's optimized `.readMany`
+ * API.
  *
- * @since 1.0.0
+ * @category constructors
+ * @since 4.0.0
  */
 export const fromReadableStream = <A, E>(
   options: {

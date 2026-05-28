@@ -1,4 +1,51 @@
 /**
+ * The `HttpApi` module defines the top-level declaration for an Effect HTTP
+ * API. An {@link HttpApi} has an identifier, annotations, and a collection of
+ * groups whose endpoints describe request inputs, response schemas, middleware,
+ * and route metadata.
+ *
+ * An `HttpApi` value is the shared contract consumed by server builders,
+ * generated clients, URL builders, OpenAPI generation, and reflection tools.
+ * Handler implementations are supplied later with `HttpApiBuilder.group`, and
+ * the completed API is registered with `HttpApiBuilder.layer`.
+ *
+ * **Mental model**
+ *
+ * - {@link make} creates an empty API declaration with a stable identifier.
+ * - Groups are added to the API declaration, and each group owns its endpoint
+ *   declarations.
+ * - API-level prefixes, middleware, and annotations are composition operations
+ *   over the groups already present in the declaration.
+ * - {@link reflect} walks the final group and endpoint metadata with merged
+ *   annotations, status-indexed response schemas, and middleware errors.
+ *
+ * **Common tasks**
+ *
+ * - Create an API with {@link make}.
+ * - Add groups with the `add` method, or merge another API with `addHttpApi`.
+ * - Apply a shared path prefix, middleware, or annotation through the methods on
+ *   {@link HttpApi}.
+ * - Inspect the resulting route shape with {@link reflect}.
+ * - Register extra OpenAPI component schemas through {@link AdditionalSchemas}.
+ *
+ * **Gotchas**
+ *
+ * - Group identifiers are used as keys. Adding a group with the same identifier
+ *   replaces the previous group.
+ * - `prefix` and `middleware` affect the groups and endpoints already present
+ *   when those methods are called.
+ * - `addHttpApi` merges the added API's annotations into its groups.
+ * - Reflection includes middleware error schemas with endpoint errors and treats
+ *   endpoints without an explicit success schema as `NoContent`.
+ * - Schemas supplied through {@link AdditionalSchemas} must have an `identifier`
+ *   annotation so OpenAPI generation can emit them as components.
+ *
+ * **See also**
+ *
+ * - {@link make} for constructing API declarations.
+ * - {@link reflect} for inspecting groups and endpoints.
+ * - {@link AdditionalSchemas} for OpenAPI component schemas.
+ *
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
@@ -18,19 +65,24 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
 const TypeId = "~effect/httpapi/HttpApi"
 
 /**
- * @since 4.0.0
+ * Returns `true` when a value is an `HttpApi`.
+ *
  * @category guards
+ * @since 4.0.0
  */
 export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
- * An `HttpApi` is a collection of `HttpApiEndpoint`s. You can use an `HttpApi` to
- * represent a portion of your domain.
+ * An `HttpApi` is a collection of HTTP API groups and endpoints that represents a
+ * portion of your domain.
  *
- * The endpoints can be implemented later using the `HttpApiBuilder.make` api.
+ * **When to use**
  *
- * @since 4.0.0
+ * Use when endpoint implementations can be provided with `HttpApiBuilder.group`, and the
+ * completed API can be registered with `HttpApiBuilder.layer`.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface HttpApi<
   out Id extends string,
@@ -60,11 +112,11 @@ export interface HttpApi<
   prefix<const Prefix extends PathInput>(prefix: Prefix): HttpApi<Id, HttpApiGroup.AddPrefix<Groups, Prefix>>
 
   /**
-   * Add a middleware to a `HttpApi`. It will be applied to all endpoints in the
-   * `HttpApi`.
+   * Adds a middleware to every endpoint currently in the `HttpApi`.
    *
-   * Note that this will only add the middleware to the endpoints **before** this
-   * api is called.
+   * **Gotchas**
+   *
+   * Endpoints added after this method is called do not receive the middleware.
    */
   middleware<I extends HttpApiMiddleware.AnyId, S>(
     middleware: Context.Key<I, S>
@@ -82,16 +134,21 @@ export interface HttpApi<
 }
 
 /**
- * @since 4.0.0
+ * An `HttpApi` value with its identifier and group types erased.
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Any {
   readonly [TypeId]: typeof TypeId
 }
 
 /**
- * @since 4.0.0
+ * An `HttpApi` with broad identifier and group types while retaining the concrete
+ * runtime properties used by implementation helpers.
+ *
  * @category models
+ * @since 4.0.0
  */
 export type AnyWithProps = HttpApi<string, HttpApiGroup.AnyWithProps>
 
@@ -175,14 +232,15 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
 }
 
 /**
- * An `HttpApi` is a collection of `HttpApiEndpoint`s. You can use an `HttpApi` to
- * represent a portion of your domain.
+ * Creates an empty `HttpApi` with the supplied identifier.
  *
- * You can then use `HttpApiBuilder.layer(api)` to implement the endpoints of the
- * `HttpApi`.
+ * **When to use**
  *
- * @since 4.0.0
+ * Use when add groups with `add` or `addHttpApi`, provide endpoint implementations with
+ * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never> =>
   makeProto({
@@ -192,8 +250,15 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
   })
 
 /**
+ * Describes the groups and endpoints in an `HttpApi`.
+ *
+ * **Details**
+ *
+ * The callbacks receive each group or endpoint with merged annotations, endpoint
+ * middleware, and response schemas grouped by HTTP status.
+ *
+ * @category reflection
  * @since 4.0.0
- * @category Reflection
  */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
   self: HttpApi<Id, Groups>,
@@ -280,8 +345,8 @@ const extractResponseContent = (
  * Adds additional schemas to components/schemas.
  * The provided schemas must have a `identifier` annotation.
  *
- * @since 4.0.0
  * @category tags
+ * @since 4.0.0
  */
 export class AdditionalSchemas extends Context.Service<
   AdditionalSchemas,

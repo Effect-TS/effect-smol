@@ -1,4 +1,30 @@
 /**
+ * Workflow-safe sleeps that can be replayed, suspended, and resumed by a
+ * workflow engine.
+ *
+ * Use this module when a workflow needs to pause for a timeout, reminder,
+ * deadline, retry delay, or scheduled wake-up. `sleep` keeps very short delays
+ * in the current process as an activity, and turns longer delays into durable
+ * clocks that the engine can schedule and resume through a durable deferred.
+ *
+ * **Mental model**
+ *
+ * A `DurableClock` is a stable timer name, a normalized duration, and the
+ * deferred completed when the timer wakes. `sleep` is the workflow-facing
+ * helper: zero durations complete immediately, durations at or below the
+ * in-memory threshold run with `Effect.sleep` inside an activity, and longer
+ * durations are scheduled with the `WorkflowEngine` before awaiting the
+ * clock's deferred.
+ *
+ * **Gotchas**
+ *
+ * Timer names, durations, and thresholds are part of workflow behavior. Keep
+ * them deterministic for a given workflow path, avoid deriving them from
+ * ambient wall-clock state, and give distinct logical waits distinct names so
+ * replayed executions match the correct scheduled wake-up. Lower the in-memory
+ * threshold when a delay must survive the current process rather than relying
+ * on an in-process sleep.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -12,8 +38,11 @@ import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 const TypeId = "~effect/workflow/DurableClock"
 
 /**
+ * Represents a durable workflow timer with a name, duration, and deferred
+ * completed when the timer wakes.
+ *
+ * @category models
  * @since 4.0.0
- * @category Models
  */
 export interface DurableClock {
   readonly [TypeId]: typeof TypeId
@@ -23,8 +52,11 @@ export interface DurableClock {
 }
 
 /**
+ * Creates a durable clock definition and its associated deferred wake-up
+ * signal.
+ *
+ * @category constructors
  * @since 4.0.0
- * @category Constructors
  */
 export const make = (options: {
   readonly name: string
@@ -48,8 +80,11 @@ const InstanceTag = Context.Service<
 )
 
 /**
- * @since 1.0.0
- * @category Sleeping
+ * Waits inside a workflow, using an in-memory activity for durations at or
+ * below the threshold and scheduling a durable clock for longer durations.
+ *
+ * @category sleeping
+ * @since 4.0.0
  */
 export const sleep: (
   options: {
@@ -59,7 +94,7 @@ export const sleep: (
      * If the duration is less than or equal to this threshold, the clock will
      * be executed in memory.
      *
-     * Defaults to 60 seconds.
+     * @default 60 seconds
      */
     readonly inMemoryThreshold?: Duration.Input | undefined
   }

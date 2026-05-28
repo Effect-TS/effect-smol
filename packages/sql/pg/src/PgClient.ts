@@ -1,5 +1,40 @@
 /**
- * @since 1.0.0
+ * PostgreSQL driver for Effect SQL, backed by the `pg` package.
+ *
+ * Use this module to provide a {@link PgClient} and the generic `SqlClient`
+ * service from pool settings, a single managed `pg.Client`, an existing
+ * `pg.Pool`, or custom connection acquirers. The client uses Effect SQL's
+ * PostgreSQL compiler, classifies common PostgreSQL failures as `SqlError`s,
+ * and adds PostgreSQL-specific JSON fragments plus LISTEN/NOTIFY operations.
+ *
+ * ## Mental model
+ *
+ * Pool-backed clients acquire a connection for each operation. Transactions and
+ * cursor streams keep a dedicated connection for their scope, so they consume
+ * pool capacity while active. Clients built from one `pg.Client` serialize
+ * query access through that client; set `acquireForStream` in
+ * {@link makeClient} when streams or listeners need separate clients.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} with concrete pool settings, or {@link layerConfig} when
+ *   settings should come from `Config`.
+ * - Use {@link make} for a scoped pool-backed client without immediately
+ *   turning it into a layer.
+ * - Use {@link fromPool} or {@link fromClient} when another component owns
+ *   acquisition of the underlying `pg` resources.
+ * - Use `client.json`, `client.listen`, and `client.notify` for
+ *   PostgreSQL-specific values and notifications.
+ *
+ * ## Gotchas
+ *
+ * LISTEN opens a scoped long-lived client and issues `UNLISTEN` when the stream
+ * scope closes, so keep listener streams scoped for exactly the period
+ * notifications are needed. Long-running transactions, streams, and listeners
+ * can hold onto database connections even while other fibers continue to use
+ * the same `PgClient`.
+ *
+ * @since 4.0.0
  */
 import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
@@ -33,6 +68,7 @@ import {
   SqlError,
   SqlSyntaxError,
   StatementTimeoutError,
+  UniqueViolation,
   UnknownError
 } from "effect/unstable/sql/SqlError"
 import type { Custom, Fragment } from "effect/unstable/sql/Statement"
@@ -44,20 +80,26 @@ import * as PgConnString from "pg-connection-string"
 import Cursor from "pg-cursor"
 
 /**
- * @category type ids
- * @since 1.0.0
+ * Runtime type identifier used to mark `PgClient` values.
+ *
+ * @category type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-pg/PgClient"
 
 /**
- * @category type ids
- * @since 1.0.0
+ * Type-level identifier used to mark `PgClient` values.
+ *
+ * @category type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-pg/PgClient"
 
 /**
+ * PostgreSQL client service, extending `SqlClient` with JSON parameter fragments and LISTEN/NOTIFY helpers.
+ *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface PgClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -68,14 +110,22 @@ export interface PgClient extends Client.SqlClient {
 }
 
 /**
+ * Service tag for the PostgreSQL client service.
+ *
+ * **When to use**
+ *
+ * Use to access or provide a PostgreSQL client through the Effect context.
+ *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const PgClient = Context.Service<PgClient>("@effect/sql-pg/PgClient")
 
 /**
+ * Configuration for a PostgreSQL client, including connection, TLS, custom stream, application name, type parser, JSON transform, and query/result name transform options.
+ *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface PgClientConfig {
   readonly url?: Redacted.Redacted | undefined
@@ -102,8 +152,10 @@ export interface PgClientConfig {
 }
 
 /**
+ * PostgreSQL pool configuration, extending `PgClientConfig` with idle timeout, pool size, and connection lifetime settings.
+ *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface PgPoolConfig extends PgClientConfig {
   readonly idleTimeout?: Duration.Input | undefined
@@ -114,8 +166,10 @@ export interface PgPoolConfig extends PgClientConfig {
 }
 
 /**
+ * Creates a scoped PostgreSQL client backed by a managed `pg` connection pool.
+ *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const make = (options: PgPoolConfig): Effect.Effect<PgClient, SqlError, Scope.Scope | Reactivity.Reactivity> =>
   fromPool({
@@ -178,8 +232,10 @@ export const make = (options: PgPoolConfig): Effect.Effect<PgClient, SqlError, S
   })
 
 /**
+ * Creates a scoped PostgreSQL client backed by a managed single `pg` client, optionally acquiring a separate client for streaming and LISTEN operations.
+ *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeClient = (
   options: PgClientConfig & {
@@ -236,8 +292,10 @@ export const makeClient = (
   })
 
 /**
+ * Builds a PostgreSQL client from a scoped `pg` pool acquisition effect, deriving transaction, streaming, and LISTEN/NOTIFY support from that pool.
+ *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromPool = Effect.fnUntraced(function*(
   options: {
@@ -438,8 +496,10 @@ export const fromPool = Effect.fnUntraced(function*(
 })
 
 /**
+ * Builds a PostgreSQL client from a scoped `pg` client acquisition effect, serializing access when sharing the client and optionally using separate clients for streams and LISTEN.
+ *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const fromClient = Effect.fnUntraced(function*(
   options: {
@@ -512,8 +572,15 @@ export const fromClient = Effect.fnUntraced(function*(
 })
 
 /**
+ * Creates a `PgClient` from SQL connection acquirers, a LISTEN acquirer, client configuration, and transformation options.
+ *
+ * **When to use**
+ *
+ * Use to build a PostgreSQL client from custom connection acquisition logic
+ * instead of the built-in pool or single-client constructors.
+ *
  * @category constructors
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const makeWith = Effect.fnUntraced(function*(
   options: {
@@ -726,8 +793,10 @@ const makeCancel = (pool: Pg.Pool, client: Pg.PoolClient) => {
 }
 
 /**
+ * Creates a layer from an effect that acquires a `PgClient`, providing both `PgClient` and `SqlClient`.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerFrom = <E, R>(
   acquire: Effect.Effect<PgClient, E, R>
@@ -740,8 +809,10 @@ export const layerFrom = <E, R>(
   ).pipe(Layer.provide(Reactivity.layer)) as any
 
 /**
+ * Creates a layer from a `Config`-wrapped PostgreSQL pool configuration, providing both `PgClient` and `SqlClient`.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig: (
   config: Config.Wrap<PgPoolConfig>
@@ -749,21 +820,25 @@ export const layerConfig: (
   config: Config.Wrap<PgPoolConfig>
 ): Layer.Layer<PgClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   layerFrom(Effect.flatMap(
-    Config.unwrap(config).asEffect(),
+    Config.unwrap(config),
     make
   ))
 
 /**
+ * Creates a layer from a concrete PostgreSQL pool configuration, providing both `PgClient` and `SqlClient`.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: PgPoolConfig
 ): Layer.Layer<PgClient | Client.SqlClient, SqlError> => layerFrom(make(config))
 
 /**
- * @category constructor
- * @since 1.0.0
+ * Creates the PostgreSQL statement compiler, using `$1` placeholders, double-quoted identifiers, PostgreSQL returning clauses, and optional JSON value transformation.
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const makeCompiler = (
   transform?: (_: string) => string,
@@ -811,19 +886,21 @@ export const makeCompiler = (
 const escape = Statement.defaultEscape("\"")
 
 /**
+ * PostgreSQL-specific custom statement fragments supported by the compiler, currently JSON parameter fragments.
+ *
  * @category custom types
- * @since 1.0.0
+ * @since 4.0.0
  */
 export type PgCustom = PgJson
 
 /**
  * @category custom types
- * @since 1.0.0
+ * @since 4.0.0
  */
 interface PgJson extends Custom<"PgJson", unknown> {}
 /**
  * @category custom types
- * @since 1.0.0
+ * @since 4.0.0
  */
 const PgJson = Statement.custom<PgJson>("PgJson")
 
@@ -838,6 +915,18 @@ const pgCodeFromCause = (cause: unknown): string | undefined => {
   }
   const code = cause.code
   return typeof code === "string" ? code : undefined
+}
+
+const pgConstraintFromCause = (cause: unknown): string => {
+  if (typeof cause !== "object" || cause === null || !("constraint" in cause)) {
+    return "unknown"
+  }
+  const constraint = cause.constraint
+  if (typeof constraint !== "string") {
+    return "unknown"
+  }
+  const normalized = constraint.trim()
+  return normalized.length === 0 ? "unknown" : normalized
 }
 
 const classifyError = (
@@ -859,6 +948,9 @@ const classifyError = (
     }
     if (code.startsWith("42")) {
       return new SqlSyntaxError(props)
+    }
+    if (code === "23505") {
+      return new UniqueViolation({ ...props, constraint: pgConstraintFromCause(cause) })
     }
     if (code.startsWith("23")) {
       return new ConstraintError(props)

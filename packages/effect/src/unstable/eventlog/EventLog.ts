@@ -1,4 +1,34 @@
 /**
+ * High-level runtime for writing typed event-log events and replaying replicated
+ * journal entries.
+ *
+ * This module connects event definitions, handler layers, an `EventJournal`, and
+ * optional remote replicas. Applications define groups with `EventGroup`, build
+ * an `EventLogSchema`, register handlers with `group`, and obtain a typed client
+ * with `makeClient`; the `EventLog` service then encodes payloads, runs the
+ * matching handler, and commits the entry only after the handler succeeds.
+ *
+ * **Mental model**
+ *
+ * Local writes are command-like: encode the payload, derive the primary key, run
+ * the handler, then commit the journal entry. Remote replay is journal-like:
+ * entries are decoded with the same schemas, conflict entries are supplied to
+ * handlers, optional compaction can rewrite imported entries, and reactivity keys
+ * are invalidated after successful handling.
+ *
+ * **Common tasks**
+ *
+ * Use `schema` to combine event groups, `layer` or `layerEventLog` to install
+ * the runtime, `group` to register required handlers, `groupCompaction` to
+ * collapse remote history before replay, and `groupReactivity` to invalidate
+ * projections keyed by event primary key.
+ *
+ * **Gotchas**
+ *
+ * Remote synchronization depends on the current `Identity` and `CurrentStoreId`.
+ * Keep both stable for replicas that should share a log, and provide handlers for
+ * every event tag before writing through a client.
+ *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"
@@ -28,8 +58,16 @@ import { StoreId } from "./EventLogMessage.ts"
 import type { EventLogRemote } from "./EventLogRemote.ts"
 
 /**
- * @since 4.0.0
+ * Service for writing typed event-log events through registered handlers.
+ *
+ * **Details**
+ *
+ * `write` encodes the event payload, runs the matching handler, commits the entry
+ * only when the handler succeeds, and exposes access to the underlying journal
+ * entries and destroy operation.
+ *
  * @category tags
+ * @since 4.0.0
  */
 export class EventLog extends Context.Service<EventLog, {
   readonly write: <Groups extends EventGroup.Any, Tag extends Event.Tag<EventGroup.Events<Groups>>>(options: {
@@ -45,8 +83,11 @@ export class EventLog extends Context.Service<EventLog, {
 }>()("effect/eventlog/EventLog") {}
 
 /**
+ * Service that collects event handlers, compaction handlers, remote replicas,
+ * and reactivity invalidation keys.
+ *
+ * @category services
  * @since 4.0.0
- * @category Registry
  */
 export class Registry extends Context.Service<Registry, {
   readonly registerHandlerUnsafe: (options: {
@@ -81,8 +122,11 @@ export class Registry extends Context.Service<Registry, {
 }>()("effect/unstable/eventlog/EventLog/Registry") {}
 
 /**
+ * Provides an in-memory `Registry` for event handlers, compactors, remote
+ * replicas, and reactivity keys.
+ *
+ * @category layers
  * @since 4.0.0
- * @category Registry
  */
 export const layerRegistry = Layer.effect(
   Registry,
@@ -145,8 +189,16 @@ export const layerRegistry = Layer.effect(
 )
 
 /**
+ * Context service for an event-log identity containing a public key and redacted
+ * private key material.
+ *
+ * **Details**
+ *
+ * The identity is used by remote replication for authentication and by the
+ * encryption service to derive signing and encryption keys.
+ *
+ * @category services
  * @since 4.0.0
- * @category models
  */
 export class Identity extends Context.Service<Identity, {
   readonly publicKey: string
@@ -154,27 +206,35 @@ export class Identity extends Context.Service<Identity, {
 }>()("effect/eventlog/EventLog/Identity") {}
 
 /**
+ * Type-level identifier used to brand `EventLogSchema` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category schema
  */
 export type SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 
 /**
+ * Runtime property key used to identify `EventLogSchema` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category schema
  */
 export const SchemaTypeId: SchemaTypeId = "~effect/eventlog/EventLog/Schema"
 
 /**
+ * Returns `true` when a value carries the `EventLogSchema` marker.
+ *
+ * @category schemas
  * @since 4.0.0
- * @category schema
  */
 export const isEventLogSchema = (u: unknown): u is EventLogSchema<EventGroup.Any> =>
   Predicate.hasProperty(u, SchemaTypeId)
 
 /**
+ * Schema describing the event groups that can be written through an `EventLog`.
+ *
+ * @category schemas
  * @since 4.0.0
- * @category schema
  */
 export interface EventLogSchema<Groups extends EventGroup.Any> {
   readonly [SchemaTypeId]: SchemaTypeId
@@ -182,8 +242,10 @@ export interface EventLogSchema<Groups extends EventGroup.Any> {
 }
 
 /**
+ * Creates an `EventLogSchema` from one or more event groups.
+ *
+ * @category schemas
  * @since 4.0.0
- * @category schema
  */
 export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
   ...groups: Groups
@@ -196,22 +258,32 @@ export const schema = <Groups extends ReadonlyArray<EventGroup.Any>>(
 }
 
 /**
+ * Type-level identifier used to brand `Handlers` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category handlers
  */
 export type HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
 
 /**
+ * Runtime property key used to identify `Handlers` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category handlers
  */
 export const HandlersTypeId: HandlersTypeId = "~effect/eventlog/EventLog/Handlers"
 
 /**
- * Represents a handled `EventGroup`.
+ * Builder for the handlers associated with an `EventGroup`.
  *
- * @since 4.0.0
+ * **Details**
+ *
+ * The `Events` type parameter tracks the event tags that still need handlers, and
+ * each call to `handle` records a handler while accumulating any required
+ * services.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export interface Handlers<
   R,
@@ -245,21 +317,29 @@ export interface Handlers<
 }
 
 /**
+ * Namespace containing helper types for `Handlers` values and handler-producing
+ * layers.
+ *
  * @since 4.0.0
- * @category handlers
  */
 export declare namespace Handlers {
   /**
-   * @since 4.0.0
+   * Type that matches any `Handlers` value regardless of its services or remaining
+   * events.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export interface Any {
     readonly [HandlersTypeId]: unknown
   }
 
   /**
-   * @since 4.0.0
+   * Runtime representation of one registered event handler, including its event
+   * metadata, captured context, and handler function.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type Item<R> = {
     readonly event: Event.AnyWithProps
@@ -276,8 +356,15 @@ export declare namespace Handlers {
   }
 
   /**
-   * @since 4.0.0
+   * Validates that a handler builder returned all required handlers.
+   *
+   * **Details**
+   *
+   * If any event tag remains unhandled, the type evaluates to an explanatory
+   * compile-time error string.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type ValidateReturn<A> = A extends (
     | Handlers<
@@ -297,8 +384,10 @@ export declare namespace Handlers {
     `Must return the implemented handlers`
 
   /**
-   * @since 4.0.0
+   * Extracts the error type from an effect that produces `Handlers`.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type Error<A> = A extends Effect.Effect<
     Handlers<
@@ -311,8 +400,11 @@ export declare namespace Handlers {
     never
 
   /**
-   * @since 4.0.0
+   * Computes the services required by a `Handlers` value or by an effect that
+   * produces one, including event schema services.
+   *
    * @category handlers
+   * @since 4.0.0
    */
   export type Services<A> = A extends Handlers<
     infer _R,
@@ -330,8 +422,15 @@ export declare namespace Handlers {
 }
 
 /**
- * @since 4.0.0
+ * Context reference for the store id used by event-log writes and remote
+ * replication.
+ *
+ * **Details**
+ *
+ * Defaults to the branded store id `"default"`.
+ *
  * @category models
+ * @since 4.0.0
  */
 export class CurrentStoreId extends Context.Reference<StoreId>("effect/eventlog/EventLog/CurrentStoreId", {
   defaultValue: constant(StoreId.make("default"))
@@ -345,8 +444,11 @@ const RedactedUint8Array = Schema.Uint8ArrayFromBase64.pipe(
 )
 
 /**
+ * Schema for an event-log identity with a string public key and redacted
+ * base64-encoded private key bytes.
+ *
+ * @category schemas
  * @since 4.0.0
- * @category schema
  */
 export const IdentitySchema = Schema.Struct({
   publicKey: Schema.String,
@@ -363,8 +465,14 @@ const IdentityStringSchema = Schema.StringFromBase64Url.pipe(
 )
 
 /**
- * @since 4.0.0
+ * Decodes a base64url identity string produced by `encodeIdentityString`.
+ *
+ * **Gotchas**
+ *
+ * Invalid input throws a schema decoding error.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const decodeIdentityString = (value: string): Identity["Service"] => {
   const decoded = Schema.decodeUnknownSync(IdentityStringSchema)(value)
@@ -375,8 +483,11 @@ export const decodeIdentityString = (value: string): Identity["Service"] => {
 }
 
 /**
- * @since 4.0.0
+ * Encodes an event-log identity as a base64url string containing the public key
+ * and private key bytes.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const encodeIdentityString = (identity: Identity["Service"]): string =>
   Schema.encodeSync(IdentityStringSchema)({
@@ -385,8 +496,11 @@ export const encodeIdentityString = (identity: Identity["Service"]): string =>
   })
 
 /**
- * @since 4.0.0
+ * Generates a new event-log identity using the configured
+ * `EventLogEncryption` service.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeIdentity: Effect.Effect<Identity["Service"], never, EventLogEncryption.EventLogEncryption> =
   EventLogEncryption.EventLogEncryption.use((_) => _.generateIdentity)
@@ -425,8 +539,15 @@ const makeHandlers = (options: {
 }): Handlers<any, any> => Object.assign(Object.create(handlersProto), options)
 
 /**
- * @since 4.0.0
+ * Creates a layer that registers handlers for every event in an event group.
+ *
+ * **Details**
+ *
+ * The callback receives a `Handlers` builder; its return type is checked so every
+ * event in the group is handled.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export const group = <Events extends Event.Any, Return>(
   group: EventGroup.EventGroup<Events>,
@@ -455,8 +576,15 @@ export const group = <Events extends Event.Any, Return>(
   ) as any
 
 /**
- * @since 4.0.0
+ * Registers a compaction handler for an event group.
+ *
+ * **Details**
+ *
+ * During remote replay, matching entries are decoded, grouped by primary key, and
+ * passed to the compaction effect, which may write replacement entries.
+ *
  * @category compaction
+ * @since 4.0.0
  */
 export const groupCompaction = <Events extends Event.Any, R>(
   group: EventGroup.EventGroup<Events>,
@@ -546,8 +674,15 @@ export const groupCompaction = <Events extends Event.Any, R>(
   )
 
 /**
- * @since 4.0.0
+ * Registers reactivity keys to invalidate when events from a group are written or
+ * replayed.
+ *
+ * **Details**
+ *
+ * Pass a single key list for all events or a mapping from event tag to key list.
+ *
  * @category reactivity
+ * @since 4.0.0
  */
 export const groupReactivity = <Events extends Event.Any>(
   group: EventGroup.EventGroup<Events>,
@@ -571,8 +706,16 @@ export const groupReactivity = <Events extends Event.Any>(
   )
 
 /**
- * @since 4.0.0
+ * Builds the effect used to replay entries received from a remote event log.
+ *
+ * **Details**
+ *
+ * The returned handler decodes the entry and conflicts with the registered event
+ * schema, runs the matching handler with the supplied identity and store id, logs
+ * failures, and invalidates configured reactivity keys.
+ *
  * @category handlers
+ * @since 4.0.0
  */
 export const makeReplayFromRemote = (options: {
   readonly handlers: ReadonlyMap<string, Handlers.Item<any>>
@@ -816,8 +959,11 @@ const make = Effect.gen(function*() {
 })
 
 /**
- * @since 4.0.0
+ * Provides `EventLog` and `Registry` using the configured `EventJournal` and
+ * `Identity`.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal | Identity> = Layer.effect(
   EventLog,
@@ -828,8 +974,33 @@ export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal
 )
 
 /**
- * @since 4.0.0
+ * Combines event-group handler layers with the `EventLog` runtime for a schema.
+ *
+ * **When to use**
+ *
+ * Use when an application has an `EventLogSchema` and event-group handler layer
+ * and wants one layer that installs the shared `EventLog` runtime and registers
+ * the handlers for typed writes.
+ *
+ * **Details**
+ *
+ * The supplied handler layer is provided with `layerEventLog`. The returned
+ * layer provides `EventLog | Registry`, preserves the handler layer's error
+ * type, and still requires its remaining services plus `EventJournal` and
+ * `Identity`.
+ *
+ * **Gotchas**
+ *
+ * The schema argument does not register handlers by itself. Handler registration
+ * comes from the supplied layer, and writing an event without a registered
+ * handler dies with `Event handler not found for: "<tag>"`.
+ *
+ * @see {@link schema} for creating the schema argument from event groups
+ * @see {@link group} for building the handler layer consumed by this layer
+ * @see {@link layerEventLog} for installing the runtime and registry without combining a handler layer
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer = <Groups extends EventGroup.Any, E, R>(
   _schema: EventLogSchema<Groups>,
@@ -844,8 +1015,16 @@ export const layer = <Groups extends EventGroup.Any, E, R>(
   )
 
 /**
- * @since 4.0.0
+ * Creates a typed client function for writing events defined by an
+ * `EventLogSchema`.
+ *
+ * **Details**
+ *
+ * The returned function delegates to the `EventLog` service and preserves each
+ * event's success and error types.
+ *
  * @category client
+ * @since 4.0.0
  */
 export const makeClient = <Groups extends EventGroup.Any>(
   schema: EventLogSchema<Groups>

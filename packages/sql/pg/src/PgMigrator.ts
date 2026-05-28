@@ -1,5 +1,41 @@
 /**
- * @since 1.0.0
+ * PostgreSQL migration support for Effect SQL applications.
+ *
+ * This module adapts the shared SQL migrator to PostgreSQL. It re-exports the
+ * common migration loaders and errors, then provides {@link run} and
+ * {@link layer} helpers that execute pending migrations with the current
+ * `SqlClient` and `PgClient`.
+ *
+ * **Mental model**
+ *
+ * Migrations are numbered operations loaded from files, records, or bundler
+ * glob results. The migrator ensures the migrations table exists, reads the
+ * latest recorded id, and runs only migrations with a greater id. PostgreSQL
+ * runs use the configured `PgClient` connection details for both migration SQL
+ * and optional schema dumps.
+ *
+ * **Common tasks**
+ *
+ * - Run migrations explicitly with {@link run} during startup or deployment
+ * - Add migrations to a layer graph with {@link layer} so dependent services
+ *   are acquired after the schema is prepared
+ * - Reuse the shared loaders such as `fromGlob`, `fromRecord`, and
+ *   `fromFileSystem`
+ * - Enable `schemaDirectory` to write a portable schema snapshot after a
+ *   successful migration run
+ *
+ * **Gotchas**
+ *
+ * - The default migrations table is `effect_sql_migrations`; use `table` when a
+ *   database needs a different name
+ * - Only migrations with an id greater than the latest recorded id are run, so
+ *   editing an older migration does not make it run again
+ * - Schema dumps shell out to `pg_dump`, so `pg_dump` must be on `PATH` and the
+ *   layer must provide child process, filesystem, and path services
+ * - Generated dumps intentionally omit comments, session settings, ownership,
+ *   and privilege statements to keep snapshots portable
+ *
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
@@ -14,13 +50,15 @@ import type { SqlError } from "effect/unstable/sql/SqlError"
 import { PgClient } from "./PgClient.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * from "effect/unstable/sql/Migrator"
 
 /**
- * @category constructor
- * @since 1.0.0
+ * Runs PostgreSQL SQL migrations using the configured clients. Schema dumps use `pg_dump` and require child process, filesystem, and path services.
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const run: <R2 = never>(
   options: Migrator.MigratorOptions<R2>
@@ -91,8 +129,10 @@ export const run: <R2 = never>(
 })
 
 /**
+ * Creates a layer that runs PostgreSQL migrations during layer construction, including `pg_dump`-based schema dump support when requested.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = <R>(
   options: Migrator.MigratorOptions<R>

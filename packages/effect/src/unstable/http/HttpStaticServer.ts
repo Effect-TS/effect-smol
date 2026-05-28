@@ -1,4 +1,37 @@
 /**
+ * Static file serving for Effect HTTP applications.
+ *
+ * `HttpStaticServer` turns HTTP requests into file responses rooted at a
+ * configured directory. Use {@link make} when you need an application value, or
+ * {@link layer} when static files should be mounted onto an `HttpRouter`,
+ * optionally under a URL prefix.
+ *
+ * **Mental model**
+ *
+ * The request path is decoded, normalized, and resolved below `root`. Invalid
+ * paths, null bytes, and `..` traversal outside `root` fail as route-not-found
+ * errors. A matching file is served through `HttpPlatform.fileResponse`, a
+ * matching directory serves `index` when configured, and `spa: true` falls back
+ * to the index file for extensionless HTML requests.
+ *
+ * **Common tasks**
+ *
+ * - Serve a public assets directory with {@link make}
+ * - Mount static assets beside API routes with {@link layer}
+ * - Add `Cache-Control` headers with `cacheControl`
+ * - Extend MIME type detection with `mimeTypes`
+ * - Support single-page application routing with `spa: true`
+ *
+ * **Gotchas**
+ *
+ * - {@link layer} installs `GET` routes only; handle other methods elsewhere.
+ * - Dotfiles are served when they live under `root`; keep secrets outside the
+ *   served tree.
+ * - Symlinks or generated files reachable from `root` may expose more than
+ *   expected.
+ * - Conditional requests and byte ranges depend on metadata supplied by
+ *   `HttpPlatform`.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -16,10 +49,11 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
 /**
  * Creates an `HttpApp` that serves files from a directory.
  *
- * @example
+ * **Example** (Serving files from a directory)
+ *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
+ * import { HttpStaticServer } from "effect/unstable/http"
  *
  * const program = Effect.gen(function*() {
  *   const app = yield* HttpStaticServer.make({ root: "./public" })
@@ -27,8 +61,8 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
  * })
  * ```
  *
- * @since 4.0.0
  * @category constructors
+ * @since 4.0.0
  */
 export const make: (options: {
   readonly root: string
@@ -168,12 +202,11 @@ export const make: (options: {
 /**
  * Creates a layer that mounts static files on an `HttpRouter`.
  *
- * @example
+ * **Example** (Mounting static files on a router)
+ *
  * ```ts
  * import { Layer } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
+ * import { HttpRouter, HttpServerResponse, HttpStaticServer } from "effect/unstable/http"
  *
  * const ApiLayer = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"))
  *
@@ -185,8 +218,8 @@ export const make: (options: {
  * const AppLayer = Layer.mergeAll(ApiLayer, StaticFilesLayer)
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly root: string

@@ -286,6 +286,19 @@ export const fromASTBlacklist: Set<string> = new Set([
   AST.ClassTypeId
 ])
 
+const standardJsonSchemaAnnotationKeys: ReadonlySet<string> = new Set([
+  "title",
+  "description",
+  "default",
+  "examples",
+  "readOnly",
+  "writeOnly",
+  "format",
+  "contentEncoding",
+  "contentMediaType",
+  "contentSchema"
+])
+
 function fromASTAnnotations(
   annotations: Schema.Annotations.Annotations | undefined
 ): { annotations: Schema.Annotations.Annotations } | undefined {
@@ -318,6 +331,7 @@ export function toJsonSchemaMultiDocument(
 ): JsonSchema.MultiDocument<"draft-2020-12"> {
   const generateDescriptions = options?.generateDescriptions ?? false
   const additionalProperties = options?.additionalProperties ?? false
+  const includeAnnotationKey = options?.includeAnnotationKey
 
   const definitions = Rec.map(multiDocument.references, (d) => recur(d))
 
@@ -569,21 +583,30 @@ export function toJsonSchemaMultiDocument(
   function collectJsonSchemaAnnotations(
     annotations: Schema.Annotations.Annotations | undefined
   ): JsonSchema.JsonSchema | undefined {
-    if (annotations) {
-      const out: JsonSchema.JsonSchema = {}
-      if (typeof annotations.title === "string") out.title = annotations.title
-      if (typeof annotations.description === "string") out.description = annotations.description
-      else if (generateDescriptions && typeof annotations.expected === "string") out.description = annotations.expected
-      if (annotations.default !== undefined) out.default = annotations.default
-      if (Array.isArray(annotations.examples)) out.examples = annotations.examples
-      if (typeof annotations.readOnly === "boolean") out.readOnly = annotations.readOnly
-      if (typeof annotations.writeOnly === "boolean") out.writeOnly = annotations.writeOnly
-      if (typeof annotations.format === "string") out.format = annotations.format
-      if (typeof annotations.contentEncoding === "string") out.contentEncoding = annotations.contentEncoding
-      if (typeof annotations.contentMediaType === "string") out.contentMediaType = annotations.contentMediaType
+    if (annotations === undefined) return undefined
 
-      if (Object.keys(out).length > 0) return out
+    const out: JsonSchema.JsonSchema = {}
+    if (typeof annotations.title === "string") out.title = annotations.title
+    if (typeof annotations.description === "string") out.description = annotations.description
+    else if (generateDescriptions && typeof annotations.expected === "string") out.description = annotations.expected
+    if (annotations.default !== undefined) out.default = annotations.default
+    if (Array.isArray(annotations.examples)) out.examples = annotations.examples
+    if (typeof annotations.readOnly === "boolean") out.readOnly = annotations.readOnly
+    if (typeof annotations.writeOnly === "boolean") out.writeOnly = annotations.writeOnly
+    if (typeof annotations.format === "string") out.format = annotations.format
+    if (typeof annotations.contentEncoding === "string") out.contentEncoding = annotations.contentEncoding
+    if (typeof annotations.contentMediaType === "string") out.contentMediaType = annotations.contentMediaType
+
+    if (includeAnnotationKey) {
+      for (const [key, value] of Object.entries(annotations)) {
+        if (value === undefined) continue
+        if (standardJsonSchemaAnnotationKeys.has(key)) continue
+        if (!includeAnnotationKey(key)) continue
+        out[key] = value
+      }
     }
+
+    if (Object.keys(out).length > 0) return out
   }
 
   function collectJsonSchemaChecks<M>(

@@ -892,15 +892,16 @@ export const suspend: <A, E, R>(
 })
 
 /** @internal */
-export const fromYieldable = <Self extends Effect.Yieldable.Any, A, E, R>(
-  yieldable: Effect.Yieldable<Self, A, E, R>
-): Effect.Effect<A, E, R> => yieldable.asEffect()
+export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = Option.match({
+  onNone: () => fail(new NoSuchElementError("Effect.fromOption: Option.none")),
+  onSome: succeed
+})
 
 /** @internal */
-export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = fromYieldable
-
-/** @internal */
-export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = fromYieldable
+export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = Result.match({
+  onFailure: fail,
+  onSuccess: succeed
+})
 
 /** @internal */
 export const fromNullishOr = <A>(value: A): Effect.Effect<NonNullable<A>, Cause.NoSuchElementError> =>
@@ -1083,7 +1084,7 @@ export const never: Effect.Effect<never> = callback<never>(constVoid)
 /** @internal */
 export const gen = <
   Self,
-  Eff extends Effect.Yieldable<any, any, any, any>,
+  Eff extends Effect.Effect<any, any, any>,
   AEff
 >(
   ...args:
@@ -1092,10 +1093,10 @@ export const gen = <
 ): Effect.Effect<
   AEff,
   [Eff] extends [never] ? never
-    : [Eff] extends [Effect.Yieldable<infer _A, infer E, infer _R>] ? E
+    : [Eff] extends [Effect.Effect<infer _A, infer E, infer _R>] ? E
     : never,
   [Eff] extends [never] ? never
-    : [Eff] extends [Effect.Yieldable<infer _A, infer _E, infer R>] ? R
+    : [Eff] extends [Effect.Effect<infer _A, infer _E, infer R>] ? R
     : never
 > =>
   suspend(() =>
@@ -1223,7 +1224,7 @@ export const fnUntracedEager: Effect.fn.Untraced = (
   )
 
 const fromIteratorEagerUnsafe = (
-  evaluate: () => Iterator<Effect.Yieldable<any, any, any, any>>
+  evaluate: () => Iterator<Effect.Effect<any, any, any>>
 ): Effect.Effect<any, any, any> => {
   try {
     const iterator = evaluate()
@@ -1237,22 +1238,20 @@ const fromIteratorEagerUnsafe = (
         return succeed(state.value)
       }
 
-      const yieldable = state.value
-      const effect = yieldable.asEffect()
-      const primitive = effect as any
+      const primitive = state.value as any
 
       if (primitive && primitive._tag === "Success") {
         value = primitive.value
         continue
       } else if (primitive && primitive._tag === "Failure") {
-        return effect
+        return state.value
       } else {
         let isFirstExecution = true
 
         return suspend(() => {
           if (isFirstExecution) {
             isFirstExecution = false
-            return flatMap(effect, (value) => fromIteratorUnsafe(iterator, value))
+            return flatMap(state.value, (value) => fromIteratorUnsafe(iterator, value))
           } else {
             return suspend(() => fromIteratorUnsafe(evaluate()))
           }
@@ -1265,7 +1264,7 @@ const fromIteratorEagerUnsafe = (
 }
 
 const fromIteratorUnsafe: (
-  iterator: Iterator<Effect.Yieldable<any, any, any, any>>,
+  iterator: Iterator<Effect.Effect<any, any, any>>,
   initial?: undefined
 ) => Effect.Effect<any, any, any> = makePrimitive({
   op: "Iterator",
@@ -1275,14 +1274,13 @@ const fromIteratorUnsafe: (
     while (true) {
       const state = iter.next(value)
       if (state.done) return succeed(state.value)
-      const eff = state.value.asEffect()
-      if (!effectIsExit(eff)) {
+      if (!effectIsExit(state.value)) {
         fiber._stack.push(this)
-        return eff
-      } else if (eff._tag === "Failure") {
-        return eff
+        return state.value
+      } else if (state.value._tag === "Failure") {
+        return state.value
       }
-      value = eff.value
+      value = state.value.value
     }
   },
   [evaluate](this: any, fiber: FiberImpl) {
@@ -1968,9 +1966,7 @@ export const exitFindErrorOption = <A, E>(self: Exit.Exit<A, E>): Option.Option<
 // ----------------------------------------------------------------------------
 
 /** @internal */
-export const service: {
-  <I, S>(service: Context.Key<I, S>): Effect.Effect<S, never, I>
-} = fromYieldable as any
+export const service = <I, S>(service: Context.Key<I, S>): Effect.Effect<S, never, I> => service
 
 /** @internal */
 export const serviceOption = <I, S>(
@@ -2647,28 +2643,40 @@ export const tapDefect: {
 
 /** @internal */
 export const catchIf: {
-  <E, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
+  <E, EB extends E, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     refinement: Predicate.Refinement<NoInfer<E>, EB>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Effect.Effect<A3, E3, R3>) | undefined
-  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <E, A2, E2, R2, A3 = never, E3 = E, R3 = never>(
+  ): <A, R>(
+    self: Effect.Effect<A, E, R>
+  ) => Effect.Effect<
+    A | A2 | Exclude<A3, unassigned>,
+    E2 | E3 | (A3 extends unassigned ? Exclude<E, EB> : never),
+    R | R2 | R3
+  >
+  <E, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     predicate: Predicate.Predicate<NoInfer<E>>,
     f: (e: NoInfer<E>) => Effect.Effect<A2, E2, R2>,
     orElse?: ((e: NoInfer<E>) => Effect.Effect<A3, E3, R3>) | undefined
-  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
+  ): <A, R>(
+    self: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? E : never), R | R2 | R3>
+  <A, E, R, EB extends E, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     self: Effect.Effect<A, E, R>,
     refinement: Predicate.Refinement<E, EB>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Effect.Effect<A3, E3, R3>) | undefined
-  ): Effect.Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, A2, E2, R2, A3 = never, E3 = E, R3 = never>(
+  ): Effect.Effect<
+    A | A2 | Exclude<A3, unassigned>,
+    E2 | E3 | (A3 extends unassigned ? Exclude<E, EB> : never),
+    R | R2 | R3
+  >
+  <A, E, R, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     self: Effect.Effect<A, E, R>,
     predicate: Predicate.Predicate<E>,
     f: (e: E) => Effect.Effect<A2, E2, R2>,
     orElse?: ((e: E) => Effect.Effect<A3, E3, R3>) | undefined
-  ): Effect.Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
+  ): Effect.Effect<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? E : never), R | R2 | R3>
 } = dual(
   (args) => isEffect(args[0]),
   <A, E, R, A2, E2, R2, A3 = never, E3 = E, R3 = never>(
@@ -2689,17 +2697,19 @@ export const catchIf: {
 
 /** @internal */
 export const catchFilter: {
-  <E, EB, A2, E2, R2, X, A3 = never, E3 = X, R3 = never>(
+  <E, EB, A2, E2, R2, X, A3 = unassigned, E3 = never, R3 = never>(
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>,
     orElse?: ((e: X) => Effect.Effect<A3, E3, R3>) | undefined
-  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, EB, A2, E2, R2, X, A3 = never, E3 = X, R3 = never>(
+  ): <A, R>(
+    self: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? X : never), R | R2 | R3>
+  <A, E, R, EB, A2, E2, R2, X, A3 = unassigned, E3 = never, R3 = never>(
     self: Effect.Effect<A, E, R>,
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (e: EB) => Effect.Effect<A2, E2, R2>,
     orElse?: ((e: X) => Effect.Effect<A3, E3, R3>) | undefined
-  ): Effect.Effect<A | A2 | A3, E2 | E3, R | R2 | R3>
+  ): Effect.Effect<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? X : never), R | R2 | R3>
 } = dual(
   (args) => isEffect(args[0]),
   <A, E, R, EB, A2, E2, R2, X, A3 = never, E3 = X, R3 = never>(
@@ -2727,8 +2737,8 @@ export const catchTag: {
     A1,
     E1,
     R1,
-    A2 = never,
-    E2 = ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     k: K,
@@ -2740,7 +2750,13 @@ export const catchTag: {
       | undefined
   ): <A, R>(
     self: Effect.Effect<A, E, R>
-  ) => Effect.Effect<A | A1 | A2, E1 | E2, R | R1 | R2>
+  ) => Effect.Effect<
+    A | A1 | Exclude<A2, unassigned>,
+    | E1
+    | E2
+    | (A2 extends unassigned ? ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> : never),
+    R | R1 | R2
+  >
   <
     A,
     E,
@@ -2749,8 +2765,8 @@ export const catchTag: {
     R1,
     E1,
     A1,
-    A2 = never,
-    E2 = ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     self: Effect.Effect<A, E, R>,
@@ -2759,7 +2775,13 @@ export const catchTag: {
     orElse?:
       | ((e: ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect.Effect<A2, E2, R2>)
       | undefined
-  ): Effect.Effect<A | A1 | A2, E1 | E2, R | R1 | R2>
+  ): Effect.Effect<
+    A | A1 | Exclude<A2, unassigned>,
+    | E1
+    | E2
+    | (A2 extends unassigned ? ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> : never),
+    R | R1 | R2
+  >
 } = dual(
   (args) => isEffect(args[0]),
   <
@@ -2796,19 +2818,20 @@ export const catchTags: {
         [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Effect.Effect<any, any, any>
       } :
       {}),
-    A2 = never,
-    E2 = Exclude<E, { _tag: keyof Cases }>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     cases: Cases,
     orElse?: ((e: Exclude<E, { _tag: keyof Cases }>) => Effect.Effect<A2, E2, R2>) | undefined
   ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<
     | A
-    | A2
+    | Exclude<A2, unassigned>
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Effect.Effect<infer A, any, any>) ? A : never
     }[keyof Cases],
     | E2
+    | (A2 extends unassigned ? Exclude<E, { _tag: keyof Cases }> : never)
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Effect.Effect<any, infer E, any>) ? E : never
     }[keyof Cases],
@@ -2826,8 +2849,8 @@ export const catchTags: {
         [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Effect.Effect<any, any, any>
       } :
       {}),
-    A2 = never,
-    E2 = Exclude<E, { _tag: keyof Cases }>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     self: Effect.Effect<A, E, R>,
@@ -2835,11 +2858,12 @@ export const catchTags: {
     orElse?: ((e: Exclude<E, { _tag: keyof Cases }>) => Effect.Effect<A2, E2, R2>) | undefined
   ): Effect.Effect<
     | A
-    | A2
+    | Exclude<A2, unassigned>
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Effect.Effect<infer A, any, any>) ? A : never
     }[keyof Cases],
     | E2
+    | (A2 extends unassigned ? Exclude<E, { _tag: keyof Cases }> : never)
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Effect.Effect<any, infer E, any>) ? E : never
     }[keyof Cases],
@@ -2893,7 +2917,7 @@ export const catchReason: {
     self: Effect.Effect<A, E, R>
   ) => Effect.Effect<
     A | A2 | Exclude<A3, unassigned>,
-    (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3,
+    ExcludeTag<E, K> | E2 | E3 | (A3 extends unassigned ? ExtractTag<E, K> : never),
     R | R2 | R3
   >
   <
@@ -2924,7 +2948,7 @@ export const catchReason: {
       | undefined
   ): Effect.Effect<
     A | A2 | Exclude<A3, unassigned>,
-    (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3,
+    ExcludeTag<E, K> | E2 | E3 | (A3 extends unassigned ? ExtractTag<E, K> : never),
     R | R2 | R3
   >
 } = dual(
@@ -2954,7 +2978,7 @@ export const catchReason: {
       | undefined
   ): Effect.Effect<
     A | A2 | Exclude<A3, unassigned>,
-    (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3,
+    ExcludeTag<E, K> | E2 | E3 | (A3 extends unassigned ? ExtractTag<E, K> : never),
     R | R2 | R3
   > =>
     catchIf(
@@ -2997,8 +3021,9 @@ export const catchReasons: {
     | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<infer A, any, any> ? A : never }[
       keyof Cases
     ],
-    | (A2 extends unassigned ? E : ExcludeTag<E, K>)
+    | ExcludeTag<E, K>
     | E2
+    | (A2 extends unassigned ? ExtractTag<E, K> : never)
     | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never }[
       keyof Cases
     ],
@@ -3038,8 +3063,9 @@ export const catchReasons: {
     | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<infer A, any, any> ? A : never }[
       keyof Cases
     ],
-    | (A2 extends unassigned ? E : ExcludeTag<E, K>)
+    | ExcludeTag<E, K>
     | E2
+    | (A2 extends unassigned ? ExtractTag<E, K> : never)
     | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never }[
       keyof Cases
     ],
@@ -3767,7 +3793,7 @@ export const scopeMake = (finalizerStrategy?: "sequential" | "parallel"): Effect
   sync(() => scopeMakeUnsafe(finalizerStrategy))
 
 /** @internal */
-export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = scopeTag.asEffect()
+export const scope: Effect.Effect<Scope.Scope, never, Scope.Scope> = scopeTag
 
 /** @internal */
 export const provideScope: {
@@ -5570,10 +5596,10 @@ const provideSpanStackFrame = (name: string, stack: (() => string | undefined) |
 }
 
 /** @internal */
-export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = TracerSpanAnnotations.asEffect()
+export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = TracerSpanAnnotations
 
 /** @internal */
-export const spanLinks: Effect.Effect<ReadonlyArray<Tracer.SpanLink>> = TracerSpanLinks.asEffect()
+export const spanLinks: Effect.Effect<ReadonlyArray<Tracer.SpanLink>> = TracerSpanLinks
 
 /** @internal */
 export const linkSpans: {

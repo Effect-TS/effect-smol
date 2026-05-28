@@ -1,5 +1,35 @@
 /**
- * @since 1.0.0
+ * Runner-side browser platform for Effect worker handlers.
+ *
+ * This module is for code already executing inside a browser worker, or for
+ * tests and adapters that pass a `MessagePort` or `Window` endpoint directly.
+ * It provides the `WorkerRunnerPlatform` used by `WorkerRunner` and protocols
+ * such as `RpcServer.layerProtocolWorkerRunner` to receive parent or client
+ * requests, run Effect handlers, and post responses back through the browser
+ * messaging channel.
+ *
+ * **Mental model**
+ *
+ * Dedicated workers use the ambient `self` endpoint. Shared workers receive one
+ * `MessagePort` per `onconnect` event, and this module caches ports that arrive
+ * before the runner layer starts. `layer` reads from the global worker `self`;
+ * `make` and `layerMessagePort` are for explicit endpoints supplied by tests,
+ * custom channels, or adapter code.
+ *
+ * **Common tasks**
+ *
+ * Pair this module with `BrowserWorker` in the parent page when moving RPC
+ * handlers, CPU-bound computations, or browser-only services into a dedicated
+ * worker or shared worker. Use `layer` in normal worker entry points and
+ * `layerMessagePort` when a test or integration already owns the transport.
+ *
+ * **Gotchas**
+ *
+ * Payloads and transfer lists must satisfy the browser structured-clone
+ * algorithm. `messageerror` and `error` events fail the runner, and each
+ * connected `MessagePort` is closed when its scope finalizes.
+ *
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -22,8 +52,10 @@ if (typeof self !== "undefined" && "onconnect" in self) {
 }
 
 /**
- * @since 1.0.0
- * @category Constructors
+ * Creates a `WorkerRunnerPlatform` service that runs worker handlers over a `MessagePort` or `Window`.
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatform["Service"] => ({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
@@ -83,7 +115,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
                 message: "An messageerror event was emitted",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         function onError(error: any) {
@@ -94,7 +126,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
                 message: "An error event was emitted",
                 cause: error.data
               })
-            }).asEffect()
+            })
           )
         }
         function handlePort(port: MessagePort) {
@@ -151,16 +183,39 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
 })
 
 /**
- * @since 1.0.0
- * @category Layers
+ * Layer that provides a browser `WorkerRunnerPlatform` using the global `self` worker context.
+ *
+ * **When to use**
+ *
+ * Use when a browser worker entry point uses the ambient `self` object as the
+ * worker transport.
+ *
+ * **Details**
+ *
+ * Delegates to `make(self)` and provides the runner-side platform used by
+ * protocols such as `RpcServer.layerProtocolWorkerRunner`.
+ *
+ * **Gotchas**
+ *
+ * This layer depends on the browser worker global `self`. Use
+ * `layerMessagePort` when the transport is an explicit `MessagePort` or
+ * `Window`.
+ *
+ * @see {@link make} for constructing a runner platform from an explicit endpoint
+ * @see {@link layerMessagePort} for providing a platform from an explicit endpoint
+ *
+ * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(WorkerRunner.WorkerRunnerPlatform)(() =>
   make(self)
 )
 
 /**
- * @since 1.0.0
- * @category Layers
+ * Layer that provides a `WorkerRunnerPlatform` using the supplied `MessagePort` or `Window`.
+ *
+ * @category layers
+ * @since 4.0.0
  */
 export const layerMessagePort = (port: MessagePort | Window): Layer.Layer<WorkerRunner.WorkerRunnerPlatform> =>
   Layer.succeed(WorkerRunner.WorkerRunnerPlatform)(make(port))

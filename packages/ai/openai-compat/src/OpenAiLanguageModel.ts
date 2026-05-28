@@ -1,10 +1,36 @@
 /**
- * OpenAI Language Model implementation.
+ * The `OpenAiLanguageModel` module adapts OpenAI-compatible chat-completions
+ * providers to the shared Effect AI `LanguageModel` interface. It translates
+ * provider-neutral prompts, tools, structured output schemas, and streaming
+ * responses into the request and response shapes used by `OpenAiClient`.
  *
- * Provides a LanguageModel implementation for OpenAI's chat completions API,
- * supporting text generation, structured output, tool calling, and streaming.
+ * Use this module when an application wants to talk to OpenAI-compatible
+ * endpoints through Effect AI abstractions rather than constructing provider
+ * payloads directly. The exported constructors build a language model service
+ * from a model id, while `Config` and {@link withConfigOverride} provide scoped
+ * defaults for request fields such as temperature, reasoning options, text
+ * format, and provider-specific file handling.
  *
- * @since 1.0.0
+ * **Common tasks**
+ *
+ * - Create a model descriptor with {@link model}
+ * - Build or provide the `LanguageModel` service with {@link make} or
+ *   {@link layer}
+ * - Scope request defaults with {@link Config} and {@link withConfigOverride}
+ * - Send tool calls, structured output schemas, images, files, and reasoning
+ *   metadata through the provider-neutral Effect AI prompt types
+ *
+ * **Gotchas**
+ *
+ * - The module requires an `OpenAiClient` service; configure authentication,
+ *   base URL, and HTTP behavior through that client layer.
+ * - Compatibility depends on the provider supporting the OpenAI request fields
+ *   being used. Optional capabilities such as strict JSON schemas, reasoning
+ *   metadata, and tool status fields may vary across providers.
+ * - `fileIdPrefixes` tells the prompt conversion which file references are
+ *   provider file IDs instead of base64 file contents.
+ *
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as DateTime from "effect/DateTime"
@@ -59,10 +85,18 @@ type ImageDetail = "auto" | "low" | "high"
 // =============================================================================
 
 /**
- * Service definition for OpenAI language model configuration.
+ * Context service for OpenAI language model configuration.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use as the context service for OpenAI-compatible language model request
+ * configuration, especially when a scoped operation should override the defaults
+ * supplied to `model`, `make`, or `layer`.
+ *
+ * @see {@link withConfigOverride} for scoping language model request overrides
+ *
  * @category context
+ * @since 4.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -112,7 +146,16 @@ export class Config extends Context.Service<
 // =============================================================================
 
 declare module "effect/unstable/ai/Prompt" {
+  /**
+   * OpenAI-compatible options for file prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface FilePartOptions extends ProviderOptions {
+    /**
+     * Provider-specific file options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`.
@@ -121,7 +164,16 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for reasoning prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface ReasoningPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific reasoning options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
@@ -136,40 +188,67 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for assistant tool-call prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface ToolCallPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific tool-call options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
        */
       readonly itemId?: string | null
       /**
-       * The status of item.
+       * The status to send for the tool-call item.
        */
       readonly status?: MessageStatus | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for tool-result prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface ToolResultPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific tool-result options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
        */
       readonly itemId?: string | null
       /**
-       * The status of item.
+       * The status to send for the tool-result item.
        */
       readonly status?: MessageStatus | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible options for text prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface TextPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific text options for OpenAI-compatible APIs.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
        */
       readonly itemId?: string | null
       /**
-       * The status of item.
+       * The status to send for the text item.
        */
       readonly status?: MessageStatus | null
       /**
@@ -181,8 +260,20 @@ declare module "effect/unstable/ai/Prompt" {
 }
 
 declare module "effect/unstable/ai/Response" {
+  /**
+   * OpenAI-compatible metadata attached to a complete text response part.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface TextPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the text part.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the text part.
+       */
       readonly itemId?: string | null
       /**
        * If the model emits a refusal content part, the refusal explanation
@@ -191,7 +282,7 @@ declare module "effect/unstable/ai/Response" {
        */
       readonly refusal?: string | null
       /**
-       * The status of item.
+       * The status returned for the text item.
        */
       readonly status?: MessageStatus | null
       /**
@@ -201,55 +292,163 @@ declare module "effect/unstable/ai/Response" {
     }
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed text part starts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface TextStartPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed text start.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the streamed text part.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed text part ends.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface TextEndPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed text end.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the streamed text part.
+       */
       readonly itemId?: string | null
+      /**
+       * The annotations collected for the completed streamed text part.
+       */
       readonly annotations?: ReadonlyArray<Annotation> | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to a complete reasoning response part.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the reasoning part.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed reasoning part starts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning start.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted for a streamed reasoning delta.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning delta.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata emitted when a streamed reasoning part ends.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningEndPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning end.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to tool-call response parts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ToolCallPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the tool call.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the tool call.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to document source citations.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific citation metadata for OpenAI-compatible APIs.
+     */
     readonly openai?:
       | {
+        /**
+         * Identifies a citation to an uploaded file.
+         */
         readonly type: "file_citation"
         /**
          * The index of the file in the list of files.
@@ -261,6 +460,9 @@ declare module "effect/unstable/ai/Response" {
         readonly fileId: string
       }
       | {
+        /**
+         * Identifies a citation to a generated file path.
+         */
         readonly type: "file_path"
         /**
          * The index of the file in the list of files.
@@ -272,6 +474,9 @@ declare module "effect/unstable/ai/Response" {
         readonly fileId: string
       }
       | {
+        /**
+         * Identifies a citation to a file inside a container.
+         */
         readonly type: "container_file_citation"
         /**
          * The ID of the file.
@@ -285,8 +490,20 @@ declare module "effect/unstable/ai/Response" {
       | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to URL source citations.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific URL citation metadata for OpenAI-compatible APIs.
+     */
     readonly openai?: {
+      /**
+       * Identifies a citation to a URL.
+       */
       readonly type: "url_citation"
       /**
        * The index of the first character of the URL citation in the message.
@@ -299,8 +516,20 @@ declare module "effect/unstable/ai/Response" {
     } | null
   }
 
+  /**
+   * OpenAI-compatible metadata attached to finish response parts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface FinishPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned when generation finishes.
+     */
     readonly openai?: {
+      /**
+       * The service tier reported by the OpenAI-compatible provider.
+       */
       readonly serviceTier?: "default" | "auto" | "flex" | "scale" | "priority" | null
     } | null
   }
@@ -311,8 +540,18 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * @since 1.0.0
+ * Creates an OpenAI-compatible model descriptor that can be provided with `Effect.provide`.
+ *
+ * **When to use**
+ *
+ * Use when you want an OpenAI-compatible language model value that carries
+ * provider and model metadata and can be supplied directly to an Effect program.
+ *
+ * @see {@link layer} for creating a `LanguageModel.LanguageModel` layer directly
+ * @see {@link make} for constructing the language model service effectfully
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const model = (
   model: string,
@@ -322,7 +561,7 @@ export const model = (
 
 // TODO
 // /**
-//  * @since 1.0.0
+//  * @since 4.0.0
 //  * @category constructors
 //  */
 // export const modelWithTokenizer = (
@@ -332,10 +571,25 @@ export const model = (
 //   AiModel.make("openai", model, layerWithTokenizer({ model, config }))
 
 /**
- * Creates an OpenAI language model service.
+ * Creates an OpenAI-compatible `LanguageModel` service from a model identifier and optional request defaults.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use when an Effect needs to construct a `LanguageModel.Service` value backed
+ * by `OpenAiClient`.
+ *
+ * **Details**
+ *
+ * The returned effect requires `OpenAiClient`. Request defaults from the
+ * `config` option are merged with any `Config` service in the context, with
+ * context values taking precedence. The service supports both `generateText` and
+ * `streamText`.
+ *
+ * @see {@link layer} for providing the service as a `Layer`
+ * @see {@link model} for creating a model descriptor for `AiModel.provide`
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: string
@@ -431,10 +685,19 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 })
 
 /**
- * Creates a layer for the OpenAI language model.
+ * Creates a layer for the OpenAI-compatible language model.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenAI-compatible APIs to
+ * satisfy `LanguageModel.LanguageModel` while supplying `OpenAiClient` from
+ * another layer.
+ *
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link model} for creating an AI model descriptor
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly model: string
@@ -443,10 +706,22 @@ export const layer = (options: {
   Layer.effect(LanguageModel.LanguageModel, make(options))
 
 /**
- * Provides config overrides for OpenAI language model operations.
+ * Provides scoped config overrides for OpenAI-compatible language model operations.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use to override request configuration for a single language model effect
+ * without changing the defaults supplied to `model`, `make`, or `layer`.
+ *
+ * **Details**
+ *
+ * Existing `Config` values from the Effect context are merged with `overrides`,
+ * and the override values take precedence.
+ *
+ * @see {@link Config} for the configuration shape
+ *
  * @category configuration
+ * @since 4.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>

@@ -1,10 +1,29 @@
 /**
- * OpenAI provider-defined tools for use with the LanguageModel.
+ * OpenAI provider-defined tools for Effect AI language model requests.
  *
- * Provides tools that are natively supported by OpenAI's API, including
- * code interpreter, file search, and web search functionality.
+ * This module exposes typed descriptors for OpenAI tools such as code
+ * interpreter, file search, image generation, MCP, web search, and shell-like
+ * local tools. Each descriptor captures the OpenAI provider name, user-facing
+ * configuration arguments, provider call parameters, success output schema, and
+ * whether the tool call needs an application-provided handler.
  *
- * @since 1.0.0
+ * **Mental model**
+ *
+ * Provider-defined tools are not implementations of the capability themselves.
+ * They are schemas and metadata that tell the language model provider which
+ * tool to make available and tell Effect AI how to decode any tool calls or
+ * tool results that come back.
+ *
+ * **Common tasks**
+ *
+ * Use hosted or provider-routed tools such as {@link CodeInterpreter},
+ * {@link FileSearch}, {@link ImageGeneration}, {@link Mcp}, {@link WebSearch},
+ * and {@link WebSearchPreview} to opt into OpenAI-managed capabilities. Use
+ * handler-required tools such as {@link ApplyPatch}, {@link Shell}, and
+ * {@link LocalShell} only when your application is prepared to execute the
+ * requested local operation and enforce its own safety policy.
+ *
+ * @since 4.0.0
  */
 import * as Schema from "effect/Schema"
 import * as Tool from "effect/unstable/ai/Tool"
@@ -13,8 +32,8 @@ import * as Generated from "./Generated.ts"
 /**
  * Union of all OpenAI provider-defined tools.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type OpenAiTool =
   | ReturnType<typeof ApplyPatch>
@@ -28,14 +47,18 @@ export type OpenAiTool =
   | ReturnType<typeof WebSearchPreview>
 
 /**
- * OpenAI Apply Patch tool.
+ * Defines the OpenAI Apply Patch tool that allows the model to apply diffs by creating,
+ * deleting, or updating files. This local tool runs in your environment and
+ * requires a handler to execute file operations.
  *
- * Allows the model to apply diffs by creating, deleting, or updating files.
- * This is a local tool that runs in your environment and requires a handler
- * to execute file operations.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use when you want an OpenAI model to request structured file edits as create,
+ * delete, or update operations that your application executes through a local
+ * handler.
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const ApplyPatch = Tool.providerDefined({
   id: "openai.apply_patch",
@@ -53,12 +76,21 @@ export const ApplyPatch = Tool.providerDefined({
 })
 
 /**
- * OpenAI Code Interpreter tool.
+ * Defines the OpenAI Code Interpreter tool that allows the model to execute Python code in
+ * a sandboxed environment.
  *
- * Allows the model to execute Python code in a sandboxed environment.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to enable OpenAI-hosted Python execution for a model response.
+ *
+ * **Details**
+ *
+ * The tool is configured with a `container` argument. Successful tool calls
+ * expose `outputs`, which may contain logs or generated images, or `null` when
+ * no outputs are available.
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const CodeInterpreter = Tool.providerDefined({
   id: "openai.code_interpreter",
@@ -77,12 +109,22 @@ export const CodeInterpreter = Tool.providerDefined({
 })
 
 /**
- * OpenAI File Search tool.
+ * Defines the OpenAI File Search tool that enables the model to search through uploaded
+ * files and vector stores.
  *
- * Enables the model to search through uploaded files and vector stores.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to let an OpenAI model search uploaded files through one or more vector
+ * stores.
+ *
+ * **Details**
+ *
+ * The tool requires `vector_store_ids` and accepts optional `filters`,
+ * `max_num_results`, and `ranking_options`. Successful tool calls expose the
+ * search `status`, generated `queries`, and optional `results`.
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const FileSearch = Tool.providerDefined({
   id: "openai.file_search",
@@ -102,12 +144,23 @@ export const FileSearch = Tool.providerDefined({
 })
 
 /**
- * OpenAI Image Generation tool.
+ * Defines the OpenAI Image Generation tool that enables the model to generate images using
+ * the GPT image models.
  *
- * Enables the model to generate images using the GPT image models.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to enable OpenAI provider-defined image generation through a language
+ * model response.
+ *
+ * **Details**
+ *
+ * The tool configures the `image_generation` provider tool, including model,
+ * size, quality, output format, moderation, background, input-image options,
+ * and partial image settings. Successful tool calls expose `result` as base64
+ * image data or `null`.
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const ImageGeneration = Tool.providerDefined({
   id: "openai.image_generation",
@@ -131,13 +184,23 @@ export const ImageGeneration = Tool.providerDefined({
 })
 
 /**
- * OpenAI Local Shell tool.
+ * Defines the OpenAI Local Shell tool that enables the model to run a command with a local
+ * shell. This local tool runs in your environment and requires a handler to
+ * execute commands.
  *
- * Enables the model to run a command with a local shell. This is a local tool
- * that runs in your environment and requires a handler to execute commands.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to let an OpenAI model request local shell commands that your application
+ * executes through a handler.
+ *
+ * **Details**
+ *
+ * The tool exposes a provider-defined `local_shell` call. It is marked as
+ * handler-required, so applications must provide the command execution policy
+ * and implementation.
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const LocalShell = Tool.providerDefined({
   id: "openai.local_shell",
@@ -153,13 +216,27 @@ export const LocalShell = Tool.providerDefined({
 })
 
 /**
- * OpenAI MCP tool.
+ * Defines the OpenAI MCP tool that gives the model access to additional tools via remote
+ * Model Context Protocol (MCP) servers.
  *
- * Gives the model access to additional tools via remote Model Context Protocol
- * (MCP) servers
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to let an OpenAI model call tools exposed by a remote MCP server.
+ *
+ * **Details**
+ *
+ * The tool accepts MCP server configuration such as allowed tools,
+ * authorization, connector id, approval requirements, server metadata, and
+ * server URL. Tool call results include the called tool name, arguments, output,
+ * error, and server label.
+ *
+ * **Gotchas**
+ *
+ * This schema leaves both `server_url` and `connector_id` optional, but OpenAI
+ * may require a server URL or connector id for a usable MCP tool configuration.
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const Mcp = Tool.providerDefined({
   id: "openai.mcp",
@@ -186,14 +263,21 @@ export const Mcp = Tool.providerDefined({
 })
 
 /**
- * OpenAI Function Shell tool.
+ * Defines the OpenAI shell tool for model-requested command execution.
  *
- * Enables the model to execute one or more shell commands in a managed
- * environment. This is a local tool that runs in your environment and requires
- * a handler to execute commands.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to let an OpenAI model request shell commands that your application
+ * executes through a handler.
+ *
+ * **Details**
+ *
+ * The tool exposes a provider-defined `shell` call. It is marked as
+ * handler-required, so applications must provide the command execution policy
+ * and implementation.
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const Shell = Tool.providerDefined({
   id: "openai.shell",
@@ -209,12 +293,22 @@ export const Shell = Tool.providerDefined({
 })
 
 /**
- * OpenAI Web Search tool.
+ * Defines the OpenAI Web Search tool that enables the model to search the web for
+ * information.
  *
- * Enables the model to search the web for information.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to enable OpenAI provider-defined web search for a model response.
+ *
+ * **Details**
+ *
+ * The tool accepts optional filters, user location, and search context size.
+ * Successful calls expose the performed search action and status.
+ *
+ * @see {@link WebSearchPreview} for the preview web search provider tool
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const WebSearch = Tool.providerDefined({
   id: "openai.web_search",
@@ -235,12 +329,21 @@ export const WebSearch = Tool.providerDefined({
 })
 
 /**
- * OpenAI Web Search Preview tool.
+ * Defines the OpenAI preview Web Search tool for model responses.
  *
- * Preview version of the web search tool with additional features.
+ * **When to use**
  *
- * @since 1.0.0
+ * Use to enable the preview OpenAI web search provider tool.
+ *
+ * **Details**
+ *
+ * The preview tool accepts optional user location and search context size, then
+ * exposes the performed search action and status in successful calls.
+ *
+ * @see {@link WebSearch} for the stable web search provider tool
+ *
  * @category tools
+ * @since 4.0.0
  */
 export const WebSearchPreview = Tool.providerDefined({
   id: "openai.web_search_preview",

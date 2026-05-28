@@ -1,5 +1,43 @@
 /**
- * @since 1.0.0
+ * Node.js runtime support for workers that serve Effect worker requests.
+ *
+ * `NodeWorkerRunner` supplies the Node implementation of the Effect worker
+ * runner platform. Install {@link layer} inside code that is already running in
+ * a `node:worker_threads` worker or in a child process with an IPC channel. The
+ * layer listens for parent messages, runs handlers registered through
+ * `WorkerRunner`, and replies over the same parent channel.
+ *
+ * **Mental model**
+ *
+ * - The parent process creates a worker with the Node worker APIs.
+ * - The worker process provides this module's {@link layer} to its runner program.
+ * - Startup sends a ready message to the parent, then request messages are
+ *   dispatched to the registered Effect handler.
+ * - Responses are sent with Node `postMessage` for worker threads or
+ *   `process.send` for child processes.
+ * - Shutdown is initiated by the parent protocol and closes or unreferences the
+ *   parent channel.
+ *
+ * **Common tasks**
+ *
+ * - Provide {@link layer} in the worker entrypoint before running `WorkerRunner`.
+ * - Host CPU-bound work or isolated Node resources behind the Effect worker protocol.
+ * - Return transferable values when using `worker_threads`.
+ *
+ * **Gotchas**
+ *
+ * - The runner must start inside an actual worker context; otherwise the layer
+ *   fails because neither `parentPort` nor `process.send` is available.
+ * - Transfer lists only apply to `worker_threads`; child-process IPC uses Node
+ *   serialization.
+ * - Long-running handlers should remain interruptible and keep cleanup in
+ *   scopes so parent-driven shutdown can release resources.
+ *
+ * **See also**
+ *
+ * - {@link layer} for the Node worker runner platform.
+ *
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -12,8 +50,12 @@ import * as WorkerRunner from "effect/unstable/workers/WorkerRunner"
 import * as WorkerThreads from "node:worker_threads"
 
 /**
- * @since 1.0.0
+ * Provides the `WorkerRunnerPlatform` for code running inside a Node worker
+ * thread or child process, routing parent messages to the registered handler
+ * and sending responses back through the parent channel.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succeed(WorkerRunner.WorkerRunnerPlatform)({
   start<O = unknown, I = unknown>() {
@@ -70,7 +112,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                     message: "received messageerror event",
                     cause
                   })
-                }).asEffect()
+                })
               )
             })
             WorkerThreads.parentPort.on("error", (cause) => {
@@ -81,7 +123,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.succe
                     message: "received messageerror event",
                     cause
                   })
-                }).asEffect()
+                })
               )
             })
           }

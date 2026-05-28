@@ -1,4 +1,37 @@
 /**
+ * Error model used by the unstable HTTP server runtime.
+ *
+ * This module defines the tagged failures that can occur while a server accepts
+ * a request, matches a route, runs a handler, or builds and sends a response.
+ * Request-scoped failures keep the request that caused them, and response
+ * failures keep the response that was being produced, so applications can log,
+ * report, or translate failures without reconstructing HTTP context.
+ *
+ * **Mental model**
+ *
+ * {@link HttpServerError} wraps a concrete {@link HttpServerErrorReason}.
+ * {@link RequestParseError}, {@link RouteNotFound}, and {@link InternalError}
+ * describe failures before or during request handling, while
+ * {@link ResponseError} describes a failure tied to a response that was already
+ * being built or sent. {@link ServeError} represents lower-level server
+ * implementation failures outside an individual handler response.
+ *
+ * **Common tasks**
+ *
+ * Use {@link isHttpServerError} to refine unknown failures, inspect `request`
+ * and `response` when reporting failures, and use {@link causeResponse} or
+ * {@link exitResponse} when a handler cause or exit must be translated into the
+ * HTTP response sent to the client.
+ *
+ * **Gotchas**
+ *
+ * The default response mapping is intentionally small: request parse errors
+ * become `400`, route misses become ignored `404` failures, internal and
+ * response errors become `500`, client aborts marked with {@link ClientAbort}
+ * become `499`, and server-side interrupts become `503`. A
+ * {@link ResponseError} does not reuse the failed response when converted; it
+ * produces an empty `500` because that response may be invalid or partly sent.
+ *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
@@ -17,8 +50,16 @@ import * as Response from "./HttpServerResponse.ts"
 const TypeId = "~effect/http/HttpServerError"
 
 /**
+ * Tagged error for failures that occur while handling an HTTP server request.
+ *
+ * **Details**
+ *
+ * It wraps a `HttpServerErrorReason`, exposes the associated request and optional
+ * response, and can be converted to an HTTP response through the `Respondable`
+ * protocol.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export class HttpServerError extends Data.TaggedError("HttpServerError")<{
   readonly reason: HttpServerErrorReason
@@ -62,8 +103,14 @@ export class HttpServerError extends Data.TaggedError("HttpServerError")<{
 }
 
 /**
+ * Error describing a failure to parse or read an incoming request.
+ *
+ * **Details**
+ *
+ * When converted to a response it produces an empty `400` response.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export class RequestParseError extends Data.TaggedError("RequestParseError")<{
   readonly request: Request.HttpServerRequest
@@ -71,6 +118,8 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
   readonly cause?: unknown
 }> implements Respondable.Respondable {
   /**
+   * Converts the request error into a `400 Bad Request` response.
+   *
    * @since 4.0.0
    */
   [Respondable.symbol]() {
@@ -87,8 +136,15 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
 }
 
 /**
+ * Error indicating that no route matched the incoming request.
+ *
+ * **Details**
+ *
+ * When converted to a response it produces an empty `404` response, and it is
+ * ignored by the error reporter.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
   readonly request: Request.HttpServerRequest
@@ -111,8 +167,14 @@ export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
 }
 
 /**
+ * Error describing an unexpected server-side failure while handling a request.
+ *
+ * **Details**
+ *
+ * When converted to a response it produces an empty `500` response.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export class InternalError extends Data.TaggedError("InternalError")<{
   readonly request: Request.HttpServerRequest
@@ -120,6 +182,8 @@ export class InternalError extends Data.TaggedError("InternalError")<{
   readonly cause?: unknown
 }> implements Respondable.Respondable {
   /**
+   * Converts the server error into a `500 Internal Server Error` response.
+   *
    * @since 4.0.0
    */
   [Respondable.symbol]() {
@@ -136,14 +200,23 @@ export class InternalError extends Data.TaggedError("InternalError")<{
 }
 
 /**
- * @since 4.0.0
+ * Returns `true` when the supplied value is an `HttpServerError`.
+ *
  * @category predicates
+ * @since 4.0.0
  */
 export const isHttpServerError = (u: unknown): u is HttpServerError => hasProperty(u, TypeId)
 
 /**
+ * Error describing a failure related to an HTTP response.
+ *
+ * **Details**
+ *
+ * It carries the request and response involved in the failure. When converted to
+ * a response it produces an empty `500` response.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export class ResponseError extends Data.TaggedError("ResponseError")<{
   readonly request: Request.HttpServerRequest
@@ -166,28 +239,42 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
 }
 
 /**
+ * Union of errors that are tied directly to an incoming server request.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export type RequestError = RequestParseError | RouteNotFound | InternalError
 
 /**
+ * Reason carried by an `HttpServerError`, either a request-level error or a response-level error.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export type HttpServerErrorReason = RequestError | ResponseError
 
 /**
+ * Error wrapping a low-level failure from the HTTP server implementation.
+ *
+ * @category errors
  * @since 4.0.0
- * @category error
  */
 export class ServeError extends Data.TaggedError("ServeError")<{
   readonly cause: unknown
 }> {}
 
 /**
+ * Context annotation used to mark an interrupt as caused by the client aborting
+ * the request.
+ *
+ * **Details**
+ *
+ * `causeResponse` uses this annotation to map a pure client abort to a `499`
+ * response instead of a server abort response.
+ *
+ * @category annotations
  * @since 4.0.0
- * @category Annotations
  */
 export class ClientAbort extends Context.Service<ClientAbort, true>()("effect/http/HttpServerError/ClientAbort") {
   static annotation = this.context(true).pipe(
@@ -205,6 +292,16 @@ const formatRequestMessage = (reason: string, description: string | undefined, i
 }
 
 /**
+ * Converts a failed handler cause into the HTTP response that should be sent and
+ * the cause that should be reported.
+ *
+ * **Details**
+ *
+ * Respondable failures and defects can choose their own response, defects that
+ * are already `HttpServerResponse` values are used directly, and pure interrupts
+ * produce either `499` for client aborts or `503` for server aborts.
+ *
+ * @category error handling
  * @since 4.0.0
  */
 export const causeResponse = <E>(
@@ -253,6 +350,15 @@ export const causeResponse = <E>(
 }
 
 /**
+ * Derives an HTTP response from a failed handler cause synchronously.
+ *
+ * **Details**
+ *
+ * If the cause contains a defect that is already an `HttpServerResponse`, that
+ * response is used and removed from the remaining cause. Otherwise the response
+ * defaults to `500`.
+ *
+ * @category error handling
  * @since 4.0.0
  */
 export const causeResponseStripped = <E>(
@@ -278,6 +384,10 @@ const clientAbortError = Effect.succeed(Response.empty({ status: 499 }))
 const serverAbortError = Effect.succeed(Response.empty({ status: 503 }))
 
 /**
+ * Extracts the response from a successful handler exit, or derives a response
+ * from the failure cause.
+ *
+ * @category error handling
  * @since 4.0.0
  */
 export const exitResponse = <E>(exit: Exit.Exit<Response.HttpServerResponse, E>): Response.HttpServerResponse => {

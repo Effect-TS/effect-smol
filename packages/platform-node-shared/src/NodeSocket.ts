@@ -1,5 +1,29 @@
 /**
- * @since 1.0.0
+ * Node socket adapters for Effect sockets.
+ *
+ * This module opens `node:net` connections or wraps existing Node `Duplex`
+ * streams and presents them as `Socket.Socket` values, socket channels, or
+ * layers. It is the low-level bridge for TCP clients, Unix domain socket
+ * clients, and protocols that already expose a Node duplex stream.
+ *
+ * **Mental model**
+ *
+ * A socket acquired here is scoped. `makeNet` dials with
+ * `net.createConnection`, `fromDuplex` adapts any duplex returned by an Effect,
+ * `makeNetChannel` exposes the socket as a `Channel`, and `layerNet` provides
+ * it through the Effect environment. While a socket handler is running,
+ * `NetSocket` gives access to the underlying Node `net.Socket` for cases that
+ * need Node-specific operations.
+ *
+ * **Gotchas**
+ *
+ * `openTimeout` only limits opening the connection. Writes complete when Node
+ * accepts or flushes a chunk, close events are translated to `SocketError`
+ * values, and finalizers close or destroy the stream when the surrounding scope
+ * ends. Unix socket paths are supplied through `NetConnectOpts.path`, so use
+ * the same platform path rules as Node.
+ *
+ * @since 4.0.0
  */
 import type { Array } from "effect"
 import * as Channel from "effect/Channel"
@@ -18,22 +42,36 @@ import * as Net from "node:net"
 import type { Duplex } from "node:stream"
 
 /**
- * @since 1.0.0
  * @category re-exports
+ * @since 4.0.0
  */
 export * as NodeWS from "ws"
 
 /**
- * @since 1.0.0
+ * Service tag for the underlying Node `net.Socket` associated with the current
+ * socket connection.
+ *
  * @category tags
+ * @since 4.0.0
  */
 export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
   "@effect/platform-node/NodeSocket/NetSocket"
 ) {}
 
 /**
- * @since 1.0.0
+ * Opens a Node TCP connection as an Effect socket.
+ *
+ * **When to use**
+ *
+ * Use to create a scoped `Socket.Socket` from Node `net.createConnection`.
+ *
+ * **Details**
+ *
+ * Supports `openTimeout` and closes or destroys the underlying socket when the
+ * enclosing scope is finalized.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeNet = (
   options: Net.NetConnectOpts & {
@@ -77,8 +115,12 @@ export const makeNet = (
   )
 
 /**
- * @since 1.0.0
+ * Adapts a Node `Duplex` into a `Socket.Socket`, wiring data events to socket
+ * handlers, providing a scoped writer, and mapping open, read, write, and close
+ * failures to `SocketError`.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const fromDuplex = <RO>(
   open: Effect.Effect<Duplex, Socket.SocketError, RO>,
@@ -212,8 +254,11 @@ export const fromDuplex = <RO>(
   })
 
 /**
- * @since 1.0.0
+ * Creates a `Channel` over a TCP socket, reading arrays of `Uint8Array`
+ * chunks and writing arrays of bytes, strings, or socket close events.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeNetChannel = <IE = never>(
   options: Net.NetConnectOpts
@@ -229,8 +274,11 @@ export const makeNetChannel = <IE = never>(
   )
 
 /**
- * @since 1.0.0
+ * Provides a `Socket.Socket` by opening a TCP connection with the supplied
+ * Node `net` connection options.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerNet: (options: Net.NetConnectOpts) => Layer.Layer<
   Socket.Socket,

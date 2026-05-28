@@ -1,4 +1,48 @@
 /**
+ * Scoped resource pools for sharing expensive or limited resources across
+ * fibers.
+ *
+ * The `Pool` module acquires values with a scoped effect, lets fibers borrow
+ * them with {@link get}, and releases all acquired values when the pool scope
+ * closes. Pools are useful for database connections, clients, buffers, or other
+ * resources where acquisition is expensive and total concurrency must be
+ * bounded.
+ *
+ * **Mental model**
+ *
+ * - A pool owns resources between its configured minimum and maximum size.
+ * - Each item is acquired in the pool scope and finalized when removed or when
+ *   the pool shuts down.
+ * - {@link get} checks out an item in the caller's scope; leaving that scope
+ *   returns the item to the pool.
+ * - `concurrency` is per item, so a pool with size 4 and concurrency 2 can
+ *   serve up to 8 simultaneous checkouts.
+ * - `targetUtilization` controls when the resize strategy grows or shrinks the pool.
+ *
+ * **Common tasks**
+ *
+ * - Create a fixed-size pool with {@link make}.
+ * - Create an elastic pool that expires idle items with {@link makeWithTTL}.
+ * - Use {@link makeWithStrategy} for custom resize or reclamation behavior.
+ * - Borrow items safely in scoped effects with {@link get}.
+ * - Replace a broken item lazily with {@link invalidate}.
+ *
+ * **Gotchas**
+ *
+ * - Pool construction requires `Scope`; closing that scope shuts down the pool.
+ * - A checked-out item is returned only when the checkout scope closes, so do
+ *   not leak scoped effects that hold pool items indefinitely.
+ * - Acquisition failures fail the {@link get} effect for that checkout; later
+ *   checkouts can try acquisition again.
+ * - Invalidated items are finalized when they are no longer checked out, then
+ *   replacement happens on demand.
+ *
+ * **See also**
+ *
+ * - {@link Pool} for the pool value.
+ * - {@link get} for checked-out access.
+ * - {@link invalidate} for removing a specific item.
+ *
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.ts"
@@ -25,8 +69,19 @@ const TypeId = "~effect/Pool"
  * associated with the acquisition and release of resources. An attempt to get
  * an item `A` from a pool may fail with an error of type `E`.
  *
- * @since 2.0.0
+ * **When to use**
+ *
+ * Use when you need to share a bounded set of scoped resources across fibers
+ * while the pool manages acquisition, reuse, and release.
+ *
+ * @see {@link make} for creating a pool with size bounds
+ * @see {@link makeWithTTL} for creating a pool with idle item expiration
+ * @see {@link makeWithStrategy} for creating a pool with a custom strategy
+ * @see {@link get} for acquiring an item from a pool
+ * @see {@link invalidate} for removing a broken item from the pool
+ *
  * @category models
+ * @since 2.0.0
  */
 export interface Pool<in out A, in out E = never> extends Pipeable {
   readonly [TypeId]: typeof TypeId
@@ -35,8 +90,24 @@ export interface Pool<in out A, in out E = never> extends Pipeable {
 }
 
 /**
- * @since 4.0.0
+ * Normalized configuration used by a `Pool`.
+ *
+ * **When to use**
+ *
+ * Use as the normalized, read-only description of how a pool acquires, sizes,
+ * shares, and resizes its items after construction.
+ *
+ * **Details**
+ *
+ * The config stores the acquire effect, size bounds, per-item concurrency,
+ * target utilization, and resizing strategy used by the pool implementation.
+ *
+ * @see {@link Pool} for the value exposing this configuration
+ * @see {@link State} for mutable runtime state instead of static configuration
+ * @see {@link Strategy} for the resizing and reclamation contract stored on the config
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Config<A, E> {
   readonly acquire: Effect.Effect<A, E, Scope.Scope>
@@ -48,8 +119,28 @@ export interface Config<A, E> {
 }
 
 /**
- * @since 4.0.0
+ * Mutable runtime state maintained by a `Pool`.
+ *
+ * **When to use**
+ *
+ * Use when you need to inspect or support the runtime state backing a `Pool`,
+ * including its scope, item sets, semaphores, waiters, invalidation tracking,
+ * and shutdown flag.
+ *
+ * **Details**
+ *
+ * This state tracks the pool scope, active and available items, invalidated
+ * items, semaphores, waiters, and shutdown status. It is exposed for
+ * inspection and implementation support; user code should prefer the
+ * high-level pool operations.
+ *
+ * @see {@link Pool} for the pool value exposing this state
+ * @see {@link PoolItem} for the entries stored in the runtime item sets
+ * @see {@link get} for acquiring items through the high-level API
+ * @see {@link invalidate} for invalidating items through the high-level API
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface State<A, E> {
   readonly scope: Scope.Scope
@@ -64,8 +155,25 @@ export interface State<A, E> {
 }
 
 /**
- * @since 4.0.0
+ * Internal record for a value managed by a `Pool`.
+ *
+ * **When to use**
+ *
+ * Use when implementing a custom pool `Strategy` that needs to inspect
+ * acquired items, track reference counts, or return reclaimable items to the
+ * pool.
+ *
+ * **Details**
+ *
+ * Each item stores the acquisition `Exit`, its finalizer, the current
+ * reference count, and whether automatic reclaiming has been disabled because
+ * the item was invalidated.
+ *
+ * @see {@link Strategy} for the custom strategy callbacks that receive and return pool items
+ * @see {@link State} for the runtime sets that store active, available, and invalidated pool items
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface PoolItem<A, E> {
   readonly exit: Exit.Exit<A, E>
@@ -75,8 +183,24 @@ export interface PoolItem<A, E> {
 }
 
 /**
- * @since 4.0.0
+ * Strategy used by a `Pool` to manage background resizing and item
+ * reclamation.
+ *
+ * **When to use**
+ *
+ * Use when defining a custom pool lifecycle policy that needs to run background
+ * work, observe acquired items, or choose items for reclamation.
+ *
+ * **Details**
+ *
+ * `run` starts any strategy-specific background work, `onAcquire` is invoked
+ * when an item is acquired, and `reclaim` selects an item that can be removed
+ * or replaced.
+ *
+ * @see {@link makeWithStrategy} for constructing a pool from a custom `Strategy`
+ *
  * @category models
+ * @since 4.0.0
  */
 export interface Strategy<A, E> {
   readonly run: (pool: Pool<A, E>) => Effect.Effect<void>
@@ -87,16 +211,33 @@ export interface Strategy<A, E> {
 /**
  * Returns `true` if the specified value is a `Pool`, `false` otherwise.
  *
- * @since 2.0.0
+ * **When to use**
+ *
+ * Use to validate unknown values at runtime boundaries before treating them as
+ * `Pool` values.
+ *
+ * **Details**
+ *
+ * This predicate narrows the input to `Pool<unknown, unknown>`.
+ *
  * @category refinements
+ * @since 2.0.0
  */
 export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u, TypeId)
 
 /**
- * Makes a new pool of the specified fixed size. The pool is returned in a
- * `Scope`, which governs the lifetime of the pool. When the pool is shutdown
- * because the `Scope` is closed, the individual items allocated by the pool
- * will be released in some unspecified order.
+ * Makes a new pool of the specified fixed size.
+ *
+ * **When to use**
+ *
+ * Use to create a fixed-size pool when you know the exact number of resources
+ * needed upfront, without growth or shrinkage.
+ *
+ * **Details**
+ *
+ * The pool is returned in a `Scope`, which governs the lifetime of the pool.
+ * When the pool is shutdown because the `Scope` is closed, the individual
+ * items allocated by the pool will be released in some unspecified order.
  *
  * By setting the `concurrency` parameter, you can control the level of concurrent
  * access per pool item. By default, the number of permits is set to `1`.
@@ -108,8 +249,10 @@ export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u
  * A `targetUtilization` of 0.5 will create new pool items when the existing items are
  * 50% utilized.
  *
- * @since 2.0.0
+ * @see {@link makeWithTTL} for pools with min/max sizes and a TTL-based shrinking policy
+ * @see {@link makeWithStrategy} for pools with a custom resizing and reclamation strategy
  * @category constructors
+ * @since 2.0.0
  */
 export const make = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -120,51 +263,61 @@ export const make = <A, E, R>(options: {
   makeWithStrategy({ ...options, min: options.size, max: options.size, strategy: strategyNoop() })
 
 /**
- * Makes a new pool with the specified minimum and maximum sizes and time to
- * live before a pool whose excess items are not being used will be shrunk
- * down to the minimum size. The pool is returned in a `Scope`, which governs
- * the lifetime of the pool. When the pool is shutdown because the `Scope` is
- * used, the individual items allocated by the pool will be released in some
- * unspecified order.
+ * Creates a scoped pool with minimum and maximum sizes and a time-to-live
+ * policy for shrinking unused excess items.
  *
- * By setting the `concurrency` parameter, you can control the level of concurrent
- * access per pool item. By default, the number of permits is set to `1`.
+ * **When to use**
  *
- * `targetUtilization` determines when to create new pool items. It is a value
- * between 0 and 1, where 1 means only create new pool items when all the existing
- * items are fully utilized.
+ * Use to create an elastic scoped pool that can grow up to a maximum size and
+ * later reclaim unused excess items.
  *
- * A `targetUtilization` of 0.5 will create new pool items when the existing items are
- * 50% utilized.
+ * **Details**
  *
- * The `timeToLiveStrategy` determines how items are invalidated. If set to
- * "creation", then items are invalidated based on their creation time. If set
- * to "usage", then items are invalidated based on pool usage.
+ * The returned pool requires `Scope`; when that scope is closed, allocated
+ * items are released in an unspecified order. `concurrency` controls how many
+ * fibers may use each pool item at once and defaults to `1`.
  *
- * By default, the `timeToLiveStrategy` is set to "usage".
+ * `targetUtilization` controls when new items are created and is clamped by the
+ * pool implementation. A value of `1` waits until existing items are fully
+ * utilized before creating more items.
  *
- * ```ts skip-type-checking
+ * `timeToLiveStrategy` controls when excess items expire: `"creation"` measures
+ * from item creation, while `"usage"` measures from pool usage. The default is
+ * `"usage"`.
+ *
+ * **Example** (Create a connection pool)
+ *
+ * ```ts
  * import { Duration, Effect, Pool } from "effect"
- * import { createConnection } from "mysql2"
+ *
+ * interface Connection {
+ *   readonly execute: (sql: string) => Effect.Effect<ReadonlyArray<string>>
+ *   readonly close: Effect.Effect<void>
+ * }
  *
  * const acquireDBConnection = Effect.acquireRelease(
- *   Effect.sync(() => createConnection("mysql://...")),
- *   (connection) => Effect.sync(() => connection.end(() => {}))
+ *   Effect.succeed({
+ *     execute: (sql) => Effect.succeed([`executed: ${sql}`]),
+ *     close: Effect.void
+ *   } satisfies Connection),
+ *   (connection) => connection.close
  * )
  *
- * const connectionPool = Effect.flatMap(
- *   Pool.makeWithTTL({
- *     acquire: acquireDBConnection,
- *     min: 10,
- *     max: 20,
- *     timeToLive: Duration.seconds(60)
- *   }),
- *   (pool) => pool.get
+ * const program = Effect.scoped(
+ *   Effect.flatMap(
+ *     Pool.makeWithTTL({
+ *       acquire: acquireDBConnection,
+ *       min: 10,
+ *       max: 20,
+ *       timeToLive: Duration.seconds(60)
+ *     }),
+ *     (pool) => Effect.flatMap(Pool.get(pool), (connection) => connection.execute("select 1"))
+ *   )
  * )
  * ```
  *
- * @since 2.0.0
  * @category constructors
+ * @since 2.0.0
  */
 export const makeWithTTL = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -183,8 +336,24 @@ export const makeWithTTL = <A, E, R>(options: {
   )
 
 /**
- * @since 4.0.0
+ * Creates a scoped pool using a custom resizing and reclamation strategy.
+ *
+ * **When to use**
+ *
+ * Use to build a pool whose item lifecycle is controlled by an explicit
+ * `Strategy`, such as custom background resizing, replacement, or reclamation.
+ *
+ * **Details**
+ *
+ * The returned pool requires `Scope`; closing the scope shuts down the pool and
+ * releases allocated items.
+ *
+ * @see {@link make} for fixed-size pools without custom resizing or reclamation
+ * @see {@link makeWithTTL} for min/max pools that shrink excess items with a TTL policy
+ * @see {@link Strategy} for the custom strategy contract consumed by this constructor
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeWithStrategy = <A, E, R>(options: {
   readonly acquire: Effect.Effect<A, E, R>
@@ -265,12 +434,26 @@ const shutdown = Effect.fnUntraced(function*<A, E>(self: Pool<A, E>) {
 })
 
 /**
- * Retrieves an item from the pool in a scoped effect. Note that if
- * acquisition fails, then the returned effect will fail for that same reason.
- * Retrying a failed acquisition attempt will repeat the acquisition attempt.
+ * Retrieves an item from the pool in a scoped effect.
  *
- * @since 2.0.0
+ * **When to use**
+ *
+ * Use to borrow a pooled resource for the lifetime of the current scope so it
+ * is automatically returned when that scope closes.
+ *
+ * **Details**
+ *
+ * The returned effect waits for an available item when the pool is at capacity.
+ * If acquiring a new item fails, the effect fails with the acquisition error.
+ *
+ * **Gotchas**
+ *
+ * Retrying a failed `get` can repeat the acquisition attempt.
+ *
+ * @see {@link invalidate} for removing an unhealthy item from future reuse
+ *
  * @category getters
+ * @since 2.0.0
  */
 export const get = <A, E>(self: Pool<A, E>): Effect.Effect<A, E, Scope.Scope> =>
   Effect.suspend(() => {
@@ -342,12 +525,24 @@ const getPoolItemInner = Effect.fnUntraced(function*<A, E>(
 })
 
 /**
- * Invalidates the specified item. This will cause the pool to eventually
- * reallocate the item, although this reallocation may occur lazily rather
- * than eagerly.
+ * Invalidates the specified item so the pool can remove it and reallocate the
+ * item, lazily if needed.
  *
- * @since 2.0.0
+ * **When to use**
+ *
+ * Use to prevent a pooled item from being reused after you determine it is no
+ * longer suitable, such as a stale connection or a resource that failed a
+ * health check.
+ *
+ * **Gotchas**
+ *
+ * The item is matched with strict equality. Passing an equivalent but different
+ * object instance does nothing.
+ *
+ * @see {@link get} for retrieving scoped items from the pool
+ *
  * @category combinators
+ * @since 2.0.0
  */
 export const invalidate: {
   <A>(item: A): <E>(self: Pool<A, E>) => Effect.Effect<void, never, Scope.Scope>

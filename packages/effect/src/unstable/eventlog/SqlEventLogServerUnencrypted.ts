@@ -1,4 +1,41 @@
 /**
+ * SQL-backed storage for unencrypted event-log servers.
+ *
+ * This module provides the durable `Storage` implementation used by
+ * `EventLogServerUnencrypted` when remote entries should be stored in a SQL
+ * database and streamed back to clients by store sequence. It creates
+ * dialect-specific tables for the server remote id, per-store sequence state,
+ * plaintext entries, and session authentication bindings.
+ *
+ * **Mental model**
+ *
+ * Each server store is an append-only SQL sequence. A write transaction ensures
+ * the store row exists, locks its next sequence, inserts the plaintext entry
+ * rows, advances the sequence, and publishes the committed remote entries to
+ * in-process subscribers. A change stream first reads the SQL backlog from the
+ * requested sequence, applies compaction, and then continues with entries
+ * published by this process.
+ *
+ * **Common tasks**
+ *
+ * - Persist an unencrypted event-log server across process restarts.
+ * - Use database backup, replication, and transactional ordering for remote
+ *   event-log entries.
+ * - Choose table names with `entryTablePrefix` and `remoteIdTable`, or tune
+ *   insert batching with `insertBatchSize`.
+ *
+ * **Gotchas**
+ *
+ * Entry payloads are intentionally written as plaintext bytes. Use this storage
+ * only when the database, transport, backups, logs, and operators are trusted,
+ * or when encryption is handled outside this module. Live notifications are
+ * process-local after the initial SQL backlog read, so multi-process
+ * deployments need routing, reconnect/backfill behavior, or an external
+ * notification channel for writes made elsewhere. Writes also rely on SQL
+ * transactions and store-level locking, so deployments should provision
+ * compatible isolation behavior and account for dialect-specific binary and
+ * text column limits.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
@@ -15,8 +52,16 @@ import { Entry, EntryId, makeRemoteIdUnsafe, RemoteEntry, type RemoteId } from "
 import * as EventLogServerUnencrypted from "./EventLogServerUnencrypted.ts"
 
 /**
- * @since 4.0.0
+ * Creates unencrypted event-log server `Storage` backed by SQL.
+ *
+ * **Details**
+ *
+ * The implementation creates tables for the server remote id, store sequences,
+ * entries, and session authentication bindings, then persists and streams
+ * plaintext remote entries.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const makeStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -192,7 +237,7 @@ export const makeStorage = (options?: {
           VALUES (1, ${created})
         `.pipe(
           Effect.catchIf(
-            (error: SqlError.SqlError) => error.reason._tag === "ConstraintError",
+            isConstraintConflict,
             () => Effect.void
           ),
           Effect.andThen(selectRemoteId),
@@ -424,8 +469,10 @@ export const makeStorage = (options?: {
   }).pipe(withTracerDisabled)
 
 /**
- * @since 4.0.0
+ * Provides unencrypted server `Storage` using the SQL-backed implementation.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerStorage = (options?: {
   readonly entryTablePrefix?: string
@@ -504,3 +551,6 @@ const decodeSessionAuthBindings = (
 ): Effect.Effect<ReadonlyArray<SessionAuthBindingSql>, Schema.SchemaError> => decodeSessionAuthBindingRows(rows)
 
 const withTracerDisabled = Effect.withTracerEnabled(false)
+
+const isConstraintConflict = (error: SqlError.SqlError): boolean =>
+  error.reason._tag === "ConstraintError" || error.reason._tag === "UniqueViolation"

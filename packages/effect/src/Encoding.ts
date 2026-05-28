@@ -1,5 +1,50 @@
 /**
- * Encoding & decoding for Base64 (RFC4648), Base64Url, and Hex.
+ * Encode and decode text and bytes as Base64, Base64Url, and hexadecimal.
+ *
+ * This module covers small, synchronous format conversions where invalid input
+ * should be reported as data instead of thrown exceptions. Encode functions
+ * return strings directly; decode functions return `Result.Result` so callers
+ * can branch on success or inspect an {@link EncodingError}.
+ *
+ * **Mental model**
+ *
+ * String inputs are first converted to UTF-8 bytes with `TextEncoder`.
+ * `Uint8Array` inputs are encoded directly. Byte decoders return raw
+ * `Uint8Array` values, while `*String` decoders decode the resulting bytes as
+ * UTF-8 text with `TextDecoder`.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link encodeBase64} and {@link decodeBase64} for standard padded RFC
+ *   4648 Base64
+ * - Use {@link encodeBase64Url} and {@link decodeBase64Url} for unpadded
+ *   URL-safe Base64
+ * - Use {@link encodeHex} and {@link decodeHex} for lowercase hexadecimal
+ * - Use the `*String` decoders when the encoded data represents UTF-8 text
+ * - Use {@link isEncodingError} to recognize failures returned by decode
+ *   operations
+ *
+ * **Gotchas**
+ *
+ * - Decode functions do not throw for malformed input; they return
+ *   `Result.fail` with an `EncodingError`.
+ * - Base64 decoders ignore carriage returns and line feeds before validation.
+ * - {@link decodeBase64Url} accepts padded and unpadded URL-safe input, but
+ *   {@link encodeBase64Url} emits unpadded output.
+ * - Hex encoding emits lowercase letters, and hex decoding requires an even
+ *   number of hexadecimal characters.
+ *
+ * **Example** (Decode Base64 without throwing)
+ *
+ * ```ts
+ * import { Encoding, Result } from "effect"
+ *
+ * const decoded = Encoding.decodeBase64String("aGVsbG8=")
+ *
+ * if (Result.isSuccess(decoded)) {
+ *   console.log(decoded.success)
+ * }
+ * ```
  *
  * @since 4.0.0
  */
@@ -12,20 +57,51 @@ import * as Result from "./Result.ts"
 // -------------------------------------------------------------------------------------
 
 /**
+ * Type identifier stored on `EncodingError` values and used by
+ * `isEncodingError`.
+ *
+ * **Details**
+ *
+ * This marker is part of the runtime representation of `EncodingError`. Prefer
+ * `isEncodingError` when narrowing unknown values.
+ *
+ * @see {@link isEncodingError} for the public guard that checks this marker
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category symbols
  */
 export const EncodingErrorTypeId = "~effect/encoding/EncodingError" as const
 
 /**
+ * Literal type of the `EncodingErrorTypeId` marker.
+ *
+ * **When to use**
+ *
+ * Use to type the marker carried by `EncodingError` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category symbols
  */
 export type EncodingErrorTypeId = typeof EncodingErrorTypeId
 
 /**
- * @since 4.0.0
+ * Error returned when an encoding or decoding operation cannot process its
+ * input.
+ *
+ * **When to use**
+ *
+ * Use when you need to handle or inspect failures from encoding or decoding
+ * operations.
+ *
+ * **Details**
+ *
+ * The error records whether the failure happened during encoding or decoding,
+ * which encoding module reported it, the original input, and a human-readable
+ * message.
+ *
+ * @see {@link isEncodingError} for checking whether a value is an EncodingError
  * @category constructors
+ * @since 4.0.0
  */
 export class EncodingError extends Data.TaggedError("EncodingError")<{
   kind: "Decode" | "Encode"
@@ -34,14 +110,35 @@ export class EncodingError extends Data.TaggedError("EncodingError")<{
   message: string
 }> {
   /**
+   * Marks this value as an encoding or decoding error for runtime guards.
+   *
+   * **When to use**
+   *
+   * Use to identify `EncodingError` instances through `isEncodingError`.
+   *
    * @since 4.0.0
    */
   readonly [EncodingErrorTypeId]: EncodingErrorTypeId = EncodingErrorTypeId
 }
 
 /**
- * @since 4.0.0
+ * Checks whether a value is an `EncodingError`.
+ *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before handling it as an `EncodingError` from
+ * encoding or decoding code.
+ *
+ * **Details**
+ *
+ * Returns `true` when the value carries the `EncodingErrorTypeId` marker and
+ * narrows the value to `EncodingError`.
+ *
+ * @see {@link EncodingError} for the structured error produced by failed
+ * encoding and decoding operations
+ *
  * @category guards
+ * @since 4.0.0
  */
 export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u, EncodingErrorTypeId)
 
@@ -52,7 +149,19 @@ export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u
 /**
  * Encodes the given value into a base64 (RFC4648) `string`.
  *
- * @example
+ * **When to use**
+ *
+ * Use to encode text or bytes as a standard padded Base64 string for storage or
+ * transport.
+ *
+ * **Details**
+ *
+ * String inputs are encoded as UTF-8 bytes before Base64 encoding.
+ * `Uint8Array` inputs are encoded directly. The output uses the standard
+ * RFC4648 alphabet with `=` padding.
+ *
+ * **Example** (Encoding Base64 strings and bytes)
+ *
  * ```ts
  * import { Encoding } from "effect"
  *
@@ -64,16 +173,31 @@ export const isEncodingError = (u: unknown): u is EncodingError => hasProperty(u
  * console.log(Encoding.encodeBase64(bytes)) // "SGVsbG8="
  * ```
  *
- * @since 4.0.0
+ * @see {@link decodeBase64} for decoding standard Base64 to bytes
+ * @see {@link decodeBase64String} for decoding standard Base64 to UTF-8 text
+ * @see {@link encodeBase64Url} for URL-safe unpadded Base64 output
+ *
  * @category encoding
+ * @since 2.0.0
  */
 export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? base64EncodeUint8Array(encoder.encode(input)) : base64EncodeUint8Array(input)
 
 /**
- * Decodes a base64 (RFC4648) encoded `string` into a `Uint8Array`.
+ * Decodes a base64 (RFC4648) string into bytes safely.
  *
- * @example
+ * **When to use**
+ *
+ * Use to decode a standard padded Base64 string into bytes without throwing on
+ * invalid input.
+ *
+ * **Details**
+ *
+ * Returns `Result.succeed` with a `Uint8Array` when decoding succeeds, or
+ * `Result.fail` with an `EncodingError` when the input is not valid base64.
+ *
+ * **Example** (Decoding Base64 bytes)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -83,8 +207,8 @@ export const encodeBase64: (input: Uint8Array | string) => string = (input) =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 2.0.0
  */
 export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const stripped = stripCrlf(str)
@@ -140,9 +264,20 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingErr
 }
 
 /**
- * Decodes a base64 (RFC4648) encoded `string` into a UTF-8 `string`.
+ * Decodes a base64 (RFC4648) string into a UTF-8 string safely.
  *
- * @example
+ * **When to use**
+ *
+ * Use to decode a standard padded Base64 string into UTF-8 text without
+ * throwing on invalid input.
+ *
+ * **Details**
+ *
+ * Returns `Result.succeed` with the decoded text when decoding succeeds, or
+ * `Result.fail` with an `EncodingError` when the input is not valid base64.
+ *
+ * **Example** (Decoding Base64 strings)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -152,8 +287,8 @@ export const decodeBase64 = (str: string): Result.Result<Uint8Array, EncodingErr
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 2.0.0
  */
 export const decodeBase64String = (str: string) => Result.map(decodeBase64(str), (_) => decoder.decode(_))
 
@@ -164,7 +299,19 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
 /**
  * Encodes the given value into a base64 (URL) `string`.
  *
- * @example
+ * **When to use**
+ *
+ * Use to encode text or bytes as an unpadded Base64Url string for contexts that
+ * require the URL-safe alphabet.
+ *
+ * **Details**
+ *
+ * String inputs are encoded as UTF-8 bytes before Base64Url encoding.
+ * `Uint8Array` inputs are encoded directly. The output removes `=` padding and
+ * replaces `+` with `-` and `/` with `_`.
+ *
+ * **Example** (Encoding URL-safe Base64)
+ *
  * ```ts
  * import { Encoding } from "effect"
  *
@@ -175,16 +322,33 @@ export const decodeBase64String = (str: string) => Result.map(decodeBase64(str),
  * console.log(Encoding.encodeBase64Url(bytes)) // "SGVsbG8_"
  * ```
  *
- * @since 4.0.0
+ * @see {@link decodeBase64Url} for decoding URL-safe Base64 to bytes
+ * @see {@link decodeBase64UrlString} for decoding URL-safe Base64 to UTF-8 text
+ * @see {@link encodeBase64} for standard padded Base64 output
+ *
  * @category encoding
+ * @since 2.0.0
  */
 export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? base64UrlEncodeUint8Array(encoder.encode(input)) : base64UrlEncodeUint8Array(input)
 
 /**
- * Decodes a base64 (URL) encoded `string` into a `Uint8Array`.
+ * Decodes a URL-safe base64 string into bytes safely.
  *
- * @example
+ * **When to use**
+ *
+ * Use to decode padded or unpadded Base64Url text into bytes without throwing
+ * on invalid input.
+ *
+ * **Details**
+ *
+ * Returns `Result.succeed` with a `Uint8Array` when decoding succeeds, or
+ * `Result.fail` with an `EncodingError` when the input is not valid URL-safe
+ * base64. Both padded and unpadded URL-safe base64 forms are accepted when
+ * otherwise valid.
+ *
+ * **Example** (Decoding URL-safe Base64 bytes)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -194,8 +358,8 @@ export const encodeBase64Url: (input: Uint8Array | string) => string = (input) =
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 2.0.0
  */
 export const decodeBase64Url = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const stripped = stripCrlf(str)
@@ -230,9 +394,21 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, Encoding
 }
 
 /**
- * Decodes a base64 (URL) encoded `string` into a UTF-8 `string`.
+ * Decodes a URL-safe base64 string into a UTF-8 string safely.
  *
- * @example
+ * **When to use**
+ *
+ * Use to decode padded or unpadded Base64Url text into UTF-8 text without
+ * throwing on invalid input.
+ *
+ * **Details**
+ *
+ * Returns `Result.succeed` with the decoded text when decoding succeeds, or
+ * `Result.fail` with an `EncodingError` when the input is not valid URL-safe
+ * base64.
+ *
+ * **Example** (Decoding URL-safe Base64 strings)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -242,8 +418,8 @@ export const decodeBase64Url = (str: string): Result.Result<Uint8Array, Encoding
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 2.0.0
  */
 export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url(str), (_) => decoder.decode(_))
 
@@ -254,7 +430,12 @@ export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url
 /**
  * Encodes the given value into a hex `string`.
  *
- * @example
+ * **When to use**
+ *
+ * Use to encode text or bytes as lowercase hexadecimal text.
+ *
+ * **Example** (Encoding hex strings and bytes)
+ *
  * ```ts
  * import { Encoding } from "effect"
  *
@@ -266,16 +447,27 @@ export const decodeBase64UrlString = (str: string) => Result.map(decodeBase64Url
  * console.log(Encoding.encodeHex(bytes)) // "48656c6c6f"
  * ```
  *
- * @since 4.0.0
  * @category encoding
+ * @since 2.0.0
  */
 export const encodeHex: (input: Uint8Array | string) => string = (input) =>
   typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input)
 
 /**
- * Decodes a hex encoded `string` into a `Uint8Array`.
+ * Decodes a hexadecimal string into bytes safely.
  *
- * @example
+ * **When to use**
+ *
+ * Use to decode hexadecimal text into bytes without throwing on invalid input.
+ *
+ * **Details**
+ *
+ * Returns `Result.succeed` with a `Uint8Array` when decoding succeeds, or
+ * `Result.fail` with an `EncodingError` when the input has an odd length or
+ * contains invalid hex characters.
+ *
+ * **Example** (Decoding hex bytes)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -285,8 +477,8 @@ export const encodeHex: (input: Uint8Array | string) => string = (input) =>
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 2.0.0
  */
 export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError> => {
   const bytes = new TextEncoder().encode(str)
@@ -324,9 +516,20 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError>
 }
 
 /**
- * Decodes a hex encoded `string` into a UTF-8 `string`.
+ * Decodes a hexadecimal string into a UTF-8 string safely.
  *
- * @example
+ * **When to use**
+ *
+ * Use to decode hexadecimal text into UTF-8 text without throwing on invalid
+ * input.
+ *
+ * **Details**
+ *
+ * Returns `Result.succeed` with the decoded text when decoding succeeds, or
+ * `Result.fail` with an `EncodingError` when the input is not valid hex.
+ *
+ * **Example** (Decoding hex strings)
+ *
  * ```ts
  * import { Encoding, Result } from "effect"
  *
@@ -336,8 +539,8 @@ export const decodeHex = (str: string): Result.Result<Uint8Array, EncodingError>
  * }
  * ```
  *
- * @since 4.0.0
  * @category decoding
+ * @since 2.0.0
  */
 export const decodeHexString = (str: string) => Result.map(decodeHex(str), (_) => decoder.decode(_))
 

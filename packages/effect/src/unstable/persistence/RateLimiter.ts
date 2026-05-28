@@ -1,4 +1,29 @@
 /**
+ * Persistent rate limiting for effects that need to coordinate token
+ * consumption through a shared `RateLimiterStore`.
+ *
+ * The module exposes a `RateLimiter` service that can consume tokens for
+ * string keys using either fixed-window counters or token-bucket state. It is
+ * useful for protecting external APIs, enforcing per-user or per-tenant quotas,
+ * throttling job workers, and coordinating limits across multiple fibers or
+ * processes when they share the Redis-backed store. The helpers can fail fast
+ * with `RateLimiterError`, return a delay to apply yourself, or wrap an effect
+ * so it waits before continuing.
+ *
+ * Rate-limit keys and Redis prefixes are part of the persistence namespace, so
+ * choose stable, collision-free values. The in-memory store is process-local
+ * and is only coordinated inside one runtime, while the Redis store uses Lua
+ * scripts for atomic updates under concurrent consumers. Time is measured with
+ * the Effect `Clock`, windows are clamped to at least one millisecond, and
+ * refill calculations use millisecond granularity.
+ *
+ * Fixed-window state is TTL-driven: rejected `fail` attempts do not extend the
+ * current TTL, and Redis fixed-window keys expire automatically. Token-bucket
+ * state keeps the remaining token count and last-refill time instead of using a
+ * TTL, so high-cardinality dynamic keys may need an external cleanup or bounded
+ * key strategy. With `onExceeded: "delay"`, overflow can be recorded so callers
+ * should actually sleep for the returned delay, or use the provided accessors.
+ *
  * @since 4.0.0
  */
 import * as Config from "../../Config.ts"
@@ -11,20 +36,27 @@ import * as Schema from "../../Schema.ts"
 import * as Redis from "./Redis.ts"
 
 /**
+ * Runtime type identifier for `RateLimiter` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category Type IDs
  */
 export const TypeId: TypeId = "~effect/persistence/RateLimiter"
 
 /**
+ * Type-level identifier used to brand `RateLimiter` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category Type IDs
  */
 export type TypeId = "~effect/persistence/RateLimiter"
 
 /**
+ * Service for consuming rate-limit tokens for a key using fixed-window or
+ * token-bucket algorithms.
+ *
+ * @category models
  * @since 4.0.0
- * @category Models
  */
 export interface RateLimiter {
   readonly [TypeId]: TypeId
@@ -40,14 +72,28 @@ export interface RateLimiter {
 }
 
 /**
+ * Service tag for persistent token-consumption services.
+ *
+ * **When to use**
+ *
+ * Use to access or provide rate-limit checks backed by fixed-window counters or
+ * token-bucket state.
+ *
+ * @category tags
  * @since 4.0.0
- * @category Tags
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)
 
 /**
+ * Creates a `RateLimiter` from the current `RateLimiterStore`.
+ *
+ * **Details**
+ *
+ * The limiter supports fixed-window and token-bucket algorithms and either
+ * fails or returns a delay when a limit is exceeded.
+ *
+ * @category constructors
  * @since 4.0.0
- * @category Constructors
  */
 export const make: Effect.Effect<
   RateLimiter,
@@ -182,8 +228,10 @@ export const make: Effect.Effect<
 })
 
 /**
+ * Provides `RateLimiter` using the current `RateLimiterStore`.
+ *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layer: Layer.Layer<
   RateLimiter,
@@ -192,7 +240,9 @@ export const layer: Layer.Layer<
 > = Layer.effect(RateLimiter, make)
 
 /**
- * Access a function that applies rate limiting to an effect.
+ * Accesses a function that applies rate limiting to an effect.
+ *
+ * **Example** (Applying rate limits to effects)
  *
  * ```ts
  * import { Effect } from "effect"
@@ -215,8 +265,8 @@ export const layer: Layer.Layer<
  * })
  * ```
  *
+ * @category accessors
  * @since 4.0.0
- * @category Accessors
  */
 export const makeWithRateLimiter: Effect.Effect<
   ((options: {
@@ -239,7 +289,9 @@ export const makeWithRateLimiter: Effect.Effect<
 )
 
 /**
- * Access a function that sleeps when the rate limit is exceeded.
+ * Accesses a function that sleeps when the rate limit is exceeded.
+ *
+ * **Example** (Sleeping until rate limit permits)
  *
  * ```ts
  * import { Effect } from "effect"
@@ -260,8 +312,8 @@ export const makeWithRateLimiter: Effect.Effect<
  * })
  * ```
  *
+ * @category accessors
  * @since 4.0.0
- * @category Accessors
  */
 export const makeSleep: Effect.Effect<
   ((options: {
@@ -289,20 +341,30 @@ export const makeSleep: Effect.Effect<
 )
 
 /**
+ * Runtime type identifier for `RateLimiterError`.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category Errors
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
 /**
+ * Type-level identifier used to brand `RateLimiterError` values.
+ *
+ * @category type IDs
  * @since 4.0.0
- * @category Errors
  */
 export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
 
 /**
+ * Error reason for a rate-limit check that exceeded the configured limit.
+ *
+ * **Details**
+ *
+ * Includes the affected key, limit, remaining token count, and retry delay.
+ *
+ * @category errors
  * @since 4.0.0
- * @category Errors
  */
 export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
   "effect/persistence/RateLimiter/RateLimitExceeded"
@@ -314,6 +376,8 @@ export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
   remaining: Schema.Number
 }) {
   /**
+   * Public message used when the rate limiter rejects a request.
+   *
    * @since 4.0.0
    */
   override get message(): string {
@@ -322,8 +386,10 @@ export class RateLimitExceeded extends Schema.ErrorClass<RateLimitExceeded>(
 }
 
 /**
+ * Error reason for failures in the backing `RateLimiterStore`.
+ *
+ * @category errors
  * @since 4.0.0
- * @category Errors
  */
 export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
   "effect/persistence/RateLimiter/RateLimitStoreError"
@@ -334,14 +400,18 @@ export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
 }) {}
 
 /**
+ * Union of reasons carried by `RateLimiterError`.
+ *
+ * @category errors
  * @since 4.0.0
- * @category Errors
  */
 export type RateLimiterErrorReason = RateLimitExceeded | RateLimitStoreError
 
 /**
+ * Schema for all reasons that can be carried by `RateLimiterError`.
+ *
+ * @category errors
  * @since 4.0.0
- * @category Errors
  */
 export const RateLimiterErrorReason: Schema.Union<[
   typeof RateLimitExceeded,
@@ -349,8 +419,11 @@ export const RateLimiterErrorReason: Schema.Union<[
 ]> = Schema.Union([RateLimitExceeded, RateLimitStoreError])
 
 /**
+ * Error raised by rate limiter operations, wrapping a concrete failure
+ * `reason`.
+ *
+ * @category errors
  * @since 4.0.0
- * @category Errors
  */
 export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorTypeId)({
   _tag: Schema.tag("RateLimiterError"),
@@ -371,6 +444,8 @@ export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorT
   }
 
   /**
+   * Marks this value as a rate limiter error for runtime guards.
+   *
    * @since 4.0.0
    */
   readonly [ErrorTypeId]: ErrorTypeId = ErrorTypeId
@@ -381,15 +456,16 @@ export class RateLimiterError extends Schema.ErrorClass<RateLimiterError>(ErrorT
 }
 
 /**
+ * Metadata returned after consuming tokens from a rate limiter.
+ *
+ * @category models
  * @since 4.0.0
- * @category Models
  */
 export interface ConsumeResult {
   /**
    * The amount of delay to wait before making the next request, when the rate
-   * limiter is using the "delay" `onExceeded` strategy.
-   *
-   * It will be Duration.zero if the request is allowed immediately.
+   * limiter is using the "delay" `onExceeded` strategy. It will be
+   * Duration.zero if the request is allowed immediately.
    */
   readonly delay: Duration.Duration
 
@@ -410,8 +486,15 @@ export interface ConsumeResult {
 }
 
 /**
+ * Defines the low-level backing store for fixed-window counters and token-bucket state.
+ *
+ * **When to use**
+ *
+ * Use to provide the shared counter storage used by persistent rate-limit
+ * checks.
+ *
+ * @category store
  * @since 4.0.0
- * @category RateLimiterStore
  */
 export class RateLimiterStore extends Context.Service<
   RateLimiterStore,
@@ -454,8 +537,10 @@ export class RateLimiterStore extends Context.Service<
 >()("effect/persistence/RateLimiter/RateLimiterStore") {}
 
 /**
- * @since 4.0.0
+ * Provides a process-local in-memory `RateLimiterStore`.
+ *
  * @category RateLimiterStore
+ * @since 4.0.0
  */
 export const layerStoreMemory: Layer.Layer<
   RateLimiterStore
@@ -511,8 +596,11 @@ export const layerStoreMemory: Layer.Layer<
 })
 
 /**
- * @since 4.0.0
+ * Creates a Redis-backed `RateLimiterStore` using Lua scripts and the
+ * configured key prefix.
+ *
  * @category RateLimiterStore
+ * @since 4.0.0
  */
 export const makeStoreRedis = Effect.fnUntraced(function*(
   options?: {
@@ -646,8 +734,10 @@ return next
 ).withReturnType<number>()
 
 /**
+ * Provides a Redis-backed `RateLimiterStore` using `makeStoreRedis`.
+ *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layerStoreRedis: (
   options?: { readonly prefix?: string | undefined }
@@ -658,13 +748,16 @@ export const layerStoreRedis: (
 > = flow(makeStoreRedis, Layer.effect(RateLimiterStore))
 
 /**
+ * Provides a Redis-backed `RateLimiterStore` from wrapped configuration
+ * options.
+ *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layerStoreRedisConfig = (
   options: Config.Wrap<{ readonly prefix?: string | undefined }>
 ): Layer.Layer<RateLimiterStore, Config.ConfigError, Redis.Redis> =>
   Layer.effect(
     RateLimiterStore,
-    Effect.flatMap(Config.unwrap(options).asEffect(), makeStoreRedis)
+    Effect.flatMap(Config.unwrap(options), makeStoreRedis)
   )

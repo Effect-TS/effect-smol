@@ -1,4 +1,34 @@
 /**
+ * The `Path` module provides a platform path service for manipulating file
+ * system paths through Effect's environment. It models path operations as a
+ * replaceable service so programs can depend on path behavior without directly
+ * coupling to a particular runtime implementation.
+ *
+ * **Mental model**
+ *
+ * - `Path.Path` is a `Context.Service` tag used to access the current path implementation
+ * - The service offers familiar path operations such as joining, resolving, parsing, and formatting
+ * - Most operations are pure string transformations and follow POSIX-style path semantics
+ * - File URL conversions return `Effect`s because invalid paths or URLs can fail with `BadArgument`
+ * - Custom implementations can be provided with `Layer.succeed` for alternate platforms or tests
+ *
+ * **Common tasks**
+ *
+ * - Combine path segments with `join` or turn segments into an absolute path with `resolve`
+ * - Normalize `.` and `..` segments with `normalize`
+ * - Inspect paths with `basename`, `dirname`, `extname`, and `isAbsolute`
+ * - Convert between structured path parts and strings with `parse` and `format`
+ * - Compute relative paths with `relative`
+ * - Convert between file paths and `file:` URLs with `toFileUrl` and `fromFileUrl`
+ *
+ * **Gotchas**
+ *
+ * - Path strings are not checked against the file system; these operations only manipulate syntax
+ * - `resolve` may consult the host current working directory when no absolute segment is supplied
+ * - `fromFileUrl` only accepts valid `file:` URLs and rejects encoded path separators
+ * - Use the service from the environment when writing portable Effect code instead of importing
+ *   host-specific path APIs directly
+ *
  * @since 4.0.0
  */
 import * as Context from "./Context.ts"
@@ -8,14 +38,37 @@ import * as Layer from "./Layer.ts"
 import { BadArgument } from "./PlatformError.ts"
 
 /**
+ * Runtime type identifier used to mark implementations of the `Path` service.
+ *
+ * **Details**
+ *
+ * The marker is the exact string stored on `Path` service implementations.
+ * Most code should depend on the `Path` service instead of inspecting this
+ * value directly.
+ *
+ * @see {@link layer} for the built-in POSIX `Path` service layer
+ *
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/platform/Path"
 
 /**
- * @since 4.0.0
- * @category model
- * @example
+ * Defines the service interface for platform-specific path manipulation.
+ *
+ * **When to use**
+ *
+ * Use to depend on path operations through the Effect environment instead of a
+ * concrete host path module.
+ *
+ * **Details**
+ *
+ * The service exposes operations for joining, normalizing, parsing,
+ * formatting, and converting file system paths. URL conversion methods return
+ * `Effect`s because invalid file URLs or paths can fail with `BadArgument`.
+ *
+ * **Example** (Using path operations)
+ *
  * ```ts
  * import { Effect, Path } from "effect"
  *
@@ -46,6 +99,9 @@ export const TypeId = "~effect/platform/Path"
  *   })
  * })
  * ```
+ *
+ * @category models
+ * @since 4.0.0
  */
 export interface Path {
   readonly [TypeId]: typeof TypeId
@@ -66,9 +122,14 @@ export interface Path {
 }
 
 /**
- * @since 4.0.0
- * @category namespace
- * @example
+ * Namespace containing types associated with the `Path` service.
+ *
+ * **When to use**
+ *
+ * Use to reference types associated with path parsing and formatting.
+ *
+ * **Example** (Working with parsed paths)
+ *
  * ```ts
  * import { Effect, Path } from "effect"
  *
@@ -91,12 +152,26 @@ export interface Path {
  *   console.log(parsed, exampleParsed)
  * })
  * ```
+ *
+ * @since 4.0.0
  */
 export declare namespace Path {
   /**
-   * @since 4.0.0
-   * @category model
-   * @example
+   * Structured representation of a parsed file system path.
+   *
+   * **When to use**
+   *
+   * Use to model the object form produced by `Path.parse` and consumed by
+   * `Path.format`.
+   *
+   * **Details**
+   *
+   * The fields correspond to the path root, directory, base filename,
+   * extension, and filename without extension, matching the shape consumed by
+   * `Path.format`.
+   *
+   * **Example** (Parsing and formatting paths)
+   *
    * ```ts
    * import { Effect, Path } from "effect"
    *
@@ -123,6 +198,9 @@ export declare namespace Path {
    *   console.log(formatted) // "/home/user/newfile.ts"
    * })
    * ```
+   *
+   * @category models
+   * @since 4.0.0
    */
   export interface Parsed {
     readonly root: string
@@ -134,9 +212,14 @@ export declare namespace Path {
 }
 
 /**
- * @since 4.0.0
- * @category tag
- * @example
+ * Service tag for accessing the current `Path` implementation.
+ *
+ * **When to use**
+ *
+ * Use when an effect needs path operations supplied by its environment.
+ *
+ * **Example** (Providing a custom Path service)
+ *
  * ```ts
  * import { Effect, Layer, Path } from "effect"
  *
@@ -190,6 +273,9 @@ export declare namespace Path {
  * // Run with custom path implementation
  * const result = Effect.provide(program, customPathLayer)
  * ```
+ *
+ * @category tag
+ * @since 4.0.0
  */
 export const Path: Context.Service<Path, Path> = Context.Service("effect/Path")
 
@@ -786,7 +872,21 @@ const posixImpl = Path.of({
 })
 
 /**
+ * Layer that provides the built-in POSIX `Path` implementation.
+ *
+ * **When to use**
+ *
+ * Use when an effect requires the `Path` service and should run with the
+ * built-in POSIX path implementation.
+ *
+ * **Details**
+ *
+ * The layer provides a static service whose separator is `/` and whose
+ * operations use POSIX path semantics.
+ *
+ * @see {@link Path} for accessing the `Path` service from an effect
+ *
+ * @category layers
  * @since 4.0.0
- * @category Layers
  */
 export const layer: Layer.Layer<Path> = Layer.succeed(Path)(posixImpl)

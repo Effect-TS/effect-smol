@@ -1,4 +1,27 @@
 /**
+ * The `McpServer` module provides Effect services and layers for building
+ * Model Context Protocol servers. It keeps track of registered tools,
+ * resources, resource templates, prompts, completions, and server
+ * notifications, then exposes them through the MCP request handlers.
+ *
+ * **Common tasks**
+ *
+ * - Start a server over stdio with {@link layerStdio}
+ * - Register HTTP routes for an existing `HttpRouter` with {@link layerHttp}
+ * - Expose Effect AI toolkits as MCP tools with {@link registerToolkit}
+ * - Register resources, resource templates, and prompts with {@link resource}
+ *   and {@link prompt}
+ * - Ask the connected MCP client for structured input with {@link elicit}
+ *
+ * **Gotchas**
+ *
+ * - Registration helpers require an `McpServer` service, usually provided by
+ *   one of this module's layers.
+ * - HTTP clients must complete MCP initialization before other requests; the
+ *   server tracks initialized sessions with the `Mcp-Session-Id` header.
+ * - Resource template parameters are decoded with the schemas embedded in the
+ *   template literal.
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
@@ -72,8 +95,16 @@ import * as Tool from "./Tool.ts"
 import type * as Toolkit from "./Toolkit.ts"
 
 /**
- * @since 4.0.0
+ * Service that stores and serves an MCP server's registered tools, resources,
+ * prompts, completions, and outgoing notifications.
+ *
+ * **Details**
+ *
+ * Handlers use this service to register capabilities and resolve incoming MCP
+ * requests.
+ *
  * @category server
+ * @since 4.0.0
  */
 export class McpServer extends Context.Service<McpServer, {
   readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
@@ -148,6 +179,8 @@ export class McpServer extends Context.Service<McpServer, {
   ) => Effect.Effect<CompleteResult, InternalError, McpServerClient>
 }>()("effect/ai/McpServer") {
   /**
+   * Builds an MCP server service from registered tools, prompts, resources, and completions.
+   *
    * @since 4.0.0
    */
   static readonly make = Effect.gen(function*() {
@@ -307,6 +340,8 @@ export class McpServer extends Context.Service<McpServer, {
   })
 
   /**
+   * Layer that provides the MCP server and client services.
+   *
    * @since 4.0.0
    */
   static readonly layer: Layer.Layer<McpServer | McpServerClient> = Layer.effect(McpServer)(McpServer.make) as any
@@ -323,8 +358,16 @@ const mcpSessionIdHeader = "mcp-session-id"
 const mcpProtocolVersionHeader = "mcp-protocol-version"
 
 /**
- * @since 4.0.0
+ * Runs an MCP server over the current `RpcServer.Protocol`.
+ *
+ * **Details**
+ *
+ * The server performs initialization and session handling, serves registered
+ * tools, resources, and prompts, and forwards queued server notifications to
+ * initialized clients.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const run: (options: {
   readonly name: string
@@ -500,8 +543,33 @@ export const run: (options: {
 }, Effect.scoped)
 
 /**
- * @since 4.0.0
+ * Creates a layer that starts an MCP server over an existing
+ * `RpcServer.Protocol` and provides the `McpServer` and `McpServerClient`
+ * services.
+ *
+ * **When to use**
+ *
+ * Use when you already have a custom or externally provided
+ * `RpcServer.Protocol` and want to start an MCP server as part of a layer
+ * graph.
+ *
+ * **Details**
+ *
+ * The returned layer forks `run(options)` in the layer scope and merges
+ * `McpServer.layer`, so registration layers can use the `McpServer` service
+ * while the server is running.
+ *
+ * **Gotchas**
+ *
+ * Unlike `layerStdio` and `layerHttp`, this layer does not install a concrete
+ * transport. The surrounding layer graph must provide `RpcServer.Protocol`.
+ *
+ * @see {@link run} for the effect form used by this layer
+ * @see {@link layerStdio} for a stdio-backed layer that installs the MCP protocol and NDJSON-RPC serialization
+ * @see {@link layerHttp} for an HTTP-backed layer that registers with `HttpRouter` and installs JSON-RPC serialization
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly name: string
@@ -513,12 +581,13 @@ export const layer = (options: {
   )
 
 /**
- * Run the McpServer, using stdio for input and output.
+ * Runs the McpServer, using stdio for input and output.
  *
- * @example
+ * **Example** (Running an MCP server over stdio)
+ *
  * ```ts
- * import { NodeRuntime, NodeStdio } from "@effect/platform-node"
  * import { Effect, Layer, Logger, Schema } from "effect"
+ * import { NodeRuntime, NodeStdio } from "@effect/platform-node"
  * import { McpSchema, McpServer } from "effect/unstable/ai"
  *
  * const idParam = McpSchema.param("id", Schema.Number)
@@ -566,8 +635,8 @@ export const layer = (options: {
  * Layer.launch(ServerLayer).pipe(NodeRuntime.runMain)
  * ```
  *
- * @since 4.0.0
  * @category layers
+ * @since 4.0.0
  */
 export const layerStdio = (options: {
   readonly name: string
@@ -580,10 +649,23 @@ export const layerStdio = (options: {
   )
 
 /**
- * Run the `McpServer`, registering a router with a `HttpRouter`
+ * Registers an HTTP POST JSON-RPC route at `options.path` on the current
+ * `HttpRouter`.
  *
- * @since 4.0.0
+ * **When to use**
+ *
+ * Use to expose an MCP server through an existing `HttpRouter`.
+ *
+ * **Details**
+ *
+ * This layer composes `layer(options)`, `RpcServer.layerProtocolHttp(options)`,
+ * and `RpcSerialization.layerJsonRpc()`.
+ *
+ * @see {@link layerStdio} for exposing the server over stdio
+ * @see {@link layer} for the base MCP server layer without a transport protocol
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerHttp = (options: {
   readonly name: string
@@ -597,10 +679,10 @@ export const layerHttp = (options: {
   )
 
 /**
- * Register a `Toolkit` with the `McpServer`.
+ * Registers a `Toolkit` with the `McpServer`.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
   toolkit: Toolkit.Toolkit<Tools>
@@ -673,10 +755,10 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
 })
 
 /**
- * Register an AiToolkit with the McpServer.
+ * Registers an `AiToolkit` with the `McpServer`.
  *
- * @since 4.0.0
  * @category tools
+ * @since 4.0.0
  */
 export const toolkit = <Tools extends Record<string, Tool.Any>>(
   toolkit: Toolkit.Toolkit<Tools>
@@ -690,6 +772,10 @@ export const toolkit = <Tools extends Record<string, Tool.Any>>(
   )
 
 /**
+ * Utility type that validates a completion-handler record against the allowed
+ * parameter keys.
+ *
+ * @category utility types
  * @since 4.0.0
  */
 export type ValidateCompletions<Completions, Keys extends string> =
@@ -699,6 +785,15 @@ export type ValidateCompletions<Completions, Keys extends string> =
   }
 
 /**
+ * Completion-handler map for a resource URI template.
+ *
+ * **Details**
+ *
+ * Each schema interpolation contributes a parameter key, using an explicit
+ * `Param` name when present or `paramN` otherwise, and each handler returns
+ * candidate values for that parameter.
+ *
+ * @category models
  * @since 4.0.0
  */
 export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
@@ -709,10 +804,16 @@ export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
 }
 
 /**
- * Register a resource with the McpServer.
+ * Registers an MCP resource or resource template from an Effect program.
  *
- * @since 4.0.0
+ * **When to use**
+ *
+ * Use to add a resource to an existing MCP server from an Effect program.
+ *
+ * @see {@link resource} for the layer-based resource registration wrapper
+ *
  * @category resources
+ * @since 4.0.0
  */
 export const registerResource: {
   <E, R>(options: {
@@ -865,10 +966,16 @@ export const registerResource: {
 } as any
 
 /**
- * Register a resource with the McpServer.
+ * Creates a layer that registers an MCP resource or resource template.
  *
- * @since 4.0.0
+ * **When to use**
+ *
+ * Use to compose resource registration into an MCP server layer.
+ *
+ * @see {@link registerResource} for the Effect-level resource registration API
+ *
  * @category resources
+ * @since 4.0.0
  */
 export const resource: {
   <E, R>(options: {
@@ -925,10 +1032,22 @@ export const resource: {
 } as any
 
 /**
- * Register a prompt with the McpServer.
+ * Registers an MCP prompt from an Effect program.
  *
- * @since 4.0.0
+ * **When to use**
+ *
+ * Use to register an MCP prompt from an Effect program.
+ *
+ * **Details**
+ *
+ * Parameters are decoded with the supplied schema, completion handlers encode
+ * per-parameter suggestions, and string prompt content is converted into a user
+ * text message.
+ *
+ * @see {@link prompt} for the layer-based prompt registration wrapper
+ *
  * @category prompts
+ * @since 4.0.0
  */
 export const registerPrompt = <
   E,
@@ -1020,10 +1139,22 @@ export const registerPrompt = <
 }
 
 /**
- * Register a prompt with the McpServer.
+ * Creates a layer that registers an MCP prompt.
  *
- * @since 4.0.0
+ * **When to use**
+ *
+ * Use to compose prompt registration into an MCP server layer.
+ *
+ * **Details**
+ *
+ * Parameters are decoded with the supplied schema, completion handlers encode
+ * per-parameter suggestions, and string prompt content is converted into a user
+ * text message.
+ *
+ * @see {@link registerPrompt} for the Effect-level prompt registration API
+ *
  * @category prompts
+ * @since 4.0.0
  */
 export const prompt = <
   E,
@@ -1049,10 +1180,16 @@ export const prompt = <
   )
 
 /**
- * Create an elicitation request
+ * Collects structured input from the current MCP client and decodes the
+ * accepted response with `schema`.
  *
- * @since 4.0.0
+ * **Details**
+ *
+ * Accepted content is decoded with the supplied schema, declined requests fail
+ * with `ElicitationDeclined`, and canceled requests interrupt the effect.
+ *
  * @category elicitation
+ * @since 4.0.0
  */
 export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>>(options: {
   readonly message: string
@@ -1086,10 +1223,10 @@ export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>
 }, Effect.scoped)
 
 /**
- * Access the current client's capabilities.
+ * Accesses the current client's capabilities.
  *
- * @since 4.0.0
  * @category capabilities
+ * @since 4.0.0
  */
 export const clientCapabilities: Effect.Effect<
   ClientCapabilities,
@@ -1252,9 +1389,9 @@ const layerHandlers = (serverInfo: {
             Effect.provideService(CurrentLogLevel, currentLogLevel)
           ),
         "resources/subscribe": () =>
-          InternalError.notImplemented.asEffect(),
+          InternalError.notImplemented,
         "resources/unsubscribe": () =>
-          InternalError.notImplemented.asEffect(),
+          InternalError.notImplemented,
         "resources/templates/list": (_, { client, headers }) =>
           Effect.sync(() => {
             const initialized = getInitializedClient(options.clientSessions, client.id, headers)

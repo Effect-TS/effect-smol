@@ -1,19 +1,40 @@
 /**
- * Provides a codec transformation for Anthropic structured output.
+ * Adapt Effect Schema codecs to the JSON Schema subset accepted by Anthropic
+ * structured output.
  *
- * Anthropic's API has specific constraints on JSON schema support that differ
- * from the full JSON Schema specification. This module transforms Effect
- * `Schema.Codec` types into a form compatible with Anthropic's structured
- * output requirements by:
+ * The main entry point is {@link toCodecAnthropic}. It returns the JSON Schema
+ * to send to Anthropic and a codec that preserves the original decoded value
+ * type while changing the encoded representation when Anthropic cannot express
+ * that shape directly.
  *
- * - Converting tuples to objects with string keys (tuples are unsupported)
- * - Converting optional properties to nullable unions (`T | null`)
- * - Converting index signatures (records) to arrays of key-value pairs
- * - Converting `oneOf` unions to `anyOf` unions
- * - Stripping unsupported annotations and preserving only Anthropic-compatible
- *   formats and descriptions
+ * **Mental model**
  *
- * @since 1.0.0
+ * Anthropic structured output accepts a narrower schema vocabulary than Effect
+ * Schema. This module walks the encoded schema AST before JSON Schema
+ * generation, rewrites unsupported shapes into provider-safe encodings, and
+ * leaves the returned codec responsible for translating model output back into
+ * the original application shape.
+ *
+ * **Common tasks**
+ *
+ * - Convert a `Schema.Codec` for Anthropic structured output with
+ *   {@link toCodecAnthropic}
+ * - Decode model output with the returned codec so transformed tuples, records,
+ *   and optional properties become the original values again
+ * - Preserve provider-compatible descriptions and formats while dropping or
+ *   rewriting annotations Anthropic cannot represent
+ *
+ * **Gotchas**
+ *
+ * - The emitted JSON Schema may use an encoded shape: tuples become objects
+ *   with numeric string keys, records become arrays of `[key, value]` pairs, and
+ *   optional properties become required properties that accept `null`.
+ * - Unsupported schema kinds throw during conversion rather than producing a
+ *   lossy schema.
+ * - `oneOf` unions are emitted as `anyOf` unions because Anthropic's structured
+ *   output subset does not support the full JSON Schema vocabulary.
+ *
+ * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
 import * as JsonSchema from "../../JsonSchema.ts"
@@ -22,14 +43,22 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
+import * as LanguageModel from "./LanguageModel.ts"
+import * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
 import * as Tool from "./Tool.ts"
 
 /**
- * Transforms a `Schema.Codec` into a form compatible with Anthropic's
- * structured output constraints.
+ * Transforms a `Schema.Codec` into a form compatible with Anthropic's structured output constraints.
  *
- * The transformation walks the schema AST and rewrites constructs that
- * Anthropic does not support natively:
+ * **When to use**
+ *
+ * Use to adapt an `Effect` `Schema.Codec` for Anthropic structured output by
+ * returning an Anthropic-compatible JSON Schema together with a codec that
+ * preserves the decoded value type.
+ *
+ * **Details**
+ *
+ * The transformation walks the schema AST and rewrites constructs that Anthropic does not support natively:
  *
  * - **Tuples** are converted to objects with numeric string keys (e.g.
  *   `"0"`, `"1"`) since Anthropic does not support tuple schemas. Rest
@@ -46,8 +75,11 @@ import * as Tool from "./Tool.ts"
  * If the schema is already compatible, the original codec is returned
  * unchanged.
  *
- * @since 1.0.0
+ * @see {@link LanguageModel.CodecTransformer} for the structured-output transformer contract
+ * @see {@link OpenAiStructuredOutput.toCodecOpenAI} for the OpenAI-specific transformer
+ *
  * @category Codec Transformation
+ * @since 4.0.0
  */
 export function toCodecAnthropic<T, E, RD, RE>(
   schema: Schema.Codec<T, E, RD, RE>

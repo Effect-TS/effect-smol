@@ -1,4 +1,32 @@
 /**
+ * Effect-aware template literal rendering for HTTP response text.
+ *
+ * This module backs HTTP response helpers that accept template tags, especially
+ * HTML responses assembled from plain values, optional values, effects, and
+ * streams. It keeps template interpolation in the Effect type system so dynamic
+ * fragments can contribute errors and service requirements to the final
+ * response-producing program.
+ *
+ * **Mental model**
+ *
+ * `make` evaluates effectful interpolations and returns one complete string.
+ * `stream` emits static template text together with effect and stream
+ * interpolations as a `Stream`. Plain primitive values are converted to text,
+ * arrays are concatenated without separators, and `Option.none`, `null`, and
+ * `undefined` render as empty text.
+ *
+ * **Common tasks**
+ *
+ * Use `make` when the entire rendered body should be available before creating
+ * the response. Use `stream` when a response can be emitted incrementally, for
+ * example when part of an HTML page is produced by an existing stream.
+ *
+ * **Gotchas**
+ *
+ * Templates do not escape HTML, encode bytes, set content types, or compute
+ * content lengths. Escape or encode untrusted values before interpolation and
+ * choose the response constructor that matches the rendered body.
+ *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
@@ -7,18 +35,34 @@ import * as Option from "../../Option.ts"
 import * as Stream from "../../Stream.ts"
 
 /**
+ * Primitive value that can be interpolated into an HTTP template.
+ *
  * @category models
  * @since 4.0.0
  */
 export type PrimitiveValue = string | number | bigint | boolean | null | undefined
 
 /**
+ * Primitive template interpolation value.
+ *
+ * **Details**
+ *
+ * Arrays are rendered by converting each element to a string and concatenating the
+ * results.
+ *
  * @category models
  * @since 4.0.0
  */
 export type Primitive = PrimitiveValue | ReadonlyArray<PrimitiveValue>
 
 /**
+ * Value accepted by the string template constructor.
+ *
+ * **Details**
+ *
+ * Interpolations can be primitive values, optional primitive values, or effects
+ * that produce primitive values.
+ *
  * @category models
  * @since 4.0.0
  */
@@ -28,17 +72,31 @@ export type Interpolated =
   | Effect.Effect<Primitive, any, any>
 
 /**
+ * Value accepted by the streaming template constructor.
+ *
+ * **Details**
+ *
+ * In addition to normal interpolations, stream interpolations can emit primitive
+ * values over time.
+ *
  * @category models
  * @since 4.0.0
  */
 export type InterpolatedWithStream = Interpolated | Stream.Stream<Primitive, any, any>
 
 /**
- * @category models
+ * Namespace containing type-level helpers for template interpolations.
+ *
  * @since 4.0.0
  */
 export declare namespace Interpolated {
   /**
+   * Extracts the required context from an effect or stream interpolation.
+   *
+   * **Details**
+   *
+   * Plain values and `Option` interpolations contribute no context.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -49,6 +107,12 @@ export declare namespace Interpolated {
     : never
 
   /**
+   * Extracts the error type from an effect or stream interpolation.
+   *
+   * **Details**
+   *
+   * Plain values and `Option` interpolations contribute no error type.
+   *
    * @category models
    * @since 4.0.0
    */
@@ -60,6 +124,13 @@ export declare namespace Interpolated {
 }
 
 /**
+ * Creates an effectful string from a template literal.
+ *
+ * **Details**
+ *
+ * Primitive and `Option` interpolations are rendered immediately. Effect
+ * interpolations are evaluated and rendered before the final string is produced.
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -113,6 +184,14 @@ export function make<A extends ReadonlyArray<Interpolated>>(
 }
 
 /**
+ * Creates a stream of strings from a template literal.
+ *
+ * **Details**
+ *
+ * Static text is emitted with interpolated values. Effect interpolations are
+ * evaluated as stream chunks, and stream interpolations are flattened into the
+ * output.
+ *
  * @category constructors
  * @since 4.0.0
  */

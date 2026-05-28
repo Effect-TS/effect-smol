@@ -1,5 +1,55 @@
 /**
- * @since 1.0.0
+ * IndexedDB-backed persistence layers for browser Effect programs.
+ *
+ * `BrowserPersistence` connects the unstable persistence services to the
+ * browser's IndexedDB storage. Use it for client-side caches that should
+ * survive page reloads, offline-capable workflows, remembered query results,
+ * and other application-managed values that can be recomputed or invalidated
+ * when storage is unavailable.
+ *
+ * **Mental model**
+ *
+ * - {@link layerIndexedDb} provides the higher-level `Persistence` service by
+ *   composing the IndexedDB backing layer with the core persistence layer.
+ * - {@link layerBackingIndexedDb} provides only `BackingPersistence` for code
+ *   that composes persistence services manually.
+ * - Entries live in one IndexedDB database, defaulting to
+ *   `"effect_persistence"`, and one object store keyed by `[storeId, key]`.
+ * - The `storeId` namespaces persisted request results; the key identifies one
+ *   entry inside that store.
+ * - Finite TTLs are stored as expiration timestamps and expired entries are
+ *   removed lazily when they are read.
+ *
+ * **Common tasks**
+ *
+ * - Provide browser persistence to `PersistedCache` or other persistence
+ *   workflows with {@link layerIndexedDb}.
+ * - Isolate tests, apps, or migrations by passing a custom `database` option.
+ * - Use {@link layerBackingIndexedDb} when another layer should decide how to
+ *   construct the higher-level `Persistence` service.
+ *
+ * **Gotchas**
+ *
+ * - This module requires browser IndexedDB and stores data per origin.
+ * - Opening IndexedDB is defected during layer acquisition if the database
+ *   cannot be opened; later store operations report `PersistenceError`.
+ * - Values must be structured-cloneable objects, and writes can fail because of
+ *   quota limits, browser settings, private browsing modes, or user-cleared
+ *   storage.
+ * - Lazy TTL cleanup makes this suitable for caches, not for authoritative or
+ *   security-sensitive state.
+ *
+ * **Example** (Providing browser persistence)
+ *
+ * ```ts
+ * import { BrowserPersistence } from "@effect/platform-browser"
+ *
+ * export const PersistenceLive = BrowserPersistence.layerIndexedDb({
+ *   database: "my-app-cache"
+ * })
+ * ```
+ *
+ * @since 4.0.0
  */
 import type * as Arr from "effect/Array"
 import * as Clock from "effect/Clock"
@@ -9,8 +59,29 @@ import * as Layer from "effect/Layer"
 import * as Persistence from "effect/unstable/persistence/Persistence"
 
 /**
- * @since 1.0.0
+ * Creates a `BackingPersistence` layer backed by IndexedDB, optionally using the provided database name.
+ *
+ * **When to use**
+ *
+ * Use when composing persistence manually and the lower-level
+ * `BackingPersistence` service should be backed by browser IndexedDB.
+ *
+ * **Details**
+ *
+ * The database name defaults to `"effect_persistence"`. Entries are stored by
+ * persistence store id and key in a shared object store, and TTL expiration is
+ * checked when values are read.
+ *
+ * **Gotchas**
+ *
+ * Opening the database is defected during layer acquisition if IndexedDB is
+ * unavailable or cannot be opened. Store operations report `PersistenceError`
+ * for IndexedDB request, transaction, quota, and structured-clone failures.
+ *
+ * @see {@link layerIndexedDb} for providing the higher-level `Persistence` service
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerBackingIndexedDb = (options?: {
   readonly database?: string | undefined
@@ -42,8 +113,10 @@ const entriesStoreName = "entries"
 const storeIdIndexName = "storeId"
 
 /**
- * @since 1.0.0
+ * Creates a `Persistence` layer backed by IndexedDB, optionally using the provided database name.
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layerIndexedDb = (options?: {
   readonly database?: string | undefined

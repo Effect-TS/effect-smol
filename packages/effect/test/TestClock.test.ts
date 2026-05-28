@@ -60,4 +60,12 @@ describe("TestClock", () => {
       yield* testClock.setTime(199023438.0000004)
       assert.strictEqual(testClock.currentTimeNanosUnsafe(), 199023438000000n)
     }))
+
+  it("layer - can adjust when provided without an ambient Scope", () =>
+    Effect.gen(function*() {
+      yield* TestClock.adjust("1 second")
+    }).pipe(
+      Effect.provide(TestClock.layer({})),
+      Effect.runPromise
+    ))
 })

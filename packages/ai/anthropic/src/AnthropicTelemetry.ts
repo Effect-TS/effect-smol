@@ -1,11 +1,40 @@
 /**
- * Anthropic telemetry attributes for OpenTelemetry integration.
+ * The `AnthropicTelemetry` module adds Anthropic-specific attributes to the
+ * provider-neutral GenAI telemetry model. It keeps the standard
+ * `Telemetry.addGenAIAnnotations` attributes and adds Anthropic request and
+ * response metadata under the `gen_ai.anthropic.*` OpenTelemetry namespaces.
  *
- * Provides Anthropic-specific GenAI telemetry attributes following OpenTelemetry
- * semantic conventions, extending the base GenAI attributes with Anthropic-specific
- * request and response metadata.
+ * **Mental model**
  *
- * @since 1.0.0
+ * - Standard GenAI attributes come from `effect/unstable/ai/Telemetry`
+ * - Anthropic request attributes are written under
+ *   `gen_ai.anthropic.request.*`
+ * - Anthropic response attributes are written under
+ *   `gen_ai.anthropic.response.*`
+ * - Attribute option keys are written in camelCase and converted to
+ *   OpenTelemetry snake_case attribute names
+ * - {@link addGenAIAnnotations} mutates the supplied span by adding any
+ *   non-nullish attributes from the option object
+ *
+ * **Common tasks**
+ *
+ * - Use {@link AnthropicTelemetryAttributes} when typing the complete set of
+ *   standard and Anthropic-specific span attributes
+ * - Pass `anthropic.request` data for options such as extended thinking and
+ *   thinking budget tokens
+ * - Pass `anthropic.response` data for response details such as stop reason and
+ *   cache token counts
+ * - Use {@link addGenAIAnnotations} from an Anthropic model span to keep
+ *   standard GenAI and provider-specific annotations together
+ *
+ * **Gotchas**
+ *
+ * - This module only annotates spans; it does not start spans or export traces
+ * - Null and undefined attribute values are skipped instead of being written
+ * - The helper accepts both direct and data-last forms because it is built with
+ *   `dual`
+ *
+ * @since 4.0.0
  */
 import { dual } from "effect/Function"
 import * as String from "effect/String"
@@ -17,10 +46,14 @@ import * as Telemetry from "effect/unstable/ai/Telemetry"
  * The attributes used to describe telemetry in the context of Generative
  * Artificial Intelligence (GenAI) Models requests and responses.
  *
- * {@see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/}
+ * **Details**
  *
- * @since 1.0.0
+ * These attributes follow the OpenTelemetry generative AI semantic
+ * conventions:
+ * https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/
+ *
  * @category models
+ * @since 4.0.0
  */
 export type AnthropicTelemetryAttributes = Simplify<
   & Telemetry.GenAITelemetryAttributes
@@ -32,8 +65,8 @@ export type AnthropicTelemetryAttributes = Simplify<
  * All telemetry attributes which are part of the GenAI specification,
  * including the Anthropic-specific attributes.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export type AllAttributes = Telemetry.AllAttributes & RequestAttributes & ResponseAttributes
 
@@ -41,8 +74,8 @@ export type AllAttributes = Telemetry.AllAttributes & RequestAttributes & Respon
  * Telemetry attributes which are part of the GenAI specification and are
  * namespaced by `gen_ai.anthropic.request`.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface RequestAttributes {
   /**
@@ -59,8 +92,8 @@ export interface RequestAttributes {
  * Telemetry attributes which are part of the GenAI specification and are
  * namespaced by `gen_ai.anthropic.response`.
  *
- * @since 1.0.0
  * @category models
+ * @since 4.0.0
  */
 export interface ResponseAttributes {
   /**
@@ -78,8 +111,10 @@ export interface ResponseAttributes {
 }
 
 /**
- * @since 1.0.0
+ * Options accepted by `addGenAIAnnotations`, combining standard GenAI telemetry attributes with optional Anthropic request and response attributes.
+ *
  * @category models
+ * @since 4.0.0
  */
 export type AnthropicTelemetryAttributeOptions = Telemetry.GenAITelemetryAttributeOptions & {
   anthropic?: {
@@ -99,10 +134,17 @@ const addAnthropicResponseAttributes = Telemetry.addSpanAttributes("gen_ai.anthr
  * Applies the specified Anthropic GenAI telemetry attributes to the provided
  * `Span`.
  *
- * **NOTE**: This method will mutate the `Span` **in-place**.
+ * **When to use**
  *
- * @since 1.0.0
- * @category utilities
+ * Use to annotate an Anthropic model span with standard GenAI telemetry
+ * attributes and Anthropic-specific request or response metadata.
+ *
+ * **Gotchas**
+ *
+ * This method mutates the `Span` in place.
+ *
+ * @category utils
+ * @since 4.0.0
  */
 export const addGenAIAnnotations: {
   (options: AnthropicTelemetryAttributeOptions): (span: Span) => void

@@ -1,21 +1,42 @@
 /**
- * The Random module provides a service for generating random numbers in Effect
- * programs. It offers a testable and composable way to work with randomness,
- * supporting integers, floating-point numbers, and range-based generation.
+ * Pseudo-random generation through Effect's service context. The module exposes
+ * effectful generators for booleans, doubles, safe integers, bounded numbers,
+ * shuffling, and deterministic seeded runs.
  *
- * @example
+ * **Mental model**
+ *
+ * Randomness is read from the current {@link Random} service instead of a
+ * global singleton. That makes random programs reproducible in tests and local
+ * simulations with {@link withSeed}, while still allowing applications to
+ * replace the service at the edge.
+ *
+ * **Common tasks**
+ *
+ * - Draw a floating-point value in `[0, 1)` with {@link next}
+ * - Draw an integer with {@link nextInt} or {@link nextIntBetween}
+ * - Draw a floating-point value in a custom range with {@link nextBetween}
+ * - Randomize an iterable with {@link shuffle}
+ * - Run the same random sequence repeatedly with {@link withSeed}
+ *
+ * **Gotchas**
+ *
+ * - The default service is not suitable for secrets, session identifiers,
+ *   tokens, or other security-sensitive values.
+ * - `withSeed` is deterministic by design. A predictable seed does not make
+ *   generated values cryptographically secure.
+ * - Bounded integer generation rounds bounds before drawing from the range.
+ *
+ * **Example** (Generating random values)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const randomFloat = yield* Random.next
- *   console.log("Random float:", randomFloat)
- *
  *   const randomInt = yield* Random.nextInt
- *   console.log("Random integer:", randomInt)
- *
  *   const diceRoll = yield* Random.nextIntBetween(1, 6)
- *   console.log("Dice roll:", diceRoll)
+ *
+ *   return { randomFloat, randomInt, diceRoll }
  * })
  * ```
  *
@@ -28,9 +49,21 @@ import * as random from "./internal/random.ts"
 import * as Predicate from "./Predicate.ts"
 
 /**
- * Represents a service for generating random numbers.
+ * Represents a service for generating pseudo-random numbers.
  *
- * @example
+ * **When to use**
+ *
+ * Use to access or provide the random-number generator service used by Effect
+ * programs.
+ *
+ * **Gotchas**
+ *
+ * The default implementation is based on `Math.random` and is not
+ * cryptographically secure. Replace the service with a cryptographically secure
+ * implementation before using these generators for security-sensitive values.
+ *
+ * **Example** (Accessing the random service)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -38,17 +71,15 @@ import * as Predicate from "./Predicate.ts"
  *   const float = yield* Random.next
  *   const integer = yield* Random.nextInt
  *   const inRange = yield* Random.nextIntBetween(1, 100)
- *   const uuid = yield* Random.nextUUIDv4
  *
  *   console.log("Float:", float)
  *   console.log("Integer:", integer)
  *   console.log("In range:", inRange)
- *   console.log("UUID:", uuid)
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 2.0.0
  */
 export const Random: Context.Reference<{
   nextIntUnsafe(): number
@@ -59,9 +90,15 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
 
 /**
- * Generates a random number between 0 (inclusive) and 1 (inclusive).
+ * Generates a random number between 0 (inclusive) and 1 (exclusive).
  *
- * @example
+ * **When to use**
+ *
+ * Use to generate a pseudo-random floating-point number in the standard
+ * `[0, 1)` range.
+ *
+ * **Example** (Generating a random number)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -71,15 +108,20 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 2.0.0
  */
 export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe())
 
 /**
  * Generates a random boolean value.
  *
- * @example
+ * **When to use**
+ *
+ * Use to make a pseudo-random true-or-false choice.
+ *
+ * **Example** (Generating a random boolean)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -89,8 +131,8 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 2.0.0
  */
 export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubleUnsafe() > 0.5)
 
@@ -98,7 +140,13 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
  * and `Number.MAX_SAFE_INTEGER` (inclusive).
  *
- * @example
+ * **When to use**
+ *
+ * Use to generate a pseudo-random safe integer across the full safe-integer
+ * range.
+ *
+ * **Example** (Generating a random integer)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -108,15 +156,20 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 2.0.0
  */
 export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe())
 
 /**
- * Generates a random number between `min` (inclusive) and `max` (inclusive).
+ * Generates a random number between `min` (inclusive) and `max` (exclusive).
  *
- * @example
+ * **When to use**
+ *
+ * Use to generate a pseudo-random floating-point number within a numeric range.
+ *
+ * **Example** (Generating a bounded random number)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -126,19 +179,27 @@ export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe(
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 4.0.0
  */
 export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
   randomWith((r) => r.nextDoubleUnsafe() * (max - min) + min)
 
 /**
- * Generates a random number between `min` (inclusive) and `max` (inclusive).
+ * Generates a random integer between `min` and `max`.
  *
- * Set `options.halfOpen: true` to generate in the half-open range
- * `[min, max)`.
+ * **When to use**
  *
- * @example
+ * Use to generate a pseudo-random integer within a rounded numeric range.
+ *
+ * **Details**
+ *
+ * The lower bound is rounded up with `Math.ceil` and the upper bound is
+ * rounded down with `Math.floor`. By default the range is inclusive; set
+ * `options.halfOpen: true` to exclude the upper bound.
+ *
+ * **Example** (Generating a bounded random integer)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -151,8 +212,8 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 2.0.0
  */
 export const nextIntBetween = (min: number, max: number, options?: {
   readonly halfOpen?: boolean
@@ -168,7 +229,12 @@ export const nextIntBetween = (min: number, max: number, options?: {
 /**
  * Uses the pseudo-random number generator to shuffle the specified iterable.
  *
- * @example
+ * **When to use**
+ *
+ * Use to randomly reorder an iterable using the active `Random` service.
+ *
+ * **Example** (Shuffling values)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -178,8 +244,8 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * })
  * ```
  *
- * @since 4.0.0
  * @category Random Number Generators
+ * @since 2.0.0
  */
 export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   randomWith((r) => {
@@ -194,54 +260,23 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   })
 
 /**
- * Generates a random UUID (v4) string.
+ * Seeds the pseudo-random number generator with the specified value.
  *
- * @example
- * ```ts
- * import { Effect, Random } from "effect"
+ * **When to use**
  *
- * const program = Effect.gen(function*() {
- *   const uuid = yield* Random.nextUUIDv4
- *   console.log("UUID:", uuid)
- * })
- * ```
+ * Use to run an effect with a deterministic pseudo-random sequence.
  *
- * @since 4.0.0
- * @category Random Number Generators
- */
-export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
-  // Generate 16 random bytes (128 bits) for UUID
-  const bytes: Array<number> = []
-  for (let i = 0; i < 16; i++) {
-    // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
-    bytes.push((r.nextIntUnsafe() >>> 0) & 0xFF)
-  }
-
-  // Set version to 4 (bits 12-15 of time_hi_and_version)
-  bytes[6] = (bytes[6] & 0x0F) | 0x40
-
-  // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
-  bytes[8] = (bytes[8] & 0x3F) | 0x80
-
-  // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  const hex = (n: number) => n.toString(16).padStart(2, "0")
-
-  return [
-    bytes.slice(0, 4).map(hex).join(""),
-    bytes.slice(4, 6).map(hex).join(""),
-    bytes.slice(6, 8).map(hex).join(""),
-    bytes.slice(8, 10).map(hex).join(""),
-    bytes.slice(10, 16).map(hex).join("")
-  ].join("-")
-})
-
-/**
- * Seeds the pseudorandom number generator with the specified value.
+ * **Details**
  *
- * Take care to select a seed wit hhigh entropy to avoid issues with the
- * quality of random number generation.
+ * Using the same seed produces the same random sequence, which is useful for
+ * tests and reproducible simulations.
  *
- * @example
+ * **Gotchas**
+ *
+ * Use an unpredictable seed when uniqueness or unpredictability matters.
+ *
+ * **Example** (Seeding random generation)
+ *
  * ```ts
  * import { Effect, Random } from "effect"
  *
@@ -260,8 +295,8 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
  * Effect.runPromise(seeded2)
  * ```
  *
- * @since 4.0.0
  * @category Seeding
+ * @since 4.0.0
  */
 export const withSeed: {
   (seed: string | number): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
@@ -475,7 +510,7 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   /**
-   * Returns a signed, random integer in the range [-2^31, 2^31].
+   * Returns a signed, random integer in the range [-2^31, 2^31).
    */
   function nextInt32(): number {
     if (!generation--) {
@@ -486,15 +521,8 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   function nextIntUnsafe(): number {
-    // Get 32 bits (unsigned)
-    const low = nextInt32() >>> 0 // [0, 2^32-1]
-
-    // Get 21 more bits for a total of 53
-    const high = nextInt32() & 0x1FFFFF // [0, 2^21-1]
-
-    // Combine: high bits * 2^32 + low bits, then shift to signed range
-    // This gives [0, 2^53-1], subtract 2^52 to center around 0
-    return (high * 0x100000000) + low - 0x10000000000000
+    return Math.floor(nextDoubleUnsafe() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) +
+      Number.MIN_SAFE_INTEGER
   }
 
   /**
@@ -507,7 +535,7 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
     // 53-bit integer
     const combined = hi * 4294967296 + lo
 
-    return combined / 9007199254740991 // [0, 1)
+    return combined / 0x20000000000000 // [0, 1)
   }
 
   return { nextIntUnsafe, nextDoubleUnsafe }

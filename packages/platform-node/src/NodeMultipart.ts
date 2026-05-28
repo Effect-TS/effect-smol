@@ -1,5 +1,37 @@
 /**
- * @since 1.0.0
+ * Node.js multipart parsing for HTTP `multipart/form-data` request bodies.
+ *
+ * `NodeMultipart` adapts a Node `Readable` plus incoming HTTP headers into
+ * Effect's shared multipart model. It can expose form parts as a stream for
+ * incremental processing, or collect a complete persisted form by writing file
+ * uploads to scoped temporary files through the current `FileSystem` and `Path`
+ * services.
+ *
+ * **Mental model**
+ *
+ * Multipart request bodies are one-shot byte streams. {@link stream} parses the
+ * body as it arrives: fields are decoded to strings and file parts keep their
+ * underlying Node readable stream. {@link persisted} consumes the same kind of
+ * body, builds a `Multipart.Persisted` record, and ties temporary upload files
+ * to the surrounding `Scope`.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link stream} when a route validates fields while piping file uploads
+ *   to storage.
+ * - Use {@link persisted} when a route needs a complete form value with scoped
+ *   temporary files.
+ * - Use {@link fileToReadable} when a downstream Node library expects a
+ *   `Readable`.
+ *
+ * **Gotchas**
+ *
+ * Consume a request body with only one parser. File parts must be drained,
+ * piped, or persisted so the request can finish reading. `contentEffect` loads
+ * an uploaded file into memory, so reserve it for small files. Client-supplied
+ * filenames are metadata, not trusted filesystem paths.
+ *
+ * @since 4.0.0
  */
 import * as Effect from "effect/Effect"
 import type * as FileSystem from "effect/FileSystem"
@@ -16,8 +48,12 @@ import * as NodeStreamP from "node:stream/promises"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
- * @since 1.0.0
+ * Parses multipart data from a Node readable request body and headers into a
+ * stream of `Multipart.Part` values, converting parser failures to
+ * `MultipartError`.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const stream = (
   source: Readable,
@@ -39,8 +75,11 @@ export const stream = (
   )
 
 /**
- * @since 1.0.0
+ * Parses multipart data from a Node readable request body and persists file
+ * parts using the current `FileSystem`, `Path`, and `Scope` services.
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const persisted = (
   source: Readable,
@@ -57,7 +96,11 @@ export const persisted = (
     }))
 
 /**
- * @since 1.0.0
+ * Returns the underlying Node readable stream for a multipart file produced by
+ * the Node multipart parser.
+ *
+ * @category converting
+ * @since 4.0.0
  */
 export const fileToReadable = (file: Multipart.File): Readable => (file as FileImpl).file
 

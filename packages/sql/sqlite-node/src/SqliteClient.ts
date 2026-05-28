@@ -1,5 +1,46 @@
 /**
- * @since 1.0.0
+ * Node.js SQLite driver for Effect SQL, backed by `better-sqlite3`.
+ *
+ * Use this module to provide a scoped {@link SqliteClient} for file-backed or
+ * in-memory SQLite databases in Node.js. The provided layers install both the
+ * SQLite-specific service and the generic `SqlClient`, making the module useful
+ * for local applications, tests, migrations, development tools, and embedded
+ * persistence that need Effect SQL query compilation with SQLite-specific
+ * operations.
+ *
+ * ## Mental model
+ *
+ * Each client owns one scoped `better-sqlite3` database handle and serializes
+ * all SQL access through it. Because `better-sqlite3` executes statements
+ * synchronously, a long-running query or transaction holds the serialized
+ * connection until it completes. Prepared statements are cached by SQL text and
+ * result-name transforms are applied after rows are read.
+ *
+ * The service adds Node SQLite capabilities on top of the generic `SqlClient`:
+ * database export, file backup, and native extension loading.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} with a concrete filename and options.
+ * - Use {@link layerConfig} when the filename or flags should come from
+ *   `Config`.
+ * - Use {@link make} inside a custom scoped layer when you need to manage the
+ *   client lifecycle directly.
+ * - Use `client.export`, `client.backup`, or `client.loadExtension` for
+ *   operations that are specific to this Node SQLite driver.
+ *
+ * ## Gotchas
+ *
+ * WAL mode is enabled by default. Set `disableWAL` for read-only databases or
+ * when the database file or directory cannot be updated with SQLite WAL side
+ * files. Separate database handles or processes can still contend for SQLite
+ * write locks even though access through one client is serialized.
+ *
+ * Safe integer handling follows the generic `SqlClient` fiber-local setting.
+ * `executeStream` is not implemented for this driver, and SQLite does not
+ * support `updateValues`.
+ *
+ * @since 4.0.0
  */
 import Sqlite from "better-sqlite3"
 import * as Cache from "effect/Cache"
@@ -25,20 +66,26 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
   classifySqliteError(cause, { message, operation })
 
 /**
- * @category type ids
- * @since 1.0.0
+ * Runtime type identifier used to mark Node `SqliteClient` values.
+ *
+ * @category type IDs
+ * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
 /**
- * @category type ids
- * @since 1.0.0
+ * Type-level identifier used to mark Node `SqliteClient` values.
+ *
+ * @category type IDs
+ * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 
 /**
+ * Node SQLite client service, extending `SqlClient` with database export, backup, and extension loading helpers. `updateValues` is not supported.
+ *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
@@ -52,8 +99,10 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
+ * Metadata returned from a Node SQLite backup operation, reporting total and remaining page counts.
+ *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface BackupMetadata {
   readonly totalPages: number
@@ -61,14 +110,18 @@ export interface BackupMetadata {
 }
 
 /**
+ * Service tag for the node SQLite client implementation.
+ *
  * @category tags
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
 
 /**
+ * Configuration for a node SQLite client backed by `better-sqlite3`, including the database filename, read-only mode, statement cache settings, WAL behavior, span attributes, and query/result name transforms.
+ *
  * @category models
- * @since 1.0.0
+ * @since 4.0.0
  */
 export interface SqliteClientConfig {
   readonly filename: string
@@ -89,8 +142,10 @@ interface SqliteConnection extends Connection {
 }
 
 /**
- * @category constructor
- * @since 1.0.0
+ * Creates a scoped node SQLite client from the supplied configuration, using a single serialized connection with WAL enabled by default and exposing SQLite-specific `export`, `backup`, and `loadExtension` operations.
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = (
   options: SqliteClientConfig
@@ -254,14 +309,16 @@ export const make = (
   })
 
 /**
+ * Builds a layer from an Effect `Config` value, providing both the node `SqliteClient` service and the generic `SqlClient` service.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layerConfig = (
   config: Config.Wrap<SqliteClientConfig>
 ): Layer.Layer<SqliteClient | Client.SqlClient, Config.ConfigError> =>
   Layer.effectContext(
-    Config.unwrap(config).asEffect().pipe(
+    Config.unwrap(config).pipe(
       Effect.flatMap(make),
       Effect.map((client) =>
         Context.make(SqliteClient, client).pipe(
@@ -272,8 +329,10 @@ export const layerConfig = (
   ).pipe(Layer.provide(Reactivity.layer))
 
 /**
+ * Builds a layer from a node SQLite client configuration, providing both `SqliteClient` and the generic `SqlClient` service.
+ *
  * @category layers
- * @since 1.0.0
+ * @since 4.0.0
  */
 export const layer = (
   config: SqliteClientConfig

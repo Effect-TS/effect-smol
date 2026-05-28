@@ -1,4 +1,46 @@
 /**
+ * SQL migration runner for Effect applications.
+ *
+ * A migrator loads numbered migration effects, records which ids have already
+ * run in a migrations table, and executes only the pending migrations through a
+ * `SqlClient`. The helpers in this module cover the common ways migrations are
+ * discovered: dynamic glob imports, Babel-style glob records, in-memory
+ * records, and filesystem directories.
+ *
+ * **Mental model**
+ *
+ * - A {@link Loader} resolves an ordered list of {@link ResolvedMigration}
+ *   values
+ * - {@link make} creates a runner that ensures the migrations table exists,
+ *   reads the latest recorded id, loads pending migration effects, records
+ *   them, and runs them in a transaction
+ * - The default migrations table is `effect_sql_migrations`; pass `table` when
+ *   a database needs a different name
+ * - On PostgreSQL the migrations table is explicitly locked; other dialects use
+ *   the table constraint to detect concurrent runners
+ * - `schemaDirectory` runs the `dumpSchema` hook after successful migrations
+ *
+ * **Common tasks**
+ *
+ * - Load bundler migration modules with {@link fromGlob} or
+ *   {@link fromBabelGlob}
+ * - Load test or programmatic migrations with {@link fromRecord}
+ * - Load migration files from a directory with {@link fromFileSystem}
+ * - Customize schema dumps by passing `dumpSchema` to {@link make}
+ *
+ * **Gotchas**
+ *
+ * - Migration ids must be unique numbers; duplicate ids fail before any pending
+ *   migration is run
+ * - Only ids greater than the latest recorded id are considered pending, so
+ *   editing or inserting an older migration does not make it run again
+ * - File-based migrations must match `<id>_<name>.js`, `<id>_<name>.ts`,
+ *   `<id>_<name>.mjs`, or `<id>_<name>.mts`
+ * - File-based migration modules should default-export an `Effect` value that
+ *   uses the current `SqlClient`; records can supply effects directly
+ * - DDL transaction behavior is dialect-specific; coordinate custom table
+ *   names, schema dumps, and external migration tooling accordingly
+ *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
@@ -12,7 +54,10 @@ import * as Client from "./SqlClient.ts"
 import type { SqlError } from "./SqlError.ts"
 
 /**
- * @category model
+ * Options for running SQL migrations, including the migration loader, optional
+ * schema dump directory, and migrations table name.
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface MigratorOptions<R = never> {
@@ -22,7 +67,10 @@ export interface MigratorOptions<R = never> {
 }
 
 /**
- * @category model
+ * Effect that resolves the available migrations for the migrator or fails with a
+ * `MigrationError`.
+ *
+ * @category models
  * @since 4.0.0
  */
 export type Loader<R = never> = Effect.Effect<
@@ -32,7 +80,10 @@ export type Loader<R = never> = Effect.Effect<
 >
 
 /**
- * @category model
+ * Tuple produced by a migration loader, containing the migration id, migration
+ * name, and an effect that loads the migration implementation.
+ *
+ * @category models
  * @since 4.0.0
  */
 export type ResolvedMigration = readonly [
@@ -42,7 +93,10 @@ export type ResolvedMigration = readonly [
 ]
 
 /**
- * @category model
+ * Metadata for a migration recorded in the migrations table, including its id,
+ * name, and creation timestamp.
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Migration {
@@ -52,6 +106,8 @@ export interface Migration {
 }
 
 /**
+ * Error raised while loading, validating, locking, or running SQL migrations.
+ *
  * @category errors
  * @since 4.0.0
  */
@@ -68,7 +124,11 @@ export class MigrationError extends Data.TaggedError("MigrationError")<{
 }> {}
 
 /**
- * @category constructor
+ * Creates a migrator that ensures the migrations table exists, runs pending
+ * migrations in a transaction, and optionally dumps the schema after successful
+ * migrations.
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <RD = never>({
@@ -114,7 +174,7 @@ export const make = <RD = never>({
   migration_id integer primary key,
   created_at timestamp with time zone not null default now(),
   name text not null
-)`.asEffect()
+)`
         ),
       orElse: () =>
         sql`CREATE TABLE IF NOT EXISTS ${sql(table)} (
@@ -237,7 +297,7 @@ export const make = <RD = never>({
         yield* pipe(
           insertMigrations(required.map(([id, name]) => [id, name])),
           Effect.mapError((error): MigrationError | SqlError =>
-            error.reason._tag === "ConstraintError"
+            isConstraintConflict(error)
               ? new MigrationError({
                 kind: "Locked",
                 message: "Migrations already running"
@@ -297,16 +357,23 @@ export const make = <RD = never>({
 
 const migrationOrder = Order.make<ResolvedMigration>(([a], [b]) => Order.Number(a, b))
 
+const isConstraintConflict = (error: SqlError): boolean =>
+  error.reason._tag === "ConstraintError" || error.reason._tag === "UniqueViolation"
+
 /**
- * @since 4.0.0
+ * Creates a migration loader from a glob record of dynamic import functions,
+ * parsing files named `<id>_<name>.js`, `<id>_<name>.ts`,
+ * `<id>_<name>.mjs`, or `<id>_<name>.mts` and sorting migrations by id.
+ *
  * @category loaders
+ * @since 4.0.0
  */
 export const fromGlob = (
   migrations: Record<string, () => Promise<any>>
 ): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.flatMapNullishOr((_) => _.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/)),
+    Arr.flatMapNullishOr((_) => _.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts|mjs|mts)$/)),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -319,13 +386,17 @@ export const fromGlob = (
   )
 
 /**
- * @since 4.0.0
+ * Creates a migration loader from a Babel-style glob record, parsing keys such
+ * as `_<id>_<name>Js`, `_<id>_<name>Ts`, `_<id>_<name>Mjs`, or
+ * `_<id>_<name>Mts` and sorting migrations by id.
+ *
  * @category loaders
+ * @since 4.0.0
  */
 export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   pipe(
     Object.keys(migrations),
-    Arr.flatMapNullishOr((_) => _.match(/^_(\d+)_([^.]+?)(Js|Ts)?$/)),
+    Arr.flatMapNullishOr((_) => _.match(/^_(\d+)_([^.]+?)(Js|Ts|Mjs|Mts)?$/)),
     Arr.map(
       ([key, id, name]): ResolvedMigration => [
         Number(id),
@@ -338,8 +409,11 @@ export const fromBabelGlob = (migrations: Record<string, any>): Loader =>
   )
 
 /**
- * @since 4.0.0
+ * Creates a migration loader from a record of migration effects keyed by
+ * `<id>_<name>`, sorted by migration id.
+ *
  * @category loaders
+ * @since 4.0.0
  */
 export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknown, Client.SqlClient>>): Loader =>
   pipe(
@@ -357,8 +431,12 @@ export const fromRecord = (migrations: Record<string, Effect.Effect<void, unknow
   )
 
 /**
- * @since 4.0.0
+ * Creates a migration loader that reads a directory with `FileSystem`, imports
+ * files named `<id>_<name>.js`, `<id>_<name>.ts`,
+ * `<id>_<name>.mjs`, or `<id>_<name>.mts`, and sorts migrations by id.
+ *
  * @category loaders
+ * @since 4.0.0
  */
 export const fromFileSystem: (directory: string) => Loader<FileSystem> = Effect.fnUntraced(function*(directory) {
   const Fs = yield* FileSystem
@@ -372,7 +450,7 @@ export const fromFileSystem: (directory: string) => Loader<FileSystem> = Effect.
       })
   )
   return files
-    .map((file) => Option.fromNullishOr(file.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts)$/)))
+    .map((file) => Option.fromNullishOr(file.match(/^(?:.*\/)?(\d+)_([^.]+)\.(js|ts|mjs|mts)$/)))
     .flatMap(
       Option.match({
         onNone: () => [],

@@ -1,5 +1,37 @@
 /**
- * @since 1.0.0
+ * Browser geolocation integration for Effect programs.
+ *
+ * This module exposes a `Geolocation` service backed by
+ * `navigator.geolocation`. Use it for browser features that need a single
+ * position fix, such as nearby search or delivery estimates, or a stream of
+ * position updates for navigation, tracking, and location-aware interfaces.
+ * Browser failures are represented as typed `GeolocationError` values instead
+ * of raw callback errors.
+ *
+ * **Mental model**
+ *
+ * - The service delegates to the browser Geolocation API and follows the
+ *   browser's permission, privacy, origin, and secure-context rules.
+ * - `getCurrentPosition` reads one position fix from the service.
+ * - {@link watchPosition} turns browser position callbacks into a `Stream` and
+ *   clears the underlying browser watch when the stream is finalized.
+ *
+ * **Common tasks**
+ *
+ * - Provide the live browser implementation with {@link layer}.
+ * - Read a one-shot position from the `Geolocation` service.
+ * - Stream position updates with {@link watchPosition}.
+ * - Handle denied permissions, timeouts, and unavailable position data with
+ *   {@link GeolocationError}.
+ *
+ * **Gotchas**
+ *
+ * - Browsers may prompt the user, reject access outside secure contexts, block
+ *   access by permissions policy, or report that position data is unavailable.
+ * - {@link watchPosition} uses a sliding buffer; increase `bufferSize` if slow
+ *   consumers must not skip older positions.
+ *
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Context from "effect/Context"
@@ -13,8 +45,30 @@ const TypeId = "~@effect/platform-browser/Geolocation"
 const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 
 /**
- * @since 1.0.0
- * @category Models
+ * Defines the service interface for browser geolocation, providing effects for the current position and streams of watched positions.
+ *
+ * **When to use**
+ *
+ * Use when browser code needs a typed Effect service for one-shot location
+ * reads or streamed location updates.
+ *
+ * **Details**
+ *
+ * `getCurrentPosition` returns one position effect. `watchPosition` returns a
+ * stream and accepts the browser `PositionOptions` plus an optional sliding
+ * `bufferSize`.
+ *
+ * **Gotchas**
+ *
+ * Browser permission prompts, denied permissions, timeouts, unavailable
+ * position data, secure-context restrictions, and policy restrictions are
+ * surfaced as `GeolocationError`.
+ *
+ * @see {@link GeolocationError} for represented browser geolocation failures
+ * @see {@link layer} for the browser-backed service implementation
+ *
+ * @category models
+ * @since 4.0.0
  */
 export interface Geolocation {
   readonly [TypeId]: typeof TypeId
@@ -31,14 +85,25 @@ export interface Geolocation {
 }
 
 /**
- * @since 1.0.0
- * @category Service
+ * Service tag for browser geolocation capabilities.
+ *
+ * **When to use**
+ *
+ * Use when an Effect needs to access or provide geolocation capabilities
+ * through the context.
+ *
+ * @see {@link layer} for providing the browser-backed geolocation service
+ *
+ * @category services
+ * @since 4.0.0
  */
 export const Geolocation: Context.Service<Geolocation, Geolocation> = Context.Service<Geolocation>(TypeId)
 
 /**
- * @since 1.0.0
- * @category Errors
+ * Tagged error wrapping a browser geolocation failure reason.
+ *
+ * @category errors
+ * @since 4.0.0
  */
 export class GeolocationError extends Data.TaggedError("GeolocationError")<{
   readonly reason: GeolocationErrorReason
@@ -60,8 +125,10 @@ export class GeolocationError extends Data.TaggedError("GeolocationError")<{
 }
 
 /**
- * @since 1.0.0
- * @category Errors
+ * Error reason for the browser geolocation `POSITION_UNAVAILABLE` failure.
+ *
+ * @category errors
+ * @since 4.0.0
  */
 export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")<{
   readonly cause: unknown
@@ -72,8 +139,10 @@ export class PositionUnavailable extends Data.TaggedError("PositionUnavailable")
 }
 
 /**
- * @since 1.0.0
- * @category Errors
+ * Error reason for the browser geolocation `PERMISSION_DENIED` failure.
+ *
+ * @category errors
+ * @since 4.0.0
  */
 export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
   readonly cause: unknown
@@ -84,8 +153,10 @@ export class PermissionDenied extends Data.TaggedError("PermissionDenied")<{
 }
 
 /**
- * @since 1.0.0
- * @category Errors
+ * Error reason for the browser geolocation `TIMEOUT` failure.
+ *
+ * @category errors
+ * @since 4.0.0
  */
 export class Timeout extends Data.TaggedError("Timeout")<{
   readonly cause: unknown
@@ -96,8 +167,10 @@ export class Timeout extends Data.TaggedError("Timeout")<{
 }
 
 /**
- * @since 1.0.0
- * @category Errors
+ * Union of browser geolocation error reasons represented by the service.
+ *
+ * @category errors
+ * @since 4.0.0
  */
 export type GeolocationErrorReason = PositionUnavailable | PermissionDenied | Timeout
 
@@ -141,8 +214,10 @@ const makeQueue = (
   )
 
 /**
- * @since 1.0.0
- * @category Layers
+ * Layer that provides `Geolocation` using `navigator.geolocation`, with watched positions buffered in a sliding queue.
+ *
+ * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<Geolocation> = Layer.succeed(
   Geolocation,
@@ -162,8 +237,11 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
 )
 
 /**
- * @since 1.0.0
- * @category Accessors
+ * Reads geolocation positions from the `Geolocation` service as a stream, with
+ * an optional sliding buffer size.
+ *
+ * @category accessors
+ * @since 4.0.0
  */
 export const watchPosition = (
   options?:

@@ -1,10 +1,40 @@
 /**
- * OpenAI Language Model implementation.
+ * The `OpenAiLanguageModel` module provides the OpenAI Responses API
+ * implementation of Effect AI's `LanguageModel` service. It translates Effect
+ * AI prompts, files, tools, structured output requests, reasoning metadata, and
+ * provider options into OpenAI response requests, then converts OpenAI
+ * responses and streams back into Effect AI response parts.
  *
- * Provides a LanguageModel implementation for OpenAI's responses API,
- * supporting text generation, structured output, tool calling, and streaming.
+ * **Mental model**
  *
- * @since 1.0.0
+ * `OpenAiClient` owns HTTP transport and provider calls. This module owns
+ * protocol translation: request assembly, tool choice conversion, structured
+ * output codecs, streaming event handling, response metadata, and GenAI
+ * telemetry annotations. {@link model}, {@link layer}, and {@link make} all
+ * build the same OpenAI-backed `LanguageModel.LanguageModel` service from a
+ * model id and optional request defaults.
+ *
+ * **Common tasks**
+ *
+ * - Provide an OpenAI-backed `LanguageModel.LanguageModel` from an existing
+ *   `OpenAiClient`
+ * - Generate text or stream text through Effect AI's provider-neutral language
+ *   model API
+ * - Use OpenAI provider metadata for files, reasoning items, tool calls, and
+ *   response parts
+ * - Scope Responses API defaults with {@link Config} and
+ *   {@link withConfigOverride}
+ *
+ * **Gotchas**
+ *
+ * - Some OpenAI model families receive system instructions as developer
+ *   messages because the Responses API treats them differently.
+ * - File prompt parts are sent either as provider file ids or as base64
+ *   content, depending on `fileIdPrefixes`.
+ * - Structured output and tool-call behavior depends on both Effect AI tool
+ *   definitions and OpenAI model capabilities.
+ *
+ * @since 4.0.0
  */
 import * as Context from "effect/Context"
 import * as DateTime from "effect/DateTime"
@@ -41,8 +71,10 @@ const ResponseModelIds = Generated.ModelIdsResponses.members[1]
 const SharedModelIds = Generated.ModelIdsShared.members[1]
 
 /**
- * @since 1.0.0
+ * OpenAI model identifiers supported by the Responses API language model.
+ *
  * @category models
+ * @since 4.0.0
  */
 export type Model = typeof ResponseModelIds.Encoded | typeof SharedModelIds.Encoded
 
@@ -56,10 +88,22 @@ type ImageDetail = "auto" | "low" | "high"
 // =============================================================================
 
 /**
- * Service definition for OpenAI language model configuration.
+ * Context service for OpenAI language model configuration.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use when you need to provide OpenAI Responses API request defaults through
+ * Effect context for language model operations.
+ *
+ * **Details**
+ *
+ * Config values are merged with the config object passed to `model`, `make`, or
+ * `layer`, with scoped context values taking precedence.
+ *
+ * @see {@link withConfigOverride} for scoping language model request overrides
+ *
  * @category services
+ * @since 4.0.0
  */
 export class Config extends Context.Service<
   Config,
@@ -108,7 +152,16 @@ export class Config extends Context.Service<
 // =============================================================================
 
 declare module "effect/unstable/ai/Prompt" {
+  /**
+   * OpenAI-specific options for file prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface FilePartOptions extends ProviderOptions {
+    /**
+     * Provider-specific file options for the OpenAI Responses API.
+     */
     readonly openai?: {
       /**
        * The detail level of the image to be sent to the model. One of `high`, `low`, or `auto`. Defaults to `auto`.
@@ -117,7 +170,16 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-specific options for reasoning prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface ReasoningPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific reasoning options for the OpenAI Responses API.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
@@ -132,7 +194,16 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-specific options for assistant tool-call prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface ToolCallPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific tool-call options for the OpenAI Responses API.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
@@ -149,7 +220,16 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-specific options for tool-result prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface ToolResultPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific tool-result options for the OpenAI Responses API.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
@@ -166,7 +246,16 @@ declare module "effect/unstable/ai/Prompt" {
     } | null
   }
 
+  /**
+   * OpenAI-specific options for text prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
+   */
   export interface TextPartOptions extends ProviderOptions {
+    /**
+     * Provider-specific text options for the OpenAI Responses API.
+     */
     readonly openai?: {
       /**
        * The ID of the item to reference.
@@ -185,8 +274,20 @@ declare module "effect/unstable/ai/Prompt" {
 }
 
 declare module "effect/unstable/ai/Response" {
+  /**
+   * OpenAI metadata attached to a complete text response part.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface TextPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the text part.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the text part.
+       */
       readonly itemId?: string | null
       /**
        * If the model emits a refusal content part, the refusal explanation
@@ -205,55 +306,163 @@ declare module "effect/unstable/ai/Response" {
     }
   }
 
+  /**
+   * OpenAI metadata emitted when a streamed text part starts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface TextStartPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed text start.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the streamed text part.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI metadata emitted when a streamed text part ends.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface TextEndPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed text end.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the streamed text part.
+       */
       readonly itemId?: string | null
+      /**
+       * The annotations collected for the completed streamed text part.
+       */
       readonly annotations?: ReadonlyArray<typeof OpenAiSchema.Annotation.Encoded> | null
     } | null
   }
 
+  /**
+   * OpenAI metadata attached to a complete reasoning response part.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the reasoning part.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string | null
     } | null
   }
 
+  /**
+   * OpenAI metadata emitted when a streamed reasoning part starts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning start.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string | null
     } | null
   }
 
+  /**
+   * OpenAI metadata emitted for a streamed reasoning delta.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning delta.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI metadata emitted when a streamed reasoning part ends.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ReasoningEndPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the streamed reasoning end.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the reasoning part.
+       */
       readonly itemId?: string | null
+      /**
+       * Encrypted reasoning content that can be sent back in later requests.
+       */
       readonly encryptedContent?: string
     } | null
   }
 
+  /**
+   * OpenAI metadata attached to tool-call response parts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface ToolCallPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned for the tool call.
+     */
     readonly openai?: {
+      /**
+       * The OpenAI item ID associated with the tool call.
+       */
       readonly itemId?: string | null
     } | null
   }
 
+  /**
+   * OpenAI metadata attached to document source citations.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific citation metadata for the OpenAI Responses API.
+     */
     readonly openai?:
       | {
+        /**
+         * Identifies a citation to an uploaded file.
+         */
         readonly type: "file_citation"
         /**
          * The index of the file in the list of files.
@@ -265,6 +474,9 @@ declare module "effect/unstable/ai/Response" {
         readonly fileId: string
       }
       | {
+        /**
+         * Identifies a citation to a generated file path.
+         */
         readonly type: "file_path"
         /**
          * The index of the file in the list of files.
@@ -276,6 +488,9 @@ declare module "effect/unstable/ai/Response" {
         readonly fileId: string
       }
       | {
+        /**
+         * Identifies a citation to a file inside a container.
+         */
         readonly type: "container_file_citation"
         /**
          * The ID of the file.
@@ -289,8 +504,20 @@ declare module "effect/unstable/ai/Response" {
       | null
   }
 
+  /**
+   * OpenAI metadata attached to URL source citations.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific URL citation metadata for the OpenAI Responses API.
+     */
     readonly openai?: {
+      /**
+       * Identifies a citation to a URL.
+       */
       readonly type: "url_citation"
       /**
        * The index of the first character of the URL citation in the message.
@@ -303,8 +530,20 @@ declare module "effect/unstable/ai/Response" {
     } | null
   }
 
+  /**
+   * OpenAI metadata attached to finish response parts.
+   *
+   * @category response
+   * @since 4.0.0
+   */
   export interface FinishPartMetadata extends ProviderMetadata {
+    /**
+     * Provider-specific metadata returned when generation finishes.
+     */
     readonly openai?: {
+      /**
+       * The service tier reported by OpenAI for the response.
+       */
       readonly serviceTier?: "default" | "auto" | "flex" | "scale" | "priority" | null
     } | null
   }
@@ -315,8 +554,19 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * @since 1.0.0
+ * Creates an OpenAI model descriptor that can be provided with
+ * `Effect.provide`.
+ *
+ * **When to use**
+ *
+ * Use when you want an OpenAI language model value that carries provider and
+ * model metadata and can be supplied directly to an Effect program.
+ *
+ * @see {@link layer} for creating a `LanguageModel.LanguageModel` layer directly
+ * @see {@link make} for constructing the language model service effectfully
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const model = (
   model: (string & {}) | Model,
@@ -326,7 +576,7 @@ export const model = (
 
 // TODO
 // /**
-//  * @since 1.0.0
+//  * @since 4.0.0
 //  * @category constructors
 //  */
 // export const modelWithTokenizer = (
@@ -336,10 +586,26 @@ export const model = (
 //   AiModel.make("openai", model, layerWithTokenizer({ model, config }))
 
 /**
- * Creates an OpenAI language model service.
+ * Creates an OpenAI `LanguageModel` service from a model identifier and
+ * optional request defaults.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use when an Effect needs to construct a `LanguageModel.Service` value backed
+ * by `OpenAiClient`.
+ *
+ * **Details**
+ *
+ * The returned effect requires `OpenAiClient`. Request defaults from the
+ * `config` option are merged with any `Config` service in the context, with
+ * context values taking precedence. The service supports both `generateText`
+ * and `streamText`.
+ *
+ * @see {@link layer} for providing the service as a `Layer`
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
+ *
  * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*({ model, config: providerConfig }: {
   readonly model: (string & {}) | Model
@@ -439,10 +705,27 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 })
 
 /**
- * Creates a layer for the OpenAI language model.
+ * Creates a layer that provides the OpenAI `LanguageModel.LanguageModel`
+ * service.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenAI to satisfy
+ * `LanguageModel.LanguageModel` while supplying `OpenAiClient` from another
+ * layer.
+ *
+ * **Details**
+ *
+ * The `config` option supplies request defaults for the selected model. Scoped
+ * values from `withConfigOverride` are merged when each request is built and
+ * take precedence over these defaults.
+ *
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
+ * @see {@link withConfigOverride} for scoped request configuration overrides
+ *
  * @category layers
+ * @since 4.0.0
  */
 export const layer = (options: {
   readonly model: (string & {}) | Model
@@ -451,10 +734,25 @@ export const layer = (options: {
   Layer.effect(LanguageModel.LanguageModel, make(options))
 
 /**
- * Provides config overrides for OpenAI language model operations.
+ * Provides scoped config overrides for OpenAI language model operations.
  *
- * @since 1.0.0
+ * **When to use**
+ *
+ * Use to apply OpenAI Responses API config overrides around one or more
+ * language model operations without changing the defaults passed to `model`,
+ * `make`, or `layer`.
+ *
+ * **Details**
+ *
+ * The override is dual, so it can be used in pipe form or as
+ * `withConfigOverride(effect, overrides)`. Overrides are merged with any
+ * existing `Config` service in the current context, and the override values take
+ * precedence.
+ *
+ * @see {@link Config} for the scoped configuration service consumed by this function
+ *
  * @category configuration
+ * @since 4.0.0
  */
 export const withConfigOverride: {
   (overrides: typeof Config.Service): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Config>>

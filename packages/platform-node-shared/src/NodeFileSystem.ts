@@ -1,5 +1,36 @@
 /**
- * @since 1.0.0
+ * Shared Node-compatible implementation of Effect's `FileSystem` service.
+ *
+ * This module adapts Node's `node:fs`, `node:os`, and `node:path` APIs into a
+ * `FileSystem` layer for Effect programs running on Node-compatible runtimes.
+ * Platform packages use it to provide file and directory I/O, permissions,
+ * links, metadata, temporary files and directories, and file watching through
+ * the shared `FileSystem` service.
+ *
+ * **Mental model**
+ *
+ * {@link layer} installs a process-backed `FileSystem` service. Each operation
+ * delegates to the corresponding Node filesystem API, then maps Node failures
+ * into `PlatformError` values and invalid arguments into `BadArgument` failures.
+ * Paths keep Node's normal behavior: relative paths resolve from the current
+ * working directory and platform path rules still apply.
+ *
+ * **Common tasks**
+ *
+ * Provide {@link layer} at the Node runtime boundary, then depend on the
+ * `FileSystem` service from application code. Use the service for ordinary
+ * reads and writes, directory management, metadata inspection, links, temporary
+ * resources, and file watching without importing Node's `fs` APIs directly.
+ *
+ * **Gotchas**
+ *
+ * Open files are scoped resources with tracked read and write positions; append
+ * mode lets the operating system choose the write offset. File watching follows
+ * `node:fs.watch` semantics unless a custom watch backend is supplied, so
+ * recursive support, event coalescing, and reported paths vary by runtime and
+ * platform.
+ *
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
@@ -635,7 +666,10 @@ const makeFileSystem = Effect.map(Effect.serviceOption(FileSystem.WatchBackend),
   }))
 
 /**
- * @since 1.0.0
- * @category Layers
+ * Provides the `FileSystem` service backed by Node filesystem APIs, including
+ * file operations, directory operations, links, metadata, and file watching.
+ *
+ * @category layers
+ * @since 4.0.0
  */
 export const layer: Layer.Layer<FileSystem.FileSystem> = Layer.effect(FileSystem.FileSystem)(makeFileSystem)
