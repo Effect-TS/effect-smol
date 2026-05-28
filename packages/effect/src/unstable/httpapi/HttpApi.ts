@@ -236,8 +236,9 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
  *
  * **When to use**
  *
- * Use when add groups with `add` or `addHttpApi`, provide endpoint implementations with
- * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
+ * Use when you need to start defining an HTTP API, add groups with `add` or
+ * `addHttpApi`, provide endpoint implementations with `HttpApiBuilder.group`,
+ * and register the API with `HttpApiBuilder.layer`.
  *
  * @category constructors
  * @since 4.0.0

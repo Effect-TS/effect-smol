@@ -163,8 +163,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use when sorting or comparing boolean values through APIs that accept an
- * ordering instance where `false` comes before `true`.
+ * Use when you need to sort or compare boolean values through APIs that accept
+ * an ordering instance where `false` comes before `true`.
  *
  * **Example** (Comparing booleans)
  *

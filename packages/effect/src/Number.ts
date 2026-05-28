@@ -305,8 +305,8 @@ export const decrement = (n: number): number => n - 1
  *
  * **When to use**
  *
- * Use when sorting or comparing numbers through APIs that accept an ordering
- * instance.
+ * Use when you need to sort or compare numbers through APIs that accept an
+ * ordering instance.
  *
  * **Example** (Comparing numbers)
  *

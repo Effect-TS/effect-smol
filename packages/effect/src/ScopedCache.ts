@@ -128,7 +128,7 @@ export interface Entry<A, E> {
  *
  * **When to use**
  *
- * Use when cached scoped resources need different lifetimes based on the lookup
+ * Use when you need a scoped cache whose entry lifetime depends on each lookup
  * result or key.
  *
  * **Details**

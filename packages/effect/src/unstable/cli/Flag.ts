@@ -374,7 +374,8 @@ export const fileSchema = <A>(
  *
  * **When to use**
  *
- * Use when options accept configuration values.
+ * Use when you need a CLI flag that accepts one or more `key=value`
+ * configuration entries.
  *
  * **Details**
  *

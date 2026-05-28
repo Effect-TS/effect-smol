@@ -138,9 +138,8 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
  *
  * **When to use**
  *
- * Use when the "right" value should act as the accumulator side, or when
- * you want to reverse the natural direction of a non-commutative combiner such
- * as string concatenation.
+ * Use when you want the right-hand value to act as the accumulator, or need to
+ * reverse a non-commutative combiner such as string concatenation.
  *
  * **Details**
  *

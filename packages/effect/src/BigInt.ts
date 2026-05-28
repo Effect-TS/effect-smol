@@ -333,8 +333,8 @@ export const decrement = (n: bigint): bigint => n - bigint1
  *
  * **When to use**
  *
- * Use when sorting or comparing bigint values through APIs that accept an
- * ordering instance.
+ * Use when you need to sort or compare bigint values through APIs that accept
+ * an ordering instance.
  *
  * **Example** (Comparing bigints with Order)
  *
@@ -725,7 +725,9 @@ export const lcm: {
  *
  * **When to use**
  *
- * Use when the input is known to be non-negative and invalid input should throw.
+ * Use when you need to compute an integer square root for a `bigint` that has
+ * already been validated as non-negative, and you want negative input to throw
+ * instead of returning `Option.none`.
  *
  * **Details**
  *

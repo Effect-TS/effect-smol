@@ -708,8 +708,8 @@ export const divideUnsafe: {
  *
  * **When to use**
  *
- * Use when sorting or comparing decimal values through APIs that accept an
- * ordering instance.
+ * Use when you need to sort or compare decimal values through APIs that accept
+ * an ordering instance.
  *
  * **Example** (Comparing decimals)
  *

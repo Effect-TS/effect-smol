@@ -1026,7 +1026,8 @@ export interface Optional<in out S, in out A> {
  *
  * **When to use**
  *
- * Use when both reading and writing can fail.
+ * Use when you need an optic for a focus that may be missing on read and may
+ * reject updates on write.
  *
  * **Details**
  *

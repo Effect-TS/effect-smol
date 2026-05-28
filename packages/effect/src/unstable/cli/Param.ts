@@ -936,7 +936,8 @@ export const keyValuePair = <Kind extends ParamKind>(
  *
  * **When to use**
  *
- * Use when placeholder parameters or combinators need an empty parameter sentinel.
+ * Use when you need an empty CLI parameter sentinel for optional parameter
+ * construction or internal combinators.
  *
  * **Example** (Creating sentinel parameters)
  *
@@ -971,8 +972,8 @@ const FLAG_DASH_REGEXP = /^-+/
  *
  * **When to use**
  *
- * Use when aliases allow params to be specified with alternative names,
- * typically single-character shortcuts like "-f" for "--force".
+ * Use when you need a CLI parameter to accept an alternate name, such as "-f"
+ * for "--force".
  *
  * **Details**
  *

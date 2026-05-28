@@ -201,9 +201,8 @@ export function make<A>(
  *
  * **When to use**
  *
- * Use when you need the "right" value to act as the accumulator side.
- * - You want to reverse the natural direction of a non-commutative reducer
- *   (e.g. string concatenation becomes prepend).
+ * Use when you want the right-hand value to act as the accumulator, or need to
+ * reverse a non-commutative reducer such as string concatenation.
  *
  * **Details**
  *

@@ -199,7 +199,8 @@ const makeProto = <
  *
  * **When to use**
  *
- * Use when call `.add(...)` to add event definitions and build a typed `EventGroup`.
+ * Use when you need the starting `EventGroup` value before adding event
+ * definitions with `.add(...)`.
  *
  * @category constructors
  * @since 4.0.0

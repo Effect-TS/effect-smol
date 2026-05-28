@@ -7604,8 +7604,8 @@ export const bind: {
  *
  * **When to use**
  *
- * Use when starting a Channel Do-notation chain from an existing output value
- * by assigning that value to a field name.
+ * Use when you need to start a Channel Do-notation chain from an existing
+ * output value by assigning that value to a field name.
  *
  * @see {@link Do} for starting Do notation from an empty object
  * @see {@link bind} for adding a field produced by another channel

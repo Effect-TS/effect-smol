@@ -813,8 +813,8 @@ export class OneOf extends Base {
  *
  * **When to use**
  *
- * Use when retrieve the offending value for logging or custom error rendering.
- * - Uniformly access `actual` regardless of which issue variant you have.
+ * Use when you need to retrieve an `Issue`'s offending input value for logging
+ * or custom error rendering.
  *
  * **Details**
  *
@@ -1034,10 +1034,9 @@ export const defaultCheckHook: CheckHook = (issue): string | undefined => {
  *
  * **When to use**
  *
- * Use when integrate with libraries that consume the
- *   [Standard Schema V1](https://github.com/standard-schema/standard-schema)
- *   error format.
- * - Customise error rendering by providing `leafHook` and/or `checkHook`.
+ * Use when you need schema parse errors in
+ * [Standard Schema V1](https://github.com/standard-schema/standard-schema)
+ * format, optionally customizing leaf or check issue rendering.
  *
  * **Details**
  *

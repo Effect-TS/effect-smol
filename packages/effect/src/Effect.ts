@@ -5180,8 +5180,8 @@ export const filterMapOrFail: {
  *
  * **When to use**
  *
- * Use when an effectful check decides whether to run another effect while
- * representing the skipped case explicitly.
+ * Use when you need an effectful check to decide whether another effect should
+ * run while representing the skipped case explicitly.
  *
  * **Details**
  *
