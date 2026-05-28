@@ -1,5 +1,12 @@
 # @effect/sql-sqlite-do
 
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [[`361ca30`](https://github.com/Effect-TS/effect-smol/commit/361ca30eb6e134feece547d6e00f82be4cb23f75), [`b9598c6`](https://github.com/Effect-TS/effect-smol/commit/b9598c6a209e75bfdb87ee3b024ecd1e3923ff6e)]:
+  - effect@4.0.0-beta.73
+
 ## 4.0.0-beta.72
 
 ### Patch Changes

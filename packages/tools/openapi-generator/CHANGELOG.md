@@ -1,5 +1,15 @@
 # @effect/openapi-generator
 
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- [#2292](https://github.com/Effect-TS/effect-smol/pull/2292) [`ba21055`](https://github.com/Effect-TS/effect-smol/commit/ba2105521173fbef145aa6d986bed1facb3bd94e) Thanks @tim-smart! - Add HttpApi generation support for custom OpenAPI HTTP security schemes.
+
+- Updated dependencies [[`361ca30`](https://github.com/Effect-TS/effect-smol/commit/361ca30eb6e134feece547d6e00f82be4cb23f75), [`b9598c6`](https://github.com/Effect-TS/effect-smol/commit/b9598c6a209e75bfdb87ee3b024ecd1e3923ff6e)]:
+  - effect@4.0.0-beta.73
+  - @effect/platform-node@4.0.0-beta.73
+
 ## 4.0.0-beta.72
 
 ### Patch Changes
