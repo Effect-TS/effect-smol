@@ -313,9 +313,7 @@ export interface Bottom<
 }
 
 /**
- * The schema type returned by {@link declareConstructor}, tracking the decoded
- * type `T`, the encoded type `E`, and the list of type-parameter schemas
- * `TypeParameters`.
+ * Type-level representation returned by {@link declareConstructor}.
  *
  * @category constructors
  * @since 4.0.0
@@ -404,8 +402,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
 }
 
 /**
- * The schema type returned by {@link declare}, representing a non-parametric
- * opaque type `T` with no type parameters.
+ * Type-level representation returned by {@link declare}.
  *
  * @category constructors
  * @since 3.13.3
@@ -1839,9 +1836,7 @@ export function isSchema(u: unknown): u is Top {
 }
 
 /**
- * Companion type for an exact optional struct key. The key may be absent, but
- * when present must match the wrapped schema (no implicit `undefined`).
- * Produced by {@link optionalKey}.
+ * Type-level representation returned by {@link optionalKey}.
  *
  * @category models
  * @since 4.0.0
@@ -1917,8 +1912,7 @@ interface requiredKeyLambda extends Lambda {
 export const requiredKey = Struct_.lambda<requiredKeyLambda>((self) => self.schema)
 
 /**
- * Companion type for an optional struct key that also accepts `undefined`.
- * Equivalent to `optionalKey<UndefinedOr<S>>`. Produced by {@link optional}.
+ * Type-level representation returned by {@link optional}.
  *
  * @category models
  * @since 3.10.0
@@ -1987,8 +1981,7 @@ interface requiredLambda extends Lambda {
 export const required = Struct_.lambda<requiredLambda>((self) => self.schema.members[0])
 
 /**
- * Companion type for a mutable struct key. The key's property is writable.
- * Produced by {@link mutableKey}.
+ * Type-level representation returned by {@link mutableKey}.
  *
  * @category models
  * @since 4.0.0
@@ -2049,8 +2042,7 @@ interface readonlyKeyLambda extends Lambda {
 export const readonlyKey = Struct_.lambda<readonlyKeyLambda>((self) => self.schema)
 
 /**
- * Schema type that collapses a transformation schema to its decoded `Type` on
- * both sides (Type = Encoded = S["Type"]). Produced by {@link toType}.
+ * Type-level representation returned by {@link toType}.
  *
  * @category transforming
  * @since 4.0.0
@@ -2090,8 +2082,7 @@ interface toTypeLambda extends Lambda {
 export const toType = Struct_.lambda<toTypeLambda>((schema) => make(AST.toType(schema.ast), { schema }))
 
 /**
- * Schema type that collapses a transformation schema to its `Encoded` side on
- * both sides (Type = Encoded = S["Encoded"]). Produced by {@link toEncoded}.
+ * Type-level representation returned by {@link toEncoded}.
  *
  * @category transforming
  * @since 4.0.0
@@ -2133,8 +2124,7 @@ export const toEncoded = Struct_.lambda<toEncodedLambda>((schema) => make(AST.to
 const FlipTypeId = "~effect/Schema/flip"
 
 /**
- * Schema type representing a flipped schema where `Type` and `Encoded` are
- * swapped. Produced by {@link flip}.
+ * Type-level representation returned by {@link flip}.
  *
  * @category transforming
  * @since 4.0.0
@@ -2199,9 +2189,8 @@ export function flip<S extends Top>(schema: S): flip<S> {
 }
 
 /**
- * Represents a schema for a single literal value.
+ * Type-level representation returned by {@link Literal}.
  *
- * @see {@link Literal} for the constructor function.
  * @category models
  * @since 3.10.0
  */
@@ -2306,10 +2295,8 @@ export declare namespace TemplateLiteral {
 }
 
 /**
- * Represents a schema that validates strings matching a template literal pattern.
- * The encoded type is a string formed by concatenating the parts.
+ * Type-level representation returned by {@link TemplateLiteral}.
  *
- * @see {@link TemplateLiteral} for the constructor function.
  * @category models
  * @since 3.10.0
  */
@@ -2378,10 +2365,8 @@ export declare namespace TemplateLiteralParser {
 }
 
 /**
- * Represents a schema that validates strings matching a template literal pattern and decodes
- * them into a tuple of typed values, one per schema part.
+ * Type-level representation returned by {@link TemplateLiteralParser}.
  *
- * @see {@link TemplateLiteralParser} for the constructor function.
  * @category models
  * @since 3.10.0
  */
@@ -2431,10 +2416,8 @@ export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>
 }
 
 /**
- * Represents a schema derived from a TypeScript enum object or an enum-like
- * `as const` object, accepting any of its values.
+ * Type-level representation returned by {@link Enum}.
  *
- * @see {@link Enum} for the constructor function.
  * @category models
  * @since 4.0.0
  */
@@ -2476,9 +2459,8 @@ export function Enum<A extends { [x: string]: string | number }>(enums: A): Enum
 }
 
 /**
- * Schema for the `never` type. Always fails validation.
+ * Type-level representation of {@link Never}.
  *
- * @see {@link Never} for the schema value.
  * @category models
  * @since 3.10.0
  */
@@ -2493,9 +2475,8 @@ export interface Never extends Bottom<never, never, never, never, AST.Never, Nev
 export const Never: Never = make(AST.never)
 
 /**
- * Schema for the `any` type. Accepts any value without validation.
+ * Type-level representation of {@link Any}.
  *
- * @see {@link Any} for the schema value.
  * @category models
  * @since 3.10.0
  */
@@ -2511,9 +2492,8 @@ export interface Any extends Bottom<any, any, never, never, AST.Any, Any> {}
 export const Any: Any = make(AST.any)
 
 /**
- * Schema for the `unknown` type. Accepts any value without validation.
+ * Type-level representation of {@link Unknown}.
  *
- * @see {@link Unknown} for the schema value.
  * @category models
  * @since 3.10.0
  */
@@ -2529,9 +2509,8 @@ export interface Unknown extends Bottom<unknown, unknown, never, never, AST.Unkn
 export const Unknown: Unknown = make(AST.unknown)
 
 /**
- * Schema for the `null` literal. Validates that the input is strictly `null`.
+ * Type-level representation of {@link Null}.
  *
- * @see {@link Null} for the schema value.
  * @category models
  * @since 3.10.0
  */
@@ -2547,9 +2526,8 @@ export interface Null extends Bottom<null, null, never, never, AST.Null, Null> {
 export const Null: Null = make(AST.null)
 
 /**
- * Schema for the `undefined` literal. Validates that the input is strictly `undefined`.
+ * Type-level representation of {@link Undefined}.
  *
- * @see {@link Undefined} for the schema value.
  * @category models
  * @since 3.10.0
  */
@@ -2565,9 +2543,8 @@ export interface Undefined extends Bottom<undefined, undefined, never, never, AS
 export const Undefined: Undefined = make(AST.undefined)
 
 /**
- * Schema for `string` values.
+ * Type-level representation of {@link String}.
  *
- * @see {@link String} for the schema value.
  * @category models
  * @since 4.0.0
  */
@@ -2582,9 +2559,8 @@ export interface String extends Bottom<string, string, never, never, AST.String,
 export const String: String = make(AST.string)
 
 /**
- * Schema for `number` values, including `NaN`, `Infinity`, and `-Infinity`.
+ * Type-level representation of {@link Number}.
  *
- * @see {@link Number} for the schema value.
  * @category models
  * @since 4.0.0
  */
@@ -2607,9 +2583,8 @@ export interface Number extends Bottom<number, number, never, never, AST.Number,
 export const Number: Number = make(AST.number)
 
 /**
- * Schema for `boolean` values.
+ * Type-level representation of {@link Boolean}.
  *
- * @see {@link Boolean} for the schema value.
  * @category models
  * @since 4.0.0
  */
@@ -2630,9 +2605,8 @@ export interface Boolean extends Bottom<boolean, boolean, never, never, AST.Bool
 export const Boolean: Boolean = make(AST.boolean)
 
 /**
- * Schema for `symbol` values.
+ * Type-level representation of {@link Symbol}.
  *
- * @see {@link Symbol} for the schema value.
  * @category models
  * @since 4.0.0
  */
@@ -2648,9 +2622,8 @@ export interface Symbol extends Bottom<symbol, symbol, never, never, AST.Symbol,
 export const Symbol: Symbol = make(AST.symbol)
 
 /**
- * Schema for `bigint` values.
+ * Type-level representation of {@link BigInt}.
  *
- * @see {@link BigInt} for the schema value.
  * @category models
  * @since 4.0.0
  */
@@ -2672,9 +2645,8 @@ export interface BigInt extends Bottom<bigint, bigint, never, never, AST.BigInt,
 export const BigInt: BigInt = make(AST.bigInt)
 
 /**
- * Schema for the `void` type.
+ * Type-level representation of {@link Void}.
  *
- * @see {@link Void} for the schema value.
  * @category models
  * @since 3.10.0
  */
@@ -2689,9 +2661,8 @@ export interface Void extends Bottom<void, void, never, never, AST.Void, Void> {
 export const Void: Void = make(AST.void)
 
 /**
- * Schema for the `object` type keyword.
+ * Type-level representation of {@link ObjectKeyword}.
  *
- * @see {@link ObjectKeyword} for the schema value.
  * @category models
  * @since 4.0.0
  */
@@ -2707,9 +2678,8 @@ export interface ObjectKeyword extends Bottom<object, object, never, never, AST.
 export const ObjectKeyword: ObjectKeyword = make(AST.objectKeyword)
 
 /**
- * Represents a schema for a specific unique symbol.
+ * Type-level representation returned by {@link UniqueSymbol}.
  *
- * @see {@link UniqueSymbol} for the constructor function.
  * @category models
  * @since 4.0.0
  */
@@ -2899,13 +2869,7 @@ export declare namespace Struct {
 }
 
 /**
- * Schema type returned by `Schema.Struct` for an object with a fixed set of
- * schema-defined fields.
- *
- * **Details**
- *
- * The `fields` property exposes the original field map for reuse, and
- * `mapFields` creates a new struct schema by transforming that field map.
+ * Type-level representation returned by {@link Struct}.
  *
  * @category models
  * @since 3.10.0
@@ -3062,8 +3026,7 @@ export function fieldsAssign<const NewFields extends Struct.Fields>(fields: NewF
 }
 
 /**
- * Schema type for a struct with renamed encoded keys. Produced by
- * {@link encodeKeys}.
+ * Type-level representation returned by {@link encodeKeys}.
  *
  * @category transforming
  * @since 4.0.0
@@ -3328,16 +3291,7 @@ export declare namespace Record {
 }
 
 /**
- * Companion type for a key-value record (map) with a typed key and value schema.
- * Produced by {@link Record}.
- *
- * **When to use**
- *
- * Use as the concrete schema type returned by `Record` when an API needs to
- * accept or return a record schema with typed property keys and values.
- *
- * @see {@link Record} for constructing record schemas
- * @see {@link StructWithRest} for combining fixed struct fields with record index signatures
+ * Type-level representation returned by {@link Record}.
  *
  * @category models
  * @since 4.0.0
@@ -3497,16 +3451,7 @@ export declare namespace StructWithRest {
 }
 
 /**
- * Companion type for a struct combined with one or more record schemas. Produced
- * by {@link StructWithRest}.
- *
- * **When to use**
- *
- * Use as the schema type when generic code needs to retain the base struct
- * schema and all rest record schemas.
- *
- * @see {@link StructWithRest} for constructing this schema type
- * @see {@link Record} for constructing record schemas used as rest index signatures
+ * Type-level representation returned by {@link StructWithRest}.
  *
  * @category models
  * @since 4.0.0
@@ -3693,7 +3638,7 @@ export declare namespace Tuple {
 }
 
 /**
- * Companion type for a fixed-length tuple. Produced by {@link Tuple}.
+ * Type-level representation returned by {@link Tuple}.
  *
  * @category models
  * @since 3.10.0
@@ -3896,8 +3841,7 @@ export declare namespace TupleWithRest {
 }
 
 /**
- * Companion type for a tuple with additional rest elements. Produced by
- * {@link TupleWithRest}.
+ * Type-level representation returned by {@link TupleWithRest}.
  *
  * @category models
  * @since 4.0.0
@@ -3959,18 +3903,7 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
 }
 
 /**
- * Schema interface produced by `Schema.Array` for readonly arrays.
- *
- * **When to use**
- *
- * Use as the public companion type returned by `Schema.Array` when you need to
- * refer to a readonly array schema built from an element schema.
- *
- * **Details**
- *
- * The decoded type is `ReadonlyArray<S["Type"]>`, the encoded type is
- * `ReadonlyArray<S["Encoded"]>`, and the element schema is available as
- * `value`.
+ * Type-level representation returned by {@link Array}.
  *
  * @category models
  * @since 4.0.0
@@ -4026,13 +3959,7 @@ export {
 }
 
 /**
- * Companion type for a non-empty `ReadonlyArray`. Produced by {@link NonEmptyArray}.
- *
- * **Details**
- *
- * The decoded type is `readonly [S["Type"], ...Array<S["Type"]>]`, the encoded type is
- * `readonly [S["Encoded"], ...Array<S["Encoded"]>]`, and the element schema is available as
- * `value`.
+ * Type-level representation returned by {@link NonEmptyArray}.
  *
  * @category models
  * @since 3.10.0
@@ -4080,20 +4007,7 @@ export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
 )
 
 /**
- * Schema interface returned by `ArrayEnsure`, which normalizes a single item or
- * an array of items into a readonly array.
- *
- * **When to use**
- *
- * Use as the schema type when generic code needs to retain the original item
- * schema.
- *
- * **Details**
- *
- * The schema decodes from `S` or `Schema.Array(S)` and produces
- * `ReadonlyArray<S["Type"]>`.
- *
- * @see {@link ArrayEnsure} for constructing this schema type
+ * Type-level representation returned by {@link ArrayEnsure}.
  *
  * @category constructors
  * @since 3.10.0
@@ -4139,7 +4053,7 @@ export function ArrayEnsure<S extends Top>(schema: S): ArrayEnsure<S> {
 }
 
 /**
- * Companion type for an array with unique elements. Produced by {@link UniqueArray}.
+ * Type-level representation returned by {@link UniqueArray}.
  *
  * @category models
  * @since 4.0.0
@@ -4164,8 +4078,7 @@ export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
 }
 
 /**
- * Schema type that makes array or tuple elements mutable (removes `readonly`).
- * Produced by {@link mutable}.
+ * Type-level representation returned by {@link mutable}.
  *
  * @category transforming
  * @since 3.10.0
@@ -4221,7 +4134,7 @@ export const mutable = Struct_.lambda<mutableLambda>((schema) => {
 })
 
 /**
- * Companion type for a union of multiple schemas. Produced by {@link Union}.
+ * Type-level representation returned by {@link Union}.
  *
  * @category models
  * @since 3.10.0
@@ -4317,9 +4230,8 @@ export function Union<const Members extends ReadonlyArray<Top>>(
 }
 
 /**
- * Represents a union schema of multiple literal values.
+ * Type-level representation returned by {@link Literals}.
  *
- * @see {@link Literals} for the constructor function.
  * @category models
  * @since 4.0.0
  */
@@ -4379,7 +4291,7 @@ export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
 }
 
 /**
- * Companion type for `S | null`. Produced by {@link NullOr}.
+ * Type-level representation returned by {@link NullOr}.
  *
  * @category models
  * @since 3.10.0
@@ -4402,7 +4314,7 @@ interface NullOrLambda extends Lambda {
 export const NullOr = Struct_.lambda<NullOrLambda>((self) => Union([self, Null]))
 
 /**
- * Companion type for `S | undefined`. Produced by {@link UndefinedOr}.
+ * Type-level representation returned by {@link UndefinedOr}.
  *
  * @category models
  * @since 3.10.0
@@ -4425,7 +4337,7 @@ interface UndefinedOrLambda extends Lambda {
 export const UndefinedOr = Struct_.lambda<UndefinedOrLambda>((self) => Union([self, Undefined]))
 
 /**
- * Companion type for `S | null | undefined`. Produced by {@link NullishOr}.
+ * Type-level representation returned by {@link NullishOr}.
  *
  * @category models
  * @since 3.10.0
@@ -4448,7 +4360,7 @@ interface NullishOrLambda extends Lambda {
 export const NullishOr = Struct_.lambda<NullishOrLambda>((self) => Union([self, Null, Undefined]))
 
 /**
- * Schema type wrapping a lazily-evaluated schema. Produced by {@link suspend}.
+ * Type-level representation returned by {@link suspend}.
  *
  * @category models
  * @since 3.10.0
@@ -4523,8 +4435,7 @@ export function check<S extends Top>(...checks: readonly [AST.Check<S["Type"]>, 
 }
 
 /**
- * The output type of {@link refine}, narrowing the schema's `Type` to `T` via a
- * type guard.
+ * Type-level representation returned by {@link refine}.
  *
  * @category filtering
  * @since 3.10.0
@@ -4577,15 +4488,7 @@ export function refine<S extends Top, T extends S["Type"]>(
 type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string ? Brand.Brand<U> : never>
 
 /**
- * The output type of {@link brand}, intersecting the schema's `Type` with one or
- * more {@link Brand.Brand} tags.
- *
- * **When to use**
- *
- * Use as the schema type when generic code needs to retain the wrapped schema
- * and nominal brand type.
- *
- * @see {@link brand} for adding the brand tag to an existing schema
+ * Type-level representation returned by {@link brand}.
  *
  * @category branding
  * @since 3.10.0
@@ -4653,14 +4556,8 @@ export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: 
 }
 
 /**
- * A schema that wraps another schema and intercepts its decoding pipeline.
+ * Type-level representation returned by {@link middlewareDecoding}.
  *
- * **Details**
- *
- * The interceptor receives the full decoding `Effect` and may replace, modify,
- * or augment it — including adding service requirements via `RD`.
- *
- * @see {@link middlewareDecoding} for the constructor
  * @category decoding
  * @since 4.0.0
  */
@@ -4725,14 +4622,8 @@ export function middlewareDecoding<S extends Top, RD>(
 }
 
 /**
- * A schema that wraps another schema and intercepts its encoding pipeline.
+ * Type-level representation returned by {@link middlewareEncoding}.
  *
- * **Details**
- *
- * The interceptor receives the full encoding `Effect` and may replace, modify,
- * or augment it — including adding service requirements via `RE`.
- *
- * @see {@link middlewareEncoding} for the constructor
  * @category encoding
  * @since 4.0.0
  */
@@ -4895,16 +4786,8 @@ export function catchEncodingWithContext<S extends Top, R = never>(
 }
 
 /**
- * Schema type produced by `decodeTo` when a custom transformation composes a
- * `From` schema with a `To` schema.
+ * Type-level representation returned by {@link decodeTo}.
  *
- * **Details**
- *
- * `Type` is `To["Type"]` and `Encoded` is `From["Encoded"]`. Decoding services
- * are `To["DecodingServices"] | From["DecodingServices"] | RD`; encoding
- * services are `To["EncodingServices"] | From["EncodingServices"] | RE`.
- *
- * @see {@link compose} for the passthrough (no transformation) variant
  * @category transforming
  * @since 4.0.0
  */
@@ -4932,14 +4815,8 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
 }
 
 /**
- * The type produced by {@link decodeTo} when called without a custom transformation (passthrough composition).
+ * Type-level representation returned by {@link decodeTo} without a custom transformation.
  *
- * **Details**
- *
- * Equivalent to {@link decodeTo} with `RD = never` and `RE = never`, meaning the schemas
- * are composed using their natural encoding/decoding chain.
- *
- * @see {@link decodeTo} for the transformation variant
  * @category transforming
  * @since 3.10.0
  */
@@ -5171,17 +5048,8 @@ export interface WithoutConstructorDefault {
 }
 
 /**
- * Schema type returned by `withConstructorDefault` after attaching a default used
- * by constructor helpers.
+ * Type-level representation returned by {@link withConstructorDefault}.
  *
- * **Details**
- *
- * The default affects `make` and related constructor helpers only; decoding and
- * encoding still use the original schema behavior. The schema is marked as
- * already having a constructor default so another constructor default cannot be
- * added.
- *
- * @see {@link withConstructorDefault} for the constructor
  * @category constructors
  * @since 3.10.0
  */
@@ -5244,10 +5112,8 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
 }
 
 /**
- * The type produced by {@link withDecodingDefaultKey}: a schema whose `Encoded`
- * side is `optionalKey` and that fills in a default `Encoded` value during decoding.
+ * Type-level representation returned by {@link withDecodingDefaultKey}.
  *
- * @see {@link withDecodingDefaultKey} for the constructor
  * @category decoding
  * @since 4.0.0
  */
@@ -5319,11 +5185,8 @@ export function withDecodingDefaultKey<S extends Top, R = never>(
 }
 
 /**
- * The type produced by {@link withDecodingDefaultTypeKey}: a schema whose
- * `Encoded` side is `optionalKey` and that fills in a default `Type` value
- * during decoding.
+ * Type-level representation returned by {@link withDecodingDefaultTypeKey}.
  *
- * @see {@link withDecodingDefaultTypeKey} for the constructor
  * @category decoding
  * @since 4.0.0
  */
@@ -5368,10 +5231,8 @@ export function withDecodingDefaultTypeKey<S extends Top, R = never>(
 }
 
 /**
- * The type produced by {@link withDecodingDefault}: a schema whose `Encoded`
- * side is `optional` and that fills in a default `Encoded` value during decoding.
+ * Type-level representation returned by {@link withDecodingDefault}.
  *
- * @see {@link withDecodingDefault} for the constructor
  * @category decoding
  * @since 3.10.0
  */
@@ -5427,11 +5288,8 @@ export function withDecodingDefault<S extends Top, R = never>(
 }
 
 /**
- * The type produced by {@link withDecodingDefaultType}: a schema whose
- * `Encoded` side is `optional` and that fills in a default `Type` value during
- * decoding.
+ * Type-level representation returned by {@link withDecodingDefaultType}.
  *
- * @see {@link withDecodingDefaultType} for the constructor
  * @category decoding
  * @since 4.0.0
  */
@@ -5476,13 +5334,8 @@ export function withDecodingDefaultType<S extends Top, R = never>(
 }
 
 /**
- * The type produced by {@link tag} — a literal schema with a constructor default.
+ * Type-level representation returned by {@link tag}.
  *
- * **Details**
- *
- * Used as the type of the `_tag` field in {@link TaggedStruct} and related helpers.
- *
- * @see {@link tag} for the constructor
  * @category constructors
  * @since 3.10.0
  */
@@ -5551,9 +5404,8 @@ export function tagDefaultOmit<Tag extends AST.LiteralValue>(literal: Tag) {
 }
 
 /**
- * The type produced by {@link TaggedStruct} — a {@link Struct} with an extra `_tag` field of type {@link tag}.
+ * Type-level representation returned by {@link TaggedStruct}.
  *
- * @see {@link TaggedStruct} for the constructor
  * @category models
  * @since 3.10.0
  */
@@ -5652,9 +5504,8 @@ type TaggedUnionUtils<
 }
 
 /**
- * The type produced by {@link toTaggedUnion} — a {@link Union} augmented with `cases`, `guards`, `isAnyOf`, and `match` utilities.
+ * Type-level representation returned by {@link toTaggedUnion}.
  *
- * @see {@link toTaggedUnion} for the constructor
  * @category combinators
  * @since 4.0.0
  */
@@ -5737,10 +5588,8 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
 }
 
 /**
- * A union schema that exposes `cases`, `guards`, `isAnyOf`, and `match` utilities keyed by the `_tag` discriminant.
- * Produced by {@link TaggedUnion}.
+ * Type-level representation returned by {@link TaggedUnion}.
  *
- * @see {@link TaggedUnion} for the constructor
  * @category models
  * @since 4.0.0
  */
@@ -5811,11 +5660,8 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
 }
 
 /**
- * The interface type for schemas created by {@link Opaque}.
- * Carries the same encoded/decoded shape as `S` but replaces `Type` with `Self & Brand`,
- * making the decoded value nominally distinct.
+ * Type-level representation returned by {@link Opaque}.
  *
- * @see {@link Opaque} for the constructor
  * @category models
  * @since 4.0.0
  */
@@ -5874,9 +5720,8 @@ export function Opaque<Self, Brand = {}>() {
 }
 
 /**
- * The type produced by {@link instanceOf} — a declaration schema that validates class instances.
+ * Type-level representation returned by {@link instanceOf}.
  *
- * @see {@link instanceOf} for the constructor
  * @category models
  * @since 3.10.0
  */
@@ -8006,8 +7851,7 @@ export function isUnique<T>(annotations?: Annotations.Filter) {
 // -----------------------------------------------------------------------------
 
 /**
- * Type-level representation of the `NonEmptyString` schema, which validates
- * strings with a length of at least one.
+ * Type-level representation of {@link NonEmptyString}.
  *
  * @category String
  * @since 3.10.0
@@ -8026,8 +7870,7 @@ export interface NonEmptyString extends String {
 export const NonEmptyString: NonEmptyString = String.check(isNonEmpty())
 
 /**
- * Type-level representation of the `Char` schema, which validates strings whose
- * length is exactly one.
+ * Type-level representation of {@link Char}.
  *
  * @category String
  * @since 3.10.0
@@ -8058,21 +7901,7 @@ export interface Char extends String {
 export const Char: Char = String.check(isLengthBetween(1, 1))
 
 /**
- * Schema for the `Option<A>` type, representing an optional value that is
- * either `None` or `Some<A>`.
- *
- * **Example** (Option schema)
- *
- * ```ts
- * import { Option, Schema } from "effect"
- *
- * const schema = Schema.Option(Schema.Number)
- *
- * Schema.decodeUnknownSync(schema)(Option.some(1))
- * // => Some(1)
- * Schema.decodeUnknownSync(schema)(Option.none())
- * // => None
- * ```
+ * Type-level representation returned by {@link Option}.
  *
  * @category Option
  * @since 3.10.0
@@ -8172,8 +8001,7 @@ export function Option<A extends Top>(value: A): Option<A> {
 }
 
 /**
- * Type-level representation of a schema that decodes `null` as `None` and all
- * other values as `Some`.
+ * Type-level representation returned by {@link OptionFromNullOr}.
  *
  * @category Option
  * @since 3.10.0
@@ -8206,8 +8034,7 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
 }
 
 /**
- * Type-level representation of a schema that decodes `undefined` as `None` and
- * all other values as `Some`.
+ * Type-level representation returned by {@link OptionFromUndefinedOr}.
  *
  * @category Option
  * @since 3.10.0
@@ -8240,8 +8067,7 @@ export function OptionFromUndefinedOr<S extends Top>(schema: S): OptionFromUndef
 }
 
 /**
- * Type-level representation of a schema that decodes `null` or `undefined` as
- * `None` and all other values as `Some`.
+ * Type-level representation returned by {@link OptionFromNullishOr}.
  *
  * @category Option
  * @since 3.10.0
@@ -8279,8 +8105,7 @@ export function OptionFromNullishOr<S extends Top>(
 }
 
 /**
- * Type-level representation of a schema that decodes a missing object key as
- * `None` and a present key as `Some`.
+ * Type-level representation returned by {@link OptionFromOptionalKey}.
  *
  * @category Option
  * @since 4.0.0
@@ -8313,8 +8138,7 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
 }
 
 /**
- * Type-level representation of a schema that decodes a missing key or
- * `undefined` value as `None` and other present values as `Some`.
+ * Type-level representation returned by {@link OptionFromOptional}.
  *
  * @category Option
  * @since 4.0.0
@@ -8349,8 +8173,7 @@ export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional
 }
 
 /**
- * Type-level representation of a schema that decodes a missing key, `undefined`,
- * or `null` as `None` and all other present values as `Some`.
+ * Type-level representation returned by {@link OptionFromOptionalNullOr}.
  *
  * @category Option
  * @since 4.0.0
@@ -8402,8 +8225,7 @@ export function OptionFromOptionalNullOr<S extends Top>(
 }
 
 /**
- * Schema for the `Result<A, E>` type, representing a computation that either
- * succeeds with `A` or fails with `E`.
+ * Type-level representation returned by {@link Result}.
  *
  * @category schemas
  * @since 4.0.0
@@ -8513,8 +8335,7 @@ export function Result<A extends Top, E extends Top>(
 }
 
 /**
- * Schema for the `Redacted<A>` type, providing secure handling of sensitive
- * values. The inner value is hidden from error messages.
+ * Type-level representation returned by {@link Redacted}.
  *
  * @category Redacted
  * @since 3.10.0
@@ -8621,8 +8442,7 @@ export function Redacted<S extends Top>(value: S, options?: {
 }
 
 /**
- * Type-level representation of a schema that decodes a raw value with the
- * provided schema and wraps the result in `Redacted`.
+ * Type-level representation returned by {@link RedactedFromValue}.
  *
  * @category Redacted
  * @since 4.0.0
@@ -8676,22 +8496,7 @@ export function RedactedFromValue<S extends Top>(value: S, options?: {
 }
 
 /**
- * Schema for a single `Cause.Reason`, representing one reason a fiber may fail:
- * a typed error (`Fail`), an unexpected defect (`Die`), or an interrupt
- * (`Interrupt`).
- *
- * **When to use**
- *
- * Use as the schema type when generic code needs to retain the typed failure
- * and defect schemas for a single cause reason.
- *
- * **Details**
- *
- * The `error` schema validates typed failures and the `defect` schema validates
- * unexpected defects.
- *
- * @see {@link CauseReason} for constructing this schema type
- * @see {@link CauseReasonIso} for the ISO shape of each cause reason
+ * Type-level representation returned by {@link CauseReason}.
  *
  * @category CauseReason
  * @since 4.0.0
@@ -8859,21 +8664,7 @@ function causeReasonToFormatter<E>(error: Formatter<E>, defect: Formatter<unknow
 }
 
 /**
- * Schema for `Cause` values, represented as an ordered collection of failure
- * reasons combining typed errors, defects, and interrupts.
- *
- * **When to use**
- *
- * Use as the schema type when generic code needs to retain the typed failure
- * and defect schemas for a full cause.
- *
- * **Details**
- *
- * The `error` schema validates typed failures and the `defect` schema validates
- * unexpected defects.
- *
- * @see {@link Cause} for constructing this schema type
- * @see {@link CauseIso} for the ordered array representation used by the schema ISO
+ * Type-level representation returned by {@link Cause}.
  *
  * @category Cause
  * @since 3.10.0
@@ -8987,7 +8778,7 @@ function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
 }
 
 /**
- * Type-level representation of the schema for JavaScript `Error` instances.
+ * Type-level representation of {@link Error}.
  *
  * @category Error
  * @since 4.0.0
@@ -9061,8 +8852,7 @@ export const ErrorWithStack: Error = instanceOf(globalThis.Error, {
 })
 
 /**
- * Type-level representation of the `Defect` schema, which accepts JavaScript
- * `Error` values and arbitrary unknown defect values.
+ * Type-level representation of {@link Defect}.
  *
  * @category Defect
  * @since 3.10.0
@@ -9143,8 +8933,7 @@ export const DefectWithStack: Defect = Union([
 ])
 
 /**
- * Schema for `Exit` values, representing either a success with value `A` or a
- * failure with a `Cause` containing typed errors and defects.
+ * Type-level representation returned by {@link Exit}.
  *
  * @category Exit
  * @since 3.10.0
@@ -9284,17 +9073,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
 }
 
 /**
- * Type-level representation of a `ReadonlyMap` schema whose keys and values are
- * validated by the provided schemas.
- *
- * **When to use**
- *
- * Use as a type annotation for a `ReadonlyMap` schema when exposing or returning
- * the schema while preserving its key schema, value schema, and ISO
- * representation.
- *
- * @see {@link ReadonlyMap} for constructing this schema type from key and value schemas
- * @see {@link ReadonlyMapIso} for the readonly tuple-array ISO representation used by this schema
+ * Type-level representation returned by {@link ReadonlyMap}.
  *
  * @category ReadonlyMap
  * @since 4.0.0
@@ -9390,8 +9169,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
 }
 
 /**
- * Schema for an Effect `HashMap` where keys and values must conform to the
- * provided schemas.
+ * Type-level representation returned by {@link HashMap}.
  *
  * @category HashMap
  * @since 3.10.0
@@ -9487,16 +9265,7 @@ export function HashMap<Key extends Top, Value extends Top>(key: Key, value: Val
 }
 
 /**
- * Type-level representation of a `ReadonlySet` schema whose values are validated
- * by the provided element schema.
- *
- * **When to use**
- *
- * Use to name or constrain the schema type produced by `ReadonlySet` when
- * generic code needs to retain the element schema type.
- *
- * @see {@link ReadonlySet} for constructing this schema type
- * @see {@link ReadonlySetIso} for the array representation used by this schema's ISO
+ * Type-level representation returned by {@link ReadonlySet}.
  *
  * @category ReadonlySet
  * @since 4.0.0
@@ -9590,8 +9359,7 @@ export function ReadonlySet<Value extends Top>(value: Value): $ReadonlySet<Value
 }
 
 /**
- * Schema for an Effect `HashSet` where values must conform to the provided
- * schema.
+ * Type-level representation returned by {@link HashSet}.
  *
  * @category HashSet
  * @since 3.10.0
@@ -9685,8 +9453,7 @@ export function HashSet<Value extends Top>(value: Value): HashSet<Value> {
 }
 
 /**
- * Schema for an Effect `Chunk` (immutable array-like collection) where values
- * must conform to the provided schema.
+ * Type-level representation returned by {@link Chunk}.
  *
  * @category Chunk
  * @since 3.10.0
@@ -9787,7 +9554,7 @@ export function Chunk<Value extends Top>(value: Value): Chunk<Value> {
 }
 
 /**
- * Type-level representation of the schema for JavaScript `RegExp` instances.
+ * Type-level representation of {@link RegExp}.
  *
  * @category RegExp
  * @since 4.0.0
@@ -9863,7 +9630,7 @@ export const RegExp: RegExp = instanceOf(
 )
 
 /**
- * Type-level representation of the schema for JavaScript `URL` instances.
+ * Type-level representation of {@link URL}.
  *
  * @category URL
  * @since 4.0.0
@@ -9908,8 +9675,7 @@ export const URL: URL = instanceOf(
 )
 
 /**
- * Type-level representation of a transformation schema that decodes valid URL
- * strings into JavaScript `URL` instances.
+ * Type-level representation of {@link URLFromString}.
  *
  * @category URL
  * @since 4.0.0
@@ -9935,8 +9701,7 @@ export interface URLFromString extends decodeTo<URL, String> {
 export const URLFromString: URLFromString = URLString.pipe(decodeTo(URL, Transformation.urlFromString))
 
 /**
- * Type-level representation of the schema for JavaScript `Date` instances,
- * including invalid dates.
+ * Type-level representation of {@link Date}.
  *
  * @category Date
  * @since 4.0.0
@@ -9996,8 +9761,7 @@ export const Date: Date = instanceOf(
 )
 
 /**
- * Type-level representation of a transformation schema that decodes strings into
- * JavaScript `Date` instances.
+ * Type-level representation of {@link DateFromString}.
  *
  * @category Date
  * @since 3.10.0
@@ -10036,8 +9800,7 @@ export interface DateFromString extends decodeTo<Date, String> {
 export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, Transformation.dateFromString))
 
 /**
- * Type-level representation of the `DateValid` schema, which accepts only valid
- * JavaScript `Date` instances.
+ * Type-level representation of {@link DateValid}.
  *
  * @category Date
  * @since 4.0.0
@@ -10060,7 +9823,7 @@ export interface DateValid extends Date {
 export const DateValid: DateValid = Date.check(isDateValid())
 
 /**
- * Type-level representation of the schema for Effect `Duration` values.
+ * Type-level representation of {@link Duration}.
  *
  * @category Duration
  * @since 3.10.0
@@ -10152,8 +9915,7 @@ export const Duration: Duration = declare(
 const DurationString = String.annotate({ expected: "a string that will be decoded as a Duration" })
 
 /**
- * Type-level representation of a transformation schema that decodes strings
- * accepted by `Duration.fromInput` into `Duration` values.
+ * Type-level representation of {@link DurationFromString}.
  *
  * @category Duration
  * @since 4.0.0
@@ -10182,8 +9944,7 @@ export const DurationFromString: DurationFromString = DurationString.pipe(
 )
 
 /**
- * Type-level representation of a transformation schema that decodes non-negative
- * nanosecond `bigint` values into `Duration` values.
+ * Type-level representation of {@link DurationFromNanos}.
  *
  * @category Duration
  * @since 3.10.0
@@ -10216,8 +9977,7 @@ export const DurationFromNanos: DurationFromNanos = BigInt.check(isGreaterThanOr
 )
 
 /**
- * Type-level representation of a transformation schema that decodes
- * non-negative millisecond numbers into `Duration` values.
+ * Type-level representation of {@link DurationFromMillis}.
  *
  * @category Duration
  * @since 3.10.0
@@ -10249,7 +10009,7 @@ export const DurationFromMillis: DurationFromMillis = Number.check(isGreaterThan
 )
 
 /**
- * Type-level representation of the schema for Effect `BigDecimal` values.
+ * Type-level representation of {@link BigDecimal}.
  *
  * @category BigDecimal
  * @since 3.10.0
@@ -10305,8 +10065,7 @@ export const BigDecimal: BigDecimal = declare(
 )
 
 /**
- * Type-level representation of a transformation schema that decodes strings into
- * `BigDecimal` values.
+ * Type-level representation of {@link BigDecimalFromString}.
  *
  * @category BigDecimal
  * @since 4.0.0
@@ -10347,8 +10106,7 @@ export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
 )
 
 /**
- * Type-level representation of a transformation schema that decodes
- * JSON-encoded strings into `unknown` values.
+ * Type-level representation of {@link UnknownFromJsonString}.
  *
  * @category JSON
  * @since 4.0.0
@@ -10385,8 +10143,7 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
 export const UnknownFromJsonString: UnknownFromJsonString = fromJsonString(Unknown)
 
 /**
- * Type-level representation of a schema that parses a JSON string and then
- * decodes the parsed value with the provided schema.
+ * Type-level representation returned by {@link fromJsonString}.
  *
  * @category JSON
  * @since 4.0.0
@@ -10470,7 +10227,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
 }
 
 /**
- * Type-level representation of the schema for JavaScript `File` instances.
+ * Type-level representation of {@link File}.
  *
  * @category File
  * @since 4.0.0
@@ -10544,7 +10301,7 @@ export const File: File = instanceOf(globalThis.File, {
 })
 
 /**
- * Type-level representation of the schema for JavaScript `FormData` instances.
+ * Type-level representation of {@link FormData}.
  *
  * @category FormData
  * @since 4.0.0
@@ -10608,8 +10365,7 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
 })
 
 /**
- * Type-level representation of a schema that parses `FormData` into a tree
- * record and then decodes it with the provided schema.
+ * Type-level representation returned by {@link fromFormData}.
  *
  * @category FormData
  * @since 4.0.0
@@ -10711,8 +10467,7 @@ export function fromFormData<S extends Top>(schema: S): fromFormData<S> {
 }
 
 /**
- * Type-level representation of the schema for JavaScript `URLSearchParams`
- * instances.
+ * Type-level representation of {@link URLSearchParams}.
  *
  * @category URLSearchParams
  * @since 4.0.0
@@ -10751,8 +10506,7 @@ export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchP
 })
 
 /**
- * Type-level representation of a schema that parses `URLSearchParams` into a
- * tree record and then decodes it with the provided schema.
+ * Type-level representation returned by {@link fromURLSearchParams}.
  *
  * @category URLSearchParams
  * @since 4.0.0
@@ -10846,8 +10600,7 @@ export function fromURLSearchParams<S extends Top>(schema: S): fromURLSearchPara
 }
 
 /**
- * Type-level representation of the `Finite` number schema, which rejects `NaN`,
- * `Infinity`, and `-Infinity`.
+ * Type-level representation of {@link Finite}.
  *
  * @category Number
  * @since 3.10.0
@@ -10865,8 +10618,7 @@ export interface Finite extends Number {
 export const Finite: Finite = Number.check(isFinite())
 
 /**
- * Type-level representation of the `Int` schema, which accepts only finite
- * integer numbers.
+ * Type-level representation of {@link Int}.
  *
  * @category Number
  * @since 3.10.0
@@ -10884,8 +10636,7 @@ export interface Int extends Number {
 export const Int: Int = Number.check(isInt())
 
 /**
- * Type-level representation of a transformation schema that decodes strings into
- * numbers using JavaScript number coercion.
+ * Type-level representation of {@link NumberFromString}.
  *
  * @category Number
  * @since 3.10.0
@@ -10916,8 +10667,7 @@ export const NumberFromString: NumberFromString = String.annotate({
 }).pipe(decodeTo(Number, Transformation.numberFromString))
 
 /**
- * Type-level representation of a transformation schema that decodes strings into
- * finite numbers.
+ * Type-level representation of {@link FiniteFromString}.
  *
  * @category Number
  * @since 4.0.0
@@ -10946,8 +10696,7 @@ export const FiniteFromString: FiniteFromString = String.annotate({
 }).pipe(decodeTo(Finite, Transformation.numberFromString))
 
 /**
- * Type-level representation of a transformation schema that decodes strings into
- * `bigint` values.
+ * Type-level representation of {@link BigIntFromString}.
  *
  * @category BigInt
  * @since 4.0.0
@@ -10989,8 +10738,7 @@ export const BigIntFromString: BigIntFromString = make<String>(AST.bigIntString)
 )
 
 /**
- * Schema interface for `Trimmed`, representing strings with no leading or
- * trailing whitespace.
+ * Type-level representation of {@link Trimmed}.
  *
  * @category String
  * @since 3.10.0
@@ -11008,8 +10756,7 @@ export interface Trimmed extends String {
 export const Trimmed: Trimmed = String.check(isTrimmed())
 
 /**
- * Schema interface for `Trim`, a transformation that trims leading and trailing
- * whitespace while decoding and encodes the trimmed string unchanged.
+ * Type-level representation of {@link Trim}.
  *
  * @category String
  * @since 3.10.0
@@ -11037,8 +10784,7 @@ export const Trim: Trim = String.annotate({
 }).pipe(decodeTo(Trimmed, Transformation.trim()))
 
 /**
- * Schema interface for `StringFromBase64`, a transformation between RFC4648
- * base64-encoded strings and UTF-8 strings.
+ * Type-level representation of {@link StringFromBase64}.
  *
  * @category String
  * @since 3.10.0
@@ -11068,8 +10814,7 @@ export const StringFromBase64: StringFromBase64 = String.annotate({
 )
 
 /**
- * Schema interface for `StringFromBase64Url`, a transformation between URL-safe
- * base64-encoded strings and UTF-8 strings.
+ * Type-level representation of {@link StringFromBase64Url}.
  *
  * @category String
  * @since 3.10.0
@@ -11099,8 +10844,7 @@ export const StringFromBase64Url: StringFromBase64Url = String.annotate({
 )
 
 /**
- * Schema interface for `StringFromHex`, a transformation between hex-encoded
- * strings and UTF-8 strings.
+ * Type-level representation of {@link StringFromHex}.
  *
  * @category String
  * @since 3.10.0
@@ -11130,8 +10874,7 @@ export const StringFromHex: StringFromHex = String.annotate({
 )
 
 /**
- * Schema interface for `StringFromUriComponent`, a transformation between
- * URI-component encoded strings and UTF-8 strings.
+ * Type-level representation of {@link StringFromUriComponent}.
  *
  * @category String
  * @since 3.12.0
@@ -11207,8 +10950,7 @@ export const StandardSchemaV1FailureResult = Struct({
 })
 
 /**
- * Schema interface for `BooleanFromBit`, a transformation between bit literals
- * `0 | 1` and boolean values.
+ * Type-level representation of {@link BooleanFromBit}.
  *
  * @category Boolean
  * @since 4.0.0
@@ -11247,8 +10989,7 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
 )
 
 /**
- * Schema interface for `Uint8Array`, representing JavaScript `Uint8Array`
- * instances with base64 JSON encoding.
+ * Type-level representation of {@link Uint8Array}.
  *
  * @category Uint8Array
  * @since 4.0.0
@@ -11293,8 +11034,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
 })
 
 /**
- * Schema interface for `Uint8ArrayFromBase64`, a transformation between
- * base64-encoded strings and `Uint8Array` values.
+ * Type-level representation of {@link Uint8ArrayFromBase64}.
  *
  * @category Uint8Array
  * @since 3.10.0
@@ -11323,8 +11063,7 @@ export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = Base64String.pipe(
 )
 
 /**
- * Schema interface for `Uint8ArrayFromBase64Url`, a transformation between
- * URL-safe base64-encoded strings and `Uint8Array` values.
+ * Type-level representation of {@link Uint8ArrayFromBase64Url}.
  *
  * @category Uint8Array
  * @since 3.10.0
@@ -11358,8 +11097,7 @@ export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate(
 )
 
 /**
- * Schema interface for `Uint8ArrayFromHex`, a transformation between
- * hex-encoded strings and `Uint8Array` values.
+ * Type-level representation of {@link Uint8ArrayFromHex}.
  *
  * @category Uint8Array
  * @since 3.10.0
@@ -11393,8 +11131,7 @@ export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
 )
 
 /**
- * Schema interface for `DateTimeUtc`, representing `DateTime.Utc` values with
- * UTC ISO string JSON encoding.
+ * Type-level representation of {@link DateTimeUtc}.
  *
  * @category DateTime
  * @since 3.10.0
@@ -11449,8 +11186,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
 )
 
 /**
- * Schema interface for `DateTimeUtcFromDate`, a transformation from valid
- * JavaScript `Date` values to `DateTime.Utc`.
+ * Type-level representation of {@link DateTimeUtcFromDate}.
  *
  * @category DateTime
  * @since 3.12.0
@@ -11491,8 +11227,7 @@ export const DateTimeUtcFromDate: DateTimeUtcFromDate = DateValid.pipe(
 )
 
 /**
- * Schema interface for `DateTimeUtcFromString`, a transformation from date-time
- * strings to `DateTime.Utc`.
+ * Type-level representation of {@link DateTimeUtcFromString}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -11528,8 +11263,7 @@ export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
 )
 
 /**
- * Schema interface for `DateTimeUtcFromMillis`, a transformation between epoch
- * milliseconds and `DateTime.Utc` values.
+ * Type-level representation of {@link DateTimeUtcFromMillis}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -11560,8 +11294,7 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
 )
 
 /**
- * Schema interface for `TimeZoneOffset`, representing
- * `DateTime.TimeZone.Offset` values encoded as offset milliseconds.
+ * Type-level representation of {@link TimeZoneOffset}.
  *
  * @category DateTime
  * @since 3.10.0
@@ -11607,8 +11340,7 @@ export const TimeZoneOffset: TimeZoneOffset = declare(
 )
 
 /**
- * Schema interface for `TimeZoneNamed`, representing
- * `DateTime.TimeZone.Named` values encoded as IANA time zone identifiers.
+ * Type-level representation of {@link TimeZoneNamed}.
  *
  * @category DateTime
  * @since 3.10.0
@@ -11660,8 +11392,7 @@ export const TimeZoneNamed: TimeZoneNamed = declare(
 )
 
 /**
- * Schema interface for `TimeZoneNamedFromString`, a transformation between IANA
- * time zone identifier strings and `DateTime.TimeZone.Named` values.
+ * Type-level representation of {@link TimeZoneNamedFromString}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -11689,8 +11420,7 @@ export const TimeZoneNamedFromString: TimeZoneNamedFromString = TimeZoneNamedStr
 )
 
 /**
- * Schema interface for `TimeZone`, representing `DateTime.TimeZone` values
- * encoded as either IANA identifiers or numeric offset strings.
+ * Type-level representation of {@link TimeZone}.
  *
  * @category DateTime
  * @since 3.10.0
@@ -11748,8 +11478,7 @@ export const TimeZone: TimeZone = declare(
 )
 
 /**
- * Schema interface for `TimeZoneFromString`, a transformation from IANA
- * identifier or offset strings to `DateTime.TimeZone` values.
+ * Type-level representation of {@link TimeZoneFromString}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -11777,8 +11506,7 @@ export const TimeZoneFromString: TimeZoneFromString = TimeZoneString.pipe(
 )
 
 /**
- * Schema interface for `DateTimeZoned`, representing `DateTime.Zoned` values
- * with ISO offset or named-zone string JSON encoding.
+ * Type-level representation of {@link DateTimeZoned}.
  *
  * @category DateTime
  * @since 3.10.0
@@ -11839,8 +11567,7 @@ export const DateTimeZoned: DateTimeZoned = declare(
 )
 
 /**
- * Schema interface for `DateTimeZonedFromString`, a transformation between
- * zoned date-time strings and `DateTime.Zoned` values.
+ * Type-level representation of {@link DateTimeZonedFromString}.
  *
  * @category DateTime
  * @since 4.0.0
@@ -11872,15 +11599,7 @@ export const DateTimeZonedFromString: DateTimeZonedFromString = DateTimeZonedStr
 // -----------------------------------------------------------------------------
 
 /**
- * Interface for schema-backed classes created with {@link Class}.
- *
- * **Details**
- *
- * A `Class` is a TypeScript class whose constructor validates its input
- * against a {@link Struct} schema. Instances are always structurally valid.
- *
- * The interface exposes the schema's `fields`, an `identifier` string, and
- * helpers such as `mapFields`, `annotate`, `check`, and `extend`.
+ * Type-level representation returned by {@link Class}.
  *
  * @category models
  * @since 3.10.0
@@ -13229,8 +12948,7 @@ export function toIsoFocus<S extends Top>(_: S): Optic_.Iso<S["Iso"], S["Iso"]> 
 }
 
 /**
- * The schema type returned by {@link overrideToCodecIso}. Carries a custom
- * `Iso` type parameter and exposes the original `schema`.
+ * Type-level representation returned by {@link overrideToCodecIso}.
  *
  * @category Optic
  * @since 4.0.0
