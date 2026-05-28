@@ -1422,6 +1422,82 @@ describe("Command", () => {
         assert.strictEqual(actions.length, 0)
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should let local flags override global flags on the selected command", () =>
+      Effect.gen(function*() {
+        const captured: Array<string> = []
+        const release = Command.make("release", {
+          version: Flag.string("version")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.version)
+          }))
+        const packageCommand = Command.make("package").pipe(Command.withSubcommands([release]))
+        const command = Command.make("tool").pipe(Command.withSubcommands([packageCommand]))
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["package", "release", "--version", "canary"])
+
+        assert.deepStrictEqual(captured, ["canary"])
+
+        const output = yield* TestConsole.logLines
+        assert.isFalse(output.some((line) => String(line).includes("1.0.0")))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should let local short aliases override global short aliases on the selected command", () =>
+      Effect.gen(function*() {
+        const Output = GlobalFlag.setting("output")({
+          flag: Flag.choice("output", ["pretty", "json", "yaml"] as const).pipe(
+            Flag.withAlias("o"),
+            Flag.withDefault("pretty")
+          )
+        })
+        const captured: Array<"summary" | "json" | "csv"> = []
+        const report = Command.make("report", {
+          output: Flag.choice("output", ["summary", "json", "csv"] as const).pipe(
+            Flag.withAlias("o"),
+            Flag.withDefault("summary")
+          )
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.output)
+          }))
+        const command = Command.make("tool").pipe(
+          Command.withSubcommands([report]),
+          Command.withGlobalFlags([Output])
+        )
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["report", "-o", "csv"])
+
+        assert.deepStrictEqual(captured, ["csv"])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should let local flags override scoped global flags from another command branch", () =>
+      Effect.gen(function*() {
+        const Region = GlobalFlag.setting("region")({
+          flag: Flag.choice("region", ["us", "eu"] as const).pipe(Flag.withDefault("us"))
+        })
+        const captured: Array<string> = []
+        let deployInvoked = false
+        const deploy = Command.make("deploy", {}, () =>
+          Effect.sync(() => {
+            deployInvoked = true
+          })).pipe(Command.withGlobalFlags([Region]))
+        const status = Command.make("status", {
+          region: Flag.string("region")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.region)
+          }))
+        const command = Command.make("app").pipe(Command.withSubcommands([deploy, status]))
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["status", "--region", "local"])
+
+        assert.deepStrictEqual(captured, ["local"])
+        assert.isFalse(deployInvoked)
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should print help when invoked with no arguments", () =>
       Effect.gen(function*() {
         yield* Cli.run([]).pipe(Effect.catchTag("ShowHelp", () => Effect.void))

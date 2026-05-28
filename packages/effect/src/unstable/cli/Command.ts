@@ -1535,7 +1535,11 @@ export const runWith = <const Name extends string, Input, E, R, ContextInput>(
       // 2. Extract global flag tokens
       const allFlagParams = allFlags.flatMap((f) => Param.extractSingleParams(f.flag))
       const globalRegistry = Parser.createFlagRegistry(allFlagParams.filter(Param.isFlagParam))
-      const { flagMap, remainder, errors: globalFlagErrors } = Parser.consumeKnownFlags(tokens, globalRegistry)
+      const { flagMap, remainder, errors: globalFlagErrors } = Parser.consumeGlobalFlags(
+        tokens,
+        command,
+        globalRegistry
+      )
       const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
 
       // 3. Parse command arguments from remaining tokens
