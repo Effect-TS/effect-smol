@@ -1046,8 +1046,8 @@ export const withAlias: {
  *
  * **When to use**
  *
- * Use when you use this for experimental or internal subcommands that should be accepted but
- * not advertised on the public CLI surface.
+ * Use when experimental or internal subcommands should be accepted but not advertised on
+ * the public CLI surface.
  *
  * **Example** (Hiding a subcommand)
  *
@@ -1480,8 +1480,8 @@ export const run: {
  *
  * **When to use**
  *
- * Use when you use this function for testing CLI applications or when you want to
- * programmatically execute commands with specific arguments.
+ * Use when testing CLI applications or programmatically executing commands with specific
+ * arguments.
  *
  * **Example** (Running commands with explicit arguments)
  *

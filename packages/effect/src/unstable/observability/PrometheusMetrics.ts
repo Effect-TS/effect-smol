@@ -143,8 +143,10 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
  *
  * **When to use**
  *
- * Use when you use this low-level function when you already have access to the context. Most
- * users should use `format` instead.
+ * Use when code already has access to the context and needs low-level synchronous
+ * formatting.
+ *
+ * @see {@link format} for effectful formatting from the current context
  *
  * @category formatting
  * @since 4.0.0

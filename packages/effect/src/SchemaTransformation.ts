@@ -1032,8 +1032,8 @@ export const durationFromNanos: Transformation<Duration.Duration, bigint> = tran
  *
  * **When to use**
  *
- * Use when you use this for timeouts, delays, elapsed intervals, or other duration values
- * stored as millisecond counts.
+ * Use when timeouts, delays, elapsed intervals, or other duration values are stored as
+ * millisecond counts.
  *
  * **Details**
  *
@@ -1550,8 +1550,8 @@ export const stringFromUriComponent: Transformation<string, string> = new Transf
  *
  * **When to use**
  *
- * Use when you use this for JSON stored or transmitted as a string, usually before composing
- * with another schema that validates the parsed structure.
+ * Use when JSON is stored or transmitted as a string, usually before composing with another
+ * schema that validates the parsed structure.
  *
  * **Details**
  *
@@ -1585,8 +1585,8 @@ export const fromJsonString = new Transformation<unknown, string>(
  *
  * **When to use**
  *
- * Use when you use this for form or multipart payloads where keys such as `user[name]` or
- * `items[0]` should become nested data.
+ * Use when form or multipart payloads contain keys such as `user[name]` or `items[0]` that
+ * should become nested data.
  *
  * **Details**
  *
@@ -1621,8 +1621,8 @@ export const fromFormData = new Transformation<unknown, FormData>(
  *
  * **When to use**
  *
- * Use when you use this for query strings where keys such as `filter[name]` or `items[0]`
- * should become nested data.
+ * Use when query strings contain keys such as `filter[name]` or `items[0]` that should
+ * become nested data.
  *
  * **Details**
  *

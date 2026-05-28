@@ -935,7 +935,7 @@ export const keyValuePair = <Kind extends ParamKind>(
  *
  * **When to use**
  *
- * Use when this is useful for creating placeholder parameters or for combinators.
+ * Use when placeholder parameters or combinators need an empty parameter sentinel.
  *
  * **Example** (Creating sentinel parameters)
  *
@@ -1659,7 +1659,7 @@ export const atLeast: {
  *
  * **When to use**
  *
- * Use when you use this combinator for validation and transformation in a single step.
+ * Use when validation and transformation should happen in a single parameter combinator.
  *
  * **Example** (Filtering and transforming values)
  *

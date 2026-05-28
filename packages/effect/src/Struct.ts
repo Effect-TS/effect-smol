@@ -617,8 +617,8 @@ export const makeOrder = order.Struct
  *
  * **When to use**
  *
- * Use when you use this interface when defining a typed function for {@link map},
- * {@link mapPick}, or {@link mapOmit}.
+ * Use when defining a typed function for {@link map}, {@link mapPick}, or
+ * {@link mapOmit}.
  *
  * **Details**
  *

@@ -118,7 +118,7 @@ export const symbol = "~effect/interfaces/Equal"
  *
  * **When to use**
  *
- * Use when when you need value-based equality for a class (e.g. domain IDs,
+ * Use when you need value-based equality for a class (e.g. domain IDs,
  *   coordinates, money values).
  * - When your type will be stored in `HashMap` or `HashSet`.
  * - When the default structural comparison is too broad or too narrow for
@@ -506,7 +506,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  *
  * **When to use**
  *
- * Use when when an API (e.g. `Array.dedupeWith`, `Equivalence.mapInput`) requires an
+ * Use when an API (e.g. `Array.dedupeWith`, `Equivalence.mapInput`) requires an
  *   `Equivalence` and you want to reuse `Equal.equals`.
  *
  * **Details**
@@ -536,7 +536,7 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  *
  * **When to use**
  *
- * Use when when you have a plain object or array that should be compared by identity
+ * Use when you have a plain object or array that should be compared by identity
  *   (reference), not by contents.
  * - When you want to preserve the original object unchanged and get a new
  *   reference-equal handle.
@@ -580,7 +580,7 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  *
  * **When to use**
  *
- * Use when when you want reference equality semantics and can accept that the
+ * Use when you want reference equality semantics and can accept that the
  *   original object is **permanently** modified.
  * - When proxy overhead is unacceptable (hot paths, large collections).
  *

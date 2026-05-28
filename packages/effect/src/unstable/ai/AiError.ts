@@ -1647,7 +1647,8 @@ export const make = (params: {
  *
  * **When to use**
  *
- * Use when provider packages can use this as a base for provider-specific mapping.
+ * Use as the base mapping when provider packages translate HTTP status codes into
+ * provider-specific error reasons.
  *
  * **Example** (Mapping an HTTP status to a reason)
  *

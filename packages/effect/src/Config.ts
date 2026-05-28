@@ -238,8 +238,8 @@ export function make<T>(
  *
  * **When to use**
  *
- * Use when post-processing a config value (e.g. trimming, uppercasing, wrapping).
- * - The transformation cannot fail. Use {@link mapOrFail} if it can.
+ * Use when post-processing a config value (e.g. trimming, uppercasing, wrapping)
+ * with a transformation that cannot fail.
  *
  * **Details**
  *

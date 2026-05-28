@@ -87,7 +87,7 @@ import type { Unify } from "./Unify.ts"
  *
  * **When to use**
  *
- * Use when you need a lightweight immutable value type with `.pipe()` support. If you also need a `_tag` discriminator, use {@link TaggedClass}; if you need a yieldable error, use {@link Error} or {@link TaggedError}.
+ * Use when you need a lightweight immutable value type with `.pipe()` support.
  *
  * **Details**
  *
@@ -131,7 +131,7 @@ export const Class: new<A extends Record<string, any> = {}>(
  *
  * **When to use**
  *
- * Use when you need a single-variant tagged type or an ad-hoc discriminator. For multi-variant unions, prefer {@link TaggedEnum} with {@link taggedEnum}; for yieldable errors, use {@link TaggedError}.
+ * Use when you need a single-variant tagged type or an ad-hoc discriminator.
  *
  * **Details**
  *
@@ -174,7 +174,7 @@ export const TaggedClass = <Tag extends string>(
  *
  * **When to use**
  *
- * Use when you have two or more variants that share a common `_tag` discriminator. For generic tagged enums, see {@link TaggedEnum.WithGenerics}.
+ * Use when you have two or more variants that share a common `_tag` discriminator.
  *
  * **Details**
  *
@@ -254,7 +254,7 @@ export declare namespace TaggedEnum {
    *
    * **When to use**
    *
-   * Use when variant payloads need to be parameterized, such as `Result<E, A>`. Pass the interface, not the type alias, to {@link taggedEnum} to get generic-aware constructors and matchers.
+   * Use when variant payloads need to be parameterized, such as `Result<E, A>`.
    *
    * **Details**
    *
@@ -586,7 +586,7 @@ export declare namespace TaggedEnum {
  *
  * **When to use**
  *
- * Use when you have a `TaggedEnum` type and need constructors and matchers for its values. For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
+ * Use when you have a `TaggedEnum` type and need constructors and matchers for its values.
  *
  * **Details**
  *
@@ -752,7 +752,7 @@ function taggedMatch<
  * **When to use**
  *
  * Use when defining yieldable errors that do **not** need tag-based
- * discrimination. If you need tag-based recovery, use {@link TaggedError}.
+ * discrimination.
  *
  * **Details**
  *

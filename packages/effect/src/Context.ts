@@ -193,8 +193,7 @@ export declare namespace ServiceClass {
  *
  * **When to use**
  *
- * Use when a dependency must be provided by the surrounding context. Use
- * `Reference` when a dependency should have a default value.
+ * Use when a dependency must be provided by the surrounding context.
  *
  * **Details**
  *
@@ -686,8 +685,7 @@ export const make = <I, S>(
  *
  * **When to use**
  *
- * Use when you always have a service value to store. Use `addOrOmit`
- * when the value is optional and a missing value should remove the service.
+ * Use when you always have a service value to store.
  *
  * **Details**
  *
@@ -744,7 +742,6 @@ export const add: {
  * **When to use**
  *
  * Use when service presence is already represented as an `Option`.
- * Use `add` when you always want to store a service value.
  *
  * **Details**
  *
@@ -801,8 +798,7 @@ export const addOrOmit: {
  *
  * **When to use**
  *
- * Use when you want a fallback value for a missing regular
- * service. Use `getOption` when you need to distinguish presence from absence.
+ * Use when you want a fallback value for a missing regular service.
  *
  * **Details**
  *
@@ -860,8 +856,7 @@ export const getOrElse: {
  *
  * **When to use**
  *
- * Use when you need raw map-style lookup. Use `getOption` when you want the
- * usual `Context.Reference` default-value behavior.
+ * Use when you need raw map-style lookup.
  *
  * **Gotchas**
  *
@@ -887,9 +882,7 @@ export const getOrUndefined: {
  *
  * **When to use**
  *
- * Use when the context type cannot prove that the service is present. Use
- * `get` when the service requirement is tracked in the context type, or
- * `getOption` when absence is expected.
+ * Use when the context type cannot prove that the service is present.
  *
  * **Details**
  *
@@ -937,8 +930,7 @@ export const getUnsafe: {
  *
  * **When to use**
  *
- * Use when the context type proves that the service is present. Use
- * `getOption` or `getOrElse` when a service may be absent.
+ * Use when the context type proves that the service is present.
  *
  * **Example** (Getting a service from a context)
  *
@@ -1051,8 +1043,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  *
  * **When to use**
  *
- * Use when service absence is expected and should be represented
- * as data. Use `getOrElse` when you want to provide a fallback value directly.
+ * Use when service absence is expected and should be represented as data.
  *
  * **Details**
  *
@@ -1098,8 +1089,7 @@ export const getOption: {
  *
  * **When to use**
  *
- * Use when combining two contexts. Use `mergeAll` when combining a
- * variadic list of contexts.
+ * Use when combining two contexts.
  *
  * **Details**
  *
@@ -1145,8 +1135,7 @@ export const merge: {
  *
  * **When to use**
  *
- * Use when the number of contexts is variadic. Use `merge` when
- * combining exactly two contexts.
+ * Use when combining a variadic list of contexts.
  *
  * **Details**
  *
@@ -1200,8 +1189,7 @@ export const mergeAll = <T extends Array<unknown>>(
  *
  * **When to use**
  *
- * Use when you want to keep a small allowlist of services. Use `omit`
- * when it is easier to name the services to remove.
+ * Use when you want to keep a small allowlist of services.
  *
  * **Example** (Picking services from a context)
  *
@@ -1248,8 +1236,7 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  *
  * **When to use**
  *
- * Use when you want to remove a small denylist of services. Use `pick`
- * when it is easier to name the services to keep.
+ * Use when you want to remove a small denylist of services.
  *
  * **Example** (Omitting services from a context)
  *
@@ -1338,9 +1325,8 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  *
  * **When to use**
  *
- * Use when a service should be available even if it is not
- * explicitly stored in the `Context`. Use `Service` when the service must be
- * provided by the surrounding context.
+ * Use when a service should be available even if it is not explicitly stored in
+ * the `Context`.
  *
  * **Details**
  *

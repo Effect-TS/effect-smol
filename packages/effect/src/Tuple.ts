@@ -80,8 +80,8 @@ import type { Apply, Lambda } from "./Struct.ts"
  *
  * **When to use**
  *
- * Use when you use this instead of `[a, b, c] as const` when you want a properly typed tuple
- * without a manual cast.
+ * Use when a properly typed tuple is needed without writing `[a, b, c] as const`
+ * or another manual cast.
  *
  * **Details**
  *
@@ -111,7 +111,7 @@ type Indices<T extends ReadonlyArray<unknown>> = Exclude<Partial<T>["length"], T
  *
  * **When to use**
  *
- * Use when you use this in a pipeline when you need to extract a single element.
+ * Use when a single tuple element should be extracted in a pipeline.
  *
  * **Details**
  *

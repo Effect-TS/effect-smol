@@ -1015,8 +1015,8 @@ export const tryPromise: <A, E = Cause.UnknownError>(
  *
  * **When to use**
  *
- * Use when you use this function when you need an effect that completes successfully with a
- * specific value without any errors or external dependencies.
+ * Use when an effect should complete successfully with a specific value without any errors
+ * or external dependencies.
  *
  * **Example** (Creating a successful effect)
  *
@@ -2157,9 +2157,8 @@ export const tap: {
  *
  * **When to use**
  *
- * Use when you want to handle typed failures as data while preserving
- * the original error value. Use `option` when you only care whether the effect
- * succeeded, and `exit` when you need the full failure cause.
+ * Use when you want to handle typed failures as data while preserving the original
+ * error value.
  *
  * **Details**
  *
@@ -2214,8 +2213,6 @@ export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A,
  * **When to use**
  *
  * Use when the failure value is not important and absence is enough.
- * Use `result` when you need the original typed failure, and `exit` when you
- * need the full failure cause.
  *
  * **Details**
  *
@@ -2263,9 +2260,8 @@ export const option: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, never
  *
  * **When to use**
  *
- * Use when you need to inspect the full outcome, including typed
- * failures, defects, and interruptions. Use `result` or `option` when you only
- * need to handle typed failures.
+ * Use when you need to inspect the full outcome, including typed failures, defects,
+ * and interruptions.
  *
  * **Details**
  *
@@ -3207,8 +3203,7 @@ export const catchCause: {
  *
  * **When to use**
  *
- * Use when you use this sparingly, usually at integration boundaries where defects must be
- * reported or translated for an external system.
+ * Use when defects must be reported or translated at integration boundaries.
  *
  * **Details**
  *
@@ -4417,9 +4412,7 @@ export const firstSuccessOf: <Eff extends Effect<any, any, any>>(
  *
  * **When to use**
  *
- * Use when exceeding the time limit should be represented as a typed
- * failure. Use `timeoutOption` when a timeout should become `Option.none`, and
- * `timeoutOrElse` when you want to run a fallback effect.
+ * Use when exceeding the time limit should be represented as a typed failure.
  *
  * **Details**
  *
@@ -4485,9 +4478,7 @@ export const timeout: {
  *
  * **When to use**
  *
- * Use when a timeout should be handled as absence. Use
- * `timeout` when a timeout should fail the effect, and `timeoutOrElse` when
- * you want to run a fallback effect.
+ * Use when a timeout should be handled as absence.
  *
  * **Details**
  *
@@ -4545,9 +4536,7 @@ export const timeoutOption: {
  *
  * **When to use**
  *
- * Use when a timeout should switch to a fallback effect. Use
- * `timeout` when a timeout should fail the effect, and `timeoutOption` when a
- * timeout should become `Option.none`.
+ * Use when a timeout should switch to a fallback effect.
  *
  * **Details**
  *
@@ -5241,8 +5230,8 @@ export const when: {
  *
  * **When to use**
  *
- * Use when this is useful for structuring your code to respond differently to success or
- * failure without triggering side effects.
+ * Use when code should respond differently to success or failure without triggering side
+ * effects.
  *
  * **Details**
  *
@@ -5356,9 +5345,8 @@ export const matchEager: {
  *
  * **When to use**
  *
- * Use when this is useful for differentiating between different types of errors, such as
- * regular failures, defects, or interruptions. You can provide specific
- * handling logic for each failure type based on the cause.
+ * Use when failure handling depends on the full cause, such as typed failures, defects, or
+ * interruptions.
  *
  * **Details**
  *
@@ -5406,9 +5394,9 @@ export const matchCause: {
  *
  * **When to use**
  *
- * Use when this is useful when you have effects that are likely to be already resolved
- * and you want to avoid the overhead of the effect pipeline. For pending effects,
- * it automatically falls back to the regular `matchCause` behavior.
+ * Use when effects are likely to be already resolved and matching the cause should avoid
+ * the overhead of the regular effect pipeline. For pending effects, it automatically falls
+ * back to the regular `matchCause` behavior.
  *
  * **Details**
  *
@@ -6943,10 +6931,9 @@ export const onExitFilter: {
  *
  * **When to use**
  *
- * Use when you use this function when you have an expensive or time-consuming operation that
- * you want to avoid repeating. The first evaluation will compute the result,
- * and all following evaluations will immediately return the cached value,
- * improving performance and reducing unnecessary work.
+ * Use when an expensive or time-consuming operation should be evaluated once and reused by
+ * later callers. The first evaluation computes the result, and later evaluations return the
+ * cached value.
  *
  * **Details**
  *
@@ -7008,8 +6995,8 @@ export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
  *
  * **When to use**
  *
- * Use when you use this function when you have an effect that involves costly operations or
- * computations, and you want to avoid repeating them within a short time frame.
+ * Use when an effect with costly operations or computations should be reused for a bounded
+ * duration before being recomputed.
  *
  * It's ideal for scenarios where the result of an effect doesn't change
  * frequently and can be reused for a specified duration.

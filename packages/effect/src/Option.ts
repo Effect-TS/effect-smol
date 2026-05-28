@@ -886,7 +886,7 @@ export const fromNullishOr = <A>(
  *
  * **When to use**
  *
- * Use when when `null` is a meaningful value but `undefined` means absent
+ * Use when `null` is a meaningful value but `undefined` means absent
  *
  * **Details**
  *
@@ -924,7 +924,7 @@ export const fromUndefinedOr = <A>(
  *
  * **When to use**
  *
- * Use when when `undefined` is a meaningful value but `null` means absent
+ * Use when `undefined` is a meaningful value but `null` means absent
  *
  * **Details**
  *

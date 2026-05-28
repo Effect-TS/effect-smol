@@ -138,8 +138,8 @@ export interface ReadonlyArrayTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * Use when you use this type when you need to ensure non-emptiness at the type level while
- * preventing mutation. Many Array module functions accept or return this type.
+ * Use when non-emptiness must be tracked at the type level while preventing mutation.
+ * Many Array module functions accept or return this type.
  *
  * **Example** (Typing a non-empty array)
  *

@@ -83,7 +83,7 @@ export interface Service {
  *
  * **When to use**
  *
- * Use when when provided, language model operations can use the tracker to send only new
+ * Use when provided, language model operations can use the tracker to send only new
  * prompt messages together with the provider's prior response ID.
  *
  * @category services

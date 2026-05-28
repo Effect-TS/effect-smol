@@ -267,8 +267,8 @@ export const LogToStderr: Context.Reference<boolean> = effect.LogToStderr
  *
  * **When to use**
  *
- * Use when this allows you to modify, enhance, or completely change the output format
- * of an existing logger without recreating the entire logging logic.
+ * Use when an existing logger's output should be transformed without recreating the
+ * logging logic.
  *
  * **Example** (Transforming logger output)
  *
@@ -316,8 +316,8 @@ export const map = dual<
  *
  * **When to use**
  *
- * Use when this is useful for taking any logger that produces string or object output
- * and routing it to the console for development or debugging purposes.
+ * Use when a logger's string or object output should be routed to `console.log` for
+ * development or debugging.
  *
  * **Example** (Writing logger output with console.log)
  *
@@ -353,8 +353,8 @@ export const withConsoleLog = <Message, Output>(
  *
  * **When to use**
  *
- * Use when this is particularly useful for error logging where you want to ensure
- * log messages appear in the error stream (stderr) rather than standard output.
+ * Use when logger output should be routed to `console.error`, such as error logs that
+ * should appear on stderr instead of stdout.
  *
  * **Example** (Writing logger output with console.error)
  *

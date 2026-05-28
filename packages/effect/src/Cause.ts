@@ -855,7 +855,7 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
  *
  * **When to use**
  *
- * Use when you use {@link findError} if you only need the unwrapped error value `E`.
+ * Use when you need the full `Fail` reason, including annotations.
  *
  * **Example** (extracting the first Fail reason)
  *
@@ -884,8 +884,7 @@ export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never
  *
  * **When to use**
  *
- * Use when you use {@link findFail} if you need the full `Fail` reason (including
- * annotations). Use {@link findErrorOption} if you prefer an `Option`.
+ * Use when you need the first typed error value as a `Result`.
  *
  * **Example** (extracting the first error value)
  *
@@ -912,8 +911,8 @@ export const findError: <E>(self: Cause<E>) => Result.Result<E, Cause<never>> = 
  *
  * **When to use**
  *
- * Use when this is the `Option`-returning variant of {@link findError} for code that
- * does not need the original cause returned in a failed `Result`.
+ * Use when code needs the first typed error as an `Option` and does not need the original
+ * cause returned in a failed `Result`.
  *
  * **Example** (extracting an error as Option)
  *
@@ -1072,9 +1071,8 @@ export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Caus
  *
  * **When to use**
  *
- * Use when this always succeeds. Use {@link filterInterruptors} when you want a
- * `Result` that fails with the original cause if there are no `Interrupt`
- * reasons.
+ * Use when collecting interrupting fiber IDs should always succeed and return an empty
+ * set when none are present.
  *
  * **Example** (collecting interruptors)
  *
@@ -1103,8 +1101,8 @@ export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.c
  *
  * **When to use**
  *
- * Use when you use {@link interruptors} if you always want a `Set` without `Result`
- * wrapping.
+ * Use when the absence of interrupt reasons should be represented as a failed `Result`
+ * containing the original cause.
  *
  * **Gotchas**
  *
@@ -1432,8 +1430,7 @@ export declare namespace Done {
  *
  * **When to use**
  *
- * Use when you need the completion signal value itself. Use {@link done}
- * when you need an `Effect` that fails with the signal.
+ * Use when you need the completion signal value itself.
  *
  * @see {@link done} — create a failing `Effect` with `Done`
  *
@@ -1448,8 +1445,7 @@ export const Done: <A = void>(value?: A) => Done<A> = core.Done
  *
  * **When to use**
  *
- * Use when you use this in effect workflows that model stream or queue completion through
- * the error channel.
+ * Use when effect workflows model stream or queue completion through the error channel.
  *
  * **Example** (failing with Done)
  *

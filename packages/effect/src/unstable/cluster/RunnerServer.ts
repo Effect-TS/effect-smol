@@ -212,8 +212,8 @@ export const layerWithClients: Layer.Layer<
  *
  * **When to use**
  *
- * Use when you use this layer to embed a cluster client inside another Effect application
- * without registering with the ShardManager or receiving shard assignments.
+ * Use to embed a cluster client inside another Effect application without registering with
+ * the ShardManager or receiving shard assignments.
  *
  * @category layers
  * @since 4.0.0

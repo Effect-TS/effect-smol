@@ -239,9 +239,9 @@ export function makeArray(length: number, value?: string): Node {
  *
  * **When to use**
  *
- * Use when you use this from a custom provider's `get` callback when the underlying store
- * is unreachable or produces an I/O error, or match on it in error channels
- * when consuming provider output directly.
+ * Use when writing a custom provider's `get` callback for an underlying store that is
+ * unreachable or produces an I/O error, or when matching on error channels while consuming
+ * provider output directly.
  *
  * **Gotchas**
  *
@@ -515,9 +515,8 @@ export const orElse: {
  *
  * **When to use**
  *
- * Use when you use this for renaming or re-casing path segments, or for adding suffixes and
- * other per-segment transformations. See {@link constantCase} for a common
- * specialization.
+ * Use when path segments need renaming, re-casing, suffixes, or other per-segment
+ * transformations. See {@link constantCase} for a common specialization.
  *
  * **Details**
  *
@@ -737,9 +736,8 @@ export const layerAdd = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use when you use this in unit or integration tests where you want deterministic config
- * without touching the environment, or when embedding config directly in code
- * or reading a JSON file.
+ * Use when unit or integration tests need deterministic config without touching the
+ * environment, or when config is embedded directly in code or read from a JSON file.
  *
  * **Details**
  *
@@ -944,9 +942,8 @@ function trieNodeAt(root: EnvTrieNode, path: Path): EnvTrieNode | undefined {
  *
  * **When to use**
  *
- * Use when you already have the `.env` contents as a string, such as
- * contents fetched from a remote store or embedded in a test. Use
- * {@link fromDotEnv} instead if you want to read a `.env` file from disk.
+ * Use when you already have the `.env` contents as a string, such as contents
+ * fetched from a remote store or embedded in a test.
  *
  * **Details**
  *
@@ -1086,9 +1083,7 @@ function searchLast(str: string, rgx: RegExp): number {
  *
  * **When to use**
  *
- * Use to load environment config from a `.env` file at application
- * startup. Use {@link fromDotEnvContents} if you already have the file
- * contents as a string.
+ * Use to load environment config from a `.env` file at application startup.
  *
  * **Details**
  *
@@ -1132,8 +1127,8 @@ export const fromDotEnv: (options?: {
  *
  * **When to use**
  *
- * Use when you use this for Kubernetes ConfigMap or Secret volume mounts, where each key is
- * a file under a mount path, or for any file-per-key configuration layout.
+ * Use when Kubernetes ConfigMap or Secret volume mounts expose each key as a file under a
+ * mount path, or for any file-per-key configuration layout.
  *
  * **Details**
  *

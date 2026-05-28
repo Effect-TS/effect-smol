@@ -775,8 +775,8 @@ export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): T
  *
  * **When to use**
  *
- * Use when you use this part in tool messages to approve or deny tool execution when tools
- * have the `needsApproval` property set.
+ * Use when tool messages must approve or deny tool execution for tools with the
+ * `needsApproval` property set.
  *
  * **Example** (Creating tool approval responses)
  *
