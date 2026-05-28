@@ -205,8 +205,8 @@ export const get: {
  *
  * **When to use**
  *
- * Use when you use instead of `Object.keys` when you want the return type narrowed to the
- * known keys of the struct.
+ * Use when you want a typed replacement for `Object.keys` that narrows the result
+ * to the known string keys of the struct.
  *
  * **Gotchas**
  *

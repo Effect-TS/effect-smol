@@ -1441,10 +1441,12 @@ export const provide: {
  *
  * **When to use**
  *
- * Use when you need callers to access both the service being built and the
- * dependency used to build it, such as a health check that needs both a
- * repository and its database. Prefer `provide` when the dependency should stay
- * private.
+ * Use when you need both the constructed service and the dependency used to
+ * build it to remain available.
+ *
+ * **Details**
+ *
+ * Prefer {@link provide} when the dependency should stay private.
  *
  * **Example** (Providing dependencies while retaining services)
  *

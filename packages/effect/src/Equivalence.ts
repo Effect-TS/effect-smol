@@ -194,7 +194,7 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
  *
  * **When to use**
  *
- * Use when JavaScript strict equality is the intended comparison.
+ * Use when you need strict equality (`===`) as the comparison.
  *
  * **Details**
  *

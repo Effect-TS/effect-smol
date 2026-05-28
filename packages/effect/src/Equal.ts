@@ -79,10 +79,8 @@ import { hasProperty } from "./Predicate.ts"
  *
  * **When to use**
  *
- * Use when you use it as the computed property key when implementing custom equality on a
- *   class or object literal.
- * - Use it to check manually whether an object carries an equality method (prefer
- *   {@link isEqual} instead).
+ * Use when you implement custom equality and need the computed property key for
+ * the equality method.
  *
  * **Details**
  *
@@ -174,10 +172,7 @@ export interface Equal extends Hash.Hash {
  *
  * **When to use**
  *
- * Use when as the default equality check throughout Effect code.
- * - In data-level assertions or conditional logic where structural comparison
- *   is needed.
- * - In its curried (single-argument) form to build reusable predicates.
+ * Use when you need Effect's default structural equality check.
  *
  * **Details**
  *
@@ -198,6 +193,8 @@ export interface Equal extends Hash.Hash {
  * - Hash values are checked first as a fast-path rejection.
  * - Supports dual (data-last) usage: call with one argument to get a curried
  *   predicate.
+ * - Useful in data-level assertions or conditional logic where structural
+ *   comparison is needed.
  *
  * **Gotchas**
  *
@@ -504,8 +501,8 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  *
  * **When to use**
  *
- * Use when an API (e.g. `Array.dedupeWith`, `Equivalence.mapInput`) requires an
- *   `Equivalence` and you want to reuse `Equal.equals`.
+ * Use when you want to pass `Equal.equals` to APIs that require an
+ * `Equivalence`.
  *
  * **Details**
  *

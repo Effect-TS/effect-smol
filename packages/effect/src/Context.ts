@@ -1092,7 +1092,7 @@ export const getOption: {
  *
  * **When to use**
  *
- * Use when combining two contexts.
+ * Use when you need to combine two contexts.
  *
  * **Details**
  *
@@ -1138,7 +1138,7 @@ export const merge: {
  *
  * **When to use**
  *
- * Use when combining a variadic list of contexts.
+ * Use when you need to combine a variadic list of contexts.
  *
  * **Details**
  *

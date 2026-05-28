@@ -574,8 +574,8 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  *
  * **When to use**
  *
- * Use when the transformation may fail (e.g. parsing, validation).
- * - The transformation needs Effect services or is async.
+ * Use when you need a transformation that may fail, require Effect services,
+ * or run asynchronously.
  *
  * **Details**
  *

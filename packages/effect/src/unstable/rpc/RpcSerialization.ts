@@ -514,7 +514,7 @@ export const msgPack: RpcSerialization["Service"] = makeMsgPack({ useRecords: tr
  *
  * **When to use**
  *
- * Use when the transport protocol already provides message framing.
+ * Use when you have a transport protocol that already provides message framing.
  *
  * @see {@link layerNdjson} for transports that need newline-delimited framing
  *
@@ -528,7 +528,7 @@ export const layerJson: Layer.Layer<RpcSerialization> = Layer.succeed(RpcSeriali
  *
  * **When to use**
  *
- * Use when the transport protocol does not provide message framing.
+ * Use when you have a transport protocol that does not provide message framing.
  *
  * @see {@link layerJson} for transports that already provide message framing
  *

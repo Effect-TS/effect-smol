@@ -315,8 +315,8 @@ export const make = <T, E, RD = never, RE = never>(options: {
  *
  * **When to use**
  *
- * Use when the transformation can fail (e.g. parsing, validation).
- * - The transformation requires Effect services.
+ * Use when you need a schema transformation that may fail or require Effect
+ * services.
  *
  * **Details**
  *

@@ -688,8 +688,7 @@ export const makeInterruptReason: (fiberId?: number | undefined) => Interrupt = 
  *
  * **When to use**
  *
- * Use when deciding whether a failure was entirely due to interruption and
- * can be silently discarded.
+ * Use when you need to detect failures caused only by interruption.
  *
  * **Example** (checking interrupt-only causes)
  *
@@ -965,7 +964,7 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
  *
  * **When to use**
  *
- * Use when you use {@link findDefect} if you only need the unwrapped defect value.
+ * Use when you need the full `Die` reason, including annotations.
  *
  * **Example** (extracting the first Die reason)
  *
@@ -993,8 +992,7 @@ export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effe
  *
  * **When to use**
  *
- * Use when you use {@link findDie} if you need the full `Die` reason (including
- * annotations).
+ * Use when you only need the unwrapped defect value.
  *
  * **Example** (extracting the first defect)
  *
@@ -1071,8 +1069,8 @@ export const findInterrupt: <E>(self: Cause<E>) => Result.Result<Interrupt, Caus
  *
  * **When to use**
  *
- * Use when collecting interrupting fiber IDs should always succeed and return an empty
- * set when none are present.
+ * Use when you need interrupting fiber IDs as a set, with absence represented
+ * as an empty set.
  *
  * **Example** (collecting interruptors)
  *
@@ -1101,8 +1099,8 @@ export const interruptors: <E>(self: Cause<E>) => ReadonlySet<number> = effect.c
  *
  * **When to use**
  *
- * Use when the absence of interrupt reasons should be represented as a failed `Result`
- * containing the original cause.
+ * Use when you need absence of interrupt reasons to fail with the original
+ * cause.
  *
  * **Gotchas**
  *
@@ -1445,7 +1443,7 @@ export const Done: <A = void>(value?: A) => Done<A> = core.Done
  *
  * **When to use**
  *
- * Use when effect workflows model stream or queue completion through the error channel.
+ * Use when you model stream or queue completion through the error channel.
  *
  * **Example** (failing with Done)
  *
@@ -1984,8 +1982,8 @@ export class StackTrace extends Context.Service<StackTrace, StackFrame>()("effec
  *
  * **When to use**
  *
- * Use when attaching or reading the stack-frame annotation consumed by
- * interrupt-only cause rendering.
+ * Use when you need the stack-frame annotation used by interrupt-only cause
+ * rendering.
  *
  * **Details**
  *

@@ -57,9 +57,7 @@
  *
  * **When to use**
  *
- * Use to build JSON Pointers from object keys or path segments that may contain special characters
- * - Escaping tokens before joining them with `/` to form a complete JSON Pointer
- * - Preparing reference tokens for use in JSON Patch operations or schema references
+ * Use when you need to escape a single JSON Pointer path segment.
  *
  * **Details**
  *
@@ -95,9 +93,7 @@ export function escapeToken(token: string): string {
  *
  * **When to use**
  *
- * Use to parse JSON Pointers to extract the original token values from escaped segments
- * - Converting escaped tokens back to their original form for use as object keys or identifiers
- * - Resolving schema references or JSON Patch paths that use escaped tokens
+ * Use when you need to decode a single escaped JSON Pointer path segment.
  *
  * **Details**
  *

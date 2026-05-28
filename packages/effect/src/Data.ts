@@ -751,7 +751,7 @@ function taggedMatch<
  *
  * **When to use**
  *
- * Use when defining yieldable errors that do **not** need tag-based
+ * Use when you need yieldable errors that do **not** need tag-based
  * discrimination.
  *
  * **Details**
@@ -794,8 +794,7 @@ export const Error: new<A extends Record<string, any> = {}>(
  *
  * **When to use**
  *
- * Use when modeling domain errors in Effect applications where you want
- * discriminated-union error handling.
+ * Use when you need domain errors with discriminated-union handling.
  *
  * **Details**
  *

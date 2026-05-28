@@ -477,8 +477,8 @@ export const isTimeZone: (u: unknown) => u is TimeZone = Internal.isTimeZone
  *
  * **When to use**
  *
- * Use when narrowing an unknown or union `TimeZone` value to the fixed-offset
- * variant before reading its offset in milliseconds.
+ * Use when you need to narrow an unknown or union `TimeZone` value to the
+ * fixed-offset variant before reading its offset in milliseconds.
  *
  * @see {@link isTimeZone} for checking either time zone variant
  * @see {@link isTimeZoneNamed} for narrowing to named time zones

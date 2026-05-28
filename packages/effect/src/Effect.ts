@@ -1626,8 +1626,7 @@ export const failCauseSync: <E>(
  *
  * **When to use**
  *
- * Use when encountering unexpected conditions in your code that should
- * not be handled as regular errors but instead represent unrecoverable defects.
+ * Use when you need to report an unrecoverable defect instead of a typed error.
  *
  * **Details**
  *
@@ -2658,8 +2657,8 @@ export {
  *
  * **When to use**
  *
- * Use when recovering from one specific tagged error in an effect error
- * channel.
+ * Use when you need to recover from one specific tagged error in an effect
+ * error channel.
  *
  * **Details**
  *
@@ -3970,8 +3969,8 @@ export declare namespace Retry {
  *
  * **When to use**
  *
- * Use when typed failures may be transient, such as network issues or
- * temporary resource unavailability.
+ * Use when you need to rerun an effect after transient typed failures, such as
+ * network issues or temporary resource unavailability.
  *
  * **Details**
  *
@@ -5346,8 +5345,7 @@ export const matchEager: {
  *
  * **When to use**
  *
- * Use when failure handling depends on the full cause, such as typed failures, defects, or
- * interruptions.
+ * Use when you need failure handling to inspect the full cause.
  *
  * **Details**
  *
@@ -5395,9 +5393,8 @@ export const matchCause: {
  *
  * **When to use**
  *
- * Use when you expect effects to already be resolved and want to match the cause without
- * the overhead of the regular effect pipeline. For pending effects, it automatically falls
- * back to the regular `matchCause` behavior.
+ * Use when you expect effects to already be resolved and want to match the
+ * cause without regular effect pipeline overhead.
  *
  * **Details**
  *
@@ -5438,9 +5435,8 @@ export const matchCauseEager: {
  *
  * **When to use**
  *
- * Use when success and cause-aware failure handlers return effects and the
- * input may already be resolved, so the selected handler can run immediately
- * while unresolved inputs keep normal effectful matching behavior.
+ * Use when you need effectful success and cause-aware failure handlers for
+ * inputs that may already be resolved.
  *
  * **Details**
  *
@@ -6460,8 +6456,8 @@ export const acquireRelease: <A, E, R, R2>(
  *
  * **When to use**
  *
- * Use with JavaScript `Disposable` or `AsyncDisposable` resources that should
- * be closed with the surrounding scope.
+ * Use when you work with JavaScript `Disposable` or `AsyncDisposable` resources
+ * that should be closed with the surrounding scope.
  *
  * **Details**
  *
@@ -8720,9 +8716,7 @@ export interface RunOptions {
  *
  * **When to use**
  *
- * Use when an effect should start in the background and return a fiber that can
- * be observed or interrupted. Prefer this when you do not need a `Promise` or
- * synchronous result.
+ * Use when you need to start an effect in the background and receive a fiber.
  *
  * **Example** (Running an effect in the background)
  *

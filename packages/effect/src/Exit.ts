@@ -241,8 +241,7 @@ export const isExit: (u: unknown) => u is Exit<unknown, unknown> = core.isExit
  *
  * **When to use**
  *
- * Use to wrap a known success value into an Exit
- * - Use when constructing test data or returning explicit results
+ * Use when you need an Exit that contains a known success value.
  *
  * **Details**
  *

@@ -4227,7 +4227,7 @@ export const some: {
  *
  * **When to use**
  *
- * Use when a computation depends on every suffix of an array, such as
+ * Use when you need to compute a result from every suffix of an array, such as
  * cumulative aggregations from each position.
  *
  * **Details**

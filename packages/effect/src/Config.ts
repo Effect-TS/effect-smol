@@ -93,8 +93,8 @@ const TypeId = "~effect/Config"
  *
  * **When to use**
  *
- * Use when runtime type-checking before calling `.parse()` on an unknown value.
- * - Distinguishing a `Config` from a plain value inside {@link unwrap}.
+ * Use when you need to distinguish a `Config` from an unknown value before
+ * calling `.parse` or {@link unwrap}.
  *
  * **Example** (Type guard)
  *
@@ -115,9 +115,7 @@ export const isConfig = (u: unknown): u is Config<unknown> => Predicate.hasPrope
  *
  * **When to use**
  *
- * Use when match on `error.cause._tag` to distinguish source failures from
- *   validation failures.
- * - Pass to {@link fail} to create a Config that always errors.
+ * Use when you need to inspect config loading or validation failures.
  *
  * **Details**
  *
@@ -238,8 +236,8 @@ export function make<T>(
  *
  * **When to use**
  *
- * Use when post-processing a config value (e.g. trimming, uppercasing, wrapping)
- * with a transformation that cannot fail.
+ * Use when you need to transform a parsed config value with a function that
+ * cannot fail.
  *
  * **Details**
  *
@@ -275,8 +273,8 @@ export const map: {
  *
  * **When to use**
  *
- * Use to validate or converting a config value where the transformation can
- *   produce a `ConfigError` (e.g. parsing a URL, checking a range).
+ * Use when you need to transform a parsed config value with a function that can
+ * produce a `ConfigError` (e.g. parsing a URL, checking a range).
  *
  * **Details**
  *
@@ -309,8 +307,8 @@ export const mapOrFail: {
  *
  * **When to use**
  *
- * Use when trying an alternative config source when the primary one errors.
- * - Providing environment-specific overrides.
+ * Use when you need to try an alternative config source after the primary one
+ * fails.
  *
  * **Details**
  *
@@ -347,7 +345,7 @@ export const orElse: {
  *
  * **When to use**
  *
- * Use when grouping related configs into a tuple or named struct.
+ * Use when you need to group related configs into a tuple or named struct.
  *
  * **Details**
  *
@@ -427,7 +425,7 @@ function isMissingDataOnly(issue: Issue.Issue): boolean {
  *
  * **When to use**
  *
- * Use when making a config key optional with a sensible default.
+ * Use when you need to make a config key optional with a sensible default.
  *
  * **Details**
  *
@@ -478,8 +476,7 @@ export const withDefault: {
  *
  * **When to use**
  *
- * Use when a config key may or may not be present and you want to handle both
- *   cases explicitly.
+ * Use when you need to handle a config key that may or may not be present.
  *
  * **Gotchas**
  *
@@ -886,8 +883,8 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
  *
  * **When to use**
  *
- * Use when inside {@link orElse} to re-raise a specific error.
- * - Testing error handling paths.
+ * Use when you need to re-raise a specific config error, such as inside
+ * {@link orElse}.
  *
  * @category constructors
  * @since 2.0.0
@@ -902,8 +899,8 @@ export function fail(err: SourceError | Schema.SchemaError) {
  *
  * **When to use**
  *
- * Use when providing a hardcoded constant inside {@link orElse}.
- * - Testing.
+ * Use when you need a hardcoded config value, such as inside {@link orElse} or
+ * tests.
  *
  * **Example** (Constant fallback)
  *
@@ -1416,9 +1413,7 @@ export function date(name?: string) {
  *
  * **When to use**
  *
- * Use when grouping related config keys under a common namespace (e.g.
- *   `"database"`, `"redis"`).
- * - Building reusable config fragments that callers nest at different paths.
+ * Use when you need to group related config keys under a common namespace.
  *
  * **Details**
  *

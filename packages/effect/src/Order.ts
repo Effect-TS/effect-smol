@@ -88,9 +88,7 @@ import * as Reducer from "./Reducer.ts"
  *
  * **When to use**
  *
- * Use when you need to define how values of a type should be compared
- * - When implementing sorting, searching, or ordered data structures
- * - When composing multiple comparison criteria
+ * Use when you need to define how values of a type are compared.
  *
  * **Details**
  *
@@ -129,8 +127,7 @@ export interface Order<in A> {
  *
  * **When to use**
  *
- * Use when working with type-level operations that require higher-kinded types
- * - When implementing generic type classes that work with orders
+ * Use when you need to abstract over `Order` in higher-kinded type code.
  *
  * **Details**
  *
@@ -149,9 +146,7 @@ export interface OrderTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * Use when creating a custom order for a type that doesn't have a built-in order
- * - When you need fine-grained control over comparison logic
- * - When implementing orders for complex types
+ * Use when you need a custom order for a type.
  *
  * **Details**
  *
@@ -190,9 +185,7 @@ export function make<A>(
  *
  * **When to use**
  *
- * Use when comparing strings alphabetically
- * - When sorting string collections
- * - As a base for creating orders on types containing strings
+ * Use when you need lexicographic string ordering.
  *
  * **Details**
  *
@@ -222,9 +215,7 @@ export const String: Order<string> = make((self, that) => self < that ? -1 : 1)
  *
  * **When to use**
  *
- * Use when comparing numbers for sorting or searching
- * - As a base for creating orders on types containing numbers
- * - When implementing numeric comparisons in data structures
+ * Use when you need numeric ordering for numbers.
  *
  * **Details**
  *
@@ -263,9 +254,7 @@ export const Number: Order<number> = make((self, that) => {
  *
  * **When to use**
  *
- * Use when comparing booleans for sorting or searching
- * - As a base for creating orders on types containing booleans
- * - When implementing boolean-based comparisons
+ * Use when you need boolean ordering where `false` comes before `true`.
  *
  * **Details**
  *
@@ -293,9 +282,7 @@ export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1
  *
  * **When to use**
  *
- * Use when comparing bigint values for sorting or searching
- * - As a base for creating orders on types containing bigints
- * - When working with large integers that exceed number precision
+ * Use when you need numeric ordering for `bigint` values.
  *
  * **Details**
  *
@@ -324,9 +311,7 @@ export const BigInt: Order<bigint> = make((self, that) => self < that ? -1 : 1)
  *
  * **When to use**
  *
- * Use when you need descending order instead of ascending
- * - When reversing an existing order without modifying the original
- * - When creating orders that compare in the opposite direction
+ * Use when you need the reverse of an existing order.
  *
  * **Details**
  *
@@ -360,9 +345,7 @@ export function flip<A>(O: Order<A>): Order<A> {
  *
  * **When to use**
  *
- * Use when you need multi-criteria comparison (e.g., sort by age, then by name)
- * - When creating composite orders from simpler orders
- * - When implementing lexicographic ordering
+ * Use when you need tie-breaking with exactly two orders.
  *
  * **Details**
  *
@@ -415,9 +398,7 @@ export const combine: {
  *
  * **When to use**
  *
- * Use when you need an order that doesn't distinguish between values
- * - As a default or fallback order when no meaningful comparison exists
- * - When implementing optional ordering where equality is sufficient
+ * Use when you need an order that treats all values as equal.
  *
  * **Details**
  *
@@ -450,9 +431,7 @@ export function alwaysEqual<A>(): Order<A> {
  *
  * **When to use**
  *
- * Use when you have a variable number of orders to combine
- * - When combining orders from a collection or array
- * - When implementing dynamic multi-criteria sorting
+ * Use when you need tie-breaking across a variable number of orders.
  *
  * **Details**
  *
@@ -507,9 +486,7 @@ export function combineAll<A>(collection: Iterable<Order<A>>): Order<A> {
  *
  * **When to use**
  *
- * Use when you have an order for a property type and want to compare objects by that property
- * - When extracting a comparable value from a complex type
- * - When creating orders for types that contain comparable values
+ * Use when you need to compare a larger value by one derived property.
  *
  * **Details**
  *
@@ -547,9 +524,7 @@ export const mapInput: {
  *
  * **When to use**
  *
- * Use when comparing dates for sorting or searching
- * - As a base for creating orders on types containing dates
- * - When implementing time-based comparisons
+ * Use when you need chronological ordering for JavaScript date values.
  *
  * **Details**
  *
@@ -581,9 +556,7 @@ export const Date: Order<Date> = mapInput(Number, (date) => date.getTime())
  *
  * **When to use**
  *
- * Use when comparing tuples with different types for each position
- * - When you need type-safe tuple ordering
- * - When working with fixed-length heterogeneous collections
+ * Use when you need fixed-length tuple ordering with per-position orders.
  *
  * **Details**
  *
@@ -647,9 +620,7 @@ export {
    *
    * **When to use**
    *
-   * Use when comparing arrays of the same element type
-   * - When you want shorter arrays to be considered less than longer arrays
-   * - When sorting collections of arrays
+   * Use when you need lexicographic ordering for arrays of one element type.
    *
    * **Details**
    *
@@ -683,9 +654,7 @@ export {
  *
  * **When to use**
  *
- * Use when comparing objects with multiple properties
- * - When you need multi-field comparison for structs
- * - When creating orders for complex data types
+ * Use when you need multi-field ordering for objects with known properties.
  *
  * **Details**
  *
@@ -738,9 +707,7 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  *
  * **When to use**
  *
- * Use when you need a boolean predicate instead of an ordering result
- * - When checking if a value is less than another in conditional logic
- * - When implementing range checks or comparisons
+ * Use when you need a boolean less-than predicate.
  *
  * **Details**
  *
@@ -775,9 +742,7 @@ export const isLessThan = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need a boolean predicate instead of an ordering result
- * - When checking if a value is greater than another in conditional logic
- * - When implementing range checks or comparisons
+ * Use when you need a boolean greater-than predicate.
  *
  * **Details**
  *
@@ -812,9 +777,7 @@ export const isGreaterThan = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need a boolean predicate for non-strict comparison
- * - When checking if a value is within a range (inclusive lower bound)
- * - When implementing inclusive comparisons
+ * Use when you need a boolean less-than-or-equal predicate.
  *
  * **Details**
  *
@@ -849,9 +812,7 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need a boolean predicate for non-strict comparison
- * - When checking if a value is within a range (inclusive upper bound)
- * - When implementing inclusive comparisons
+ * Use when you need a boolean greater-than-or-equal predicate.
  *
  * **Details**
  *
@@ -886,9 +847,7 @@ export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to find the smaller of two values
- * - When implementing min/max operations
- * - When selecting values based on ordering
+ * Use when you need to select the smaller of two values.
  *
  * **Details**
  *
@@ -923,9 +882,7 @@ export const min = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to find the larger of two values
- * - When implementing min/max operations
- * - When selecting values based on ordering
+ * Use when you need to select the larger of two values.
  *
  * **Details**
  *
@@ -960,9 +917,7 @@ export const max = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to restrict a value to a specific range
- * - When implementing bounds checking and normalization
- * - When ensuring values stay within valid ranges
+ * Use when you need to clamp a value to an inclusive range.
  *
  * **Details**
  *
@@ -1013,9 +968,7 @@ export const clamp = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when validating that a value is within a valid range
- * - When implementing range checks for bounds validation
- * - When filtering or selecting values within a range
+ * Use when you need to check whether a value is within an inclusive range.
  *
  * **Details**
  *
@@ -1067,9 +1020,7 @@ export const isBetween = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to combine multiple orders from a collection using reducer patterns
- * - When implementing fold operations over collections of orders
- * - When working with reducers that operate on orders
+ * Use when you need a reducer that combines orders.
  *
  * **Details**
  *

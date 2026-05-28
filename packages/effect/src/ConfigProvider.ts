@@ -173,7 +173,7 @@ export function makeValue(value: string): Node {
  *
  * **When to use**
  *
- * Use when describing a directory or JSON object inside a custom
+ * Use when you need to describe a directory or JSON object inside a custom
  * provider.
  *
  * **Details**
@@ -207,8 +207,8 @@ export function makeRecord(keys: ReadonlySet<string>, value?: string): Node {
  *
  * **When to use**
  *
- * Use when describing a JSON array or a set of numerically-indexed env
- * vars inside a custom provider.
+ * Use when you need to describe a JSON array or numerically indexed env vars
+ * inside a custom provider.
  *
  * **Details**
  *
@@ -515,8 +515,8 @@ export const orElse: {
  *
  * **When to use**
  *
- * Use when path segments need renaming, re-casing, suffixes, or other per-segment
- * transformations. See {@link constantCase} for a common specialization.
+ * Use when you need to rename, re-case, or otherwise transform config path
+ * segments before lookup.
  *
  * **Details**
  *
@@ -1128,8 +1128,8 @@ export const fromDotEnv: (options?: {
  *
  * **When to use**
  *
- * Use when Kubernetes ConfigMap or Secret volume mounts expose each key as a file under a
- * mount path, or for any file-per-key configuration layout.
+ * Use when you expose each config key as a file under a directory, such as
+ * Kubernetes ConfigMap or Secret volume mounts.
  *
  * **Details**
  *

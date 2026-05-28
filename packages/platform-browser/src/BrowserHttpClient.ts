@@ -101,8 +101,8 @@ export type XHRResponseType = "arraybuffer" | "text"
  *
  * **When to use**
  *
- * Use when XHR-backed HTTP requests need to receive response bodies as text or
- * as raw `ArrayBuffer` values.
+ * Use when you need XHR-backed HTTP requests to receive response bodies as text
+ * or raw `ArrayBuffer` values.
  *
  * @see {@link XHRResponseType} for the allowed response body modes
  * @see {@link withXHRArrayBuffer} for scoping XHR response handling to `ArrayBuffer`

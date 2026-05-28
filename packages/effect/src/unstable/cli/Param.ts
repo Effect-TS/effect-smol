@@ -890,7 +890,8 @@ export const fileSchema = <Kind extends ParamKind, A>(
  *
  * **When to use**
  *
- * Use when you use it for options that accept configuration values.
+ * Use when you need command-line options or arguments that collect `key=value`
+ * configuration entries.
  *
  * **Details**
  *
