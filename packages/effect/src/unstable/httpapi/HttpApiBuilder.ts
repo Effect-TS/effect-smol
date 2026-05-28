@@ -430,7 +430,7 @@ export const endpoint = <
 
 /**
  * Decodes credentials for an HTTP API security scheme from the current request,
- * supporting bearer, DPoP, API key, and basic authentication inputs.
+ * supporting HTTP authorization, API key, and basic authentication inputs.
  *
  * @category security
  * @since 4.0.0
@@ -443,16 +443,10 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
   HttpServerRequest | Request.ParsedSearchParams
 > => {
   switch (self._tag) {
-    case "Bearer": {
+    case "Http": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make(decodeAuthorizationToken(request.headers.authorization, "Bearer")) as any
-      )
-    }
-    case "DPoP": {
-      return Effect.map(
-        HttpServerRequest,
-        (request) => Redacted.make(decodeAuthorizationToken(request.headers.authorization, "DPoP")) as any
+        (request) => Redacted.make(decodeAuthorizationToken(request.headers.authorization, self.scheme)) as any
       )
     }
     case "ApiKey": {

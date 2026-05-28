@@ -8,27 +8,28 @@
  *
  * **Mental model**
  *
- * Create a scheme with {@link bearer}, {@link dpop}, {@link apiKey}, or
- * {@link basic}, attach it to middleware, and let the HTTP API builder decode
- * the matching credential shape from each request. OpenAPI generation emits
- * the same declaration as `components.securitySchemes` plus operation security
- * requirements.
+ * Create a scheme with {@link http}, {@link bearer}, {@link dpop},
+ * {@link apiKey}, or {@link basic}, attach it to middleware, and let the HTTP
+ * API builder decode the matching credential shape from each request. OpenAPI
+ * generation emits the same declaration as `components.securitySchemes` plus
+ * operation security requirements.
  *
  * **Common tasks**
  *
- * Use {@link bearer} for `Authorization: Bearer ...` tokens, {@link dpop} for
- * `Authorization: DPoP ...` access tokens, {@link basic} for HTTP Basic
- * username/password credentials, and {@link apiKey} for keys passed through
- * headers, query parameters, or cookies. Use {@link annotate} or
- * {@link annotateMerge} to add documentation metadata for generated OpenAPI
- * descriptions.
+ * Use {@link http} for any HTTP authorization scheme whose parameter should be
+ * exposed as a redacted value, {@link bearer} for `Authorization: Bearer ...`
+ * tokens, {@link dpop} for `Authorization: DPoP ...` access tokens,
+ * {@link basic} for HTTP Basic username/password credentials, and {@link apiKey}
+ * for keys passed through headers, query parameters, or cookies. Use
+ * {@link annotate} or {@link annotateMerge} to add documentation metadata for
+ * generated OpenAPI descriptions.
  *
  * **Gotchas**
  *
- * Middleware must reject empty or invalid credentials. Bearer and DPoP tokens
- * and API-key values are delivered as `Redacted` values; Basic credentials
- * expose the username and redact the password. Bearer, DPoP, and Basic schemes
- * read the `Authorization` header and yield empty credentials when its
+ * Middleware must reject empty or invalid credentials. HTTP authorization
+ * parameters and API-key values are delivered as `Redacted` values; Basic
+ * credentials expose the username and redact the password. HTTP and Basic
+ * schemes read the `Authorization` header and yield empty credentials when its
  * authentication scheme or token syntax does not match. API-key headers use
  * HTTP header name normalization, and API-key query or cookie names are
  * matched exactly. A DPoP scheme does not decode or validate the required
@@ -55,7 +56,7 @@ const TypeId = "~effect/httpapi/HttpApiSecurity"
  * @category models
  * @since 4.0.0
  */
-export type HttpApiSecurity = Bearer | DPoP | ApiKey | Basic
+export type HttpApiSecurity = Http | ApiKey | Basic
 
 /**
  * Helper types for HTTP API security schemes.
@@ -86,13 +87,23 @@ export declare namespace HttpApiSecurity {
 }
 
 /**
+ * HTTP authorization security scheme whose decoded credential is a redacted parameter.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface Http<out Scheme extends string = string> extends HttpApiSecurity.Proto<Redacted> {
+  readonly _tag: "Http"
+  readonly scheme: Scheme
+}
+
+/**
  * Bearer token security scheme whose decoded credential is a redacted token.
  *
  * @category models
  * @since 4.0.0
  */
-export interface Bearer extends HttpApiSecurity.Proto<Redacted> {
-  readonly _tag: "Bearer"
+export interface Bearer extends Http<"bearer"> {
 }
 
 /**
@@ -101,8 +112,7 @@ export interface Bearer extends HttpApiSecurity.Proto<Redacted> {
  * @category models
  * @since 4.0.0
  */
-export interface DPoP extends HttpApiSecurity.Proto<Redacted> {
-  readonly _tag: "DPoP"
+export interface DPoP extends Http<"DPoP"> {
 }
 
 /**
@@ -146,6 +156,29 @@ const Proto = {
 }
 
 /**
+ * Creates an HTTP authorization security scheme.
+ *
+ * **When to use**
+ *
+ * Use to require an HTTP authorization parameter for a scheme not otherwise
+ * represented by a convenience declaration.
+ *
+ * @see {@link bearer} for a Bearer token security scheme
+ * @see {@link dpop} for a DPoP-bound access-token security scheme
+ * @see {@link basic} for decoded HTTP Basic username/password credentials
+ * @category constructors
+ * @since 4.0.0
+ */
+export const http = <const Scheme extends string>(options: {
+  readonly scheme: Scheme
+}): Http<Scheme> =>
+  Object.assign(Object.create(Proto), {
+    _tag: "Http",
+    scheme: options.scheme,
+    annotations: Context.empty()
+  })
+
+/**
  * Creates a Bearer token security scheme.
  *
  * **When to use**
@@ -158,16 +191,14 @@ const Proto = {
  * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
  * security scheme.
  *
+ * @see {@link http} for any HTTP authorization security scheme
  * @see {@link dpop} for a DPoP-bound access-token security scheme
  * @see {@link apiKey} for an API-key security scheme
  * @see {@link basic} for an HTTP Basic security scheme
  * @category constructors
  * @since 4.0.0
  */
-export const bearer: Bearer = Object.assign(Object.create(Proto), {
-  _tag: "Bearer",
-  annotations: Context.empty()
-})
+export const bearer: Bearer = http({ scheme: "bearer" })
 
 /**
  * Creates a DPoP-bound access-token security scheme.
@@ -182,15 +213,13 @@ export const bearer: Bearer = Object.assign(Object.create(Proto), {
  * This scheme extracts only the access-token parameter. Validate the required
  * `DPoP` proof JWT header in middleware or request schemas.
  *
+ * @see {@link http} for any HTTP authorization security scheme
  * @see {@link bearer} for a Bearer token security scheme
  * @see {@link apiKey} for an API-key security scheme
  * @category constructors
  * @since 4.0.0
  */
-export const dpop: DPoP = Object.assign(Object.create(Proto), {
-  _tag: "DPoP",
-  annotations: Context.empty()
-})
+export const dpop: DPoP = http({ scheme: "DPoP" })
 
 /**
  * Creates an API key security scheme.
@@ -208,6 +237,7 @@ export const dpop: DPoP = Object.assign(Object.create(Proto), {
  * Use `HttpApiBuilder.securitySetCookie` to set the correct cookie in a
  * handler. By default, `in` is `"header"`.
  *
+ * @see {@link http} for an HTTP authorization security scheme
  * @see {@link bearer} for a Bearer token security scheme
  * @see {@link dpop} for a DPoP-bound access-token security scheme
  * @see {@link basic} for an HTTP Basic security scheme
@@ -237,6 +267,10 @@ export const apiKey = (options: {
  * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
  * security scheme.
  *
+ * `basic` is specialized rather than an alias for {@link http}, because it
+ * decodes the authorization parameter into `Credentials`.
+ *
+ * @see {@link http} for a redacted HTTP authorization parameter
  * @see {@link bearer} for a Bearer token security scheme
  * @see {@link dpop} for a DPoP-bound access-token security scheme
  * @see {@link apiKey} for an API-key security scheme

@@ -103,6 +103,29 @@ describe("OpenAPI spec", () => {
       })
       assert.deepStrictEqual(spec.paths["/a"].get?.security, [{ dpop: [] }])
     })
+
+    it("custom HTTP authentication scheme", () => {
+      class Authorization extends HttpApiMiddleware.Service<Authorization>()("Authorization", {
+        security: {
+          signature: HttpApiSecurity.http({ scheme: "Signature" })
+        }
+      }) {}
+
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group")
+          .add(HttpApiEndpoint.get("a", "/a"))
+          .middleware(Authorization)
+      )
+      const spec = OpenApi.fromApi(Api)
+
+      assert.deepStrictEqual(spec.components.securitySchemes, {
+        signature: {
+          type: "http",
+          scheme: "Signature"
+        }
+      })
+      assert.deepStrictEqual(spec.paths["/a"].get?.security, [{ signature: [] }])
+    })
   })
 
   describe("group", () => {

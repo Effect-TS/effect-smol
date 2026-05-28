@@ -1379,6 +1379,29 @@ describe("HttpApi", () => {
 
       it.effect.each(
         [
+          ["signature  foo", "foo"],
+          ["Bearer foo", ""]
+        ] as const
+      )("HTTP authorization security decodes %s", ([authorization, expected]) =>
+        Effect.gen(function*() {
+          const redacted = yield* HttpApiBuilder.securityDecode(securitySignature).pipe(
+            Effect.provideService(
+              HttpServerRequest.HttpServerRequest,
+              HttpServerRequest.fromWeb(
+                new Request("http://localhost:3000/", {
+                  headers: {
+                    authorization
+                  }
+                })
+              )
+            ),
+            Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
+          )
+          assert.strictEqual(Redacted.value(redacted), expected)
+        }).pipe(Effect.provide(HttpLive)))
+
+      it.effect.each(
+        [
           ["basic  Zm9vOmJhcg==", "foo", "bar"],
           ["Bearer Zm9vOmJhcg==", "", ""]
         ] as const
@@ -1615,6 +1638,7 @@ const securityQuery = HttpApiSecurity.apiKey({
 
 const securityDPoP = HttpApiSecurity.dpop
 const securityBearer = HttpApiSecurity.bearer
+const securitySignature = HttpApiSecurity.http({ scheme: "Signature" })
 const securityBasic = HttpApiSecurity.basic
 
 class CurrentUser extends Context.Service<CurrentUser, User>()("CurrentUser") {}

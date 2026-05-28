@@ -33,6 +33,17 @@ describe("HttpApiMiddleware", () => {
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
     })
 
+    it("HTTP security scheme", () => {
+      const signature = HttpApiSecurity.http({ scheme: "Signature" })
+      class M extends HttpApiMiddleware.Service<M>()("M", {
+        security: {
+          signature
+        }
+      }) {}
+      expect(signature).type.toBe<HttpApiSecurity.Http<"Signature">>()
+      expect(M.security).type.toBe<{ readonly signature: HttpApiSecurity.Http<"Signature"> }>()
+    })
+
     it("error + security", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
         error: Schema.String,

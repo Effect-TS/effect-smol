@@ -730,23 +730,18 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
         scheme: "basic"
       }
     }
-    case "Bearer": {
-      const format = Context.getOption(security.annotations, Format).pipe(
-        Option.map((format) => ({ bearerFormat: format })),
-        Option.getOrUndefined
-      )
+    case "Http": {
+      const format = security.scheme.toLowerCase() === "bearer"
+        ? Context.getOption(security.annotations, Format).pipe(
+          Option.map((format) => ({ bearerFormat: format })),
+          Option.getOrUndefined
+        )
+        : undefined
       return {
         ...meta,
         type: "http",
-        scheme: "bearer",
+        scheme: security.scheme,
         ...format
-      }
-    }
-    case "DPoP": {
-      return {
-        ...meta,
-        type: "http",
-        scheme: "DPoP"
       }
     }
     case "ApiKey": {

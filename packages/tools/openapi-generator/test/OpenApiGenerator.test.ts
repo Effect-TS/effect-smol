@@ -1313,6 +1313,7 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
                   { apiKeyAuth: [] },
                   { bearerAuth: [] },
                   { dpopAuth: [] },
+                  { signatureAuth: [] },
                   { apiKeyAuth: [], basicAuth: [] }
                 ]
               }
@@ -1354,6 +1355,11 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
                 type: "http",
                 scheme: "DPoP",
                 description: "DPoP-bound token"
+              },
+              signatureAuth: {
+                type: "http",
+                scheme: "Signature",
+                description: "Signed request"
               }
             }
           },
@@ -1366,9 +1372,10 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
             `const BearerAuthSecurity = HttpApiSecurity.bearer.pipe(HttpApiSecurity.annotate(OpenApi.Description, "Bearer token")).pipe(HttpApiSecurity.annotate(OpenApi.Format, "JWT"))`,
             `const BasicAuthSecurity = HttpApiSecurity.basic`,
             `const DpopAuthSecurity = HttpApiSecurity.dpop.pipe(HttpApiSecurity.annotate(OpenApi.Description, "DPoP-bound token"))`,
-            `class ApiKeyAuthOrBearerAuthOrDpopAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthOrBearerAuthOrDpopAuthSecurityMiddleware>()("apiKeyAuth | bearerAuth | dpopAuth security", { security: { "apiKeyAuth": ApiKeyAuthSecurity, "bearerAuth": BearerAuthSecurity, "dpopAuth": DpopAuthSecurity } }) {}`,
+            `const SignatureAuthSecurity = HttpApiSecurity.http({ scheme: "Signature" }).pipe(HttpApiSecurity.annotate(OpenApi.Description, "Signed request"))`,
+            `class ApiKeyAuthOrBearerAuthOrDpopAuthOrSignatureAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthOrBearerAuthOrDpopAuthOrSignatureAuthSecurityMiddleware>()("apiKeyAuth | bearerAuth | dpopAuth | signatureAuth security", { security: { "apiKeyAuth": ApiKeyAuthSecurity, "bearerAuth": BearerAuthSecurity, "dpopAuth": DpopAuthSecurity, "signatureAuth": SignatureAuthSecurity } }) {}`,
             `class ApiKeyAuthAndBasicAuthSecurityMiddleware extends HttpApiMiddleware.Service<ApiKeyAuthAndBasicAuthSecurityMiddleware>()("apiKeyAuth & basicAuth security") {}`,
-            `HttpApiEndpoint.get("getSecure", "/secure", { success: HttpApiSchema.Empty(200) })\n      .middleware(ApiKeyAuthOrBearerAuthOrDpopAuthSecurityMiddleware)\n      .middleware(ApiKeyAuthAndBasicAuthSecurityMiddleware)`,
+            `HttpApiEndpoint.get("getSecure", "/secure", { success: HttpApiSchema.Empty(200) })\n      .middleware(ApiKeyAuthOrBearerAuthOrDpopAuthOrSignatureAuthSecurityMiddleware)\n      .middleware(ApiKeyAuthAndBasicAuthSecurityMiddleware)`,
             `HttpApiEndpoint.get("getPublic", "/public", { success: HttpApiSchema.Empty(200) })`
           ],
           excludes: [

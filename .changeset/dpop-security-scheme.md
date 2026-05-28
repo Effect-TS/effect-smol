@@ -3,4 +3,4 @@
 "@effect/openapi-generator": patch
 ---
 
-Add `HttpApiSecurity.dpop` for validating and decoding DPoP-bound access tokens, generating the matching OpenAPI HTTP security scheme, and preserving that scheme in generated `HttpApi` modules.
+Add `HttpApiSecurity.http` for arbitrary HTTP authorization schemes and `HttpApiSecurity.dpop` as a DPoP convenience declaration, with matching runtime decoding, OpenAPI generation, and generated `HttpApi` support.

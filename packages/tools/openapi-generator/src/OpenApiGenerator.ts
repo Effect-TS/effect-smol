@@ -960,6 +960,7 @@ const parseSecuritySchemes = (
         parsed.push({
           name,
           type: "basic",
+          scheme: undefined,
           description: Utils.nonEmptyString(scheme.description),
           bearerFormat: undefined,
           key: undefined,
@@ -969,6 +970,7 @@ const parseSecuritySchemes = (
         parsed.push({
           name,
           type: "bearer",
+          scheme: undefined,
           description: Utils.nonEmptyString(scheme.description),
           bearerFormat: Utils.nonEmptyString(scheme.bearerFormat),
           key: undefined,
@@ -978,6 +980,17 @@ const parseSecuritySchemes = (
         parsed.push({
           name,
           type: "dpop",
+          scheme: undefined,
+          description: Utils.nonEmptyString(scheme.description),
+          bearerFormat: undefined,
+          key: undefined,
+          in: undefined
+        })
+      } else {
+        parsed.push({
+          name,
+          type: "http",
+          scheme: scheme.scheme,
           description: Utils.nonEmptyString(scheme.description),
           bearerFormat: undefined,
           key: undefined,
@@ -995,6 +1008,7 @@ const parseSecuritySchemes = (
       parsed.push({
         name,
         type: "apiKey",
+        scheme: undefined,
         description: Utils.nonEmptyString(scheme.description),
         bearerFormat: undefined,
         key: scheme.name,
