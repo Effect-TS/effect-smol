@@ -371,7 +371,7 @@ export const cors = (options?: {
       ...allowOriginHeaders,
       ...allowCredentials,
       ...exposeHeaders,
-      ...(allowOriginHeaders && originVaries ? { vary: "Origin" } : undefined)
+      ...(originVaries ? { vary: "Origin" } : undefined)
     })
   }
 
@@ -381,7 +381,7 @@ export const cors = (options?: {
     const allowOriginHeaders = allowOrigin(origin)
     const allowHeadersHeaders = allowHeaders(accessControlRequestHeaders)
     const varyParts: Array<string> = []
-    if (allowOriginHeaders && originVaries) {
+    if (originVaries) {
       varyParts.push("Origin")
     }
     if (opts.allowedHeaders.length === 0 && accessControlRequestHeaders) {
