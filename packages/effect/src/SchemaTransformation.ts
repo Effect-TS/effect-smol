@@ -811,7 +811,8 @@ export function passthroughSupertype<T>(): Transformation<T, T> {
  *
  * **When to use**
  *
- * Use when narrowing: the encoded side is more specific than the decoded side.
+ * Use when you need a no-op transformation whose encoded side is more specific
+ * than its decoded side.
  *
  * **Details**
  *
@@ -1032,8 +1033,8 @@ export const durationFromNanos: Transformation<Duration.Duration, bigint> = tran
  *
  * **When to use**
  *
- * Use when timeouts, delays, elapsed intervals, or other duration values are stored as
- * millisecond counts.
+ * Use when you need to decode timeouts, delays, elapsed intervals, or other
+ * duration values stored as millisecond counts.
  *
  * **Details**
  *
@@ -1550,8 +1551,8 @@ export const stringFromUriComponent: Transformation<string, string> = new Transf
  *
  * **When to use**
  *
- * Use when JSON is stored or transmitted as a string, usually before composing with another
- * schema that validates the parsed structure.
+ * Use when you need to decode JSON stored or transmitted as a string, usually
+ * before composing with another schema that validates the parsed structure.
  *
  * **Details**
  *

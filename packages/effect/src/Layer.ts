@@ -2130,7 +2130,8 @@ export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
  *
  * **When to use**
  *
- * Use when your entire application is a layer, such as an HTTP server.
+ * Use when you model your entire application as a layer, such as an HTTP
+ * server.
  *
  * **Details**
  *

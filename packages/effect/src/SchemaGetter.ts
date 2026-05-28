@@ -1114,7 +1114,8 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
  *
  * **When to use**
  *
- * Use when an encoded string contains delimited key-value pairs (e.g. `"a=1,b=2"`).
+ * Use when you need to parse an encoded string that contains delimited
+ * key-value pairs (e.g. `"a=1,b=2"`).
  *
  * **Details**
  *

@@ -146,7 +146,7 @@ export interface Latch {
  *
  * **When to use**
  *
- * Use when synchronous allocation is required outside an Effect workflow.
+ * Use when you need synchronous allocation outside an Effect workflow.
  *
  * **Details**
  *

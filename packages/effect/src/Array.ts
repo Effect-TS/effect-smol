@@ -222,9 +222,11 @@ export const make = <Elements extends NonEmptyArray<unknown>>(
  *
  * **When to use**
  *
- * Use when you need a pre-sized array and will fill it imperatively.
- * - Elements are typed as `A | undefined` since slots are empty.
- * - Prefer {@link makeBy} when you can compute each element from its index.
+ * Use when you need a pre-sized array that you will fill imperatively.
+ *
+ * **Details**
+ *
+ * Elements are typed as `A | undefined` because the slots are empty.
  *
  * **Example** (Allocating a fixed-size array)
  *
@@ -247,9 +249,13 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
  *
  * **When to use**
  *
- * Use when you need an array whose values depend on the index.
- * - `n` is normalized to an integer >= 1 — always returns at least one element.
- * - Supports both data-first and data-last usage.
+ * Use when you need to compute each array element from its index.
+ *
+ * **Details**
+ *
+ * `n` is normalized to an integer greater than or equal to 1, so this function
+ * always returns at least one element. Supports both data-first and data-last
+ * usage.
  *
  * **Example** (Generating values from indices)
  *
@@ -284,9 +290,11 @@ export const makeBy: {
  *
  * **When to use**
  *
- * Use when you need a sequence of consecutive integers.
- * - If `start > end`, returns `[start]`.
- * - Always returns a `NonEmptyArray`.
+ * Use when you need a non-empty sequence of consecutive integers.
+ *
+ * **Details**
+ *
+ * If `start > end`, returns `[start]`.
  *
  * **Example** (Creating a range)
  *
@@ -310,9 +318,13 @@ export const range = (start: number, end: number): NonEmptyArray<number> =>
  *
  * **When to use**
  *
- * Use when you need multiple copies of the same value.
- * - `n` is normalized to an integer >= 1 — always returns at least one element.
- * - Supports both data-first and data-last usage.
+ * Use when you need a non-empty array containing repeated copies of one value.
+ *
+ * **Details**
+ *
+ * `n` is normalized to an integer greater than or equal to 1, so this function
+ * always returns at least one element. Supports both data-first and data-last
+ * usage.
  *
  * **Example** (Repeating a value)
  *
@@ -454,9 +466,12 @@ export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArra
  *
  * **When to use**
  *
- * Use when you need to branch on whether an array has elements.
- * - `onNonEmpty` receives a `NonEmptyReadonlyArray`.
- * - Dual: data-first or data-last.
+ * Use when you need to branch on whether an array is empty.
+ *
+ * **Details**
+ *
+ * `onNonEmpty` receives a `NonEmptyReadonlyArray`. Supports both data-first and
+ * data-last usage.
  *
  * **Example** (Branching on emptiness)
  *
@@ -3033,8 +3048,8 @@ export const groupWith: {
  *
  * **When to use**
  *
- * Use when equal values are already adjacent and Effect's default equality is
- * the right comparison.
+ * Use when you already have adjacent equal values and Effect's default equality
+ * is the right comparison.
  *
  * **Details**
  *
@@ -4690,9 +4705,14 @@ export const cartesian: {
  *
  * **When to use**
  *
- * Use when beginning a do-notation pipeline, then use {@link bind} to introduce array variables and {@link let_ let} for plain values.
- * - Each `bind` produces the cartesian product of all bound variables (like nested loops).
- * - Use `filter` and `map` in the pipeline to add conditions and transformations.
+ * Use when you want array-comprehension style code with do notation.
+ *
+ * **Details**
+ *
+ * Use {@link bind} to introduce array variables and {@link let_ let} for plain
+ * values. Each `bind` produces the cartesian product of all bound variables,
+ * like nested loops. Use `filter` and `map` in the pipeline to add conditions
+ * and transformations.
  *
  * **Example** (Array comprehension with do notation)
  *

@@ -7,13 +7,12 @@
  *
  * **When to use**
  *
- * Use when create an Anthropic-backed model with {@link model}
- * - Build or provide a `LanguageModel.LanguageModel` layer with {@link layer}
- *   or {@link make}
- * - Supply default request options through {@link Config}
- * - Override configuration for a scoped operation with {@link withConfigOverride}
- * - Attach Anthropic provider options for prompt caching, document citations,
- *   reasoning signatures, MCP metadata, and server-side tools
+ * Use when you need an Anthropic-backed model. Create a model with {@link model},
+ * build or provide a `LanguageModel.LanguageModel` layer with {@link layer} or
+ * {@link make}, supply default request options through {@link Config}, override
+ * configuration for a scoped operation with {@link withConfigOverride}, or attach
+ * Anthropic provider options for prompt caching, document citations, reasoning
+ * signatures, MCP metadata, and server-side tools.
  *
  * **Gotchas**
  *
@@ -669,8 +668,8 @@ export const model = (
  *
  * **When to use**
  *
- * Use when an Effect needs to construct a `LanguageModel.Service` value backed
- * by `AnthropicClient`.
+ * Use when you need to construct a `LanguageModel.Service` value backed by
+ * `AnthropicClient` inside an Effect.
  *
  * **Details**
  *

@@ -741,7 +741,7 @@ export const add: {
  *
  * **When to use**
  *
- * Use when service presence is already represented as an `Option`.
+ * Use when you already have service presence represented as an `Option`.
  *
  * **Details**
  *

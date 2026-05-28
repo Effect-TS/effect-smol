@@ -69,7 +69,7 @@ const Proto = {
  *
  * **When to use**
  *
- * Use when synchronous construction is required outside an Effect workflow.
+ * Use when you need synchronous construction outside an Effect workflow.
  *
  * @category constructors
  * @since 4.0.0

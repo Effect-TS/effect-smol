@@ -886,7 +886,8 @@ export const fromNullishOr = <A>(
  *
  * **When to use**
  *
- * Use when `null` is a meaningful value but `undefined` means absent
+ * Use when you want to treat only `undefined` as absent while preserving `null`
+ * as a meaningful value.
  *
  * **Details**
  *
@@ -924,7 +925,8 @@ export const fromUndefinedOr = <A>(
  *
  * **When to use**
  *
- * Use when `undefined` is a meaningful value but `null` means absent
+ * Use when you want to treat only `null` as absent while preserving
+ * `undefined` as a meaningful value.
  *
  * **Details**
  *
@@ -1110,8 +1112,8 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * Use when fail-fast unwrapping when absence is unexpected
- * - Providing a descriptive error for debugging
+ * Use when you need fail-fast unwrapping for unexpected absence and want to
+ * provide a descriptive debugging error.
  *
  * **Details**
  *
@@ -1151,7 +1153,8 @@ export const getOrThrowWith: {
  *
  * **When to use**
  *
- * Use when quick fail-fast unwrapping when a generic error is acceptable
+ * Use when you need quick fail-fast unwrapping and a generic error is
+ * acceptable.
  *
  * **Details**
  *

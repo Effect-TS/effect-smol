@@ -1765,8 +1765,8 @@ const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
  *
  * **When to use**
  *
- * Use to provide a custom metric registry for a program or test that needs
- * metrics isolated from the default registry.
+ * Use when you need a custom metric registry for an isolated program or test
+ * instead of the default registry.
  *
  * **Details**
  *
@@ -2272,8 +2272,8 @@ export const counter: {
  *
  * **When to use**
  *
- * Use when gauges are most suitable for metrics that represent instantaneous values,
- * such as memory usage or CPU load.
+ * Use when you need a metric for instantaneous values, such as memory usage or
+ * CPU load.
  *
  * **Details**
  *
@@ -2351,8 +2351,8 @@ export const gauge: {
  *
  * **When to use**
  *
- * Use when frequency metrics are most suitable for counting the number of times a
- * specific event or incident occurs.
+ * Use when you need a metric for counting how often a specific event or
+ * incident occurs.
  *
  * **Details**
  *
@@ -2434,8 +2434,8 @@ export const frequency = (name: string, options?: {
  *
  * **When to use**
  *
- * Use when histogram metrics are most suitable for measuring the distribution of values
- * within a range.
+ * Use when you need a metric for measuring the distribution of values within a
+ * range.
  *
  * **Details**
  *
@@ -2514,8 +2514,8 @@ export const histogram = (name: string, options: {
  *
  * **When to use**
  *
- * Use when summary metrics are most suitable for providing statistical information about
- * a set of values, including quantiles.
+ * Use when you need a metric that records statistical information about a set
+ * of values, including quantiles.
  *
  * **Details**
  *
@@ -2610,8 +2610,8 @@ export const summary = (name: string, options: {
  *
  * **When to use**
  *
- * Use when summary metrics are most suitable for statistical information about a set of
- * values.
+ * Use when you need a metric that records statistical information about a set
+ * of values together with timestamps.
  *
  * **Details**
  *

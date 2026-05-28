@@ -1444,7 +1444,8 @@ const last_ = reduceArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
  *
  * **When to use**
  *
- * Use when consuming all upstream input and only the final element is needed.
+ * Use when you need to consume all upstream input and keep only the final
+ * element.
  *
  * **Details**
  *

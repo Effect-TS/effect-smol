@@ -104,8 +104,8 @@ export type AnthropicTool =
  *
  * **When to use**
  *
- * Use when you need the model to execute bash commands and require the 2024-10-22
- * version of the Anthropic computer-use beta.
+ * Use when you want the model to execute bash commands with the 2024-10-22
+ * Anthropic computer-use beta.
  *
  * **Details**
  *
@@ -134,8 +134,8 @@ export const Bash_20241022 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when you need the model to execute bash commands and require the 2025-01-24
- * version of the Anthropic computer-use beta.
+ * Use when you want the model to execute bash commands with the 2025-01-24
+ * Anthropic computer-use beta.
  *
  * **Details**
  *
@@ -442,8 +442,8 @@ export type CodeExecution_20250825_Parameters = typeof CodeExecution_20250825_Pa
  *
  * **When to use**
  *
- * Use when you need the model to execute code in a sandboxed environment and
- * require the 2025-05-22 version of the Anthropic code-execution beta.
+ * Use when you want the model to execute code in a sandboxed environment with
+ * the 2025-05-22 Anthropic code-execution beta.
  *
  * **Details**
  *
@@ -470,8 +470,8 @@ export const CodeExecution_20250522 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when you need the model to execute code in a sandboxed environment and
- * require the 2025-08-25 version of the Anthropic code-execution beta.
+ * Use when you want the model to execute code in a sandboxed environment with
+ * the 2025-08-25 Anthropic code-execution beta.
  *
  * **Details**
  *
@@ -1322,7 +1322,7 @@ export const ComputerUse_20241022 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when configuring Anthropic computer use for Claude 4 models or Claude
+ * Use when you need Anthropic computer use for Claude 4 models or Claude
  * Sonnet 3.7 with the 2025-01-24 action set.
  *
  * **Details**
@@ -1353,7 +1353,7 @@ export const ComputerUse_20250124 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when configuring Anthropic computer use for Claude Opus 4.5 with the
+ * Use when you need Anthropic computer use for Claude Opus 4.5 with the
  * 2025-11-24 action set and zoom-capable screen inspection.
  *
  * **Details**
@@ -1902,8 +1902,8 @@ const TextEditor_StrReplaceBasedEdit_Args = Schema.Struct({
  *
  * **When to use**
  *
- * Use when configuring the 2024-10-22 `str_replace_editor` compatibility path
- * for Claude 3.5 Sonnet.
+ * Use when you need the 2024-10-22 `str_replace_editor` compatibility path for
+ * Claude 3.5 Sonnet.
  *
  * **Details**
  *
@@ -1930,7 +1930,7 @@ export const TextEditor_20241022 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when configuring the 2025-01-24 Claude Sonnet 3.7 text editor tool using
+ * Use when you need the 2025-01-24 Claude Sonnet 3.7 text editor tool using
  * `str_replace_editor`.
  *
  * **Details**
@@ -1958,7 +1958,7 @@ export const TextEditor_20250124 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when configuring the 2025-04-29 Claude 4 `str_replace_based_edit_tool`
+ * Use when you need the 2025-04-29 Claude 4 `str_replace_based_edit_tool`
  * version.
  *
  * **Details**
@@ -2023,8 +2023,8 @@ export const TextEditor_20250728 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when providing location helps return more relevant results for
- * location-dependent queries like weather, local businesses, or events.
+ * Use when you need to localize search results for location-dependent queries
+ * like weather, local businesses, or events.
  *
  * **Details**
  *
@@ -2069,8 +2069,8 @@ export const WebSearchUserLocation = Schema.Struct({
  *
  * **When to use**
  *
- * Use when configuring `WebSearch_20250305` with search limits, domain filters,
- * or user location.
+ * Use when you need to configure `WebSearch_20250305` with search limits,
+ * domain filters, or user location.
  *
  * **Details**
  *
@@ -2167,7 +2167,7 @@ export type WebSearchParameters = typeof WebSearchParameters.Type
  *
  * **When to use**
  *
- * Use when Claude should search the web for real-time information.
+ * Use when you want Claude to search the web for real-time information.
  *
  * **Details**
  *
@@ -2203,7 +2203,7 @@ export const WebSearch_20250305 = Tool.providerDefined({
  *
  * **When to use**
  *
- * Use when configuring whether web fetch results should include citations.
+ * Use when you need to enable or disable citations on web fetch results.
  *
  * **Details**
  *
@@ -2245,8 +2245,8 @@ export type WebFetchCitationsConfig = typeof WebFetchCitationsConfig.Type
  *
  * **When to use**
  *
- * Use when configuring `WebFetch_20250910` with usage limits, domain filters,
- * citations, or content token limits.
+ * Use when you need to configure `WebFetch_20250910` with usage limits, domain
+ * filters, citations, or content token limits.
  *
  * **Details**
  *
@@ -2364,7 +2364,8 @@ export type WebFetchParameters = typeof WebFetchParameters.Type
  *
  * **When to use**
  *
- * Use when Claude should retrieve the content of a specific web page or PDF.
+ * Use when you want Claude to retrieve the content of a specific web page or
+ * PDF.
  *
  * **Details**
  *

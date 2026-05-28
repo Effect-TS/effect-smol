@@ -736,8 +736,9 @@ export const layerAdd = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use when unit or integration tests need deterministic config without touching the
- * environment, or when config is embedded directly in code or read from a JSON file.
+ * Use when you need deterministic config for unit or integration tests without
+ * touching the environment, or when config is embedded directly in code or read
+ * from a JSON file.
  *
  * **Details**
  *

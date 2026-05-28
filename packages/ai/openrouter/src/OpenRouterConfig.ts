@@ -90,8 +90,8 @@ export declare namespace OpenRouterConfig {
  *
  * **When to use**
  *
- * Use when a single effect or workflow needs temporary OpenRouter HTTP client
- * customization without rebuilding the client layer.
+ * Use when you need temporary OpenRouter HTTP client customization for a
+ * single effect or workflow without rebuilding the client layer.
  *
  * **Details**
  *

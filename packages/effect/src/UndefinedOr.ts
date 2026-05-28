@@ -118,8 +118,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use when fail-fast unwrapping of an `A | undefined` value is appropriate and
- * callers need to provide the thrown error for the undefined case.
+ * Use when you need fail-fast unwrapping of an `A | undefined` value and want
+ * to provide the thrown error for the undefined case.
  *
  * **Details**
  *

@@ -1142,9 +1142,9 @@ function formatCheck<T>(check: AST.Check<T>): string {
  *
  * **When to use**
  *
- * Use when produce error messages for logging, CLI output, or developer-facing
- *   diagnostics.
- * - This is the default formatter used by `Issue.toString()`.
+ * Use when you need error messages for logging, CLI output, or
+ * developer-facing diagnostics. This is the default formatter used by
+ * `Issue.toString()`.
  *
  * **Details**
  *

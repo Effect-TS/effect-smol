@@ -1987,7 +1987,8 @@ function filter(obj: any) {
  *
  * **When to use**
  *
- * Use when thrown parse and security failures are acceptable.
+ * Use when you need a JSON parser that throws for invalid JSON or unsafe
+ * object shapes.
  *
  * **Gotchas**
  *

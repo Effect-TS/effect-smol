@@ -88,8 +88,8 @@ export declare namespace OpenAiConfig {
  *
  * **When to use**
  *
- * Use when a single effect or workflow needs temporary OpenAI HTTP client
- * customization without rebuilding the client layer.
+ * Use when you need temporary OpenAI HTTP client customization for a single
+ * effect or workflow without rebuilding the client layer.
  *
  * **Details**
  *
