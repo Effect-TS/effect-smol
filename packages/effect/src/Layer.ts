@@ -479,7 +479,7 @@ class MemoMapImpl implements MemoMap {
 }
 
 /**
- * Constructs a `MemoMap` that can be used to build additional layers.
+ * Constructs a `MemoMap` synchronously so it can be used to build additional layers.
  *
  * **Example** (Creating a memo map unsafely)
  *
@@ -510,8 +510,9 @@ class MemoMapImpl implements MemoMap {
 export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 
 /**
- * Constructs a child `MemoMap` that can reuse layers already memoized in the
- * parent while isolating any new layer allocations to the child map.
+ * Constructs a child `MemoMap` synchronously, allowing it to reuse layers
+ * already memoized in the parent while isolating any new layer allocations to
+ * the child map.
  *
  * **When to use**
  *
@@ -528,7 +529,7 @@ export const makeMemoMapUnsafe = (): MemoMap => new MemoMapImpl()
 export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(parent)
 
 /**
- * Constructs a `MemoMap` that can be used to build additional layers.
+ * Constructs a `MemoMap` effectfully so it can be used to build additional layers.
  *
  * **Example** (Creating a memo map in an effect)
  *
@@ -559,8 +560,9 @@ export const forkMemoMapUnsafe = (parent: MemoMap): MemoMap => new MemoMapImpl(p
 export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsafe)
 
 /**
- * Constructs a child `MemoMap` that can reuse layers already memoized in the
- * parent while isolating any new layer allocations to the child map.
+ * Constructs a child `MemoMap` effectfully, allowing it to reuse layers already
+ * memoized in the parent while isolating any new layer allocations to the child
+ * map.
  *
  * **When to use**
  *
@@ -577,7 +579,7 @@ export const makeMemoMap: Effect<MemoMap> = internalEffect.sync(makeMemoMapUnsaf
 export const forkMemoMap = (parent: MemoMap): Effect<MemoMap> => internalEffect.sync(() => forkMemoMapUnsafe(parent))
 
 /**
- * A service reference for the current `MemoMap` used in layer construction.
+ * Context service for the current `MemoMap` used in layer construction.
  *
  * **When to use**
  *
@@ -713,11 +715,17 @@ export const build = <RIn, E, ROut>(
   )
 
 /**
- * Builds a layer into an `Effect` value. Any resources associated with this
- * layer will be released when the specified scope is closed unless their scope
- * has been extended. This allows building layers where the lifetime of some of
- * the services output by the layer exceed the lifetime of the effect the
- * layer is provided to.
+ * Builds a layer using an explicit scope.
+ *
+ * **When to use**
+ *
+ * Use to control the lifetime of layer resources with a scope supplied by the
+ * caller.
+ *
+ * **Details**
+ *
+ * Resources created by the layer are released when the supplied scope is
+ * closed, unless a resource extends its own scope.
  *
  * **Example** (Building a layer with an explicit scope)
  *
@@ -884,7 +892,7 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
 export const empty: Layer<never> = succeedContext(Context.empty())
 
 /**
- * Lazily constructs a layer that provides a single service.
+ * Constructs a layer lazily that provides a single service.
  *
  * **When to use**
  *
@@ -927,7 +935,7 @@ export const sync: {
 } as any
 
 /**
- * Lazily constructs a layer that provides all services in a `Context`.
+ * Constructs a layer lazily that provides all services in a `Context`.
  *
  * **When to use**
  *
@@ -1094,7 +1102,7 @@ export const effectDiscard = <X, E, R>(effect: Effect<X, E, R>): Layer<never, E,
   effectContext(internalEffect.as(effect, Context.empty()))
 
 /**
- * Lazily constructs a layer using the specified factory.
+ * Constructs a layer lazily using the specified factory.
  *
  * **Details**
  *

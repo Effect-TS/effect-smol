@@ -203,7 +203,7 @@ export const make: <Values extends ReadonlyArray<any>>(
 export const fromIterable: <V>(values: Iterable<V>) => HashSet<V> = internal.fromIterable
 
 /**
- * Checks if a value is a HashSet.
+ * Checks whether a value is a HashSet.
  *
  * **Example** (Checking for a HashSet)
  *
@@ -258,7 +258,7 @@ export const add: {
 >(2, internal.add)
 
 /**
- * Checks if the HashSet contains the specified value.
+ * Checks whether the HashSet contains the specified value.
  *
  * **Example** (Checking HashSet membership)
  *
@@ -354,7 +354,7 @@ export const remove: {
 export const size: <V>(self: HashSet<V>) => number = internal.size
 
 /**
- * Checks if the HashSet is empty.
+ * Checks whether the HashSet is empty.
  *
  * **Example** (Checking whether a HashSet is empty)
  *
@@ -455,7 +455,7 @@ export const difference: {
 >(2, internal.difference)
 
 /**
- * Checks if a HashSet is a subset of another HashSet.
+ * Checks whether a HashSet is a subset of another HashSet.
  *
  * **Example** (Checking subset relationships)
  *
@@ -549,7 +549,7 @@ export const filter: {
 >(2, internal.filter)
 
 /**
- * Tests whether at least one value in the HashSet satisfies the predicate.
+ * Checks whether at least one value in the HashSet satisfies the predicate.
  *
  * **Example** (Testing whether some values match)
  *
@@ -577,7 +577,7 @@ export const some: {
 >(2, internal.some)
 
 /**
- * Tests whether all values in the HashSet satisfy the predicate.
+ * Checks whether all values in the HashSet satisfy the predicate.
  *
  * **Example** (Testing whether every value matches)
  *

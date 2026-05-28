@@ -67,7 +67,7 @@ export const make: EffectCrypto.Crypto = EffectCrypto.make({
 })
 
 /**
- * A layer that provides the Node.js Crypto service implementation.
+ * Layer that provides the Node.js Crypto service implementation.
  *
  * @category layers
  * @since 1.0.0

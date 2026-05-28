@@ -51,7 +51,7 @@ const TypeId = "~effect/httpapi/HttpApiSecurity"
  * @category models
  * @since 4.0.0
  */
-export type HttpApiSecurity = Bearer | ApiKey | Basic
+export type HttpApiSecurity = Http | ApiKey | Basic
 
 /**
  * Helper types for HTTP API security schemes.
@@ -82,13 +82,16 @@ export declare namespace HttpApiSecurity {
 }
 
 /**
- * Bearer token security scheme whose decoded credential is a redacted token.
+ * Http token security scheme whose decoded credential is a redacted token.
  *
  * @category models
  * @since 4.0.0
  */
-export interface Bearer extends HttpApiSecurity.Proto<Redacted> {
-  readonly _tag: "Bearer"
+export interface Http extends HttpApiSecurity.Proto<Redacted> {
+  readonly _tag: "Http"
+  readonly scheme: string
+  /** @internal */
+  readonly schemeLength: number
 }
 
 /**
@@ -132,6 +135,34 @@ const Proto = {
 }
 
 /**
+ * Creates a Http token security scheme.
+ *
+ * **When to use**
+ *
+ * Use to require `Authorization: scheme ...` credentials for an HTTP API group
+ * or endpoint.
+ *
+ * **Details**
+ *
+ * Use `HttpApiBuilder.middlewareSecurity` to implement API middleware for this
+ * security scheme.
+ *
+ * @see {@link apiKey} for an API-key security scheme
+ * @see {@link basic} for an HTTP Basic security scheme
+ * @category constructors
+ * @since 4.0.0
+ */
+export const http = (options: {
+  readonly scheme: string
+}): Http =>
+  Object.assign(Object.create(Proto), {
+    _tag: "Http",
+    scheme: options.scheme,
+    schemeLength: options.scheme.length,
+    annotations: Context.empty()
+  })
+
+/**
  * Creates a Bearer token security scheme.
  *
  * **When to use**
@@ -149,10 +180,7 @@ const Proto = {
  * @category constructors
  * @since 4.0.0
  */
-export const bearer: Bearer = Object.assign(Object.create(Proto), {
-  _tag: "Bearer",
-  annotations: Context.empty()
-})
+export const bearer: Http = http({ scheme: "Bearer" })
 
 /**
  * Creates an API key security scheme.

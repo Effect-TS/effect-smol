@@ -71,10 +71,15 @@ import {
 import * as EventLogServer from "./EventLogServer.ts"
 
 /**
- * Server-side service for writing plaintext event-log entries directly to
+ * Service that writes plaintext event-log entries directly to
  * unencrypted storage through registered event handlers.
  *
- * @category EventLogServerUnencrypted
+ * **When to use**
+ *
+ * Use to access or provide the server service that handles plaintext
+ * event-log writes.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export class EventLogServerUnencrypted extends Context.Service<EventLogServerUnencrypted, {
@@ -277,10 +282,15 @@ export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAut
 }> {}
 
 /**
- * Authorization service used by the unencrypted event-log server to validate
+ * Service that validates unencrypted event-log server
  * write access, read access, and identities.
  *
- * @category context
+ * **When to use**
+ *
+ * Use to provide authorization checks for plaintext event-log writes, reads,
+ * and identity authentication.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export class EventLogServerAuthorization extends Context.Service<EventLogServerAuthorization, {
@@ -302,7 +312,12 @@ export class EventLogServerAuthorization extends Context.Service<EventLogServerA
  * Service that resolves client-requested store ids to server store ids and checks
  * whether a store exists.
  *
- * @category context
+ * **When to use**
+ *
+ * Use to map client-visible store identifiers to server storage identifiers
+ * before authorizing or serving unencrypted event-log requests.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export class StoreMapping extends Context.Service<StoreMapping, {
@@ -352,7 +367,12 @@ export const layerStoreMappingStatic = (options: {
   })
 
 /**
- * Storage service used by the unencrypted event-log server.
+ * Defines the backing store service used by the unencrypted event-log server.
+ *
+ * **When to use**
+ *
+ * Use to provide durable event-log persistence for an unencrypted event-log
+ * server layer.
  *
  * **Details**
  *
@@ -479,7 +499,12 @@ const toCompactedRemoteEntries = (options: {
 }
 
 /**
- * Compacts a backlog of remote entries using the registered compactors.
+ * Runs the registered compactors over a backlog of remote entries.
+ *
+ * **When to use**
+ *
+ * Use to reduce stored remote entries before replaying them to an unencrypted
+ * event-log client.
  *
  * **Details**
  *
@@ -758,6 +783,11 @@ export const make = Effect.gen(function*() {
 /**
  * Provides `EventLogServerUnencrypted` and an event-log `Registry` using the
  * configured unencrypted server `Storage`.
+ *
+ * **When to use**
+ *
+ * Use to provide the unencrypted event-log server service together with the
+ * registry needed by event handlers.
  *
  * @category layers
  * @since 4.0.0

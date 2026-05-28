@@ -71,9 +71,14 @@ import * as Undici from "./Undici.ts"
 
 export {
   /**
-   * Fetch-based HTTP client implementation for Node.js.
+   * Provides a fetch-based HTTP client implementation for Node.js.
    *
-   * @category Fetch
+   * **When to use**
+   *
+   * Use to access or override the fetch implementation used by the Node
+   * fetch-based HTTP client.
+   *
+   * @category fetch
    * @since 4.0.0
    */
   Fetch,
@@ -85,9 +90,13 @@ export {
    */
   layer as layerFetch,
   /**
-   * Request initialization options accepted by the fetch-based HTTP client.
+   * Provides request initialization options accepted by the fetch-based HTTP client.
    *
-   * @category Fetch
+   * **When to use**
+   *
+   * Use to provide default fetch request options for Node HTTP requests.
+   *
+   * @category fetch
    * @since 4.0.0
    */
   RequestInit

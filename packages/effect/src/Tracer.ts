@@ -155,7 +155,12 @@ export type SpanStatus = {
 export type AnySpan = Span | ExternalSpan
 
 /**
- * The string key used to identify the `ParentSpan` context service.
+ * Defines the string key for the parent-span context service.
+ *
+ * **When to use**
+ *
+ * Use when integrating lower-level tracing code that needs the raw context key
+ * for parent span lookup.
  *
  * **Example** (Reading the parent span key)
  *
@@ -485,9 +490,17 @@ export const externalSpan = (
 })
 
 /**
- * Reference used to disable trace propagation. When set on the fiber or span
- * annotations, new spans are created as non-propagating no-op spans and
- * disabled spans are skipped when deriving a parent span.
+ * Context reference for disabling trace propagation.
+ *
+ * **When to use**
+ *
+ * Use to prevent spans in a scope from propagating tracing context.
+ *
+ * **Details**
+ *
+ * When enabled on fiber or span annotations, new spans are created as
+ * non-propagating no-op spans and disabled spans are skipped when deriving a
+ * parent span.
  *
  * **Example** (Disabling span propagation)
  *
@@ -511,7 +524,7 @@ export const DisablePropagation = Context.Reference<boolean>(
 )
 
 /**
- * Reference for controlling the current trace level for dynamic filtering.
+ * Context reference for controlling the current trace level for dynamic filtering.
  *
  * **When to use**
  *
@@ -534,7 +547,7 @@ export const CurrentTraceLevel: Context.Reference<LogLevel> = Context.Reference<
 )
 
 /**
- * Reference for setting the minimum trace level threshold. Spans and their
+ * Context reference for setting the minimum trace level threshold. Spans and their
  * descendants below this level will have their sampling decision forced to
  * false, preventing them from being exported.
  *
@@ -562,7 +575,12 @@ export const MinimumTraceLevel = Context.Reference<
 >("effect/Tracer/MinimumTraceLevel", { defaultValue: () => "All" })
 
 /**
- * The string key used to identify the active `Tracer` context reference.
+ * Defines the string key for the active tracer context reference.
+ *
+ * **When to use**
+ *
+ * Use when integrating lower-level tracing code that needs the raw context key
+ * for active tracer lookup.
  *
  * @category references
  * @since 4.0.0

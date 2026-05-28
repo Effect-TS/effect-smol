@@ -131,7 +131,7 @@ export interface Spawner {
 }
 
 /**
- * Context service tag for the worker `SpawnerFn`.
+ * Service tag for the worker `SpawnerFn`.
  *
  * @category tags
  * @since 4.0.0

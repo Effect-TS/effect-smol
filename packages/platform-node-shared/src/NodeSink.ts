@@ -82,9 +82,17 @@ export const fromWritableChannel = <IE, E, A = Uint8Array | string>(
   })
 
 /**
- * Repeatedly pulls non-empty chunks and writes them to a Node writable stream,
- * waiting for `drain` when needed, failing on writable errors, and ending the
- * writable on upstream completion unless disabled.
+ * Writes Effect chunks into a Node writable stream.
+ *
+ * **When to use**
+ *
+ * Use to implement custom Node stream adapters that already have an upstream
+ * pull and need direct control over a writable stream.
+ *
+ * **Details**
+ *
+ * The loop waits for `drain` when needed, fails on writable errors, and ends
+ * the writable on upstream completion unless `endOnDone` is `false`.
  *
  * @category converting
  * @since 4.0.0

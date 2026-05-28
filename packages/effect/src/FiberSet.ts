@@ -93,7 +93,7 @@ export interface FiberSet<out A = unknown, out E = unknown>
 }
 
 /**
- * Checks if a value is a FiberSet.
+ * Checks whether a value is a FiberSet.
  *
  * **Example** (Checking if a value is a FiberSet)
  *
@@ -357,7 +357,7 @@ export const addUnsafe: {
 })
 
 /**
- * Add a fiber to the FiberSet. When the fiber completes, it will be removed.
+ * Adds a fiber to the FiberSet. When the fiber completes, it will be removed.
  *
  * **Example** (Adding a fiber)
  *
@@ -405,7 +405,7 @@ export const add: {
 )
 
 /**
- * Interrupt all fibers in the FiberSet and clear the set.
+ * Interrupts all fibers in the `FiberSet` and clears the set.
  *
  * **Example** (Clearing all fibers)
  *
@@ -450,7 +450,7 @@ const constInterruptedFiber = (function() {
 })()
 
 /**
- * Fork an Effect and add the forked fiber to the FiberSet.
+ * Forks an Effect and add the forked fiber to the FiberSet.
  * When the fiber completes, it will be removed from the FiberSet.
  *
  * **Example** (Forking effects into a set)
@@ -520,7 +520,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
   })
 
 /**
- * Capture a Runtime and use it to fork Effect's, adding the forked fibers to the FiberSet.
+ * Captures a `Runtime` and uses it to fork effects into the `FiberSet`.
  *
  * **Example** (Capturing a runtime)
  *
@@ -581,7 +581,13 @@ export const runtime: <A, E>(
   )
 
 /**
- * Captures a Runtime and uses it to fork Effects into the `FiberSet`.
+ * Captures a `Runtime` and returns a Promise-based runner that forks effects
+ * into the `FiberSet`.
+ *
+ * **When to use**
+ *
+ * Use when you need to bridge effects to `Promise` values while still tracking
+ * their fibers in a `FiberSet`.
  *
  * **Details**
  *
@@ -606,6 +612,8 @@ export const runtime: <A, E>(
  *   console.log(result1, result2) // "hello" "world"
  * })
  * ```
+ *
+ * @see {@link runtime} for a runner that returns the forked `Fiber`
  *
  * @category combinators
  * @since 3.13.0
@@ -642,7 +650,7 @@ export const runtimePromise = <A, E>(self: FiberSet<A, E>): <R = never>() => Eff
   )
 
 /**
- * Get the number of fibers currently in the FiberSet.
+ * Gets the number of fibers currently in the FiberSet.
  *
  * **Example** (Checking the set size)
  *
@@ -669,7 +677,7 @@ export const size = <A, E>(self: FiberSet<A, E>): Effect.Effect<number> =>
   Effect.sync(() => self.state._tag === "Closed" ? 0 : self.state.backing.size)
 
 /**
- * Join all fibers in the FiberSet. If any of the Fiber's in the set terminate with a failure,
+ * Joins all fibers in the FiberSet. If any fiber in the set terminates with a failure,
  * the returned Effect will terminate with the first failure that occurred.
  *
  * **Example** (Joining failing fibers)
@@ -693,7 +701,7 @@ export const join = <A, E>(self: FiberSet<A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
 
 /**
- * Wait until the fiber set is empty.
+ * Waits until the fiber set is empty.
  *
  * **Example** (Waiting for an empty set)
  *

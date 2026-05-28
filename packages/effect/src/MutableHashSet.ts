@@ -128,7 +128,7 @@ export interface MutableHashSet<out V> extends Iterable<V>, Pipeable, Inspectabl
 }
 
 /**
- * Checks if the specified value is a `MutableHashSet`, `false` otherwise.
+ * Checks whether the specified value is a `MutableHashSet`, `false` otherwise.
  *
  * **When to use**
  *
@@ -326,7 +326,7 @@ export const add: {
 >(2, (self, key) => (MutableHashMap.set(self.keyMap, key, true), self))
 
 /**
- * Checks if the MutableHashSet contains the specified value.
+ * Checks whether the MutableHashSet contains the specified value.
  *
  * **When to use**
  *

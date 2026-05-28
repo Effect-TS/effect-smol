@@ -143,7 +143,7 @@
  */
 
 /**
- * Type-level symbol used to brand the `NonEmptyIterable` type.
+ * Defines the type-level symbol used to brand the `NonEmptyIterable` type.
  *
  * **When to use**
  *
@@ -158,7 +158,7 @@
  *
  * @see {@link NonEmptyIterable} for the branded iterable type that uses this symbol
  *
- * @category symbol
+ * @category symbols
  * @since 2.0.0
  */
 export declare const nonEmpty: unique symbol
@@ -229,7 +229,7 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
 }
 
 /**
- * Safely extracts the first element and remaining elements from a non-empty iterable.
+ * Extracts the first element and remaining elements from a non-empty iterable safely.
  *
  * **When to use**
  *

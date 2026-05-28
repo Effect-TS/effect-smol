@@ -58,7 +58,7 @@ const TypeId = "~effect/http/HttpServerError"
  * response, and can be converted to an HTTP response through the `Respondable`
  * protocol.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class HttpServerError extends Data.TaggedError("HttpServerError")<{
@@ -109,7 +109,7 @@ export class HttpServerError extends Data.TaggedError("HttpServerError")<{
  *
  * When converted to a response it produces an empty `400` response.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class RequestParseError extends Data.TaggedError("RequestParseError")<{
@@ -143,7 +143,7 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
  * When converted to a response it produces an empty `404` response, and it is
  * ignored by the error reporter.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
@@ -173,7 +173,7 @@ export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
  *
  * When converted to a response it produces an empty `500` response.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class InternalError extends Data.TaggedError("InternalError")<{
@@ -215,7 +215,7 @@ export const isHttpServerError = (u: unknown): u is HttpServerError => hasProper
  * It carries the request and response involved in the failure. When converted to
  * a response it produces an empty `500` response.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class ResponseError extends Data.TaggedError("ResponseError")<{
@@ -241,7 +241,7 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
 /**
  * Union of errors that are tied directly to an incoming server request.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export type RequestError = RequestParseError | RouteNotFound | InternalError
@@ -249,7 +249,7 @@ export type RequestError = RequestParseError | RouteNotFound | InternalError
 /**
  * Reason carried by an `HttpServerError`, either a request-level error or a response-level error.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export type HttpServerErrorReason = RequestError | ResponseError
@@ -257,7 +257,7 @@ export type HttpServerErrorReason = RequestError | ResponseError
 /**
  * Error wrapping a low-level failure from the HTTP server implementation.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class ServeError extends Data.TaggedError("ServeError")<{
@@ -350,7 +350,7 @@ export const causeResponse = <E>(
 }
 
 /**
- * Synchronously derives an HTTP response from a failed handler cause.
+ * Derives an HTTP response from a failed handler cause synchronously.
  *
  * **Details**
  *

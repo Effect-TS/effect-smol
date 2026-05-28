@@ -95,9 +95,14 @@ export interface SqlClient extends Constructor {
 }
 
 /**
- * Context service tag for the `SqlClient` service.
+ * Service tag for the active SQL client service.
  *
- * @category models
+ * **When to use**
+ *
+ * Use to access or provide the SQL client used to build statements, stream
+ * rows, reserve connections, and run transactions.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export const SqlClient = Context.Service<SqlClient>("effect/sql/SqlClient")

@@ -657,7 +657,7 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
 export const unbounded = <A, E = never>(): Effect<Queue<A, E>> => make()
 
 /**
- * Add a message to the queue. Returns `false` if the queue is done.
+ * Adds a message to the queue. Returns `false` if the queue is done.
  *
  * **Details**
  *
@@ -714,7 +714,7 @@ export const offer = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>): Eff
   })
 
 /**
- * Add a message to the queue synchronously. Returns `false` if the queue is done.
+ * Adds a message to the queue synchronously. Returns `false` if the queue is done.
  *
  * **Gotchas**
  *
@@ -765,7 +765,7 @@ export const offerUnsafe = <A, E>(self: Enqueue<A, E>, message: Types.NoInfer<A>
 }
 
 /**
- * Add multiple messages to the queue. Returns the remaining messages that
+ * Adds multiple messages to the queue. Returns the remaining messages that
  * were not added.
  *
  * **Details**
@@ -806,7 +806,7 @@ export const offerAll = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>): Effe
   })
 
 /**
- * Add multiple messages to the queue synchronously. Returns the remaining messages that
+ * Adds multiple messages to the queue synchronously. Returns the remaining messages that
  * were not added.
  *
  * **Gotchas**
@@ -870,7 +870,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
 }
 
 /**
- * Fail the queue with an error. If the queue is already done, `false` is
+ * Fails the queue with an error. If the queue is already done, `false` is
  * returned.
  *
  * **Example** (Failing queues with an error)
@@ -897,7 +897,7 @@ export const offerAllUnsafe = <A, E>(self: Enqueue<A, E>, messages: Iterable<A>)
 export const fail = <A, E>(self: Enqueue<A, E>, error: E) => failCause(self, core.causeFail(error))
 
 /**
- * Fail the queue with a cause. If the queue is already done, `false` is
+ * Fails the queue with a cause. If the queue is already done, `false` is
  * returned.
  *
  * **Example** (Failing queues with a cause)
@@ -931,7 +931,7 @@ export const failCause: {
 )
 
 /**
- * Fail the queue with a cause synchronously. If the queue is already done, `false` is
+ * Fails the queue with a cause synchronously. If the queue is already done, `false` is
  * returned.
  *
  * **Gotchas**
@@ -977,8 +977,16 @@ export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boo
 }
 
 /**
- * Signal that the queue is complete. If the queue is already done, `false` is
- * returned.
+ * Signals queue completion.
+ *
+ * **When to use**
+ *
+ * Use to stop accepting new offers while allowing already queued messages to be
+ * consumed.
+ *
+ * **Details**
+ *
+ * Returns `false` if the queue is already done.
  *
  * **Example** (Ending queues)
  *
@@ -1012,8 +1020,16 @@ export const failCauseUnsafe = <A, E>(self: Enqueue<A, E>, cause: Cause<E>): boo
 export const end = <A, E>(self: Enqueue<A, E | Done>): Effect<boolean> => failCause(self, core.causeFail(core.Done()))
 
 /**
- * Signal that the queue is complete synchronously. If the queue is already done, `false` is
- * returned.
+ * Signals queue completion synchronously.
+ *
+ * **When to use**
+ *
+ * Use when implementing low-level queue integrations that must complete a queue
+ * without wrapping the operation in `Effect`.
+ *
+ * **Details**
+ *
+ * Returns `false` if the queue is already done.
  *
  * **Gotchas**
  *
@@ -1155,7 +1171,7 @@ export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
   })
 
 /**
- * Drains and returns all currently buffered messages without waiting for more.
+ * Takes and returns all currently buffered messages without waiting for more.
  *
  * **Details**
  *
@@ -1187,7 +1203,7 @@ export const shutdown = <A, E>(self: Enqueue<A, E>): Effect<boolean> =>
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 4.0.0
  */
 export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeDone<E>> =>
@@ -1236,7 +1252,7 @@ export const takeAll = <A, E>(self: Dequeue<A, E>): Effect<Arr.NonEmptyArray<A>,
   takeBetween(self, 1, Number.POSITIVE_INFINITY) as any
 
 /**
- * Take all messages from the queue, until the queue has errored or is done.
+ * Takes all messages from the queue, until the queue has errored or is done.
  *
  * **Example** (Collecting values until completion)
  *
@@ -1370,7 +1386,7 @@ export const takeBetween = <A, E>(
   )
 
 /**
- * Take a single message from the queue, or wait for a message to be
+ * Takes a single message from the queue, or wait for a message to be
  * available.
  *
  * **Details**
@@ -1461,7 +1477,7 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
   })
 
 /**
- * Views the next item without removing it.
+ * Peeks at the next item without removing it.
  *
  * **Details**
  *
@@ -1482,7 +1498,7 @@ export const poll = <A, E>(self: Dequeue<A, E>): Effect<Option.Option<A>> =>
  * })
  * ```
  *
- * @category Taking
+ * @category taking
  * @since 4.0.0
  */
 export const peek = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
@@ -1642,7 +1658,7 @@ export {
 export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => sizeUnsafe(self))
 
 /**
- * Check if the queue is full.
+ * Checks whether the queue is full.
  *
  * **Example** (Checking if queues are full)
  *
@@ -1710,7 +1726,7 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
 export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
 
 /**
- * Check if the queue is full synchronously.
+ * Checks whether the queue is full synchronously.
  *
  * **Example** (Checking fullness synchronously)
  *
@@ -1735,7 +1751,7 @@ export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag
 export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(self) === self.capacity
 
 /**
- * Run an `Effect` into a `Queue`, where success ends the queue and failure
+ * Runs an `Effect` into a `Queue`, where success ends the queue and failure
  * fails the queue.
  *
  * **Example** (Running effects into queues)

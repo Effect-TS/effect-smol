@@ -239,7 +239,7 @@ const CronProto = {
 }
 
 /**
- * Checks if a given value is a Cron instance.
+ * Checks whether a given value is a Cron instance.
  *
  * **When to use**
  *
@@ -521,7 +521,7 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 }
 
 /**
- * Checks if a given value is a CronParseError instance.
+ * Checks whether a given value is a CronParseError instance.
  *
  * **When to use**
  *
@@ -557,8 +557,8 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 export const isCronParseError = (u: unknown): u is CronParseError => hasProperty(u, CronParseErrorTypeId)
 
 /**
- * Parses a cron expression into a `Cron` instance, returning a `Result` instead
- * of throwing.
+ * Parses a cron expression safely into a `Cron` instance, returning a `Result`
+ * instead of throwing.
  *
  * **When to use**
  *
@@ -993,12 +993,13 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
 }
 
 /**
- * An `Equivalence` instance for comparing the field restrictions of two `Cron`
+ * Equivalence instance for comparing the field restrictions of two `Cron`
  * schedules.
  *
  * **When to use**
  *
- * Use to compare cron schedules through APIs that accept an `Equivalence`.
+ * Use to compare cron schedules through APIs that accept an equivalence
+ * relation.
  *
  * **Details**
  *

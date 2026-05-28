@@ -131,7 +131,7 @@ export class PersistedQueueFactory extends Context.Service<
  * Accesses `PersistedQueueFactory` to create a named persisted queue for a
  * schema.
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const make = <S extends Schema.Top>(options: {
@@ -220,7 +220,7 @@ export const layer: Layer.Layer<
 /**
  * Runtime type identifier for `PersistedQueueError`.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -228,7 +228,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/Pe
 /**
  * Type-level identifier used to brand `PersistedQueueError` values.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -255,14 +255,19 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 }
 
 /**
- * Low-level backing store service used by `PersistedQueue`.
+ * Defines the low-level backing store service used by `PersistedQueue`.
+ *
+ * **When to use**
+ *
+ * Use to provide the persistence backend that stores queued elements, scoped
+ * takes, retry attempts, and acknowledgements.
  *
  * **Details**
  *
  * The store persists offered elements and returns taken elements in a scope so
  * the finalizer can complete or retry them based on the processing exit.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export class PersistedQueueStore extends Context.Service<

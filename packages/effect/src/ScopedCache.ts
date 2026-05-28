@@ -440,7 +440,7 @@ export const getSuccess: {
 )
 
 /**
- * Stores a successful value for a key without running the lookup function.
+ * Sets a successful value for a key without running the lookup function.
  *
  * **When to use**
  *
@@ -492,7 +492,7 @@ export const set: {
 )
 
 /**
- * Checks if the cache contains an entry for the specified key.
+ * Checks whether the cache contains an entry for the specified key.
  *
  * **When to use**
  *
@@ -564,8 +564,8 @@ export const invalidate: {
   ))
 
 /**
- * Conditionally invalidates the entry associated with the specified key in the cache
- * if the predicate returns true for the cached value.
+ * Invalidates the entry associated with the specified key in the cache when the
+ * predicate returns true for the cached value.
  *
  * **When to use**
  *

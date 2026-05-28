@@ -85,7 +85,7 @@ import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
- * Register an `HttpApi` with a `HttpRouter`.
+ * Registers an `HttpApi` with a `HttpRouter`.
  *
  * @category constructors
  * @since 4.0.0
@@ -186,7 +186,7 @@ export const group = <
 /**
  * Type identifier symbol used to brand `Handlers` values.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
@@ -194,7 +194,7 @@ export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpAp
 /**
  * Type of the `Handlers` type identifier symbol.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export type HandlersTypeId = typeof HandlersTypeId
@@ -443,10 +443,10 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
   HttpServerRequest | Request.ParsedSearchParams
 > => {
   switch (self._tag) {
-    case "Bearer": {
+    case "Http": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength)) as any
       )
     }
     case "ApiKey": {
@@ -521,7 +521,6 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const bearerLen = `Bearer `.length
 const basicLen = `Basic `.length
 
 const HandlersProto = {

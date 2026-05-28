@@ -151,7 +151,7 @@ const handledSymbol = Symbol.for("effect/http/HttpEffect/handled")
  * Use only when another owner will close the scope; otherwise resources attached
  * to the request scope can leak.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const scopeDisableClose = (scope: Scope.Scope): void => {
@@ -159,9 +159,9 @@ export const scopeDisableClose = (scope: Scope.Scope): void => {
 }
 
 /**
- * For streaming server responses, transfers request scope ownership to the body stream so the scope closes when the stream exits.
+ * Returns a streaming server response that closes the request scope when the body stream exits.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const scopeTransferToStream = (

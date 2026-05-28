@@ -101,7 +101,7 @@ export interface KeyValueStore {
   readonly has: (key: string) => Effect.Effect<boolean, KeyValueStoreError>
 
   /**
-   * Checks if the KeyValueStore contains any entries.
+   * Checks whether the KeyValueStore contains any entries.
    */
   readonly isEmpty: Effect.Effect<boolean, KeyValueStoreError>
 }
@@ -207,7 +207,12 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
 }
 
 /**
- * Context service tag for the `KeyValueStore` service.
+ * Service tag for string and binary key/value storage.
+ *
+ * **When to use**
+ *
+ * Use to access or provide the persistence store used for lightweight durable
+ * state.
  *
  * @category tags
  * @since 4.0.0
@@ -738,7 +743,7 @@ export interface SchemaStore<S extends Schema.Top> {
   readonly has: (key: string) => Effect.Effect<boolean, KeyValueStoreError>
 
   /**
-   * Checks if the KeyValueStore contains any entries.
+   * Checks whether the KeyValueStore contains any entries.
    */
   readonly isEmpty: Effect.Effect<boolean, KeyValueStoreError>
 }

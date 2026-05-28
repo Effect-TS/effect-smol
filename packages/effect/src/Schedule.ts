@@ -689,9 +689,8 @@ export const addDelay: {
   ))
 
 /**
- * Returns a new `Schedule` that will first execute the left (i.e. `self`)
- * schedule to completion. Once the left schedule is complete, the right (i.e.
- * `other`) schedule will be executed to completion.
+ * Returns a schedule that runs `self` to completion, then runs `other`, and
+ * merges their outputs.
  *
  * **Example** (Sequencing quick and slow retries)
  *
@@ -746,9 +745,8 @@ export const andThen: {
   map(andThenResult(self, other), (result) => effect.succeed(Result.merge(result))))
 
 /**
- * Returns a new `Schedule` that will first execute the left (i.e. `self`)
- * schedule to completion. Once the left schedule is complete, the right (i.e.
- * `other`) schedule will be executed to completion.
+ * Returns a schedule that runs `self` to completion, then runs `other`, and
+ * preserves which schedule produced each output.
  *
  * **Details**
  *
@@ -1962,7 +1960,8 @@ export const eitherWith: {
   )))
 
 /**
- * A schedule that always recurs and returns the total elapsed duration since the first recurrence.
+ * Schedule that always recurs and returns the total elapsed duration since the
+ * first recurrence.
  *
  * **Details**
  *
@@ -1996,7 +1995,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
 )
 
 /**
- * A schedule that always recurs, but will wait a certain amount between
+ * Schedule that always recurs, but will wait a certain amount between
  * repetitions, given by `base * factor.pow(n)`, where `n` is the number of
  * repetitions so far. Returns the current duration between recurrences.
  *
@@ -2056,7 +2055,7 @@ export const exponential = (
 }
 
 /**
- * A schedule that always recurs, increasing delays by summing the preceding
+ * Schedule that always recurs, increasing delays by summing the preceding
  * two delays (similar to the Fibonacci sequence). Returns the current
  * duration between recurrences.
  *
@@ -2458,8 +2457,9 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * **When to use**
  *
- * Use when you use `recurs` for a counter schedule with no additional delay. Use `take` to
- * limit an existing schedule while preserving its output and delay behavior.
+ * Use when you need a counter schedule with no additional delay. Use `take`
+ * to limit an existing schedule while preserving its output and delay
+ * behavior.
  *
  * **Gotchas**
  *
@@ -3322,7 +3322,7 @@ export {
 }
 
 /**
- * A schedule that divides the timeline to `interval`-long windows, and sleeps
+ * Schedule that divides the timeline to `interval`-long windows, and sleeps
  * until the nearest window boundary every time it recurs.
  *
  * **Details**

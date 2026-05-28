@@ -185,8 +185,17 @@ export const ClientTracingEnabled = Context.Reference<boolean>("effect/cluster/C
 })
 
 /**
- * Dynamically transform the request annotations based on the request.
- * This only applies to the requests handled by the Entity, not the client.
+ * Context reference for deriving request annotations from a cluster request.
+ *
+ * **When to use**
+ *
+ * Use to customize server-side request annotations based on the decoded
+ * request value.
+ *
+ * **Gotchas**
+ *
+ * This only applies to requests handled by the entity, not to the generated
+ * client.
  *
  * @category annotations
  * @since 4.0.0

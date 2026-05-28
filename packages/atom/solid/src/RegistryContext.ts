@@ -29,7 +29,7 @@ import type { JSX } from "solid-js"
 import { createComponent, createContext, onCleanup } from "solid-js"
 
 /**
- * A Solid context that carries the `AtomRegistry` used by atom hooks in the
+ * Provides a Solid context that carries the `AtomRegistry` used by atom hooks in the
  * current owner tree.
  *
  * **When to use**

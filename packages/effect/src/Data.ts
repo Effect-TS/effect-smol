@@ -83,7 +83,7 @@ import type * as Types from "./Types.ts"
 import type { Unify } from "./Unify.ts"
 
 /**
- * Base class for immutable data types.
+ * Provides a base class for immutable data types.
  *
  * **When to use**
  *
@@ -127,7 +127,7 @@ export const Class: new<A extends Record<string, any> = {}>(
 } as any
 
 /**
- * Base class for immutable data types with a `_tag` discriminator.
+ * Provides a base class for immutable data types with a `_tag` discriminator.
  *
  * **When to use**
  *
@@ -179,8 +179,7 @@ export const TaggedClass = <Tag extends string>(
  * **Details**
  *
  * Each key in the record becomes a variant with `readonly _tag` set to that
- * key. Use with {@link taggedEnum} to get runtime constructors, type guards,
- * and pattern matching.
+ * key. Use with {@link taggedEnum} to get constructors and matchers.
  *
  * **Gotchas**
  *
@@ -207,7 +206,7 @@ export const TaggedClass = <Tag extends string>(
  * // "BadRequest"
  * ```
  *
- * @see {@link taggedEnum} — runtime constructors for a `TaggedEnum`
+ * @see {@link taggedEnum} — constructors and matchers for a `TaggedEnum`
  * @see {@link TaggedEnum.WithGenerics} — generic tagged enums
  * @see {@link TaggedEnum.Constructor} — the constructor object type
  *
@@ -255,7 +254,7 @@ export declare namespace TaggedEnum {
    *
    * **When to use**
    *
-   * Use when variant payloads need to be parameterized, such as `Result<E, A>`. Pass the interface, not the type alias, to {@link taggedEnum} to get generic-aware constructors.
+   * Use when variant payloads need to be parameterized, such as `Result<E, A>`. Pass the interface, not the type alias, to {@link taggedEnum} to get generic-aware constructors and matchers.
    *
    * **Details**
    *
@@ -284,7 +283,7 @@ export declare namespace TaggedEnum {
    * ```
    *
    * @see {@link Kind} — apply concrete types to a `WithGenerics` definition
-   * @see {@link taggedEnum} — runtime constructors
+   * @see {@link taggedEnum} — constructors and matchers
    *
    * @category models
    * @since 2.0.0
@@ -417,12 +416,11 @@ export declare namespace TaggedEnum {
   > = Extract<A, { readonly _tag: K }>
 
   /**
-   * The full constructor-object type returned by {@link taggedEnum}.
+   * The full constructors-and-matchers object type returned by {@link taggedEnum}.
    *
    * **When to use**
    *
-   * Use to type the full constructor and matcher object returned by
-   * `taggedEnum`.
+   * Use to type the constructors-and-matchers object returned by `taggedEnum`.
    *
    * **Details**
    *
@@ -458,7 +456,7 @@ export declare namespace TaggedEnum {
    * })
    * ```
    *
-   * @see {@link taggedEnum} — creates a `Constructor`
+   * @see {@link taggedEnum} — creates constructors and matchers
    *
    * @category types
    * @since 3.1.0
@@ -584,12 +582,11 @@ export declare namespace TaggedEnum {
 }
 
 /**
- * Creates runtime constructors, type guards, and pattern matching for a
- * {@link TaggedEnum} type.
+ * Creates constructors and matchers for a `TaggedEnum` type.
  *
  * **When to use**
  *
- * Use when you have a `TaggedEnum` type and need to construct or inspect values. For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
+ * Use when you have a `TaggedEnum` type and need constructors and matchers for its values. For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
  *
  * **Details**
  *
@@ -750,11 +747,12 @@ function taggedMatch<
 }
 
 /**
- * Base class for yieldable errors.
+ * Provides a base class for yieldable errors.
  *
  * **When to use**
  *
- * Use when you use `Error` for errors that do **not** need tag-based discrimination. If you need `Effect.catchTag` support, use {@link TaggedError}.
+ * Use when defining yieldable errors that do **not** need tag-based
+ * discrimination. If you need tag-based recovery, use {@link TaggedError}.
  *
  * **Details**
  *
@@ -796,7 +794,8 @@ export const Error: new<A extends Record<string, any> = {}>(
  *
  * **When to use**
  *
- * Use when you use `TaggedError` for domain errors in Effect applications where you want discriminated-union error handling.
+ * Use when modeling domain errors in Effect applications where you want
+ * discriminated-union error handling.
  *
  * **Details**
  *

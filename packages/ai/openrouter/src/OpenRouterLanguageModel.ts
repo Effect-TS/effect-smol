@@ -77,7 +77,7 @@ import { type ChatStreamingResponseChunkData, OpenRouterClient } from "./OpenRou
 // =============================================================================
 
 /**
- * Service definition for OpenRouter language model configuration.
+ * Context service for OpenRouter language model configuration.
  *
  * **When to use**
  *

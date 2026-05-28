@@ -488,8 +488,8 @@ export const Event: Schema.Struct<{
 })
 
 /**
- * Schema transformation between the untagged SSE event shape and the tagged
- * `Event` model.
+ * Schema for transforming untagged SSE event payloads into tagged `Event`
+ * models.
  *
  * @category models
  * @since 4.0.0
@@ -528,7 +528,7 @@ export interface EventEncoded {
 const RetryTypeId = "~effect/encoding/Sse/Retry" as const
 
 /**
- * Server-Sent Events retry directive.
+ * Represents a Server-Sent Events retry directive.
  *
  * **Details**
  *

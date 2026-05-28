@@ -110,7 +110,7 @@ export interface BackupMetadata {
 }
 
 /**
- * Context service tag for the node SQLite client implementation.
+ * Service tag for the node SQLite client implementation.
  *
  * @category tags
  * @since 4.0.0

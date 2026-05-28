@@ -470,10 +470,15 @@ export interface Metadata {
 }
 
 /**
- * `Context.Reference` containing metadata for the currently running
+ * Context reference containing metadata for the currently running
  * execution-plan attempt.
  *
- * @category Metadata
+ * **When to use**
+ *
+ * Use to read the active plan step and attempt while code is running under an
+ * execution plan.
+ *
+ * @category metadata
  * @since 4.0.0
  */
 export const CurrentMetadata = Context.Reference<Metadata>("effect/ExecutionPlan/CurrentMetadata", {

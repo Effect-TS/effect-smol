@@ -39,7 +39,7 @@ import type * as DurableDeferred from "./DurableDeferred.ts"
 import * as Workflow from "./Workflow.ts"
 
 /**
- * Service interface for workflow runtimes, responsible for registering and
+ * Service that represents workflow runtimes, responsible for registering and
  * executing workflows and coordinating activities, durable deferreds,
  * interrupts, resumes, and clocks.
  *
@@ -136,7 +136,7 @@ export class WorkflowEngine extends Context.Service<
     ) => Effect.Effect<void>
 
     /**
-     * Unsafely interrupt a registered workflow, potentially ignoring
+     * Interrupts a registered workflow unsafely, potentially ignoring
      * compensation finalizers and orphaning child workflows.
      */
     readonly interruptUnsafe: (
@@ -220,9 +220,19 @@ export class WorkflowEngine extends Context.Service<
 >()("effect/workflow/WorkflowEngine") {}
 
 /**
- * Per-execution workflow service containing the execution ID, workflow
- * definition, long-lived scope, suspension state, interruption state, and
- * activity coordination state.
+ * Service that contains workflow runtime state for one execution.
+ *
+ * **When to use**
+ *
+ * Use to read or update workflow execution, suspension, interruption,
+ * lifetime, failure, and activity coordination state inside workflow engine
+ * internals.
+ *
+ * **Details**
+ *
+ * The service stores the execution ID, workflow definition, long-lived scope,
+ * suspension and interruption flags, the stored failure cause, and activity
+ * coordination state for a single workflow run.
  *
  * @category services
  * @since 4.0.0
@@ -551,9 +561,17 @@ const defaultRetrySchedule = Schedule.exponential(200, 1.5).pipe(
 )
 
 /**
- * A in-memory implementation of the WorkflowEngine. This is useful for testing
- * and local development, but is not suitable for production use as it does not
- * provide durability guarantees.
+ * Layer that provides an in-memory `WorkflowEngine`.
+ *
+ * **When to use**
+ *
+ * Use to run tests and local development workflows where durability is not
+ * needed.
+ *
+ * **Gotchas**
+ *
+ * This layer keeps state only in memory and is not suitable for production
+ * workflows that require durability.
  *
  * @category layers
  * @since 4.0.0

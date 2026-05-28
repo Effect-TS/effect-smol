@@ -759,12 +759,12 @@ export const orElseSome: {
 )
 
 /**
- * Like {@link orElse}, but wraps the result in a `Result` to indicate the
- * source of the value.
+ * Returns the first available value and marks whether it came from the fallback.
  *
  * **When to use**
  *
- * Use when distinguishing whether a value came from the primary or fallback `Option`
+ * Use when distinguishing whether a value came from the primary or fallback
+ * `Option`.
  *
  * **Details**
  *
@@ -1191,7 +1191,6 @@ export const getOrThrow: <A>(self: Option<A>) => A = getOrThrowWith(() => new Er
  *
  * - `Some` → applies `f` and wraps the result in a new `Some`
  * - `None` → returns `None` unchanged
- * - Does not mutate the input
  *
  * **Example** (Mapping over an Option)
  *
@@ -1289,7 +1288,7 @@ export const asVoid: <_>(self: Option<_>) => Option<void> = as(undefined)
 const void_: Option<void> = some(undefined)
 export {
   /**
-   * A pre-built `Some(undefined)` constant.
+   * Provides a pre-built `Some(undefined)` constant.
    *
    * **When to use**
    *
@@ -2242,7 +2241,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
 )
 
 /**
- * Checks if an `Option` contains a value equivalent to the given one, using a
+ * Checks whether an `Option` contains a value equivalent to the given one, using a
  * custom `Equivalence`.
  *
  * **When to use**
@@ -2282,7 +2281,7 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
 } => dual(2, (self: Option<A>, a: A): boolean => isNone(self) ? false : isEquivalent(self.value, a))
 
 /**
- * Checks if an `Option` contains a value equal to the given one, using default
+ * Checks whether an `Option` contains a value equal to the given one, using default
  * structural equality.
  *
  * **When to use**
@@ -2321,7 +2320,7 @@ export const contains: {
 } = containsWith(Equal.asEquivalence())
 
 /**
- * Tests if the value in a `Some` satisfies a predicate or refinement.
+ * Checks whether the value in a `Some` satisfies a predicate or refinement.
  *
  * **When to use**
  *
@@ -2496,7 +2495,7 @@ export const bind: {
 } = doNotation.bind<OptionTypeLambda>(map, flatMap)
 
 /**
- * An `Option` containing an empty record `{}`, used as the starting point for
+ * Provides an `Option` containing an empty record `{}`, used as the starting point for
  * do notation chains.
  *
  * **When to use**
@@ -2529,7 +2528,7 @@ export const bind: {
 export const Do: Option<{}> = some({})
 
 /**
- * Generator-based syntax for `Option`, similar to `async`/`await` but for
+ * Provides generator-based syntax for `Option`, similar to `async`/`await` but for
  * optional values. Yielding a `None` short-circuits the generator to `None`.
  *
  * **When to use**

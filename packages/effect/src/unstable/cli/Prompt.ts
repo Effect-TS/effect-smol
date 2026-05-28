@@ -279,6 +279,10 @@ export interface IntegerOptions {
    */
   readonly message: string
   /**
+   * The default value of the integer prompt.
+   */
+  readonly default?: number
+  /**
    * The minimum value that can be entered by the user (defaults to `-Infinity`).
    */
   readonly min?: number
@@ -360,6 +364,10 @@ export interface FileOptions {
    * to the current working directory.
    */
   readonly startingPath?: string
+  /**
+   * The default path to select when the prompt is first displayed.
+   */
+  readonly default?: string
   /**
    * The number of choices to display at one time, defaulting to `10`.
    */
@@ -838,6 +846,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     type: options.type ?? "file",
     message: options.message ?? `Choose a file`,
     startingPath: Option.fromUndefinedOr(options.startingPath),
+    default: Option.fromUndefinedOr(options.default),
     maxPerPage: options.maxPerPage ?? 10,
     filter: options.filter ?? (() => Effect.succeed(true))
   }
@@ -847,9 +856,22 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     Environment
   > = Effect.gen(function*() {
     const currentPath = yield* resolveCurrentPath(Option.none(), opts)
-    const files = yield* getFileList(currentPath, opts)
+    const path = yield* Path.Path
+    const defaultPath = Option.map(opts.default, (defaultValue) => path.resolve(currentPath, defaultValue))
+    const initialPath = Option.match(defaultPath, {
+      onNone: () => currentPath,
+      onSome: (defaultPath) => path.dirname(defaultPath)
+    })
+    const files = yield* getFileList(initialPath, opts)
+    const cursor = Option.match(defaultPath, {
+      onNone: () => 0,
+      onSome: (defaultPath) => {
+        const index = files.indexOf(path.basename(defaultPath))
+        return index === -1 ? 0 : index
+      }
+    })
     const confirm = Confirm.Hide()
-    return { cursor: 0, files, allFiles: files, query: "", path: Option.none(), confirm }
+    return { cursor, files, allFiles: files, query: "", path: Option.map(defaultPath, path.dirname), confirm }
   })
   return custom(initialState, {
     render: handleFileRender(opts),
@@ -859,8 +881,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
 }
 
 /**
- * Sequences prompts by using the output of this prompt to create the next
- * prompt.
+ * Composes prompts by using the output of this prompt to create the next prompt.
  *
  * @category combinators
  * @since 4.0.0
@@ -897,6 +918,7 @@ export const flatMap: {
  */
 export const float = (options: FloatOptions): Prompt<number> => {
   const opts: FloatOptionsReq = {
+    default: 0,
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -913,9 +935,10 @@ export const float = (options: FloatOptions): Prompt<number> => {
     },
     ...options
   }
+  const initialValue = options.default === undefined ? "" : `${opts.default}`
   const initialState: NumberState = {
-    cursor: 0,
-    value: "",
+    cursor: initialValue.length,
+    value: initialValue,
     error: Option.none()
   }
   return custom(initialState, {
@@ -948,6 +971,7 @@ export const hidden = (
  */
 export const integer = (options: IntegerOptions): Prompt<number> => {
   const opts: IntegerOptionsReq = {
+    default: 0,
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -963,9 +987,10 @@ export const integer = (options: IntegerOptions): Prompt<number> => {
     },
     ...options
   }
+  const initialValue = options.default === undefined ? "" : `${opts.default}`
   const initialState: NumberState = {
-    cursor: 0,
-    value: "",
+    cursor: initialValue.length,
+    value: initialValue,
     error: Option.none()
   }
   return custom(initialState, {
@@ -2008,8 +2033,9 @@ class Meridiem extends DatePart {
   }
 }
 
-interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath">> {
+interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath" | "default">> {
   readonly startingPath: Option.Option<string>
+  readonly default: Option.Option<string>
 }
 
 interface FileState {

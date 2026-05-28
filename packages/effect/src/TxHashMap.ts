@@ -360,7 +360,7 @@ export const fromIterable = <K, V>(
   })
 
 /**
- * Safely lookup the value for the specified key in the TxHashMap.
+ * Looks up the value for the specified key in the TxHashMap.
  *
  * **Example** (Looking up values safely)
  *
@@ -450,7 +450,7 @@ export const set: {
 )
 
 /**
- * Checks if the specified key exists in the TxHashMap.
+ * Checks whether the specified key exists in the TxHashMap.
  *
  * **Example** (Checking for keys)
  *
@@ -629,7 +629,7 @@ export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
   })
 
 /**
- * Checks if the TxHashMap is empty.
+ * Checks whether the TxHashMap is empty.
  *
  * **Example** (Checking for an empty map)
  *
@@ -664,7 +664,7 @@ export const isEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
   })
 
 /**
- * Checks if the TxHashMap is non-empty.
+ * Checks whether the TxHashMap is non-empty.
  *
  * **Example** (Checking for a non-empty map)
  *
@@ -1659,7 +1659,7 @@ export const filterMap: {
 )
 
 /**
- * Checks if any entry in the TxHashMap matches the given predicate.
+ * Checks whether any entry in the TxHashMap matches the given predicate.
  *
  * **Example** (Checking entries with a predicate)
  *
@@ -1777,7 +1777,7 @@ export const findFirst: {
 )
 
 /**
- * Checks if at least one entry in the TxHashMap satisfies the given predicate.
+ * Checks whether at least one entry in the TxHashMap satisfies the given predicate.
  *
  * **Example** (Checking whether some entries match)
  *
@@ -1834,7 +1834,7 @@ export const some: {
 )
 
 /**
- * Checks if all entries in the TxHashMap satisfy the given predicate.
+ * Checks whether all entries in the TxHashMap satisfy the given predicate.
  *
  * **Example** (Checking whether every entry matches)
  *
@@ -1954,7 +1954,7 @@ export const forEach: {
 )
 
 /**
- * Effectfully maps each entry to a `TxHashMap` and flattens the produced maps.
+ * Maps each entry effectfully to a `TxHashMap` and flattens the produced maps.
  *
  * **Details**
  *

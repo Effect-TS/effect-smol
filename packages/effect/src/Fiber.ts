@@ -573,7 +573,7 @@ export const interruptAllAs: {
 } = effect.fiberInterruptAllAs
 
 /**
- * Tests if a value is a Fiber. This is a type guard that can be used to
+ * Checks whether a value is a Fiber. This is a type guard that can be used to
  * determine if an unknown value is a Fiber instance.
  *
  * **When to use**
@@ -650,7 +650,7 @@ export const isFiber = (
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
 
 /**
- * Links a fiber to a `Scope` and returns the same fiber.
+ * Adds a fiber to a `Scope` and returns the same fiber.
  *
  * **When to use**
  *

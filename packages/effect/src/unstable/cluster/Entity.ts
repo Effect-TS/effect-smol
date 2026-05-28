@@ -480,7 +480,12 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
 ): Entity<Type, Rpcs[number]> => fromRpcGroup(type, RpcGroup.make(...protocol))
 
 /**
- * A Context.Tag to access the current entity address.
+ * Service tag for the entity address currently being processed.
+ *
+ * **When to use**
+ *
+ * Use to read the current entity identity and shard address from entity
+ * handlers and keep-alive logic.
  *
  * @category context
  * @since 4.0.0
@@ -491,7 +496,12 @@ export class CurrentAddress extends Context.Service<
 >()("effect/cluster/Entity/EntityAddress") {}
 
 /**
- * A Context.Tag to access the current Runner address.
+ * Service tag for the runner address currently registering entity handlers.
+ *
+ * **When to use**
+ *
+ * Use to read the runner address associated with the current entity handler
+ * registration.
  *
  * @category context
  * @since 4.0.0
@@ -557,7 +567,7 @@ export declare namespace Replier {
 }
 
 /**
- * Entity request envelope delivered to entity handlers.
+ * Represents an entity request envelope delivered to entity handlers.
  *
  * **Details**
  *
@@ -604,7 +614,7 @@ const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/clust
  * The returned function creates a no-serialization RPC client for each entity ID,
  * using a test sharding service instead of the cluster transport.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE, LR>(
@@ -762,7 +772,7 @@ export const keepAlive: (
   ))
 
 /**
- * Internal persisted RPC used to keep an entity active while a resource is held.
+ * RPC used internally to keep an entity active while a resource is held.
  *
  * **Details**
  *

@@ -140,8 +140,9 @@ export declare namespace Exit {
  *
  * **When to use**
  *
- * Use when you use {@link isSuccess} to narrow an `Exit` to `Success`
- * - Access the value via the `value` property after narrowing
+ * Use when working with the successful branch of an `Exit` after narrowing
+ * with {@link isSuccess}. Access the value via the `value` property after
+ * narrowing.
  *
  * **Example** (Accessing the success value)
  *
@@ -172,8 +173,9 @@ export interface Success<out A, out E = never> extends Exit.Proto<A, E> {
  *
  * **When to use**
  *
- * Use when you use {@link isFailure} to narrow an `Exit` to `Failure`
- * - Access the cause via the `cause` property after narrowing
+ * Use when working with the failed branch of an `Exit` after narrowing with
+ * {@link isFailure}. Access the cause via the `cause` property after
+ * narrowing.
  *
  * **Details**
  *
@@ -204,7 +206,7 @@ export interface Failure<out A, out E> extends Exit.Proto<A, E> {
 }
 
 /**
- * Tests whether an unknown value is an Exit.
+ * Checks whether an unknown value is an Exit.
  *
  * **When to use**
  *
@@ -390,7 +392,7 @@ export const interrupt: (fiberId?: number | undefined) => Exit<never> = effect.e
 const void_: Exit<void> = effect.exitVoid
 export {
   /**
-   * A pre-allocated successful Exit with a `void` value.
+   * Provides a pre-allocated successful Exit with a `void` value.
    *
    * **When to use**
    *
@@ -420,7 +422,7 @@ export {
 }
 
 /**
- * Tests whether an Exit is a Success.
+ * Checks whether an Exit is a Success.
  *
  * **When to use**
  *
@@ -448,7 +450,7 @@ export {
 export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effect.exitIsSuccess
 
 /**
- * Tests whether an Exit is a Failure.
+ * Checks whether an Exit is a Failure.
  *
  * **When to use**
  *
@@ -476,7 +478,7 @@ export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effe
 export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitIsFailure
 
 /**
- * Tests whether a failed Exit contains typed errors (Fail reasons).
+ * Checks whether a failed Exit contains typed errors (Fail reasons).
  *
  * **When to use**
  *
@@ -508,7 +510,7 @@ export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effe
 export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasFails
 
 /**
- * Tests whether a failed Exit contains defects (Die reasons).
+ * Checks whether a failed Exit contains defects (Die reasons).
  *
  * **When to use**
  *
@@ -540,7 +542,7 @@ export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effec
 export const hasDies: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect.exitHasDies
 
 /**
- * Tests whether a failed Exit contains interruptions (Interrupt reasons).
+ * Checks whether a failed Exit contains interruptions (Interrupt reasons).
  *
  * **When to use**
  *
@@ -577,7 +579,7 @@ export const hasInterrupts: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = 
  * **When to use**
  *
  * Use when composing Exit checks with `Filter` or other `Result`-based
- * filtering APIs.
+ * filtering APIs and you want the full Success wrapper.
  *
  * **Details**
  *
@@ -654,7 +656,7 @@ export const filterValue: <A, E>(self: Exit<A, E>) => Result.Result<A, Failure<n
  * **When to use**
  *
  * Use when composing Exit checks with `Filter` or other `Result`-based
- * filtering APIs.
+ * filtering APIs and you want the full Failure wrapper.
  *
  * **Details**
  *
@@ -861,7 +863,7 @@ export const match: {
  *
  * - Has no effect on failures, which pass through unchanged
  *
- * Allocates a new Exit if successful. Does not mutate the input.
+ * Allocates a new Exit if successful.
  * Supports both curried and direct call styles.
  *
  * **Example** (Mapping over a success)
@@ -896,7 +898,7 @@ export const map: {
  *
  * - Has no effect on successes, which pass through unchanged
  *
- * Allocates a new Exit if the error is transformed. Does not mutate the input.
+ * Allocates a new Exit if the error is transformed.
  * Supports both curried and direct call styles.
  *
  * **Gotchas**
@@ -939,7 +941,7 @@ export const mapError: {
  * - `onSuccess` transforms the value if the Exit is a Success
  * - `onFailure` transforms the typed error if the Exit is a Failure with a Fail reason
  *
- * Allocates a new Exit. Does not mutate the input.
+ * Allocates a new Exit.
  * Supports both curried and direct call styles.
  *
  * **Gotchas**
@@ -989,7 +991,7 @@ export const mapBoth: {
  *
  * - Failures pass through unchanged
  *
- * Allocates a new Exit if successful. Does not mutate the input.
+ * Allocates a new Exit if successful.
  *
  * **Example** (Discarding the success value)
  *

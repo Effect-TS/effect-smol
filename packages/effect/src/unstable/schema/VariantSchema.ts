@@ -525,7 +525,7 @@ export const make = <
 }
 
 /**
- * Brands a value as an explicit override for an `Overrideable` schema default.
+ * Marks a value as an explicit override for an `Overrideable` schema default.
  *
  * @category overrideable
  * @since 4.0.0

@@ -132,7 +132,7 @@ const BigDecimalProto: Omit<BigDecimal, "value" | "scale" | "normalized"> = {
 } as const
 
 /**
- * Checks if a given value is a `BigDecimal`.
+ * Checks whether a given value is a `BigDecimal`.
  *
  * **When to use**
  *
@@ -272,7 +272,7 @@ export const normalize = (self: BigDecimal): BigDecimal => {
 }
 
 /**
- * Scales a `BigDecimal` to the specified scale.
+ * Changes a `BigDecimal` to the specified scale.
  *
  * **When to use**
  *
@@ -583,7 +583,7 @@ export const roundTerminal = (n: bigint): bigint => {
 }
 
 /**
- * Provides a division operation on `BigDecimal`s.
+ * Divides `BigDecimal`s safely.
  *
  * **When to use**
  *
@@ -658,8 +658,8 @@ export const divide: {
  *
  * **When to use**
  *
- * Use when the divisor is known to be non-zero and division by zero should be a
- * thrown exception.
+ * Use when you need the decimal quotient and the divisor is known to be
+ * non-zero, so division by zero should be a thrown exception.
  *
  * **Details**
  *
@@ -708,7 +708,8 @@ export const divideUnsafe: {
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for `BigDecimal` values.
+ * Use when sorting or comparing decimal values through APIs that accept an
+ * ordering instance.
  *
  * **Example** (Comparing decimals)
  *
@@ -780,7 +781,7 @@ export const isLessThan: {
 } = order.isLessThan(Order)
 
 /**
- * Checks if a given `BigDecimal` is less than or equal to the provided one.
+ * Checks whether a given `BigDecimal` is less than or equal to the provided one.
  *
  * **When to use**
  *
@@ -850,7 +851,7 @@ export const isGreaterThan: {
 } = order.isGreaterThan(Order)
 
 /**
- * Checks if a given `BigDecimal` is greater than or equal to the provided one.
+ * Checks whether a given `BigDecimal` is greater than or equal to the provided one.
  *
  * **When to use**
  *
@@ -885,7 +886,7 @@ export const isGreaterThanOrEqualTo: {
 } = order.isGreaterThanOrEqualTo(Order)
 
 /**
- * Checks if a `BigDecimal` is between a `minimum` and `maximum` value (inclusive).
+ * Checks whether a `BigDecimal` is between a `minimum` and `maximum` value (inclusive).
  *
  * **When to use**
  *
@@ -1104,7 +1105,8 @@ export const abs = (n: BigDecimal): BigDecimal => n.value < bigint0 ? make(-n.va
 export const negate = (n: BigDecimal): BigDecimal => make(-n.value, n.scale)
 
 /**
- * Returns the remainder left over when one operand is divided by a second operand.
+ * Computes the decimal remainder safely when one operand is divided by a second
+ * operand.
  *
  * **When to use**
  *
@@ -1163,12 +1165,13 @@ export const remainder: {
 })
 
 /**
- * Returns the remainder left over when one operand is divided by a second operand.
+ * Returns the decimal remainder left over when one operand is divided by a
+ * non-zero second operand, throwing for division by zero.
  *
  * **When to use**
  *
- * Use when the divisor is known to be non-zero and division by zero should be a
- * thrown exception.
+ * Use when you need the decimal remainder and the divisor is known to be
+ * non-zero, so division by zero should be a thrown exception.
  *
  * **Gotchas**
  *
@@ -1216,7 +1219,8 @@ export const remainderUnsafe: {
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for decimal equality.
+ * Use when comparing decimal values through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Checking decimal equivalence)
  *
@@ -1247,7 +1251,7 @@ export const Equivalence: Equ.Equivalence<BigDecimal> = Equ.make((self, that) =>
 })
 
 /**
- * Checks if two `BigDecimal`s are equal.
+ * Checks whether two `BigDecimal`s are equal.
  *
  * **When to use**
  *
@@ -1303,7 +1307,7 @@ export const equals: {
 export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
 
 /**
- * Creates a `BigDecimal` from a `number` value.
+ * Creates a `BigDecimal` from a finite `number`, throwing for non-finite input.
  *
  * **When to use**
  *
@@ -1336,7 +1340,7 @@ export const fromNumberUnsafe = (n: number): BigDecimal => {
 }
 
 /**
- * Creates a `BigDecimal` from a `number` value.
+ * Creates a `BigDecimal` safely from a finite `number`.
  *
  * **When to use**
  *
@@ -1387,7 +1391,7 @@ export const fromNumber = (n: number): Option.Option<BigDecimal> => {
 }
 
 /**
- * Safely parses a decimal string into a `BigDecimal`.
+ * Parses a decimal string into a `BigDecimal` safely.
  *
  * **When to use**
  *
@@ -1628,7 +1632,7 @@ export const toExponential = (n: BigDecimal): string => {
 export const toNumberUnsafe = (n: BigDecimal): number => Number(format(n))
 
 /**
- * Checks if a given `BigDecimal` is an integer.
+ * Checks whether a given `BigDecimal` is an integer.
  *
  * **When to use**
  *
@@ -1651,7 +1655,7 @@ export const toNumberUnsafe = (n: BigDecimal): number => Number(format(n))
 export const isInteger = (n: BigDecimal): boolean => normalize(n).scale <= 0
 
 /**
- * Checks if a given `BigDecimal` is `0`.
+ * Checks whether a given `BigDecimal` is `0`.
  *
  * **When to use**
  *
@@ -1673,7 +1677,7 @@ export const isInteger = (n: BigDecimal): boolean => normalize(n).scale <= 0
 export const isZero = (n: BigDecimal): boolean => n.value === bigint0
 
 /**
- * Checks if a given `BigDecimal` is negative.
+ * Checks whether a given `BigDecimal` is negative.
  *
  * **When to use**
  *
@@ -1696,7 +1700,7 @@ export const isZero = (n: BigDecimal): boolean => n.value === bigint0
 export const isNegative = (n: BigDecimal): boolean => n.value < bigint0
 
 /**
- * Checks if a given `BigDecimal` is positive.
+ * Checks whether a given `BigDecimal` is positive.
  *
  * **When to use**
  *
@@ -1762,7 +1766,7 @@ export type RoundingMode =
   | "half-odd"
 
 /**
- * Rounds a `BigDecimal` at the given scale with the specified rounding mode.
+ * Computes a rounded `BigDecimal` at the given scale with the specified rounding mode.
  *
  * **When to use**
  *
@@ -1842,7 +1846,7 @@ export const round: {
 })
 
 /**
- * Truncate a `BigDecimal` at the given scale. This removes fractional digits beyond the scale,
+ * Computes a truncated `BigDecimal` at the given scale. This removes fractional digits beyond the scale,
  * rounding toward zero.
  *
  * **When to use**
@@ -1878,7 +1882,7 @@ export const truncate: {
 })
 
 /**
- * Calculate the ceiling of a `BigDecimal` at the given scale.
+ * Computes the ceiling of a `BigDecimal` at the given scale.
  *
  * **When to use**
  *
@@ -1943,7 +1947,7 @@ export const digitAt: {
 })
 
 /**
- * Calculate the floor of a `BigDecimal` at the given scale.
+ * Computes the floor of a `BigDecimal` at the given scale.
  *
  * **When to use**
  *

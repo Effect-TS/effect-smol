@@ -113,7 +113,7 @@ export interface FileSystem {
   readonly [TypeId]: typeof TypeId
 
   /**
-   * Check if a file can be accessed.
+   * Checks whether a file can be accessed.
    * You can optionally specify the level of access to check for.
    */
   readonly access: (
@@ -162,7 +162,7 @@ export interface FileSystem {
     gid: number
   ) => Effect.Effect<void, PlatformError>
   /**
-   * Check if a path exists.
+   * Checks whether a path exists.
    */
   readonly exists: (
     path: string
@@ -737,12 +737,16 @@ export type OpenFlag =
   | "ax+"
 
 /**
- * The service identifier for the FileSystem service.
+ * Service tag for platform file-system operations.
+ *
+ * **When to use**
+ *
+ * Use to access or provide operations for files, directories, permissions,
+ * streams, and sinks through the Effect context.
  *
  * **Details**
  *
  * This key is used to provide and access the FileSystem service in the Effect context.
- * Use this to inject file system implementations or access file system operations.
  *
  * **Example** (Accessing and providing FileSystem)
  *
@@ -774,7 +778,7 @@ export type OpenFlag =
  * )
  * ```
  *
- * @category tag
+ * @category tags
  * @since 4.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")
@@ -1070,15 +1074,15 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * Runtime type identifier attached to `FileSystem.File` handles and used by
  * `isFile` to recognize them.
  *
- * **When to use**
+ * **Details**
  *
- * Use when implementing a custom `FileSystem` file handle that should be
- * recognized by `isFile`.
+ * This marker is part of the runtime representation of file handles. Prefer
+ * `isFile` when narrowing unknown values.
  *
  * @see {@link File} for the open file handle shape that carries this marker
  * @see {@link isFile} for the public guard that checks this marker
  *
- * @category File
+ * @category type IDs
  * @since 4.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"

@@ -639,7 +639,7 @@ const make = Effect.gen(function*() {
 })
 
 /**
- * Layer providing the `NodeChildProcessSpawner` implementation.
+ * Layer that provides the `NodeChildProcessSpawner` implementation.
  *
  * @category layers
  * @since 4.0.0

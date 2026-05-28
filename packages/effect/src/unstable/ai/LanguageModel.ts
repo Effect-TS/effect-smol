@@ -82,7 +82,12 @@ import * as Toolkit from "./Toolkit.ts"
 // =============================================================================
 
 /**
- * The `LanguageModel` service key for dependency injection, providing access to text generation, streaming, and structured output capabilities throughout an application.
+ * Service tag for AI model services.
+ *
+ * **When to use**
+ *
+ * Use to access or provide text generation, streaming generation, structured
+ * output, and tool-calling capabilities through the Effect context.
  *
  * **Example** (Accessing the language model service)
  *
@@ -99,7 +104,7 @@ import * as Toolkit from "./Toolkit.ts"
  * })
  * ```
  *
- * @category services
+ * @category tags
  * @since 4.0.0
  */
 export class LanguageModel extends Context.Service<LanguageModel, Service>()(
@@ -1621,7 +1626,7 @@ export const make: (params: {
 // =============================================================================
 
 /**
- * Generate text using a language model.
+ * Generates text using a language model.
  *
  * **Example** (Generating text with options)
  *
@@ -1690,7 +1695,7 @@ export const generateText: {
   )
 
 /**
- * Generate a structured object from a schema using a language model.
+ * Generates a structured object from a schema using a language model.
  *
  * **Example** (Generating an object)
  *
@@ -1742,7 +1747,7 @@ export const generateObject = <
   ) as any
 
 /**
- * Generate text using a language model with streaming output.
+ * Generates text using a language model with streaming output.
  *
  * **Details**
  *

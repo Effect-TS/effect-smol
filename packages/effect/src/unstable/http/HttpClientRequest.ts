@@ -917,7 +917,7 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
 }
 
 /**
- * Converts an `HttpClientRequest` to a Web `Request` as a `Result`, failing when the request URL is invalid.
+ * Converts an `HttpClientRequest` safely to a Web `Request` as a `Result`, failing when the request URL is invalid.
  *
  * @category converting
  * @since 4.0.0

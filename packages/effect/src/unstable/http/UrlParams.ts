@@ -223,14 +223,14 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
 }
 
 /**
- * Order-sensitive equivalence for `UrlParams`.
+ * Provides an order-sensitive `Equivalence` instance for `UrlParams`.
  *
  * **Details**
  *
  * Two values are equivalent when they contain the same key-value pairs in the same
  * order.
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<UrlParams> = Equ.make<UrlParams>((a, b) =>
@@ -317,7 +317,7 @@ export const getAll: {
 )
 
 /**
- * Returns the first value for a query parameter key.
+ * Returns the first value for a query parameter key safely.
  *
  * **Details**
  *
@@ -338,7 +338,7 @@ export const getFirst: {
 )
 
 /**
- * Returns the last value for a query parameter key.
+ * Returns the last value for a query parameter key safely.
  *
  * **Details**
  *
@@ -475,7 +475,7 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
 }> {}
 
 /**
- * Creates a `URL` by appending `UrlParams` and an optional hash to a URL string.
+ * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
  *
  * **Details**
  *
@@ -593,7 +593,7 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
 export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
 
 /**
- * Extract a JSON value from the first occurrence of the given `field` in the
+ * Extracts a JSON value from the first occurrence of the given `field` in the
  * `UrlParams`.
  *
  * **Example** (Decoding JSON parameter fields)

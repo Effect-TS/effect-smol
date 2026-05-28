@@ -74,7 +74,12 @@ export interface D1Client extends Client.SqlClient {
 }
 
 /**
- * Context tag used to access the `D1Client` service.
+ * Service tag for the Cloudflare D1 SQL client.
+ *
+ * **When to use**
+ *
+ * Use to access or provide a Cloudflare D1 SQL client through the Effect
+ * context.
  *
  * @category tags
  * @since 4.0.0

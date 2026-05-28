@@ -71,9 +71,14 @@ export {
    */
   layer as layerFetch,
   /**
-   * Service containing default `RequestInit` options for the fetch-based HTTP client.
+   * Service that contains default fetch options for the browser fetch client.
    *
-   * @category Fetch
+   * **When to use**
+   *
+   * Use to provide default credentials, cache, redirect, integrity, or other
+   * fetch options for browser HTTP requests.
+   *
+   * @category fetch
    * @since 4.0.0
    */
   RequestInit
@@ -92,7 +97,7 @@ export {
 export type XHRResponseType = "arraybuffer" | "text"
 
 /**
- * Reference that controls the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
+ * Context reference for the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
  *
  * **When to use**
  *

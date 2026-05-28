@@ -166,7 +166,7 @@ const statusCodeByLiteral = {
 export type StatusLiteral = keyof typeof statusCodeByLiteral
 
 /**
- * A convenience function to set the HTTP status code of a schema.
+ * Sets the HTTP status code of a schema.
  *
  * **Details**
  *
@@ -206,8 +206,7 @@ export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code
 export interface NoContent extends Schema.Void {}
 
 /**
- * A void schema with the HTTP status code 204.
- * This is used to represent empty responses with the status code 204.
+ * Schema for empty HTTP responses with status code 204.
  *
  * @category Empty
  * @since 4.0.0
@@ -223,8 +222,7 @@ export const NoContent: NoContent = Empty(204)
 export interface Created extends Schema.Void {}
 
 /**
- * A void schema with the HTTP status code 201.
- * This is used to represent empty responses with the status code 201.
+ * Schema for empty HTTP responses with status code 201.
  *
  * @category Empty
  * @since 4.0.0
@@ -240,8 +238,7 @@ export const Created: Created = Empty(201)
 export interface Accepted extends Schema.Void {}
 
 /**
- * A void schema with the HTTP status code 202.
- * This is used to represent empty responses with the status code 202.
+ * Schema for empty HTTP responses with status code 202.
  *
  * @category Empty
  * @since 4.0.0

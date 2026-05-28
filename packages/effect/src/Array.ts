@@ -47,8 +47,6 @@
  *
  * - {@link fromIterable} returns the original array reference when the input is
  *   already an array. Use {@link copy} when you need a fresh shallow copy.
- * - {@link sort}, {@link reverse}, {@link rotate}, and update operations
- *   allocate new arrays; they do not mutate the input.
  * - {@link makeBy}, {@link range}, and {@link replicate} always return
  *   non-empty arrays. `range(start, end)` is inclusive and returns `[start]`
  *   when `start > end`.
@@ -104,12 +102,12 @@ import * as Tuple from "./Tuple.ts"
 import type { NoInfer, TupleOf } from "./Types.ts"
 
 /**
- * Reference to the global `Array` constructor.
+ * Exposes the global array constructor.
  *
  * **When to use**
  *
- * Use when you need the native `Array` constructor while the `Array`
- * namespace is in scope (e.g. `Array.Array.isArray`, `Array.Array.from`).
+ * Use to access native JavaScript array constructor methods such as `isArray`
+ * or `from` from the Effect module namespace.
  *
  * **Example** (Using the Array constructor)
  *
@@ -622,7 +620,6 @@ export const matchRight: {
  * **Details**
  *
  * - Always returns a non-empty array.
- * - Does not mutate the input.
  *
  * **Example** (Prepending an element)
  *
@@ -654,7 +651,6 @@ export const prepend: {
  * **Details**
  *
  * - If either input is non-empty, the result is a `NonEmptyArray`.
- * - Does not mutate the input.
  *
  * **Example** (Prepending multiple elements)
  *
@@ -694,7 +690,6 @@ export const prependAll: {
  * **Details**
  *
  * - Always returns a non-empty array.
- * - Does not mutate the input.
  *
  * **Example** (Appending an element)
  *
@@ -727,7 +722,6 @@ export const append: {
  * **Details**
  *
  * - If either input is non-empty, the result is a `NonEmptyArray`.
- * - Does not mutate the inputs.
  *
  * **Example** (Concatenating arrays)
  *
@@ -757,7 +751,7 @@ export const appendAll: {
 )
 
 /**
- * Left-to-right fold that keeps every intermediate accumulator value.
+ * Folds left-to-right while keeping every intermediate accumulator value.
  *
  * **When to use**
  *
@@ -798,7 +792,7 @@ export const scan: {
 })
 
 /**
- * Right-to-left fold that keeps every intermediate accumulator value.
+ * Folds right-to-left while keeping every intermediate accumulator value.
  *
  * **When to use**
  *
@@ -839,7 +833,7 @@ export const scanRight: {
 })
 
 /**
- * Tests whether a value is an `Array`.
+ * Checks whether a value is an `Array`.
  *
  * **When to use**
  *
@@ -871,7 +865,7 @@ export const isArray: {
 } = Array.isArray
 
 /**
- * Tests whether a mutable `Array` is empty, narrowing the type to `[]`.
+ * Checks whether a mutable `Array` is empty, narrowing the type to `[]`.
  *
  * **Example** (Checking for an empty array)
  *
@@ -891,7 +885,7 @@ export const isArray: {
 export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
 
 /**
- * Tests whether a `ReadonlyArray` is empty, narrowing the type to `readonly []`.
+ * Checks whether a `ReadonlyArray` is empty, narrowing the type to `readonly []`.
  *
  * **Example** (Checking for an empty readonly array)
  *
@@ -911,7 +905,7 @@ export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
 export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readonly [] = isArrayEmpty as any
 
 /**
- * Tests whether a mutable `Array` is non-empty, narrowing the type to
+ * Checks whether a mutable `Array` is non-empty, narrowing the type to
  * `NonEmptyArray`.
  *
  * **Example** (Checking for a non-empty array)
@@ -932,7 +926,7 @@ export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readon
 export const isArrayNonEmpty: <A>(self: Array<A>) => self is NonEmptyArray<A> = internalArray.isArrayNonEmpty
 
 /**
- * Tests whether a `ReadonlyArray` is non-empty, narrowing the type to
+ * Checks whether a `ReadonlyArray` is non-empty, narrowing the type to
  * `NonEmptyReadonlyArray`.
  *
  * **Example** (Checking for a non-empty readonly array)
@@ -981,7 +975,7 @@ export function isOutOfBounds<A>(i: number, as: ReadonlyArray<A>): boolean {
 const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.min(Math.max(0, i), as.length))
 
 /**
- * Safely reads an element at the given index, returning `Option.some` or
+ * Reads an element at the given index safely, returning `Option.some` or
  * `Option.none` if the index is out of bounds.
  *
  * **When to use**
@@ -1124,7 +1118,7 @@ export const unappend = <A>(
 ): [arrayWithoutLastElement: Array<A>, lastElement: A] => [initNonEmpty(self), lastNonEmpty(self)]
 
 /**
- * Returns the first element of an array wrapped in `Option.some`, or
+ * Returns the first element of an array safely wrapped in `Option.some`, or
  * `Option.none` if the array is empty.
  *
  * **When to use**
@@ -1173,7 +1167,7 @@ export const head: <A>(self: ReadonlyArray<A>) => Option.Option<A> = get(0)
 export const headNonEmpty: <A>(self: NonEmptyReadonlyArray<A>) => A = getUnsafe(0)
 
 /**
- * Returns the last element of an array wrapped in `Option.some`, or
+ * Returns the last element of an array safely wrapped in `Option.some`, or
  * `Option.none` if the array is empty.
  *
  * **When to use**
@@ -1223,7 +1217,7 @@ export const last = <A>(self: ReadonlyArray<A>): Option.Option<A> =>
 export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.length - 1]
 
 /**
- * Returns all elements except the first, wrapped in an `Option`.
+ * Returns all elements except the first safely, wrapped in an `Option`.
  *
  * **When to use**
  *
@@ -1278,7 +1272,7 @@ export function tail<A>(self: Iterable<A>): Option.Option<Array<A>> {
 export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => self.slice(1)
 
 /**
- * Returns all elements except the last, wrapped in an `Option`.
+ * Returns all elements except the last safely, wrapped in an `Option`.
  *
  * **When to use**
  *
@@ -1919,7 +1913,7 @@ export const findLast: {
 )
 
 /**
- * Inserts an element at the specified index, returning a new `NonEmptyArray`
+ * Inserts an element at the specified index safely, returning a new `NonEmptyArray`
  * wrapped in an `Option`.
  *
  * **When to use**
@@ -1929,7 +1923,6 @@ export const findLast: {
  * **Details**
  *
  * - Valid indices: `0` to `length` (inclusive — inserting at `length` appends).
- * - Does not mutate the input.
  *
  * **Example** (Inserting at an index)
  *
@@ -1958,7 +1951,7 @@ export const insertAt: {
 })
 
 /**
- * Replaces the element at the specified index with a new value, returning the
+ * Replaces the element at the specified index safely with a new value, returning the
  * updated array in `Option.some`.
  *
  * **When to use**
@@ -1968,7 +1961,6 @@ export const insertAt: {
  * **Details**
  *
  * - Returns `Option.none()` when the index is out of bounds.
- * - Does not mutate the input.
  *
  * **Example** (Replacing an element)
  *
@@ -1999,7 +1991,7 @@ export const replace: {
 )
 
 /**
- * Applies a function to the element at the specified index, returning the
+ * Applies a function to the element at the specified index safely, returning the
  * updated array in `Option.some`.
  *
  * **When to use**
@@ -2010,7 +2002,6 @@ export const replace: {
  * **Details**
  *
  * - Returns `Option.none()` when the index is out of bounds.
- * - Does not mutate the input.
  *
  * **Example** (Modifying an element)
  *
@@ -2057,10 +2048,6 @@ export const modify: {
  *
  * Use to remove a single element at a known index.
  *
- * **Details**
- *
- * Does not mutate the input.
- *
  * **Example** (Removing an element)
  *
  * ```ts
@@ -2097,7 +2084,6 @@ export const remove: {
  *
  * **Details**
  *
- * - Does not mutate the input.
  * - Preserves `NonEmptyArray` in the return type.
  *
  * **Example** (Reversing an array)
@@ -2125,7 +2111,6 @@ export const reverse = <S extends Iterable<any>>(
  *
  * **Details**
  *
- * - Does not mutate the input.
  * - Preserves `NonEmptyArray` in the return type.
  * - Use {@link sortWith} to sort by a derived key, or {@link sortBy} for
  *   multi-key sorting.
@@ -2168,7 +2153,6 @@ export const sort: {
  * **Details**
  *
  * - Equivalent to `sort(Order.mapInput(order, f))` but more convenient.
- * - Does not mutate the input.
  *
  * **Example** (Sorting strings by length)
  *
@@ -2519,7 +2503,7 @@ export const setLastNonEmpty: {
 )
 
 /**
- * Rotates an array by `n` steps. Positive `n` rotates right; negative `n`
+ * Transforms an array by rotating it `n` steps. Positive `n` rotates right; negative `n`
  * rotates left.
  *
  * **When to use**
@@ -2605,7 +2589,7 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
   })
 
 /**
- * Tests whether an array contains a value, using `Equal.equivalence()` for
+ * Checks whether an array contains a value, using `Equal.equivalence()` for
  * comparison.
  *
  * **When to use**
@@ -2632,8 +2616,8 @@ export const contains: {
 } = containsWith(Equal.asEquivalence())
 
 /**
- * Repeatedly applies a function that consumes a prefix of the array and
- * produces a value plus the remaining elements, collecting the values.
+ * Applies a function repeatedly to consume prefixes of the array and collect
+ * the values it produces.
  *
  * **When to use**
  *
@@ -4158,7 +4142,7 @@ export const liftResult = <A extends Array<unknown>, E, B>(
 }
 
 /**
- * Tests whether all elements satisfy the predicate. Supports refinements for
+ * Checks whether all elements satisfy the predicate. Supports refinements for
  * type narrowing.
  *
  * **When to use**
@@ -4194,7 +4178,7 @@ export const every: {
 )
 
 /**
- * Tests whether at least one element satisfies the predicate. Narrows the type
+ * Checks whether at least one element satisfies the predicate. Narrows the type
  * to `NonEmptyReadonlyArray` on success.
  *
  * **Example** (Testing for any match)
@@ -4703,7 +4687,7 @@ export const cartesian: {
 // -------------------------------------------------------------------------------------
 
 /**
- * Starting point for the "do simulation" — an array comprehension pattern.
+ * Provides the starting point for the "do simulation" — an array comprehension pattern.
  *
  * **When to use**
  *
@@ -4736,7 +4720,7 @@ export const cartesian: {
 export const Do: ReadonlyArray<{}> = of({})
 
 /**
- * Introduces a new array variable into a do-notation scope, producing the cartesian product with all previous bindings.
+ * Adds a new array variable to a do-notation scope, producing the cartesian product with all previous bindings.
  *
  * **When to use**
  *
@@ -4785,7 +4769,7 @@ export const bind: {
 } = internalDoNotation.bind<ReadonlyArrayTypeLambda>(map, flatMap) as any
 
 /**
- * Names the elements of an array by wrapping each in an object with the given key, starting a do-notation scope.
+ * Wraps each array element in an object with the given key, starting a do-notation scope.
  *
  * **When to use**
  *
@@ -4891,7 +4875,7 @@ export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
 }
 
 /**
- * Counts the elements in an iterable that satisfy a predicate.
+ * Computes the number of elements in an iterable that satisfy a predicate.
  *
  * **When to use**
  *

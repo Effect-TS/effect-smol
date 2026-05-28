@@ -159,7 +159,11 @@ export interface ClickhouseClient extends Client.SqlClient {
 }
 
 /**
- * Context service tag for accessing the active `ClickhouseClient`.
+ * Service tag for the active ClickHouse SQL client.
+ *
+ * **When to use**
+ *
+ * Use to access or provide a ClickHouse SQL client through the Effect context.
  *
  * @category tags
  * @since 4.0.0

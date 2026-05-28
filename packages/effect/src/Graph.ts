@@ -115,7 +115,7 @@ export type NodeIndex = number
 export type EdgeIndex = number
 
 /**
- * Edge data containing source, target, and user data.
+ * Represents edge data containing source, target, and user data.
  *
  * **When to use**
  *
@@ -683,7 +683,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Gets the data associated with a node index, if it exists.
+ * Gets the data associated with a node index safely, if it exists.
  *
  * **Example** (Getting node data)
  *
@@ -719,7 +719,7 @@ export const getNode: {
 ): Option.Option<N> => graph.nodes.has(nodeIndex) ? Option.some(graph.nodes.get(nodeIndex)!) : Option.none())
 
 /**
- * Checks if a node with the given index exists in the graph.
+ * Checks whether a node with the given index exists in the graph.
  *
  * **Example** (Checking node existence)
  *
@@ -1108,7 +1108,7 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Reverses all edge directions in a mutable graph by swapping source and target nodes.
+ * Swaps source and target nodes for every edge in a mutable graph.
  *
  * **Example** (Reversing edge directions)
  *
@@ -1649,7 +1649,7 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
 // =============================================================================
 
 /**
- * Gets the edge data associated with an edge index, if it exists.
+ * Gets the edge data associated with an edge index safely, if it exists.
  *
  * **Example** (Getting edge data)
  *
@@ -1689,7 +1689,7 @@ export const getEdge: {
 ): Option.Option<Edge<E>> => Option.fromUndefinedOr(graph.edges.get(edgeIndex)))
 
 /**
- * Checks if an edge exists between two nodes in the graph.
+ * Checks whether an edge exists between two nodes in the graph.
  *
  * **Example** (Checking edge existence)
  *
@@ -1847,7 +1847,7 @@ export const neighbors: {
 })
 
 /**
- * Get neighbors of a node in a specific direction for bidirectional traversal.
+ * Gets neighbors of a node in a specific direction for bidirectional traversal.
  *
  * **Example** (Traversing directed neighbors)
  *
@@ -2567,7 +2567,7 @@ export type Direction = "outgoing" | "incoming"
 // =============================================================================
 
 /**
- * Checks if the graph is acyclic (contains no cycles).
+ * Checks whether the graph is acyclic (contains no cycles).
  *
  * **Details**
  *
@@ -2680,7 +2680,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
 }
 
 /**
- * Checks if an undirected graph is bipartite.
+ * Checks whether an undirected graph is bipartite.
  *
  * **Details**
  *
@@ -2795,7 +2795,7 @@ const getUndirectedNeighbors = <N, E>(
 }
 
 /**
- * Find connected components in an undirected graph.
+ * Finds connected components in an undirected graph.
  * Each component is represented as an array of node indices.
  *
  * **Example** (Finding connected components)
@@ -2854,7 +2854,7 @@ export const connectedComponents = <N, E>(
 }
 
 /**
- * Find strongly connected components in a directed graph using Kosaraju's algorithm.
+ * Finds strongly connected components in a directed graph using Kosaraju's algorithm.
  * Each SCC is represented as an array of node indices.
  *
  * **Example** (Finding strongly connected components)
@@ -3823,7 +3823,7 @@ export const bellmanFord: {
 })
 
 /**
- * Iterable wrapper used by graph traversal and listing APIs.
+ * Represents an iterable wrapper used by graph traversal and listing APIs.
  *
  * **Details**
  *

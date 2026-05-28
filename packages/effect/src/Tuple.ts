@@ -115,8 +115,7 @@ type Indices<T extends ReadonlyArray<unknown>> = Exclude<Partial<T>["length"], T
  *
  * **Details**
  *
- * The index is constrained to valid tuple positions at the type level, and the
- * input tuple is not mutated.
+ * The index is constrained to valid tuple positions at the type level.
  *
  * **Example** (Extracting an element by index)
  *
@@ -162,8 +161,7 @@ type PickTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, K>
  *
  * **Details**
  *
- * The result order matches the order of the provided indices. The input tuple is
- * not mutated; a fresh tuple is returned.
+ * The result order matches the order of the provided indices.
  *
  * **Example** (Selecting elements by index)
  *
@@ -208,8 +206,7 @@ type OmitTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, Exclude<Ind
  *
  * **Details**
  *
- * Elements not at the specified indices are kept in their original order. The
- * input tuple is not mutated; a fresh tuple is returned.
+ * Elements not at the specified indices are kept in their original order.
  *
  * **Example** (Removing elements by index)
  *
@@ -252,8 +249,7 @@ export const omit: {
  *
  * **Details**
  *
- * The result type is `[...T, E]`, preserving all existing element types. The
- * input tuple is not mutated; a fresh tuple is returned.
+ * The result type is `[...T, E]`, preserving all existing element types.
  *
  * **Example** (Appending an element)
  *
@@ -327,7 +323,7 @@ type Evolved<T, E> = { [I in keyof T]: I extends keyof E ? (E[I] extends (...a: 
  * **Details**
  *
  * Each transform function receives the current value and can return a different
- * type. The input tuple is not mutated; a fresh tuple is returned.
+ * type.
  *
  * **Example** (Transforming selected elements)
  *
@@ -360,7 +356,7 @@ export const evolve: {
 )
 
 /**
- * Rearranges elements of a tuple by providing an array of stringified source
+ * Renames tuple indices by providing an array of stringified source
  * indices. Each position in the array specifies which index to read from
  * (e.g., `["2", "1", "0"]` reverses a 3-element tuple).
  *
@@ -370,7 +366,7 @@ export const evolve: {
  *
  * **Details**
  *
- * The input tuple is not mutated; a fresh tuple is returned.
+ * The mapping returns a tuple in the requested index order.
  *
  * **Gotchas**
  *
@@ -419,8 +415,7 @@ export const renameIndices: {
  *
  * **Details**
  *
- * The lambda lets the compiler track the output type for each element. The
- * input tuple is not mutated; a fresh tuple is returned.
+ * The lambda lets the compiler track the output type for each element.
  *
  * **Gotchas**
  *
@@ -473,10 +468,6 @@ export const map: {
  *
  * Use when you want to apply the same transformation to a subset of
  * positions.
- *
- * **Details**
- *
- * The input tuple is not mutated; a fresh tuple is returned.
  *
  * **Example** (Wrapping only selected elements in arrays)
  *
@@ -533,10 +524,6 @@ export const mapPick: {
  *
  * Use when most elements should be transformed but a few should be
  * preserved.
- *
- * **Details**
- *
- * The input tuple is not mutated; a fresh tuple is returned.
  *
  * **Example** (Wrapping all elements except one in arrays)
  *
@@ -650,7 +637,7 @@ export const makeOrder = order.Tuple
 
 export {
   /**
-   * Checks if an array has exactly `N` elements, narrowing the type to a
+   * Checks whether an array has exactly `N` elements, narrowing the type to a
    * fixed-length tuple.
    *
    * **When to use**
@@ -684,7 +671,7 @@ export {
    */
   isTupleOf,
   /**
-   * Checks if an array has at least `N` elements, narrowing the type to a
+   * Checks whether an array has at least `N` elements, narrowing the type to a
    * tuple with a minimum length.
    *
    * **When to use**
@@ -730,10 +717,6 @@ export {
  * Use when you need to merge two tuples of the same shape, such as summing
  * counters or concatenating strings.
  *
- * **Details**
- *
- * The inputs are not mutated; a fresh tuple is returned.
- *
  * **Example** (Combining tuple elements)
  *
  * ```ts
@@ -773,10 +756,6 @@ export function makeCombiner<A extends ReadonlyArray<unknown>>(
  * **When to use**
  *
  * Use to fold a collection of tuples into a single summary tuple.
- *
- * **Details**
- *
- * The inputs are not mutated; a fresh tuple is returned.
  *
  * **Example** (Reducing a collection of tuples)
  *

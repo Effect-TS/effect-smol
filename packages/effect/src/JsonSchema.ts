@@ -235,7 +235,7 @@ export interface MultiDocument<D extends Dialect> {
 }
 
 /**
- * The `$schema` meta-schema URI for JSON Schema Draft-07.
+ * Represents the `$schema` meta-schema URI for JSON Schema Draft-07.
  *
  * **When to use**
  *
@@ -255,7 +255,7 @@ export interface MultiDocument<D extends Dialect> {
 export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
 
 /**
- * The `$schema` meta-schema URI for JSON Schema Draft 2020-12.
+ * Represents the `$schema` meta-schema URI for JSON Schema Draft 2020-12.
  *
  * **When to use**
  *
@@ -291,8 +291,7 @@ const RE_COMPONENTS_SCHEMAS = /^#\/components\/schemas(?=\/|$)/
  * This converts Draft-07 tuple syntax (`items` as array plus
  * `additionalItems`) to Draft-2020-12 form (`prefixItems` plus `items`),
  * rewrites `#/definitions/...` refs to `#/$defs/...`, and extracts root-level
- * `definitions` into the `definitions` field. It does not mutate the input and
- * allocates a new `Document`.
+ * `definitions` into the `definitions` field.
  *
  * **Gotchas**
  *
@@ -441,9 +440,8 @@ export function fromSchemaDraft07(js: JsonSchema): Document<"draft-2020-12"> {
  *
  * **Details**
  *
- * This separates `$defs` from the root schema into the `definitions` field. It
- * does not mutate the input and allocates a new `Document`. Unlike
- * {@link fromSchemaDraft07}, this performs no keyword rewriting.
+ * This separates `$defs` from the root schema into the `definitions` field.
+ * Unlike {@link fromSchemaDraft07}, this performs no keyword rewriting.
  *
  * **Example** (Parsing a Draft-2020-12 schema)
  *
@@ -485,8 +483,7 @@ export function fromSchemaDraft2020_12(js: JsonSchema): Document<"draft-2020-12"
  * **Details**
  *
  * This rewrites `#/components/schemas/...` refs to `#/$defs/...`, then delegates
- * to {@link fromSchemaDraft2020_12}. It does not mutate the input and allocates
- * a new `Document`.
+ * to {@link fromSchemaDraft2020_12}.
  *
  * **Example** (Parsing an OpenAPI 3.1 schema)
  *
@@ -527,8 +524,7 @@ export function fromSchemaOpenApi3_1(js: JsonSchema): Document<"draft-2020-12"> 
  * This handles OpenAPI 3.0 extensions, including `nullable`, singular
  * `example`, and boolean `exclusiveMinimum` or `exclusiveMaximum`. It
  * normalizes the schema to Draft-07 first, then converts to Draft-2020-12 via
- * {@link fromSchemaDraft07}. It does not mutate the input and allocates a new
- * `Document`.
+ * {@link fromSchemaDraft07}.
  *
  * **Example** (Parsing an OpenAPI 3.0 nullable schema)
  *
@@ -567,8 +563,7 @@ export function fromSchemaOpenApi3_0(schema: JsonSchema): Document<"draft-2020-1
  * This rewrites `#/$defs/...` refs to `#/definitions/...`, converts
  * Draft-2020-12 tuple syntax (`prefixItems` plus `items`) to Draft-07 form
  * (`items` as array plus `additionalItems`), and converts both the root schema
- * and all definitions. It does not mutate the input and allocates a new
- * `Document`.
+ * and all definitions.
  *
  * **Gotchas**
  *
@@ -719,8 +714,7 @@ function toSchemaDraft07(schema: JsonSchema): JsonSchema {
  * definition keys to match the OpenAPI component key pattern
  * (`^[a-zA-Z0-9.\-_]+$`) by replacing invalid characters with `_`, updates all
  * `$ref` pointers to use the sanitized keys, and converts all schemas and
- * definitions in the multi-document. It does not mutate the input and allocates
- * a new `MultiDocument`.
+ * definitions in the multi-document.
  *
  * **Example** (Converting to OpenAPI 3.1)
  *
@@ -942,8 +936,7 @@ function widen_type(node: Record<string, unknown>): Record<string, unknown> {
  * **Details**
  *
  * This only resolves the final segment of the ref path, such as `"User"` from
- * `"#/$defs/User"`. It returns `undefined` if the definition is not found and
- * does not mutate anything.
+ * `"#/$defs/User"`. It returns `undefined` if the definition is not found.
  *
  * **Gotchas**
  *
@@ -982,10 +975,7 @@ export function resolve$ref($ref: string, definitions: Definitions): JsonSchema 
 }
 
 /**
- * If the root schema of a document is a `$ref`, resolves it against the
- * document's definitions and returns a new document with the inlined
- * schema. Returns the original document unchanged if the root schema is
- * not a `$ref` or if the referenced definition is not found.
+ * Resolves a document whose root schema is a top-level `$ref`.
  *
  * **When to use**
  *
@@ -994,8 +984,8 @@ export function resolve$ref($ref: string, definitions: Definitions): JsonSchema 
  *
  * **Details**
  *
- * This does not mutate the input. It returns the same object if no change is
- * needed, or a shallow copy with the resolved schema.
+ * This returns the same object if no change is needed, or a shallow copy with
+ * the resolved schema.
  *
  * **Example** (Resolving a top-level $ref)
  *

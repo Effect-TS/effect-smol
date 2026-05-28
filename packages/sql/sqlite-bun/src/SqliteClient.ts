@@ -98,7 +98,11 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
- * Context tag used to access the Bun `SqliteClient` service.
+ * Service tag for the Bun SQLite client service.
+ *
+ * **When to use**
+ *
+ * Use to access or provide a Bun SQLite client through the Effect context.
  *
  * @category tags
  * @since 4.0.0

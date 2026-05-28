@@ -45,7 +45,7 @@ const TypeId = "~@effect/platform-browser/Geolocation"
 const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 
 /**
- * Service interface for browser geolocation, providing effects for the current position and streams of watched positions.
+ * Defines the service interface for browser geolocation, providing effects for the current position and streams of watched positions.
  *
  * **When to use**
  *
@@ -85,7 +85,7 @@ export interface Geolocation {
 }
 
 /**
- * Service tag for the browser `Geolocation` service.
+ * Service tag for browser geolocation capabilities.
  *
  * **When to use**
  *
@@ -237,9 +237,10 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
 )
 
 /**
- * Streams positions from the `Geolocation` service using `watchPosition`, with an optional sliding buffer size.
+ * Reads geolocation positions from the `Geolocation` service as a stream, with
+ * an optional sliding buffer size.
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const watchPosition = (

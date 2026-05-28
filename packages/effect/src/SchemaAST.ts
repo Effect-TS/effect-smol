@@ -442,7 +442,7 @@ export const isUnion = makeGuard("Union")
 export const isSuspend = makeGuard("Suspend")
 
 /**
- * A single step in an {@link Encoding} chain.
+ * Represents a single step in an {@link Encoding} chain.
  *
  * **Details**
  *
@@ -584,7 +584,7 @@ export interface ParseOptions {
 export const defaultParseOptions: ParseOptions = {}
 
 /**
- * Per-property metadata attached to AST nodes via {@link Base.context}.
+ * Represents per-property metadata attached to AST nodes via {@link Base.context}.
  *
  * **Details**
  *
@@ -645,7 +645,7 @@ export type Checks = readonly [Check<any>, ...Array<Check<any>>]
 const TypeId = "~effect/Schema"
 
 /**
- * Abstract base class for all {@link AST} node variants.
+ * Represents the abstract base class for all {@link AST} node variants.
  *
  * **Details**
  *
@@ -777,9 +777,14 @@ export class Null extends Base {
 const null_ = new Null()
 export {
   /**
-   * Singleton {@link Null} AST instance.
+   * Provides the singleton {@link Null} AST instance.
    *
-   * @category constructors
+   * **When to use**
+   *
+   * Use when you need the shared AST node for exact null values while inspecting
+   * or constructing schema ASTs.
+   *
+   * @category constants
    * @since 4.0.0
    */
   null_ as null
@@ -824,9 +829,14 @@ const undefinedToNull = new Link(
 const undefined_ = new Undefined()
 export {
   /**
-   * Singleton {@link Undefined} AST instance.
+   * Provides the singleton {@link Undefined} AST instance.
    *
-   * @category constructors
+   * **When to use**
+   *
+   * Use when you need the shared AST node for exact undefined values while
+   * inspecting or constructing schema ASTs.
+   *
+   * @category constants
    * @since 4.0.0
    */
   undefined_ as undefined
@@ -864,7 +874,7 @@ export class Void extends Base {
 const void_ = new Void()
 export {
   /**
-   * Singleton {@link Void} AST instance.
+   * Provides the singleton {@link Void} AST instance.
    *
    * **When to use**
    *
@@ -907,12 +917,12 @@ export class Never extends Base {
 }
 
 /**
- * Singleton {@link Never} AST instance.
+ * Provides the singleton {@link Never} AST instance.
  *
  * **When to use**
  *
- * Use to reuse the canonical `Never` AST node when constructing, comparing, or
- * returning ASTs that represent the `never` type.
+ * Use to reuse the canonical bottom-type AST node when constructing,
+ * comparing, or returning ASTs.
  *
  * @see {@link Never} for the AST node class
  * @see {@link isNever} for narrowing an AST to a `Never` node
@@ -944,7 +954,7 @@ export class Any extends Base {
 }
 
 /**
- * Singleton {@link Any} AST instance.
+ * Provides the singleton {@link Any} AST instance.
  *
  * **When to use**
  *
@@ -984,12 +994,12 @@ export class Unknown extends Base {
 }
 
 /**
- * Singleton {@link Unknown} AST instance.
+ * Provides the singleton {@link Unknown} AST instance.
  *
  * **When to use**
  *
- * Use when you need the reusable AST singleton for an `unknown` schema node
- * that accepts every value while keeping the parsed type as `unknown`.
+ * Use when you need the reusable AST singleton for a schema node that accepts
+ * every value while keeping parsed values opaque.
  *
  * @see {@link any} for the singleton that accepts every value as `any`
  *
@@ -1021,7 +1031,7 @@ export class ObjectKeyword extends Base {
 }
 
 /**
- * Singleton {@link ObjectKeyword} AST instance.
+ * Provides the singleton {@link ObjectKeyword} AST instance.
  *
  * **When to use**
  *
@@ -1335,7 +1345,7 @@ export class String extends Base {
 }
 
 /**
- * Singleton {@link String} AST instance.
+ * Provides the singleton {@link String} AST instance.
  *
  * **When to use**
  *
@@ -1407,7 +1417,7 @@ function hasCheck(checks: ReadonlyArray<Check<unknown>>, tag: string): boolean {
 }
 
 /**
- * Singleton {@link Number} AST instance.
+ * Provides the singleton {@link Number} AST instance.
  *
  * **When to use**
  *
@@ -1444,7 +1454,7 @@ export class Boolean extends Base {
 }
 
 /**
- * Singleton {@link Boolean} AST instance.
+ * Provides the singleton {@link Boolean} AST instance.
  *
  * **When to use**
  *
@@ -1464,7 +1474,8 @@ export const boolean = new Boolean()
  *
  * **When to use**
  *
- * Use when building an AST that should match any JavaScript symbol value.
+ * Use when defining or inspecting the AST node class for schemas that match any
+ * JavaScript symbol value.
  *
  * **Details**
  *
@@ -1493,11 +1504,12 @@ export class Symbol extends Base {
 }
 
 /**
- * Singleton {@link Symbol} AST instance.
+ * Provides the singleton {@link Symbol} AST instance.
  *
  * **When to use**
  *
- * Use when building an AST that should match any JavaScript symbol value.
+ * Use to reuse the singleton AST node for schemas that match any JavaScript
+ * symbol value.
  *
  * **Gotchas**
  *
@@ -1541,7 +1553,7 @@ export class BigInt extends Base {
 }
 
 /**
- * Singleton {@link BigInt} AST instance.
+ * Provides the singleton {@link BigInt} AST instance.
  *
  * **When to use**
  *
@@ -1812,7 +1824,7 @@ export function getIndexSignatureKeys(
 }
 
 /**
- * A named property within an {@link Objects} node.
+ * Represents a named property within an {@link Objects} node.
  *
  * **Details**
  *
@@ -1838,7 +1850,7 @@ export class PropertySignature {
 }
 
 /**
- * Bidirectional merge strategy for index signature key-value pairs.
+ * Represents a bidirectional merge strategy for index signature key-value pairs.
  *
  * **Details**
  *
@@ -1869,7 +1881,7 @@ export class KeyValueCombiner {
 }
 
 /**
- * An index signature entry within an {@link Objects} node.
+ * Represents an index signature entry within an {@link Objects} node.
  *
  * **Details**
  *
@@ -2746,7 +2758,7 @@ export class Suspend extends Base {
 // -----------------------------------------------------------------------------
 
 /**
- * A single validation check attached to an AST node.
+ * Represents a single validation check attached to an AST node.
  *
  * **Details**
  *
@@ -2801,7 +2813,7 @@ export class Filter<in E> extends Pipeable.Class {
 }
 
 /**
- * A composite validation check grouping multiple {@link Check} values.
+ * Represents a composite validation check grouping multiple {@link Check} values.
  *
  * **Details**
  *
@@ -3131,7 +3143,6 @@ export function withConstructorDefault<A extends AST>(
  * `Schema.transformOrFail`. It appends a {@link Link} to the `to` node's
  * encoding chain.
  *
- * - Does not mutate either input.
  * - Returns a new AST with the same type as `to`.
  *
  * @see {@link Link}
@@ -3231,7 +3242,6 @@ export function isMutable(ast: AST): boolean {
  * - Memoized: same input reference → same output reference.
  * - Recursively walks into composite nodes ({@link Arrays}, {@link Objects},
  *   {@link Union}, {@link Suspend}).
- * - Does not mutate the input.
  *
  * **Example** (Getting the type AST)
  *
@@ -3266,7 +3276,6 @@ export const toType = memoize(<A extends AST>(ast: A): A => {
  * the shape of the serialized/encoded data.
  *
  * - Memoized: same input reference → same output reference.
- * - Does not mutate the input.
  *
  * **Example** (Getting the encoded AST)
  *
@@ -3316,7 +3325,6 @@ function flipEncoding(ast: AST, encoding: Encoding): AST {
  *
  * - Memoized: same input reference → same output reference.
  * - Recursively walks composite nodes.
- * - Does not mutate the input.
  *
  * @see {@link toType}
  * @see {@link toEncoded}

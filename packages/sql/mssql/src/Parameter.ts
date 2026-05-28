@@ -43,7 +43,7 @@ import type { ParameterOptions } from "tedious/lib/request.ts"
 /**
  * Runtime type identifier used to mark SQL Server stored procedure parameter metadata.
  *
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-mssql/Parameter"
@@ -51,7 +51,7 @@ export const TypeId: TypeId = "~@effect/sql-mssql/Parameter"
 /**
  * Type-level identifier used to mark SQL Server stored procedure parameter metadata.
  *
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-mssql/Parameter"

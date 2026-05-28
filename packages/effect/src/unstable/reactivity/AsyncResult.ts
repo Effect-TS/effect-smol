@@ -422,9 +422,10 @@ export const touch = <A extends AsyncResult<any, any>>(result: A): A => {
 }
 
 /**
- * For a `Failure`, replaces its stored previous success with the latest success found in another result; non-failures are returned unchanged.
+ * Replaces a `Failure` value's stored previous success with the latest success
+ * found in another result.
  *
- * @category constructors
+ * @category combinators
  * @since 4.0.0
  */
 export const replacePrevious = <R extends AsyncResult<any, any>, XE, A>(
@@ -536,7 +537,17 @@ export const map: {
 })
 
 /**
- * Flat maps a success result with a function returning another `AsyncResult`, leaves initial results unchanged, and preserves failure causes while remapping stored previous successes when possible.
+ * Maps the success value of an `AsyncResult` and flattens the result.
+ *
+ * **When to use**
+ *
+ * Use to sequence computations that may return another `AsyncResult` while
+ * preserving initial and failure states.
+ *
+ * **Details**
+ *
+ * Initial results are left unchanged. Failures preserve their cause and remap
+ * the stored previous success when the mapping function returns a success.
  *
  * @category combinators
  * @since 4.0.0

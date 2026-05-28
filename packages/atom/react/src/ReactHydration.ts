@@ -40,8 +40,8 @@ export interface HydrationBoundaryProps {
 }
 
 /**
- * Hydrates dehydrated Atom values into the current Atom registry for a React
- * subtree.
+ * Provides a React hydration boundary that loads dehydrated Atom values into
+ * the current Atom registry.
  *
  * **When to use**
  *

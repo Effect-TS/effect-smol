@@ -149,7 +149,7 @@ export interface TxRef<in out A> extends Pipeable {
 export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
 
 /**
- * Synchronously creates a new `TxRef` with the specified initial value.
+ * Creates a new `TxRef` synchronously with the specified initial value.
  *
  * **When to use**
  *

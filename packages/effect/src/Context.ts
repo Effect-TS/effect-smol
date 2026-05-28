@@ -193,8 +193,8 @@ export declare namespace ServiceClass {
  *
  * **When to use**
  *
- * Use when you use `Service` for dependencies that must be provided by the surrounding
- * context. Use `Reference` when a dependency should have a default value.
+ * Use when a dependency must be provided by the surrounding context. Use
+ * `Reference` when a dependency should have a default value.
  *
  * **Details**
  *
@@ -566,7 +566,7 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
 }
 
 /**
- * Checks if the provided argument is a `Context`.
+ * Checks whether the provided argument is a `Context`.
  *
  * **When to use**
  *
@@ -601,7 +601,7 @@ const Proto: Omit<Context<never>, "mapUnsafe" | "mutable"> = {
 export const isContext = (u: unknown): u is Context<never> => hasProperty(u, TypeId)
 
 /**
- * Checks if the provided argument is a `Key`.
+ * Checks whether the provided argument is a `Key`.
  *
  * **Example** (Checking for keys)
  *
@@ -618,7 +618,7 @@ export const isContext = (u: unknown): u is Context<never> => hasProperty(u, Typ
 export const isKey = (u: unknown): u is Key<any, any> => hasProperty(u, ServiceTypeId)
 
 /**
- * Checks if the provided argument is a `Reference`.
+ * Checks whether the provided argument is a `Reference`.
  *
  * **Example** (Checking for references)
  *
@@ -860,8 +860,8 @@ export const getOrElse: {
  *
  * **When to use**
  *
- * Use when you use `getOrUndefined` for raw map-style lookup. Use `getOption` when you want
- * the usual `Context.Reference` default-value behavior.
+ * Use when you need raw map-style lookup. Use `getOption` when you want the
+ * usual `Context.Reference` default-value behavior.
  *
  * **Gotchas**
  *
@@ -887,9 +887,9 @@ export const getOrUndefined: {
  *
  * **When to use**
  *
- * Use when you use `getUnsafe` only when the context type cannot prove that the service is
- * present. Use `get` when the service requirement is tracked in the context
- * type, or `getOption` when absence is expected.
+ * Use when the context type cannot prove that the service is present. Use
+ * `get` when the service requirement is tracked in the context type, or
+ * `getOption` when absence is expected.
  *
  * **Details**
  *
@@ -933,7 +933,7 @@ export const getUnsafe: {
 )
 
 /**
- * Get a service from the context that corresponds to the given key.
+ * Gets a service from the context that corresponds to the given key.
  *
  * **When to use**
  *
@@ -1047,7 +1047,7 @@ const serviceNotFoundError = (service: Key<any, any>) => {
 }
 
 /**
- * Gets the service for a key wrapped in an `Option`.
+ * Gets the service for a key safely wrapped in an `Option`.
  *
  * **When to use**
  *
@@ -1290,7 +1290,7 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
   })
 
 /**
- * Perform a series of mutations on a `Context`. Prevents unnecessary copying
+ * Performs a series of mutations on a `Context`. Prevents unnecessary copying
  * of the underlying map when multiple mutations are needed.
  *
  * **When to use**

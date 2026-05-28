@@ -399,7 +399,7 @@ export const getErrorExitCode = (u: unknown): number => {
 export type errorReported = "~effect/Runtime/errorReported"
 
 /**
- * Runtime marker that controls default `runMain` error logging for an error.
+ * Defines the runtime marker that controls default `runMain` error logging for an error.
  *
  * **When to use**
  *

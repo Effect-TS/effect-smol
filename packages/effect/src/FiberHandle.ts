@@ -284,7 +284,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
 ))
 
 /**
- * Set the fiber in a FiberHandle. When the fiber completes, it will be removed from the FiberHandle.
+ * Sets the fiber in a FiberHandle. When the fiber completes, it will be removed from the FiberHandle.
  * If a fiber is already running, it will be interrupted unless `options.onlyIfMissing` is set.
  *
  * **Example** (Setting a fiber unsafely)
@@ -426,7 +426,7 @@ export const set: {
   ))
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Retrieves the fiber from the FiberHandle synchronously.
  *
  * **Example** (Reading the current fiber unsafely)
  *
@@ -455,7 +455,7 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fi
 }
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Retrieves the fiber from the FiberHandle effectfully.
  *
  * **Example** (Reading the current fiber)
  *
@@ -798,7 +798,7 @@ export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
 
 /**
- * Wait for the fiber in the FiberHandle to complete.
+ * Waits for the fiber in the FiberHandle to complete.
  *
  * **Example** (Waiting for a fiber to complete)
  *

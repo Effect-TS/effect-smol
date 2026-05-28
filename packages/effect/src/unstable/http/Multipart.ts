@@ -213,7 +213,7 @@ export interface Persisted {
 const MultipartErrorTypeId = "~effect/http/Multipart/MultipartError"
 
 /**
- * Reason carried by a `MultipartError`.
+ * Error reason carried by a `MultipartError`.
  *
  * **Details**
  *
@@ -404,7 +404,7 @@ export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, opt
  * Parser limits are read from the multipart references, including maximum parts,
  * field size, file size, total body size, and field MIME type overrides.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const makeConfig = (

@@ -48,7 +48,7 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
  * Handlers for the selected groups are taken from the environment; unselected
  * groups are wired with placeholder handlers that fail if called.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const groups = Effect.fnUntraced(function*<

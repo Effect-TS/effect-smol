@@ -94,7 +94,6 @@ import * as Reducer from "./Reducer.ts"
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs or have side effects
  * - Returns `-1` if the first value is less than the second
  * - Returns `0` if the values are equal according to this ordering
  * - Returns `1` if the first value is greater than the second
@@ -156,7 +155,6 @@ export interface OrderTypeLambda extends TypeLambda {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Uses reference equality (`===`) as a shortcut: if `self === that`, returns `0` without calling the comparison function
  * - The comparison function should return `-1`, `0`, or `1` based on the comparison result
  * - The returned order satisfies total ordering laws if the comparison function does
@@ -188,7 +186,7 @@ export function make<A>(
 }
 
 /**
- * An `Order` instance for strings that compares them lexicographically using JavaScript's `<` operator.
+ * Order instance for strings that compares them lexicographically using JavaScript's `<` operator.
  *
  * **When to use**
  *
@@ -198,7 +196,6 @@ export function make<A>(
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Uses lexicographic (dictionary) ordering
  * - Empty string is less than any non-empty string
  * - Comparison is case-sensitive
@@ -221,7 +218,7 @@ export function make<A>(
 export const String: Order<string> = make((self, that) => self < that ? -1 : 1)
 
 /**
- * An `Order` instance for numbers that compares them numerically.
+ * Order instance for numbers that compares them numerically.
  *
  * **When to use**
  *
@@ -231,7 +228,6 @@ export const String: Order<string> = make((self, that) => self < that ? -1 : 1)
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - `0` is considered equal to `-0`
  * - All `NaN` values are considered equal to each other
  * - Any `NaN` is considered less than any non-NaN number
@@ -263,7 +259,7 @@ export const Number: Order<number> = make((self, that) => {
 })
 
 /**
- * An `Order` instance for booleans where `false` is considered less than `true`.
+ * Order instance for booleans where `false` is considered less than `true`.
  *
  * **When to use**
  *
@@ -273,7 +269,6 @@ export const Number: Order<number> = make((self, that) => {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - `false` is less than `true`
  * - Equal values return `0`
  *
@@ -294,7 +289,7 @@ export const Number: Order<number> = make((self, that) => {
 export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1)
 
 /**
- * An `Order` instance for bigints that compares them numerically.
+ * Order instance for bigints that compares them numerically.
  *
  * **When to use**
  *
@@ -304,7 +299,6 @@ export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Uses standard numeric comparison for bigint values
  * - Handles arbitrarily large integers
  *
@@ -336,7 +330,6 @@ export const BigInt: Order<bigint> = make((self, that) => self < that ? -1 : 1)
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns a new order that swaps the arguments before comparison
  * - If the original order returns `-1`, the flipped order returns `1`, and vice versa
  * - Equal comparisons remain `0`
@@ -373,7 +366,6 @@ export function flip<A>(O: Order<A>): Order<A> {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - First applies the first order; if the result is non-zero, returns that result
  * - If the first order returns `0` (equal), applies the second order
  * - Returns the first non-zero result, or `0` if both orders return `0`
@@ -429,7 +421,6 @@ export const combine: {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Always returns `0` regardless of input values
  * - Useful as a neutral element in order composition
  *
@@ -465,7 +456,6 @@ export function alwaysEqual<A>(): Order<A> {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Applies orders in iteration order
  * - Returns the first non-zero result from any order
  * - Returns `0` only if all orders return `0`
@@ -523,7 +513,6 @@ export function combineAll<A>(collection: Iterable<Order<A>>): Order<A> {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Applies the mapping function to both values before comparison
  * - The mapping function should be pure and not have side effects
  * - Preserves the ordering properties of the original order
@@ -554,7 +543,7 @@ export const mapInput: {
 )
 
 /**
- * An `Order` instance for `Date` objects that compares them chronologically by their timestamp.
+ * Order instance for `Date` objects that compares them chronologically by their timestamp.
  *
  * **When to use**
  *
@@ -564,7 +553,6 @@ export const mapInput: {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Compares dates by their underlying timestamp (milliseconds since epoch)
  * - Earlier dates are less than later dates
  * - Invalid dates are compared as if they were valid (uses `getTime()` result)
@@ -599,7 +587,6 @@ export const Date: Order<Date> = mapInput(Number, (date) => date.getTime())
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Compares tuples element-by-element using the corresponding order
  * - Stops at the first non-zero comparison result
  * - Requires tuples to have the same length as the order collection
@@ -666,7 +653,6 @@ export {
    *
    * **Details**
    *
-   * - Pure function: does not mutate inputs
    * - Compares arrays element-by-element using the provided order
    * - Stops at the first non-zero comparison result
    * - If all elements are equal, shorter arrays are less than longer arrays
@@ -703,7 +689,6 @@ export {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Compares structs field-by-field in the order of keys in the fields object
  * - Stops at the first non-zero comparison result
  * - Returns `0` only if all fields are equal
@@ -749,7 +734,7 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
 }
 
 /**
- * Tests whether one value is strictly less than another according to the given order.
+ * Checks whether one value is strictly less than another according to the given order.
  *
  * **When to use**
  *
@@ -759,7 +744,6 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns `true` if the order returns `-1` (first value is less than second)
  * - Returns `false` for equal or greater values
  * - Supports curried and uncurried call styles
@@ -787,7 +771,7 @@ export const isLessThan = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => O(self, that) === -1)
 
 /**
- * Tests whether one value is strictly greater than another according to the given order.
+ * Checks whether one value is strictly greater than another according to the given order.
  *
  * **When to use**
  *
@@ -797,7 +781,6 @@ export const isLessThan = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns `true` if the order returns `1` (first value is greater than second)
  * - Returns `false` for equal or lesser values
  * - Supports curried and uncurried call styles
@@ -825,7 +808,7 @@ export const isGreaterThan = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => O(self, that) === 1)
 
 /**
- * Tests whether one value is less than or equal to another according to the given order.
+ * Checks whether one value is less than or equal to another according to the given order.
  *
  * **When to use**
  *
@@ -835,7 +818,6 @@ export const isGreaterThan = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns `true` if the order returns `-1` or `0` (less than or equal)
  * - Returns `false` only if the order returns `1` (greater than)
  * - Supports curried and uncurried call styles
@@ -863,7 +845,7 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => O(self, that) !== 1)
 
 /**
- * Tests whether one value is greater than or equal to another according to the given order.
+ * Checks whether one value is greater than or equal to another according to the given order.
  *
  * **When to use**
  *
@@ -873,7 +855,6 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns `true` if the order returns `1` or `0` (greater than or equal)
  * - Returns `false` only if the order returns `-1` (less than)
  * - Supports curried and uncurried call styles
@@ -911,7 +892,6 @@ export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns the value that compares as less than or equal to the other
  * - If values are equal, returns the first argument
  * - Supports curried and uncurried call styles
@@ -949,7 +929,6 @@ export const min = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns the value that compares as greater than or equal to the other
  * - If values are equal, returns the first argument
  * - Supports curried and uncurried call styles
@@ -977,7 +956,7 @@ export const max = <A>(O: Order<A>): {
 } => dual(2, (self: A, that: A) => self === that || O(self, that) > -1 ? self : that)
 
 /**
- * Clamps a value between a minimum and a maximum according to the given order.
+ * Restricts a value between a minimum and a maximum according to the given order.
  *
  * **When to use**
  *
@@ -987,7 +966,6 @@ export const max = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns the value if it's between minimum and maximum (inclusive)
  * - Returns minimum if the value is less than minimum
  * - Returns maximum if the value is greater than maximum
@@ -1031,7 +1009,7 @@ export const clamp = <A>(O: Order<A>): {
   )
 
 /**
- * Tests whether a value is between a minimum and a maximum (inclusive) according to the given order.
+ * Checks whether a value is between a minimum and a maximum (inclusive) according to the given order.
  *
  * **When to use**
  *
@@ -1041,7 +1019,6 @@ export const clamp = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs
  * - Returns `true` if the value is greater than or equal to minimum and less than or equal to maximum
  * - Returns `false` if the value is outside the range
  * - Supports curried and uncurried call styles

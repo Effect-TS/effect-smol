@@ -207,7 +207,12 @@ export interface MssqlClient extends Client.SqlClient {
 }
 
 /**
- * Context tag used to access the `MssqlClient` service.
+ * Service tag for the Microsoft SQL Server client service.
+ *
+ * **When to use**
+ *
+ * Use to access or provide a Microsoft SQL Server client through the Effect
+ * context.
  *
  * @category tags
  * @since 4.0.0

@@ -248,7 +248,7 @@ const requestVariance = Equal.byReferenceUnsafe({
  * `Request.TaggedClass`. Most users should use those constructors instead of
  * interacting with the prototype directly.
  *
- * @category models
+ * @category prototypes
  * @since 4.0.0
  */
 export const RequestPrototype: Request<any, any, any> = {
@@ -257,7 +257,7 @@ export const RequestPrototype: Request<any, any, any> = {
 }
 
 /**
- * Tests if a value is a `Request`.
+ * Checks whether a value is a `Request`.
  *
  * **Example** (Checking request values)
  *
@@ -370,7 +370,7 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
 }
 
 /**
- * Base class constructor for defining request types with TypeScript classes.
+ * Defines request types with TypeScript classes.
  *
  * **Details**
  *

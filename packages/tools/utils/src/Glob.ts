@@ -39,7 +39,7 @@ export interface Glob {
 }
 
 /**
- * Context service tag for filesystem glob pattern matching.
+ * Service tag for filesystem glob pattern matching.
  *
  * @category tags
  * @since 4.0.0

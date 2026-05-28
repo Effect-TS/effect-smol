@@ -351,7 +351,8 @@ export const duplexSchema: {
 export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.instanceOf<Uint8Array<ArrayBuffer>>> {}
 
 /**
- * Schema transformation between MessagePack bytes and decoded values.
+ * Schema for decoding MessagePack bytes into values and encoding values back to
+ * MessagePack bytes.
  *
  * **Details**
  *

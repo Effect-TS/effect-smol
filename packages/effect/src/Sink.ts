@@ -213,7 +213,7 @@ const SinkProto = {
 }
 
 /**
- * Checks if a value is a Sink.
+ * Checks whether a value is a Sink.
  *
  * **Example** (Checking for a sink)
  *
@@ -701,7 +701,7 @@ export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink
   mapEnd(self, ([a]) => [a])
 
 /**
- * Drains elements from the stream by ignoring all inputs.
+ * Consumes and ignores all stream inputs.
  *
  * **When to use**
  *
@@ -901,7 +901,7 @@ export const map: {
 )
 
 /**
- * Set the sink's result to a constant value.
+ * Sets the sink's result to a constant value.
  *
  * **When to use**
  *
@@ -937,7 +937,7 @@ export const mapInput: {
 )
 
 /**
- * Effectfully transforms this sink's input elements.
+ * Transforms this sink's input elements effectfully.
  *
  * @category mapping
  * @since 2.0.0
@@ -982,7 +982,7 @@ export const mapInputArray: {
 )
 
 /**
- * Effectfully transforms each non-empty array of upstream input before it is
+ * Transforms each non-empty array of upstream input effectfully before it is
  * fed to this sink.
  *
  * @category mapping
@@ -1045,7 +1045,7 @@ const transformEffect = <A, In, L, E, R, A2, E2, R2, L2 = never>(
 ): Sink<A2, In, L2, E2, R2> => fromTransform((upstream, scope) => f(self.transform(upstream, scope)))
 
 /**
- * Effectfully transforms the full `End` produced by this sink.
+ * Transforms the full `End` produced by this sink effectfully.
  *
  * **Details**
  *
@@ -1069,7 +1069,7 @@ export const mapEffectEnd: {
 ): Sink<A2, In, L2, E | E2, R | R2> => transformEffect(self, Effect.flatMap(f)))
 
 /**
- * Effectfully transforms this sink's result.
+ * Transforms this sink's result effectfully.
  *
  * **When to use**
  *
@@ -1232,8 +1232,8 @@ export const flatMap: {
   }))
 
 /**
- * A sink that reduces its inputs using the provided function `f` starting from
- * the provided `initial` state while the specified `predicate` returns `true`.
+ * A sink that reduces input elements from the provided `initial` state with
+ * `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1268,9 +1268,8 @@ export const reduceWhile = <S, In>(
   })
 
 /**
- * A sink that reduces its inputs using the provided effectful function `f`
- * starting from the provided `initial` state while the specified `predicate`
- * returns `true`.
+ * A sink that effectfully reduces input elements from the provided `initial`
+ * state with `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1310,8 +1309,8 @@ export const reduceWhileEffect = <S, In, E, R>(
   })
 
 /**
- * A sink that reduces its inputs using the provided function `f` starting from
- * the provided `initial` state while the specified `predicate` returns `true`.
+ * A sink that reduces non-empty input arrays from the provided `initial` state
+ * with `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1342,9 +1341,8 @@ export const reduceWhileArray = <S, In>(
   })
 
 /**
- * A sink that reduces its inputs using the provided effectful function `f`
- * starting from the provided `initial` state while the specified `predicate`
- * returns `true`.
+ * A sink that effectfully reduces non-empty input arrays from the provided
+ * `initial` state with `f` while the specified `predicate` returns `true`.
  *
  * @category reducing
  * @since 4.0.0
@@ -1466,7 +1464,7 @@ const last_ = reduceArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
 export const last = <In>(): Sink<Option.Option<In>, In> => last_ as any
 
 /**
- * Creates a sink containing the first matching value.
+ * Creates a sink containing the first value matched by a synchronous predicate.
  *
  * **When to use**
  *
@@ -1496,7 +1494,7 @@ export const find: {
   )
 
 /**
- * Creates a sink containing the first matching value.
+ * Creates a sink containing the first value matched by an effectful predicate.
  *
  * **When to use**
  *
@@ -1641,7 +1639,7 @@ export const takeWhileFilter = <In, Out, X>(
   })
 
 /**
- * Effectfully collects input elements while the predicate succeeds.
+ * Collects input elements effectfully while the predicate succeeds.
  *
  * **Details**
  *
@@ -1690,7 +1688,7 @@ export const takeWhileEffect: {
   })
 
 /**
- * Effectfully applies a `FilterEffect` to input elements while it succeeds,
+ * Applies a `FilterEffect` to input elements effectfully while it succeeds,
  * collecting each successful output.
  *
  * **Details**
@@ -1749,7 +1747,7 @@ export const takeUntil = <In>(predicate: Predicate<In>): Sink<Array<In>, In, In>
   })
 
 /**
- * Effectfully collects input elements until the predicate returns `true`,
+ * Collects input elements effectfully until the predicate returns `true`,
  * including the matching element in the result.
  *
  * **Details**
@@ -1922,8 +1920,7 @@ export const unwrap = <A, In, L, E, R, R2>(
 ): Sink<A, In, L, E, Exclude<R, Scope.Scope> | R2> => fromChannel(Channel.unwrap(Effect.map(effect, toChannel)))
 
 /**
- * Summarize a sink by running an effect when the sink starts and again when
- * it completes.
+ * Runs a summary effect when the sink starts and again when it completes.
  *
  * @category utils
  * @since 2.0.0

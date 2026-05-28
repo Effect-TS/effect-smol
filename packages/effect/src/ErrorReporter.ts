@@ -69,7 +69,7 @@ import type * as Scope from "./Scope.ts"
  *
  * Use to refer to the runtime type identifier type in low-level integrations.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/ErrorReporter"
@@ -77,11 +77,13 @@ export type TypeId = "~effect/ErrorReporter"
 /**
  * Runtime type identifier attached to `ErrorReporter` values.
  *
- * **When to use**
+ * **Details**
  *
- * Use to compare or attach the runtime identifier for `ErrorReporter` values.
+ * This marker is part of the runtime representation of `ErrorReporter`
+ * implementations. Most code should create reporters with `make` and register
+ * them with `layer`.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/ErrorReporter"
@@ -192,7 +194,7 @@ export const make = (
 }
 
 /**
- * A `Context.Reference` holding the set of active `ErrorReporter`s for the
+ * Context reference that holds the set of active error reporters for the
  * current fiber. Defaults to an empty set (no reporting).
  *
  * **When to use**
@@ -284,8 +286,7 @@ export const layer = <
   )
 
 /**
- * Manually reports a `Cause` to all registered `ErrorReporter`s on the
- * current fiber.
+ * Runs all registered error reporters on the current fiber for a `Cause`.
  *
  * **When to use**
  *
@@ -349,7 +350,7 @@ declare global {
 }
 
 /**
- * String property key used to mark an object error as ignored by error
+ * Defines the string property key used to mark an object error as ignored by error
  * reporting.
  *
  * **When to use**
@@ -369,7 +370,7 @@ declare global {
 export type ignore = "~effect/ErrorReporter/ignore"
 
 /**
- * Runtime property key used to mark an object error as ignored by error
+ * Defines the runtime property key used to mark an object error as ignored by error
  * reporting.
  *
  * **When to use**
@@ -420,7 +421,7 @@ export const isIgnored = (u: unknown): boolean =>
   typeof u === "object" && u !== null && ignore in u && u[ignore] === true
 
 /**
- * String property key used to override the severity level of an object error.
+ * Defines the string property key used to override the severity level of an object error.
  *
  * **When to use**
  *
@@ -438,7 +439,7 @@ export const isIgnored = (u: unknown): boolean =>
 export type severity = "~effect/ErrorReporter/severity"
 
 /**
- * Runtime property key used to override the severity level of an object error.
+ * Defines the runtime property key used to override the severity level of an object error.
  *
  * **When to use**
  *
@@ -492,7 +493,7 @@ export const getSeverity = (error: object): Severity => {
 }
 
 /**
- * String property key used to attach extra key/value metadata to an object
+ * Defines the string property key used to attach extra key/value metadata to an object
  * error report.
  *
  * **When to use**
@@ -511,7 +512,7 @@ export const getSeverity = (error: object): Severity => {
 export type attributes = "~effect/ErrorReporter/attributes"
 
 /**
- * Runtime property key used to attach extra key/value metadata to an object
+ * Defines the runtime property key used to attach extra key/value metadata to an object
  * error report.
  *
  * **When to use**

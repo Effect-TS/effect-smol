@@ -276,7 +276,7 @@ export const duplex: {
   ))
 
 /**
- * Like `duplex`, but for channels whose encoded side is not statically typed.
+ * Wraps a bidirectional channel whose encoded chunks are typed as `unknown`.
  *
  * **When to use**
  *

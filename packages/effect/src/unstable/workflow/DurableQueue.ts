@@ -81,8 +81,8 @@ export interface DurableQueue<
 }
 
 /**
- * A `DurableQueue` wraps a `PersistedQueue`, providing a way to wait for items
- * to finish processing using a `DurableDeferred`.
+ * Creates a `DurableQueue` that waits for persisted items to finish processing
+ * using a `DurableDeferred`.
  *
  * **Example** (Defining a durable queue with workers)
  *
@@ -194,7 +194,7 @@ const getQueueSchema = <Payload extends Schema.Top>(
 }
 
 /**
- * Add an item to the queue and wait for a worker to process it.
+ * Adds an item to the queue and wait for a worker to process it.
  *
  * @category Processing
  * @since 4.0.0

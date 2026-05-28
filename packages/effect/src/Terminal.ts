@@ -129,7 +129,7 @@ export interface UserInput {
 const QuitErrorTypeId = "effect/platform/Terminal/QuitError"
 
 /**
- * A `QuitError` represents an error that occurs when a user attempts to
+ * Represents an error that occurs when a user attempts to
  * quit out of a `Terminal` prompt for input (usually by entering `ctrl`+`c`).
  *
  * **When to use**
@@ -174,9 +174,14 @@ export class QuitError extends Schema.ErrorClass<QuitError>("QuitError")({
 export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty(u, QuitErrorTypeId)
 
 /**
- * Context service tag for accessing a `Terminal` implementation.
+ * Service tag for command-line input and output services.
  *
- * @category services
+ * **When to use**
+ *
+ * Use to access or provide platform terminal capabilities such as reading
+ * input, writing output, and inspecting terminal dimensions.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("effect/platform/Terminal")

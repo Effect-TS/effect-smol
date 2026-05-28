@@ -250,14 +250,14 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
   })
 
 /**
- * Walks the groups and endpoints in an `HttpApi`.
+ * Describes the groups and endpoints in an `HttpApi`.
  *
  * **Details**
  *
  * The callbacks receive each group or endpoint with merged annotations, endpoint
  * middleware, and response schemas grouped by HTTP status.
  *
- * @category Reflection
+ * @category reflection
  * @since 4.0.0
  */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(

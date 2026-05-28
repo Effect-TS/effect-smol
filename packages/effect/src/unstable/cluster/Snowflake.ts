@@ -56,9 +56,10 @@ export type TypeId = typeof TypeId
 export type Snowflake = Brand.Branded<bigint, TypeId>
 
 /**
- * Constructs a branded `Snowflake` from a bigint or bigint-compatible string.
+ * Constructs a branded cluster snowflake id from a bigint or bigint-compatible
+ * string.
  *
- * @category models
+ * @category constructors
  * @since 4.0.0
  */
 export const Snowflake = (input: string | bigint): Snowflake =>
@@ -132,9 +133,9 @@ export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(
 )
 
 /**
- * Custom snowflake epoch in Unix milliseconds, set to January 1, 2025 UTC.
+ * Defines the custom snowflake epoch in Unix milliseconds.
  *
- * @category Epoch
+ * @category constants
  * @since 4.0.0
  */
 export const constEpochMillis: number = Date.UTC(2025, 0, 1)
@@ -146,7 +147,7 @@ const constBigInt1024 = BigInt(1024)
 const constBigInt4096 = BigInt(4096)
 
 /**
- * Packs a timestamp, machine id, and sequence number into a branded snowflake id,
+ * Creates a branded snowflake id from a timestamp, machine id, and sequence number,
  * using the custom snowflake epoch and 10-bit machine id and 12-bit sequence
  * fields.
  *

@@ -172,8 +172,13 @@ export declare namespace MutableList {
 }
 
 /**
- * A unique symbol used to represent an empty result when taking elements from a MutableList.
+ * Defines the unique symbol used to represent an empty result when taking elements from a MutableList.
  * This symbol is returned by `take` when the list is empty, allowing for safe type checking.
+ *
+ * **When to use**
+ *
+ * Use to detect that `take` returned no element before handling the result as a
+ * list item.
  *
  * **Example** (Checking for empty results)
  *
@@ -205,7 +210,7 @@ export declare namespace MutableList {
  * console.log(empty === MutableList.Empty) // true, list is empty
  * ```
  *
- * @category Symbols
+ * @category symbols
  * @since 4.0.0
  */
 export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
@@ -255,7 +260,7 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * }
  * ```
  *
- * @category Symbols
+ * @category symbols
  * @since 4.0.0
  */
 export type Empty = typeof Empty
@@ -830,7 +835,10 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  *
  * **When to use**
  *
- * Use when the copied elements should also be removed from the list.
+ * Use when you need to inspect or snapshot a bounded prefix of the list without
+ * consuming it.
+ *
+ * @see {@link takeN} for removing up to `n` values and returning them as an array
  *
  * @category elements
  * @since 4.0.0
@@ -856,8 +864,10 @@ export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
  *
  * **When to use**
  *
- * Use when the list should be emptied after converting it to an
- * array.
+ * Use when you need a snapshot of all current elements while keeping the list
+ * unchanged.
+ *
+ * @see {@link takeAll} for converting all elements to an array and clearing the list
  *
  * @category elements
  * @since 4.0.0

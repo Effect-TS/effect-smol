@@ -521,14 +521,9 @@ export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
  *
  * **Details**
  *
- * This function enables pattern matching by checking whether a given value
- * satisfies a condition. It supports both direct value comparisons and
- * predicate functions. If the condition is met, the associated function is
- * executed.
- *
- * This function is useful when defining matchers that need to check for
- * specific values or apply logical conditions to determine a match. It works
- * well with structured objects and primitive types.
+ * Supports both direct value comparisons and predicate functions. If the
+ * pattern matches, the associated function is executed and the matched input is
+ * removed from the remaining cases tracked by the matcher.
  *
  * **Example** (Matching with Values and Predicates)
  *
@@ -766,15 +761,10 @@ export const discriminator: <D extends string>(
  *
  * **Details**
  *
- * This function is useful for working with discriminated unions where the
- * discriminant field follows a hierarchical or namespaced structure. It allows
- * you to match values based on whether the specified field starts with a given
- * prefix, making it easier to handle grouped cases.
- *
- * Instead of checking for exact matches, this function lets you match values
- * that share a common prefix. For example, if your discriminant field contains
- * hierarchical names like `"A"`, `"A.A"`, and `"B"`, you can match all values
- * starting with `"A"` using a single rule.
+ * Instead of checking for exact matches, this helper matches values that share
+ * a common prefix. For example, if the discriminant field contains hierarchical
+ * names like `"A"`, `"A.A"`, and `"B"`, a single `"A"` rule can match both
+ * `"A"` and `"A.A"`.
  *
  * **Example** (Matching discriminator prefixes)
  *
@@ -937,15 +927,17 @@ export const discriminatorsExhaustive: <D extends string>(
   internal.discriminatorsExhaustive
 
 /**
- * The `Match.tag` function allows pattern matching based on the `_tag` field in
- * a [Discriminated Union](https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html#discriminated-unions).
- * You can specify multiple tags to match within a single pattern.
+ * Matches discriminated union members by their `_tag` field.
+ *
+ * **When to use**
+ *
+ * Use to handle one or more `_tag` cases with the same matcher branch.
  *
  * **Details**
  *
- * The `Match.tag` function relies on the convention within the Effect ecosystem
- * of naming the tag field as `"_tag"`. Ensure that your discriminated unions
- * follow this naming convention for proper functionality.
+ * This helper follows the Effect convention that discriminated unions use
+ * `"_tag"` as their discriminator field. Use {@link discriminator} for a
+ * different discriminator field.
  *
  * **Example** (Matching a Discriminated Union by Tag)
  *
@@ -1148,7 +1140,7 @@ export const tagsExhaustive: <
   internal.tagsExhaustive
 
 /**
- * Excludes a specific value from matching while allowing all others.
+ * Creates a pattern that excludes a specific value while allowing all others.
  *
  * **When to use**
  *
@@ -1157,11 +1149,8 @@ export const tagsExhaustive: <
  *
  * **Details**
  *
- * This function is useful when you need to **handle all values except one or
- * more specific cases**. Instead of listing all possible matches manually, this
- * function simplifies the logic by allowing you to specify values to exclude.
- * Any excluded value will bypass the provided function and continue matching
- * through other cases.
+ * Any excluded value bypasses the provided function and continues matching
+ * through later cases.
  *
  * **Example** (Ignoring a Specific Value)
  *
@@ -1516,8 +1505,7 @@ export {
    *
    * **When to use**
    *
-   * Use when a matcher should handle only inputs whose value is exactly
-   * `undefined`.
+   * Use when a matcher should handle only inputs with no defined value.
    *
    * **Details**
    *
@@ -1784,7 +1772,7 @@ export const instanceOf: <A extends abstract new(...args: any) => any>(
 ) => SafeRefinement<InstanceType<A>, never> = internal.instanceOf
 
 /**
- * Unsafe variant of `instanceOf` that allows matching without type narrowing.
+ * Checks whether a value is an instance of a constructor without type-safe narrowing.
  *
  * **When to use**
  *
@@ -1876,7 +1864,7 @@ export const orElse: <RA, Ret, F extends (_: RA) => Ret>(
 
 // TODO(4.0): Rename to "orThrow"? Like Result.getOrThrow
 /**
- * Throws an error if no pattern matches.
+ * Returns a matcher that throws an error if no pattern matches.
  *
  * **When to use**
  *
@@ -2015,10 +2003,17 @@ export const option: <I, F, R, A, Pr, Ret>(
 ) => [Pr] extends [never] ? (input: I) => Option.Option<Unify<A>> : Option.Option<Unify<A>> = internal.option
 
 /**
- * The `Match.exhaustive` method finalizes the pattern matching process by
- * ensuring that all possible cases are accounted for. If any case is missing,
- * TypeScript will produce a type error. This is particularly useful when
- * working with unions, as it helps prevent unintended gaps in pattern matching.
+ * Completes a matcher that handles every remaining input case.
+ *
+ * **When to use**
+ *
+ * Use to require TypeScript to reject incomplete matcher definitions before the
+ * matcher is turned into a function.
+ *
+ * **Details**
+ *
+ * If any case is still unmatched, the matcher does not type-check as
+ * exhaustive.
  *
  * **Example** (Ensuring All Cases Are Covered)
  *

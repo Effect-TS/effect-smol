@@ -55,8 +55,8 @@ export interface ShardId extends Equal.Equal, Hash.Hash, PrimaryKey.PrimaryKey {
 export const isShardId = (u: unknown): u is ShardId => hasProperty(u, TypeId)
 
 /**
- * Schema for `ShardId` values encoded as `{ group, id }` objects and decoded via
- * `make`.
+ * Schema for shard identifiers encoded as `{ group, id }` objects and decoded
+ * via `make`.
  *
  * @category schemas
  * @since 4.0.0

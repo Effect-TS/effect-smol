@@ -109,7 +109,7 @@ import type * as Unify from "./Unify.ts"
 /**
  * String literal type used as the unique brand for `Channel` values.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/Channel"
@@ -118,13 +118,13 @@ export type TypeId = "~effect/Channel"
  * Runtime identifier stored on `Channel` values and used by `isChannel` to
  * recognize them.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Channel"
 
 /**
- * Tests if a value is a `Channel`.
+ * Checks whether a value is a `Channel`.
  *
  * **Example** (Checking for channels)
  *
@@ -926,7 +926,7 @@ export const endSync = <A>(evaluate: LazyArg<A>): Channel<never, never, A> =>
 export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.sync(evaluate))
 
 /**
- * Represents an Channel that emits no elements
+ * Represents a `Channel` that emits no elements.
  *
  * **Example** (Using empty channels)
  *
@@ -951,7 +951,7 @@ export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.s
 export const empty: Channel<never> = fromPull(Effect.succeed(Cause.done()))
 
 /**
- * Represents an Channel that never completes
+ * Represents a `Channel` that never completes.
  *
  * **Example** (Using non-terminating channels)
  *
@@ -1126,7 +1126,7 @@ export const failCauseSync = <E>(
 export const die = (defect: unknown): Channel<never, never, never> => failCause(Cause.die(defect))
 
 /**
- * Use an effect to write a single value to the channel.
+ * Uses an effect to write a single value to the channel.
  *
  * **Example** (Creating channels from effects)
  *
@@ -1193,7 +1193,7 @@ export const fromEffectDone = <A, E, R>(
   fromPull(Effect.succeed(Effect.flatMap(effect, Cause.done)))
 
 /**
- * Use an effect and discard its result.
+ * Uses an effect and discards its result.
  *
  * @category constructors
  * @since 4.0.0
@@ -1220,7 +1220,7 @@ export const fromEffectTake = <A, E, Done, E2, R>(
   fromPull(Effect.succeed(Effect.flatMap(effect, Take.toPull)))
 
 /**
- * Create a channel from a queue
+ * Creates a channel from a queue.
  *
  * **Example** (Creating channels from queues)
  *
@@ -1263,7 +1263,7 @@ export const fromQueue = <A, E>(
 ): Channel<A, Exclude<E, Cause.Done>> => fromPull(Effect.succeed(Queue.take(queue)))
 
 /**
- * Create a channel from a queue that emits arrays of elements
+ * Creates a channel from a queue that emits arrays of elements.
  *
  * **Example** (Creating batched channels from queues)
  *
@@ -1320,7 +1320,7 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
   fromTransform((upstream, _scope) => Effect.succeed(upstream))
 
 /**
- * Create a channel from a PubSub subscription
+ * Creates a channel from a PubSub subscription.
  *
  * **Example** (Creating channels from subscriptions)
  *
@@ -1368,7 +1368,7 @@ export const fromSubscription = <A>(
 ): Channel<A> => fromPull(Effect.succeed(Effect.onInterrupt(PubSub.take(subscription), () => Cause.done())))
 
 /**
- * Create a channel from a PubSub subscription that outputs arrays of values.
+ * Creates a channel from a PubSub subscription that outputs arrays of values.
  *
  * **Details**
  *
@@ -1475,7 +1475,7 @@ export const fromSubscriptionArray = <A>(
   fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), () => Cause.done())))
 
 /**
- * Create a channel from a PubSub that outputs individual values.
+ * Creates a channel from a PubSub that outputs individual values.
  *
  * **Details**
  *
@@ -1572,7 +1572,7 @@ export const fromPubSub = <A>(
 ): Channel<A> => unwrap(Effect.map(PubSub.subscribe(pubsub), fromSubscription))
 
 /**
- * Create a channel from a PubSub that outputs arrays of values.
+ * Creates a channel from a PubSub that outputs arrays of values.
  *
  * **Details**
  *
@@ -2638,11 +2638,18 @@ export const concat: {
 > => concatWith(self, (_) => that))
 
 /**
- * Combines the elements from this channel and the specified channel by
- * repeatedly applying the function `f` to extract an element using both sides
- * and conceptually "offer" it to the destination channel. `f` can maintain
- * some internal state to control the combining process, with the initial
- * state being specified by `s`.
+ * Combines two channels with a stateful pull function.
+ *
+ * **When to use**
+ *
+ * Use to coordinate pulling from two channels when each output element depends
+ * on both sides and local state.
+ *
+ * **Details**
+ *
+ * The combining function receives the current state and pull functions for the
+ * left and right channels. It returns the next output element together with the
+ * next state.
  *
  * @category sequencing
  * @since 4.0.0
@@ -2861,7 +2868,7 @@ export const orElseIfEmpty: {
   ))
 
 /**
- * Flatten a channel of channels.
+ * Flattens a channel of channels.
  *
  * **Example** (Flattening nested channels)
  *
@@ -3569,7 +3576,7 @@ export const filterMapArrayEffect: {
     ))))
 
 /**
- * Statefully maps over a channel with an accumulator, where each element can produce multiple output values.
+ * Maps over a channel statefully with an accumulator, where each element can produce multiple output values.
  *
  * **Example** (Mapping with accumulated state)
  *
@@ -3710,7 +3717,7 @@ export const mapAccum: {
 )
 
 /**
- * Statefully transforms a channel by scanning over its output with an accumulator function.
+ * Transforms a channel statefully by scanning over its output with an accumulator function.
  * Emits the intermediate results of the scan operation.
  *
  * **Example** (Scanning channel output)
@@ -3769,7 +3776,7 @@ export const scan: {
   scanEffect(self, initial, (s, a) => Effect.succeed(f(s, a))))
 
 /**
- * Statefully transforms a channel by scanning over its output with an effectful accumulator function.
+ * Transforms a channel statefully by scanning over its output with an effectful accumulator function.
  * Emits the intermediate results of the scan operation.
  *
  * **Example** (Scanning channel output with effects)
@@ -6714,8 +6721,8 @@ export const embedInput: {
 )
 
 /**
- * Allows a faster producer to progress independently of a slower consumer by
- * buffering up to `capacity` elements in a queue.
+ * Buffers individual output elements in a queue with the configured `capacity`
+ * so a faster producer can progress independently of a slower consumer.
  *
  * **Details**
  *
@@ -6773,8 +6780,8 @@ export const buffer: {
   })))
 
 /**
- * Allows a faster producer to progress independently of a slower consumer by
- * buffering up to `capacity` elements in a queue.
+ * Buffers array output elements in a queue with the configured `capacity` so a
+ * faster producer can progress independently of a slower consumer.
  *
  * **Details**
  *
@@ -6834,13 +6841,18 @@ export const bufferArray: {
   })))
 
 /**
- * Returns a new channel, which is the same as this one, except it will be
- * interrupted when the specified effect completes. If the effect completes
- * successfully before the underlying channel is done, then the returned
- * channel will yield the success value of the effect as its terminal value.
- * On the other hand, if the underlying channel finishes first, then the
- * returned channel will yield the success value of the underlying channel as
- * its terminal value.
+ * Interrupts a channel when another effect completes.
+ *
+ * **When to use**
+ *
+ * Use to race channel execution against an external effect whose success can
+ * become the channel's done value.
+ *
+ * **Details**
+ *
+ * If the effect completes first, its success value becomes the returned
+ * channel's done value. If the channel completes first, the original channel's
+ * done value is preserved.
  *
  * @category utils
  * @since 2.0.0
@@ -6866,7 +6878,7 @@ export const interruptWhen: {
   ))
 
 /**
- * Halts a channel when the specified effect completes or fails.
+ * Stops a channel when the specified effect completes or fails.
  *
  * **Details**
  *
@@ -6935,9 +6947,8 @@ export const onError: {
   onExit(self, (exit) => Exit.isFailure(exit) ? finalizer(exit.cause) : Effect.void))
 
 /**
- * Returns a new channel with an attached finalizer. The finalizer is
- * guaranteed to be executed so long as the channel begins execution (and
- * regardless of whether or not it completes).
+ * Returns a channel with an exit-aware finalizer that is guaranteed to run once
+ * the channel begins execution, whether it succeeds or fails.
  *
  * **Example** (Running exit finalizers)
  *
@@ -7079,9 +7090,8 @@ export const onEnd: {
     ))))
 
 /**
- * Returns a new channel with an attached finalizer. The finalizer is
- * guaranteed to be executed so long as the channel begins execution (and
- * regardless of whether or not it completes).
+ * Returns a channel with a finalizer effect that is guaranteed to run once the
+ * channel begins execution, whether it succeeds or fails.
  *
  * **Example** (Ensuring cleanup runs)
  *
@@ -7144,7 +7154,7 @@ const runWith = <
   })
 
 /**
- * Create a channel from the specified services.
+ * Creates a channel from the specified services.
  *
  * @category services
  * @since 2.0.0
@@ -7216,8 +7226,12 @@ export const provideService: {
   ))
 
 /**
- * Evaluates an effect to obtain a service, then provides that service to the
- * channel.
+ * Provides a service to the channel after obtaining it from an effect.
+ *
+ * **When to use**
+ *
+ * Use to supply a channel dependency when constructing the service itself is
+ * effectful or can fail.
  *
  * **Details**
  *

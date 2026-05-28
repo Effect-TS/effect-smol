@@ -534,7 +534,7 @@ const Proto = {
 }
 
 /**
- * Check if a value is a `Command`.
+ * Checks whether a value is a `Command`.
  *
  * @category guards
  * @since 4.0.0
@@ -542,7 +542,7 @@ const Proto = {
 export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, TypeId)
 
 /**
- * Check if a command is a `StandardCommand`.
+ * Checks whether a command is a `StandardCommand`.
  *
  * @category guards
  * @since 4.0.0
@@ -550,7 +550,7 @@ export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, 
 export const isStandardCommand = (command: Command): command is StandardCommand => command._tag === "StandardCommand"
 
 /**
- * Check if a command is a `PipedCommand`.
+ * Checks whether a command is a `PipedCommand`.
  *
  * @category guards
  * @since 4.0.0
@@ -668,7 +668,7 @@ export const make: {
 }
 
 /**
- * Pipe the output of one command to the input of another.
+ * Pipes the output of one command to the input of another.
  *
  * **Details**
  *
@@ -708,7 +708,7 @@ export const pipeTo: {
 )
 
 /**
- * Prefix a command with another command.
+ * Prepends another command to a command.
  *
  * **Details**
  *
@@ -776,7 +776,7 @@ const applyPrefix = (self: Command, prefixSpec: PrefixSpec): Command => {
 }
 
 /**
- * Set the current working directory for a command.
+ * Sets the current working directory for a command.
  *
  * **Details**
  *
@@ -861,7 +861,7 @@ const isTemplateString = (u: unknown): u is TemplateStringsArray =>
 // =============================================================================
 
 /**
- * Parse an fd name like "fd3" to its numeric index.
+ * Parses an fd name like "fd3" to its numeric index.
  * Returns undefined if the name is invalid.
  *
  * @category utils

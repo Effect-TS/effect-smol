@@ -91,7 +91,7 @@ export const incomingLocalFromOutgoing = <R extends Rpc.Any>(self: Outgoing<R>):
 }
 
 /**
- * Incoming persisted request whose payload has not yet been decoded with the RPC
+ * Represents an incoming persisted request whose payload has not yet been decoded with the RPC
  * schema.
  *
  * **Details**
@@ -109,14 +109,14 @@ export class IncomingRequest<R extends Rpc.Any> extends Data.TaggedClass("Incomi
 }> {}
 
 /**
- * Incoming request for local delivery with a decoded payload.
+ * Represents an incoming request for local delivery with a decoded payload.
  *
  * **Details**
  *
  * It includes dynamic annotations, the last sent reply, and a callback for
  * replying with decoded replies.
  *
- * @category outgoing
+ * @category incoming
  * @since 4.0.0
  */
 export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("IncomingRequestLocal")<{
@@ -127,7 +127,7 @@ export class IncomingRequestLocal<R extends Rpc.Any> extends Data.TaggedClass("I
 }> {}
 
 /**
- * Incoming control envelope carrying an `AckChunk` or `Interrupt`.
+ * Represents an incoming control envelope carrying an `AckChunk` or `Interrupt`.
  *
  * @category incoming
  * @since 4.0.0
@@ -150,7 +150,7 @@ export class IncomingEnvelope extends Data.TaggedClass("IncomingEnvelope")<{
 export type Outgoing<R extends Rpc.Any> = OutgoingRequest<R> | OutgoingEnvelope
 
 /**
- * Outgoing entity request with decoded payload and RPC metadata.
+ * Represents an outgoing entity request with decoded payload and RPC metadata.
  *
  * **Details**
  *
@@ -177,7 +177,7 @@ export class OutgoingRequest<R extends Rpc.Any> extends Data.TaggedClass("Outgoi
 }
 
 /**
- * Outgoing control envelope paired with RPC metadata.
+ * Represents an outgoing control envelope paired with RPC metadata.
  *
  * **When to use**
  *
@@ -222,7 +222,7 @@ const neverRpc = Rpc.make("Never", {
  * Control envelopes pass through unchanged. Requests are encoded with their RPC
  * payload schema, reusing the cached encoded request when available.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serialize = <Rpc extends Rpc.Any>(
@@ -245,7 +245,7 @@ export const serialize = <Rpc extends Rpc.Any>(
  *
  * Schema encoding failures are converted to `MalformedMessage`.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeEnvelope = <Rpc extends Rpc.Any>(
@@ -264,7 +264,7 @@ export const serializeEnvelope = <Rpc extends Rpc.Any>(
  *
  * The result is a `PartialRequest` suitable for storage or transport.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeRequest = <Rpc extends Rpc.Any>(
@@ -290,7 +290,7 @@ export const serializeRequest = <Rpc extends Rpc.Any>(
  * `OutgoingRequest` so the payload can be decoded with the correct RPC schema and
  * context.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const deserializeLocal = <Rpc extends Rpc.Any>(

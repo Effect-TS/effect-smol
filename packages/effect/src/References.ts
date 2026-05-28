@@ -71,7 +71,7 @@ import { CurrentTraceLevel, DisablePropagation, MinimumTraceLevel, type SpanLink
 
 export {
   /**
-   * Reference for the current trace level used for dynamic trace filtering.
+   * Context reference for the current trace level used for dynamic trace filtering.
    *
    * **When to use**
    *
@@ -85,7 +85,7 @@ export {
    */
   CurrentTraceLevel,
   /**
-   * Reference used to disable trace propagation in the current context.
+   * Context reference for disabling trace propagation in the current context.
    *
    * **When to use**
    *
@@ -104,7 +104,7 @@ export {
    */
   DisablePropagation,
   /**
-   * Reference controlling the maximum operation budget before a fiber yields to the scheduler.
+   * Context reference for the maximum operation budget before a fiber yields to the scheduler.
    *
    * **When to use**
    *
@@ -122,7 +122,7 @@ export {
    */
   MaxOpsBeforeYield,
   /**
-   * Reference setting the minimum trace level threshold for span sampling.
+   * Context reference for the minimum trace level threshold for span sampling.
    *
    * **When to use**
    *
@@ -136,7 +136,7 @@ export {
    */
   MinimumTraceLevel,
   /**
-   * Reference controlling whether the runtime bypasses scheduler yield checks.
+   * Context reference for whether the runtime bypasses scheduler yield checks.
    *
    * **When to use**
    *
@@ -160,7 +160,7 @@ export {
    */
   PreventSchedulerYield,
   /**
-   * Reference for the active tracer service used to create spans.
+   * Context reference for the active tracer service used to create spans.
    *
    * **When to use**
    *
@@ -174,7 +174,7 @@ export {
 }
 
 /**
- * Reference for controlling the current concurrency limit. Can be set to "unbounded"
+ * Context reference for controlling the current concurrency limit. Can be set to "unbounded"
  * for unlimited concurrency or a specific number to limit concurrent operations.
  *
  * **When to use**
@@ -220,7 +220,7 @@ export {
 export const CurrentConcurrency: Context.Reference<number | "unbounded"> = references.CurrentConcurrency
 
 /**
- * Reference for managing log annotations that are automatically added to all log entries.
+ * Context reference for managing log annotations that are automatically added to all log entries.
  * These annotations provide contextual metadata that appears in every log message.
  *
  * **When to use**
@@ -283,7 +283,7 @@ export const CurrentLogAnnotations: Context.Reference<ReadonlyRecord<string, unk
   references.CurrentLogAnnotations
 
 /**
- * Reference for the current log severity used by `Effect.log` when no explicit
+ * Context reference for the current log severity used by `Effect.log` when no explicit
  * level is provided.
  *
  * **When to use**
@@ -336,7 +336,7 @@ export const CurrentLogAnnotations: Context.Reference<ReadonlyRecord<string, unk
 export const CurrentLogLevel: Context.Reference<Severity> = references.CurrentLogLevel
 
 /**
- * Reference for managing log spans that track the duration and hierarchy of operations.
+ * Context reference for managing log spans that track the duration and hierarchy of operations.
  * Each span represents a labeled time period for performance analysis and debugging.
  *
  * **When to use**
@@ -404,7 +404,7 @@ export const CurrentLogSpans: Context.Reference<ReadonlyArray<[label: string, ti
   references.CurrentLogSpans
 
 /**
- * Reference containing the current captured stack-frame chain for the running
+ * Context reference for the current captured stack-frame chain for the running
  * fiber.
  *
  * **When to use**
@@ -426,7 +426,7 @@ export const CurrentLogSpans: Context.Reference<ReadonlyArray<[label: string, ti
 export const CurrentStackFrame: Context.Reference<StackFrame | undefined> = references.CurrentStackFrame
 
 /**
- * Reference for setting the minimum log level threshold. Log entries below this
+ * Context reference for setting the minimum log level threshold. Log entries below this
  * level will be filtered out completely.
  *
  * **When to use**
@@ -482,7 +482,7 @@ export const CurrentStackFrame: Context.Reference<StackFrame | undefined> = refe
 export const MinimumLogLevel: Context.Reference<LogLevel> = references.MinimumLogLevel
 
 /**
- * Reference for controlling whether tracing is enabled globally. When set to false,
+ * Context reference for controlling whether tracing is enabled globally. When set to false,
  * spans will not be registered with the tracer and tracing overhead is minimized.
  *
  * **When to use**
@@ -533,7 +533,7 @@ export const MinimumLogLevel: Context.Reference<LogLevel> = references.MinimumLo
 export const TracerEnabled: Context.Reference<boolean> = references.TracerEnabled
 
 /**
- * Reference for managing span annotations that are automatically added to all new spans.
+ * Context reference for managing span annotations that are automatically added to all new spans.
  * These annotations provide context and metadata that applies across multiple spans.
  *
  * **When to use**
@@ -591,7 +591,7 @@ export const TracerSpanAnnotations: Context.Reference<ReadonlyRecord<string, unk
   references.TracerSpanAnnotations
 
 /**
- * Reference for managing span links that are automatically added to all new spans.
+ * Context reference for managing span links that are automatically added to all new spans.
  * Span links connect related spans that are not in a parent-child relationship.
  *
  * **When to use**
@@ -658,7 +658,7 @@ export const TracerSpanAnnotations: Context.Reference<ReadonlyRecord<string, unk
 export const TracerSpanLinks: Context.Reference<ReadonlyArray<SpanLink>> = references.TracerSpanLinks
 
 /**
- * Reference for controlling whether trace timing is enabled globally. When set
+ * Context reference for controlling whether trace timing is enabled globally. When set
  * to false, spans will not contain timing information (trace time will always
  * be set to zero).
  *
@@ -706,7 +706,7 @@ export const TracerSpanLinks: Context.Reference<ReadonlyArray<SpanLink>> = refer
 export const TracerTimingEnabled: Context.Reference<boolean> = references.TracerTimingEnabled
 
 /**
- * Reference for the log severity used when a pool finalizer reports an
+ * Context reference for the log severity used when a pool finalizer reports an
  * unhandled error.
  *
  * **When to use**
@@ -756,7 +756,7 @@ export interface StackFrame {
 }
 
 /**
- * Reference containing the set of loggers currently used by Effect logging
+ * Context reference for the set of loggers currently used by Effect logging
  * operations.
  *
  * **When to use**
@@ -776,7 +776,7 @@ export interface StackFrame {
 export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>> = internalEffect.CurrentLoggers
 
 /**
- * Reference controlling whether built-in console loggers write to stderr.
+ * Context reference for controlling whether built-in console loggers write to stderr.
  *
  * **When to use**
  *
@@ -795,7 +795,7 @@ export const LogToStderr: Context.Reference<boolean> = internalEffect.LogToStder
 
 export {
   /**
-   * Reference for the current scheduler implementation used by the Effect runtime.
+   * Context reference for the current scheduler implementation used by the Effect runtime.
    * Controls how Effects are scheduled and executed.
    *
    * **When to use**

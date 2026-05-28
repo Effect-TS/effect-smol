@@ -66,7 +66,6 @@ import * as Reducer from "./Reducer.ts"
  *
  * **Details**
  *
- * - Pure function: does not mutate inputs or have side effects
  * - Returns `boolean`: `true` if values are equivalent, `false` otherwise
  * - Must satisfy reflexive, symmetric, and transitive properties
  *
@@ -154,7 +153,6 @@ export interface EquivalenceTypeLambda extends TypeLambda {
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - First checks reference equality (`===`) for performance; if values are identical, returns `true` without calling the function
  * - Falls back to the provided equivalence function if values are not the same reference
  * - The provided function must satisfy reflexive, symmetric, and transitive properties
@@ -209,7 +207,6 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - Uses JavaScript's strict equality operator (`===`)
  * - For primitives: compares values directly
  * - For objects: compares by reference, so only the same object instance is equivalent
@@ -250,7 +247,7 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
 export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
 
 /**
- * An `Equivalence` instance for strings using strict equality (`===`).
+ * Equivalence instance for strings using strict equality (`===`).
  *
  * **When to use**
  *
@@ -271,7 +268,7 @@ export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
 export const String: Equivalence<string> = isStrictEquivalent
 
 /**
- * An `Equivalence` instance for numbers.
+ * Equivalence instance for numbers.
  *
  * **When to use**
  *
@@ -300,7 +297,7 @@ export const Number: Equivalence<number> = make((self, that) =>
 )
 
 /**
- * An `Equivalence` instance for booleans using strict equality (`===`).
+ * Equivalence instance for booleans using strict equality (`===`).
  *
  * **When to use**
  *
@@ -321,7 +318,7 @@ export const Number: Equivalence<number> = make((self, that) =>
 export const Boolean: Equivalence<boolean> = isStrictEquivalent
 
 /**
- * An `Equivalence` instance for bigints using strict equality (`===`).
+ * Equivalence instance for bigints using strict equality (`===`).
  *
  * **When to use**
  *
@@ -352,7 +349,6 @@ export const BigInt: Equivalence<bigint> = isStrictEquivalent
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - Returns `true` only if both equivalences return `true`
  * - Short-circuits: if the first equivalence returns `false`, the second is not called
  * - The result is also an equivalence that satisfies reflexive, symmetric, and transitive properties
@@ -409,7 +405,6 @@ export const combine: {
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - Returns `true` only if all equivalences in the collection return `true`
  * - Short-circuits: stops at the first equivalence that returns `false`
  * - Empty collections return an equivalence that always returns `true`
@@ -486,7 +481,6 @@ export const combineAll = <A>(collection: Iterable<Equivalence<A>>): Equivalence
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - Applies the transformation function to both values before comparing
  * - The transformation function should be pure and have no side effects
  * - The resulting equivalence compares the transformed values using the provided equivalence
@@ -556,7 +550,6 @@ export const mapInput: {
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - Requires tuples to have the same length; different lengths are never equivalent
  * - Applies each equivalence to the corresponding element position
  * - Returns `true` only if all elements are equivalent according to their respective equivalences
@@ -648,7 +641,6 @@ export {
    *
    * **Details**
    *
-   * - Does not mutate inputs
    * - Requires arrays to have the same length; different lengths are never equivalent
    * - Compares elements positionally, such as index `0` with index `0`
    * - Returns `true` only if all corresponding elements are equivalent
@@ -703,7 +695,6 @@ export {
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - Compares only the properties specified in the struct definition
  * - Properties not in the struct are ignored
  * - Returns `true` only if all specified properties are equivalent according to their equivalences
@@ -786,7 +777,6 @@ export function Struct<R extends Record<string, Equivalence<any>>>(
  *
  * **Details**
  *
- * - Does not mutate inputs
  * - Compares all properties present in both objects
  * - Requires both objects to have the same set of keys; different keys result in `false`
  * - All property values must be equivalent according to the provided equivalence
@@ -894,7 +884,7 @@ export function makeReducer<A>() {
 }
 
 /**
- * An `Equivalence` instance for `Date` objects that compares their `getTime()` values using `Equivalence.Number`.
+ * Equivalence instance for `Date` objects that compares their `getTime()` values using `Equivalence.Number`.
  *
  * **When to use**
  *

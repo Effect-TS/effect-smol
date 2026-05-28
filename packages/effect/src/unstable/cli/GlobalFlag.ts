@@ -156,7 +156,7 @@ let settingIdCounter = 0
 /* ========================================================================== */
 
 /**
- * The `--help` / `-h` global flag, which shows help documentation for the
+ * Defines the `--help` / `-h` global flag, which shows help documentation for the
  * active command path.
  *
  * @see {@link BuiltIns} for the default list containing this flag
@@ -179,8 +179,11 @@ export const Help: Action<boolean> = action({
 })
 
 /**
- * The `--version` global flag.
- * Shows version information for the command.
+ * Defines the global action flag for showing command version information.
+ *
+ * **When to use**
+ *
+ * Use to add a built-in `--version` flag to a command runner.
  *
  * @category references
  * @since 4.0.0
@@ -197,7 +200,7 @@ export const Version: Action<boolean> = action({
 })
 
 /**
- * The `--completions` global flag, which prints a shell completion script for
+ * Defines the `--completions` global flag, which prints a shell completion script for
  * the given shell.
  *
  * **Details**
@@ -226,8 +229,12 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
 })
 
 /**
- * The `--log-level` global flag.
- * Sets the minimum log level for the command.
+ * Defines the global setting flag for command log level.
+ *
+ * **When to use**
+ *
+ * Use to add a built-in `--log-level` option that configures the minimum log
+ * level for the command.
  *
  * @category references
  * @since 4.0.0

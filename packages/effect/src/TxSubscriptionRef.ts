@@ -514,7 +514,7 @@ export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, n
 // =============================================================================
 
 /**
- * Checks if the given value is a TxSubscriptionRef.
+ * Checks whether the given value is a TxSubscriptionRef.
  *
  * **When to use**
  *

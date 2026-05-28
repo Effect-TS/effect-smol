@@ -36,7 +36,7 @@ import * as SqlMessageStorage from "./SqlMessageStorage.ts"
 import * as SqlRunnerStorage from "./SqlRunnerStorage.ts"
 
 /**
- * A sql backed single-node cluster, that can be used for running durable
+ * Provides a SQL-backed single-node cluster for running durable
  * entities and workflows.
  *
  * **When to use**

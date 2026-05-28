@@ -38,7 +38,7 @@ import * as Result from "../../Result.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 /**
- * Parses a URL string into a `URL` object, returning an `Result` type for safe
+ * Parses a URL string safely into a `URL` object, returning a `Result` type for
  * error handling.
  *
  * **Details**
@@ -97,8 +97,7 @@ export const fromString: {
   })
 
 /**
- * This function clones the original `URL` object and applies a callback to the
- * clone, allowing multiple updates at once.
+ * Updates a cloned `URL` with a callback, allowing multiple changes at once.
  *
  * **Example** (Mutating URL credentials)
  *
@@ -116,7 +115,7 @@ export const fromString: {
  * // Output: Mutated: https://user:pass@example.com/
  * ```
  *
- * @category Modifiers
+ * @category modifiers
  * @since 4.0.0
  */
 export const mutate: {
@@ -319,7 +318,7 @@ export const setUrlParams: {
 export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(url.searchParams)
 
 /**
- * Reads, modifies, and updates the query parameters of a URL.
+ * Reads the query parameters of a URL, modifies them, and updates the URL.
  *
  * **Details**
  *
@@ -341,7 +340,7 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * // Output: https://example.com/?foo=bar&key=value
  * ```
  *
- * @category Modifiers
+ * @category modifiers
  * @since 4.0.0
  */
 export const modifyUrlParams: {

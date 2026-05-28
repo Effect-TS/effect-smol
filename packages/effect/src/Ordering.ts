@@ -79,7 +79,7 @@ import * as Reducer_ from "./Reducer.ts"
 export type Ordering = -1 | 0 | 1
 
 /**
- * Inverts the ordering of the input Ordering.
+ * Reverses the ordering of the input Ordering.
  * This is useful for creating descending sort orders from ascending ones.
  *
  * **When to use**
@@ -121,7 +121,7 @@ export type Ordering = -1 | 0 | 1
 export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 : 0)
 
 /**
- * Depending on the `Ordering` parameter given to it, returns a value produced by one of the 3 functions provided as parameters.
+ * Matches an `Ordering` value and returns the branch selected by that ordering.
  *
  * **When to use**
  *
@@ -173,7 +173,7 @@ export const match: {
 ): A | B | C => self === -1 ? onLessThan() : self === 0 ? onEqual() : onGreaterThan())
 
 /**
- * A `Reducer` for combining `Ordering`s.
+ * Reducer for combining `Ordering`s.
  *
  * **When to use**
  *

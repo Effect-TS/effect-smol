@@ -55,7 +55,7 @@ import { OpenAiClient } from "./OpenAiClient.ts"
 export type Model = string
 
 /**
- * Service definition for OpenAI embedding model configuration.
+ * Context service for OpenAI embedding model configuration.
  *
  * **When to use**
  *

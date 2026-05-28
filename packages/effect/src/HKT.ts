@@ -54,16 +54,17 @@
 import type * as Types from "./Types.ts"
 
 /**
- * A unique symbol used to associate `TypeClass` implementations with their `TypeLambda`.
+ * Defines the unique symbol used to associate `TypeClass` implementations with their `TypeLambda`.
  *
  * **When to use**
  *
- * Use to link type class implementations to the `TypeLambda` they operate on.
+ * Use when defining a custom type class that needs to expose the `TypeLambda` it
+ * operates on.
  *
  * **Details**
  *
- * This symbol is used internally by the HKT system to link runtime type class
- * instances with their compile-time type information.
+ * This symbol links a type class shape with its compile-time type lambda. It is
+ * intended for type-class definitions and has no runtime behavior.
  *
  * **Example** (Linking a type class to a type lambda)
  *

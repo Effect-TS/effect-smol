@@ -78,11 +78,11 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global `BigInt` constructor for JavaScript bigint coercion.
+ * Exposes the global bigint constructor for JavaScript bigint coercion.
  *
  * **When to use**
  *
- * Use when you want the native `BigInt` constructor behavior from the Effect
+ * Use to access native JavaScript bigint constructor coercion from the Effect
  * module namespace.
  *
  * **Gotchas**
@@ -115,7 +115,7 @@ const bigint1 = BigInt(1)
 const bigint2 = BigInt(2)
 
 /**
- * Tests if a value is a `bigint`.
+ * Checks whether a value is a `bigint`.
  *
  * **When to use**
  *
@@ -213,7 +213,7 @@ export const subtract: {
 } = dual(2, (self: bigint, that: bigint): bigint => self - that)
 
 /**
- * Safely divides one `bigint` by another.
+ * Divides one `bigint` by another safely.
  *
  * **When to use**
  *
@@ -333,7 +333,8 @@ export const decrement = (n: bigint): bigint => n - bigint1
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for `bigint` values.
+ * Use when sorting or comparing bigint values through APIs that accept an
+ * ordering instance.
  *
  * **Example** (Comparing bigints with Order)
  *
@@ -355,11 +356,12 @@ export const decrement = (n: bigint): bigint => n - bigint1
 export const Order: order.Order<bigint> = order.BigInt
 
 /**
- * An `Equivalence` instance for bigints using strict equality (`===`).
+ * Equivalence instance for bigints using strict equality (`===`).
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for `bigint` equality.
+ * Use when checking bigint equality through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Comparing bigints for equivalence)
  *
@@ -480,7 +482,7 @@ export const isGreaterThanOrEqualTo: {
 } = order.isGreaterThanOrEqualTo(Order)
 
 /**
- * Checks if a `bigint` is between a `minimum` and `maximum` value (inclusive).
+ * Checks whether a `bigint` is between a `minimum` and `maximum` value (inclusive).
  *
  * **When to use**
  *
@@ -765,7 +767,7 @@ export const sqrtUnsafe = (n: bigint): bigint => {
 }
 
 /**
- * Safely returns the integer square root of a `bigint`.
+ * Computes the integer square root of a `bigint` safely.
  *
  * **When to use**
  *
@@ -861,7 +863,7 @@ export const multiplyAll = (collection: Iterable<bigint>): bigint => {
 }
 
 /**
- * Converts a `bigint` to a `number`.
+ * Converts a `bigint` to a `number` safely.
  *
  * **When to use**
  *
@@ -896,7 +898,7 @@ export const toNumber = (b: bigint): Option.Option<number> => {
 }
 
 /**
- * Converts a string to a `bigint`.
+ * Parses a string into a `bigint` safely.
  *
  * **When to use**
  *
@@ -1011,7 +1013,7 @@ export const remainder: {
 } = dual(2, (self: bigint, divisor: bigint): bigint => self % divisor)
 
 /**
- * A `Reducer` for combining `bigint`s using addition.
+ * Reducer for combining `bigint`s using addition.
  *
  * **When to use**
  *
@@ -1030,7 +1032,7 @@ export const remainder: {
 export const ReducerSum: Reducer.Reducer<bigint> = Reducer.make((a, b) => a + b, bigint0)
 
 /**
- * A `Reducer` for combining `bigint`s using multiplication.
+ * Reducer for combining `bigint`s using multiplication.
  *
  * **When to use**
  *
@@ -1056,7 +1058,7 @@ export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a
 })
 
 /**
- * A `Combiner` that returns the maximum `bigint`.
+ * Combiner that returns the maximum `bigint`.
  *
  * **When to use**
  *
@@ -1071,7 +1073,7 @@ export const ReducerMultiply: Reducer.Reducer<bigint> = Reducer.make((a, b) => a
 export const CombinerMax: Combiner.Combiner<bigint> = Combiner.max(Order)
 
 /**
- * A `Combiner` that returns the minimum `bigint`.
+ * Combiner that returns the minimum `bigint`.
  *
  * **When to use**
  *

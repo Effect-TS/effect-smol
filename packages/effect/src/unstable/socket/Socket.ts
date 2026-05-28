@@ -59,7 +59,12 @@ export const TypeId = "~effect/socket/Socket"
 export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, TypeId)
 
 /**
- * Context service tag for the current `Socket` implementation.
+ * Service tag for bidirectional socket transports.
+ *
+ * **When to use**
+ *
+ * Use to access or provide the socket implementation used by programs that
+ * read and write frames through the Effect environment.
  *
  * @category tags
  * @since 4.0.0
@@ -161,7 +166,8 @@ const decoder = new TextDecoder()
 const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
 
 /**
- * Socket close event value carrying a close code and optional reason.
+ * Represents a socket close event value carrying a close code and optional
+ * reason.
  *
  * @category models
  * @since 4.0.0

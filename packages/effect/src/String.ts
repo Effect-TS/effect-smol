@@ -80,12 +80,12 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global `String` constructor.
+ * Exposes the global string constructor.
  *
  * **When to use**
  *
- * Use when code in the Effect `String` namespace needs native JavaScript string
- * coercion or constructor behavior.
+ * Use to access native JavaScript string coercion or constructor behavior from
+ * the Effect module namespace.
  *
  * **Gotchas**
  *
@@ -100,7 +100,7 @@ import * as Reducer from "./Reducer.ts"
 export const String = globalThis.String
 
 /**
- * Tests if a value is a `string`.
+ * Checks whether a value is a `string`.
  *
  * **Example** (Checking for strings)
  *
@@ -118,7 +118,8 @@ export const String = globalThis.String
 export const isString: Refinement<unknown, string> = predicate.isString
 
 /**
- * `Order` instance for comparing strings using lexicographic ordering.
+ * Provides an `Order` instance for comparing strings using lexicographic
+ * ordering.
  *
  * **Example** (Comparing strings lexicographically)
  *
@@ -136,7 +137,7 @@ export const isString: Refinement<unknown, string> = predicate.isString
 export const Order: order.Order<string> = order.String
 
 /**
- * An `Equivalence` instance for strings using strict equality (`===`).
+ * Provides an `Equivalence` instance for strings using strict equality (`===`).
  *
  * **Example** (Comparing strings for equality)
  *
@@ -153,7 +154,11 @@ export const Order: order.Order<string> = order.String
 export const Equivalence: Equ.Equivalence<string> = Equ.String
 
 /**
- * The empty string `""`.
+ * Provides the empty string `""`.
+ *
+ * **When to use**
+ *
+ * Use when you need the canonical empty string value from the `String` module.
  *
  * **Example** (Using the empty string)
  *
@@ -164,7 +169,7 @@ export const Equivalence: Equ.Equivalence<string> = Equ.String
  * console.log(String.isEmpty(String.empty)) // true
  * ```
  *
- * @category constructors
+ * @category constants
  * @since 2.0.0
  */
 export const empty: "" = "" as const
@@ -437,7 +442,7 @@ export const trimEnd = <A extends string>(self: A): TrimEnd<A> => self.trimEnd()
 export const slice = (start?: number, end?: number) => (self: string): string => self.slice(start, end)
 
 /**
- * Test whether a `string` is empty.
+ * Checks whether a `string` is empty.
  *
  * **Example** (Checking for empty strings)
  *
@@ -455,7 +460,7 @@ export const slice = (start?: number, end?: number) => (self: string): string =>
 export const isEmpty = (self: string): self is "" => self.length === 0
 
 /**
- * Test whether a `string` is non empty.
+ * Checks whether a `string` is non-empty.
  *
  * **Example** (Checking for non-empty strings)
  *
@@ -573,7 +578,7 @@ export const endsWith = (searchString: string, position?: number) => (self: stri
   self.endsWith(searchString, position)
 
 /**
- * Returns the character code at the specified index, or `None` if the index is out of bounds.
+ * Returns the character code at the specified index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Reading character codes)
  *
@@ -614,7 +619,7 @@ export const charCodeAt: {
 export const substring = (start: number, end?: number) => (self: string): string => self.substring(start, end)
 
 /**
- * Returns the character at the specified index, or `None` if the index is out of bounds.
+ * Returns the character at the specified relative index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Accessing characters safely)
  *
@@ -634,7 +639,7 @@ export const at: {
 } = dual(2, (self: string, index: number): Option.Option<string> => Option.fromUndefinedOr(self.at(index)))
 
 /**
- * Returns the character at the specified index, or `None` if the index is out of bounds.
+ * Returns the character at the specified non-negative index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Reading characters safely)
  *
@@ -657,7 +662,7 @@ export const charAt: {
 )
 
 /**
- * Returns the Unicode code point at the specified index, or `None` if the index is out of bounds.
+ * Returns the Unicode code point at the specified index safely, or `None` if the index is out of bounds.
  *
  * **Example** (Reading code points)
  *
@@ -677,7 +682,7 @@ export const codePointAt: {
 } = dual(2, (self: string, index: number): Option.Option<number> => Option.fromUndefinedOr(self.codePointAt(index)))
 
 /**
- * Returns the index of the first occurrence of a substring, or `None` if not found.
+ * Returns the index of the first occurrence of a substring safely, or `None` if not found.
  *
  * **Example** (Finding the first substring index)
  *
@@ -695,7 +700,7 @@ export const indexOf = (searchString: string) => (self: string): Option.Option<n
   Option.filter(Option.some(self.indexOf(searchString)), number.isGreaterThanOrEqualTo(0))
 
 /**
- * Returns the index of the last occurrence of a substring, or `None` if not found.
+ * Returns the index of the last occurrence of a substring safely, or `None` if not found.
  *
  * **Example** (Finding the last substring index)
  *
@@ -713,7 +718,7 @@ export const lastIndexOf = (searchString: string) => (self: string): Option.Opti
   Option.filter(Option.some(self.lastIndexOf(searchString)), number.isGreaterThanOrEqualTo(0))
 
 /**
- * Compares two strings using locale-aware collation, with optional locales and
+ * Computes locale-aware ordering for two strings, with optional locales and
  * collator options, and returns the result as an `Ordering` (`-1`, `0`, or
  * `1`).
  *
@@ -736,7 +741,7 @@ export const localeCompare =
     number.sign(self.localeCompare(that, locales, options))
 
 /**
- * Matches a string against a pattern and returns `Option.some` with the match
+ * Matches a string against a pattern safely and returns `Option.some` with the match
  * array, or `Option.none` when the pattern does not match.
  *
  * **Example** (Matching regular expressions)
@@ -880,7 +885,7 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
   self.replaceAll(searchValue, replaceValue)
 
 /**
- * Returns the index of the first match for a string or regular expression, or
+ * Returns the index of the first match for a string or regular expression safely, or
  * `Option.none` when no match is found.
  *
  * **Example** (Searching strings)
@@ -944,7 +949,7 @@ export const toLocaleUpperCase = (locale?: string | Array<string>) => (self: str
   self.toLocaleUpperCase(locale)
 
 /**
- * Keep the specified number of characters from the start of a string.
+ * Keeps the specified number of characters from the start of a string.
  *
  * **Details**
  *
@@ -973,7 +978,7 @@ export const takeLeft: {
 } = dual(2, (self: string, n: number): string => self.slice(0, Math.max(n, 0)))
 
 /**
- * Keep the specified number of characters from the end of a string.
+ * Keeps the specified number of characters from the end of a string.
  *
  * **Details**
  *
@@ -1044,9 +1049,8 @@ export const linesIterator = (self: string): LinesIterator => linesSeparated(sel
 export const linesWithSeparators = (s: string): LinesIterator => linesSeparated(s, false)
 
 /**
- * For every line in this string, strip a leading prefix consisting of blanks
- * or control characters followed by the character specified by `marginChar`
- * from the line.
+ * Strips a leading margin prefix from every line using the supplied margin
+ * character.
  *
  * **Example** (Stripping custom margins)
  *
@@ -1085,8 +1089,7 @@ export const stripMarginWith: {
 })
 
 /**
- * For every line in this string, strip a leading prefix consisting of blanks
- * or control characters followed by the `"|"` character from the line.
+ * Strips a leading `|` margin prefix from every line.
  *
  * **Example** (Stripping pipe margins)
  *
@@ -1266,7 +1269,7 @@ class LinesIterator implements IterableIterator<string> {
 }
 
 /**
- * Test if the provided character is a line break character (i.e. either `"\r"`
+ * Checks whether the provided character is a line break character (i.e. either `"\r"`
  * or `"\n"`).
  */
 const isLineBreak = (char: string): boolean => {
@@ -1275,7 +1278,7 @@ const isLineBreak = (char: string): boolean => {
 }
 
 /**
- * Test if the provided characters combine to form a carriage return/line-feed
+ * Checks whether the provided characters combine to form a carriage return/line-feed
  * (i.e. `"\r\n"`).
  */
 const isLineBreak2 = (char0: string, char1: string): boolean => char0.charCodeAt(0) === CR && char1.charCodeAt(0) === LF
@@ -1465,7 +1468,7 @@ export const snakeCase: (self: string) => string = noCase({
 })
 
 /**
- * A `Reducer` for concatenating `string`s.
+ * Reducer for concatenating `string`s.
  *
  * **When to use**
  *

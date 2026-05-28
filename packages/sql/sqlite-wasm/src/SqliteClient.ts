@@ -88,7 +88,7 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
- * Context service tag for the SQLite WASM client.
+ * Service tag for the SQLite WASM client.
  *
  * @category tags
  * @since 4.0.0
@@ -473,9 +473,9 @@ const extractObject = (rows: [Array<string>, Array<any>]) => rows[1].map((row) =
 const extractRows = (rows: [Array<string>, Array<any>]) => rows[1]
 
 /**
- * Fiber-local list of transferables to include with worker-backed SQLite WASM query messages.
+ * Fiber reference that stores transferables to include with worker-backed SQLite WASM query messages.
  *
- * @category tranferables
+ * @category transferables
  * @since 4.0.0
  */
 export const Transferables = Context.Reference<ReadonlyArray<Transferable>>(
@@ -486,7 +486,7 @@ export const Transferables = Context.Reference<ReadonlyArray<Transferable>>(
 /**
  * Runs an effect with the supplied transferables attached to worker-backed SQLite WASM query messages.
  *
- * @category tranferables
+ * @category transferables
  * @since 4.0.0
  */
 export const withTransferables =

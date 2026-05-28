@@ -98,7 +98,7 @@ import * as Issue from "./SchemaIssue.ts"
 import * as Str from "./String.ts"
 
 /**
- * A composable transformation from an encoded type `E` to a decoded type `T`.
+ * Represents a composable transformation from an encoded type `E` to a decoded type `T`.
  *
  * **When to use**
  *
@@ -112,7 +112,6 @@ import * as Str from "./String.ts"
  * - Returns `Option.None` to omit the value from the decoded output.
  * - Fails with `Issue` on invalid input.
  * - May require Effect services via `R`.
- * - Immutable — constructing or composing getters does not mutate existing instances.
  * - `.map(f)` applies `f` to the decoded value (inside the `Some`), leaving `None` unchanged.
  * - `.compose(other)` chains two getters: the output of `this` feeds into `other`.
  *   Passthrough getters on either side are optimized away.
@@ -544,7 +543,6 @@ export function checkEffect<T, R = never>(
  *
  * - This is the most commonly used constructor.
  * - Transforms `Some(e)` to `Some(f(e))` and leaves `None` unchanged.
- * - Pure, does not mutate input.
  * - Skips `None` inputs — only called when a value is present.
  * - Never fails.
  *
@@ -860,7 +858,7 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
 }
 
 /**
- * Trims whitespace from both ends of a string.
+ * Strips whitespace from both ends of a string.
  *
  * **Details**
  *
@@ -904,7 +902,7 @@ export function capitalize<E extends string>(): Getter<string, E> {
 }
 
 /**
- * Lowercases the first character of a string.
+ * Uncapitalizes the first character of a string.
  *
  * **Details**
  *
@@ -1773,7 +1771,7 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  * - A bracket path is a string like `"user[address][city]"` that describes nested
  *   object/array structure.
  * - Interprets bracket paths and constructs the corresponding nested object.
- * - Mutates and returns a new object (does not mutate the input array).
+ * - Builds and returns a nested object from the input entries.
  * - Supported syntax:
  *   - `"foo"` → object key `"foo"`
  *   - `"foo[bar]"` → nested `{ foo: { bar: ... } }`

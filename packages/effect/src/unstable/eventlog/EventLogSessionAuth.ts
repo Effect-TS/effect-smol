@@ -46,7 +46,13 @@ const textDecoder = new TextDecoder("utf-8", { fatal: true })
 const constLengthPrefixBytes = 4
 
 /**
- * Domain-separation string embedded in canonical session authentication payloads.
+ * Defines the domain-separation string embedded in canonical session
+ * authentication payloads.
+ *
+ * **When to use**
+ *
+ * Use when you need the domain-separation string used to build canonical
+ * event-log session authentication payloads.
  *
  * @category constants
  * @since 4.0.0
@@ -54,8 +60,13 @@ const constLengthPrefixBytes = 4
 export const AuthPayloadContext = "eventlog-auth-v1"
 
 /**
- * Required byte length for raw Ed25519 public keys used in session
+ * Defines the required byte length for raw Ed25519 public keys used in session
  * authentication.
+ *
+ * **When to use**
+ *
+ * Use when you need to validate the byte length of raw Ed25519 public keys for
+ * session authentication.
  *
  * @category constants
  * @since 4.0.0
@@ -63,7 +74,12 @@ export const AuthPayloadContext = "eventlog-auth-v1"
 export const Ed25519PublicKeyLength = 32
 
 /**
- * Required byte length for Ed25519 signatures used in session authentication.
+ * Defines the required byte length for Ed25519 signatures used in session authentication.
+ *
+ * **When to use**
+ *
+ * Use when you need to validate the byte length of Ed25519 signatures for
+ * session authentication.
  *
  * @category constants
  * @since 4.0.0
@@ -71,7 +87,12 @@ export const Ed25519PublicKeyLength = 32
 export const Ed25519SignatureLength = 64
 
 /**
- * Number of random bytes generated for a session authentication challenge.
+ * Defines the number of random bytes generated for a session authentication
+ * challenge.
+ *
+ * **When to use**
+ *
+ * Use when you need the challenge size for event-log session authentication.
  *
  * @category constants
  * @since 4.0.0
@@ -79,7 +100,13 @@ export const Ed25519SignatureLength = 64
 export const SessionAuthChallengeLength = 32
 
 /**
- * Time-to-live, in milliseconds, for a pending session authentication challenge.
+ * Defines the time-to-live, in milliseconds, for a pending session
+ * authentication challenge.
+ *
+ * **When to use**
+ *
+ * Use when you need the timeout for pending event-log session authentication
+ * challenges.
  *
  * @category constants
  * @since 4.0.0
@@ -347,8 +374,7 @@ export const decodeSessionAuthPayload = Effect.fnUntraced(
 )
 
 /**
- * Signs canonical session authentication payload bytes with an Ed25519 private
- * key.
+ * Creates a canonical session authentication signature with an Ed25519 private key.
  *
  * **Details**
  *

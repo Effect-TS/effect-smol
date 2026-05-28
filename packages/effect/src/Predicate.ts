@@ -79,7 +79,6 @@ import type { TupleOf, TupleOfAtLeast } from "./Types.ts"
  *
  * **Details**
  *
- * - Pure function; does not mutate input.
  * - Returns `true` or `false`; never throws by itself.
  * - Does not narrow types unless you use {@link Refinement}.
  *
@@ -144,7 +143,6 @@ export interface PredicateTypeLambda extends TypeLambda {
  *
  * **Details**
  *
- * - Pure function; does not mutate input.
  * - Returns a type predicate (`a is B`).
  * - Use with `if`/`filter` to narrow types.
  *
@@ -374,7 +372,6 @@ export declare namespace Refinement {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns a new predicate that applies `f` before `self`.
  * - No short-circuit beyond what `self` does.
  *
@@ -411,7 +408,6 @@ export const mapInput: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Only checks length, not element types.
  * - Returns a refinement on the array type.
  *
@@ -445,7 +441,6 @@ export const isTupleOf: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Only checks length, not element types.
  * - Returns a refinement on the array type.
  *
@@ -479,7 +474,6 @@ export const isTupleOfAtLeast: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `!!input` under the hood.
  * - Treats `0`, "", `false`, `null`, and `undefined` as false.
  *
@@ -512,7 +506,6 @@ export function isTruthy(input: unknown): boolean {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `instanceof Set`.
  *
  * **Example** (Guard a Set)
@@ -545,7 +538,6 @@ export function isSet(input: unknown): input is Set<unknown> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `instanceof Map`.
  *
  * **Example** (Guard a Map)
@@ -579,7 +571,6 @@ export function isMap(input: unknown): input is Map<unknown, unknown> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `typeof input === "string"`.
  *
  * **Example** (Guard string)
@@ -613,7 +604,6 @@ export function isString(input: unknown): input is string {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `typeof input === "number"`.
  * - Does not exclude `NaN` or `Infinity`.
  *
@@ -647,7 +637,6 @@ export function isNumber(input: unknown): input is number {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `typeof input === "boolean"`.
  *
  * **Example** (Guard boolean)
@@ -680,7 +669,6 @@ export function isBoolean(input: unknown): input is boolean {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `typeof input === "bigint"`.
  *
  * **Example** (Guard bigint)
@@ -712,7 +700,6 @@ export function isBigInt(input: unknown): input is bigint {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `typeof input === "symbol"`.
  *
  * **Example** (Guard symbol)
@@ -744,7 +731,6 @@ export function isSymbol(input: unknown): input is symbol {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses {@link isString}, {@link isNumber}, and {@link isSymbol}.
  *
  * **Example** (Guard property key)
@@ -779,7 +765,6 @@ export function isPropertyKey(u: unknown): u is PropertyKey {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `typeof input === "function"`.
  *
  * **Example** (Guard function)
@@ -811,7 +796,6 @@ export function isFunction(input: unknown): input is Function {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `input === undefined`.
  *
  * **Example** (Guard undefined)
@@ -842,7 +826,6 @@ export function isUndefined(input: unknown): input is undefined {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns a refinement that excludes `undefined`.
  *
  * **Example** (Filter undefined)
@@ -874,7 +857,6 @@ export function isNotUndefined<A>(input: A): input is Exclude<A, undefined> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `input === null`.
  *
  * **Example** (Guard null)
@@ -905,7 +887,6 @@ export function isNull(input: unknown): input is null {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns a refinement that excludes `null`.
  *
  * **Example** (Filter null)
@@ -937,7 +918,6 @@ export function isNotNull<A>(input: A): input is Exclude<A, null> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `input === null || input === undefined`.
  *
  * **Example** (Guard nullish)
@@ -970,7 +950,6 @@ export function isNullish<A>(input: A): input is A & (null | undefined) {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `input != null`.
  *
  * **Example** (Filter non-nullish)
@@ -995,7 +974,7 @@ export function isNotNullish<A>(input: A): input is NonNullable<A> {
 }
 
 /**
- * A guard that always returns `false`.
+ * Type guard that always returns `false`.
  *
  * **When to use**
  *
@@ -1003,7 +982,6 @@ export function isNotNullish<A>(input: A): input is NonNullable<A> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Always returns `false`.
  *
  * **Example** (Never matches)
@@ -1023,7 +1001,7 @@ export function isNever(_: unknown): _ is never {
 }
 
 /**
- * A guard that always returns `true`.
+ * Type guard that always returns `true`.
  *
  * **When to use**
  *
@@ -1031,7 +1009,6 @@ export function isNever(_: unknown): _ is never {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Always returns `true`.
  *
  * **Example** (Always matches)
@@ -1059,7 +1036,6 @@ export function isUnknown(_: unknown): _ is unknown {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `typeof input === "object" && input !== null`.
  * - Includes arrays.
  *
@@ -1153,7 +1129,6 @@ export function isReadonlyObject(input: unknown): input is { readonly [x: Proper
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns `true` for arrays and functions, `false` for `null`.
  *
  * **Example** (Object keyword)
@@ -1184,7 +1159,6 @@ export function isObjectKeyword(input: unknown): input is object {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses the `in` operator and {@link isObjectKeyword}.
  * - Does not check property value types.
  *
@@ -1225,7 +1199,6 @@ export const hasProperty: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses {@link hasProperty} and strict equality on `_tag`.
  *
  * **Example** (Guard tagged)
@@ -1259,7 +1232,6 @@ export const isTagged: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `instanceof Error`.
  *
  * **Example** (Guard error)
@@ -1289,7 +1261,6 @@ export function isError(input: unknown): input is Error {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `instanceof Uint8Array`.
  *
  * **Example** (Guard Uint8Array)
@@ -1320,7 +1291,6 @@ export function isUint8Array(input: unknown): input is Uint8Array {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `instanceof Date`.
  *
  * **Example** (Guard Date)
@@ -1350,7 +1320,6 @@ export function isDate(input: unknown): input is Date {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Accepts strings as iterable.
  * - Uses {@link hasProperty} for `Symbol.iterator`.
  *
@@ -1382,7 +1351,6 @@ export function isIterable(input: unknown): input is Iterable<unknown> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Structural check for `then` and `catch` functions.
  *
  * **Example** (Guard promise)
@@ -1412,7 +1380,6 @@ export function isPromise(input: unknown): input is Promise<unknown> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Structural check for a callable `then`.
  *
  * **Example** (Guard promise-like)
@@ -1442,7 +1409,6 @@ export function isPromiseLike(input: unknown): input is PromiseLike<unknown> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Uses `instanceof RegExp`.
  *
  * **Example** (Guard RegExp)
@@ -1473,7 +1439,6 @@ export function isRegExp(input: unknown): input is RegExp {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - For refinements, the output type is narrowed by both.
  * - Short-circuits on the first `false`.
  *
@@ -1516,7 +1481,6 @@ export const compose: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns a refinement if any element predicate is a refinement.
  * - Stops at the first failing element.
  *
@@ -1563,7 +1527,6 @@ export function Tuple<const T extends ReadonlyArray<Predicate.Any>>(
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns a refinement if any field predicate is a refinement.
  * - Checks only the specified keys; extra keys are ignored.
  *
@@ -1613,7 +1576,6 @@ export function Struct<R extends Record<string, Predicate.Any>>(
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns a new predicate that flips the boolean result.
  *
  * **Example** (Negate)
@@ -1646,7 +1608,6 @@ export function not<A>(self: Predicate<A>): Predicate<A> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Short-circuits on the first `true`.
  * - For refinements, the output type is a union.
  *
@@ -1682,7 +1643,6 @@ export const or: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Short-circuits on the first `false`.
  * - For refinements, the output type is an intersection.
  *
@@ -1725,7 +1685,6 @@ export const and: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns `true` when results differ.
  *
  * **Example** (Exclusive or)
@@ -1759,7 +1718,6 @@ export const xor: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns `true` when both results are equal.
  *
  * **Example** (Equivalence)
@@ -1792,7 +1750,6 @@ export const eqv: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns `true` when the antecedent is `false`.
  *
  * **Example** (Implication)
@@ -1829,7 +1786,6 @@ export const implies: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns the negation of {@link or}.
  *
  * **Example** (NOR)
@@ -1864,7 +1820,6 @@ export const nor: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Returns the negation of {@link and}.
  *
  * **Example** (NAND)
@@ -1899,7 +1854,6 @@ export const nand: {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Short-circuits on the first `false`.
  * - Iterates the collection each time the predicate is called.
  *
@@ -1938,7 +1892,6 @@ export function every<A>(collection: Iterable<Predicate<A>>): Predicate<A> {
  *
  * **Details**
  *
- * - Pure; does not mutate input.
  * - Short-circuits on the first `true`.
  * - Iterates the collection each time the predicate is called.
  *

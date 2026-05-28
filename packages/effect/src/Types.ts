@@ -354,7 +354,7 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
 export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? Y : N
 
 /**
- * Checks if an object type contains any of the specified keys.
+ * Checks whether an object type contains any of the specified keys.
  *
  * **When to use**
  *
@@ -382,8 +382,8 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
   : true
 
 /**
- * Merges two object types where keys from `Source` take precedence over
- * `Target` on conflict.
+ * Left-biased merge of two object types where keys from `Source` take
+ * precedence over `Target` on conflict.
  *
  * **When to use**
  *
@@ -415,8 +415,8 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
 export type MergeLeft<Source, Target> = MergeRight<Target, Source>
 
 /**
- * Merges two object types where keys from `Source` take precedence over
- * `Target` on conflict.
+ * Right-biased merge of two object types where keys from `Source` take
+ * precedence over `Target` on conflict.
  *
  * **When to use**
  *
@@ -1033,7 +1033,7 @@ export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string
  *
  * **When to use**
  *
- * Use to narrow down to a single reason variant from a nested error type.
+ * Use to extract only the matching reason variant from a nested error type.
  *
  * **Details**
  *
@@ -1070,7 +1070,8 @@ export type ExtractReason<E, K extends string> = E extends { readonly reason: in
  *
  * **When to use**
  *
- * Use to narrow down to a single reason variant from a nested error type.
+ * Use to preserve the original error shape while narrowing its nested reason
+ * field to the matching variant.
  *
  * **Details**
  *

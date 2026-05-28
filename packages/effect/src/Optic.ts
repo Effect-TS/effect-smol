@@ -157,7 +157,6 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - The returned optic can be composed with any other optic.
  *
  * **Example** (wrapping/unwrapping a branded type)
@@ -239,7 +238,6 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - `replace(a, s)` should return a structurally new `S` with `a` in place
  *   of the old focus.
  *
@@ -328,7 +326,6 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - `getResult` should return `Result.fail(message)` on mismatch.
  *
  * **Example** (parsing a string to a number)
@@ -375,7 +372,6 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * - `getResult` runs all checks; fails with a combined error message when
  *   any check fails.
  * - `set` is identity — the value passes through unchanged.
- * - Does not mutate inputs.
  *
  * **Example** (positive integer prism)
  *
@@ -546,10 +542,10 @@ type ForbidUnion<A, Message extends string> = IsUnion<A> extends true ? [Message
  *
  * **When to use**
  *
- * Use when the focus may not exist in `S` **and** writing a new `A` back may also
- *   fail (e.g. the source no longer matches the expected shape).
- * - As the base type: every optic ({@link Iso}, {@link Lens}, {@link Prism},
- *   {@link Traversal}) extends `Optional`.
+ * Use when the focus may not exist in `S` and writing a new `A` back may also
+ * fail, for example when the source no longer matches the expected shape. This
+ * is the base type extended by {@link Iso}, {@link Lens}, {@link Prism}, and
+ * {@link Traversal}.
  *
  * **Details**
  *
@@ -1034,7 +1030,6 @@ export interface Optional<in out S, in out A> {
  *
  * **Details**
  *
- * - Does not mutate inputs.
  * - `getResult` should return `Result.fail(message)` on mismatch.
  * - `set` should return `Result.fail(message)` when the update cannot be
  *   applied.
@@ -1480,7 +1475,6 @@ function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
  *
  * - Returns an empty array when the traversal cannot focus.
  * - Always returns a fresh array (safe to mutate).
- * - Does not mutate the source.
  *
  * **Example** (collecting positive numbers)
  *
@@ -1522,12 +1516,11 @@ export function getAll<S, A>(traversal: Traversal<S, A>): (s: S) => Array<A> {
 const identityIso = make(identityNode)
 
 /**
- * The identity {@link Iso}. Focuses on the whole value unchanged.
+ * Iso that focuses on the whole value unchanged.
  *
  * **When to use**
  *
- * Use when as the starting point of an optic chain: `Optic.id<S>().key("x")...`
- * - Anywhere an `Iso<S, S>` is needed.
+ * Use when starting an optic chain with a focus on the whole value.
  *
  * **Details**
  *
@@ -1558,7 +1551,7 @@ export function id<S>(): Iso<S, S> {
 }
 
 /**
- * An {@link Iso} that converts a `Record<string, A>` to an array of
+ * Iso that converts a `Record<string, A>` to an array of
  * `[key, value]` entries and back.
  *
  * **When to use**
@@ -1597,7 +1590,7 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
 }
 
 /**
- * A {@link Prism} that focuses on the value inside `Option.Some`.
+ * Prism that focuses on the value inside `Option.Some`.
  *
  * **When to use**
  *
@@ -1645,7 +1638,7 @@ export function some<A>(): Prism<Option.Option<A>, A> {
 }
 
 /**
- * A {@link Prism} that focuses on `Option.None`, exposing `undefined`.
+ * Prism that focuses on `Option.None`, exposing `undefined`.
  *
  * **When to use**
  *
@@ -1690,7 +1683,7 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
 }
 
 /**
- * A {@link Prism} that focuses on the success value of a `Result`.
+ * Prism that focuses on the success value of a `Result`.
  *
  * **When to use**
  *
@@ -1735,7 +1728,7 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
 }
 
 /**
- * A {@link Prism} that focuses on the failure value of a `Result`.
+ * Prism that focuses on the failure value of a `Result`.
  *
  * **When to use**
  *

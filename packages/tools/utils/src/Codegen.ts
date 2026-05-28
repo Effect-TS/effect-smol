@@ -130,7 +130,7 @@ export interface BarrelGenerator {
 }
 
 /**
- * Context service tag for barrel file generation.
+ * Service tag for barrel file generation.
  *
  * @category tags
  * @since 4.0.0

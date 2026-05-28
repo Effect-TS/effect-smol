@@ -474,6 +474,8 @@ const format = (
   space?: number | string | undefined
 ) =>
 ({ cause, date, fiber, logLevel, message }: Options<unknown>): string => {
+  const formatUnknown = (value: unknown): string =>
+    typeof value === "string" ? value : Formatter.format(value, { space })
   const formatValue = (value: string): string => value.match(textOnly) ? value : quoteValue(value)
   const format = (label: string, value: string): string => `${effect.formatLabel(label)}=${formatValue(value)}`
   const append = (label: string, value: string): string => " " + format(label, value)
@@ -484,7 +486,7 @@ const format = (
 
   const messages = Array.ensure(message)
   for (let i = 0; i < messages.length; i++) {
-    out += append("message", Formatter.format(messages[i], { space }))
+    out += append("message", formatUnknown(messages[i]))
   }
 
   if (cause.reasons.length > 0) {
@@ -499,7 +501,7 @@ const format = (
 
   const annotations = fiber.getRef(CurrentLogAnnotations)
   for (const [label, value] of Object.entries(annotations)) {
-    out += append(label, Formatter.format(value, { space }))
+    out += append(label, formatUnknown(value))
   }
 
   return out
@@ -784,7 +786,7 @@ export const formatStructured: Logger<unknown, {
 export const formatJson = map(formatStructured, Formatter.formatJson)
 
 /**
- * Creates, in a scope, a logger that batches the output of another logger.
+ * Creates a scoped logger that batches the output of another logger.
  *
  * **Details**
  *
@@ -1227,7 +1229,7 @@ export const layer = <
   )
 
 /**
- * Creates, in a scope, a logger that writes string logger output to a file.
+ * Creates a scoped logger that writes string logger output to a file.
  *
  * **Details**
  *

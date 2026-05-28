@@ -30,7 +30,7 @@ import * as Runtime from "../../Runtime.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 const TypeId = "~effect/cli/CliError"
@@ -444,7 +444,7 @@ export class UnknownSubcommand extends Schema.ErrorClass<UnknownSubcommand>(`${T
 }
 
 /**
- * Wrapper for user (handler) errors to unify under CLI error channel when desired.
+ * Error wrapper for user handler failures in the CLI error channel.
  *
  * **Example** (Wrapping user errors)
  *
@@ -537,7 +537,7 @@ export const NonShowHelpErrors: Schema.Union<
 export type NonShowHelpErrors = typeof NonShowHelpErrors.Type
 
 /**
- * Control-flow value that asks the CLI runner to render help for a command path.
+ * Error data requesting CLI help rendering for a command path.
  *
  * **Details**
  *

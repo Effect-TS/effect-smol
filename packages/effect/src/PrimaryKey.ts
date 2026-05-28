@@ -50,7 +50,7 @@
 import { hasProperty } from "./Predicate.ts"
 
 /**
- * The unique identifier used to identify objects that implement the `PrimaryKey` interface.
+ * Defines the unique identifier used to identify objects that implement the `PrimaryKey` interface.
  *
  * **When to use**
  *
@@ -71,8 +71,8 @@ export const symbol = "~effect/interfaces/PrimaryKey"
  *
  * **When to use**
  *
- * Use to define values that expose a stable string identifier through the
- * `PrimaryKey` protocol.
+ * Use to define values that expose a stable string identifier for equality,
+ * hashing, caching, or persistence.
  *
  * **Details**
  *

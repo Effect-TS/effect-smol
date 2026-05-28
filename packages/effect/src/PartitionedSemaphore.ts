@@ -44,16 +44,12 @@ import * as Option from "./Option.ts"
  * Runtime type identifier used to mark values that implement
  * `PartitionedSemaphore`.
  *
- * **When to use**
- *
- * Use to mark and recognize `PartitionedSemaphore` values at runtime.
- *
  * **Details**
  *
- * This constant is stored on partitioned semaphore instances and can be used by
- * library code that needs to recognize the data type at runtime.
+ * This marker is part of the runtime representation of partitioned semaphore
+ * values.
  *
- * @category models
+ * @category type IDs
  * @since 4.0.0
  */
 export const PartitionedTypeId: PartitionedTypeId = "~effect/PartitionedSemaphore"
@@ -70,7 +66,7 @@ export const PartitionedTypeId: PartitionedTypeId = "~effect/PartitionedSemaphor
  * Use this type when declaring fields that must contain the exact
  * `PartitionedTypeId` marker value.
  *
- * @category models
+ * @category type IDs
  * @since 4.0.0
  */
 export type PartitionedTypeId = "~effect/PartitionedSemaphore"

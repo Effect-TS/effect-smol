@@ -239,10 +239,10 @@ export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer
 export const layerDefaults: Layer.Layer<ShardingConfig> = layer()
 
 /**
- * Config descriptor for loading `ShardingConfig` values, applying the same
+ * Describes how to load `ShardingConfig` values, applying the same
  * defaults used by the in-memory `defaults` object.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
@@ -345,7 +345,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
  * Effect that loads `ShardingConfig` from environment variables using the
  * constant-case config provider.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const configFromEnv = config.pipe(

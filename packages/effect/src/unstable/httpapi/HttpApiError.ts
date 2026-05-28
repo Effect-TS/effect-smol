@@ -427,7 +427,7 @@ export const ServiceUnavailableNoContent = ServiceUnavailable.pipe(HttpApiSchema
 /**
  * Type-level identifier used to mark `HttpApiSchemaError` values.
  *
- * @category Parsing errors
+ * @category type IDs
  * @since 4.0.0
  */
 export type HttpApiSchemaErrorTypeId = "~effect/httpapi/HttpApiError/HttpApiSchemaError"
@@ -435,7 +435,7 @@ export type HttpApiSchemaErrorTypeId = "~effect/httpapi/HttpApiError/HttpApiSche
 /**
  * Runtime identifier used to mark and detect `HttpApiSchemaError` values.
  *
- * @category Parsing errors
+ * @category type IDs
  * @since 4.0.0
  */
 export const HttpApiSchemaErrorTypeId: HttpApiSchemaErrorTypeId = "~effect/httpapi/HttpApiError/HttpApiSchemaError"

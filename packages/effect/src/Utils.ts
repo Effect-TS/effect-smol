@@ -61,7 +61,7 @@ import type { Kind, TypeLambda } from "./HKT.ts"
 import type * as Types from "./Types.ts"
 
 /**
- * An `IterableIterator` that yields its wrapped value exactly once.
+ * Yields its wrapped value exactly once through an `IterableIterator`.
  *
  * **When to use**
  *
@@ -75,7 +75,6 @@ import type * as Types from "./Types.ts"
  * subsequent call returns `{ value: a, done: true }` where `a` is the argument
  * passed to `next()`. `[Symbol.iterator]()` returns a **new** `SingleShotGen`
  * wrapping the same value, so the outer type can be iterated multiple times.
- * It does not mutate the wrapped value.
  *
  * **Example** (Yielding a wrapped value in a generator)
  *

@@ -13,8 +13,6 @@
  * - Prefix lookup uses {@link keysWithPrefix}, {@link valuesWithPrefix},
  *   {@link entriesWithPrefix}, {@link toEntriesWithPrefix}, or
  *   {@link longestPrefixOf}.
- * - Updates such as {@link insert}, {@link remove}, {@link insertMany}, and
- *   {@link removeMany} return new tries; existing tries are not mutated.
  * - Iteration yields entries in key order, not insertion order.
  * - Lookup work is proportional to the key or prefix length rather than the
  *   total number of entries.
@@ -192,7 +190,7 @@ export const make: <Entries extends Array<readonly [string, any]>>(
 ) => Trie<Entries[number] extends readonly [any, infer V] ? V : never> = TR.make
 
 /**
- * Insert a new entry in the `Trie`.
+ * Inserts a new entry in the `Trie`.
  *
  * **Example** (Inserting entries)
  *
@@ -509,7 +507,7 @@ export const longestPrefixOf: {
 export const size: <V>(self: Trie<V>) => number = TR.size
 
 /**
- * Safely lookup the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` safely.
  *
  * **Example** (Looking up values safely)
  *
@@ -543,7 +541,7 @@ export const get: {
 } = TR.get
 
 /**
- * Check if the given key exists in the `Trie`.
+ * Checks whether the given key exists in the `Trie`.
  *
  * **Example** (Checking key membership)
  *
@@ -598,7 +596,7 @@ export const has: {
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
 /**
- * Unsafely looks up the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` unsafely.
  *
  * **Gotchas**
  *
@@ -628,7 +626,7 @@ export const getUnsafe: {
 } = TR.getUnsafe
 
 /**
- * Remove the entry for the specified key in the `Trie`.
+ * Removes the entry for the specified key in the `Trie`.
  *
  * **Example** (Removing entries)
  *
@@ -660,7 +658,7 @@ export const remove: {
 } = TR.remove
 
 /**
- * Reduce a state over the entries of the `Trie`.
+ * Reduces a state over the entries of the `Trie`.
  *
  * **Example** (Reducing entries)
  *
@@ -957,7 +955,7 @@ export const removeMany: {
 } = TR.removeMany
 
 /**
- * Insert multiple entries in the `Trie` at once.
+ * Inserts multiple entries in the `Trie` at once.
  *
  * **Example** (Inserting multiple entries)
  *

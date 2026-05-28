@@ -42,7 +42,7 @@ const TypeId = "~@effect/platform-browser/Clipboard"
 const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
 
 /**
- * Service interface for reading from, writing to, and clearing the browser clipboard.
+ * Defines the service interface for reading from, writing to, and clearing the browser clipboard.
  *
  * **Details**
  *
@@ -84,7 +84,7 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
 }
 
 /**
- * Service tag for the browser `Clipboard` service.
+ * Service tag for browser clipboard capabilities.
  *
  * **When to use**
  *
@@ -116,7 +116,7 @@ export const make = (
   })
 
 /**
- * A layer that directly interfaces with the navigator.clipboard api
+ * Layer that directly interfaces with the browser Clipboard API.
  *
  * @category layers
  * @since 4.0.0

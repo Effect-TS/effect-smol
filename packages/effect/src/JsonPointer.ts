@@ -63,7 +63,7 @@
  *
  * **Details**
  *
- * - Does not mutate the input string; returns a new escaped string
+ * - Returns a new escaped string
  * - Replaces `~` (tilde) with `~0` and `/` (forward slash) with `~1`
  * - Returns the input unchanged if it contains no special characters
  * - Empty strings are valid and returned unchanged
@@ -91,7 +91,7 @@ export function escapeToken(token: string): string {
 }
 
 /**
- * Unescapes a JSON Pointer reference token according to RFC 6901 by decoding escaped characters to recover the original token value.
+ * Decodes a JSON Pointer reference token according to RFC 6901 escaping rules.
  *
  * **When to use**
  *
@@ -101,7 +101,7 @@ export function escapeToken(token: string): string {
  *
  * **Details**
  *
- * - Does not mutate the input string; returns a new unescaped string
+ * - Returns a new unescaped string
  * - Replaces `~1` with `/` (forward slash) and `~0` with `~` (tilde)
  * - Returns the input unchanged if it contains no escaped sequences
  * - Empty strings are valid and returned unchanged

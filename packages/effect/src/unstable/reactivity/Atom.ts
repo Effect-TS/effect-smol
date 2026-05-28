@@ -821,10 +821,15 @@ export const defaultMemoMap: Layer.MemoMap = Layer.makeMemoMapUnsafe()
 export const runtime: RuntimeFactory = context({ memoMap: defaultMemoMap })
 
 /**
- * An alias to `Rx.runtime.withReactivity`, for refreshing an atom whenever the
+ * Returns `Rx.runtime.withReactivity` for refreshing an atom whenever the
  * keys change in the `Reactivity` service.
  *
- * @category Reactivity
+ * **When to use**
+ *
+ * Use to refresh an atom whenever one or more invalidation keys change in the
+ * default reactivity runtime.
+ *
+ * @category reactivity
  * @since 4.0.0
  */
 export const withReactivity: (
@@ -1099,7 +1104,12 @@ export interface AtomResultFn<Arg, A, E = never>
 {}
 
 /**
- * Control symbol that can be written to an `AtomResultFn` to reset it to its initial state.
+ * Defines the control symbol that can be written to an `AtomResultFn` to reset it to its initial state.
+ *
+ * **When to use**
+ *
+ * Use to write to an `AtomResultFn` when you need to clear the current async
+ * result and return it to the initial state.
  *
  * @category symbols
  * @since 4.0.0
@@ -1115,7 +1125,12 @@ export const Reset = Symbol.for("effect/reactivity/atom/Atom/Reset")
 export type Reset = typeof Reset
 
 /**
- * Control symbol that can be written to an `AtomResultFn` to interrupt the current asynchronous computation.
+ * Defines the control symbol that can be written to an `AtomResultFn` to interrupt the current asynchronous computation.
+ *
+ * **When to use**
+ *
+ * Use to write to an `AtomResultFn` when you need to interrupt the currently
+ * running async computation.
  *
  * @category symbols
  * @since 4.0.0
@@ -1483,7 +1498,7 @@ export const keepAlive = <A extends Atom<any>>(self: A): A =>
   })
 
 /**
- * Reverts the `keepAlive` behavior of a reactive value, allowing it to be disposed of when not in use.
+ * Allows a reactive value to be disposed of when it is not in use.
  *
  * **Details**
  *
@@ -1543,6 +1558,10 @@ export const withLabel: {
 
 /**
  * Pairs an atom with an initial value for registry initialization.
+ *
+ * **When to use**
+ *
+ * Use to preload an atom value when constructing or seeding a registry.
  *
  * **Details**
  *
@@ -2038,7 +2057,7 @@ export const batch: (f: () => void) => void = Registry.batch
 // -----------------------------------------------------------------------------
 
 /**
- * A browser-only signal atom that increments when the document becomes visible.
+ * Creates a browser-only signal atom that increments when the document becomes visible.
  *
  * **Details**
  *
@@ -2360,7 +2379,12 @@ export const getResult = <A, E>(
 ): Effect.Effect<A, E, AtomRegistry> => AtomRegistry.use(Registry.getResult(self, options))
 
 /**
- * Requests a refresh of an atom through the `AtomRegistry` service.
+ * Runs a refresh request for an atom through the `AtomRegistry` service.
+ *
+ * **When to use**
+ *
+ * Use to invalidate and recompute an atom from an Effect that has access to the
+ * active registry.
  *
  * @category converting
  * @since 4.0.0
@@ -2389,7 +2413,7 @@ export const mount = <A>(self: Atom<A>): Effect.Effect<void, never, AtomRegistry
 /**
  * The type id used to mark atoms that carry serialization metadata.
  *
- * @category Serializable
+ * @category type IDs
  * @since 4.0.0
  */
 export const SerializableTypeId: SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
@@ -2397,7 +2421,7 @@ export const SerializableTypeId: SerializableTypeId = "~effect-atom/atom/Atom/Se
 /**
  * The literal type of the serializable atom marker.
  *
- * @category Serializable
+ * @category type IDs
  * @since 4.0.0
  */
 export type SerializableTypeId = "~effect-atom/atom/Atom/Serializable"
@@ -2468,13 +2492,13 @@ export const serializable: {
 /**
  * The type id used to mark atoms with a server-side read override.
  *
- * @category ServerValue
+ * @category type IDs
  * @since 4.0.0
  */
 export const ServerValueTypeId = "~effect-atom/atom/Atom/ServerValue" as const
 
 /**
- * Overrides the value of an Atom when read on the server.
+ * Sets the value of an Atom when read on the server.
  *
  * @category ServerValue
  * @since 4.0.0

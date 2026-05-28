@@ -364,11 +364,11 @@ export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 export interface UnknownErrorMetadata extends ProviderMetadata {}
 
 /**
- * Token usage information from AI operations.
+ * Schema for token usage information from AI operations.
  *
  * **Details**
  *
- * Contains optional provider-reported token counts for prompt tokens,
+ * Schema for optional provider-reported token counts for prompt tokens,
  * completion tokens, and total tokens.
  *
  * @category schemas
@@ -381,7 +381,12 @@ export const UsageInfo = Schema.Struct({
 }).annotate({ identifier: "UsageInfo" })
 
 /**
- * Combined HTTP context for error reporting.
+ * Schema for the combined HTTP context used in error reporting.
+ *
+ * **When to use**
+ *
+ * Use to attach request details, optional response details, and optional body
+ * text to AI provider errors.
  *
  * **Details**
  *
@@ -950,7 +955,7 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
 }
 
 /**
- * Catch-all error for unknown or unexpected errors.
+ * Error data for unknown or unexpected AI failures.
  *
  * **Details**
  *
@@ -1488,7 +1493,7 @@ export const AiErrorReason: Schema.Union<[
 const TypeId = "~effect/unstable/ai/AiError/AiError" as const
 
 /**
- * Top-level AI error wrapper using the `reason` pattern.
+ * Schema for the top-level AI error wrapper using the `reason` pattern.
  *
  * **When to use**
  *

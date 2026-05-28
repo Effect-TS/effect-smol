@@ -145,7 +145,7 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
  * **Details**
  *
  * Returns a new `Combiner` where `combine(self, that)` calls the original
- * combiner as `combine(that, self)`. The input combiner is not mutated.
+ * combiner as `combine(that, self)`.
  *
  * **Example** (reversing string concatenation)
  *
@@ -178,7 +178,7 @@ export function flip<A>(combiner: Combiner<A>): Combiner<A> {
  * **Details**
  *
  * The combiner compares values using the given `Order`. When values are equal,
- * it returns `that` (the second argument). It does not mutate either argument.
+ * it returns `that` (the second argument).
  *
  * **Example** (minimum of two numbers)
  *
@@ -214,7 +214,7 @@ export function min<A>(order: Order.Order<A>): Combiner<A> {
  * **Details**
  *
  * The combiner compares values using the given `Order`. When values are equal,
- * it returns `that` (the second argument). It does not mutate either argument.
+ * it returns `that` (the second argument).
  *
  * **Example** (maximum of two numbers)
  *
@@ -248,8 +248,7 @@ export function max<A>(order: Order.Order<A>): Combiner<A> {
  *
  * **Details**
  *
- * `combine(self, that)` returns `self` and ignores `that`. The second argument
- * is discarded, not mutated.
+ * `combine(self, that)` returns `self` and ignores `that`.
  *
  * **Example** (keeping the first value)
  *
@@ -280,8 +279,7 @@ export function first<A>(): Combiner<A> {
  *
  * **Details**
  *
- * `combine(self, that)` returns `that` and ignores `self`. The first argument
- * is discarded, not mutated.
+ * `combine(self, that)` returns `that` and ignores `self`.
  *
  * **Example** (keeping the last value)
  *
@@ -315,7 +313,6 @@ export function last<A>(): Combiner<A> {
  * **Details**
  *
  * `combine(self, that)` returns the constant `a` and ignores both arguments.
- * No mutation occurs.
  *
  * **Example** (always returning zero)
  *
@@ -351,8 +348,7 @@ export function constant<A>(a: A): Combiner<A> {
  *
  * `intercalate(middle)(combiner).combine(self, that)` is equivalent to
  * `combiner.combine(self, combiner.combine(middle, that))`. This function is
- * curried: first provide the separator, then the base combiner. It returns a
- * new combiner and does not mutate the input combiner.
+ * curried: first provide the separator, then the base combiner.
  *
  * **Example** (joining strings with a separator)
  *

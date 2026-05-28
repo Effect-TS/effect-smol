@@ -59,7 +59,7 @@ export interface ProviderDiscovery {
 }
 
 /**
- * Context service tag for discovering AI provider codegen configurations.
+ * Service tag for discovering AI provider codegen configurations.
  *
  * @category tags
  * @since 4.0.0

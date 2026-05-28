@@ -46,8 +46,8 @@ import * as Stream from "effect/Stream"
 export * from "@effect/platform-node-shared/NodeStream"
 
 /**
- * An optimized version of `Stream.fromReadableStream` that uses the Bun
- * .readMany API to read multiple values at once from a `ReadableStream`.
+ * Creates a stream from a `ReadableStream` using Bun's optimized `.readMany`
+ * API.
  *
  * @category constructors
  * @since 4.0.0

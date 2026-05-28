@@ -69,20 +69,25 @@ export type Reply<R extends Rpc.Any> = WithExit<R> | Chunk<R>
 export type Encoded = WithExitEncoded | ChunkEncoded
 
 /**
- * Codec used for reply values that are already in encoded form.
+ * Schema for reply values that are already in encoded form.
  *
  * **Details**
  *
  * Per-RPC payload validation is performed by `Reply(rpc)`.
  *
- * @category models
+ * @category schemas
  * @since 4.0.0
  */
 export const Encoded: Schema.Codec<Encoded> = Schema.Any as any
 
 /**
- * A cluster reply paired with the RPC definition and service context required to
+ * Represents a cluster reply paired with the RPC definition and service context required to
  * serialize it for transport.
+ *
+ * **When to use**
+ *
+ * Use to carry a runtime reply together with the RPC schema and services needed
+ * to encode it for storage or transport.
  *
  * @category models
  * @since 4.0.0
@@ -171,8 +176,8 @@ export interface ChunkEncoded {
 const schemaCache = new WeakMap<Rpc.Any, Schema.Top>()
 
 /**
- * A streaming RPC reply chunk for a request, carrying a non-empty batch of success
- * values together with the reply id and sequence number.
+ * Represents a streaming RPC reply chunk for a request, carrying a non-empty
+ * batch of success values together with the reply id and sequence number.
  *
  * @category models
  * @since 4.0.0
@@ -290,8 +295,13 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
 }
 
 /**
- * A terminal RPC reply for a request, carrying the final `Exit` for the remote
+ * Represents a terminal RPC reply for a request, carrying the final `Exit` for the remote
  * call.
+ *
+ * **When to use**
+ *
+ * Use to represent the final success, typed failure, defect, or interruption
+ * for a clustered RPC request.
  *
  * @category models
  * @since 4.0.0
@@ -416,7 +426,7 @@ export const Reply = <R extends Rpc.Any>(
  * reply's RPC schema and context and refailing encoding errors as
  * `MalformedMessage`.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serialize = <R extends Rpc.Any>(
@@ -436,7 +446,7 @@ export const serialize = <R extends Rpc.Any>(
  * `None` when no reply has been received and refailing encoding errors as
  * `MalformedMessage`.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeLastReceived = <R extends Rpc.Any>(

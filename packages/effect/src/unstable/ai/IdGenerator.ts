@@ -55,7 +55,12 @@ import * as Predicate from "../../Predicate.ts"
 import * as Random from "../../Random.ts"
 
 /**
- * The `IdGenerator` service tag for dependency injection.
+ * Service tag for AI identifier generation services.
+ *
+ * **When to use**
+ *
+ * Use to access or provide the service that creates identifiers for AI tool
+ * calls and related generated values.
  *
  * **Details**
  *
@@ -76,7 +81,7 @@ import * as Random from "../../Random.ts"
  * })
  * ```
  *
- * @category models
+ * @category tags
  * @since 4.0.0
  */
 export class IdGenerator extends Context.Service<IdGenerator, Service>()(

@@ -67,11 +67,11 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * The global `Number` constructor.
+ * Exposes the global number constructor.
  *
  * **When to use**
  *
- * Use when you want native `Number` constructor coercion from the Effect module
+ * Use to access native JavaScript numeric coercion from the Effect module
  * namespace.
  *
  * **Gotchas**
@@ -99,7 +99,7 @@ import * as Reducer from "./Reducer.ts"
 export const Number = globalThis.Number
 
 /**
- * Tests if a value is a `number`.
+ * Checks whether a value is a `number`.
  *
  * **When to use**
  *
@@ -197,7 +197,7 @@ export const subtract: {
 } = dual(2, (self: number, that: number): number => self - that)
 
 /**
- * Provides a division operation on `number`s, returning `Option.none()` if the divisor is `0`.
+ * Divides `number`s safely, returning `Option.none()` if the divisor is `0`.
  *
  * **When to use**
  *
@@ -301,11 +301,12 @@ export const increment = (n: number): number => n + 1
 export const decrement = (n: number): number => n - 1
 
 /**
- * An `Order` instance for `number` values.
+ * Order instance for `number` values.
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for numbers.
+ * Use when sorting or comparing numbers through APIs that accept an ordering
+ * instance.
  *
  * **Example** (Comparing numbers)
  *
@@ -323,11 +324,12 @@ export const decrement = (n: number): number => n - 1
 export const Order: order.Order<number> = order.Number
 
 /**
- * An `Equivalence` instance for numbers where `NaN` is considered equal to `NaN`.
+ * Equivalence instance for numbers where `NaN` is considered equal to `NaN`.
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for numeric equality.
+ * Use when checking numeric equality through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Comparing numbers for equivalence)
  *
@@ -449,7 +451,7 @@ export const isGreaterThanOrEqualTo: {
 } = order.isGreaterThanOrEqualTo(Order)
 
 /**
- * Checks if a `number` is between a `minimum` and `maximum` value (inclusive).
+ * Checks whether a `number` is between a `minimum` and `maximum` value (inclusive).
  *
  * **When to use**
  *
@@ -737,7 +739,7 @@ export const nextPow2 = (n: number): number => {
 }
 
 /**
- * Tries to parse a `number` from a `string` using the `Number()` function.
+ * Parses a `number` from a `string` safely using the `Number()` function.
  * The following special string values are supported: "NaN", "Infinity", "-Infinity".
  *
  * **When to use**
@@ -808,7 +810,7 @@ export const round: {
 })
 
 /**
- * A `Reducer` for combining `number`s using addition.
+ * Reducer for combining `number`s using addition.
  *
  * **When to use**
  *
@@ -827,7 +829,7 @@ export const round: {
 export const ReducerSum: Reducer.Reducer<number> = Reducer.make((a, b) => a + b, 0)
 
 /**
- * A `Reducer` for combining `number`s using multiplication.
+ * Reducer for combining `number`s using multiplication.
  *
  * **When to use**
  *
@@ -857,7 +859,7 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 })
 
 /**
- * A `Reducer` for reducing `number`s by keeping the maximum value.
+ * Reducer for reducing `number`s by keeping the maximum value.
  *
  * **When to use**
  *
@@ -881,7 +883,7 @@ export const ReducerMultiply: Reducer.Reducer<number> = Reducer.make((a, b) => a
 export const ReducerMax: Reducer.Reducer<number> = Reducer.make((a, b) => Math.max(a, b), -Infinity)
 
 /**
- * A `Reducer` for reducing `number`s by keeping the minimum value.
+ * Reducer for reducing `number`s by keeping the minimum value.
  *
  * **When to use**
  *

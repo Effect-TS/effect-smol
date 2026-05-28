@@ -52,8 +52,8 @@ export class RpcClientDefect extends Schema.ErrorClass<RpcClientDefect>("effect/
 }) {}
 
 /**
- * The public RPC client error type, wrapping worker, socket, HTTP client, and
- * client protocol defect failures.
+ * Error wrapper for RPC client failures, including worker, socket, HTTP client,
+ * and client protocol defect failures.
  *
  * @category errors
  * @since 4.0.0

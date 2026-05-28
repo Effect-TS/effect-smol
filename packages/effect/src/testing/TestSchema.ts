@@ -78,7 +78,7 @@ import * as Parser from "../SchemaParser.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
 
 /**
- * Entry point for schema test assertions. Wraps a schema and exposes operation-specific helpers for decoding, encoding, make, arbitrary generation, and round-trip verification.
+ * Provides schema test assertions for decoding, encoding, make, arbitrary generation, and round-trip verification.
  *
  * **When to use**
  *
@@ -344,7 +344,7 @@ export class Asserts<S extends Schema.Top> {
 }
 
 /**
- * Decoding test helper that wraps a schema and exposes `succeed` and `fail` methods that run the schema's decoder and compare the result.
+ * Provides decoding test assertions through `succeed` and `fail` methods that run the schema's decoder and compare the result.
  *
  * **When to use**
  *
@@ -470,10 +470,6 @@ export class Decoding<S extends Schema.Top> {
    *
    * Use when the schema's decoder requires a service dependency.
    *
-   * **Details**
-   *
-   * This method does not mutate the current instance.
-   *
    * @see {@link Encoding.provide}
    */
   provide<Id, Service>(
@@ -488,7 +484,7 @@ export class Decoding<S extends Schema.Top> {
 }
 
 /**
- * Encoding test helper that wraps a schema and exposes `succeed` and `fail` methods that run the schema's encoder and compare the result.
+ * Provides encoding test assertions through `succeed` and `fail` methods that run the schema's encoder and compare the result.
  *
  * **When to use**
  *
@@ -613,10 +609,6 @@ export class Encoding<S extends Schema.Top> {
    * **When to use**
    *
    * Use when the schema's encoder requires a service dependency.
-   *
-   * **Details**
-   *
-   * This method does not mutate the current instance.
    *
    * @see {@link Decoding.provide}
    */

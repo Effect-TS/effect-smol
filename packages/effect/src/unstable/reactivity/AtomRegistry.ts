@@ -197,9 +197,14 @@ export const make = (
   )
 
 /**
- * The `Context` service tag for the current `AtomRegistry`.
+ * Service tag for the active atom runtime cache.
  *
- * @category Tags
+ * **When to use**
+ *
+ * Use to access or provide the registry that stores atom values,
+ * dependencies, subscriptions, and disposal state for a reactive lifetime.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export const AtomRegistry = Context.Service<AtomRegistry>(TypeId)

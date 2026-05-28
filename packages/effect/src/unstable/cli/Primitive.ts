@@ -724,7 +724,7 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
 )
 
 /**
- * A sentinel primitive that always fails to parse a value.
+ * Creates a sentinel primitive that always fails to parse a value.
  *
  * **When to use**
  *

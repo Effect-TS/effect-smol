@@ -67,11 +67,11 @@ export class RunnerHealth extends Context.Service<
 >()("effect/cluster/RunnerHealth") {}
 
 /**
- * A layer which will **always** consider a Runner healthy.
+ * Layer that always considers a runner healthy.
  *
  * **When to use**
  *
- * Use when this is useful for testing.
+ * Use when tests or local development do not need active runner health checks.
  *
  * @category layers
  * @since 4.0.0
@@ -108,7 +108,7 @@ export const makePing: Effect.Effect<
 })
 
 /**
- * A layer which will ping a Runner directly to check if it is healthy.
+ * Layer that pings runners directly to check whether they are healthy.
  *
  * @category layers
  * @since 4.0.0
@@ -146,7 +146,7 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
 })
 
 /**
- * A layer which checks Kubernetes pod readiness to determine whether a runner is
+ * Layer that checks Kubernetes pod readiness to determine whether a runner is
  * healthy.
  *
  * **Details**

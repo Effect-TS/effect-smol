@@ -44,7 +44,7 @@ import { assert as vassert } from "vitest"
 // ----------------------------
 
 /**
- * Throws an `AssertionError` with the provided error message.
+ * Fails the current test with the provided error message.
  *
  * @category testing
  * @since 4.0.0

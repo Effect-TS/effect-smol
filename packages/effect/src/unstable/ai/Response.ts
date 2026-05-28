@@ -2514,7 +2514,7 @@ export interface FinishPartEncoded extends BasePartEncoded<"finish", FinishPartM
 export interface FinishPartMetadata extends ProviderMetadata {}
 
 /**
- * Runtime schema and codec for finish response parts.
+ * Schema for finish response parts.
  *
  * **Details**
  *

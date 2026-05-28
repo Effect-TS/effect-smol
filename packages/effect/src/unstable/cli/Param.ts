@@ -83,7 +83,7 @@ export type ParamKind = "argument" | "flag"
 export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner
 
 /**
- * Kind discriminator for positional argument parameters.
+ * Defines the kind discriminator for positional argument parameters.
  *
  * **When to use**
  *
@@ -99,7 +99,7 @@ export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal 
 export const argumentKind: "argument" = "argument" as const
 
 /**
- * Kind discriminator for flag parameters.
+ * Defines the kind discriminator for flag parameters.
  *
  * **When to use**
  *

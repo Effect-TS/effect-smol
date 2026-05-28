@@ -56,7 +56,7 @@ import { byReferenceInstances, getAllObjectKeys } from "./internal/equal.ts"
 import { hasProperty } from "./Predicate.ts"
 
 /**
- * The unique identifier used to identify objects that implement the Hash interface.
+ * Defines the unique identifier used to identify objects that implement the Hash interface.
  *
  * **When to use**
  *
@@ -282,7 +282,7 @@ export const combine: {
 } = dual(2, (self: number, b: number): number => (self * 53) ^ b)
 
 /**
- * Optimizes a hash value by applying bit manipulation techniques.
+ * Applies bit manipulation techniques to optimize a hash value.
  *
  * **When to use**
  *
@@ -312,7 +312,7 @@ export const combine: {
 export const optimize = (n: number): number => (n & 0xbfffffff) | ((n >>> 1) & 0x40000000)
 
 /**
- * Checks if a value implements the Hash interface.
+ * Checks whether a value implements the Hash interface.
  *
  * **When to use**
  *

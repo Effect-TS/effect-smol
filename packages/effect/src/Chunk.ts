@@ -319,7 +319,7 @@ const makeChunk = <A>(backing: Backing<A>): Chunk<A> => {
 }
 
 /**
- * Checks if `u` is a `Chunk<unknown>`
+ * Checks whether `u` is a `Chunk<unknown>`
  *
  * **Example** (Checking for chunks)
  *
@@ -542,7 +542,15 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
 
 /**
  * Reverses the order of elements in a `Chunk`.
- * Importantly, if the input chunk is a `NonEmptyChunk`, the reversed chunk will also be a `NonEmptyChunk`.
+ *
+ * **When to use**
+ *
+ * Use to read or process chunk elements in reverse order.
+ *
+ * **Details**
+ *
+ * If the input chunk is a `NonEmptyChunk`, the reversed chunk is also a
+ * `NonEmptyChunk`.
  *
  * **Example** (Reversing chunks)
  *
@@ -561,7 +569,8 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
 export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Infer<S>> = reverseChunk as any
 
 /**
- * This function provides a safe way to read a value at a particular index from a `Chunk`.
+ * Gets the value at an index in a `Chunk` safely, returning `None` when the index is
+ * out of bounds.
  *
  * **Example** (Accessing elements safely)
  *
@@ -592,7 +601,8 @@ export const get: {
 )
 
 /**
- * Wraps an array into a chunk without copying, unsafe on mutable arrays
+ * Wraps an array into a chunk without copying, so mutating the source array can
+ * mutate the chunk.
  *
  * **Example** (Creating chunks without copying arrays)
  *
@@ -615,7 +625,8 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
   self.length === 0 ? empty() : self.length === 1 ? of(self[0]) : makeChunk({ _tag: "IArray", array: self })
 
 /**
- * Wraps an array into a chunk without copying, unsafe on mutable arrays
+ * Wraps a non-empty array into a non-empty chunk without copying, so mutating
+ * the source array can mutate the chunk.
  *
  * **Example** (Creating non-empty chunks without copying arrays)
  *
@@ -723,7 +734,7 @@ export const append: {
 } = dual(2, <A, A2>(self: Chunk<A>, a: A2): NonEmptyChunk<A | A2> => appendAll(self, of(a)))
 
 /**
- * Prepend an element to the front of a `Chunk`, creating a new `NonEmptyChunk`.
+ * Prepends an element to the front of a `Chunk`, creating a new `NonEmptyChunk`.
  *
  * **Example** (Prepending an element)
  *
@@ -1137,7 +1148,7 @@ export const filterMapWhile: {
 })
 
 /**
- * Filter out optional values
+ * Filters out optional values
  *
  * **Example** (Compacting optional values)
  *
@@ -1414,7 +1425,7 @@ export const isEmpty = <A>(self: Chunk<A>): boolean => self.length === 0
 export const isNonEmpty = <A>(self: Chunk<A>): self is NonEmptyChunk<A> => self.length > 0
 
 /**
- * Returns the first element of this chunk if it exists.
+ * Returns the first element of this chunk safely if it exists.
  *
  * **Example** (Getting the first element)
  *
@@ -1481,7 +1492,7 @@ export const headUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, 0)
 export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
 
 /**
- * Returns the last element of this chunk if it exists.
+ * Returns the last element of this chunk safely if it exists.
  *
  * **Example** (Getting the last element)
  *
@@ -1729,7 +1740,7 @@ export const map: {
     fromArrayUnsafe(pipe(toReadonlyArray(self), RA.map((a, i) => f(a, i)))))
 
 /**
- * Statefully maps over the chunk, producing new elements of type `B`.
+ * Maps over the chunk statefully, producing new elements of type `B`.
  *
  * **Example** (Mapping with accumulated state)
  *
@@ -1868,7 +1879,7 @@ export const separate = <A, B>(self: Chunk<Result<B, A>>): [Chunk<A>, Chunk<B>] 
 export const size = <A>(self: Chunk<A>): number => self.length
 
 /**
- * Sort the elements of a Chunk in increasing order, creating a new Chunk.
+ * Sorts the elements of a `Chunk` in increasing order, creating a new `Chunk`.
  *
  * **Example** (Sorting chunks)
  *
@@ -1901,7 +1912,7 @@ export const sort: {
 )
 
 /**
- * Sorts the elements of a Chunk based on a projection function.
+ * Sorts the elements of a `Chunk` based on a projection function.
  *
  * **Example** (Sorting chunks by a derived value)
  *
@@ -2097,7 +2108,7 @@ export const splitWhere: {
 })
 
 /**
- * Returns every elements after the first.
+ * Returns every element after the first safely, or `None` when the chunk is empty.
  *
  * **Example** (Getting the tail safely)
  *
@@ -2120,7 +2131,7 @@ export const splitWhere: {
 export const tail = <A>(self: Chunk<A>): O.Option<Chunk<A>> => self.length > 0 ? O.some(drop(self, 1)) : O.none()
 
 /**
- * Returns every elements after the first.
+ * Returns every element after the first from a non-empty chunk.
  *
  * **Example** (Getting the tail of a non-empty chunk)
  *
@@ -2398,7 +2409,7 @@ export const zip: {
 )
 
 /**
- * Delete the element at the specified index, creating a new `Chunk`.
+ * Deletes the element at the specified index, creating a new `Chunk`.
  *
  * **Example** (Removing an element)
  *
@@ -2430,7 +2441,7 @@ export const remove: {
 )
 
 /**
- * Applies a function to the element at the specified index, creating a new `Chunk`,
+ * Applies a function to the element at the specified index safely, creating a new `Chunk`,
  * or returns `None` if the index is out of bounds.
  *
  * **Example** (Modifying an element)
@@ -2464,7 +2475,7 @@ export const modify: {
 )
 
 /**
- * Change the element at the specified index, creating a new `Chunk`,
+ * Changes the element at the specified index safely, creating a new `Chunk`,
  * or returns `None` if the index is out of bounds.
  *
  * **Example** (Replacing an element)
@@ -2649,7 +2660,7 @@ export const findFirst: {
 } = RA.findFirst
 
 /**
- * Return the first index for which a predicate holds.
+ * Returns the first index for which a predicate holds.
  *
  * **Example** (Finding the first matching index)
  *
@@ -2681,7 +2692,7 @@ export const findFirstIndex: {
 )
 
 /**
- * Find the last element for which a predicate holds.
+ * Finds the last element for which a predicate holds.
  *
  * **Example** (Finding the last matching element)
  *
@@ -2713,7 +2724,7 @@ export const findLast: {
 } = RA.findLast
 
 /**
- * Return the last index for which a predicate holds.
+ * Returns the last index for which a predicate holds.
  *
  * **Example** (Finding the last matching index)
  *
@@ -2745,7 +2756,7 @@ export const findLastIndex: {
 )
 
 /**
- * Check if a predicate holds true for every `Chunk` element.
+ * Checks whether a predicate holds true for every `Chunk` element.
  *
  * **Example** (Checking every element)
  *
@@ -2783,7 +2794,7 @@ export const every: {
 )
 
 /**
- * Check if a predicate holds true for some `Chunk` element.
+ * Checks whether a predicate holds true for some `Chunk` element.
  *
  * **Example** (Checking for some matching element)
  *

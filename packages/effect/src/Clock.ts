@@ -91,7 +91,7 @@ import * as effect from "./internal/effect.ts"
  */
 export interface Clock {
   /**
-   * Unsafely returns the current time in milliseconds.
+   * Returns the current time in milliseconds unsafely.
    *
    * **When to use**
    *
@@ -108,7 +108,7 @@ export interface Clock {
    */
   readonly currentTimeMillis: Effect<number>
   /**
-   * Unsafely returns the current time in nanoseconds.
+   * Returns the current time in nanoseconds unsafely.
    *
    * **When to use**
    *
@@ -135,7 +135,7 @@ export interface Clock {
 }
 
 /**
- * A reference to the current Clock service in the environment.
+ * Context reference for the current Clock service in the environment.
  *
  * **When to use**
  *

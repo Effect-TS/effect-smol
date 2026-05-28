@@ -168,7 +168,7 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
 
 export {
   /**
-   * Awaits the durable deferred, suspending the current workflow when no
+   * Waits for the durable deferred, suspending the current workflow when no
    * persisted completion is available.
    *
    * @category combinators
@@ -321,7 +321,7 @@ export type TokenTypeId = typeof TokenTypeId
  * Branded string token identifying a durable deferred for a workflow
  * execution.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export type Token = Brand.Branded<string, TokenTypeId>
@@ -329,16 +329,16 @@ export type Token = Brand.Branded<string, TokenTypeId>
 /**
  * Schema for branded durable deferred tokens.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const Token: Schema.brand<Schema.String, TokenTypeId> = Schema.String.pipe(Schema.brand(TokenTypeId))
 
 /**
- * Decoded representation of a durable deferred token containing the workflow
+ * Schema for a decoded durable deferred token containing the workflow
  * name, execution ID, and deferred name.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export class TokenParsed extends Schema.Class<TokenParsed>(
@@ -413,7 +413,7 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
  * Creates a token for a durable deferred using the current workflow instance's
  * workflow name and execution ID.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const token: <Success extends Schema.Top, Error extends Schema.Top>(
@@ -431,7 +431,7 @@ export const token: <Success extends Schema.Top, Error extends Schema.Top>(
  * Creates a durable deferred token from an explicit workflow, execution ID,
  * and deferred name.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const tokenFromExecutionId: {
@@ -465,7 +465,7 @@ export const tokenFromExecutionId: {
  * Creates a durable deferred token by deriving the workflow execution ID from
  * the supplied workflow payload.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const tokenFromPayload: {

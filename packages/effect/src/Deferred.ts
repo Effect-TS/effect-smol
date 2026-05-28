@@ -184,7 +184,7 @@ const DeferredProto = {
 }
 
 /**
- * Synchronously creates an empty `Deferred` outside the `Effect` runtime.
+ * Creates an empty `Deferred` synchronously outside the `Effect` runtime.
  *
  * **When to use**
  *
@@ -375,7 +375,7 @@ export const completeWith: {
 )
 
 /**
- * Exits the `Deferred` with the specified `Exit` value, which will be
+ * Completes the `Deferred` with the specified `Exit` value, which will be
  * propagated to all fibers waiting on the value of the `Deferred`.
  *
  * **When to use**
@@ -742,7 +742,7 @@ export const interruptWith: {
 export const isDone = <A, E>(self: Deferred<A, E>): Effect<boolean> => internalEffect.sync(() => isDoneUnsafe(self))
 
 /**
- * Synchronously returns whether this `Deferred` has already been completed.
+ * Returns whether this `Deferred` has already been completed synchronously.
  *
  * **When to use**
  *
@@ -866,7 +866,7 @@ export const sync: {
 )
 
 /**
- * Synchronously attempts to complete the `Deferred` with the specified
+ * Attempts to complete the `Deferred` synchronously with the specified
  * completion effect.
  *
  * **When to use**

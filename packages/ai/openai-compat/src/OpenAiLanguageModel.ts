@@ -85,7 +85,7 @@ type ImageDetail = "auto" | "low" | "high"
 // =============================================================================
 
 /**
- * Service definition for OpenAI language model configuration.
+ * Context service for OpenAI language model configuration.
  *
  * **When to use**
  *

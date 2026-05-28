@@ -179,7 +179,7 @@ export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Om
  *
  * **Details**
  *
- * This does not mutate the input, and the return type is narrowed to `S[K]`.
+ * The return type is narrowed to `S[K]`.
  *
  * **Example** (Extracting a property in a pipeline)
  *
@@ -207,10 +207,6 @@ export const get: {
  *
  * Use when you use instead of `Object.keys` when you want the return type narrowed to the
  * known keys of the struct.
- *
- * **Details**
- *
- * This does not mutate the input.
  *
  * **Gotchas**
  *
@@ -241,10 +237,6 @@ export const keys = <S extends object>(self: S): Array<(keyof S) & string> =>
  * **When to use**
  *
  * Use to narrow a struct down to a subset of its properties.
- *
- * **Details**
- *
- * This does not mutate the input and returns a fresh object.
  *
  * **Gotchas**
  *
@@ -283,10 +275,6 @@ export const pick: {
  * **When to use**
  *
  * Use to exclude sensitive or irrelevant fields from a struct.
- *
- * **Details**
- *
- * This does not mutate the input and returns a fresh object.
  *
  * **Gotchas**
  *
@@ -328,8 +316,7 @@ export const omit: {
  *
  * **Details**
  *
- * This does not mutate either input and returns a fresh object. The result type
- * is `Simplify<Assign<S, O>>`.
+ * The result type is `Simplify<Assign<S, O>>`.
  *
  * **Example** (Merging structs with overlapping keys)
  *
@@ -364,7 +351,7 @@ type Evolved<S, E> = Simplify<
 >
 
 /**
- * Selectively transforms values of a struct using per-key functions. Keys
+ * Transforms values of a struct selectively using per-key functions. Keys
  * without a corresponding function are copied unchanged.
  *
  * **When to use**
@@ -373,9 +360,8 @@ type Evolved<S, E> = Simplify<
  *
  * **Details**
  *
- * This does not mutate the input and returns a fresh object. Each transform
- * function receives the current value and returns the new value; the return
- * type can differ from the input type.
+ * Each transform function receives the current value and returns the new value;
+ * the return type can differ from the input type.
  *
  * **Example** (Transforming selected values)
  *
@@ -415,7 +401,7 @@ type KeyEvolved<S, E> = Simplify<
 >
 
 /**
- * Selectively transforms keys of a struct using per-key functions. Keys without
+ * Transforms keys of a struct selectively using per-key functions. Keys without
  * a corresponding function are copied unchanged.
  *
  * **When to use**
@@ -425,7 +411,7 @@ type KeyEvolved<S, E> = Simplify<
  * **Details**
  *
  * Each transform function receives the key name and must return a new
- * `PropertyKey`. This does not mutate the input and returns a fresh object.
+ * `PropertyKey`.
  *
  * **Example** (Renaming keys with functions)
  *
@@ -470,7 +456,7 @@ type EntryEvolved<S, E> = {
 }
 
 /**
- * Selectively transforms both keys and values of a struct. Each per-key
+ * Transforms both keys and values of a struct selectively. Each per-key
  * function receives `(key, value)` and must return a `[newKey, newValue]`
  * tuple. Keys without a corresponding function are copied unchanged.
  *
@@ -480,8 +466,7 @@ type EntryEvolved<S, E> = {
  *
  * **Details**
  *
- * This does not mutate the input and returns a fresh object. The return type is
- * fully tracked at the type level.
+ * The return type is fully tracked at the type level.
  *
  * **Example** (Transforming keys and values together)
  *
@@ -523,8 +508,7 @@ export const evolveEntries: {
  *
  * **Details**
  *
- * This does not mutate the input and returns a fresh object. For computed key
- * names, use {@link evolveKeys} instead.
+ * For computed key names, use {@link evolveKeys} instead.
  *
  * **Example** (Renaming keys)
  *
@@ -746,7 +730,7 @@ export const lambda = <L extends (a: any) => any>(
  * **Details**
  *
  * The lambda must be created with {@link lambda} so the compiler can track the
- * output types. This does not mutate the input and returns a fresh object.
+ * output types.
  *
  * **Example** (Wrapping every value in an array)
  *
@@ -791,10 +775,6 @@ export const map: {
  * **When to use**
  *
  * Use when you want to apply the same transformation to a subset of properties.
- *
- * **Details**
- *
- * This does not mutate the input and returns a fresh object.
  *
  * **Example** (Wrapping only selected values in arrays)
  *
@@ -849,10 +829,6 @@ export const mapPick: {
  * **When to use**
  *
  * Use when most keys should be transformed but a few should be preserved.
- *
- * **Details**
- *
- * This does not mutate the input and returns a fresh object.
  *
  * **Example** (Wrapping all values except one in arrays)
  *
@@ -940,8 +916,7 @@ function buildStruct<
  * **Details**
  *
  * Pass `omitKeyWhen` to drop properties whose merged value matches a predicate,
- * such as omitting zero counters. This does not mutate the inputs and returns a
- * fresh object.
+ * such as omitting zero counters.
  *
  * **Example** (Combining struct properties)
  *
@@ -993,7 +968,7 @@ export function makeCombiner<A>(
  * **Details**
  *
  * Pass `omitKeyWhen` to drop properties whose reduced value matches a
- * predicate. This does not mutate the inputs and returns a fresh object.
+ * predicate.
  *
  * **Example** (Reducing a collection of structs)
  *

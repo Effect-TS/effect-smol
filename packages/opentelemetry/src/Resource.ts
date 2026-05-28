@@ -41,9 +41,14 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 
 /**
- * Context service containing the OpenTelemetry `Resource` associated with emitted telemetry.
+ * Service tag for OpenTelemetry metadata attached to emitted telemetry.
  *
- * @category services
+ * **When to use**
+ *
+ * Use to provide process, service, and deployment metadata that should be
+ * attached to spans, metrics, and logs.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export class Resource extends Context.Service<

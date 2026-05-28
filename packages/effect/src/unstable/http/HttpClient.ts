@@ -161,7 +161,12 @@ export declare namespace HttpClient {
 }
 
 /**
- * Service tag for the default `HttpClient` used by HTTP client accessors.
+ * Service tag for the default outgoing HTTP client service.
+ *
+ * **When to use**
+ *
+ * Use to provide the HTTP client implementation consumed by the module's
+ * request accessor functions.
  *
  * @category tags
  * @since 4.0.0
@@ -1352,7 +1357,12 @@ export const tapRequest: {
 )
 
 /**
- * Associates a `Ref` of cookies with the client for handling cookies across requests.
+ * Adds a `Ref` of cookies to the client for handling cookies across requests.
+ *
+ * **When to use**
+ *
+ * Use to add shared cookie storage to a client so response cookies are retained
+ * and sent by later requests.
  *
  * @category cookies
  * @since 4.0.0
@@ -1385,9 +1395,9 @@ export const withCookiesRef: {
 )
 
 /**
- * Ties the lifetime of the `HttpClientRequest` to a `Scope`.
+ * Attaches the lifetime of the `HttpClientRequest` to a `Scope`.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const withScope = <E, R>(
@@ -1406,7 +1416,7 @@ export const withScope = <E, R>(
   )
 
 /**
- * Follows HTTP redirects up to a specified number of times.
+ * Enables following HTTP redirects up to a specified number of times.
  *
  * @category redirects
  * @since 4.0.0

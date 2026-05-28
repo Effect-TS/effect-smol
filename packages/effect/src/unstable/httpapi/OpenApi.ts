@@ -154,7 +154,13 @@ export class Deprecated extends Context.Service<Deprecated, boolean>()("effect/h
 export class Override extends Context.Service<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override") {}
 
 /**
- * OpenAPI annotation reference that excludes an annotated group or endpoint from the generated specification.
+ * Annotation that excludes an annotated group or endpoint from the generated
+ * OpenAPI specification.
+ *
+ * **When to use**
+ *
+ * Use to hide internal, experimental, or otherwise undocumented HTTP API groups
+ * and endpoints from generated OpenAPI output.
  *
  * @category annotations
  * @since 4.0.0
@@ -724,7 +730,7 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
         scheme: "basic"
       }
     }
-    case "Bearer": {
+    case "Http": {
       const format = Context.getOption(security.annotations, Format).pipe(
         Option.map((format) => ({ bearerFormat: format })),
         Option.getOrUndefined
@@ -732,7 +738,7 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
       return {
         ...meta,
         type: "http",
-        scheme: "bearer",
+        scheme: security.scheme,
         ...format
       }
     }

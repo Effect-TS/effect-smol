@@ -111,7 +111,7 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "
 export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 
 /**
- * All `LogLevel` values in order from `All` through the concrete severities to
+ * Returns all `LogLevel` values in order from `All` through the concrete severities to
  * `None`.
  *
  * **When to use**
@@ -138,7 +138,7 @@ export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
 
 /**
- * An `Order` instance for `LogLevel` that defines the severity ordering.
+ * Order instance for `LogLevel` that defines the severity ordering.
  *
  * **When to use**
  *
@@ -166,7 +166,7 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
 export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
 
 /**
- * An `Equivalence` instance for log levels using strict equality (`===`).
+ * Equivalence instance for log levels using strict equality (`===`).
  *
  * **When to use**
  *

@@ -283,7 +283,7 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
   })
 
 /**
- * Checks if a value is a TxHashSet.
+ * Checks whether a value is a TxHashSet.
  *
  * **Example** (Checking for a TxHashSet)
  *
@@ -389,7 +389,7 @@ export const remove: {
   }).pipe(Effect.tx))
 
 /**
- * Checks if the TxHashSet contains the specified value.
+ * Checks whether the TxHashSet contains the specified value.
  *
  * **Example** (Checking membership)
  *
@@ -465,7 +465,7 @@ export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
   })
 
 /**
- * Checks if the TxHashSet is empty.
+ * Checks whether the TxHashSet is empty.
  *
  * **Example** (Checking whether a set is empty)
  *
@@ -641,7 +641,7 @@ export const difference: {
   }).pipe(Effect.tx))
 
 /**
- * Checks if a TxHashSet is a subset of another TxHashSet.
+ * Checks whether a TxHashSet is a subset of another TxHashSet.
  *
  * **Example** (Checking subset relationships)
  *
@@ -677,7 +677,7 @@ export const isSubset: {
   }).pipe(Effect.tx))
 
 /**
- * Tests whether at least one value in the TxHashSet satisfies the predicate.
+ * Checks whether at least one value in the TxHashSet satisfies the predicate.
  *
  * **Example** (Testing whether some values match)
  *
@@ -711,7 +711,7 @@ export const some: {
   }))
 
 /**
- * Tests whether all values in the TxHashSet satisfy the predicate.
+ * Checks whether all values in the TxHashSet satisfy the predicate.
  *
  * **Example** (Testing whether every value matches)
  *

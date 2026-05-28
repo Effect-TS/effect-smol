@@ -153,25 +153,36 @@ class ReadonlyRefImpl<A> implements ReadonlyRef<A> {
     return Hash.hash(this.value)
   }
 
-  listeners: Array<(a: A) => void> = []
-  listenerCount = 0
+  listeners: Listener<A> | null = null
 
   notify(a: A) {
-    for (let i = 0; i < this.listenerCount; i++) {
-      this.listeners[i](a)
+    let listener = this.listeners
+    while (listener !== null) {
+      listener.f(a)
+      listener = listener.next
     }
   }
 
   subscribe(f: (a: A) => void): () => void {
-    this.listeners.push(f)
-    this.listenerCount++
+    const listener: Listener<A> = {
+      f,
+      prev: null,
+      next: this.listeners
+    }
+    if (this.listeners) {
+      this.listeners.prev = listener
+    }
+    this.listeners = listener
 
     return () => {
-      const index = this.listeners.indexOf(f)
-      if (index !== -1) {
-        this.listeners[index] = this.listeners[this.listenerCount - 1]
-        this.listeners.pop()
-        this.listenerCount--
+      if (this.listeners === listener) {
+        this.listeners = listener.next
+      }
+      if (listener.prev) {
+        listener.prev.next = listener.next
+      }
+      if (listener.next) {
+        listener.next.prev = listener.prev
       }
     }
   }
@@ -179,6 +190,12 @@ class ReadonlyRefImpl<A> implements ReadonlyRef<A> {
   map<B>(f: (a: A) => B): ReadonlyRef<B> {
     return new MapRefImpl(this, f)
   }
+}
+
+type Listener<A> = {
+  readonly f: (a: A) => void
+  prev: Listener<A> | null
+  next: Listener<A> | null
 }
 
 class AtomRefImpl<A> extends ReadonlyRefImpl<A> implements AtomRef<A> {

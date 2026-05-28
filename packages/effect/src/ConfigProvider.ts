@@ -146,7 +146,7 @@ export type Node =
  *
  * **Details**
  *
- * The function does not mutate input and returns a new plain object.
+ * The function returns a new plain object.
  *
  * **Example** (Creating a value node)
  *
@@ -360,7 +360,7 @@ export interface ConfigProvider extends Pipeable {
 }
 
 /**
- * The `ConfigProvider` service reference, registered in the context with a
+ * Context reference for the active raw configuration provider, registered in the context with a
  * default value of `fromEnv()`. Because it is a `Context.Reference`, it is
  * available without explicit provision; `Config` schemas automatically resolve
  * it.
@@ -644,8 +644,8 @@ export const nested: {
 )
 
 /**
- * Installs a `ConfigProvider` as the active provider for all downstream
- * effects, replacing any previously installed provider.
+ * Provides a layer that installs a `ConfigProvider` as the active provider for
+ * all downstream effects, replacing any previously installed provider.
  *
  * **When to use**
  *

@@ -62,7 +62,12 @@ import * as UrlParams from "./UrlParams.ts"
 
 export {
   /**
-   * Re-exports the `MaxBodySize` fiber reference for configuring request body limits.
+   * Provides the `MaxBodySize` fiber reference for configuring request body limits.
+   *
+   * **When to use**
+   *
+   * Use to configure the maximum body size accepted while reading server
+   * request bodies.
    *
    * @category fiber refs
    * @since 4.0.0
@@ -117,7 +122,12 @@ export interface HttpServerRequest extends HttpIncomingMessage.HttpIncomingMessa
 }
 
 /**
- * Service tag for the current `HttpServerRequest`.
+ * Service tag for the active server-side HTTP request.
+ *
+ * **When to use**
+ *
+ * Use to access the request currently being handled by HTTP server routes and
+ * middleware.
  *
  * @category context
  * @since 4.0.0
@@ -127,7 +137,12 @@ export const HttpServerRequest: Context.Service<HttpServerRequest, HttpServerReq
 )
 
 /**
- * Request-scoped service containing parsed search parameters.
+ * Service that contains decoded URL query parameters for the current request.
+ *
+ * **When to use**
+ *
+ * Use to access query parameters that have already been parsed for the current
+ * server request.
  *
  * **Details**
  *
@@ -1006,7 +1021,7 @@ const isFormData = (u: unknown): u is FormData => typeof FormData !== "undefined
 const textDecoder = new TextDecoder()
 
 /**
- * Attempts to construct an absolute `URL` for a server request.
+ * Attempts to construct an absolute `URL` for a server request safely.
  *
  * **Details**
  *
@@ -1028,7 +1043,7 @@ export const toURL = (self: HttpServerRequest): Option.Option<URL> => {
 }
 
 /**
- * Converts an `HttpServerRequest` to a Web `Request` as a `Result`.
+ * Converts an `HttpServerRequest` safely to a Web `Request` as a `Result`.
  *
  * **Details**
  *

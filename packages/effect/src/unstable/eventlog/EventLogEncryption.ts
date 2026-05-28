@@ -74,10 +74,15 @@ const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
 const toBufferSource = (data: Uint8Array): ArrayBufferView<ArrayBuffer> => new Uint8Array(toArrayBuffer(data))
 
 /**
- * Service used by event-log replication for identity generation, entry
- * encryption and decryption, and SHA-256 hashing.
+ * Service that provides identity generation, entry
+ * encryption and decryption, and SHA-256 hashing for event-log replication.
  *
- * @category services
+ * **When to use**
+ *
+ * Use to provide cryptographic operations required by encrypted event-log
+ * replication.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export class EventLogEncryption extends Context.Service<EventLogEncryption, {

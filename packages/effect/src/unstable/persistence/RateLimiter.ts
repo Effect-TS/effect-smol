@@ -72,9 +72,14 @@ export interface RateLimiter {
 }
 
 /**
- * Context service tag for the `RateLimiter` service.
+ * Service tag for persistent token-consumption services.
  *
- * @category Tags
+ * **When to use**
+ *
+ * Use to access or provide rate-limit checks backed by fixed-window counters or
+ * token-bucket state.
+ *
+ * @category tags
  * @since 4.0.0
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)
@@ -235,7 +240,7 @@ export const layer: Layer.Layer<
 > = Layer.effect(RateLimiter, make)
 
 /**
- * Access a function that applies rate limiting to an effect.
+ * Accesses a function that applies rate limiting to an effect.
  *
  * **Example** (Applying rate limits to effects)
  *
@@ -260,7 +265,7 @@ export const layer: Layer.Layer<
  * })
  * ```
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const makeWithRateLimiter: Effect.Effect<
@@ -284,7 +289,7 @@ export const makeWithRateLimiter: Effect.Effect<
 )
 
 /**
- * Access a function that sleeps when the rate limit is exceeded.
+ * Accesses a function that sleeps when the rate limit is exceeded.
  *
  * **Example** (Sleeping until rate limit permits)
  *
@@ -307,7 +312,7 @@ export const makeWithRateLimiter: Effect.Effect<
  * })
  * ```
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const makeSleep: Effect.Effect<
@@ -338,7 +343,7 @@ export const makeSleep: Effect.Effect<
 /**
  * Runtime type identifier for `RateLimiterError`.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
@@ -346,7 +351,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateL
 /**
  * Type-level identifier used to brand `RateLimiterError` values.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
@@ -481,9 +486,14 @@ export interface ConsumeResult {
 }
 
 /**
- * Low-level backing store for fixed-window counters and token-bucket state.
+ * Defines the low-level backing store for fixed-window counters and token-bucket state.
  *
- * @category RateLimiterStore
+ * **When to use**
+ *
+ * Use to provide the shared counter storage used by persistent rate-limit
+ * checks.
+ *
+ * @category store
  * @since 4.0.0
  */
 export class RateLimiterStore extends Context.Service<

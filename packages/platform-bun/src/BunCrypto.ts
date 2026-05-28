@@ -16,7 +16,7 @@ import type * as Crypto from "effect/Crypto"
 import type * as Layer from "effect/Layer"
 
 /**
- * A layer that provides the Bun Crypto service implementation.
+ * Layer that provides the Bun Crypto service implementation.
  *
  * @category layers
  * @since 1.0.0
