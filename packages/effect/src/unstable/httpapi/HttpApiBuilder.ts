@@ -443,10 +443,10 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
   HttpServerRequest | Request.ParsedSearchParams
 > => {
   switch (self._tag) {
-    case "Bearer": {
+    case "Http": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength)) as any
       )
     }
     case "ApiKey": {
@@ -521,7 +521,6 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const bearerLen = `Bearer `.length
 const basicLen = `Basic `.length
 
 const HandlersProto = {

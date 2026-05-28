@@ -730,7 +730,7 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
         scheme: "basic"
       }
     }
-    case "Bearer": {
+    case "Http": {
       const format = Context.getOption(security.annotations, Format).pipe(
         Option.map((format) => ({ bearerFormat: format })),
         Option.getOrUndefined
@@ -738,7 +738,7 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
       return {
         ...meta,
         type: "http",
-        scheme: "bearer",
+        scheme: security.scheme,
         ...format
       }
     }
