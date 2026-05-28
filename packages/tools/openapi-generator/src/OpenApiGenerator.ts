@@ -954,7 +954,7 @@ const parseSecuritySchemes = (
       continue
     }
 
-    if (scheme.type === "http") {
+    if (scheme.type === "http" && typeof scheme.scheme === "string") {
       const normalizedScheme = scheme.scheme.toLowerCase()
       if (normalizedScheme === "basic") {
         parsed.push({
@@ -962,6 +962,7 @@ const parseSecuritySchemes = (
           type: "basic",
           description: Utils.nonEmptyString(scheme.description),
           bearerFormat: undefined,
+          scheme: undefined,
           key: undefined,
           in: undefined
         })
@@ -971,6 +972,17 @@ const parseSecuritySchemes = (
           type: "bearer",
           description: Utils.nonEmptyString(scheme.description),
           bearerFormat: Utils.nonEmptyString(scheme.bearerFormat),
+          scheme: undefined,
+          key: undefined,
+          in: undefined
+        })
+      } else {
+        parsed.push({
+          name,
+          type: "http",
+          description: Utils.nonEmptyString(scheme.description),
+          bearerFormat: Utils.nonEmptyString(scheme.bearerFormat),
+          scheme: scheme.scheme,
           key: undefined,
           in: undefined
         })
@@ -988,6 +1000,7 @@ const parseSecuritySchemes = (
         type: "apiKey",
         description: Utils.nonEmptyString(scheme.description),
         bearerFormat: undefined,
+        scheme: undefined,
         key: scheme.name,
         in: scheme.in
       })

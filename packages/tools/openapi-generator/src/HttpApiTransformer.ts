@@ -473,6 +473,10 @@ const renderSecurityScheme = (securityScheme: ParsedOpenApiSecurityScheme): stri
       source = "HttpApiSecurity.bearer"
       break
     }
+    case "http": {
+      source = `HttpApiSecurity.http({ scheme: ${JSON.stringify(securityScheme.scheme!)} })`
+      break
+    }
     case "apiKey": {
       source = `HttpApiSecurity.apiKey({ key: ${JSON.stringify(securityScheme.key!)}, in: ${
         JSON.stringify(securityScheme.in!)
@@ -484,7 +488,9 @@ const renderSecurityScheme = (securityScheme: ParsedOpenApiSecurityScheme): stri
   if (securityScheme.description !== undefined) {
     source += `.pipe(HttpApiSecurity.annotate(OpenApi.Description, ${JSON.stringify(securityScheme.description)}))`
   }
-  if (securityScheme.type === "bearer" && securityScheme.bearerFormat !== undefined) {
+  if (
+    (securityScheme.type === "bearer" || securityScheme.type === "http") && securityScheme.bearerFormat !== undefined
+  ) {
     source += `.pipe(HttpApiSecurity.annotate(OpenApi.Format, ${JSON.stringify(securityScheme.bearerFormat)}))`
   }
 
