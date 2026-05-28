@@ -1815,8 +1815,8 @@ export class CreateMessageResult extends Schema.Class<CreateMessageResult>(
  *
  * **When to use**
  *
- * Use when an MCP server needs the client to perform model sampling on its
- * behalf.
+ * Use when you need to request model sampling from an MCP client on behalf of a
+ * server.
  *
  * **Details**
  *

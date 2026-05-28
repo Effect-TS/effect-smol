@@ -2027,7 +2027,7 @@ export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never>
  *
  * **When to use**
  *
- * Use when a tool needs an explicit no-parameter `parameters` schema.
+ * Use when you need an explicit no-parameter `parameters` schema for a tool.
  *
  * **Details**
  *

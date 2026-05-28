@@ -88,8 +88,8 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
  *
  * **When to use**
  *
- * Use when an Effect needs to require or provide clipboard capabilities through
- * the context.
+ * Use when you need to require or provide clipboard capabilities through
+ * Effect's context.
  *
  * @see {@link make} for building a custom clipboard service
  * @see {@link layer} for providing the browser-backed clipboard service

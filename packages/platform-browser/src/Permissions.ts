@@ -128,8 +128,8 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
  *
  * **When to use**
  *
- * Use when an Effect needs to require or provide browser permission querying
- * through the context.
+ * Use when you need to require or provide browser permission querying through
+ * Effect's context.
  *
  * @category services
  * @since 4.0.0

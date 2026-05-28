@@ -95,8 +95,8 @@ export interface Stdio {
  *
  * **When to use**
  *
- * Use when an effect needs command-line arguments or standard I/O streams
- * supplied by its environment.
+ * Use when you need command-line arguments or standard I/O streams supplied by
+ * an effect's environment.
  *
  * @see {@link make} for constructing a `Stdio` service directly
  * @see {@link layerTest} for a test layer with defaults and overrides

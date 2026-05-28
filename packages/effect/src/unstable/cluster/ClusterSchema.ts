@@ -71,7 +71,7 @@ export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchem
  *
  * **When to use**
  *
- * Use when a request needs server-side handling or storage work wrapped in the
+ * Use when you need server-side request handling or storage work wrapped in the
  * storage transaction.
  *
  * **Details**

@@ -1073,7 +1073,7 @@ type StringifyJsonOptions = {
  *
  * **When to use**
  *
- * Use when a decoded value needs to be serialized to JSON text during encoding.
+ * Use when you need to serialize a decoded value to JSON text during encoding.
  *
  * **Details**
  *
@@ -1159,7 +1159,8 @@ export function splitKeyValue<E extends string>(options?: {
  *
  * **When to use**
  *
- * Use when a decoded record needs to be serialized as a delimited key-value string.
+ * Use when you need to serialize a decoded record as a delimited key-value
+ * string.
  *
  * **Details**
  *

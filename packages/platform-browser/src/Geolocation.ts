@@ -89,8 +89,8 @@ export interface Geolocation {
  *
  * **When to use**
  *
- * Use when an Effect needs to access or provide geolocation capabilities
- * through the context.
+ * Use when you need to access or provide geolocation capabilities through
+ * Effect's context.
  *
  * @see {@link layer} for providing the browser-backed geolocation service
  *

@@ -216,7 +216,7 @@ export declare namespace Path {
  *
  * **When to use**
  *
- * Use when an effect needs path operations supplied by its environment.
+ * Use when you need path operations supplied by an effect's environment.
  *
  * **Example** (Providing a custom Path service)
  *
