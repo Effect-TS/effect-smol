@@ -250,8 +250,8 @@ class MixedSchedulerDispatcher implements SchedulerDispatcher {
  *
  * **When to use**
  *
- * Use to tune scheduler fairness for CPU-bound fibers by changing the operation
- * budget that triggers a scheduler yield.
+ * Use to tune scheduler fairness for CPU-bound fibers by changing the scheduler
+ * operation budget that triggers a yield.
  *
  * **Details**
  *

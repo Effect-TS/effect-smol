@@ -60,7 +60,7 @@ import * as AiError from "./AiError.ts"
  *
  * **When to use**
  *
- * Use to retrieve or provide an `EmbeddingModel.Service` when an `Effect`
+ * Use to retrieve or provide the embedding model service when an `Effect`
  * program needs to embed text into vectors.
  *
  * @see {@link Service} for the service contract provided by this tag

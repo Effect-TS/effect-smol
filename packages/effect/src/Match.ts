@@ -1528,7 +1528,7 @@ export {
    *
    * **When to use**
    *
-   * Use when a match branch should handle only the literal `null` value.
+   * Use to handle only the `null` literal in a match branch.
    *
    * **Details**
    *

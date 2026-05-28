@@ -314,7 +314,8 @@ export const update: {
  *
  * **When to use**
  *
- * Use to replace the value while returning the previous value.
+ * Use to replace a `TxSubscriptionRef` value while returning the previous value
+ * and publishing the update to subscribers.
  *
  * **Example** (Getting and setting atomically)
  *

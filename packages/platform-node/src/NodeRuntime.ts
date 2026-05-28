@@ -38,9 +38,9 @@ import type * as Runtime from "effect/Runtime"
  *
  * **When to use**
  *
- * Use to run an Effect as your application's main program, especially
- * when you need structured error handling, log management, interrupt support,
- * or advanced teardown capabilities.
+ * Use to run a Node.js application's main Effect with structured error
+ * handling, log management, interrupt support, or advanced teardown
+ * capabilities.
  *
  * **Details**
  *

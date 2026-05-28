@@ -135,12 +135,12 @@ export interface Clock {
 }
 
 /**
- * Context reference for the current Clock service in the environment.
+ * Context reference for the active time service in the environment.
  *
  * **When to use**
  *
- * Use when you need to access or provide the full Clock service rather than a
- * single timestamp accessor.
+ * Use when you need to access or provide the full time service, including sleep
+ * operations, rather than a single timestamp accessor.
  *
  * **Example** (Accessing the Clock service)
  *

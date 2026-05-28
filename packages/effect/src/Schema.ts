@@ -1186,7 +1186,7 @@ export const is = Parser.is
  * **When to use**
  *
  * Use to validate unknown input at runtime while narrowing the value with a
- * TypeScript `asserts` predicate.
+ * TypeScript assertion signature.
  *
  * **Details**
  *
@@ -9717,8 +9717,8 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
  *
  * **When to use**
  *
- * Use to validate in-memory values that must already be JavaScript `Date`
- * instances.
+ * Use to validate in-memory values that must already be JavaScript date
+ * objects.
  *
  * **Details**
  *

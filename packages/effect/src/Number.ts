@@ -231,8 +231,8 @@ export const divide: {
  *
  * **When to use**
  *
- * Use when the divisor is known to be non-zero and division by zero should be a
- * thrown exception.
+ * Use to divide `number` values when the divisor is known to be non-zero and
+ * division by zero should be a thrown exception.
  *
  * **Example** (Dividing numbers unsafely)
  *

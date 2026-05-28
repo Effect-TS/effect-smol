@@ -888,7 +888,7 @@ export function makeReducer<A>() {
  *
  * **When to use**
  *
- * Use when comparing `Date` values by their millisecond timestamp.
+ * Use when comparing JavaScript date objects by their millisecond timestamp.
  *
  * **Details**
  *

@@ -868,9 +868,7 @@ export const succeedContext = <A>(context: Context.Context<A>): Layer<A> =>
  *
  * **When to use**
  *
- * Use when you use `Layer.empty` as the no-op branch when conditionally composing layers.
- * If you need to run an effect during layer construction while still providing
- * no services, use `effectDiscard`.
+ * Use as the no-op branch when conditionally composing layers.
  *
  * **Example** (Disabling optional lifecycle work)
  *

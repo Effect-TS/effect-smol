@@ -108,8 +108,8 @@ export {
    *
    * **When to use**
    *
-   * Use to tune scheduler fairness for CPU-bound fibers by changing the
-   * operation budget that triggers a scheduler yield.
+   * Use to configure the runtime reference for the fiber operation budget that
+   * triggers a scheduler yield.
    *
    * **Details**
    *
@@ -780,8 +780,8 @@ export const CurrentLoggers: Context.Reference<ReadonlySet<Logger<unknown, any>>
  *
  * **When to use**
  *
- * Use to keep stdout reserved for protocol messages or data output while still
- * allowing Effect runtime logs to be emitted.
+ * Use to configure the runtime reference that controls whether built-in console
+ * loggers write to stderr.
  *
  * **Details**
  *

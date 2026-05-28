@@ -613,14 +613,13 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  *
  * **When to use**
  *
- * Use when you use `pipe` with data-last functions to build readable transformation
- * pipelines and to write method-style chains as ordinary function calls.
+ * Use when composing data-last functions into readable transformation pipelines,
+ * or when replacing method-style chains with ordinary function calls.
  *
  * **Details**
  *
- * `pipe` takes an initial value, passes it to the first function, then passes
- * each result to the next function in order. The final function result is
- * returned.
+ * Takes an initial value, passes it to the first function, then passes each
+ * result to the next function in order. The final function result is returned.
  *
  * **Gotchas**
  *

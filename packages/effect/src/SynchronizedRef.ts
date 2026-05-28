@@ -333,7 +333,8 @@ export const modifyEffect: {
  *
  * **When to use**
  *
- * Use to compute a return value while optionally updating the stored value.
+ * Use to compute a return value while optionally updating a `SynchronizedRef`
+ * under its semaphore.
  *
  * @see {@link modify} for always storing a new value
  * @see {@link updateSome} for optional updates without a separate return value

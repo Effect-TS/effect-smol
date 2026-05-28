@@ -296,7 +296,7 @@ export const set = dual<
  *
  * **When to use**
  *
- * Use to replace the value while returning the previous value.
+ * Use to replace a plain `Ref` value while returning the previous value.
  *
  * **Example** (Replacing a value atomically)
  *
@@ -543,7 +543,7 @@ export const modify = dual<
  *
  * **When to use**
  *
- * Use to compute a return value while optionally updating the stored value.
+ * Use to compute a return value while optionally updating a plain `Ref`.
  *
  * **Details**
  *

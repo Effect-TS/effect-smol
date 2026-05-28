@@ -1423,9 +1423,8 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
  *
  * **When to use**
  *
- * Use when you use `run` at an application entry point when arguments should come from
- * `Stdio`; use `runWith` when you need an explicit argument array, such as in
- * tests.
+ * Use when command-line arguments should come from `Stdio` at the application
+ * entry point.
  *
  * **Example** (Running commands with standard input)
  *
@@ -1445,6 +1444,8 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
  *   version: "1.0.0"
  * })
  * ```
+ *
+ * @see {@link runWith} for running a command with an explicit argument array
  *
  * @category command execution
  * @since 4.0.0

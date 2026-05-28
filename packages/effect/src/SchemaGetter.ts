@@ -832,7 +832,8 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  *
  * **When to use**
  *
- * Use when you need to parse a string, number, or Date into a `Date` object.
+ * Use to coerce a string, number, or existing date object into a new date
+ * object.
  *
  * **Details**
  *

@@ -591,8 +591,8 @@ export const model = (
  *
  * **When to use**
  *
- * Use when an Effect needs to construct a `LanguageModel.Service` value backed
- * by `OpenAiClient`.
+ * Use to construct an OpenAI Responses API language model service backed by
+ * `OpenAiClient`.
  *
  * **Details**
  *

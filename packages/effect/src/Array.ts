@@ -249,7 +249,7 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
  *
  * Use when you need an array whose values depend on the index.
  * - `n` is normalized to an integer >= 1 — always returns at least one element.
- * - Dual: `Array.makeBy(5, f)` or `pipe(5, Array.makeBy(f))`.
+ * - Supports both data-first and data-last usage.
  *
  * **Example** (Generating values from indices)
  *
@@ -312,7 +312,7 @@ export const range = (start: number, end: number): NonEmptyArray<number> =>
  *
  * Use when you need multiple copies of the same value.
  * - `n` is normalized to an integer >= 1 — always returns at least one element.
- * - Dual: `Array.replicate("a", 3)` or `pipe("a", Array.replicate(3))`.
+ * - Supports both data-first and data-last usage.
  *
  * **Example** (Repeating a value)
  *
@@ -4691,7 +4691,7 @@ export const cartesian: {
  *
  * **When to use**
  *
- * Use when begin a pipeline with `Do`, then use {@link bind} to introduce array variables and {@link let_ let} for plain values.
+ * Use when beginning a do-notation pipeline, then use {@link bind} to introduce array variables and {@link let_ let} for plain values.
  * - Each `bind` produces the cartesian product of all bound variables (like nested loops).
  * - Use `filter` and `map` in the pipeline to add conditions and transformations.
  *

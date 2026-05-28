@@ -367,10 +367,8 @@ export interface ConfigProvider extends Pipeable {
  *
  * **When to use**
  *
- * Use to override the provider for an entire program via
- * `Effect.provideService(ConfigProvider.ConfigProvider, myProvider)`, or to
- * retrieve the current provider inside an Effect with
- * `yield* ConfigProvider.ConfigProvider`.
+ * Use to override the active raw configuration provider for an entire program,
+ * or to retrieve the current provider inside an Effect.
  *
  * **Example** (Providing a custom provider)
  *
