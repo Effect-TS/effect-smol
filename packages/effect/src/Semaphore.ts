@@ -469,7 +469,7 @@ export const withPermitsIfAvailable: {
  *
  * **When to use**
  *
- * Use to manually acquire permits when a lower-level permit protocol needs
+ * Use to manually acquire permits for a lower-level permit protocol that needs
  * explicit acquisition and release control.
  *
  * **Details**
@@ -494,8 +494,8 @@ export const take: {
  *
  * **When to use**
  *
- * Use to manually return permits acquired with `take` when a lower-level
- * permit protocol needs explicit release control.
+ * Use to manually return permits acquired with `take` for a lower-level permit
+ * protocol that needs explicit release control.
  *
  * **Details**
  *

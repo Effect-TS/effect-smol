@@ -4720,7 +4720,8 @@ export function catchDecoding<S extends Top>(
  *
  * **When to use**
  *
- * Use when decoding fallback logic needs services from the Effect context.
+ * Use when you need decoding fallback logic to require services from the Effect
+ * context.
  *
  * **Details**
  *
@@ -4764,7 +4765,8 @@ export function catchEncoding<S extends Top>(
  *
  * **When to use**
  *
- * Use when encoding fallback logic needs services from the Effect context.
+ * Use when you need encoding fallback logic to require services from the Effect
+ * context.
  *
  * **Details**
  *

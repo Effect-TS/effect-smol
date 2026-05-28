@@ -3450,8 +3450,8 @@ export const catchCauseIf: {
  *
  * **When to use**
  *
- * Use when you need to recover only from causes selected by a `Filter`, and the
- * recovery needs both the selected value and the original `Cause`.
+ * Use when you need to recover only from causes selected by a `Filter`, while
+ * giving the recovery both the selected value and the original `Cause`.
  *
  * **Details**
  *
@@ -3793,8 +3793,9 @@ export const tapCauseIf: {
  *
  * **When to use**
  *
- * Use when you need to observe only failure causes selected by a `Filter`, and
- * the side effect needs both the selected value and the original `Cause`.
+ * Use when you need to observe only failure causes selected by a `Filter`,
+ * while giving the side effect both the selected value and the original
+ * `Cause`.
  *
  * **Details**
  *

@@ -125,7 +125,7 @@ export class IndexedDbDatabaseError extends Data.TaggedError(
  *
  * **When to use**
  *
- * Use when an effect needs access to the live database service after an
+ * Use when you need access to the live database service after an
  * `IndexedDbSchema` layer has been provided, especially for `rebuild` or
  * lower-level database primitives.
  *

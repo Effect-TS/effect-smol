@@ -437,8 +437,8 @@ export const take: {
  *
  * **When to use**
  *
- * Use to manually return permits acquired with `take` when a lower-level
- * partitioned permit protocol needs explicit release control.
+ * Use to manually return permits acquired with `take` for a lower-level
+ * partitioned permit protocol that needs explicit release control.
  *
  * **Details**
  *

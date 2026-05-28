@@ -1765,8 +1765,8 @@ const MetricRegistryKey = "~effect/observability/Metric/MetricRegistryKey"
  *
  * **When to use**
  *
- * Use to provide a custom metric registry when a program or test needs metrics
- * isolated from the default registry.
+ * Use to provide a custom metric registry for a program or test that needs
+ * metrics isolated from the default registry.
  *
  * **Details**
  *

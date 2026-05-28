@@ -5849,7 +5849,7 @@ export const catchCauseIf: {
  * **When to use**
  *
  * Use when you need to recover a stream only from causes selected by a
- * `Filter`, and the recovery needs both the selected value and the original
+ * `Filter`, while giving the recovery both the selected value and the original
  * `Cause`.
  *
  * **Details**
