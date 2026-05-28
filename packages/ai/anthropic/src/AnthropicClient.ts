@@ -188,7 +188,7 @@ export class AnthropicClient extends Context.Service<AnthropicClient, Service>()
  * @see {@link layer} for providing an Anthropic client from explicit options
  * @see {@link layerConfig} for loading Anthropic client settings from `Config`
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type Options = {

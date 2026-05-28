@@ -712,7 +712,7 @@ export const CreateResponse = Schema.Struct({
 /**
  * Request options used to create an OpenAI Responses API response.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type CreateResponse = typeof CreateResponse.Type

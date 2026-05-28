@@ -156,7 +156,7 @@ export interface None<out A> extends Pipeable, Inspectable {
  *
  * @see {@link gen} for writing generator-based `Option` code that consumes this iterator protocol
  *
- * @category Generators
+ * @category generators
  * @since 4.0.0
  */
 export interface OptionIterator<T extends Option<any>> {
@@ -278,7 +278,7 @@ export interface OptionUnifyIgnore {}
  *
  * Use to represent `Option` in higher-kinded type operations.
  *
- * @category Type Lambdas
+ * @category type lambdas
  * @since 2.0.0
  */
 export interface OptionTypeLambda extends TypeLambda {
@@ -2563,7 +2563,7 @@ export const Do: Option<{}> = some({})
  *
  * @see {@link Do} / {@link bind} for the do notation alternative
  *
- * @category Generators
+ * @category generators
  * @since 2.0.0
  */
 export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {

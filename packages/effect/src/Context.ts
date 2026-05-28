@@ -1304,7 +1304,7 @@ export const omit = <S extends ReadonlyArray<Key<any, any>>>(
  * @see {@link pick} for keeping selected services
  * @see {@link omit} for removing selected services
  *
- * @category utils
+ * @category mutations
  * @since 4.0.0
  */
 export const mutate: {

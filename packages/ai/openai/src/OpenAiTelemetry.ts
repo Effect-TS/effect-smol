@@ -127,7 +127,7 @@ export type WellKnownServiceTier = "auto" | "default"
  * Options accepted by `addGenAIAnnotations`, combining standard GenAI
  * telemetry attributes with optional OpenAI request and response attributes.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type OpenAiTelemetryAttributeOptions = Telemetry.GenAITelemetryAttributeOptions & {

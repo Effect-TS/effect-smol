@@ -174,7 +174,7 @@ type PickTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, K>
  *
  * @see {@link omit} – the inverse (exclude indices instead)
  * @see {@link get} – extract a single element
- * @category utils
+ * @category filtering
  * @since 4.0.0
  */
 export const pick: {
@@ -218,7 +218,7 @@ type OmitTuple<T extends ReadonlyArray<unknown>, K> = _BuildTuple<T, Exclude<Ind
  * ```
  *
  * @see {@link pick} – the inverse (keep only specified indices)
- * @category utils
+ * @category filtering
  * @since 4.0.0
  */
 export const omit: {
@@ -261,7 +261,7 @@ export const omit: {
  * ```
  *
  * @see {@link appendElements} – append multiple elements (another tuple)
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const appendElement: {
@@ -291,7 +291,7 @@ export const appendElement: {
  * ```
  *
  * @see {@link appendElement} – append a single element
- * @category concatenating
+ * @category combining
  * @since 4.0.0
  */
 export const appendElements: {

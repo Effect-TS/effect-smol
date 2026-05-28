@@ -72,7 +72,7 @@ export type MetricNameMapper = (name: string) => string
 /**
  * Options for formatting metrics.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface FormatOptions {
@@ -90,7 +90,7 @@ export interface FormatOptions {
 /**
  * Options for exporting Prometheus metrics over HTTP.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface HttpOptions extends FormatOptions {

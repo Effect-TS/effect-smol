@@ -190,7 +190,7 @@ export interface MysqlClient extends Client.SqlClient {
  *
  * Use to access or provide a mysql2 client through the Effect context.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const MysqlClient = Context.Service<MysqlClient>("@effect/sql-mysql2/MysqlClient")

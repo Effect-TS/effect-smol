@@ -146,7 +146,7 @@ export class EmbedManyResponse extends Schema.Class<EmbedManyResponse>(
 /**
  * Provider input options for embedding requests.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ProviderOptions {

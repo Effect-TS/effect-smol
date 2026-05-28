@@ -95,7 +95,7 @@ export interface HttpServerResponse extends Inspectable.Inspectable, Pipeable, E
 /**
  * Common options accepted by HTTP server response constructors.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface Options {
@@ -118,7 +118,7 @@ export declare namespace Options {
    * Response options for constructors whose body determines its own content type
    * and content length.
    *
-   * @category models
+   * @category options
    * @since 4.0.0
    */
   export interface WithContent extends Omit<Options, "contentType" | "contentLength"> {}
@@ -127,7 +127,7 @@ export declare namespace Options {
    * Response options for constructors that allow overriding the content type while
    * deriving the content length from the body.
    *
-   * @category models
+   * @category options
    * @since 4.0.0
    */
   export interface WithContentType extends Omit<Options, "contentLength"> {}

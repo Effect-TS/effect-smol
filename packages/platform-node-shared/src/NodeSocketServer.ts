@@ -58,7 +58,7 @@ import { NodeWS } from "./NodeSocket.ts"
  * Service tag for the Node `IncomingMessage` associated with the current
  * WebSocket server connection.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class IncomingMessage extends Context.Service<

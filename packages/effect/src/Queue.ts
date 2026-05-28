@@ -1652,7 +1652,7 @@ export {
  * })
  * ```
  *
- * @category Size
+ * @category sizes
  * @since 2.0.0
  */
 export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffect.sync(() => sizeUnsafe(self))
@@ -1677,7 +1677,7 @@ export const size = <A, E>(self: Dequeue<A, E>): Effect<number> => internalEffec
  * })
  * ```
  *
- * @category Size
+ * @category sizes
  * @since 2.0.0
  */
 export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEffect.sync(() => isFullUnsafe(self))
@@ -1720,7 +1720,7 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  * })
  * ```
  *
- * @category Size
+ * @category sizes
  * @since 4.0.0
  */
 export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag === "Done" ? 0 : self.messages.length
@@ -1745,7 +1745,7 @@ export const sizeUnsafe = <A, E>(self: Dequeue<A, E>): number => self.state._tag
  * })
  * ```
  *
- * @category Size
+ * @category sizes
  * @since 4.0.0
  */
 export const isFullUnsafe = <A, E>(self: Dequeue<A, E>): boolean => sizeUnsafe(self) === self.capacity

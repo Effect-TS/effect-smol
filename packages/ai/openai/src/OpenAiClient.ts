@@ -143,7 +143,7 @@ export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
 /**
  * Options for configuring the OpenAI client.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type Options = {

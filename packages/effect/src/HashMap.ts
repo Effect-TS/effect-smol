@@ -197,7 +197,7 @@ export declare namespace HashMap {
    * console.log(getUserById("alice")) // Option.some({ name: "Alice", age: 30 })
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 2.0.0
    */
   export type Key<T extends HashMap<any, any>> = [T] extends [HashMap<infer _K, infer _V>] ? _K : never
@@ -228,7 +228,7 @@ export declare namespace HashMap {
    * // alice has type Option<User> thanks to type extraction
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 2.0.0
    */
   export type Value<T extends HashMap<any, any>> = [T] extends [HashMap<infer _K, infer _V>] ? _V : never
@@ -260,7 +260,7 @@ export declare namespace HashMap {
    * console.log(descriptions) // ["book: $29 (education)", "laptop: $999 (electronics)"]
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 3.9.0
    */
   export type Entry<T extends HashMap<any, any>> = [Key<T>, Value<T>]

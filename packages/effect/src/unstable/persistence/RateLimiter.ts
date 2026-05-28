@@ -79,7 +79,7 @@ export interface RateLimiter {
  * Use to access or provide rate-limit checks backed by fixed-window counters or
  * token-bucket state.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)

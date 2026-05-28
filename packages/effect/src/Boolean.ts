@@ -438,7 +438,7 @@ export const implies: {
  * @see {@link some} for checking whether at least one value is `true`
  * @see {@link ReducerAnd} for reducing booleans with AND through a `Reducer`
  *
- * @category utils
+ * @category predicates
  * @since 2.0.0
  */
 export const every = (collection: Iterable<boolean>): boolean => {
@@ -470,7 +470,7 @@ export const every = (collection: Iterable<boolean>): boolean => {
  * @see {@link every} for checking whether all values are `true`
  * @see {@link ReducerOr} for reducing booleans with OR through a `Reducer`
  *
- * @category utils
+ * @category predicates
  * @since 2.0.0
  */
 export const some = (collection: Iterable<boolean>): boolean => {

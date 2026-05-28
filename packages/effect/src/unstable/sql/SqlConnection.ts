@@ -81,7 +81,7 @@ export type Acquirer = Effect<Connection, SqlError, Scope>
 /**
  * Service tag for a low-level SQL `Connection`.
  *
- * @category tag
+ * @category services
  * @since 4.0.0
  */
 export const Connection = Context.Service<Connection>("effect/sql/SqlConnection")

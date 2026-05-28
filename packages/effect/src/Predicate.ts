@@ -220,7 +220,7 @@ export declare namespace Predicate {
    *
    * @see {@link Predicate.Any}
    * @see {@link Refinement.In}
-   * @category type-level
+   * @category utility types
    * @since 3.6.0
    */
   export type In<T extends Any> = [T] extends [Predicate<infer _A>] ? _A : never
@@ -245,7 +245,7 @@ export declare namespace Predicate {
    * ```
    *
    * @see {@link Predicate.In}
-   * @category type-level
+   * @category utility types
    * @since 3.6.0
    */
   export type Any = Predicate<any>
@@ -302,7 +302,7 @@ export declare namespace Refinement {
    *
    * @see {@link Refinement.Out}
    * @see {@link Predicate.In}
-   * @category type-level
+   * @category utility types
    * @since 3.6.0
    */
 
@@ -330,7 +330,7 @@ export declare namespace Refinement {
    * ```
    *
    * @see {@link Refinement.In}
-   * @category type-level
+   * @category utility types
    * @since 3.6.0
    */
   export type Out<T extends Any> = [T] extends [Refinement<infer _, infer _B>] ? _B : never
@@ -356,7 +356,7 @@ export declare namespace Refinement {
    *
    * @see {@link Refinement.In}
    * @see {@link Refinement.Out}
-   * @category type-level
+   * @category utility types
    * @since 3.6.0
    */
   export type Any = Refinement<any, any>

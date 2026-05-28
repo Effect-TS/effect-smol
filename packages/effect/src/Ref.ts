@@ -318,7 +318,7 @@ export const set = dual<
  * @see {@link set} for setting without returning the previous value
  * @see {@link getAndUpdate} for deriving the new value from the previous value
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const getAndSet = dual<
@@ -358,7 +358,7 @@ export const getAndSet = dual<
  * @see {@link update} for updating without returning the previous value
  * @see {@link updateAndGet} for returning the new value instead
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const getAndUpdate = dual<
@@ -417,7 +417,7 @@ export const getAndUpdate = dual<
  * @see {@link getAndUpdate} for always applying an update
  * @see {@link updateSome} for conditional updates without returning the previous value
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const getAndUpdateSome = dual<
@@ -467,7 +467,7 @@ export const getAndUpdateSome = dual<
  * })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const setAndGet = dual<
@@ -686,7 +686,7 @@ export const update = dual<
  * @see {@link update} for updating without returning the new value
  * @see {@link getAndUpdate} for returning the previous value instead
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const updateAndGet = dual<
@@ -792,7 +792,7 @@ export const updateSome = dual<
  * @see {@link updateSome} for conditional updates without returning a value
  * @see {@link updateAndGet} for always updating and returning the new value
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const updateSomeAndGet = dual<

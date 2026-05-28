@@ -1124,7 +1124,7 @@ export const publishAll: {
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 2.0.0
  */
 export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
@@ -1192,7 +1192,7 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
@@ -1240,7 +1240,7 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArray<A>> =>
@@ -1319,7 +1319,7 @@ const pollForItem = <A>(self: Subscription<A>) => {
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const takeUpTo: {
@@ -1372,7 +1372,7 @@ export const takeUpTo: {
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const takeBetween: {

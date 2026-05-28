@@ -171,7 +171,7 @@ export type AnySpan = Span | ExternalSpan
  * console.log(Tracer.ParentSpanKey) // "effect/Tracer/ParentSpan"
  * ```
  *
- * @category tags
+ * @category constants
  * @since 4.0.0
  */
 export const ParentSpanKey = "effect/Tracer/ParentSpan"
@@ -192,7 +192,7 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
  * })
  * ```
  *
- * @category tags
+ * @category services
  * @since 2.0.0
  */
 export class ParentSpan extends Context.Service<ParentSpan, AnySpan>()(ParentSpanKey) {}
@@ -255,7 +255,7 @@ export interface ExternalSpan {
  * )
  * ```
  *
- * @category models
+ * @category options
  * @since 3.1.0
  */
 export interface SpanOptions extends SpanOptionsNoTrace, TraceOptions {}
@@ -265,7 +265,7 @@ export interface SpanOptions extends SpanOptionsNoTrace, TraceOptions {}
  * attributes, links, parent or root selection, annotations, span kind,
  * sampling, and the trace level used for filtering.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface SpanOptionsNoTrace {
@@ -283,7 +283,7 @@ export interface SpanOptionsNoTrace {
  * Options that control stack trace capture for tracing wrappers.
  * `captureStackTrace` can disable capture or provide a lazy stack string.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface TraceOptions {

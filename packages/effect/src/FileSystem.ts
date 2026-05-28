@@ -778,7 +778,7 @@ export type OpenFlag =
  * )
  * ```
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")

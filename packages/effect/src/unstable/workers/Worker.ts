@@ -133,7 +133,7 @@ export interface Spawner {
 /**
  * Service tag for the worker `SpawnerFn`.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const Spawner: Context.Service<

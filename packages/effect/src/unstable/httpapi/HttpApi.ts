@@ -345,7 +345,7 @@ const extractResponseContent = (
  * Adds additional schemas to components/schemas.
  * The provided schemas must have a `identifier` annotation.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class AdditionalSchemas extends Context.Service<

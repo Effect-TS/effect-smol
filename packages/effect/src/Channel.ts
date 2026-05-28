@@ -2947,7 +2947,7 @@ export const flatten = <
  * // Outputs: 1, 2, 3, 4, 5, 6, 7, 8, 9
  * ```
  *
- * @category utils
+ * @category transforming
  * @since 4.0.0
  */
 export const flattenArray = <
@@ -2998,7 +2998,7 @@ export const flattenArray = <
  * Output `Take` values are emitted as non-empty arrays. Failed `Take` values
  * fail the returned channel. Done `Take` values complete the returned channel.
  *
- * @category utils
+ * @category transforming
  * @since 4.0.0
  */
 export const flattenTake = <
@@ -3062,7 +3062,7 @@ export const drain = <
 /**
  * Repeats this channel according to the provided schedule.
  *
- * @category utils
+ * @category repetition
  * @since 4.0.0
  */
 export const repeat: {
@@ -3122,7 +3122,7 @@ export const repeat: {
 /**
  * Repeats this channel forever.
  *
- * @category utils
+ * @category repetition
  * @since 4.0.0
  */
 export const forever = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
@@ -3140,7 +3140,7 @@ export const forever = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
  * fails. If the schedule finishes, the returned channel completes with the
  * schedule output.
  *
- * @category utils
+ * @category sequencing
  * @since 4.0.0
  */
 export const schedule: {
@@ -5723,7 +5723,7 @@ export const ignoreCause: <
  * Returns a new channel that retries this channel according to the specified
  * schedule whenever it fails.
  *
- * @category utils
+ * @category error handling
  * @since 4.0.0
  */
 export const retry: {
@@ -5944,7 +5944,7 @@ export const switchMap: {
  * // Outputs: 1, 2, 3, 4, 5, 6 (order may vary due to concurrency)
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const mergeAll: {
@@ -6130,7 +6130,7 @@ export type HaltStrategy = "left" | "right" | "both" | "either"
  * // Order may vary: 1, "a", 2, "b", 3, "c"
  * ```
  *
- * @category utils
+ * @category combining
  * @since 4.0.0
  */
 export const merge: {
@@ -6278,7 +6278,7 @@ export const merge: {
  * The effect's successful value is ignored. If the effect fails while the
  * channel is running, the returned channel fails with that error.
  *
- * @category utils
+ * @category combining
  * @since 4.0.0
  */
 export const mergeEffect: {
@@ -6510,7 +6510,7 @@ export const encodeText = <Err, Done>(): Channel<
  * // Outputs: 2, 4, 6
  * ```
  *
- * @category utils
+ * @category sequencing
  * @since 2.0.0
  */
 export const pipeTo: {
@@ -6558,7 +6558,7 @@ export const pipeTo: {
  * // Source errors are preserved and not sent to transform channel
  * ```
  *
- * @category utils
+ * @category sequencing
  * @since 2.0.0
  */
 export const pipeToOrFail: {
@@ -6643,7 +6643,7 @@ export const unwrap = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R2, E, R
  * Runs a channel with a scope provided for the duration of the channel
  * execution, removing the channel's `Scope` requirement.
  *
- * @category utils
+ * @category resource management
  * @since 2.0.0
  */
 export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
@@ -6687,7 +6687,7 @@ export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
  * )
  * ```
  *
- * @category utils
+ * @category sequencing
  * @since 2.0.0
  */
 export const embedInput: {
@@ -6854,7 +6854,7 @@ export const bufferArray: {
  * channel's done value. If the channel completes first, the original channel's
  * done value is preserved.
  *
- * @category utils
+ * @category interruption
  * @since 2.0.0
  */
 export const interruptWhen: {
@@ -6887,7 +6887,7 @@ export const interruptWhen: {
  * fails with that error. If the channel completes first, the channel's done
  * value is preserved.
  *
- * @category utils
+ * @category interruption
  * @since 4.0.0
  */
 export const haltWhen: {
@@ -6927,7 +6927,7 @@ export const haltWhen: {
  * The finalizer receives the failure `Cause`. The original channel failure is
  * preserved. The finalizer itself must not fail.
  *
- * @category utils
+ * @category error handling
  * @since 4.0.0
  */
 export const onError: {
@@ -6972,7 +6972,7 @@ export const onError: {
  * })
  * ```
  *
- * @category utils
+ * @category resource management
  * @since 4.0.0
  */
 export const onExit: {
@@ -7003,7 +7003,7 @@ export const onExit: {
  * The effect's successful value is ignored. If the effect fails, the returned
  * channel fails before running the source channel.
  *
- * @category utils
+ * @category hooks
  * @since 4.0.0
  */
 export const onStart: {
@@ -7030,7 +7030,7 @@ export const onStart: {
  * emitted unchanged. The effect is not run if the channel completes without
  * emitting an element.
  *
- * @category utils
+ * @category hooks
  * @since 4.0.0
  */
 export const onFirst: {
@@ -7066,7 +7066,7 @@ export const onFirst: {
  * not run when the channel fails. If the effect fails, the returned channel
  * fails with that error.
  *
- * @category utils
+ * @category hooks
  * @since 4.0.0
  */
 export const onEnd: {
@@ -7112,7 +7112,7 @@ export const onEnd: {
  * )
  * ```
  *
- * @category utils
+ * @category resource management
  * @since 2.0.0
  */
 export const ensuring: {

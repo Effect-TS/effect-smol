@@ -1943,7 +1943,7 @@ export const neighborsDirected: {
  * }
  * ```
  *
- * @category models
+ * @category options
  * @since 3.18.0
  */
 export interface GraphVizOptions<N, E> {
@@ -1995,7 +1995,7 @@ export interface GraphVizOptions<N, E> {
  * // }
  * ```
  *
- * @category utils
+ * @category converting
  * @since 3.18.0
  */
 export const toGraphViz: {
@@ -2205,7 +2205,7 @@ export type MermaidDiagramType =
  * }
  * ```
  *
- * @category models
+ * @category options
  * @since 3.18.0
  */
 export interface MermaidOptions<N, E> {
@@ -2470,7 +2470,7 @@ const formatMermaidNode = (
  * //   0 -->|"builds with"| 3
  * ```
  *
- * @category utils
+ * @category converting
  * @since 3.18.0
  */
 export const toMermaid: {
@@ -3997,7 +3997,7 @@ export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
  * console.log(indices) // [0, 1]
  * ```
  *
- * @category utils
+ * @category iterators
  * @since 3.18.0
  */
 export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit((index, _) => index)
@@ -4021,7 +4021,7 @@ export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit
  * console.log(values) // ["A", "B"]
  * ```
  *
- * @category utils
+ * @category iterators
  * @since 3.18.0
  */
 export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit((_, data) => data)
@@ -4045,7 +4045,7 @@ export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit(
  * console.log(entries) // [[0, "A"], [1, "B"]]
  * ```
  *
- * @category utils
+ * @category iterators
  * @since 3.18.0
  */
 export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>

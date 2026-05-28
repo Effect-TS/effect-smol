@@ -665,7 +665,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category delays & timeouts
  * @since 2.0.0
  */
 export const addDelay: {
@@ -920,7 +920,7 @@ export const andThenResult: {
  *
  * @see {@link either} for continuing while either schedule still recurs
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const both: {
@@ -968,7 +968,7 @@ export const both: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const bothLeft: {
@@ -1017,7 +1017,7 @@ export const bothLeft: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const bothRight: {
@@ -1071,7 +1071,7 @@ export const bothRight: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const bothWith: {
@@ -1146,7 +1146,7 @@ export const bothWith: {
  * })
  * ```
  *
- * @category utils
+ * @category collecting
  * @since 4.0.0
  */
 export const collectInputs = <Output, Input, Error, Env>(
@@ -1183,7 +1183,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category collecting
  * @since 4.0.0
  */
 export const collectOutputs = <Output, Input, Error, Env>(
@@ -1270,7 +1270,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category collecting
  * @since 2.0.0
  */
 export const collectWhile: {
@@ -1750,7 +1750,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  *
  * @see {@link both} for continuing only while both schedules still recur
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const either: {
@@ -1801,7 +1801,7 @@ export const either: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 4.0.0
  */
 export const eitherLeft: {
@@ -1851,7 +1851,7 @@ export const eitherLeft: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 4.0.0
  */
 export const eitherRight: {
@@ -1906,7 +1906,7 @@ export const eitherRight: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const eitherWith: {
@@ -2354,7 +2354,7 @@ export const map: {
  * })
  * ```
  *
- * @category utils
+ * @category delays & timeouts
  * @since 2.0.0
  */
 export const modifyDelay: {
@@ -2400,7 +2400,7 @@ export const modifyDelay: {
  *
  * @see {@link modifyDelay} for replacing recurrence delays with a custom effectful transformation
  *
- * @category utils
+ * @category delays & timeouts
  * @since 2.0.0
  */
 export const jittered = <Output, Input, Error, Env>(
@@ -2438,7 +2438,7 @@ export const jittered = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category mapping
  * @since 2.0.0
  */
 export const passthrough = <Output, Input, Error, Env>(
@@ -2634,7 +2634,7 @@ export const recurs = (times: number): Schedule<number> =>
  * })
  * ```
  *
- * @category utils
+ * @category folding
  * @since 2.0.0
  */
 export const reduce: {
@@ -3136,7 +3136,7 @@ export const tapOutput: {
  *
  * @see {@link recurs} for creating a count-limited schedule
  *
- * @category utils
+ * @category taking
  * @since 4.0.0
  */
 export const take: {
@@ -3315,7 +3315,7 @@ export {
    * @see {@link collectWhile} for collecting outputs while using the same predicate
    * @see {@link take} for stopping after a fixed number of schedule outputs
    *
-   * @category utils
+   * @category filtering
    * @since 4.0.0
    */
   while_ as while

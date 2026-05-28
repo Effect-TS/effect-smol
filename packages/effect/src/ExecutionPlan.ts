@@ -461,7 +461,7 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
  * `attempt` is the current 1-based attempt number, and `stepIndex` is the
  * 0-based index of the plan step currently being evaluated.
  *
- * @category Metadata
+ * @category metadata
  * @since 4.0.0
  */
 export interface Metadata {

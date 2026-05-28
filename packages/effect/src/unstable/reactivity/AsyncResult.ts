@@ -742,7 +742,7 @@ export const all = <const Arg extends Iterable<any> | Record<string, any>>(
 /**
  * Creates a typed builder for rendering an `AsyncResult` by handling waiting, initial, success, error, defect, interrupt, and failure cases.
  *
- * @category Builder
+ * @category constructors
  * @since 4.0.0
  */
 export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
@@ -756,7 +756,7 @@ export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
 /**
  * Type marker used by `Builder` to track whether defect failures still need to be handled.
  *
- * @category Builder
+ * @category models
  * @since 4.0.0
  */
 export interface Defect {
@@ -766,7 +766,7 @@ export interface Defect {
 /**
  * Type marker used by `Builder` to track whether interrupt failures still need to be handled.
  *
- * @category Builder
+ * @category models
  * @since 4.0.0
  */
 export interface Interrupt {
@@ -776,7 +776,7 @@ export interface Interrupt {
 /**
  * Fluent renderer for `AsyncResult` values that tracks unhandled cases at the type level and exposes `exhaustive` only after all possible cases are handled.
  *
- * @category Builder
+ * @category models
  * @since 4.0.0
  */
 export type Builder<Out, A, E, I, F> =

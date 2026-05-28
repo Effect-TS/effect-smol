@@ -235,7 +235,7 @@ export interface TypeLambda {
  * >
  * ```
  *
- * @category type utils
+ * @category utility types
  * @since 2.0.0
  */
 export type Kind<F extends TypeLambda, In, Out2, Out1, Target> = F extends {

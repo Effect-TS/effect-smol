@@ -80,7 +80,7 @@ import * as Prompt from "./Prompt.ts"
  * })
  * ```
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class Tokenizer extends Context.Service<Tokenizer, Service>()(

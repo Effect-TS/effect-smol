@@ -1160,7 +1160,7 @@ export const suspend = <A, E, R>(evaluate: LazyArg<Layer<A, E, R>>): Layer<A, E,
  * const unwrappedLayer = Layer.unwrap(layerEffect)
  * ```
  *
- * @category utils
+ * @category converting
  * @since 4.0.0
  */
 export const unwrap = <A, E1, R1, E, R>(
@@ -1411,7 +1411,7 @@ const provideWith = (
  *
  * @see {@link provideMerge} for retaining the dependency services
  *
- * @category utils
+ * @category providing services
  * @since 2.0.0
  */
 export const provide: {
@@ -1524,7 +1524,7 @@ export const provide: {
  *
  * @see {@link provide} for keeping dependency services private
  *
- * @category utils
+ * @category providing services
  * @since 2.0.0
  */
 export const provideMerge: {
@@ -2037,7 +2037,7 @@ export const catchCause: {
  * transformation function `f`, and replaces the old service with the
  * transformed one.
  *
- * @category utils
+ * @category providing services
  * @since 3.13.0
  */
 export const updateService: {
@@ -2135,7 +2135,7 @@ export const updateService: {
  * // same Counter: false
  * ```
  *
- * @category utils
+ * @category layers
  * @since 2.0.0
  */
 export const fresh = <A, E, R>(self: Layer<A, E, R>): Layer<A, E, R> =>
@@ -2481,7 +2481,7 @@ export const satisfiesServicesType =
  * @see {@link span} for creating a layer span
  * @see {@link withSpan} for wrapping layer construction in a span
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface SpanOptions extends Tracer.SpanOptions {

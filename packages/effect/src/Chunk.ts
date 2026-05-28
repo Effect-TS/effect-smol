@@ -725,7 +725,7 @@ export const getUnsafe: {
  * @see {@link prepend} for adding one element before the existing elements
  * @see {@link appendAll} for appending all elements from another chunk
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const append: {
@@ -751,7 +751,7 @@ export const append: {
  * console.log(Chunk.toArray(singleElement)) // ["first"]
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prepend: {
@@ -940,7 +940,7 @@ export const dropWhile: {
  * // [ "a", "b", 1, 2 ]
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prependAll: {
@@ -978,7 +978,7 @@ export const prependAll: {
  * @see {@link prependAll} for concatenating chunks in the opposite order
  * @see {@link append} for adding a single element to the end
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const appendAll: {

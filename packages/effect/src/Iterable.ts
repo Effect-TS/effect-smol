@@ -260,7 +260,7 @@ export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): I
  * console.log(Array.from(withZ)) // ["z", "a", "b", "c"]
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prepend: {
@@ -283,7 +283,7 @@ export const prepend: {
  * )
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prependAll: {
@@ -332,7 +332,7 @@ export const prependAll: {
  * @see {@link prepend} for adding one element before the existing elements
  * @see {@link appendAll} for appending all elements from another iterable
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const append: {
@@ -383,7 +383,7 @@ export const append: {
  * @see {@link append} for appending one value instead of another iterable
  * @see {@link prependAll} for yielding another iterable before `self`
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const appendAll: {
@@ -1029,7 +1029,7 @@ export const zipWith: {
  * console.log(Array.from(css).join("")) // "color: red; font-size: 14px; margin: 10px"
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const intersperse: {

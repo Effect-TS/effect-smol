@@ -289,7 +289,7 @@ export type Unify<A> = Values<
  *
  * @see {@link Unify} for the type-level normalization applied by this helper
  *
- * @category utils
+ * @category utility types
  * @since 2.0.0
  */
 export const unify: {

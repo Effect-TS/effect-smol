@@ -82,7 +82,7 @@ const toBufferSource = (data: Uint8Array): ArrayBufferView<ArrayBuffer> => new U
  * Use to provide cryptographic operations required by encrypted event-log
  * replication.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class EventLogEncryption extends Context.Service<EventLogEncryption, {

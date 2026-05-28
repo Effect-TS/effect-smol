@@ -146,7 +146,7 @@ export type PipeToOption = "stdin" | `fd${number}`
  * )
  * ```
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface PipeOptions {
@@ -267,7 +267,7 @@ export type Encoding =
 /**
  * Options that can be used to control how a child process is terminated.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface KillOptions {
@@ -399,7 +399,7 @@ export type AdditionalFdConfig =
 /**
  * Options for command execution.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface CommandOptions extends KillOptions {
@@ -864,7 +864,7 @@ const isTemplateString = (u: unknown): u is TemplateStringsArray =>
  * Parses an fd name like "fd3" to its numeric index.
  * Returns undefined if the name is invalid.
  *
- * @category utils
+ * @category converting
  * @since 4.0.0
  */
 export const parseFdName = (name: string): number | undefined => {
@@ -877,7 +877,7 @@ export const parseFdName = (name: string): number | undefined => {
 /**
  * Create an fd name from its numeric index.
  *
- * @category utils
+ * @category converting
  * @since 4.0.0
  */
 export const fdName = (fd: number): string => `fd${fd}`

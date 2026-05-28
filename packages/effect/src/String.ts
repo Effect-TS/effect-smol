@@ -206,7 +206,7 @@ export type Concat<A extends string, B extends string> = `${A}${B}`
  * console.log(result2) // "helloworld"
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const concat: {
@@ -489,7 +489,7 @@ export const isNonEmpty = (self: string): boolean => self.length > 0
  * assert.deepStrictEqual(String.length("abc"), 3)
  * ```
  *
- * @category utils
+ * @category getters
  * @since 2.0.0
  */
 export const length = (self: string): number => self.length
@@ -1480,7 +1480,7 @@ export const snakeCase: (self: string) => string = noCase({
  *
  * @see {@link concat} for concatenating two strings directly
  *
- * @category concatenating
+ * @category combining
  * @since 4.0.0
  */
 export const ReducerConcat: Reducer.Reducer<string> = Reducer.make((a, b) => a + b, "")

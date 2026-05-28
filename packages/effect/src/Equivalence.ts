@@ -872,7 +872,7 @@ export function Record<A>(value: Equivalence<A>): Equivalence<Record<PropertyKey
  * @see {@link combine} Combine two equivalences
  * @see {@link combineAll} Combine multiple equivalences
  * @see {@link Reducer} Reducer type for collection operations
- * @category utils
+ * @category constructors
  * @since 4.0.0
  */
 export function makeReducer<A>() {

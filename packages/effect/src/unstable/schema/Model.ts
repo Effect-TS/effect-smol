@@ -670,7 +670,7 @@ export const DateTimeUpdateFromNumber: DateTimeUpdateFromNumber = Field({
  * Variant field type for a JSON value stored as text in database variants and
  * exposed through the supplied schema in JSON variants.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export interface JsonFromString<S extends Schema.Top> extends
@@ -691,7 +691,7 @@ export interface JsonFromString<S extends Schema.Top> extends
  *
  * The "json" variants will use the object schema directly.
  *
- * @category JSON
+ * @category constructors
  * @since 4.0.0
  */
 export const JsonFromString = <S extends Schema.Top>(

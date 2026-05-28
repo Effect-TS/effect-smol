@@ -309,7 +309,7 @@ export interface Not {
  *
  * @see {@link value} for creating a matcher from a specific value.
  *
- * @category Creating a matcher
+ * @category constructors
  * @since 4.0.0
  */
 export const type: <I>() => Matcher<I, Types.Without<never>, I, never, never> = internal.type
@@ -355,7 +355,7 @@ export const type: <I>() => Matcher<I, Types.Without<never>, I, never, never> = 
  *
  * @see {@link type} for creating a matcher from a specific type.
  *
- * @category Creating a matcher
+ * @category constructors
  * @since 4.0.0
  */
 export const value: <const I>(
@@ -388,7 +388,7 @@ export const value: <const I>(
  * console.log(message) // "Success: Hello"
  * ```
  *
- * @category Creating a matcher
+ * @category constructors
  * @since 4.0.0
  */
 export const valueTags: {
@@ -449,7 +449,7 @@ export const valueTags: {
  * // Output: { type: "pending" }
  * ```
  *
- * @category Creating a matcher
+ * @category constructors
  * @since 4.0.0
  */
 export const typeTags: {
@@ -502,7 +502,7 @@ export const typeTags: {
  * )
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 4.0.0
  */
 export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(

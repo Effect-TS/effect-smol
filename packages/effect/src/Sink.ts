@@ -694,7 +694,7 @@ export const never: Sink<unknown> = fromEffectEnd(Effect.never)
  * instead of being returned to downstream sink composition. This does not
  * continue pulling additional elements from the upstream stream.
  *
- * @category utils
+ * @category filtering
  * @since 2.0.0
  */
 export const ignoreLeftover = <A, In, L, E, R>(self: Sink<A, In, L, E, R>): Sink<A, In, never, E, R> =>
@@ -1922,7 +1922,7 @@ export const unwrap = <A, In, L, E, R, R2>(
 /**
  * Runs a summary effect when the sink starts and again when it completes.
  *
- * @category utils
+ * @category mapping
  * @since 2.0.0
  */
 export const summarized: {
@@ -1950,7 +1950,7 @@ export const summarized: {
 /**
  * Returns the sink that executes this one and times its execution.
  *
- * @category utils
+ * @category mapping
  * @since 2.0.0
  */
 export const withDuration = <A, In, L, E, R>(

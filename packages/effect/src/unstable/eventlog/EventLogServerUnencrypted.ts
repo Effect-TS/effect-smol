@@ -79,7 +79,7 @@ import * as EventLogServer from "./EventLogServer.ts"
  * Use to access or provide the server service that handles plaintext
  * event-log writes.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class EventLogServerUnencrypted extends Context.Service<EventLogServerUnencrypted, {
@@ -290,7 +290,7 @@ export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAut
  * Use to provide authorization checks for plaintext event-log writes, reads,
  * and identity authentication.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class EventLogServerAuthorization extends Context.Service<EventLogServerAuthorization, {
@@ -317,7 +317,7 @@ export class EventLogServerAuthorization extends Context.Service<EventLogServerA
  * Use to map client-visible store identifiers to server storage identifiers
  * before authorizing or serving unencrypted event-log requests.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class StoreMapping extends Context.Service<StoreMapping, {

@@ -32,7 +32,7 @@ import type * as Socket from "./Socket.ts"
  * Context service for a socket server, exposing its bound address and a run
  * loop that handles each accepted `Socket`.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class SocketServer extends Context.Service<SocketServer, {

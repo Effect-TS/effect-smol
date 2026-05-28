@@ -561,7 +561,7 @@ export const fileText: Primitive<string> = makePrimitive(
  * Represents options which can be provided to methods that deal with parsing
  * file content.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type FileParseOptions = {
@@ -625,7 +625,7 @@ export const fileParse = (options?: FileParseOptions): Primitive<unknown> => {
  * Represents options which can be provided to methods that deal with parsing
  * file content and decoding the file content with a `Schema`.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type FileSchemaOptions = Struct.Simplify<
@@ -774,7 +774,7 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  * console.log(Primitive.getTypeName(logLevelChoice)) // "choice"
  * ```
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getTypeName = <A>(primitive: Primitive<A>): string => {

@@ -107,7 +107,7 @@ import type * as Tool from "./Tool.ts"
  * })
  * ```
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class Chat extends Context.Service<Chat, Service>()(
@@ -725,7 +725,7 @@ export class ChatNotFoundError extends Schema.ErrorClass<ChatNotFoundError>(
  * Use to provide the storage operations needed by persisted conversation
  * sessions.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 // @effect-diagnostics effect/leakingRequirements:off

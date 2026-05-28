@@ -104,7 +104,7 @@ import * as Toolkit from "./Toolkit.ts"
  * })
  * ```
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class LanguageModel extends Context.Service<LanguageModel, Service>()(
@@ -261,7 +261,7 @@ export const defaultCodecTransformer: CodecTransformer = InternalCodecTransforme
 /**
  * Configuration options for text generation.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
@@ -319,7 +319,7 @@ type GenerateTextOptionsWithoutToolkit = Omit<GenerateTextOptions<{}>, "toolkit"
 /**
  * Configuration options for structured object generation.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface GenerateObjectOptions<
@@ -684,7 +684,7 @@ export type ExtractServices<Options> = Options extends {
  * underlying provider implementation, regardless of the specific provider being
  * used.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ProviderOptions {

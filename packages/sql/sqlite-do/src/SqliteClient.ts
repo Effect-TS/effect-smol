@@ -92,7 +92,7 @@ export interface SqliteClient extends Client.SqlClient {
  * Use to access or provide a Durable Object SQLite client through the Effect
  * context.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-do/SqliteClient")

@@ -122,7 +122,7 @@ export class OpenRouterClient extends Context.Service<
 /**
  * Configuration for creating an OpenRouter client.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type Options = {

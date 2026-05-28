@@ -66,7 +66,7 @@ export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, Ty
  * Use to access or provide the socket implementation used by programs that
  * read and write frames through the Effect environment.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const Socket: Context.Service<Socket, Socket> = Context.Service<Socket>("effect/socket/Socket")
@@ -556,7 +556,7 @@ export const defaultCloseCodeIsError = (_code: number) => true
  * Context service for the active `WebSocket` instance available while a
  * WebSocket-backed socket run is handling events.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>()(
@@ -567,7 +567,7 @@ export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>(
  * Context service for constructing `WebSocket` instances from a URL and
  * optional protocols.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class WebSocketConstructor extends Context.Service<

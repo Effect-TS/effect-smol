@@ -66,7 +66,7 @@ import * as Stream from "../../Stream.ts"
  * mutations so successful effects invalidate keys, and turn query effects into
  * queues or streams that rerun when keys are invalidated.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class Reactivity extends Context.Service<

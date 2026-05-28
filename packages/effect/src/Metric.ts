@@ -253,7 +253,7 @@ export interface Metric<in Input, out State> extends Pipeable {
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 2.0.0
  */
 export interface Counter<in Input extends number | bigint> extends Metric<Input, CounterState<Input>> {}
@@ -403,7 +403,7 @@ export interface CounterState<in Input extends number | bigint> {
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 2.0.0
  */
 export interface Frequency extends Metric<string, FrequencyState> {}
@@ -488,7 +488,7 @@ export interface Frequency extends Metric<string, FrequencyState> {}
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export interface FrequencyState {
@@ -551,7 +551,7 @@ export interface FrequencyState {
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 2.0.0
  */
 export interface Gauge<in Input extends number | bigint> extends Metric<Input, GaugeState<Input>> {}
@@ -620,7 +620,7 @@ export interface Gauge<in Input extends number | bigint> extends Metric<Input, G
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export interface GaugeState<in Input extends number | bigint> {
@@ -711,7 +711,7 @@ export interface GaugeState<in Input extends number | bigint> {
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 2.0.0
  */
 export interface Histogram<Input> extends Metric<Input, HistogramState> {}
@@ -798,7 +798,7 @@ export interface Histogram<Input> extends Metric<Input, HistogramState> {}
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export interface HistogramState {
@@ -904,7 +904,7 @@ export interface HistogramState {
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 2.0.0
  */
 export interface Summary<Input> extends Metric<Input, SummaryState> {}
@@ -986,7 +986,7 @@ export interface Summary<Input> extends Metric<Input, SummaryState> {}
  * })
  * ```
  *
- * @category Metrics
+ * @category metrics
  * @since 4.0.0
  */
 export interface SummaryState {
@@ -2751,7 +2751,7 @@ export const timer = (name: string, options?: {
  * })
  * ```
  *
- * @category utils
+ * @category getters
  * @since 2.0.0
  */
 export const value = <Input, State>(
@@ -2803,7 +2803,7 @@ export const value = <Input, State>(
  * })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 3.6.5
  */
 export const modify: {
@@ -2868,7 +2868,7 @@ export const modify: {
  * })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const update: {

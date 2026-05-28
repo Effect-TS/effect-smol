@@ -66,7 +66,7 @@ import type { EventLogRemote } from "./EventLogRemote.ts"
  * only when the handler succeeds, and exposes access to the underlying journal
  * entries and destroy operation.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class EventLog extends Context.Service<EventLog, {

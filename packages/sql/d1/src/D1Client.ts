@@ -81,7 +81,7 @@ export interface D1Client extends Client.SqlClient {
  * Use to access or provide a Cloudflare D1 SQL client through the Effect
  * context.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const D1Client = Context.Service<D1Client>("@effect/sql-d1/D1Client")

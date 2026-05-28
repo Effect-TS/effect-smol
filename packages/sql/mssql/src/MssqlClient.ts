@@ -214,7 +214,7 @@ export interface MssqlClient extends Client.SqlClient {
  * Use to access or provide a Microsoft SQL Server client through the Effect
  * context.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const MssqlClient = Context.Service<MssqlClient>("@effect/sql-mssql/MssqlClient")

@@ -114,7 +114,7 @@ export interface KeyValueStore {
  * Primitive operations are required, while helpers such as `has`, `isEmpty`,
  * and `modify` can be supplied to override the defaults.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type MakeOptions = Partial<KeyValueStore> & {
@@ -153,7 +153,7 @@ export type MakeOptions = Partial<KeyValueStore> & {
  * Implementation callbacks for adapting a string-only backing store into a
  * `KeyValueStore`.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
@@ -214,7 +214,7 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
  * Use to access or provide the persistence store used for lightweight durable
  * state.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const KeyValueStore: Context.Service<

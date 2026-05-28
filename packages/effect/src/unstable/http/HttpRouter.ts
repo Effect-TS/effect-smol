@@ -302,7 +302,7 @@ export const RouterConfig = Context.Reference<Partial<FindMyWay.RouterConfig>>(
  * It provides the route definition and the path parameters captured by the route
  * matcher.
  *
- * @category route context
+ * @category services
  * @since 4.0.0
  */
 export class RouteContext extends Context.Service<RouteContext, {
@@ -313,7 +313,7 @@ export class RouteContext extends Context.Service<RouteContext, {
 /**
  * Effect that returns the path parameters captured for the current matched route.
  *
- * @category RouteContext
+ * @category getters
  * @since 4.0.0
  */
 export const params: Effect.Effect<

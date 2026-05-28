@@ -48,7 +48,7 @@ import * as Layer from "effect/Layer"
  * Use to provide process, service, and deployment metadata that should be
  * attached to spans, metrics, and logs.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class Resource extends Context.Service<

@@ -279,7 +279,7 @@ export interface AnyServiceWithProps extends Context.Key<any, RpcMiddleware<any,
  * requirements, provided services, error schema, and client-side requirement
  * metadata.
  *
- * @category tags
+ * @category constructors
  * @since 4.0.0
  */
 export const Service = <

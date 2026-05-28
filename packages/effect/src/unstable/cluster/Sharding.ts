@@ -112,7 +112,7 @@ import * as Snowflake from "./Snowflake.ts"
  * Use to access or provide cluster routing, shard ownership, entity
  * registration, singleton registration, and persisted-work polling.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class Sharding extends Context.Service<Sharding, {

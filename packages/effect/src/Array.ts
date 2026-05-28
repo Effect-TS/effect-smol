@@ -633,7 +633,7 @@ export const matchRight: {
  * @see {@link append} — add to the end
  * @see {@link prependAll} — prepend multiple elements
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prepend: {
@@ -664,7 +664,7 @@ export const prepend: {
  * @see {@link prepend} — add a single element to the front
  * @see {@link appendAll} — add elements to the end
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prependAll: {
@@ -703,7 +703,7 @@ export const prependAll: {
  * @see {@link prepend} — add to the front
  * @see {@link appendAll} — append multiple elements
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const append: {
@@ -735,7 +735,7 @@ export const append: {
  * @see {@link append} — add a single element to the end
  * @see {@link prependAll} — add elements to the front
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const appendAll: {

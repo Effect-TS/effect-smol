@@ -81,7 +81,7 @@ import * as Random from "../../Random.ts"
  * })
  * ```
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class IdGenerator extends Context.Service<IdGenerator, Service>()(
@@ -142,7 +142,7 @@ export interface Service {
  * // This will generate IDs like: "tool_A1B2C3D4"
  * ```
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface MakeOptions {

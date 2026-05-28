@@ -1048,7 +1048,7 @@ type ParseJsonOptions = {
  *
  * @see {@link stringifyJson} for the inverse operation
  *
- * @category JSON
+ * @category JSON getters
  * @since 4.0.0
  */
 export function parseJson<E extends string>(): Getter<Schema.MutableJson, E>
@@ -1096,7 +1096,7 @@ type StringifyJsonOptions = {
  *
  * @see {@link parseJson} for the inverse operation
  *
- * @category JSON
+ * @category JSON getters
  * @since 4.0.0
  */
 export function stringifyJson(options?: StringifyJsonOptions): Getter<string, unknown> {
@@ -1244,7 +1244,7 @@ export function split<E extends string>(options?: {
  * @see {@link decodeBase64String} for the inverse operation to `string`
  * @see {@link encodeBase64Url} for the URL-safe variant
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E> {
@@ -1270,7 +1270,7 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  * @see {@link decodeBase64UrlString} for the inverse operation to `string`
  * @see {@link encodeBase64} for the standard Base64 variant
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string, E> {
@@ -1295,7 +1295,7 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
  * @see {@link decodeHex} for the inverse operation to `Uint8Array`
  * @see {@link decodeHexString} for the inverse operation to `string`
  *
- * @category Hex
+ * @category Hex getters
  * @since 4.0.0
  */
 export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
@@ -1321,7 +1321,7 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
  * @see {@link decodeBase64String} to decode to `string` instead
  * @see {@link encodeBase64} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
@@ -1352,7 +1352,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  * @see {@link decodeBase64} to decode to `Uint8Array` instead
  * @see {@link encodeBase64} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64String<E extends string>(): Getter<string, E> {
@@ -1383,7 +1383,7 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
  * @see {@link decodeBase64UrlString} to decode to `string` instead
  * @see {@link encodeBase64Url} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
@@ -1414,7 +1414,7 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
  * @see {@link decodeBase64Url} to decode to `Uint8Array` instead
  * @see {@link encodeBase64Url} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
@@ -1445,7 +1445,7 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
  * @see {@link decodeHexString} to decode to `string` instead
  * @see {@link encodeHex} for the inverse operation
  *
- * @category Hex
+ * @category Hex getters
  * @since 4.0.0
  */
 export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
@@ -1476,7 +1476,7 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
  * @see {@link decodeHex} to decode to `Uint8Array` instead
  * @see {@link encodeHex} for the inverse operation
  *
- * @category Hex
+ * @category Hex getters
  * @since 4.0.0
  */
 export function decodeHexString<E extends string>(): Getter<string, E> {

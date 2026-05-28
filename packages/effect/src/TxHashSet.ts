@@ -146,7 +146,7 @@ export declare namespace TxHashSet {
    * console.log(processFruit("apple")) // Processing apple
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Value<T> = T extends TxHashSet<infer V> ? V : never

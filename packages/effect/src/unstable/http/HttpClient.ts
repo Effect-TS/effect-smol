@@ -168,7 +168,7 @@ export declare namespace HttpClient {
  * Use to provide the HTTP client implementation consumed by the module's
  * request accessor functions.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const HttpClient: Context.Service<HttpClient, HttpClient> = Context.Service<HttpClient, HttpClient>(

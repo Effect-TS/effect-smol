@@ -51,7 +51,7 @@ export * as NodeWS from "ws"
  * Service tag for the underlying Node `net.Socket` associated with the current
  * socket connection.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(

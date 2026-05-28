@@ -116,7 +116,7 @@ export interface PgClient extends Client.SqlClient {
  *
  * Use to access or provide a PostgreSQL client through the Effect context.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const PgClient = Context.Service<PgClient>("@effect/sql-pg/PgClient")

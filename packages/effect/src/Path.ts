@@ -274,7 +274,7 @@ export declare namespace Path {
  * const result = Effect.provide(program, customPathLayer)
  * ```
  *
- * @category tag
+ * @category services
  * @since 4.0.0
  */
 export const Path: Context.Service<Path, Path> = Context.Service("effect/Path")

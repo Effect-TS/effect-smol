@@ -47,7 +47,7 @@ import * as HttpClientResponse from "./HttpClientResponse.ts"
  *
  * Defaults to `globalThis.fetch`.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const Fetch = Context.Reference<typeof globalThis.fetch>("effect/http/FetchHttpClient/Fetch", {
@@ -66,7 +66,7 @@ export const Fetch = Context.Reference<typeof globalThis.fetch>("effect/http/Fet
  *
  * Request-specific method, headers, body, and abort signal are supplied by the client when a request is executed.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class RequestInit extends Context.Service<RequestInit, globalThis.RequestInit>()(

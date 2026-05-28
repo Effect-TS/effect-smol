@@ -932,7 +932,7 @@ export const whileLoop: <A, E, R>(options: {
  * ```
  *
  * @see {@link tryPromise} for a version that can handle failures.
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const promise: <A>(
@@ -1001,7 +1001,7 @@ export const promise: <A>(
  * ```
  *
  * @see {@link promise} if the effectful computation is asynchronous and does not throw errors.
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const tryPromise: <A, E = Cause.UnknownError>(
@@ -1031,7 +1031,7 @@ export const tryPromise: <A, E = Cause.UnknownError>(
  * ```
  *
  * @see {@link fail} to create an effect that represents a failure.
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const succeed: <A>(value: A) => Effect<A> = internal.succeed
@@ -1050,7 +1050,7 @@ export const succeed: <A>(value: A) => Effect<A> = internal.succeed
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const succeedNone: Effect<Option<never>> = internal.succeedNone
@@ -1069,7 +1069,7 @@ export const succeedNone: Effect<Option<never>> = internal.succeedNone
  * // Output: { _id: 'Option', _tag: 'Some', value: 42 }
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedSome
@@ -1157,7 +1157,7 @@ export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedS
  *   )
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const suspend: <A, E, R>(
@@ -1196,7 +1196,7 @@ export const suspend: <A, E, R>(
  * ```
  *
  * @see {@link try_ | try} for a version that can handle failures.
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const sync: <A>(thunk: LazyArg<A>) => Effect<A> = internal.sync
@@ -1206,7 +1206,7 @@ export {
   /**
    * Returns an effect that succeeds with `void`.
    *
-   * @category creating effects
+   * @category constructors
    * @since 2.0.0
    */
   void_ as void
@@ -1217,7 +1217,7 @@ export {
   /**
    * Returns an effect that succeeds with `undefined`.
    *
-   * @category creating effects
+   * @category constructors
    * @since 4.0.0
    */
   undefined_ as undefined
@@ -1255,7 +1255,7 @@ export {
  * const program = delay(1000)
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 4.0.0
  */
 export const callback: <A, E = never, R = never>(
@@ -1285,7 +1285,7 @@ export const callback: <A, E = never, R = never>(
  * const timedProgram = Effect.timeout(program, "1 second")
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const never: Effect<never> = internal.never
@@ -1461,7 +1461,7 @@ export const bind: {
  * })
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const gen: {
@@ -1501,7 +1501,7 @@ export declare namespace gen {
   /**
    * Generator return type accepted by `Effect.gen`.
    *
-   * @category creating effects
+   * @category constructors
    * @since 4.0.0
    */
   export type Return<A, E = never, R = never> = Generator<Effect<any, E, R>, A, any>
@@ -1531,7 +1531,7 @@ export declare namespace gen {
  * ```
  *
  * @see {@link succeed} to create an effect that represents a successful value.
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const fail: <E>(error: E) => Effect<never, E> = internal.fail
@@ -1560,7 +1560,7 @@ export const fail: <E>(error: E) => Effect<never, E> = internal.fail
  * // Output: { _id: 'Exit', _tag: 'Failure', cause: ... }
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const failSync: <E>(evaluate: LazyArg<E>) => Effect<never, E> = internal.failSync
@@ -1586,7 +1586,7 @@ export const failSync: <E>(evaluate: LazyArg<E>) => Effect<never, E> = internal.
  * // Output: { _id: 'Exit', _tag: 'Failure', cause: ... }
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const failCause: <E>(cause: Cause.Cause<E>) => Effect<never, E> = internal.failCause
@@ -1615,7 +1615,7 @@ export const failCause: <E>(cause: Cause.Cause<E>) => Effect<never, E> = interna
  * // Output: { _id: 'Exit', _tag: 'Failure', cause: ... }
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const failCauseSync: <E>(
@@ -1659,7 +1659,7 @@ export const failCauseSync: <E>(
  * //   ...stack trace...
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const die: (defect: unknown) => Effect<never> = internal.die
@@ -1731,7 +1731,7 @@ export {
    *
    * @see {@link sync} if the effectful computation is synchronous and does not
    * throw errors.
-   * @category creating effects
+   * @category constructors
    * @since 2.0.0
    */
   try_ as try
@@ -1754,7 +1754,7 @@ export {
  * Effect.runPromise(program)
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 2.0.0
  */
 export const yieldNow: Effect<void> = internal.yieldNow
@@ -1776,7 +1776,7 @@ export const yieldNow: Effect<void> = internal.yieldNow
  * Effect.runPromise(program)
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 4.0.0
  */
 export const yieldNowWith: (priority?: number) => Effect<void> = internal.yieldNowWith
@@ -1797,7 +1797,7 @@ export const yieldNowWith: (priority?: number) => Effect<void> = internal.yieldN
  * // Output: Fiber ID: 1
  * ```
  *
- * @category creating effects
+ * @category constructors
  * @since 4.0.0
  */
 export const withFiber: <A, E = never, R = never>(
@@ -3914,7 +3914,7 @@ export const tapDefect: {
  * // Ready
  * ```
  *
- * @category repetition / recursion
+ * @category repetition
  * @since 2.0.0
  */
 export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = internal.eventually
@@ -7369,7 +7369,7 @@ export declare namespace Repeat {
   /**
    * Computes the result type of `Effect.repeat` from the original effect and repeat options.
    *
-   * @category repetition / recursion
+   * @category repetition
    * @since 2.0.0
    */
   export type Return<R, E, A, O extends Options<A>> = Effect<
@@ -7400,7 +7400,7 @@ export declare namespace Repeat {
   /**
    * Options that control whether and how an effect is repeated.
    *
-   * @category repetition / recursion
+   * @category repetition
    * @since 2.0.0
    */
   export interface Options<A> {
@@ -7438,7 +7438,7 @@ export declare namespace Repeat {
  * })
  * ```
  *
- * @category repetition / recursion
+ * @category repetition
  * @since 2.0.0
  */
 export const forever: <
@@ -7528,7 +7528,7 @@ export const forever: <
  * @see {@link retry} for failure-based repetition
  * @see {@link repeatOrElse} for fallback handling when repetition fails
  *
- * @category repetition / recursion
+ * @category repetition
  * @since 2.0.0
  */
 export const repeat: {
@@ -7593,7 +7593,7 @@ export const repeat: {
  * )
  * ```
  *
- * @category repetition / recursion
+ * @category repetition
  * @since 2.0.0
  */
 export const repeatOrElse: {
@@ -7718,7 +7718,7 @@ export const replicateEffect: {
  * @see {@link scheduleFrom} for a variant that allows the schedule's decision
  * to depend on the result of this effect.
  *
- * @category repetition / recursion
+ * @category repetition
  * @since 2.0.0
  */
 export const schedule: {
@@ -7768,7 +7768,7 @@ export const schedule: {
  * // Returns the schedule count
  * ```
  *
- * @category repetition / recursion
+ * @category repetition
  * @since 2.0.0
  */
 export const scheduleFrom: {
@@ -8719,7 +8719,7 @@ export const fiberId: Effect<number> = internal.fiberId
  * @see {@link runPromise} for promise-based running with these options
  * @see {@link runPromiseExit} for promise-based running that returns an `Exit`
  *
- * @category running effects
+ * @category running
  * @since 4.0.0
  */
 export interface RunOptions {
@@ -8760,7 +8760,7 @@ export interface RunOptions {
  * }, 500)
  * ```
  *
- * @category running effects
+ * @category running
  * @since 2.0.0
  */
 export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions | undefined) => Fiber<A, E> =
@@ -8793,7 +8793,7 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
  * const fiber = Effect.runForkWith(services)(program)
  * ```
  *
- * @category running effects
+ * @category running
  * @since 4.0.0
  */
 export const runForkWith: <R>(
@@ -8840,7 +8840,7 @@ export const runForkWith: <R>(
  * interrupt()
  * ```
  *
- * @category running effects
+ * @category running
  * @since 4.0.0
  */
 export const runCallbackWith: <R>(
@@ -8887,7 +8887,7 @@ export const runCallbackWith: <R>(
  * // interrupt() to cancel the fiber if needed
  * ```
  *
- * @category running effects
+ * @category running
  * @since 2.0.0
  */
 export const runCallback: <A, E>(
@@ -8928,7 +8928,7 @@ export const runCallback: <A, E>(
  * ```
  *
  * @see {@link runPromiseExit} for a version that returns an `Exit` type instead of rejecting.
- * @category running effects
+ * @category running
  * @since 2.0.0
  */
 export const runPromise: <A, E>(
@@ -8962,7 +8962,7 @@ export const runPromise: <A, E>(
  * Effect.runPromiseWith(context)(program).then(console.log)
  * ```
  *
- * @category running effects
+ * @category running
  * @since 4.0.0
  */
 export const runPromiseWith: <R>(
@@ -9015,7 +9015,7 @@ export const runPromiseWith: <R>(
  *
  * @see {@link runPromise} for a version that rejects on failure.
  *
- * @category running effects
+ * @category running
  * @since 2.0.0
  */
 export const runPromiseExit: <A, E>(
@@ -9053,7 +9053,7 @@ export const runPromiseExit: <A, E>(
  * })
  * ```
  *
- * @category running effects
+ * @category running
  * @since 4.0.0
  */
 export const runPromiseExitWith: <R>(
@@ -9118,7 +9118,7 @@ export const runPromiseExitWith: <R>(
  *
  * @see {@link runSyncExit} for a version that returns an `Exit` type instead of
  * throwing an error.
- * @category running effects
+ * @category running
  * @since 2.0.0
  */
 export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
@@ -9150,7 +9150,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  * console.log(result) // 5
  * ```
  *
- * @category running effects
+ * @category running
  * @since 4.0.0
  */
 export const runSyncWith: <R>(
@@ -9227,7 +9227,7 @@ export const runSyncWith: <R>(
  *
  * @see {@link runSync} for a version that throws on failure.
  *
- * @category running effects
+ * @category running
  * @since 2.0.0
  */
 export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = internal.runSyncExit
@@ -9268,7 +9268,7 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  * // Success: 42
  * ```
  *
- * @category running effects
+ * @category running
  * @since 4.0.0
  */
 export const runSyncExitWith: <R>(
@@ -14657,7 +14657,7 @@ export declare namespace Effectify {
   /**
    * Extracts the callback error type from a callback-based function type.
    *
-   * @category utils
+   * @category effectify
    * @since 4.0.0
    */
   export type EffectifyError<T> = T extends {

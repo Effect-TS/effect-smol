@@ -523,7 +523,7 @@ export const get: {
  * Record.modify(input, "b", f) // Option.none()
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const modify: {
@@ -566,7 +566,7 @@ export const modify: {
  * Record.replace(Record.empty<string>(), "a", 10) // Option.none()
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const replace: {
@@ -609,7 +609,7 @@ export const replace: {
  * assert.deepStrictEqual(Record.remove({ a: 1, b: 2 }, "a"), { b: 2 })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const remove: {
@@ -643,7 +643,7 @@ export const remove: {
  * Record.pop(input, "c") // Option.none()
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const pop: {
@@ -1099,7 +1099,7 @@ export const values = <K extends string, A>(self: ReadonlyRecord<K, A>): Array<A
  * assert.deepStrictEqual(Record.set("c", 5)({ a: 1, b: 2 }), { a: 1, b: 2, c: 5 })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const set: {

@@ -78,7 +78,7 @@ import type * as Response from "./Response.ts"
  * Provider-specific options are keyed by provider-specific names, and each
  * value is JSON or `null`.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export const ProviderOptions: Schema.$Record<
@@ -90,7 +90,7 @@ export const ProviderOptions: Schema.$Record<
  * Type of provider-specific options that can be attached to prompt messages
  * and content parts.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type ProviderOptions = typeof ProviderOptions.Type
@@ -239,7 +239,7 @@ export const makePart = <const Type extends Part["type"]>(
  * A utility type for specifying the parameters required to construct a
  * specific part of a prompt.
  *
- * @category Utility Types
+ * @category utility types
  * @since 4.0.0
  */
 export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | "type" | "options"> & {
@@ -298,7 +298,7 @@ export interface TextPartEncoded extends BasePartEncoded<"text", TextPartOptions
  * Represents provider-specific options that can be associated with a
  * `TextPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface TextPartOptions extends ProviderOptions {}
@@ -381,7 +381,7 @@ export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", Reaso
  * Represents provider-specific options that can be associated with a
  * `ReasoningPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ReasoningPartOptions extends ProviderOptions {}
@@ -490,7 +490,7 @@ export interface FilePartEncoded extends BasePartEncoded<"file", FilePartOptions
  * Represents provider-specific options that can be associated with a
  * `FilePart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface FilePartOptions extends ProviderOptions {}
@@ -607,7 +607,7 @@ export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCa
  * Represents provider-specific options that can be associated with a
  * `ToolCallPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolCallPartOptions extends ProviderOptions {}
@@ -724,7 +724,7 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
  * Represents provider-specific options that can be associated with a
  * `ToolResultPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolResultPartOptions extends ProviderOptions {}
@@ -846,7 +846,7 @@ export interface ToolApprovalResponsePartEncoded
  * Represents provider-specific options that can be associated with a
  * `ToolApprovalResponsePart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolApprovalResponsePartOptions extends ProviderOptions {}
@@ -951,7 +951,7 @@ export interface ToolApprovalRequestPartEncoded
  * Represents provider-specific options that can be associated with a
  * `ToolApprovalRequestPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolApprovalRequestPartOptions extends ProviderOptions {}
@@ -1087,7 +1087,7 @@ export const makeMessage = <const Role extends Message["role"]>(
  * A utility type for specifying the parameters required to construct a
  * specific message for a prompt.
  *
- * @category Utility Types
+ * @category utility types
  * @since 4.0.0
  */
 export type MessageConstructorParams<M extends Message> = Omit<M, typeof MessageTypeId | "role" | "options"> & {
@@ -1176,7 +1176,7 @@ export interface SystemMessageEncoded extends BaseMessageEncoded<"system", Syste
  * Represents provider-specific options that can be associated with a
  * `SystemMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface SystemMessageOptions extends ProviderOptions {}
@@ -1289,7 +1289,7 @@ export type UserMessagePartEncoded = TextPartEncoded | FilePartEncoded
  * Represents provider-specific options that can be associated with a
  * `UserMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface UserMessageOptions extends ProviderOptions {}
@@ -1475,7 +1475,7 @@ export type AssistantMessagePartEncoded =
  * Represents provider-specific options that can be associated with a
  * `AssistantMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface AssistantMessageOptions extends ProviderOptions {}
@@ -1644,7 +1644,7 @@ export type ToolMessagePartEncoded = ToolResultPartEncoded | ToolApprovalRespons
  * Represents provider-specific options that can be associated with a
  * `ToolMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolMessageOptions extends ProviderOptions {}

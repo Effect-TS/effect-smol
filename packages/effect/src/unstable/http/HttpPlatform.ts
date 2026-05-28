@@ -38,7 +38,7 @@ import * as Response from "./HttpServerResponse.ts"
 /**
  * Service for platform-specific HTTP response helpers, including file-backed server responses.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class HttpPlatform extends Context.Service<HttpPlatform, {

@@ -314,7 +314,7 @@ export {
  *
  * @see {@link completeWith} for storing an effect directly without memoizing its result
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const complete: {
@@ -362,7 +362,7 @@ export const complete: {
  * @see {@link complete} for running an effect once and sharing its result
  * @see {@link done} for completing from an already computed `Exit`
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const completeWith: {
@@ -406,7 +406,7 @@ export const completeWith: {
  * @see {@link succeed} for completing with a success value
  * @see {@link failCause} for completing with a failure cause
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const done: {
@@ -439,7 +439,7 @@ export const done: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const fail: {
@@ -473,7 +473,7 @@ export const fail: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const failSync: {
@@ -513,7 +513,7 @@ export const failSync: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const failCause: {
@@ -553,7 +553,7 @@ export const failCause: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const failCauseSync: {
@@ -593,7 +593,7 @@ export const failCauseSync: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const die: {
@@ -630,7 +630,7 @@ export const die: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const dieSync: {
@@ -668,7 +668,7 @@ export const dieSync: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
@@ -700,7 +700,7 @@ export const interrupt = <A, E>(self: Deferred<A, E>): Effect<boolean> =>
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const interruptWith: {
@@ -817,7 +817,7 @@ export function poll<A, E>(self: Deferred<A, E>): Effect<Option.Option<Effect<A,
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const succeed: {
@@ -853,7 +853,7 @@ export const succeed: {
  * })
  * ```
  *
- * @category utils
+ * @category completion
  * @since 2.0.0
  */
 export const sync: {

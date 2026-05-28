@@ -125,7 +125,7 @@ export declare namespace HashSet {
    * const processNumber = (n: NumberType) => n * 2
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Value<T> = T extends HashSet<infer V> ? V : never

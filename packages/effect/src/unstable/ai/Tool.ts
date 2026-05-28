@@ -1554,7 +1554,7 @@ export const providerDefined = <
  * naming conflicts (i.e. `"web_search"`) to instead use custom names (i.e.
  * `"OpenAiWebSearch"`).
  *
- * @category utils
+ * @category models
  * @since 4.0.0
  */
 export class NameMapper<Tools extends ReadonlyArray<Any>> {
@@ -1632,7 +1632,7 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * console.log(description) // "This is an example tool"
  * ```
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined => {
@@ -1683,7 +1683,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * // }
  * ```
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
@@ -1705,7 +1705,7 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
  * `Schema.toJsonSchemaDocument` and any generated definitions are attached as
  * `$defs`.
  *
- * @category utils
+ * @category converting
  * @since 4.0.0
  */
 export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
@@ -1901,7 +1901,7 @@ export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Str
  *
  * @see {@link Strict} for the annotation read by this helper
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getStrictMode = <T extends Any>(tool: T): boolean | undefined => Context.get(tool.annotations, Strict)
@@ -1995,7 +1995,7 @@ function filter(obj: any) {
  * `__proto__` property or a dangerous `constructor.prototype` shape throw a
  * `SyntaxError`.
  *
- * @category utils
+ * @category unsafe
  * @since 4.0.0
  */
 export const unsafeSecureJsonParse = (text: string): unknown => {

@@ -182,7 +182,7 @@ export type ConstructorDefault = "no-default" | "with-default"
  * @see {@link Bottom.makeEffect}
  * @see {@link Bottom.make}
  *
- * @category models
+ * @category options
  * @since 3.13.4
  */
 export interface MakeOptions {
@@ -482,7 +482,7 @@ export function declare<T, Iso = T>(
  * type E = typeof bottom["Encoded"]  // string
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 4.0.0
  */
 export function revealBottom<S extends Top>(
@@ -907,7 +907,7 @@ export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknow
  * type Enc = typeof codec["Encoded"] // string
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 4.0.0
  */
 export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
@@ -5130,7 +5130,7 @@ export interface withDecodingDefaultKey<S extends Top, R = never> extends decode
  *   - `"passthrough"` (default): pass the value through during encoding
  *   - `"omit"`: omit the key from the encoded output
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type DecodingDefaultOptions = {
@@ -10108,7 +10108,7 @@ export const BigDecimalFromString: BigDecimalFromString = BigDecimalString.pipe(
 /**
  * Type-level representation of {@link UnknownFromJsonString}.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export interface UnknownFromJsonString extends fromJsonString<Unknown> {
@@ -10137,7 +10137,7 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {
  * // => { a: 1, b: 2 }
  * ```
  *
- * @category JSON
+ * @category schemas
  * @since 4.0.0
  */
 export const UnknownFromJsonString: UnknownFromJsonString = fromJsonString(Unknown)
@@ -10145,7 +10145,7 @@ export const UnknownFromJsonString: UnknownFromJsonString = fromJsonString(Unkno
 /**
  * Type-level representation returned by {@link fromJsonString}.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
@@ -10215,7 +10215,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {
  * // }
  * ```
  *
- * @category JSON
+ * @category constructors
  * @since 4.0.0
  */
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
@@ -10939,7 +10939,7 @@ export const PropertyKey = Union([Finite, Symbol, String])
  * The result contains an `issues` array where each issue has a message and an
  * optional path made of property keys or keyed path segments.
  *
- * @category StandardSchema
+ * @category Standard Schema
  * @since 4.0.0
  */
 export const StandardSchemaV1FailureResult = Struct({
@@ -12384,7 +12384,7 @@ export function toRepresentation(schema: Top): SchemaRepresentation.Document {
 /**
  * Options for {@link toJsonSchemaDocument}.
  *
- * @category JsonSchema
+ * @category options
  * @since 4.0.0
  */
 export interface ToJsonSchemaOptions {
@@ -12464,7 +12464,7 @@ export interface ToJsonSchemaOptions {
  * properties and synthesized check descriptions; it does not change the draft
  * target.
  *
- * @category JsonSchema
+ * @category converting
  * @since 4.0.0
  */
 export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions): JsonSchema.Document<"draft-2020-12"> {
@@ -13018,7 +13018,7 @@ export function overrideToCodecIso<S extends Top, Iso>(
  * {@link toCodecJson}), computes RFC 6902 JSON Patch operations between old
  * and new values, and can apply patches back to the typed value.
  *
- * @category JsonPatch
+ * @category converting
  * @since 4.0.0
  */
 export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatch.JsonPatch> {
@@ -13086,7 +13086,7 @@ export function Tree<S extends Top>(node: S) {
  * readonly record of `string → Json`. For the corresponding schema, see the
  * {@link Json} const.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export type Json = null | number | boolean | string | JsonArray | JsonObject
@@ -13094,7 +13094,7 @@ export type Json = null | number | boolean | string | JsonArray | JsonObject
 /**
  * A readonly array of {@link Json} values.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export interface JsonArray extends ReadonlyArray<Json> {}
@@ -13102,7 +13102,7 @@ export interface JsonArray extends ReadonlyArray<Json> {}
 /**
  * A readonly record whose values are {@link Json} values.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export interface JsonObject {
@@ -13121,7 +13121,7 @@ export interface JsonObject {
  * console.log(result._tag) // "Some"
  * ```
  *
- * @category JSON
+ * @category schemas
  * @since 4.0.0
  */
 export const Json: Codec<Json> = make(AST.Json)
@@ -13130,7 +13130,7 @@ export const Json: Codec<Json> = make(AST.Json)
  * Recursive TypeScript type for mutable JSON values: `null`, `number`,
  * `boolean`, `string`, mutable arrays, or mutable string-keyed records.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export type MutableJson = null | number | boolean | string | MutableJsonArray | MutableJsonObject
@@ -13138,7 +13138,7 @@ export type MutableJson = null | number | boolean | string | MutableJsonArray | 
 /**
  * A mutable array of {@link MutableJson} values.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export interface MutableJsonArray extends Array<MutableJson> {}
@@ -13146,7 +13146,7 @@ export interface MutableJsonArray extends Array<MutableJson> {}
 /**
  * A mutable record whose values are {@link MutableJson} values.
  *
- * @category JSON
+ * @category models
  * @since 4.0.0
  */
 export interface MutableJsonObject {
@@ -13157,7 +13157,7 @@ export interface MutableJsonObject {
  * Schema that accepts any mutable JSON-compatible value. See {@link Json} for
  * the immutable variant.
  *
- * @category JSON
+ * @category schemas
  * @since 4.0.0
  */
 export const MutableJson: Codec<MutableJson> = make(AST.MutableJson)

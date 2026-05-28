@@ -234,7 +234,7 @@ export interface StreamUnifyIgnore {
  * // Equivalent to: Stream<number, string, never>
  * ```
  *
- * @category Type Lambdas
+ * @category type lambdas
  * @since 2.0.0
  */
 export interface StreamTypeLambda extends TypeLambda {
@@ -286,7 +286,7 @@ export interface VarianceStruct<out A, out E, out R> {
  * // SuccessType is number
  * ```
  *
- * @category Type-Level
+ * @category utility types
  * @since 3.4.0
  */
 export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _A : never
@@ -304,7 +304,7 @@ export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer
  * // ErrorType is string
  * ```
  *
- * @category Type-Level
+ * @category utility types
  * @since 3.4.0
  */
 export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _E : never
@@ -325,7 +325,7 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  * // RequiredServices is { db: Database }
  * ```
  *
- * @category Type-Level
+ * @category utility types
  * @since 4.0.0
  */
 export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
@@ -3167,7 +3167,7 @@ export const prepend: {
  * // Output: [ 1, 2, 3, 4 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const merge: {
@@ -3222,7 +3222,7 @@ export const merge: {
  * // Output: [ 1, 2, 3 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 4.0.0
  */
 export const mergeEffect: {
@@ -3268,7 +3268,7 @@ export const mergeEffect: {
  * // Output: [ "left:left", "right:right" ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 4.0.0
  */
 export const mergeResult: {
@@ -3313,7 +3313,7 @@ export const mergeResult: {
  * // Output: [ 1, 2 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const mergeLeft: {
@@ -3355,7 +3355,7 @@ export const mergeLeft: {
  * // Output: [ 1, 2 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const mergeRight: {
@@ -3405,7 +3405,7 @@ export const mergeRight: {
  * @see {@link merge} for merging exactly two streams and choosing a halt strategy
  * @see {@link flatten} for flattening a stream that already emits streams
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const mergeAll: {
@@ -7262,7 +7262,7 @@ export const split: {
  * // Output: [ "L:A", "R:1", "L:B", "R:2", "L:C", "R:3" ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const combine: {
@@ -9550,7 +9550,7 @@ export const intersperseAffixes: {
  * // [2, 5, 3, 6, 7]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const interleave: {
@@ -9595,7 +9595,7 @@ export const interleave: {
  * // [ 1, 2, 4, 3, 5 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const interleaveWith: {

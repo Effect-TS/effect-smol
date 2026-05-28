@@ -89,7 +89,7 @@ export interface SqliteClient extends Client.SqlClient {
 /**
  * Service tag for the React Native SQLite client.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-react-native/SqliteClient")

@@ -181,7 +181,7 @@ export const isQuitError = (u: unknown): u is QuitError => Predicate.hasProperty
  * Use to access or provide platform terminal capabilities such as reading
  * input, writing output, and inspecting terminal dimensions.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const Terminal: Context.Service<Terminal, Terminal> = Context.Service("effect/platform/Terminal")

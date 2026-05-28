@@ -90,7 +90,7 @@ export interface SqliteClient extends Client.SqlClient {
 /**
  * Service tag for the SQLite WASM client.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-wasm/SqliteClient")

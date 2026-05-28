@@ -253,7 +253,7 @@ export declare namespace State {
  * const scoped = Effect.scoped(program)
  * ```
  *
- * @category tags
+ * @category services
  * @since 2.0.0
  */
 export const Scope: Context.Service<Scope, Scope> = effect.scopeTag

@@ -164,7 +164,7 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Key<T extends TxHashMap<any, any>> = T extends TxHashMap<infer K, any> ? K : never
@@ -197,7 +197,7 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Value<T extends TxHashMap<any, any>> = T extends TxHashMap<any, infer V> ? V : never
@@ -233,7 +233,7 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Entry<T extends TxHashMap<any, any>> = T extends TxHashMap<infer K, infer V> ? readonly [K, V] : never

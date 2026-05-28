@@ -55,7 +55,7 @@ const ResponseSchema = Schema.toCodecJson(DevToolsSchema.Response)
  * Service for sending span and span-event telemetry to the Effect devtools
  * connection.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class DevToolsClient extends Context.Service<

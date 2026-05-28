@@ -90,7 +90,7 @@ export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
 /**
  * Options for constructing or modifying an `HttpClientRequest`.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface Options {
@@ -113,7 +113,7 @@ export declare namespace Options {
   /**
    * Request options that omit the method and URL for helpers that already receive those values separately.
    *
-   * @category models
+   * @category options
    * @since 4.0.0
    */
   export interface NoUrl extends Omit<Options, "method" | "url"> {}

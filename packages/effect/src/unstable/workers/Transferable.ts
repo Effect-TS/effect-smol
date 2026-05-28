@@ -113,7 +113,7 @@ export const addAll = (
  * Creates a schema getter that records transferables derived from a value in
  * the current `Collector` while passing the value through unchanged.
  *
- * @category Getter
+ * @category getters
  * @since 4.0.0
  */
 export const getterAddAll = <A>(

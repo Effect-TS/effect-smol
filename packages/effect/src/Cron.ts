@@ -690,7 +690,7 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  * @see {@link next} for finding the next matching date/time
  * @see {@link prev} for finding the previous matching date/time
  *
- * @category utils
+ * @category predicates
  * @since 2.0.0
  */
 export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
@@ -766,7 +766,7 @@ const daysInMonth = (date: Date): number =>
  * @see {@link prev} for finding the previous scheduled occurrence
  * @see {@link sequence} for iterating future scheduled occurrences
  *
- * @category utils
+ * @category getters
  * @since 2.0.0
  */
 export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
@@ -792,7 +792,7 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
  *
  * @see {@link next} for finding the next scheduled occurrence
  *
- * @category utils
+ * @category getters
  * @since 3.20.0
  */
 export const prev = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
@@ -983,7 +983,7 @@ const stepCron = (cron: Cron, now: DateTime.DateTime.Input | undefined, directio
  *
  * @see {@link next} for computing one next occurrence
  *
- * @category utils
+ * @category sequencing
  * @since 2.0.0
  */
 export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): IterableIterator<Date> {

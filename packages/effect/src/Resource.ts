@@ -202,7 +202,7 @@ export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
  * @see {@link manual} for resources refreshed only by caller action
  * @see {@link auto} for schedule-driven automatic refreshes
  *
- * @category utils
+ * @category resource management
  * @since 2.0.0
  */
 export const refresh = <A, E>(self: Resource<A, E>): Effect.Effect<void, E> =>

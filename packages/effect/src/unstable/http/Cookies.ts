@@ -152,7 +152,7 @@ const CookieTypeId = "~effect/http/Cookies/Cookie"
  * HTTP cookie value with its decoded value, encoded value, and optional cookie
  * attributes such as domain, path, expiration, security, and same-site settings.
  *
- * @category cookie
+ * @category cookies
  * @since 4.0.0
  */
 export interface Cookie extends Inspectable.Inspectable {

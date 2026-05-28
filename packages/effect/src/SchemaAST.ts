@@ -513,7 +513,7 @@ export type Encoding = readonly [Link, ...Array<Link>]
  * - `concurrency` — maximum number of async parse effects to run concurrently;
  *   defaults to `1`, or use `"unbounded"`.
  *
- * @category models
+ * @category options
  * @since 3.10.0
  */
 export interface ParseOptions {

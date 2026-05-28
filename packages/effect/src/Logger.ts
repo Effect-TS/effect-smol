@@ -171,7 +171,7 @@ export interface Logger<in Message, out Output> extends Pipeable {
  * )
  * ```
  *
- * @category models
+ * @category options
  * @since 2.0.0
  */
 export interface Options<out Message> {
@@ -295,7 +295,7 @@ export const LogToStderr: Context.Reference<boolean> = effect.LogToStderr
  * )
  * ```
  *
- * @category utils
+ * @category mapping
  * @since 2.0.0
  */
 export const map = dual<
@@ -337,7 +337,7 @@ export const map = dual<
  * )
  * ```
  *
- * @category utils
+ * @category logging
  * @since 2.0.0
  */
 export const withConsoleLog = <Message, Output>(
@@ -374,7 +374,7 @@ export const withConsoleLog = <Message, Output>(
  * )
  * ```
  *
- * @category utils
+ * @category logging
  * @since 2.0.0
  */
 export const withConsoleError = <Message, Output>(
@@ -421,7 +421,7 @@ export const withConsoleError = <Message, Output>(
  * )
  * ```
  *
- * @category utils
+ * @category logging
  * @since 3.8.0
  */
 export const withLeveledConsole = <Message, Output>(

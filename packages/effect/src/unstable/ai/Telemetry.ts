@@ -335,7 +335,7 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
  * // Results in attributes: "custom.ai.model_name" and "custom.ai.max_tokens"
  * ```
  *
- * @category utils
+ * @category annotations
  * @since 4.0.0
  */
 export const addSpanAttributes = (
@@ -407,7 +407,7 @@ const addSpanUsageAttributes = addSpanAttributes("gen_ai.usage", String.camelToS
  * }
  * ```
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type GenAITelemetryAttributeOptions = BaseAttributes & {
@@ -462,7 +462,7 @@ export type GenAITelemetryAttributeOptions = BaseAttributes & {
  * })
  * ```
  *
- * @category utils
+ * @category annotations
  * @since 4.0.0
  */
 export const addGenAIAnnotations: {

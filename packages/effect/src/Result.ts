@@ -265,7 +265,7 @@ export interface ResultUnifyIgnore {}
  * (e.g., `map`, `flatMap` abstractions). You typically do not need to
  * reference this directly.
  *
- * @category Type Lambdas
+ * @category type lambdas
  * @since 4.0.0
  */
 export interface ResultTypeLambda extends TypeLambda {
@@ -1557,7 +1557,7 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
  *
  * @see {@link mapError} to transform the error without swapping
  *
- * @category utils
+ * @category transforming
  * @since 2.0.0
  */
 export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
@@ -1596,7 +1596,7 @@ export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
  * @see {@link flatMap} for point-free sequential composition
  * @see {@link all} to collect multiple independent Results
  *
- * @category Generators
+ * @category generators
  * @since 2.0.0
  */
 export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {

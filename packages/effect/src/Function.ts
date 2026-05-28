@@ -310,7 +310,7 @@ export const identity = <A>(a: A): A => a
  *
  * @see {@link cast} for changing only the static TypeScript type
  *
- * @category type utils
+ * @category utility types
  * @since 2.0.0
  */
 export const satisfies = <A>() => <B extends A>(b: B) => b
@@ -330,7 +330,7 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
  *
  * @see {@link satisfies} for checking assignability without changing the resulting type
  *
- * @category type utils
+ * @category utility types
  * @since 4.0.0
  */
 export const cast: <A, B>(a: A) => B = identity as any
@@ -550,7 +550,7 @@ export const compose: {
  * }
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 2.0.0
  */
 export const absurd = <A>(_: never): A => {
@@ -1389,7 +1389,7 @@ export function flow(
  * console.log(typeof buildUser) // "function"
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 2.0.0
  */
 export const hole: <T>() => T = cast(absurd)
@@ -1438,7 +1438,7 @@ export const SK = <A, B>(_: A, b: B): B => b
  * mutated after its first call, later calls still return the cached result for
  * that reference.
  *
- * @category utils
+ * @category caching
  * @since 4.0.0
  */
 export function memoize<A extends object, O>(f: (a: A) => O): (ast: A) => O {

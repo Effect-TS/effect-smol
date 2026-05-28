@@ -568,7 +568,7 @@ export interface Pipeable {
  * console.log(result) // 21
  * ```
  *
- * @category utils
+ * @category combinators
  * @since 2.0.0
  */
 export const pipeArguments = <A>(self: A, args: IArguments): unknown => {

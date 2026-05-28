@@ -155,7 +155,7 @@ export declare namespace Redacted {
    * console.log(rotate({ token: "secret" })) // { token: "secret:rotated" }
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 3.3.0
    */
   export type Value<T extends Redacted<any>> = [T] extends [Redacted<infer _A>] ? _A : never

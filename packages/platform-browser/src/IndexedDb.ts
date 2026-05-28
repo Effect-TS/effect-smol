@@ -45,7 +45,7 @@ export interface IndexedDb {
 /**
  * Service tag for browser IndexedDB primitives.
  *
- * @category tag
+ * @category services
  * @since 4.0.0
  */
 export const IndexedDb: Context.Service<IndexedDb, IndexedDb> = Context.Service<IndexedDb, IndexedDb>(TypeId)

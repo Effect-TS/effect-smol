@@ -1457,7 +1457,7 @@ export const withFallbackPrompt: {
 /**
  * Represent options which can be used to configure variadic parameters.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type VariadicParamOptions = {

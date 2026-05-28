@@ -94,7 +94,7 @@ export declare namespace ManagedRuntime {
    * Use to derive the service requirements provided by an existing
    * `ManagedRuntime` type.
    *
-   * @category type-level
+   * @category utility types
    * @since 3.4.0
    */
   export type Services<T extends ManagedRuntime<never, any>> = [T] extends [ManagedRuntime<infer R, infer _E>] ? R
@@ -107,7 +107,7 @@ export declare namespace ManagedRuntime {
    * Use to derive the layer construction error type from an existing
    * `ManagedRuntime` type.
    *
-   * @category type-level
+   * @category utility types
    * @since 3.4.0
    */
   export type Error<T extends ManagedRuntime<never, any>> = [T] extends [ManagedRuntime<infer _R, infer E>] ? E : never

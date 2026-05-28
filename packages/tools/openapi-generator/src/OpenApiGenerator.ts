@@ -79,7 +79,7 @@ export interface OpenApiGeneratorWarning {
 /**
  * Options that control one OpenAPI generation run.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface OpenApiGenerateOptions {

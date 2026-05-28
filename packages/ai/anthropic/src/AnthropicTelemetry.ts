@@ -113,7 +113,7 @@ export interface ResponseAttributes {
 /**
  * Options accepted by `addGenAIAnnotations`, combining standard GenAI telemetry attributes with optional Anthropic request and response attributes.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type AnthropicTelemetryAttributeOptions = Telemetry.GenAITelemetryAttributeOptions & {
@@ -143,7 +143,7 @@ const addAnthropicResponseAttributes = Telemetry.addSpanAttributes("gen_ai.anthr
  *
  * This method mutates the `Span` in place.
  *
- * @category utils
+ * @category annotations
  * @since 4.0.0
  */
 export const addGenAIAnnotations: {

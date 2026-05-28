@@ -63,7 +63,7 @@ import { makeGetIdentityRootSecretMaterial } from "./internal/identityRootSecret
  * It can write local entries to the remote, stream remote changes from a sequence
  * number, and run effects only after the supplied identity has authenticated.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class EventLogRemote extends Context.Service<EventLogRemote, {

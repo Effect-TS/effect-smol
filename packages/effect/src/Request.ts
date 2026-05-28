@@ -169,7 +169,7 @@ export interface Constructor<R extends Request<any, any, any>, T extends keyof R
  * type UserError = Request.Error<GetUser> // Error
  * ```
  *
- * @category type-level
+ * @category utility types
  * @since 2.0.0
  */
 export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
@@ -191,7 +191,7 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
  * type UserSuccess = Request.Success<GetUser> // string
  * ```
  *
- * @category type-level
+ * @category utility types
  * @since 2.0.0
  */
 export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A
@@ -200,7 +200,7 @@ export type Success<T extends Request<any, any, any>> = [T] extends [Request<inf
 /**
  * A utility type to extract the requirements type from a `Request`.
  *
- * @category type-level
+ * @category utility types
  * @since 4.0.0
  */
 export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
@@ -223,7 +223,7 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  * type UserResult = Request.Result<GetUser> // Exit.Exit<string, Error>
  * ```
  *
- * @category type-level
+ * @category utility types
  * @since 2.0.0
  */
 export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
