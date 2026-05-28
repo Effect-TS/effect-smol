@@ -1447,6 +1447,34 @@ describe("Command", () => {
         assert.isTrue(output.some((line) => String(line).includes("1.0.0")))
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should keep shared flags before subcommands over globals", () =>
+      Effect.gen(function*() {
+        const captured: Array<boolean> = []
+        const child = Command.make("child", {}, () =>
+          Effect.gen(function*() {
+            const parent = yield* command
+            captured.push(parent.version)
+          }))
+        const command = Command.make("tool", {}, () => Effect.void).pipe(
+          Command.withSharedFlags({
+            version: Flag.boolean("version")
+          }),
+          Command.withSubcommands([child])
+        )
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["--version", "child"])
+
+        assert.deepStrictEqual(captured, [true])
+
+        const output = yield* TestConsole.logLines
+        assert.isFalse(output.some((line) => String(line).includes("1.0.0")))
+
+        yield* runCommand(["child", "--version"])
+
+        assert.deepStrictEqual(captured, [true, true])
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should keep root local flags over globals when no subcommand is selected", () =>
       Effect.gen(function*() {
         const captured: Array<string> = []

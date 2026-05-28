@@ -639,6 +639,12 @@ export const consumeGlobalFlags = (
           continue
         }
 
+        const inherited = resolveFlag(token, inheritedRegistry)
+        if (inherited !== undefined) {
+          preserveFlag(remainder, cursor, token, inherited)
+          continue
+        }
+
         const local = resolveFlag(token, localRegistry)
         const global = resolveFlag(token, registry)
         if (local !== undefined) {
