@@ -1495,6 +1495,84 @@ describe("Command", () => {
         assert.isFalse(output.some((line) => String(line).includes("1.0.0")))
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should skip intervening local flag values before selecting subcommands", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ name: string; version: boolean }> = []
+        let childInvoked = false
+        const child = Command.make("child", {}, () =>
+          Effect.sync(() => {
+            childInvoked = true
+          }))
+        const command = Command.make("tool", {
+          name: Flag.string("name"),
+          version: Flag.boolean("version")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config)
+          })).pipe(Command.withSubcommands([child]))
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["--version", "--name", "child"])
+
+        assert.deepStrictEqual(captured, [{ name: "child", version: true }])
+        assert.isFalse(childInvoked)
+
+        const output = yield* TestConsole.logLines
+        assert.isFalse(output.some((line) => String(line).includes("1.0.0")))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should stop looking for subcommands after the first positional argument", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ files: ReadonlyArray<string>; version: boolean }> = []
+        let childInvoked = false
+        const child = Command.make("child", {}, () =>
+          Effect.sync(() => {
+            childInvoked = true
+          }))
+        const command = Command.make("tool", {
+          files: Argument.string("file").pipe(Argument.variadic()),
+          version: Flag.boolean("version")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config)
+          })).pipe(Command.withSubcommands([child]))
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["--version", "file", "child"])
+
+        assert.deepStrictEqual(captured, [{ files: ["file", "child"], version: true }])
+        assert.isFalse(childInvoked)
+
+        const output = yield* TestConsole.logLines
+        assert.isFalse(output.some((line) => String(line).includes("1.0.0")))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should still select subcommands after skipped flag values", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ name: string; version: boolean }> = []
+        let childInvoked = false
+        const child = Command.make("child", {}, () =>
+          Effect.sync(() => {
+            childInvoked = true
+          }))
+        const command = Command.make("tool", {
+          name: Flag.string("name"),
+          version: Flag.boolean("version")
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config)
+          })).pipe(Command.withSubcommands([child]))
+
+        const runCommand = Command.runWith(command, { version: "1.0.0" })
+        yield* runCommand(["--version", "--name", "value", "child"])
+
+        assert.deepStrictEqual(captured, [])
+        assert.isFalse(childInvoked)
+
+        const output = yield* TestConsole.logLines
+        assert.isTrue(output.some((line) => String(line).includes("1.0.0")))
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should let local flags override global flags on the selected command", () =>
       Effect.gen(function*() {
         const captured: Array<string> = []

@@ -579,27 +579,29 @@ const preserveFlag = (
   remainder.push(...consumed.tokens)
 }
 
-const firstValueSelectsSubcommand = (
-  tokens: ReadonlyArray<Token>,
-  subIndex: Map<string, Command<string, unknown, unknown, unknown, unknown>>
+const localFlagWouldPrecedeSubcommand = (
+  token: FlagToken,
+  remainingTokens: ReadonlyArray<Token>,
+  resolved: ResolvedFlag,
+  subIndex: Map<string, Command<string, unknown, unknown, unknown, unknown>>,
+  registries: ReadonlyArray<FlagRegistry>
 ): boolean => {
-  for (const token of tokens) {
+  const cursor = makeCursor(remainingTokens)
+  consumeFlagValueWithTokens(cursor, token, resolved.param, resolved.negated)
+  for (let token = cursor.take(); token; token = cursor.take()) {
+    if (isFlagToken(token)) {
+      const known = resolveFromRegistries(token, registries)
+      if (known !== undefined) {
+        consumeFlagValueWithTokens(cursor, token, known.param, known.negated)
+      }
+      continue
+    }
+
     if (token._tag === "Value") {
       return subIndex.has(token.value)
     }
   }
   return false
-}
-
-const localFlagWouldPrecedeSubcommand = (
-  token: FlagToken,
-  remainingTokens: ReadonlyArray<Token>,
-  resolved: ResolvedFlag,
-  subIndex: Map<string, Command<string, unknown, unknown, unknown, unknown>>
-): boolean => {
-  const cursor = makeCursor(remainingTokens)
-  consumeFlagValueWithTokens(cursor, token, resolved.param, resolved.negated)
-  return firstValueSelectsSubcommand(cursor.rest(), subIndex)
 }
 
 /**
@@ -650,7 +652,11 @@ export const consumeGlobalFlags = (
         if (local !== undefined) {
           if (
             global === undefined || !awaitingFirstValue ||
-            !localFlagWouldPrecedeSubcommand(token, cursor.rest(), local, subIndex)
+            !localFlagWouldPrecedeSubcommand(token, cursor.rest(), local, subIndex, [
+              localRegistry,
+              inheritedRegistry,
+              registry
+            ])
           ) {
             preserveFlag(remainder, cursor, token, local)
             continue
