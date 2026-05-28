@@ -1,5 +1,12 @@
 # @effect/platform-node-shared
 
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [[`b1fc6a4`](https://github.com/Effect-TS/effect-smol/commit/b1fc6a4b4d0ca7fa9fd162799ae17c86f2f7ee8e)]:
+  - effect@4.0.0-beta.74
+
 ## 4.0.0-beta.73
 
 ### Patch Changes

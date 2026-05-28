@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- [#2295](https://github.com/Effect-TS/effect-smol/pull/2295) [`b1fc6a4`](https://github.com/Effect-TS/effect-smol/commit/b1fc6a4b4d0ca7fa9fd162799ae17c86f2f7ee8e) Thanks @jgoux! - Fix CLI parsing so command-local flags can override globals without breaking global flags before subcommands.
+
 ## 4.0.0-beta.73
 
 ### Patch Changes
