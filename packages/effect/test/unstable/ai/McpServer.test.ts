@@ -10,9 +10,7 @@ import * as HttpRouter from "effect/unstable/http/HttpRouter"
 import { RpcSerialization } from "effect/unstable/rpc"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
 
-const makeTestClient = Effect.gen(function*() {
-  const responses: Array<Response> = []
-
+const makeTestHandler = Effect.gen(function*() {
   const serverLayer = McpServer.layerHttp({
     name: "TestServer",
     version: "1.0.0",
@@ -20,6 +18,34 @@ const makeTestClient = Effect.gen(function*() {
   })
   const { handler, dispose } = HttpRouter.toWebHandler(serverLayer, { disableLogger: true })
   yield* Effect.addFinalizer(() => Effect.promise(() => dispose()))
+  return handler
+})
+
+const postJson = (
+  handler: (request: Request) => Promise<Response>,
+  body: unknown,
+  sessionId?: string | null | undefined
+) =>
+  Effect.promise(() => {
+    const headers = new Headers({ "content-type": "application/json" })
+    if (sessionId) {
+      headers.set("Mcp-Session-Id", sessionId)
+    }
+    return handler(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body)
+      })
+    )
+  })
+
+const responseJson = (response: Response) => Effect.promise(() => response.json() as Promise<any>)
+
+const makeTestClient = Effect.gen(function*() {
+  const responses: Array<Response> = []
+
+  const handler = yield* makeTestHandler
 
   let sessionId: string | null = null
   const customFetch: typeof fetch = async (input, init) => {
@@ -78,5 +104,56 @@ describe("McpServer", () => {
       )
 
       strictEqual(response.status, 404)
+    }))
+
+  it.effect("preserves JSON-RPC request ids from raw HTTP clients", () =>
+    Effect.gen(function*() {
+      const handler = yield* makeTestHandler
+
+      const initializeResponse = yield* postJson(handler, {
+        jsonrpc: "2.0",
+        id: "14f40ee1b859ee70",
+        method: "initialize",
+        params: {
+          protocolVersion: "9999-01-01",
+          capabilities: {},
+          clientInfo: {
+            name: "RawClient",
+            version: "1.0.0"
+          }
+        }
+      })
+      const initializeJson = yield* responseJson(initializeResponse)
+      strictEqual(initializeResponse.status, 200)
+      strictEqual(initializeJson.id, "14f40ee1b859ee70")
+
+      const sessionId = initializeResponse.headers.get("Mcp-Session-Id")
+      strictEqual(typeof sessionId, "string")
+
+      const numberResponse = yield* postJson(handler, {
+        jsonrpc: "2.0",
+        id: 123,
+        method: "ping",
+        params: {}
+      }, sessionId)
+      const numberJson = yield* responseJson(numberResponse)
+      strictEqual(numberJson.id, 123)
+
+      const nullResponse = yield* postJson(handler, {
+        jsonrpc: "2.0",
+        id: null,
+        method: "ping",
+        params: {}
+      }, sessionId)
+      const nullJson = yield* responseJson(nullResponse)
+      strictEqual(nullJson.id, null)
+
+      const omittedResponse = yield* postJson(handler, {
+        jsonrpc: "2.0",
+        method: "ping",
+        params: {}
+      }, sessionId)
+      const omittedJson = yield* responseJson(omittedResponse)
+      strictEqual("id" in omittedJson, false)
     }))
 })
