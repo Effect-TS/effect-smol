@@ -546,7 +546,8 @@ export const renameKeys: {
  *
  * **When to use**
  *
- * Use when you need to compare structs property-by-property.
+ * Use when you need equality for a record-like object to be decided field by
+ * field, with a custom equality rule for each property.
  *
  * **Details**
  *
@@ -583,8 +584,8 @@ export const makeEquivalence = Equivalence.Struct
  *
  * **When to use**
  *
- * Use to sort or compare structs by multiple fields with lexicographic
- * priority.
+ * Use when you need to sort record-like objects lexicographically by several
+ * fields, with each field using its own ordering rule.
  *
  * **Details**
  *
@@ -910,8 +911,8 @@ function buildStruct<
  *
  * **When to use**
  *
- * Use when you need to merge two structs of the same shape, such as summing
- * counters or concatenating strings.
+ * Use when you need to merge two same-shape records by combining each property
+ * independently, such as summing counters or concatenating strings.
  *
  * **Details**
  *
@@ -963,7 +964,8 @@ export function makeCombiner<A>(
  *
  * **When to use**
  *
- * Use to fold a collection of structs into a single summary struct.
+ * Use when you need to fold same-shape records by accumulating each property
+ * independently into one summary record.
  *
  * **Details**
  *

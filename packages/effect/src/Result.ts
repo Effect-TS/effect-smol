@@ -1666,8 +1666,9 @@ export const Do: Result<{}> = succeed({})
  *
  * **When to use**
  *
- * Use when adding a `Result`-producing step to a do-notation pipeline and
- * storing its successful value under a named field in the accumulated object.
+ * Use when you need to add a `Result`-producing step to a `Result`
+ * do-notation pipeline and store its successful value under a named field in
+ * the accumulated object.
  *
  * **Details**
  *
@@ -1765,7 +1766,8 @@ export {
    *
    * **When to use**
    *
-   * Use to add a pure computed field to a do-notation accumulator.
+   * Use when you need to add a pure computed field to a `Result`
+   * do-notation accumulator.
    *
    * **Details**
    *

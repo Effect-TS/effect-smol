@@ -808,7 +808,9 @@ export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
  *
  * **When to use**
  *
- * Use to add a resource to an existing MCP server from an Effect program.
+ * Use when you are already inside an Effect program with an `McpServer`
+ * service and need to add a concrete resource or URI-template resource
+ * directly.
  *
  * @see {@link resource} for the layer-based resource registration wrapper
  *
@@ -1036,7 +1038,8 @@ export const resource: {
  *
  * **When to use**
  *
- * Use to register an MCP prompt from an Effect program.
+ * Use when you are already inside an Effect program with an `McpServer`
+ * service and need to add a prompt handler directly.
  *
  * **Details**
  *

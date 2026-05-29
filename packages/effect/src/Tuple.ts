@@ -612,7 +612,8 @@ export const makeEquivalence = Equivalence.Tuple
  *
  * **When to use**
  *
- * Use to sort or compare tuples lexicographically by element position.
+ * Use when you need to sort fixed-position arrays lexicographically, with each
+ * position using its own ordering rule.
  *
  * **Details**
  *
@@ -715,8 +716,8 @@ export {
  *
  * **When to use**
  *
- * Use when you need to merge two tuples of the same shape, such as summing
- * counters or concatenating strings.
+ * Use when you need to merge two same-shape tuples by combining each position
+ * independently, such as summing counters or concatenating strings.
  *
  * **Example** (Combining tuple elements)
  *
@@ -756,7 +757,8 @@ export function makeCombiner<A extends ReadonlyArray<unknown>>(
  *
  * **When to use**
  *
- * Use to fold a collection of tuples into a single summary tuple.
+ * Use when you need to fold same-shape tuples by accumulating each position
+ * independently into one summary tuple.
  *
  * **Example** (Reducing a collection of tuples)
  *

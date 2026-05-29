@@ -1559,8 +1559,9 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  *
  * **When to use**
  *
- * Use to create the subscription and `Stream.take` or
- * cancellation to control how many values are consumed.
+ * Use when you already have a `PubSub.Subscription` and want to expose its
+ * messages as a `Stream`, with `Stream.take` or cancellation controlling how
+ * many values are consumed.
  *
  * **Example** (Creating a stream from a PubSub subscription)
  *

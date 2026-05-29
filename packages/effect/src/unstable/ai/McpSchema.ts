@@ -484,8 +484,8 @@ export class McpErrorBase extends Schema.Class<McpErrorBase>(
  *
  * **When to use**
  *
- * Use when you need the JSON-RPC error code for requests that are not valid
- * request objects.
+ * Use when building an MCP/JSON-RPC error response for a syntactically parsed
+ * request object that fails request-shape validation.
  *
  * @category constants
  * @since 4.0.0
@@ -497,8 +497,8 @@ export const INVALID_REQUEST_ERROR_CODE = -32600 as const
  *
  * **When to use**
  *
- * Use when you need the JSON-RPC error code for requests whose method does not
- * exist or is not available.
+ * Use when building an MCP/JSON-RPC error response for a request whose
+ * `method` is unknown or unavailable.
  *
  * @category constants
  * @since 4.0.0
@@ -509,7 +509,8 @@ export const METHOD_NOT_FOUND_ERROR_CODE = -32601 as const
  *
  * **When to use**
  *
- * Use when you need the JSON-RPC error code for invalid method parameters.
+ * Use when building an MCP/JSON-RPC error response for decoded request
+ * parameters that fail method-specific validation.
  *
  * @category constants
  * @since 4.0.0
@@ -520,7 +521,8 @@ export const INVALID_PARAMS_ERROR_CODE = -32602 as const
  *
  * **When to use**
  *
- * Use when you need the JSON-RPC error code for internal server errors.
+ * Use when building an MCP/JSON-RPC error response for an unexpected
+ * server-side failure.
  *
  * @category constants
  * @since 4.0.0
@@ -531,8 +533,8 @@ export const INTERNAL_ERROR_CODE = -32603 as const
  *
  * **When to use**
  *
- * Use when you need the JSON-RPC error code for invalid JSON that could not be
- * parsed.
+ * Use when building an MCP/JSON-RPC error response before a request object is
+ * available because the JSON payload could not be parsed.
  *
  * @category constants
  * @since 4.0.0

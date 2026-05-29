@@ -506,7 +506,8 @@ export const withWriteLock: {
  *
  * **When to use**
  *
- * Use as the short alias for {@link withWriteLock}.
+ * Use when you need to run an effect with exclusive write access through a
+ * `TxReentrantLock` and prefer the concise lock helper.
  *
  * **Example** (Running an effect with exclusive access)
  *

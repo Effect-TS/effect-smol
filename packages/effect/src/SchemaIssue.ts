@@ -195,7 +195,8 @@ class Base {
  *
  * **When to use**
  *
- * Use when you need to inspect which filter rejected the value.
+ * Use when you need to inspect a schema issue that records which refinement
+ * check rejected the value.
  *
  * **Details**
  *

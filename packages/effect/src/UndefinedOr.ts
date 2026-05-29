@@ -200,8 +200,9 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * Use to take the first available value like a fallback chain, combining values
- * only when both operands are present.
+ * Use when you need to reduce values that may be `undefined`, keeping the
+ * first defined value as a fallback and combining only when both operands are
+ * defined.
  *
  * **Details**
  *

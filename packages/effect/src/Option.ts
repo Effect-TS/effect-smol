@@ -1590,7 +1590,8 @@ export const zipLeft: {
  *
  * **When to use**
  *
- * Use to build pipelines of partial functions (Kleisli composition)
+ * Use when you need to compose two functions that each return an `Option`, so
+ * `None` short-circuits without calling the next function.
  *
  * **Details**
  *
@@ -2102,7 +2103,8 @@ export const filter: {
  *
  * **When to use**
  *
- * Use to compare two `Option` values for structural equality
+ * Use when you need equality to treat two `None` values as equal and compare
+ * two `Some` values with a supplied equality rule.
  *
  * **Details**
  *
@@ -2138,7 +2140,9 @@ export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Eq
  *
  * **When to use**
  *
- * Use to sort collections of `Option` values
+ * Use when you need to sort `Some` and `None` values, with `None` ordered
+ * before present values and present values compared by a supplied ordering
+ * rule.
  *
  * **Details**
  *
@@ -2688,8 +2692,8 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  *
  * **When to use**
  *
- * Use to wrap an existing `Reducer` to work with `Option` values
- * - Reductions where any `None` should abort the entire result
+ * Use when you need to reduce `Option` values with fail-fast semantics, where
+ * any `None` aborts the entire result instead of being skipped.
  *
  * **Details**
  *
