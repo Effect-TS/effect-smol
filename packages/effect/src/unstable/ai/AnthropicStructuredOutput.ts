@@ -48,32 +48,29 @@ import * as OpenAiStructuredOutput from "./OpenAiStructuredOutput.ts"
 import * as Tool from "./Tool.ts"
 
 /**
- * Transforms a `Schema.Codec` into a form compatible with Anthropic's structured output constraints.
+ * Converts a `Schema.Codec` to Anthropic structured-output JSON Schema and a
+ * matching codec for model output.
  *
  * **When to use**
  *
- * Use to adapt an `Effect` `Schema.Codec` for Anthropic structured output by
- * returning an Anthropic-compatible JSON Schema together with a codec that
- * preserves the decoded value type.
+ * Use when you send Effect Schema-backed structured output requests to
+ * Anthropic and need provider-compatible JSON Schema without losing the decoded
+ * application type.
  *
  * **Details**
  *
- * The transformation walks the schema AST and rewrites constructs that Anthropic does not support natively:
+ * Returns the JSON Schema to include in the request and the codec to use when
+ * decoding the model response. If the input schema already fits Anthropic's
+ * supported JSON Schema subset, the original codec is returned unchanged.
  *
- * - **Tuples** are converted to objects with numeric string keys (e.g.
- *   `"0"`, `"1"`) since Anthropic does not support tuple schemas. Rest
- *   elements are placed under a `"__rest__"` key.
- * - **Optional properties** are replaced with `T | null` unions, because
- *   Anthropic requires all properties to be present.
- * - **Records** (index signatures) are converted to arrays of `[key, value]`
- *   pairs.
- * - **`oneOf` unions** are rewritten as `anyOf` unions.
- * - **Filters and annotations** are preserved where compatible (e.g.
- *   `description`, supported `format` values like `"date-time"`, `"email"`,
- *   `"uuid"`, etc.), and stripped otherwise.
+ * **Gotchas**
  *
- * If the schema is already compatible, the original codec is returned
- * unchanged.
+ * - Some schemas use a provider-safe encoded shape: tuples become objects with
+ *   numeric string keys, records become arrays of `[key, value]` pairs, and
+ *   optional properties become required nullable properties.
+ * - `oneOf` unions are emitted as `anyOf` unions.
+ * - Unsupported schema kinds throw during conversion instead of producing a
+ *   lossy schema.
  *
  * @see {@link LanguageModel.CodecTransformer} for the structured-output transformer contract
  * @see {@link OpenAiStructuredOutput.toCodecOpenAI} for the OpenAI-specific transformer

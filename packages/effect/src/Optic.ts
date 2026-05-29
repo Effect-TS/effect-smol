@@ -152,12 +152,12 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  *
  * **When to use**
  *
- * Use when you have two pure functions that form a lossless round-trip between `S`
- *   and `A`.
+ * Use when you have two pure conversion functions that preserve all information
+ * between `S` and `A`.
  *
  * **Details**
  *
- * - The returned optic can be composed with any other optic.
+ * The returned optic can be composed with any other optic.
  *
  * **Example** (wrapping/unwrapping a branded type)
  *
@@ -192,9 +192,8 @@ export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
  *
  * **When to use**
  *
- * Use when you always have a value to read (the part exists unconditionally).
- * - You need the original `S` to produce the updated whole (unlike
- *   {@link Iso}).
+ * Use when you always have a value to read and need the original `S` to produce
+ * the updated whole, unlike `Iso`.
  *
  * **Details**
  *

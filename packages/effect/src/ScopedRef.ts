@@ -73,8 +73,7 @@ const makeUnsafe = <A>(
 }
 
 /**
- * Creates a new `ScopedRef` from an effect that resourcefully produces a
- * value.
+ * Creates a new `ScopedRef` from an effect that acquires the initial value.
  *
  * **When to use**
  *
@@ -150,7 +149,7 @@ export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() =
  * `fromAcquire` so acquisition and finalization are tracked.
  *
  * @see {@link fromAcquire} for creating a `ScopedRef` from an effect that acquires the initial value
- * @see {@link set} for replacing the current value with a resourcefully acquired value
+ * @see {@link set} for replacing the current value with a newly acquired value
  *
  * @category constructors
  * @since 2.0.0

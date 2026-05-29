@@ -257,7 +257,7 @@ export const and: {
 } = dual(2, (self: boolean, that: boolean): boolean => self && that)
 
 /**
- * Combines two boolean using NAND: `!(self && that)`.
+ * Combines two booleans using NAND: `!(self && that)`.
  *
  * **When to use**
  *
@@ -284,7 +284,7 @@ export const nand: {
 } = dual(2, (self: boolean, that: boolean): boolean => !(self && that))
 
 /**
- * Combines two boolean using OR: `self || that`.
+ * Combines two booleans using OR: `self || that`.
  *
  * **When to use**
  *

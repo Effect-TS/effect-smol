@@ -287,22 +287,18 @@ function safeToString(input: any): string {
  *
  * **When to use**
  *
- * Use when you need valid JSON output (unlike {@link format}).
- * - The input may contain circular references and you want them silently
- *   omitted rather than throwing a `TypeError`.
+ * Use when you need valid JSON output, unlike `format`, and the input may
+ * contain circular references that should be silently omitted rather than
+ * throwing a `TypeError`.
  *
  * **Details**
  *
- * - Uses `JSON.stringify` internally with a replacer that tracks the
- *   current object ancestry.
- * - Circular references are replaced with `undefined` (omitted from
- *   output).
- * - `Redactable` values are automatically redacted before serialization.
- * - Types not supported by JSON (`BigInt`, `Symbol`, `undefined`,
- *   functions) follow standard `JSON.stringify` behavior (omitted or
- *   `null` in arrays).
- * - `space` — indentation unit (number of spaces, or a string like
- *   `"\t"`). Defaults to `0` (compact).
+ * Uses `JSON.stringify` internally with a replacer that tracks the current
+ * object ancestry. Circular references are replaced with `undefined`, which
+ * omits them from object output. `Redactable` values are automatically redacted
+ * before serialization. Values not supported by JSON, such as `BigInt`,
+ * `Symbol`, `undefined`, and functions, follow standard `JSON.stringify`
+ * behavior. The `space` parameter controls indentation and defaults to `0`.
  *
  * **Example** (Compact JSON)
  *

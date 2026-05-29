@@ -103,9 +103,8 @@ import * as SchemaIssue from "./SchemaIssue.ts"
  * **When to use**
  *
  * Use when you need a schema middleware to catch or recover from parsing
- * errors (e.g. `Schema.catchDecoding`).
- * - You need to run side effects around the parsing pipeline.
- * - You need access to the full `Effect` rather than a single decoded value.
+ * errors (e.g. `Schema.catchDecoding`), run side effects around the parsing
+ * pipeline, or access the full `Effect` rather than a single decoded value.
  *
  * **Details**
  *
@@ -477,9 +476,9 @@ export function transformOptional<T, E>(options: {
  *
  * **Details**
  *
- * - Decode: applies `String.prototype.trim()`.
- * - Encode: passthrough (returns the string unchanged).
- * - Not round-trippable if the original had whitespace.
+ * Decoding applies `String.prototype.trim()`. Encoding is passthrough and
+ * returns the string unchanged. This is not round-trippable if the original had
+ * whitespace.
  *
  * **Example** (Trimming on decode)
  *
@@ -516,9 +515,9 @@ export function trim(): Transformation<string, string> {
  *
  * **Details**
  *
- * - Decode: `"my_field_name"` → `"myFieldName"`.
- * - Encode: `"myFieldName"` → `"my_field_name"`.
- * - Round-trippable for standard snake_case/camelCase.
+ * Decoding converts values such as `"my_field_name"` to `"myFieldName"`.
+ * Encoding converts values such as `"myFieldName"` back to `"my_field_name"`.
+ * The transformation is round-trippable for standard snake_case and camelCase.
  *
  * **Example** (Snake to camel conversion)
  *
@@ -554,9 +553,8 @@ export function snakeToCamel(): Transformation<string, string> {
  *
  * **Details**
  *
- * - Decode: applies `String.prototype.toLowerCase()`.
- * - Encode: passthrough.
- * - Not round-trippable if the original had uppercase characters.
+ * Decoding applies `String.prototype.toLowerCase()`. Encoding is passthrough.
+ * This is not round-trippable if the original had uppercase characters.
  *
  * **Example** (Lowercasing on decode)
  *
@@ -592,9 +590,8 @@ export function toLowerCase(): Transformation<string, string> {
  *
  * **Details**
  *
- * - Decode: applies `String.prototype.toUpperCase()`.
- * - Encode: passthrough.
- * - Not round-trippable if the original had lowercase characters.
+ * Decoding applies `String.prototype.toUpperCase()`. Encoding is passthrough.
+ * This is not round-trippable if the original had lowercase characters.
  *
  * **Example** (Uppercasing on decode)
  *
@@ -630,8 +627,8 @@ export function toUpperCase(): Transformation<string, string> {
  *
  * **Details**
  *
- * - Decode: uppercases the first character, leaves the rest unchanged.
- * - Encode: passthrough.
+ * Decoding uppercases the first character and leaves the rest unchanged.
+ * Encoding is passthrough.
  *
  * **Example** (Capitalizing on decode)
  *
@@ -667,8 +664,8 @@ export function capitalize(): Transformation<string, string> {
  *
  * **Details**
  *
- * - Decode: lowercases the first character, leaves the rest unchanged.
- * - Encode: passthrough.
+ * Decoding lowercases the first character and leaves the rest unchanged.
+ * Encoding is passthrough.
  *
  * **Example** (Uncapitalizing on decode)
  *
@@ -704,10 +701,10 @@ export function uncapitalize(): Transformation<string, string> {
  *
  * **Details**
  *
- * - Decode: splits the string by `separator` (default `","`) into pairs,
- *   then splits each pair by `keyValueSeparator` (default `"="`).
- * - Encode: joins the record back into a string using the same separators.
- * - Round-trippable when keys and values don't contain the separators.
+ * Decoding splits the string by `separator` (default `","`) into pairs, then
+ * splits each pair by `keyValueSeparator` (default `"="`). Encoding joins the
+ * record back into a string using the same separators. The transformation is
+ * round-trippable when keys and values do not contain the separators.
  *
  * **Example** (Parsing key-value pairs)
  *
@@ -860,10 +857,10 @@ export function passthroughSubtype<T>(): Transformation<T, T> {
  *
  * **Details**
  *
- * - Decode: coerces the string to a number (like `Number(s)`).
- * - Encode: coerces the number to a string (like `String(n)`).
- * - Does not validate that the result is finite — combine with
- *   `Schema.Finite` or `Schema.Int` for stricter checks.
+ * Decoding coerces the string to a number like `Number(s)`. Encoding coerces
+ * the number to a string like `String(n)`. This does not validate that the
+ * result is finite; combine with `Schema.Finite` or `Schema.Int` for stricter
+ * checks.
  *
  * **Example** (Number from string)
  *
@@ -897,9 +894,9 @@ export const numberFromString = new Transformation(
  *
  * **Details**
  *
- * - Decode: coerces the string to a bigint (like `BigInt(s)`).
- * - Encode: coerces the bigint to a string (like `String(n)`).
- * - Fails on decode if the string is not a valid bigint representation.
+ * Decoding coerces the string to a bigint like `BigInt(s)`. Encoding coerces
+ * the bigint to a string like `String(n)`. Decoding fails if the string is not
+ * a valid bigint representation.
  *
  * **Example** (BigInt from string)
  *
@@ -932,9 +929,9 @@ export const bigintFromString = new Transformation(
  *
  * **Details**
  *
- * - Decode: creates a `Date` from the string (like `new Date(s)`).
- * - Encode: converts the `Date` to an ISO string (like `date.toISOString()`),
- *   returning `"Invalid Date"` for invalid dates.
+ * Decoding creates a `Date` from the string like `new Date(s)`. Encoding
+ * converts the `Date` to an ISO string like `date.toISOString()`, returning
+ * `"Invalid Date"` for invalid dates.
  *
  * **Example** (Date from string)
  *
@@ -968,10 +965,10 @@ export const dateFromString: Transformation<globalThis.Date, string> = new Trans
  *
  * **Details**
  *
- * - Decode: accepts any string that `Duration.fromInput` can parse, including
- *   `"Infinity"` and `"-Infinity"`.
- * - Encode: returns `String(duration)`, producing strings like `"2000 millis"`
- *   or `"10 nanos"` that round-trip through the parser.
+ * Decoding accepts any string that `Duration.fromInput` can parse, including
+ * `"Infinity"` and `"-Infinity"`. Encoding returns `String(duration)`,
+ * producing strings such as `"2000 millis"` or `"10 nanos"` that round-trip
+ * through the parser.
  *
  * **Example** (Duration from string)
  *
@@ -1013,9 +1010,9 @@ export const durationFromString: Transformation<Duration.Duration, string> = tra
  *
  * **Details**
  *
- * - Decode: always succeeds, creating a Duration from nanoseconds.
- * - Encode: fails with `InvalidValue` if the Duration cannot be represented
- *   as a `bigint` (e.g. `Duration.infinity`).
+ * Decoding always succeeds and creates a `Duration` from nanoseconds. Encoding
+ * fails with `InvalidValue` if the `Duration` cannot be represented as a
+ * `bigint`, such as `Duration.infinity`.
  *
  * **Example** (Duration from nanoseconds)
  *
@@ -1120,9 +1117,9 @@ export const errorFromErrorJsonEncoded = (options?: {
  *
  * **Details**
  *
- * - Decode: `null` → `Option.none()`, non-null → `Option.some(value)`.
- * - Encode: `Option.none()` → `null`, `Option.some(value)` → `value`.
- * - Pure and synchronous.
+ * Decoding maps `null` to `Option.none()` and non-null values to
+ * `Option.some(value)`. Encoding maps `Option.none()` to `null` and
+ * `Option.some(value)` to `value`. The transformation is pure and synchronous.
  *
  * **Example** (Option from nullable)
  *
@@ -1160,9 +1157,9 @@ export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null
  *
  * **Details**
  *
- * - Decode: `undefined` → `Option.none()`, non-undefined → `Option.some(value)`.
- * - Encode: `Option.none()` → `undefined`, `Option.some(value)` → `value`.
- * - Pure and synchronous.
+ * Decoding maps `undefined` to `Option.none()` and non-undefined values to
+ * `Option.some(value)`. Encoding maps `Option.none()` to `undefined` and
+ * `Option.some(value)` to `value`. The transformation is pure and synchronous.
  *
  * **Example** (Option from undefined-or)
  *
@@ -1202,10 +1199,10 @@ export function optionFromUndefinedOr<T>(): Transformation<Option.Option<T>, T |
  *
  * **Details**
  *
- * - Decode: `null` or `undefined` → `Option.none()`, otherwise → `Option.some(value)`.
- * - Encode: `Option.none()` → `null` or `undefined` (per `options.onNoneEncoding`),
- *   `Option.some(value)` → `value`.
- * - Pure and synchronous.
+ * Decoding maps `null` and `undefined` to `Option.none()` and all other values
+ * to `Option.some(value)`. Encoding maps `Option.none()` to `null` or
+ * `undefined` according to `options.onNoneEncoding`, and maps
+ * `Option.some(value)` to `value`. The transformation is pure and synchronous.
  *
  * **Example** (Option from nullish, encoding None as null)
  *
@@ -1248,9 +1245,10 @@ export function optionFromNullishOr<T>(
  *
  * **Details**
  *
- * - Decode: absent key (`None`) → `Some(None)`, present key (`Some(v)`) → `Some(Some(v))`.
- * - Encode: `Some(None)` → `None` (omit key), `Some(Some(v))` → `Some(v)`.
- * - Uses `transformOptional` under the hood.
+ * Decoding maps an absent key (`None`) to `Some(None)` and a present key
+ * (`Some(v)`) to `Some(Some(v))`. Encoding maps `Some(None)` to `None` to omit
+ * the key, and maps `Some(Some(v))` to `Some(v)`. This uses
+ * `transformOptional` under the hood.
  *
  * **Example** (Optional key to Option)
  *
@@ -1292,9 +1290,10 @@ export function optionFromOptionalKey<T>(): Transformation<Option.Option<T>, T> 
  *
  * **Details**
  *
- * - Decode: absent or `undefined` → `Some(None)`, present → `Some(Some(v))`.
- * - Encode: `Some(None)` → `None` (omit), `Some(Some(v))` → `Some(v)`.
- * - Uses `transformOptional` under the hood; filters out `undefined` on decode.
+ * Decoding maps an absent or `undefined` value to `Some(None)` and a present
+ * value to `Some(Some(v))`. Encoding maps `Some(None)` to `None` to omit the
+ * value, and maps `Some(Some(v))` to `Some(v)`. This uses
+ * `transformOptional` under the hood and filters out `undefined` on decode.
  *
  * **Example** (Optional value to Option)
  *
@@ -1336,9 +1335,8 @@ export function optionFromOptional<T>(): Transformation<Option.Option<T>, T | un
  *
  * **Details**
  *
- * - Decode: calls `new URL(s)`. Fails with `InvalidValue` if the string
- *   is not a valid URL.
- * - Encode: returns `url.href`.
+ * Decoding calls `new URL(s)` and fails with `InvalidValue` if the string is
+ * not a valid URL. Encoding returns `url.href`.
  *
  * **Example** (URL from string)
  *
@@ -1376,9 +1374,9 @@ export const urlFromString: Transformation<URL, string> = transformOrFail<URL, s
  *
  * **Details**
  *
- * - Decode: calls `BigDecimal.fromString(s)`. Fails with `InvalidValue` if the
- *   string is not a valid BigDecimal representation.
- * - Encode: returns `BigDecimal.format(bd)`.
+ * Decoding calls `BigDecimal.fromString(s)` and fails with `InvalidValue` if
+ * the string is not a valid `BigDecimal` representation. Encoding returns
+ * `BigDecimal.format(bd)`.
  *
  * @category transforming
  * @since 4.0.0
@@ -1407,8 +1405,8 @@ export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string>
  *
  * **Details**
  *
- * - Decode: parses the Base64 string into bytes.
- * - Encode: encodes the byte array as a Base64 string.
+ * Decoding parses the Base64 string into bytes. Encoding writes the byte array
+ * as a Base64 string.
  *
  * **Example** (Uint8Array from Base64)
  *
@@ -1442,8 +1440,8 @@ export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLi
  *
  * **Details**
  *
- * - Decode: parses the Base64 string into a UTF-8 string.
- * - Encode: encodes the string as a Base64 string.
+ * Decoding parses the Base64 string into a UTF-8 string. Encoding writes the
+ * string as a Base64 string.
  *
  * **Example** (String from Base64)
  *
@@ -1476,8 +1474,8 @@ export const stringFromBase64String: Transformation<string, string> = new Transf
  *
  * **Details**
  *
- * - Decode: parses the Base64 URL string into a UTF-8 string.
- * - Encode: encodes the string as a Base64 URL string.
+ * Decoding parses the Base64 URL string into a UTF-8 string. Encoding writes
+ * the string as a Base64 URL string.
  *
  * **Example** (String from Base64Url)
  *
@@ -1510,8 +1508,8 @@ export const stringFromBase64UrlString: Transformation<string, string> = new Tra
  *
  * **Details**
  *
- * - Decode: parses the hex string into a UTF-8 string.
- * - Encode: encodes the string as a hex string.
+ * Decoding parses the hex string into a UTF-8 string. Encoding writes the
+ * string as a hex string.
  *
  * **Example** (String from Hex)
  *
@@ -1546,9 +1544,8 @@ export const stringFromHexString: Transformation<string, string> = new Transform
  *
  * **Details**
  *
- * - Decode: calls `decodeURIComponent`. Fails if the input contains malformed
- *   percent-encoding sequences.
- * - Encode: calls `encodeURIComponent`.
+ * Decoding calls `decodeURIComponent` and fails if the input contains malformed
+ * percent-encoding sequences. Encoding calls `encodeURIComponent`.
  *
  * **Example** (URI component schema)
  *

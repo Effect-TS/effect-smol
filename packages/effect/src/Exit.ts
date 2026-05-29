@@ -363,13 +363,12 @@ export const die: (defect: unknown) => Exit<never> = core.exitDie
  *
  * **When to use**
  *
- * Use to signal that a fiber was interrupted
+ * Use to signal that a fiber was interrupted.
  *
  * **Details**
  *
- * - Optionally pass a fiber ID to identify which fiber was interrupted
- *
- * Returns a `Failure<never>` with an `Interrupt` cause.
+ * Optionally pass a fiber ID to identify which fiber was interrupted. Returns
+ * a `Failure<never>` with an `Interrupt` cause.
  *
  * **Example** (Creating an interruption Exit)
  *
@@ -481,14 +480,12 @@ export const isFailure: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effe
  *
  * **When to use**
  *
- * Use to distinguish typed failures from defects or interruptions
+ * Use to distinguish typed failures from defects or interruptions.
  *
  * **Details**
  *
- * - Returns `false` for successful exits
- *
- * Only checks for `Fail` reasons in the Cause. A Cause with only `Die` or
- * `Interrupt` reasons returns `false`.
+ * Returns `false` for successful exits. Only checks for `Fail` reasons in the
+ * Cause. A Cause with only `Die` or `Interrupt` reasons returns `false`.
  *
  * **Example** (Checking for typed errors)
  *
@@ -513,14 +510,12 @@ export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effec
  *
  * **When to use**
  *
- * Use to check for unexpected errors
+ * Use to check for unexpected errors.
  *
  * **Details**
  *
- * - Returns `false` for successful exits
- *
- * Only checks for `Die` reasons in the Cause. A Cause with only `Fail` or
- * `Interrupt` reasons returns `false`.
+ * Returns `false` for successful exits. Only checks for `Die` reasons in the
+ * Cause. A Cause with only `Fail` or `Interrupt` reasons returns `false`.
  *
  * **Example** (Checking for defects)
  *
@@ -545,14 +540,12 @@ export const hasDies: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect
  *
  * **When to use**
  *
- * Use to check if a fiber was interrupted
+ * Use to check if a fiber was interrupted.
  *
  * **Details**
  *
- * - Returns `false` for successful exits
- *
- * Only checks for `Interrupt` reasons in the Cause. A Cause with only `Fail`
- * or `Die` reasons returns `false`.
+ * Returns `false` for successful exits. Only checks for `Interrupt` reasons in
+ * the Cause. A Cause with only `Fail` or `Die` reasons returns `false`.
  *
  * **Example** (Checking for interruptions)
  *
@@ -809,14 +802,13 @@ export const findDefect: <A, E>(input: Exit<A, E>) => Result.Result<unknown, Exi
  *
  * **When to use**
  *
- * Use when you need exhaustive handling of both outcomes
+ * Use when you need exhaustive handling of both outcomes.
  *
  * **Details**
  *
- * - Calls `onSuccess` with the value if the Exit is a Success
- * - Calls `onFailure` with the Cause if the Exit is a Failure
- *
- * Supports both curried and direct call styles (data-last and data-first).
+ * Calls `onSuccess` with the value if the Exit is a Success, and calls
+ * `onFailure` with the Cause if the Exit is a Failure. Supports both curried
+ * and direct call styles.
  *
  * **Example** (Matching on an Exit)
  *
@@ -933,15 +925,13 @@ export const mapError: {
  *
  * **When to use**
  *
- * Use when you need to remap both channels in one step
+ * Use when you need to remap both channels in one step.
  *
  * **Details**
  *
- * - `onSuccess` transforms the value if the Exit is a Success
- * - `onFailure` transforms the typed error if the Exit is a Failure with a Fail reason
- *
- * Allocates a new Exit.
- * Supports both curried and direct call styles.
+ * `onSuccess` transforms the value if the Exit is a Success. `onFailure`
+ * transforms the typed error if the Exit is a Failure with a Fail reason.
+ * Allocates a new Exit and supports both curried and direct call styles.
  *
  * **Gotchas**
  *

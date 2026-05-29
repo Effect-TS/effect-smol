@@ -526,9 +526,9 @@ export const between: {
  *
  * **Details**
  *
- * - If the `bigint` is less than the `minimum` value, the function returns the `minimum` value.
- * - If the `bigint` is greater than the `maximum` value, the function returns the `maximum` value.
- * - Otherwise, it returns the original `bigint`.
+ * If the `bigint` is less than the minimum, the function returns the minimum.
+ * If the `bigint` is greater than the maximum, the function returns the
+ * maximum. Otherwise, it returns the original `bigint`.
  *
  * **Example** (Clamping a bigint to bounds)
  *

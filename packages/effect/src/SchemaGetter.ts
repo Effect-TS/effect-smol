@@ -170,12 +170,11 @@ export class Getter<out T, in E, R = never> extends Pipeable.Class {
  *
  * Use when you need a schema getter that always decodes a field to a fixed
  * value.
- * - You need a placeholder getter that produces a known default.
  *
  * **Details**
  *
- * - Pure, no side effects.
- * - Always returns `Option.some(t)` regardless of whether input is `Some` or `None`.
+ * The getter is pure and always returns `Option.some(t)` regardless of whether
+ * the input is `Some` or `None`.
  *
  * **Example** (Constant getter)
  *
@@ -622,12 +621,12 @@ export function transformOrFail<T, E, R = never>(
  * **When to use**
  *
  * Use when you need a schema getter to handle both `Some` and `None` cases.
- * - You want to turn a present value into absent, or vice versa.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Receives the full `Option<E>` and must return `Option<T>`.
+ * The getter is pure and never fails. It receives the full `Option<E>` and
+ * must return `Option<T>`, so it can turn a present value into absent or an
+ * absent value into present.
  *
  * **Example** (Filter out empty strings)
  *
@@ -728,8 +727,7 @@ export function withDefault<T, R = never>(
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Delegates to `globalThis.String`.
+ * The getter is pure, never fails, and delegates to `globalThis.String`.
  *
  * **Example** (Coerce to string)
  *
@@ -759,8 +757,8 @@ export function String<E>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Pure, never fails (may produce `NaN` for non-numeric inputs).
- * - Delegates to `globalThis.Number`.
+ * The getter is pure, never fails, and delegates to `globalThis.Number`. It may
+ * produce `NaN` for non-numeric inputs.
  *
  * **Example** (Coerce to number)
  *
@@ -790,8 +788,7 @@ export function Number<E>(): Getter<number, E> {
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Delegates to `globalThis.Boolean`.
+ * The getter is pure, never fails, and delegates to `globalThis.Boolean`.
  *
  * **Example** (Coerce to boolean)
  *
@@ -1132,9 +1129,9 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
  *
  * **Details**
  *
- * - Splits the string by `separator` (default `,`), then each pair by `keyValueSeparator` (default `=`).
- * - Pairs missing a key or value are silently skipped.
- * - Pure, never fails.
+ * The getter is pure and never fails. It splits the string by `separator`
+ * (default `,`) and then each pair by `keyValueSeparator` (default `=`). Pairs
+ * missing a key or value are silently skipped.
  *
  * **Example** (Parse key-value string)
  *
@@ -1178,8 +1175,9 @@ export function splitKeyValue<E extends string>(options?: {
  *
  * **Details**
  *
- * - Joins entries with `separator` (default `,`) and key/value with `keyValueSeparator` (default `=`).
- * - Pure, never fails.
+ * The getter is pure and never fails. It joins entries with `separator`
+ * (default `,`) and joins each key and value with `keyValueSeparator` (default
+ * `=`).
  *
  * **Example** (Join key-value record)
  *
@@ -1216,9 +1214,8 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  *
  * **Details**
  *
- * - Splits by `separator` (default `,`).
- * - An empty string produces an empty array (not `[""]`).
- * - Pure, never fails.
+ * The getter is pure and never fails. It splits by `separator` (default `,`).
+ * An empty string produces an empty array, not `[""]`.
  *
  * **Example** (Split comma-separated string)
  *
@@ -1247,7 +1244,7 @@ export function split<E extends string>(options?: {
  *
  * **Details**
  *
- * - Pure, never fails.
+ * The getter is pure and never fails.
  *
  * **Example** (Encode to Base64)
  *
@@ -1273,7 +1270,7 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  *
  * **Details**
  *
- * - Pure, never fails.
+ * The getter is pure and never fails.
  *
  * **Example** (Encode to Base64Url)
  *
@@ -1299,7 +1296,7 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
  *
  * **Details**
  *
- * - Pure, never fails.
+ * The getter is pure and never fails.
  *
  * **Example** (Encode to hex)
  *
@@ -1617,9 +1614,9 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Interprets bracket-path keys (e.g. `user[name]`, `items[0]`) to build nested objects/arrays.
- * - Leaf values are `string` or `Blob`.
+ * The getter is pure and never fails. It interprets bracket-path keys such as
+ * `user[name]` and `items[0]` to build nested objects or arrays, and each leaf
+ * value is a `string` or `Blob`.
  *
  * **Example** (Decode FormData)
  *
@@ -1655,9 +1652,9 @@ const collectFormDataEntries = collectBracketPathEntries((value): value is strin
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Flattens nested objects/arrays into bracket-path keys (e.g. `user[name]`, `items[0]`).
- * - Non-object inputs produce an empty `FormData`.
+ * The getter is pure and never fails. It flattens nested objects or arrays into
+ * bracket-path keys such as `user[name]` and `items[0]`. Non-object inputs
+ * produce an empty `FormData`.
  *
  * **Example** (Encode to FormData)
  *
@@ -1698,9 +1695,9 @@ export function encodeFormData(): Getter<FormData, unknown> {
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Interprets bracket-path keys (e.g. `user[name]`, `items[0]`) to build nested objects/arrays.
- * - Leaf values are `string`.
+ * The getter is pure and never fails. It interprets bracket-path keys such as
+ * `user[name]` and `items[0]` to build nested objects or arrays, and each leaf
+ * value is a `string`.
  *
  * **Example** (Decode URLSearchParams)
  *
@@ -1734,9 +1731,8 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Flattens nested objects/arrays into bracket-path keys.
- * - Non-object inputs produce an empty `URLSearchParams`.
+ * The getter is pure and never fails. It flattens nested objects or arrays into
+ * bracket-path keys. Non-object inputs produce an empty `URLSearchParams`.
  *
  * **Example** (Encode to URLSearchParams)
  *

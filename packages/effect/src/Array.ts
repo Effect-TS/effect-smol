@@ -2267,7 +2267,7 @@ export const sortBy = <S extends Iterable<any>>(
  *
  * **Details**
  *
- * - Returns `NonEmptyArray` when both inputs are non-empty.
+ * Returns `NonEmptyArray` when both inputs are non-empty.
  *
  * **Example** (Zipping two arrays)
  *
@@ -3928,7 +3928,7 @@ export const separate: <T extends Iterable<Result.Result<any, any>>>(
  *
  * **Details**
  *
- * - The function receives `(accumulator, element, index)`.
+ * The function receives `(accumulator, element, index)`.
  *
  * **Example** (Summing an array)
  *

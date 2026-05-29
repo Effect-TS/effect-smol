@@ -169,8 +169,8 @@ export declare namespace Newtype {
  *
  * **When to use**
  *
- * Use when you need to unwrap a newtype value and do not need to wrap new
- * values.
+ * Use when you need the carrier value from an existing newtype without
+ * constructing a new newtype value at the same call site.
  *
  * **Details**
  *

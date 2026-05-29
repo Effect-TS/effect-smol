@@ -60,7 +60,7 @@ export type OpenAiTelemetryAttributes = Simplify<
 
 /**
  * All telemetry attributes which are part of the GenAI specification,
- * including the OpenAi-specific attributes.
+ * including the OpenAI-specific attributes.
  *
  * @category models
  * @since 4.0.0
@@ -154,7 +154,7 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
 >
 
 /**
- * Applies the specified OpenAi GenAI telemetry attributes to the provided
+ * Applies the specified OpenAI GenAI telemetry attributes to the provided
  * `Span`.
  *
  * **When to use**
@@ -170,7 +170,7 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
  *
  * **Gotchas**
  *
- * This method will mutate the `Span` **in-place**.
+ * Mutates the supplied `Span` in place.
  *
  * @category tracing
  * @since 4.0.0

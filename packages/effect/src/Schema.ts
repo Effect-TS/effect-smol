@@ -4954,23 +4954,21 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
  *
  * **Details**
  *
- * This is a curried function: call it with the target schema `to` (and optionally a transformation),
- * then call the returned function with the source schema `from`. The resulting schema decodes from
- * `From["Encoded"]` to `To["Type"]` and encodes from `To["Type"]` back to `From["Encoded"]`.
+ * Call it with the target schema `to` and then pipe the source schema `from`
+ * into the returned function. The resulting schema decodes from
+ * `From["Encoded"]` to `To["Type"]` and encodes from `To["Type"]` back to
+ * `From["Encoded"]`.
  *
- * Key guarantees:
- * - Resulting schema has `Type = To["Type"]` and `Encoded = From["Encoded"]`
- * - When `transformation` is omitted, uses `SchemaTransformation.passthrough()` (schema composition)
- * - Combines decoding/encoding services from both `from` and `to` schemas
- * - Transformation `decode` maps `From["Type"]` → `To["Encoded"]` (used during encoding)
- * - Transformation `encode` maps `To["Encoded"]` → `From["Type"]` (used during decoding)
+ * When no transformation is provided, `SchemaTransformation.passthrough()` is
+ * used, so `From["Type"]` must already be compatible with `To["Encoded"]`.
+ * The resulting schema combines decoding and encoding services from both
+ * schemas and any custom transformation.
  *
- * Common mistakes:
- * - **Direction confusion**: Remember `to` is the target (what you decode TO), `from` is the source (what you decode FROM)
- * - **Currying**: This is curried - must use pipe: `from.pipe(Schema.decodeTo(to))`
- * - **Transformation direction**: `decode` goes `From["Type"]` → `To["Encoded"]`, `encode` goes `To["Encoded"]` → `From["Type"]`
- * - **Passthrough assumption**: Without transformation, schemas must satisfy `To["Encoded"] === From["Type"]` or use passthrough helpers
- * - **Service dependencies**: Resulting schema requires services from both schemas; use `Schema.provideService` if needed
+ * **Gotchas**
+ *
+ * In a custom transformation, `decode` maps `From["Type"]` to `To["Encoded"]`
+ * and is used on the encoding path, while `encode` maps `To["Encoded"]` to
+ * `From["Type"]` and is used on the decoding path.
  *
  * **Example** (String to Number with transformation)
  *
@@ -5029,21 +5027,19 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
  *
  * **Details**
  *
- * This is a curried function: call it with a transformation object, then call the returned function with a schema.
- * The resulting schema has `Type = S["Type"]` and `Encoded = S["Encoded"]`, with the transformation applied during
- * encoding and decoding operations.
+ * Call it with a transformation object and then pipe a schema into the returned
+ * function. The resulting schema keeps the same `Type` and `Encoded` types as
+ * the source schema, while applying the transformation during both decoding and
+ * encoding.
  *
- * Key guarantees:
- * - Resulting schema has `Type = S["Type"]` and `Encoded = S["Encoded"]`
- * - Uses `toType(self)` as the target schema internally (creates a schema where both Type and Encoded are `S["Type"]`)
- * - Combines decoding/encoding services from the source schema and transformation
- * - Transformation `decode` maps `S["Type"]` → `S["Type"]` (used during encoding)
- * - Transformation `encode` maps `S["Type"]` → `S["Type"]` (used during decoding)
+ * Internally this uses `toType(self)` as the target schema and combines service
+ * requirements from the source schema and the transformation.
  *
- * Common mistakes:
- * - **Currying**: This is curried - must use pipe: `schema.pipe(Schema.decode(transformation))`
- * - **Transformation direction**: `decode` and `encode` both operate on `S["Type"]` (same type, different values)
- * - **Service dependencies**: Resulting schema requires services from the source schema and transformation; use `Schema.provideService` if needed
+ * **Gotchas**
+ *
+ * Use {@link decodeTo} instead when the transformation should change the
+ * decoded type. For this helper, both transformation getters operate on
+ * `S["Type"]` values.
  *
  * **Example** (Trimming string values during encoding/decoding)
  *
@@ -8143,13 +8139,8 @@ export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<
  *
  * **Details**
  *
- * Decoding:
- * - `null` is decoded as `None`
- * - other values are decoded as `Some`
- *
- * Encoding:
- * - `None` is encoded as `null`
- * - `Some` is encoded as the value
+ * Decoding maps `null` to `None` and all other values to `Some`. Encoding maps
+ * `None` to `null` and maps `Some` to its value.
  *
  * @category Option
  * @since 3.10.0
@@ -8172,17 +8163,13 @@ export interface OptionFromUndefinedOr<S extends Top> extends decodeTo<Option<to
 }
 
 /**
- * Decodes an undefined-or value `T` to a required `Option<T>` value.
+ * Decodes a required value that may be `undefined` to a required `Option<T>`
+ * value.
  *
  * **Details**
  *
- * Decoding:
- * - `undefined` is decoded as `None`
- * - other values are decoded as `Some`
- *
- * Encoding:
- * - `None` is encoded as `undefined`
- * - `Some` is encoded as the value
+ * Decoding maps `undefined` to `None` and all other values to `Some`. Encoding
+ * maps `None` to `undefined` and maps `Some` to its value.
  *
  * @category Option
  * @since 3.10.0
@@ -8209,13 +8196,10 @@ export interface OptionFromNullishOr<S extends Top> extends decodeTo<Option<toTy
  *
  * **Details**
  *
- * Decoding:
- * - `null` and `undefined` are decoded as `None`
- * - other values are decoded as `Some`
- *
- * Encoding:
- * - `None` is encoded as `null` or `undefined` depending on the provided `options.onNoneEncoding` (defaults to `undefined`)
- * - `Some` is encoded as the value
+ * Decoding maps `null` and `undefined` to `None` and all other values to
+ * `Some`. Encoding maps `None` to `null` or `undefined` depending on
+ * `options.onNoneEncoding`, which defaults to `undefined`, and maps `Some` to
+ * its value.
  *
  * @category Option
  * @since 3.10.0
@@ -8247,13 +8231,8 @@ export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<to
  *
  * **Details**
  *
- * Decoding:
- * - a missing key is decoded as `None`
- * - a present value is decoded as `Some`
- *
- * Encoding:
- * - `None` is encoded as missing key
- * - `Some` is encoded as the value
+ * Decoding maps a missing key to `None` and a present value to `Some`.
+ * Encoding maps `None` to a missing key and maps `Some` to its value.
  *
  * @category Option
  * @since 4.0.0
@@ -8276,19 +8255,14 @@ export interface OptionFromOptional<S extends Top> extends decodeTo<Option<toTyp
 }
 
 /**
- * Decodes an optional or `undefined` value `A` to an required `Option<A>`
+ * Decodes an optional or `undefined` value `A` to a required `Option<A>`
  * value.
  *
  * **Details**
  *
- * Decoding:
- * - a missing key is decoded as `None`
- * - a present key with an `undefined` value is decoded as `None`
- * - all other values are decoded as `Some`
- *
- * Encoding:
- * - `None` is encoded as missing key
- * - `Some` is encoded as the value
+ * Decoding maps a missing key or a present `undefined` value to `None`, and
+ * maps all other values to `Some`. Encoding maps `None` to a missing key and
+ * maps `Some` to its value.
  *
  * @category Option
  * @since 4.0.0
@@ -8316,17 +8290,10 @@ export interface OptionFromOptionalNullOr<S extends Top> extends decodeTo<Option
  *
  * **Details**
  *
- * Decoding:
- * - a missing key is decoded as `None`
- * - a present key with an `undefined` value is decoded as `None`
- * - a present key with a `null` value is decoded as `None`
- * - all other values are decoded as `Some`
- *
- * Encoding (controlled by `options.onNoneEncoding`):
- * - `"omit"` (default): `None` is encoded as a missing key
- * - `null`: `None` is encoded as `null`
- * - `undefined`: `None` is encoded as `undefined`
- * - `Some` is always encoded as the value
+ * Decoding maps a missing key, `undefined`, or `null` to `None`, and maps all
+ * other values to `Some`. Encoding maps `Some` to its value. `None` is encoded
+ * according to `options.onNoneEncoding`: `"omit"` encodes a missing key,
+ * `null` encodes `null`, and `undefined` encodes `undefined`.
  *
  * @category Option
  * @since 4.0.0

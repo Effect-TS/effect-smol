@@ -81,13 +81,14 @@ export type Model = typeof Generated.Model.Type
  *
  * **When to use**
  *
- * Use when you need to provide or override Anthropic model configuration on a
- * per-request basis via `Context.Service`.
+ * Use when you need scoped Anthropic model request defaults or per-operation
+ * overrides from Effect context.
  *
  * **Details**
  *
- * This service can be used to provide default configuration values or to
- * override configuration on a per-request basis.
+ * The service stores request fields that are merged into Anthropic Messages API
+ * requests. Scoped configuration overrides defaults supplied to `model`,
+ * `make`, or `layer`.
  *
  * @category configuration
  * @since 4.0.0

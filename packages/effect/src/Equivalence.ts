@@ -147,9 +147,10 @@ export interface EquivalenceTypeLambda extends TypeLambda {
  *
  * **Details**
  *
- * - First checks reference equality (`===`) for performance; if values are identical, returns `true` without calling the function
- * - Falls back to the provided equivalence function if values are not the same reference
- * - The provided function must satisfy reflexive, symmetric, and transitive properties
+ * The returned equivalence first checks reference equality (`===`) for
+ * performance. If the values are not the same reference, it falls back to the
+ * provided equivalence function, which must satisfy reflexive, symmetric, and
+ * transitive properties.
  *
  * **Example** (Case-insensitive string equivalence)
  *
@@ -198,11 +199,10 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
  *
  * **Details**
  *
- * - Uses JavaScript's strict equality operator (`===`)
- * - For primitives: compares values directly
- * - For objects: compares by reference, so only the same object instance is equivalent
- * - Can be used as a building block for more complex equivalences via
- *   {@link mapInput} or {@link combine}
+ * Uses JavaScript's strict equality operator (`===`). Primitives compare by
+ * value. Objects compare by reference, so only the same object instance is
+ * equivalent. Use this as a building block for more complex equivalences via
+ * `mapInput` or `combine`.
  *
  * **Gotchas**
  *
@@ -340,9 +340,10 @@ export const BigInt: Equivalence<bigint> = isStrictEquivalent
  *
  * **Details**
  *
- * - Returns `true` only if both equivalences return `true`
- * - Short-circuits: if the first equivalence returns `false`, the second is not called
- * - The result is also an equivalence that satisfies reflexive, symmetric, and transitive properties
+ * Returns `true` only if both equivalences return `true`. The comparison
+ * short-circuits when the first equivalence returns `false`. The result is also
+ * an equivalence that satisfies reflexive, symmetric, and transitive
+ * properties.
  *
  * **Example** (Combining name and age equivalences)
  *
@@ -393,10 +394,11 @@ export const combine: {
  *
  * **Details**
  *
- * - Returns `true` only if all equivalences in the collection return `true`
- * - Short-circuits: stops at the first equivalence that returns `false`
- * - Empty collections return an equivalence that always returns `true`
- * - The result is also an equivalence that satisfies reflexive, symmetric, and transitive properties
+ * Returns `true` only if all equivalences in the collection return `true`. The
+ * comparison stops at the first equivalence that returns `false`. Empty
+ * collections return an equivalence that always returns `true`. The result is
+ * also an equivalence that satisfies reflexive, symmetric, and transitive
+ * properties.
  *
  * **Example** (Combining multiple field equivalences)
  *
@@ -535,10 +537,11 @@ export const mapInput: {
  *
  * **Details**
  *
- * - Requires tuples to have the same length; different lengths are never equivalent
- * - Applies each equivalence to the corresponding element position
- * - Returns `true` only if all elements are equivalent according to their respective equivalences
- * - The result is also an equivalence that satisfies reflexive, symmetric, and transitive properties
+ * Tuples must have the same length; different lengths are never equivalent.
+ * Each equivalence is applied to the corresponding element position. The result
+ * returns `true` only if all elements are equivalent according to their
+ * respective equivalences, and it also satisfies reflexive, symmetric, and
+ * transitive properties.
  *
  * **Example** (Homogeneous tuple equivalence)
  *
@@ -674,11 +677,11 @@ export {
  *
  * **Details**
  *
- * - Compares only the properties specified in the struct definition
- * - Properties not in the struct are ignored
- * - Returns `true` only if all specified properties are equivalent according to their equivalences
- * - Supports both string and symbol keys via `Reflect.ownKeys`
- * - The result is also an equivalence that satisfies reflexive, symmetric, and transitive properties
+ * Compares only the properties specified in the struct definition; other
+ * properties are ignored. String and symbol keys are supported via
+ * `Reflect.ownKeys`. The result returns `true` only if all specified properties
+ * are equivalent according to their equivalences, and it also satisfies
+ * reflexive, symmetric, and transitive properties.
  *
  * **Example** (Struct with different equivalences per field)
  *
@@ -822,10 +825,10 @@ export function Record<A>(value: Equivalence<A>): Equivalence<Record<PropertyKey
  *
  * **Details**
  *
- * - Returns a reducer that combines equivalences using {@link combine}
- * - Uses an equivalence that always returns `true` as the identity element for empty collections
- * - Uses {@link combineAll} for combining collections of equivalences
- * - The reducer can be used with fold operations on collections
+ * Returns a reducer that combines equivalences using `combine`. The identity
+ * element for empty collections is an equivalence that always returns `true`.
+ * The reducer uses `combineAll` for collections of equivalences and can be used
+ * with fold operations.
  *
  * **Example** (Creating a Reducer)
  *
