@@ -2087,8 +2087,42 @@ export class Objects extends Base {
     // ---------------------------------------------
     // handle empty struct
     // ---------------------------------------------
+    const makeUnexpectedKeyPointer = (
+      key: (string | symbol),
+      obj: Record<PropertyKey, unknown>
+    ) => new SchemaIssue.Pointer([key], new SchemaIssue.UnexpectedKey(ast, obj[key]))
+
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-      return fromRefinement(ast, Predicate.isNotNullish)
+      return (oinput, options) => {
+        if (oinput._tag === "None") {
+          return Effect.succeedNone
+        }
+        const input = oinput.value
+        if (!Predicate.isNotNullish(input)) {
+          return Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
+        }
+        // Only plain objects have "excess properties"; other non-nullish values
+        // (strings, numbers, arrays) pass through unchanged since {} accepts them.
+        if (!Predicate.isObject(input)) {
+          return Effect.succeed(oinput)
+        }
+        // "preserve" keeps the input (and all its properties) as-is.
+        if (options.onExcessProperty === "preserve") {
+          return Effect.succeed(oinput)
+        }
+        // "error": every own key is unexpected for an empty struct.
+        if (options.onExcessProperty === "error") {
+          const keys = Reflect.ownKeys(input)
+          if (Arr.isArrayNonEmpty(keys)) {
+            const issues = options.errors === "all"
+              ? Arr.map(keys, (key) => makeUnexpectedKeyPointer(key, input))
+              : [makeUnexpectedKeyPointer(keys[0], input)] as const
+            return Effect.fail(new SchemaIssue.Composite(ast, oinput, issues))
+          }
+        }
+        // "ignore" (or "error" with no excess keys): strip everything to an empty object.
+        return Effect.succeedSome({} as unknown)
+      }
     }
 
     const parseIndexes = indexCount > 0 ?
