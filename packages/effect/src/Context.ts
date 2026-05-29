@@ -685,7 +685,7 @@ export const make = <I, S>(
  *
  * **When to use**
  *
- * Use when you always have a service value to store.
+ * Use when you need to store a known service value in a `Context`.
  *
  * **Details**
  *
@@ -856,7 +856,8 @@ export const getOrElse: {
  *
  * **When to use**
  *
- * Use when you need raw map-style lookup.
+ * Use when you need to read the service stored for a key without resolving
+ * `Context.Reference` defaults.
  *
  * **Gotchas**
  *

@@ -1541,7 +1541,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  *
  * **When to use**
  *
- * Use when you need one delayed recurrence.
+ * Use when you need a schedule that recurs once after a fixed delay.
  *
  * **Details**
  *

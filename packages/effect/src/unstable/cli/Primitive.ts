@@ -728,7 +728,7 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
  *
  * **When to use**
  *
- * Use when you need flags that don't accept values.
+ * Use when you need a CLI primitive for flags that do not accept values.
  *
  * **Example** (Rejecting option values)
  *

@@ -301,7 +301,7 @@ export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = core.exit
  *
  * **When to use**
  *
- * Use when you need expected, recoverable failures
+ * Use when you need to represent an expected typed failure as an `Exit`.
  *
  * **Details**
  *
@@ -395,12 +395,12 @@ export {
    *
    * **When to use**
    *
-   * Use when you need a success Exit but do not care about the value
-   * - Avoids allocating a new Exit for a common case
+   * Use when you need a shared successful `Exit` with no meaningful value.
    *
    * **Details**
    *
-   * Equivalent to `Exit.succeed(undefined)` but shared as a single instance.
+   * Equivalent to `Exit.succeed(undefined)` but shared as a single instance,
+   * avoiding allocation for a common case.
    *
    * **Example** (Using the void Exit)
    *

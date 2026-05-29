@@ -358,7 +358,8 @@ export const joinAll: <A extends Iterable<Fiber<any, any>>>(
  *
  * **When to use**
  *
- * Use when a forked fiber is no longer needed and should be cancelled.
+ * Use when you need to cancel a forked fiber and wait for its cleanup to
+ * complete.
  *
  * **Details**
  *
@@ -448,7 +449,8 @@ export const interruptAs: {
  *
  * **When to use**
  *
- * Use when you no longer need a group of forked fibers.
+ * Use when you need to cancel several forked fibers and wait for their cleanup
+ * to complete.
  *
  * **Details**
  *

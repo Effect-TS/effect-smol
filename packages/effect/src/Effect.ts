@@ -1169,7 +1169,8 @@ export const suspend: <A, E, R>(
  *
  * **When to use**
  *
- * Use when you are sure the operation will not fail.
+ * Use when you need to wrap a synchronous side-effectful operation that is not
+ * expected to throw.
  *
  * **Details**
  *
@@ -2210,7 +2211,8 @@ export const result: <A, E, R>(self: Effect<A, E, R>) => Effect<Result.Result<A,
  *
  * **When to use**
  *
- * Use when you do not need the failure value and absence is enough.
+ * Use when you only care whether an effect succeeds and want recoverable
+ * failures represented as `Option.none`.
  *
  * **Details**
  *
