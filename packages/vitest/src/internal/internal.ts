@@ -64,8 +64,7 @@ const makeItProxy = <Methods extends object>(
       if (property in overrides) {
         return Reflect.get(overrides, property)
       }
-      const value = Reflect.get(target, property, receiver)
-      return typeof value === "function" ? value.bind(target) : value
+      return Reflect.get(target, property, receiver)
     }
   })
 
