@@ -1143,10 +1143,11 @@ function formatCheck<T>(check: AST.Check<T>): string {
  * **When to use**
  *
  * Use when you need error messages for logging, CLI output, or
- * developer-facing diagnostics. This is the default formatter used by
- * `Issue.toString()`.
+ * developer-facing diagnostics.
  *
  * **Details**
+ *
+ * This is the default formatter used by `Issue.toString()`.
  *
  * - Flattens the issue tree into `{ message, path }` entries using
  *   {@link defaultLeafHook} and {@link defaultCheckHook}.

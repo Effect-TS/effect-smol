@@ -2051,9 +2051,12 @@ export const updateService: {
  * **When to use**
  *
  * Use when you need two parts of an application to receive separate instances
- * of a resource, such as two independent client sessions. Do not use it just to
- * work around confusing composition: by default, sharing the same layer value is
- * usually the desired behavior.
+ * of a resource, such as two independent client sessions.
+ *
+ * **Gotchas**
+ *
+ * Do not use it just to work around confusing composition. By default, sharing
+ * the same layer value is usually the desired behavior.
  *
  * **Example** (Creating non-shared layer instances)
  *

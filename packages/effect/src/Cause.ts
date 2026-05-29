@@ -1428,7 +1428,7 @@ export declare namespace Done {
  *
  * **When to use**
  *
- * Use when you need the completion signal value itself.
+ * Use when you need to construct a low-level pull completion signal directly.
  *
  * @see {@link done} — create a failing `Effect` with `Done`
  *

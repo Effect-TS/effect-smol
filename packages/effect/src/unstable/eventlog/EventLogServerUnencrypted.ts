@@ -703,8 +703,7 @@ export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(ma
  * **When to use**
  *
  * Use to construct the unencrypted event-log server service directly when you
- * already provide `Storage` and an event-log `Registry` and want to supply the
- * service yourself.
+ * already provide `Storage` and an event-log `Registry`.
  *
  * **Details**
  *

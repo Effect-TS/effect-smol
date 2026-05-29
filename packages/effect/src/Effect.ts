@@ -1079,7 +1079,7 @@ export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedS
  *
  * **When to use**
  *
- * Use when you need to defer the evaluation of an effect until it is required. This is particularly useful for optimizing expensive computations, managing circular dependencies, or resolving type inference issues.
+ * Use when you need to defer the evaluation of an effect until it is required.
  *
  * **Details**
  *
@@ -1512,9 +1512,12 @@ export declare namespace gen {
  *
  * **When to use**
  *
- * Use to explicitly signal an error in an `Effect`. The error
- * will keep propagating unless it is handled. You can handle the error with
- * functions like {@link catchTag} or {@link catchTags}.
+ * Use to explicitly signal a recoverable error in an `Effect`.
+ *
+ * **Details**
+ *
+ * The error keeps propagating unless it is handled. You can handle tagged
+ * errors with functions like {@link catchTag} or {@link catchTags}.
  *
  * **Example** (Creating a failed effect)
  *
@@ -2754,10 +2757,14 @@ export const catchTag: {
  * **When to use**
  *
  * Use when one recovery step should handle several tagged error types by
- * matching their readonly `_tag` fields. Pass a handler table whose keys are
- * tags, plus an optional fallback for unmatched errors.
+ * matching their readonly `_tag` fields.
  *
- * The error type must have a readonly `_tag` field to use `catchTag`. This
+ * **Details**
+ *
+ * Pass a handler table whose keys are tags, plus an optional fallback for
+ * unmatched errors.
+ *
+ * The error type must have a readonly `_tag` field to use `catchTags`. This
  * field is used to identify and match errors.
  *
  * **Example** (Handling multiple tagged errors)
@@ -3252,8 +3259,11 @@ export const catchDefect: {
  *
  * **When to use**
  *
- * Use when you need to recover from errors that match a condition. Use a
- * `Refinement` for type narrowing or a `Predicate` for simple boolean
+ * Use when you need to recover from errors that match a condition.
+ *
+ * **Details**
+ *
+ * Use a `Refinement` for type narrowing or a `Predicate` for simple boolean
  * matching. Non-matching errors re-fail with the original cause. Defects and
  * interrupts are not caught.
  *

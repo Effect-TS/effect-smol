@@ -553,8 +553,8 @@ export const bounded = <A, E = never>(capacity: number): Effect<Queue<A, E>> => 
  *
  * **When to use**
  *
- * Use when producers should not block and message loss is acceptable.
- * Useful when you want to maintain a rolling window of the most recent messages.
+ * Use when producers should not block and message loss is acceptable, such as
+ * when maintaining a rolling window of the most recent messages.
  *
  * **Example** (Creating sliding queues)
  *

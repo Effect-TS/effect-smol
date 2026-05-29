@@ -5479,7 +5479,11 @@ export const catchTags: {
  * **When to use**
  *
  * Use to handle nested error causes without removing the parent error
- * from the error channel. The handler receives the unwrapped reason.
+ * from the error channel.
+ *
+ * **Details**
+ *
+ * The handler receives the unwrapped reason.
  *
  * **Example** (Catching a tagged error reason)
  *
@@ -5999,8 +6003,12 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  * **When to use**
  *
  * Use when you want a failing stream to end gracefully rather than propagate
- * the error. The `log` option controls whether the failure is logged before
- * the stream terminates.
+ * the error.
+ *
+ * **Details**
+ *
+ * The `log` option controls whether the failure is logged before the stream
+ * terminates.
  *
  * **Example** (Ignoring stream failures)
  *

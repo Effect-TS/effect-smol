@@ -626,8 +626,8 @@ export const Prototype: Pipeable = {
  *
  * **When to use**
  *
- * Use when extend or compose this constructor when defining a class that should support
- * Effect-style method chaining through `.pipe(...)`.
+ * Use when you need to define a class that supports Effect-style method
+ * chaining through `.pipe(...)`.
  *
  * @category constructors
  * @since 3.15.0

@@ -792,7 +792,7 @@ export function isFunction(input: unknown): input is Function {
  *
  * **When to use**
  *
- * Use when you need a guard for optional values.
+ * Use when you need to guard unknown values that are exactly `undefined`.
  *
  * **Details**
  *

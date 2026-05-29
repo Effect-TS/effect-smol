@@ -261,8 +261,10 @@ export type Branded<A, Key extends string> = A & Brand<Key>
  * **When to use**
  *
  * Use to create nominal types that allow distinguishing between two values
- * of the same type but with different meanings. If you also want to perform
- * some validation, see {@link make} or {@link check}.
+ * of the same type but with different meanings.
+ *
+ * @see {@link make} for constructing branded values with validation.
+ * @see {@link check} for constructing branded values from schema checks.
  *
  * @category constructors
  * @since 2.0.0
@@ -281,9 +283,9 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
  *
  * **When to use**
  *
- * Use when you want validation while constructing the branded type. If you
- * don't want to perform any validation but only distinguish between two values
- * of the same type but with different meanings, see {@link nominal}.
+ * Use when you want validation while constructing the branded type.
+ *
+ * @see {@link nominal} for a brand constructor that performs no validation.
  *
  * @category constructors
  * @since 4.0.0

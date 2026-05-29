@@ -113,8 +113,8 @@ const makeUnsafe = <A, E>(
  *
  * **When to use**
  *
- * Use when you need to control the timing of resource refreshes yourself rather
- * than relying on an automatic schedule.
+ * Use when you need manual control over resource refresh timing rather than an
+ * automatic schedule.
  *
  * @see {@link auto} for schedule-driven automatic refreshes
  * @see {@link refresh} to manually trigger a resource refresh
