@@ -754,7 +754,8 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  *
  * **When to use**
  *
- * Use when you need to generate help documentation.
+ * Use when you need the display type name for a `Primitive`, such as when
+ * generating CLI help documentation.
  *
  * **Example** (Getting primitive type names)
  *

@@ -760,8 +760,8 @@ export const FalseValues = Schema.Literals(["false", "no", "off", "0", "n"])
  *
  * **When to use**
  *
- * Use when passing to {@link schema} for custom paths, or use the
- * {@link boolean} convenience constructor.
+ * Use when you need the reusable boolean schema value for `Config.schema` with
+ * custom paths.
  *
  * **Details**
  *
@@ -788,8 +788,8 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
  *
  * **When to use**
  *
- * Use when passing to {@link schema} for custom paths, or use the {@link port}
- * convenience constructor.
+ * Use when you need the reusable port schema value for `Config.schema` with
+ * custom paths.
  *
  * @see {@link port} – convenience constructor
  *
@@ -803,8 +803,8 @@ export const Port = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 655
  *
  * **When to use**
  *
- * Use when passing to {@link schema} for custom paths, or use the
- * {@link logLevel} convenience constructor.
+ * Use when you need the reusable log-level schema value for `Config.schema`
+ * with custom paths.
  *
  * **Details**
  *

@@ -1447,8 +1447,8 @@ export const decodePromise = Parser.decodePromise
  *
  * **When to use**
  *
- * Use when validating unknown data at a boundary and treating schema mismatches
- * as exceptions.
+ * Use when you need to validate unknown data at a synchronous boundary and want
+ * schema mismatches to throw.
  *
  * **Details**
  *
@@ -1743,8 +1743,8 @@ export const encodePromise = Parser.encodePromise
  *
  * **When to use**
  *
- * Use when serializing unknown data at a boundary and treating schema
- * mismatches as unrecoverable errors.
+ * Use when you need to serialize unknown data at a synchronous boundary and
+ * want schema mismatches to throw.
  *
  * **Details**
  *

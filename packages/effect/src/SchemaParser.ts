@@ -233,8 +233,8 @@ export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts i
  *
  * **When to use**
  *
- * Use when decoding untyped boundary input while preserving decoding failures,
- * effectful transformations, and service requirements in an `Effect`.
+ * Use when you need to decode untyped boundary input while preserving decoding
+ * failures, effectful transformations, and service requirements in an `Effect`.
  *
  * **Details**
  *
@@ -345,8 +345,8 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when decoding unknown input synchronously and preserving the parser
- * outcome as an `Exit` value.
+ * Use when you need to decode unknown input synchronously while preserving the
+ * parser outcome as an `Exit` value.
  *
  * **Details**
  *
@@ -572,8 +572,8 @@ export const decodeSync: <S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when encoding untyped boundary input and preserving encoding failures and
- * service requirements in `Effect` is the desired result shape.
+ * Use when you need to encode untyped boundary input while preserving encoding
+ * failures and service requirements in an `Effect`.
  *
  * **Details**
  *
@@ -603,8 +603,8 @@ export function encodeUnknownEffect<S extends Schema.Top>(
  *
  * **When to use**
  *
- * Use to encode values already typed as the schema's decoded `Type` when
- * encoding should preserve service requirements and return failures in an
+ * Use when you need to encode values already typed as the schema's decoded
+ * `Type` while preserving service requirements and returning failures in an
  * `Effect`.
  *
  * **Details**
@@ -837,8 +837,8 @@ export const encodeResult: <S extends Schema.Encoder<unknown>>(
  *
  * **When to use**
  *
- * Use when encoding values from untyped input in synchronous code and treating
- * encoding failures as thrown errors is the desired boundary.
+ * Use when you need to encode values from untyped input in synchronous code and
+ * want encoding failures to throw.
  *
  * **Details**
  *
