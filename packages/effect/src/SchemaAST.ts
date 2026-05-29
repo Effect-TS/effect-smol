@@ -2088,7 +2088,46 @@ export class Objects extends Base {
     // handle empty struct
     // ---------------------------------------------
     if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-      return fromRefinement(ast, Predicate.isNotNullish)
+      return (oinput, options) => {
+        if (oinput._tag === "None") {
+          return Effect.succeedNone
+        }
+        const input = oinput.value
+        if (!Predicate.isNotNullish(input)) {
+          return Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
+        }
+        // Only plain objects have "excess properties"; other non-nullish values
+        // (strings, numbers, arrays) pass through unchanged since {} accepts them.
+        if (typeof input === "object" && !Array.isArray(input)) {
+          if (options.onExcessProperty === "error") {
+            const keys = Reflect.ownKeys(input as Record<PropertyKey, unknown>)
+            if (keys.length > 0) {
+              const errorsAll = options.errors === "all"
+              const issues: Array<SchemaIssue.Issue> = []
+              for (const key of keys) {
+                const issue = new SchemaIssue.Pointer(
+                  [key],
+                  new SchemaIssue.UnexpectedKey(ast, (input as Record<PropertyKey, unknown>)[key])
+                )
+                if (errorsAll) {
+                  issues.push(issue)
+                } else {
+                  return Effect.fail(new SchemaIssue.Composite(ast, oinput, [issue]))
+                }
+              }
+              if (issues.length > 0) {
+                return Effect.fail(
+                  new SchemaIssue.Composite(ast, oinput, issues as Arr.NonEmptyArray<SchemaIssue.Issue>)
+                )
+              }
+            }
+          }
+          if (options.onExcessProperty !== "preserve") {
+            return Effect.succeed(Option.some({} as unknown))
+          }
+        }
+        return Effect.succeed(oinput)
+      }
     }
 
     const parseIndexes = indexCount > 0 ?
