@@ -194,9 +194,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  *
  * **When to use**
  *
- * Use to compute differences between JSON documents, detect structural
- * changes, or create deterministic update operations from before and after
- * states.
+ * Use to compute a JSON Patch from before and after JSON documents, detect
+ * structural changes, or create deterministic update operations.
  *
  * **Details**
  *

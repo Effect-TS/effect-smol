@@ -704,8 +704,8 @@ export const getUnsafe: {
  *
  * **When to use**
  *
- * Use to add one element after the existing elements and get a non-empty
- * result.
+ * Use to add one element after the existing chunk elements and return a
+ * `NonEmptyChunk`.
  *
  * **Example** (Appending an element)
  *
@@ -1296,7 +1296,7 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
  *
  * **When to use**
  *
- * Use to divide a chunk into ordered, non-overlapping batches with at most `n`
+ * Use to divide a chunk into ordered, non-overlapping chunks with at most `n`
  * elements each.
  *
  * **Details**

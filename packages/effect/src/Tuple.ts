@@ -411,7 +411,7 @@ export const renameIndices: {
  *
  * **When to use**
  *
- * Use when you want to apply the same transformation to every element.
+ * Use when you want to apply the same transformation to every tuple element.
  *
  * **Details**
  *
@@ -579,7 +579,7 @@ export const mapOmit: {
  *
  * **When to use**
  *
- * Use when you need to compare tuples element-by-element.
+ * Use when you need an `Equivalence` to compare tuples element-by-element.
  *
  * **Details**
  *
@@ -642,7 +642,8 @@ export {
    *
    * **When to use**
    *
-   * Use to guard against unexpected array lengths at runtime.
+   * Use to guard that an array has exactly the tuple length expected at
+   * runtime.
    *
    * **Details**
    *
@@ -676,8 +677,8 @@ export {
    *
    * **When to use**
    *
-   * Use to guard that an array has at least the expected number of
-   * elements.
+   * Use to guard that an array has at least the tuple length expected at
+   * runtime.
    *
    * **Details**
    *

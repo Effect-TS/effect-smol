@@ -165,8 +165,8 @@ export declare namespace HttpClient {
  *
  * **When to use**
  *
- * Use to provide the HTTP client implementation consumed by the module's
- * request accessor functions.
+ * Use to provide the default outgoing HTTP client service used by request
+ * accessors such as `execute`, `get`, and `post`.
  *
  * @category services
  * @since 4.0.0

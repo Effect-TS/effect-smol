@@ -146,7 +146,8 @@ export interface Latch {
  *
  * **When to use**
  *
- * Use when you need synchronous allocation outside an Effect workflow.
+ * Use when you need to allocate a `Latch` synchronously outside an Effect
+ * workflow.
  *
  * **Details**
  *

@@ -632,7 +632,8 @@ export const matchRight: {
  *
  * **When to use**
  *
- * Use to add a single element at the start of an iterable and get a `NonEmptyArray`.
+ * Use to add a single element at the start of an iterable and return a
+ * `NonEmptyArray`.
  *
  * **Details**
  *
@@ -701,7 +702,7 @@ export const prependAll: {
  *
  * **When to use**
  *
- * Use to add one element to the end of an iterable and get a new
+ * Use to add one element to the end of an iterable and return a new
  * `NonEmptyArray`.
  *
  * **Details**
@@ -1033,8 +1034,8 @@ export const get: {
  *
  * **When to use**
  *
- * Use to read an element at a known valid index when out-of-bounds would be a
- * programming error.
+ * Use to read an array element at a known valid index when out-of-bounds would
+ * be a programming error.
  *
  * **Details**
  *
@@ -2007,8 +2008,8 @@ export const replace: {
  *
  * **When to use**
  *
- * Use to derive a replacement value from the current element at a specific
- * index while leaving the other elements unchanged.
+ * Use to derive a replacement value from an array element at a specific index
+ * while leaving the other elements unchanged.
  *
  * **Details**
  *
@@ -2057,7 +2058,7 @@ export const modify: {
  *
  * **When to use**
  *
- * Use to remove a single element at a known index.
+ * Use to remove a single array element at a known index.
  *
  * **Example** (Removing an element)
  *
@@ -2091,7 +2092,8 @@ export const remove: {
  *
  * **When to use**
  *
- * Use to reverse the order of elements without mutating the original input.
+ * Use to reverse an iterable into a new array without mutating the original
+ * input.
  *
  * **Details**
  *
@@ -2604,8 +2606,8 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
  *
  * **When to use**
  *
- * Use to check membership with Effect's default equality instead of providing a
- * comparison function.
+ * Use to check whether an iterable contains a value using Effect's default
+ * equality instead of providing a comparison function.
  *
  * **Example** (Checking membership)
  *
@@ -2907,8 +2909,8 @@ export const pad: {
  *
  * **When to use**
  *
- * Use to divide an iterable into non-overlapping chunks with a maximum chunk
- * size.
+ * Use to divide an iterable into a new array of non-overlapping chunks with a
+ * maximum chunk size.
  *
  * **Details**
  *
@@ -3542,8 +3544,8 @@ export const map: {
  *
  * **When to use**
  *
- * Use to map each element to zero or more values and concatenate the results in
- * one pass.
+ * Use to map each array element to zero or more values and concatenate the
+ * results in one pass.
  *
  * **Details**
  *
@@ -3767,8 +3769,8 @@ export const filterMap: {
  *
  * **When to use**
  *
- * Use to keep original elements from an iterable that satisfy a boolean
- * predicate or refinement.
+ * Use to filter an iterable into a new array of original elements that satisfy
+ * a boolean predicate or refinement.
  *
  * **Details**
  *
@@ -4151,7 +4153,7 @@ export const liftResult = <A extends Array<unknown>, E, B>(
  *
  * **When to use**
  *
- * Use to check that all elements satisfy a predicate, including
+ * Use to check whether every array element satisfies a predicate, including
  * refinement-based type narrowing.
  *
  * **Example** (Testing all elements)

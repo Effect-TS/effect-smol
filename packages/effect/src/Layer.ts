@@ -1237,7 +1237,8 @@ export const mergeAll = <Layers extends [Layer<never, any, any>, ...Array<Layer<
  *
  * **When to use**
  *
- * Use when composing from an existing layer in a pipeline.
+ * Use to combine an existing `Layer` with another `Layer` or an array of
+ * layers while preserving pipeline style.
  *
  * **Details**
  *
