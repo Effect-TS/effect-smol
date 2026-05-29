@@ -76,9 +76,9 @@ const TypeId = core.ExitTypeId
  *
  * **Details**
  *
- * An `Exit<A, E>` is either:
- * - `Success<A, E>` containing a value of type `A`
- * - `Failure<A, E>` containing a `Cause<E>` describing why the computation failed
+ * An `Exit<A, E>` is either `Success<A, E>` containing a value of type `A`, or
+ * `Failure<A, E>` containing a `Cause<E>` describing why the computation
+ * failed.
  *
  * Since `Exit` is also an `Effect`, you can yield it inside `Effect.gen`.
  *
@@ -179,7 +179,7 @@ export interface Success<out A, out E = never> extends Exit.Proto<A, E> {
  *
  * **Details**
  *
- * - The `Cause<E>` may contain typed errors, defects, or interruptions
+ * The `Cause<E>` may contain typed errors, defects, or interruptions.
  *
  * **Example** (Accessing the failure cause)
  *
@@ -210,8 +210,8 @@ export interface Failure<out A, out E> extends Exit.Proto<A, E> {
  *
  * **When to use**
  *
- * Use to validate unknown values at system boundaries
- * - Works as a type guard, narrowing to `Exit<unknown, unknown>`
+ * Use to validate unknown values at system boundaries and narrow them to
+ * `Exit<unknown, unknown>`.
  *
  * **Details**
  *
@@ -271,7 +271,8 @@ export const succeed: <A>(a: A) => Exit<A> = core.exitSucceed
  * **When to use**
  *
  * Use when you already have a `Cause<E>` and want to wrap it in an Exit
- * - Use for advanced error handling where you need full control over the Cause structure
+ * for advanced error handling where you need full control over the Cause
+ * structure.
  *
  * **Details**
  *
@@ -305,7 +306,7 @@ export const failCause: <E>(cause: Cause.Cause<E>) => Exit<never, E> = core.exit
  *
  * **Details**
  *
- * - The error is wrapped in a `Cause.Fail` internally
+ * The error is wrapped in a `Cause.Fail` internally.
  *
  * Returns a `Failure<never, E>`.
  *
@@ -332,11 +333,12 @@ export const fail: <E>(e: E) => Exit<never, E> = core.exitFail
  *
  * **When to use**
  *
- * Use when you need unexpected, unrecoverable errors that should not appear in the typed error channel
+ * Use when you need unexpected, unrecoverable errors that should not appear in
+ * the typed error channel.
  *
  * **Details**
  *
- * - The defect is wrapped in a `Cause.Die` internally
+ * The defect is wrapped in a `Cause.Die` internally.
  *
  * Returns a `Failure<never>` with `E = never`, since defects do not appear in
  * the typed error channel.
@@ -424,8 +426,8 @@ export {
  *
  * **When to use**
  *
- * Use as a type guard to narrow `Exit<A, E>` to `Success<A, E>`
- * - After narrowing, the `value` property becomes accessible
+ * Use as a type guard to narrow `Exit<A, E>` to `Success<A, E>` and access the
+ * `value` property.
  *
  * **Example** (Narrowing to Success)
  *
@@ -452,8 +454,8 @@ export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effe
  *
  * **When to use**
  *
- * Use as a type guard to narrow `Exit<A, E>` to `Failure<A, E>`
- * - After narrowing, the `cause` property becomes accessible
+ * Use as a type guard to narrow `Exit<A, E>` to `Failure<A, E>` and access the
+ * `cause` property.
  *
  * **Example** (Narrowing to Failure)
  *
@@ -852,7 +854,7 @@ export const match: {
  *
  * **Details**
  *
- * - Has no effect on failures, which pass through unchanged
+ * Failures pass through unchanged.
  *
  * Allocates a new Exit if successful.
  * Supports both curried and direct call styles.
@@ -887,7 +889,7 @@ export const map: {
  *
  * **Details**
  *
- * - Has no effect on successes, which pass through unchanged
+ * Successes pass through unchanged.
  *
  * Allocates a new Exit if the error is transformed.
  * Supports both curried and direct call styles.
@@ -978,7 +980,7 @@ export const mapBoth: {
  *
  * **Details**
  *
- * - Failures pass through unchanged
+ * Failures pass through unchanged.
  *
  * Allocates a new Exit if successful.
  *
@@ -1009,8 +1011,8 @@ export const asVoid: <A, E>(self: Exit<A, E>) => Exit<void, E> = effect.exitAsVo
  *
  * **Details**
  *
- * - If all exits are successful, returns a void success
- * - If any exit is a failure, returns a single failure with all error causes combined
+ * If all exits are successful, this returns a void success. If any exit is a
+ * failure, this returns a single failure with all error causes combined.
  *
  * Iterates over the entire collection. Collects all failure causes, not just
  * the first.
@@ -1046,7 +1048,7 @@ export const asVoidAll: <I extends Iterable<Exit<any, any>>>(
  *
  * **Details**
  *
- * - Returns `Option.some(value)` for a Success, `Option.none()` for a Failure
+ * Returns `Option.some(value)` for a Success and `Option.none()` for a Failure.
  *
  * **Example** (Getting the success value)
  *
@@ -1075,7 +1077,7 @@ export const getSuccess: <A, E>(self: Exit<A, E>) => Option<A> = effect.exitGetS
  *
  * **Details**
  *
- * - Returns `Option.some(cause)` for a Failure, `Option.none()` for a Success
+ * Returns `Option.some(cause)` for a Failure and `Option.none()` for a Success.
  *
  * **Example** (Getting the failure cause)
  *
@@ -1104,8 +1106,8 @@ export const getCause: <A, E>(self: Exit<A, E>) => Option<Cause.Cause<E>> = effe
  *
  * **Details**
  *
- * - Returns `Option.some(error)` if the Cause contains a Fail reason, `Option.none()` otherwise
- * - Returns `Option.none()` for successes, defect-only failures, and interrupt-only failures
+ * Returns `Option.some(error)` if the Cause contains a Fail reason. Successes,
+ * defect-only failures, and interrupt-only failures return `Option.none()`.
  *
  * **Gotchas**
  *

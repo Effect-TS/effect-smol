@@ -107,14 +107,14 @@ import * as Str from "./String.ts"
  *
  * **Details**
  *
- * - A getter wraps a function `Option<E> -> Effect<Option<T>, Issue, R>`.
- * - Receives `Option.None` when the encoded key is absent (e.g. missing struct field).
- * - Returns `Option.None` to omit the value from the decoded output.
- * - Fails with `Issue` on invalid input.
- * - May require Effect services via `R`.
- * - `.map(f)` applies `f` to the decoded value (inside the `Some`), leaving `None` unchanged.
- * - `.compose(other)` chains two getters: the output of `this` feeds into `other`.
- *   Passthrough getters on either side are optimized away.
+ * A getter wraps a function `Option<E> -> Effect<Option<T>, Issue, R>`. It
+ * receives `Option.None` when the encoded key is absent, such as a missing
+ * struct field, and returns `Option.None` to omit the value from the decoded
+ * output. It fails with `Issue` on invalid input and may require Effect
+ * services via `R`. `.map(f)` applies `f` to the decoded value inside `Some`
+ * while leaving `None` unchanged. `.compose(other)` chains two getters by
+ * feeding the output of `this` into `other`; passthrough getters on either side
+ * are optimized away.
  *
  * **Example** (Creating and composing getters)
  *

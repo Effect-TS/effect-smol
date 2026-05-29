@@ -205,11 +205,11 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **Details**
  *
- * - `undefined` + `undefined` -> `undefined`
- * - `a` + `undefined` -> `a` (first value wins)
- * - `undefined` + `b` -> `b` (second value wins)
- * - `a` + `b` -> `combiner.combine(a, b)`
- * - Initial value is `undefined`
+ * Combining `undefined` with `undefined` returns `undefined`. Combining a
+ * defined value with `undefined` keeps the defined value, so the first defined
+ * value wins when only one side is present. When both values are defined, they
+ * are combined with `combiner.combine`. The reducer's initial value is
+ * `undefined`.
  *
  * @category constructors
  * @since 4.0.0

@@ -1479,8 +1479,8 @@ export type VariadicParamOptions = {
  * **Details**
  *
  * This is the base combinator for creating parameters that accept multiple values.
- * The min and max parameters are optional - if not provided, the parameter can be
- * specified any number of times (0 to infinity).
+ * The `min` and `max` parameters are optional. When they are not provided, the
+ * parameter can be specified any number of times, from 0 to infinity.
  *
  * **Example** (Accepting multiple values)
  *

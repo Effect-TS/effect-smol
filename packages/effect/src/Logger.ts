@@ -393,12 +393,9 @@ export const withConsoleError = <Message, Output>(
  * Will use the appropriate console method (i.e. `console.log`, `console.error`,
  * etc.) based upon the current `LogLevel`.
  *
- * - `Debug` -> `console.debug`
- * - `Info` -> `console.info`
- * - `Trace` -> `console.trace`
- * - `Warn` -> `console.warn`
- * - `Error` and `Fatal` -> `console.error`
- * - Others -> `console.log`
+ * `Debug` uses `console.debug`, `Info` uses `console.info`, `Trace` uses
+ * `console.trace`, `Warn` uses `console.warn`, `Error` and `Fatal` use
+ * `console.error`, and all other levels use `console.log`.
  *
  * **Example** (Writing logs with level-based console methods)
  *

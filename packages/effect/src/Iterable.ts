@@ -1492,7 +1492,7 @@ export const of = <A>(a: A): Iterable<A> => [a]
  *
  * This is one of the most fundamental operations for working with iterables.
  * It applies a transformation function to each element, creating a new iterable
- * with the transformed values. The operation is lazy - elements are only
+ * with the transformed values. The operation is lazy, so elements are only
  * transformed when the iterable is consumed.
  *
  * **Example** (Mapping elements)
@@ -1650,8 +1650,9 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  *
  * **Details**
  *
- * This combines mapping and filtering in a single operation - the function is applied to each element,
- * and only elements that result in `Result.succeed` are included in the result.
+ * This combines mapping and filtering in a single operation. The function is
+ * applied to each element, and only elements that result in `Result.succeed`
+ * are included in the result.
  *
  * **Example** (Filtering and transforming Result values)
  *

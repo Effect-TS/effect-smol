@@ -2193,11 +2193,10 @@ export const isMetric = (u: unknown): u is Metric<unknown, never> =>
  *
  * **Details**
  *
- * - `description` - A description of the `Counter`.
- * - `attributes`  - The attributes to associate with the `Counter`.
- * - `bigint`      - Indicates if the `Counter` should use the `bigint` type.
- * - `incremental` - Set to `true` to create a `Counter` that can only ever be
- *                   incremented.
+ * The optional `description` describes the counter, and `attributes` attach
+ * dimensions to it. Set `bigint` to create a counter that accepts `bigint`
+ * inputs. Set `incremental` to `true` to create a counter that can only ever be
+ * incremented.
  *
  * **Example** (Creating counter metrics)
  *
@@ -2277,9 +2276,9 @@ export const counter: {
  *
  * **Details**
  *
- * - `description` - A description of the `Gauge`.
- * - `attributes`  - The attributes to associate with the `Gauge`.
- * - `bigint`      - Indicates if the `Gauge` should use the `bigint` type.
+ * The optional `description` describes the gauge, and `attributes` attach
+ * dimensions to it. Set `bigint` to create a gauge that accepts `bigint`
+ * inputs.
  *
  * **Example** (Creating gauge metrics)
  *
@@ -2356,10 +2355,9 @@ export const gauge: {
  *
  * **Details**
  *
- * - `description` - A description of the `Frequency`.
- * - `attributes`  - The attributes to associate with the `Frequency`.
- * - `preregisteredWords` - Occurrences which are pre-registered with the
- *                          `Frequency` metric occurrences.
+ * The optional `description` describes the frequency, and `attributes` attach
+ * dimensions to it. Use `preregisteredWords` to initialize occurrence counts
+ * for known string values before updates arrive.
  *
  * **Example** (Creating frequency metrics)
  *
@@ -2439,9 +2437,9 @@ export const frequency = (name: string, options?: {
  *
  * **Details**
  *
- * - `description` - A description of the `Histogram`.
- * - `attributes`  - The attributes to associate with the `Histogram`.
- * - `boundaries`  - The bucket boundaries of the `Histogram`
+ * The optional `description` describes the histogram, and `attributes` attach
+ * dimensions to it. The required `boundaries` option defines the histogram
+ * bucket boundaries.
  *
  * **Example** (Creating histogram metrics)
  *
@@ -2519,11 +2517,10 @@ export const histogram = (name: string, options: {
  *
  * **Details**
  *
- * - `description` - An description of the `Summary`.
- * - `attributes`  - The attributes to associate with the `Summary`.
- * - `maxAge`      - The maximum age of observations to retain.
- * - `maxSize`     - The maximum number of observations to keep.
- * - `quantiles`   - An array of quantiles to calculate (e.g., [0.5, 0.9]).
+ * The optional `description` describes the summary, and `attributes` attach
+ * dimensions to it. `maxAge` controls how long observations are retained,
+ * `maxSize` controls how many observations are kept, and `quantiles` lists the
+ * quantiles to calculate, such as `[0.5, 0.9]`.
  *
  * **Example** (Creating summary metrics)
  *
@@ -2618,11 +2615,10 @@ export const summary = (name: string, options: {
  * Inputs to this metric are `[value, timestamp]` pairs; the current clock is
  * used when reading quantiles against the configured `maxAge`.
  *
- * - `description` - An description of the `Summary`.
- * - `attributes`  - The attributes to associate with the `Summary`.
- * - `maxAge`      - The maximum age of observations to retain.
- * - `maxSize`     - The maximum number of observations to keep.
- * - `quantiles`   - An array of quantiles to calculate (e.g., [0.5, 0.9]).
+ * The optional `description` describes the summary, and `attributes` attach
+ * dimensions to it. `maxAge` controls how long observations are retained,
+ * `maxSize` controls how many observations are kept, and `quantiles` lists the
+ * quantiles to calculate, such as `[0.5, 0.9]`.
  *
  * **Example** (Creating summaries with explicit timestamps)
  *
@@ -2714,13 +2710,12 @@ export const timer = (name: string, options?: {
  *
  * **Details**
  *
- * The returned state depends on the metric type:
- *
- * - Counter: `CounterState<number | bigint>` with `count` and `incremental`
- * - Gauge: `GaugeState<number | bigint>` with `value`
- * - Frequency: `FrequencyState` with `occurrences`
- * - Histogram: `HistogramState` with buckets, count, min, max, and sum
- * - Summary: `SummaryState` with quantiles, count, min, max, and sum
+ * The returned state depends on the metric type. Counters return
+ * `CounterState<number | bigint>` with `count` and `incremental`, gauges return
+ * `GaugeState<number | bigint>` with `value`, frequencies return
+ * `FrequencyState` with `occurrences`, histograms return `HistogramState` with
+ * buckets, count, min, max, and sum, and summaries return `SummaryState` with
+ * quantiles, count, min, max, and sum.
  *
  * **Example** (Reading metric state)
  *
@@ -2767,13 +2762,11 @@ export const value = <Input, State>(
  *
  * **Details**
  *
- * The behavior of `modify` depends on the metric type:
- *
- * - **Counter**: Adds the input value to the current count
- * - **Gauge**: Adds the input value to the current gauge value
- * - **Frequency**: Same as `update` - increments the occurrence count for the input string
- * - **Histogram**: Same as `update` - records the input value in the appropriate bucket
- * - **Summary**: Same as `update` - records the input observation
+ * The behavior of `modify` depends on the metric type. Counters add the input
+ * value to the current count, gauges add the input value to the current gauge
+ * value, frequencies increment the occurrence count for the input string,
+ * histograms record the input value in the appropriate bucket, and summaries
+ * record the input observation.
  *
  * **Example** (Modifying metric values)
  *
@@ -2823,13 +2816,11 @@ export const modify: {
  *
  * **Details**
  *
- * The behavior of `update` depends on the metric type:
- *
- * - **Counter**: Adds the input value to the current count (same as `modify`)
- * - **Gauge**: Sets the gauge to the specified value (replaces current value)
- * - **Frequency**: Increments the occurrence count for the input string by 1
- * - **Histogram**: Records the input value in the appropriate bucket
- * - **Summary**: Records the input value as a new observation
+ * The behavior of `update` depends on the metric type. Counters add the input
+ * value to the current count, gauges replace the current value with the input
+ * value, frequencies increment the occurrence count for the input string,
+ * histograms record the input value in the appropriate bucket, and summaries
+ * record the input value as a new observation.
  *
  * **Example** (Updating metric values)
  *

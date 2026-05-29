@@ -598,10 +598,8 @@ export const all: <
  *
  * **Details**
  *
- * The returned tuple is `[excluded, satisfying]`, where:
- *
- * - `excluded` contains all failures.
- * - `satisfying` contains all successes.
+ * The returned tuple is `[excluded, satisfying]`, where `excluded` contains
+ * all failures and `satisfying` contains all successes.
  *
  * This function runs every effect and never fails. Use `concurrency` to control
  * parallelism.
@@ -1083,10 +1081,12 @@ export const succeedSome: <A>(value: A) => Effect<Option<A>> = internal.succeedS
  *
  * **Details**
  *
- * `suspend` takes a thunk that represents the effect and wraps it in a suspended effect. This means the effect will not be created until it is explicitly needed, which is helpful in various scenarios:
- * - **Lazy Evaluation**: Helps optimize performance by deferring computations, especially when the effect might not be needed, or when its computation is expensive. This also ensures that any side effects or scoped captures are re-executed on each invocation.
- * - **Handling Circular Dependencies**: Useful in managing circular dependencies, such as recursive functions that need to avoid eager evaluation to prevent stack overflow.
- * - **Unifying Return Types**: Can help TypeScript unify return types in situations where multiple branches of logic return different effects, simplifying type inference.
+ * `suspend` takes a thunk that represents an effect and delays creating it
+ * until the suspended effect is evaluated. This is useful for optimizing
+ * expensive computations, managing circular dependencies such as recursive
+ * functions, and helping TypeScript unify return types when branches construct
+ * different effects. Any side effects or scoped captures inside the thunk are
+ * re-executed on each invocation.
  *
  * **Example** (Lazily evaluating side effects)
  *
@@ -2644,8 +2644,10 @@ export {
    * effect. This ensures that the program continues without failing by recovering
    * from errors using the provided fallback logic.
    *
-   * **Note**: `catch` only handles recoverable errors. It will not recover
-   * from unrecoverable defects.
+   * **Gotchas**
+   *
+   * `catch` only handles recoverable errors. It will not recover from
+   * unrecoverable defects.
    *
    * @see {@link catchCause} for a version that can recover from both recoverable and unrecoverable errors.
    *
@@ -8961,10 +8963,9 @@ export const runPromiseWith: <R>(
  *
  * **Details**
  *
- * The `Exit` type represents the result of the effect:
- * - If the effect succeeds, the result is wrapped in a `Success`.
- * - If it fails, the failure information is provided as a `Failure` containing
- *   a `Cause` type.
+ * The `Exit` type represents the result of the effect. Successful effects are
+ * wrapped in `Success`, and failed effects are wrapped in `Failure` with a
+ * `Cause`.
  *
  * **Example** (Observing promise results as Exit)
  *
@@ -9149,10 +9150,9 @@ export const runSyncWith: <R>(
  *
  * **Details**
  *
- * The `Exit` type represents the result of the effect:
- * - If the effect succeeds, the result is wrapped in a `Success`.
- * - If it fails, the failure information is provided as a `Failure` containing
- *   a `Cause` type.
+ * The `Exit` type represents the result of the effect. Successful effects are
+ * wrapped in `Success`, and failed effects are wrapped in `Failure` with a
+ * `Cause`.
  *
  * If the effect contains asynchronous operations, `runSyncExit` will
  * return an `Failure` with a `Die` cause, indicating that the effect cannot be
@@ -14302,13 +14302,10 @@ export class Transaction extends Context.Service<
  * If called inside an active transaction, `tx` composes with the current transaction and reuses
  * its journal and retry state instead of creating a nested boundary.
  *
- * In Effect transactions are optimistic with retry, that means transactions are retried when:
- *
- * - the body of the transaction explicitely calls to `Effect.txRetry` and any of the
- *   accessed transactional values changes.
- *
- * - any of the accessed transactional values change during the execution of the transaction
- *   due to a different transaction committing before the current.
+ * Effect transactions are optimistic with retry. A transaction is retried when
+ * its body explicitly calls `Effect.txRetry` and any accessed transactional
+ * value changes, or when any accessed transactional value changes because a
+ * different transaction commits before the current one.
  *
  * The outermost `tx` call creates the transaction boundary and commits or rolls back the full
  * composed transaction.
@@ -14901,11 +14898,8 @@ export const satisfiesServicesType = <R>() => <A, E, R2 extends R>(effect: Effec
  *
  * **Details**
  *
- * Behavior:
- *
- * - For **Success effects**: Applies the mapping function immediately to the value
- * - For **Failure effects**: Returns the failure as-is without applying the mapping
- * - For **Pending effects**: Falls back to the regular `map` behavior
+ * Success effects apply the mapping function immediately. Failure effects pass
+ * through unchanged, and pending effects fall back to regular `map` behavior.
  *
  * **Example** (Mapping already completed effects)
  *
@@ -14940,11 +14934,9 @@ export const mapEager: {
  *
  * **Details**
  *
- * Behavior:
- *
- * - For **Success effects**: Returns the success as-is (no error to transform)
- * - For **Failure effects**: Applies the mapping function immediately to the error
- * - For **Pending effects**: Falls back to the regular `mapError` behavior
+ * Success effects pass through unchanged because there is no error to
+ * transform. Failure effects apply the mapping function immediately, and
+ * pending effects fall back to regular `mapError` behavior.
  *
  * **Example** (Mapping errors eagerly when possible)
  *
@@ -14981,11 +14973,9 @@ export const mapErrorEager: {
  *
  * **Details**
  *
- * Behavior:
- *
- * - For **Success effects**: Applies the `onSuccess` function immediately to the value
- * - For **Failure effects**: Applies the `onFailure` function immediately to the error
- * - For **Pending effects**: Falls back to the regular `mapBoth` behavior
+ * Success effects apply `onSuccess` immediately, and failure effects apply
+ * `onFailure` immediately. Pending effects fall back to regular `mapBoth`
+ * behavior.
  *
  * **Example** (Mapping both channels eagerly when possible)
  *
@@ -15029,11 +15019,9 @@ export const mapBothEager: {
  *
  * **Details**
  *
- * Behavior:
- *
- * - For **Success effects**: Applies the flatMap function immediately to the value
- * - For **Failure effects**: Returns the failure as-is without applying the flatMap
- * - For **Pending effects**: Falls back to the regular `flatMap` behavior
+ * Success effects apply the flatMap function immediately. Failure effects pass
+ * through unchanged, and pending effects fall back to regular `flatMap`
+ * behavior.
  *
  * **Example** (Flat mapping eagerly when possible)
  *
@@ -15070,11 +15058,9 @@ export const flatMapEager: {
  *
  * **Details**
  *
- * Behavior:
- *
- * - For **Success effects**: Returns the success as-is (no error to catch)
- * - For **Failure effects**: Applies the catch function immediately to the error
- * - For **Pending effects**: Falls back to the regular `catch` behavior
+ * Success effects pass through unchanged because there is no error to catch.
+ * Failure effects apply the catch function immediately, and pending effects
+ * fall back to regular `catch` behavior.
  *
  * **Example** (Catching failures eagerly when possible)
  *

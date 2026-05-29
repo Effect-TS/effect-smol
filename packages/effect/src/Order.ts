@@ -92,10 +92,10 @@ import * as Reducer from "./Reducer.ts"
  *
  * **Details**
  *
- * - Returns `-1` if the first value is less than the second
- * - Returns `0` if the values are equal according to this ordering
- * - Returns `1` if the first value is greater than the second
- * - Must satisfy total ordering laws (totality, antisymmetry, transitivity)
+ * An order returns `-1` when the first value is less than the second, `0` when
+ * the values are equal according to this ordering, and `1` when the first value
+ * is greater than the second. It must satisfy total ordering laws: totality,
+ * antisymmetry, and transitivity.
  *
  * **Example** (Custom Order)
  *
@@ -131,8 +131,8 @@ export interface Order<in A> {
  *
  * **Details**
  *
- * - Type-level only: no runtime representation
- * - Used internally by the Effect type system
+ * This is type-level only, has no runtime representation, and is used
+ * internally by the Effect type system.
  *
  * @category type lambdas
  * @since 2.0.0
@@ -150,9 +150,10 @@ export interface OrderTypeLambda extends TypeLambda {
  *
  * **Details**
  *
- * - Uses reference equality (`===`) as a shortcut: if `self === that`, returns `0` without calling the comparison function
- * - The comparison function should return `-1`, `0`, or `1` based on the comparison result
- * - The returned order satisfies total ordering laws if the comparison function does
+ * Uses reference equality (`===`) as a shortcut: if `self === that`, it returns
+ * `0` without calling the comparison function. The comparison function should
+ * return `-1`, `0`, or `1`, and the returned order satisfies total ordering
+ * laws when the comparison function does.
  *
  * **Example** (Creating an Order)
  *
@@ -189,9 +190,8 @@ export function make<A>(
  *
  * **Details**
  *
- * - Uses lexicographic (dictionary) ordering
- * - Empty string is less than any non-empty string
- * - Comparison is case-sensitive
+ * Uses lexicographic dictionary ordering. The empty string is less than any
+ * non-empty string, and comparisons are case-sensitive.
  *
  * **Example** (String Ordering)
  *
@@ -219,10 +219,9 @@ export const String: Order<string> = make((self, that) => self < that ? -1 : 1)
  *
  * **Details**
  *
- * - `0` is considered equal to `-0`
- * - All `NaN` values are considered equal to each other
- * - Any `NaN` is considered less than any non-NaN number
- * - Uses standard numeric comparison for all other values
+ * `0` is considered equal to `-0`. All `NaN` values are considered equal to
+ * each other, and any `NaN` is considered less than any non-`NaN` number. All
+ * other values use standard numeric comparison.
  *
  * **Example** (Number Ordering)
  *
@@ -258,8 +257,7 @@ export const Number: Order<number> = make((self, that) => {
  *
  * **Details**
  *
- * - `false` is less than `true`
- * - Equal values return `0`
+ * `false` is less than `true`, and equal values return `0`.
  *
  * **Example** (Boolean Ordering)
  *
@@ -286,8 +284,8 @@ export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1
  *
  * **Details**
  *
- * - Uses standard numeric comparison for bigint values
- * - Handles arbitrarily large integers
+ * Uses standard numeric comparison for bigint values and handles arbitrarily
+ * large integers.
  *
  * **Example** (BigInt Ordering)
  *
@@ -315,9 +313,9 @@ export const BigInt: Order<bigint> = make((self, that) => self < that ? -1 : 1)
  *
  * **Details**
  *
- * - Returns a new order that swaps the arguments before comparison
- * - If the original order returns `-1`, the flipped order returns `1`, and vice versa
- * - Equal comparisons remain `0`
+ * Returns a new order that swaps the arguments before comparison. If the
+ * original order returns `-1`, the flipped order returns `1`, and vice versa.
+ * Equal comparisons remain `0`.
  *
  * **Example** (Reversing Order)
  *
@@ -349,9 +347,9 @@ export function flip<A>(O: Order<A>): Order<A> {
  *
  * **Details**
  *
- * - First applies the first order; if the result is non-zero, returns that result
- * - If the first order returns `0` (equal), applies the second order
- * - Returns the first non-zero result, or `0` if both orders return `0`
+ * First applies the first order. If the result is non-zero, that result is
+ * returned; otherwise, the second order is applied. The result is the first
+ * non-zero comparison result, or `0` if both orders return `0`.
  *
  * **Example** (Combining Orders)
  *
@@ -402,8 +400,8 @@ export const combine: {
  *
  * **Details**
  *
- * - Always returns `0` regardless of input values
- * - Useful as a neutral element in order composition
+ * Always returns `0` regardless of input values, making it useful as a neutral
+ * element in order composition.
  *
  * **Example** (Always Equal Order)
  *
@@ -435,10 +433,8 @@ export function alwaysEqual<A>(): Order<A> {
  *
  * **Details**
  *
- * - Applies orders in iteration order
- * - Returns the first non-zero result from any order
- * - Returns `0` only if all orders return `0`
- * - Short-circuits on the first non-zero result
+ * Applies orders in iteration order and short-circuits on the first non-zero
+ * result. It returns `0` only if all orders return `0`.
  *
  * **Example** (Combining Multiple Orders)
  *
@@ -490,9 +486,9 @@ export function combineAll<A>(collection: Iterable<Order<A>>): Order<A> {
  *
  * **Details**
  *
- * - Applies the mapping function to both values before comparison
- * - The mapping function should be pure and not have side effects
- * - Preserves the ordering properties of the original order
+ * Applies the mapping function to both values before comparison. The mapping
+ * function should be pure and not have side effects so the ordering properties
+ * of the original order are preserved.
  *
  * **Example** (Mapping Input)
  *
@@ -528,9 +524,9 @@ export const mapInput: {
  *
  * **Details**
  *
- * - Compares dates by their underlying timestamp (milliseconds since epoch)
- * - Earlier dates are less than later dates
- * - Invalid dates are compared as if they were valid (uses `getTime()` result)
+ * Compares dates by their underlying timestamp in milliseconds since the epoch.
+ * Earlier dates are less than later dates. Invalid dates are compared through
+ * their `getTime()` result.
  *
  * **Example** (Date Ordering)
  *
@@ -560,10 +556,9 @@ export const Date: Order<Date> = mapInput(Number, (date) => date.getTime())
  *
  * **Details**
  *
- * - Compares tuples element-by-element using the corresponding order
- * - Stops at the first non-zero comparison result
- * - Requires tuples to have the same length as the order collection
- * - Returns `0` if all elements are equal
+ * Compares tuples element-by-element using the corresponding order and stops at
+ * the first non-zero comparison result. Tuples must have the same length as the
+ * order collection, and the result is `0` only if all elements are equal.
  *
  * **Example** (Tuple Ordering)
  *
@@ -624,10 +619,10 @@ export {
    *
    * **Details**
    *
-   * - Compares arrays element-by-element using the provided order
-   * - Stops at the first non-zero comparison result
-   * - If all elements are equal, shorter arrays are less than longer arrays
-   * - Returns `0` only if arrays have the same length and all elements are equal
+   * Compares arrays element-by-element using the provided order and stops at the
+   * first non-zero comparison result. If all elements are equal, shorter arrays
+   * are less than longer arrays. The result is `0` only if arrays have the same
+   * length and all elements are equal.
    *
    * **Example** (Array Element Ordering)
    *
@@ -658,10 +653,9 @@ export {
  *
  * **Details**
  *
- * - Compares structs field-by-field in the order of keys in the fields object
- * - Stops at the first non-zero comparison result
- * - Returns `0` only if all fields are equal
- * - Field order matters: earlier fields take precedence
+ * Compares structs field-by-field in the key order of the fields object and
+ * stops at the first non-zero comparison result. Field order matters: earlier
+ * fields take precedence. The result is `0` only if all fields are equal.
  *
  * **Example** (Struct Ordering)
  *
@@ -711,9 +705,9 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  *
  * **Details**
  *
- * - Returns `true` if the order returns `-1` (first value is less than second)
- * - Returns `false` for equal or greater values
- * - Supports curried and uncurried call styles
+ * Returns `true` if the order returns `-1`, meaning the first value is less
+ * than the second. Equal or greater values return `false`. Both curried and
+ * uncurried call styles are supported.
  *
  * **Example** (Less Than)
  *
@@ -746,9 +740,9 @@ export const isLessThan = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns `true` if the order returns `1` (first value is greater than second)
- * - Returns `false` for equal or lesser values
- * - Supports curried and uncurried call styles
+ * Returns `true` if the order returns `1`, meaning the first value is greater
+ * than the second. Equal or lesser values return `false`. Both curried and
+ * uncurried call styles are supported.
  *
  * **Example** (Greater Than)
  *
@@ -781,9 +775,8 @@ export const isGreaterThan = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns `true` if the order returns `-1` or `0` (less than or equal)
- * - Returns `false` only if the order returns `1` (greater than)
- * - Supports curried and uncurried call styles
+ * Returns `true` if the order returns `-1` or `0`, and returns `false` only if
+ * the order returns `1`.
  *
  * **Example** (Less Than Or Equal)
  *
@@ -816,9 +809,8 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns `true` if the order returns `1` or `0` (greater than or equal)
- * - Returns `false` only if the order returns `-1` (less than)
- * - Supports curried and uncurried call styles
+ * Returns `true` if the order returns `1` or `0`, and returns `false` only if
+ * the order returns `-1`.
  *
  * **Example** (Greater Than Or Equal)
  *
@@ -851,9 +843,9 @@ export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns the value that compares as less than or equal to the other
- * - If values are equal, returns the first argument
- * - Supports curried and uncurried call styles
+ * Returns the value that compares as less than or equal to the other value. If
+ * values are equal, the first argument is returned. Both curried and uncurried
+ * call styles are supported.
  *
  * **Example** (Minimum Value)
  *
@@ -886,9 +878,9 @@ export const min = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns the value that compares as greater than or equal to the other
- * - If values are equal, returns the first argument
- * - Supports curried and uncurried call styles
+ * Returns the value that compares as greater than or equal to the other value.
+ * If values are equal, the first argument is returned. Both curried and
+ * uncurried call styles are supported.
  *
  * **Example** (Maximum Value)
  *
@@ -921,11 +913,10 @@ export const max = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns the value if it's between minimum and maximum (inclusive)
- * - Returns minimum if the value is less than minimum
- * - Returns maximum if the value is greater than maximum
- * - Supports curried and uncurried call styles
- * - Requires that minimum <= maximum according to the order
+ * Returns the value itself when it is between minimum and maximum, inclusive.
+ * Values below the range return minimum, and values above the range return
+ * maximum. The minimum must be less than or equal to the maximum according to
+ * the order.
  *
  * **Example** (Clamping Values)
  *
@@ -972,10 +963,9 @@ export const clamp = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns `true` if the value is greater than or equal to minimum and less than or equal to maximum
- * - Returns `false` if the value is outside the range
- * - Supports curried and uncurried call styles
- * - Both bounds are inclusive
+ * Returns `true` when the value is greater than or equal to minimum and less
+ * than or equal to maximum. Values outside the range return `false`. Both
+ * bounds are inclusive.
  *
  * **Example** (Checking Range)
  *
@@ -1024,10 +1014,10 @@ export const isBetween = <A>(O: Order<A>): {
  *
  * **Details**
  *
- * - Returns a reducer that combines orders using {@link combine}
- * - Uses {@link alwaysEqual} as the identity element (returns `0` for empty collections)
- * - Uses {@link combineAll} for combining collections of orders
- * - The reducer can be used with fold operations on collections
+ * Returns a reducer that combines orders using `combine`, uses `alwaysEqual` as
+ * the identity element for empty collections, and uses `combineAll` for
+ * combining collections of orders. The reducer can be used with fold operations
+ * on collections.
  *
  * **Example** (Creating a Reducer)
  *
