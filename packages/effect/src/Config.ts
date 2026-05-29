@@ -978,7 +978,8 @@ export function nonEmptyString(name?: string) {
  *
  * **When to use**
  *
- * Use to read a numeric config value when `NaN` and `Infinity` are acceptable.
+ * Use when you need config input to accept JavaScript's full number domain,
+ * including NaN and infinities, rather than reject non-finite values.
  *
  * **Details**
  *

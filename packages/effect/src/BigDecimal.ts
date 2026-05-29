@@ -325,7 +325,8 @@ export const scale: {
  *
  * **When to use**
  *
- * Use to add two `BigDecimal` values.
+ * Use when you need a decimal addition function for piping or higher-order APIs
+ * while preserving decimal precision.
  *
  * **Example** (Adding decimals)
  *
@@ -372,7 +373,8 @@ export const sum: {
  *
  * **When to use**
  *
- * Use to sum all `BigDecimal` values in an iterable.
+ * Use when you need to aggregate decimal quantities with decimal precision
+ * instead of converting through JavaScript numbers.
  *
  * **Example** (Adding multiple decimals)
  *
@@ -1851,7 +1853,8 @@ export const round: {
  *
  * **When to use**
  *
- * Use to remove digits beyond a requested scale by rounding toward zero.
+ * Use when you need to discard fractional digits beyond a scale rather than
+ * round half up, half down, or toward an infinity.
  *
  * **Example** (Truncating decimals)
  *

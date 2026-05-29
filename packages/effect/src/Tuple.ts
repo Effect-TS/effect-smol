@@ -245,7 +245,8 @@ export const omit: {
  *
  * **When to use**
  *
- * Use to add one element to the end of a tuple while preserving tuple types.
+ * Use when you need the appended value to remain part of the tuple's type-level
+ * shape and preserve literal element positions.
  *
  * **Details**
  *

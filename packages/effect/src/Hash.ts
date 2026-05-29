@@ -400,7 +400,8 @@ export const number = (n: number) => {
  *
  * **When to use**
  *
- * Use to hash a string directly.
+ * Use when you need a string field to contribute to a custom structural hash
+ * implementation.
  *
  * **Details**
  *

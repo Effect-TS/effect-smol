@@ -250,8 +250,8 @@ export type CodeExecutionBashCommand = typeof CodeExecutionBashCommand.Type
  *
  * **When to use**
  *
- * Use to validate or construct the `view` command for Anthropic code execution
- * text editor tool calls.
+ * Use when you need the schema for provider-bound code-execution view requests
+ * before distinguishing them from create or replace text-editor commands.
  *
  * **Details**
  *
@@ -277,8 +277,8 @@ export const CodeExecutionTextEditorView = Schema.Struct({
  *
  * **When to use**
  *
- * Use when handling or validating the `view` command for Anthropic's text
- * editor code execution tool.
+ * Use when working at the Anthropic protocol boundary and the code-execution
+ * view request must be distinguished from standalone text-editor view requests.
  *
  * **Details**
  *
@@ -400,8 +400,8 @@ const CodeExecution_20250522_Parameters = Schema.Union([
  *
  * **When to use**
  *
- * Use when validating or constructing the input payload for the 2025-08-25
- * Anthropic code execution tool.
+ * Use when you need the schema for code-execution input at the Anthropic
+ * protocol boundary before sending source code to the 2025-08-25 tool.
  *
  * @see {@link CodeExecution_20250825} for the provider-defined tool that consumes this schema
  *
@@ -419,7 +419,8 @@ export const CodeExecution_20250825_Parameters = Schema.Struct({
  *
  * **When to use**
  *
- * Use when typing input passed to the 2025-08-25 Anthropic code execution tool.
+ * Use when exposing the 2025-08-25 code-execution payload separately from the
+ * provider tool definition, such as at a transport or persistence boundary.
  *
  * **Details**
  *

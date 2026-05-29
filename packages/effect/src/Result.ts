@@ -1766,8 +1766,8 @@ export {
    *
    * **When to use**
    *
-   * Use when you need to add a pure computed field to a `Result`
-   * do-notation accumulator.
+   * Use when you need to add a derived field that cannot fail inside a
+   * do-notation pipeline.
    *
    * **Details**
    *

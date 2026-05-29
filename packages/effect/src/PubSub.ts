@@ -1476,8 +1476,8 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  *
  * **When to use**
  *
- * Use when you need a synchronous check of messages currently available in a
- * subscription where `Option.none()` represents a shut-down subscription.
+ * Use when you need synchronous polling outside a managed workflow and want
+ * shutdown observed as data instead of interruption.
  *
  * **Example** (Checking remaining messages synchronously)
  *

@@ -75,7 +75,8 @@ export interface SchedulerDispatcher {
  *
  * **When to use**
  *
- * Use to provide or override the scheduler used by the Effect runtime.
+ * Use when you need to replace scheduling behavior globally in tests or runtime
+ * setup, such as forcing deterministic task dispatch.
  *
  * **Details**
  *
@@ -179,7 +180,8 @@ export class MixedScheduler implements Scheduler {
    *
    * **When to use**
    *
-   * Use to create a dispatcher for enqueuing work through this scheduler.
+   * Use when you need a standalone dispatcher from a scheduler instance, for
+   * example in tests that enqueue tasks and then flush them deterministically.
    *
    * @since 4.0.0
    */

@@ -3421,12 +3421,8 @@ export {
  *
  * **When to use**
  *
- * Use to check an existing schedule input type.
- *
- * **Details**
- *
- * This helper is checked at compile time and does not change the schedule's
- * runtime behavior.
+ * Use when you need a generic helper to prove that an existing schedule can
+ * consume a required input type without changing runtime behavior.
  *
  * **Example** (Constraining schedule input types)
  *

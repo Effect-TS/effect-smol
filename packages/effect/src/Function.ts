@@ -54,7 +54,8 @@ import { pipeArguments } from "./Pipeable.ts"
  *
  * **When to use**
  *
- * Use to represent unary function types in higher-kinded type operations.
+ * Use when defining higher-kinded abstractions that must accept function types
+ * as one of their type-lambda inputs.
  *
  * **Example** (Creating a function type with a type lambda)
  *

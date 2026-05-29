@@ -2270,8 +2270,8 @@ export const toJsonSchemaDocument: (
  *
  * **When to use**
  *
- * Use when you already have a schema representation `MultiDocument` and need a
- * Draft 2020-12 JSON Schema multi-document.
+ * Use when you need to export related schema representation documents together
+ * so shared definitions stay in multi-document JSON Schema form.
  *
  * @see {@link MultiDocument}
  * @see {@link toJsonSchemaDocument}

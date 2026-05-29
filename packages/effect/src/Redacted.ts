@@ -321,8 +321,8 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRe
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` for `Redacted` values based on their
- * underlying values.
+ * Use when you need to compare wrapped secrets through an approved equality
+ * rule without exposing the underlying values at each comparison site.
  *
  * **Example** (Comparing redacted values)
  *

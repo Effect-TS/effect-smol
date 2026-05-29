@@ -420,7 +420,8 @@ export declare namespace TaggedEnum {
    *
    * **When to use**
    *
-   * Use to type the constructors-and-matchers object returned by `taggedEnum`.
+   * Use when you want to annotate an exported constructor bundle so downstream
+   * code keeps exact variant constructors and exhaustive matching.
    *
    * **Details**
    *
@@ -586,7 +587,8 @@ export declare namespace TaggedEnum {
  *
  * **When to use**
  *
- * Use when you have a `TaggedEnum` type and need constructors and matchers for its values.
+ * Use when you model a closed union with plain data objects and want
+ * construction, tag checks, and exhaustive matching from the same definition.
  *
  * **Details**
  *

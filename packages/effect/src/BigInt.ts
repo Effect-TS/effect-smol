@@ -141,7 +141,8 @@ export const isBigInt: (u: unknown) => u is bigint = predicate.isBigInt
  *
  * **When to use**
  *
- * Use to add two `bigint` values.
+ * Use when you need a binary addition function for piping or higher-order APIs
+ * instead of the infix addition operator.
  *
  * **Example** (Adding bigints)
  *
@@ -806,7 +807,8 @@ export const sqrt = (n: bigint): Option.Option<bigint> =>
  *
  * **When to use**
  *
- * Use to sum all `bigint` values in an iterable.
+ * Use when you want an immediate aggregate from an iterable instead of a
+ * folding reducer owned by another API.
  *
  * **Example** (Summing iterable bigints)
  *
@@ -983,12 +985,8 @@ export function fromNumber(n: number): Option.Option<bigint> {
  *
  * **When to use**
  *
- * Use to compute the JavaScript `%` remainder for two `bigint` values.
- *
- * **Details**
- *
- * The result follows JavaScript `%` semantics, including the sign of the
- * dividend.
+ * Use when you want native remainder semantics, including signed remainders and
+ * a thrown division-by-zero error.
  *
  * **Gotchas**
  *

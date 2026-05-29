@@ -113,8 +113,8 @@ export interface Console {
  *
  * **When to use**
  *
- * Use when you need to access, provide, or override the current console service
- * through Effect context.
+ * Use when you need an effect to run against a provided console implementation,
+ * such as tests or alternate runtimes, rather than the default console.
  *
  * **Details**
  *

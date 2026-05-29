@@ -306,8 +306,8 @@ export const remove: {
  *
  * **When to use**
  *
- * Use to check whether a node value is already registered in a ring by its
- * `PrimaryKey` value.
+ * Use when you need to know whether registering a node would update an existing
+ * ring member because another node already has the same primary-key identity.
  *
  * **Details**
  *

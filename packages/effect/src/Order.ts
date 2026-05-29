@@ -146,7 +146,8 @@ export interface OrderTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * Use when you need a custom order for a type.
+ * Use when you need a sorting rule not covered by the built-in orders or input
+ * mapping helpers, and you can provide a total comparison.
  *
  * **Details**
  *
@@ -960,8 +961,9 @@ export const clamp = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to check whether a value is within an inclusive range
- * according to an `Order`.
+ * Use when you need range checks that respect domain-specific ordering, such as
+ * dates, versions, or custom priorities, instead of JavaScript numeric
+ * comparison.
  *
  * **Details**
  *

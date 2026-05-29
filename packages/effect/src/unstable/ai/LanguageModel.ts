@@ -758,8 +758,9 @@ export interface ProviderOptions {
  *
  * **When to use**
  *
- * Use to build a `LanguageModel.Service` from provider-specific final and
- * streaming text generation functions.
+ * Use when you are implementing a provider adapter and need to expose the
+ * standard language-model service while keeping provider-specific request hooks
+ * behind it.
  *
  * **Details**
  *

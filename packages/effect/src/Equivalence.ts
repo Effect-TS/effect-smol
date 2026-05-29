@@ -143,7 +143,8 @@ export interface EquivalenceTypeLambda extends TypeLambda {
  *
  * **When to use**
  *
- * Use when you need a custom equivalence relation.
+ * Use when you need an equality rule that the built-in instances and input
+ * mapping helpers cannot express, and you can provide a law-abiding comparison.
  *
  * **Details**
  *
@@ -244,7 +245,7 @@ export const strictEqual: <A>() => Equivalence<A> = () => isStrictEquivalent
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for string equality.
+ * Use when you need to supply case-sensitive string equality.
  *
  * **Example** (Comparing strings)
  *
@@ -265,12 +266,7 @@ export const String: Equivalence<string> = isStrictEquivalent
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for numeric equality where
- * `NaN` equals `NaN`.
- *
- * **Details**
- *
- * `NaN` is considered equal to `NaN`.
+ * Use when you need numeric equality that treats NaN as equal to itself.
  *
  * **Example** (Comparing numbers)
  *
@@ -294,7 +290,7 @@ export const Number: Equivalence<number> = make((self, that) =>
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for boolean equality.
+ * Use when you need to supply boolean equality.
  *
  * **Example** (Comparing booleans)
  *
@@ -315,7 +311,7 @@ export const Boolean: Equivalence<boolean> = isStrictEquivalent
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for `bigint` equality.
+ * Use when you need to supply bigint equality.
  *
  * **Example** (Comparing bigints)
  *

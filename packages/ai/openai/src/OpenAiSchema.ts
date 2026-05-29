@@ -1240,7 +1240,9 @@ export type CreateEmbeddingRequest = typeof CreateEmbeddingRequest.Type
  *
  * **When to use**
  *
- * Use to decode successful OpenAI embeddings responses.
+ * Use when you need to validate embeddings responses at an OpenAI client
+ * boundary before trusting item shapes, especially when numeric and string
+ * embeddings are both allowed.
  *
  * **Details**
  *

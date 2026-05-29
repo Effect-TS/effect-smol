@@ -65,8 +65,8 @@ export const AuthPayloadContext = "eventlog-auth-v1"
  *
  * **When to use**
  *
- * Use when you need to validate the byte length of raw Ed25519 public keys for
- * session authentication.
+ * Use when implementing session-auth serialization or validation that must
+ * reject public keys with a non-canonical raw byte length.
  *
  * @category constants
  * @since 4.0.0
@@ -78,8 +78,8 @@ export const Ed25519PublicKeyLength = 32
  *
  * **When to use**
  *
- * Use when you need to validate the byte length of Ed25519 signatures for
- * session authentication.
+ * Use when implementing session-auth verification that must reject signatures
+ * with a non-canonical byte length before cryptographic checking.
  *
  * @category constants
  * @since 4.0.0

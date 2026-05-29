@@ -276,7 +276,8 @@ export interface OptionUnifyIgnore {}
  *
  * **When to use**
  *
- * Use to represent `Option` in higher-kinded type operations.
+ * Use when defining higher-kinded abstractions that must accept optional-value
+ * types as one of their type-lambda inputs.
  *
  * @category type lambdas
  * @since 2.0.0
@@ -848,8 +849,8 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  *
  * **When to use**
  *
- * Use when you need to convert a value that may be `null` or `undefined` into
- * an `Option`.
+ * Use when you need JavaScript nullish values to become absence at an API
+ * boundary while all other values, including falsy ones, remain present.
  *
  * **Details**
  *

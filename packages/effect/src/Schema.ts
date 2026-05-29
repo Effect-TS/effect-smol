@@ -8652,8 +8652,8 @@ export type CauseReasonIso<E extends Top, D extends Top> = {
  *
  * **When to use**
  *
- * Use to validate, transform, or serialize individual `Cause.Reason` values
- * when typed failures and unexpected defects need separate schemas.
+ * Use when serializing or decoding individual cause reasons separately from a
+ * full failure cause, with distinct schemas for typed errors and defects.
  *
  * **Details**
  *

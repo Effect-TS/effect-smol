@@ -3373,7 +3373,8 @@ export const catchFilter: {
  *
  * **When to use**
  *
- * Use to convert `NoSuchElementError` failures into `Option.none`.
+ * Use when you expect missing-value failures and want them to become an
+ * optional success while all other failures keep failing.
  *
  * **Details**
  *

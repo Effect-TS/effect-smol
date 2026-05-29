@@ -632,12 +632,8 @@ export const matchRight: {
  *
  * **When to use**
  *
- * Use to add a single element at the start of an iterable and return a
- * `NonEmptyArray`.
- *
- * **Details**
- *
- * Always returns a non-empty array.
+ * Use when you need to guarantee a non-empty result after adding a required
+ * leading value.
  *
  * **Example** (Prepending an element)
  *
@@ -702,12 +698,8 @@ export const prependAll: {
  *
  * **When to use**
  *
- * Use to add one element to the end of an iterable and return a new
- * `NonEmptyArray`.
- *
- * **Details**
- *
- * Always returns a non-empty array.
+ * Use when you need to guarantee a non-empty result after adding a required
+ * trailing value.
  *
  * **Example** (Appending an element)
  *
@@ -2058,7 +2050,8 @@ export const modify: {
  *
  * **When to use**
  *
- * Use to remove a single array element at a known index.
+ * Use when you want a missing index to be a no-op and need a fresh array result
+ * instead of an optional failure.
  *
  * **Example** (Removing an element)
  *
@@ -3654,8 +3647,8 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  *
  * **When to use**
  *
- * Use to collect only failure values from an iterable of `Result` values while
- * discarding successes.
+ * Use when you can drop the success channel and only need the failure
+ * payloads, not the original result wrappers.
  *
  * **Example** (Extracting failures)
  *
@@ -3691,8 +3684,8 @@ export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
  *
  * **When to use**
  *
- * Use to collect only success values from an iterable of `Result` values while
- * discarding failures.
+ * Use when you can drop the failure channel and only need the success
+ * payloads, not the original result wrappers.
  *
  * **Example** (Extracting successes)
  *
