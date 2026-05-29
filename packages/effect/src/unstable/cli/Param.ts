@@ -1054,8 +1054,8 @@ export const withDescription: {
  *
  * **When to use**
  *
- * Use when experimental, internal, or deprecated flags that should be
- * accepted but not advertised.
+ * Use when experimental, internal, or deprecated flags should be accepted but
+ * not advertised.
  *
  * **Example** (Hiding a flag from help)
  *

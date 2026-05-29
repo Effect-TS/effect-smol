@@ -377,8 +377,8 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
  *
  * **When to use**
  *
- * Use when you want client settings read from Effect `Config` values while
- * providing `OpenAiClient` as a `Layer`.
+ * Use when you need client settings for OpenAI-compatible APIs to be read from
+ * Effect `Config` values while providing `OpenAiClient` as a `Layer`.
  *
  * **Details**
  *

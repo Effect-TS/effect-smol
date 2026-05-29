@@ -194,7 +194,7 @@ const Proto = {
  * **When to use**
  *
  * Use to build a custom config that cannot be expressed with {@link schema} or
- * convenience constructors, or to compose configs programmatically.
+ * convenience constructors, or compose configs programmatically.
  *
  * **Details**
  *

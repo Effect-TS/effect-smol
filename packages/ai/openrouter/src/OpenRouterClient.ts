@@ -293,8 +293,8 @@ export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, Ht
  *
  * **When to use**
  *
- * Use when OpenRouter client settings should be read from Effect `Config`
- * values while providing `OpenRouterClient` as a layer.
+ * Use when you need client settings for OpenRouter to be read from Effect
+ * `Config` values while providing `OpenRouterClient` as a layer.
  *
  * **Details**
  *

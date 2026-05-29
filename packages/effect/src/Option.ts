@@ -323,7 +323,7 @@ export const none = <A = never>(): Option<A> => option.none
  *
  * **When to use**
  *
- * Use to wrap a known-present value as `Option`
+ * Use to wrap a known present value as `Option`
  * - Returning a successful result from a partial function
  *
  * **Details**
@@ -614,7 +614,8 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * **When to use**
  *
- * Use when you only need the failure value from a `Result`.
+ * Use when you need to discard a `Result` success and keep only the failure
+ * value as an `Option`.
  *
  * **Details**
  *
@@ -1007,7 +1008,7 @@ export const liftNullishOr = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * Use when you need to pass missing optional values to APIs that expect `null`.
+ * Use when you need to pass absent `Option` values to APIs that expect `null`.
  *
  * **Details**
  *
@@ -1039,7 +1040,7 @@ export const getOrNull: <A>(self: Option<A>) => A | null = getOrElse(constNull)
  *
  * **When to use**
  *
- * Use when you need to pass missing optional values to APIs that expect
+ * Use when you need to pass absent `Option` values to APIs that expect
  * `undefined`.
  *
  * **Details**

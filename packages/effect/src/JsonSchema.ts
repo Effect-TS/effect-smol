@@ -259,8 +259,8 @@ export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
  *
  * **When to use**
  *
- * Use to populate the `$schema` field when emitting a JSON Schema document that
- * should declare JSON Schema Draft 2020-12.
+ * Use when you need to populate the `$schema` field while emitting a JSON
+ * Schema document that should declare JSON Schema Draft 2020-12.
  *
  * **Details**
  *
@@ -283,8 +283,8 @@ const RE_COMPONENTS_SCHEMAS = /^#\/components\/schemas(?=\/|$)/
  *
  * **When to use**
  *
- * Use when you have a JSON Schema that follows Draft-07 conventions and
- * need the canonical Draft-2020-12 document representation.
+ * Use when you have a raw JSON Schema object that follows Draft-07 conventions
+ * and need the canonical Draft-2020-12 document representation.
  *
  * **Details**
  *
@@ -436,7 +436,7 @@ export function fromSchemaDraft07(js: JsonSchema): Document<"draft-2020-12"> {
  *
  * **When to use**
  *
- * Use when you already have a schema in Draft-2020-12 format.
+ * Use when you already have a raw JSON Schema object in Draft-2020-12 format.
  *
  * **Details**
  *
@@ -478,7 +478,8 @@ export function fromSchemaDraft2020_12(js: JsonSchema): Document<"draft-2020-12"
  *
  * **When to use**
  *
- * Use when you need to consume schemas from an OpenAPI 3.1 specification.
+ * Use when you need to consume raw JSON Schema objects from an OpenAPI 3.1
+ * specification.
  *
  * **Details**
  *
@@ -517,7 +518,8 @@ export function fromSchemaOpenApi3_1(js: JsonSchema): Document<"draft-2020-12"> 
  *
  * **When to use**
  *
- * Use when you need to consume schemas from an OpenAPI 3.0 specification.
+ * Use when you need to consume raw JSON Schema objects from an OpenAPI 3.0
+ * specification.
  *
  * **Details**
  *
@@ -556,7 +558,8 @@ export function fromSchemaOpenApi3_0(schema: JsonSchema): Document<"draft-2020-1
  *
  * **When to use**
  *
- * Use when you need to output a schema in Draft-07 format.
+ * Use when you need to output a canonical JSON Schema document in Draft-07
+ * format.
  *
  * **Details**
  *
@@ -706,7 +709,8 @@ function toSchemaDraft07(schema: JsonSchema): JsonSchema {
  *
  * **When to use**
  *
- * Use when generating an OpenAPI 3.1 specification from internal schemas.
+ * Use when you need to emit an OpenAPI 3.1 multi-document from canonical JSON
+ * Schema documents.
  *
  * **Details**
  *
@@ -930,8 +934,8 @@ function widen_type(node: Record<string, unknown>): Record<string, unknown> {
  *
  * **When to use**
  *
- * Use when you need to dereference a `$ref` pointer to get the actual
- * schema it points to.
+ * Use when you need to dereference a `$ref` pointer to get the JSON Schema
+ * object it points to.
  *
  * **Details**
  *
@@ -979,8 +983,8 @@ export function resolve$ref($ref: string, definitions: Definitions): JsonSchema 
  *
  * **When to use**
  *
- * Use to dereference a top-level `$ref` before inspecting the root
- * schema's properties directly.
+ * Use when you need to dereference a top-level `$ref` before inspecting the
+ * root JSON Schema object's properties directly.
  *
  * **Details**
  *

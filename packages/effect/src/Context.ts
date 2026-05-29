@@ -193,7 +193,8 @@ export declare namespace ServiceClass {
  *
  * **When to use**
  *
- * Use when you need a dependency to be provided by the surrounding context.
+ * Use when you need to define a context service key for a dependency that must
+ * be provided by the surrounding context.
  *
  * **Details**
  *
@@ -798,7 +799,8 @@ export const addOrOmit: {
  *
  * **When to use**
  *
- * Use when you want a fallback value for a missing regular service.
+ * Use when you need a fallback for a missing `Context.Service` key while still
+ * resolving `Context.Reference` defaults.
  *
  * **Details**
  *
@@ -1329,8 +1331,8 @@ const withMapUnsafe = <Services, B>(self: Context<Services>, f: (map: Map<string
  *
  * **When to use**
  *
- * Use when a service should be available even if it is not explicitly stored in
- * the `Context`.
+ * Use when you need to define a context key with a lazily computed default
+ * value.
  *
  * **Details**
  *

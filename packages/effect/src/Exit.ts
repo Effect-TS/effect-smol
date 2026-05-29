@@ -729,8 +729,8 @@ export const filterCause: <A, E>(self: Exit<A, E>) => Result.Result<Cause.Cause<
  *
  * **When to use**
  *
- * Use when composing Exit checks with `Filter` or other `Result`-based
- * filtering APIs and you only need the first typed error in the Cause.
+ * Use when you need the first typed error from an `Exit` as a `Result` for
+ * `Filter` or other `Result`-based filtering APIs.
  *
  * **Details**
  *
@@ -769,8 +769,8 @@ export const findError: <A, E>(input: Exit<A, E>) => Result.Result<E, Exit<A, E>
  *
  * **When to use**
  *
- * Use when composing Exit checks with `Filter` or other `Result`-based
- * filtering APIs and you only need the first defect in the Cause.
+ * Use when you need the first defect from an `Exit` as a `Result` for
+ * `Filter` or other `Result`-based filtering APIs.
  *
  * **Details**
  *
@@ -1051,7 +1051,8 @@ export const asVoidAll: <I extends Iterable<Exit<any, any>>>(
  *
  * **When to use**
  *
- * Use when you want to optionally extract the value without pattern matching
+ * Use when you need the success value from an `Exit` as an `Option` instead of
+ * pattern matching.
  *
  * **Details**
  *
@@ -1079,7 +1080,8 @@ export const getSuccess: <A, E>(self: Exit<A, E>) => Option<A> = effect.exitGetS
  *
  * **When to use**
  *
- * Use when you want to optionally inspect the failure cause
+ * Use when you need the failure `Cause` from an `Exit` as an `Option` instead
+ * of pattern matching.
  *
  * **Details**
  *
@@ -1107,7 +1109,8 @@ export const getCause: <A, E>(self: Exit<A, E>) => Option<Cause.Cause<E>> = effe
  *
  * **When to use**
  *
- * Use when you want to optionally extract a typed error without dealing with the full Cause
+ * Use when you need the first typed error from an `Exit` as an `Option`,
+ * ignoring successes and non-typed failures.
  *
  * **Details**
  *

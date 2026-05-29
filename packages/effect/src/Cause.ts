@@ -854,7 +854,8 @@ export const hasFails: <E>(self: Cause<E>) => boolean = effect.hasFails
  *
  * **When to use**
  *
- * Use when you need the full `Fail` reason, including annotations.
+ * Use when you need the full `Fail` reason from a `Cause`, including
+ * annotations.
  *
  * **Example** (extracting the first Fail reason)
  *
@@ -883,7 +884,8 @@ export const findFail: <E>(self: Cause<E>) => Result.Result<Fail<E>, Cause<never
  *
  * **When to use**
  *
- * Use when you need the first typed error value as a `Result`.
+ * Use when you need the first typed error value from a `Cause` as a `Result`
+ * that preserves the original cause when no match is found.
  *
  * **Example** (extracting the first error value)
  *
@@ -964,7 +966,8 @@ export const hasDies: <E>(self: Cause<E>) => boolean = effect.hasDies
  *
  * **When to use**
  *
- * Use when you need the full `Die` reason, including annotations.
+ * Use when you need the full `Die` reason from a `Cause`, including
+ * annotations.
  *
  * **Example** (extracting the first Die reason)
  *
@@ -992,7 +995,8 @@ export const findDie: <E>(self: Cause<E>) => Result.Result<Die, Cause<E>> = effe
  *
  * **When to use**
  *
- * Use when you only need the unwrapped defect value.
+ * Use when you need the first defect value from a `Cause` as a `Result`,
+ * without the full `Die` reason.
  *
  * **Example** (extracting the first defect)
  *
@@ -1041,8 +1045,8 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
  *
  * **When to use**
  *
- * Use when you need the fiber ID and annotations from the first interruption
- * reason.
+ * Use when you need the first `Interrupt` reason from a `Cause`, including the
+ * fiber ID and annotations.
  *
  * **Example** (extracting the first interrupt)
  *

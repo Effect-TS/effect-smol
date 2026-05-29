@@ -235,7 +235,7 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
  * **When to use**
  *
  * Use to register one node in a `HashRing` so lookups and shard assignments can
- * return it, or to update that node's weight.
+ * return it, or update that node's weight.
  *
  * **Details**
  *

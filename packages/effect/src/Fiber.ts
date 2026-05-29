@@ -291,8 +291,8 @@ export const awaitAll: <A extends Fiber<any, any>>(
  *
  * **When to use**
  *
- * Use when the forked fiber is part of the current workflow and
- * its failure should fail the current Effect.
+ * Use when you need a forked fiber's failure to fail the current Effect because
+ * that fiber is part of the current workflow.
  *
  * **Gotchas**
  *

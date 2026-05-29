@@ -658,8 +658,8 @@ export const divide: {
  *
  * **When to use**
  *
- * Use when you need the decimal quotient and the divisor is known to be
- * non-zero, so division by zero should be a thrown exception.
+ * Use when you need to divide `BigDecimal` values where the divisor is known
+ * to be non-zero, so division by zero should be a thrown exception.
  *
  * **Details**
  *
@@ -1170,8 +1170,8 @@ export const remainder: {
  *
  * **When to use**
  *
- * Use when you need the decimal remainder and the divisor is known to be
- * non-zero, so division by zero should be a thrown exception.
+ * Use when you need to compute a `BigDecimal` remainder where the divisor is
+ * known to be non-zero, so division by zero should be a thrown exception.
  *
  * **Gotchas**
  *
@@ -1606,8 +1606,8 @@ export const toExponential = (n: BigDecimal): string => {
  *
  * **When to use**
  *
- * Use when you need a JavaScript number at an interop boundary and can tolerate
- * precision loss.
+ * Use when you need a JavaScript number at an interop boundary where precision
+ * loss is acceptable.
  *
  * **Gotchas**
  *

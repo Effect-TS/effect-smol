@@ -682,7 +682,8 @@ export const isSuccess: <A, E>(self: Result<A, E>) => self is Success<A, E> = re
  *
  * **When to use**
  *
- * Use to extract only the success value and discard failure information.
+ * Use when you need to extract the success value as an `Option` and discard
+ * failure information.
  *
  * **Details**
  *
@@ -714,7 +715,8 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * **When to use**
  *
- * Use to extract only the failure value and discard successful values.
+ * Use when you need to extract the failure value as an `Option` and discard
+ * successful values.
  *
  * **Details**
  *
@@ -1163,7 +1165,8 @@ export const getOrElse: {
  *
  * **When to use**
  *
- * Use with APIs that represent absence as `null`.
+ * Use when you need to pass failed `Result` values to APIs that represent
+ * absence as `null`.
  *
  * **Details**
  *
@@ -1195,7 +1198,8 @@ export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(const
  *
  * **When to use**
  *
- * Use with APIs that represent absence as `undefined`.
+ * Use when you need to pass failed `Result` values to APIs that represent
+ * absence as `undefined`.
  *
  * **Details**
  *

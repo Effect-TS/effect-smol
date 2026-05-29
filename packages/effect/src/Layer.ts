@@ -891,8 +891,8 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  *
  * **When to use**
  *
- * Use when the service can be created synchronously but should be deferred until the
- * layer is built.
+ * Use when you need to provide one service whose value is created
+ * synchronously, but creation should be deferred until the layer is built.
  *
  * **Details**
  *
@@ -971,8 +971,8 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  *
  * **When to use**
  *
- * Use when constructing the service requires effects, dependencies, or scoped resource
- * acquisition.
+ * Use when you need to construct a service with an Effect, dependencies, or
+ * scoped resource acquisition.
  *
  * **Details**
  *

@@ -4902,7 +4902,8 @@ export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
  *
  * **When to use**
  *
- * Use when you only need the number of elements that satisfy a predicate.
+ * Use when you need to count how many elements of an iterable satisfy a
+ * predicate.
  *
  * **Details**
  *

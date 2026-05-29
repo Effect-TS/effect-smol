@@ -102,7 +102,8 @@ import * as SchemaIssue from "./SchemaIssue.ts"
  *
  * **When to use**
  *
- * Use when you need to catch or recover from parsing errors (e.g. `Schema.catchDecoding`).
+ * Use when you need a schema middleware to catch or recover from parsing
+ * errors (e.g. `Schema.catchDecoding`).
  * - You need to run side effects around the parsing pipeline.
  * - You need access to the full `Effect` rather than a single decoded value.
  *
@@ -175,7 +176,8 @@ const TypeId = "~effect/SchemaTransformation/Transformation"
  *
  * **When to use**
  *
- * Use when you need to define how a schema converts between two representations.
+ * Use when you need a schema transformation that defines how a schema converts
+ * between two representations.
  * - You want to compose multiple transformations into a pipeline.
  * - You want to flip a transformation to swap decode/encode.
  *
@@ -239,7 +241,8 @@ export class Transformation<in out T, in out E, RD = never, RE = never> {
  *
  * **When to use**
  *
- * Use to check whether a value is already a Transformation before wrapping it.
+ * Use to check whether a value is already a schema transformation before
+ * wrapping it.
  *
  * **Details**
  *
@@ -274,7 +277,8 @@ export function isTransformation(u: unknown): u is Transformation<any, any, unkn
  *
  * **When to use**
  *
- * Use when you already have `Getter` instances and want to pair them.
+ * Use when you already have schema getter instances and want to pair them into
+ * a schema transformation.
  * - You want idempotent wrapping (won't double-wrap).
  *
  * **Details**
@@ -368,8 +372,8 @@ export function transformOrFail<T, E, RD = never, RE = never>(options: {
  *
  * **When to use**
  *
- * Use when you need an infallible conversion that does not require Effect
- * services.
+ * Use when you need an infallible schema transformation that does not require
+ * Effect services.
  *
  * **Details**
  *
@@ -416,7 +420,8 @@ export function transform<T, E>(options: {
  *
  * **When to use**
  *
- * Use when you need to produce or consume `Option.None` to represent absent keys.
+ * Use when you need a schema transformation to produce or consume `Option.None`
+ * for absent keys.
  * - You are working with optional struct fields.
  *
  * **Details**
@@ -467,7 +472,8 @@ export function transformOptional<T, E>(options: {
  *
  * **When to use**
  *
- * Use to normalize user input by stripping leading/trailing whitespace.
+ * Use when you need a schema transformation to normalize user input by
+ * stripping leading/trailing whitespace.
  *
  * **Details**
  *
@@ -505,7 +511,8 @@ export function trim(): Transformation<string, string> {
  *
  * **When to use**
  *
- * Use to convert API field names between snake_case and camelCase conventions.
+ * Use when you need a schema transformation to convert API field names between
+ * snake_case and camelCase conventions.
  *
  * **Details**
  *
@@ -542,7 +549,8 @@ export function snakeToCamel(): Transformation<string, string> {
  *
  * **When to use**
  *
- * Use to normalize strings to lowercase (e.g. email addresses).
+ * Use when you need a schema transformation to normalize strings to lowercase
+ * (e.g. email addresses).
  *
  * **Details**
  *
@@ -579,7 +587,8 @@ export function toLowerCase(): Transformation<string, string> {
  *
  * **When to use**
  *
- * Use to normalize strings to uppercase (e.g. country codes).
+ * Use when you need a schema transformation to normalize strings to uppercase
+ * (e.g. country codes).
  *
  * **Details**
  *
@@ -616,7 +625,8 @@ export function toUpperCase(): Transformation<string, string> {
  *
  * **When to use**
  *
- * Use to normalize display names or titles.
+ * Use when you need a schema transformation to normalize display names or
+ * titles.
  *
  * **Details**
  *
@@ -652,7 +662,8 @@ export function capitalize(): Transformation<string, string> {
  *
  * **When to use**
  *
- * Use to normalize identifiers or field names.
+ * Use when you need a schema transformation to normalize identifiers or field
+ * names.
  *
  * **Details**
  *
@@ -688,7 +699,8 @@ export function uncapitalize(): Transformation<string, string> {
  *
  * **When to use**
  *
- * Use to parse query-string-like or config-file-like strings into records.
+ * Use when you need a schema transformation to parse query-string-like or
+ * config-file-like strings into records.
  *
  * **Details**
  *
@@ -738,9 +750,8 @@ const passthrough_ = new Transformation(
  *
  * **When to use**
  *
- * Use when you need to connect two schemas that share the same type with no
- * conversion, such as when `Schema.decodeTo` requires a transformation but no
- * actual conversion is needed.
+ * Use when you need a schema transformation to connect two schemas that share
+ * the same type with no actual conversion.
  *
  * **Details**
  *
@@ -778,8 +789,8 @@ export function passthrough<T>(): Transformation<T, T> {
  *
  * **When to use**
  *
- * Use when you need a no-op transformation whose decoded side is narrower than
- * the encoded side.
+ * Use when you need a no-op schema transformation whose decoded side is
+ * narrower than the encoded side.
  *
  * **Details**
  *
@@ -811,8 +822,8 @@ export function passthroughSupertype<T>(): Transformation<T, T> {
  *
  * **When to use**
  *
- * Use when you need a no-op transformation whose encoded side is more specific
- * than its decoded side.
+ * Use when you need a no-op schema transformation whose encoded side is more
+ * specific than its decoded side.
  *
  * **Details**
  *
@@ -844,7 +855,8 @@ export function passthroughSubtype<T>(): Transformation<T, T> {
  *
  * **When to use**
  *
- * Use to parse numeric strings from APIs, form data, or URL parameters.
+ * Use when you need a schema transformation to parse numeric strings from APIs,
+ * form data, or URL parameters.
  *
  * **Details**
  *
@@ -880,7 +892,8 @@ export const numberFromString = new Transformation(
  *
  * **When to use**
  *
- * Use to parse large integer strings (e.g. database IDs, blockchain values).
+ * Use when you need a schema transformation to parse large integer strings
+ * (e.g. database IDs, blockchain values).
  *
  * **Details**
  *
@@ -914,7 +927,8 @@ export const bigintFromString = new Transformation(
  *
  * **When to use**
  *
- * Use to parse ISO 8601 date strings from APIs or user input.
+ * Use when you need a schema transformation to parse ISO 8601 date strings from
+ * APIs or user input.
  *
  * **Details**
  *
@@ -949,7 +963,8 @@ export const dateFromString: Transformation<globalThis.Date, string> = new Trans
  *
  * **When to use**
  *
- * Use to parse human-readable duration strings from APIs, config, or user input.
+ * Use when you need a schema transformation to parse human-readable duration
+ * strings from APIs, config, or user input.
  *
  * **Details**
  *
@@ -993,7 +1008,8 @@ export const durationFromString: Transformation<Duration.Duration, string> = tra
  *
  * **When to use**
  *
- * Use when working with nanosecond-precision timestamps or intervals.
+ * Use when you need a schema transformation for nanosecond-precision timestamps
+ * or intervals.
  *
  * **Details**
  *
@@ -1034,8 +1050,8 @@ export const durationFromNanos: Transformation<Duration.Duration, bigint> = tran
  *
  * **When to use**
  *
- * Use when you need to decode timeouts, delays, elapsed intervals, or other
- * duration values stored as millisecond counts.
+ * Use when you need a schema transformation to decode timeouts, delays, elapsed
+ * intervals, or other duration values stored as millisecond counts.
  *
  * **Details**
  *
@@ -1099,7 +1115,8 @@ export const errorFromErrorJsonEncoded = (options?: {
  *
  * **When to use**
  *
- * Use to convert nullable API fields to `Option`.
+ * Use when you need a schema transformation to convert nullable API fields to
+ * `Option`.
  *
  * **Details**
  *
@@ -1138,7 +1155,8 @@ export function optionFromNullOr<T>(): Transformation<Option.Option<T>, T | null
  *
  * **When to use**
  *
- * Use to convert undefined-or API fields to `Option`.
+ * Use when you need a schema transformation to convert API fields that use
+ * `undefined` for absence to `Option`.
  *
  * **Details**
  *
@@ -1179,8 +1197,8 @@ export function optionFromUndefinedOr<T>(): Transformation<Option.Option<T>, T |
  *
  * **When to use**
  *
- * Use to convert nullish API fields to `Option` when both `null` and
- *   `undefined` represent absence.
+ * Use when you need a schema transformation to convert nullish API fields to
+ * `Option` when both `null` and `undefined` represent absence.
  *
  * **Details**
  *
@@ -1225,8 +1243,8 @@ export function optionFromNullishOr<T>(
  *
  * **When to use**
  *
- * Use to convert optional struct keys (declared with `Schema.optionalKey`) to
- *   `Option` values.
+ * Use when you need a schema transformation to convert optional struct keys
+ * (declared with `Schema.optionalKey`) to `Option` values.
  *
  * **Details**
  *
@@ -1269,7 +1287,8 @@ export function optionFromOptionalKey<T>(): Transformation<Option.Option<T>, T> 
  *
  * **When to use**
  *
- * Use to convert optional (possibly `undefined`) values to `Option`.
+ * Use when you need a schema transformation to convert optional (possibly
+ * `undefined`) values to `Option`.
  *
  * **Details**
  *
@@ -1312,7 +1331,8 @@ export function optionFromOptional<T>(): Transformation<Option.Option<T>, T | un
  *
  * **When to use**
  *
- * Use to parse URL strings from user input or API responses.
+ * Use when you need a schema transformation to parse URL strings from user
+ * input or API responses.
  *
  * **Details**
  *
@@ -1351,7 +1371,8 @@ export const urlFromString: Transformation<URL, string> = transformOrFail<URL, s
  *
  * **When to use**
  *
- * Use to parse decimal number strings from APIs or user input.
+ * Use when you need a schema transformation to parse decimal number strings
+ * from APIs or user input.
  *
  * **Details**
  *
@@ -1381,8 +1402,8 @@ export const bigDecimalFromString: Transformation<BigDecimal.BigDecimal, string>
  *
  * **When to use**
  *
- * Use when handling binary data transmitted as Base64 strings (e.g. file uploads,
- *   API payloads).
+ * Use when you need a schema transformation for binary data transmitted as
+ * Base64 strings (e.g. file uploads, API payloads).
  *
  * **Details**
  *
@@ -1416,7 +1437,8 @@ export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLi
  *
  * **When to use**
  *
- * Use when handling text data transmitted as Base64 strings.
+ * Use when you need a schema transformation for text data transmitted as Base64
+ * strings.
  *
  * **Details**
  *
@@ -1449,7 +1471,8 @@ export const stringFromBase64String: Transformation<string, string> = new Transf
  *
  * **When to use**
  *
- * Use when handling text data transmitted as Base64 URL-safe strings.
+ * Use when you need a schema transformation for text data transmitted as Base64
+ * URL-safe strings.
  *
  * **Details**
  *
@@ -1482,7 +1505,8 @@ export const stringFromBase64UrlString: Transformation<string, string> = new Tra
  *
  * **When to use**
  *
- * Use when handling text data transmitted as hexadecimal strings.
+ * Use when you need a schema transformation for text data transmitted as
+ * hexadecimal strings.
  *
  * **Details**
  *
@@ -1516,9 +1540,9 @@ export const stringFromHexString: Transformation<string, string> = new Transform
  *
  * **When to use**
  *
- * Use when you need to store structured data in URL query parameters or
- * fragments, such as composing with `Schema.parseJson` to round-trip JSON
- * through a URL.
+ * Use when you need a schema transformation to store structured data in URL
+ * query parameters or fragments, such as composing with `Schema.parseJson` to
+ * round-trip JSON through a URL.
  *
  * **Details**
  *
@@ -1553,8 +1577,9 @@ export const stringFromUriComponent: Transformation<string, string> = new Transf
  *
  * **When to use**
  *
- * Use when you need to decode JSON stored or transmitted as a string, usually
- * before composing with another schema that validates the parsed structure.
+ * Use when you need a schema transformation to decode JSON stored or
+ * transmitted as a string, usually before composing with another schema that
+ * validates the parsed structure.
  *
  * **Details**
  *
@@ -1588,8 +1613,8 @@ export const fromJsonString = new Transformation<unknown, string>(
  *
  * **When to use**
  *
- * Use when form or multipart payloads contain keys such as `user[name]` or `items[0]` that
- * should become nested data.
+ * Use when you need a schema transformation for form or multipart payloads
+ * whose keys, such as `user[name]` or `items[0]`, should become nested data.
  *
  * **Details**
  *
@@ -1624,8 +1649,8 @@ export const fromFormData = new Transformation<unknown, FormData>(
  *
  * **When to use**
  *
- * Use when query strings contain keys such as `filter[name]` or `items[0]` that should
- * become nested data.
+ * Use when you need a schema transformation for query strings whose keys, such
+ * as `filter[name]` or `items[0]`, should become nested data.
  *
  * **Details**
  *
@@ -1660,8 +1685,8 @@ export const fromURLSearchParams = new Transformation<unknown, URLSearchParams>(
  *
  * **When to use**
  *
- * Use to represent fixed-offset time zones with numeric millisecond offsets in
- * schema transformations or JSON codecs.
+ * Use when you need a schema transformation to represent fixed-offset time
+ * zones with numeric millisecond offsets.
  *
  * **Details**
  *
@@ -1688,8 +1713,8 @@ export const timeZoneOffsetFromNumber: Transformation<DateTime.TimeZone.Offset, 
  *
  * **When to use**
  *
- * Use when a schema transformation should accept only IANA time-zone identifier
- * strings and produce `DateTime.TimeZone.Named` values.
+ * Use when you need a schema transformation to accept only IANA time-zone
+ * identifier strings and produce `DateTime.TimeZone.Named` values.
  *
  * **Details**
  *
@@ -1721,8 +1746,8 @@ export const timeZoneNamedFromString: Transformation<DateTime.TimeZone.Named, st
  *
  * **When to use**
  *
- * Use when schema decoding should accept either an IANA time-zone identifier or
- * an offset string and produce a general `DateTime.TimeZone`.
+ * Use when you need a schema transformation to accept either an IANA time-zone
+ * identifier or an offset string and produce a general `DateTime.TimeZone`.
  *
  * **Details**
  *
@@ -1755,8 +1780,8 @@ export const timeZoneFromString: Transformation<DateTime.TimeZone, string> = tra
  *
  * **When to use**
  *
- * Use to decode date-time strings when the schema value should be a normalized
- * `DateTime.Utc` and encode back as a UTC ISO string.
+ * Use when you need a schema transformation to decode date-time strings to a
+ * normalized `DateTime.Utc` and encode back as a UTC ISO string.
  *
  * **Details**
  *
@@ -1790,8 +1815,8 @@ export const dateTimeUtcFromString: Transformation<DateTime.Utc, string> = trans
  *
  * **When to use**
  *
- * Use to define a schema transformation for ISO zoned date-time strings that
- * decode to `DateTime.Zoned` and encode with `DateTime.formatIsoZoned`.
+ * Use when you need a schema transformation for ISO zoned date-time strings
+ * that decode to `DateTime.Zoned` and encode with `DateTime.formatIsoZoned`.
  *
  * **Details**
  *

@@ -475,8 +475,8 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
  *
  * **When to use**
  *
- * Use to emit an optional dependency as a stream element without requiring that
- * dependency to be present.
+ * Use when you need a stream that emits an optional service from the context
+ * without requiring that service to be present.
  *
  * **Example** (Accessing an optional service as a stream)
  *
@@ -811,7 +811,7 @@ export const toChannel = <A, E, R>(
  * **When to use**
  *
  * Use when you need callback-based code to emit stream values by offering to a
- * `Queue`, or to signal stream completion through the `Queue` module APIs.
+ * `Queue`, or signal stream completion through the `Queue` module APIs.
  *
  * By default it uses an "unbounded" buffer size.
  * You can customize the buffer size and strategy by passing an object as the

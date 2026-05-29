@@ -102,8 +102,8 @@ import * as Str from "./String.ts"
  *
  * **When to use**
  *
- * Use when you need to build and compose custom schema transformations for
- * `Schema.decodeTo` or `Schema.decode`.
+ * Use when you need a schema getter to build and compose custom transformations
+ * for `Schema.decodeTo` or `Schema.decode`.
  *
  * **Details**
  *
@@ -168,7 +168,8 @@ export class Getter<out T, in E, R = never> extends Pipeable.Class {
  *
  * **When to use**
  *
- * Use when a schema field should always decode to a fixed value.
+ * Use when you need a schema getter that always decodes a field to a fixed
+ * value.
  * - You need a placeholder getter that produces a known default.
  *
  * **Details**
@@ -200,7 +201,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  *
  * **When to use**
  *
- * Use when a transformation should unconditionally reject input.
+ * Use when you need a schema getter that unconditionally rejects input.
  * - Building custom validation getters that produce specific error types.
  *
  * **Details**
@@ -233,7 +234,8 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => SchemaIssue.Issue): Gett
  *
  * **When to use**
  *
- * Use when a field or direction (encode/decode) should be disallowed entirely.
+ * Use when you need a schema getter to disallow a field or direction
+ * (encode/decode) entirely.
  * - You want a clear "forbidden" error message in schema validation output.
  *
  * **Details**
@@ -271,8 +273,8 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  *
  * **When to use**
  *
- * Use when you need one side of a `decodeTo` pair, either encode or decode, to
- * pass values through unchanged.
+ * Use when you need a schema getter for one side of a `decodeTo` pair, either
+ * encode or decode, to pass values through unchanged.
  *
  * **Details**
  *
@@ -313,8 +315,8 @@ export function passthrough<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when you need an identity getter whose decoded/output type is narrower
- * than the encoded/input type.
+ * Use when you need a schema getter that passes values through when the
+ * decoded/output type is narrower than the encoded/input type.
  *
  * **Details**
  *
@@ -345,8 +347,8 @@ export function passthroughSupertype<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when you need type-safe passthrough without `{ strict: false }` for an
- * encoded type that narrows the decoded type.
+ * Use when you need a schema getter that passes values through without
+ * `{ strict: false }` for an encoded type that narrows the decoded type.
  *
  * **Details**
  *
@@ -377,7 +379,8 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when you need to provide a fallback or computed value for missing struct keys.
+ * Use when you need a schema getter to provide a fallback or computed value for
+ * missing struct keys.
  * - Building custom "default value" logic more complex than {@link withDefault}.
  *
  * **Details**
@@ -414,8 +417,8 @@ export function onNone<T, E extends T = T, R = never>(
  *
  * **When to use**
  *
- * Use when you need a struct field to be present in the encoded input and want
- * schema validation to report a missing key error.
+ * Use when you need a schema getter to require a struct field in the encoded
+ * input and report a missing key error when it is absent.
  *
  * **Details**
  *
@@ -446,7 +449,8 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  *
  * **When to use**
  *
- * Use when you need to transform or validate only when a value is present.
+ * Use when you need a schema getter to transform or validate only when a field
+ * value is present.
  * - Missing keys should remain absent in the output.
  *
  * **Details**
@@ -483,7 +487,8 @@ export function onSome<T, E, R = never>(
  *
  * **When to use**
  *
- * Use when you need to validate a decoded value (e.g. check a constraint or call an external service).
+ * Use when you need a schema getter to validate a decoded value (e.g. check a
+ * constraint or call an external service).
  * - The validation may be asynchronous or require Effect services.
  *
  * **Details**
@@ -535,7 +540,8 @@ export function checkEffect<T, R = never>(
  *
  * **When to use**
  *
- * Use when you have a pure, infallible transformation between types.
+ * Use when you need a schema getter for a pure, infallible transformation
+ * between types.
  * - Building encode/decode pairs for `Schema.decodeTo`.
  *
  * **Details**
@@ -574,8 +580,8 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  *
  * **When to use**
  *
- * Use when you need a transformation that may fail, require Effect services,
- * or run asynchronously.
+ * Use when you need a schema getter for a transformation that may fail, require
+ * Effect services, or run asynchronously.
  *
  * **Details**
  *
@@ -615,7 +621,7 @@ export function transformOrFail<T, E, R = never>(
  *
  * **When to use**
  *
- * Use when you need to handle both `Some` and `None` cases.
+ * Use when you need a schema getter to handle both `Some` and `None` cases.
  * - You want to turn a present value into absent, or vice versa.
  *
  * **Details**
@@ -648,7 +654,8 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  *
  * **When to use**
  *
- * Use when a field should be excluded during decoding or encoding.
+ * Use when you need a schema getter to exclude a field during decoding or
+ * encoding.
  *
  * **Details**
  *
@@ -678,8 +685,8 @@ export function omit<T>(): Getter<never, T> {
  *
  * **When to use**
  *
- * Use when you need a fallback for a field that may be `undefined` in the
- * encoded input.
+ * Use when you need a schema getter to provide a fallback for a field that may
+ * be `undefined` in the encoded input.
  *
  * **Details**
  *
@@ -716,7 +723,8 @@ export function withDefault<T, R = never>(
  *
  * **When to use**
  *
- * Use when you need a string representation of an arbitrary encoded value.
+ * Use when you need a schema getter to coerce a present encoded value to a
+ * string with `String()`.
  *
  * **Details**
  *
@@ -746,7 +754,8 @@ export function String<E>(): Getter<string, E> {
  *
  * **When to use**
  *
- * Use when you need numeric coercion of an encoded value.
+ * Use when you need a schema getter to coerce a present encoded value to a
+ * number with `Number()`.
  *
  * **Details**
  *
@@ -776,7 +785,8 @@ export function Number<E>(): Getter<number, E> {
  *
  * **When to use**
  *
- * Use when you need boolean coercion (truthiness check) of an encoded value.
+ * Use when you need a schema getter to coerce a present encoded value to a
+ * boolean with `Boolean()`.
  *
  * **Details**
  *
@@ -804,7 +814,8 @@ export function Boolean<E>(): Getter<boolean, E> {
  *
  * **When to use**
  *
- * Use when you need to convert strings, numbers, or booleans to `bigint`.
+ * Use when you need a schema getter to convert a present string, number, or
+ * boolean value to `bigint`.
  *
  * **Details**
  *
@@ -832,8 +843,8 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  *
  * **When to use**
  *
- * Use to coerce a string, number, or existing date object into a new date
- * object.
+ * Use when you need a schema getter to coerce a present string, number, or
+ * existing date object into a new date object.
  *
  * **Details**
  *
@@ -1029,7 +1040,8 @@ type ParseJsonOptions = {
  *
  * **When to use**
  *
- * Use when you need to parse an encoded JSON string during decoding.
+ * Use when you need a schema getter to parse a present encoded JSON string
+ * during decoding.
  *
  * **Details**
  *
@@ -1073,7 +1085,8 @@ type StringifyJsonOptions = {
  *
  * **When to use**
  *
- * Use when you need to serialize a decoded value to JSON text during encoding.
+ * Use when you need a schema getter to serialize a present decoded value to
+ * JSON text during encoding.
  *
  * **Details**
  *
@@ -1114,8 +1127,8 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
  *
  * **When to use**
  *
- * Use when you need to parse an encoded string that contains delimited
- * key-value pairs (e.g. `"a=1,b=2"`).
+ * Use when you need a schema getter to parse a present encoded string that
+ * contains delimited key-value pairs (e.g. `"a=1,b=2"`).
  *
  * **Details**
  *
@@ -1160,8 +1173,8 @@ export function splitKeyValue<E extends string>(options?: {
  *
  * **When to use**
  *
- * Use when you need to serialize a decoded record as a delimited key-value
- * string.
+ * Use when you need a schema getter to serialize a present decoded record as a
+ * delimited key-value string.
  *
  * **Details**
  *
@@ -1198,8 +1211,8 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  *
  * **When to use**
  *
- * Use when you need to split an encoded string containing a delimited list,
- * such as CSV values.
+ * Use when you need a schema getter to split a present encoded string
+ * containing a delimited list, such as CSV values.
  *
  * **Details**
  *
@@ -1558,7 +1571,8 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  *
  * **When to use**
  *
- * Use when you need to decode an encoded date/time value to a `DateTime.Utc`.
+ * Use when you need a schema getter to decode a present encoded date/time value
+ * to a `DateTime.Utc`.
  *
  * **Details**
  *
@@ -1598,7 +1612,8 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  *
  * **When to use**
  *
- * Use to parse `FormData` from HTTP requests into structured objects.
+ * Use when you need a schema getter to parse `FormData` from HTTP requests into
+ * structured objects.
  *
  * **Details**
  *
@@ -1635,7 +1650,8 @@ const collectFormDataEntries = collectBracketPathEntries((value): value is strin
  *
  * **When to use**
  *
- * Use to serialize structured data to `FormData` for HTTP requests.
+ * Use when you need a schema getter to serialize structured data to `FormData`
+ * for HTTP requests.
  *
  * **Details**
  *
@@ -1677,7 +1693,8 @@ export function encodeFormData(): Getter<FormData, unknown> {
  *
  * **When to use**
  *
- * Use to parse query parameters from URLs into structured objects.
+ * Use when you need a schema getter to parse query parameters from URLs into
+ * structured objects.
  *
  * **Details**
  *
@@ -1712,7 +1729,8 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  *
  * **When to use**
  *
- * Use to serialize structured data to query parameters for URLs.
+ * Use when you need a schema getter to serialize structured data to query
+ * parameters for URLs.
  *
  * **Details**
  *
@@ -1768,7 +1786,8 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  *
  * **When to use**
  *
- * Use to parse FormData or URLSearchParams entries into structured objects.
+ * Use when you need a schema getter to parse FormData or URLSearchParams
+ * entries into structured objects.
  * - You have flat key-value pairs with bracket-path keys that need nesting.
  *
  * **Details**
@@ -1862,7 +1881,8 @@ export function makeTreeRecord<A>(
  *
  * **When to use**
  *
- * Use to serialize structured objects to flat key-value entries.
+ * Use when you need a schema getter to serialize structured objects to flat
+ * key-value entries.
  * - Building custom `FormData` or `URLSearchParams` encoders.
  *
  * **Details**

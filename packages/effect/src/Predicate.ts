@@ -1376,7 +1376,8 @@ export function isPromise(input: unknown): input is Promise<unknown> {
  *
  * **When to use**
  *
- * Use when you only need `then` to interop with promise-like values.
+ * Use when you need to recognize promise-like values by a callable `then`
+ * method.
  *
  * **Details**
  *

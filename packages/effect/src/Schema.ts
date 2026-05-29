@@ -3121,8 +3121,8 @@ interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
  *
  * **When to use**
  *
- * Use to add the same fields to an existing struct or to every struct member of
- * a union.
+ * Use to add the same fields to an existing struct or every struct member of a
+ * union.
  *
  * **Details**
  *

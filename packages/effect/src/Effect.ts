@@ -2442,8 +2442,8 @@ export const asVoid: <A, E, R>(self: Effect<A, E, R>) => Effect<void, E, R> = in
  *
  * **When to use**
  *
- * Use to handle the failure value as a success, or to move the success value
- * into the failure channel.
+ * Use to handle the failure value as a success, or move the success value into
+ * the failure channel.
  *
  * **Details**
  *

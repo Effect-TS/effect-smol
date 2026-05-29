@@ -811,8 +811,8 @@ export const composePassthrough: {
  *
  * **When to use**
  *
- * Use when adapting a `Filter` to `Option`-based code and you only need the
- * passed value, with filtered-out inputs represented as `None`.
+ * Use when adapting a `Filter` to `Option`-based code where passed values
+ * become `Some` and filtered-out inputs become `None`.
  *
  * @see {@link toResult} for keeping the filter failure value
  * @see {@link toPredicate} for plain boolean pass/fail checks

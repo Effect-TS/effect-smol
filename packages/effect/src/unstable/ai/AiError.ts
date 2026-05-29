@@ -1497,7 +1497,8 @@ const TypeId = "~effect/unstable/ai/AiError/AiError" as const
  *
  * **When to use**
  *
- * Use with `Effect.catchReason` for ergonomic error handling.
+ * Use when you need AI errors that can be handled by semantic reason with
+ * `Effect.catchReason`.
  *
  * **Details**
  *

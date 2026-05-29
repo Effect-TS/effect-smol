@@ -448,8 +448,8 @@ export declare namespace make {
  *
  * **When to use**
  *
- * Use when you need an effect to provide both the result value and optional
- * leftovers.
+ * Use when you need to create a sink from an effect that returns both the sink
+ * result value and optional leftovers.
  *
  * @category constructors
  * @since 4.0.0

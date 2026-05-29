@@ -367,7 +367,7 @@ export interface ConfigProvider extends Pipeable {
  * **When to use**
  *
  * Use to override the active raw configuration provider for an entire program,
- * or to retrieve the current provider inside an Effect.
+ * or retrieve the current provider inside an Effect.
  *
  * **Example** (Providing a custom provider)
  *
@@ -470,8 +470,8 @@ export function make(
  *
  * **When to use**
  *
- * Use to layer multiple config sources, such as env vars plus a defaults
- * file, or to provide partial overrides on top of a base config.
+ * Use to layer multiple config sources, such as env vars plus a defaults file,
+ * or provide partial overrides on top of a base config.
  *
  * **Details**
  *
@@ -597,7 +597,7 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
  * **When to use**
  *
  * Use to namespace config under a prefix like `"app"` or `"database"`, or
- * to reuse the same provider shape for multiple sub-configs.
+ * reuse the same provider shape for multiple sub-configs.
  *
  * **Details**
  *
@@ -685,9 +685,9 @@ export const layer = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use to add defaults that should only apply when the primary provider
- * has no value for a path, or to override specific keys while keeping the rest
- * from the existing provider by setting `asPrimary: true`.
+ * Use to add defaults that should only apply when the primary provider has no
+ * value for a path, or override specific keys while keeping the rest from the
+ * existing provider by setting `asPrimary: true`.
  *
  * **Details**
  *
@@ -821,8 +821,8 @@ function describeUnknown(u: unknown): Node | undefined {
  *
  * **When to use**
  *
- * Use to read configuration from `process.env`, which is the default when
- * no provider is explicitly set, or to pass a custom env record for testing or
+ * Use to read configuration from `process.env`, which is the default when no
+ * provider is explicitly set, or pass a custom env record for testing or
  * non-Node runtimes.
  *
  * **Details**

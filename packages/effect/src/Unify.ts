@@ -79,8 +79,8 @@ export type unifySymbol = typeof unifySymbol
  *
  * **When to use**
  *
- * Use with `unifySymbol` to expose the source type that unification should read
- * from a protocol-enabled data type.
+ * Use when you need a type-level protocol key that exposes the source type
+ * read by `Unify` from a protocol-enabled data type.
  *
  * **Details**
  *

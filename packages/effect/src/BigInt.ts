@@ -254,7 +254,7 @@ export const divide: {
  *
  * **When to use**
  *
- * Use to divide `bigint` values when the divisor is known to be non-zero and
+ * Use to divide `bigint` values where the divisor is known to be non-zero and
  * division by zero should be a thrown exception.
  *
  * **Details**

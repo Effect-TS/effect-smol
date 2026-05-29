@@ -268,8 +268,8 @@ export const isAny = makeGuard("Any")
  *
  * **When to use**
  *
- * Use to detect schema AST nodes that match any string value while inspecting or
- * transforming an SchemaAST.
+ * Use to detect schema AST nodes that match any string value while inspecting
+ * or transforming a Schema AST.
  *
  * @see {@link String} for the AST node class narrowed by this guard
  * @see {@link string} for the singleton `String` AST instance
@@ -368,7 +368,7 @@ export const isUniqueSymbol = makeGuard("UniqueSymbol")
  * **When to use**
  *
  * Use to identify the AST node for the TypeScript `object` keyword when
- * inspecting or transforming a schema SchemaAST.
+ * inspecting or transforming a Schema AST.
  *
  * @see {@link ObjectKeyword} for the AST node matched by this guard
  * @see {@link objectKeyword} for the singleton `ObjectKeyword` AST instance

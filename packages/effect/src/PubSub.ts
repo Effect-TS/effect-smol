@@ -968,8 +968,8 @@ export const publish: {
  *
  * **When to use**
  *
- * Use when you need a non-blocking synchronous publish attempt and can handle
- * `false` when the message cannot be accepted immediately.
+ * Use when you need a non-blocking synchronous publish attempt where `false`
+ * is an acceptable result when the message cannot be accepted immediately.
  *
  * **Details**
  *
@@ -1477,7 +1477,7 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  * **When to use**
  *
  * Use when you need a synchronous check of messages currently available in a
- * subscription and can handle `Option.none()` when it is shut down.
+ * subscription where `Option.none()` represents a shut-down subscription.
  *
  * **Example** (Checking remaining messages synchronously)
  *
