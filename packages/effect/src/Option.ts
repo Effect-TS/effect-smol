@@ -1115,8 +1115,8 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * Use when you need fail-fast unwrapping for unexpected absence and want to
- * provide a descriptive debugging error.
+ * Use when you need fail-fast unwrapping of an `Option` for unexpected absence
+ * and want to provide a descriptive debugging error.
  *
  * **Details**
  *
@@ -1156,8 +1156,8 @@ export const getOrThrowWith: {
  *
  * **When to use**
  *
- * Use when you need quick fail-fast unwrapping and a generic error is
- * acceptable.
+ * Use when you need quick fail-fast unwrapping of an `Option` and a generic
+ * error is acceptable.
  *
  * **Details**
  *
@@ -1190,8 +1190,8 @@ export const getOrThrow: <A>(self: Option<A>) => A = getOrThrowWith(() => new Er
  *
  * **When to use**
  *
- * Use to apply a pure transformation to an optional value, especially when
- * chaining transformations in a pipeline.
+ * Use to apply a pure transformation to an `Option`'s present value, especially
+ * when chaining transformations in a pipeline.
  *
  * **Details**
  *
@@ -1325,7 +1325,7 @@ export {
  *
  * **When to use**
  *
- * Use when you need to chain dependent optional computations where each step
+ * Use when you need to chain dependent `Option` computations where each step
  * may return `None`.
  *
  * **Details**
@@ -1634,8 +1634,8 @@ export const composeK: {
  *
  * **When to use**
  *
- * Use to validate a value without transforming it
- * - Adding a side-condition check in a pipeline
+ * Use to validate an `Option`'s present value without transforming it, such as
+ * adding a side-condition check in a pipeline.
  *
  * **Details**
  *
@@ -2010,7 +2010,8 @@ export const partitionMap: {
  *
  * **When to use**
  *
- * Use to transform a present value and discard it when the `Filter` fails.
+ * Use to transform an `Option`'s present value and discard it when the `Filter`
+ * fails.
  *
  * **Details**
  *
@@ -2051,8 +2052,8 @@ export const filterMap: {
  *
  * **When to use**
  *
- * Use when you need to discard values that don't meet a condition and narrow
- * the type via a refinement predicate.
+ * Use when you need to discard an `Option`'s present value when it does not
+ * meet a condition, while narrowing the type via a refinement predicate.
  *
  * **Details**
  *
@@ -2554,7 +2555,7 @@ export const Do: Option<{}> = some({})
  *
  * **When to use**
  *
- * Use when you need generator syntax for a sequence of optional steps that
+ * Use when you need generator syntax for a sequence of `Option` steps that
  * should short-circuit on `None`.
  *
  * **Details**
@@ -2607,8 +2608,8 @@ export const gen: Gen.Gen<OptionTypeLambda> = (...args) => {
  *
  * **When to use**
  *
- * Use to build a reducer that falls back to the first available value
- * - Combining optional values where either side may be absent
+ * Use to build an `Option` reducer that falls back to the first available value
+ * when either side may be absent.
  *
  * **Details**
  *
@@ -2647,8 +2648,8 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
  *
  * **When to use**
  *
- * Use when you need a combiner that returns `None` unless both operands are
- * `Some`.
+ * Use when you need an `Option` combiner that returns `None` unless both
+ * operands are `Some`.
  *
  * **Details**
  *

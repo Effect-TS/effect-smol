@@ -390,7 +390,7 @@ export const combine: {
  *
  * **When to use**
  *
- * Use when you need to combine many equivalences from an iterable.
+ * Use when you need to combine many `Equivalence` instances from an iterable.
  *
  * **Details**
  *
@@ -532,7 +532,7 @@ export const mapInput: {
  *
  * **When to use**
  *
- * Use when you need to compare fixed-length tuples with per-position
+ * Use when you need an `Equivalence` for fixed-length tuples with per-position
  * equivalences.
  *
  * **Details**
@@ -673,7 +673,8 @@ export {
  *
  * **When to use**
  *
- * Use when you need to compare objects with known, fixed property names.
+ * Use when you need an `Equivalence` for objects with known, fixed property
+ * names.
  *
  * **Details**
  *
@@ -866,7 +867,8 @@ export function makeReducer<A>() {
  *
  * **When to use**
  *
- * Use when comparing JavaScript date objects by their millisecond timestamp.
+ * Use when you need an `Equivalence` for JavaScript date objects by their
+ * millisecond timestamp.
  *
  * **Details**
  *

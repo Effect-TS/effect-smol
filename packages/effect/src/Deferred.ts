@@ -289,8 +289,8 @@ export {
  *
  * **When to use**
  *
- * Use when completion should run an effect once and share its result with all
- * awaiters.
+ * Use when completing a `Deferred` should run an effect once and share its
+ * result with all awaiters.
  *
  * **Details**
  *
@@ -453,7 +453,8 @@ export const fail: {
  *
  * **When to use**
  *
- * Use to lazily compute a typed failure value when the completion effect runs.
+ * Use to lazily compute a typed failure value when the `Deferred` completion
+ * effect runs.
  *
  * **Details**
  *
@@ -530,7 +531,8 @@ export const failCause: {
  *
  * **When to use**
  *
- * Use to lazily compute a full failure cause when the completion effect runs.
+ * Use to lazily compute a full failure cause when the `Deferred` completion
+ * effect runs.
  *
  * **Details**
  *
@@ -831,7 +833,8 @@ export const succeed: {
  *
  * **When to use**
  *
- * Use to lazily compute a successful value when the completion effect runs.
+ * Use to lazily compute a successful value when the `Deferred` completion
+ * effect runs.
  *
  * **Details**
  *

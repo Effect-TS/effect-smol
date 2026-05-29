@@ -1630,7 +1630,8 @@ export const failCauseSync: <E>(
  *
  * **When to use**
  *
- * Use when you need to report an unrecoverable defect instead of a typed error.
+ * Use when you need an `Effect` to report an unrecoverable defect instead of a
+ * typed error.
  *
  * **Details**
  *
@@ -2865,8 +2866,8 @@ export const catchTags: {
  *
  * **When to use**
  *
- * Use to handle one nested reason inside a tagged error while preserving the
- * parent error shape for unmatched reasons.
+ * Use to handle one nested reason inside an `Effect`'s tagged error while
+ * preserving the parent error shape for unmatched reasons.
  *
  * **Details**
  *
@@ -3163,8 +3164,9 @@ export const unwrapReason: {
  *
  * **When to use**
  *
- * Use when you need recovery to inspect the full `Cause`, including recoverable
- * failures, defects, and interruptions, instead of only the typed error value.
+ * Use when you need to recover from an `Effect` by inspecting the full `Cause`,
+ * including recoverable failures, defects, and interruptions, instead of only
+ * the typed error value.
  *
  * **Details**
  *
@@ -3406,7 +3408,7 @@ export const catchNoSuchElement: <A, E, R>(
  *
  * **When to use**
  *
- * Use to recover from full causes selected by a predicate.
+ * Use to recover an `Effect` from full causes selected by a predicate.
  *
  * **Details**
  *
@@ -3461,8 +3463,9 @@ export const catchCauseIf: {
  *
  * **When to use**
  *
- * Use when you need to recover only from causes selected by a `Filter`, while
- * giving the recovery both the selected value and the original `Cause`.
+ * Use when you need to recover an `Effect` only from causes selected by a
+ * `Filter`, while giving the recovery both the selected value and the original
+ * `Cause`.
  *
  * **Details**
  *
@@ -4938,8 +4941,8 @@ export const filter: {
  *
  * **When to use**
  *
- * Use to keep only iterable elements accepted by a `Filter` and collect each
- * filter success value.
+ * Use when you need to filter an iterable with a `Filter` inside an `Effect`,
+ * collecting each filter success value.
  *
  * **Details**
  *
