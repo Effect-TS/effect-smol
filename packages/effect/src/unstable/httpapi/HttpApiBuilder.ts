@@ -446,7 +446,10 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
     case "Http": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength)) as any
+        // The `Authorization` header is `"<scheme> <credential>"`, so skip the
+        // scheme name plus the single space delimiter that separates it from
+        // the credential. Slicing only `schemeLength` leaves a leading space.
+        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength + 1)) as any
       )
     }
     case "ApiKey": {
