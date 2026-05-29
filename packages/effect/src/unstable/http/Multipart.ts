@@ -55,7 +55,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
 import * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
@@ -306,7 +306,7 @@ export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
           contentType: Schema.String.annotate({ contentEncoding: "binary" }),
           path: Schema.String
         }),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: ({ contentType, key, name, path }) => new PersistedFileImpl(key, name, contentType, path),
           encode: (file) => ({
             key: file.key,
@@ -344,7 +344,7 @@ export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Arra
   ).pipe(
     Schema.decodeTo(
       PersistedFileSchema,
-      Transformation.transform({
+      SchemaTransformation.transform({
         decode: ([file]) => file,
         encode: (file) => [file]
       })

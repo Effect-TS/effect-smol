@@ -66,7 +66,7 @@ import * as Record from "../../Record.ts"
 import * as Redactable from "../../Redactable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type { Mutable } from "../../Types.ts"
 
 /**
@@ -189,7 +189,7 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
     toCodec: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: (input) => fromInput(input),
           encode: (headers) => ({ ...headers })
         })

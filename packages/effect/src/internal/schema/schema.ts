@@ -2,9 +2,9 @@ import * as Effect from "../../Effect.ts"
 import { flow } from "../../Function.ts"
 import * as Pipeable from "../../Pipeable.ts"
 import type * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import type { Issue } from "../../SchemaIssue.ts"
-import * as Parser from "../../SchemaParser.ts"
+import * as SchemaParser from "../../SchemaParser.ts"
 
 /** @internal */
 export const TypeId = "~effect/Schema/Schema"
@@ -15,13 +15,13 @@ const SchemaProto = {
     return Pipeable.pipeArguments(this, arguments)
   },
   annotate(this: Schema.Top, annotations: Schema.Annotations.Annotations) {
-    return this.rebuild(AST.annotate(this.ast, annotations))
+    return this.rebuild(SchemaAST.annotate(this.ast, annotations))
   },
   annotateKey(this: Schema.Top, annotations: Schema.Annotations.Key<unknown>) {
-    return this.rebuild(AST.annotateKey(this.ast, annotations))
+    return this.rebuild(SchemaAST.annotateKey(this.ast, annotations))
   },
-  check(this: Schema.Top, ...checks: readonly [AST.Check<unknown>, ...Array<AST.Check<unknown>>]) {
-    return this.rebuild(AST.appendChecks(this.ast, checks))
+  check(this: Schema.Top, ...checks: readonly [SchemaAST.Check<unknown>, ...Array<SchemaAST.Check<unknown>>]) {
+    return this.rebuild(SchemaAST.appendChecks(this.ast, checks))
   }
 }
 
@@ -32,10 +32,10 @@ export function make<S extends Schema.Top>(ast: S["ast"], options?: object): S {
     Object.assign(self, options)
   }
   self.ast = ast
-  self.rebuild = (ast: AST.AST) => make(ast, options)
-  self.makeEffect = flow(Parser.makeEffect(self), Effect.mapErrorEager((issue) => new SchemaError(issue)))
-  self.make = Parser.make(self)
-  self.makeOption = Parser.makeOption(self)
+  self.rebuild = (ast: SchemaAST.AST) => make(ast, options)
+  self.makeEffect = flow(SchemaParser.makeEffect(self), Effect.mapErrorEager((issue) => new SchemaError(issue)))
+  self.make = SchemaParser.make(self)
+  self.makeOption = SchemaParser.makeOption(self)
   return self
 }
 
@@ -62,7 +62,7 @@ export class SchemaError {
 /** @internal */
 export const jsonReorder = makeReorder(getJsonPriority)
 
-function getJsonPriority(ast: AST.AST): number {
+function getJsonPriority(ast: SchemaAST.AST): number {
   switch (ast._tag) {
     case "BigInt":
     case "Symbol":
@@ -74,18 +74,18 @@ function getJsonPriority(ast: AST.AST): number {
 }
 
 /** @internal */
-export function makeReorder(getPriority: (ast: AST.AST) => number) {
-  return (types: ReadonlyArray<AST.AST>): ReadonlyArray<AST.AST> => {
+export function makeReorder(getPriority: (ast: SchemaAST.AST) => number) {
+  return (types: ReadonlyArray<SchemaAST.AST>): ReadonlyArray<SchemaAST.AST> => {
     // Create a map of original indices for O(1) lookup
-    const indexMap = new Map<AST.AST, number>()
+    const indexMap = new Map<SchemaAST.AST, number>()
     for (let i = 0; i < types.length; i++) {
-      indexMap.set(AST.toEncoded(types[i]), i)
+      indexMap.set(SchemaAST.toEncoded(types[i]), i)
     }
 
     // Create a sorted copy of the types array
     const sortedTypes = [...types].sort((a, b) => {
-      a = AST.toEncoded(a)
-      b = AST.toEncoded(b)
+      a = SchemaAST.toEncoded(a)
+      b = SchemaAST.toEncoded(b)
       const pa = getPriority(a)
       const pb = getPriority(b)
       if (pa !== pb) return pa - pb

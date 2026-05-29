@@ -71,7 +71,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Types from "../../Types.ts"
 
 const TypeId = "~effect/http/Cookies"
@@ -130,7 +130,7 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
     toCodecJson: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: (input) => fromSetCookie(input),
           encode: (cookies) => toSetCookieHeaders(cookies)
         })
@@ -138,7 +138,7 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
     toCodecIso: () =>
       Schema.link<Cookies>()(
         Schema.Record(Schema.String, CookieSchema),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: (input) => fromReadonlyRecord(input),
           encode: (cookies) => cookies.cookies
         })
@@ -932,7 +932,7 @@ export const toRecord = (self: Cookies): Record<string, string> => {
 export const schemaRecord = CookiesSchema.pipe(
   Schema.decodeTo(
     Schema.Record(Schema.String, Schema.String),
-    Transformation.transform({
+    SchemaTransformation.transform({
       decode: toRecord,
       encode: (self) => fromIterable(Object.entries(self).map(([name, value]) => makeCookieUnsafe(name, value)))
     })

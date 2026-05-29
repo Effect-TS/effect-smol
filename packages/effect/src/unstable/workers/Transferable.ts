@@ -35,7 +35,7 @@ import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
-import * as Getter from "../../SchemaGetter.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
 
 /**
  * Service for collecting `Transferable` objects while encoding worker messages
@@ -118,8 +118,8 @@ export const addAll = (
  */
 export const getterAddAll = <A>(
   f: (_: A) => Iterable<globalThis.Transferable>
-): Getter.Getter<A, A> =>
-  Getter.transformOrFail((e: A) =>
+): SchemaGetter.Getter<A, A> =>
+  SchemaGetter.transformOrFail((e: A) =>
     Effect.contextWith((services) => {
       const collector = Context.getOrUndefined(services, Collector)
       if (!collector) return Effect.succeed(e)
@@ -167,15 +167,15 @@ export const schema: {
       toCodecJson: () => passthroughLink
     }).pipe(
       Schema.decode({
-        decode: Getter.passthrough(),
+        decode: SchemaGetter.passthrough(),
         encode: getterAddAll(f)
       })
     )
 )
 
 const passthroughLink = Schema.link()(Schema.Any, {
-  decode: Getter.passthrough(),
-  encode: Getter.passthrough()
+  decode: SchemaGetter.passthrough(),
+  encode: SchemaGetter.passthrough()
 })
 
 /**

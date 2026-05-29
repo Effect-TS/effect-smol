@@ -33,7 +33,7 @@ import * as Filter from "../../Filter.ts"
 import { dual } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
-import * as Getter from "../../SchemaGetter.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
 import type * as Activity from "./Activity.ts"
 import * as Workflow from "./Workflow.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
@@ -370,12 +370,12 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
         Schema.Tuple([Schema.String, Schema.String, Schema.String])
       ),
       {
-        decode: Getter.decodeBase64UrlString(),
-        encode: Getter.encodeBase64Url()
+        decode: SchemaGetter.decodeBase64UrlString(),
+        encode: SchemaGetter.encodeBase64Url()
       }
     ),
     Schema.decodeTo(TokenParsed, {
-      decode: Getter.transform(
+      decode: SchemaGetter.transform(
         ([workflowName, executionId, deferredName]) =>
           new TokenParsed({
             workflowName,
@@ -383,7 +383,7 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
             deferredName
           })
       ),
-      encode: Getter.transform(
+      encode: SchemaGetter.transform(
         (parsed) =>
           [
             parsed.workflowName,

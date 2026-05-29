@@ -39,7 +39,7 @@ import { constUndefined } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import type * as SchemaAST from "../../SchemaAST.ts"
 import * as Stream_ from "../../Stream.ts"
 
 const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
@@ -81,7 +81,7 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
     Stream_.Stream<A["Encoded"], E["Encoded"]>,
     A["DecodingServices"] | E["DecodingServices"],
     A["EncodingServices"] | E["EncodingServices"],
-    AST.Declaration,
+    SchemaAST.Declaration,
     Stream<A, E>
   >
 {

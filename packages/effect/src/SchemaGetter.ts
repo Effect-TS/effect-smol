@@ -93,8 +93,8 @@ import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import type * as AST from "./SchemaAST.ts"
-import * as Issue from "./SchemaIssue.ts"
+import type * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaIssue from "./SchemaIssue.ts"
 import * as Str from "./String.ts"
 
 /**
@@ -137,14 +137,14 @@ import * as Str from "./String.ts"
 export class Getter<out T, in E, R = never> extends Pipeable.Class {
   readonly run: (
     input: Option.Option<E>,
-    options: AST.ParseOptions
-  ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+    options: SchemaAST.ParseOptions
+  ) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
 
   constructor(
     run: (
       input: Option.Option<E>,
-      options: AST.ParseOptions
-    ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+      options: SchemaAST.ParseOptions
+    ) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
   ) {
     super()
     this.run = run
@@ -224,7 +224,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, E> {
+export function fail<T, E>(f: (oe: Option.Option<E>) => SchemaIssue.Issue): Getter<T, E> {
   return new Getter((oe) => Effect.fail(f(oe)))
 }
 
@@ -238,7 +238,7 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  *
  * **Details**
  *
- * - Always fails with `Issue.Forbidden`.
+ * - Always fails with `SchemaIssue.Forbidden`.
  * - The message function receives the `Option<E>` input for context.
  *
  * **Example** (Forbidding a decode direction)
@@ -257,7 +257,7 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  * @since 4.0.0
  */
 export function forbidden<T, E>(message: (oe: Option.Option<E>) => string): Getter<T, E> {
-  return fail<T, E>((oe) => new Issue.Forbidden(oe, { message: message(oe) }))
+  return fail<T, E>((oe) => new SchemaIssue.Forbidden(oe, { message: message(oe) }))
 }
 
 const passthrough_ = new Getter<any, any>(Effect.succeed)
@@ -404,7 +404,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * @since 4.0.0
  */
 export function onNone<T, E extends T = T, R = never>(
-  f: (options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+  f: (options: SchemaAST.ParseOptions) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
 ): Getter<T, E, R> {
   return new Getter((ot, options) => Option.isNone(ot) ? f(options) : Effect.succeed(ot))
 }
@@ -419,7 +419,7 @@ export function onNone<T, E extends T = T, R = never>(
  *
  * **Details**
  *
- * - When input is `None`, fails with `Issue.MissingKey`.
+ * - When input is `None`, fails with `SchemaIssue.MissingKey`.
  * - When input is `Some`, passes it through unchanged.
  * - Optional `annotations` customize the error message for the missing key.
  *
@@ -438,7 +438,7 @@ export function onNone<T, E extends T = T, R = never>(
  * @since 4.0.0
  */
 export function required<T, E extends T = T>(annotations?: Schema.Annotations.Key<T>): Getter<T, E> {
-  return onNone(() => Effect.fail(new Issue.MissingKey(annotations)))
+  return onNone(() => Effect.fail(new SchemaIssue.MissingKey(annotations)))
 }
 
 /**
@@ -473,7 +473,7 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  * @since 4.0.0
  */
 export function onSome<T, E, R = never>(
-  f: (e: E, options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+  f: (e: E, options: SchemaAST.ParseOptions) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
 ): Getter<T, E, R> {
   return new Getter((oe, options) => Option.isNone(oe) ? Effect.succeedNone : f(oe.value, options))
 }
@@ -494,7 +494,7 @@ export function onSome<T, E, R = never>(
  *   - `false` or a `string` — value is invalid, fails with an `Issue`.
  *   - An `Issue` object — fails with that issue directly.
  *   - `{ path, issue }` — fails with a nested path issue (`issue` may be a
- *     message string or a full {@link Issue.Issue}).
+ *     message string or a full {@link SchemaIssue.Issue}).
  * - Does not transform the value — input and output types are the same.
  *
  * **Example** (Effectful validation)
@@ -514,7 +514,7 @@ export function onSome<T, E, R = never>(
  * @since 4.0.0
  */
 export function checkEffect<T, R = never>(
-  f: (input: T, options: AST.ParseOptions) => Effect.Effect<
+  f: (input: T, options: SchemaAST.ParseOptions) => Effect.Effect<
     undefined | boolean | Schema.FilterIssue,
     never,
     R
@@ -522,7 +522,7 @@ export function checkEffect<T, R = never>(
 ): Getter<T, T, R> {
   return onSome((t, options) => {
     return f(t, options).pipe(Effect.flatMapEager((out) => {
-      const issue = Issue.makeSingle(t, out)
+      const issue = SchemaIssue.makeSingle(t, out)
       return issue ?
         Effect.fail(issue) :
         Effect.succeed(Option.some(t))
@@ -605,7 +605,7 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  * @since 4.0.0
  */
 export function transformOrFail<T, E, R = never>(
-  f: (e: E, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
+  f: (e: E, options: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
 ): Getter<T, E, R> {
   return onSome((e, options) => f(e, options).pipe(Effect.mapEager(Option.some)))
 }
@@ -703,7 +703,7 @@ export function omit<T>(): Getter<never, T> {
  * @since 4.0.0
  */
 export function withDefault<T, R = never>(
-  defaultValue: Effect.Effect<T, Issue.Issue, R>
+  defaultValue: Effect.Effect<T, SchemaIssue.Issue, R>
 ): Getter<T, T | undefined, R> {
   return new Getter((o) => {
     const filtered = Option.filter(o, Predicate.isNotUndefined)
@@ -1036,7 +1036,7 @@ type ParseJsonOptions = {
  * - Skips `None` inputs.
  * - Without `reviver`: returns `Schema.MutableJson` (typed JSON).
  * - With `reviver`: returns `unknown` (reviver may produce arbitrary values).
- * - On parse failure, fails with `Issue.InvalidValue` containing the error message.
+ * - On parse failure, fails with `SchemaIssue.InvalidValue` containing the error message.
  *
  * **Example** (Parse JSON)
  *
@@ -1058,7 +1058,7 @@ export function parseJson<E extends string>(options?: ParseJsonOptions | undefin
   return onSome((input) =>
     Effect.try({
       try: () => Option.some(JSON.parse(input, options?.reviver)),
-      catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
+      catch: (e) => new SchemaIssue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )
 }
@@ -1079,7 +1079,7 @@ type StringifyJsonOptions = {
  *
  * - Skips `None` inputs.
  * - On thrown stringify failures, such as circular references, fails with
- *   `Issue.InvalidValue`.
+ *   `SchemaIssue.InvalidValue`.
  * - Supports optional `replacer` and `space` options, matching
  *   `JSON.stringify`.
  * - If `JSON.stringify` returns `undefined`, such as for `undefined`,
@@ -1104,7 +1104,7 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
   return onSome((input) =>
     Effect.try({
       try: () => Option.some(JSON.stringify(input, options?.replacer, options?.space)),
-      catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
+      catch: (e) => new SchemaIssue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )
 }
@@ -1311,7 +1311,7 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64.
  *
  * **Example** (Decode Base64 to bytes)
  *
@@ -1332,7 +1332,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Effect.mapErrorEager(
       Effect.fromResult(Encoding.decodeBase64(input)),
-      (e) => new Issue.InvalidValue(Option.some(input), { message: e.message })
+      (e) => new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })
     )
   )
 }
@@ -1342,7 +1342,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64.
  *
  * **Example** (Decode Base64 to string)
  *
@@ -1362,7 +1362,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
 export function decodeBase64String<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeBase64String(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1373,7 +1373,7 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64Url.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64Url.
  *
  * **Example** (Decode Base64Url to bytes)
  *
@@ -1393,7 +1393,7 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
 export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeBase64Url(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1404,7 +1404,7 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64Url.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64Url.
  *
  * **Example** (Decode Base64Url to string)
  *
@@ -1424,7 +1424,7 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
 export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeBase64UrlString(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1435,7 +1435,7 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid hex.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid hex.
  *
  * **Example** (Decode hex to bytes)
  *
@@ -1455,7 +1455,7 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
 export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeHex(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1466,7 +1466,7 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid hex.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid hex.
  *
  * **Example** (Decode hex to string)
  *
@@ -1486,7 +1486,7 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
 export function decodeHexString<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeHexString(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1523,7 +1523,7 @@ export function encodeUriComponent<E extends string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input contains malformed percent-encoding sequences.
+ * - Fails with `SchemaIssue.InvalidValue` if the input contains malformed percent-encoding sequences.
  *
  * **Example** (Decode a URI component)
  *
@@ -1545,7 +1545,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
       return Effect.succeed(globalThis.decodeURIComponent(input))
     } catch (e) {
       return Effect.fail(
-        new Issue.InvalidValue(Option.some(input), {
+        new SchemaIssue.InvalidValue(Option.some(input), {
           message: e instanceof URIError ? e.message : "Invalid URI component"
         })
       )
@@ -1566,7 +1566,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  *   instant objects, zoned instant objects, JavaScript `Date` instances, epoch
  *   milliseconds, and date strings.
  * - Converts successfully parsed values to UTC.
- * - Fails with `Issue.InvalidValue` if the input cannot be parsed as a valid
+ * - Fails with `SchemaIssue.InvalidValue` if the input cannot be parsed as a valid
  *   `DateTime`.
  *
  * **Example** (Parse DateTime)
@@ -1586,7 +1586,8 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
 export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
   return transformOrFail((input) => {
     return Option.match(DateTime.make(input), {
-      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" })),
+      onNone: () =>
+        Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" })),
       onSome: (dt) => Effect.succeed(DateTime.toUtc(dt))
     })
   })

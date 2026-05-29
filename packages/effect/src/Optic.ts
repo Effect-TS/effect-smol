@@ -100,8 +100,8 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
-import type * as Issue from "./SchemaIssue.ts"
+import * as SchemaAST from "./SchemaAST.ts"
+import type * as SchemaIssue from "./SchemaIssue.ts"
 import * as Struct from "./Struct.ts"
 import type { IsUnion } from "./Types.ts"
 
@@ -396,7 +396,7 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * @category constructors
  * @since 4.0.0
  */
-export function fromChecks<T>(...checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]): Prism<T, T> {
+export function fromChecks<T>(...checks: readonly [SchemaAST.Check<T>, ...Array<SchemaAST.Check<T>>]): Prism<T, T> {
   return make(new CheckNode(checks))
 }
 
@@ -480,9 +480,9 @@ class PathNode {
 
 class CheckNode<T> {
   readonly _tag = "CheckNode"
-  readonly checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]
+  readonly checks: readonly [SchemaAST.Check<T>, ...Array<SchemaAST.Check<T>>]
 
-  constructor(checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]) {
+  constructor(checks: readonly [SchemaAST.Check<T>, ...Array<SchemaAST.Check<T>>]) {
     this.checks = checks
   }
 }
@@ -733,8 +733,11 @@ export interface Optional<in out S, in out A> {
    *
    * @see {@link fromChecks} — standalone prism from checks
    */
-  check<S, A>(this: Prism<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Prism<S, A>
-  check<S, A>(this: Optional<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Optional<S, A>
+  check<S, A>(this: Prism<S, A>, ...checks: readonly [SchemaAST.Check<A>, ...Array<SchemaAST.Check<A>>]): Prism<S, A>
+  check<S, A>(
+    this: Optional<S, A>,
+    ...checks: readonly [SchemaAST.Check<A>, ...Array<SchemaAST.Check<A>>]
+  ): Optional<S, A>
 
   /**
    * Narrows the focus to a subtype `B` using a type guard.
@@ -805,11 +808,11 @@ export interface Optional<in out S, in out A> {
    *
    * @see `.refine()` — for arbitrary type guards
    */
-  tag<S, A extends { readonly _tag: AST.LiteralValue }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: SchemaAST.LiteralValue }, Tag extends A["_tag"]>(
     this: Prism<S, A>,
     tag: Tag
   ): Prism<S, Extract<A, { readonly _tag: Tag }>>
-  tag<S, A extends { readonly _tag: AST.LiteralValue }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: SchemaAST.LiteralValue }, Tag extends A["_tag"]>(
     this: Optional<S, A>,
     tag: Tag
   ): Optional<S, Extract<A, { readonly _tag: Tag }>>
@@ -1160,11 +1163,11 @@ class OptionalImpl<S, A> implements Optional<S, A> {
       )
     )
   }
-  check(...checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>]): any {
+  check(...checks: readonly [SchemaAST.Check<any>, ...Array<SchemaAST.Check<any>>]): any {
     return make(compose(this.node, new CheckNode(checks)))
   }
   refine<B extends A>(refinement: (a: A) => a is B, annotations?: Schema.Annotations.Filter): any {
-    return make(compose(this.node, new CheckNode([AST.makeFilterByGuard(refinement, annotations)])))
+    return make(compose(this.node, new CheckNode([SchemaAST.makeFilterByGuard(refinement, annotations)])))
   }
   tag(tag: string): any {
     return make(
@@ -1377,7 +1380,7 @@ const recur = memoize((node: Node): Op => {
     case "CheckNode":
       return {
         _tag: "PrismNode",
-        get: (s: any) => Result.mapError(AST.runChecks(node.checks, s), String),
+        get: (s: any) => Result.mapError(SchemaAST.runChecks(node.checks, s), String),
         set: identity
       }
     case "CompositionNode": {
@@ -1776,6 +1779,6 @@ export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
 function runRefinement<T extends E, E>(
   refinement: (e: E) => e is T,
   annotations?: Schema.Annotations.Filter
-): (e: E) => Result.Result<T, Issue.Issue> {
-  return (e) => AST.runChecks([AST.makeFilterByGuard(refinement, annotations)], e) as any
+): (e: E) => Result.Result<T, SchemaIssue.Issue> {
+  return (e) => SchemaAST.runChecks([SchemaAST.makeFilterByGuard(refinement, annotations)], e) as any
 }

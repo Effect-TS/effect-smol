@@ -53,17 +53,17 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
-import * as Issue from "./SchemaIssue.ts"
+import * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaIssue from "./SchemaIssue.ts"
 
-const recurDefaults = memoize((ast: AST.AST): AST.AST => {
+const recurDefaults = memoize((ast: SchemaAST.AST): SchemaAST.AST => {
   switch (ast._tag) {
     case "Declaration": {
-      const getLink = ast.annotations?.[AST.ClassTypeId]
+      const getLink = ast.annotations?.[SchemaAST.ClassTypeId]
       if (Predicate.isFunction(getLink)) {
         const link = getLink(ast.typeParameters)
         const to = recurDefaults(link.to)
-        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
+        return SchemaAST.replaceEncoding(ast, to === link.to ? [link] : [new SchemaAST.Link(to, link.transformation)])
       }
       return ast
     }
@@ -72,7 +72,7 @@ const recurDefaults = memoize((ast: AST.AST): AST.AST => {
       return ast.recur((ast) => {
         const defaultValue = ast.context?.defaultValue
         if (defaultValue) {
-          return AST.replaceEncoding(recurDefaults(ast), defaultValue)
+          return SchemaAST.replaceEncoding(recurDefaults(ast), defaultValue)
         }
         return recurDefaults(ast)
       })
@@ -101,9 +101,9 @@ const recurDefaults = memoize((ast: AST.AST): AST.AST => {
  * @since 4.0.0
  */
 export function makeEffect<S extends Schema.Top>(schema: S) {
-  const ast = recurDefaults(AST.toType(schema.ast))
+  const ast = recurDefaults(SchemaAST.toType(schema.ast))
   const parser = run<S["Type"], never>(ast)
-  return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], Issue.Issue> => {
+  return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], SchemaIssue.Issue> => {
     return parser(
       input,
       options?.disableChecks
@@ -182,17 +182,17 @@ export function is<T>(schema: Schema.Schema<T>): <I>(input: I) => input is I & T
 }
 
 /** @internal */
-export function _is<T>(ast: AST.AST) {
-  const parser = asExit(run<T, never>(AST.toType(ast)))
+export function _is<T>(ast: SchemaAST.AST) {
+  const parser = asExit(run<T, never>(SchemaAST.toType(ast)))
   return <I>(input: I): input is I & T => {
-    return Exit.isSuccess(parser(input, AST.defaultParseOptions))
+    return Exit.isSuccess(parser(input, SchemaAST.defaultParseOptions))
   }
 }
 
 /** @internal */
-export function _issue<T>(ast: AST.AST) {
+export function _issue<T>(ast: SchemaAST.AST) {
   const parser = run<T, never>(ast)
-  return (input: unknown, options: AST.ParseOptions): Issue.Issue | undefined => {
+  return (input: unknown, options: SchemaAST.ParseOptions): SchemaIssue.Issue | undefined => {
     return Effect.runSync(Effect.matchEager(parser(input, options), {
       onSuccess: () => undefined,
       onFailure: identity
@@ -217,8 +217,8 @@ export function _issue<T>(ast: AST.AST) {
  * @since 4.0.0
  */
 export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts input is I & S["Type"] {
-  const parser = asExit(run<S["Type"], never>(AST.toType(schema.ast)))
-  const exit = parser(input, AST.defaultParseOptions)
+  const parser = asExit(run<S["Type"], never>(SchemaAST.toType(schema.ast)))
+  const exit = parser(input, SchemaAST.defaultParseOptions)
   if (Exit.isFailure(exit)) {
     const issue = Cause.findError(exit.cause)
     if (Result.isFailure(issue)) {
@@ -251,8 +251,11 @@ export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts i
  */
 export function decodeUnknownEffect<S extends Schema.Top>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<S["Type"], Issue.Issue, S["DecodingServices"]> {
+  options?: SchemaAST.ParseOptions
+): (
+  input: unknown,
+  options?: SchemaAST.ParseOptions
+) => Effect.Effect<S["Type"], SchemaIssue.Issue, S["DecodingServices"]> {
   const parser = run<S["Type"], S["DecodingServices"]>(schema.ast)
   return options === undefined
     ? parser
@@ -283,9 +286,11 @@ export function decodeUnknownEffect<S extends Schema.Top>(
  */
 export const decodeEffect: <S extends Schema.Top>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Encoded"], options?: AST.ParseOptions) => Effect.Effect<S["Type"], Issue.Issue, S["DecodingServices"]> =
-  decodeUnknownEffect
+  options?: SchemaAST.ParseOptions
+) => (
+  input: S["Encoded"],
+  options?: SchemaAST.ParseOptions
+) => Effect.Effect<S["Type"], SchemaIssue.Issue, S["DecodingServices"]> = decodeUnknownEffect
 
 /**
  * Creates a Promise-based decoder for `unknown` input.
@@ -308,8 +313,8 @@ export const decodeEffect: <S extends Schema.Top>(
  */
 export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Promise<S["Type"]> {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Promise<S["Type"]> {
   return asPromise(decodeUnknownEffect(schema, options))
 }
 
@@ -335,8 +340,8 @@ export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
  */
 export function decodePromise<S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: S["Encoded"], options?: AST.ParseOptions) => Promise<S["Type"]> {
+  options?: SchemaAST.ParseOptions
+): (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Promise<S["Type"]> {
   return asPromise(decodeEffect(schema, options))
 }
 
@@ -371,8 +376,8 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
  */
 export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Exit.Exit<S["Type"], Issue.Issue> {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Exit.Exit<S["Type"], SchemaIssue.Issue> {
   return asExit(decodeUnknownEffect(schema, options))
 }
 
@@ -398,8 +403,9 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
  */
 export const decodeExit: <S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Encoded"], options?: AST.ParseOptions) => Exit.Exit<S["Type"], Issue.Issue> = decodeUnknownExit
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Exit.Exit<S["Type"], SchemaIssue.Issue> =
+  decodeUnknownExit
 
 /**
  * Creates a decoder for `unknown` input that returns an `Option` safely.
@@ -423,8 +429,8 @@ export const decodeExit: <S extends Schema.Decoder<unknown>>(
  */
 export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Option.Option<S["Type"]> {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Option.Option<S["Type"]> {
   return asOption(decodeUnknownEffect(schema, options))
 }
 
@@ -450,8 +456,8 @@ export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
  */
 export const decodeOption: <S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Encoded"], options?: AST.ParseOptions) => Option.Option<S["Type"]> = decodeUnknownOption
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option.Option<S["Type"]> = decodeUnknownOption
 
 /**
  * Creates a decoder for `unknown` input that reports failure safely as a
@@ -480,8 +486,8 @@ export const decodeOption: <S extends Schema.Decoder<unknown>>(
  */
 export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Result.Result<S["Type"], Issue.Issue> {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Result.Result<S["Type"], SchemaIssue.Issue> {
   return asResult(decodeUnknownEffect(schema, options))
 }
 
@@ -512,8 +518,9 @@ export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
  */
 export const decodeResult: <S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Encoded"], options?: AST.ParseOptions) => Result.Result<S["Type"], Issue.Issue> = decodeUnknownResult
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Result.Result<S["Type"], SchemaIssue.Issue> =
+  decodeUnknownResult
 
 /**
  * Creates a synchronous decoder for `unknown` input.
@@ -537,8 +544,8 @@ export const decodeResult: <S extends Schema.Decoder<unknown>>(
  */
 export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => S["Type"] {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => S["Type"] {
   return asSync(decodeUnknownEffect(schema, options))
 }
 
@@ -565,8 +572,8 @@ export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
  */
 export const decodeSync: <S extends Schema.Decoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Encoded"], options?: AST.ParseOptions) => S["Type"] = decodeUnknownSync
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => S["Type"] = decodeUnknownSync
 
 /**
  * Creates an effectful encoder for `unknown` input.
@@ -591,9 +598,12 @@ export const decodeSync: <S extends Schema.Decoder<unknown>>(
  */
 export function encodeUnknownEffect<S extends Schema.Top>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Effect.Effect<S["Encoded"], Issue.Issue, S["EncodingServices"]> {
-  const parser = run<S["Encoded"], S["EncodingServices"]>(AST.flip(schema.ast))
+  options?: SchemaAST.ParseOptions
+): (
+  input: unknown,
+  options?: SchemaAST.ParseOptions
+) => Effect.Effect<S["Encoded"], SchemaIssue.Issue, S["EncodingServices"]> {
+  const parser = run<S["Encoded"], S["EncodingServices"]>(SchemaAST.flip(schema.ast))
   return options === undefined
     ? parser
     : (input, overrideOptions) => parser(input, mergeParseOptions(options, overrideOptions))
@@ -622,9 +632,11 @@ export function encodeUnknownEffect<S extends Schema.Top>(
  */
 export const encodeEffect: <S extends Schema.Top>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Type"], options?: AST.ParseOptions) => Effect.Effect<S["Encoded"], Issue.Issue, S["EncodingServices"]> =
-  encodeUnknownEffect
+  options?: SchemaAST.ParseOptions
+) => (
+  input: S["Type"],
+  options?: SchemaAST.ParseOptions
+) => Effect.Effect<S["Encoded"], SchemaIssue.Issue, S["EncodingServices"]> = encodeUnknownEffect
 
 /**
  * Creates a Promise-based encoder for `unknown` input.
@@ -647,8 +659,8 @@ export const encodeEffect: <S extends Schema.Top>(
  */
 export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Promise<S["Encoded"]> =>
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Promise<S["Encoded"]> =>
   asPromise(encodeUnknownEffect(schema, options))
 
 /**
@@ -674,8 +686,8 @@ export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
  */
 export const encodePromise: <S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Type"], options?: AST.ParseOptions) => Promise<S["Encoded"]> = encodeUnknownPromise
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Promise<S["Encoded"]> = encodeUnknownPromise
 
 /**
  * Creates a synchronous encoder for `unknown` input that reports failure safely
@@ -699,8 +711,8 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
  */
 export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Exit.Exit<S["Encoded"], Issue.Issue> {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Exit.Exit<S["Encoded"], SchemaIssue.Issue> {
   return asExit(encodeUnknownEffect(schema, options))
 }
 
@@ -726,8 +738,9 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
  */
 export const encodeExit: <S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Type"], options?: AST.ParseOptions) => Exit.Exit<S["Encoded"], Issue.Issue> = encodeUnknownExit
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Exit.Exit<S["Encoded"], SchemaIssue.Issue> =
+  encodeUnknownExit
 
 /**
  * Creates an encoder for `unknown` input that returns an `Option` safely.
@@ -750,8 +763,8 @@ export const encodeExit: <S extends Schema.Encoder<unknown>>(
  */
 export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Option.Option<S["Encoded"]> {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Option.Option<S["Encoded"]> {
   return asOption(encodeUnknownEffect(schema, options))
 }
 
@@ -777,8 +790,8 @@ export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
  */
 export const encodeOption: <S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Type"], options?: AST.ParseOptions) => Option.Option<S["Encoded"]> = encodeUnknownOption
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option.Option<S["Encoded"]> = encodeUnknownOption
 
 /**
  * Creates an encoder for `unknown` input that reports failure safely as a
@@ -803,8 +816,8 @@ export const encodeOption: <S extends Schema.Encoder<unknown>>(
  */
 export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => Result.Result<S["Encoded"], Issue.Issue> {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => Result.Result<S["Encoded"], SchemaIssue.Issue> {
   return asResult(encodeUnknownEffect(schema, options))
 }
 
@@ -831,8 +844,9 @@ export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
  */
 export const encodeResult: <S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Type"], options?: AST.ParseOptions) => Result.Result<S["Encoded"], Issue.Issue> = encodeUnknownResult
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Result.Result<S["Encoded"], SchemaIssue.Issue> =
+  encodeUnknownResult
 
 /**
  * Creates a synchronous encoder for `unknown` input.
@@ -855,8 +869,8 @@ export const encodeResult: <S extends Schema.Encoder<unknown>>(
  */
 export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-): (input: unknown, options?: AST.ParseOptions) => S["Encoded"] {
+  options?: SchemaAST.ParseOptions
+): (input: unknown, options?: SchemaAST.ParseOptions) => S["Encoded"] {
   return asSync(encodeUnknownEffect(schema, options))
 }
 
@@ -884,51 +898,51 @@ export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
  */
 export const encodeSync: <S extends Schema.Encoder<unknown>>(
   schema: S,
-  options?: AST.ParseOptions
-) => (input: S["Type"], options?: AST.ParseOptions) => S["Encoded"] = encodeUnknownSync
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => S["Encoded"] = encodeUnknownSync
 
 const mergeParseOptions = (
-  options: AST.ParseOptions,
-  overrideOptions: AST.ParseOptions | undefined
-): AST.ParseOptions => overrideOptions === undefined ? options : { ...options, ...overrideOptions }
+  options: SchemaAST.ParseOptions,
+  overrideOptions: SchemaAST.ParseOptions | undefined
+): SchemaAST.ParseOptions => overrideOptions === undefined ? options : { ...options, ...overrideOptions }
 
 /** @internal */
-export function run<T, R>(ast: AST.AST) {
+export function run<T, R>(ast: SchemaAST.AST) {
   const parser = recur(ast)
-  return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> =>
-    Effect.flatMapEager(parser(Option.some(input), options ?? AST.defaultParseOptions), (oa) => {
+  return (input: unknown, options?: SchemaAST.ParseOptions): Effect.Effect<T, SchemaIssue.Issue, R> =>
+    Effect.flatMapEager(parser(Option.some(input), options ?? SchemaAST.defaultParseOptions), (oa) => {
       if (oa._tag === "None") {
-        return Effect.fail(new Issue.InvalidValue(oa))
+        return Effect.fail(new SchemaIssue.InvalidValue(oa))
       }
       return Effect.succeed(oa.value as T)
     })
 }
 
 function asPromise<T, E>(
-  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue>
-): (input: E, options?: AST.ParseOptions) => Promise<T> {
-  return (input: E, options?: AST.ParseOptions) => Effect.runPromise(parser(input, options))
+  parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue>
+): (input: E, options?: SchemaAST.ParseOptions) => Promise<T> {
+  return (input: E, options?: SchemaAST.ParseOptions) => Effect.runPromise(parser(input, options))
 }
 
 function asExit<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
-): (input: E, options?: AST.ParseOptions) => Exit.Exit<T, Issue.Issue> {
-  return (input: E, options?: AST.ParseOptions) => Effect.runSyncExit(parser(input, options) as any)
+  parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
+): (input: E, options?: SchemaAST.ParseOptions) => Exit.Exit<T, SchemaIssue.Issue> {
+  return (input: E, options?: SchemaAST.ParseOptions) => Effect.runSyncExit(parser(input, options) as any)
 }
 
 /** @internal */
 export function asOption<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
-): (input: E, options?: AST.ParseOptions) => Option.Option<T> {
+  parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
+): (input: E, options?: SchemaAST.ParseOptions) => Option.Option<T> {
   const parserExit = asExit(parser)
-  return (input: E, options?: AST.ParseOptions) => Exit.getSuccess(parserExit(input, options))
+  return (input: E, options?: SchemaAST.ParseOptions) => Exit.getSuccess(parserExit(input, options))
 }
 
 function asResult<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
-): (input: E, options?: AST.ParseOptions) => Result.Result<T, Issue.Issue> {
+  parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
+): (input: E, options?: SchemaAST.ParseOptions) => Result.Result<T, SchemaIssue.Issue> {
   const parserExit = asExit(parser)
-  return (input: E, options?: AST.ParseOptions) => {
+  return (input: E, options?: SchemaAST.ParseOptions) => {
     const exit = parserExit(input, options)
     if (Exit.isSuccess(exit)) {
       return Result.succeed(exit.value)
@@ -942,9 +956,9 @@ function asResult<T, E, R>(
 }
 
 function asSync<T, E, R>(
-  parser: (input: E, options?: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
-): (input: E, options?: AST.ParseOptions) => T {
-  return (input: E, options?: AST.ParseOptions) =>
+  parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
+): (input: E, options?: SchemaAST.ParseOptions) => T {
+  return (input: E, options?: SchemaAST.ParseOptions) =>
     Effect.runSync(
       Effect.mapErrorEager(
         parser(input, options),
@@ -955,11 +969,14 @@ function asSync<T, E, R>(
 
 /** @internal */
 export interface Parser {
-  (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
+  (
+    input: Option.Option<unknown>,
+    options: SchemaAST.ParseOptions
+  ): Effect.Effect<Option.Option<unknown>, SchemaIssue.Issue, any>
 }
 
 const recur = memoize(
-  (ast: AST.AST): Parser => {
+  (ast: SchemaAST.AST): Parser => {
     let parser: Parser
     const astOptions = InternalAnnotations.resolve(ast)?.["parseOptions"]
     if (!ast.context && !ast.encoding && !ast.checks) {
@@ -971,14 +988,14 @@ const recur = memoize(
         return parser(ou, options)
       }
     }
-    const isStructural = AST.isArrays(ast) || AST.isObjects(ast) ||
-      (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
+    const isStructural = SchemaAST.isArrays(ast) || SchemaAST.isObjects(ast) ||
+      (SchemaAST.isDeclaration(ast) && ast.typeParameters.length > 0)
     return (ou, options) => {
       if (astOptions) {
         options = { ...options, ...astOptions }
       }
       const encoding = ast.encoding
-      let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
+      let srou: Effect.Effect<Option.Option<unknown>, SchemaIssue.Issue, unknown> | undefined
       if (encoding) {
         const links = encoding
         const len = links.length
@@ -994,7 +1011,7 @@ const recur = memoize(
             srou = link.transformation.decode(srou, options)
           }
         }
-        srou = Effect.mapErrorEager(srou!, (issue) => new Issue.Encoding(ast, ou, issue))
+        srou = Effect.mapErrorEager(srou!, (issue) => new SchemaIssue.Encoding(ast, ou, issue))
       }
 
       parser ??= ast.getParser(recur)
@@ -1004,18 +1021,18 @@ const recur = memoize(
         const checks = ast.checks
         if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
           sroa = Effect.catchEager(sroa, (issue) => {
-            const issues: Array<Issue.Issue> = []
-            AST.collectIssues(
-              checks.filter((check) => check.annotations?.[AST.STRUCTURAL_ANNOTATION_KEY]),
+            const issues: Array<SchemaIssue.Issue> = []
+            SchemaAST.collectIssues(
+              checks.filter((check) => check.annotations?.[SchemaAST.STRUCTURAL_ANNOTATION_KEY]),
               ou.value,
               issues,
               ast,
               options
             )
-            const out: Issue.Issue = Arr.isArrayNonEmpty(issues)
+            const out: SchemaIssue.Issue = Arr.isArrayNonEmpty(issues)
               ? issue._tag === "Composite" && issue.ast === ast
-                ? new Issue.Composite(ast, issue.actual, [...issue.issues, ...issues])
-                : new Issue.Composite(ast, ou, [issue, ...issues])
+                ? new SchemaIssue.Composite(ast, issue.actual, [...issue.issues, ...issues])
+                : new SchemaIssue.Composite(ast, ou, [issue, ...issues])
               : issue
             return Effect.fail(out)
           })
@@ -1023,12 +1040,12 @@ const recur = memoize(
         sroa = Effect.flatMapEager(sroa, (oa) => {
           if (Option.isSome(oa)) {
             const value = oa.value
-            const issues: Array<Issue.Issue> = []
+            const issues: Array<SchemaIssue.Issue> = []
 
-            AST.collectIssues(checks, value, issues, ast, options)
+            SchemaAST.collectIssues(checks, value, issues, ast, options)
 
             if (Arr.isArrayNonEmpty(issues)) {
-              return Effect.fail(new Issue.Composite(ast, oa, issues))
+              return Effect.fail(new SchemaIssue.Composite(ast, oa, issues))
             }
           }
           return Effect.succeed(oa)

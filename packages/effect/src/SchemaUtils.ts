@@ -37,7 +37,7 @@
  */
 import { identity } from "./Function.ts"
 import * as Schema from "./Schema.ts"
-import * as Transformation from "./SchemaTransformation.ts"
+import * as SchemaTransformation from "./SchemaTransformation.ts"
 
 /**
  * Builds an experimental schema for instances of a native class using a struct
@@ -68,7 +68,7 @@ export function getNativeClassSchema<C extends new(...args: any) => any, S exten
     readonly annotations?: Schema.Annotations.Declaration<InstanceType<C>>
   }
 ): Schema.decodeTo<Schema.instanceOf<InstanceType<C>, S["Iso"]>, S> {
-  const transformation = Transformation.transform<InstanceType<C>, S["Type"]>({
+  const transformation = SchemaTransformation.transform<InstanceType<C>, S["Type"]>({
     decode: (props) => new constructor(props),
     encode: identity
   })

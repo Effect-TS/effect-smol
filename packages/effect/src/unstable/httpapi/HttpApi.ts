@@ -54,7 +54,7 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import type * as SchemaAST from "../../SchemaAST.ts"
 import type { Mutable } from "../../Types.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
@@ -322,7 +322,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 
 const extractResponseContent = (
   schemas: Array<Schema.Top>,
-  getStatus: (ast: AST.AST) => number
+  getStatus: (ast: SchemaAST.AST) => number
 ): ReadonlyMap<number, [Schema.Top, ...Array<Schema.Top>]> => {
   const map = new Map<number, [Schema.Top, ...Array<Schema.Top>]>()
 

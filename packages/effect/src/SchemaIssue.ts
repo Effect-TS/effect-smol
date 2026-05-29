@@ -86,7 +86,7 @@ import * as Option from "./Option.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Redacted from "./Redacted.ts"
 import type * as Schema from "./Schema.ts"
-import type * as AST from "./SchemaAST.ts"
+import type * as SchemaAST from "./SchemaAST.ts"
 
 const TypeId = "~effect/SchemaIssue/Issue"
 
@@ -233,7 +233,7 @@ export class Filter extends Base {
   /**
    * The filter that failed.
    */
-  readonly filter: AST.Filter<unknown>
+  readonly filter: SchemaAST.Filter<unknown>
   /**
    * The issue that occurred.
    */
@@ -247,7 +247,7 @@ export class Filter extends Base {
     /**
      * The filter that failed.
      */
-    filter: AST.Filter<any>,
+    filter: SchemaAST.Filter<any>,
     /**
      * The issue that occurred.
      */
@@ -286,7 +286,7 @@ export class Encoding extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.AST
+  readonly ast: SchemaAST.AST
   /**
    * The input value that caused the issue.
    */
@@ -300,7 +300,7 @@ export class Encoding extends Base {
     /**
      * The schema that caused the issue.
      */
-    ast: AST.AST,
+    ast: SchemaAST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -428,7 +428,7 @@ export class UnexpectedKey extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.AST
+  readonly ast: SchemaAST.AST
   /**
    * The input value that caused the issue.
    */
@@ -438,7 +438,7 @@ export class UnexpectedKey extends Base {
     /**
      * The schema that caused the issue.
      */
-    ast: AST.AST,
+    ast: SchemaAST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -476,7 +476,7 @@ export class Composite extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.AST
+  readonly ast: SchemaAST.AST
   /**
    * The input value that caused the issue.
    */
@@ -490,7 +490,7 @@ export class Composite extends Base {
     /**
      * The schema that caused the issue.
      */
-    ast: AST.AST,
+    ast: SchemaAST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -548,7 +548,7 @@ export class InvalidType extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.AST
+  readonly ast: SchemaAST.AST
   /**
    * The input value that caused the issue.
    */
@@ -558,7 +558,7 @@ export class InvalidType extends Base {
     /**
      * The schema that caused the issue.
      */
-    ast: AST.AST,
+    ast: SchemaAST.AST,
     /**
      * The input value that caused the issue.
      */
@@ -720,7 +720,7 @@ export class AnyOf extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.Union
+  readonly ast: SchemaAST.Union
   /**
    * The input value that caused the issue.
    */
@@ -734,7 +734,7 @@ export class AnyOf extends Base {
     /**
      * The schema that caused the issue.
      */
-    ast: AST.Union,
+    ast: SchemaAST.Union,
     /**
      * The input value that caused the issue.
      */
@@ -778,7 +778,7 @@ export class OneOf extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.Union
+  readonly ast: SchemaAST.Union
   /**
    * The input value that caused the issue.
    */
@@ -786,13 +786,13 @@ export class OneOf extends Base {
   /**
    * The schemas that were successful.
    */
-  readonly successes: ReadonlyArray<AST.AST>
+  readonly successes: ReadonlyArray<SchemaAST.AST>
 
   constructor(
     /**
      * The schema that caused the issue.
      */
-    ast: AST.Union,
+    ast: SchemaAST.Union,
     /**
      * The input value that caused the issue.
      */
@@ -800,7 +800,7 @@ export class OneOf extends Base {
     /**
      * The schemas that were successful.
      */
-    successes: ReadonlyArray<AST.AST>
+    successes: ReadonlyArray<SchemaAST.AST>
   ) {
     super()
     this.ast = ast
@@ -887,7 +887,7 @@ export function makeSingle(input: unknown, out: undefined | boolean | Schema.Fil
 }
 
 /** @internal */
-export function make(input: unknown, ast: AST.AST, out: Schema.FilterOutput): Issue | undefined {
+export function make(input: unknown, ast: SchemaAST.AST, out: Schema.FilterOutput): Issue | undefined {
   if (Array.isArray(out)) {
     if (Arr.isReadonlyArrayNonEmpty(out)) {
       if (out.length === 1) {
@@ -1121,7 +1121,7 @@ function toDefaultIssues(
   }
 }
 
-function formatCheck<T>(check: AST.Check<T>): string {
+function formatCheck<T>(check: SchemaAST.Check<T>): string {
   const expected = check.annotations?.expected
   if (typeof expected === "string") return expected
 
@@ -1144,7 +1144,7 @@ function formatCheck<T>(check: AST.Check<T>): string {
  *
  * **Details**
  *
- * This is the default formatter used by `Issue.toString()`.
+ * This is the default formatter used by `SchemaIssue.toString()`.
  *
  * - Flattens the issue tree into `{ message, path }` entries using
  *   {@link defaultLeafHook} and {@link defaultCheckHook}.

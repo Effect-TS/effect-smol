@@ -65,7 +65,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
 import type { Issue } from "../../SchemaIssue.ts"
-import * as Parser from "../../SchemaParser.ts"
+import * as SchemaParser from "../../SchemaParser.ts"
 import type * as Stream_ from "../../Stream.ts"
 import * as UrlParams from "./UrlParams.ts"
 
@@ -365,7 +365,7 @@ export const jsonSchema = <S extends Schema.Top>(
   schema: S,
   options?: ParseOptions | undefined
 ) => {
-  const encode = Parser.encodeUnknownEffect(Schema.toCodecJson(schema))
+  const encode = SchemaParser.encodeUnknownEffect(Schema.toCodecJson(schema))
   return (body: S["Type"], contentType?: string): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingServices"]> =>
     encode(body, options).pipe(
       Effect.mapError((issue) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),

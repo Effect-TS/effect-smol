@@ -63,7 +63,7 @@ import type * as JsonSchema from "../../JsonSchema.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import type * as Struct from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
 import type * as AiError from "./AiError.ts"
@@ -1640,7 +1640,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
     return tool.description
   }
   if (Schema.isSchema(tool.parametersSchema)) {
-    return AST.resolveDescription(tool.parametersSchema.ast)
+    return SchemaAST.resolveDescription(tool.parametersSchema.ast)
   }
   return undefined
 }
@@ -2043,6 +2043,6 @@ export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never>
 export const EmptyParams: EmptyParams = Schema.Record(Schema.String, Schema.Never)
 
 /** @internal */
-export function isEmptyParamsRecord(indexSignature: AST.IndexSignature): boolean {
-  return indexSignature.parameter === AST.string && AST.isNever(indexSignature.type)
+export function isEmptyParamsRecord(indexSignature: SchemaAST.IndexSignature): boolean {
+  return indexSignature.parameter === SchemaAST.string && SchemaAST.isNever(indexSignature.type)
 }

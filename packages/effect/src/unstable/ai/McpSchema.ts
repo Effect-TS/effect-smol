@@ -35,7 +35,7 @@ import { constFalse, constTrue } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as Getter from "../../SchemaGetter.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import type * as RpcClient from "../rpc/RpcClient.ts"
@@ -77,8 +77,8 @@ export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstru
   const effect = Effect.sync(defaultValue)
   return Schema.optionalKey(schema).pipe(
     Schema.decode<Schema.optionalKey<S>>({
-      decode: Getter.withDefault(effect),
-      encode: Getter.passthrough()
+      decode: SchemaGetter.withDefault(effect),
+      encode: SchemaGetter.passthrough()
     }),
     Schema.withConstructorDefault<
       Schema.decodeTo<Schema.toType<Schema.optionalKey<S>>, Schema.optionalKey<S>>
@@ -100,8 +100,8 @@ export const optionalWithDefault = <S extends Schema.Top & Schema.WithoutConstru
 export const optional = <S extends Schema.Top>(schema: S): Schema.decodeTo<Schema.optional<S>, Schema.optionalKey<S>> =>
   Schema.optionalKey(schema).pipe(
     Schema.decodeTo(Schema.optional(schema), {
-      decode: Getter.passthrough() as any,
-      encode: Getter.transformOptional(Option.flatMap(Option.fromUndefinedOr))
+      decode: SchemaGetter.passthrough() as any,
+      encode: SchemaGetter.transformOptional(Option.flatMap(Option.fromUndefinedOr))
     })
   )
 

@@ -56,9 +56,9 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
@@ -596,7 +596,7 @@ function buildPayloadDecoders(
       result.set(contentType, {
         _tag: encoding._tag,
         decode,
-        nullOnEmpty: schemas.some((s) => AST.isNull(AST.toEncoded(s.ast)))
+        nullOnEmpty: schemas.some((s) => SchemaAST.isNull(SchemaAST.toEncoded(s.ast)))
       })
     }
   })
@@ -828,8 +828,8 @@ function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
-function toResponseSchema(getStatus: (ast: AST.AST) => number) {
-  const cache = new WeakMap<AST.AST, Schema.Top>()
+function toResponseSchema(getStatus: (ast: SchemaAST.AST) => number) {
+  const cache = new WeakMap<SchemaAST.AST, Schema.Top>()
 
   return (schema: Schema.Top): Schema.Encoder<HttpServerResponse, unknown> => {
     const cached = cache.get(schema.ast)
@@ -845,9 +845,9 @@ function toResponseSchema(getStatus: (ast: AST.AST) => number) {
 }
 
 function getResponseTransformation(
-  getStatus: (ast: AST.AST) => number,
+  getStatus: (ast: SchemaAST.AST) => number,
   schema: Schema.Top
-): Transformation.Transformation<unknown, Response.HttpServerResponse> {
+): SchemaTransformation.Transformation<unknown, Response.HttpServerResponse> {
   const ast = schema.ast
   const encode = getResponseEncode(
     getStatus(ast),
@@ -855,8 +855,8 @@ function getResponseTransformation(
     HttpApiSchema.isNoContent(ast)
   )
 
-  return Transformation.transformOrFail({
-    decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
+  return SchemaTransformation.transformOrFail({
+    decode: (res) => Effect.fail(new SchemaIssue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode
   })
 }
@@ -865,7 +865,7 @@ function getResponseEncode<E>(
   status: number,
   encoding: HttpApiSchema.ResponseEncoding,
   isNoContent: boolean
-): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
+): (e: E) => Effect.Effect<Response.HttpServerResponse, SchemaIssue.InvalidValue, never> {
   switch (encoding._tag) {
     case "Json": {
       return ((e) => {
@@ -876,7 +876,7 @@ function getResponseEncode<E>(
           const s = JSON.stringify(e)
           return Effect.succeed(Response.text(s, { status, contentType: encoding.contentType }))
         } catch (error) {
-          return Effect.fail(new Issue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
+          return Effect.fail(new SchemaIssue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
         }
       })
     }

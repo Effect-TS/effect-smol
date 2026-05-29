@@ -6,17 +6,17 @@ import * as Number from "../../Number.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import * as Struct from "../../Struct.ts"
 import type * as FastCheck from "../../testing/FastCheck.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import { errorWithPath } from "../errors.ts"
 import * as InternalAnnotations from "./annotations.ts"
 
-const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitraryWithContext<any>>()
+const arbitraryMemoMap = new WeakMap<SchemaAST.AST, LazyArbitraryWithContext<any>>()
 
-function applyChecks(ast: AST.AST, filters: Array<AST.Filter<any>>, arbitrary: FastCheck.Arbitrary<any>) {
-  return filters.map((filter) => (a: any) => filter.run(a, ast, AST.defaultParseOptions) === undefined).reduce(
+function applyChecks(ast: SchemaAST.AST, filters: Array<SchemaAST.Filter<any>>, arbitrary: FastCheck.Arbitrary<any>) {
+  return filters.map((filter) => (a: any) => filter.run(a, ast, SchemaAST.defaultParseOptions) === undefined).reduce(
     (acc, filter) => acc.filter(filter),
     arbitrary
   )
@@ -99,7 +99,7 @@ function isConstraintKey(key: string): key is keyof Schema.Annotations.ToArbitra
 
 /** @internal */
 export function constraintContext(
-  filters: Array<AST.Filter<any>>
+  filters: Array<SchemaAST.Filter<any>>
 ): (ctx: Schema.Annotations.ToArbitrary.Context) => Schema.Annotations.ToArbitrary.Context {
   const annotations = filters.map((filter) => filter.annotations?.toArbitraryConstraint).filter(
     Predicate.isNotUndefined
@@ -140,7 +140,7 @@ interface LazyArbitraryWithContext<T> {
 }
 
 /** @internal */
-export function getFilters(checks: AST.Checks | undefined): Array<AST.Filter<any>> {
+export function getFilters(checks: SchemaAST.Checks | undefined): Array<SchemaAST.Filter<any>> {
   if (checks) {
     return checks.flatMap((check) => {
       switch (check._tag) {
@@ -155,11 +155,11 @@ export function getFilters(checks: AST.Checks | undefined): Array<AST.Filter<any
 }
 
 /** @internal */
-export const memoized = memoize((ast: AST.AST): LazyArbitraryWithContext<any> => {
+export const memoized = memoize((ast: SchemaAST.AST): LazyArbitraryWithContext<any> => {
   return recur(ast, [])
 })
 
-function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
+function recur(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
   // ---------------------------------------------
   // handle Override annotation
   // ---------------------------------------------
@@ -167,7 +167,7 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWit
     | Schema.Annotations.ToArbitrary.Declaration<any, ReadonlyArray<Schema.Top>>
     | undefined
   if (annotation) {
-    const typeParameters = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : []
+    const typeParameters = SchemaAST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : []
     const filters = getFilters(ast.checks)
     const f = constraintContext(filters)
     return (fc, ctx) =>
@@ -180,13 +180,13 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWit
   if (ast.checks) {
     const filters = getFilters(ast.checks)
     const f = constraintContext(filters)
-    const lawc = recur(AST.replaceChecks(ast, undefined), path)
+    const lawc = recur(SchemaAST.replaceChecks(ast, undefined), path)
     return (fc, ctx) => applyChecks(ast, filters, lawc(fc, f(ctx)))
   }
   return base(ast, path)
 }
 
-function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
+function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
   switch (ast._tag) {
     case "Never":
     case "Declaration":
@@ -229,9 +229,9 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
     case "ObjectKeyword":
       return (fc) => fc.oneof(fc.object(), fc.array(fc.anything()))
     case "Enum":
-      return recur(AST.enumsToLiterals(ast), path)
+      return recur(SchemaAST.enumsToLiterals(ast), path)
     case "TemplateLiteral":
-      return (fc) => fc.stringMatching(AST.getTemplateLiteralRegExp(ast))
+      return (fc) => fc.stringMatching(SchemaAST.getTemplateLiteralRegExp(ast))
     case "Arrays":
       return (fc, ctx) => {
         const reset = resetContext(ctx)
@@ -240,7 +240,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
         // ---------------------------------------------
         const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((e, i) => {
           const out = recur(e, [...path, i])(fc, reset)
-          if (!AST.isOptional(e)) {
+          if (!SchemaAST.isOptional(e)) {
             return out.map(Option.some)
           }
           return out.chain((a) => fc.boolean().map((b) => b ? Option.some(a) : Option.none()))
@@ -285,7 +285,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
         const requiredKeys: Array<PropertyKey> = []
         for (const ps of ast.propertySignatures) {
           const name = ps.name
-          if (!AST.isOptional(ps.type)) {
+          if (!SchemaAST.isOptional(ps.type)) {
             requiredKeys.push(name)
           }
           pss[name] = recur(ps.type, [...path, name])(fc, reset)
@@ -315,7 +315,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
 
       if (memo) return memo
 
-      const get = AST.memoizeThunk(() => recur(ast.thunk(), path))
+      const get = SchemaAST.memoizeThunk(() => recur(ast.thunk(), path))
       const out: LazyArbitraryWithContext<any> = (fc, ctx) =>
         fc.constant(null).chain(() => get()(fc, { ...ctx, isSuspend: true }))
 

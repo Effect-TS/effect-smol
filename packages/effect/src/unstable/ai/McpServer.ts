@@ -36,7 +36,7 @@ import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import { CurrentLogLevel } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import * as Sink from "../../Sink.ts"
 import type { Stdio } from "../../Stdio.ts"
 import * as Stream from "../../Stream.ts"
@@ -1071,8 +1071,8 @@ export const registerPrompt = <
   for (const [name, prop] of Object.entries(props)) {
     args.push({
       name,
-      description: AST.resolveDescription(prop.ast),
-      required: !AST.isOptional(prop.ast)
+      description: SchemaAST.resolveDescription(prop.ast),
+      required: !SchemaAST.isOptional(prop.ast)
     })
   }
   const prompt = new Prompt({

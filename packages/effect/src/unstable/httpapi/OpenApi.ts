@@ -51,7 +51,7 @@ import { escapeToken } from "../../JsonPointer.ts"
 import * as JsonSchema from "../../JsonSchema.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import * as HttpApi from "./HttpApi.ts"
@@ -305,11 +305,11 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   const pathOps: Array<
     {
       readonly _tag: "schema"
-      readonly ast: AST.AST
+      readonly ast: SchemaAST.AST
       readonly path: ReadonlyArray<string>
     } | {
       readonly _tag: "parameter"
-      readonly ast: AST.AST
+      readonly ast: SchemaAST.AST
       readonly path: ReadonlyArray<string>
     }
   > = []
@@ -383,8 +383,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
             const filtered = schemas.filter((s) => !HttpApiSchema.isNoContent(s.ast))
             if (filtered.length === 0) return
             hasContent = true
-            const asts = filtered.map(AST.getAST)
-            const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+            const asts = filtered.map(SchemaAST.getAST)
+            const ast = asts.length === 1 ? asts[0] : new SchemaAST.Union(asts, "anyOf")
             pathOps.push({
               _tag: "schema",
               ast: toEncodingAST(ast, encoding._tag),
@@ -409,8 +409,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           if (content !== undefined) {
             content.forEach((map, encoding) => {
               map.forEach((schemas, contentType) => {
-                const asts = Array.from(schemas, AST.getAST)
-                const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+                const asts = Array.from(schemas, SchemaAST.getAST)
+                const ast = asts.length === 1 ? asts[0] : new SchemaAST.Union(asts, "anyOf")
 
                 pathOps.push({
                   _tag: "schema",
@@ -429,14 +429,14 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processParameters(schema: Schema.Top | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
-          const ast = AST.getLastEncoding(schema.ast)
-          if (AST.isObjects(ast)) {
+          const ast = SchemaAST.getLastEncoding(schema.ast)
+          if (SchemaAST.isObjects(ast)) {
             for (const ps of ast.propertySignatures) {
               op.parameters.push({
                 name: String(ps.name),
                 in: i,
                 schema: {},
-                required: i === "path" || !AST.isOptional(ps.type)
+                required: i === "path" || !SchemaAST.isOptional(ps.type)
               })
               pathOps.push({
                 _tag: "parameter",
@@ -528,7 +528,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
   processAnnotation(api.annotations, HttpApi.AdditionalSchemas, (componentSchemas) => {
     componentSchemas.forEach((componentSchema) => {
-      const identifier = AST.resolveIdentifier(componentSchema.ast)
+      const identifier = SchemaAST.resolveIdentifier(componentSchema.ast)
       if (identifier !== undefined) {
         if (identifier in spec.components.schemas) {
           throw new globalThis.Error(`Duplicate component schema identifier: ${identifier}`)
@@ -603,8 +603,8 @@ type ResponseBodies = Map<
 
 function extractResponseBodies(
   schemas: Array<Schema.Top>,
-  getStatus: (ast: AST.AST) => number,
-  getDescription: (ast: AST.AST) => string | undefined
+  getStatus: (ast: SchemaAST.AST) => number,
+  getDescription: (ast: SchemaAST.AST) => string | undefined
 ): ResponseBodies {
   const map = new Map<number, {
     descriptions: Set<string>
@@ -671,8 +671,8 @@ function extractResponseBodies(
   }
 }
 
-function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
-  return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
+function resolveDescriptionOrIdentifier(ast: SchemaAST.AST): string | undefined {
+  return SchemaAST.resolveDescription(ast) ?? SchemaAST.resolveIdentifier(ast)
 }
 
 type Content = Map<
@@ -687,7 +687,7 @@ const Uint8ArrayEncoding = Schema.String.annotate({
   format: "binary"
 })
 
-function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.AST {
+function toEncodingAST(ast: SchemaAST.AST, _tag: HttpApiSchema.Encoding["_tag"]): SchemaAST.AST {
   switch (_tag) {
     case "Uint8Array":
       return Uint8ArrayEncoding.ast
@@ -701,9 +701,9 @@ function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.
   }
 }
 
-function persistedFileToBinaryEncoding(ast: AST.AST): AST.AST {
+function persistedFileToBinaryEncoding(ast: SchemaAST.AST): SchemaAST.AST {
   if (
-    AST.isDeclaration(ast) &&
+    SchemaAST.isDeclaration(ast) &&
     ((ast.annotations as (Schema.Annotations.Declaration<unknown, readonly []> | undefined))?.typeConstructor?._tag ===
       "effect/http/PersistedFile")
   ) {

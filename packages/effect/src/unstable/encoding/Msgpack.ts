@@ -44,8 +44,8 @@ import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Pull from "../../Pull.ts"
 import * as Schema from "../../Schema.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 
 const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
 
@@ -361,16 +361,16 @@ export interface schema<S extends Schema.Top> extends Schema.decodeTo<S, Schema.
  * @category schemas
  * @since 4.0.0
  */
-export const transformation: Transformation.Transformation<
+export const transformation: SchemaTransformation.Transformation<
   unknown,
   Uint8Array<ArrayBuffer>
-> = Transformation.transformOrFail({
+> = SchemaTransformation.transformOrFail({
   decode(e, _options) {
     try {
       return Effect.succeed(Msgpackr.decode(e))
     } catch (cause) {
       return Effect.fail(
-        new Issue.InvalidValue(Option.some(e), {
+        new SchemaIssue.InvalidValue(Option.some(e), {
           message: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
         })
       )
@@ -381,7 +381,7 @@ export const transformation: Transformation.Transformation<
       return Effect.succeed(Msgpackr.encode(t) as Uint8Array<ArrayBuffer>)
     } catch (cause) {
       return Effect.fail(
-        new Issue.InvalidValue(Option.some(t), {
+        new SchemaIssue.InvalidValue(Option.some(t), {
           message: Predicate.hasProperty(cause, "message") ? String(cause.message) : String(cause)
         })
       )

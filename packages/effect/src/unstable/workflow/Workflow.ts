@@ -36,8 +36,8 @@ import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Parser from "../../SchemaParser.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaParser from "../../SchemaParser.ts"
 import * as Tranformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
 import type { ExitEncoded } from "../rpc/RpcMessage.ts"
@@ -539,15 +539,15 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
       [Schema.Exit(options.success, options.error, Schema.Defect)],
       ([exit]) => (input, ast, options) => {
         if (!(isResult(input) && input._tag === "Complete")) {
-          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+          return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))
         }
         return Effect.mapBothEager(
-          Parser.decodeEffect(exit)(input.exit, options),
+          SchemaParser.decodeEffect(exit)(input.exit, options),
           {
             onSuccess: (exit) => new Complete({ exit }),
             onFailure: (issue) =>
-              new Issue.Composite(ast, Option.some(input), [
-                new Issue.Pointer(["exit"], issue)
+              new SchemaIssue.Composite(ast, Option.some(input), [
+                new SchemaIssue.Pointer(["exit"], issue)
               ])
           }
         )

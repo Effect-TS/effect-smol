@@ -26,8 +26,8 @@ import * as Effect from "../../Effect.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as Getter from "../../SchemaGetter.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as VariantSchema from "./VariantSchema.ts"
 
 const {
@@ -304,7 +304,7 @@ export const optionalOption = <S extends Schema.Top>(schema: S): optionalOption<
   Schema.optionalKey(Schema.NullOr(schema)).pipe(
     Schema.decodeTo(
       Schema.Option(Schema.toType(schema)),
-      Transformation.transformOptional<Option.Option<S["Type"]>, S["Type"] | null>({
+      SchemaTransformation.transformOptional<Option.Option<S["Type"]>, S["Type"] | null>({
         decode: (oe) => oe.pipe(Option.filter(Predicate.isNotNull), Option.some),
         encode: Option.flatten
       }) as any
@@ -415,8 +415,8 @@ export interface Date extends Schema.decodeTo<Schema.instanceOf<DateTime.Utc>, S
  */
 export const Date: Date = Schema.String.pipe(
   Schema.decodeTo(Schema.DateTimeUtc, {
-    decode: Getter.dateTimeUtcFromInput().map(DateTime.removeTime),
-    encode: Getter.transform(DateTime.formatIsoDate)
+    decode: SchemaGetter.dateTimeUtcFromInput().map(DateTime.removeTime),
+    encode: SchemaGetter.transform(DateTime.formatIsoDate)
   })
 )
 

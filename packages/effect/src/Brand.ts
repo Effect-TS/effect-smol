@@ -55,8 +55,8 @@ import * as Arr from "./Array.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
-import type * as Issue from "./SchemaIssue.ts"
+import * as SchemaAST from "./SchemaAST.ts"
+import type * as SchemaIssue from "./SchemaIssue.ts"
 import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/Brand"
@@ -128,7 +128,7 @@ export interface Constructor<in out B extends Brand<any>> {
    *
    * @internal
    */
-  checks?: readonly [AST.Check<Brand.Unbranded<B>>, ...Array<AST.Check<Brand.Unbranded<B>>>] | undefined
+  checks?: readonly [SchemaAST.Check<Brand.Unbranded<B>>, ...Array<SchemaAST.Check<Brand.Unbranded<B>>>] | undefined
 }
 
 /**
@@ -148,7 +148,7 @@ export interface Constructor<in out B extends Brand<any>> {
  * @since 4.0.0
  */
 export class BrandError {
-  constructor(issue: Issue.Issue) {
+  constructor(issue: SchemaIssue.Issue) {
     this.issue = issue
   }
   /**
@@ -168,7 +168,7 @@ export class BrandError {
    *
    * @since 4.0.0
    */
-  readonly issue: Issue.Issue
+  readonly issue: SchemaIssue.Issue
   /**
    * Human-readable rendering of the validation issue.
    *
@@ -293,7 +293,7 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
 export function make<A extends Brand<any>>(
   filter: (unbranded: Brand.Unbranded<A>) => Schema.FilterOutput
 ): Constructor<A> {
-  return check(AST.makeFilter(filter))
+  return check(SchemaAST.makeFilter(filter))
 }
 
 /**
@@ -317,12 +317,12 @@ export function make<A extends Brand<any>>(
  */
 export function check<A extends Brand<any>>(
   ...checks: readonly [
-    AST.Check<Brand.Unbranded<A>>,
-    ...Array<AST.Check<Brand.Unbranded<A>>>
+    SchemaAST.Check<Brand.Unbranded<A>>,
+    ...Array<SchemaAST.Check<Brand.Unbranded<A>>>
   ]
 ): Constructor<A> {
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
-    return Result.mapError(AST.runChecks(checks, input), (issue) => new BrandError(issue)) as any
+    return Result.mapError(SchemaAST.runChecks(checks, input), (issue) => new BrandError(issue)) as any
   }
   return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrow(result(input)), {
     option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),

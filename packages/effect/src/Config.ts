@@ -81,10 +81,10 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
-import * as Issue from "./SchemaIssue.ts"
-import * as Parser from "./SchemaParser.ts"
-import * as Transformation from "./SchemaTransformation.ts"
+import * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaIssue from "./SchemaIssue.ts"
+import * as SchemaParser from "./SchemaParser.ts"
+import * as SchemaTransformation from "./SchemaTransformation.ts"
 
 const TypeId = "~effect/Config"
 
@@ -394,7 +394,7 @@ export function all<const Arg extends Iterable<Config<any>> | Record<string, Con
   }
 }
 
-function isMissingDataOnly(issue: Issue.Issue): boolean {
+function isMissingDataOnly(issue: SchemaIssue.Issue): boolean {
   switch (issue._tag) {
     case "MissingKey":
       return true
@@ -625,7 +625,7 @@ const dump: (
 })
 
 const recur: (
-  ast: AST.AST,
+  ast: SchemaAST.AST,
   provider: ConfigProvider.ConfigProvider,
   path: Path
 ) => Effect.Effect<Schema.StringTree, Schema.SchemaError | SourceError> = Effect.fnUntraced(
@@ -644,7 +644,7 @@ const recur: (
           const stat = yield* provider.load(path)
           if (stat && stat._tag === "Record") {
             for (const is of ast.indexSignatures) {
-              const matches = Parser._is(is.parameter)
+              const matches = SchemaParser._is(is.parameter)
               for (const key of stat.keys) {
                 if (!Object.hasOwn(out, key) && matches(key)) {
                   const value = yield* recur(is.type, provider, [...path, key])
@@ -731,8 +731,8 @@ const recur: (
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
   const codecStringTree = Schema.toCodecStringTree(codec)
-  const decodeUnknownEffect = Parser.decodeUnknownEffect(codecStringTree)
-  const codecStringTreeEncoded = AST.toEncoded(codecStringTree.ast)
+  const decodeUnknownEffect = SchemaParser.decodeUnknownEffect(codecStringTree)
+  const codecStringTreeEncoded = SchemaAST.toEncoded(codecStringTree.ast)
   const defaultPath = typeof path === "string" ? [path] : path ?? []
   return make((provider) => {
     const path = provider.prefix ? [...provider.prefix, ...defaultPath] : defaultPath
@@ -740,7 +740,7 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
       Effect.flatMapEager((tree) =>
         decodeUnknownEffect(tree).pipe(
           Effect.mapErrorEager((issue) =>
-            new Schema.SchemaError(path.length > 0 ? new Issue.Pointer(path, issue) : issue)
+            new Schema.SchemaError(path.length > 0 ? new SchemaIssue.Pointer(path, issue) : issue)
           )
         )
       ),
@@ -776,7 +776,7 @@ export const FalseValues = Schema.Literals(["false", "no", "off", "0", "n"])
 export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.literals]).pipe(
   Schema.decodeTo(
     Schema.Boolean,
-    Transformation.transform({
+    SchemaTransformation.transform({
       decode: (value) => value === "true" || value === "yes" || value === "on" || value === "1" || value === "y",
       encode: (value) => value ? "true" : "false"
     })
@@ -867,7 +867,7 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
   const recordString = Schema.String.pipe(
     Schema.decodeTo(
       Schema.Record(Schema.String, Schema.String),
-      Transformation.splitKeyValue(options)
+      SchemaTransformation.splitKeyValue(options)
     ),
     Schema.decodeTo(record)
   )
@@ -1059,7 +1059,7 @@ export function int(name?: string) {
  * @category constructors
  * @since 2.0.0
  */
-export function literal<L extends AST.LiteralValue>(literal: L, name?: string) {
+export function literal<L extends SchemaAST.LiteralValue>(literal: L, name?: string) {
   return schema(Schema.Literal(literal), name)
 }
 
@@ -1087,7 +1087,7 @@ export function literal<L extends AST.LiteralValue>(literal: L, name?: string) {
  * @category constructors
  * @since 4.0.0
  */
-export function literals<const L extends ReadonlyArray<AST.LiteralValue>>(literals: L, name?: string) {
+export function literals<const L extends ReadonlyArray<SchemaAST.LiteralValue>>(literals: L, name?: string) {
   return schema(Schema.Literals(literals), name)
 }
 

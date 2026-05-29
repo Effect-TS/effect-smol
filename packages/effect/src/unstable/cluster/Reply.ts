@@ -30,9 +30,9 @@ import * as Exit from "../../Exit.ts"
 import * as Option from "../../Option.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Parser from "../../SchemaParser.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaParser from "../../SchemaParser.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import type * as RpcMessage from "../rpc/RpcMessage.ts"
 import type * as RpcSchema from "../rpc/RpcSchema.ts"
@@ -221,7 +221,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
    *
    * @since 4.0.0
    */
-  static readonly transform: Transformation.Transformation<any, any> = Transformation.transform({
+  static readonly transform: SchemaTransformation.Transformation<any, any> = SchemaTransformation.transform({
     decode: (a: any) => new Chunk(a),
     encode: (a) => a as any
   })
@@ -254,10 +254,11 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
       [success],
       ([success]) => (input, ast, options) => {
         if (!isReply(input) || input._tag !== "Chunk") {
-          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+          return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))
         }
-        return Effect.mapBothEager(Parser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
-          onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["values"], issue)]),
+        return Effect.mapBothEager(SchemaParser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
+          onFailure: (issue) =>
+            new SchemaIssue.Composite(ast, Option.some(input), [new SchemaIssue.Pointer(["values"], issue)]),
           onSuccess: (values) => new Chunk({ ...input, values } as any)
         })
       },
@@ -272,7 +273,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
               sequence: Schema.Number,
               values: Schema.NonEmptyArray(success)
             }),
-            Transformation.transform({
+            SchemaTransformation.transform({
               decode: (encoded) => new Chunk(encoded),
               encode: (result) => ({ ...result })
             })
@@ -359,10 +360,11 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
       [exitSchema],
       ([exit]) => (input, ast, options) => {
         if (!isReply(input) || input._tag !== "WithExit") {
-          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+          return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))
         }
-        return Effect.mapBothEager(Parser.decodeEffect(exit)(input.exit, options), {
-          onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["exit"], issue)]),
+        return Effect.mapBothEager(SchemaParser.decodeEffect(exit)(input.exit, options), {
+          onFailure: (issue) =>
+            new SchemaIssue.Composite(ast, Option.some(input), [new SchemaIssue.Pointer(["exit"], issue)]),
           onSuccess: (exit) => new WithExit({ ...input, exit: exit as any })
         })
       },
@@ -376,7 +378,7 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
               id: SnowflakeFromBigInt,
               exit
             }),
-            Transformation.transform({
+            SchemaTransformation.transform({
               decode: (encoded) => new WithExit(encoded as any),
               encode: (result) => ({ ...result })
             })

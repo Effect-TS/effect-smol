@@ -96,8 +96,8 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
-import type * as AST from "./SchemaAST.ts"
-import * as Getter from "./SchemaGetter.ts"
+import type * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaGetter from "./SchemaGetter.ts"
 
 // -----------------------------------------------------------------------------
 // specification
@@ -863,8 +863,8 @@ const isPrimitiveTree = Schema.is($PrimitiveTree)
  */
 export const $Annotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
   Schema.encodeTo(Schema.Record(Schema.String, $PrimitiveTree), {
-    decode: Getter.passthrough(),
-    encode: Getter.transformOptional(Option.flatMap((r) => {
+    decode: SchemaGetter.passthrough(),
+    encode: SchemaGetter.transformOptional(Option.flatMap((r) => {
       const out: Record<string, typeof $PrimitiveTree["Type"]> = {}
       for (const [k, v] of Object.entries(r)) {
         if (!toJsonAnnotationsBlacklist.has(k) && isPrimitiveTree(v)) {
@@ -1694,7 +1694,7 @@ export const $MultiDocument = Schema.Struct({
  * @category constructors
  * @since 4.0.0
  */
-export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAST
+export const fromAST: (ast: SchemaAST.AST) => Document = InternalRepresentation.fromAST
 
 /**
  * Converts one or more Schema ASTs into a {@link MultiDocument}.
@@ -1713,7 +1713,8 @@ export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAS
  * @category constructors
  * @since 4.0.0
  */
-export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalRepresentation.fromASTs
+export const fromASTs: (asts: readonly [SchemaAST.AST, ...Array<SchemaAST.AST>]) => MultiDocument =
+  InternalRepresentation.fromASTs
 
 /**
  * Schema that decodes a {@link Document} from JSON and encodes it back.
@@ -2108,7 +2109,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
     }
   }
 
-  function toSchemaCheck(check: Check<Meta>): AST.Check<any> {
+  function toSchemaCheck(check: Check<Meta>): SchemaAST.Check<any> {
     switch (check._tag) {
       case "Filter":
         return toSchemaFilter(check)
@@ -2118,7 +2119,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
     }
   }
 
-  function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
+  function toSchemaFilter(filter: Filter<Meta>): SchemaAST.Check<any> {
     const a = filter.annotations
     switch (filter.meta._tag) {
       // String Meta
@@ -3709,7 +3710,7 @@ function collectAnnotations(
   return Rec.isEmptyRecord(as) ? undefined : as
 }
 
-function isLiteralValue(value: unknown): value is AST.LiteralValue {
+function isLiteralValue(value: unknown): value is SchemaAST.LiteralValue {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
 }
 

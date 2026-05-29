@@ -15,7 +15,7 @@ import * as Option from "../../../Option.ts"
 import { CurrentLogAnnotations } from "../../../References.ts"
 import * as Schedule from "../../../Schedule.ts"
 import * as Schema from "../../../Schema.ts"
-import * as Issue from "../../../SchemaIssue.ts"
+import * as SchemaIssue from "../../../SchemaIssue.ts"
 import * as Scope from "../../../Scope.ts"
 import type * as Rpc from "../../rpc/Rpc.ts"
 import { RequestId } from "../../rpc/RpcMessage.ts"
@@ -636,7 +636,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     if (!rpc) {
       return Effect.fail(
         new Schema.SchemaError(
-          new Issue.InvalidValue(Option.some(message), {
+          new SchemaIssue.InvalidValue(Option.some(message), {
             message: `Unknown tag ${message.envelope.tag} for entity type ${entity.type}`
           })
         )

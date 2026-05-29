@@ -51,7 +51,7 @@ import { hasProperty } from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 
 /**
  * Creates a channel that parses Server-Sent Events text chunks into `Event` values.
@@ -494,7 +494,7 @@ export const Event: Schema.Struct<{
  * @category models
  * @since 4.0.0
  */
-export const transformEvent = Transformation.transform<{
+export const transformEvent = SchemaTransformation.transform<{
   readonly id?: string | undefined
   readonly event: string
   readonly data: string

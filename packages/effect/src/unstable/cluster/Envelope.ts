@@ -28,7 +28,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Headers from "../http/Headers.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import { EntityAddress } from "./EntityAddress.ts"
@@ -406,10 +406,10 @@ export const Request = Schema.declare(
  * @category serialization
  * @since 4.0.0
  */
-export const RequestTransform: Transformation.Transformation<
+export const RequestTransform: SchemaTransformation.Transformation<
   Request.Any,
   any
-> = Transformation.transform({
+> = SchemaTransformation.transform({
   decode: (u: any) => makeRequest(u),
   encode: (u) => u as any
 })

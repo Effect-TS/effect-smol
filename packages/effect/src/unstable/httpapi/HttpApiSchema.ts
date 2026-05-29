@@ -43,8 +43,8 @@
  */
 import { constVoid, type LazyArg } from "../../Function.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import { hasBody, type HttpMethod } from "../http/HttpMethod.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
@@ -274,7 +274,7 @@ export function asNoContent<S extends Schema.Top>(options: {
     return Schema.Void.pipe(
       Schema.decodeTo(
         Schema.toType(self),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: options.decode,
           encode: constVoid
         })
@@ -472,18 +472,18 @@ export function asUint8Array(options?: {
  * @category predicates
  * @since 4.0.0
  */
-export const isNoContent = (ast: AST.AST): boolean => {
-  if (AST.isVoid(ast)) return true
-  const encoded = AST.toEncoded(ast)
-  if (AST.isVoid(encoded)) return true
+export const isNoContent = (ast: SchemaAST.AST): boolean => {
+  if (SchemaAST.isVoid(ast)) return true
+  const encoded = SchemaAST.toEncoded(ast)
+  if (SchemaAST.isVoid(encoded)) return true
   const target = ast.encoding?.[0].to
   if (target === undefined) return false
-  return AST.isVoid(target)
+  return SchemaAST.isVoid(target)
 }
 
-const resolveHttpApiEncoding = AST.resolveAt<Encoding>("~httpApiEncoding")
+const resolveHttpApiEncoding = SchemaAST.resolveAt<Encoding>("~httpApiEncoding")
 
-const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
+const resolveHttpApiStatus = SchemaAST.resolveAt<number>("httpApiStatus")
 
 const defaultJsonEncoding: Encoding = {
   _tag: "Json",
@@ -494,19 +494,19 @@ const defaultUrlEncodedEncoding: Encoding = {
   contentType: "application/x-www-form-urlencoded"
 }
 
-function getEncoding(ast: AST.AST): Encoding {
+function getEncoding(ast: SchemaAST.AST): Encoding {
   return resolveHttpApiEncoding(ast) ?? defaultJsonEncoding
 }
 
 /** @internal */
-export function getPayloadEncoding(ast: AST.AST, method: HttpMethod): PayloadEncoding {
+export function getPayloadEncoding(ast: SchemaAST.AST, method: HttpMethod): PayloadEncoding {
   const encoding = resolveHttpApiEncoding(ast)
   if (encoding) return encoding
   return hasBody(method) ? defaultJsonEncoding : defaultUrlEncodedEncoding
 }
 
 /** @internal */
-export function getResponseEncoding(ast: AST.AST): ResponseEncoding {
+export function getResponseEncoding(ast: SchemaAST.AST): ResponseEncoding {
   const out = getEncoding(ast)
   if (out._tag === "Multipart") {
     throw new Error("Multipart is not supported in response")
@@ -515,11 +515,11 @@ export function getResponseEncoding(ast: AST.AST): ResponseEncoding {
 }
 
 /** @internal */
-export function getStatusSuccess(self: AST.AST): number {
+export function getStatusSuccess(self: SchemaAST.AST): number {
   return resolveHttpApiStatus(self) ?? 200
 }
 
 /** @internal */
-export function getStatusError(self: AST.AST): number {
+export function getStatusError(self: SchemaAST.AST): number {
   return resolveHttpApiStatus(self) ?? 500
 }

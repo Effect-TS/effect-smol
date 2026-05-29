@@ -29,7 +29,7 @@ import * as Hash from "../../Hash.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import * as S from "../../Schema.ts"
-import * as Getter from "../../SchemaGetter.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
 
 const TypeId = "~effect/cluster/ShardId"
 
@@ -69,8 +69,8 @@ export const ShardId = S.declare(isShardId, {
         id: S.Number
       }),
       {
-        decode: Getter.transform(({ group, id }) => make(group, id)),
-        encode: Getter.passthrough()
+        decode: SchemaGetter.transform(({ group, id }) => make(group, id)),
+        encode: SchemaGetter.passthrough()
       }
     )
 })

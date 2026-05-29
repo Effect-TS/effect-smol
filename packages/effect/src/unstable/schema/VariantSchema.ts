@@ -26,7 +26,7 @@ import { dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import type * as SchemaAST from "../../SchemaAST.ts"
 import * as Struct_ from "../../Struct.ts"
 
 /**
@@ -279,7 +279,7 @@ export interface Class<
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
-    AST.Declaration,
+    SchemaAST.Declaration,
     Schema.decodeTo<Schema.declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
     S["~type.make.in"],
     S["Iso"],

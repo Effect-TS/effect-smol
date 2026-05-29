@@ -27,7 +27,7 @@ import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type { MachineId } from "./MachineId.ts"
 
 /**
@@ -129,7 +129,7 @@ export interface SnowflakeFromString extends Schema.decodeTo<SnowflakeFromBigInt
  * @since 4.0.0
  */
 export const SnowflakeFromString: SnowflakeFromString = Schema.String.pipe(
-  Schema.decodeTo(SnowflakeFromBigInt, Transformation.bigintFromString)
+  Schema.decodeTo(SnowflakeFromBigInt, SchemaTransformation.bigintFromString)
 )
 
 /**
