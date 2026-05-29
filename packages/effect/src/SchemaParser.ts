@@ -233,8 +233,9 @@ export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts i
  *
  * **When to use**
  *
- * Use when you need to decode untyped boundary input while preserving decoding
- * failures, effectful transformations, and service requirements in an `Effect`.
+ * Use when you need to decode untyped boundary input in an `Effect` whose
+ * failure channel is `SchemaIssue.Issue`, while preserving transformations
+ * and service requirements.
  *
  * **Details**
  *
@@ -264,9 +265,9 @@ export function decodeUnknownEffect<S extends Schema.Top>(
  *
  * **When to use**
  *
- * Use when you already have input typed as the schema's `Encoded` type and want
- * decoding to stay in `Effect`, including parse failures and required decoding
- * services.
+ * Use when you already have input typed as the schema's `Encoded` type and
+ * need an `Effect` whose failure channel is `SchemaIssue.Issue`, while
+ * preserving decoding service requirements.
  *
  * **Details**
  *
@@ -345,8 +346,8 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when you need to decode unknown input synchronously while preserving the
- * parser outcome as an `Exit` value.
+ * Use when you need to decode unknown input synchronously into an `Exit` whose
+ * failure contains `SchemaIssue.Issue`.
  *
  * **Details**
  *
@@ -381,8 +382,8 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when you need synchronous decoding of already typed `Encoded` input with
- * failures returned as `Exit` values.
+ * Use when you need synchronous decoding of already typed `Encoded` input into
+ * an `Exit` whose failure contains `SchemaIssue.Issue`.
  *
  * **Details**
  *
@@ -572,8 +573,9 @@ export const decodeSync: <S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when you need to encode untyped boundary input while preserving encoding
- * failures and service requirements in an `Effect`.
+ * Use when you need to encode untyped boundary input in an `Effect` whose
+ * failure channel is `SchemaIssue.Issue`, while preserving service
+ * requirements.
  *
  * **Details**
  *
@@ -604,8 +606,8 @@ export function encodeUnknownEffect<S extends Schema.Top>(
  * **When to use**
  *
  * Use when you need to encode values already typed as the schema's decoded
- * `Type` while preserving service requirements and returning failures in an
- * `Effect`.
+ * `Type` in an `Effect` whose failure channel is `SchemaIssue.Issue`, while
+ * preserving service requirements.
  *
  * **Details**
  *
@@ -681,8 +683,8 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
  *
  * **When to use**
  *
- * Use when you need synchronous encoding of unknown input with the encoded
- * value or schema issue returned as an `Exit`.
+ * Use when you need synchronous encoding of unknown input into an `Exit` whose
+ * failure contains `SchemaIssue.Issue`.
  *
  * **Details**
  *
@@ -708,8 +710,8 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
  *
  * **When to use**
  *
- * Use when you need synchronous encoding of already typed schema values with
- * failures returned as `Exit` values.
+ * Use when you need synchronous encoding of already typed schema values into
+ * an `Exit` whose failure contains `SchemaIssue.Issue`.
  *
  * **Details**
  *

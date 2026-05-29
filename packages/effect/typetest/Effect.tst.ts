@@ -1,4 +1,4 @@
-/** @effect-diagnostics floatingEffect:skip-file */
+/** @effect-diagnostics floatingEffect:skip-file missingEffectError:skip-file */
 import {
   type Cause,
   type Channel,
