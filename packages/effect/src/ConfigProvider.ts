@@ -239,9 +239,8 @@ export function makeArray(length: number, value?: string): Node {
  *
  * **When to use**
  *
- * Use when writing a custom provider's `get` callback for an underlying store that is
- * unreachable or produces an I/O error, or when matching on error channels while consuming
- * provider output directly.
+ * Use when you need to report that a custom provider's underlying store is
+ * unreachable or produced an I/O error while reading configuration data.
  *
  * **Gotchas**
  *
@@ -736,9 +735,8 @@ export const layerAdd = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use when you need deterministic config for unit or integration tests without
- * touching the environment, or when config is embedded directly in code or read
- * from a JSON file.
+ * Use when you need deterministic config from an in-memory JavaScript value,
+ * such as in tests, embedded config, or parsed JSON.
  *
  * **Details**
  *

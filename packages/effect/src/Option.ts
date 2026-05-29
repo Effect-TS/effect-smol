@@ -1761,7 +1761,7 @@ export const productMany = <A>(
  * **When to use**
  *
  * Use when you need to combine multiple `Option` values into one while
- * preserving the input shape; any `None` makes the result `None`.
+ * preserving the input shape, with any `None` making the result `None`.
  *
  * **Details**
  *

@@ -1357,7 +1357,7 @@ export const withDefault: {
  *
  * **When to use**
  *
- * Use when config should provide a fallback source for required flags or
+ * Use when you need config to provide a fallback source for required flags or
  * arguments that are absent from CLI input.
  *
  * **Details**

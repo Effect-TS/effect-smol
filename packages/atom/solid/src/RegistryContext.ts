@@ -34,8 +34,8 @@ import { createComponent, createContext, onCleanup } from "solid-js"
  *
  * **When to use**
  *
- * Use when you need lower-level Solid atom APIs to access an `AtomRegistry`, or
- * when you need to provide a registry directly for the current owner tree.
+ * Use when you need to access or provide an `AtomRegistry` directly for the
+ * current Solid owner tree.
  *
  * **Details**
  *

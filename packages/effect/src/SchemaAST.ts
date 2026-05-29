@@ -694,14 +694,14 @@ export abstract class Base {
  * **When to use**
  *
  * Use when you need a custom schema AST node because none of the built-in
- * nodes fit. The `run` function receives `typeParameters` and returns a parser
- * that validates or transforms raw input.
+ * nodes fit.
  *
  * **Details**
  *
  * - `typeParameters` — inner schemas this declaration is parameterized over
  *   (e.g. the element type for a custom collection).
- * - `run` — factory producing the actual parse function.
+ * - `run` — factory that receives `typeParameters` and returns a parser that
+ *   validates or transforms raw input.
  *
  * @see {@link isDeclaration}
  * @category models

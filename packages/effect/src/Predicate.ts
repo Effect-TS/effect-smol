@@ -1745,11 +1745,12 @@ export const eqv: {
  *
  * **When to use**
  *
- * Use when you want a rule that only applies when a precondition holds.
- * - You model constraints like "if A then B".
+ * Use when you need to encode logical implication for a predicate rule that
+ * only applies when a precondition holds.
  *
  * **Details**
  *
+ * - Models constraints like "if A then B".
  * - Returns `true` when the antecedent is `false`.
  *
  * **Example** (Implication)

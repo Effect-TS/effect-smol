@@ -1499,7 +1499,8 @@ export const find: {
  *
  * **When to use**
  *
- * Use when you need matching an input to run effects, fail, or use services.
+ * Use when you need to run effects, fail, or use services while searching for
+ * the first matching input.
  *
  * **Details**
  *

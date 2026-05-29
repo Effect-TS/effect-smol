@@ -1424,8 +1424,8 @@ const constEmptyIterator: Iterator<never> = {
  *
  * **When to use**
  *
- * Use as a base case for operations or when you
- * need to represent "no data" in a type-safe way.
+ * Use when you need an empty iterable as a typed "no data" value or a base
+ * case for iterable operations.
  *
  * **Example** (Creating an empty iterable)
  *

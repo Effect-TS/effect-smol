@@ -242,8 +242,7 @@ export function max<A>(order: Order.Order<A>): Combiner<A> {
  *
  * **When to use**
  *
- * Use when you want "first write wins" semantics while merging values, or
- * when the combining logic should keep the existing value.
+ * Use when you want "first write wins" semantics while merging values.
  *
  * **Details**
  *
@@ -273,8 +272,7 @@ export function first<A>(): Combiner<A> {
  *
  * **When to use**
  *
- * Use when you want "last write wins" semantics while merging values, or
- * when each new value should replace the accumulator.
+ * Use when you want "last write wins" semantics while merging values.
  *
  * **Details**
  *
@@ -305,9 +303,8 @@ export function last<A>(): Combiner<A> {
  *
  * **When to use**
  *
- * Use when a combiner should produce a fixed result regardless of input,
- * or when a generic API needs a combiner but the combined value is
- * predetermined.
+ * Use when you need a combiner that always returns a fixed value, including
+ * when a generic API requires a combiner but the result is predetermined.
  *
  * **Details**
  *
@@ -339,9 +336,9 @@ export function constant<A>(a: A): Combiner<A> {
  *
  * **When to use**
  *
- * Use when you are building delimited strings (CSV, paths, etc.) by
- * repeated combination, or when you need to inject a fixed separator between
- * accumulated values.
+ * Use when you need to inject a fixed separator between accumulated values,
+ * such as when building delimited strings, paths, or CSV-like output by
+ * repeated combination.
  *
  * **Details**
  *

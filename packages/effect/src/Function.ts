@@ -612,8 +612,8 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  *
  * **When to use**
  *
- * Use when composing data-last functions into readable transformation pipelines,
- * or when replacing method-style chains with ordinary function calls.
+ * Use when you need to compose data-last functions into readable
+ * transformation pipelines instead of method-style chains.
  *
  * **Details**
  *

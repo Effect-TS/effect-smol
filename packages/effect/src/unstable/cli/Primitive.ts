@@ -754,7 +754,7 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  *
  * **When to use**
  *
- * Use when you need generating help documentation.
+ * Use when you need to generate help documentation.
  *
  * **Example** (Getting primitive type names)
  *

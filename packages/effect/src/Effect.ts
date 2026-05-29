@@ -4147,6 +4147,8 @@ export const sandbox: <A, E, R>(
  * Use when an effect should run for its side effects while both success and
  * failure values are discarded.
  *
+ * **Details**
+ *
  * Use the `log` option to emit the full {@link Cause} when the effect fails,
  * and `message` to prepend a custom log message.
  *
@@ -4411,7 +4413,7 @@ export const firstSuccessOf: <Eff extends Effect<any, any, any>>(
  *
  * **When to use**
  *
- * Use when exceeding the time limit should be represented as a typed failure.
+ * Use when you need to represent exceeding the time limit as a typed failure.
  *
  * **Details**
  *
@@ -5295,9 +5297,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use when you need to handle both success and failure cases and want
- * optimal performance for resolved effects. This is particularly useful in
- * scenarios where you frequently work with already computed values.
+ * Use when you need to handle both success and failure cases and want optimized
+ * handling for effects that may already be resolved.
  *
  * **Details**
  *
@@ -6927,9 +6928,8 @@ export const onExitFilter: {
  *
  * **When to use**
  *
- * Use when an expensive or time-consuming operation should be evaluated once and reused by
- * later callers. The first evaluation computes the result, and later evaluations return the
- * cached value.
+ * Use when you need an expensive or time-consuming operation to be evaluated
+ * once and reused by later callers.
  *
  * **Details**
  *
@@ -6991,14 +6991,8 @@ export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
  *
  * **When to use**
  *
- * Use when an effect with costly operations or computations should be reused for a bounded
- * duration before being recomputed.
- *
- * It's ideal for scenarios where the result of an effect doesn't change
- * frequently and can be reused for a specified duration.
- *
- * By caching the result, you can improve efficiency and reduce unnecessary
- * computations, especially in performance-critical applications.
+ * Use when you need a costly effect result to be reused for a bounded duration
+ * before being recomputed.
  *
  * **Details**
  *

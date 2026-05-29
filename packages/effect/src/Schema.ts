@@ -11202,8 +11202,8 @@ export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {
  *
  * **When to use**
  *
- * Use when a boundary provides valid JavaScript `Date` objects but the decoded
- * model should use `DateTime.Utc`.
+ * Use when you need to decode valid JavaScript `Date` objects into
+ * `DateTime.Utc` values.
  *
  * **Details**
  *

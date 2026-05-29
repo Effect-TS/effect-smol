@@ -531,10 +531,8 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  *
  * **When to use**
  *
- * Use when you have a plain object or array that should be compared by identity
- *   (reference), not by contents.
- * - When you want to preserve the original object unchanged and get a new
- *   reference-equal handle.
+ * Use when you need to compare a plain object or array by identity without
+ * mutating the original value.
  *
  * **Details**
  *

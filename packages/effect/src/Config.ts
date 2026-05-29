@@ -689,14 +689,15 @@ const recur: (
  *
  * **When to use**
  *
- * Use when reading structured or validated config (structs, arrays, unions, branded
- *   types, etc.).
- * - All convenience constructors (`string`, `number`, …) delegate to this.
+ * Use when you need to read structured or schema-validated configuration.
  *
  * **Details**
  *
  * The optional `path` sets the root path segment(s) for the config lookup.
  * Pass a single string for a flat key or an array for nested paths.
+ *
+ * Convenience constructors such as `string`, `number`, and `boolean` delegate
+ * to this API.
  *
  * The codec is used to decode the raw `StringTree` produced by the provider
  * into `T`. Schema validation errors are wrapped in `ConfigError`.

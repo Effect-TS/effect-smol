@@ -530,9 +530,8 @@ const getPoolItemInner = Effect.fnUntraced(function*<A, E>(
  *
  * **When to use**
  *
- * Use to prevent a pooled item from being reused after you determine it is no
- * longer suitable, such as a stale connection or a resource that failed a
- * health check.
+ * Use to prevent a pooled item from being reused after it becomes unsuitable,
+ * such as a stale connection or a resource that failed a health check.
  *
  * **Gotchas**
  *

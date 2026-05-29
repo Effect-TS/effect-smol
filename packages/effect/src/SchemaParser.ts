@@ -119,8 +119,8 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
  *
  * **When to use**
  *
- * Use when you only need to know whether constructor input is valid and do
- * not need error details.
+ * Use when you need to validate constructor input and only care whether
+ * construction succeeds.
  *
  * @category constructors
  * @since 4.0.0
@@ -405,8 +405,9 @@ export const decodeExit: <S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use when you need a synchronous yes/no decode from untyped input and do not
- * need schema issue details.
+ * Use when decoding unknown input and you want a synchronous `Option` result
+ * that keeps the decoded value on success but discards issue details on
+ * failure.
  *
  * **Details**
  *

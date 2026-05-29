@@ -208,8 +208,8 @@ export const isDoneCause = <E>(cause: Cause.Cause<E>): boolean => cause.reasons.
  *
  * **When to use**
  *
- * Use as a predicate when traversing `cause.reasons` and you need to identify
- * done completion reasons before handling ordinary failures.
+ * Use when you need to identify done completion reasons while traversing
+ * `cause.reasons`, before handling ordinary failures.
  *
  * @see {@link isDoneCause} for checking an entire `Cause` for any done reason
  * @see {@link filterDone} for extracting the `Cause.Done` value from a `Cause`

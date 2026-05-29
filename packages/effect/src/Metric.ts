@@ -3999,9 +3999,8 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  *
  * **When to use**
  *
- * Use when runtime metrics should be disabled for specific parts of an application while
- * remaining enabled elsewhere, or when metrics collection overhead must be avoided in a
- * performance-critical section.
+ * Use when you need to disable runtime metrics for a specific effect while
+ * keeping them enabled elsewhere.
  *
  * **Example** (Disabling runtime metrics for an effect)
  *

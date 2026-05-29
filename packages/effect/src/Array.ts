@@ -225,7 +225,7 @@ export const make = <Elements extends NonEmptyArray<unknown>>(
  *
  * **When to use**
  *
- * Use when you need a pre-sized array that you will fill imperatively.
+ * Use when you need a pre-sized array that will be filled imperatively.
  *
  * **Details**
  *

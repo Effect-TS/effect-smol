@@ -126,8 +126,7 @@ export const model = (
  * **When to use**
  *
  * Use to construct the `EmbeddingModel.Service` effectfully when
- * `OpenAiClient` is already available in the environment or when the service
- * value is needed directly.
+ * `OpenAiClient` is already available in the environment.
  *
  * **Details**
  *
