@@ -1359,7 +1359,10 @@ export const decodeExit: <S extends Decoder<unknown>>(
  * @category decoding
  * @since 3.10.0
  */
-export const decodeUnknownOption = SchemaParser.decodeUnknownOption
+export const decodeUnknownOption: <S extends Decoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: unknown, options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = SchemaParser.decodeUnknownOption
 
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
@@ -1380,7 +1383,10 @@ export const decodeUnknownOption = SchemaParser.decodeUnknownOption
  * @category decoding
  * @since 3.10.0
  */
-export const decodeOption = SchemaParser.decodeOption
+export const decodeOption: <S extends Decoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = decodeUnknownOption
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Result` that
@@ -1711,7 +1717,11 @@ export const encodeExit: <S extends Encoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export const encodeUnknownOption = SchemaParser.encodeUnknownOption
+export const encodeUnknownOption: <S extends Encoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: unknown, options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> =
+  SchemaParser.encodeUnknownOption
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning an
@@ -1732,7 +1742,10 @@ export const encodeUnknownOption = SchemaParser.encodeUnknownOption
  * @category encoding
  * @since 3.10.0
  */
-export const encodeOption = SchemaParser.encodeOption
+export const encodeOption: <S extends Encoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> = encodeUnknownOption
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Result` that
