@@ -341,7 +341,7 @@ export const succeed: <A>(right: A) => Result<A> = result.succeed
  *
  * **When to use**
  *
- * Use to represent a failed computation with a typed failure value.
+ * Use to represent a failed `Result` with a typed failure value.
  *
  * **Details**
  *
@@ -373,8 +373,8 @@ export {
    *
    * **When to use**
    *
-   * Use when a success should signal completion without carrying a meaningful
-   * value.
+   * Use when you need a successful `Result` value that signals completion
+   * without carrying meaningful data.
    *
    * **Details**
    *
@@ -405,8 +405,8 @@ export {
  *
  * **When to use**
  *
- * Use when a failure should act only as a control signal and no failure value
- * is needed.
+ * Use when you need a failed `Result` value that acts only as a control signal
+ * without failure data.
  *
  * **Details**
  *
@@ -682,8 +682,8 @@ export const isSuccess: <A, E>(self: Result<A, E>) => self is Success<A, E> = re
  *
  * **When to use**
  *
- * Use when you need to extract the success value as an `Option` and discard
- * failure information.
+ * Use when you need to extract the success value from a `Result` as an
+ * `Option` and discard failure information.
  *
  * **Details**
  *
@@ -715,8 +715,8 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * **When to use**
  *
- * Use when you need to extract the failure value as an `Option` and discard
- * successful values.
+ * Use when you need to extract the failure value from a `Result` as an
+ * `Option` and discard successful values.
  *
  * **Details**
  *

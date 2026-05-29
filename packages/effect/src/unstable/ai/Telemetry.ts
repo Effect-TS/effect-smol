@@ -436,10 +436,15 @@ export type GenAITelemetryAttributeOptions = BaseAttributes & {
 /**
  * Applies GenAI telemetry attributes to an OpenTelemetry span.
  *
+ * **When to use**
+ *
+ * Use when you need to write GenAI request, response, token, or usage
+ * attributes onto an existing OpenTelemetry span.
+ *
  * **Details**
  *
- * This function adds standardized GenAI attributes to a span following OpenTelemetry
- * semantic conventions. It supports both curried and direct application patterns.
+ * This function adds standardized GenAI attributes to a span following
+ * OpenTelemetry semantic conventions.
  *
  * **Gotchas**
  *

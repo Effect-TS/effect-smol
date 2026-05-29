@@ -129,8 +129,8 @@ export function isIssue(u: unknown): u is Issue {
  *
  * **When to use**
  *
- * Use when constraining formatter hooks to only handle terminal nodes.
- * - Pattern-matching on the `_tag` of an issue when you only care about leaves.
+ * Use when constraining formatter hooks to only handle terminal nodes or when
+ * pattern matching on the `_tag` of an issue and only leaf nodes matter.
  *
  * **Details**
  *
@@ -156,9 +156,8 @@ export type Leaf =
  *
  * **When to use**
  *
- * Use when typing the error channel in `Effect<A, Issue, R>` results from schema
- *   parsing.
- * - Writing custom formatters or issue-tree walkers.
+ * Use when typing the error channel in `Effect<A, Issue, R>` results from
+ * schema parsing, or when writing custom formatters or issue-tree walkers.
  *
  * **Details**
  *
@@ -1139,8 +1138,8 @@ function formatCheck<T>(check: SchemaAST.Check<T>): string {
  *
  * **When to use**
  *
- * Use when you need error messages for logging, CLI output, or
- * developer-facing diagnostics.
+ * Use when you need to format a `SchemaIssue.Issue` as error messages for
+ * logging, CLI output, or developer-facing diagnostics.
  *
  * **Details**
  *

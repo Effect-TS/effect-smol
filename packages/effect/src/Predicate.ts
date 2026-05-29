@@ -403,7 +403,7 @@ export const mapInput: {
  *
  * **When to use**
  *
- * Use when you need a runtime check for exact tuple length that narrows
+ * Use when you need a `Predicate` guard for exact tuple length that narrows
  * `ReadonlyArray<T>` to `TupleOf<N, T>`.
  *
  * **Details**
@@ -436,8 +436,8 @@ export const isTupleOf: {
  *
  * **When to use**
  *
- * Use when you need a runtime check for tuple-like minimum length that narrows
- * `ReadonlyArray<T>` to `TupleOfAtLeast<N, T>`.
+ * Use when you need a `Predicate` guard for tuple-like minimum length that
+ * narrows `ReadonlyArray<T>` to `TupleOfAtLeast<N, T>`.
  *
  * **Details**
  *
@@ -502,7 +502,7 @@ export function isTruthy(input: unknown): boolean {
  *
  * **When to use**
  *
- * Use when you need a runtime guard for `Set` values.
+ * Use when you need a `Predicate` runtime guard for `Set` values.
  *
  * **Details**
  *
@@ -534,7 +534,7 @@ export function isSet(input: unknown): input is Set<unknown> {
  *
  * **When to use**
  *
- * Use when you need a runtime guard for `Map` values.
+ * Use when you need a `Predicate` runtime guard for `Map` values.
  *
  * **Details**
  *
@@ -566,8 +566,8 @@ export function isMap(input: unknown): input is Map<unknown, unknown> {
  *
  * **When to use**
  *
- * Use when you need to guard an `unknown` value as a string and narrow it in
- * `if` statements.
+ * Use when you need a `Predicate` guard to narrow an `unknown` value to a
+ * string.
  *
  * **Details**
  *
@@ -600,7 +600,8 @@ export function isString(input: unknown): input is string {
  *
  * **When to use**
  *
- * Use when you need to guard an `unknown` value as a number.
+ * Use when you need a `Predicate` guard to narrow an `unknown` value to a
+ * number.
  *
  * **Details**
  *
@@ -632,7 +633,8 @@ export function isNumber(input: unknown): input is number {
  *
  * **When to use**
  *
- * Use when you need to guard an `unknown` value as a boolean.
+ * Use when you need a `Predicate` guard to narrow an `unknown` value to a
+ * boolean.
  *
  * **Details**
  *
@@ -664,7 +666,8 @@ export function isBoolean(input: unknown): input is boolean {
  *
  * **When to use**
  *
- * Use when you need to guard an `unknown` value as a bigint.
+ * Use when you need a `Predicate` guard to narrow an `unknown` value to a
+ * bigint.
  *
  * **Details**
  *
@@ -695,7 +698,8 @@ export function isBigInt(input: unknown): input is bigint {
  *
  * **When to use**
  *
- * Use when you need to guard an `unknown` value as a symbol.
+ * Use when you need a `Predicate` guard to narrow an `unknown` value to a
+ * symbol.
  *
  * **Details**
  *
@@ -726,7 +730,8 @@ export function isSymbol(input: unknown): input is symbol {
  *
  * **When to use**
  *
- * Use when you need to guard unknown keys before indexing.
+ * Use when you need a `Predicate` guard for unknown property keys before
+ * indexing.
  *
  * **Details**
  *
@@ -760,7 +765,8 @@ export function isPropertyKey(u: unknown): u is PropertyKey {
  *
  * **When to use**
  *
- * Use when you need to guard an `unknown` value as callable.
+ * Use when you need a `Predicate` guard to narrow an `unknown` value to a
+ * callable function.
  *
  * **Details**
  *
@@ -791,7 +797,8 @@ export function isFunction(input: unknown): input is Function {
  *
  * **When to use**
  *
- * Use when you need to guard unknown values that are exactly `undefined`.
+ * Use when you need a `Predicate` guard for values that are exactly
+ * `undefined`.
  *
  * **Details**
  *
@@ -821,7 +828,8 @@ export function isUndefined(input: unknown): input is undefined {
  *
  * **When to use**
  *
- * Use when you want to filter out `undefined` while preserving other falsy values.
+ * Use when you need a `Predicate` refinement that filters out `undefined`
+ * while preserving other falsy values.
  *
  * **Details**
  *
@@ -852,7 +860,7 @@ export function isNotUndefined<A>(input: A): input is Exclude<A, undefined> {
  *
  * **When to use**
  *
- * Use when you need a guard for nullable values.
+ * Use when you need a `Predicate` guard for nullable values.
  *
  * **Details**
  *
@@ -882,7 +890,8 @@ export function isNull(input: unknown): input is null {
  *
  * **When to use**
  *
- * Use when you want to filter out `null` while preserving other falsy values.
+ * Use when you need a `Predicate` refinement that filters out `null` while
+ * preserving other falsy values.
  *
  * **Details**
  *
@@ -913,7 +922,7 @@ export function isNotNull<A>(input: A): input is Exclude<A, null> {
  *
  * **When to use**
  *
- * Use when you want to guard nullish values explicitly.
+ * Use when you need a `Predicate` guard for nullish values.
  *
  * **Details**
  *
@@ -945,7 +954,8 @@ export function isNullish<A>(input: A): input is A & (null | undefined) {
  *
  * **When to use**
  *
- * Use when you want to filter out nullish values but keep other falsy ones.
+ * Use when you need a `Predicate` refinement that filters out nullish values
+ * but keeps other falsy ones.
  *
  * **Details**
  *
@@ -977,7 +987,7 @@ export function isNotNullish<A>(input: A): input is NonNullable<A> {
  *
  * **When to use**
  *
- * Use when you need a predicate that never accepts, e.g. in default branches.
+ * Use when you need a `Predicate` that never accepts, e.g. in default branches.
  *
  * **Details**
  *
@@ -1004,7 +1014,7 @@ export function isNever(_: unknown): _ is never {
  *
  * **When to use**
  *
- * Use when you need a predicate that always accepts, e.g. as a placeholder.
+ * Use when you need a `Predicate` that always accepts, e.g. as a placeholder.
  *
  * **Details**
  *
@@ -1031,7 +1041,8 @@ export function isUnknown(_: unknown): _ is unknown {
  *
  * **When to use**
  *
- * Use when you want to accept plain objects and arrays, but not `null`.
+ * Use when you need a `Predicate` guard that accepts plain objects and arrays,
+ * but not `null`.
  *
  * **Details**
  *
@@ -1059,7 +1070,8 @@ export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: un
  *
  * **When to use**
  *
- * Use to narrow unknown input to a non-null, non-array object.
+ * Use to narrow unknown input to a non-null, non-array object with a
+ * `Predicate` guard.
  *
  * **Details**
  *
@@ -1092,7 +1104,7 @@ export function isObject(input: unknown): input is { [x: PropertyKey]: unknown }
  * **When to use**
  *
  * Use to narrow unknown input to a readonly view of a non-null, non-array
- * object.
+ * object with a `Predicate` guard.
  *
  * **Details**
  *
@@ -1123,7 +1135,8 @@ export function isReadonlyObject(input: unknown): input is { readonly [x: Proper
  *
  * **When to use**
  *
- * Use when you want to accept arrays and functions as well as objects.
+ * Use when you need a `Predicate` guard that accepts arrays and functions as
+ * well as objects.
  *
  * **Details**
  *
@@ -1152,8 +1165,8 @@ export function isObjectKeyword(input: unknown): input is object {
  *
  * **When to use**
  *
- * Use when you need to guard property access on `unknown` values with a simple
- * structural object check.
+ * Use when you need a `Predicate` guard for property access on `unknown`
+ * values with a simple structural object check.
  *
  * **Details**
  *
@@ -1192,8 +1205,8 @@ export const hasProperty: {
  *
  * **When to use**
  *
- * Use when you model tagged unions with a `_tag` field and want a quick,
- * structural guard for tagged values.
+ * Use when you model tagged unions with a `_tag` field and want a quick
+ * `Predicate` guard for tagged values.
  *
  * **Details**
  *
@@ -1226,7 +1239,7 @@ export const isTagged: {
  *
  * **When to use**
  *
- * Use when you need to guard errors caught from unknown sources.
+ * Use when you need a `Predicate` guard for errors caught from unknown sources.
  *
  * **Details**
  *
@@ -1255,7 +1268,7 @@ export function isError(input: unknown): input is Error {
  *
  * **When to use**
  *
- * Use when you need to guard binary data at runtime.
+ * Use when you need a `Predicate` runtime guard for binary data.
  *
  * **Details**
  *
@@ -1285,7 +1298,7 @@ export function isUint8Array(input: unknown): input is Uint8Array {
  *
  * **When to use**
  *
- * Use when you need to guard dates at runtime.
+ * Use when you need a `Predicate` runtime guard for dates.
  *
  * **Details**
  *
@@ -1314,7 +1327,7 @@ export function isDate(input: unknown): input is Date {
  *
  * **When to use**
  *
- * Use when you need a guard before iterating an unknown value.
+ * Use when you need a `Predicate` guard before iterating an unknown value.
  *
  * **Details**
  *
@@ -1344,7 +1357,7 @@ export function isIterable(input: unknown): input is Iterable<unknown> {
  *
  * **When to use**
  *
- * Use when you need to detect promise instances across realms.
+ * Use when you need a `Predicate` guard for promise instances across realms.
  *
  * **Details**
  *
@@ -1373,8 +1386,8 @@ export function isPromise(input: unknown): input is Promise<unknown> {
  *
  * **When to use**
  *
- * Use when you need to recognize promise-like values by a callable `then`
- * method.
+ * Use when you need a `Predicate` guard for promise-like values with a
+ * callable `then` method.
  *
  * **Details**
  *
@@ -1403,7 +1416,7 @@ export function isPromiseLike(input: unknown): input is PromiseLike<unknown> {
  *
  * **When to use**
  *
- * Use when you need a runtime guard for regular expressions.
+ * Use when you need a `Predicate` runtime guard for regular expressions.
  *
  * **Details**
  *
@@ -1432,8 +1445,8 @@ export function isRegExp(input: unknown): input is RegExp {
  *
  * **When to use**
  *
- * Use when you want to apply two checks in sequence, especially when chaining
- * refinements for progressive narrowing.
+ * Use when you want to compose two `Predicate` checks in sequence, especially
+ * when chaining refinements for progressive narrowing.
  *
  * **Details**
  *
@@ -1601,8 +1614,8 @@ export function not<A>(self: Predicate<A>): Predicate<A> {
  *
  * **When to use**
  *
- * Use when you want to accept values that satisfy at least one condition,
- * including refinements that should narrow to a union.
+ * Use when you want to combine `Predicate`s with OR, accepting values that
+ * satisfy at least one condition, including refinements that narrow to a union.
  *
  * **Details**
  *
@@ -1636,8 +1649,9 @@ export const or: {
  *
  * **When to use**
  *
- * Use when you want to accept values that satisfy multiple conditions,
- * including refinements that should narrow to an intersection.
+ * Use when you want to combine `Predicate`s with AND, accepting values that
+ * satisfy multiple conditions, including refinements that narrow to an
+ * intersection.
  *
  * **Details**
  *
@@ -1679,7 +1693,7 @@ export const and: {
  *
  * **When to use**
  *
- * Use when you want an exclusive-or between two conditions.
+ * Use when you want to combine two `Predicate`s with exclusive-or semantics.
  *
  * **Details**
  *
@@ -1712,7 +1726,7 @@ export const xor: {
  *
  * **When to use**
  *
- * Use when you want to check equivalence of two predicates.
+ * Use when you want to check equivalence of two `Predicate`s.
  *
  * **Details**
  *
@@ -1743,8 +1757,8 @@ export const eqv: {
  *
  * **When to use**
  *
- * Use when you need to encode logical implication for a predicate rule that
- * only applies when a precondition holds.
+ * Use when you need to encode logical implication between `Predicate` rules,
+ * where one rule only applies when a precondition holds.
  *
  * **Details**
  *
@@ -1781,7 +1795,7 @@ export const implies: {
  *
  * **When to use**
  *
- * Use when you want the logical NOR of two conditions.
+ * Use when you want to combine two `Predicate`s with logical NOR semantics.
  *
  * **Details**
  *
@@ -1815,7 +1829,7 @@ export const nor: {
  *
  * **When to use**
  *
- * Use when you want the logical NAND of two conditions.
+ * Use when you want to combine two `Predicate`s with logical NAND semantics.
  *
  * **Details**
  *

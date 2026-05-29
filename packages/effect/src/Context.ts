@@ -742,7 +742,7 @@ export const add: {
  *
  * **When to use**
  *
- * Use when you already have service presence represented as an `Option`.
+ * Use when you need to add or omit a `Context` service based on an `Option`.
  *
  * **Details**
  *
@@ -1048,8 +1048,8 @@ const serviceNotFoundError = (service: Key<any, any>) => {
  *
  * **When to use**
  *
- * Use when you expect a service to be absent and want absence represented as
- * data.
+ * Use when you need to read a `Context` service as an `Option` so absence is
+ * represented as data.
  *
  * **Details**
  *
@@ -1195,7 +1195,7 @@ export const mergeAll = <T extends Array<unknown>>(
  *
  * **When to use**
  *
- * Use when you want to keep a small allowlist of services.
+ * Use when you want to keep an allowlist of services in a `Context`.
  *
  * **Example** (Picking services from a context)
  *
@@ -1242,7 +1242,7 @@ export const pick = <S extends ReadonlyArray<Key<any, any>>>(
  *
  * **When to use**
  *
- * Use when you want to remove a small denylist of services.
+ * Use when you want to remove a denylist of services from a `Context`.
  *
  * **Example** (Omitting services from a context)
  *

@@ -512,7 +512,7 @@ export const hasFails: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effec
  *
  * **When to use**
  *
- * Use to check for unexpected errors.
+ * Use to check whether an `Exit` failure cause contains unexpected errors.
  *
  * **Details**
  *
@@ -542,7 +542,7 @@ export const hasDies: <A, E>(self: Exit<A, E>) => self is Failure<A, E> = effect
  *
  * **When to use**
  *
- * Use to check if a fiber was interrupted.
+ * Use to check whether an `Exit` contains fiber interruption.
  *
  * **Details**
  *
@@ -804,13 +804,13 @@ export const findDefect: <A, E>(input: Exit<A, E>) => Result.Result<unknown, Exi
  *
  * **When to use**
  *
- * Use when you need exhaustive handling of both outcomes.
+ * Use when you need exhaustive handling of both `Exit` success and failure
+ * outcomes.
  *
  * **Details**
  *
  * Calls `onSuccess` with the value if the Exit is a Success, and calls
- * `onFailure` with the Cause if the Exit is a Failure. Supports both curried
- * and direct call styles.
+ * `onFailure` with the Cause if the Exit is a Failure.
  *
  * **Example** (Matching on an Exit)
  *
@@ -857,7 +857,6 @@ export const match: {
  * Failures pass through unchanged.
  *
  * Allocates a new Exit if successful.
- * Supports both curried and direct call styles.
  *
  * **Example** (Mapping over a success)
  *
@@ -892,7 +891,6 @@ export const map: {
  * Successes pass through unchanged.
  *
  * Allocates a new Exit if the error is transformed.
- * Supports both curried and direct call styles.
  *
  * **Gotchas**
  *
@@ -933,7 +931,7 @@ export const mapError: {
  *
  * `onSuccess` transforms the value if the Exit is a Success. `onFailure`
  * transforms the typed error if the Exit is a Failure with a Fail reason.
- * Allocates a new Exit and supports both curried and direct call styles.
+ * Allocates a new Exit.
  *
  * **Gotchas**
  *
@@ -976,7 +974,8 @@ export const mapBoth: {
  *
  * **When to use**
  *
- * Use when you only care about whether the computation succeeded or failed, not the value
+ * Use when you need to discard a successful `Exit` value while preserving
+ * whether the `Exit` succeeded or failed.
  *
  * **Details**
  *

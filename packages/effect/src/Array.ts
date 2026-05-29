@@ -1459,8 +1459,8 @@ export const takeWhile: {
  *
  * **When to use**
  *
- * Use when you need to take a prefix of elements while a function can
- * successfully extract or transform them, stopping at the first element
+ * Use when you need to take a prefix from an iterable while a function can
+ * successfully extract or transform elements, stopping at the first element
  * that produces a failure result.
  *
  * **Details**
@@ -1663,8 +1663,8 @@ export const dropWhile: {
  *
  * **When to use**
  *
- * Use when you need to drop a prefix by computing a `Result` per element
- * instead of using a simple boolean predicate.
+ * Use when you need to drop a prefix from an iterable by computing a `Result`
+ * per element instead of using a simple boolean predicate.
  *
  * **Details**
  *
@@ -3616,8 +3616,8 @@ export const flatten: <const S extends ReadonlyArray<ReadonlyArray<any>>>(self: 
  *
  * **When to use**
  *
- * Use to collect only present values from `Option` values while discarding
- * `None` values.
+ * Use to collect only present values from an iterable of `Option` values while
+ * discarding `None` values.
  *
  * **Example** (Extracting Some values)
  *
@@ -3652,8 +3652,8 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  *
  * **When to use**
  *
- * Use to collect only failure values from `Result` values while discarding
- * successes.
+ * Use to collect only failure values from an iterable of `Result` values while
+ * discarding successes.
  *
  * **Example** (Extracting failures)
  *
@@ -3689,8 +3689,8 @@ export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
  *
  * **When to use**
  *
- * Use to collect only success values from `Result` values while discarding
- * failures.
+ * Use to collect only success values from an iterable of `Result` values while
+ * discarding failures.
  *
  * **Example** (Extracting successes)
  *
@@ -3725,8 +3725,8 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
  *
  * **When to use**
  *
- * Use to transform elements with a `Result`-returning filter while discarding
- * failures.
+ * Use to filter an iterable with a `Result`-returning transformation while
+ * discarding failures.
  *
  * **Details**
  *
@@ -3767,7 +3767,8 @@ export const filterMap: {
  *
  * **When to use**
  *
- * Use to keep original elements that satisfy a boolean predicate or refinement.
+ * Use to keep original elements from an iterable that satisfy a boolean
+ * predicate or refinement.
  *
  * **Details**
  *
@@ -3812,8 +3813,8 @@ export const filter: {
  *
  * **When to use**
  *
- * Use to evaluate each element with a `Result`-returning filter and keep both
- * failure and success values.
+ * Use to partition an iterable by evaluating each element with a
+ * `Result`-returning filter and keeping both failure and success values.
  *
  * **Details**
  *
@@ -3871,7 +3872,7 @@ export const partition: {
  *
  * **When to use**
  *
- * Use to split existing `Result` values into failure and success arrays.
+ * Use to split an iterable of `Result` values into failure and success arrays.
  *
  * **Details**
  *

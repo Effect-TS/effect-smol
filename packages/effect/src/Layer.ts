@@ -782,8 +782,8 @@ export const buildWithScope: {
  *
  * **When to use**
  *
- * Use when you need to provide a service from an already constructed
- * implementation without effectful acquisition.
+ * Use when you need a `Layer` that provides a service from an already
+ * constructed implementation without effectful acquisition.
  *
  * **Example** (Creating a layer from a service implementation)
  *
@@ -820,7 +820,8 @@ export const succeed: {
  *
  * **When to use**
  *
- * Use when you already have a `Context` or need to provide multiple services at once.
+ * Use when you need a `Layer` built from an existing `Context`, including when
+ * you need to provide multiple services at once.
  *
  * **Details**
  *
@@ -891,7 +892,7 @@ export const empty: Layer<never> = succeedContext(Context.empty())
  *
  * **When to use**
  *
- * Use when you need to provide one service whose value is created
+ * Use when you need a `Layer` that provides one service whose value is created
  * synchronously, but creation should be deferred until the layer is built.
  *
  * **Details**
@@ -933,8 +934,8 @@ export const sync: {
  *
  * **When to use**
  *
- * Use when you need to create multiple services synchronously but defer that
- * work until the layer is built.
+ * Use when you need a `Layer` that creates multiple services synchronously but
+ * defers that work until the layer is built.
  *
  * **Details**
  *
@@ -971,8 +972,8 @@ export const syncContext = <A>(evaluate: LazyArg<Context.Context<A>>): Layer<A> 
  *
  * **When to use**
  *
- * Use when you need to construct a service with an Effect, dependencies, or
- * scoped resource acquisition.
+ * Use when you need to construct a `Layer`-provided service with an `Effect`,
+ * dependencies, or scoped resource acquisition.
  *
  * **Details**
  *
@@ -1028,8 +1029,8 @@ const effectImpl = <I, S, E, R>(
  *
  * **When to use**
  *
- * Use when you need effectful construction to provide multiple services at
- * once.
+ * Use when you need a `Layer` that effectfully constructs a `Context` with
+ * multiple services.
  *
  * **Details**
  *
@@ -1440,8 +1441,8 @@ export const provide: {
  *
  * **When to use**
  *
- * Use when you need both the constructed service and the dependency used to
- * build it to remain available.
+ * Use when you need to compose `Layer`s while keeping both the constructed
+ * service and the dependency used to build it available.
  *
  * **Details**
  *
@@ -1837,7 +1838,8 @@ export {
    *
    * **When to use**
    *
-   * Use when every typed construction error should use the same recovery path.
+   * Use when every typed `Layer` construction error should use the same
+   * recovery path.
    *
    * @see {@link catchTag} for recovering from specific tagged errors
    * @see {@link catchCause} for recovering with access to the full cause
@@ -1853,7 +1855,7 @@ export {
  *
  * **When to use**
  *
- * Use when only some tagged construction errors should be recovered.
+ * Use when only some tagged `Layer` construction errors should be recovered.
  *
  * **Example** (Recovering from tagged layer errors)
  *
@@ -1936,8 +1938,8 @@ export const catchTag: {
  *
  * **When to use**
  *
- * Use when you need recovery to inspect more than the typed error, such as
- * defects or interruption information.
+ * Use when you need `Layer` recovery to inspect more than the typed error,
+ * such as defects or interruption information.
  *
  * **Details**
  *

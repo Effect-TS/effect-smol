@@ -482,7 +482,8 @@ export function combineAll<A>(collection: Iterable<Order<A>>): Order<A> {
  *
  * **When to use**
  *
- * Use when you need to compare a larger value by one derived property.
+ * Use when you need to adapt an `Order` to compare a larger value by one
+ * derived property.
  *
  * **Details**
  *
@@ -701,13 +702,12 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  *
  * **When to use**
  *
- * Use when you need a boolean less-than predicate.
+ * Use when you need a boolean less-than predicate using an `Order`.
  *
  * **Details**
  *
  * Returns `true` if the order returns `-1`, meaning the first value is less
- * than the second. Equal or greater values return `false`. Both curried and
- * uncurried call styles are supported.
+ * than the second. Equal or greater values return `false`.
  *
  * **Example** (Less Than)
  *
@@ -736,13 +736,12 @@ export const isLessThan = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need a boolean greater-than predicate.
+ * Use when you need a boolean greater-than predicate using an `Order`.
  *
  * **Details**
  *
  * Returns `true` if the order returns `1`, meaning the first value is greater
- * than the second. Equal or lesser values return `false`. Both curried and
- * uncurried call styles are supported.
+ * than the second. Equal or lesser values return `false`.
  *
  * **Example** (Greater Than)
  *
@@ -771,7 +770,7 @@ export const isGreaterThan = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need a boolean less-than-or-equal predicate.
+ * Use when you need a boolean less-than-or-equal predicate using an `Order`.
  *
  * **Details**
  *
@@ -805,7 +804,8 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need a boolean greater-than-or-equal predicate.
+ * Use when you need a boolean greater-than-or-equal predicate using an
+ * `Order`.
  *
  * **Details**
  *
@@ -839,13 +839,13 @@ export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to select the smaller of two values.
+ * Use when you need to select the smaller of two values according to an
+ * `Order`.
  *
  * **Details**
  *
  * Returns the value that compares as less than or equal to the other value. If
- * values are equal, the first argument is returned. Both curried and uncurried
- * call styles are supported.
+ * values are equal, the first argument is returned.
  *
  * **Example** (Minimum Value)
  *
@@ -874,13 +874,13 @@ export const min = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to select the larger of two values.
+ * Use when you need to select the larger of two values according to an
+ * `Order`.
  *
  * **Details**
  *
  * Returns the value that compares as greater than or equal to the other value.
- * If values are equal, the first argument is returned. Both curried and
- * uncurried call styles are supported.
+ * If values are equal, the first argument is returned.
  *
  * **Example** (Maximum Value)
  *
@@ -909,7 +909,8 @@ export const max = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to clamp a value to an inclusive range.
+ * Use when you need to clamp a value to an inclusive range according to an
+ * `Order`.
  *
  * **Details**
  *
@@ -959,7 +960,8 @@ export const clamp = <A>(O: Order<A>): {
  *
  * **When to use**
  *
- * Use when you need to check whether a value is within an inclusive range.
+ * Use when you need to check whether a value is within an inclusive range
+ * according to an `Order`.
  *
  * **Details**
  *

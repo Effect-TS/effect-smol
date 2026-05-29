@@ -89,7 +89,7 @@ const recurDefaults = memoize((ast: SchemaAST.AST): SchemaAST.AST => {
  * **When to use**
  *
  * Use to construct decoded schema values in `Effect` while preserving
- * construction issues in the error channel.
+ * construction failures as `SchemaIssue.Issue` values in the error channel.
  *
  * **Details**
  *
@@ -119,8 +119,8 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
  *
  * **When to use**
  *
- * Use when you need to validate constructor input and only care whether
- * construction succeeds.
+ * Use when you need to validate schema constructor input and only care whether
+ * construction succeeds, without exposing `SchemaIssue.Issue` details.
  *
  * @category constructors
  * @since 4.0.0
@@ -138,7 +138,7 @@ export function makeOption<S extends Schema.Top>(schema: S) {
  * **When to use**
  *
  * Use to construct decoded schema values synchronously when invalid input
- * should throw.
+ * should throw an `Error` whose cause is `SchemaIssue.Issue`.
  *
  * **Details**
  *
@@ -206,7 +206,7 @@ export function _issue<T>(ast: SchemaAST.AST) {
  * **When to use**
  *
  * Use to assert that an input satisfies the decoded side of a schema, throwing
- * when validation fails.
+ * an `Error` whose cause is `SchemaIssue.Issue` when validation fails.
  *
  * **Details**
  *

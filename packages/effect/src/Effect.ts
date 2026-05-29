@@ -2159,15 +2159,15 @@ export const tap: {
  *
  * **When to use**
  *
- * Use when you want to handle typed failures as data while preserving the original
- * error value.
+ * Use when you want an `Effect`'s typed failures to be handled as `Result`
+ * data while preserving the original error value.
  *
  * **Details**
  *
  * This function converts an effect that may fail into an effect that always
  * succeeds, wrapping the outcome in a `Result` type. The result will be
- * `Result.Err` if the effect fails, containing the recoverable error, or
- * `Result.Ok` if it succeeds, containing the result.
+ * `Result.Failure` if the effect fails, containing the recoverable error, or
+ * `Result.Success` if it succeeds, containing the result.
  *
  * Using this function, you can handle recoverable errors explicitly without
  * causing the effect to fail. This is particularly useful in scenarios where
@@ -2442,8 +2442,7 @@ export const asVoid: <A, E, R>(self: Effect<A, E, R>) => Effect<void, E, R> = in
  *
  * **When to use**
  *
- * Use to handle the failure value as a success, or move the success value into
- * the failure channel.
+ * Use to swap an `Effect`'s success and failure channels.
  *
  * **Details**
  *
@@ -3495,7 +3494,8 @@ export const catchCauseFilter: {
  *
  * **When to use**
  *
- * Use to translate typed failures while leaving successful values unchanged.
+ * Use to translate an `Effect`'s typed failures while leaving successful values
+ * unchanged.
  *
  * **Details**
  *
@@ -3537,8 +3537,8 @@ export const mapError: {
  *
  * **When to use**
  *
- * Use to transform both success and failure values without changing whether the
- * effect succeeds or fails.
+ * Use to transform both success and failure channels of an `Effect` without
+ * changing whether it succeeds or fails.
  *
  * **Details**
  *
@@ -3588,8 +3588,8 @@ export const mapBoth: {
  *
  * **When to use**
  *
- * Use when you need to turn a typed failure that represents an unrecoverable bug
- * or invalid state into a defect.
+ * Use when you need to turn an `Effect` typed failure that represents an
+ * unrecoverable bug or invalid state into a defect.
  *
  * **Example** (Converting typed failures into defects)
  *
@@ -4375,9 +4375,9 @@ export const orElseSucceed: {
  *
  * **When to use**
  *
- * Use when you have prioritized fallback strategies, such as
- * attempting multiple APIs, reading configuration from several sources, or
- * trying alternative resource locations in order.
+ * Use when you have prioritized fallback `Effect`s, such as attempting
+ * multiple APIs, reading configuration from several sources, or trying
+ * alternative resource locations in order.
  *
  * **Details**
  *
@@ -4427,7 +4427,8 @@ export const firstSuccessOf: <Eff extends Effect<any, any, any>>(
  *
  * **When to use**
  *
- * Use when you need to represent exceeding the time limit as a typed failure.
+ * Use when you need a timeout of an `Effect` to be represented as a typed
+ * failure.
  *
  * **Details**
  *
@@ -4493,7 +4494,7 @@ export const timeout: {
  *
  * **When to use**
  *
- * Use when a timeout should be handled as absence.
+ * Use when a timeout of an `Effect` should be handled as `Option.none`.
  *
  * **Details**
  *
@@ -4551,7 +4552,7 @@ export const timeoutOption: {
  *
  * **When to use**
  *
- * Use when a timeout should switch to a fallback effect.
+ * Use when a timeout of an `Effect` should switch to a fallback effect.
  *
  * **Details**
  *
@@ -5245,8 +5246,8 @@ export const when: {
  *
  * **When to use**
  *
- * Use when you need to respond differently to success or failure without
- * triggering side effects.
+ * Use when you need to fold an `Effect` into a value by handling success and
+ * failure differently without triggering side effects.
  *
  * **Details**
  *
@@ -5311,8 +5312,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use when you need to handle both success and failure cases and want optimized
- * handling for effects that may already be resolved.
+ * Use when you need to handle both success and failure cases of an
+ * already-resolved `Effect` with optimized handling.
  *
  * **Details**
  *
@@ -5359,7 +5360,8 @@ export const matchEager: {
  *
  * **When to use**
  *
- * Use when you need failure handling to inspect the full cause.
+ * Use when you need to fold an `Effect` while the failure handler inspects the
+ * full `Cause`.
  *
  * **Details**
  *
@@ -5407,8 +5409,8 @@ export const matchCause: {
  *
  * **When to use**
  *
- * Use when you expect effects to already be resolved and want to match the
- * cause without regular effect pipeline overhead.
+ * Use when you expect an `Effect` to already be resolved and want to match the
+ * `Cause` without regular effect pipeline overhead.
  *
  * **Details**
  *
@@ -5450,7 +5452,7 @@ export const matchCauseEager: {
  * **When to use**
  *
  * Use when you need effectful success and cause-aware failure handlers for
- * inputs that may already be resolved.
+ * `Effect` inputs that may already be resolved.
  *
  * **Details**
  *
@@ -5485,8 +5487,8 @@ export const matchCauseEffectEager: {
  *
  * **When to use**
  *
- * Use when you need both success and failure handlers to return effects and the
- * failure handler to inspect the full `Cause`.
+ * Use when you need to fold an `Effect` with effectful success handlers and
+ * `Cause`-aware failure handlers.
  *
  * **Details**
  *
@@ -5558,7 +5560,8 @@ export const matchCauseEffect: {
  *
  * **When to use**
  *
- * Use when you need the failure or success handler to run additional effects.
+ * Use when you need to handle an `Effect`'s failure or success with handlers
+ * that return effects.
  *
  * **Details**
  *

@@ -175,7 +175,7 @@ export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Om
  *
  * **When to use**
  *
- * Use to extract a single property in a pipeline.
+ * Use to extract a single property from a struct in a pipeline.
  *
  * **Details**
  *
