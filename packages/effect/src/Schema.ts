@@ -1351,7 +1351,8 @@ export const decodeExit: <S extends Decoder<unknown>>(
  * **Details**
  *
  * Prefer this over {@link decodeUnknownExit} or {@link decodeUnknownEffect}
- * when you don't need error details. For typed input use {@link decodeOption}.
+ * when you don't need error details. For input already typed as the schema's
+ * `Encoded` type use {@link decodeOption}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
@@ -1367,7 +1368,8 @@ export const decodeUnknownOption = SchemaParser.decodeUnknownOption
  *
  * **When to use**
  *
- * Use when typed input should be decoded and only success or failure matters.
+ * Use when you already have input typed as the schema's `Encoded` type and
+ * only need to know whether decoding succeeded.
  *
  * **Details**
  *
@@ -1382,33 +1384,41 @@ export const decodeOption = SchemaParser.decodeOption
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Result` that
- * succeeds with the decoded value or fails with a schema issue.
+ * succeeds with the decoded value or fails with a {@link SchemaError}.
  *
  * **When to use**
  *
  * Use when you do not know the input type statically and want decoding to
- * return a `Result` with structured issue data.
+ * return a `Result` with `SchemaError` failure data.
  *
  * **Details**
  *
- * For typed input use {@link decodeResult}.
+ * For input already typed as the schema's `Encoded` type use
+ * {@link decodeResult}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
+ *
+ * @see {@link SchemaParser.decodeUnknownResult} for the adapter that fails with `SchemaIssue.Issue` directly
  *
  * @category decoding
  * @since 4.0.0
  */
-export const decodeUnknownResult = SchemaParser.decodeUnknownResult
+export function decodeUnknownResult<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+  const parser = SchemaParser.decodeUnknownResult(schema, options)
+  return (input: unknown, options?: SchemaAST.ParseOptions): Result_.Result<S["Type"], SchemaError> => {
+    return Result_.mapError(parser(input, options), (issue) => new SchemaError(issue))
+  }
+}
 
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning a `Result` that succeeds with the decoded value or fails with a
- * schema issue.
+ * {@link SchemaError}.
  *
  * **When to use**
  *
- * Use when typed input should be decoded into a `Result` with structured issue
- * data.
+ * Use when you already have input typed as the schema's `Encoded` type and
+ * want decoding to return a `Result` with `SchemaError` failure data.
  *
  * **Details**
  *
@@ -1416,38 +1426,55 @@ export const decodeUnknownResult = SchemaParser.decodeUnknownResult
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
+ * @see {@link SchemaParser.decodeResult} for the adapter that fails with `SchemaIssue.Issue` directly
+ *
  * @category decoding
  * @since 4.0.0
  */
-export const decodeResult = SchemaParser.decodeResult
+export const decodeResult: <S extends Decoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Result_.Result<S["Type"], SchemaError> =
+  decodeUnknownResult
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Promise` that
- * resolves with the decoded value or rejects with a schema issue.
+ * resolves with the decoded value or rejects with a {@link SchemaError}.
  *
  * **When to use**
  *
- * Use when you need to decode unknown input in Promise-based APIs.
+ * Use when you need decoding of unknown input to return a JavaScript `Promise`
+ * that rejects with `SchemaError`.
  *
  * **Details**
  *
- * For typed input use {@link decodePromise}.
+ * For input already typed as the schema's `Encoded` type use
+ * {@link decodePromise}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
+ *
+ * @see {@link SchemaParser.decodeUnknownPromise} for the adapter that rejects with `SchemaIssue.Issue` directly
  *
  * @category decoding
  * @since 3.10.0
  */
-export const decodeUnknownPromise = SchemaParser.decodeUnknownPromise
+export function decodeUnknownPromise<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+  const parser = decodeUnknownEffect(schema, options)
+  return (input: unknown, options?: SchemaAST.ParseOptions): Promise<S["Type"]> => {
+    return Effect.runPromise(parser(input, options))
+  }
+}
 
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning a `Promise` that resolves with the decoded value or rejects with a
- * schema issue.
+ * {@link SchemaError}.
  *
  * **When to use**
  *
- * Use when you need to decode typed encoded input in Promise-based APIs.
+ * Use when you already have input typed as the schema's `Encoded` type and
+ * need decoding to return a JavaScript `Promise` that rejects with
+ * `SchemaError`.
  *
  * **Details**
  *
@@ -1455,23 +1482,28 @@ export const decodeUnknownPromise = SchemaParser.decodeUnknownPromise
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
+ * @see {@link SchemaParser.decodePromise} for the adapter that rejects with `SchemaIssue.Issue` directly
+ *
  * @category decoding
  * @since 3.10.0
  */
-export const decodePromise = SchemaParser.decodePromise
+export const decodePromise: <S extends Decoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Promise<S["Type"]> = decodeUnknownPromise
 
 /**
  * Decodes an `unknown` input against a schema synchronously, returning the
- * decoded value or throwing an `Error` whose cause contains the schema issue.
+ * decoded value or throwing a {@link SchemaError}.
  *
  * **When to use**
  *
  * Use when you need to validate unknown data at a synchronous boundary and want
- * schema mismatches to throw.
+ * schema mismatches to throw `SchemaError`.
  *
  * **Details**
  *
- * For typed input use `decodeSync`.
+ * For input already typed as the schema's `Encoded` type use `decodeSync`.
  * Only service-free schemas can be decoded synchronously. For non-throwing
  * alternatives see `decodeUnknownOption`, `decodeUnknownExit`, or
  * `decodeUnknownEffect`. Options may be provided either when creating the
@@ -1488,26 +1520,32 @@ export const decodePromise = SchemaParser.decodePromise
  * // Output: 42
  *
  * Schema.decodeUnknownSync(NumberFromString)("not a number")
- * // throws Error: NumberFromString
+ * // throws SchemaError: NumberFromString
  * //   └─ Encoded side transformation failure
  * //      └─ NumberFromString
  * //         └─ Expected a numeric string, actual "not a number"
  * ```
  *
+ * @see {@link SchemaParser.decodeUnknownSync} for the adapter that throws an `Error` whose cause is `SchemaIssue.Issue`
+ *
  * @category decoding
  * @since 4.0.0
  */
-export const decodeUnknownSync = SchemaParser.decodeUnknownSync
+export function decodeUnknownSync<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+  const parser = decodeUnknownEffect(schema, options)
+  return (input: unknown, options?: SchemaAST.ParseOptions): S["Type"] => {
+    return Effect.runSync(parser(input, options) as Effect.Effect<S["Type"], SchemaError>)
+  }
+}
 
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema
- * synchronously, returning the decoded value or throwing an `Error` whose cause
- * contains the schema issue.
+ * synchronously, returning the decoded value or throwing a {@link SchemaError}.
  *
  * **When to use**
  *
- * Use when typed input should be decoded synchronously and schema mismatches
- * should throw.
+ * Use when you already have input typed as the schema's `Encoded` type and
+ * want schema mismatches to throw `SchemaError` synchronously.
  *
  * **Details**
  *
@@ -1516,10 +1554,15 @@ export const decodeUnknownSync = SchemaParser.decodeUnknownSync
  * provided either when creating the decoder or when applying it; application
  * options override creation options.
  *
+ * @see {@link SchemaParser.decodeSync} for the adapter that throws an `Error` whose cause is `SchemaIssue.Issue`
+ *
  * @category decoding
  * @since 4.0.0
  */
-export const decodeSync = SchemaParser.decodeSync
+export const decodeSync: <S extends Decoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => S["Type"] = decodeUnknownSync
 
 /**
  * Encodes an `unknown` input against a schema, returning an `Effect` that
@@ -1532,7 +1575,7 @@ export const decodeSync = SchemaParser.decodeSync
  *
  * **Details**
  *
- * Prefer {@link encodeEffect} when the input is already typed as the schema's
+ * Prefer {@link encodeEffect} when the value is already typed as the schema's
  * `Type`.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
@@ -1605,7 +1648,7 @@ export const encodeEffect: <S extends Top>(
  * **Details**
  *
  * Only usable with schemas that have no `EncodingServices` requirement. Prefer
- * {@link encodeExit} when the input is already typed as the schema's `Type`.
+ * {@link encodeExit} when the value is already typed as the schema's `Type`.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1660,7 +1703,8 @@ export const encodeExit: <S extends Encoder<unknown>>(
  * **Details**
  *
  * Prefer this over {@link encodeUnknownExit} or {@link encodeUnknownEffect}
- * when you don't need error details. For typed input use {@link encodeOption}.
+ * when you don't need error details. For values already typed as the schema's
+ * `Type` use {@link encodeOption}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
@@ -1676,7 +1720,8 @@ export const encodeUnknownOption = SchemaParser.encodeUnknownOption
  *
  * **When to use**
  *
- * Use when typed input should be encoded and only success or failure matters.
+ * Use when you already have a value typed as the schema's `Type` and only need
+ * to know whether encoding succeeded.
  *
  * **Details**
  *
@@ -1691,32 +1736,40 @@ export const encodeOption = SchemaParser.encodeOption
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Result` that
- * succeeds with the encoded value or fails with a schema issue.
+ * succeeds with the encoded value or fails with a {@link SchemaError}.
  *
  * **When to use**
  *
  * Use when you do not know the input type statically and want encoding to
- * return a `Result` with structured issue data.
+ * return a `Result` with `SchemaError` failure data.
  *
  * **Details**
  *
- * For typed input use {@link encodeResult}.
+ * For values already typed as the schema's `Type` use {@link encodeResult}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ *
+ * @see {@link SchemaParser.encodeUnknownResult} for the adapter that fails with `SchemaIssue.Issue` directly
  *
  * @category encoding
  * @since 4.0.0
  */
-export const encodeUnknownResult = SchemaParser.encodeUnknownResult
+export function encodeUnknownResult<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+  const parser = SchemaParser.encodeUnknownResult(schema, options)
+  return (input: unknown, options?: SchemaAST.ParseOptions): Result_.Result<S["Encoded"], SchemaError> => {
+    return Result_.mapError(parser(input, options), (issue) => new SchemaError(issue))
+  }
+}
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning a
- * `Result` that succeeds with the encoded value or fails with a schema issue.
+ * `Result` that succeeds with the encoded value or fails with a
+ * {@link SchemaError}.
  *
  * **When to use**
  *
- * Use when typed input should be encoded into a `Result` with structured issue
- * data.
+ * Use when you already have a value typed as the schema's `Type` and want
+ * encoding to return a `Result` with `SchemaError` failure data.
  *
  * **Details**
  *
@@ -1724,37 +1777,53 @@ export const encodeUnknownResult = SchemaParser.encodeUnknownResult
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
+ * @see {@link SchemaParser.encodeResult} for the adapter that fails with `SchemaIssue.Issue` directly
+ *
  * @category encoding
  * @since 4.0.0
  */
-export const encodeResult = SchemaParser.encodeResult
+export const encodeResult: <S extends Encoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Result_.Result<S["Encoded"], SchemaError> =
+  encodeUnknownResult
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Promise` that
- * resolves with the encoded value or rejects with a schema issue.
+ * resolves with the encoded value or rejects with a {@link SchemaError}.
  *
  * **When to use**
  *
- * Use when you need to encode unknown input in Promise-based APIs.
+ * Use when you need encoding of unknown input to return a JavaScript `Promise`
+ * that rejects with `SchemaError`.
  *
  * **Details**
  *
- * For typed input use {@link encodePromise}.
+ * For values already typed as the schema's `Type` use {@link encodePromise}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ *
+ * @see {@link SchemaParser.encodeUnknownPromise} for the adapter that rejects with `SchemaIssue.Issue` directly
  *
  * @category encoding
  * @since 3.10.0
  */
-export const encodeUnknownPromise = SchemaParser.encodeUnknownPromise
+export function encodeUnknownPromise<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+  const parser = encodeUnknownEffect(schema, options)
+  return (input: unknown, options?: SchemaAST.ParseOptions): Promise<S["Encoded"]> => {
+    return Effect.runPromise(parser(input, options))
+  }
+}
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning a
- * `Promise` that resolves with the encoded value or rejects with a schema issue.
+ * `Promise` that resolves with the encoded value or rejects with a
+ * {@link SchemaError}.
  *
  * **When to use**
  *
- * Use when you need to encode typed schema values in Promise-based APIs.
+ * Use when you already have a value typed as the schema's `Type` and need
+ * encoding to return a JavaScript `Promise` that rejects with `SchemaError`.
  *
  * **Details**
  *
@@ -1762,41 +1831,53 @@ export const encodeUnknownPromise = SchemaParser.encodeUnknownPromise
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
+ * @see {@link SchemaParser.encodePromise} for the adapter that rejects with `SchemaIssue.Issue` directly
+ *
  * @category encoding
  * @since 3.10.0
  */
-export const encodePromise = SchemaParser.encodePromise
+export const encodePromise: <S extends Encoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Promise<S["Encoded"]> = encodeUnknownPromise
 
 /**
- * Encodes an `unknown` input against a schema synchronously, throwing an `Error`
- * whose cause contains the schema issue on failure.
+ * Encodes an `unknown` input against a schema synchronously, throwing a
+ * {@link SchemaError} on failure.
  *
  * **When to use**
  *
  * Use when you need to serialize unknown data at a synchronous boundary and
- * want schema mismatches to throw.
+ * want schema mismatches to throw `SchemaError`.
  *
  * **Details**
  *
  * For non-throwing alternatives see {@link encodeUnknownOption},
- * {@link encodeUnknownExit}, or {@link encodeUnknownEffect}. For typed input
- * use {@link encodeSync}.
+ * {@link encodeUnknownExit}, or {@link encodeUnknownEffect}. For values
+ * already typed as the schema's `Type` use {@link encodeSync}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ *
+ * @see {@link SchemaParser.encodeUnknownSync} for the adapter that throws an `Error` whose cause is `SchemaIssue.Issue`
  *
  * @category encoding
  * @since 4.0.0
  */
-export const encodeUnknownSync = SchemaParser.encodeUnknownSync
+export function encodeUnknownSync<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+  const parser = encodeUnknownEffect(schema, options)
+  return (input: unknown, options?: SchemaAST.ParseOptions): S["Encoded"] => {
+    return Effect.runSync(parser(input, options) as Effect.Effect<S["Encoded"], SchemaError>)
+  }
+}
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema synchronously,
- * throwing an `Error` whose cause contains the schema issue on failure.
+ * throwing a {@link SchemaError} on failure.
  *
  * **When to use**
  *
- * Use when typed input should be encoded synchronously and schema mismatches
- * should throw.
+ * Use when you already have a value typed as the schema's `Type` and want
+ * schema mismatches to throw `SchemaError` synchronously.
  *
  * **Details**
  *
@@ -1804,10 +1885,15 @@ export const encodeUnknownSync = SchemaParser.encodeUnknownSync
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
+ * @see {@link SchemaParser.encodeSync} for the adapter that throws an `Error` whose cause is `SchemaIssue.Issue`
+ *
  * @category encoding
  * @since 4.0.0
  */
-export const encodeSync = SchemaParser.encodeSync
+export const encodeSync: <S extends Encoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => S["Encoded"] = encodeUnknownSync
 
 /**
  * Creates a schema from an AST (Abstract Syntax Tree) node.

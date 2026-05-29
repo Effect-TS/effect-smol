@@ -6756,18 +6756,34 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.FiniteFromString
       const decodeUnknownPromise = Schema.decodeUnknownPromise(schema)
       const encodeUnknownPromise = Schema.encodeUnknownPromise(schema)
+      const decodeUnknownPromiseIssue = SchemaParser.decodeUnknownPromise(schema)
+      const encodeUnknownPromiseIssue = SchemaParser.encodeUnknownPromise(schema)
 
-      const r1 = await decodeUnknownPromise("1").then(Result.succeed, (e) => Result.fail(e.toString()))
+      const r1 = await decodeUnknownPromise("1").then(Result.succeed, Result.fail)
       deepStrictEqual(r1, Result.succeed(1))
 
-      const r2 = await decodeUnknownPromise(null).then(Result.succeed, (e) => Result.fail(e.toString()))
-      deepStrictEqual(r2, Result.fail("Expected string, got null"))
+      const r2 = await decodeUnknownPromise(null).then(Result.succeed, Result.fail)
+      assertTrue(Result.isFailure(r2))
+      assertTrue(Schema.isSchemaError(r2.failure))
+      strictEqual(r2.failure.message, "Expected string, got null")
 
-      const r3 = await encodeUnknownPromise(1).then(Result.succeed, (e) => Result.fail(e.toString()))
+      const r3 = await encodeUnknownPromise(1).then(Result.succeed, Result.fail)
       deepStrictEqual(r3, Result.succeed("1"))
 
-      const r4 = await encodeUnknownPromise(null).then(Result.succeed, (e) => Result.fail(e.toString()))
-      deepStrictEqual(r4, Result.fail("Expected number, got null"))
+      const r4 = await encodeUnknownPromise(null).then(Result.succeed, Result.fail)
+      assertTrue(Result.isFailure(r4))
+      assertTrue(Schema.isSchemaError(r4.failure))
+      strictEqual(r4.failure.message, "Expected number, got null")
+
+      const r5 = await decodeUnknownPromiseIssue(null).then(Result.succeed, Result.fail)
+      assertTrue(Result.isFailure(r5))
+      assertTrue(SchemaIssue.isIssue(r5.failure))
+      strictEqual(r5.failure.toString(), "Expected string, got null")
+
+      const r6 = await encodeUnknownPromiseIssue(null).then(Result.succeed, Result.fail)
+      assertTrue(Result.isFailure(r6))
+      assertTrue(SchemaIssue.isIssue(r6.failure))
+      strictEqual(r6.failure.toString(), "Expected number, got null")
     })
   })
 
@@ -6783,7 +6799,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const r2 = decodeUnknownResult(null)
       assertTrue(Result.isFailure(r2))
-      strictEqual(r2.failure.toString(), "Expected string, got null")
+      assertTrue(Schema.isSchemaError(r2.failure))
+      strictEqual(r2.failure.message, "Expected string, got null")
 
       const r3 = encodeUnknownResult(1)
       assertTrue(Result.isSuccess(r3))
@@ -6791,7 +6808,49 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const r4 = encodeUnknownResult(null)
       assertTrue(Result.isFailure(r4))
-      strictEqual(r4.failure.toString(), "Expected number, got null")
+      assertTrue(Schema.isSchemaError(r4.failure))
+      strictEqual(r4.failure.message, "Expected number, got null")
+
+      const r5 = SchemaParser.decodeUnknownResult(schema)(null)
+      assertTrue(Result.isFailure(r5))
+      assertTrue(SchemaIssue.isIssue(r5.failure))
+      strictEqual(r5.failure.toString(), "Expected string, got null")
+
+      const r6 = SchemaParser.encodeUnknownResult(schema)(null)
+      assertTrue(Result.isFailure(r6))
+      assertTrue(SchemaIssue.isIssue(r6.failure))
+      strictEqual(r6.failure.toString(), "Expected number, got null")
+    })
+  })
+
+  describe("decodeUnknownSync / encodeUnknownSync", () => {
+    it("FiniteFromString", () => {
+      const schema = Schema.FiniteFromString
+
+      strictEqual(Schema.decodeUnknownSync(schema)("1"), 1)
+      strictEqual(Schema.encodeUnknownSync(schema)(1), "1")
+
+      throws(() => Schema.decodeUnknownSync(schema)(null), (e) => {
+        assertTrue(Schema.isSchemaError(e))
+        strictEqual(e.message, "Expected string, got null")
+      })
+
+      throws(() => Schema.encodeUnknownSync(schema)(null), (e) => {
+        assertTrue(Schema.isSchemaError(e))
+        strictEqual(e.message, "Expected number, got null")
+      })
+
+      throws(() => SchemaParser.decodeUnknownSync(schema)(null), (e) => {
+        ok(e instanceof Error)
+        assertTrue(SchemaIssue.isIssue(e.cause))
+        strictEqual(e.cause.toString(), "Expected string, got null")
+      })
+
+      throws(() => SchemaParser.encodeUnknownSync(schema)(null), (e) => {
+        ok(e instanceof Error)
+        assertTrue(SchemaIssue.isIssue(e.cause))
+        strictEqual(e.cause.toString(), "Expected number, got null")
+      })
     })
   })
 
