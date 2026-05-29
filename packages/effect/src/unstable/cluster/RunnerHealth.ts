@@ -71,7 +71,8 @@ export class RunnerHealth extends Context.Service<
  *
  * **When to use**
  *
- * Use when tests or local development do not need active runner health checks.
+ * Use when you need a runner-health layer for tests or local development where
+ * active health checks are unnecessary.
  *
  * @category layers
  * @since 4.0.0

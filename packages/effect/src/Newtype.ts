@@ -169,8 +169,8 @@ export declare namespace Newtype {
  *
  * **When to use**
  *
- * Use when you only need to read the inner value and do not need to wrap
- * new values. For both wrapping and unwrapping, prefer {@link makeIso}.
+ * Use when you need to unwrap a newtype value and do not need to wrap new
+ * values.
  *
  * **Details**
  *

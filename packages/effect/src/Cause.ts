@@ -910,8 +910,8 @@ export const findError: <E>(self: Cause<E>) => Result.Result<E, Cause<never>> = 
  *
  * **When to use**
  *
- * Use when you need the first typed error as an `Option` and do not need the
- * original cause returned in a failed `Result`.
+ * Use when you need the first typed error value from a `Cause` as an `Option`,
+ * discarding the original cause.
  *
  * **Example** (extracting an error as Option)
  *

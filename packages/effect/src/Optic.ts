@@ -1521,7 +1521,7 @@ const identityIso = make(identityNode)
  *
  * **When to use**
  *
- * Use when starting an optic chain with a focus on the whole value.
+ * Use when you need to start an optic chain with a focus on the whole value.
  *
  * **Details**
  *

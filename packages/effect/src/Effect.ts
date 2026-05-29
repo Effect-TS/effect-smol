@@ -2087,9 +2087,8 @@ export const andThen: {
  *
  * **When to use**
  *
- * Use when you want to perform a side effect, like logging or tracking,
- * without modifying the main value. This is useful when you need to observe or
- * record an action but want the original value to be passed to the next step.
+ * Use when you need to run an effectful observation, such as logging or
+ * tracking, while passing the original success value to the next step.
  *
  * **Details**
  *

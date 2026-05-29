@@ -102,8 +102,8 @@ import * as Str from "./String.ts"
  *
  * **When to use**
  *
- * Use to build custom schema transformations with `Schema.decodeTo` or `Schema.decode`.
- * - Composing multiple transformation steps into a single getter.
+ * Use when you need to build and compose custom schema transformations for
+ * `Schema.decodeTo` or `Schema.decode`.
  *
  * **Details**
  *

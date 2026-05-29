@@ -238,7 +238,7 @@ export const isNever = makeGuard("Never")
  *
  * **When to use**
  *
- * Use when inspecting a schema AST and you need to handle the `Unknown` node
+ * Use when you need to inspect a schema AST and handle the `Unknown` node
  * variant specifically.
  *
  * @see {@link isAny} for the guard for the `Any` node, whose parsed result is typed as `any` rather than `unknown`
@@ -253,7 +253,7 @@ export const isUnknown = makeGuard("Unknown")
  *
  * **When to use**
  *
- * Use when inspecting a schema AST and you need to handle the `Any` node
+ * Use when you need to inspect a schema AST and handle the `Any` node
  * variant specifically.
  *
  * @see {@link isUnknown} for the guard for the `Unknown` node, whose parsed result is typed as `unknown` rather than `any`
@@ -693,8 +693,9 @@ export abstract class Base {
  *
  * **When to use**
  *
- * Use when none of the built-in AST nodes fit. The `run` function receives
- * `typeParameters` and returns a parser that validates/transforms raw input.
+ * Use when you need a custom schema AST node because none of the built-in
+ * nodes fit. The `run` function receives `typeParameters` and returns a parser
+ * that validates or transforms raw input.
  *
  * **Details**
  *
@@ -1474,8 +1475,8 @@ export const boolean = new Boolean()
  *
  * **When to use**
  *
- * Use when defining or inspecting the AST node class for schemas that match any
- * JavaScript symbol value.
+ * Use when you need the AST node class for schemas that match any JavaScript
+ * symbol value.
  *
  * **Details**
  *

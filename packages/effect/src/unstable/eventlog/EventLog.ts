@@ -978,9 +978,9 @@ export const layerEventLog: Layer.Layer<EventLog | Registry, never, EventJournal
  *
  * **When to use**
  *
- * Use when an application has an `EventLogSchema` and event-group handler layer
- * and wants one layer that installs the shared `EventLog` runtime and registers
- * the handlers for typed writes.
+ * Use when you need one layer that installs the shared `EventLog` runtime for
+ * an `EventLogSchema` and registers an event-group handler layer for typed
+ * writes.
  *
  * **Details**
  *

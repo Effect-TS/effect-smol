@@ -1567,8 +1567,8 @@ export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
  *
  * **When to use**
  *
- * Use when sequential `Result` composition is clearer with generator syntax
- * than nested `flatMap` calls.
+ * Use when you need generator syntax to compose sequential `Result`
+ * computations instead of nested `flatMap` calls.
  *
  * **Details**
  *

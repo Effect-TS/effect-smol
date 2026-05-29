@@ -171,8 +171,8 @@ export interface ProviderResponse {
  *
  * **When to use**
  *
- * Use when building or calling a low-level embedding request resolver and you
- * need a typed request for one input that resolves to `EmbedResponse`.
+ * Use when you need a typed request for one embedding input while building or
+ * calling a low-level embedding request resolver.
  *
  * @see {@link Service} for the resolver-bearing service contract
  * @see {@link make} for constructing the request resolver from a provider implementation

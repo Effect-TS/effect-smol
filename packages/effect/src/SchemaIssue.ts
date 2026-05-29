@@ -95,8 +95,9 @@ const TypeId = "~effect/SchemaIssue/Issue"
  *
  * **When to use**
  *
- * Use when narrowing an `unknown` value to `Issue` in error-handling code.
- * - Distinguishing an `Issue` from other error types in a catch-all handler.
+ * Use when you need to narrow an `unknown` value to `Issue` in error-handling
+ * code, such as distinguishing an `Issue` from other error types in a catch-all
+ * handler.
  *
  * **Details**
  *

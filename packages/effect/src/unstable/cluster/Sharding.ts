@@ -1487,9 +1487,9 @@ const make = Effect.gen(function*() {
  *
  * **When to use**
  *
- * Use when assembling a cluster sharding runtime from explicit sharding
- * configuration, runner communication, message storage, runner storage, and
- * runner health layers.
+ * Use when you need to assemble a cluster sharding runtime from explicit
+ * sharding configuration, runner communication, message storage, runner
+ * storage, and runner health layers.
  *
  * **Details**
  *

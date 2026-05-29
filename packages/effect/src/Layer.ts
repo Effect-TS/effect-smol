@@ -782,8 +782,8 @@ export const buildWithScope: {
  *
  * **When to use**
  *
- * Use when you already have a constructed service implementation and do not
- * need effectful acquisition.
+ * Use when you need to provide a service from an already constructed
+ * implementation without effectful acquisition.
  *
  * **Example** (Creating a layer from a service implementation)
  *

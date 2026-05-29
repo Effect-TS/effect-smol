@@ -575,9 +575,8 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  *
  * **When to use**
  *
- * Use when you want reference equality semantics and can accept that the
- *   original object is **permanently** modified.
- * - When proxy overhead is unacceptable (hot paths, large collections).
+ * Use when you need reference equality without proxy allocation and accept
+ * permanently marking the original object for reference-only equality.
  *
  * **Details**
  *

@@ -193,8 +193,8 @@ export function redact(u: unknown): unknown {
  *
  * **When to use**
  *
- * Use when you have already verified the value is `Redactable`, for
- * example with {@link isRedactable}, and want to avoid a second check.
+ * Use when you need to read the redacted representation from a value already
+ * verified as `Redactable`.
  *
  * **Details**
  *

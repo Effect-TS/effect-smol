@@ -75,8 +75,8 @@ export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)])
  *
  * **When to use**
  *
- * Use when defining numeric key-path fields for `IndexedDbTable` definitions
- * that use IndexedDB auto-increment keys.
+ * Use when you need to define numeric key-path fields for `IndexedDbTable`
+ * definitions that use IndexedDB auto-increment keys.
  *
  * **Details**
  *

@@ -166,8 +166,8 @@ export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [str
  *
  * **When to use**
  *
- * Use when you need a named option restricted to a fixed set of string values
- * and do not need custom value mapping.
+ * Use when you need to define a named CLI flag restricted to a fixed set of
+ * string values and do not need custom value mapping.
  *
  * **Gotchas**
  *

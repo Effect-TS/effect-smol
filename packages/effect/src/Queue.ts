@@ -624,9 +624,8 @@ export const dropping = <A, E = never>(capacity: number): Effect<Queue<A, E>> =>
  *
  * **When to use**
  *
- * Use when producers should never be blocked; unbounded queues never apply backpressure, so producers
- * can always add messages successfully. This is useful when you want to prioritize
- * producer throughput over memory usage control.
+ * Use when you need producers to add messages without backpressure and accept
+ * unbounded memory growth.
  *
  * **Example** (Creating unbounded queues)
  *

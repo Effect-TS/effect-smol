@@ -1408,7 +1408,7 @@ export const decodeResult = Parser.decodeResult
  *
  * **When to use**
  *
- * Use when integrating unknown input validation with Promise-based APIs.
+ * Use when you need to decode unknown input in Promise-based APIs.
  *
  * **Details**
  *
@@ -1428,7 +1428,7 @@ export const decodeUnknownPromise = Parser.decodeUnknownPromise
  *
  * **When to use**
  *
- * Use when integrating typed input decoding with Promise-based APIs.
+ * Use when you need to decode typed encoded input in Promise-based APIs.
  *
  * **Details**
  *
@@ -1704,7 +1704,7 @@ export const encodeResult = Parser.encodeResult
  *
  * **When to use**
  *
- * Use when integrating unknown input serialization with Promise-based APIs.
+ * Use when you need to encode unknown input in Promise-based APIs.
  *
  * **Details**
  *
@@ -1724,7 +1724,7 @@ export const encodeUnknownPromise = Parser.encodeUnknownPromise
  *
  * **When to use**
  *
- * Use when integrating typed input serialization with Promise-based APIs.
+ * Use when you need to encode typed schema values in Promise-based APIs.
  *
  * **Details**
  *

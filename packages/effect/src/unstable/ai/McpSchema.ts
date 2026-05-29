@@ -1555,8 +1555,8 @@ export class CallToolResult extends Schema.Class<CallToolResult>("@effect/ai/Mcp
  *
  * **When to use**
  *
- * Use when a client already knows the tool name and wants the server to execute
- * it with argument values.
+ * Use when you need to represent a client request that already knows the tool
+ * name and asks the server to execute it with argument values.
  *
  * @see {@link ListTools} for discovering available tools before calling one
  * @see {@link CallToolResult} for the successful tool-call result shape

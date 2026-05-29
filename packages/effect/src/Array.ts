@@ -194,7 +194,10 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
  *
  * **When to use**
  *
- * Use when you have literal values and want a typed non-empty array.
+ * Use when you need to create a typed non-empty array from literal values.
+ *
+ * **Details**
+ *
  * - The element type is inferred as the union of all arguments.
  * - Always returns a `NonEmptyArray` since at least one argument is required.
  *

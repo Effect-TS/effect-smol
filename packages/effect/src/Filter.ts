@@ -447,8 +447,8 @@ export const symbol: Filter<unknown, symbol> = fromPredicate(Predicate.isSymbol)
  *
  * **When to use**
  *
- * Use when narrowing unknown input to JavaScript `Date` instances with a
- * reusable `Filter`.
+ * Use when you need to narrow unknown input to JavaScript `Date` instances with
+ * a reusable `Filter`.
  *
  * **Details**
  *

@@ -5251,8 +5251,8 @@ export const catchFilter: {
  *
  * **When to use**
  *
- * Use when your error type is a tagged union with a readonly `_tag`
- * field and you want to handle a specific error case.
+ * Use when you need to handle a specific error case from a stream whose error
+ * type is a tagged union with a readonly `_tag` field.
  *
  * **Example** (Catching tagged failures)
  *
@@ -6066,9 +6066,8 @@ export const ignore: <
  *
  * **When to use**
  *
- * Use when a stream may fail with defects and you want to silently suppress the
- * entire failure cause — including both typed errors and defects — rather than
- * propagate it downstream.
+ * Use when you need to silently suppress a stream's entire failure cause,
+ * including both typed errors and defects, rather than propagate it downstream.
  *
  * **Example** (Ignoring stream failure causes)
  *

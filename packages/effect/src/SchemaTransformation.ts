@@ -738,9 +738,9 @@ const passthrough_ = new Transformation(
  *
  * **When to use**
  *
- * Use when connecting two schemas that share the same type with no conversion.
- * - As a placeholder when `Schema.decodeTo` requires a transformation but
- *   no actual conversion is needed.
+ * Use when you need to connect two schemas that share the same type with no
+ * conversion, such as when `Schema.decodeTo` requires a transformation but no
+ * actual conversion is needed.
  *
  * **Details**
  *
@@ -1515,8 +1515,9 @@ export const stringFromHexString: Transformation<string, string> = new Transform
  *
  * **When to use**
  *
- * Use when storing structured data in URL query parameters or fragments.
- * - Composing with `Schema.parseJson` to round-trip JSON through a URL.
+ * Use when you need to store structured data in URL query parameters or
+ * fragments, such as composing with `Schema.parseJson` to round-trip JSON
+ * through a URL.
  *
  * **Details**
  *

@@ -1121,7 +1121,8 @@ export const annotate: {
  *
  * **When to use**
  *
- * Use when attaching an already-built `Context.Context` of command annotations.
+ * Use when you need to attach an already-built `Context.Context` of command
+ * annotations.
  *
  * **Details**
  *
@@ -1480,8 +1481,8 @@ export const run: {
  *
  * **When to use**
  *
- * Use when testing CLI applications or programmatically executing commands with specific
- * arguments.
+ * Use when you need to test CLI applications or programmatically execute
+ * commands with specific arguments.
  *
  * **Example** (Running commands with explicit arguments)
  *
