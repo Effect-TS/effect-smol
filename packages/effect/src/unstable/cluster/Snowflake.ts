@@ -154,7 +154,7 @@ const constBigInt4096 = BigInt(4096)
  * **When to use**
  *
  * Use to pack known timestamp, machine id, and sequence parts into a branded
- * snowflake id when you already control id allocation.
+ * snowflake id.
  *
  * **Gotchas**
  *

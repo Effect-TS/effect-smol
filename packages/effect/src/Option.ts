@@ -614,7 +614,7 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * **When to use**
  *
- * Use to extract the failure when you do not need the success value
+ * Use when you only need the failure value from a `Result`.
  *
  * **Details**
  *

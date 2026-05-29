@@ -11828,9 +11828,8 @@ type MissingSelfGeneric<Usage extends string> =
  *
  * **When to use**
  *
- * Use to define a schema-backed data class when you want validated
- * construction, schema-derived decoding/encoding, and class-style methods or
- * inheritance.
+ * Use when you need a schema-backed data class with validated construction,
+ * schema-derived decoding/encoding, and class-style methods or inheritance.
  *
  * **Details**
  *

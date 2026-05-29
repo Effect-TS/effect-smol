@@ -112,9 +112,8 @@ export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeI
  *
  * **When to use**
  *
- * Use to assemble a concrete `Stdio` service when you already have
- * implementations for command-line arguments, standard output, standard error,
- * and standard input.
+ * Use when you need to assemble a concrete `Stdio` service from command-line
+ * arguments and standard I/O implementations.
  *
  * **Details**
  *

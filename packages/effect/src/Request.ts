@@ -449,8 +449,8 @@ export const TaggedClass = <Tag extends string>(
  *
  * **When to use**
  *
- * Use to finish a `Request.Entry` when you already have the request's final
- * `Exit` result.
+ * Use when you need to finish a `Request.Entry` with a prebuilt final `Exit`
+ * result.
  *
  * @see {@link completeEffect} for completing an entry from an effect that may succeed or fail
  * @see {@link succeed} for completing an entry with a successful value
@@ -560,8 +560,8 @@ export const failCause: {
  *
  * **When to use**
  *
- * Use to finish a `Request.Entry` when you have a successful value for the
- * request.
+ * Use when you need to finish a `Request.Entry` with a successful request
+ * value.
  *
  * @see {@link complete} for completing an entry with a prebuilt `Exit`
  * @see {@link completeEffect} for completing an entry from an effect result

@@ -1291,9 +1291,8 @@ const linesSeparated = (self: string, stripped: boolean): LinesIterator => new L
  *
  * **When to use**
  *
- * Use to normalize mixed-case, snake_case, kebab-case, or spaced input into
- * custom word-case output when you need a delimiter or part transform that the
- * fixed case helpers do not provide.
+ * Use when you need custom word-case output with a delimiter or part transform
+ * that the fixed case helpers do not provide.
  *
  * @see {@link pascalCase} for fixed PascalCase output
  * @see {@link camelCase} for fixed lower-initial camelCase output

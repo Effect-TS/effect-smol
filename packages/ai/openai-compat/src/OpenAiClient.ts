@@ -125,8 +125,7 @@ const RedactedOpenAiHeaders = {
  *
  * **When to use**
  *
- * Use to construct the OpenAI-compatible client service inside an effect when
- * you need the service value directly.
+ * Use when you need the OpenAI-compatible client service value inside an effect.
  *
  * **Details**
  *

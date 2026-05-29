@@ -103,9 +103,8 @@ export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
  *
  * **When to use**
  *
- * Use to expose the encrypted event-log RPC server when you already have an
- * `RpcServer.Protocol` and want clients using encrypted `EventLogRemote`
- * replication to synchronize through server-side `Storage`.
+ * Use when you need an encrypted event-log RPC server for encrypted
+ * `EventLogRemote` replication over an existing `RpcServer.Protocol`.
  *
  * **Details**
  *

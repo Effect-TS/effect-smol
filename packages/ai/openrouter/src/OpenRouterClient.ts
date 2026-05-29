@@ -159,8 +159,7 @@ export type Options = {
  *
  * **When to use**
  *
- * Use to construct the OpenRouter client service inside an effect when you need
- * the service value directly.
+ * Use when you need the OpenRouter client service value inside an effect.
  *
  * **Details**
  *

@@ -230,8 +230,7 @@ export const isPool = (u: unknown): u is Pool<unknown, unknown> => hasProperty(u
  *
  * **When to use**
  *
- * Use to create a fixed-size pool when you know the exact number of resources
- * needed upfront, without growth or shrinkage.
+ * Use when you need a fixed-size pool with no growth or shrinkage.
  *
  * **Details**
  *

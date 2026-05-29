@@ -7599,9 +7599,8 @@ export const repeatOrElse: {
  *
  * **When to use**
  *
- * Use to create an array containing the same effect multiple times when you
- * want to pass those effects to another collector or control execution
- * separately.
+ * Use when you need an array of identical effect values without running them
+ * yet.
  *
  * **Details**
  *
@@ -8328,9 +8327,7 @@ export const withParentSpan: {
  *
  * **When to use**
  *
- * Use to execute a typed `Request` through a `RequestResolver` when you want
- * concurrent requests made with the same resolver to be collected and completed
- * by resolver logic.
+ * Use when you need resolver-driven batching for a typed `Request`.
  *
  * **Example** (Executing a request through a resolver)
  *

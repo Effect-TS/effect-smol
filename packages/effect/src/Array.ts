@@ -523,8 +523,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use to pattern-match when you need the first element and remaining elements as
- * separate values.
+ * Use when you need to branch on an array and handle the non-empty case as the
+ * first element plus the remaining elements.
  *
  * **Details**
  *
@@ -577,8 +577,8 @@ export const matchLeft: {
  *
  * **When to use**
  *
- * Use to pattern-match when you need all but the last element and the last element
- * as separate values.
+ * Use when you need to branch on an array and handle the non-empty case as the
+ * elements before the last plus the last element.
  *
  * **Details**
  *
@@ -1107,8 +1107,8 @@ export const unprepend = <A>(
  *
  * **When to use**
  *
- * Use to split a non-empty array from the end when you need both the elements
- * before the last element and the last element.
+ * Use when you need to split a non-empty array into the elements before the
+ * last element and the last element.
  *
  * **Details**
  *
@@ -1514,8 +1514,8 @@ const spanIndex = <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean
  *
  * **When to use**
  *
- * Use to split an iterable into the longest prefix that satisfies a predicate
- * and the elements after that prefix when you need both parts.
+ * Use when you need both the longest predicate-matching prefix and the
+ * remaining elements.
  *
  * **Details**
  *
@@ -2263,7 +2263,7 @@ export const sortBy = <S extends Iterable<any>>(
  *
  * **When to use**
  *
- * Use to pair corresponding elements from two iterables when you need simple pairs without a custom combiner.
+ * Use when you need simple pairs of corresponding elements from two iterables.
  *
  * **Details**
  *
@@ -2806,7 +2806,8 @@ export const split: {
  *
  * **When to use**
  *
- * Use to split an array at a condition boundary when you know which element marks the transition point.
+ * Use when you need to split an array at the first element that marks a
+ * condition boundary.
  *
  * **Example** (Splitting at a condition)
  *
@@ -4901,8 +4902,7 @@ export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
  *
  * **When to use**
  *
- * Use to count how many elements satisfy a predicate when you only need the
- * number of matches instead of the matching elements.
+ * Use when you only need the number of elements that satisfy a predicate.
  *
  * **Details**
  *

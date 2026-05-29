@@ -109,7 +109,7 @@ const MutableRefProto: Omit<MutableRef<unknown>, "current"> = {
  *
  * **When to use**
  *
- * Use to create a synchronous mutable reference initialized with a value.
+ * Use to create a synchronous `MutableRef` initialized with a value.
  *
  * **Example** (Creating mutable refs)
  *
@@ -146,8 +146,8 @@ export const make = <T>(value: T): MutableRef<T> => {
  *
  * **When to use**
  *
- * Use to replace a value only when the current value still matches an expected
- * value.
+ * Use to replace a `MutableRef` value only when the current value still matches
+ * an expected value.
  *
  * **Example** (Comparing and setting values)
  *
@@ -200,8 +200,8 @@ export const compareAndSet: {
  *
  * **When to use**
  *
- * Use to decrement a numeric reference in place when you want the same
- * reference back.
+ * Use when you need an in-place `MutableRef` decrement that returns the same
+ * `MutableRef`.
  *
  * **Example** (Decrementing numeric refs)
  *
@@ -237,7 +237,8 @@ export const decrement = (self: MutableRef<number>): MutableRef<number> => updat
  *
  * **When to use**
  *
- * Use to decrement a numeric reference and immediately read the updated value.
+ * Use to decrement a numeric `MutableRef` and immediately read the updated
+ * value.
  *
  * **Example** (Decrementing and reading refs)
  *
@@ -273,7 +274,7 @@ export const decrementAndGet = (self: MutableRef<number>): number => updateAndGe
  *
  * **When to use**
  *
- * Use to read the current value without mutating the reference.
+ * Use to read the current `MutableRef` value without mutating it.
  *
  * **Example** (Reading current values)
  *
@@ -307,7 +308,7 @@ export const get = <T>(self: MutableRef<T>): T => self.current
  *
  * **When to use**
  *
- * Use to read the current numeric value before decrementing it.
+ * Use to read the current numeric `MutableRef` value before decrementing it.
  *
  * **Example** (Reading before decrementing)
  *
@@ -344,7 +345,7 @@ export const getAndDecrement = (self: MutableRef<number>): number => getAndUpdat
  *
  * **When to use**
  *
- * Use to read the current numeric value before incrementing it.
+ * Use to read the current numeric `MutableRef` value before incrementing it.
  *
  * **Example** (Reading before incrementing)
  *
@@ -389,7 +390,8 @@ export const getAndIncrement = (self: MutableRef<number>): number => getAndUpdat
  *
  * **When to use**
  *
- * Use to replace the current value while keeping the previous value.
+ * Use to replace the current `MutableRef` value while keeping the previous
+ * value.
  *
  * **Example** (Reading before setting)
  *
@@ -441,7 +443,8 @@ export const getAndSet: {
  *
  * **When to use**
  *
- * Use to transform the current value while keeping the previous value.
+ * Use to transform the current `MutableRef` value while keeping the previous
+ * value.
  *
  * **Example** (Reading before updating)
  *
@@ -494,8 +497,8 @@ export const getAndUpdate: {
  *
  * **When to use**
  *
- * Use to increment a numeric reference in place when you want the same
- * reference back.
+ * Use when you need an in-place `MutableRef` increment that returns the same
+ * `MutableRef`.
  *
  * **Example** (Incrementing numeric refs)
  *
@@ -534,7 +537,8 @@ export const increment = (self: MutableRef<number>): MutableRef<number> => updat
  *
  * **When to use**
  *
- * Use to increment a numeric reference and immediately read the updated value.
+ * Use to increment a numeric `MutableRef` and immediately read the updated
+ * value.
  *
  * **Example** (Incrementing and reading refs)
  *
@@ -574,8 +578,8 @@ export const incrementAndGet = (self: MutableRef<number>): number => updateAndGe
  *
  * **When to use**
  *
- * Use to replace the current value in place when you want the same reference
- * back.
+ * Use when you need an in-place `MutableRef` replacement that returns the same
+ * `MutableRef`.
  *
  * **Example** (Setting values)
  *
@@ -629,7 +633,8 @@ export const set: {
  *
  * **When to use**
  *
- * Use to replace the current value and immediately read the replacement.
+ * Use to replace the current `MutableRef` value and immediately read the
+ * replacement.
  *
  * **Example** (Setting and reading values)
  *
@@ -680,8 +685,8 @@ export const setAndGet: {
  *
  * **When to use**
  *
- * Use to transform the current value in place when you want the same reference
- * back.
+ * Use when you need an in-place `MutableRef` value transformation that returns
+ * the same `MutableRef`.
  *
  * **Example** (Updating values)
  *
@@ -737,7 +742,8 @@ export const update: {
  *
  * **When to use**
  *
- * Use to transform the current value and immediately read the updated value.
+ * Use to transform the current `MutableRef` value and immediately read the
+ * updated value.
  *
  * **Example** (Updating and reading values)
  *
@@ -795,8 +801,8 @@ export const updateAndGet: {
  *
  * **When to use**
  *
- * Use to flip a boolean reference in place when you want the same reference
- * back.
+ * Use when you need an in-place boolean `MutableRef` toggle that returns the
+ * same `MutableRef`.
  *
  * **Example** (Toggling boolean refs)
  *

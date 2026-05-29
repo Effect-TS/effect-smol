@@ -117,7 +117,7 @@ export type ArgumentType =
  *
  * **When to use**
  *
- * Use to produce an installable completion script when you already have a
+ * Use when you need an installable completion script from an existing
  * `CommandDescriptor`.
  *
  * **Details**

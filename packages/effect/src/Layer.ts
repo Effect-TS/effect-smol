@@ -1331,8 +1331,7 @@ const provideWith = (
  *
  * **When to use**
  *
- * Use when the dependency layer is an implementation detail of the layer being built
- * and should not be exposed to callers.
+ * Use when you need to hide an implementation dependency layer from callers.
  *
  * **Details**
  *

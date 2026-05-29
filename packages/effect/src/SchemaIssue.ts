@@ -934,9 +934,7 @@ export type LeafHook = (issue: Leaf) => string
  *
  * **When to use**
  *
- * Use as the default leaf renderer when you only need to customise the
- * {@link CheckHook}.
- * - Reference as a starting point for custom `LeafHook` implementations.
+ * Use as the default leaf renderer when customizing only the {@link CheckHook}.
  *
  * **Details**
  *
@@ -1010,8 +1008,7 @@ export type CheckHook = (issue: Filter) => string | undefined
  *
  * **When to use**
  *
- * Use as the default filter renderer when you only need to customise the
- * {@link LeafHook}.
+ * Use as the default filter renderer when customizing only the {@link LeafHook}.
  *
  * **Details**
  *

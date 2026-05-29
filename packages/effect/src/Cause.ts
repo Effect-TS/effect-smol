@@ -1041,8 +1041,8 @@ export const hasInterrupts: <E>(self: Cause<E>) => boolean = effect.hasInterrupt
  *
  * **When to use**
  *
- * Use to extract the first interruption reason when you need its fiber ID and
- * annotations.
+ * Use when you need the fiber ID and annotations from the first interruption
+ * reason.
  *
  * **Example** (extracting the first interrupt)
  *

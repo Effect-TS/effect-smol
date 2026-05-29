@@ -152,9 +152,9 @@ export class Runners extends Context.Service<Runners, {
  *
  * **When to use**
  *
- * Use to build a custom `Runners` service when you already have remote `ping`,
- * `send`, `notify`, and `onRunnerUnavailable` callbacks and want the standard
- * local persistence and reply recovery behavior added around them.
+ * Use when you need a custom `Runners` service around remote `ping`, `send`,
+ * `notify`, and `onRunnerUnavailable` callbacks, with standard local
+ * persistence and reply recovery behavior.
  *
  * **Details**
  *

@@ -118,8 +118,8 @@ export interface Teardown {
  *
  * **When to use**
  *
- * Use as the standard teardown for main programs when you want conventional
- * process exit codes and support for {@link errorExitCode}.
+ * Use as the standard teardown for main programs with conventional process
+ * exit codes and support for {@link errorExitCode}.
  *
  * **Details**
  *

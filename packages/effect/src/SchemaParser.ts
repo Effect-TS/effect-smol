@@ -381,8 +381,8 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
  *
  * **When to use**
  *
- * Use to synchronously decode already typed `Encoded` input when you want
- * decoding failures returned as `Exit` values.
+ * Use when you need synchronous decoding of already typed `Encoded` input with
+ * failures returned as `Exit` values.
  *
  * **Details**
  *
@@ -681,8 +681,8 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
  *
  * **When to use**
  *
- * Use to encode unknown input synchronously when you want the encoded value or
- * schema issue represented as an `Exit`.
+ * Use when you need synchronous encoding of unknown input with the encoded
+ * value or schema issue returned as an `Exit`.
  *
  * **Details**
  *
@@ -708,7 +708,7 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
  *
  * **When to use**
  *
- * Use to synchronously encode already typed schema values when you want encoding
+ * Use when you need synchronous encoding of already typed schema values with
  * failures returned as `Exit` values.
  *
  * **Details**

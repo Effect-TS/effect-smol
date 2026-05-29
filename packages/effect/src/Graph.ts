@@ -119,8 +119,8 @@ export type EdgeIndex = number
  *
  * **When to use**
  *
- * Use as the graph edge value returned by `getEdge` and `edges` when you need
- * the source node, target node, and stored edge data together.
+ * Use as the graph edge value that carries source node, target node, and stored
+ * edge data together.
  *
  * @see {@link getEdge} for reading a single edge by identifier
  * @see {@link addEdge} for adding edges to a graph

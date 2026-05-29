@@ -969,8 +969,8 @@ export const get: {
  *
  * **When to use**
  *
- * Use to resolve a `Context.Reference` against a context when you want either
- * the stored override or the reference's default value.
+ * Use when you need a `Context.Reference` value resolved from either a stored
+ * override or the reference's default value.
  *
  * **Details**
  *

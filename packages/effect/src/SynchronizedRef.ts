@@ -69,7 +69,8 @@ const Proto = {
  *
  * **When to use**
  *
- * Use when you need synchronous construction outside an Effect workflow.
+ * Use when you need synchronous `SynchronizedRef` construction outside an
+ * Effect workflow.
  *
  * @category constructors
  * @since 4.0.0
@@ -86,8 +87,8 @@ export const makeUnsafe = <A>(value: A): SynchronizedRef<A> => {
  *
  * **When to use**
  *
- * Use to create a synchronized reference inside an Effect program when later
- * updates may run effects and must be serialized.
+ * Use to create a `SynchronizedRef` inside an Effect program when later updates
+ * may run effects and must be serialized.
  *
  * **Details**
  *
@@ -164,7 +165,8 @@ export const getAndSet: {
  *
  * **When to use**
  *
- * Use to run a pure state update when the previous stored value is also needed.
+ * Use to run a pure `SynchronizedRef` state update when the previous stored
+ * value is also needed.
  *
  * @see {@link update} for updating without returning a value
  * @see {@link updateAndGet} for updating and returning the new value
@@ -188,8 +190,8 @@ export const getAndUpdate: {
  *
  * **When to use**
  *
- * Use when you need an effectful state transition to return the previous stored
- * value.
+ * Use when you need an effectful `SynchronizedRef` state transition to return
+ * the previous stored value.
  *
  * @see {@link getAndUpdate} for pure updates that return the previous value
  * @see {@link updateEffect} for effectful updates without returning a value
@@ -222,7 +224,8 @@ export const getAndUpdateEffect: {
  *
  * **When to use**
  *
- * Use to return the previous value while applying a pure conditional update.
+ * Use to return the previous `SynchronizedRef` value while applying a pure
+ * conditional update.
  *
  * @see {@link getAndUpdate} for always applying a pure update
  * @see {@link updateSome} for applying a pure conditional update without returning the previous value
@@ -246,8 +249,8 @@ export const getAndUpdateSome: {
  *
  * **When to use**
  *
- * Use to return the previous value while running an effectful conditional
- * update.
+ * Use to return the previous `SynchronizedRef` value while running an effectful
+ * conditional update.
  *
  * @see {@link getAndUpdateSome} for the pure conditional variant
  * @see {@link updateSomeEffect} for effectful conditional updates without returning the previous value
@@ -279,8 +282,8 @@ export const getAndUpdateSomeEffect: {
  *
  * **When to use**
  *
- * Use to derive a separate result and the next stored value from the same
- * current value in one serialized pure update.
+ * Use to derive a separate result and the next stored `SynchronizedRef` value
+ * from the same current value in one serialized pure update.
  *
  * @see {@link modifyEffect} for effectfully deriving both the result and next stored value
  * @see {@link modifySome} for deriving a result and optionally updating the stored value
@@ -305,7 +308,7 @@ export const modify: {
  * **When to use**
  *
  * Use to effectfully compute both a separate return value and the next stored
- * value in one serialized update.
+ * `SynchronizedRef` value in one serialized update.
  *
  * @see {@link modify} for the pure variant
  * @see {@link updateEffect} for effectfully storing a new value without a separate result
@@ -367,7 +370,7 @@ export const modifySome: {
  * **When to use**
  *
  * Use to effectfully compute a return value while optionally updating the
- * stored value.
+ * stored `SynchronizedRef` value.
  *
  * @see {@link modifySome} for the pure variant
  * @see {@link updateSomeEffect} for effectful optional updates without a separate return value
@@ -431,8 +434,8 @@ export const set: {
  *
  * **When to use**
  *
- * Use to replace the current value with a known value and return that new
- * value.
+ * Use to replace the current `SynchronizedRef` value with a known value and
+ * return that new value.
  *
  * @see {@link set} for setting without returning a value
  * @see {@link getAndSet} for setting while returning the previous value
@@ -512,7 +515,8 @@ export const updateEffect: {
  *
  * **When to use**
  *
- * Use to apply a pure state transition and return the new stored value.
+ * Use to apply a pure `SynchronizedRef` state transition and return the new
+ * stored value.
  *
  * @see {@link update} for updating without returning the new value
  * @see {@link getAndUpdate} for updating while returning the previous value
@@ -535,7 +539,8 @@ export const updateAndGet: {
  *
  * **When to use**
  *
- * Use to run an effectful state transition and return the new stored value.
+ * Use to run an effectful `SynchronizedRef` state transition and return the new
+ * stored value.
  *
  * @see {@link updateEffect} for effectful updates without returning the new value
  * @see {@link updateAndGet} for the pure variant
@@ -564,7 +569,8 @@ export const updateAndGetEffect: {
  *
  * **When to use**
  *
- * Use to apply a pure conditional update without returning a value.
+ * Use to apply a pure conditional `SynchronizedRef` update without returning a
+ * value.
  *
  * @see {@link update} for always applying a pure update
  * @see {@link updateSomeAndGet} for returning the resulting current value
@@ -587,7 +593,8 @@ export const updateSome: {
  *
  * **When to use**
  *
- * Use to run an effectful conditional update without returning a value.
+ * Use to run an effectful conditional `SynchronizedRef` update without
+ * returning a value.
  *
  * @see {@link updateSome} for the pure conditional variant
  * @see {@link updateEffect} for effectful updates that always store a new value
@@ -621,8 +628,8 @@ export const updateSomeEffect: {
  *
  * **When to use**
  *
- * Use to apply a pure conditional update and return the resulting current
- * value.
+ * Use to apply a pure conditional `SynchronizedRef` update and return the
+ * resulting current value.
  *
  * @see {@link updateSome} for conditional updates without returning a value
  * @see {@link updateAndGet} for always applying a pure update and returning the new value
@@ -646,8 +653,8 @@ export const updateSomeAndGet: {
  *
  * **When to use**
  *
- * Use to run an effectful conditional update and return the resulting current
- * value.
+ * Use to run an effectful conditional `SynchronizedRef` update and return the
+ * resulting current value.
  *
  * @see {@link updateSomeEffect} for effectful conditional updates without returning a value
  * @see {@link updateAndGetEffect} for effectful updates that always store and return a new value

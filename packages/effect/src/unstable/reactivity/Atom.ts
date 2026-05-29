@@ -1108,8 +1108,8 @@ export interface AtomResultFn<Arg, A, E = never>
  *
  * **When to use**
  *
- * Use to write to an `AtomResultFn` when you need to clear the current async
- * result and return it to the initial state.
+ * Use when you need an `AtomResultFn` write value that clears the current async
+ * result and returns it to the initial state.
  *
  * @category symbols
  * @since 4.0.0
@@ -1129,7 +1129,7 @@ export type Reset = typeof Reset
  *
  * **When to use**
  *
- * Use to write to an `AtomResultFn` when you need to interrupt the currently
+ * Use when you need an `AtomResultFn` write value that interrupts the currently
  * running async computation.
  *
  * @category symbols

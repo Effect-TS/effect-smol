@@ -797,9 +797,8 @@ export interface Persisted extends Service {
  *
  * **When to use**
  *
- * Use to construct the `Chat.Persistence` service from the current
- * `BackingPersistence` when you want to create and retrieve persisted chats
- * programmatically by chat id.
+ * Use when you need programmatic persisted chat creation and retrieval backed
+ * by the current `BackingPersistence`.
  *
  * **Details**
  *

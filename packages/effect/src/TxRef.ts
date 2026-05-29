@@ -120,7 +120,7 @@ export interface TxRef<in out A> extends Pipeable {
  *
  * **When to use**
  *
- * Use to create a transactional reference inside an `Effect` workflow.
+ * Use to create a `TxRef` inside an `Effect` workflow.
  *
  * **Example** (Creating transactional references)
  *
@@ -153,8 +153,8 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
  *
  * **When to use**
  *
- * Use to construct a transactional reference synchronously when it must be
- * created outside an `Effect` workflow.
+ * Use to construct a `TxRef` synchronously when it must be created outside an
+ * `Effect` workflow.
  *
  * **Example** (Creating transactional references unsafely)
  *
@@ -188,8 +188,8 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  *
  * **When to use**
  *
- * Use to update a transactional reference and return a computed result from the
- * same transaction step.
+ * Use to update a `TxRef` and return a computed result from the same
+ * transaction step.
  *
  * **Example** (Modifying transactional references)
  *
@@ -237,7 +237,7 @@ export const modify: {
  *
  * **When to use**
  *
- * Use to transform a transactional reference when no result value is needed.
+ * Use to transform a `TxRef` when no result value is needed.
  *
  * **Example** (Updating transactional references)
  *
@@ -272,7 +272,7 @@ export const update: {
  *
  * **When to use**
  *
- * Use to read the current value of a transactional reference.
+ * Use to read the current value of a `TxRef`.
  *
  * **Example** (Reading transactional references)
  *
@@ -301,7 +301,7 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  *
  * **When to use**
  *
- * Use to replace the value of a transactional reference.
+ * Use to replace the value of a `TxRef`.
  *
  * **Example** (Setting transactional references)
  *

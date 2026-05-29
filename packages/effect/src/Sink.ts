@@ -1552,8 +1552,7 @@ export const count: Sink<number, unknown> = reduceArray(() => 0, (s, arr) => s +
  *
  * **When to use**
  *
- * Use to collect all upstream input elements into a single array when you need
- * a sink result containing the complete input.
+ * Use when you need a sink result containing all upstream input elements.
  *
  * @see {@link take} for collecting only a fixed number of input elements
  *

@@ -205,7 +205,7 @@ export const makeUnsafe = <A>(value: A): Ref<A> => {
  *
  * **When to use**
  *
- * Use to create shared mutable state inside an Effect program.
+ * Use to create a `Ref` for shared mutable state inside an Effect program.
  *
  * **Example** (Creating a ref)
  *
@@ -231,7 +231,7 @@ export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => ma
  *
  * **When to use**
  *
- * Use to read the current value without changing it.
+ * Use to read the current `Ref` value without changing it.
  *
  * **Example** (Getting the current value)
  *
@@ -257,7 +257,7 @@ export const get = <A>(self: Ref<A>) => Effect.sync(() => self.ref.current)
  *
  * **When to use**
  *
- * Use to replace the current value with a known value.
+ * Use to replace the current `Ref` value with a known value.
  *
  * **Example** (Setting a value)
  *
@@ -336,7 +336,7 @@ export const getAndSet = dual<
  *
  * **When to use**
  *
- * Use to derive a new value while returning the previous value.
+ * Use to derive a new `Ref` value while returning the previous value.
  *
  * **Example** (Updating and returning the previous value)
  *
@@ -376,7 +376,7 @@ export const getAndUpdate = dual<
  *
  * **When to use**
  *
- * Use to return the previous value while applying a conditional update.
+ * Use to return the previous `Ref` value while applying a conditional update.
  *
  * **Details**
  *
@@ -438,7 +438,7 @@ export const getAndUpdateSome = dual<
  *
  * **When to use**
  *
- * Use when you want to set a value and immediately get it back in one
+ * Use when you want to set a `Ref` value and immediately get it back in one
  * atomic operation.
  *
  * **Example** (Setting and returning the new value)
@@ -480,8 +480,8 @@ export const setAndGet = dual<
  *
  * **When to use**
  *
- * Use to compute both a separate return value and the next stored value in one
- * atomic update.
+ * Use to compute both a separate return value and the next stored `Ref` value
+ * in one atomic update.
  *
  * **Details**
  *
@@ -618,7 +618,7 @@ export const modifySome: {
  *
  * **When to use**
  *
- * Use to apply a state transition without returning a value.
+ * Use to apply a `Ref` state transition without returning a value.
  *
  * **Example** (Updating a value)
  *
@@ -663,7 +663,7 @@ export const update = dual<
  *
  * **When to use**
  *
- * Use to apply a state transition and return the new stored value.
+ * Use to apply a `Ref` state transition and return the new stored value.
  *
  * **Example** (Updating and returning the new value)
  *
@@ -699,7 +699,7 @@ export const updateAndGet = dual<
  *
  * **When to use**
  *
- * Use to apply a conditional update without returning a value.
+ * Use to apply a conditional `Ref` update without returning a value.
  *
  * **Details**
  *
@@ -757,7 +757,8 @@ export const updateSome = dual<
  *
  * **When to use**
  *
- * Use to apply a conditional update and return the resulting current value.
+ * Use to apply a conditional `Ref` update and return the resulting current
+ * value.
  *
  * **Details**
  *
