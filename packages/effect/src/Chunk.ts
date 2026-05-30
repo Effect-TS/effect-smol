@@ -1471,8 +1471,8 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  *
  * **When to use**
  *
- * Use when the chunk is known to be non-empty and you want direct access without
- * handling `Option.none`.
+ * Use when you know the chunk is non-empty and need the first element directly
+ * without handling `Option.none`.
  *
  * **Gotchas**
  *
@@ -1543,8 +1543,8 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  *
  * **When to use**
  *
- * Use when the chunk is known to be non-empty and you want direct access without
- * handling `Option.none`.
+ * Use when you know the chunk is non-empty and need the last element directly
+ * without handling `Option.none`.
  *
  * **Gotchas**
  *

@@ -989,10 +989,6 @@ export function isNotNullish<A>(input: A): input is NonNullable<A> {
  *
  * Use when you need a `Predicate` that never accepts, e.g. in default branches.
  *
- * **Details**
- *
- * Always returns `false`.
- *
  * **Example** (Never matches)
  *
  * ```ts
@@ -1015,10 +1011,6 @@ export function isNever(_: unknown): _ is never {
  * **When to use**
  *
  * Use when you need a `Predicate` that always accepts, e.g. as a placeholder.
- *
- * **Details**
- *
- * Always returns `true`.
  *
  * **Example** (Always matches)
  *

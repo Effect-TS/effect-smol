@@ -1233,11 +1233,6 @@ export const map: {
  * Use when you need to replace a present `Option` value while preserving
  * whether it was `Some` or `None`.
  *
- * **Details**
- *
- * - `Some` → `Some(b)`
- * - `None` → `None`
- *
  * **Example** (Replacing a value)
  *
  * ```ts
@@ -1269,11 +1264,6 @@ export const as: {
  *
  * Use when you need to discard a present `Option` value while preserving
  * whether it was `Some` or `None`.
- *
- * **Details**
- *
- * - `Some` → `Some(undefined)`
- * - `None` → `None`
  *
  * **Example** (Voiding the value)
  *

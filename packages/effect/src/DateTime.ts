@@ -1112,10 +1112,6 @@ export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = 
  * Use when invalid IANA zone ids should fail in the Effect error channel
  * instead of returning `Option.none` or throwing.
  *
- * **Details**
- *
- * If the time zone is invalid, it will fail with an `IllegalArgumentError`.
- *
  * **Example** (Creating named time zones effectfully)
  *
  * ```ts
@@ -2574,10 +2570,6 @@ export const format: {
 /**
  * Formats a `DateTime` with `Intl.DateTimeFormat` using the system local time
  * zone and locale.
- *
- * **Details**
- *
- * It will use the system's local time zone & locale.
  *
  * **Example** (Formatting DateTime values locally)
  *

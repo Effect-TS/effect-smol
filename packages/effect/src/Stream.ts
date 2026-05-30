@@ -6816,10 +6816,6 @@ export const dropUntil: {
  * Use when dropping the leading prefix requires an Effect or service and the
  * first matching element should also be dropped.
  *
- * **Details**
- *
- * The first element that satisfies the predicate is also dropped.
- *
  * **Example** (Dropping until an effectful predicate matches)
  *
  * ```ts

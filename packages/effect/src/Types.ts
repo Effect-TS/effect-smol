@@ -43,8 +43,6 @@
  *
  * - {@link TupleOf} with a non-literal `number` (e.g. `TupleOf<number, string>`)
  *   degrades to `Array<string>`.
- * - {@link MergeRecord} is an alias for {@link MergeLeft}; prefer
- *   {@link MergeLeft} or {@link MergeRight} for clarity.
  * - {@link NoInfer} uses the `[A][A extends any ? 0 : never]` trick, not the
  *   built-in `NoInfer` from TypeScript 5.4+.
  * - {@link DeepMutable} recurses into `Map`, `Set`, arrays, and objects but
@@ -168,7 +166,8 @@ export type Tags<E> = E extends { readonly _tag: string } ? E["_tag"] : never
  *
  * **When to use**
  *
- * Use to narrow a union by removing a specific variant.
+ * Use to remove tagged-union members whose `_tag` matches a specific value in
+ * type-level code.
  *
  * **Details**
  *
@@ -201,7 +200,8 @@ export type ExcludeTag<E, K extends string> = Exclude<E, { readonly _tag: K }>
  *
  * **When to use**
  *
- * Use to narrow a union down to a single variant.
+ * Use to select tagged-union members whose `_tag` matches a specific value in
+ * type-level code.
  *
  * **Details**
  *
@@ -358,7 +358,8 @@ export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>
  *
  * **When to use**
  *
- * Use to conditionally branch based on the presence of keys in a type.
+ * Use to branch type-level logic when at least one key from a candidate key set
+ * exists on an object type.
  *
  * **Details**
  *
@@ -406,7 +407,6 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
  * ```
  *
  * @see {@link MergeRight}
- * @see {@link MergeRecord}
  * @see {@link Simplify}
  *
  * @category models
@@ -450,35 +450,6 @@ export type MergeRight<Target, Source> = Simplify<
     [Key in keyof Target as Key extends keyof Source ? never : Key]: Target[Key]
   }
 >
-
-/**
- * Alias for {@link MergeLeft}. Merges two object types where keys from
- * `Source` take precedence on conflict.
- *
- * **When to use**
- *
- * Use when prefer {@link MergeLeft} or {@link MergeRight} for clarity about which
- * side wins.
- *
- * **Example** (Merging records)
- *
- * ```ts
- * import type { Types } from "effect"
- *
- * type Result = Types.MergeRecord<
- *   { a: number; b: number },
- *   { a: string; c: boolean }
- * >
- * // { a: number; b: number; c: boolean }
- * ```
- *
- * @see {@link MergeLeft}
- * @see {@link MergeRight}
- *
- * @category models
- * @since 2.0.0
- */
-export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
 
 /**
  * Describes the concurrency level for Effect operations that run multiple
@@ -963,8 +934,8 @@ export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
  *
  * **When to use**
  *
- * Use with the nested error pattern where errors wrap sub-errors in a `reason`
- * field.
+ * Use when an error type stores nested sub-errors in a `reason` field and you
+ * need that field's full union type as a standalone type.
  *
  * **Details**
  *
@@ -1033,7 +1004,8 @@ export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string
  *
  * **When to use**
  *
- * Use to extract only the matching reason variant from a nested error type.
+ * Use when you need the nested reason variant type itself, selected by `_tag`,
+ * rather than the enclosing error type.
  *
  * **Details**
  *
@@ -1147,7 +1119,8 @@ export type OmitReason<E, K extends string> = E extends { readonly reason: infer
  *
  * **When to use**
  *
- * Use to remove a handled reason variant from an error's reason union.
+ * Use when you need the remaining nested reason union type after removing
+ * variants handled by `_tag`, rather than the enclosing error type.
  *
  * **Details**
  *
