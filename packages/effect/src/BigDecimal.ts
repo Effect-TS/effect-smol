@@ -1168,12 +1168,12 @@ export const remainder: {
 
 /**
  * Returns the decimal remainder left over when one operand is divided by a
- * non-zero second operand, throwing for division by zero.
+ * non-zero second operand.
  *
  * **When to use**
  *
- * Use when you need to compute a `BigDecimal` remainder where the divisor is
- * known to be non-zero, so division by zero should be a thrown exception.
+ * Use when you need to compute a `BigDecimal` remainder with a divisor known to
+ * be non-zero and want a plain `BigDecimal` result instead of an `Option`.
  *
  * **Gotchas**
  *
@@ -1309,12 +1309,12 @@ export const equals: {
 export const fromBigInt = (n: bigint): BigDecimal => make(n, 0)
 
 /**
- * Creates a `BigDecimal` from a finite `number`, throwing for non-finite input.
+ * Creates a `BigDecimal` from a finite `number`.
  *
  * **When to use**
  *
- * Use when you need to convert a finite JavaScript number to a `BigDecimal` and
- * invalid input should throw.
+ * Use when you need to convert a trusted finite JavaScript number to a
+ * `BigDecimal` and want a plain result instead of an `Option`.
  *
  * **Gotchas**
  *

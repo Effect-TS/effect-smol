@@ -1183,6 +1183,11 @@ export const fromIterable = <A>(
 /**
  * Creates a stream from an effect producing an iterable of values.
  *
+ * **When to use**
+ *
+ * Use when the iterable must be acquired from an Effect before the stream emits,
+ * and acquisition services or failures should be part of the stream.
+ *
  * **Example** (Creating a stream from an iterable effect)
  *
  * ```ts
@@ -1271,6 +1276,11 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
 
 /**
  * Creates a stream from an effect that produces an array of values.
+ *
+ * **When to use**
+ *
+ * Use when the array must be acquired from an Effect before the stream emits,
+ * and acquisition services or failures should be part of the stream.
  *
  * **Example** (Creating a stream from an effect that produces an array of values)
  *
@@ -2041,6 +2051,11 @@ export const mapArray: {
 /**
  * Maps over elements of the stream with the specified effectful function.
  *
+ * **When to use**
+ *
+ * Use when each stream element transformation needs an Effect, service
+ * dependency, failure channel, or configured concurrency.
+ *
  * **Example** (Effectfully mapping stream values)
  *
  * ```ts
@@ -2107,6 +2122,11 @@ export const mapEffect: {
 /**
  * Flattens a stream of `Effect` values into a stream of their results.
  *
+ * **When to use**
+ *
+ * Use when stream elements already are effects and their successes should become
+ * stream elements while their failures enter the stream error channel.
+ *
  * **Example** (Flattening a stream of Effect values into a stream of their results)
  *
  * ```ts
@@ -2155,6 +2175,11 @@ export const flattenEffect: <
 
 /**
  * Maps over non-empty array chunks emitted by the stream effectfully.
+ *
+ * **When to use**
+ *
+ * Use when transformation needs to see and replace each non-empty emitted chunk
+ * effectfully instead of mapping individual stream elements.
  *
  * **Example** (Effectfully mapping stream chunks)
  *
@@ -3199,6 +3224,11 @@ export const merge: {
 /**
  * Merges this stream with a background effect, keeping the stream's elements.
  *
+ * **When to use**
+ *
+ * Use when an effect should run concurrently for the lifetime of a stream while
+ * only the stream's elements remain in the output.
+ *
  * **Details**
  *
  * The effect runs concurrently, fails the stream if it fails, and is interrupted
@@ -3241,6 +3271,12 @@ export const mergeEffect: {
 /**
  * Merges this stream and the specified stream together, tagging values from the
  * left stream as `Result.succeed` and values from the right stream as `Result.fail`.
+ *
+ * **When to use**
+ *
+ * Use when values from both streams should be emitted and downstream code needs
+ * left values wrapped as successful `Result` values and right values wrapped as
+ * failed `Result` values.
  *
  * **Example** (Merging streams into results)
  *
@@ -3292,6 +3328,11 @@ export const mergeResult: {
 /**
  * Merges two streams while emitting only the values from the left stream.
  *
+ * **When to use**
+ *
+ * Use when the right stream is needed for its effects or failures, but downstream
+ * consumers should only receive values from the left stream.
+ *
  * **Details**
  *
  * The right stream still runs for its effects, and any failures from the right
@@ -3329,6 +3370,11 @@ export const mergeLeft: {
 /**
  * Merges this stream and the specified stream together, emitting only the
  * values from the right stream while the left stream runs for its effects.
+ *
+ * **When to use**
+ *
+ * Use when the left stream is needed for its effects or failures, but downstream
+ * consumers should only receive values from the right stream.
  *
  * **Details**
  *
@@ -4022,6 +4068,11 @@ export const zipWithPreviousAndNext = <A, E, R>(
  * Zips multiple streams so that when a value is emitted by any stream, it is
  * combined with the latest values from the other streams to produce a result.
  *
+ * **When to use**
+ *
+ * Use when each stream should contribute its latest value after all streams have
+ * emitted at least once.
+ *
  * **Gotchas**
  *
  * Note: tracking the latest value is done on a per-array basis. That means
@@ -4093,6 +4144,11 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
 /**
  * Combines two streams by emitting each new element with the latest value from the other stream.
  *
+ * **When to use**
+ *
+ * Use when two streams should start emitting combined pairs after both have
+ * produced at least one value.
+ *
  * **Gotchas**
  *
  * Note: tracking the latest value is done on a per-array basis. That means
@@ -4137,6 +4193,11 @@ export const zipLatest: {
 /**
  * Combines the latest values from both streams whenever either emits, using
  * the provided function.
+ *
+ * **When to use**
+ *
+ * Use when two streams should start emitting custom combined values after both
+ * have produced at least one value.
  *
  * **Gotchas**
  *
@@ -6455,6 +6516,11 @@ export const takeUntil: {
 /**
  * Takes stream elements until an effectful predicate returns `true`.
  *
+ * **When to use**
+ *
+ * Use when the stopping condition needs an Effect or service and predicate
+ * failure should fail the stream.
+ *
  * **Example** (Taking until an effectful predicate matches)
  *
  * ```ts
@@ -6625,6 +6691,11 @@ export const takeWhileFilter: {
 /**
  * Takes elements from the stream while the effectful predicate is `true`.
  *
+ * **When to use**
+ *
+ * Use when the leading-prefix predicate needs an Effect or service and the
+ * stream should stop before the first false result.
+ *
  * **Example** (Effectfully taking while a predicate holds)
  *
  * ```ts
@@ -6739,6 +6810,11 @@ export const dropUntil: {
 /**
  * Drops all elements of the stream until the specified effectful predicate
  * evaluates to `true`.
+ *
+ * **When to use**
+ *
+ * Use when dropping the leading prefix requires an Effect or service and the
+ * first matching element should also be dropped.
  *
  * **Details**
  *
@@ -7545,6 +7621,11 @@ const emptyArr = Arr.empty<never>()
  * Maps each element statefully and effectfully, emitting zero or more output
  * values per input.
  *
+ * **When to use**
+ *
+ * Use when stateful element mapping needs Effects or can fail while emitting
+ * zero or more values per input element.
+ *
  * **Details**
  *
  * The mapping effect receives the current state and element, then returns the
@@ -7625,6 +7706,11 @@ export const mapAccumEffect: {
 /**
  * Maps each non-empty input chunk statefully and effectfully, emitting zero or
  * more output values per chunk.
+ *
+ * **When to use**
+ *
+ * Use when stateful mapping should process each emitted non-empty chunk with an
+ * Effect instead of each element separately.
  *
  * **Details**
  *
@@ -10720,6 +10806,11 @@ export const runFold: {
 /**
  * Runs the stream and folds elements using an effectful reducer.
  *
+ * **When to use**
+ *
+ * Use when reducing stream elements needs Effects, services, or failures in the
+ * reducer.
+ *
  * **Example** (Effectfully folding stream values)
  *
  * ```ts
@@ -11105,6 +11196,11 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
 /**
  * Converts the stream to a `ReadableStream` using the provided services.
  *
+ * **When to use**
+ *
+ * Use when bridging to Web Streams and you already have the `Context` required
+ * to run the stream outside an `Effect`.
+ *
  * **Details**
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
@@ -11218,6 +11314,11 @@ export const toReadableStream: {
 /**
  * Creates an Effect that builds a ReadableStream from the stream.
  *
+ * **When to use**
+ *
+ * Use when bridging to Web Streams from inside an `Effect` so the required
+ * services can be captured from the current context.
+ *
  * **Details**
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
@@ -11264,6 +11365,11 @@ export const toReadableStreamEffect: {
 
 /**
  * Converts the stream to an `AsyncIterable` using the provided services.
+ *
+ * **When to use**
+ *
+ * Use when converting outside an Effect and you already have the `Context`
+ * needed to run the stream.
  *
  * **Example** (Converting to an AsyncIterable with services)
  *
@@ -11336,6 +11442,11 @@ export const toAsyncIterableWith: {
 
 /**
  * Creates an effect that yields an `AsyncIterable` using the current services.
+ *
+ * **When to use**
+ *
+ * Use when the `AsyncIterable` should be created inside Effect with the current
+ * context supplying the stream's services.
  *
  * **Example** (Creating an AsyncIterable effect)
  *

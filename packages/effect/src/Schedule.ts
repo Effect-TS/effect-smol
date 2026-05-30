@@ -942,6 +942,11 @@ export const both: {
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the left schedule (i.e. `self`).
  *
+ * **When to use**
+ *
+ * Use when two schedules must both allow recurrence and only the left schedule's
+ * output is needed.
+ *
  * **Example** (Combining schedules and keeping the left output)
  *
  * ```ts
@@ -988,6 +993,11 @@ export const bothLeft: {
  * Combines two `Schedule`s by recurring if both of the two schedules want
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the right schedule (i.e. `other`).
+ *
+ * **When to use**
+ *
+ * Use when two schedules must both allow recurrence and only the right
+ * schedule's output is needed.
  *
  * **Example** (Combining schedules and keeping the right output)
  *
@@ -1038,6 +1048,11 @@ export const bothRight: {
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the combination of both schedule outputs using the
  * specified `combine` function.
+ *
+ * **When to use**
+ *
+ * Use when two schedules must both allow recurrence and their outputs should be
+ * combined into a custom value.
  *
  * **Example** (Combining schedule outputs)
  *
@@ -1769,6 +1784,11 @@ export const either: {
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the left schedule (i.e. `self`).
  *
+ * **When to use**
+ *
+ * Use when either schedule may keep recurrence going and only the left
+ * schedule's output is needed.
+ *
  * **Example** (Combining either schedules and keeping the left output)
  *
  * ```ts
@@ -1818,6 +1838,11 @@ export const eitherLeft: {
  * Combines two `Schedule`s by recurring if either of the two schedules wants
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the right schedule (i.e. `other`).
+ *
+ * **When to use**
+ *
+ * Use when either schedule may keep recurrence going and only the right
+ * schedule's output is needed.
  *
  * **Example** (Combining either schedules and keeping the right output)
  *
@@ -1869,6 +1894,11 @@ export const eitherRight: {
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the combination of both schedule outputs using the
  * specified `combine` function.
+ *
+ * **When to use**
+ *
+ * Use when either schedule may keep recurrence going and their outputs should be
+ * combined into a custom value.
  *
  * **Example** (Combining either schedule outputs)
  *

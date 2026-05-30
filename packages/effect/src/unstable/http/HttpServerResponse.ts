@@ -370,6 +370,11 @@ export const schemaJson = <A, I, RD, RE>(
 /**
  * Creates a JSON HTTP response synchronously.
  *
+ * **When to use**
+ *
+ * Use when the response body is known to be JSON-serializable and you need a
+ * synchronous `HttpServerResponse`.
+ *
  * **Gotchas**
  *
  * Unlike `json`, serialization errors from `JSON.stringify` are not captured in

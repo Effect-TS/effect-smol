@@ -598,6 +598,11 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 /**
  * Looks up the value for the specified key in the `Trie` unsafely.
  *
+ * **When to use**
+ *
+ * Use when the trie key is known to exist and a missing key should be treated
+ * as a programming error.
+ *
  * **Gotchas**
  *
  * `getUnsafe` throws if the key is not found. Use `get` instead to safely get

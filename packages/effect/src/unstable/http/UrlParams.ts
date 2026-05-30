@@ -319,6 +319,11 @@ export const getAll: {
 /**
  * Returns the first value for a query parameter key safely.
  *
+ * **When to use**
+ *
+ * Use when duplicate query parameters are ordered and the first occurrence has
+ * precedence.
+ *
  * **Details**
  *
  * Returns `Option.none` when the key is absent.
@@ -339,6 +344,11 @@ export const getFirst: {
 
 /**
  * Returns the last value for a query parameter key safely.
+ *
+ * **When to use**
+ *
+ * Use when duplicate query parameters are ordered and the last occurrence has
+ * precedence.
  *
  * **Details**
  *

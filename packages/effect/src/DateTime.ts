@@ -659,6 +659,11 @@ export const fromDateUnsafe: (date: Date) => Utc = Internal.fromDateUnsafe
 /**
  * Create a `DateTime` from supported input values.
  *
+ * **When to use**
+ *
+ * Use when creating a `DateTime` from trusted input and construction failures
+ * should throw an `IllegalArgumentError` instead of returning `Option.none`.
+ *
  * **Details**
  *
  * - A `DateTime`
@@ -692,6 +697,11 @@ export const makeUnsafe: <A extends DateTime.Input>(input: A) => DateTime.Preser
 
 /**
  * Create a `DateTime.Zoned` using `DateTime.makeUnsafe` and a time zone.
+ *
+ * **When to use**
+ *
+ * Use when the date/time input and zone options are trusted and invalid or
+ * rejected ambiguous times should throw instead of returning `Option.none`.
  *
  * **Details**
  *
@@ -889,6 +899,11 @@ export const nowAsDate: Effect.Effect<Date> = Internal.nowAsDate
 /**
  * Gets the current time using `Date.now`.
  *
+ * **When to use**
+ *
+ * Use when synchronous wall-clock access outside an Effect program is
+ * acceptable and testability through the `Clock` service is not needed.
+ *
  * **Details**
  *
  * This is a synchronous version of `now` that directly uses `Date.now()`
@@ -1010,6 +1025,11 @@ export const setZoneOffset: {
 /**
  * Attempts to create a named time zone from an IANA time zone identifier.
  *
+ * **When to use**
+ *
+ * Use when the IANA zone id is trusted and invalid zones should throw instead
+ * of returning `Option.none` or failing in `Effect`.
+ *
  * **Details**
  *
  * If the time zone is invalid, an `IllegalArgumentError` will be thrown.
@@ -1086,6 +1106,11 @@ export const zoneMakeNamed: (zoneId: string) => Option.Option<TimeZone.Named> = 
 
 /**
  * Creates a named time zone effectfully from an IANA time zone identifier.
+ *
+ * **When to use**
+ *
+ * Use when invalid IANA zone ids should fail in the Effect error channel
+ * instead of returning `Option.none` or throwing.
  *
  * **Details**
  *
@@ -1465,6 +1490,11 @@ export const isFuture: (self: DateTime) => Effect.Effect<boolean> = Internal.isF
 /**
  * Checks synchronously if a `DateTime` is in the future compared to the current time.
  *
+ * **When to use**
+ *
+ * Use when checking whether a `DateTime` is in the future with a synchronous
+ * live-clock read and `Clock`-based testability is not needed.
+ *
  * **Details**
  *
  * This is a synchronous version that uses `Date.now()` directly.
@@ -1512,6 +1542,11 @@ export const isPast: (self: DateTime) => Effect.Effect<boolean> = Internal.isPas
 
 /**
  * Checks synchronously if a `DateTime` is in the past compared to the current time.
+ *
+ * **When to use**
+ *
+ * Use when checking whether a `DateTime` is in the past with a synchronous
+ * live-clock read and `Clock`-based testability is not needed.
  *
  * **Details**
  *

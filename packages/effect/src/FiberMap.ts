@@ -253,6 +253,11 @@ export const makeRuntime = <R, K, E = unknown, A = unknown>(): Effect.Effect<
  * Creates a scoped run function that forks effects into a new `FiberMap` and
  * returns a `Promise` for each effect result.
  *
+ * **When to use**
+ *
+ * Use when keyed fibers must be managed in a scoped map while exposing their
+ * results through Promise-based APIs.
+ *
  * **Details**
  *
  * Each call stores the fiber under the supplied key, interrupting any previous
@@ -310,6 +315,11 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
 /**
  * Adds a fiber to the `FiberMap` under a key using a synchronous, unsafe
  * mutation.
+ *
+ * **When to use**
+ *
+ * Use when an existing forked fiber must be installed under a key immediately
+ * and synchronous interruption of the replaced fiber is acceptable.
  *
  * **Details**
  *
@@ -471,6 +481,11 @@ export const set: {
 
 /**
  * Retrieves a fiber from the FiberMap synchronously.
+ *
+ * **When to use**
+ *
+ * Use when synchronous keyed lookup of a fiber in a `FiberMap` is needed and an
+ * `Option` result is enough outside the Effect workflow.
  *
  * **Example** (Retrieving a fiber unsafely)
  *

@@ -794,6 +794,11 @@ export const addFinalizer: <R>(
 /**
  * Adds compensation logic to an effect inside a Workflow.
  *
+ * **When to use**
+ *
+ * Use when a top-level workflow step needs compensating cleanup if the overall
+ * workflow later fails after the step succeeds.
+ *
  * **Details**
  *
  * The compensation finalizer is called if the entire workflow fails, allowing you to perform cleanup or other actions based on the success value and the cause of the workflow failure.

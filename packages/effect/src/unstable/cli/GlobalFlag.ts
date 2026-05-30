@@ -266,6 +266,11 @@ export const LogLevel: Setting<"log-level", Option.Option<LogLevelType>> = setti
 /**
  * Built-in global flags in default precedence order.
  *
+ * **When to use**
+ *
+ * Use when extending or inspecting the default global-flag set that
+ * `Command.runWith` prepends before user-defined global flags.
+ *
  * **Details**
  *
  * The built-ins are `Help`, `Version`, `Completions`, and `LogLevel`.

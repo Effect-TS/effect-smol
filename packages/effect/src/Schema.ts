@@ -337,6 +337,11 @@ export interface declareConstructor<T, E, TypeParameters extends ReadonlyArray<T
  * `Array<A>`, `Option<A>`, etc.) by accepting a list of type-parameter schemas
  * and a decoder factory.
  *
+ * **When to use**
+ *
+ * Use when you are defining a schema for a generic container whose validation
+ * depends on one or more type-parameter schemas.
+ *
  * **Details**
  *
  * The outer call `declareConstructor<T, E, Iso>()` fixes the decoded type `T`,
@@ -420,10 +425,10 @@ export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [
  * function. The schema accepts any unknown value and succeeds when `is` returns
  * `true`, failing with an `InvalidType` issue otherwise.
  *
- * **Details**
+ * **When to use**
  *
- * Use this when the type has no type parameters. For parametric types such as
- * `Option<A>` or `Array<A>`, use {@link declareConstructor} instead.
+ * Use when you are defining a schema for an opaque type with no type parameters
+ * and validation can be expressed as a type guard.
  *
  * **Example** (Schema for a custom `UserId` branded type)
  *
@@ -2456,6 +2461,11 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
  * Creates a schema that validates strings matching a template literal pattern. Each part can be
  * a literal string/number/bigint or a schema whose encoded type is a string, number, or bigint.
  *
+ * **When to use**
+ *
+ * Use when the decoded value should remain the matched string and you do not
+ * need the individual template parts parsed into a tuple.
+ *
  * **Example** (URL path pattern)
  *
  * ```ts
@@ -2636,6 +2646,11 @@ export interface Unknown extends Bottom<unknown, unknown, never, never, SchemaAS
 
 /**
  * Schema for the `unknown` type. Accepts any value without validation.
+ *
+ * **When to use**
+ *
+ * Use as a top schema when you need to accept any input while preserving
+ * TypeScript's `unknown` safety at use sites.
  *
  * @see {@link Any} for the `any` variant.
  * @category schemas
@@ -4965,6 +4980,11 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
 /**
  * Creates a schema that transforms from a source schema to a target schema.
  *
+ * **When to use**
+ *
+ * Use when decoding should change the schema's decoded type or encoded shape,
+ * with an optional custom bidirectional transformation.
+ *
  * **Details**
  *
  * Call it with the target schema `to` and then pipe the source schema `from`
@@ -5037,6 +5057,11 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
 
 /**
  * Applies a transformation to a schema, creating a new schema with the same type but transformed encoding/decoding.
+ *
+ * **When to use**
+ *
+ * Use when the decoded type stays the same and the transformation only
+ * normalizes values during encoding and decoding.
  *
  * **Details**
  *
@@ -5381,6 +5406,11 @@ export interface withDecodingDefault<S extends Top, R = never> extends decodeTo<
  * and provides a default `Encoded` value when the field is missing or
  * `undefined` during decoding.
  *
+ * **When to use**
+ *
+ * Use when the default is expressed in the encoded representation, before the
+ * field's decoding transformation runs.
+ *
  * **Details**
  *
  * The default value is specified in terms of the `Encoded` type (before any
@@ -5439,6 +5469,11 @@ export interface withDecodingDefaultType<S extends Top, R = never>
  * Wraps the `Encoded` side with `optional` (key absent **or** `undefined`)
  * and provides a default `Type` value when the field is missing or
  * `undefined` during decoding.
+ *
+ * **When to use**
+ *
+ * Use when the default is already in the decoded representation and should not
+ * pass through the field's decoding transformation.
  *
  * **Details**
  *
@@ -9086,6 +9121,11 @@ export type ExitIso<A extends Top, E extends Top, D extends Top> = {
 /**
  * Creates a schema for `Exit` values using schemas for the success value, typed
  * failure, and unexpected defect channels.
+ *
+ * **When to use**
+ *
+ * Use when serializing or validating an effect outcome where success, typed
+ * failure, and defects each need their own schema.
  *
  * @category Exit
  * @since 3.10.0

@@ -427,6 +427,11 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  * Prepends all elements from a ReadonlyArray to the beginning of the MutableList.
  * This is an optimized version that can reuse the array when mutable=true.
  *
+ * **When to use**
+ *
+ * Use when prepending a trusted array directly is worth the optimized path and
+ * you control whether the input may be reused.
+ *
  * **Gotchas**
  *
  * When mutable=true, the input array may be modified internally. Only use
@@ -511,6 +516,11 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  * Appends all elements from a ReadonlyArray to the end of the MutableList.
  * This is an optimized version that can reuse the array when mutable=true.
  * Returns the number of elements added.
+ *
+ * **When to use**
+ *
+ * Use when appending a trusted array directly is worth the optimized path and
+ * you control whether the input may be reused.
  *
  * **Gotchas**
  *
@@ -941,6 +951,11 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
 /**
  * Removes all occurrences of a value from the `MutableList` using JavaScript
  * strict equality semantics.
+ *
+ * **When to use**
+ *
+ * Use when in-place removal should use JavaScript identity/strict equality
+ * rather than Effect structural equality.
  *
  * **Details**
  *

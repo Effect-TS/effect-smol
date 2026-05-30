@@ -1013,6 +1013,11 @@ export const fail = <E>(error: E): Channel<never, E, never> => fromPull(Effect.s
  * Constructs a channel that fails immediately with the specified lazily
  * evaluated error.
  *
+ * **When to use**
+ *
+ * Use when the error value should be computed each time the channel runs instead
+ * of when the channel is constructed.
+ *
  * **Example** (Failing with a lazy error)
  *
  * ```ts
@@ -1045,6 +1050,11 @@ export const failSync = <E>(evaluate: LazyArg<E>): Channel<never, E, never> => f
 
 /**
  * Constructs a channel that fails immediately with the specified `Cause`.
+ *
+ * **When to use**
+ *
+ * Use when the channel failure must preserve a full `Cause`, such as defects,
+ * interruptions, or combined failures.
  *
  * **Example** (Failing with causes)
  *
@@ -1860,6 +1870,11 @@ export const mapDone: {
 /**
  * Maps the done value of this channel using the specified effectful function.
  *
+ * **When to use**
+ *
+ * Use when the terminal done value transformation needs services or can fail,
+ * while emitted elements should pass through unchanged.
+ *
  * @category sequencing
  * @since 4.0.0
  */
@@ -1893,6 +1908,11 @@ const concurrencyIsSequential = (
 /**
  * Maps each output element with an effectful function, preserving the source
  * channel's done value.
+ *
+ * **When to use**
+ *
+ * Use when transforming each channel output needs an Effect, service
+ * dependency, failure channel, or configured concurrency.
  *
  * **Details**
  *
@@ -3288,6 +3308,11 @@ export const filterMap: {
 /**
  * Filters output elements with an effectful predicate.
  *
+ * **When to use**
+ *
+ * Use when the keep/discard decision depends on an Effect or service and
+ * predicate failures should fail the returned channel.
+ *
  * **Details**
  *
  * Elements for which the predicate succeeds with `true` are emitted. Elements
@@ -3501,6 +3526,11 @@ export const filterMapArray: {
  * Filters each element inside emitted non-empty arrays with an effectful
  * predicate.
  *
+ * **When to use**
+ *
+ * Use when filtering array-valued channel outputs requires Effects or services,
+ * and arrays that become empty should be skipped.
+ *
  * **Details**
  *
  * The predicate receives the element and its index within the array. Elements
@@ -3537,6 +3567,11 @@ export const filterArrayEffect: {
 /**
  * Filters and maps each element inside emitted non-empty arrays using an
  * effectful `Filter`.
+ *
+ * **When to use**
+ *
+ * Use when array-valued channel outputs need an effectful filter-map that can
+ * fail and can discard arrays that become empty.
  *
  * **Details**
  *
@@ -3779,6 +3814,11 @@ export const scan: {
  * Transforms a channel statefully by scanning over its output with an effectful accumulator function.
  * Emits the intermediate results of the scan operation.
  *
+ * **When to use**
+ *
+ * Use when maintaining accumulated state over channel output requires Effects
+ * or can fail, while still emitting each intermediate state.
+ *
  * **Example** (Scanning channel output with effects)
  *
  * ```ts
@@ -4002,6 +4042,11 @@ export const catchCause: {
 /**
  * Runs an effect with the full failure `Cause` when the channel fails, then
  * fails the returned channel with the original cause.
+ *
+ * **When to use**
+ *
+ * Use when observing the full channel failure `Cause` is needed without
+ * changing successful output or replacing the original cause.
  *
  * **Details**
  *
@@ -5684,6 +5729,11 @@ const ignoreCause_ = <
 /**
  * Ignores all errors in the channel including defects, converting them to an empty channel.
  *
+ * **When to use**
+ *
+ * Use when a channel should become best-effort and all failure causes, including
+ * defects and interruptions, can be converted to empty output.
+ *
  * **Details**
  *
  * Use the `log` option to emit the full {@link Cause} when the channel fails.
@@ -5918,6 +5968,11 @@ export const switchMap: {
 
 /**
  * Merges multiple channels with specified concurrency and buffering options.
+ *
+ * **When to use**
+ *
+ * Use when channel outputs are themselves channels and multiple inner channels
+ * should run with configured concurrency and buffering.
  *
  * **Example** (Merging nested channels)
  *
@@ -6272,6 +6327,11 @@ export const merge: {
 /**
  * Runs an effect concurrently with a channel while emitting only the channel's
  * output elements.
+ *
+ * **When to use**
+ *
+ * Use when a side effect should run for the lifetime of a channel and only the
+ * channel's output elements should be emitted.
  *
  * **Details**
  *
@@ -6724,6 +6784,11 @@ export const embedInput: {
  * Buffers individual output elements in a queue with the configured `capacity`
  * so a faster producer can progress independently of a slower consumer.
  *
+ * **When to use**
+ *
+ * Use when output elements can be decoupled from downstream demand and the
+ * configured backpressure or loss strategy is acceptable.
+ *
  * **Details**
  *
  * Finite queues use the `strategy` option. The default `"suspend"` strategy
@@ -6782,6 +6847,11 @@ export const buffer: {
 /**
  * Buffers array output elements in a queue with the configured `capacity` so a
  * faster producer can progress independently of a slower consumer.
+ *
+ * **When to use**
+ *
+ * Use when emitted arrays are batches of elements and it is acceptable for
+ * buffering to flatten and rebuild those batches.
  *
  * **Details**
  *
@@ -7023,6 +7093,11 @@ export const onStart: {
 
 /**
  * Runs an effect the first time the channel emits an output element.
+ *
+ * **When to use**
+ *
+ * Use when initialization depends on the first output element rather than only
+ * on channel startup.
  *
  * **Details**
  *
@@ -7953,6 +8028,11 @@ export const runFold: {
 
 /**
  * Runs a channel and effectfully folds all output elements with an accumulator.
+ *
+ * **When to use**
+ *
+ * Use when folding channel output needs effects, services, or an additional
+ * failure channel during accumulation.
  *
  * **Details**
  *

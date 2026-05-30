@@ -29,6 +29,11 @@ import * as Metric from "../../Metric.ts"
  * Creates a gauge tracking the number of active entity instances for each entity type on
  * the current runner.
  *
+ * **When to use**
+ *
+ * Use when instrumenting runner-local entity counts and tagging them by entity
+ * type for cluster dashboards.
+ *
  * **Details**
  *
  * Bigint gauge named `effect_cluster_entities`, updated with the entity type as

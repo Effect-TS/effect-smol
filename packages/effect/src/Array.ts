@@ -918,6 +918,11 @@ export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readon
  * Checks whether a mutable `Array` is non-empty, narrowing the type to
  * `NonEmptyArray`.
  *
+ * **When to use**
+ *
+ * Use when you need the narrowed value to remain a mutable `Array` after proving
+ * it has at least one element.
+ *
  * **Example** (Checking for a non-empty array)
  *
  * ```ts
@@ -938,6 +943,11 @@ export const isArrayNonEmpty: <A>(self: Array<A>) => self is NonEmptyArray<A> = 
 /**
  * Checks whether a `ReadonlyArray` is non-empty, narrowing the type to
  * `NonEmptyReadonlyArray`.
+ *
+ * **When to use**
+ *
+ * Use when you need to prove a readonly array has at least one element without
+ * requiring mutable array methods afterward.
  *
  * **Example** (Checking for a non-empty readonly array)
  *
@@ -2284,6 +2294,11 @@ export const zip: {
  * Combines elements from two iterables pairwise using a function. If the
  * iterables differ in length, extra elements are discarded.
  *
+ * **When to use**
+ *
+ * Use when zipping two iterables in an array pipeline and each pair should
+ * become a computed array element instead of a tuple.
+ *
  * **Example** (Zipping with addition)
  *
  * ```ts
@@ -2433,6 +2448,11 @@ export const modifyHeadNonEmpty: {
 /**
  * Replaces the first element of a non-empty array with a new value.
  *
+ * **When to use**
+ *
+ * Use when you already know the array is non-empty and the replacement value
+ * does not depend on the current first element.
+ *
  * **Example** (Setting the head)
  *
  * ```ts
@@ -2459,6 +2479,11 @@ export const setHeadNonEmpty: {
  * Applies a function to the last element of a non-empty array, returning a
  * new array.
  *
+ * **When to use**
+ *
+ * Use when you already know the array is non-empty and the new last element
+ * depends on the current last element.
+ *
  * **Example** (Modifying the last element)
  *
  * ```ts
@@ -2484,6 +2509,11 @@ export const modifyLastNonEmpty: {
 
 /**
  * Replaces the last element of a non-empty array with a new value.
+ *
+ * **When to use**
+ *
+ * Use when you already know the array is non-empty and the replacement value
+ * does not depend on the current last element.
  *
  * **Example** (Setting the last element)
  *
@@ -2727,6 +2757,11 @@ export const splitAt: {
 /**
  * Splits a non-empty array into two parts at the given index. The first part
  * is guaranteed to be non-empty (`n` is clamped to >= 1).
+ *
+ * **When to use**
+ *
+ * Use when downstream code requires the left side of the split to contain at
+ * least one element.
  *
  * **Example** (Splitting a non-empty array)
  *
@@ -3249,6 +3284,11 @@ export const intersectionWith = <A>(isEquivalent: (self: A, that: A) => boolean)
 /**
  * Computes the intersection of two arrays using `Equal.equivalence()`. Order is
  * determined by the first array.
+ *
+ * **When to use**
+ *
+ * Use when Effect equality is the right membership test and you want to keep
+ * values present in both inputs while preserving the first input's order.
  *
  * **Example** (Array intersection)
  *
@@ -3997,6 +4037,11 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * Lifts an `Option`-returning function into one that returns an array:
  * `Some(a)` becomes `[a]`, `None` becomes `[]`.
  *
+ * **When to use**
+ *
+ * Use when an optional parser or lookup should participate in array pipelines
+ * as zero-or-one results.
+ *
  * **Example** (Lifting an Option function)
  *
  * ```ts
@@ -4110,6 +4155,11 @@ export const flatMapNullishOr: {
 /**
  * Lifts a `Result`-returning function into one that returns an array: failures
  * produce `[]`, successes produce `[value]`.
+ *
+ * **When to use**
+ *
+ * Use when a fallible parser or lookup should participate in array pipelines as
+ * zero-or-one results and the failure value should be discarded.
  *
  * **Example** (Lifting a Result function)
  *
@@ -4823,6 +4873,11 @@ const let_: {
 export {
   /**
    * Adds a computed plain value to the do-notation scope without introducing a new array dimension.
+   *
+   * **When to use**
+   *
+   * Use when each do-notation branch needs a derived field from the current
+   * bindings without multiplying the number of branches.
    *
    * **Details**
    *

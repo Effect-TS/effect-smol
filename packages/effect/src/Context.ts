@@ -502,8 +502,12 @@ export interface Context<in Services> extends Equal.Equal, Pipeable, Inspectable
 }
 
 /**
- * Creates a `Context` from an existing service map without validating or
- * copying it.
+ * Creates a `Context` from an existing service map.
+ *
+ * **When to use**
+ *
+ * Use when constructing a low-level `Context` from a trusted map whose lifecycle
+ * you control.
  *
  * **Gotchas**
  *

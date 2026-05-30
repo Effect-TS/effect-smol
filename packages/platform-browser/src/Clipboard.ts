@@ -44,6 +44,11 @@ const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
 /**
  * Defines the service interface for reading from, writing to, and clearing the browser clipboard.
  *
+ * **When to use**
+ *
+ * Use when an application needs clipboard operations through an Effect service
+ * so browser failures stay in the error channel.
+ *
  * **Details**
  *
  * `read` and `write` work with `ClipboardItem` arrays. `readString` and

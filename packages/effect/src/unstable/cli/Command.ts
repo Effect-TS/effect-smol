@@ -1274,6 +1274,11 @@ export const provide: {
  * Provides the handler of a command with the implementation of a service that
  * optionally depends on the command-line input to be constructed.
  *
+ * **When to use**
+ *
+ * Use when a command handler needs a pure service implementation, optionally
+ * derived from the parsed command input.
+ *
  * @category providing services
  * @since 4.0.0
  */

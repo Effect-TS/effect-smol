@@ -154,6 +154,11 @@ export interface Suspend {
 /**
  * A named reference to a definition in the {@link References} map.
  *
+ * **When to use**
+ *
+ * Use when a representation should point to a named definition instead of
+ * embedding the definition inline.
+ *
  * **Details**
  *
  * `$ref` is the key into `Document.references` or `MultiDocument.references`.

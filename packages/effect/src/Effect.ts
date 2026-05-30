@@ -1571,6 +1571,12 @@ export const failSync: <E>(evaluate: LazyArg<E>) => Effect<never, E> = internal.
 /**
  * Creates an `Effect` that represents a failure with a specific `Cause`.
  *
+ * **When to use**
+ *
+ * Use when you already have a full `Cause` and need to preserve defects,
+ * interruptions, annotations, or combined failures in the effect's failure
+ * channel.
+ *
  * **Details**
  *
  * This function allows you to create effects that fail with complex error
@@ -1835,6 +1841,11 @@ export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = i
 
 /**
  * Converts an `Option` into an `Effect`.
+ *
+ * **When to use**
+ *
+ * Use when absence should become a typed `NoSuchElementError` in the effect error
+ * channel.
  *
  * **Details**
  *
@@ -2636,6 +2647,11 @@ const catch_: {
 export {
   /**
    * Handles all errors in an effect by providing a fallback effect.
+   *
+   * **When to use**
+   *
+   * Use when every recoverable error from an effect should be handled by the same
+   * fallback function while unrecoverable defects remain defects.
    *
    * **Details**
    *
@@ -3725,6 +3741,11 @@ export const tapErrorTag: {
  * Runs an effectful operation with the full `Cause` when the source effect
  * fails.
  *
+ * **When to use**
+ *
+ * Use when failure observation needs typed failures, defects, and interruptions
+ * rather than only the typed error value.
+ *
  * **Details**
  *
  * Use this to log or inspect typed failures, defects, and interruptions. When
@@ -4217,6 +4238,11 @@ export const ignore: <
 
 /**
  * Ignores the effect's failure cause, including defects and interruptions.
+ *
+ * **When to use**
+ *
+ * Use when a best-effort effect should never fail, even from defects or
+ * interruption, and optional cause logging is enough.
  *
  * **Details**
  *
@@ -4839,6 +4865,11 @@ export const race: {
  * Races two effects and returns the result of the first one to complete, whether
  * it succeeds or fails.
  *
+ * **When to use**
+ *
+ * Use when any completion, including failure, should decide the race and
+ * interrupt the losing effect.
+ *
  * **Details**
  *
  * The losing effect is interrupted, and `onWinner` can observe the winning fiber.
@@ -5004,6 +5035,11 @@ export const filterMapEffect: {
 
 /**
  * Filters an effect, providing an alternative effect if the predicate fails.
+ *
+ * **When to use**
+ *
+ * Use when a successful value that fails a predicate should continue with an
+ * effectful fallback instead of failing the effect.
  *
  * **Details**
  *
@@ -6173,6 +6209,11 @@ export const provideService: {
 /**
  * Provides one service to an effect using an effectful acquisition.
  *
+ * **When to use**
+ *
+ * Use when the service implementation must be created by an effect and its
+ * acquisition failure should remain in the returned effect.
+ *
  * **Details**
  *
  * `provideServiceEffect` runs the acquisition effect to produce the service
@@ -6364,6 +6405,11 @@ export const scoped: <A, E, R>(
 
 /**
  * Creates a scoped effect by providing access to the scope.
+ *
+ * **When to use**
+ *
+ * Use when resource acquisition needs direct access to the scope being created,
+ * for example to register finalizers manually.
  *
  * **Example** (Working with an explicit scope)
  *
@@ -7553,6 +7599,11 @@ export const repeat: {
  * Repeats an effect according to a schedule and runs a fallback effect if
  * repetition fails before the schedule completes.
  *
+ * **When to use**
+ *
+ * Use when successful repetitions should follow a schedule, but failures from
+ * the repeated effect or schedule need an effectful fallback.
+ *
  * **Details**
  *
  * If the repeated effect or schedule step fails, `orElse` receives the failure
@@ -7628,6 +7679,11 @@ export const replicate: {
 
 /**
  * Performs this effect `n` times and collects results with `Effect.all` semantics.
+ *
+ * **When to use**
+ *
+ * Use when you want to run the repeated effects immediately, with optional
+ * concurrency control or result discarding.
  *
  * **Details**
  *
@@ -8759,6 +8815,11 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
 /**
  * Runs an effect in the background with the provided services.
  *
+ * **When to use**
+ *
+ * Use when an effect still requires services, you already have a `Context`, and
+ * you want a background fiber.
+ *
  * **Example** (Running with services in the background)
  *
  * ```ts
@@ -8792,6 +8853,11 @@ export const runForkWith: <R>(
 
 /**
  * Forks an effect with the provided services, registers `onExit` as a fiber observer, and returns an interruptor.
+ *
+ * **When to use**
+ *
+ * Use when embedding an effect into callback-style code with explicit services
+ * and a synchronous interruptor.
  *
  * **Details**
  *
@@ -8929,6 +8995,11 @@ export const runPromise: <A, E>(
 /**
  * Executes an effect as a Promise with the provided services.
  *
+ * **When to use**
+ *
+ * Use when you already have a `Context` and need Promise interop that rejects on
+ * effect failure.
+ *
  * **Example** (Running with services as a promise)
  *
  * ```ts
@@ -9014,6 +9085,11 @@ export const runPromiseExit: <A, E>(
 
 /**
  * Runs an effect and returns a Promise of Exit with provided services.
+ *
+ * **When to use**
+ *
+ * Use when you already have a `Context` and need Promise interop that preserves
+ * success and failure as an `Exit`.
  *
  * **Example** (Running with services as an Exit promise)
  *
@@ -9114,6 +9190,11 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
 
 /**
  * Executes an effect synchronously with provided services.
+ *
+ * **When to use**
+ *
+ * Use when you already have a `Context`, the effect is known to complete
+ * synchronously, and failures should throw.
  *
  * **Example** (Running synchronously with services)
  *
@@ -9222,6 +9303,11 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
 
 /**
  * Runs an effect synchronously with provided services, returning an Exit result safely.
+ *
+ * **When to use**
+ *
+ * Use when you already have a `Context` and need a synchronous `Exit` instead of
+ * throwing on failure.
  *
  * **Example** (Running synchronously with services as Exit)
  *

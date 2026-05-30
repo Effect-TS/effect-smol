@@ -290,6 +290,11 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Clo
  * This is useful when you need a scope immediately but should be used with caution
  * as it doesn't provide the same safety guarantees as the `Effect`-wrapped version.
  *
+ * **When to use**
+ *
+ * Use when a scope must be allocated synchronously and the caller will close it
+ * manually.
+ *
  * **Example** (Creating a scope synchronously)
  *
  * ```ts
@@ -351,6 +356,11 @@ export const provide: {
 
 /**
  * Registers an exit-aware finalizer on a scope.
+ *
+ * **When to use**
+ *
+ * Use when cleanup needs to know whether the scope closed with success,
+ * failure, or interruption.
  *
  * **Details**
  *
@@ -468,6 +478,11 @@ export const fork: (
 
 /**
  * Creates a closeable child scope synchronously and registers it with a parent scope.
+ *
+ * **When to use**
+ *
+ * Use when a child scope must be created synchronously and the caller controls
+ * both parent and child scope lifetimes.
  *
  * **Details**
  *

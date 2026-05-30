@@ -233,6 +233,11 @@ export const makeRuntime = <R = never, A = unknown, E = unknown>(): Effect.Effec
  * Creates a scoped run function that forks effects into a new `FiberSet` and
  * returns a `Promise` for each effect result.
  *
+ * **When to use**
+ *
+ * Use when many scoped fibers should be tracked as a set while exposing each
+ * result through Promise-based APIs.
+ *
  * **Details**
  *
  * Managed fibers are removed when they complete and are interrupted when the
@@ -283,6 +288,11 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
 /**
  * Adds an existing fiber to the `FiberSet` using a synchronous, unsafe
  * mutation.
+ *
+ * **When to use**
+ *
+ * Use when an already forked fiber must be registered immediately and
+ * synchronous interruption on a closed set is acceptable.
  *
  * **Details**
  *

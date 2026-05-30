@@ -372,8 +372,16 @@ export interface Encoded {
 
 /**
  * Builds a typed `WorkflowEngine` service from a low-level encoded
- * implementation. This is unsafe because the implementation must correctly
- * persist, resume, and encode workflow state.
+ * implementation.
+ *
+ * **When to use**
+ *
+ * Use when wiring a trusted low-level workflow engine implementation into the
+ * typed `WorkflowEngine` service.
+ *
+ * **Gotchas**
+ *
+ * The implementation must correctly persist, resume, and encode workflow state.
  *
  * @category constructors
  * @since 4.0.0

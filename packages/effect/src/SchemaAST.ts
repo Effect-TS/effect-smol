@@ -1572,6 +1572,11 @@ export const bigInt = new BigInt()
 /**
  * AST node for array-like types — both tuples and arrays.
  *
+ * **When to use**
+ *
+ * Use when constructing or inspecting AST nodes for tuple or array-like schemas,
+ * including rest elements.
+ *
  * **Details**
  *
  * - `elements` — positional element types (tuple elements). An element is
@@ -1890,6 +1895,11 @@ export class KeyValueCombiner {
 /**
  * Represents an index signature entry within an {@link Objects} node.
  *
+ * **When to use**
+ *
+ * Use when constructing or inspecting object AST entries for record-like keys
+ * and values.
+ *
  * **Details**
  *
  * - `parameter` — the key type AST (e.g. {@link String} for `string` keys,
@@ -1928,6 +1938,11 @@ export class IndexSignature {
 
 /**
  * AST node for object-like schemas, including structs and records.
+ *
+ * **When to use**
+ *
+ * Use when constructing or inspecting AST nodes for structs or records rather
+ * than array-like schemas.
  *
  * **Details**
  *
@@ -2901,6 +2916,11 @@ export function makeFilterByGuard<T extends E, E>(
 
 /**
  * Creates a {@link Filter} that validates strings by running `RegExp.test`.
+ *
+ * **When to use**
+ *
+ * Use when string validation should be represented as a schema `Filter` backed
+ * by a regular expression.
  *
  * **Details**
  *

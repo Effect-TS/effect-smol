@@ -713,7 +713,16 @@ export const bodyJson: {
 )
 
 /**
- * Sets a JSON request body using unsafe JSON encoding, which may throw instead of failing in the Effect error channel.
+ * Sets a JSON request body using unsafe JSON encoding.
+ *
+ * **When to use**
+ *
+ * Use when the request body is known to be JSON-serializable and a synchronous
+ * `HttpClientRequest` result is needed.
+ *
+ * **Gotchas**
+ *
+ * JSON encoding may throw instead of failing in the Effect error channel.
  *
  * @category combinators
  * @since 4.0.0

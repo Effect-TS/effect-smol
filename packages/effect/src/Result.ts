@@ -89,6 +89,11 @@ const TypeId = "~effect/data/Result"
 /**
  * A value that is either `Success<A, E>` or `Failure<A, E>`.
  *
+ * **When to use**
+ *
+ * Use when both success and failure should remain available as data and
+ * `Option` would lose failure information.
+ *
  * **Details**
  *
  * - Use {@link succeed} / {@link fail} to construct
@@ -921,12 +926,16 @@ export const map: {
 /**
  * Folds a `Result` into a single value by applying one of two functions.
  *
+ * **When to use**
+ *
+ * Use when a `Result`'s success and failure branches should be collapsed into
+ * one plain output type.
+ *
  * **Details**
  *
  * - Applies `onSuccess` if the result is a `Success`
  * - Applies `onFailure` if the result is a `Failure`
  * - Both branches must return the same type (or a common supertype)
- * - Use when you need to "exit" the `Result` type and produce a plain value
  *
  * **Example** (Folding to a string)
  *
@@ -1309,11 +1318,15 @@ export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identi
  * Returns the original `Result` if it is a `Success`, otherwise applies
  * `that` to the error and returns the resulting `Result`.
  *
+ * **When to use**
+ *
+ * Use when a failure should recover into another `Result` while keeping
+ * successes unchanged.
+ *
  * **Details**
  *
  * - `Success<A>` is returned unchanged
  * - `Failure<E>` calls `that(e)` to produce a new `Result`
- * - Use to provide a recovery path or fallback computation on failure
  *
  * **Example** (Recovering from a failure)
  *
@@ -1801,6 +1814,11 @@ export {
 /**
  * Transforms `Option<Result<A, E>>` into `Result<Option<A>, E>`.
  *
+ * **When to use**
+ *
+ * Use when optional absence should be treated as a successful `None`, while an
+ * inner `Result` failure should still fail the whole result.
+ *
  * **Details**
  *
  * - `None` becomes `Success(None)`
@@ -1835,6 +1853,11 @@ export const transposeOption = <A = never, E = never>(
 /**
  * Maps an `Option` value with a `Result`-producing function, then transposes
  * the structure from `Option<Result<B, E>>` to `Result<Option<B>, E>`.
+ *
+ * **When to use**
+ *
+ * Use when an optional value should be validated only when present, preserving
+ * absence as a successful `None`.
  *
  * **Details**
  *

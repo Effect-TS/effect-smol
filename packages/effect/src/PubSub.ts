@@ -663,6 +663,11 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * Returns the current number of messages retained by the `PubSub` for active
  * subscribers synchronously.
  *
+ * **When to use**
+ *
+ * Use when an immediate `PubSub` size snapshot is needed outside effectful code
+ * and concurrent changes between the check and later use are acceptable.
+ *
  * **Details**
  *
  * Returns `0` after shutdown. Because this is an unsafe synchronous snapshot,
@@ -839,6 +844,11 @@ export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect
 /**
  * Checks synchronously whether `shutdown` has been called, returning `true`
  * after shutdown and `false` otherwise.
+ *
+ * **When to use**
+ *
+ * Use when an immediate `PubSub` shutdown-state snapshot is needed outside
+ * effectful code and racing shutdown changes are acceptable.
  *
  * **Example** (Checking shutdown synchronously)
  *

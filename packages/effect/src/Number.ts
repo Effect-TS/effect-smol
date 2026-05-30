@@ -227,12 +227,16 @@ export const divide: {
 )
 
 /**
- * Provides an unsafe division operation on `number`s that throws a `RangeError` if the divisor is `0`.
+ * Divides two `number` values without returning an `Option`.
  *
  * **When to use**
  *
  * Use to divide `number` values where the divisor is known to be non-zero and
- * division by zero should be a thrown exception.
+ * a plain `number` result is preferred over handling `Option.none`.
+ *
+ * **Gotchas**
+ *
+ * Throws a `RangeError` if the divisor is `0`.
  *
  * **Example** (Dividing numbers unsafely)
  *

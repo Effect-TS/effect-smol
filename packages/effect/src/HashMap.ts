@@ -436,6 +436,11 @@ export const getHash: {
  * Looks up the value for the specified key in the `HashMap` unsafely using the
  * internal hashing function.
  *
+ * **When to use**
+ *
+ * Use when reading from a `HashMap` by a key known to exist, and throwing is an
+ * acceptable programming error for a missing key.
+ *
  * **Gotchas**
  *
  * This function throws an error if the key is not found. Use `HashMap.get` for

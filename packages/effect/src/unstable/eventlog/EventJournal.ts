@@ -188,6 +188,11 @@ export const RemoteId = Schema.Uint8Array.pipe(Schema.brand(RemoteIdTypeId))
 /**
  * Generates a new random `RemoteId`.
  *
+ * **When to use**
+ *
+ * Use when generating a fresh event-log remote id internally and the UUID bytes
+ * are trusted to satisfy the brand.
+ *
  * **Gotchas**
  *
  * This is unsafe because the generated UUID bytes are cast to the brand without
@@ -250,6 +255,11 @@ export const EntryIdOrder = Order.make<EntryId>((a, b) => {
 /**
  * Generates a UUID v7 `EntryId`, optionally using the supplied millisecond
  * timestamp.
+ *
+ * **When to use**
+ *
+ * Use when generating an event-log entry id internally and the UUID v7 bytes
+ * are trusted to satisfy the brand.
  *
  * **Gotchas**
  *

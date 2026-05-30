@@ -209,6 +209,11 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream
 /**
  * Retrieves the current value of the `SubscriptionRef` unsafely.
  *
+ * **When to use**
+ *
+ * Use when you are in synchronous internals or test setup where concurrent
+ * updates are controlled.
+ *
  * **Gotchas**
  *
  * This function directly accesses the underlying reference without any

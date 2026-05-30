@@ -515,6 +515,11 @@ export const CodeExecution_20250825 = Tool.providerDefined({
 /**
  * Schema for an `[x, y]` screen coordinate in pixels.
  *
+ * **When to use**
+ *
+ * Use when validating computer-use action payloads that carry a single screen
+ * position and provider-side bounds checks remain acceptable.
+ *
  * **Details**
  *
  * This is a two-number tuple used by computer-use actions that accept screen
@@ -538,6 +543,11 @@ export type Coordinate = typeof Coordinate.Type
 
 /**
  * Schema for an `[x1, y1, x2, y2]` screen region in pixels.
+ *
+ * **When to use**
+ *
+ * Use when validating computer-use action payloads that carry a rectangular
+ * screen region and provider-side bounds checks remain acceptable.
  *
  * **Details**
  *
@@ -656,6 +666,12 @@ export const ComputerUseKeyAction = Schema.Struct({
 })
 /**
  * Computer-use action payload for pressing a key or key combination.
+ *
+ * **When to use**
+ *
+ * Use when typing parsed computer-use key action payloads after schema
+ * validation, where provider-specific key-name validation is handled outside
+ * TypeScript.
  *
  * **Details**
  *
@@ -1251,6 +1267,11 @@ const ComputerUse_20250124_Actions = Schema.Union([
 /**
  * Zooms into a specific region of the screen at full resolution.
  *
+ * **When to use**
+ *
+ * Use when building or validating the 2025-11-24 computer-use action for a
+ * zoom-enabled tool definition.
+ *
  * **Details**
  *
  * The encoded payload uses `action: "zoom"` and a `region` tuple.
@@ -1735,6 +1756,11 @@ export const TextEditorCreateCommand = Schema.Struct({
 /**
  * Text editor command payload for creating a new file with the specified content.
  *
+ * **When to use**
+ *
+ * Use when typing parsed text-editor create command payloads after schema
+ * validation and before dispatching to Anthropic tool handlers.
+ *
  * **Gotchas**
  *
  * The command fails if the file already exists or if parent directories are missing.
@@ -1785,6 +1811,11 @@ export const TextEditorStrReplaceCommand = Schema.Struct({
 })
 /**
  * Text editor command payload for replacing one exact, unique string in a file.
+ *
+ * **When to use**
+ *
+ * Use when typing parsed text-editor replace command payloads that must carry
+ * one exact `old_str` match.
  *
  * **Gotchas**
  *
@@ -2225,6 +2256,11 @@ export const WebFetchCitationsConfig = Schema.Struct({
 /**
  * Configuration payload for enabling or disabling citations on web fetch results.
  *
+ * **When to use**
+ *
+ * Use when typing parsed web-fetch citation configuration shared between
+ * request arguments and handler code.
+ *
  * **Details**
  *
  * The payload contains the `enabled` flag. `citations` is optional on
@@ -2295,6 +2331,11 @@ export const WebFetch_20250910_Args = Schema.Struct({
 /**
  * Configuration arguments for the Anthropic web fetch tool, including usage limits, domain filters, citation settings, and token limits.
  *
+ * **When to use**
+ *
+ * Use when typing parsed web-fetch tool configuration shared by the
+ * provider-defined tool and request-building code.
+ *
  * **Gotchas**
  *
  * `allowedDomains` and `blockedDomains` are mutually exclusive.
@@ -2341,6 +2382,11 @@ export const WebFetchParameters = Schema.Struct({
 })
 /**
  * Type of the parameters Claude supplies when invoking the Anthropic web fetch tool.
+ *
+ * **When to use**
+ *
+ * Use when typing Claude-supplied web-fetch tool parameters after schema
+ * validation, before enforcing URL provenance or length constraints.
  *
  * **Details**
  *

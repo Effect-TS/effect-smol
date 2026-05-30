@@ -71,6 +71,11 @@ export interface EntityResource<out A, out E = never> {
 /**
  * Context service for a Scope that is only closed when the resource is explicitly closed.
  *
+ * **When to use**
+ *
+ * Use when a cluster entity resource needs a scope that survives restarts and
+ * closes only through the resource lifecycle.
+ *
  * **Gotchas**
  *
  * It is not closed during restarts, due to shard movement or node shutdowns.
@@ -85,6 +90,11 @@ export class CloseScope extends Context.Service<
 
 /**
  * Creates an `EntityResource` that can be acquired inside a cluster entity.
+ *
+ * **When to use**
+ *
+ * Use when a cluster entity should lazily share an acquired resource across
+ * messages and release it only on idle timeout or explicit close.
  *
  * **Details**
  *
