@@ -30,16 +30,46 @@ const SvcLayer = Layer.effect(
 
 const tracer = Tracer.instrumenting({ match: (key) => key.startsWith("@svc/") })
 
-// A failed cause carries a `Cause.StackTrace` annotation: a `StackFrame` linked
-// list of `{ name, parent }`. Walk `parent` to recover the span names, innermost
-// first. Mirrors the idiom in Effect.test.ts's "tracing" describe.
+// A service whose `outer` calls its sibling `inner` via `this` — used to check
+// that internal self-calls are also wrapped (the impl is bound to the wrapped
+// copy, so `this.inner()` hits the wrapped sibling).
+interface SelfShape {
+  readonly inner: () => Effect.Effect<number>
+  readonly outer: () => Effect.Effect<number>
+}
+class SelfSvc extends Context.Service<SelfSvc, SelfShape>()("@svc/SelfSvc") {}
+const SelfLayer = Layer.succeed(SelfSvc, {
+  inner() {
+    return Effect.fail("boom") as Effect.Effect<number>
+  },
+  outer(this: SelfShape) {
+    return Effect.flatMap(Effect.void, () => this.inner())
+  }
+})
+
+// A service whose `outer` calls its sibling through a closure-captured local
+// rather than `this` — this genuinely cannot be intercepted at runtime.
+interface ClosureShape {
+  readonly outer: () => Effect.Effect<number>
+}
+class ClosureSvc extends Context.Service<ClosureSvc, ClosureShape>()("@svc/ClosureSvc") {}
+const ClosureLayer = Layer.sync(ClosureSvc, () => {
+  const inner = (): Effect.Effect<number> => Effect.fail("boom") as Effect.Effect<number>
+  return { outer: () => Effect.flatMap(Effect.void, () => inner()) }
+})
+
+// An instrumented failure carries a `Cause.StackTrace` annotation: a
+// `StackFrame` linked list of `{ name, parent }`. Walk `parent` to recover the
+// span names, innermost first. Returns `[]` when the failure carries no span
+// annotation (i.e. nothing was instrumented on that path).
 interface Frame {
   readonly name: string
   readonly parent: Frame | undefined
 }
 const spanNames = (cause: Cause.Cause<unknown>): ReadonlyArray<string> => {
+  const annotations = Cause.annotations(cause)
+  let frame = Context.getOrUndefined(annotations, Cause.StackTrace) as Frame | undefined
   const names: Array<string> = []
-  let frame = Context.getUnsafe(Cause.annotations(cause), Cause.StackTrace) as Frame | undefined
   while (frame !== undefined) {
     names.push(frame.name)
     frame = frame.parent
@@ -114,5 +144,52 @@ describe("Tracer.instrumenting", () => {
       for (const names of chains) {
         deepStrictEqual(names, ["@svc/Repo.find", "@svc/Svc.load"])
       }
+    }))
+
+  it.effect("a service read via Context.get is NOT wrapped (known limitation)", () =>
+    Effect.gen(function*() {
+      // Reading a service straight out of the context with `Context.get` bypasses
+      // the fiber resolution step the tracer hooks, so the raw (unwrapped) impl is
+      // returned and no span is recorded.
+      const cause = yield* Effect.gen(function*() {
+        const context = yield* Effect.context<Repo>()
+        const repo = Context.get(context, Repo)
+        return yield* repo.find(1)
+      }).pipe(
+        Effect.provide(RepoFail),
+        Effect.withTracer(tracer),
+        Effect.sandbox,
+        Effect.flip
+      )
+      deepStrictEqual(spanNames(cause), [])
+    }))
+
+  it.effect("internal self-calls via `this` are wrapped", () =>
+    Effect.gen(function*() {
+      const cause = yield* Effect.gen(function*() {
+        const svc = yield* SelfSvc
+        return yield* svc.outer()
+      }).pipe(
+        Effect.provide(SelfLayer),
+        Effect.withTracer(tracer),
+        Effect.sandbox,
+        Effect.flip
+      )
+      deepStrictEqual(spanNames(cause), ["@svc/SelfSvc.inner", "@svc/SelfSvc.outer"])
+    }))
+
+  it.effect("internal self-calls via a closure are NOT wrapped (known limitation)", () =>
+    Effect.gen(function*() {
+      const cause = yield* Effect.gen(function*() {
+        const svc = yield* ClosureSvc
+        return yield* svc.outer()
+      }).pipe(
+        Effect.provide(ClosureLayer),
+        Effect.withTracer(tracer),
+        Effect.sandbox,
+        Effect.flip
+      )
+      // the closure-captured `inner` bypasses the wrapper, so only `outer` shows
+      deepStrictEqual(spanNames(cause), ["@svc/ClosureSvc.outer"])
     }))
 })

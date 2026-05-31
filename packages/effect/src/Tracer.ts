@@ -514,10 +514,14 @@ export const instrumenting = (options: {
         copy[name] = value
         continue
       }
-      const fn = value as (...args: ReadonlyArray<unknown>) => unknown
+      const fn = value as (...args: Array<unknown>) => unknown
       const span = spanName(serviceKey, name)
-      copy[name] = (...args: ReadonlyArray<unknown>): unknown => {
-        const result = fn.apply(impl, args)
+      copy[name] = (...args: Array<unknown>): unknown => {
+        // Bind `this` to the wrapped copy (not the raw impl) so a method that
+        // calls a sibling via `this.other()` hits the wrapped sibling and that
+        // inner span is captured too. (Sibling calls through a closure-captured
+        // local rather than `this` still bypass instrumentation.)
+        const result = fn.apply(copy, args)
         return isEffect(result) ? withSpan(result, span) : result
       }
     }
