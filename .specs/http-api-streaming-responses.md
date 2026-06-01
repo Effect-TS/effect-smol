@@ -328,8 +328,11 @@ SSE stream response:
       },
       "x-effect-stream": {
         "encoding": "sse",
-        "causeSchema": {
+        "errorSchema": {
           "$ref": "#/components/schemas/StreamError"
+        },
+        "causeSchema": {
+          "$ref": "#/components/schemas/StreamFailureCause"
         },
         "failureEvent": "effect/httpapi/stream/failure"
       }
@@ -356,7 +359,7 @@ Byte stream response:
 }
 ```
 
-For SSE, the OpenAPI schema describes successful application events. The `x-effect-stream.causeSchema` extension describes the typed stream failure cause. It may point at the typed `error` schema with the understanding that Effect tooling wraps it in `Schema.Cause(error, Schema.Defect)`, or it may point at the generated encoded cause schema if the OpenAPI generator can materialize it directly.
+For SSE, the OpenAPI media schema describes successful application events. The `x-effect-stream.errorSchema` extension describes the typed stream failure error schema required to reconstruct `HttpApiSchema.StreamSse({ events, error })`. The `x-effect-stream.causeSchema` extension describes the encoded full cause schema used by the reserved failure event payload.
 
 ## OpenAPI Generator Changes
 
@@ -396,9 +399,9 @@ Current client runtime note: `HttpApiClient` now detects declared streaming succ
 
 Current client runtime test note: focused `HttpApiClient` tests now cover incremental SSE event consumption, reserved SSE failure event cause preservation, incremental byte stream consumption, declared endpoint error decoding before stream return for non-success statuses, and manual raw response stream consumption with `responseMode: "response-only"`.
 
-Current OpenAPI note: `OpenApi.fromApi` now emits declared streaming success responses at status `200`, matching the current endpoint/runtime limitation that streaming declarations have no status annotation API. SSE declarations use the declared/default `text/event-stream` content type, describe successful events with the `events` schema, and attach `x-effect-stream` metadata with `encoding: "sse"`, the reserved failure event name, and a `causeSchema` generated from `Schema.toCodecJson(Schema.Cause(error, Schema.Defect))` to mirror the server/client failure sentinel codec. Byte stream declarations use the declared/default `application/octet-stream` content type, the same binary string schema shape as buffered `asUint8Array`, and `x-effect-stream: { encoding: "uint8array" }`.
+Current OpenAPI note: `OpenApi.fromApi` now emits declared streaming success responses at status `200`, matching the current endpoint/runtime limitation that streaming declarations have no status annotation API. SSE declarations use the declared/default `text/event-stream` content type, describe successful events with the `events` schema, and attach `x-effect-stream` metadata with `encoding: "sse"`, the reserved failure event name, an `errorSchema` generated from the typed stream error schema for generator round-tripping, and a `causeSchema` generated from `Schema.toCodecJson(Schema.Cause(error, Schema.Defect))` to mirror the server/client failure sentinel codec. Byte stream declarations use the declared/default `application/octet-stream` content type, the same binary string schema shape as buffered `asUint8Array`, and `x-effect-stream: { encoding: "uint8array" }`.
 
-Current OpenAPI generator note: HttpApi generation now treats successful response media objects with `x-effect-stream.encoding = "uint8array"` as declared byte streams and renders `HttpApiSchema.StreamUint8Array()`, or `HttpApiSchema.StreamUint8Array({ contentType })` for non-default content types. Unannotated `application/octet-stream` responses remain buffered binary schemas rendered with `HttpApiSchema.asUint8Array()`, preserving the distinction that streaming is explicit rather than inferred from the media type.
+Current OpenAPI generator note: HttpApi generation now treats successful response media objects with `x-effect-stream.encoding = "uint8array"` as declared byte streams and renders `HttpApiSchema.StreamUint8Array()`, or `HttpApiSchema.StreamUint8Array({ contentType })` for non-default content types. It also treats successful response media objects with `x-effect-stream.encoding = "sse"`, a media schema, and `x-effect-stream.errorSchema` as declared SSE streams and renders `HttpApiSchema.StreamSse({ events, error })`, preserving non-default content types with `contentType`. Unannotated `text/event-stream` responses and legacy/partial SSE metadata that only exposes an already-wrapped `causeSchema` continue to warn and skip because the typed stream error schema cannot be recovered safely. Unannotated `application/octet-stream` responses remain buffered binary schemas rendered with `HttpApiSchema.asUint8Array()`, preserving the distinction that streaming is explicit rather than inferred from the media type.
 
 ## Tests
 
@@ -424,8 +427,10 @@ Runtime tests:
 
 OpenAPI tests:
 
-- SSE stream response emits `text/event-stream`, `x-effect-stream.encoding = "sse"`, `causeSchema`, and `failureEvent`.
+- SSE stream response emits `text/event-stream`, `x-effect-stream.encoding = "sse"`, `errorSchema`, `causeSchema`, and `failureEvent`.
 - Byte stream response emits `application/octet-stream`, binary schema, and `x-effect-stream.encoding = "uint8array"`.
+- OpenAPI generator maps annotated SSE stream responses with typed `errorSchema` to `HttpApiSchema.StreamSse({ events, error })` and preserves non-default content types.
+- OpenAPI generator warns/skips unannotated SSE responses or partial SSE metadata that does not expose the typed stream error schema.
 
 Negative tests:
 

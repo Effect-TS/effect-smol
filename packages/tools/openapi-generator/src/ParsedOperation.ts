@@ -141,6 +141,13 @@ export type ParsedOperationMediaTypeSchema =
   }
   | {
     readonly contentType: string
+    readonly encoding: "text"
+    readonly schema: string
+    readonly effectStream: "sse"
+    readonly errorSchema: string
+  }
+  | {
+    readonly contentType: string
     readonly encoding: "binary"
     readonly schema?: undefined
     readonly effectStream: "uint8array"

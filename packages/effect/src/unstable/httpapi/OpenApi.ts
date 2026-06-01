@@ -414,11 +414,27 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
                     "causeSchema"
                   ]
                 })
+                pathOps.push({
+                  _tag: "schema",
+                  ast: AST.getAST(stream.error),
+                  path: [
+                    "paths",
+                    path,
+                    method,
+                    "responses",
+                    String(status),
+                    "content",
+                    contentType,
+                    "x-effect-stream",
+                    "errorSchema"
+                  ]
+                })
                 op.responses[status].content[contentType] = {
                   schema: {},
                   "x-effect-stream": {
                     encoding: "sse",
                     causeSchema: {},
+                    errorSchema: {},
                     failureEvent: reservedStreamFailureEvent
                   }
                 }
@@ -984,6 +1000,7 @@ export type OpenApiSpecEffectStream =
   | {
     encoding: "sse"
     causeSchema: JsonSchema.JsonSchema
+    errorSchema: JsonSchema.JsonSchema
     failureEvent: "effect/httpapi/stream/failure"
   }
   | {

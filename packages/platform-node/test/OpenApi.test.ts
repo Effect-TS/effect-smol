@@ -1019,6 +1019,7 @@ describe("OpenAPI spec", () => {
           }
           assert.strictEqual(stream.failureEvent, "effect/httpapi/stream/failure")
           assert.strictEqual(typeof stream.causeSchema, "object")
+          assert.strictEqual(typeof stream.errorSchema, "object")
         })
 
         it("StreamUint8Array", () => {

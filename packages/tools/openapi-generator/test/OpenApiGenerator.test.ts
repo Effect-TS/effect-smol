@@ -1156,6 +1156,201 @@ export const CreatePayloadRequestText = Schema.String`,
         ]
       ))
 
+    it.effect("maps explicit SSE stream responses to HttpApiSchema.StreamSse", () =>
+      assertHttpApiIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/events": {
+              get: {
+                operationId: "streamEvents",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Events",
+                    content: {
+                      "text/event-stream": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            event: { const: "message" },
+                            data: { type: "string" }
+                          },
+                          required: ["event", "data"],
+                          additionalProperties: false
+                        },
+                        "x-effect-stream": {
+                          encoding: "sse",
+                          errorSchema: {
+                            type: "object",
+                            properties: {
+                              message: { type: "string" }
+                            },
+                            required: ["message"],
+                            additionalProperties: false
+                          },
+                          causeSchema: {
+                            type: "object"
+                          },
+                          failureEvent: "effect/httpapi/stream/failure"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Events"],
+                security: []
+              }
+            },
+            "/events/custom": {
+              get: {
+                operationId: "streamEventsCustom",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Custom events",
+                    content: {
+                      "application/custom-sse": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            event: { const: "message" },
+                            data: { type: "string" }
+                          },
+                          required: ["event", "data"],
+                          additionalProperties: false
+                        },
+                        "x-effect-stream": {
+                          encoding: "sse",
+                          errorSchema: {
+                            type: "object",
+                            properties: {
+                              message: { type: "string" }
+                            },
+                            required: ["message"],
+                            additionalProperties: false
+                          },
+                          causeSchema: {
+                            type: "object"
+                          },
+                          failureEvent: "effect/httpapi/stream/failure"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Events"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Events" }]
+        },
+        [
+          `HttpApiEndpoint.get("streamEvents", "/events", { success: HttpApiSchema.StreamSse({ events: StreamEvents200Sse, error: StreamEvents200SseError }) })`,
+          `HttpApiEndpoint.get("streamEventsCustom", "/events/custom", { success: HttpApiSchema.StreamSse({ contentType: "application/custom-sse", events: StreamEventsCustom200Sse, error: StreamEventsCustom200SseError }) })`
+        ],
+        [
+          `StreamEvents200Sse.pipe(HttpApiSchema.asText())`,
+          `StreamEventsCustom200ApplicationCustomSse.pipe(HttpApiSchema.asText({ contentType: "application/custom-sse" }))`
+        ]
+      ))
+
+    it.effect("warns and skips unannotated successful SSE responses in HttpApi generation", () =>
+      assertHttpApiWithWarnings(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/events": {
+              get: {
+                operationId: "streamEvents",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Events",
+                    content: {
+                      "text/event-stream": {
+                        schema: {
+                          type: "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Events"],
+                security: []
+              }
+            },
+            "/events/cause-only": {
+              get: {
+                operationId: "streamEventsCauseOnly",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Events",
+                    content: {
+                      "text/event-stream": {
+                        schema: {
+                          type: "string"
+                        },
+                        "x-effect-stream": {
+                          encoding: "sse",
+                          causeSchema: {
+                            type: "object"
+                          },
+                          failureEvent: "effect/httpapi/stream/failure"
+                        } as any
+                      }
+                    }
+                  }
+                },
+                tags: ["Events"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: [{ name: "Events" }]
+        },
+        {
+          excludes: [
+            `HttpApiEndpoint.get("streamEvents", "/events"`,
+            `HttpApiEndpoint.get("streamEventsCauseOnly", "/events/cause-only"`
+          ],
+          warnings: [
+            {
+              code: "sse-operation-skipped",
+              path: "/events",
+              method: "get",
+              operationId: "streamEvents"
+            },
+            {
+              code: "sse-operation-skipped",
+              path: "/events/cause-only",
+              method: "get",
+              operationId: "streamEventsCauseOnly"
+            }
+          ]
+        }
+      ))
+
     it.effect("maps explicit uint8array stream responses to HttpApiSchema.StreamUint8Array", () =>
       assertHttpApiIncludes(
         {
