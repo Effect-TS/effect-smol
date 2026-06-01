@@ -805,7 +805,7 @@ function encodeStreamSuccess(
     return hasBufferedSuccess(endpoint) ?
       undefined :
       Effect.fail(makeSchemaError(
-        new Issue.InvalidValue(Option.some(response), {
+        new SchemaIssue.InvalidValue(Option.some(response), {
           message: "Expected stream success response"
         })
       ))
@@ -879,7 +879,7 @@ function encodeSseStream(
             event.event === reservedStreamFailureEvent ?
               Effect.fail(
                 makeSchemaError(
-                  new Issue.InvalidValue(Option.some(event), {
+                  new SchemaIssue.InvalidValue(Option.some(event), {
                     message: `SSE event name is reserved: ${reservedStreamFailureEvent}`
                   })
                 )
@@ -901,7 +901,7 @@ function normalizeSseEventEncoded(encoded: unknown): unknown {
   return typeof encoded === "object" && encoded !== null ? { id: undefined, ...encoded } : encoded
 }
 
-function makeSchemaError(issue: Issue.Issue): Schema.SchemaError {
+function makeSchemaError(issue: SchemaIssue.Issue): Schema.SchemaError {
   return new Schema.SchemaError(issue)
 }
 
