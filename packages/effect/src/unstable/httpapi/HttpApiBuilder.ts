@@ -446,7 +446,7 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
     case "Http": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength)) as any
+        (request) => Redacted.make(decodeAuthorizationToken(request.headers.authorization, self.scheme)) as any
       )
     }
     case "ApiKey": {
@@ -475,7 +475,9 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
       } as any
       return HttpServerRequest.pipe(
         Effect.flatMap((request) =>
-          Effect.fromResult(Encoding.decodeBase64String((request.headers.authorization ?? "").slice(basicLen)))
+          Effect.fromResult(
+            Encoding.decodeBase64String(decodeAuthorizationToken(request.headers.authorization, "Basic"))
+          )
         ),
         Effect.match({
           onFailure: () => empty,
@@ -521,7 +523,12 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const basicLen = `Basic `.length
+const authorizationToken = /^([^ ]+) +([-A-Za-z0-9._~+/]+=*)$/
+
+const decodeAuthorizationToken = (authorization: string | undefined, scheme: string): string => {
+  const match = authorizationToken.exec(authorization ?? "")
+  return match !== null && match[1].toLowerCase() === scheme.toLowerCase() ? match[2] : ""
+}
 
 const HandlersProto = {
   [HandlersTypeId]: {
