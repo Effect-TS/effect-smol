@@ -4,31 +4,34 @@ import { Effect, Redacted } from "effect"
 import { HttpClientRequest, HttpServerRequest } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiSecurity } from "effect/unstable/httpapi"
 
-const decode = (security: HttpApiSecurity.HttpApiSecurity, authorization: string) =>
-  HttpApiBuilder.securityDecode(security).pipe(
-    Effect.provideService(
-      HttpServerRequest.HttpServerRequest,
-      HttpServerRequest.fromWeb(new Request("http://localhost/", { headers: { authorization } }))
-    ),
-    Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
-  )
-
 describe("HttpApiSecurity", () => {
   describe("securityDecode", () => {
     it.effect("decodes a bearer token without a leading space", () =>
       Effect.gen(function*() {
         const token = "abc123"
-        // build the header exactly as a client does
         const { headers } = HttpClientRequest.get("http://localhost/").pipe(
           HttpClientRequest.bearerToken(token)
         )
-        const credential = yield* decode(HttpApiSecurity.bearer, headers.authorization!)
+        const credential = yield* HttpApiBuilder.securityDecode(HttpApiSecurity.bearer).pipe(
+          Effect.provideService(
+            HttpServerRequest.HttpServerRequest,
+            HttpServerRequest.fromWeb(new Request("http://localhost/", { headers }))
+          ),
+          Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
+        )
+
         strictEqual(Redacted.value(credential), token)
       }))
 
     it.effect("decodes a custom http scheme without a leading space", () =>
       Effect.gen(function*() {
-        const credential = yield* decode(HttpApiSecurity.http({ scheme: "Token" }), "Token abc123")
+        const credential = yield* HttpApiBuilder.securityDecode(HttpApiSecurity.http({ scheme: "Token" })).pipe(
+          Effect.provideService(
+            HttpServerRequest.HttpServerRequest,
+            HttpServerRequest.fromWeb(new Request("http://localhost/", { headers: { authorization: "Token abc123" } }))
+          ),
+          Effect.provideService(HttpServerRequest.ParsedSearchParams, {})
+        )
         strictEqual(Redacted.value(credential), "abc123")
       }))
   })
