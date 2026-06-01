@@ -3532,6 +3532,14 @@ export declare namespace StructWithRest {
     Head & MergeTuple<Tail>
     : {}
 
+  type Intersect<
+    S extends Objects,
+    Records extends StructWithRest.Records,
+    Side extends "Type" | "Iso" | "Encoded" | "~type.make"
+  > =
+    & S[Side]
+    & MergeTuple<{ readonly [K in keyof Records]: Records[K][Side] }>
+
   /**
    * Computes the decoded type for `StructWithRest` by intersecting the base object
    * schema's decoded `Type` with the decoded types of all rest record schemas.
@@ -3539,9 +3547,7 @@ export declare namespace StructWithRest {
    * @category utility types
    * @since 3.10.0
    */
-  export type Type<S extends Objects, Records extends StructWithRest.Records> =
-    & S["Type"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Type"] }>
+  export type Type<S extends Objects, Records extends StructWithRest.Records> = Intersect<S, Records, "Type">
 
   /**
    * Computes the iso type for `StructWithRest` by intersecting the base object
@@ -3550,9 +3556,7 @@ export declare namespace StructWithRest {
    * @category utility types
    * @since 4.0.0
    */
-  export type Iso<S extends Objects, Records extends StructWithRest.Records> =
-    & S["Iso"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Iso"] }>
+  export type Iso<S extends Objects, Records extends StructWithRest.Records> = Intersect<S, Records, "Iso">
 
   /**
    * Computes the encoded type for `StructWithRest` by intersecting the base object
@@ -3561,31 +3565,7 @@ export declare namespace StructWithRest {
    * @category utility types
    * @since 3.10.0
    */
-  export type Encoded<S extends Objects, Records extends StructWithRest.Records> =
-    & S["Encoded"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Encoded"] }>
-
-  /**
-   * Union of the decoding service requirements of the base object schema and all
-   * rest record schemas.
-   *
-   * @category utility types
-   * @since 4.0.0
-   */
-  export type DecodingServices<S extends Objects, Records extends StructWithRest.Records> =
-    | S["DecodingServices"]
-    | { [K in keyof Records]: Records[K]["DecodingServices"] }[number]
-
-  /**
-   * Union of the encoding service requirements of the base object schema and all
-   * rest record schemas.
-   *
-   * @category utility types
-   * @since 4.0.0
-   */
-  export type EncodingServices<S extends Objects, Records extends StructWithRest.Records> =
-    | S["EncodingServices"]
-    | { [K in keyof Records]: Records[K]["EncodingServices"] }[number]
+  export type Encoded<S extends Objects, Records extends StructWithRest.Records> = Intersect<S, Records, "Encoded">
 
   /**
    * Computes the input type accepted when constructing a `StructWithRest` value by
@@ -3595,9 +3575,73 @@ export declare namespace StructWithRest {
    * @category utility types
    * @since 4.0.0
    */
-  export type MakeIn<S extends Objects, Records extends StructWithRest.Records> =
-    & S["~type.make"]
-    & MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.make"] }>
+  export type MakeIn<S extends Objects, Records extends StructWithRest.Records> = Intersect<S, Records, "~type.make">
+
+  type Services<
+    S extends Objects,
+    Records extends StructWithRest.Records,
+    Side extends "DecodingServices" | "EncodingServices"
+  > =
+    | S[Side]
+    | { [K in keyof Records]: Records[K][Side] }[number]
+
+  /**
+   * Union of the decoding service requirements of the base object schema and all
+   * rest record schemas.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type DecodingServices<S extends Objects, Records extends StructWithRest.Records> = Services<
+    S,
+    Records,
+    "DecodingServices"
+  >
+
+  /**
+   * Union of the encoding service requirements of the base object schema and all
+   * rest record schemas.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type EncodingServices<S extends Objects, Records extends StructWithRest.Records> = Services<
+    S,
+    Records,
+    "EncodingServices"
+  >
+
+  type IncompatibleKeys<A, B, OK extends (keyof A & keyof B) = Extract<keyof A, keyof B>> = {
+    [K in OK]: Required<Pick<A, K>>[K] extends B[K] ? never : K
+  }[OK]
+
+  type IncompatibleSideKeys<
+    S extends Objects,
+    Records extends StructWithRest.Records,
+    Side extends "Type" | "Encoded" | "Iso" | "~type.make"
+  > = {
+    [I in keyof Records]: Records[I][Side] extends object ? IncompatibleKeys<S[Side], Records[I][Side]> : never
+  }[number]
+
+  /**
+   * Validates that the records are compatible with the struct.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type ValidateRecords<S extends Objects, Records extends StructWithRest.Records> = [
+    | IncompatibleSideKeys<S, Records, "Type">
+    | IncompatibleSideKeys<S, Records, "Encoded">
+    | IncompatibleSideKeys<S, Records, "Iso">
+    | IncompatibleSideKeys<S, Records, "~type.make">
+  ] extends [never] ? unknown
+    : {
+      "incompatible index signatures":
+        | IncompatibleSideKeys<S, Records, "Type">
+        | IncompatibleSideKeys<S, Records, "Encoded">
+        | IncompatibleSideKeys<S, Records, "Iso">
+        | IncompatibleSideKeys<S, Records, "~type.make">
+    }
 }
 
 /**
@@ -3651,7 +3695,7 @@ export function StructWithRest<
   const Records extends StructWithRest.Records
 >(
   schema: S,
-  records: Records
+  records: Records & StructWithRest.ValidateRecords<S, Records>
 ): StructWithRest<S, Records> {
   return make(SchemaAST.structWithRest(schema.ast, records.map(SchemaAST.getAST)), { schema, records })
 }

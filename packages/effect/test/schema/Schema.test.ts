@@ -3909,7 +3909,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       throws(
         () =>
           Schema.StructWithRest(
-            Schema.Struct({}).pipe(Schema.encodeTo(Schema.String)),
+            Schema.Struct({}).pipe(Schema.encodeTo(Schema.Struct({}))),
             [Schema.Record(Schema.String, Schema.Number)]
           ),
         new Error(`StructWithRest does not support encodings`)
