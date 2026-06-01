@@ -96,7 +96,7 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
 // =============================================================================
 
 /**
- * Service identifier for the OpenRouter client.
+ * Service tag for the OpenRouter client.
  *
  * **When to use**
  *
@@ -120,9 +120,9 @@ export class OpenRouterClient extends Context.Service<
 // =============================================================================
 
 /**
- * Configuration options for creating an OpenRouter client.
+ * Configuration for creating an OpenRouter client.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type Options = {
@@ -159,8 +159,7 @@ export type Options = {
  *
  * **When to use**
  *
- * Use to construct the OpenRouter client service inside an effect when you need
- * the service value directly.
+ * Use when you need the OpenRouter client service value inside an effect.
  *
  * **Details**
  *
@@ -294,8 +293,8 @@ export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, Ht
  *
  * **When to use**
  *
- * Use when OpenRouter client settings should be read from Effect `Config`
- * values while providing `OpenRouterClient` as a layer.
+ * Use when you need client settings for OpenRouter to be read from Effect
+ * `Config` values while providing `OpenRouterClient` as a layer.
  *
  * **Details**
  *

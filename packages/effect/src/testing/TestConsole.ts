@@ -276,7 +276,7 @@ export const make = Effect.gen(function*() {
  * @see {@link logLines} for reading captured `Console.log` calls directly
  * @see {@link errorLines} for reading captured `Console.error` calls directly
  *
- * @category utils
+ * @category testing
  * @since 4.0.0
  */
 export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
@@ -351,7 +351,7 @@ export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(mak
  * @see {@link errorLines} for reading captured `Console.error` output
  * @see {@link layer} for capturing console calls during a test
  *
- * @category utils
+ * @category testing
  * @since 4.0.0
  */
 export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = testConsoleWith(
@@ -390,7 +390,7 @@ export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = tes
  * @see {@link logLines} for reading captured `Console.log` output
  * @see {@link layer} for capturing console calls during a test
  *
- * @category utils
+ * @category testing
  * @since 4.0.0
  */
 export const errorLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = testConsoleWith(

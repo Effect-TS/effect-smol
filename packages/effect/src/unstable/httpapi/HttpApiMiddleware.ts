@@ -348,9 +348,9 @@ export type ServiceClass<
  *
  * **When to use**
  *
- * Use when you use the optional configuration to declare required services, provided services,
- * typed error schemas, security schemes, client errors, and whether generated
- * clients must provide a matching client middleware.
+ * Use when you need an HTTP API middleware service whose configuration declares
+ * required services, provided services, typed error schemas, security schemes,
+ * client errors, or a matching client middleware requirement.
  *
  * @category schemas
  * @since 4.0.0

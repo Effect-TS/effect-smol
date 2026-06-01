@@ -88,9 +88,14 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
- * Context tag used to access the Cloudflare Durable Object `SqliteClient` service.
+ * Service tag for the Cloudflare Durable Object SQLite client service.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide a Durable Object SQLite client through the Effect
+ * context.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-do/SqliteClient")

@@ -52,9 +52,14 @@ import * as Layer from "effect/Layer"
 import * as PlatformError from "effect/PlatformError"
 
 /**
- * Browser Web Crypto APIs used by the Crypto service implementation.
+ * Provides Browser Web Crypto APIs used by the Crypto service implementation.
  *
- * @category models
+ * **When to use**
+ *
+ * Use to override the browser `Crypto` object used by the platform crypto
+ * layer.
+ *
+ * @category references
  * @since 1.0.0
  */
 export const WebCrypto = Context.Reference<Crypto>("@effect/platform-browser/Crypto/WebCrypto", {
@@ -62,7 +67,7 @@ export const WebCrypto = Context.Reference<Crypto>("@effect/platform-browser/Cry
 })
 
 /**
- * A layer that directly interfaces with the Web Crypto API.
+ * Layer that directly interfaces with the Web Crypto API.
  *
  * **When to use**
  *

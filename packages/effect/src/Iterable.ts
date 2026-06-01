@@ -147,7 +147,7 @@ export const range = (start: number, end?: number): Iterable<number> => {
 }
 
 /**
- * Return a `Iterable` containing a value repeated the specified number of times.
+ * Returns a `Iterable` containing a value repeated the specified number of times.
  *
  * **Details**
  *
@@ -243,7 +243,7 @@ export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): I
 })
 
 /**
- * Prepend an element to the front of an `Iterable`, creating a new `Iterable`.
+ * Prepends an element to the front of an `Iterable`, creating a new `Iterable`.
  *
  * **Example** (Prepending an element)
  *
@@ -260,7 +260,7 @@ export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): I
  * console.log(Array.from(withZ)) // ["z", "a", "b", "c"]
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prepend: {
@@ -283,7 +283,7 @@ export const prepend: {
  * )
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prependAll: {
@@ -295,7 +295,7 @@ export const prependAll: {
 )
 
 /**
- * Append an element to the end of an `Iterable`, creating a new `Iterable`.
+ * Appends an element to the end of an `Iterable`, creating a new `Iterable`.
  *
  * **When to use**
  *
@@ -332,7 +332,7 @@ export const prependAll: {
  * @see {@link prepend} for adding one element before the existing elements
  * @see {@link appendAll} for appending all elements from another iterable
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const append: {
@@ -383,7 +383,7 @@ export const append: {
  * @see {@link append} for appending one value instead of another iterable
  * @see {@link prependAll} for yielding another iterable before `self`
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const appendAll: {
@@ -415,7 +415,7 @@ export const appendAll: {
 )
 
 /**
- * Reduce an `Iterable` from the left, keeping all intermediate results instead of only the final result.
+ * Reduces an `Iterable` from the left, keeping all intermediate results instead of only the final result.
  *
  * **Example** (Tracking running results)
  *
@@ -465,7 +465,7 @@ export const scan: {
 }))
 
 /**
- * Determine if an `Iterable` is empty
+ * Checks whether an `Iterable` is empty.
  *
  * **Example** (Checking for emptiness)
  *
@@ -486,7 +486,7 @@ export const isEmpty = <A>(self: Iterable<A>): self is Iterable<never> => {
 }
 
 /**
- * Return the number of elements in a `Iterable`.
+ * Returns the number of elements in a `Iterable`.
  *
  * **Example** (Counting iterable elements)
  *
@@ -521,7 +521,7 @@ export const size = <A>(self: Iterable<A>): number => {
 }
 
 /**
- * Get the first element of a `Iterable`, or `None` if the `Iterable` is empty.
+ * Gets the first element of a `Iterable` safely, or `None` if the `Iterable` is empty.
  *
  * **Example** (Getting the first element)
  *
@@ -555,7 +555,16 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
 }
 
 /**
- * Get the first element of a `Iterable`, or throw an error if the `Iterable` is empty.
+ * Gets the first element of an `Iterable` without returning an `Option`.
+ *
+ * **When to use**
+ *
+ * Use when the `Iterable` is known to be non-empty and direct access to the
+ * first element is preferred over handling `Option.none`.
+ *
+ * **Gotchas**
+ *
+ * Throws if the `Iterable` is empty.
  *
  * **Example** (Getting the first element unsafely)
  *
@@ -587,7 +596,7 @@ export const headUnsafe = <A>(self: Iterable<A>): A => {
 }
 
 /**
- * Keep only a max number of elements from the start of an `Iterable`, creating a new `Iterable`.
+ * Keeps only a max number of elements from the start of an `Iterable`, creating a new `Iterable`.
  *
  * **Details**
  *
@@ -639,7 +648,8 @@ export const take: {
 }))
 
 /**
- * Calculate the longest initial Iterable for which all element satisfy the specified predicate, creating a new `Iterable`.
+ * Takes the longest initial `Iterable` prefix for which all elements satisfy the
+ * specified predicate.
  *
  * **Example** (Taking while a predicate holds)
  *
@@ -694,7 +704,7 @@ export const takeWhile: {
 }))
 
 /**
- * Drop a max number of elements from the start of an `Iterable`
+ * Drops a max number of elements from the start of an `Iterable`
  *
  * **Details**
  *
@@ -816,7 +826,7 @@ export const findFirst: {
 )
 
 /**
- * Find the last element for which a predicate holds.
+ * Finds the last element for which a predicate holds.
  *
  * **Example** (Finding the last match)
  *
@@ -920,7 +930,7 @@ export const zip: {
 )
 
 /**
- * Apply a function to pairs of elements at the same index in two `Iterable`s, collecting the results. If one
+ * Applies a function to pairs of elements at the same index in two `Iterable`s, collecting the results. If one
  * input `Iterable` is short, excess elements of the longer `Iterable` are discarded.
  *
  * **Example** (Zipping with a combining function)
@@ -987,7 +997,14 @@ export const zipWith: {
 }))
 
 /**
- * Places an element in between members of an `Iterable`.
+ * Places a separator between members of an `Iterable`.
+ *
+ * **When to use**
+ *
+ * Use to lazily insert a separator between adjacent values.
+ *
+ * **Details**
+ *
  * If the input is a non-empty array, the result is also a non-empty array.
  *
  * **Example** (Interspersing separators)
@@ -1021,7 +1038,7 @@ export const zipWith: {
  * console.log(Array.from(css).join("")) // "color: red; font-size: 14px; margin: 10px"
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const intersperse: {
@@ -1211,7 +1228,7 @@ export const chunksOf: {
 })
 
 /**
- * Group equal, consecutive elements of an `Iterable` into `NonEmptyArray`s using the provided `isEquivalent` function.
+ * Groups equal, consecutive elements of an `Iterable` into `NonEmptyArray`s using the provided `isEquivalent` function.
  *
  * **Example** (Grouping consecutive elements with custom equivalence)
  *
@@ -1290,7 +1307,7 @@ export const groupWith: {
 )
 
 /**
- * Group equal, consecutive elements of an `Iterable` into `NonEmptyArray`s.
+ * Groups equal, consecutive elements of an `Iterable` into `NonEmptyArray`s.
  *
  * **Example** (Grouping consecutive elements)
  *
@@ -1416,8 +1433,8 @@ const constEmptyIterator: Iterator<never> = {
  *
  * **When to use**
  *
- * Use as a base case for operations or when you
- * need to represent "no data" in a type-safe way.
+ * Use when you need an empty iterable as a typed "no data" value or a base
+ * case for iterable operations.
  *
  * **Example** (Creating an empty iterable)
  *
@@ -1484,7 +1501,7 @@ export const of = <A>(a: A): Iterable<A> => [a]
  *
  * This is one of the most fundamental operations for working with iterables.
  * It applies a transformation function to each element, creating a new iterable
- * with the transformed values. The operation is lazy - elements are only
+ * with the transformed values. The operation is lazy, so elements are only
  * transformed when the iterable is consumed.
  *
  * **Example** (Mapping elements)
@@ -1642,8 +1659,9 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  *
  * **Details**
  *
- * This combines mapping and filtering in a single operation - the function is applied to each element,
- * and only elements that result in `Result.succeed` are included in the result.
+ * This combines mapping and filtering in a single operation. The function is
+ * applied to each element, and only elements that result in `Result.succeed`
+ * are included in the result.
  *
  * **Example** (Filtering and transforming Result values)
  *
@@ -2027,7 +2045,7 @@ export const flatMapNullishOr: {
 )
 
 /**
- * Check if a predicate holds true for some `Iterable` element.
+ * Checks whether a predicate holds true for some `Iterable` element.
  *
  * **Example** (Checking whether some element matches)
  *
@@ -2141,7 +2159,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => Option<readonly [A, B]>): Iterab
 })
 
 /**
- * Iterate over the `Iterable` applying `f`.
+ * Iterates over the `Iterable`, applying `f` to each element.
  *
  * **Example** (Iterating with side effects)
  *
@@ -2189,7 +2207,7 @@ export const forEach: {
 })
 
 /**
- * Reduce an iterable to a single value by applying a function to each element and accumulating the result.
+ * Reduces an iterable to a single value by applying a function to each element and accumulating the result.
  *
  * **Details**
  *
@@ -2474,7 +2492,7 @@ export const cartesian: {
 )
 
 /**
- * Counts all the element of the given iterable that pass the given predicate
+ * Computes how many elements of the iterable pass the given predicate.
  *
  * **Example** (Counting matching elements)
  *

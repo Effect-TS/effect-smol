@@ -118,7 +118,7 @@ export interface Service {
 // =============================================================================
 
 /**
- * Service identifier for the OpenAI client.
+ * Service tag for the OpenAI client.
  *
  * **When to use**
  *
@@ -143,7 +143,7 @@ export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
 /**
  * Options for configuring the OpenAI client.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type Options = {
@@ -189,8 +189,7 @@ const RedactedOpenAiHeaders = {
  *
  * **When to use**
  *
- * Use to construct the OpenAI client service inside an effect when you need the
- * service value directly.
+ * Use when you need the OpenAI client service value inside an effect.
  *
  * **Details**
  *
@@ -378,8 +377,8 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
  *
  * **When to use**
  *
- * Use when client settings should be read from Effect `Config` values while
- * providing `OpenAiClient` as a `Layer`.
+ * Use when you need client settings for OpenAI-compatible APIs to be read from
+ * Effect `Config` values while providing `OpenAiClient` as a `Layer`.
  *
  * **Details**
  *
@@ -461,7 +460,7 @@ export type ResponseStreamEvent = typeof OpenAiSchema.ResponseStreamEvent.Type
  *
  * **When to use**
  *
- * Use when code needs direct access to the WebSocket-backed response streaming
+ * Use when you need direct access to the WebSocket-backed response streaming
  * service rather than wrapping an effect with WebSocket mode.
  *
  * **Details**
@@ -567,7 +566,7 @@ const makeSocket = Effect.gen(function*() {
           const event = decodeEvent(text)
           if (event.type === "error" && "status" in event) {
             const status = Number(event.status)
-            const error = "error" in event ? event.error : event
+            const error = "error" in event ? event.error as typeof ErrorEvent.Type.error : event
             const json = JSON.stringify(error)
             return Effect.fail(
               AiError.make({
@@ -575,7 +574,7 @@ const makeSocket = Effect.gen(function*() {
                 method: "createResponseStream",
                 reason: AiError.reasonFromHttpStatus({
                   description: json,
-                  status: isNaN(status) ? 500 : status,
+                  status: isNaN(status) ? errorTypeToStatus[error.type] ?? 500 : status,
                   metadata: error as any,
                   http: {
                     body: json,
@@ -678,6 +677,14 @@ const ErrorEvent = Schema.Struct({
   })
 })
 
+const errorTypeToStatus: Record<string, number> = {
+  invalid_request_error: 400,
+  invalid_api_key_error: 401,
+  insufficient_quota_error: 429,
+  rate_limit_error: 429,
+  service_unavailable_error: 503
+}
+
 const AllEvents = Schema.Union([ErrorEvent, OpenAiSchema.ResponseStreamEvent])
 const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
 
@@ -696,7 +703,8 @@ const decodeEvent = Schema.decodeUnknownSync(Schema.fromJsonString(AllEvents))
  * - `NodeSocket.layerWebSocketConstructorWS`
  * - `BunSocket.layerWebSocketConstructor`
  *
- * This is because it needs to use non-standard options for setting the Authorization header.
+ * These constructor layers support the non-standard options needed to set the
+ * Authorization header.
  *
  * @see {@link layerWebSocketMode} for providing WebSocket mode through a layer
  * @see {@link OpenAiSocket} for direct access to the WebSocket-backed streaming service
@@ -733,7 +741,8 @@ export const withWebSocketMode = <A, E, R>(
  * - `NodeSocket.layerWebSocketConstructorWS`
  * - `BunSocket.layerWebSocketConstructor`
  *
- * This is because it needs to use non-standard options for setting the Authorization header.
+ * These constructor layers support the non-standard options needed to set the
+ * Authorization header.
  *
  * @see {@link withWebSocketMode} for enabling WebSocket mode around a single effect
  *

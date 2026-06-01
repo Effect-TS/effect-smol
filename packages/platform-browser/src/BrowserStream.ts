@@ -50,7 +50,7 @@ import * as Stream from "effect/Stream"
  * buffer size by passing an object as the second argument with the `bufferSize`
  * field.
  *
- * @category Streams
+ * @category streams
  * @since 4.0.0
  */
 export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
@@ -72,7 +72,7 @@ export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
  * buffer size by passing an object as the second argument with the `bufferSize`
  * field.
  *
- * @category Streams
+ * @category streams
  * @since 4.0.0
  */
 export const fromEventListenerDocument = <K extends keyof DocumentEventMap>(

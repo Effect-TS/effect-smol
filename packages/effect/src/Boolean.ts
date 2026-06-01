@@ -63,12 +63,12 @@ import * as predicate from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 
 /**
- * Reference to the global `Boolean` constructor for JavaScript truthiness
+ * Exposes the global boolean constructor for JavaScript truthiness
  * coercion.
  *
  * **When to use**
  *
- * Use when you want native `Boolean` constructor coercion from the Effect module
+ * Use to access native JavaScript truthiness coercion from the Effect module
  * namespace.
  *
  * **Gotchas**
@@ -97,7 +97,7 @@ import * as Reducer from "./Reducer.ts"
 export const Boolean = globalThis.Boolean
 
 /**
- * Tests if a value is a `boolean`.
+ * Checks whether a value is a `boolean`.
  *
  * **When to use**
  *
@@ -119,8 +119,7 @@ export const Boolean = globalThis.Boolean
 export const isBoolean: (input: unknown) => input is boolean = predicate.isBoolean
 
 /**
- * This function returns the result of either of the given functions depending on the value of the boolean parameter.
- * It is useful when you have to run one of two functions depending on the boolean value.
+ * Chooses between two lazy branches based on a boolean value.
  *
  * **When to use**
  *
@@ -164,8 +163,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use when an API needs an `Order` instance for booleans with `false` before
- * `true`.
+ * Use when you need to sort or compare boolean values through APIs that accept
+ * an ordering instance where `false` comes before `true`.
  *
  * **Example** (Comparing booleans)
  *
@@ -183,11 +182,12 @@ export const match: {
 export const Order: order.Order<boolean> = order.Boolean
 
 /**
- * An `Equivalence` instance for booleans using strict equality (`===`).
+ * Equivalence instance for booleans using strict equality (`===`).
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` instance for boolean equality.
+ * Use when checking boolean equality through APIs that accept an equivalence
+ * relation.
  *
  * **Example** (Comparing booleans for equivalence)
  *
@@ -257,7 +257,7 @@ export const and: {
 } = dual(2, (self: boolean, that: boolean): boolean => self && that)
 
 /**
- * Combines two boolean using NAND: `!(self && that)`.
+ * Combines two booleans using NAND: `!(self && that)`.
  *
  * **When to use**
  *
@@ -284,7 +284,7 @@ export const nand: {
 } = dual(2, (self: boolean, that: boolean): boolean => !(self && that))
 
 /**
- * Combines two boolean using OR: `self || that`.
+ * Combines two booleans using OR: `self || that`.
  *
  * **When to use**
  *
@@ -419,7 +419,7 @@ export const implies: {
 } = dual(2, (self, that) => self ? that : true)
 
 /**
- * This utility function is used to check if all the elements in a collection of boolean values are `true`.
+ * Checks whether every boolean in a collection is `true`.
  *
  * **When to use**
  *
@@ -438,7 +438,7 @@ export const implies: {
  * @see {@link some} for checking whether at least one value is `true`
  * @see {@link ReducerAnd} for reducing booleans with AND through a `Reducer`
  *
- * @category utils
+ * @category predicates
  * @since 2.0.0
  */
 export const every = (collection: Iterable<boolean>): boolean => {
@@ -451,7 +451,7 @@ export const every = (collection: Iterable<boolean>): boolean => {
 }
 
 /**
- * This utility function is used to check if at least one of the elements in a collection of boolean values is `true`.
+ * Checks whether at least one boolean in a collection is `true`.
  *
  * **When to use**
  *
@@ -470,7 +470,7 @@ export const every = (collection: Iterable<boolean>): boolean => {
  * @see {@link every} for checking whether all values are `true`
  * @see {@link ReducerOr} for reducing booleans with OR through a `Reducer`
  *
- * @category utils
+ * @category predicates
  * @since 2.0.0
  */
 export const some = (collection: Iterable<boolean>): boolean => {
@@ -483,7 +483,7 @@ export const some = (collection: Iterable<boolean>): boolean => {
 }
 
 /**
- * A `Reducer` for combining `boolean`s using AND.
+ * Reducer for combining `boolean`s using AND.
  *
  * **When to use**
  *
@@ -508,7 +508,7 @@ export const some = (collection: Iterable<boolean>): boolean => {
 export const ReducerAnd: Reducer.Reducer<boolean> = Reducer.make((a, b) => a && b, true)
 
 /**
- * A `Reducer` for combining `boolean`s using OR.
+ * Reducer for combining `boolean`s using OR.
  *
  * **When to use**
  *

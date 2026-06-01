@@ -1378,6 +1378,52 @@ export const __HttpApiMultipartFiles = Multipart.FilesSchema`,
         }
       ))
 
+    it.effect("generates custom http security schemes", () =>
+      assertHttpApiWithWarnings(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Custom Security API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/secure": {
+              get: {
+                operationId: "getSecure",
+                parameters: [],
+                responses: {
+                  200: {
+                    description: "Secure"
+                  }
+                },
+                tags: ["Security"],
+                security: [{ digestAuth: [] }]
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {
+              digestAuth: {
+                type: "http",
+                scheme: "Digest",
+                bearerFormat: "DigestToken",
+                description: "Digest token"
+              }
+            }
+          },
+          security: [],
+          tags: [{ name: "Security" }]
+        },
+        {
+          includes: [
+            `const DigestAuthSecurity = HttpApiSecurity.http({ scheme: "Digest" }).pipe(HttpApiSecurity.annotate(OpenApi.Description, "Digest token")).pipe(HttpApiSecurity.annotate(OpenApi.Format, "DigestToken"))`,
+            `class DigestAuthSecurityMiddleware extends HttpApiMiddleware.Service<DigestAuthSecurityMiddleware>()("digestAuth security", { security: { "digestAuth": DigestAuthSecurity } }) {}`
+          ],
+          warnings: []
+        }
+      ))
+
     it.effect("inherits global security and respects operation-level clearing", () =>
       assertHttpApiWithWarnings(
         {

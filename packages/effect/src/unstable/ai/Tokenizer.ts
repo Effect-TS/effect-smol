@@ -55,7 +55,12 @@ import type * as AiError from "./AiError.ts"
 import * as Prompt from "./Prompt.ts"
 
 /**
- * The `Tokenizer` service tag for dependency injection.
+ * Service tag for model tokenization services.
+ *
+ * **When to use**
+ *
+ * Use to access or provide model-specific token counting and prompt truncation
+ * operations.
  *
  * **Details**
  *

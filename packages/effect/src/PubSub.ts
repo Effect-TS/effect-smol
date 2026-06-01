@@ -660,8 +660,13 @@ export const capacity = <A>(self: PubSub<A>): number => self.pubsub.capacity
  */
 export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync(() => sizeUnsafe(self))
 /**
- * Synchronously returns the current number of messages retained by the `PubSub`
- * for active subscribers.
+ * Returns the current number of messages retained by the `PubSub` for active
+ * subscribers synchronously.
+ *
+ * **When to use**
+ *
+ * Use when an immediate `PubSub` size snapshot is needed outside effectful code
+ * and concurrent changes between the check and later use are acceptable.
  *
  * **Details**
  *
@@ -808,7 +813,8 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
   }))
 
 /**
- * Returns `true` if `shutdown` has been called, otherwise returns `false`.
+ * Checks effectfully whether `shutdown` has been called, returning `true`
+ * after shutdown and `false` otherwise.
  *
  * **Example** (Checking whether a PubSub is shutdown)
  *
@@ -836,7 +842,13 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
 export const isShutdown = <A>(self: PubSub<A>): Effect.Effect<boolean> => Effect.sync(() => isShutdownUnsafe(self))
 
 /**
- * Returns `true` if `shutdown` has been called, otherwise returns `false`.
+ * Checks synchronously whether `shutdown` has been called, returning `true`
+ * after shutdown and `false` otherwise.
+ *
+ * **When to use**
+ *
+ * Use when an immediate `PubSub` shutdown-state snapshot is needed outside
+ * effectful code and racing shutdown changes are acceptable.
  *
  * **Example** (Checking shutdown synchronously)
  *
@@ -897,14 +909,19 @@ export const isShutdownUnsafe = <A>(self: PubSub<A>): boolean => self.shutdownFl
 export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.shutdownHook.await
 
 /**
- * Attempts to publish a message synchronously without applying the PubSub
- * strategy's effectful surplus handling.
+ * Publishes a message to the `PubSub` as an `Effect`, returning whether the
+ * message was accepted.
+ *
+ * **When to use**
+ *
+ * Use when you need to publish from effectful code and let the configured
+ * PubSub strategy handle surplus messages.
  *
  * **Details**
  *
- * Returns `false` if the `PubSub` is shut down or the message cannot be
- * accepted immediately, for example when a bounded PubSub is full. Prefer
- * `publish` when backpressure or sliding behavior should be honored.
+ * The effect succeeds with `false` if the `PubSub` is shut down. If the message
+ * cannot be accepted immediately, the configured strategy decides how surplus
+ * messages are handled.
  *
  * **Example** (Publishing a message)
  *
@@ -927,6 +944,8 @@ export const awaitShutdown = <A>(self: PubSub<A>): Effect.Effect<void> => self.s
  *   }))
  * })
  * ```
+ *
+ * @see {@link publishUnsafe} for a synchronous non-blocking attempt that does not run effectful surplus handling
  *
  * @category publishing
  * @since 2.0.0
@@ -954,8 +973,19 @@ export const publish: {
   }))
 
 /**
- * Publishes a message to the `PubSub`, returning whether the message was published
- * to the `PubSub`.
+ * Attempts to publish a message synchronously without applying the PubSub
+ * strategy's effectful surplus handling.
+ *
+ * **When to use**
+ *
+ * Use when you need a non-blocking synchronous publish attempt where `false`
+ * is an acceptable result when the message cannot be accepted immediately.
+ *
+ * **Details**
+ *
+ * Returns `false` if the `PubSub` is shut down or the message cannot be
+ * accepted immediately, for example when a bounded PubSub is full. Prefer
+ * `publish` when backpressure or sliding behavior should be honored.
  *
  * **Example** (Publishing without suspending)
  *
@@ -978,6 +1008,8 @@ export const publish: {
  *   messages.filter((msg) => PubSub.publishUnsafe(pubsub, msg)).length
  * console.log(`Published ${publishedCount} out of ${messages.length} messages`)
  * ```
+ *
+ * @see {@link publish} for effectful publishing that honors the configured surplus strategy
  *
  * @category publishing
  * @since 4.0.0
@@ -1102,7 +1134,7 @@ export const publishAll: {
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 2.0.0
  */
 export const subscribe = <A>(self: PubSub<A>): Effect.Effect<Subscription<A>, never, Scope.Scope> =>
@@ -1170,7 +1202,7 @@ const unsubscribe = <A>(self: Subscription<A>): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
@@ -1218,7 +1250,7 @@ export const take = <A>(self: Subscription<A>): Effect.Effect<A> =>
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const takeAll = <A>(self: Subscription<A>): Effect.Effect<Arr.NonEmptyArray<A>> =>
@@ -1297,7 +1329,7 @@ const pollForItem = <A>(self: Subscription<A>) => {
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const takeUpTo: {
@@ -1350,7 +1382,7 @@ export const takeUpTo: {
  * })
  * ```
  *
- * @category subscription
+ * @category subscriptions
  * @since 4.0.0
  */
 export const takeBetween: {
@@ -1396,13 +1428,18 @@ const takeRemainderLoop = <A>(
 }
 
 /**
- * Synchronously checks how many messages can be taken from a subscription.
+ * Returns the number of messages currently available in the subscription as an
+ * `Effect`.
+ *
+ * **When to use**
+ *
+ * Use when checking a subscription from effectful code and shutdown should
+ * interrupt the effect.
  *
  * **Details**
  *
- * Returns `Option.some(count)` while the subscription is active, including
- * replay-buffered messages, and `Option.none()` after the subscription has
- * been shut down. Prefer `remaining` in effectful code.
+ * The count includes replay-buffered messages. If the subscription has been
+ * shut down, the effect interrupts.
  *
  * **Example** (Checking remaining messages)
  *
@@ -1431,6 +1468,8 @@ const takeRemainderLoop = <A>(
  * })
  * ```
  *
+ * @see {@link remainingUnsafe} for a synchronous check that reports shutdown as `Option.none()`
+ *
  * @category getters
  * @since 4.0.0
  */
@@ -1442,7 +1481,13 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
   )
 
 /**
- * Returns the number of messages currently available in the subscription.
+ * Synchronously returns the number of messages currently available in the
+ * subscription, or `Option.none()` when it is shut down.
+ *
+ * **When to use**
+ *
+ * Use when you need synchronous polling outside a managed workflow and want
+ * shutdown observed as data instead of interruption.
  *
  * **Example** (Checking remaining messages synchronously)
  *
@@ -1464,6 +1509,8 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  *   // Process messages in batch
  * }
  * ```
+ *
+ * @see {@link remaining} for the effectful variant that interrupts on shutdown
  *
  * @category getters
  * @since 4.0.0
@@ -2347,17 +2394,22 @@ const ensureCapacity = (capacity: number): void => {
 // -----------------------------------------------------------------------------
 
 /**
- * A strategy that applies back pressure to publishers when the `PubSub` is at
- * capacity. This guarantees that all subscribers will receive all messages
- * published to the `PubSub` while they are subscribed. However, it creates the
- * risk that a slow subscriber will slow down the rate at which messages
- * are published and received by other subscribers.
+ * Represents the back-pressure strategy for bounded `PubSub` values.
  *
  * **When to use**
  *
  * Use to preserve every message for current subscribers when a bounded custom
  * `PubSub` should make publishers wait for capacity instead of dropping or
  * evicting messages.
+ *
+ * **Details**
+ *
+ * Publishers wait when the `PubSub` is at capacity, so all current subscribers
+ * can receive every published message.
+ *
+ * **Gotchas**
+ *
+ * A slow subscriber can slow down publishers and other subscribers.
  *
  * @see {@link bounded} for creating bounded PubSubs with back pressure by default
  * @see {@link DroppingStrategy} for dropping new messages when capacity is full
@@ -2459,12 +2511,21 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
 }
 
 /**
- * A strategy that drops new messages when the `PubSub` is at capacity. This
- * guarantees that a slow subscriber will not slow down the rate at which
- * messages are published. However, it creates the risk that a slow
- * subscriber will slow down the rate at which messages are received by
- * other subscribers and that subscribers may not receive all messages
- * published to the `PubSub` while they are subscribed.
+ * Represents the dropping strategy for bounded `PubSub` values.
+ *
+ * **When to use**
+ *
+ * Use to keep publishers fast by dropping new messages when the `PubSub` is at
+ * capacity.
+ *
+ * **Details**
+ *
+ * A publish that arrives while the `PubSub` is full is dropped instead of
+ * waiting for capacity.
+ *
+ * **Gotchas**
+ *
+ * Subscribers may miss messages published while they are subscribed.
  *
  * **Example** (Using a dropping strategy)
  *
@@ -2537,11 +2598,21 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
 }
 
 /**
- * A strategy that adds new messages and drops old messages when the `PubSub` is
- * at capacity. This guarantees that a slow subscriber will not slow down
- * the rate at which messages are published and received by other
- * subscribers. However, it creates the risk that a slow subscriber will
- * not receive some messages published to the `PubSub` while it is subscribed.
+ * Represents the sliding strategy for bounded `PubSub` values.
+ *
+ * **When to use**
+ *
+ * Use to keep the most recent messages when the `PubSub` is at capacity.
+ *
+ * **Details**
+ *
+ * New messages are accepted by evicting older messages from the bounded
+ * `PubSub`.
+ *
+ * **Gotchas**
+ *
+ * Slow subscribers may miss older messages that are evicted before they are
+ * consumed.
  *
  * **Example** (Using a sliding strategy)
  *

@@ -55,7 +55,7 @@
  *
  * **See also**
  *
- * - {@link JsonPointer} for escaping and unescaping JSON Pointer path tokens.
+ * - `JsonPointer` for escaping and unescaping JSON Pointer path tokens.
  * - {@link Schema.Json} for the JSON value shape accepted by this module.
  *
  * @since 4.0.0
@@ -194,9 +194,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  *
  * **When to use**
  *
- * Use to compute differences between JSON documents, detect structural
- * changes, or create deterministic update operations from before and after
- * states.
+ * Use to compute a JSON Patch from before and after JSON documents, detect
+ * structural changes, or create deterministic update operations.
  *
  * **Details**
  *
@@ -204,7 +203,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * yields `newValue` when applied to `oldValue`. It returns an empty array when
  * values are identical, recursively diffs nested structures, emits root
  * `replace` operations for primitive changes, and processes object keys in
- * sorted order for stable output. Inputs are not mutated.
+ * sorted order for stable output.
  *
  * **Gotchas**
  *

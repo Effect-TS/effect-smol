@@ -36,6 +36,7 @@
  *
  * @since 4.0.0
  */
+import * as Effect from "effect/Effect"
 import * as Predicate from "effect/Predicate"
 import * as Schema from "effect/Schema"
 
@@ -511,6 +512,11 @@ const ProviderDefinedTool = Schema.StructWithRest(
 /**
  * Schema for tool definitions that can be supplied to an OpenAI Responses request.
  *
+ * **When to use**
+ *
+ * Use when validating or encoding the `tools` array for a Responses request,
+ * including provider-defined tool records with provider-specific fields.
+ *
  * **Details**
  *
  * Accepted variants are function tools, custom tools, and provider-defined
@@ -546,6 +552,11 @@ export type Tool = typeof Tool.Type
 
 /**
  * Schema for selecting whether and which tools the model may call in a Responses request.
+ *
+ * **When to use**
+ *
+ * Use when validating or encoding the `tool_choice` field that constrains model
+ * tool use separately from the tool definitions themselves.
  *
  * **Details**
  *
@@ -606,6 +617,11 @@ export type ToolChoice = typeof ToolChoice.Type
 
 /**
  * Schema for text output format configuration, including plain text, JSON object, and JSON Schema responses.
+ *
+ * **When to use**
+ *
+ * Use when validating or encoding the `text.format` setting for a Responses
+ * request, especially when choosing structured JSON Schema output.
  *
  * **Details**
  *
@@ -711,7 +727,7 @@ export const CreateResponse = Schema.Struct({
 /**
  * Request options used to create an OpenAI Responses API response.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type CreateResponse = typeof CreateResponse.Type
@@ -868,7 +884,9 @@ export const Response = Schema.Struct({
   object: Schema.optionalKey(Schema.Literal("response")),
   model: Schema.String,
   created_at: Schema.Number,
-  output: Schema.Array(OutputItem),
+  output: Schema.Array(OutputItem).pipe(
+    Schema.withDecodingDefault(Effect.succeed([]))
+  ),
   usage: Schema.optionalKey(Schema.NullOr(ResponseUsage)),
   incomplete_details: Schema.optionalKey(
     Schema.NullOr(
@@ -1158,6 +1176,11 @@ export type ResponseStreamEvent = typeof ResponseStreamEvent.Type
 /**
  * Schema for one embedding item returned by the OpenAI embeddings API.
  *
+ * **When to use**
+ *
+ * Use when validating individual embedding entries at the OpenAI client boundary
+ * before assuming the embedding payload is a numeric vector.
+ *
  * **Details**
  *
  * An embedding item contains its `index`, optional `object` marker, and an
@@ -1195,6 +1218,11 @@ export type Embedding = typeof Embedding.Type
 
 /**
  * Schema for the request payload sent to the OpenAI embeddings endpoint.
+ *
+ * **When to use**
+ *
+ * Use when validating or encoding embeddings requests before sending them to
+ * OpenAI, while leaving model-specific limits to the provider.
  *
  * **Details**
  *
@@ -1237,7 +1265,9 @@ export type CreateEmbeddingRequest = typeof CreateEmbeddingRequest.Type
  *
  * **When to use**
  *
- * Use to decode successful OpenAI embeddings responses.
+ * Use when you need to validate embeddings responses at an OpenAI client
+ * boundary before trusting item shapes, especially when numeric and string
+ * embeddings are both allowed.
  *
  * **Details**
  *

@@ -169,8 +169,8 @@ export declare namespace Newtype {
  *
  * **When to use**
  *
- * Use when you only need to read the inner value and do not need to wrap
- * new values. For both wrapping and unwrapping, prefer {@link makeIso}.
+ * Use when you need the carrier value from an existing newtype without
+ * constructing a new newtype value at the same call site.
  *
  * **Details**
  *
@@ -237,7 +237,8 @@ export function makeIso<N extends Newtype.Any>(): Optic.Iso<N, Newtype.Carrier<N
  *
  * **When to use**
  *
- * Use when you need to compare two newtype values for equality.
+ * Use when you need equality for newtype-wrapped values to behave like
+ * equality for the wrapped carrier value, without manually unwrapping.
  *
  * **Details**
  *
@@ -272,7 +273,8 @@ export const makeEquivalence: <N extends Newtype.Any>(
  *
  * **When to use**
  *
- * Use when you need to sort or compare newtype values.
+ * Use when you need to sort newtype-wrapped values according to the ordering
+ * of the wrapped carrier value, without manually unwrapping.
  *
  * **Details**
  *
@@ -303,7 +305,8 @@ export const makeOrder: <N extends Newtype.Any>(order: Order.Order<Newtype.Carri
  *
  * **When to use**
  *
- * Use when you need to combine newtype values.
+ * Use when you need to combine newtype-wrapped values with the carrier's
+ * combining logic, without manually unwrapping.
  *
  * **Details**
  *
@@ -338,8 +341,8 @@ export const makeCombiner: <N extends Newtype.Any>(
  *
  * **When to use**
  *
- * Use when you need to fold or reduce over a collection of newtype
- * values.
+ * Use when you need to reduce a collection of newtype-wrapped values with the
+ * carrier's reducer, without manually unwrapping.
  *
  * **Details**
  *

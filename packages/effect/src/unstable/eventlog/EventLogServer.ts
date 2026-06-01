@@ -229,10 +229,15 @@ export const layerRpcHandlers = (options: {
   )
 
 /**
- * Client annotation storing partial `ChunkedMessage` data while chunked writes are
+ * Annotation that stores partial `ChunkedMessage` data while chunked writes are
  * being reassembled.
  *
- * @category ChunkedMessage state
+ * **When to use**
+ *
+ * Use to keep per-client chunk assembly state while handling chunked event-log
+ * writes.
+ *
+ * @category chunked message state
  * @since 4.0.0
  */
 export class ChunkedMessageState extends Context.Reference<

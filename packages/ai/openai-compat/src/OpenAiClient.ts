@@ -77,7 +77,7 @@ export interface Service {
 }
 
 /**
- * Context service tag for the OpenAI-compatible chat completions and embeddings client.
+ * Service tag for the OpenAI-compatible chat completions and embeddings client.
  *
  * **When to use**
  *
@@ -104,7 +104,7 @@ export class OpenAiClient extends Context.Service<OpenAiClient, Service>()(
 /**
  * Configuration options used to construct an OpenAI-compatible client.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type Options = {
@@ -125,8 +125,7 @@ const RedactedOpenAiHeaders = {
  *
  * **When to use**
  *
- * Use to construct the OpenAI-compatible client service inside an effect when
- * you need the service value directly.
+ * Use when you need the OpenAI-compatible client service value inside an effect.
  *
  * **Details**
  *
@@ -306,8 +305,8 @@ export const layer = (options: Options): Layer.Layer<OpenAiClient, never, HttpCl
  *
  * **When to use**
  *
- * Use when OpenAI-compatible client settings should be read from Effect
- * `Config` values while providing `OpenAiClient` as a layer.
+ * Use when you need client settings for OpenAI-compatible APIs to be read from
+ * Effect `Config` values while providing `OpenAiClient` as a layer.
  *
  * **Details**
  *

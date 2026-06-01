@@ -422,9 +422,10 @@ export const touch = <A extends AsyncResult<any, any>>(result: A): A => {
 }
 
 /**
- * For a `Failure`, replaces its stored previous success with the latest success found in another result; non-failures are returned unchanged.
+ * Replaces a `Failure` value's stored previous success with the latest success
+ * found in another result.
  *
- * @category constructors
+ * @category combinators
  * @since 4.0.0
  */
 export const replacePrevious = <R extends AsyncResult<any, any>, XE, A>(
@@ -536,7 +537,17 @@ export const map: {
 })
 
 /**
- * Flat maps a success result with a function returning another `AsyncResult`, leaves initial results unchanged, and preserves failure causes while remapping stored previous successes when possible.
+ * Maps the success value of an `AsyncResult` and flattens the result.
+ *
+ * **When to use**
+ *
+ * Use to sequence computations that may return another `AsyncResult` while
+ * preserving initial and failure states.
+ *
+ * **Details**
+ *
+ * Initial results are left unchanged. Failures preserve their cause and remap
+ * the stored previous success when the mapping function returns a success.
  *
  * @category combinators
  * @since 4.0.0
@@ -731,7 +742,7 @@ export const all = <const Arg extends Iterable<any> | Record<string, any>>(
 /**
  * Creates a typed builder for rendering an `AsyncResult` by handling waiting, initial, success, error, defect, interrupt, and failure cases.
  *
- * @category Builder
+ * @category constructors
  * @since 4.0.0
  */
 export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
@@ -745,7 +756,7 @@ export const builder = <A extends AsyncResult<any, any>>(self: A): Builder<
 /**
  * Type marker used by `Builder` to track whether defect failures still need to be handled.
  *
- * @category Builder
+ * @category models
  * @since 4.0.0
  */
 export interface Defect {
@@ -755,7 +766,7 @@ export interface Defect {
 /**
  * Type marker used by `Builder` to track whether interrupt failures still need to be handled.
  *
- * @category Builder
+ * @category models
  * @since 4.0.0
  */
 export interface Interrupt {
@@ -765,7 +776,7 @@ export interface Interrupt {
 /**
  * Fluent renderer for `AsyncResult` values that tracks unhandled cases at the type level and exposes `exhaustive` only after all possible cases are handled.
  *
- * @category Builder
+ * @category models
  * @since 4.0.0
  */
 export type Builder<Out, A, E, I, F> =

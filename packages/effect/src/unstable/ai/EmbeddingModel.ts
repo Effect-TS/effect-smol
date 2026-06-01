@@ -60,8 +60,8 @@ import * as AiError from "./AiError.ts"
  *
  * **When to use**
  *
- * Use to retrieve or provide an `EmbeddingModel.Service` when an `Effect`
- * program needs to embed text into vectors.
+ * Use to retrieve or provide the embedding model service for an `Effect`
+ * program that embeds text into vectors.
  *
  * @see {@link Service} for the service contract provided by this tag
  * @see {@link make} for constructing an embedding model service from a provider
@@ -92,7 +92,7 @@ export class Dimensions extends Context.Service<Dimensions, number>()(
 ) {}
 
 /**
- * Token usage metadata for embedding operations.
+ * Represents token usage metadata for embedding operations.
  *
  * **Details**
  *
@@ -122,7 +122,8 @@ export class EmbedResponse extends Schema.Class<EmbedResponse>(
 }) {}
 
 /**
- * Batch embedding response containing per-input embeddings and usage metadata.
+ * Response for batch embedding requests containing per-input embeddings and usage
+ * metadata.
  *
  * **Details**
  *
@@ -145,7 +146,7 @@ export class EmbedManyResponse extends Schema.Class<EmbedManyResponse>(
 /**
  * Provider input options for embedding requests.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ProviderOptions {
@@ -166,12 +167,12 @@ export interface ProviderResponse {
 }
 
 /**
- * Tagged request used by request resolvers for embedding operations.
+ * Represents a tagged request used by request resolvers for embedding operations.
  *
  * **When to use**
  *
- * Use when building or calling a low-level embedding request resolver and you
- * need a typed request for one input that resolves to `EmbedResponse`.
+ * Use when you need a typed request for one embedding input while building or
+ * calling a low-level embedding request resolver.
  *
  * @see {@link Service} for the resolver-bearing service contract
  * @see {@link make} for constructing the request resolver from a provider implementation
@@ -187,7 +188,7 @@ export class EmbeddingRequest extends Request.TaggedClass("EmbeddingRequest")<
 > {}
 
 /**
- * Service interface for embedding operations.
+ * Defines the service interface for embedding operations.
  *
  * @category models
  * @since 4.0.0

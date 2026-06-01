@@ -198,17 +198,17 @@ export interface Crypto {
 }
 
 /**
- * The service identifier for the platform `Crypto` service.
+ * Service tag for platform cryptography.
  *
  * **When to use**
  *
- * Use when you need to provide or retrieve the full platform Crypto service
- * from an effect's context.
+ * Use when you need to provide or retrieve the full platform cryptography
+ * service from an effect's context.
  *
  * **Details**
  *
- * Providing this service supplies the cryptographic operations described by the
- * `Crypto` interface.
+ * Providing this service supplies platform-agnostic cryptographic operations
+ * such as hashing, UUID generation, and secure random values.
  *
  * @see {@link make} for constructing a Crypto service from primitive operations
  *

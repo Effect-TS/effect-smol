@@ -124,12 +124,12 @@ export class PermissionsError extends Data.TaggedError("PermissionsError")<{
 }
 
 /**
- * Service tag for the browser `Permissions` service.
+ * Service tag for browser permission querying.
  *
  * **When to use**
  *
- * Use when an Effect needs to require or provide browser permission querying
- * through the context.
+ * Use when you need to require or provide browser permission querying through
+ * Effect's context.
  *
  * @category services
  * @since 4.0.0
@@ -141,8 +141,8 @@ export const Permissions: Context.Service<Permissions, Permissions> = Context.Se
  *
  * **When to use**
  *
- * Use when browser programs need a live `Permissions` service backed by the
- * ambient `navigator.permissions` implementation.
+ * Use when you need a live browser `Permissions` service backed by the ambient
+ * `navigator.permissions` implementation.
  *
  * **Details**
  *

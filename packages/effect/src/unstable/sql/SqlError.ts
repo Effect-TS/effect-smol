@@ -371,7 +371,7 @@ export type SqlErrorReason =
   | UnknownError
 
 /**
- * Schema union for encoding and decoding `SqlErrorReason` values.
+ * Schema for encoding and decoding SQL error reasons.
  *
  * @category schemas
  * @since 4.0.0
@@ -403,7 +403,7 @@ export const SqlErrorReason: Schema.Union<[
 ])
 
 /**
- * Top-level SQL error wrapper whose `message`, `cause`, and `isRetryable`
+ * Error wrapper for SQL failures whose `message`, `cause`, and `isRetryable`
  * values are derived from its `SqlErrorReason`.
  *
  * @category errors

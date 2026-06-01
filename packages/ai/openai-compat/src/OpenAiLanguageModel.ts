@@ -85,7 +85,7 @@ type ImageDetail = "auto" | "low" | "high"
 // =============================================================================
 
 /**
- * Service definition for OpenAI language model configuration.
+ * Context service for OpenAI language model configuration.
  *
  * **When to use**
  *
@@ -575,8 +575,8 @@ export const model = (
  *
  * **When to use**
  *
- * Use when an Effect needs to construct a `LanguageModel.Service` value backed
- * by `OpenAiClient`.
+ * Use to construct an OpenAI-compatible chat-completions language model service
+ * backed by `OpenAiClient`.
  *
  * **Details**
  *

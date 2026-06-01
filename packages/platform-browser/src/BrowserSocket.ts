@@ -46,8 +46,8 @@ import * as Socket from "effect/unstable/socket/Socket"
  *
  * **When to use**
  *
- * Use when browser or client-side code needs a complete `Socket` layer
- * connected to a WebSocket URL.
+ * Use when you need browser code to satisfy the platform socket service from a
+ * URL without wiring the browser constructor service separately.
  *
  * **Details**
  *

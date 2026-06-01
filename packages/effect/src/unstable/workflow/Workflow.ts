@@ -36,8 +36,8 @@ import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Parser from "../../SchemaParser.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaParser from "../../SchemaParser.ts"
 import * as Tranformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
 import type { ExitEncoded } from "../rpc/RpcMessage.ts"
@@ -447,7 +447,7 @@ const ResultTypeId = "~effect/workflow/Workflow/Result"
 /**
  * Returns `true` when a value is a workflow `Result`.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export const isResult = <A = unknown, E = unknown>(
@@ -458,7 +458,7 @@ export const isResult = <A = unknown, E = unknown>(
  * Result of a workflow execution, either a completed exit or a suspended
  * workflow state.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export type Result<A, E> = Complete<A, E> | Suspended
@@ -466,7 +466,7 @@ export type Result<A, E> = Complete<A, E> | Suspended
 /**
  * Encoded representation of a workflow `Result`.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export type ResultEncoded<A, E> =
@@ -477,7 +477,7 @@ export type ResultEncoded<A, E> =
  * Encoded representation of a completed workflow result containing an encoded
  * `Exit`.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export interface CompleteEncoded<A, E> {
@@ -507,10 +507,9 @@ export interface CompleteSchema<
 }
 
 /**
- * Workflow result representing a completed execution with its success or
- * failure `Exit`.
+ * Represents a completed workflow execution with its success or failure `Exit`.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export class Complete<A, E> extends Data.TaggedClass("Complete")<{
@@ -540,15 +539,15 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
       [Schema.Exit(options.success, options.error, Schema.Defect)],
       ([exit]) => (input, ast, options) => {
         if (!(isResult(input) && input._tag === "Complete")) {
-          return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
+          return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))
         }
         return Effect.mapBothEager(
-          Parser.decodeEffect(exit)(input.exit, options),
+          SchemaParser.decodeEffect(exit)(input.exit, options),
           {
             onSuccess: (exit) => new Complete({ exit }),
             onFailure: (issue) =>
-              new Issue.Composite(ast, Option.some(input), [
-                new Issue.Pointer(["exit"], issue)
+              new SchemaIssue.Composite(ast, Option.some(input), [
+                new SchemaIssue.Pointer(["exit"], issue)
               ])
           }
         )
@@ -579,10 +578,10 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
 }
 
 /**
- * Workflow result representing a suspended execution, optionally carrying the
- * cause that triggered suspension.
+ * Represents a suspended workflow execution, optionally carrying the cause that
+ * triggered suspension.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export class Suspended extends Schema.Class<Suspended>(
@@ -603,7 +602,7 @@ export class Suspended extends Schema.Class<Suspended>(
  * Creates a schema for workflow results using the supplied success and error
  * schemas.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export const Result = <
@@ -617,9 +616,9 @@ export const Result = <
 const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
 
 /**
- * Codec for encoded workflow results with generic success and error payloads.
+ * Schema for encoded workflow results with generic success and error payloads.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEncoded(
@@ -636,7 +635,7 @@ export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEnc
  * `Result`, handling suspension, defect capture, interruption, and workflow
  * scope finalization.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export const intoResult = <A, E, R>(
@@ -699,7 +698,7 @@ export const intoResult = <A, E, R>(
  * Wraps an activity-like effect so workflow suspension waits for currently
  * running activities to finish or suspend.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export const wrapActivityResult = <A, E, R>(
@@ -748,7 +747,7 @@ const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Serv
 /**
  * Accesses the workflow scope, which is only closed when the workflow execution fully completes.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const scope: Effect.Effect<
@@ -763,7 +762,7 @@ export const scope: Effect.Effect<
 /**
  * Provides the workflow scope to the given effect, and closes the scope only when the workflow execution fully completes.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const provideScope = <A, E, R>(
@@ -775,7 +774,7 @@ export const provideScope = <A, E, R>(
  * Adds an exit finalizer to the current workflow scope, preserving the
  * services available when the finalizer is registered.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const addFinalizer: <R>(
@@ -793,7 +792,12 @@ export const addFinalizer: <R>(
 })
 
 /**
- * Add compensation logic to an effect inside a Workflow.
+ * Adds compensation logic to an effect inside a Workflow.
+ *
+ * **When to use**
+ *
+ * Use when a top-level workflow step needs compensating cleanup if the overall
+ * workflow later fails after the step succeeds.
  *
  * **Details**
  *
@@ -831,7 +835,7 @@ export const withCompensation: {
  * Marks a workflow instance as suspended and interrupts the current fiber to
  * stop execution until it is resumed.
  *
- * @category Result
+ * @category results
  * @since 4.0.0
  */
 export const suspend = (instance: WorkflowInstance["Service"]): Effect.Effect<never> =>
@@ -859,7 +863,7 @@ export const CaptureDefects = Context.Reference<boolean>(
 )
 
 /**
- * Causes a workflow to suspend when it encounters any error.
+ * Marks a workflow to suspend when it encounters any error.
  *
  * **Details**
  *

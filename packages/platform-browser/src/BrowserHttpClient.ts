@@ -59,21 +59,26 @@ export {
   /**
    * Context reference for the `fetch` implementation used by the fetch-based HTTP client.
    *
-   * @category Fetch
+   * @category fetch
    * @since 4.0.0
    */
   Fetch,
   /**
    * Layer that provides an `HttpClient` implementation backed by the configured `Fetch` function.
    *
-   * @category Fetch
+   * @category fetch
    * @since 4.0.0
    */
   layer as layerFetch,
   /**
-   * Service containing default `RequestInit` options for the fetch-based HTTP client.
+   * Service that contains default fetch options for the browser fetch client.
    *
-   * @category Fetch
+   * **When to use**
+   *
+   * Use to provide default credentials, cache, redirect, integrity, or other
+   * fetch options for browser HTTP requests.
+   *
+   * @category fetch
    * @since 4.0.0
    */
   RequestInit
@@ -92,12 +97,12 @@ export {
 export type XHRResponseType = "arraybuffer" | "text"
 
 /**
- * Reference that controls the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
+ * Context reference for the `XMLHttpRequest.responseType` used by the browser XHR HTTP client, defaulting to `"text"`.
  *
  * **When to use**
  *
- * Use when XHR-backed HTTP requests need to receive response bodies as text or
- * as raw `ArrayBuffer` values.
+ * Use when you need XHR-backed HTTP requests to receive response bodies as text
+ * or raw `ArrayBuffer` values.
  *
  * @see {@link XHRResponseType} for the allowed response body modes
  * @see {@link withXHRArrayBuffer} for scoping XHR response handling to `ArrayBuffer`

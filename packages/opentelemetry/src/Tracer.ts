@@ -224,9 +224,8 @@ export const layerWithoutOtelTracer: Layer.Layer<never, never, OtelTracer> = Lay
  *
  * **When to use**
  *
- * Use when your application already supplies an `OtelTracerProvider` and a
- * `Resource`, and you want Effect spans to be created by an OpenTelemetry
- * tracer derived from those services.
+ * Use when you already provide an `OtelTracerProvider` and a `Resource`, and
+ * want Effect spans backed by a tracer derived from them.
  *
  * @see {@link layerTracer} for creating only the OpenTelemetry tracer service
  * @see {@link layerGlobal} for installing the Effect tracer from the global provider
@@ -358,8 +357,8 @@ const convertOtelTimeInput = (input: Otel.TimeInput | undefined, clock: Clock.Cl
  *
  * **When to use**
  *
- * Use when OpenTelemetry instrumentation outside Effect has already
- * produced a parent span context and an effect should continue that trace.
+ * Use when you need an effect to continue a trace from a parent span context
+ * produced by OpenTelemetry instrumentation outside Effect.
  *
  * @category propagation
  * @since 4.0.0

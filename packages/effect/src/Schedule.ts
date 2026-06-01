@@ -665,7 +665,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category delays & timeouts
  * @since 2.0.0
  */
 export const addDelay: {
@@ -689,9 +689,8 @@ export const addDelay: {
   ))
 
 /**
- * Returns a new `Schedule` that will first execute the left (i.e. `self`)
- * schedule to completion. Once the left schedule is complete, the right (i.e.
- * `other`) schedule will be executed to completion.
+ * Returns a schedule that runs `self` to completion, then runs `other`, and
+ * merges their outputs.
  *
  * **Example** (Sequencing quick and slow retries)
  *
@@ -746,9 +745,8 @@ export const andThen: {
   map(andThenResult(self, other), (result) => effect.succeed(Result.merge(result))))
 
 /**
- * Returns a new `Schedule` that will first execute the left (i.e. `self`)
- * schedule to completion. Once the left schedule is complete, the right (i.e.
- * `other`) schedule will be executed to completion.
+ * Returns a schedule that runs `self` to completion, then runs `other`, and
+ * preserves which schedule produced each output.
  *
  * **Details**
  *
@@ -854,9 +852,7 @@ export const andThenResult: {
  *
  * **When to use**
  *
- * Use when the combined schedule should continue only while both
- * schedules still recur. Use `either` when either schedule should be enough to
- * continue.
+ * Use when the combined schedule should continue only while both schedules still recur.
  *
  * **Example** (Combining time and attempt limits)
  *
@@ -922,7 +918,7 @@ export const andThenResult: {
  *
  * @see {@link either} for continuing while either schedule still recurs
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const both: {
@@ -945,6 +941,11 @@ export const both: {
  * Combines two `Schedule`s by recurring if both of the two schedules want
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the left schedule (i.e. `self`).
+ *
+ * **When to use**
+ *
+ * Use when two schedules must both allow recurrence and only the left schedule's
+ * output is needed.
  *
  * **Example** (Combining schedules and keeping the left output)
  *
@@ -970,7 +971,7 @@ export const both: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const bothLeft: {
@@ -992,6 +993,11 @@ export const bothLeft: {
  * Combines two `Schedule`s by recurring if both of the two schedules want
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the right schedule (i.e. `other`).
+ *
+ * **When to use**
+ *
+ * Use when two schedules must both allow recurrence and only the right
+ * schedule's output is needed.
  *
  * **Example** (Combining schedules and keeping the right output)
  *
@@ -1019,7 +1025,7 @@ export const bothLeft: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const bothRight: {
@@ -1042,6 +1048,11 @@ export const bothRight: {
  * to recur, using the maximum of the two durations between recurrences and
  * outputting the result of the combination of both schedule outputs using the
  * specified `combine` function.
+ *
+ * **When to use**
+ *
+ * Use when two schedules must both allow recurrence and their outputs should be
+ * combined into a custom value.
  *
  * **Example** (Combining schedule outputs)
  *
@@ -1073,7 +1084,7 @@ export const bothRight: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const bothWith: {
@@ -1148,7 +1159,7 @@ export const bothWith: {
  * })
  * ```
  *
- * @category utils
+ * @category collecting
  * @since 4.0.0
  */
 export const collectInputs = <Output, Input, Error, Env>(
@@ -1185,7 +1196,7 @@ export const collectInputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category collecting
  * @since 4.0.0
  */
 export const collectOutputs = <Output, Input, Error, Env>(
@@ -1272,7 +1283,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category collecting
  * @since 2.0.0
  */
 export const collectWhile: {
@@ -1545,8 +1556,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  *
  * **When to use**
  *
- * Use when you need one delayed recurrence. Use `during` to keep
- * recurring until a duration has elapsed.
+ * Use when you need a schedule that recurs once after a fixed delay.
  *
  * **Details**
  *
@@ -1584,8 +1594,7 @@ export const duration = (durationInput: Duration.Input): Schedule<Duration.Durat
  *
  * **When to use**
  *
- * Use to bound a repeating or retrying schedule by elapsed time. Use
- * `duration` when you need one delayed recurrence.
+ * Use to bound a repeating or retrying schedule by elapsed time.
  *
  * **Example** (Repeating work during a duration)
  *
@@ -1683,8 +1692,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  *
  * **When to use**
  *
- * Use when the combined schedule should continue while at least one
- * schedule still recurs. Use `both` when both schedules must continue.
+ * Use when the combined schedule should continue while at least one schedule still recurs.
  *
  * **Example** (Combining schedules with either semantics)
  *
@@ -1752,7 +1760,7 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
  *
  * @see {@link both} for continuing only while both schedules still recur
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const either: {
@@ -1775,6 +1783,11 @@ export const either: {
  * Combines two `Schedule`s by recurring if either of the two schedules wants
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the left schedule (i.e. `self`).
+ *
+ * **When to use**
+ *
+ * Use when either schedule may keep recurrence going and only the left
+ * schedule's output is needed.
  *
  * **Example** (Combining either schedules and keeping the left output)
  *
@@ -1803,7 +1816,7 @@ export const either: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 4.0.0
  */
 export const eitherLeft: {
@@ -1825,6 +1838,11 @@ export const eitherLeft: {
  * Combines two `Schedule`s by recurring if either of the two schedules wants
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the right schedule (i.e. `other`).
+ *
+ * **When to use**
+ *
+ * Use when either schedule may keep recurrence going and only the right
+ * schedule's output is needed.
  *
  * **Example** (Combining either schedules and keeping the right output)
  *
@@ -1853,7 +1871,7 @@ export const eitherLeft: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 4.0.0
  */
 export const eitherRight: {
@@ -1876,6 +1894,11 @@ export const eitherRight: {
  * to recur, using the minimum of the two durations between recurrences and
  * outputting the result of the combination of both schedule outputs using the
  * specified `combine` function.
+ *
+ * **When to use**
+ *
+ * Use when either schedule may keep recurrence going and their outputs should be
+ * combined into a custom value.
  *
  * **Example** (Combining either schedule outputs)
  *
@@ -1908,7 +1931,7 @@ export const eitherRight: {
  * })
  * ```
  *
- * @category utils
+ * @category combining
  * @since 2.0.0
  */
 export const eitherWith: {
@@ -1962,7 +1985,8 @@ export const eitherWith: {
   )))
 
 /**
- * A schedule that always recurs and returns the total elapsed duration since the first recurrence.
+ * Schedule that always recurs and returns the total elapsed duration since the
+ * first recurrence.
  *
  * **Details**
  *
@@ -1996,7 +2020,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
 )
 
 /**
- * A schedule that always recurs, but will wait a certain amount between
+ * Schedule that always recurs, but will wait a certain amount between
  * repetitions, given by `base * factor.pow(n)`, where `n` is the number of
  * repetitions so far. Returns the current duration between recurrences.
  *
@@ -2056,7 +2080,7 @@ export const exponential = (
 }
 
 /**
- * A schedule that always recurs, increasing delays by summing the preceding
+ * Schedule that always recurs, increasing delays by summing the preceding
  * two delays (similar to the Fibonacci sequence). Returns the current
  * duration between recurrences.
  *
@@ -2143,8 +2167,7 @@ export const fibonacci = (one: Duration.Input): Schedule<Duration.Duration> => {
  *
  * **When to use**
  *
- * Use when recurrences should stay aligned to a regular cadence. Use
- * `spaced` when each delay should start after the previous action completes.
+ * Use when recurrences should stay aligned to a regular cadence.
  *
  * **Gotchas**
  *
@@ -2355,7 +2378,7 @@ export const map: {
  * })
  * ```
  *
- * @category utils
+ * @category delays & timeouts
  * @since 2.0.0
  */
 export const modifyDelay: {
@@ -2401,7 +2424,7 @@ export const modifyDelay: {
  *
  * @see {@link modifyDelay} for replacing recurrence delays with a custom effectful transformation
  *
- * @category utils
+ * @category delays & timeouts
  * @since 2.0.0
  */
 export const jittered = <Output, Input, Error, Env>(
@@ -2439,7 +2462,7 @@ export const jittered = <Output, Input, Error, Env>(
  * })
  * ```
  *
- * @category utils
+ * @category mapping
  * @since 2.0.0
  */
 export const passthrough = <Output, Input, Error, Env>(
@@ -2458,8 +2481,7 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * **When to use**
  *
- * Use when you use `recurs` for a counter schedule with no additional delay. Use `take` to
- * limit an existing schedule while preserving its output and delay behavior.
+ * Use when you need a counter schedule with no additional delay.
  *
  * **Gotchas**
  *
@@ -2634,7 +2656,7 @@ export const recurs = (times: number): Schedule<number> =>
  * })
  * ```
  *
- * @category utils
+ * @category folding
  * @since 2.0.0
  */
 export const reduce: {
@@ -2683,9 +2705,7 @@ export const reduce: {
  *
  * **When to use**
  *
- * Use when each delay should start after the previous action
- * completes. Use `fixed` when recurrences should stay aligned to a regular
- * cadence.
+ * Use when each delay should start after the previous action completes.
  *
  * **Example** (Repeating with fixed spacing)
  *
@@ -3051,9 +3071,7 @@ export const tapOutput: {
  *
  * **When to use**
  *
- * Use to limit an existing schedule while preserving its output and
- * delay behavior. Use `recurs` when you only need an immediate counter
- * schedule.
+ * Use to limit an existing schedule while preserving its output and delay behavior.
  *
  * **Gotchas**
  *
@@ -3136,7 +3154,7 @@ export const tapOutput: {
  *
  * @see {@link recurs} for creating a count-limited schedule
  *
- * @category utils
+ * @category taking
  * @since 4.0.0
  */
 export const take: {
@@ -3315,14 +3333,14 @@ export {
    * @see {@link collectWhile} for collecting outputs while using the same predicate
    * @see {@link take} for stopping after a fixed number of schedule outputs
    *
-   * @category utils
+   * @category filtering
    * @since 4.0.0
    */
   while_ as while
 }
 
 /**
- * A schedule that divides the timeline to `interval`-long windows, and sleeps
+ * Schedule that divides the timeline to `interval`-long windows, and sleeps
  * until the nearest window boundary every time it recurs.
  *
  * **Details**
@@ -3433,13 +3451,8 @@ export {
  *
  * **When to use**
  *
- * Use to check an existing schedule input type. Use
- * `setInputType` to adapt a schedule that does not depend on its input values.
- *
- * **Details**
- *
- * This helper is checked at compile time and does not change the schedule's
- * runtime behavior.
+ * Use when you need a generic helper to prove that an existing schedule can
+ * consume a required input type without changing runtime behavior.
  *
  * **Example** (Constraining schedule input types)
  *
@@ -3473,8 +3486,7 @@ export const satisfiesInputType = <T>() =>
  *
  * **When to use**
  *
- * Use to adapt a schedule that does not depend on its input
- * values. Use `satisfiesInputType` to check an existing schedule input type.
+ * Use to adapt a schedule that does not depend on its input values.
  *
  * **Details**
  *

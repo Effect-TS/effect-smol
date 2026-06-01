@@ -1200,26 +1200,26 @@ describe("toCodeDocument", () => {
     assertSchema(
       {
         schema: Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
-          Schema.Record(Schema.String, Schema.Boolean)
+          Schema.Record(Schema.String, Schema.Number)
         ])
       },
       {
         codes: makeCode(
-          `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Boolean)])`,
-          `{ readonly "a": number, readonly [x: string]: boolean }`
+          `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Number)])`,
+          `{ readonly "a": number, readonly [x: string]: number }`
         )
       }
     )
     assertSchema(
       {
         schema: Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
-          Schema.Record(Schema.String, Schema.Boolean)
+          Schema.Record(Schema.String, Schema.Number)
         ]).annotate({ description: "a" })
       },
       {
         codes: makeCode(
-          `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Boolean)]).annotate({ "description": "a" })`,
-          `{ readonly "a": number, readonly [x: string]: boolean }`
+          `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Number)]).annotate({ "description": "a" })`,
+          `{ readonly "a": number, readonly [x: string]: number }`
         )
       }
     )

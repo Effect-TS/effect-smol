@@ -113,7 +113,7 @@ export interface FileSystem {
   readonly [TypeId]: typeof TypeId
 
   /**
-   * Check if a file can be accessed.
+   * Checks whether a file can be accessed.
    * You can optionally specify the level of access to check for.
    */
   readonly access: (
@@ -162,7 +162,7 @@ export interface FileSystem {
     gid: number
   ) => Effect.Effect<void, PlatformError>
   /**
-   * Check if a path exists.
+   * Checks whether a path exists.
    */
   readonly exists: (
     path: string
@@ -737,12 +737,16 @@ export type OpenFlag =
   | "ax+"
 
 /**
- * The service identifier for the FileSystem service.
+ * Service tag for platform file-system operations.
+ *
+ * **When to use**
+ *
+ * Use to access or provide operations for files, directories, permissions,
+ * streams, and sinks through the Effect context.
  *
  * **Details**
  *
  * This key is used to provide and access the FileSystem service in the Effect context.
- * Use this to inject file system implementations or access file system operations.
  *
  * **Example** (Accessing and providing FileSystem)
  *
@@ -774,7 +778,7 @@ export type OpenFlag =
  * )
  * ```
  *
- * @category tag
+ * @category services
  * @since 4.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")
@@ -1070,15 +1074,15 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * Runtime type identifier attached to `FileSystem.File` handles and used by
  * `isFile` to recognize them.
  *
- * **When to use**
+ * **Details**
  *
- * Use when implementing a custom `FileSystem` file handle that should be
- * recognized by `isFile`.
+ * This marker is part of the runtime representation of file handles. Prefer
+ * `isFile` when narrowing unknown values.
  *
  * @see {@link File} for the open file handle shape that carries this marker
  * @see {@link isFile} for the public guard that checks this marker
  *
- * @category File
+ * @category type IDs
  * @since 4.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"
@@ -1100,7 +1104,7 @@ export const FileTypeId = "~effect/platform/FileSystem/File"
  * @see {@link File} for the file-handle interface narrowed by this guard
  * @see {@link FileTypeId} for the runtime marker checked by this guard
  *
- * @category File
+ * @category file
  * @since 4.0.0
  */
 export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
@@ -1146,7 +1150,7 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * })
  * ```
  *
- * @category File
+ * @category file
  * @since 4.0.0
  */
 export interface File {
@@ -1177,7 +1181,7 @@ export declare namespace File {
    * File descriptors are numeric handles used by the operating system
    * to identify open files. The branded type ensures type safety.
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
@@ -1190,7 +1194,7 @@ export declare namespace File {
    * Represents the different types of entries that can exist in a file system,
    * from regular files to special device files and symbolic links.
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export type Type =
@@ -1245,7 +1249,7 @@ export declare namespace File {
    * })
    * ```
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export interface Info {

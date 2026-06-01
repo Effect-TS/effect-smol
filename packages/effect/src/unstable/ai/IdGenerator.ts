@@ -55,7 +55,12 @@ import * as Predicate from "../../Predicate.ts"
 import * as Random from "../../Random.ts"
 
 /**
- * The `IdGenerator` service tag for dependency injection.
+ * Service tag for AI identifier generation services.
+ *
+ * **When to use**
+ *
+ * Use to access or provide the service that creates identifiers for AI tool
+ * calls and related generated values.
  *
  * **Details**
  *
@@ -76,7 +81,7 @@ import * as Random from "../../Random.ts"
  * })
  * ```
  *
- * @category models
+ * @category services
  * @since 4.0.0
  */
 export class IdGenerator extends Context.Service<IdGenerator, Service>()(
@@ -137,7 +142,7 @@ export interface Service {
  * // This will generate IDs like: "tool_A1B2C3D4"
  * ```
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface MakeOptions {
@@ -301,9 +306,8 @@ export const make = Effect.fnUntraced(function*({
  *
  * **When to use**
  *
- * Use when this is the recommended way to provide ID generation capabilities to your
- * application. The layer will fail during construction if the configuration is
- * invalid.
+ * Use when you need to provide ID generation capabilities from validated
+ * configuration.
  *
  * **Example** (Providing an ID generator layer)
  *

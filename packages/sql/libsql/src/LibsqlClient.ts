@@ -84,9 +84,13 @@ export interface LibsqlClient extends Client.SqlClient {
 }
 
 /**
- * Context tag used to access the `LibsqlClient` service.
+ * Service tag for the libSQL client service.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide a libSQL client through the Effect context.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const LibsqlClient = Context.Service<LibsqlClient>("@effect/sql-libsql/LibsqlClient")

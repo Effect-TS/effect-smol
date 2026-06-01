@@ -235,6 +235,11 @@ export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
  * Creates a scoped run function that forks effects into a new `FiberHandle`
  * and returns a `Promise` for each effect result.
  *
+ * **When to use**
+ *
+ * Use when integrating a scoped `FiberHandle` runner with Promise-based APIs
+ * and Promise rejection from squashed failures is the desired boundary.
+ *
  * **Details**
  *
  * Each call stores the fiber in the handle and interrupts the previous fiber
@@ -284,8 +289,13 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
 ))
 
 /**
- * Set the fiber in a FiberHandle. When the fiber completes, it will be removed from the FiberHandle.
+ * Sets the fiber in a FiberHandle. When the fiber completes, it will be removed from the FiberHandle.
  * If a fiber is already running, it will be interrupted unless `options.onlyIfMissing` is set.
+ *
+ * **When to use**
+ *
+ * Use when an existing forked fiber must be installed synchronously into a
+ * handle and immediate interruption of replaced or closed fibers is acceptable.
  *
  * **Example** (Setting a fiber unsafely)
  *
@@ -426,7 +436,12 @@ export const set: {
   ))
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Retrieves the fiber from the FiberHandle synchronously.
+ *
+ * **When to use**
+ *
+ * Use when synchronous inspection of the current fiber is needed and an
+ * `Option` result is enough outside the Effect workflow.
  *
  * **Example** (Reading the current fiber unsafely)
  *
@@ -455,7 +470,7 @@ export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fi
 }
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Retrieves the fiber from the FiberHandle effectfully.
  *
  * **Example** (Reading the current fiber)
  *
@@ -798,7 +813,7 @@ export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
 
 /**
- * Wait for the fiber in the FiberHandle to complete.
+ * Waits for the fiber in the FiberHandle to complete.
  *
  * **Example** (Waiting for a fiber to complete)
  *

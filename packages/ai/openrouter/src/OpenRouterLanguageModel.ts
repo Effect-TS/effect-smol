@@ -77,7 +77,7 @@ import { type ChatStreamingResponseChunkData, OpenRouterClient } from "./OpenRou
 // =============================================================================
 
 /**
- * Service definition for OpenRouter language model configuration.
+ * Context service for OpenRouter language model configuration.
  *
  * **When to use**
  *
@@ -548,8 +548,8 @@ export const model = (
  *
  * **When to use**
  *
- * Use when an Effect needs to construct a `LanguageModel.Service` value backed
- * by `OpenRouterClient`.
+ * Use when you need to construct a `LanguageModel.Service` value backed by
+ * `OpenRouterClient` inside an Effect.
  *
  * **Details**
  *

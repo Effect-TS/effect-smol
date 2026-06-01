@@ -44,7 +44,7 @@ import * as Parameter from "./Parameter.ts"
 /**
  * Runtime type identifier used to mark SQL Server stored procedure definitions.
  *
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-mssql/Procedure"
@@ -52,7 +52,7 @@ export const TypeId: TypeId = "~@effect/sql-mssql/Procedure"
 /**
  * Type-level identifier used to mark SQL Server stored procedure definitions.
  *
- * @category type id
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-mssql/Procedure"
@@ -156,7 +156,7 @@ export const make = (name: string): Procedure<{}, {}> => {
 /**
  * Adds a typed input parameter to a SQL Server stored procedure definition.
  *
- * @category combinator
+ * @category combinators
  * @since 4.0.0
  */
 export const param = <A>() =>
@@ -181,7 +181,7 @@ export const param = <A>() =>
 /**
  * Adds a typed output parameter to a SQL Server stored procedure definition.
  *
- * @category combinator
+ * @category combinators
  * @since 4.0.0
  */
 export const outputParam = <A>() =>
@@ -206,7 +206,7 @@ export const outputParam = <A>() =>
 /**
  * Sets the expected row type for a SQL Server stored procedure definition.
  *
- * @category combinator
+ * @category combinators
  * @since 4.0.0
  */
 export const withRows = <A extends object = Row>() =>
@@ -220,7 +220,7 @@ export const withRows = <A extends object = Row>() =>
 /**
  * Binds input values to a SQL Server stored procedure definition, producing a value that can be executed with `MssqlClient.call`.
  *
- * @category combinator
+ * @category combinators
  * @since 4.0.0
  */
 export const compile = <

@@ -36,7 +36,7 @@ import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import { CurrentLogLevel } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import * as Sink from "../../Sink.ts"
 import type { Stdio } from "../../Stdio.ts"
 import * as Stream from "../../Stream.ts"
@@ -581,7 +581,7 @@ export const layer = (options: {
   )
 
 /**
- * Run the McpServer, using stdio for input and output.
+ * Runs the McpServer, using stdio for input and output.
  *
  * **Example** (Running an MCP server over stdio)
  *
@@ -679,7 +679,7 @@ export const layerHttp = (options: {
   )
 
 /**
- * Register a `Toolkit` with the `McpServer`.
+ * Registers a `Toolkit` with the `McpServer`.
  *
  * @category tools
  * @since 4.0.0
@@ -755,7 +755,7 @@ export const registerToolkit: <Tools extends Record<string, Tool.Any>>(
 })
 
 /**
- * Register an AiToolkit with the McpServer.
+ * Registers an `AiToolkit` with the `McpServer`.
  *
  * @category tools
  * @since 4.0.0
@@ -804,7 +804,15 @@ export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
 }
 
 /**
- * Register a resource with the McpServer.
+ * Registers an MCP resource or resource template from an Effect program.
+ *
+ * **When to use**
+ *
+ * Use when you are already inside an Effect program with an `McpServer`
+ * service and need to add a concrete resource or URI-template resource
+ * directly.
+ *
+ * @see {@link resource} for the layer-based resource registration wrapper
  *
  * @category resources
  * @since 4.0.0
@@ -960,7 +968,13 @@ export const registerResource: {
 } as any
 
 /**
- * Register a resource with the McpServer.
+ * Creates a layer that registers an MCP resource or resource template.
+ *
+ * **When to use**
+ *
+ * Use to compose resource registration into an MCP server layer.
+ *
+ * @see {@link registerResource} for the Effect-level resource registration API
  *
  * @category resources
  * @since 4.0.0
@@ -1020,11 +1034,12 @@ export const resource: {
 } as any
 
 /**
- * Register a prompt with the McpServer.
+ * Registers an MCP prompt from an Effect program.
  *
  * **When to use**
  *
- * Use to register an MCP prompt from an Effect program.
+ * Use when you are already inside an Effect program with an `McpServer`
+ * service and need to add a prompt handler directly.
  *
  * **Details**
  *
@@ -1059,8 +1074,8 @@ export const registerPrompt = <
   for (const [name, prop] of Object.entries(props)) {
     args.push({
       name,
-      description: AST.resolveDescription(prop.ast),
-      required: !AST.isOptional(prop.ast)
+      description: SchemaAST.resolveDescription(prop.ast),
+      required: !SchemaAST.isOptional(prop.ast)
     })
   }
   const prompt = new Prompt({
@@ -1127,7 +1142,7 @@ export const registerPrompt = <
 }
 
 /**
- * Register a prompt with the McpServer.
+ * Creates a layer that registers an MCP prompt.
  *
  * **When to use**
  *
@@ -1168,7 +1183,7 @@ export const prompt = <
   )
 
 /**
- * Requests structured input from the current MCP client and decodes the
+ * Collects structured input from the current MCP client and decodes the
  * accepted response with `schema`.
  *
  * **Details**
@@ -1211,7 +1226,7 @@ export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>
 }, Effect.scoped)
 
 /**
- * Access the current client's capabilities.
+ * Accesses the current client's capabilities.
  *
  * @category capabilities
  * @since 4.0.0

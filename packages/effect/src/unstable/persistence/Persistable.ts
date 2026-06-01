@@ -31,10 +31,15 @@ import type * as Types from "../../Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 
 /**
- * Property key used to attach success and error schemas to persistable
+ * Defines the property key used to attach success and error schemas to persistable
  * requests.
  *
- * @category Symbols
+ * **When to use**
+ *
+ * Use to implement persistable request values by attaching success and error
+ * schemas at this property key.
+ *
+ * @category symbols
  * @since 4.0.0
  */
 export const symbol = "~effect/persistence/Persistable" as const
@@ -211,7 +216,7 @@ export const Class = <
  * Returns the cached `Exit` schema for a persistable request's success and
  * error schemas.
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const exitSchema = <A extends Schema.Top, E extends Schema.Top>(
@@ -230,7 +235,7 @@ const exitSchemaCache = new WeakMap<Persistable<any, any>, Schema.Exit<any, any,
  * Encodes an `Exit` for a persistable request using its success and error
  * schemas.
  *
- * @category Serialization
+ * @category serialization
  * @since 4.0.0
  */
 export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
@@ -245,7 +250,7 @@ export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
  * Decodes a persisted value into an `Exit` for a persistable request using its
  * success and error schemas.
  *
- * @category Serialization
+ * @category serialization
  * @since 4.0.0
  */
 export const deserializeExit = <A extends Schema.Top, E extends Schema.Top>(

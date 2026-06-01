@@ -106,7 +106,7 @@ export interface MutableHashMap<out K, out V> extends Iterable<[K, V]>, Pipeable
 }
 
 /**
- * Checks if the specified value is a `MutableHashMap`, `false` otherwise.
+ * Checks whether the specified value is a `MutableHashMap`, `false` otherwise.
  *
  * **When to use**
  *
@@ -265,11 +265,11 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
 }
 
 /**
- * Looks up a key in the `MutableHashMap`.
+ * Looks up a key in the `MutableHashMap` safely.
  *
  * **When to use**
  *
- * Use to safely read the value for a key as an `Option`.
+ * Use to safely read a `MutableHashMap` value for a key as an `Option`.
  *
  * **Details**
  *
@@ -410,11 +410,12 @@ const getFromBucket = <K, V>(
 }
 
 /**
- * Checks if the MutableHashMap contains the specified key.
+ * Checks whether the MutableHashMap contains the specified key.
  *
  * **When to use**
  *
- * Use to test whether a key is present without reading its value.
+ * Use to test whether a key is present in a `MutableHashMap` without reading
+ * its value.
  *
  * **Example** (Checking for a key)
  *
@@ -450,7 +451,8 @@ export const has: {
  *
  * **When to use**
  *
- * Use to insert a new entry or replace an existing entry in place.
+ * Use to insert a new `MutableHashMap` entry or replace an existing entry in
+ * place.
  *
  * **Example** (Setting key-value pairs)
  *
@@ -535,7 +537,8 @@ const getRefKey = <K>(
  *
  * **When to use**
  *
- * Use to transform an existing value in place without inserting missing keys.
+ * Use to transform an existing `MutableHashMap` value in place without
+ * inserting missing keys.
  *
  * **Example** (Modifying existing values)
  *
@@ -602,10 +605,8 @@ export const modify: {
 })
 
 /**
- * Sets or removes the specified key in the MutableHashMap using an update function.
- * The function receives the current value as an Option and returns an Option.
- * If the function returns Some, the key is set to that value.
- * If the function returns None, the key is removed.
+ * Updates or removes the specified key using a function from the current
+ * optional value to the next optional value.
  *
  * **When to use**
  *

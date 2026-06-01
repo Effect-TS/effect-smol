@@ -75,14 +75,12 @@ import { byReferenceInstances, getAllObjectKeys } from "./internal/equal.ts"
 import { hasProperty } from "./Predicate.ts"
 
 /**
- * The unique string identifier for the {@link Equal} interface.
+ * Defines the unique string identifier for the `Equal` interface.
  *
  * **When to use**
  *
- * Use when you use it as the computed property key when implementing custom equality on a
- *   class or object literal.
- * - Use it to check manually whether an object carries an equality method (prefer
- *   {@link isEqual} instead).
+ * Use when you implement custom equality and need the computed property key for
+ * the equality method.
  *
  * **Details**
  *
@@ -118,7 +116,7 @@ export const symbol = "~effect/interfaces/Equal"
  *
  * **When to use**
  *
- * Use when when you need value-based equality for a class (e.g. domain IDs,
+ * Use when you need value-based equality for a class (e.g. domain IDs,
  *   coordinates, money values).
  * - When your type will be stored in `HashMap` or `HashSet`.
  * - When the default structural comparison is too broad or too narrow for
@@ -170,34 +168,28 @@ export interface Equal extends Hash.Hash {
 }
 
 /**
- * Compares two values for deep structural equality.
+ * Checks whether two values are deeply structurally equal.
  *
  * **When to use**
  *
- * Use when as the default equality check throughout Effect code.
- * - In data-level assertions or conditional logic where structural comparison
- *   is needed.
- * - In its curried (single-argument) form to build reusable predicates.
+ * Use when you need Effect's default structural equality check.
  *
  * **Details**
  *
- * - Returns a `boolean`; never throws.
- * - Primitives: compared by value. `NaN` equals `NaN`.
- * - Objects implementing {@link Equal}: delegates to their
- *   `[Equal.symbol]` method. If only one operand implements `Equal`, the
- *   result is `false`.
- * - Dates: compared by ISO string representation.
- * - RegExps: compared by string representation.
- * - Arrays: element-by-element recursive comparison (order matters).
- * - Maps / Sets: structural comparison of entries (order-independent).
- * - Plain objects: all own and inherited enumerable keys are compared
- *   recursively.
- * - Functions without an `Equal` implementation are compared by reference.
- * - Circular references are handled; two structures that are circular at the
- *   same depth are considered equal.
- * - Hash values are checked first as a fast-path rejection.
- * - Supports dual (data-last) usage: call with one argument to get a curried
- *   predicate.
+ * Returns a `boolean` and never throws. Primitives are compared by value, and
+ * `NaN` equals `NaN`. Objects implementing `Equal` delegate to their
+ * `[Equal.symbol]` method; if only one operand implements `Equal`, the result
+ * is `false`.
+ *
+ * Dates compare by ISO string, RegExps compare by string representation,
+ * arrays compare element-by-element, Maps and Sets compare entries
+ * order-independently, and plain objects compare enumerable keys recursively.
+ * Functions without an `Equal` implementation compare by reference. Circular
+ * references are handled when both structures are circular at the same depth.
+ *
+ * Hash values are checked first as a fast-path rejection. The function also
+ * supports dual data-last usage: call it with one argument to get a curried
+ * predicate.
  *
  * **Gotchas**
  *
@@ -462,10 +454,8 @@ const compareSets = makeCompareSet(compareBoth)
  *
  * **When to use**
  *
- * Use when to branch on whether a value supports custom equality before calling
- *   its `[Equal.symbol]` method directly.
- * - In generic utility code that needs to distinguish `Equal` implementors
- *   from plain values.
+ * Use when you need generic utility code to distinguish `Equal` implementors
+ * from plain values before calling `[Equal.symbol]` directly.
  *
  * **Details**
  *
@@ -506,8 +496,8 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  *
  * **When to use**
  *
- * Use when when an API (e.g. `Array.dedupeWith`, `Equivalence.mapInput`) requires an
- *   `Equivalence` and you want to reuse `Equal.equals`.
+ * Use when you want to pass `Equal.equals` to APIs that require an
+ * `Equivalence`.
  *
  * **Details**
  *
@@ -536,10 +526,8 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  *
  * **When to use**
  *
- * Use when when you have a plain object or array that should be compared by identity
- *   (reference), not by contents.
- * - When you want to preserve the original object unchanged and get a new
- *   reference-equal handle.
+ * Use when you need to compare a plain object or array by identity without
+ * mutating the original value.
  *
  * **Details**
  *
@@ -570,20 +558,18 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  * @see {@link byReferenceUnsafe} — same effect without a proxy (mutates the
  *   original)
  * @see {@link equals} — the comparison function affected by this opt-out
- * @category utility
+ * @category equality
  * @since 4.0.0
  */
 export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(new Proxy(obj, {}))
 
 /**
- * Permanently marks an object to use reference equality, without creating a
- * proxy.
+ * Marks an object permanently to use reference equality, without creating a proxy.
  *
  * **When to use**
  *
- * Use when when you want reference equality semantics and can accept that the
- *   original object is **permanently** modified.
- * - When proxy overhead is unacceptable (hot paths, large collections).
+ * Use when you need reference equality without proxy allocation and accept
+ * permanently marking the original object for reference-only equality.
  *
  * **Details**
  *
@@ -615,7 +601,7 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  *
  * @see {@link byReference} — safer alternative that creates a proxy
  * @see {@link equals} — the comparison function affected by this opt-out
- * @category utility
+ * @category unsafe
  * @since 4.0.0
  */
 export const byReferenceUnsafe = <T extends object>(obj: T): T => {

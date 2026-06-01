@@ -75,7 +75,8 @@ export interface SchedulerDispatcher {
  *
  * **When to use**
  *
- * Use to provide or override the scheduler used by the Effect runtime.
+ * Use when you need to replace scheduling behavior globally in tests or runtime
+ * setup, such as forcing deterministic task dispatch.
  *
  * **Details**
  *
@@ -130,7 +131,7 @@ class PriorityBuckets {
 }
 
 /**
- * A scheduler implementation that batches queued tasks and dispatches them by
+ * Provides a scheduler implementation that batches queued tasks and dispatches them by
  * priority.
  *
  * **When to use**
@@ -179,7 +180,8 @@ export class MixedScheduler implements Scheduler {
    *
    * **When to use**
    *
-   * Use to create a dispatcher for enqueuing work through this scheduler.
+   * Use when you need a standalone dispatcher from a scheduler instance, for
+   * example in tests that enqueue tasks and then flush them deterministically.
    *
    * @since 4.0.0
    */
@@ -245,13 +247,13 @@ class MixedSchedulerDispatcher implements SchedulerDispatcher {
 }
 
 /**
- * A service reference that controls the maximum number of operations a fiber
+ * Context reference that controls the maximum number of operations a fiber
  * can perform before yielding control back to the scheduler.
  *
  * **When to use**
  *
- * Use to tune scheduler fairness for CPU-bound fibers by changing the operation
- * budget that triggers a scheduler yield.
+ * Use to tune scheduler fairness for CPU-bound fibers by changing the scheduler
+ * operation budget that triggers a yield.
  *
  * **Details**
  *
@@ -269,7 +271,7 @@ export const MaxOpsBeforeYield = Context.Reference<number>("effect/Scheduler/Max
 })
 
 /**
- * A service reference that controls whether the runtime should bypass scheduler
+ * Context reference that controls whether the runtime should bypass scheduler
  * yield checks. When set to `true`, the fiber run loop won't call
  * `Scheduler.shouldYield`.
  *

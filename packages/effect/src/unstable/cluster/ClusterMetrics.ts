@@ -26,8 +26,13 @@
 import * as Metric from "../../Metric.ts"
 
 /**
- * Gauge tracking the number of active entity instances for each entity type on
+ * Creates a gauge tracking the number of active entity instances for each entity type on
  * the current runner.
+ *
+ * **When to use**
+ *
+ * Use when instrumenting runner-local entity counts and tagging them by entity
+ * type for cluster dashboards.
  *
  * **Details**
  *
@@ -48,7 +53,7 @@ import * as Metric from "../../Metric.ts"
 export const entities = Metric.gauge("effect_cluster_entities", { bigint: true })
 
 /**
- * Gauge tracking the number of singleton processes currently running on the
+ * Creates a gauge tracking the number of singleton processes currently running on the
  * current runner.
  *
  * @category metrics
@@ -57,7 +62,7 @@ export const entities = Metric.gauge("effect_cluster_entities", { bigint: true }
 export const singletons = Metric.gauge("effect_cluster_singletons", { bigint: true })
 
 /**
- * Gauge tracking the number of registered cluster runners.
+ * Represents a gauge tracking the number of registered cluster runners.
  *
  * **When to use**
  *
@@ -75,7 +80,7 @@ export const singletons = Metric.gauge("effect_cluster_singletons", { bigint: tr
 export const runners = Metric.gauge("effect_cluster_runners", { bigint: true })
 
 /**
- * Gauge tracking the number of cluster runners currently considered healthy.
+ * Represents a gauge tracking the number of cluster runners currently considered healthy.
  *
  * **When to use**
  *
@@ -98,7 +103,7 @@ export const runners = Metric.gauge("effect_cluster_runners", { bigint: true })
 export const runnersHealthy = Metric.gauge("effect_cluster_runners_healthy", { bigint: true })
 
 /**
- * Gauge tracking the number of shards currently acquired by the current runner.
+ * Represents a gauge tracking the number of shards currently acquired by the current runner.
  *
  * **When to use**
  *

@@ -146,7 +146,7 @@ export type Node =
  *
  * **Details**
  *
- * The function does not mutate input and returns a new plain object.
+ * The function returns a new plain object.
  *
  * **Example** (Creating a value node)
  *
@@ -173,7 +173,7 @@ export function makeValue(value: string): Node {
  *
  * **When to use**
  *
- * Use when describing a directory or JSON object inside a custom
+ * Use when you need to describe a directory or JSON object inside a custom
  * provider.
  *
  * **Details**
@@ -207,8 +207,8 @@ export function makeRecord(keys: ReadonlySet<string>, value?: string): Node {
  *
  * **When to use**
  *
- * Use when describing a JSON array or a set of numerically-indexed env
- * vars inside a custom provider.
+ * Use when you need to describe a JSON array or numerically indexed env vars
+ * inside a custom provider.
  *
  * **Details**
  *
@@ -239,9 +239,8 @@ export function makeArray(length: number, value?: string): Node {
  *
  * **When to use**
  *
- * Use when you use this from a custom provider's `get` callback when the underlying store
- * is unreachable or produces an I/O error, or match on it in error channels
- * when consuming provider output directly.
+ * Use when you need to report that a custom provider's underlying store is
+ * unreachable or produced an I/O error while reading configuration data.
  *
  * **Gotchas**
  *
@@ -360,17 +359,15 @@ export interface ConfigProvider extends Pipeable {
 }
 
 /**
- * The `ConfigProvider` service reference, registered in the context with a
+ * Context reference for the active raw configuration provider, registered in the context with a
  * default value of `fromEnv()`. Because it is a `Context.Reference`, it is
  * available without explicit provision; `Config` schemas automatically resolve
  * it.
  *
  * **When to use**
  *
- * Use to override the provider for an entire program via
- * `Effect.provideService(ConfigProvider.ConfigProvider, myProvider)`, or to
- * retrieve the current provider inside an Effect with
- * `yield* ConfigProvider.ConfigProvider`.
+ * Use to override the active raw configuration provider for an entire program,
+ * or retrieve the current provider inside an Effect.
  *
  * **Example** (Providing a custom provider)
  *
@@ -473,8 +470,8 @@ export function make(
  *
  * **When to use**
  *
- * Use to layer multiple config sources, such as env vars plus a defaults
- * file, or to provide partial overrides on top of a base config.
+ * Use to layer multiple config sources, such as env vars plus a defaults file,
+ * or provide partial overrides on top of a base config.
  *
  * **Details**
  *
@@ -517,9 +514,8 @@ export const orElse: {
  *
  * **When to use**
  *
- * Use when you use this for renaming or re-casing path segments, or for adding suffixes and
- * other per-segment transformations. See {@link constantCase} for a common
- * specialization.
+ * Use when you need to rename, re-case, or otherwise transform config path
+ * segments before lookup.
  *
  * **Details**
  *
@@ -601,7 +597,7 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
  * **When to use**
  *
  * Use to namespace config under a prefix like `"app"` or `"database"`, or
- * to reuse the same provider shape for multiple sub-configs.
+ * reuse the same provider shape for multiple sub-configs.
  *
  * **Details**
  *
@@ -644,8 +640,8 @@ export const nested: {
 )
 
 /**
- * Installs a `ConfigProvider` as the active provider for all downstream
- * effects, replacing any previously installed provider.
+ * Provides a layer that installs a `ConfigProvider` as the active provider for
+ * all downstream effects, replacing any previously installed provider.
  *
  * **When to use**
  *
@@ -689,9 +685,9 @@ export const layer = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use to add defaults that should only apply when the primary provider
- * has no value for a path, or to override specific keys while keeping the rest
- * from the existing provider by setting `asPrimary: true`.
+ * Use to add defaults that should only apply when the primary provider has no
+ * value for a path, or override specific keys while keeping the rest from the
+ * existing provider by setting `asPrimary: true`.
  *
  * **Details**
  *
@@ -739,9 +735,8 @@ export const layerAdd = <E = never, R = never>(
  *
  * **When to use**
  *
- * Use when you use this in unit or integration tests where you want deterministic config
- * without touching the environment, or when embedding config directly in code
- * or reading a JSON file.
+ * Use when you need deterministic config from an in-memory JavaScript value,
+ * such as in tests, embedded config, or parsed JSON.
  *
  * **Details**
  *
@@ -826,8 +821,8 @@ function describeUnknown(u: unknown): Node | undefined {
  *
  * **When to use**
  *
- * Use to read configuration from `process.env`, which is the default when
- * no provider is explicitly set, or to pass a custom env record for testing or
+ * Use to read configuration from `process.env`, which is the default when no
+ * provider is explicitly set, or pass a custom env record for testing or
  * non-Node runtimes.
  *
  * **Details**
@@ -946,9 +941,8 @@ function trieNodeAt(root: EnvTrieNode, path: Path): EnvTrieNode | undefined {
  *
  * **When to use**
  *
- * Use when you already have the `.env` contents as a string, such as
- * contents fetched from a remote store or embedded in a test. Use
- * {@link fromDotEnv} instead if you want to read a `.env` file from disk.
+ * Use when you already have the `.env` contents as a string, such as contents
+ * fetched from a remote store or embedded in a test.
  *
  * **Details**
  *
@@ -1088,9 +1082,7 @@ function searchLast(str: string, rgx: RegExp): number {
  *
  * **When to use**
  *
- * Use to load environment config from a `.env` file at application
- * startup. Use {@link fromDotEnvContents} if you already have the file
- * contents as a string.
+ * Use to load environment config from a `.env` file at application startup.
  *
  * **Details**
  *
@@ -1134,8 +1126,8 @@ export const fromDotEnv: (options?: {
  *
  * **When to use**
  *
- * Use when you use this for Kubernetes ConfigMap or Secret volume mounts, where each key is
- * a file under a mount path, or for any file-per-key configuration layout.
+ * Use when you expose each config key as a file under a directory, such as
+ * Kubernetes ConfigMap or Secret volume mounts.
  *
  * **Details**
  *

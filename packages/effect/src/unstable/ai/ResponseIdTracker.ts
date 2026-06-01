@@ -83,8 +83,9 @@ export interface Service {
  *
  * **When to use**
  *
- * Use when when provided, language model operations can use the tracker to send only new
- * prompt messages together with the provider's prior response ID.
+ * Use when you provide a language model with previous-response ID tracking so
+ * later calls can send only new prompt messages together with the provider's
+ * prior response ID.
  *
  * @category services
  * @since 4.0.0

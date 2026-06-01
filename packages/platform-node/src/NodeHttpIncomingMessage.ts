@@ -38,9 +38,17 @@ import type * as Http from "node:http"
 import * as NodeStream from "./NodeStream.ts"
 
 /**
- * Base adapter from Node `IncomingMessage` to Effect HTTP incoming messages,
- * exposing headers, remote address, stream access, and cached text, JSON, URL
- * parameter, and array-buffer body decoders with caller-provided error mapping.
+ * Adapts a Node `IncomingMessage` to Effect HTTP incoming messages.
+ *
+ * **When to use**
+ *
+ * Use to implement Node HTTP request or response adapters that expose the
+ * Effect HTTP incoming-message interface.
+ *
+ * **Details**
+ *
+ * The adapter exposes headers, remote address, stream access, and cached body
+ * decoders. Subclasses provide the error mapping for unknown Node errors.
  *
  * @category constructors
  * @since 4.0.0

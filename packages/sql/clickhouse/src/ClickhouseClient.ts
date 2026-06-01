@@ -159,9 +159,13 @@ export interface ClickhouseClient extends Client.SqlClient {
 }
 
 /**
- * Context service tag for accessing the active `ClickhouseClient`.
+ * Service tag for the active ClickHouse SQL client.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide a ClickHouse SQL client through the Effect context.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const ClickhouseClient = Context.Service<ClickhouseClient>("@effect/sql-clickhouse/ClickhouseClient")

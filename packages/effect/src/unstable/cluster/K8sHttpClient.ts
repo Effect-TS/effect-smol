@@ -56,7 +56,7 @@ import * as HttpClientResponse from "../http/HttpClientResponse.ts"
 /**
  * Service tag for the HTTP client used to call the Kubernetes API.
  *
- * @category Tags
+ * @category services
  * @since 4.0.0
  */
 export class K8sHttpClient extends Context.Service<

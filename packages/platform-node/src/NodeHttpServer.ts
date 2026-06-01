@@ -182,7 +182,7 @@ export const make = Effect.fnUntraced(function*(
  * injecting a `HttpServerRequest` and interrupting the request fiber if the
  * client closes the response before it finishes.
  *
- * @category Handlers
+ * @category handlers
  * @since 4.0.0
  */
 export const makeHandler = <
@@ -224,7 +224,7 @@ export const makeHandler = <
  * exposing the upgraded WebSocket as the request's `upgrade` effect and
  * interrupting the request fiber when the socket closes early.
  *
- * @category Handlers
+ * @category handlers
  * @since 4.0.0
  */
 export const makeUpgradeHandler = <
@@ -488,7 +488,7 @@ export const layerConfig = (
  * Provides a test HTTP server listening on an ephemeral port together with a
  * Fetch-backed `HttpClient` configured for server integration tests.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const layerTest: Layer.Layer<

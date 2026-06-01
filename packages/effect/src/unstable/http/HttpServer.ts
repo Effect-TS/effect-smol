@@ -295,7 +295,7 @@ export const withLogAddress = <A, E, R>(
  *
  * Unix socket addresses are not supported.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const makeTestClient: Effect.Effect<
@@ -317,7 +317,7 @@ export const makeTestClient: Effect.Effect<
 /**
  * Layer that provides the test `HttpClient` created by `makeTestClient`.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const layerTestClient: Layer.Layer<
@@ -327,7 +327,7 @@ export const layerTestClient: Layer.Layer<
 > = Layer.effect(HttpClient.HttpClient)(makeTestClient)
 
 /**
- * Testing layer that provides the platform services commonly needed by HTTP
+ * Layer that provides the platform services commonly needed by HTTP
  * server tests.
  *
  * **Details**
@@ -335,7 +335,7 @@ export const layerTestClient: Layer.Layer<
  * It includes `HttpPlatform`, `Path`, a weak ETag generator, and a no-op
  * `FileSystem`.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const layerServices: Layer.Layer<

@@ -118,8 +118,8 @@ export interface Teardown {
  *
  * **When to use**
  *
- * Use as the standard teardown for main programs when you want conventional
- * process exit codes and support for {@link errorExitCode}.
+ * Use as the standard teardown for main programs with conventional process
+ * exit codes and support for {@link errorExitCode}.
  *
  * **Details**
  *
@@ -176,13 +176,16 @@ export const defaultTeardown: Teardown = <E, A>(
  *
  * **When to use**
  *
- * Use when building a runtime adapter for a host platform. Most applications
- * should use a platform-provided runner, such as `NodeRuntime.runMain`, rather
- * than constructing one directly.
+ * Use when building a runtime adapter for a host platform.
  *
  * **Details**
  *
- * The runner executes Effect programs as main entry points. The provided function receives a forked fiber and a teardown callback so it can install platform-specific signal handling, fiber observers, and final exit behavior.
+ * The runner executes Effect programs as main entry points. The provided
+ * function receives a forked fiber and a teardown callback so it can install
+ * platform-specific signal handling, fiber observers, and final exit behavior.
+ *
+ * Most applications should use a platform-provided runner, such as
+ * `NodeRuntime.runMain`, rather than constructing one directly.
  *
  * `disableErrorReporting` disables the automatic log emitted for unreported
  * non-interruption failures. It does not change exit-code calculation or the
@@ -399,12 +402,12 @@ export const getErrorExitCode = (u: unknown): number => {
 export type errorReported = "~effect/Runtime/errorReported"
 
 /**
- * Runtime marker that controls default `runMain` error logging for an error.
+ * Defines the runtime marker that controls default `runMain` error logging for an error.
  *
  * **When to use**
  *
- * Use when error classes are already reported by application code and should
- * not be logged again by the default main runner.
+ * Use when you need error classes reported by application code to avoid being
+ * logged again by the default main runner.
  *
  * **Details**
  *

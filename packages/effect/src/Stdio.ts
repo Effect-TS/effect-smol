@@ -52,9 +52,10 @@ export type TypeId = "~effect/Stdio"
 /**
  * Runtime identifier stored on `Stdio` service implementations.
  *
- * **When to use**
+ * **Details**
  *
- * Use to mark and recognize concrete `Stdio` service values at runtime.
+ * This marker is part of the runtime representation of `Stdio` service
+ * implementations.
  *
  * @category type IDs
  * @since 4.0.0
@@ -62,7 +63,7 @@ export type TypeId = "~effect/Stdio"
 export const TypeId: TypeId = "~effect/Stdio"
 
 /**
- * Service interface for process standard I/O.
+ * Defines the service interface for process standard I/O.
  *
  * **When to use**
  *
@@ -90,12 +91,12 @@ export interface Stdio {
   readonly stdin: Stream.Stream<Uint8Array, PlatformError>
 }
 /**
- * Context service tag for the `Stdio` service.
+ * Service tag for process standard I/O.
  *
  * **When to use**
  *
- * Use when an effect needs command-line arguments or standard I/O streams
- * supplied by its environment.
+ * Use when you need command-line arguments or standard I/O streams supplied by
+ * an effect's environment.
  *
  * @see {@link make} for constructing a `Stdio` service directly
  * @see {@link layerTest} for a test layer with defaults and overrides
@@ -111,9 +112,8 @@ export const Stdio: Context.Service<Stdio, Stdio> = Context.Service<Stdio>(TypeI
  *
  * **When to use**
  *
- * Use to assemble a concrete `Stdio` service when you already have
- * implementations for command-line arguments, standard output, standard error,
- * and standard input.
+ * Use when you need to assemble a concrete `Stdio` service from command-line
+ * arguments and standard I/O implementations.
  *
  * **Details**
  *

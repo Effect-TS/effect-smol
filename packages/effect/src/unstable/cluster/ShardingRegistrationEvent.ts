@@ -67,8 +67,7 @@ export interface SingletonRegistered {
 }
 
 /**
- * Generated helpers for pattern matching and constructing sharding registration
- * events.
+ * Constructors and matchers for sharding registration events.
  *
  * @category pattern matching
  * @since 4.0.0

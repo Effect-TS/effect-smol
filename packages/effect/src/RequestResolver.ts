@@ -186,7 +186,7 @@ const RequestResolverProto = {
 export const isRequestResolver = (u: unknown): u is RequestResolver<any> => hasProperty(u, TypeId)
 
 /**
- * Low-level constructor for creating a request resolver with fine-grained
+ * Creates a request resolver with fine-grained
  * control over its behavior.
  *
  * **When to use**
@@ -654,8 +654,7 @@ export const setDelay: {
 )
 
 /**
- * A request resolver aspect that executes requests between two effects, `before`
- * and `after`, where the result of `before` can be used by `after`.
+ * Wraps request resolver execution between `before` and `after` effects.
  *
  * **Example** (Running effects around request resolution)
  *
@@ -721,7 +720,7 @@ export const around: {
   }))
 
 /**
- * A request resolver that never executes requests.
+ * Creates a request resolver that never executes requests.
  *
  * **When to use**
  *
@@ -793,7 +792,7 @@ export const batchN: {
   }))
 
 /**
- * Transform a request resolver by grouping requests using the specified key
+ * Transforms a request resolver by grouping requests using the specified key
  * function.
  *
  * **Example** (Grouping resolver requests)
@@ -919,7 +918,7 @@ export const race: {
   ))
 
 /**
- * Add a tracing span to the request resolver, which will also add any span
+ * Adds a tracing span to the request resolver, which will also add any span
  * links from the request's.
  *
  * **Example** (Adding a tracing span)
@@ -1023,7 +1022,7 @@ export const withSpan: {
  * @see {@link persisted} for storing persistable request results outside process memory
  * @see {@link Cache.Cache} for operations available on the returned cache
  *
- * @category Caching
+ * @category caching
  * @since 4.0.0
  */
 export const asCache: {
@@ -1107,7 +1106,7 @@ export const asCache: {
  * @see {@link asCache} for exposing the resolver as a `Cache` with time-to-live and service lookup controls
  * @see {@link persisted} for backing persistable requests with the configured persistence store
  *
- * @category Caching
+ * @category caching
  * @since 4.0.0
  */
 export const withCache: {

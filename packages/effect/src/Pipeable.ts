@@ -568,7 +568,7 @@ export interface Pipeable {
  * console.log(result) // 21
  * ```
  *
- * @category utils
+ * @category combinators
  * @since 2.0.0
  */
 export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
@@ -611,7 +611,7 @@ export const pipeArguments = <A>(self: A, args: IArguments): unknown => {
  * Use when classes or object prototypes can reuse this value when they need the
  * standard pipe implementation backed by `pipeArguments`.
  *
- * @category models
+ * @category prototypes
  * @since 3.15.0
  */
 export const Prototype: Pipeable = {
@@ -621,13 +621,13 @@ export const Prototype: Pipeable = {
 }
 
 /**
- * Base constructor whose instances implement the standard `Pipeable.pipe`
+ * Provides a base constructor whose instances implement the standard `Pipeable.pipe`
  * method.
  *
  * **When to use**
  *
- * Use when extend or compose this constructor when defining a class that should support
- * Effect-style method chaining through `.pipe(...)`.
+ * Use when you need to define a class that supports Effect-style method
+ * chaining through `.pipe(...)`.
  *
  * @category constructors
  * @since 3.15.0

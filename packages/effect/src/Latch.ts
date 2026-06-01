@@ -1,7 +1,7 @@
 /**
  * The `Latch` module provides a reusable synchronization primitive for
  * coordinating fibers. A `Latch` is either open or closed: when it is closed,
- * fibers that use {@link await} or {@link whenOpen} suspend until the latch is
+ * fibers that use {@link _await await} or {@link whenOpen} suspend until the latch is
  * opened or the current waiters are released.
  *
  * **Mental model**
@@ -17,7 +17,7 @@
  *
  * - Create a latch inside `Effect`: {@link make}
  * - Create a latch synchronously: {@link makeUnsafe}
- * - Wait for a signal before continuing: {@link await}
+ * - Wait for a signal before continuing: {@link _await await}
  * - Guard an effect so it runs only after the latch is open: {@link whenOpen}
  * - Let all current and future waiters proceed: {@link open}
  * - Let only the current waiters proceed: {@link release}
@@ -146,7 +146,8 @@ export interface Latch {
  *
  * **When to use**
  *
- * Use when synchronous allocation is required outside an Effect workflow.
+ * Use when you need to allocate a `Latch` synchronously outside an Effect
+ * workflow.
  *
  * **Details**
  *
@@ -244,12 +245,12 @@ export const make: (open?: boolean | undefined) => Effect.Effect<Latch> = intern
 export const open = (self: Latch): Effect.Effect<boolean> => self.open
 
 /**
- * Synchronously opens the latch and releases fibers waiting on it.
+ * Opens the latch synchronously and releases fibers waiting on it.
  *
  * **When to use**
  *
- * Use when synchronous code needs to open a latch immediately and release the
- * fibers waiting on it.
+ * Use when you need synchronous code to open a latch immediately and release
+ * the fibers waiting on it.
  *
  * **Details**
  *
@@ -340,7 +341,7 @@ export {
 export const close = (self: Latch): Effect.Effect<boolean> => self.close
 
 /**
- * Synchronously closes the latch so future `await` and `whenOpen` calls
+ * Closes the latch synchronously so future `await` and `whenOpen` calls
  * suspend.
  *
  * **When to use**

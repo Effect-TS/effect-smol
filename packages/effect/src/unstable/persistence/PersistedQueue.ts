@@ -114,7 +114,7 @@ export interface PersistedQueue<in out A, out R = never> {
 /**
  * Service for constructing named `PersistedQueue` instances from schemas.
  *
- * @category Factory
+ * @category services
  * @since 4.0.0
  */
 export class PersistedQueueFactory extends Context.Service<
@@ -131,7 +131,7 @@ export class PersistedQueueFactory extends Context.Service<
  * Accesses `PersistedQueueFactory` to create a named persisted queue for a
  * schema.
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const make = <S extends Schema.Top>(options: {
@@ -152,7 +152,7 @@ export const make = <S extends Schema.Top>(options: {
  * assigned an id when needed, and acknowledged or retried according to the
  * `take` handler's exit.
  *
- * @category Factory
+ * @category constructors
  * @since 4.0.0
  */
 export const makeFactory = Effect.gen(function*() {
@@ -208,7 +208,7 @@ export const makeFactory = Effect.gen(function*() {
 /**
  * Provides `PersistedQueueFactory` using the current `PersistedQueueStore`.
  *
- * @category Factory
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -220,7 +220,7 @@ export const layer: Layer.Layer<
 /**
  * Runtime type identifier for `PersistedQueueError`.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -228,7 +228,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/PersistedQueue/Pe
 /**
  * Type-level identifier used to brand `PersistedQueueError` values.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/PersistedQueue/PersistedQueueError"
@@ -255,14 +255,19 @@ export class PersistedQueueError extends Schema.ErrorClass<PersistedQueueError>(
 }
 
 /**
- * Low-level backing store service used by `PersistedQueue`.
+ * Defines the low-level backing store service used by `PersistedQueue`.
+ *
+ * **When to use**
+ *
+ * Use to provide the persistence backend that stores queued elements, scoped
+ * takes, retry attempts, and acknowledgements.
  *
  * **Details**
  *
  * The store persists offered elements and returns taken elements in a scope so
  * the finalizer can complete or retry them based on the processing exit.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export class PersistedQueueStore extends Context.Service<
@@ -300,7 +305,7 @@ export class PersistedQueueStore extends Context.Service<
  * The store is process-local and volatile; failed takes are requeued until the
  * configured maximum attempts is reached.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export const layerStoreMemory: Layer.Layer<
@@ -374,7 +379,7 @@ export const layerStoreMemory: Layer.Layer<
  * refreshes locks while items are being processed, and moves exhausted items
  * to a failed queue.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export const makeStoreRedis = Effect.fnUntraced(function*(
@@ -735,7 +740,7 @@ end
 /**
  * Provides a Redis-backed `PersistedQueueStore` using `makeStoreRedis`.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export const layerStoreRedis: (
@@ -760,7 +765,7 @@ export const layerStoreRedis: (
  * per-worker locks, refreshes active locks while scoped takes are running, and
  * retries or completes rows according to the processing exit.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export const makeStoreSql: (
@@ -1190,7 +1195,7 @@ class QueueKey extends Data.Class<{
 /**
  * Provides a SQL-backed `PersistedQueueStore` using `makeStoreSql`.
  *
- * @category Store
+ * @category store
  * @since 4.0.0
  */
 export const layerStoreSql: (

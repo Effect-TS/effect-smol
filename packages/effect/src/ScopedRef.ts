@@ -73,8 +73,7 @@ const makeUnsafe = <A>(
 }
 
 /**
- * Creates a new `ScopedRef` from an effect that resourcefully produces a
- * value.
+ * Creates a new `ScopedRef` from an effect that acquires the initial value.
  *
  * **When to use**
  *
@@ -101,7 +100,7 @@ export const fromAcquire: <A, E, R>(
 }, Effect.uninterruptible)
 
 /**
- * Retrieves the current value of the scoped reference.
+ * Retrieves the current value of the scoped reference synchronously.
  *
  * **When to use**
  *
@@ -116,7 +115,7 @@ export const fromAcquire: <A, E, R>(
 export const getUnsafe = <A>(self: ScopedRef<A>): A => self.backing.backing.ref.current[1]
 
 /**
- * Retrieves the current value of the scoped reference.
+ * Retrieves the current value of the scoped reference effectfully.
  *
  * **When to use**
  *
@@ -150,7 +149,7 @@ export const get = <A>(self: ScopedRef<A>): Effect.Effect<A> => Effect.sync(() =
  * `fromAcquire` so acquisition and finalization are tracked.
  *
  * @see {@link fromAcquire} for creating a `ScopedRef` from an effect that acquires the initial value
- * @see {@link set} for replacing the current value with a resourcefully acquired value
+ * @see {@link set} for replacing the current value with a newly acquired value
  *
  * @category constructors
  * @since 2.0.0
@@ -164,14 +163,13 @@ export const make = <A>(evaluate: LazyArg<A>): Effect.Effect<ScopedRef<A>, never
   })
 
 /**
- * Sets the value of this reference to the specified resourcefully-created
- * value, releasing any resources associated with the old value.
+ * Sets the value of this reference to a newly acquired scoped value, releasing
+ * any resources associated with the old value.
  *
  * **When to use**
  *
- * Use to replace the current value of an existing `ScopedRef` with a
- * resourcefully acquired value while releasing resources for the previous
- * value.
+ * Use to replace the current value of an existing `ScopedRef` with a newly
+ * acquired scoped value while releasing resources for the previous value.
  *
  * **Details**
  *

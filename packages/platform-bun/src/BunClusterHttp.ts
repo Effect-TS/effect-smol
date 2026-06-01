@@ -62,7 +62,7 @@ import * as BunSocket from "./BunSocket.ts"
 
 export {
   /**
-   * Kubernetes HTTP client layer used for runner health checks.
+   * Layer that provides a Kubernetes HTTP client for runner health checks.
    *
    * @category re-exports
    * @since 4.0.0
@@ -71,7 +71,7 @@ export {
 }
 
 /**
- * Bun HTTP server layer for cluster runners, using `ShardingConfig.runnerListenAddress` or `runnerAddress` as the listen address.
+ * Layer that provides a Bun HTTP server for cluster runners.
  *
  * @category layers
  * @since 4.0.0

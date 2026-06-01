@@ -155,7 +155,7 @@ export declare namespace Redacted {
    * console.log(rotate({ token: "secret" })) // { token: "secret:rotated" }
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 3.3.0
    */
   export type Value<T extends Redacted<any>> = [T] extends [Redacted<infer _A>] ? _A : never
@@ -258,7 +258,7 @@ const Proto = {
  *
  * **When to use**
  *
- * Use when the underlying sensitive value is required at a trusted boundary.
+ * Use when you need the underlying sensitive value at a trusted boundary.
  *
  * **Example** (Retrieving a redacted value)
  *
@@ -321,8 +321,8 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRe
  *
  * **When to use**
  *
- * Use when an API needs an `Equivalence` for `Redacted` values based on their
- * underlying values.
+ * Use when you need to compare wrapped secrets through an approved equality
+ * rule without exposing the underlying values at each comparison site.
  *
  * **Example** (Comparing redacted values)
  *
@@ -340,7 +340,7 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redacted.redactedRe
  * assert.equal(equivalence(API_KEY1, API_KEY3), true)
  * ```
  *
- * @category equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Redacted<A>> =>

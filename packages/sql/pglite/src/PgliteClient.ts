@@ -98,9 +98,13 @@ export interface PgliteClient extends Client.SqlClient {
 }
 
 /**
- * Context tag used to access the `PgliteClient` service.
+ * Service tag for the PGlite client service.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide a PGlite client through the Effect context.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const PgliteClient = Context.Service<PgliteClient>("@effect/sql-pglite/PgliteClient")

@@ -51,8 +51,8 @@ import { hasProperty } from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Tuple from "../../Tuple.ts"
 
 const TypeId = "~effect/http/UrlParams"
@@ -223,14 +223,14 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
 }
 
 /**
- * Order-sensitive equivalence for `UrlParams`.
+ * Provides an order-sensitive `Equivalence` instance for `UrlParams`.
  *
  * **Details**
  *
  * Two values are equivalent when they contain the same key-value pairs in the same
  * order.
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<UrlParams> = Equ.make<UrlParams>((a, b) =>
@@ -276,7 +276,7 @@ export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
     toCodec: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: make,
           encode: (self) => self.params
         })
@@ -317,7 +317,12 @@ export const getAll: {
 )
 
 /**
- * Returns the first value for a query parameter key.
+ * Returns the first value for a query parameter key safely.
+ *
+ * **When to use**
+ *
+ * Use when duplicate query parameters are ordered and the first occurrence has
+ * precedence.
  *
  * **Details**
  *
@@ -338,7 +343,12 @@ export const getFirst: {
 )
 
 /**
- * Returns the last value for a query parameter key.
+ * Returns the last value for a query parameter key safely.
+ *
+ * **When to use**
+ *
+ * Use when duplicate query parameters are ordered and the last occurrence has
+ * precedence.
  *
  * **Details**
  *
@@ -475,7 +485,7 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
 }> {}
 
 /**
- * Creates a `URL` by appending `UrlParams` and an optional hash to a URL string.
+ * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
  *
  * **Details**
  *
@@ -593,7 +603,7 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
 export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
 
 /**
- * Extract a JSON value from the first occurrence of the given `field` in the
+ * Extracts a JSON value from the first occurrence of the given `field` in the
  * `UrlParams`.
  *
  * **Example** (Decoding JSON parameter fields)
@@ -624,10 +634,10 @@ export const schemaJsonField = (field: string): schemaJsonField =>
   UrlParamsSchema.pipe(
     Schema.decodeTo(
       Schema.UnknownFromJsonString,
-      Transformation.transformOrFail({
+      SchemaTransformation.transformOrFail({
         decode: (params) =>
           Option.match(getFirst(params, field), {
-            onNone: () => Effect.fail(new Issue.Pointer([field], new Issue.MissingKey(undefined))),
+            onNone: () => Effect.fail(new SchemaIssue.Pointer([field], new SchemaIssue.MissingKey(undefined))),
             onSome: Effect.succeed
           }),
         encode: (value) => Effect.succeed(make([[field, value]]))
@@ -688,7 +698,7 @@ export const schemaRecord: schemaRecord = UrlParamsSchema.pipe(
       Schema.String,
       Schema.Union([Schema.String, Schema.NonEmptyArray(Schema.String)])
     ),
-    Transformation.transform({
+    SchemaTransformation.transform({
       decode: toReadonlyRecord,
       encode: fromInput
     })

@@ -12,7 +12,7 @@
  * **Mental model**
  *
  * - A fiber is a handle to a running or completed effect, not the effect itself
- * - {@link await} observes completion as an `Exit` without failing the current
+ * - {@link await_ await} observes completion as an `Exit` without failing the current
  *   effect
  * - {@link join} waits for success and propagates the fiber's failure into the
  *   current effect
@@ -23,7 +23,7 @@
  *
  * **Common tasks**
  *
- * - Wait for one fiber with {@link await} or {@link join}
+ * - Wait for one fiber with {@link await_ await} or {@link join}
  * - Wait for many fibers with {@link awaitAll} or {@link joinAll}
  * - Stop work with {@link interrupt}, {@link interruptAs},
  *   {@link interruptAll}, or {@link interruptAllAs}
@@ -84,7 +84,7 @@ const TypeId = `~effect/Fiber/${version}`
  *
  * **Details**
  *
- * A fiber exposes both safe Effect-based operations, such as {@link await},
+ * A fiber exposes both safe Effect-based operations, such as {@link await_ await},
  * {@link join}, and {@link interrupt}, and low-level runtime fields used by
  * the scheduler and runtime internals.
  *
@@ -291,12 +291,12 @@ export const awaitAll: <A extends Fiber<any, any>>(
  *
  * **When to use**
  *
- * Use when the forked fiber is part of the current workflow and
- * its failure should fail the current Effect.
+ * Use when you need a forked fiber's failure to fail the current Effect because
+ * that fiber is part of the current workflow.
  *
  * **Gotchas**
  *
- * Joining a failed fiber propagates the fiber's Cause. Use {@link await} when
+ * Joining a failed fiber propagates the fiber's Cause. Use {@link await_ await} when
  * you need to inspect the `Exit` instead of failing.
  *
  * **Example** (Joining a fiber)
@@ -311,7 +311,7 @@ export const awaitAll: <A extends Fiber<any, any>>(
  * })
  * ```
  *
- * @see {@link await} for inspecting the fiber outcome as an Exit
+ * @see {@link await_ await} for inspecting the fiber outcome as an Exit
  *
  * @category combinators
  * @since 2.0.0
@@ -323,8 +323,8 @@ export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
  *
  * **When to use**
  *
- * Use when every fiber must succeed and you want the successful values rather
- * than the `Exit` values.
+ * Use when you need every fiber to succeed and want the successful values
+ * rather than the `Exit` values.
  *
  * **Details**
  *
@@ -358,7 +358,8 @@ export const joinAll: <A extends Iterable<Fiber<any, any>>>(
  *
  * **When to use**
  *
- * Use when a forked fiber is no longer needed and should be cancelled.
+ * Use when you need to cancel a forked fiber and wait for its cleanup to
+ * complete.
  *
  * **Details**
  *
@@ -384,7 +385,7 @@ export const joinAll: <A extends Iterable<Fiber<any, any>>>(
  * ```
  *
  * @see {@link interruptAs} for specifying the interrupting fiber ID
- * @see {@link await} for observing the interrupted fiber's Exit
+ * @see {@link await_ await} for observing the interrupted fiber's Exit
  *
  * @category interruption
  * @since 2.0.0
@@ -448,7 +449,8 @@ export const interruptAs: {
  *
  * **When to use**
  *
- * Use when a group of forked fibers is no longer needed.
+ * Use when you need to cancel several forked fibers and wait for their cleanup
+ * to complete.
  *
  * **Details**
  *
@@ -573,7 +575,7 @@ export const interruptAllAs: {
 } = effect.fiberInterruptAllAs
 
 /**
- * Tests if a value is a Fiber. This is a type guard that can be used to
+ * Checks whether a value is a Fiber. This is a type guard that can be used to
  * determine if an unknown value is a Fiber instance.
  *
  * **When to use**
@@ -650,7 +652,7 @@ export const isFiber = (
 export const getCurrent: () => Fiber<any, any> | undefined = effect.getCurrentFiber
 
 /**
- * Links a fiber to a `Scope` and returns the same fiber.
+ * Adds a fiber to a `Scope` and returns the same fiber.
  *
  * **When to use**
  *

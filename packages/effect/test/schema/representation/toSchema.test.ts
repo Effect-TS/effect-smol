@@ -90,10 +90,10 @@ describe("toSchema", () => {
     assertToSchemaRoundtrip(
       {
         schema: Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
-          Schema.Record(Schema.String, Schema.Boolean)
+          Schema.Record(Schema.String, Schema.Number)
         ])
       },
-      `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Boolean)])`
+      `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Number)])`
     )
   })
 

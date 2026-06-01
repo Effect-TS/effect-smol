@@ -93,29 +93,28 @@ import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import type * as AST from "./SchemaAST.ts"
-import * as Issue from "./SchemaIssue.ts"
+import type * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaIssue from "./SchemaIssue.ts"
 import * as Str from "./String.ts"
 
 /**
- * A composable transformation from an encoded type `E` to a decoded type `T`.
+ * Represents a composable transformation from an encoded type `E` to a decoded type `T`.
  *
  * **When to use**
  *
- * Use to build custom schema transformations with `Schema.decodeTo` or `Schema.decode`.
- * - Composing multiple transformation steps into a single getter.
+ * Use when you need a schema getter to build and compose custom transformations
+ * for `Schema.decodeTo` or `Schema.decode`.
  *
  * **Details**
  *
- * - A getter wraps a function `Option<E> -> Effect<Option<T>, Issue, R>`.
- * - Receives `Option.None` when the encoded key is absent (e.g. missing struct field).
- * - Returns `Option.None` to omit the value from the decoded output.
- * - Fails with `Issue` on invalid input.
- * - May require Effect services via `R`.
- * - Immutable — constructing or composing getters does not mutate existing instances.
- * - `.map(f)` applies `f` to the decoded value (inside the `Some`), leaving `None` unchanged.
- * - `.compose(other)` chains two getters: the output of `this` feeds into `other`.
- *   Passthrough getters on either side are optimized away.
+ * A getter wraps a function `Option<E> -> Effect<Option<T>, Issue, R>`. It
+ * receives `Option.None` when the encoded key is absent, such as a missing
+ * struct field, and returns `Option.None` to omit the value from the decoded
+ * output. It fails with `Issue` on invalid input and may require Effect
+ * services via `R`. `.map(f)` applies `f` to the decoded value inside `Some`
+ * while leaving `None` unchanged. `.compose(other)` chains two getters by
+ * feeding the output of `this` into `other`; passthrough getters on either side
+ * are optimized away.
  *
  * **Example** (Creating and composing getters)
  *
@@ -138,14 +137,14 @@ import * as Str from "./String.ts"
 export class Getter<out T, in E, R = never> extends Pipeable.Class {
   readonly run: (
     input: Option.Option<E>,
-    options: AST.ParseOptions
-  ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+    options: SchemaAST.ParseOptions
+  ) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
 
   constructor(
     run: (
       input: Option.Option<E>,
-      options: AST.ParseOptions
-    ) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+      options: SchemaAST.ParseOptions
+    ) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
   ) {
     super()
     this.run = run
@@ -169,13 +168,13 @@ export class Getter<out T, in E, R = never> extends Pipeable.Class {
  *
  * **When to use**
  *
- * Use when a schema field should always decode to a fixed value.
- * - You need a placeholder getter that produces a known default.
+ * Use when you need a schema getter that always decodes a field to a fixed
+ * value.
  *
  * **Details**
  *
- * - Pure, no side effects.
- * - Always returns `Option.some(t)` regardless of whether input is `Some` or `None`.
+ * The getter is pure and always returns `Option.some(t)` regardless of whether
+ * the input is `Some` or `None`.
  *
  * **Example** (Constant getter)
  *
@@ -201,7 +200,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  *
  * **When to use**
  *
- * Use when a transformation should unconditionally reject input.
+ * Use when you need a schema getter that unconditionally rejects input.
  * - Building custom validation getters that produce specific error types.
  *
  * **Details**
@@ -225,7 +224,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  * @category constructors
  * @since 4.0.0
  */
-export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, E> {
+export function fail<T, E>(f: (oe: Option.Option<E>) => SchemaIssue.Issue): Getter<T, E> {
   return new Getter((oe) => Effect.fail(f(oe)))
 }
 
@@ -234,12 +233,13 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  *
  * **When to use**
  *
- * Use when a field or direction (encode/decode) should be disallowed entirely.
+ * Use when you need a schema getter to disallow a field or direction
+ * (encode/decode) entirely.
  * - You want a clear "forbidden" error message in schema validation output.
  *
  * **Details**
  *
- * - Always fails with `Issue.Forbidden`.
+ * - Always fails with `SchemaIssue.Forbidden`.
  * - The message function receives the `Option<E>` input for context.
  *
  * **Example** (Forbidding a decode direction)
@@ -258,7 +258,7 @@ export function fail<T, E>(f: (oe: Option.Option<E>) => Issue.Issue): Getter<T, 
  * @since 4.0.0
  */
 export function forbidden<T, E>(message: (oe: Option.Option<E>) => string): Getter<T, E> {
-  return fail<T, E>((oe) => new Issue.Forbidden(oe, { message: message(oe) }))
+  return fail<T, E>((oe) => new SchemaIssue.Forbidden(oe, { message: message(oe) }))
 }
 
 const passthrough_ = new Getter<any, any>(Effect.succeed)
@@ -272,8 +272,8 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  *
  * **When to use**
  *
- * Use when no transformation is needed between encoded and decoded types.
- * - One side of a `decodeTo` pair (encode or decode) should be a no-op.
+ * Use when you need a schema getter for one side of a `decodeTo` pair, either
+ * encode or decode, to pass values through unchanged.
  *
  * **Details**
  *
@@ -314,9 +314,8 @@ export function passthrough<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when no runtime conversion is needed but the getter should be typed
- * as producing a decoded/output type that is narrower than the encoded/input
- * type.
+ * Use when you need a schema getter that passes values through when the
+ * decoded/output type is narrower than the encoded/input type.
  *
  * **Details**
  *
@@ -347,8 +346,8 @@ export function passthroughSupertype<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when the encoded type is narrower than the decoded type.
- * - You need type-safe passthrough without `{ strict: false }`.
+ * Use when you need a schema getter that passes values through without
+ * `{ strict: false }` for an encoded type that narrows the decoded type.
  *
  * **Details**
  *
@@ -379,7 +378,8 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  *
  * **When to use**
  *
- * Use when you need to provide a fallback or computed value for missing struct keys.
+ * Use when you need a schema getter to provide a fallback or computed value for
+ * missing struct keys.
  * - Building custom "default value" logic more complex than {@link withDefault}.
  *
  * **Details**
@@ -406,7 +406,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * @since 4.0.0
  */
 export function onNone<T, E extends T = T, R = never>(
-  f: (options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+  f: (options: SchemaAST.ParseOptions) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
 ): Getter<T, E, R> {
   return new Getter((ot, options) => Option.isNone(ot) ? f(options) : Effect.succeed(ot))
 }
@@ -416,12 +416,12 @@ export function onNone<T, E extends T = T, R = never>(
  *
  * **When to use**
  *
- * Use when a struct field must be present in the encoded input.
- * - You want schema validation to report a missing key error.
+ * Use when you need a schema getter to require a struct field in the encoded
+ * input and report a missing key error when it is absent.
  *
  * **Details**
  *
- * - When input is `None`, fails with `Issue.MissingKey`.
+ * - When input is `None`, fails with `SchemaIssue.MissingKey`.
  * - When input is `Some`, passes it through unchanged.
  * - Optional `annotations` customize the error message for the missing key.
  *
@@ -440,7 +440,7 @@ export function onNone<T, E extends T = T, R = never>(
  * @since 4.0.0
  */
 export function required<T, E extends T = T>(annotations?: Schema.Annotations.Key<T>): Getter<T, E> {
-  return onNone(() => Effect.fail(new Issue.MissingKey(annotations)))
+  return onNone(() => Effect.fail(new SchemaIssue.MissingKey(annotations)))
 }
 
 /**
@@ -448,7 +448,8 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  *
  * **When to use**
  *
- * Use when you need to transform or validate only when a value is present.
+ * Use when you need a schema getter to transform or validate only when a field
+ * value is present.
  * - Missing keys should remain absent in the output.
  *
  * **Details**
@@ -475,7 +476,7 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  * @since 4.0.0
  */
 export function onSome<T, E, R = never>(
-  f: (e: E, options: AST.ParseOptions) => Effect.Effect<Option.Option<T>, Issue.Issue, R>
+  f: (e: E, options: SchemaAST.ParseOptions) => Effect.Effect<Option.Option<T>, SchemaIssue.Issue, R>
 ): Getter<T, E, R> {
   return new Getter((oe, options) => Option.isNone(oe) ? Effect.succeedNone : f(oe.value, options))
 }
@@ -485,7 +486,8 @@ export function onSome<T, E, R = never>(
  *
  * **When to use**
  *
- * Use when you need to validate a decoded value (e.g. check a constraint or call an external service).
+ * Use when you need a schema getter to validate a decoded value (e.g. check a
+ * constraint or call an external service).
  * - The validation may be asynchronous or require Effect services.
  *
  * **Details**
@@ -496,7 +498,7 @@ export function onSome<T, E, R = never>(
  *   - `false` or a `string` — value is invalid, fails with an `Issue`.
  *   - An `Issue` object — fails with that issue directly.
  *   - `{ path, issue }` — fails with a nested path issue (`issue` may be a
- *     message string or a full {@link Issue.Issue}).
+ *     message string or a full {@link SchemaIssue.Issue}).
  * - Does not transform the value — input and output types are the same.
  *
  * **Example** (Effectful validation)
@@ -516,7 +518,7 @@ export function onSome<T, E, R = never>(
  * @since 4.0.0
  */
 export function checkEffect<T, R = never>(
-  f: (input: T, options: AST.ParseOptions) => Effect.Effect<
+  f: (input: T, options: SchemaAST.ParseOptions) => Effect.Effect<
     undefined | boolean | Schema.FilterIssue,
     never,
     R
@@ -524,7 +526,7 @@ export function checkEffect<T, R = never>(
 ): Getter<T, T, R> {
   return onSome((t, options) => {
     return f(t, options).pipe(Effect.flatMapEager((out) => {
-      const issue = Issue.makeSingle(t, out)
+      const issue = SchemaIssue.makeSingle(t, out)
       return issue ?
         Effect.fail(issue) :
         Effect.succeed(Option.some(t))
@@ -537,14 +539,14 @@ export function checkEffect<T, R = never>(
  *
  * **When to use**
  *
- * Use when you have a pure, infallible transformation between types.
+ * Use when you need a schema getter for a pure, infallible transformation
+ * between types.
  * - Building encode/decode pairs for `Schema.decodeTo`.
  *
  * **Details**
  *
  * - This is the most commonly used constructor.
  * - Transforms `Some(e)` to `Some(f(e))` and leaves `None` unchanged.
- * - Pure, does not mutate input.
  * - Skips `None` inputs — only called when a value is present.
  * - Never fails.
  *
@@ -577,8 +579,8 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  *
  * **When to use**
  *
- * Use when the transformation may fail (e.g. parsing, validation).
- * - The transformation needs Effect services or is async.
+ * Use when you need a schema getter for a transformation that may fail, require
+ * Effect services, or run asynchronously.
  *
  * **Details**
  *
@@ -608,7 +610,7 @@ export function transform<T, E>(f: (e: E) => T): Getter<T, E> {
  * @since 4.0.0
  */
 export function transformOrFail<T, E, R = never>(
-  f: (e: E, options: AST.ParseOptions) => Effect.Effect<T, Issue.Issue, R>
+  f: (e: E, options: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
 ): Getter<T, E, R> {
   return onSome((e, options) => f(e, options).pipe(Effect.mapEager(Option.some)))
 }
@@ -618,13 +620,13 @@ export function transformOrFail<T, E, R = never>(
  *
  * **When to use**
  *
- * Use when you need to handle both `Some` and `None` cases.
- * - You want to turn a present value into absent, or vice versa.
+ * Use when you need a schema getter to handle both `Some` and `None` cases.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Receives the full `Option<E>` and must return `Option<T>`.
+ * The getter is pure and never fails. It receives the full `Option<E>` and
+ * must return `Option<T>`, so it can turn a present value into absent or an
+ * absent value into present.
  *
  * **Example** (Filter out empty strings)
  *
@@ -651,7 +653,8 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  *
  * **When to use**
  *
- * Use when a field should be excluded during decoding or encoding.
+ * Use when you need a schema getter to exclude a field during decoding or
+ * encoding.
  *
  * **Details**
  *
@@ -681,7 +684,8 @@ export function omit<T>(): Getter<never, T> {
  *
  * **When to use**
  *
- * Use when a field may be `undefined` in the encoded input and should have a fallback.
+ * Use when you need a schema getter to provide a fallback for a field that may
+ * be `undefined` in the encoded input.
  *
  * **Details**
  *
@@ -705,7 +709,7 @@ export function omit<T>(): Getter<never, T> {
  * @since 4.0.0
  */
 export function withDefault<T, R = never>(
-  defaultValue: Effect.Effect<T, Issue.Issue, R>
+  defaultValue: Effect.Effect<T, SchemaIssue.Issue, R>
 ): Getter<T, T | undefined, R> {
   return new Getter((o) => {
     const filtered = Option.filter(o, Predicate.isNotUndefined)
@@ -718,12 +722,12 @@ export function withDefault<T, R = never>(
  *
  * **When to use**
  *
- * Use when you need a string representation of an arbitrary encoded value.
+ * Use when you need a schema getter to coerce a present encoded value to a
+ * string with `String()`.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Delegates to `globalThis.String`.
+ * The getter is pure, never fails, and delegates to `globalThis.String`.
  *
  * **Example** (Coerce to string)
  *
@@ -748,12 +752,13 @@ export function String<E>(): Getter<string, E> {
  *
  * **When to use**
  *
- * Use when you need numeric coercion of an encoded value.
+ * Use when you need a schema getter to coerce a present encoded value to a
+ * number with `Number()`.
  *
  * **Details**
  *
- * - Pure, never fails (may produce `NaN` for non-numeric inputs).
- * - Delegates to `globalThis.Number`.
+ * The getter is pure, never fails, and delegates to `globalThis.Number`. It may
+ * produce `NaN` for non-numeric inputs.
  *
  * **Example** (Coerce to number)
  *
@@ -778,12 +783,12 @@ export function Number<E>(): Getter<number, E> {
  *
  * **When to use**
  *
- * Use when you need boolean coercion (truthiness check) of an encoded value.
+ * Use when you need a schema getter to coerce a present encoded value to a
+ * boolean with `Boolean()`.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Delegates to `globalThis.Boolean`.
+ * The getter is pure, never fails, and delegates to `globalThis.Boolean`.
  *
  * **Example** (Coerce to boolean)
  *
@@ -806,7 +811,8 @@ export function Boolean<E>(): Getter<boolean, E> {
  *
  * **When to use**
  *
- * Use when you need to convert strings, numbers, or booleans to `bigint`.
+ * Use when you need a schema getter to convert a present string, number, or
+ * boolean value to `bigint`.
  *
  * **Details**
  *
@@ -834,7 +840,8 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  *
  * **When to use**
  *
- * Use when you need to parse a string, number, or Date into a `Date` object.
+ * Use when you need a schema getter to coerce a present string, number, or
+ * existing date object into a new date object.
  *
  * **Details**
  *
@@ -860,7 +867,7 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
 }
 
 /**
- * Trims whitespace from both ends of a string.
+ * Strips whitespace from both ends of a string.
  *
  * **Details**
  *
@@ -904,7 +911,7 @@ export function capitalize<E extends string>(): Getter<string, E> {
 }
 
 /**
- * Lowercases the first character of a string.
+ * Uncapitalizes the first character of a string.
  *
  * **Details**
  *
@@ -1030,14 +1037,15 @@ type ParseJsonOptions = {
  *
  * **When to use**
  *
- * Use when an encoded value is a JSON string that needs to be parsed during decoding.
+ * Use when you need a schema getter to parse a present encoded JSON string
+ * during decoding.
  *
  * **Details**
  *
  * - Skips `None` inputs.
  * - Without `reviver`: returns `Schema.MutableJson` (typed JSON).
  * - With `reviver`: returns `unknown` (reviver may produce arbitrary values).
- * - On parse failure, fails with `Issue.InvalidValue` containing the error message.
+ * - On parse failure, fails with `SchemaIssue.InvalidValue` containing the error message.
  *
  * **Example** (Parse JSON)
  *
@@ -1050,7 +1058,7 @@ type ParseJsonOptions = {
  *
  * @see {@link stringifyJson} for the inverse operation
  *
- * @category Json
+ * @category JSON getters
  * @since 4.0.0
  */
 export function parseJson<E extends string>(): Getter<Schema.MutableJson, E>
@@ -1059,7 +1067,7 @@ export function parseJson<E extends string>(options?: ParseJsonOptions | undefin
   return onSome((input) =>
     Effect.try({
       try: () => Option.some(JSON.parse(input, options?.reviver)),
-      catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
+      catch: (e) => new SchemaIssue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )
 }
@@ -1074,13 +1082,14 @@ type StringifyJsonOptions = {
  *
  * **When to use**
  *
- * Use when a decoded value needs to be serialized to JSON text during encoding.
+ * Use when you need a schema getter to serialize a present decoded value to
+ * JSON text during encoding.
  *
  * **Details**
  *
  * - Skips `None` inputs.
  * - On thrown stringify failures, such as circular references, fails with
- *   `Issue.InvalidValue`.
+ *   `SchemaIssue.InvalidValue`.
  * - Supports optional `replacer` and `space` options, matching
  *   `JSON.stringify`.
  * - If `JSON.stringify` returns `undefined`, such as for `undefined`,
@@ -1098,14 +1107,14 @@ type StringifyJsonOptions = {
  *
  * @see {@link parseJson} for the inverse operation
  *
- * @category Json
+ * @category JSON getters
  * @since 4.0.0
  */
 export function stringifyJson(options?: StringifyJsonOptions): Getter<string, unknown> {
   return onSome((input) =>
     Effect.try({
       try: () => Option.some(JSON.stringify(input, options?.replacer, options?.space)),
-      catch: (e) => new Issue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
+      catch: (e) => new SchemaIssue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
     })
   )
 }
@@ -1115,13 +1124,14 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
  *
  * **When to use**
  *
- * Use when an encoded string contains delimited key-value pairs (e.g. `"a=1,b=2"`).
+ * Use when you need a schema getter to parse a present encoded string that
+ * contains delimited key-value pairs (e.g. `"a=1,b=2"`).
  *
  * **Details**
  *
- * - Splits the string by `separator` (default `,`), then each pair by `keyValueSeparator` (default `=`).
- * - Pairs missing a key or value are silently skipped.
- * - Pure, never fails.
+ * The getter is pure and never fails. It splits the string by `separator`
+ * (default `,`) and then each pair by `keyValueSeparator` (default `=`). Pairs
+ * missing a key or value are silently skipped.
  *
  * **Example** (Parse key-value string)
  *
@@ -1160,12 +1170,14 @@ export function splitKeyValue<E extends string>(options?: {
  *
  * **When to use**
  *
- * Use when a decoded record needs to be serialized as a delimited key-value string.
+ * Use when you need a schema getter to serialize a present decoded record as a
+ * delimited key-value string.
  *
  * **Details**
  *
- * - Joins entries with `separator` (default `,`) and key/value with `keyValueSeparator` (default `=`).
- * - Pure, never fails.
+ * The getter is pure and never fails. It joins entries with `separator`
+ * (default `,`) and joins each key and value with `keyValueSeparator` (default
+ * `=`).
  *
  * **Example** (Join key-value record)
  *
@@ -1197,13 +1209,13 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  *
  * **When to use**
  *
- * Use when an encoded string is a delimited list (e.g. CSV values).
+ * Use when you need a schema getter to split a present encoded string
+ * containing a delimited list, such as CSV values.
  *
  * **Details**
  *
- * - Splits by `separator` (default `,`).
- * - An empty string produces an empty array (not `[""]`).
- * - Pure, never fails.
+ * The getter is pure and never fails. It splits by `separator` (default `,`).
+ * An empty string produces an empty array, not `[""]`.
  *
  * **Example** (Split comma-separated string)
  *
@@ -1232,7 +1244,7 @@ export function split<E extends string>(options?: {
  *
  * **Details**
  *
- * - Pure, never fails.
+ * The getter is pure and never fails.
  *
  * **Example** (Encode to Base64)
  *
@@ -1246,7 +1258,7 @@ export function split<E extends string>(options?: {
  * @see {@link decodeBase64String} for the inverse operation to `string`
  * @see {@link encodeBase64Url} for the URL-safe variant
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E> {
@@ -1258,7 +1270,7 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  *
  * **Details**
  *
- * - Pure, never fails.
+ * The getter is pure and never fails.
  *
  * **Example** (Encode to Base64Url)
  *
@@ -1272,7 +1284,7 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  * @see {@link decodeBase64UrlString} for the inverse operation to `string`
  * @see {@link encodeBase64} for the standard Base64 variant
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string, E> {
@@ -1284,7 +1296,7 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
  *
  * **Details**
  *
- * - Pure, never fails.
+ * The getter is pure and never fails.
  *
  * **Example** (Encode to hex)
  *
@@ -1297,7 +1309,7 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
  * @see {@link decodeHex} for the inverse operation to `Uint8Array`
  * @see {@link decodeHexString} for the inverse operation to `string`
  *
- * @category Hex
+ * @category Hex getters
  * @since 4.0.0
  */
 export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
@@ -1309,7 +1321,7 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64.
  *
  * **Example** (Decode Base64 to bytes)
  *
@@ -1323,14 +1335,14 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
  * @see {@link decodeBase64String} to decode to `string` instead
  * @see {@link encodeBase64} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Effect.mapErrorEager(
       Effect.fromResult(Encoding.decodeBase64(input)),
-      (e) => new Issue.InvalidValue(Option.some(input), { message: e.message })
+      (e) => new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })
     )
   )
 }
@@ -1340,7 +1352,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64.
  *
  * **Example** (Decode Base64 to string)
  *
@@ -1354,13 +1366,13 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  * @see {@link decodeBase64} to decode to `Uint8Array` instead
  * @see {@link encodeBase64} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64String<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeBase64String(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1371,7 +1383,7 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64Url.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64Url.
  *
  * **Example** (Decode Base64Url to bytes)
  *
@@ -1385,13 +1397,13 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
  * @see {@link decodeBase64UrlString} to decode to `string` instead
  * @see {@link encodeBase64Url} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeBase64Url(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1402,7 +1414,7 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid Base64Url.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64Url.
  *
  * **Example** (Decode Base64Url to string)
  *
@@ -1416,13 +1428,13 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
  * @see {@link decodeBase64Url} to decode to `Uint8Array` instead
  * @see {@link encodeBase64Url} for the inverse operation
  *
- * @category Base64
+ * @category Base64 getters
  * @since 4.0.0
  */
 export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeBase64UrlString(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1433,7 +1445,7 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid hex.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid hex.
  *
  * **Example** (Decode hex to bytes)
  *
@@ -1447,13 +1459,13 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
  * @see {@link decodeHexString} to decode to `string` instead
  * @see {@link encodeHex} for the inverse operation
  *
- * @category Hex
+ * @category Hex getters
  * @since 4.0.0
  */
 export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeHex(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1464,7 +1476,7 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input is not valid hex.
+ * - Fails with `SchemaIssue.InvalidValue` if the input is not valid hex.
  *
  * **Example** (Decode hex to string)
  *
@@ -1478,13 +1490,13 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
  * @see {@link decodeHex} to decode to `Uint8Array` instead
  * @see {@link encodeHex} for the inverse operation
  *
- * @category Hex
+ * @category Hex getters
  * @since 4.0.0
  */
 export function decodeHexString<E extends string>(): Getter<string, E> {
   return transformOrFail((input) =>
     Result.match(Encoding.decodeHexString(input), {
-      onFailure: (e) => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: e.message })),
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
       onSuccess: Effect.succeed
     })
   )
@@ -1521,7 +1533,7 @@ export function encodeUriComponent<E extends string>(): Getter<string, E> {
  *
  * **Details**
  *
- * - Fails with `Issue.InvalidValue` if the input contains malformed percent-encoding sequences.
+ * - Fails with `SchemaIssue.InvalidValue` if the input contains malformed percent-encoding sequences.
  *
  * **Example** (Decode a URI component)
  *
@@ -1543,7 +1555,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
       return Effect.succeed(globalThis.decodeURIComponent(input))
     } catch (e) {
       return Effect.fail(
-        new Issue.InvalidValue(Option.some(input), {
+        new SchemaIssue.InvalidValue(Option.some(input), {
           message: e instanceof URIError ? e.message : "Invalid URI component"
         })
       )
@@ -1556,7 +1568,8 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  *
  * **When to use**
  *
- * Use when an encoded value represents a date/time and should be decoded to a `DateTime.Utc`.
+ * Use when you need a schema getter to decode a present encoded date/time value
+ * to a `DateTime.Utc`.
  *
  * **Details**
  *
@@ -1564,7 +1577,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  *   instant objects, zoned instant objects, JavaScript `Date` instances, epoch
  *   milliseconds, and date strings.
  * - Converts successfully parsed values to UTC.
- * - Fails with `Issue.InvalidValue` if the input cannot be parsed as a valid
+ * - Fails with `SchemaIssue.InvalidValue` if the input cannot be parsed as a valid
  *   `DateTime`.
  *
  * **Example** (Parse DateTime)
@@ -1584,7 +1597,8 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
 export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Getter<DateTime.Utc, E> {
   return transformOrFail((input) => {
     return Option.match(DateTime.make(input), {
-      onNone: () => Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" })),
+      onNone: () =>
+        Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" })),
       onSome: (dt) => Effect.succeed(DateTime.toUtc(dt))
     })
   })
@@ -1595,13 +1609,14 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  *
  * **When to use**
  *
- * Use to parse `FormData` from HTTP requests into structured objects.
+ * Use when you need a schema getter to parse `FormData` from HTTP requests into
+ * structured objects.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Interprets bracket-path keys (e.g. `user[name]`, `items[0]`) to build nested objects/arrays.
- * - Leaf values are `string` or `Blob`.
+ * The getter is pure and never fails. It interprets bracket-path keys such as
+ * `user[name]` and `items[0]` to build nested objects or arrays, and each leaf
+ * value is a `string` or `Blob`.
  *
  * **Example** (Decode FormData)
  *
@@ -1632,13 +1647,14 @@ const collectFormDataEntries = collectBracketPathEntries((value): value is strin
  *
  * **When to use**
  *
- * Use to serialize structured data to `FormData` for HTTP requests.
+ * Use when you need a schema getter to serialize structured data to `FormData`
+ * for HTTP requests.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Flattens nested objects/arrays into bracket-path keys (e.g. `user[name]`, `items[0]`).
- * - Non-object inputs produce an empty `FormData`.
+ * The getter is pure and never fails. It flattens nested objects or arrays into
+ * bracket-path keys such as `user[name]` and `items[0]`. Non-object inputs
+ * produce an empty `FormData`.
  *
  * **Example** (Encode to FormData)
  *
@@ -1674,13 +1690,14 @@ export function encodeFormData(): Getter<FormData, unknown> {
  *
  * **When to use**
  *
- * Use to parse query parameters from URLs into structured objects.
+ * Use when you need a schema getter to parse query parameters from URLs into
+ * structured objects.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Interprets bracket-path keys (e.g. `user[name]`, `items[0]`) to build nested objects/arrays.
- * - Leaf values are `string`.
+ * The getter is pure and never fails. It interprets bracket-path keys such as
+ * `user[name]` and `items[0]` to build nested objects or arrays, and each leaf
+ * value is a `string`.
  *
  * **Example** (Decode URLSearchParams)
  *
@@ -1695,7 +1712,7 @@ export function encodeFormData(): Getter<FormData, unknown> {
  * @see {@link makeTreeRecord} for the underlying bracket-path parser
  * @see {@link decodeFormData} for the FormData variant
  *
- * @category URLSearchParams
+ * @category search params
  * @since 4.0.0
  */
 export function decodeURLSearchParams(): Getter<Schema.TreeRecord<string>, URLSearchParams> {
@@ -1709,13 +1726,13 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  *
  * **When to use**
  *
- * Use to serialize structured data to query parameters for URLs.
+ * Use when you need a schema getter to serialize structured data to query
+ * parameters for URLs.
  *
  * **Details**
  *
- * - Pure, never fails.
- * - Flattens nested objects/arrays into bracket-path keys.
- * - Non-object inputs produce an empty `URLSearchParams`.
+ * The getter is pure and never fails. It flattens nested objects or arrays into
+ * bracket-path keys. Non-object inputs produce an empty `URLSearchParams`.
  *
  * **Example** (Encode to URLSearchParams)
  *
@@ -1730,7 +1747,7 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  * @see {@link collectBracketPathEntries} for the underlying flattener
  * @see {@link encodeFormData} for the FormData variant
  *
- * @category URLSearchParams
+ * @category search params
  * @since 4.0.0
  */
 export function encodeURLSearchParams(): Getter<URLSearchParams, unknown> {
@@ -1765,7 +1782,8 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  *
  * **When to use**
  *
- * Use to parse FormData or URLSearchParams entries into structured objects.
+ * Use when you need a schema getter to parse FormData or URLSearchParams
+ * entries into structured objects.
  * - You have flat key-value pairs with bracket-path keys that need nesting.
  *
  * **Details**
@@ -1773,7 +1791,7 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  * - A bracket path is a string like `"user[address][city]"` that describes nested
  *   object/array structure.
  * - Interprets bracket paths and constructs the corresponding nested object.
- * - Mutates and returns a new object (does not mutate the input array).
+ * - Builds and returns a nested object from the input entries.
  * - Supported syntax:
  *   - `"foo"` → object key `"foo"`
  *   - `"foo[bar]"` → nested `{ foo: { bar: ... } }`
@@ -1859,7 +1877,8 @@ export function makeTreeRecord<A>(
  *
  * **When to use**
  *
- * Use to serialize structured objects to flat key-value entries.
+ * Use when you need a schema getter to serialize structured objects to flat
+ * key-value entries.
  * - Building custom `FormData` or `URLSearchParams` encoders.
  *
  * **Details**

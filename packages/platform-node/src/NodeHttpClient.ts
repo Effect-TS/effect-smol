@@ -71,23 +71,32 @@ import * as Undici from "./Undici.ts"
 
 export {
   /**
-   * Fetch-based HTTP client implementation for Node.js.
+   * Provides a fetch-based HTTP client implementation for Node.js.
    *
-   * @category Fetch
+   * **When to use**
+   *
+   * Use to access or override the fetch implementation used by the Node
+   * fetch-based HTTP client.
+   *
+   * @category fetch
    * @since 4.0.0
    */
   Fetch,
   /**
    * Layer that provides the fetch-based HTTP client implementation.
    *
-   * @category Fetch
+   * @category fetch
    * @since 4.0.0
    */
   layer as layerFetch,
   /**
-   * Request initialization options accepted by the fetch-based HTTP client.
+   * Provides request initialization options accepted by the fetch-based HTTP client.
    *
-   * @category Fetch
+   * **When to use**
+   *
+   * Use to provide default fetch request options for Node HTTP requests.
+   *
+   * @category fetch
    * @since 4.0.0
    */
   RequestInit
@@ -141,7 +150,7 @@ export const dispatcherLayerGlobal: Layer.Layer<Dispatcher> = Layer.sync(Dispatc
  * Fiber reference containing default Undici request options applied to requests
  * sent by `makeUndici`.
  *
- * @category undici
+ * @category Undici
  * @since 4.0.0
  */
 export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.RequestOptions>>(
@@ -154,7 +163,7 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
  * `Dispatcher`, converts Effect HTTP bodies to Undici bodies, and maps
  * transport and decode failures to `HttpClientError`.
  *
- * @category undici
+ * @category Undici
  * @since 4.0.0
  */
 export const makeUndici = Effect.gen(function*() {

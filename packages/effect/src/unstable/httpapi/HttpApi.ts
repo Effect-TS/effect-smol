@@ -54,7 +54,7 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import type * as SchemaAST from "../../SchemaAST.ts"
 import type { Mutable } from "../../Types.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
@@ -236,8 +236,9 @@ const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
  *
  * **When to use**
  *
- * Use when add groups with `add` or `addHttpApi`, provide endpoint implementations with
- * `HttpApiBuilder.group`, and register the API with `HttpApiBuilder.layer`.
+ * Use when you need to start defining an HTTP API, add groups with `add` or
+ * `addHttpApi`, provide endpoint implementations with `HttpApiBuilder.group`,
+ * and register the API with `HttpApiBuilder.layer`.
  *
  * @category constructors
  * @since 4.0.0
@@ -250,14 +251,14 @@ export const make = <const Id extends string>(identifier: Id): HttpApi<Id, never
   })
 
 /**
- * Walks the groups and endpoints in an `HttpApi`.
+ * Describes the groups and endpoints in an `HttpApi`.
  *
  * **Details**
  *
  * The callbacks receive each group or endpoint with merged annotations, endpoint
  * middleware, and response schemas grouped by HTTP status.
  *
- * @category Reflection
+ * @category reflection
  * @since 4.0.0
  */
 export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
@@ -321,7 +322,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 
 const extractResponseContent = (
   schemas: Array<Schema.Top>,
-  getStatus: (ast: AST.AST) => number
+  getStatus: (ast: SchemaAST.AST) => number
 ): ReadonlyMap<number, [Schema.Top, ...Array<Schema.Top>]> => {
   const map = new Map<number, [Schema.Top, ...Array<Schema.Top>]>()
 
@@ -345,7 +346,7 @@ const extractResponseContent = (
  * Adds additional schemas to components/schemas.
  * The provided schemas must have a `identifier` annotation.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class AdditionalSchemas extends Context.Service<

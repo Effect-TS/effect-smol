@@ -110,9 +110,13 @@ export interface PgClient extends Client.SqlClient {
 }
 
 /**
- * Context tag used to access the `PgClient` service.
+ * Service tag for the PostgreSQL client service.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide a PostgreSQL client through the Effect context.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const PgClient = Context.Service<PgClient>("@effect/sql-pg/PgClient")
@@ -568,7 +572,12 @@ export const fromClient = Effect.fnUntraced(function*(
 })
 
 /**
- * Low-level constructor for a `PgClient` from SQL connection acquirers, a LISTEN acquirer, client configuration, and transformation options.
+ * Creates a `PgClient` from SQL connection acquirers, a LISTEN acquirer, client configuration, and transformation options.
+ *
+ * **When to use**
+ *
+ * Use to build a PostgreSQL client from custom connection acquisition logic
+ * instead of the built-in pool or single-client constructors.
  *
  * @category constructors
  * @since 4.0.0

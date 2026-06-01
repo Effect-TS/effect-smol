@@ -502,7 +502,7 @@ export const size = <A>(self: TxChunk<A>): Effect.Effect<number> =>
   modify(self, (current) => [Chunk.size(current), current])
 
 /**
- * Checks if the `TxChunk` is empty.
+ * Checks whether the `TxChunk` is empty.
  *
  * **Example** (Checking for an empty chunk)
  *
@@ -529,7 +529,7 @@ export const isEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
   modify(self, (current) => [Chunk.isEmpty(current), current])
 
 /**
- * Checks if the `TxChunk` is non-empty.
+ * Checks whether the `TxChunk` is non-empty.
  *
  * **Example** (Checking for a non-empty chunk)
  *

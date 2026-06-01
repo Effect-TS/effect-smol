@@ -172,7 +172,7 @@ export interface Semaphore {
 }
 
 /**
- * Synchronously creates a `Semaphore` initialized with the specified total
+ * Creates a `Semaphore` synchronously with the specified total
  * number of permits.
  *
  * **When to use**
@@ -469,7 +469,7 @@ export const withPermitsIfAvailable: {
  *
  * **When to use**
  *
- * Use to manually acquire permits when a lower-level permit protocol needs
+ * Use when you need manual permit acquisition for a lower-level protocol with
  * explicit acquisition and release control.
  *
  * **Details**
@@ -494,8 +494,8 @@ export const take: {
  *
  * **When to use**
  *
- * Use to manually return permits acquired with `take` when a lower-level
- * permit protocol needs explicit release control.
+ * Use when you need to return permits acquired with `take` in a lower-level
+ * permit protocol with explicit release control.
  *
  * **Details**
  *

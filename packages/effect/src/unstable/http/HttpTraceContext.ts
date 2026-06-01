@@ -74,7 +74,7 @@ export const toHeaders = (span: Tracer.Span): Headers.Headers =>
   })
 
 /**
- * Decodes an external span from HTTP trace propagation headers.
+ * Decodes an external span safely from HTTP trace propagation headers.
  *
  * **Details**
  *
@@ -97,7 +97,7 @@ export const fromHeaders = (headers: Headers.Headers): Option.Option<Tracer.Exte
 }
 
 /**
- * Decodes an external span from the compact B3 `b3` header.
+ * Decodes an external span safely from the compact B3 `b3` header.
  *
  * **Details**
  *
@@ -123,7 +123,7 @@ export const b3: FromHeaders = (headers) => {
 }
 
 /**
- * Decodes an external span from multi-header B3 propagation headers.
+ * Decodes an external span safely from multi-header B3 propagation headers.
  *
  * **Details**
  *
@@ -148,7 +148,7 @@ const w3cTraceId = /^[0-9a-f]{32}$/i
 const w3cSpanId = /^[0-9a-f]{16}$/i
 
 /**
- * Decodes an external span from the W3C `traceparent` header.
+ * Decodes an external span safely from the W3C `traceparent` header.
  *
  * **Details**
  *

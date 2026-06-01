@@ -257,8 +257,12 @@ export const isEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> => 
 export const isNonEmpty = <A>(self: TxPriorityQueue<A>): Effect.Effect<boolean> => Effect.map(size(self), (n) => n > 0)
 
 /**
- * Observes the smallest element without removing it. Retries if the queue is
- * empty.
+ * Observes the smallest element without removing it.
+ *
+ * **When to use**
+ *
+ * Use to inspect the next prioritized value and retry transactionally while
+ * the queue is empty.
  *
  * **Example** (Peeking at the next value)
  *
@@ -286,8 +290,12 @@ export const peek = <A>(self: TxPriorityQueue<A>): Effect.Effect<A> =>
   }).pipe(Effect.tx)
 
 /**
- * Observes the smallest element without removing it. Returns `None` if the
+ * Observes the smallest element without removing it, returning `None` when the
  * queue is empty.
+ *
+ * **When to use**
+ *
+ * Use to inspect the next prioritized value without retrying on an empty queue.
  *
  * **Example** (Peeking without retrying)
  *
@@ -510,7 +518,7 @@ export const removeIf: {
 )
 
 /**
- * Retains only elements matching the predicate.
+ * Keeps only elements matching the predicate.
  *
  * **Example** (Retaining matching values)
  *

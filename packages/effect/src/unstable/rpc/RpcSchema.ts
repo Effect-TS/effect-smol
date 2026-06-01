@@ -39,7 +39,7 @@ import { constUndefined } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import type * as SchemaAST from "../../SchemaAST.ts"
 import * as Stream_ from "../../Stream.ts"
 
 const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
@@ -48,7 +48,7 @@ const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
  * Returns `true` when a schema is an RPC stream schema created by
  * `RpcSchema.Stream`.
  *
- * @category Stream
+ * @category streams
  * @since 4.0.0
  */
 export function isStreamSchema(schema: Schema.Top): schema is Stream<Schema.Top, Schema.Top> {
@@ -72,7 +72,7 @@ export function getStreamSchemas(schema: Schema.Top): Option.Option<{
  * A schema marker for RPC streaming responses, storing the success element
  * schema and stream error schema used for encoding and decoding stream chunks.
  *
- * @category Stream
+ * @category streams
  * @since 4.0.0
  */
 export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
@@ -81,7 +81,7 @@ export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
     Stream_.Stream<A["Encoded"], E["Encoded"]>,
     A["DecodingServices"] | E["DecodingServices"],
     A["EncodingServices"] | E["EncodingServices"],
-    AST.Declaration,
+    SchemaAST.Declaration,
     Stream<A, E>
   >
 {
@@ -97,7 +97,7 @@ const schema = Schema.declare(Stream_.isStream)
  * Creates an RPC stream schema from a stream element success schema and stream
  * error schema.
  *
- * @category Stream
+ * @category streams
  * @since 4.0.0
  */
 export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, error: E): Stream<A, E> {
@@ -105,7 +105,7 @@ export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, e
 }
 
 /**
- * Cause annotation used to mark interruptions that originate from an RPC client
+ * Annotation that marks interruptions that originate from an RPC client
  * abort.
  *
  * @category Cause annotations

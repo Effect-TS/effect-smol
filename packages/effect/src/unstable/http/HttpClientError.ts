@@ -48,7 +48,7 @@ export const isHttpClientError = (u: unknown): u is HttpClientError => hasProper
 /**
  * Error wrapper for HTTP client failures, exposing the failed request and the optional response through its `reason`.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class HttpClientError extends Data.TaggedError("HttpClientError")<{
@@ -103,9 +103,9 @@ const formatMessage = (reason: string, description: string | undefined, info: st
   description ? `${reason}: ${description} (${info})` : `${reason} error (${info})`
 
 /**
- * Request error for transport-level failures that occur while sending an HTTP request.
+ * Error describing transport-level failures that occur while sending an HTTP request.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class TransportError extends Data.TaggedError("TransportError")<{
@@ -133,9 +133,9 @@ export class TransportError extends Data.TaggedError("TransportError")<{
 }
 
 /**
- * Request error for failures while encoding an HTTP request body.
+ * Error describing failures while encoding an HTTP request body.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class EncodeError extends Data.TaggedError("EncodeError")<{
@@ -163,9 +163,9 @@ export class EncodeError extends Data.TaggedError("EncodeError")<{
 }
 
 /**
- * Request error for failures while constructing a URL from an HTTP client request.
+ * Error describing failures while constructing a URL from an HTTP client request.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class InvalidUrlError extends Data.TaggedError("InvalidUrlError")<{
@@ -195,7 +195,7 @@ export class InvalidUrlError extends Data.TaggedError("InvalidUrlError")<{
 /**
  * Response error for HTTP responses rejected because of their status code.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class StatusCodeError extends Data.TaggedError("StatusCodeError")<{
@@ -227,7 +227,7 @@ export class StatusCodeError extends Data.TaggedError("StatusCodeError")<{
 /**
  * Response error for failures while decoding an HTTP response body.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class DecodeError extends Data.TaggedError("DecodeError")<{
@@ -259,7 +259,7 @@ export class DecodeError extends Data.TaggedError("DecodeError")<{
 /**
  * Response error for operations that expected a response body but received an empty body.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
@@ -291,7 +291,7 @@ export class EmptyBodyError extends Data.TaggedError("EmptyBodyError")<{
 /**
  * Union of HTTP client errors that occur before a response is available.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export type RequestError = TransportError | EncodeError | InvalidUrlError
@@ -299,7 +299,7 @@ export type RequestError = TransportError | EncodeError | InvalidUrlError
 /**
  * Union of HTTP client errors that include an HTTP response.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export type ResponseError = StatusCodeError | DecodeError | EmptyBodyError
@@ -307,13 +307,14 @@ export type ResponseError = StatusCodeError | DecodeError | EmptyBodyError
 /**
  * Union of all specific failure reasons carried by `HttpClientError`.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export type HttpClientErrorReason = RequestError | ResponseError
 
 /**
- * Serializable schema representation of an `HttpClientError`, preserving the specific error kind and cause.
+ * Schema for serializable HTTP client errors, preserving the specific error kind
+ * and cause.
  *
  * @category schemas
  * @since 4.0.0

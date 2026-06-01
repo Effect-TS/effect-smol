@@ -202,6 +202,53 @@ export const makeValue = () => 1
     assert.deepStrictEqual(model.files[0]?.diagnostics, [])
   })
 
+  it("flags inline links that TypeScript does not bind", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
+    fs.mkdirSync(path.join(cwd, "src"), { recursive: true })
+    fs.writeFileSync(
+      path.join(cwd, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2022" },
+        include: ["src/**/*.ts"]
+      })
+    )
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        name: "@effect/sample",
+        type: "module",
+        exports: { ".": "./src/index.ts", "./*": "./src/*.ts" }
+      })
+    )
+    fs.writeFileSync(path.join(cwd, "src/index.ts"), `export * as Foo from "./Foo.ts"\n`)
+    fs.writeFileSync(path.join(cwd, "src/Schema.ts"), `export {}\n`)
+    fs.writeFileSync(
+      path.join(cwd, "src/Foo.ts"),
+      `/**
+ * Creates a value with the {@link Schema} module.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const makeValue = () => 1
+`
+    )
+    const model = extractJSDocsSync({
+      cwd,
+      tsconfig: "tsconfig.json",
+      include: ["src/**/*.ts"],
+      output: ".data/jsdocs.json"
+    })
+    assert.deepStrictEqual(
+      model.files[0]?.diagnostics.map((diagnostic) => diagnostic.code),
+      ["unresolved-link"]
+    )
+    assert.deepStrictEqual(
+      model.files[0]?.diagnostics.map((diagnostic) => diagnostic.message),
+      ["Unresolved JSDoc inline link: {@link Schema}"]
+    )
+  })
+
   it("flags module JSDoc tag, example, and public @see diagnostics", () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
     fs.mkdirSync(path.join(cwd, "src"), { recursive: true })

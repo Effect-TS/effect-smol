@@ -48,7 +48,7 @@ import { RunnerAddress } from "./RunnerAddress.ts"
 const TypeId = "~effect/cluster/Runner"
 
 /**
- * A cluster runner that can host entities.
+ * Represents a cluster runner that can host entities.
  *
  * **Details**
  *

@@ -103,11 +103,16 @@ import { SingletonAddress } from "./SingletonAddress.ts"
 import * as Snowflake from "./Snowflake.ts"
 
 /**
- * Cluster sharding service for registering entities and singletons, routing
- * messages to owned shards, generating runner-local snowflake ids, and polling
+ * Service that registers entities and singletons, routes messages to owned
+ * shards, generates runner-local snowflake ids, and polls
  * storage for persisted work.
  *
- * @category models
+ * **When to use**
+ *
+ * Use to access or provide cluster routing, shard ownership, entity
+ * registration, singleton registration, and persisted-work polling.
+ *
+ * @category services
  * @since 4.0.0
  */
 export class Sharding extends Context.Service<Sharding, {
@@ -1482,9 +1487,9 @@ const make = Effect.gen(function*() {
  *
  * **When to use**
  *
- * Use when assembling a cluster sharding runtime from explicit sharding
- * configuration, runner communication, message storage, runner storage, and
- * runner health layers.
+ * Use when you need to assemble a cluster sharding runtime from explicit
+ * sharding configuration, runner communication, message storage, runner
+ * storage, and runner health layers.
  *
  * **Details**
  *

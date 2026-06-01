@@ -286,7 +286,7 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
 }
 
 /**
- * Checks if the given value is a TxEnqueue.
+ * Checks whether the given value is a TxEnqueue.
  *
  * **Example** (Checking enqueue handles)
  *
@@ -307,7 +307,7 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
 export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueue<A, E> => hasProperty(u, EnqueueTypeId)
 
 /**
- * Checks if the given value is a TxDequeue.
+ * Checks whether the given value is a TxDequeue.
  *
  * **Example** (Checking dequeue handles)
  *
@@ -328,7 +328,7 @@ export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueu
 export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeue<A, E> => hasProperty(u, DequeueTypeId)
 
 /**
- * Checks if the given value is a TxQueue.
+ * Checks whether the given value is a TxQueue.
  *
  * **Example** (Checking queue handles)
  *
@@ -1095,7 +1095,7 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
 export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(self.items)
 
 /**
- * Checks if the queue is empty.
+ * Checks whether the queue is empty.
  *
  * **Example** (Checking whether a queue is empty)
  *
@@ -1120,7 +1120,7 @@ export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(
 export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.isEmpty(self.items)
 
 /**
- * Checks if the queue is at capacity.
+ * Checks whether the queue is at capacity.
  *
  * **Example** (Checking whether a queue is full)
  *
@@ -1148,7 +1148,7 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
     : Effect.map(size(self), (currentSize) => currentSize >= self.capacity)
 
 /**
- * Gracefully interrupts the queue with the current fiber's interruption cause.
+ * Interrupts the queue gracefully with the current fiber's interruption cause.
  *
  * **Details**
  *
@@ -1389,7 +1389,7 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the queue is in the open state.
+ * Checks whether the queue is in the open state.
  *
  * **Example** (Checking open state)
  *
@@ -1415,7 +1415,7 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Open")
 
 /**
- * Checks if the queue is in the closing state.
+ * Checks whether the queue is in the closing state.
  *
  * **Example** (Checking closing state)
  *
@@ -1442,7 +1442,7 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Closing")
 
 /**
- * Checks if the queue is done (completed or failed).
+ * Checks whether the queue is done (completed or failed).
  *
  * **Example** (Checking done state)
  *
@@ -1468,7 +1468,7 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Done")
 
 /**
- * Checks if the queue is shutdown (legacy compatibility).
+ * Checks whether the queue is shutdown (legacy compatibility).
  *
  * **Example** (Checking shutdown state)
  *

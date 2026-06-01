@@ -135,7 +135,7 @@ export const CurrentTransformer = Context.Reference<Transformer | undefined>("ef
 /**
  * Returns `true` when a value is a SQL `Fragment`.
  *
- * @category guard
+ * @category guards
  * @since 4.0.0
  */
 export const isFragment = (u: unknown): u is Fragment => hasProperty(u, FragmentTypeId)
@@ -143,7 +143,7 @@ export const isFragment = (u: unknown): u is Fragment => hasProperty(u, Fragment
 /**
  * Creates a type guard for custom SQL segments with the specified custom kind.
  *
- * @category guard
+ * @category guards
  * @since 4.0.0
  */
 export const isCustom = <A extends Custom<any, any, any, any>>(

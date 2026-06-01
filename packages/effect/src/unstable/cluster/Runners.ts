@@ -67,7 +67,7 @@ import * as Snowflake from "./Snowflake.ts"
  */
 export class Runners extends Context.Service<Runners, {
   /**
-   * Checks if a Runner is responsive.
+   * Checks whether a Runner is responsive.
    */
   readonly ping: (address: RunnerAddress) => Effect.Effect<void, RunnerUnavailable>
 
@@ -152,9 +152,9 @@ export class Runners extends Context.Service<Runners, {
  *
  * **When to use**
  *
- * Use to build a custom `Runners` service when you already have remote `ping`,
- * `send`, `notify`, and `onRunnerUnavailable` callbacks and want the standard
- * local persistence and reply recovery behavior added around them.
+ * Use when you need a custom `Runners` service around remote `ping`, `send`,
+ * `notify`, and `onRunnerUnavailable` callbacks, with standard local
+ * persistence and reply recovery behavior.
  *
  * **Details**
  *
@@ -702,7 +702,7 @@ export const layerRpc: Layer.Layer<
  * Service that creates an RPC client protocol for communicating with a runner at a
  * given address.
  *
- * @category Client
+ * @category client
  * @since 4.0.0
  */
 export class RpcClientProtocol extends Context.Service<

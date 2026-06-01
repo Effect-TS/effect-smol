@@ -44,16 +44,12 @@ import * as Option from "./Option.ts"
  * Runtime type identifier used to mark values that implement
  * `PartitionedSemaphore`.
  *
- * **When to use**
- *
- * Use to mark and recognize `PartitionedSemaphore` values at runtime.
- *
  * **Details**
  *
- * This constant is stored on partitioned semaphore instances and can be used by
- * library code that needs to recognize the data type at runtime.
+ * This marker is part of the runtime representation of partitioned semaphore
+ * values.
  *
- * @category models
+ * @category type IDs
  * @since 4.0.0
  */
 export const PartitionedTypeId: PartitionedTypeId = "~effect/PartitionedSemaphore"
@@ -70,7 +66,7 @@ export const PartitionedTypeId: PartitionedTypeId = "~effect/PartitionedSemaphor
  * Use this type when declaring fields that must contain the exact
  * `PartitionedTypeId` marker value.
  *
- * @category models
+ * @category type IDs
  * @since 4.0.0
  */
 export type PartitionedTypeId = "~effect/PartitionedSemaphore"
@@ -130,8 +126,8 @@ export interface Partitioned<in K> extends PartitionedSemaphore<K> {}
  *
  * **When to use**
  *
- * Use when a partitioned semaphore must be constructed synchronously outside an
- * `Effect` workflow.
+ * Use when you need to construct a partitioned semaphore synchronously outside
+ * an `Effect` workflow.
  *
  * **Details**
  *
@@ -409,8 +405,8 @@ export const capacity = <K>(self: PartitionedSemaphore<K>): number => self.capac
  *
  * **When to use**
  *
- * Use to manually acquire permits for a partition when acquisition and release
- * must be controlled as separate effects.
+ * Use when you need manual permit acquisition for a partition and want to
+ * control acquisition and release as separate effects.
  *
  * **Details**
  *
@@ -441,8 +437,8 @@ export const take: {
  *
  * **When to use**
  *
- * Use to manually return permits acquired with `take` when a lower-level
- * partitioned permit protocol needs explicit release control.
+ * Use when you need to return permits acquired with `take` in a lower-level
+ * partitioned permit protocol with explicit release control.
  *
  * **Details**
  *

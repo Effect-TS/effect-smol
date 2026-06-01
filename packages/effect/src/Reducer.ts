@@ -145,7 +145,6 @@ export interface Reducer<A> extends Combiner.Combiner<A> {
  * - If `combineAll` is omitted, a default left-to-right fold starting from
  *   `initialValue` is used.
  * - If `combineAll` is provided, it completely replaces the default fold.
- * - Pure – the returned reducer does not mutate its arguments.
  *
  * **Example** (Multiplication with short-circuit)
  *
@@ -202,9 +201,8 @@ export function make<A>(
  *
  * **When to use**
  *
- * Use when you need the "right" value to act as the accumulator side.
- * - You want to reverse the natural direction of a non-commutative reducer
- *   (e.g. string concatenation becomes prepend).
+ * Use when you want the right-hand value to act as the accumulator, or need to
+ * reverse a non-commutative reducer such as string concatenation.
  *
  * **Details**
  *
@@ -213,7 +211,6 @@ export function make<A>(
  * - The `initialValue` is preserved from the original reducer.
  * - The `combineAll` is re-derived from the flipped `combine` (using the
  *   default left-to-right fold), not carried over from the original.
- * - Does not mutate the input reducer.
  *
  * **Example** (Reversing string concatenation)
  *

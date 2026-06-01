@@ -7,13 +7,12 @@
  *
  * **When to use**
  *
- * Use when create an Anthropic-backed model with {@link model}
- * - Build or provide a `LanguageModel.LanguageModel` layer with {@link layer}
- *   or {@link make}
- * - Supply default request options through {@link Config}
- * - Override configuration for a scoped operation with {@link withConfigOverride}
- * - Attach Anthropic provider options for prompt caching, document citations,
- *   reasoning signatures, MCP metadata, and server-side tools
+ * Use when you need an Anthropic-backed model. Create a model with {@link model},
+ * build or provide a `LanguageModel.LanguageModel` layer with {@link layer} or
+ * {@link make}, supply default request options through {@link Config}, override
+ * configuration for a scoped operation with {@link withConfigOverride}, or attach
+ * Anthropic provider options for prompt caching, document citations, reasoning
+ * signatures, MCP metadata, and server-side tools.
  *
  * **Gotchas**
  *
@@ -78,17 +77,18 @@ export type Model = typeof Generated.Model.Type
 // =============================================================================
 
 /**
- * Configuration options for the Anthropic language model.
+ * Context service for Anthropic language model configuration.
  *
  * **When to use**
  *
- * Use when you need to provide or override Anthropic model configuration on a
- * per-request basis via `Context.Service`.
+ * Use when you need scoped Anthropic model request defaults or per-operation
+ * overrides from Effect context.
  *
  * **Details**
  *
- * This service can be used to provide default configuration values or to
- * override configuration on a per-request basis.
+ * The service stores request fields that are merged into Anthropic Messages API
+ * requests. Scoped configuration overrides defaults supplied to `model`,
+ * `make`, or `layer`.
  *
  * @category configuration
  * @since 4.0.0
@@ -669,8 +669,8 @@ export const model = (
  *
  * **When to use**
  *
- * Use when an Effect needs to construct a `LanguageModel.Service` value backed
- * by `AnthropicClient`.
+ * Use when you need to construct a `LanguageModel.Service` value backed by
+ * `AnthropicClient` inside an Effect.
  *
  * **Details**
  *
@@ -2827,7 +2827,7 @@ const groupMessages = (prompt: Prompt.Prompt): Array<ContentGroup> => {
 }
 
 /**
- * Checks if data is a URL (either a URL object or a URL string).
+ * Checks whether data is a URL (either a URL object or a URL string).
  */
 const isUrlData = (
   data: typeof Prompt.FilePart.Type["data"]

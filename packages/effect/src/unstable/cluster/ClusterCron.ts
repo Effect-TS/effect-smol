@@ -87,8 +87,7 @@ export const make = <E, R>(options: {
    *
    * **When to use**
    *
-   * Use when this is useful to prevent running jobs that were scheduled too far in the
-   * past.
+   * Use to prevent running jobs that were scheduled too far in the past.
    *
    * **Details**
    *

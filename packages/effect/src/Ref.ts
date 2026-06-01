@@ -205,7 +205,7 @@ export const makeUnsafe = <A>(value: A): Ref<A> => {
  *
  * **When to use**
  *
- * Use to create shared mutable state inside an Effect program.
+ * Use to create a `Ref` for shared mutable state inside an Effect program.
  *
  * **Example** (Creating a ref)
  *
@@ -231,7 +231,7 @@ export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => ma
  *
  * **When to use**
  *
- * Use to read the current value without changing it.
+ * Use to read the current `Ref` value without changing it.
  *
  * **Example** (Getting the current value)
  *
@@ -257,7 +257,7 @@ export const get = <A>(self: Ref<A>) => Effect.sync(() => self.ref.current)
  *
  * **When to use**
  *
- * Use to replace the current value with a known value.
+ * Use to replace the current `Ref` value with a known value.
  *
  * **Example** (Setting a value)
  *
@@ -292,11 +292,11 @@ export const set = dual<
 >(2, <A>(self: Ref<A>, value: A) => Effect.sync(() => MutableRef.set(self.ref, value)))
 
 /**
- * Atomically gets the current value of the Ref, sets it to the specified value, and returns the previous value.
+ * Gets the current value of the Ref, sets it to the specified value, and returns the previous value atomically.
  *
  * **When to use**
  *
- * Use to replace the value while returning the previous value.
+ * Use to replace a plain `Ref` value while returning the previous value.
  *
  * **Example** (Replacing a value atomically)
  *
@@ -318,7 +318,7 @@ export const set = dual<
  * @see {@link set} for setting without returning the previous value
  * @see {@link getAndUpdate} for deriving the new value from the previous value
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const getAndSet = dual<
@@ -332,11 +332,11 @@ export const getAndSet = dual<
   }))
 
 /**
- * Atomically gets the current value of the Ref, updates it with the given function, and returns the previous value.
+ * Gets the current value of the Ref, updates it with the given function, and returns the previous value atomically.
  *
  * **When to use**
  *
- * Use to derive a new value while returning the previous value.
+ * Use to derive a new `Ref` value while returning the previous value.
  *
  * **Example** (Updating and returning the previous value)
  *
@@ -358,7 +358,7 @@ export const getAndSet = dual<
  * @see {@link update} for updating without returning the previous value
  * @see {@link updateAndGet} for returning the new value instead
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const getAndUpdate = dual<
@@ -372,11 +372,11 @@ export const getAndUpdate = dual<
   }))
 
 /**
- * Atomically gets the current value of the Ref and updates it with the given partial function.
+ * Gets the current value of the Ref and updates it atomically with the given partial function.
  *
  * **When to use**
  *
- * Use to return the previous value while applying a conditional update.
+ * Use to return the previous `Ref` value while applying a conditional update.
  *
  * **Details**
  *
@@ -417,7 +417,7 @@ export const getAndUpdate = dual<
  * @see {@link getAndUpdate} for always applying an update
  * @see {@link updateSome} for conditional updates without returning the previous value
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const getAndUpdateSome = dual<
@@ -434,11 +434,11 @@ export const getAndUpdateSome = dual<
   }))
 
 /**
- * Atomically sets the value of the Ref to the specified value and returns the new value.
+ * Sets the value of the Ref atomically to the specified value and returns the new value.
  *
  * **When to use**
  *
- * Use when you want to set a value and immediately get it back in one
+ * Use when you want to set a `Ref` value and immediately get it back in one
  * atomic operation.
  *
  * **Example** (Setting and returning the new value)
@@ -467,7 +467,7 @@ export const getAndUpdateSome = dual<
  * })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const setAndGet = dual<
@@ -476,12 +476,12 @@ export const setAndGet = dual<
 >(2, <A>(self: Ref<A>, value: A) => Effect.sync(() => self.ref.current = value))
 
 /**
- * Atomically modifies the value of the Ref using the given function.
+ * Modifies the value of the Ref atomically using the given function.
  *
  * **When to use**
  *
- * Use to compute both a separate return value and the next stored value in one
- * atomic update.
+ * Use to compute both a separate return value and the next stored `Ref` value
+ * in one atomic update.
  *
  * **Details**
  *
@@ -539,11 +539,11 @@ export const modify = dual<
   }))
 
 /**
- * Atomically computes a result and optionally updates the value of the `Ref`.
+ * Computes a result atomically and optionally updates the value of the `Ref`.
  *
  * **When to use**
  *
- * Use to compute a return value while optionally updating the stored value.
+ * Use to compute a return value while optionally updating a plain `Ref`.
  *
  * **Details**
  *
@@ -614,11 +614,11 @@ export const modifySome: {
   }))
 
 /**
- * Atomically updates the value of the Ref using the given function.
+ * Updates the value of the Ref atomically using the given function.
  *
  * **When to use**
  *
- * Use to apply a state transition without returning a value.
+ * Use to apply a `Ref` state transition without returning a value.
  *
  * **Example** (Updating a value)
  *
@@ -659,11 +659,11 @@ export const update = dual<
   }))
 
 /**
- * Atomically updates the value of the Ref using the given function and returns the new value.
+ * Updates the value of the Ref atomically using the given function and returns the new value.
  *
  * **When to use**
  *
- * Use to apply a state transition and return the new stored value.
+ * Use to apply a `Ref` state transition and return the new stored value.
  *
  * **Example** (Updating and returning the new value)
  *
@@ -686,7 +686,7 @@ export const update = dual<
  * @see {@link update} for updating without returning the new value
  * @see {@link getAndUpdate} for returning the previous value instead
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const updateAndGet = dual<
@@ -695,11 +695,11 @@ export const updateAndGet = dual<
 >(2, <A>(self: Ref<A>, f: (a: A) => A) => Effect.sync(() => self.ref.current = f(self.ref.current)))
 
 /**
- * Atomically updates the value of the Ref using the given partial function.
+ * Updates the value of the Ref atomically using the given partial function.
  *
  * **When to use**
  *
- * Use to apply a conditional update without returning a value.
+ * Use to apply a conditional `Ref` update without returning a value.
  *
  * **Details**
  *
@@ -753,11 +753,12 @@ export const updateSome = dual<
   }))
 
 /**
- * Atomically updates the value of the Ref using the given partial function and returns the current value.
+ * Updates the value of the Ref atomically using the given partial function and returns the current value.
  *
  * **When to use**
  *
- * Use to apply a conditional update and return the resulting current value.
+ * Use to apply a conditional `Ref` update and return the resulting current
+ * value.
  *
  * **Details**
  *
@@ -792,7 +793,7 @@ export const updateSome = dual<
  * @see {@link updateSome} for conditional updates without returning a value
  * @see {@link updateAndGet} for always updating and returning the new value
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const updateSomeAndGet = dual<

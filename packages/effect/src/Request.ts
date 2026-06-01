@@ -169,7 +169,7 @@ export interface Constructor<R extends Request<any, any, any>, T extends keyof R
  * type UserError = Request.Error<GetUser> // Error
  * ```
  *
- * @category type-level
+ * @category utility types
  * @since 2.0.0
  */
 export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _E : never
@@ -191,7 +191,7 @@ export type Error<T extends Request<any, any, any>> = [T] extends [Request<infer
  * type UserSuccess = Request.Success<GetUser> // string
  * ```
  *
- * @category type-level
+ * @category utility types
  * @since 2.0.0
  */
 export type Success<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _A
@@ -200,7 +200,7 @@ export type Success<T extends Request<any, any, any>> = [T] extends [Request<inf
 /**
  * A utility type to extract the requirements type from a `Request`.
  *
- * @category type-level
+ * @category utility types
  * @since 4.0.0
  */
 export type Services<T extends Request<any, any, any>> = [T] extends [Request<infer _A, infer _E, infer _R>] ? _R
@@ -223,7 +223,7 @@ export type Services<T extends Request<any, any, any>> = [T] extends [Request<in
  * type UserResult = Request.Result<GetUser> // Exit.Exit<string, Error>
  * ```
  *
- * @category type-level
+ * @category utility types
  * @since 2.0.0
  */
 export type Result<T extends Request<any, any, any>> = T extends Request<infer A, infer E, infer _R> ? Exit.Exit<A, E>
@@ -248,7 +248,7 @@ const requestVariance = Equal.byReferenceUnsafe({
  * `Request.TaggedClass`. Most users should use those constructors instead of
  * interacting with the prototype directly.
  *
- * @category models
+ * @category prototypes
  * @since 4.0.0
  */
 export const RequestPrototype: Request<any, any, any> = {
@@ -257,7 +257,7 @@ export const RequestPrototype: Request<any, any, any> = {
 }
 
 /**
- * Tests if a value is a `Request`.
+ * Checks whether a value is a `Request`.
  *
  * **Example** (Checking request values)
  *
@@ -370,7 +370,7 @@ export const tagged = <R extends Request<any, any, any> & { _tag: string }>(
 }
 
 /**
- * Base class constructor for defining request types with TypeScript classes.
+ * Defines request types with TypeScript classes.
  *
  * **Details**
  *
@@ -449,8 +449,8 @@ export const TaggedClass = <Tag extends string>(
  *
  * **When to use**
  *
- * Use to finish a `Request.Entry` when you already have the request's final
- * `Exit` result.
+ * Use when you need to finish a `Request.Entry` with a prebuilt final `Exit`
+ * result.
  *
  * @see {@link completeEffect} for completing an entry from an effect that may succeed or fail
  * @see {@link succeed} for completing an entry with a successful value
@@ -535,8 +535,8 @@ export const fail: {
  *
  * **When to use**
  *
- * Use when a `RequestResolver` needs to complete an entry with structured cause
- * information rather than only the request's typed error value.
+ * Use when you need a `RequestResolver` to complete an entry with structured
+ * cause information rather than only the request's typed error value.
  *
  * @see {@link fail} for completing an entry with a typed error value
  * @see {@link complete} for completing an entry with an existing `Exit`
@@ -560,8 +560,8 @@ export const failCause: {
  *
  * **When to use**
  *
- * Use to finish a `Request.Entry` when you have a successful value for the
- * request.
+ * Use when you need to finish a `Request.Entry` with a successful request
+ * value.
  *
  * @see {@link complete} for completing an entry with a prebuilt `Exit`
  * @see {@link completeEffect} for completing an entry from an effect result

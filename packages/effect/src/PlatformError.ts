@@ -40,8 +40,8 @@ const TypeId = "~effect/platform/PlatformError"
  *
  * **When to use**
  *
- * Use when a platform API rejects caller input before performing the underlying
- * operation and callers need the `BadArgument` reason data directly.
+ * Use when you need to model caller input rejected before a platform operation
+ * runs, including invalid-argument reason data.
  *
  * **Details**
  *
@@ -112,8 +112,8 @@ export type SystemErrorTag =
  *
  * **When to use**
  *
- * Use as the reason data for failures reported by a host platform or operating
- * system when you need a normalized system error tag plus operation details.
+ * Use when you need normalized reason data for a platform or system operation
+ * failure, including the operation details.
  *
  * **Details**
  *

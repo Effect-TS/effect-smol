@@ -63,7 +63,7 @@ import type * as JsonSchema from "../../JsonSchema.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import type * as Struct from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
 import type * as AiError from "./AiError.ts"
@@ -1318,8 +1318,8 @@ export const make = <
  *
  * **When to use**
  *
- * Use when this is useful for tools where the schema isn't known at compile time,
- * such as MCP tools discovered at runtime or tools from external configurations.
+ * Use when you do not know a tool schema at compile time, such as MCP tools
+ * discovered at runtime or tools from external configurations.
  *
  * **Details**
  *
@@ -1544,8 +1544,8 @@ export const providerDefined = <
 // =============================================================================
 
 /**
- * A utility which allows mapping between a provider-defined name for a tool
- * and the name given to the tool by the Effect AI SDK.
+ * Maps between a provider-defined tool name and the name given to the tool by
+ * the Effect AI SDK.
  *
  * **Details**
  *
@@ -1554,7 +1554,7 @@ export const providerDefined = <
  * naming conflicts (i.e. `"web_search"`) to instead use custom names (i.e.
  * `"OpenAiWebSearch"`).
  *
- * @category utils
+ * @category models
  * @since 4.0.0
  */
 export class NameMapper<Tools extends ReadonlyArray<Any>> {
@@ -1632,7 +1632,7 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * console.log(description) // "This is an example tool"
  * ```
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined => {
@@ -1640,7 +1640,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
     return tool.description
   }
   if (Schema.isSchema(tool.parametersSchema)) {
-    return AST.resolveDescription(tool.parametersSchema.ast)
+    return SchemaAST.resolveDescription(tool.parametersSchema.ast)
   }
   return undefined
 }
@@ -1683,7 +1683,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * // }
  * ```
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
@@ -1705,7 +1705,7 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
  * `Schema.toJsonSchemaDocument` and any generated definitions are attached as
  * `$defs`.
  *
- * @category utils
+ * @category converting
  * @since 4.0.0
  */
 export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
@@ -1901,7 +1901,7 @@ export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Str
  *
  * @see {@link Strict} for the annotation read by this helper
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getStrictMode = <T extends Any>(tool: T): boolean | undefined => Context.get(tool.annotations, Strict)
@@ -1987,7 +1987,8 @@ function filter(obj: any) {
  *
  * **When to use**
  *
- * Use when thrown parse and security failures are acceptable.
+ * Use when you need a JSON parser that throws for invalid JSON or unsafe
+ * object shapes.
  *
  * **Gotchas**
  *
@@ -1995,7 +1996,7 @@ function filter(obj: any) {
  * `__proto__` property or a dangerous `constructor.prototype` shape throw a
  * `SyntaxError`.
  *
- * @category utils
+ * @category unsafe
  * @since 4.0.0
  */
 export const unsafeSecureJsonParse = (text: string): unknown => {
@@ -2023,11 +2024,11 @@ export const unsafeSecureJsonParse = (text: string): unknown => {
 export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never> {}
 
 /**
- * A schema for tools that accept no parameters.
+ * Schema for tools that accept no parameters.
  *
  * **When to use**
  *
- * Use when a tool needs an explicit no-parameter `parameters` schema.
+ * Use when you need an explicit no-parameter `parameters` schema for a tool.
  *
  * **Details**
  *
@@ -2042,6 +2043,6 @@ export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never>
 export const EmptyParams: EmptyParams = Schema.Record(Schema.String, Schema.Never)
 
 /** @internal */
-export function isEmptyParamsRecord(indexSignature: AST.IndexSignature): boolean {
-  return indexSignature.parameter === AST.string && AST.isNever(indexSignature.type)
+export function isEmptyParamsRecord(indexSignature: SchemaAST.IndexSignature): boolean {
+  return indexSignature.parameter === SchemaAST.string && SchemaAST.isNever(indexSignature.type)
 }

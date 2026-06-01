@@ -53,7 +53,12 @@ import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 
 /**
- * A service for key-based reactive invalidation.
+ * Service for key-based reactive invalidation.
+ *
+ * **When to use**
+ *
+ * Use to provide the invalidation service that refreshes queries, streams, and
+ * atoms when application keys change.
  *
  * **Details**
  *
@@ -61,7 +66,7 @@ import * as Stream from "../../Stream.ts"
  * mutations so successful effects invalidate keys, and turn query effects into
  * queues or streams that rerun when keys are invalidated.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class Reactivity extends Context.Service<

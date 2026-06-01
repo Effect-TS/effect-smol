@@ -97,10 +97,6 @@ export interface RcRef<out A, out E = never> extends Pipeable {
 /**
  * Namespace containing type-level members associated with `RcRef`.
  *
- * **When to use**
- *
- * Use to reference type-level members associated with `RcRef`.
- *
  * **Example** (Referencing namespace types)
  *
  * ```ts

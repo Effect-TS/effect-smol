@@ -59,9 +59,14 @@ export const TypeId = "~effect/socket/Socket"
 export const isSocket = (u: unknown): u is Socket => Predicate.hasProperty(u, TypeId)
 
 /**
- * Context service tag for the current `Socket` implementation.
+ * Service tag for bidirectional socket transports.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide the socket implementation used by programs that
+ * read and write frames through the Effect environment.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const Socket: Context.Service<Socket, Socket> = Context.Service<Socket>("effect/socket/Socket")
@@ -161,7 +166,8 @@ const decoder = new TextDecoder()
 const CloseEventTypeId = "~effect/socket/Socket/CloseEvent"
 
 /**
- * Socket close event value carrying a close code and optional reason.
+ * Represents a socket close event value carrying a close code and optional
+ * reason.
  *
  * @category models
  * @since 4.0.0
@@ -550,7 +556,7 @@ export const defaultCloseCodeIsError = (_code: number) => true
  * Context service for the active `WebSocket` instance available while a
  * WebSocket-backed socket run is handling events.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>()(
@@ -561,7 +567,7 @@ export class WebSocket extends Context.Service<WebSocket, globalThis.WebSocket>(
  * Context service for constructing `WebSocket` instances from a URL and
  * optional protocols.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class WebSocketConstructor extends Context.Service<

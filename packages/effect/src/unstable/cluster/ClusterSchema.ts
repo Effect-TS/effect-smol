@@ -71,7 +71,7 @@ export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchem
  *
  * **When to use**
  *
- * Use when a request needs server-side handling or storage work wrapped in the
+ * Use when you need server-side request handling or storage work wrapped in the
  * storage transaction.
  *
  * **Details**
@@ -135,8 +135,8 @@ export const isUninterruptibleForServer = (context: Context.Context<never>): boo
  *
  * **When to use**
  *
- * Use when client-side cluster request handling needs to decide whether an
- * interrupt should be ignored.
+ * Use when you need client-side cluster request handling to decide whether to
+ * ignore an interrupt.
  *
  * **Details**
  *
@@ -185,8 +185,17 @@ export const ClientTracingEnabled = Context.Reference<boolean>("effect/cluster/C
 })
 
 /**
- * Dynamically transform the request annotations based on the request.
- * This only applies to the requests handled by the Entity, not the client.
+ * Context reference for deriving request annotations from a cluster request.
+ *
+ * **When to use**
+ *
+ * Use to customize server-side request annotations based on the decoded
+ * request value.
+ *
+ * **Gotchas**
+ *
+ * This only applies to requests handled by the entity, not to the generated
+ * client.
  *
  * @category annotations
  * @since 4.0.0

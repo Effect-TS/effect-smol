@@ -66,11 +66,11 @@ import * as Record from "../../Record.ts"
 import * as Redactable from "../../Redactable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type { Mutable } from "../../Types.ts"
 
 /**
- * This is a symbol to allow direct access of keys without conflicts.
+ * Runtime type identifier for `Headers` values.
  *
  * @category type IDs
  * @since 4.0.0
@@ -146,9 +146,10 @@ const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
   Object.assign(Object.create(Proto), input) as Headers
 
 /**
- * Equivalence instance that compares `Headers` by their header names and string values.
+ * Provides an `Equivalence` instance that compares `Headers` by header names
+ * and string values.
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<Headers> = Record.makeEquivalence(Equ.strictEqual<string>())
@@ -188,7 +189,7 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
     toCodec: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: (input) => fromInput(input),
           encode: (headers) => ({ ...headers })
         })
@@ -250,7 +251,7 @@ export const fromInput: (input?: Input) => Headers = (input) => {
 }
 
 /**
- * Unsafely treats an existing record as `Headers`.
+ * Treats an existing record as `Headers` unsafely.
  *
  * **Gotchas**
  *
@@ -281,7 +282,7 @@ export const has: {
 >(2, (self, key) => key.toLowerCase() in self)
 
 /**
- * Gets a header value by name.
+ * Gets a header value by name safely.
  *
  * **Details**
  *

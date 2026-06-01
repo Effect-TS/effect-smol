@@ -37,7 +37,7 @@ import type { Command, KillOptions } from "./ChildProcess.ts"
 export type ExitCode = Brand.Branded<number, "ExitCode">
 
 /**
- * Brand constructor for child process `ExitCode` values.
+ * Constructs branded child process `ExitCode` values.
  *
  * @category constructors
  * @since 4.0.0
@@ -54,7 +54,7 @@ export const ExitCode: Brand.Constructor<ExitCode> = Brand.nominal<ExitCode>()
 export type ProcessId = Brand.Branded<number, "ProcessId">
 
 /**
- * Brand constructor for child process `ProcessId` values.
+ * Constructs branded child process `ProcessId` values.
  *
  * @category constructors
  * @since 4.0.0

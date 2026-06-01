@@ -57,7 +57,7 @@ import type { SqlError } from "./SqlError.ts"
  * Options for running SQL migrations, including the migration loader, optional
  * schema dump directory, and migrations table name.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface MigratorOptions<R = never> {

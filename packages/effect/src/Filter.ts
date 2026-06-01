@@ -413,8 +413,8 @@ export const boolean: Filter<unknown, boolean> = fromPredicate(Predicate.isBoole
  *
  * **When to use**
  *
- * Use to keep `bigint` primitive values from unknown input while staying in the
- * composable `Filter` / `Result` pipeline.
+ * Use to keep primitive big integer values from unknown input while staying in
+ * the composable `Filter` / `Result` pipeline.
  *
  * **Details**
  *
@@ -447,8 +447,8 @@ export const symbol: Filter<unknown, symbol> = fromPredicate(Predicate.isSymbol)
  *
  * **When to use**
  *
- * Use when narrowing unknown input to JavaScript `Date` instances with a
- * reusable `Filter`.
+ * Use when you need to narrow unknown input to JavaScript `Date` instances with
+ * a reusable `Filter`.
  *
  * **Details**
  *
@@ -811,8 +811,8 @@ export const composePassthrough: {
  *
  * **When to use**
  *
- * Use when adapting a `Filter` to `Option`-based code and you only need the
- * passed value, with filtered-out inputs represented as `None`.
+ * Use when adapting a `Filter` to `Option`-based code where passed values
+ * become `Some` and filtered-out inputs become `None`.
  *
  * @see {@link toResult} for keeping the filter failure value
  * @see {@link toPredicate} for plain boolean pass/fail checks

@@ -170,6 +170,11 @@ export const encodeSchemaString = <S extends Schema.Top>(
 /**
  * Creates a channel that parses NDJSON string chunks into values.
  *
+ * **When to use**
+ *
+ * Use when NDJSON input arrives as string chunks and each complete line should
+ * be parsed into a JSON value.
+ *
  * **Details**
  *
  * Lines may span input chunks.

@@ -39,6 +39,10 @@
  * - `taggedEnum()` creates **plain objects**, not class instances. If you need
  *   class-based variants, use `TaggedClass` or `TaggedError` instead.
  * - `TaggedEnum.WithGenerics` supports up to 4 generic type parameters.
+ * - `$is(tag)` only checks the `_tag` field, not the full structure. It is safe
+ *   when the tag value is globally unique across your application and the value
+ *   was produced by your constructors. For untrusted input, validate with
+ *   the `Schema` module before using `$is`.
  *
  * ## Quickstart
  *
@@ -79,11 +83,11 @@ import type * as Types from "./Types.ts"
 import type { Unify } from "./Unify.ts"
 
 /**
- * Base class for immutable data types.
+ * Provides a base class for immutable data types.
  *
  * **When to use**
  *
- * Use when you need a lightweight immutable value type with `.pipe()` support. If you also need a `_tag` discriminator, use {@link TaggedClass}; if you need a yieldable error, use {@link Error} or {@link TaggedError}.
+ * Use when you need a lightweight immutable value type with `.pipe()` support.
  *
  * **Details**
  *
@@ -123,11 +127,11 @@ export const Class: new<A extends Record<string, any> = {}>(
 } as any
 
 /**
- * Base class for immutable data types with a `_tag` discriminator.
+ * Provides a base class for immutable data types with a `_tag` discriminator.
  *
  * **When to use**
  *
- * Use when you need a single-variant tagged type or an ad-hoc discriminator. For multi-variant unions, prefer {@link TaggedEnum} with {@link taggedEnum}; for yieldable errors, use {@link TaggedError}.
+ * Use when you need a single-variant tagged type or an ad-hoc discriminator.
  *
  * **Details**
  *
@@ -170,13 +174,12 @@ export const TaggedClass = <Tag extends string>(
  *
  * **When to use**
  *
- * Use when you have two or more variants that share a common `_tag` discriminator. For generic tagged enums, see {@link TaggedEnum.WithGenerics}.
+ * Use when you have two or more variants that share a common `_tag` discriminator.
  *
  * **Details**
  *
  * Each key in the record becomes a variant with `readonly _tag` set to that
- * key. Use with {@link taggedEnum} to get runtime constructors, type guards,
- * and pattern matching.
+ * key. Use with {@link taggedEnum} to get constructors and matchers.
  *
  * **Gotchas**
  *
@@ -203,7 +206,7 @@ export const TaggedClass = <Tag extends string>(
  * // "BadRequest"
  * ```
  *
- * @see {@link taggedEnum} — runtime constructors for a `TaggedEnum`
+ * @see {@link taggedEnum} — constructors and matchers for a `TaggedEnum`
  * @see {@link TaggedEnum.WithGenerics} — generic tagged enums
  * @see {@link TaggedEnum.Constructor} — the constructor object type
  *
@@ -251,7 +254,7 @@ export declare namespace TaggedEnum {
    *
    * **When to use**
    *
-   * Use when variant payloads need to be parameterized, such as `Result<E, A>`. Pass the interface, not the type alias, to {@link taggedEnum} to get generic-aware constructors.
+   * Use when variant payloads need to be parameterized, such as `Result<E, A>`.
    *
    * **Details**
    *
@@ -280,7 +283,7 @@ export declare namespace TaggedEnum {
    * ```
    *
    * @see {@link Kind} — apply concrete types to a `WithGenerics` definition
-   * @see {@link taggedEnum} — runtime constructors
+   * @see {@link taggedEnum} — constructors and matchers
    *
    * @category models
    * @since 2.0.0
@@ -413,18 +416,20 @@ export declare namespace TaggedEnum {
   > = Extract<A, { readonly _tag: K }>
 
   /**
-   * The full constructor-object type returned by {@link taggedEnum}.
+   * The full constructors-and-matchers object type returned by {@link taggedEnum}.
    *
    * **When to use**
    *
-   * Use to type the full constructor and matcher object returned by
-   * `taggedEnum`.
+   * Use when you want to annotate an exported constructor bundle so downstream
+   * code keeps exact variant constructors and exhaustive matching.
    *
    * **Details**
    *
    * Includes:
    * - A constructor function for each variant (keyed by tag name)
-   * - `$is(tag)` — returns a type-guard for the given variant
+   * - `$is(tag)` — returns a type-guard that checks only the `_tag` field;
+   *   safe when the tag is globally unique and the value was produced by your
+   *   constructors. For untrusted input, validate with the `Schema` module first.
    * - `$match` — exhaustive pattern matching (data-last or data-first)
    *
    * **Example** (Using the constructor object)
@@ -452,7 +457,7 @@ export declare namespace TaggedEnum {
    * })
    * ```
    *
-   * @see {@link taggedEnum} — creates a `Constructor`
+   * @see {@link taggedEnum} — creates constructors and matchers
    *
    * @category types
    * @since 3.1.0
@@ -578,23 +583,26 @@ export declare namespace TaggedEnum {
 }
 
 /**
- * Creates runtime constructors, type guards, and pattern matching for a
- * {@link TaggedEnum} type.
+ * Creates constructors and matchers for a `TaggedEnum` type.
  *
  * **When to use**
  *
- * Use when you have a `TaggedEnum` type and need to construct or inspect values. For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
+ * Use when you model a closed union with plain data objects and want
+ * construction, tag checks, and exhaustive matching from the same definition.
  *
  * **Details**
  *
  * Returns an object with:
  * - One constructor per variant (keyed by tag name)
- * - `$is(tag)` — returns a type-guard function
+ * - `$is(tag)` — returns a type-guard function that checks only the `_tag` field
  * - `$match` — exhaustive pattern matching (data-first or data-last)
  *
  * **Gotchas**
  *
- * Constructors produce **plain objects**, not class instances.
+ * - Constructors produce **plain objects**, not class instances.
+ * - `$is(tag)` only checks the `_tag` field, not the full structure. It relies
+ *   on the tag being globally unique and the value being produced by your
+ *   constructors. For untrusted input, validate with the `Schema` module first.
  *
  * **Example** (Basic usage)
  *
@@ -741,11 +749,12 @@ function taggedMatch<
 }
 
 /**
- * Base class for yieldable errors.
+ * Provides a base class for yieldable errors.
  *
  * **When to use**
  *
- * Use when you use `Error` for errors that do **not** need tag-based discrimination. If you need `Effect.catchTag` support, use {@link TaggedError}.
+ * Use when you need yieldable errors that do **not** need tag-based
+ * discrimination.
  *
  * **Details**
  *
@@ -787,7 +796,7 @@ export const Error: new<A extends Record<string, any> = {}>(
  *
  * **When to use**
  *
- * Use when you use `TaggedError` for domain errors in Effect applications where you want discriminated-union error handling.
+ * Use when you need domain errors with discriminated-union handling.
  *
  * **Details**
  *

@@ -90,7 +90,7 @@ export interface HttpClientRequest extends Inspectable.Inspectable, Pipeable {
 /**
  * Options for constructing or modifying an `HttpClientRequest`.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface Options {
@@ -113,7 +113,7 @@ export declare namespace Options {
   /**
    * Request options that omit the method and URL for helpers that already receive those values separately.
    *
-   * @category models
+   * @category options
    * @since 4.0.0
    */
   export interface NoUrl extends Omit<Options, "method" | "url"> {}
@@ -713,7 +713,16 @@ export const bodyJson: {
 )
 
 /**
- * Sets a JSON request body using unsafe JSON encoding, which may throw instead of failing in the Effect error channel.
+ * Sets a JSON request body using unsafe JSON encoding.
+ *
+ * **When to use**
+ *
+ * Use when the request body is known to be JSON-serializable and a synchronous
+ * `HttpClientRequest` result is needed.
+ *
+ * **Gotchas**
+ *
+ * JSON encoding may throw instead of failing in the Effect error channel.
  *
  * @category combinators
  * @since 4.0.0
@@ -917,7 +926,7 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
 }
 
 /**
- * Converts an `HttpClientRequest` to a Web `Request` as a `Result`, failing when the request URL is invalid.
+ * Converts an `HttpClientRequest` safely to a Web `Request` as a `Result`, failing when the request URL is invalid.
  *
  * @category converting
  * @since 4.0.0

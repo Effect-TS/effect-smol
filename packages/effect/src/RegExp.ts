@@ -39,7 +39,7 @@
 import * as predicate from "./Predicate.ts"
 
 /**
- * Re-exports the JavaScript `RegExp` constructor from `globalThis`.
+ * Exposes the JavaScript regular expression constructor from `globalThis`.
  *
  * **When to use**
  *
@@ -65,7 +65,7 @@ import * as predicate from "./Predicate.ts"
 export const RegExp = globalThis.RegExp
 
 /**
- * Tests if a value is a `RegExp`.
+ * Checks whether a value is a `RegExp`.
  *
  * **When to use**
  *
@@ -102,7 +102,7 @@ export const isRegExp: (input: unknown) => input is RegExp = predicate.isRegExp
  * assert.deepStrictEqual(RegExp.escape("a*b"), "a\\*b")
  * ```
  *
- * @category utils
+ * @category RegExp
  * @since 2.0.0
  */
 export const escape = (string: string): string => string.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&")

@@ -41,7 +41,12 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 
 /**
- * Context service containing the OpenTelemetry `Resource` associated with emitted telemetry.
+ * Service tag for OpenTelemetry metadata attached to emitted telemetry.
+ *
+ * **When to use**
+ *
+ * Use to provide process, service, and deployment metadata that should be
+ * attached to spans, metrics, and logs.
  *
  * @category services
  * @since 4.0.0
@@ -73,7 +78,7 @@ export const layer = (config: {
  * **When to use**
  *
  * Use to turn explicit service metadata into a raw OpenTelemetry attribute map
- * for lower-level resource construction or for merging with environment-derived
+ * for lower-level resource construction or merging with environment-derived
  * attributes via `layerFromEnv`.
  *
  * **Details**

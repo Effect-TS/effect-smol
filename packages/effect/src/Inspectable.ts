@@ -68,7 +68,7 @@ import * as Predicate from "./Predicate.ts"
 import { redact } from "./Redactable.ts"
 
 /**
- * Symbol used by Node.js for custom object inspection.
+ * Defines the symbol used by Node.js for custom object inspection.
  *
  * **When to use**
  *
@@ -184,7 +184,7 @@ export interface Inspectable {
 }
 
 /**
- * Safely converts a value to a JSON-serializable representation.
+ * Converts a value to a JSON-serializable representation safely.
  *
  * **When to use**
  *
@@ -280,7 +280,7 @@ export const toStringUnknown = (u: unknown, whitespace: number | string | undefi
  * MyClass.prototype.constructor = MyClass
  * ```
  *
- * @category models
+ * @category prototypes
  * @since 2.0.0
  */
 export const BaseProto: Inspectable = {
@@ -296,7 +296,7 @@ export const BaseProto: Inspectable = {
 }
 
 /**
- * Abstract base class that implements the Inspectable interface.
+ * Provides an abstract base class that implements the Inspectable interface.
  *
  * **When to use**
  *

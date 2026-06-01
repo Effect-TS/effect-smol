@@ -149,7 +149,7 @@ export interface Handlers<State, Output> {
  * Options for a confirmation prompt that asks the user to choose a boolean
  * yes/no value.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ConfirmOptions {
@@ -195,7 +195,7 @@ export interface ConfirmOptions {
  * Options for a date prompt, including the displayed message, initial value,
  * format mask, validation, and locale labels.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface DateOptions {
@@ -270,7 +270,7 @@ export interface DateOptions {
  * Options for an integer prompt, including bounds, keyboard step sizes, and
  * additional validation.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface IntegerOptions {
@@ -278,6 +278,10 @@ export interface IntegerOptions {
    * The message to display in the prompt.
    */
   readonly message: string
+  /**
+   * The default value of the integer prompt.
+   */
+  readonly default?: number
   /**
    * The minimum value that can be entered by the user (defaults to `-Infinity`).
    */
@@ -311,7 +315,7 @@ export interface IntegerOptions {
  * In addition to the numeric bounds and step settings from `IntegerOptions`,
  * the prompt can be configured with a display precision.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface FloatOptions extends IntegerOptions {
@@ -325,7 +329,7 @@ export interface FloatOptions extends IntegerOptions {
  * Options for a text prompt that returns a list of strings by splitting the
  * input on a delimiter.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ListOptions extends TextOptions {
@@ -343,7 +347,7 @@ export interface ListOptions extends TextOptions {
  * They control which path type can be selected, the starting directory, paging,
  * and filtering of displayed entries.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface FileOptions {
@@ -361,6 +365,10 @@ export interface FileOptions {
    */
   readonly startingPath?: string
   /**
+   * The default path to select when the prompt is first displayed.
+   */
+  readonly default?: string
+  /**
    * The number of choices to display at one time, defaulting to `10`.
    */
   readonly maxPerPage?: number
@@ -375,7 +383,7 @@ export interface FileOptions {
  * Options for a prompt that asks the user to select one value from a list of
  * choices.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface SelectOptions<A> {
@@ -397,7 +405,7 @@ export interface SelectOptions<A> {
  * Options for an autocomplete prompt that lets the user filter selectable
  * choices by typing.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface AutoCompleteOptions<A> extends SelectOptions<A> {
@@ -419,7 +427,7 @@ export interface AutoCompleteOptions<A> extends SelectOptions<A> {
  * Options for a multi-select prompt, including bulk-selection labels and
  * minimum or maximum selection counts.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface MultiSelectOptions {
@@ -480,7 +488,7 @@ export interface SelectChoice<A> {
  * Options for text-entry prompts, including the displayed message, default
  * text, and effectful validation before submission.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface TextOptions {
@@ -503,7 +511,7 @@ export interface TextOptions {
  * Options for a toggle prompt that lets the user switch between active and
  * inactive boolean states.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ToggleOptions {
@@ -838,6 +846,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     type: options.type ?? "file",
     message: options.message ?? `Choose a file`,
     startingPath: Option.fromUndefinedOr(options.startingPath),
+    default: Option.fromUndefinedOr(options.default),
     maxPerPage: options.maxPerPage ?? 10,
     filter: options.filter ?? (() => Effect.succeed(true))
   }
@@ -847,9 +856,22 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
     Environment
   > = Effect.gen(function*() {
     const currentPath = yield* resolveCurrentPath(Option.none(), opts)
-    const files = yield* getFileList(currentPath, opts)
+    const path = yield* Path.Path
+    const defaultPath = Option.map(opts.default, (defaultValue) => path.resolve(currentPath, defaultValue))
+    const initialPath = Option.match(defaultPath, {
+      onNone: () => currentPath,
+      onSome: (defaultPath) => path.dirname(defaultPath)
+    })
+    const files = yield* getFileList(initialPath, opts)
+    const cursor = Option.match(defaultPath, {
+      onNone: () => 0,
+      onSome: (defaultPath) => {
+        const index = files.indexOf(path.basename(defaultPath))
+        return index === -1 ? 0 : index
+      }
+    })
     const confirm = Confirm.Hide()
-    return { cursor: 0, files, allFiles: files, query: "", path: Option.none(), confirm }
+    return { cursor, files, allFiles: files, query: "", path: Option.map(defaultPath, path.dirname), confirm }
   })
   return custom(initialState, {
     render: handleFileRender(opts),
@@ -859,8 +881,7 @@ export const file = (options: FileOptions = {}): Prompt<string> => {
 }
 
 /**
- * Sequences prompts by using the output of this prompt to create the next
- * prompt.
+ * Composes prompts by using the output of this prompt to create the next prompt.
  *
  * @category combinators
  * @since 4.0.0
@@ -897,6 +918,7 @@ export const flatMap: {
  */
 export const float = (options: FloatOptions): Prompt<number> => {
   const opts: FloatOptionsReq = {
+    default: 0,
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -913,9 +935,10 @@ export const float = (options: FloatOptions): Prompt<number> => {
     },
     ...options
   }
+  const initialValue = options.default === undefined ? "" : `${opts.default}`
   const initialState: NumberState = {
-    cursor: 0,
-    value: "",
+    cursor: initialValue.length,
+    value: initialValue,
     error: Option.none()
   }
   return custom(initialState, {
@@ -948,6 +971,7 @@ export const hidden = (
  */
 export const integer = (options: IntegerOptions): Prompt<number> => {
   const opts: IntegerOptionsReq = {
+    default: 0,
     min: Number.NEGATIVE_INFINITY,
     max: Number.POSITIVE_INFINITY,
     incrementBy: 1,
@@ -963,9 +987,10 @@ export const integer = (options: IntegerOptions): Prompt<number> => {
     },
     ...options
   }
+  const initialValue = options.default === undefined ? "" : `${opts.default}`
   const initialState: NumberState = {
-    cursor: 0,
-    value: "",
+    cursor: initialValue.length,
+    value: initialValue,
     error: Option.none()
   }
   return custom(initialState, {
@@ -2008,8 +2033,9 @@ class Meridiem extends DatePart {
   }
 }
 
-interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath">> {
+interface FileOptionsReq extends Required<Omit<FileOptions, "startingPath" | "default">> {
   readonly startingPath: Option.Option<string>
+  readonly default: Option.Option<string>
 }
 
 interface FileState {

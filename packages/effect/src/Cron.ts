@@ -239,7 +239,7 @@ const CronProto = {
 }
 
 /**
- * Checks if a given value is a Cron instance.
+ * Checks whether a given value is a Cron instance.
  *
  * **When to use**
  *
@@ -521,7 +521,7 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 }
 
 /**
- * Checks if a given value is a CronParseError instance.
+ * Checks whether a given value is a CronParseError instance.
  *
  * **When to use**
  *
@@ -557,8 +557,8 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
 export const isCronParseError = (u: unknown): u is CronParseError => hasProperty(u, CronParseErrorTypeId)
 
 /**
- * Parses a cron expression into a `Cron` instance, returning a `Result` instead
- * of throwing.
+ * Parses a cron expression safely into a `Cron` instance, returning a `Result`
+ * instead of throwing.
  *
  * **When to use**
  *
@@ -632,8 +632,8 @@ export const parse = (cron: string, tz?: DateTime.TimeZone | string): Result.Res
  *
  * **When to use**
  *
- * Use when the input is expected to be valid and you want to avoid
- * handling the `Result` type.
+ * Use when you expect the input to be valid and want to avoid handling the
+ * `Result` type.
  *
  * **Example** (Parsing cron expressions unsafely)
  *
@@ -690,7 +690,7 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  * @see {@link next} for finding the next matching date/time
  * @see {@link prev} for finding the previous matching date/time
  *
- * @category utils
+ * @category predicates
  * @since 2.0.0
  */
 export const match = (cron: Cron, date: DateTime.DateTime.Input): boolean => {
@@ -766,7 +766,7 @@ const daysInMonth = (date: Date): number =>
  * @see {@link prev} for finding the previous scheduled occurrence
  * @see {@link sequence} for iterating future scheduled occurrences
  *
- * @category utils
+ * @category getters
  * @since 2.0.0
  */
 export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
@@ -792,7 +792,7 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
  *
  * @see {@link next} for finding the next scheduled occurrence
  *
- * @category utils
+ * @category getters
  * @since 3.20.0
  */
 export const prev = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
@@ -983,7 +983,7 @@ const stepCron = (cron: Cron, now: DateTime.DateTime.Input | undefined, directio
  *
  * @see {@link next} for computing one next occurrence
  *
- * @category utils
+ * @category sequencing
  * @since 2.0.0
  */
 export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): IterableIterator<Date> {
@@ -993,12 +993,13 @@ export const sequence = function*(cron: Cron, now?: DateTime.DateTime.Input): It
 }
 
 /**
- * An `Equivalence` instance for comparing the field restrictions of two `Cron`
+ * Equivalence instance for comparing the field restrictions of two `Cron`
  * schedules.
  *
  * **When to use**
  *
- * Use to compare cron schedules through APIs that accept an `Equivalence`.
+ * Use to compare cron schedules through APIs that accept an equivalence
+ * relation.
  *
  * **Details**
  *

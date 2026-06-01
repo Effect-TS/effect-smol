@@ -818,7 +818,7 @@ export const layer = <Rpcs extends Rpc.Any>(
  * Defaults to using websockets for communication, but can be configured to use
  * HTTP.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerHttp = <Rpcs extends Rpc.Any>(options: {
@@ -848,11 +848,16 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
   )
 
 /**
- * Service interface for an RPC server transport, responsible for receiving
+ * Defines the service interface for an RPC server transport, responsible for receiving
  * encoded client messages, sending encoded responses, tracking clients, and
  * declaring transport capabilities.
  *
- * @category protocol
+ * **When to use**
+ *
+ * Use to provide the transport boundary for RPC servers over HTTP, WebSocket,
+ * workers, sockets, or custom protocols.
+ *
+ * @category protocols
  * @since 4.0.0
  */
 export class Protocol extends Context.Service<
@@ -887,7 +892,7 @@ export class Protocol extends Context.Service<
  * Creates a server `Protocol` backed by the current `SocketServer`, accepting
  * socket connections and routing decoded RPC messages.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolSocketServer = Effect.gen(function*() {
@@ -900,9 +905,9 @@ export const makeProtocolSocketServer = Effect.gen(function*() {
 })
 
 /**
- * A rpc protocol that uses `SocketServer` for communication.
+ * RPC protocol that uses `SocketServer` for communication.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolSocketServer: Layer.Layer<
@@ -915,7 +920,7 @@ export const layerProtocolSocketServer: Layer.Layer<
  * Creates a websocket server `Protocol` together with an HTTP effect that
  * upgrades the current request to a websocket and attaches it to the protocol.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolWithHttpEffectWebsocket: Effect.Effect<
@@ -950,7 +955,7 @@ export const makeProtocolWithHttpEffectWebsocket: Effect.Effect<
  * Creates a websocket server `Protocol` and registers its upgrade handler as a
  * GET route on the current `HttpRouter`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolWebsocket: (options: {
@@ -967,9 +972,9 @@ export const makeProtocolWebsocket: (options: {
 })
 
 /**
- * A rpc protocol that uses websockets for communication.
+ * RPC protocol that uses WebSockets for communication.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolWebsocket = (options: {
@@ -987,7 +992,7 @@ export const layerProtocolWebsocket = (options: {
  * effect that decodes the current request and streams or returns encoded RPC
  * responses.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolWithHttpEffect: Effect.Effect<
@@ -1154,7 +1159,7 @@ const mergeUint8Arrays = (arrays: ReadonlyArray<Uint8Array>) => {
  * Creates an HTTP server `Protocol` and registers its request handler as a POST
  * route on the current `HttpRouter`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolHttp: (options: {
@@ -1174,7 +1179,7 @@ export const makeProtocolHttp: (options: {
  * Provides a server `Protocol` that uses HTTP POST requests for RPC
  * communication.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolHttp = (options: {
@@ -1269,7 +1274,7 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
  * Creates a server `Protocol` that reads RPC messages from `Stdio.stdin` and
  * writes encoded responses to `Stdio.stdout`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolStdio = Effect.gen(function*() {
@@ -1330,7 +1335,7 @@ export const makeProtocolStdio = Effect.gen(function*() {
  * Provides a server `Protocol` that reads RPC messages from `Stdio.stdin` and
  * writes encoded responses to `Stdio.stdout`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolStdio: Layer.Layer<
@@ -1343,7 +1348,7 @@ export const layerProtocolStdio: Layer.Layer<
  * Creates a server `Protocol` backed by `WorkerRunnerPlatform`, routing worker
  * messages to the RPC server and server responses back to workers.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const makeProtocolWorkerRunner: Effect.Effect<
@@ -1401,7 +1406,7 @@ export const makeProtocolWorkerRunner: Effect.Effect<
 /**
  * Provides a server `Protocol` backed by the current `WorkerRunnerPlatform`.
  *
- * @category protocol
+ * @category protocols
  * @since 4.0.0
  */
 export const layerProtocolWorkerRunner: Layer.Layer<

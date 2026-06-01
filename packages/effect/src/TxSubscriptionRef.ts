@@ -123,8 +123,8 @@ const TxSubscriptionRefProto: Omit<TxSubscriptionRef<any>, typeof TypeId | "ref"
  *
  * **When to use**
  *
- * Use to create transactional state that also publishes every committed update
- * to subscribers.
+ * Use to create a `TxSubscriptionRef` that publishes every committed update to
+ * subscribers.
  *
  * **Example** (Creating a transactional subscription reference)
  *
@@ -163,8 +163,8 @@ export const make = <A>(value: A): Effect.Effect<TxSubscriptionRef<A>> =>
  *
  * **When to use**
  *
- * Use to read the current transactional value without subscribing to future
- * changes.
+ * Use to read the current `TxSubscriptionRef` value without subscribing to
+ * future changes.
  *
  * **Example** (Reading the current value)
  *
@@ -195,8 +195,8 @@ export const get = <A>(self: TxSubscriptionRef<A>): Effect.Effect<A> => TxRef.ge
  *
  * **When to use**
  *
- * Use to compute a separate return value and next state in one transactional
- * update.
+ * Use to compute a separate return value and next `TxSubscriptionRef` state in
+ * one transactional update.
  *
  * **Example** (Modifying and returning a value)
  *
@@ -245,7 +245,8 @@ export const modify: {
  *
  * **When to use**
  *
- * Use to replace the current value with a known value and publish it.
+ * Use to replace the current `TxSubscriptionRef` value with a known value and
+ * publish it.
  *
  * **Example** (Setting a new value)
  *
@@ -279,7 +280,8 @@ export const set: {
  *
  * **When to use**
  *
- * Use to derive the next value from the current value and publish it.
+ * Use to derive the next `TxSubscriptionRef` value from the current value and
+ * publish it.
  *
  * **Example** (Updating a value)
  *
@@ -314,7 +316,8 @@ export const update: {
  *
  * **When to use**
  *
- * Use to replace the value while returning the previous value.
+ * Use to replace a `TxSubscriptionRef` value while returning the previous value
+ * and publishing the update to subscribers.
  *
  * **Example** (Getting and setting atomically)
  *
@@ -349,7 +352,8 @@ export const getAndSet: {
  *
  * **When to use**
  *
- * Use to derive and publish a new value while returning the previous value.
+ * Use to derive and publish a new `TxSubscriptionRef` value while returning the
+ * previous value.
  *
  * **Example** (Getting and updating atomically)
  *
@@ -385,7 +389,8 @@ export const getAndUpdate: {
  *
  * **When to use**
  *
- * Use to derive and publish a new value while returning that new value.
+ * Use to derive and publish a new `TxSubscriptionRef` value while returning
+ * that new value.
  *
  * **Example** (Updating and reading atomically)
  *
@@ -427,7 +432,8 @@ export const updateAndGet: {
  *
  * **When to use**
  *
- * Use to subscribe to committed changes through a scoped transactional queue.
+ * Use to subscribe to `TxSubscriptionRef` committed changes through a scoped
+ * transactional queue.
  *
  * **Example** (Subscribing to changes)
  *
@@ -477,7 +483,7 @@ export const changes = <A>(
  *
  * **When to use**
  *
- * Use to consume committed changes as a `Stream`.
+ * Use to consume `TxSubscriptionRef` committed changes as a `Stream`.
  *
  * **Example** (Streaming changes)
  *
@@ -514,7 +520,7 @@ export const changesStream = <A>(self: TxSubscriptionRef<A>): Stream.Stream<A, n
 // =============================================================================
 
 /**
- * Checks if the given value is a TxSubscriptionRef.
+ * Checks whether the given value is a TxSubscriptionRef.
  *
  * **When to use**
  *

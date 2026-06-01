@@ -275,7 +275,7 @@ export const idempotencyKey: (
  * Runs a non-empty collection of activities as a durable race and returns the
  * first completed success or failure using unioned success and error schemas.
  *
- * @category Racing
+ * @category racing
  * @since 4.0.0
  */
 export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(

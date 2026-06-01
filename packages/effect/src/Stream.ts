@@ -141,7 +141,7 @@ import type * as Unify from "./Unify.ts"
 /**
  * String literal type used as the unique brand for `Stream` values.
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/Stream"
@@ -150,14 +150,14 @@ export type TypeId = "~effect/Stream"
  * Runtime identifier stored on `Stream` values and used by `isStream` to
  * recognize them.
  *
- * **When to use**
+ * **Details**
  *
- * Use when implementing low-level `Stream` integrations that need direct access
- * to the runtime brand checked by `isStream`.
+ * This marker is part of the runtime representation of `Stream` values. Prefer
+ * `isStream` when narrowing unknown values.
  *
  * @see {@link isStream} for the public guard that checks this identifier
  *
- * @category Type Identifiers
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Stream"
@@ -234,7 +234,7 @@ export interface StreamUnifyIgnore {
  * // Equivalent to: Stream<number, string, never>
  * ```
  *
- * @category Type Lambdas
+ * @category type lambdas
  * @since 2.0.0
  */
 export interface StreamTypeLambda extends TypeLambda {
@@ -286,7 +286,7 @@ export interface VarianceStruct<out A, out E, out R> {
  * // SuccessType is number
  * ```
  *
- * @category Type-Level
+ * @category utility types
  * @since 3.4.0
  */
 export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _A : never
@@ -304,7 +304,7 @@ export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer
  * // ErrorType is string
  * ```
  *
- * @category Type-Level
+ * @category utility types
  * @since 3.4.0
  */
 export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _E : never
@@ -325,7 +325,7 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  * // RequiredServices is { db: Database }
  * ```
  *
- * @category Type-Level
+ * @category utility types
  * @since 4.0.0
  */
 export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
@@ -373,7 +373,7 @@ export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => 
  * // Output: 4096
  * ```
  *
- * @category Constants
+ * @category constants
  * @since 2.0.0
  */
 export const DefaultChunkSize: number = Channel.DefaultChunkSize
@@ -412,8 +412,7 @@ export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
 ) => Stream<Arr extends Arr.NonEmptyReadonlyArray<infer A> ? A : never, E, R> = internal.fromChannel
 
 /**
- * Either emits the success value of this effect or terminates the stream
- * with the failure value of this effect.
+ * Creates a stream from an effect.
  *
  * **Example** (Creating a stream from an effect)
  *
@@ -465,7 +464,7 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * // Output: [ "Hello, World!" ]
  * ```
  *
- * @category Context
+ * @category context
  * @since 4.0.0
  */
 export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> => fromEffect(Effect.service(service))
@@ -473,6 +472,11 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
 /**
  * Optionally accesses a service from the context and emits the result as a
  * single element.
+ *
+ * **When to use**
+ *
+ * Use when you need a stream that emits an optional service from the context
+ * without requiring that service to be present.
  *
  * **Example** (Accessing an optional service as a stream)
  *
@@ -505,7 +509,7 @@ export const service = <I, S>(service: Context.Key<I, S>): Stream<S, never, I> =
  * // Output: [ "Hello, World!" ]
  * ```
  *
- * @category Context
+ * @category context
  * @since 4.0.0
  */
 export const serviceOption = <I, S>(service: Context.Key<I, S>): Stream<Option.Option<S>> =>
@@ -683,7 +687,7 @@ export const fromPull = <A, E, R, EX, RX>(
 ): Stream<A, Pull.ExcludeDone<E> | EX, R | RX> => fromChannel(Channel.fromPull(pull))
 
 /**
- * Derive a stream by transforming its pull effect.
+ * Derives a stream by transforming its pull effect.
  *
  * **Example** (Transforming a pull effect)
  *
@@ -806,8 +810,8 @@ export const toChannel = <A, E, R>(
  *
  * **When to use**
  *
- * Use when you can use the `Queue` with the apis from the `Queue` module to emit
- * values to the stream or to signal the stream ending.
+ * Use when you need callback-based code to emit stream values by offering to a
+ * `Queue`, or signal stream completion through the `Queue` module APIs.
  *
  * By default it uses an "unbounded" buffer size.
  * You can customize the buffer size and strategy by passing an object as the
@@ -1179,6 +1183,11 @@ export const fromIterable = <A>(
 /**
  * Creates a stream from an effect producing an iterable of values.
  *
+ * **When to use**
+ *
+ * Use when the iterable must be acquired from an Effect before the stream emits,
+ * and acquisition services or failures should be part of the stream.
+ *
  * **Example** (Creating a stream from an iterable effect)
  *
  * ```ts
@@ -1267,6 +1276,11 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
 
 /**
  * Creates a stream from an effect that produces an array of values.
+ *
+ * **When to use**
+ *
+ * Use when the array must be acquired from an Effect before the stream emits,
+ * and acquisition services or failures should be part of the stream.
  *
  * **Example** (Creating a stream from an effect that produces an array of values)
  *
@@ -1555,8 +1569,9 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  *
  * **When to use**
  *
- * Use to create the subscription and `Stream.take` or
- * cancellation to control how many values are consumed.
+ * Use when you already have a `PubSub.Subscription` and want to expose its
+ * messages as a `Stream`, with `Stream.take` or cancellation controlling how
+ * many values are consumed.
  *
  * **Example** (Creating a stream from a PubSub subscription)
  *
@@ -1705,9 +1720,17 @@ export const unfold = <S, A, E, R>(
   }))
 
 /**
- * Like `Stream.unfold`, but allows the emission of values to end one step further
- * than the unfolding of the state. This is useful for embedding paginated APIs,
- * hence the name.
+ * Creates a stream by repeatedly evaluating an effectful page function.
+ *
+ * **When to use**
+ *
+ * Use to consume paginated APIs where each step returns a batch of values
+ * together with an optional next state.
+ *
+ * **Details**
+ *
+ * This is similar to {@link unfold}, but each step can emit zero or more values
+ * and independently decide whether another state should be requested.
  *
  * **Example** (Paginating stream state)
  *
@@ -2028,6 +2051,11 @@ export const mapArray: {
 /**
  * Maps over elements of the stream with the specified effectful function.
  *
+ * **When to use**
+ *
+ * Use when each stream element transformation needs an Effect, service
+ * dependency, failure channel, or configured concurrency.
+ *
  * **Example** (Effectfully mapping stream values)
  *
  * ```ts
@@ -2094,6 +2122,11 @@ export const mapEffect: {
 /**
  * Flattens a stream of `Effect` values into a stream of their results.
  *
+ * **When to use**
+ *
+ * Use when stream elements already are effects and their successes should become
+ * stream elements while their failures enter the stream error channel.
+ *
  * **Example** (Flattening a stream of Effect values into a stream of their results)
  *
  * ```ts
@@ -2141,7 +2174,12 @@ export const flattenEffect: <
   )
 
 /**
- * Effectfully maps over non-empty array chunks emitted by the stream.
+ * Maps over non-empty array chunks emitted by the stream effectfully.
+ *
+ * **When to use**
+ *
+ * Use when transformation needs to see and replace each non-empty emitted chunk
+ * effectfully instead of mapping individual stream elements.
  *
  * **Example** (Effectfully mapping stream chunks)
  *
@@ -2339,8 +2377,7 @@ export const tapBoth: {
   ))
 
 /**
- * Sends all elements emitted by this stream to the specified sink in addition
- * to emitting them.
+ * Runs a sink for all stream elements while still emitting them downstream.
  *
  * **Example** (Tapping values with a sink)
  *
@@ -2744,7 +2781,7 @@ export const repeat: {
 ): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
 
 /**
- * Spaces the stream's elements according to the provided `schedule`.
+ * Schedules the stream's elements according to the provided schedule.
  *
  * **Example** (Scheduling stream elements)
  *
@@ -2764,7 +2801,7 @@ export const repeat: {
  * // Output: [ 1, 2, 3 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const schedule: {
@@ -2807,7 +2844,7 @@ export const schedule: {
  * // Output: [ 1 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const timeout: {
@@ -2843,7 +2880,7 @@ export const timeout: {
  *
  * @see {@link timeout} for ending the stream instead of switching to a fallback stream
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 4.0.0
  */
 export const timeoutOrElse: {
@@ -3012,7 +3049,7 @@ export const repeatElements: {
 export const forever = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => fromChannel(Channel.forever(self.channel))
 
 /**
- * Submerges the iterables emitted by this stream into the stream's structure.
+ * Flattens the iterables emitted by this stream into the stream's structure.
  *
  * **Example** (Flattening iterable values)
  *
@@ -3156,7 +3193,7 @@ export const prepend: {
  * // Output: [ 1, 2, 3, 4 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const merge: {
@@ -3187,6 +3224,11 @@ export const merge: {
 /**
  * Merges this stream with a background effect, keeping the stream's elements.
  *
+ * **When to use**
+ *
+ * Use when an effect should run concurrently for the lifetime of a stream while
+ * only the stream's elements remain in the output.
+ *
  * **Details**
  *
  * The effect runs concurrently, fails the stream if it fails, and is interrupted
@@ -3211,7 +3253,7 @@ export const merge: {
  * // Output: [ 1, 2, 3 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 4.0.0
  */
 export const mergeEffect: {
@@ -3229,6 +3271,12 @@ export const mergeEffect: {
 /**
  * Merges this stream and the specified stream together, tagging values from the
  * left stream as `Result.succeed` and values from the right stream as `Result.fail`.
+ *
+ * **When to use**
+ *
+ * Use when values from both streams should be emitted and downstream code needs
+ * left values wrapped as successful `Result` values and right values wrapped as
+ * failed `Result` values.
  *
  * **Example** (Merging streams into results)
  *
@@ -3257,7 +3305,7 @@ export const mergeEffect: {
  * // Output: [ "left:left", "right:right" ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 4.0.0
  */
 export const mergeResult: {
@@ -3279,6 +3327,11 @@ export const mergeResult: {
 
 /**
  * Merges two streams while emitting only the values from the left stream.
+ *
+ * **When to use**
+ *
+ * Use when the right stream is needed for its effects or failures, but downstream
+ * consumers should only receive values from the left stream.
  *
  * **Details**
  *
@@ -3302,7 +3355,7 @@ export const mergeResult: {
  * // Output: [ 1, 2 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const mergeLeft: {
@@ -3317,6 +3370,11 @@ export const mergeLeft: {
 /**
  * Merges this stream and the specified stream together, emitting only the
  * values from the right stream while the left stream runs for its effects.
+ *
+ * **When to use**
+ *
+ * Use when the left stream is needed for its effects or failures, but downstream
+ * consumers should only receive values from the right stream.
  *
  * **Details**
  *
@@ -3344,7 +3402,7 @@ export const mergeLeft: {
  * // Output: [ 1, 2 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const mergeRight: {
@@ -3394,7 +3452,7 @@ export const mergeRight: {
  * @see {@link merge} for merging exactly two streams and choosing a halt strategy
  * @see {@link flatten} for flattening a stream that already emits streams
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const mergeAll: {
@@ -4010,6 +4068,11 @@ export const zipWithPreviousAndNext = <A, E, R>(
  * Zips multiple streams so that when a value is emitted by any stream, it is
  * combined with the latest values from the other streams to produce a result.
  *
+ * **When to use**
+ *
+ * Use when each stream should contribute its latest value after all streams have
+ * emitted at least once.
+ *
  * **Gotchas**
  *
  * Note: tracking the latest value is done on a per-array basis. That means
@@ -4081,6 +4144,11 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
 /**
  * Combines two streams by emitting each new element with the latest value from the other stream.
  *
+ * **When to use**
+ *
+ * Use when two streams should start emitting combined pairs after both have
+ * produced at least one value.
+ *
  * **Gotchas**
  *
  * Note: tracking the latest value is done on a per-array basis. That means
@@ -4125,6 +4193,11 @@ export const zipLatest: {
 /**
  * Combines the latest values from both streams whenever either emits, using
  * the provided function.
+ *
+ * **When to use**
+ *
+ * Use when two streams should start emitting custom combined values after both
+ * have produced at least one value.
  *
  * **Gotchas**
  *
@@ -4201,7 +4274,7 @@ export const zipLatestWith: {
  * // Output: [ 0, 1, 2 ]
  * ```
  *
- * @category Racing
+ * @category racing
  * @since 3.5.0
  */
 export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
@@ -4262,7 +4335,7 @@ export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
  * // Output: [ 0, 1, 2 ]
  * ```
  *
- * @category Racing
+ * @category racing
  * @since 3.7.0
  */
 export const race: {
@@ -4353,7 +4426,7 @@ export const filterMap: {
 )
 
 /**
- * Effectfully filters elements in a single pass.
+ * Filters elements in a single pass effectfully.
  *
  * **Example** (Effectfully filtering stream values)
  *
@@ -4391,7 +4464,7 @@ export const filterEffect: {
 )
 
 /**
- * Effectfully filters and maps elements in one pass using a `FilterEffect`.
+ * Filters and maps elements in one pass effectfully using a `FilterEffect`.
  *
  * **When to use**
  *
@@ -4557,8 +4630,8 @@ export const partitionQueue: {
  *
  * **When to use**
  *
- * Use when each stream element must be classified by an effectful `Filter` and
- * both passing and failing mapped values need to be consumed as streams.
+ * Use when you need to classify each stream element with an effectful `Filter`
+ * and consume both passing and failing mapped values as streams.
  *
  * **Details**
  *
@@ -4828,7 +4901,7 @@ export const peel: {
  * // Output: [ 1, 2, 3 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const buffer: {
@@ -4880,7 +4953,7 @@ export const buffer: {
  * // Output: [ 1, 2, 3, 4 ]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 4.0.0
  */
 export const bufferArray: {
@@ -5041,7 +5114,7 @@ export {
 }
 
 /**
- * Effectfully peeks at errors without changing the stream unless the tap fails.
+ * Peeks at errors effectfully without changing the stream unless the tap fails.
  *
  * **Example** (Effectfully peeking at errors)
  *
@@ -5120,28 +5193,32 @@ export const tapError: {
  * @since 4.0.0
  */
 export const catchIf: {
-  <E, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
+  <E, EB extends E, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     refinement: Refinement<NoInfer<E>, EB>,
     f: (e: EB) => Stream<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Stream<A3, E3, R3>) | undefined
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A | A3, E2 | E3, R2 | R | R3>
-  <E, A2, E2, R2, A3 = never, E3 = E, R3 = never>(
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? Exclude<E, EB> : never), R | R2 | R3>
+  <E, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     predicate: Predicate<NoInfer<E>>,
     f: (e: NoInfer<E>) => Stream<A2, E2, R2>,
     orElse?: ((e: NoInfer<E>) => Stream<A3, E3, R3>) | undefined
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A | A3, E2 | E3, R2 | R | R3>
-  <A, E, R, EB extends E, A2, E2, R2, A3 = never, E3 = Exclude<E, EB>, R3 = never>(
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? E : never), R | R2 | R3>
+  <A, E, R, EB extends E, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     self: Stream<A, E, R>,
     refinement: Refinement<E, EB>,
     f: (e: EB) => Stream<A2, E2, R2>,
     orElse?: ((e: Exclude<E, EB>) => Stream<A3, E3, R3>) | undefined
-  ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, A2, E2, R2, A3 = never, E3 = E, R3 = never>(
+  ): Stream<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? Exclude<E, EB> : never), R | R2 | R3>
+  <A, E, R, A2, E2, R2, A3 = unassigned, E3 = never, R3 = never>(
     self: Stream<A, E, R>,
     predicate: Predicate<E>,
     f: (e: E) => Stream<A2, E2, R2>,
     orElse?: ((e: E) => Stream<A3, E3, R3>) | undefined
-  ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
+  ): Stream<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? E : never), R | R2 | R3>
 } = dual((args) => isStream(args[0]), <
   A,
   E,
@@ -5190,17 +5267,19 @@ export const catchIf: {
  * @since 4.0.0
  */
 export const catchFilter: {
-  <E, EB, A2, E2, R2, X, A3 = never, E3 = X, R3 = never>(
+  <E, EB, A2, E2, R2, X, A3 = unassigned, E3 = never, R3 = never>(
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (failure: EB) => Stream<A2, E2, R2>,
     orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
-  <A, E, R, EB, A2, E2, R2, X, A3 = never, E3 = X, R3 = never>(
+  ): <A, R>(
+    self: Stream<A, E, R>
+  ) => Stream<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? X : never), R | R2 | R3>
+  <A, E, R, EB, A2, E2, R2, X, A3 = unassigned, E3 = never, R3 = never>(
     self: Stream<A, E, R>,
     filter: Filter.Filter<NoInfer<E>, EB, X>,
     f: (failure: EB) => Stream<A2, E2, R2>,
     orElse?: ((failure: X) => Stream<A3, E3, R3>) | undefined
-  ): Stream<A | A2 | A3, E2 | E3, R | R2 | R3>
+  ): Stream<A | A2 | Exclude<A3, unassigned>, E2 | E3 | (A3 extends unassigned ? X : never), R | R2 | R3>
 } = dual((args) => isStream(args[0]), <
   A,
   E,
@@ -5234,8 +5313,8 @@ export const catchFilter: {
  *
  * **When to use**
  *
- * Use when your error type is a tagged union with a readonly `_tag`
- * field and you want to handle a specific error case.
+ * Use when you need to handle a specific error case from a stream whose error
+ * type is a tagged union with a readonly `_tag` field.
  *
  * **Example** (Catching tagged failures)
  *
@@ -5269,8 +5348,8 @@ export const catchTag: {
     A1,
     E1,
     R1,
-    A2 = never,
-    E2 = ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     k: K,
@@ -5282,7 +5361,13 @@ export const catchTag: {
       | undefined
   ): <A, R>(
     self: Stream<A, E, R>
-  ) => Stream<A1 | A | A2, E1 | E2, R1 | R | R2>
+  ) => Stream<
+    A | A1 | Exclude<A2, unassigned>,
+    | E1
+    | E2
+    | (A2 extends unassigned ? ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> : never),
+    R | R1 | R2
+  >
   <
     A,
     E,
@@ -5291,8 +5376,8 @@ export const catchTag: {
     R1,
     E1,
     A1,
-    A2 = never,
-    E2 = ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     self: Stream<A, E, R>,
@@ -5301,7 +5386,13 @@ export const catchTag: {
     orElse?:
       | ((e: ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Stream<A2, E2, R2>)
       | undefined
-  ): Stream<A1 | A | A2, E1 | E2, R1 | R | R2>
+  ): Stream<
+    A | A1 | Exclude<A2, unassigned>,
+    | E1
+    | E2
+    | (A2 extends unassigned ? ExcludeTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> : never),
+    R | R1 | R2
+  >
 } = dual(
   (args) => isStream(args[0]),
   <
@@ -5374,19 +5465,20 @@ export const catchTags: {
         [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
       } :
       {}),
-    A2 = never,
-    E2 = Exclude<E, { _tag: keyof Cases }>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     cases: Cases,
     orElse?: ((e: Exclude<E, { _tag: keyof Cases }>) => Stream<A2, E2, R2>) | undefined
   ): <A, R>(self: Stream<A, E, R>) => Stream<
     | A
-    | A2
+    | Exclude<A2, unassigned>
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
     }[keyof Cases],
     | E2
+    | (A2 extends unassigned ? Exclude<E, { _tag: keyof Cases }> : never)
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
     }[keyof Cases],
@@ -5404,8 +5496,8 @@ export const catchTags: {
         [K in E["_tag"]]+?: (error: Extract<E, { _tag: K }>) => Stream<any, any, any>
       } :
       {}),
-    A2 = never,
-    E2 = Exclude<E, { _tag: keyof Cases }>,
+    A2 = unassigned,
+    E2 = never,
     R2 = never
   >(
     self: Stream<A, E, R>,
@@ -5413,11 +5505,12 @@ export const catchTags: {
     orElse?: ((e: Exclude<E, { _tag: keyof Cases }>) => Stream<A2, E2, R2>) | undefined
   ): Stream<
     | A
-    | A2
+    | Exclude<A2, unassigned>
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<infer A, any, any>) ? A : never
     }[keyof Cases],
     | E2
+    | (A2 extends unassigned ? Exclude<E, { _tag: keyof Cases }> : never)
     | {
       [K in keyof Cases]: Cases[K] extends ((...args: Array<any>) => Stream<any, infer E, any>) ? E : never
     }[keyof Cases],
@@ -5448,7 +5541,11 @@ export const catchTags: {
  * **When to use**
  *
  * Use to handle nested error causes without removing the parent error
- * from the error channel. The handler receives the unwrapped reason.
+ * from the error channel.
+ *
+ * **Details**
+ *
+ * The handler receives the unwrapped reason.
  *
  * **Example** (Catching a tagged error reason)
  *
@@ -5514,7 +5611,11 @@ export const catchReason: {
       | undefined
   ): <A, R>(
     self: Stream<A, E, R>
-  ) => Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3>
+  ) => Stream<
+    A | A2 | Exclude<A3, unassigned>,
+    ExcludeTag<E, K> | E2 | E3 | (A3 extends unassigned ? ExtractTag<E, K> : never),
+    R | R2 | R3
+  >
   <
     A,
     E,
@@ -5535,7 +5636,11 @@ export const catchReason: {
     orElse?:
       | ((reason: ExcludeReason<ExtractTag<E, K>, RK>, error: OmitReason<ExtractTag<E, K>, RK>) => Stream<A3, E3, R3>)
       | undefined
-  ): Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3>
+  ): Stream<
+    A | A2 | Exclude<A3, unassigned>,
+    ExcludeTag<E, K> | E2 | E3 | (A3 extends unassigned ? ExtractTag<E, K> : never),
+    R | R2 | R3
+  >
 } = dual(
   (args) => isStream(args[0]),
   <
@@ -5558,7 +5663,11 @@ export const catchReason: {
     orElse?:
       | ((reason: ExcludeReason<ExtractTag<E, K>, RK>, error: OmitReason<ExtractTag<E, K>, RK>) => Stream<A3, E3, R3>)
       | undefined
-  ): Stream<A | A2 | Exclude<A3, unassigned>, (A3 extends unassigned ? E : ExcludeTag<E, K>) | E2 | E3, R | R2 | R3> =>
+  ): Stream<
+    A | A2 | Exclude<A3, unassigned>,
+    ExcludeTag<E, K> | E2 | E3 | (A3 extends unassigned ? ExtractTag<E, K> : never),
+    R | R2 | R3
+  > =>
     fromChannel(
       Channel.catchReason(
         toChannel(self),
@@ -5640,8 +5749,9 @@ export const catchReasons: {
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<infer A, any, any> ? A : never
     }[keyof Cases],
-    | (A2 extends unassigned ? E : ExcludeTag<E, K>)
+    | ExcludeTag<E, K>
     | E2
+    | (A2 extends unassigned ? ExtractTag<E, K> : never)
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<any, infer E, any> ? E : never
     }[keyof Cases],
@@ -5681,8 +5791,9 @@ export const catchReasons: {
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<infer A, any, any> ? A : never
     }[keyof Cases],
-    | (A2 extends unassigned ? E : ExcludeTag<E, K>)
+    | ExcludeTag<E, K>
     | E2
+    | (A2 extends unassigned ? ExtractTag<E, K> : never)
     | {
       [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Stream<any, infer E, any> ? E : never
     }[keyof Cases],
@@ -5804,7 +5915,7 @@ export const catchCauseIf: {
  * **When to use**
  *
  * Use when you need to recover a stream only from causes selected by a
- * `Filter`, and the recovery needs both the selected value and the original
+ * `Filter`, while giving the recovery both the selected value and the original
  * `Cause`.
  *
  * **Details**
@@ -5954,8 +6065,12 @@ export const orDie = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => fr
  * **When to use**
  *
  * Use when you want a failing stream to end gracefully rather than propagate
- * the error. The `log` option controls whether the failure is logged before
- * the stream terminates.
+ * the error.
+ *
+ * **Details**
+ *
+ * The `log` option controls whether the failure is logged before the stream
+ * terminates.
  *
  * **Example** (Ignoring stream failures)
  *
@@ -6021,9 +6136,8 @@ export const ignore: <
  *
  * **When to use**
  *
- * Use when a stream may fail with defects and you want to silently suppress the
- * entire failure cause — including both typed errors and defects — rather than
- * propagate it downstream.
+ * Use when you need to silently suppress a stream's entire failure cause,
+ * including both typed errors and defects, rather than propagate it downstream.
  *
  * **Example** (Ignoring stream failure causes)
  *
@@ -6066,7 +6180,7 @@ export const ignoreCause: <
   )
 
 /**
- * When the stream fails, retry it according to the given schedule.
+ * Retries the stream according to the given schedule when it fails.
  *
  * **Details**
  *
@@ -6128,7 +6242,7 @@ export const retry: {
 )
 
 /**
- * Apply an `ExecutionPlan` to a stream, retrying with step-provided resources
+ * Applies an `ExecutionPlan` to a stream, retrying with step-provided resources
  * until it succeeds or the plan is exhausted.
  *
  * **Details**
@@ -6400,7 +6514,12 @@ export const takeUntil: {
 )
 
 /**
- * Effectful predicate version of `takeUntil`.
+ * Takes stream elements until an effectful predicate returns `true`.
+ *
+ * **When to use**
+ *
+ * Use when the stopping condition needs an Effect or service and predicate
+ * failure should fail the stream.
  *
  * **Example** (Taking until an effectful predicate matches)
  *
@@ -6572,6 +6691,11 @@ export const takeWhileFilter: {
 /**
  * Takes elements from the stream while the effectful predicate is `true`.
  *
+ * **When to use**
+ *
+ * Use when the leading-prefix predicate needs an Effect or service and the
+ * stream should stop before the first false result.
+ *
  * **Example** (Effectfully taking while a predicate holds)
  *
  * ```ts
@@ -6687,9 +6811,10 @@ export const dropUntil: {
  * Drops all elements of the stream until the specified effectful predicate
  * evaluates to `true`.
  *
- * **Details**
+ * **When to use**
  *
- * The first element that satisfies the predicate is also dropped.
+ * Use when dropping the leading prefix requires an Effect or service and the
+ * first matching element should also be dropped.
  *
  * **Example** (Dropping until an effectful predicate matches)
  *
@@ -6938,7 +7063,7 @@ export const dropRight: {
  * // Output: [ [ 1, 2 ], [ 3, 4 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
@@ -6948,7 +7073,7 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
   )
 
 /**
- * Re-chunks the stream into arrays of the specified size, preserving element order.
+ * Groups the stream into arrays of the specified size, preserving element order.
  *
  * **Details**
  *
@@ -6972,7 +7097,7 @@ export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReado
  * // Output: [ [ 1, 2 ], [ 3, 4 ], [ 5 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const rechunk: {
@@ -7043,7 +7168,7 @@ export const rechunk: {
  * // Output: [ [1, 2], [2, 3], [3, 4], [4, 5] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const sliding: {
@@ -7075,7 +7200,7 @@ export const sliding: {
  * // Output: [ [ 1, 2, 3 ], [ 3, 4, 5 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const slidingSize: {
@@ -7148,7 +7273,7 @@ export const slidingSize: {
  * // Output: [ [1, 2, 3], [5, 6, 7], [9] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const split: {
@@ -7217,7 +7342,7 @@ export const split: {
  * // Output: [ "L:A", "R:1", "L:B", "R:2", "L:C", "R:3" ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const combine: {
@@ -7261,11 +7386,18 @@ export const combine: {
   ))
 
 /**
- * Combines the arrays (chunks) from this stream and the specified stream by
- * repeatedly applying the function `f` to extract an array using both sides and
- * conceptually "offer" it to the destination stream. `f` can maintain some
- * internal state to control the combining process, with the initial state
- * being specified by `s`.
+ * Combines two streams chunk-by-chunk with a stateful pull function.
+ *
+ * **When to use**
+ *
+ * Use to coordinate pulling chunks from two streams when each emitted chunk
+ * depends on both sides and local state.
+ *
+ * **Details**
+ *
+ * The combining function receives the current state and pull functions for the
+ * left and right streams. It returns the next non-empty chunk together with the
+ * next state.
  *
  * **Example** (Combining stream chunks with state)
  *
@@ -7334,7 +7466,7 @@ export const combineArray: {
   )))
 
 /**
- * Statefully maps elements, emitting zero or more outputs per input.
+ * Maps elements statefully, emitting zero or more outputs per input.
  *
  * **Example** (Statefully mapping stream values)
  *
@@ -7407,7 +7539,7 @@ export const mapAccum: {
   )))
 
 /**
- * Statefully maps over non-empty chunk arrays, emitting zero or more values per chunk.
+ * Maps over non-empty chunk arrays statefully, emitting zero or more values per chunk.
  *
  * **Details**
  *
@@ -7482,8 +7614,13 @@ export const mapAccumArray: {
 const emptyArr = Arr.empty<never>()
 
 /**
- * Statefully and effectfully maps each element, emitting zero or more output
+ * Maps each element statefully and effectfully, emitting zero or more output
  * values per input.
+ *
+ * **When to use**
+ *
+ * Use when stateful element mapping needs Effects or can fail while emitting
+ * zero or more values per input element.
  *
  * **Details**
  *
@@ -7563,8 +7700,13 @@ export const mapAccumEffect: {
   ))
 
 /**
- * Statefully and effectfully maps each non-empty input chunk, emitting zero or
+ * Maps each non-empty input chunk statefully and effectfully, emitting zero or
  * more output values per chunk.
+ *
+ * **When to use**
+ *
+ * Use when stateful mapping should process each emitted non-empty chunk with an
+ * Effect instead of each element separately.
  *
  * **Details**
  *
@@ -7699,7 +7841,7 @@ export const scan: {
   }))
 
 /**
- * Effectfully accumulates state and emits the initial state plus each accumulated state.
+ * Accumulates state effectfully and emits the initial state plus each accumulated state.
  *
  * **Example** (Effectfully scanning stream state)
  *
@@ -7762,7 +7904,7 @@ export const scanEffect: {
  * })
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const debounce: {
@@ -7839,12 +7981,16 @@ export const debounce: {
 )
 
 /**
- * Delays the arrays of this stream according to the given bandwidth
- * parameters using the token bucket algorithm. Allows for burst processing by
- * allowing the bucket to accumulate tokens up to a `units + burst` threshold.
- * The weight of each array is determined by the effectful `cost` function.
+ * Rate-limits stream chunks with an effectful cost function.
+ *
+ * **When to use**
+ *
+ * Use to throttle chunks when computing each chunk's cost requires an effect.
  *
  * **Details**
+ *
+ * Uses a token bucket. The bucket can accumulate up to `units + burst` tokens,
+ * and each chunk consumes the cost returned by the effectful `cost` function.
  *
  * If using the "enforce" strategy, arrays that do not meet the bandwidth
  * constraints are dropped. If using the "shape" strategy, arrays are delayed
@@ -7874,7 +8020,7 @@ export const debounce: {
  * // Output: [0, 1, 2, 3, 4, 5]
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const throttleEffect: {
@@ -7999,11 +8145,16 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
     }))
 
 /**
- * Delays the arrays of this stream using a token bucket and a per-array cost.
- * Allows bursts by letting the bucket accumulate up to a `units + burst`
- * threshold. The weight of each array is determined by the `cost` function.
+ * Rate-limits stream chunks with a synchronous cost function.
+ *
+ * **When to use**
+ *
+ * Use to throttle chunks when each chunk's cost can be computed synchronously.
  *
  * **Details**
+ *
+ * Uses a token bucket. The bucket can accumulate up to `units + burst` tokens,
+ * and each chunk consumes the cost returned by `cost`.
  *
  * If using the "enforce" strategy, arrays that do not meet the bandwidth
  * constraints are dropped. If using the "shape" strategy, arrays are delayed
@@ -8033,7 +8184,7 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
  * })
  * ```
  *
- * @category Rate Limiting
+ * @category rate limiting
  * @since 2.0.0
  */
 export const throttle: {
@@ -8096,7 +8247,7 @@ export const throttle: {
  * // Output: [ [ 1, 2, 3 ], [ 4, 5, 6 ], [ 7, 8 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const grouped: {
@@ -8128,7 +8279,7 @@ export const grouped: {
  * // Output: [ [ 1, 2 ], [ 3 ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupedWithin: {
@@ -8177,7 +8328,7 @@ export const groupedWithin: {
  * // Output: [ [ "odd", [ 1, 3, 5 ] ], [ "even", [ 2, 4 ] ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupBy: {
@@ -8247,7 +8398,7 @@ export const groupBy: {
  * // Output: [ [ "odd", [ 1, 3, 5 ] ], [ "even", [ 2, 4 ] ] ]
  * ```
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupByKey: {
@@ -8356,9 +8507,9 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
  *
  * **When to use**
  *
- * Use when a stream is already ordered by the grouping key and you want to emit
- * each consecutive run as a non-empty array while keeping later non-adjacent
- * runs separate.
+ * Use when you already have a stream ordered by the grouping key and want to
+ * emit each consecutive run as a non-empty array while keeping later
+ * non-adjacent runs separate.
  *
  * **Details**
  *
@@ -8369,7 +8520,7 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
  * @see {@link groupByKey} for grouping all elements with the same key across the stream
  * @see {@link groupBy} for custom grouped stream construction
  *
- * @category Grouping
+ * @category grouping
  * @since 2.0.0
  */
 export const groupAdjacentBy: {
@@ -8660,7 +8811,7 @@ export const aggregateWithin: {
   }))))
 
 /**
- * Fan out the stream, producing a fixed-size tuple of streams that each emit
+ * Creates a fixed-size tuple of streams that each emit
  * the same elements as the source stream.
  *
  * **Details**
@@ -9421,7 +9572,7 @@ export const intersperse: {
   }))
 
 /**
- * Intersperse stream elements with a middle value, adding a start and end value.
+ * Adds a start value, middle value, and end value around stream elements.
  *
  * **Details**
  *
@@ -9489,7 +9640,7 @@ export const intersperseAffixes: {
  * // [2, 5, 3, 6, 7]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const interleave: {
@@ -9534,7 +9685,7 @@ export const interleave: {
  * // [ 1, 2, 4, 3, 5 ]
  * ```
  *
- * @category Merging
+ * @category merging
  * @since 2.0.0
  */
 export const interleaveWith: {
@@ -9627,7 +9778,7 @@ export const interleaveWith: {
  * // => [1, 2]
  * ```
  *
- * @category Interruption
+ * @category interruption
  * @since 2.0.0
  */
 export const interruptWhen: {
@@ -9640,7 +9791,21 @@ export const interruptWhen: {
 )
 
 /**
- * Halts evaluation after the current element once the provided effect completes; the effect is forked, its success is discarded, failures fail the stream, and it does not interrupt an in-progress pull (use `interruptWhen` for that).
+ * Stops a stream after the current element when an effect completes.
+ *
+ * **When to use**
+ *
+ * Use to stop before the next pull after an external signal completes.
+ *
+ * **Details**
+ *
+ * The effect is forked, its success value is discarded, and its failure fails
+ * the stream.
+ *
+ * **Gotchas**
+ *
+ * This does not interrupt an in-progress pull. Use {@link interruptWhen} when
+ * the stream should be interrupted immediately.
  *
  * **Example** (Halting a stream after an effect completes)
  *
@@ -9662,7 +9827,7 @@ export const interruptWhen: {
  * // [1, 2]
  * ```
  *
- * @category Interruption
+ * @category interruption
  * @since 2.0.0
  */
 export const haltWhen: {
@@ -10278,7 +10443,7 @@ export const withSpan: {
  * //=> [{ value: 1, next: 2 }, { value: 2, next: 3 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const Do: Stream<{}> = succeed({})
@@ -10322,7 +10487,7 @@ export {
    * // [{ x: 2, y: 6 }]
    * ```
    *
-   * @category Do Notation
+   * @category do notation
    * @since 2.0.0
    */
   let_ as let
@@ -10347,7 +10512,7 @@ export {
  * // [{ a: 1, b: 2 }, { a: 2, b: 3 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bind: {
@@ -10401,7 +10566,7 @@ export const bind: {
  * // [{ value: 1, double: 2 }, { value: 2, double: 4 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bindEffect: {
@@ -10452,7 +10617,7 @@ export const bindEffect: {
  * // [{ value: 1 }, { value: 2 }, { value: 3 }]
  * ```
  *
- * @category Do Notation
+ * @category do notation
  * @since 2.0.0
  */
 export const bindTo: {
@@ -10636,6 +10801,11 @@ export const runFold: {
 
 /**
  * Runs the stream and folds elements using an effectful reducer.
+ *
+ * **When to use**
+ *
+ * Use when reducing stream elements needs Effects, services, or failures in the
+ * reducer.
  *
  * **Example** (Effectfully folding stream values)
  *
@@ -11022,6 +11192,11 @@ export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effec
 /**
  * Converts the stream to a `ReadableStream` using the provided services.
  *
+ * **When to use**
+ *
+ * Use when bridging to Web Streams and you already have the `Context` required
+ * to run the stream outside an `Effect`.
+ *
  * **Details**
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
@@ -11135,6 +11310,11 @@ export const toReadableStream: {
 /**
  * Creates an Effect that builds a ReadableStream from the stream.
  *
+ * **When to use**
+ *
+ * Use when bridging to Web Streams from inside an `Effect` so the required
+ * services can be captured from the current context.
+ *
  * **Details**
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
@@ -11181,6 +11361,11 @@ export const toReadableStreamEffect: {
 
 /**
  * Converts the stream to an `AsyncIterable` using the provided services.
+ *
+ * **When to use**
+ *
+ * Use when converting outside an Effect and you already have the `Context`
+ * needed to run the stream.
  *
  * **Example** (Converting to an AsyncIterable with services)
  *
@@ -11253,6 +11438,11 @@ export const toAsyncIterableWith: {
 
 /**
  * Creates an effect that yields an `AsyncIterable` using the current services.
+ *
+ * **When to use**
+ *
+ * Use when the `AsyncIterable` should be created inside Effect with the current
+ * context supplying the stream's services.
  *
  * **Example** (Creating an AsyncIterable effect)
  *
@@ -11372,7 +11562,7 @@ export const runIntoPubSub: {
 ): Effect.Effect<void, E, R> => Channel.runIntoPubSubArray(self.channel, pubsub, options))
 
 /**
- * Converts a stream to a PubSub for concurrent consumption.
+ * Converts a stream to a PubSub of emitted values for concurrent consumption.
  *
  * **Details**
  *
@@ -11442,7 +11632,7 @@ export const toPubSub: {
 )
 
 /**
- * Converts a stream to a PubSub for concurrent consumption.
+ * Converts a stream to a PubSub of `Take` values for concurrent consumption.
  *
  * **Details**
  *

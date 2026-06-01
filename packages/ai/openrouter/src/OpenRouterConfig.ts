@@ -38,7 +38,7 @@ import { dual } from "effect/Function"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
- * Context service carrying scoped OpenRouter provider configuration for client
+ * Context service for scoped OpenRouter provider configuration used by client
  * operations.
  *
  * **When to use**
@@ -90,8 +90,8 @@ export declare namespace OpenRouterConfig {
  *
  * **When to use**
  *
- * Use when a single effect or workflow needs temporary OpenRouter HTTP client
- * customization without rebuilding the client layer.
+ * Use when you need temporary OpenRouter HTTP client customization for a
+ * single effect or workflow without rebuilding the client layer.
  *
  * **Details**
  *

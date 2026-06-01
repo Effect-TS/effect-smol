@@ -110,9 +110,9 @@ export interface BackupMetadata {
 }
 
 /**
- * Context service tag for the node SQLite client implementation.
+ * Service tag for the node SQLite client implementation.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")

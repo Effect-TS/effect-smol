@@ -45,7 +45,7 @@ export interface IndexedDb {
 /**
  * Service tag for browser IndexedDB primitives.
  *
- * @category tag
+ * @category services
  * @since 4.0.0
  */
 export const IndexedDb: Context.Service<IndexedDb, IndexedDb> = Context.Service<IndexedDb, IndexedDb>(TypeId)
@@ -75,8 +75,8 @@ export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)])
  *
  * **When to use**
  *
- * Use when defining numeric key-path fields for `IndexedDbTable` definitions
- * that use IndexedDB auto-increment keys.
+ * Use when you need to define numeric key-path fields for `IndexedDbTable`
+ * definitions that use IndexedDB auto-increment keys.
  *
  * **Details**
  *

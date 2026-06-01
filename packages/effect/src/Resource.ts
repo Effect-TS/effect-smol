@@ -113,8 +113,8 @@ const makeUnsafe = <A, E>(
  *
  * **When to use**
  *
- * Use when you need to control the timing of resource refreshes yourself rather
- * than relying on an automatic schedule.
+ * Use when you need manual control over resource refresh timing rather than an
+ * automatic schedule.
  *
  * @see {@link auto} for schedule-driven automatic refreshes
  * @see {@link refresh} to manually trigger a resource refresh
@@ -202,7 +202,7 @@ export const get = <A, E>(self: Resource<A, E>): Effect.Effect<A, E> =>
  * @see {@link manual} for resources refreshed only by caller action
  * @see {@link auto} for schedule-driven automatic refreshes
  *
- * @category utils
+ * @category resource management
  * @since 2.0.0
  */
 export const refresh = <A, E>(self: Resource<A, E>): Effect.Effect<void, E> =>

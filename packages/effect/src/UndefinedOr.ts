@@ -118,8 +118,8 @@ export const match: {
  *
  * **When to use**
  *
- * Use when fail-fast unwrapping of an `A | undefined` value is appropriate and
- * callers need to provide the thrown error for the undefined case.
+ * Use when you need fail-fast unwrapping of an `A | undefined` value and want
+ * to provide the thrown error for the undefined case.
  *
  * **Details**
  *
@@ -148,7 +148,7 @@ export const getOrThrowWith: {
  *
  * **When to use**
  *
- * Use when a value should already be defined at this point and throwing a
+ * Use when you need to unwrap a value that should already be defined and a
  * generic missing-value `Error` is acceptable.
  *
  * **Details**
@@ -200,16 +200,17 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * **When to use**
  *
- * Use to take the first available value like a fallback chain, combining values
- * only when both operands are present.
+ * Use when you need to reduce values that may be `undefined`, keeping the
+ * first defined value as a fallback and combining only when both operands are
+ * defined.
  *
  * **Details**
  *
- * - `undefined` + `undefined` -> `undefined`
- * - `a` + `undefined` -> `a` (first value wins)
- * - `undefined` + `b` -> `b` (second value wins)
- * - `a` + `b` -> `combiner.combine(a, b)`
- * - Initial value is `undefined`
+ * Combining `undefined` with `undefined` returns `undefined`. Combining a
+ * defined value with `undefined` keeps the defined value, so the first defined
+ * value wins when only one side is present. When both values are defined, they
+ * are combined with `combiner.combine`. The reducer's initial value is
+ * `undefined`.
  *
  * @category constructors
  * @since 4.0.0

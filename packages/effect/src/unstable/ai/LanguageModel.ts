@@ -61,7 +61,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import { CurrentConcurrency } from "../../References.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import * as Sink from "../../Sink.ts"
 import * as Stream from "../../Stream.ts"
 import type { Span } from "../../Tracer.ts"
@@ -82,7 +82,12 @@ import * as Toolkit from "./Toolkit.ts"
 // =============================================================================
 
 /**
- * The `LanguageModel` service key for dependency injection, providing access to text generation, streaming, and structured output capabilities throughout an application.
+ * Service tag for AI model services.
+ *
+ * **When to use**
+ *
+ * Use to access or provide text generation, streaming generation, structured
+ * output, and tool-calling capabilities through the Effect context.
  *
  * **Example** (Accessing the language model service)
  *
@@ -256,7 +261,7 @@ export const defaultCodecTransformer: CodecTransformer = InternalCodecTransforme
 /**
  * Configuration options for text generation.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface GenerateTextOptions<Tools extends Record<string, Tool.Any>> {
@@ -314,7 +319,7 @@ type GenerateTextOptionsWithoutToolkit = Omit<GenerateTextOptions<{}>, "toolkit"
 /**
  * Configuration options for structured object generation.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface GenerateObjectOptions<
@@ -679,7 +684,7 @@ export type ExtractServices<Options> = Options extends {
  * underlying provider implementation, regardless of the specific provider being
  * used.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ProviderOptions {
@@ -753,8 +758,9 @@ export interface ProviderOptions {
  *
  * **When to use**
  *
- * Use to build a `LanguageModel.Service` from provider-specific final and
- * streaming text generation functions.
+ * Use when you are implementing a provider adapter and need to expose the
+ * standard language-model service while keeping provider-specific request hooks
+ * behind it.
  *
  * **Details**
  *
@@ -1621,7 +1627,7 @@ export const make: (params: {
 // =============================================================================
 
 /**
- * Generate text using a language model.
+ * Generates text using a language model.
  *
  * **Example** (Generating text with options)
  *
@@ -1690,7 +1696,7 @@ export const generateText: {
   )
 
 /**
- * Generate a structured object from a schema using a language model.
+ * Generates a structured object from a schema using a language model.
  *
  * **Example** (Generating an object)
  *
@@ -1742,7 +1748,7 @@ export const generateObject = <
   ) as any
 
 /**
- * Generate text using a language model with streaming output.
+ * Generates text using a language model with streaming output.
  *
  * **Details**
  *
@@ -2204,7 +2210,7 @@ export const getObjectName = <StructuredOutputSchema extends Schema.Top>(
   if ("identifier" in schema && typeof schema.identifier === "string") {
     return schema.identifier
   }
-  const identifier = AST.resolveIdentifier(schema.ast)
+  const identifier = SchemaAST.resolveIdentifier(schema.ast)
   if (typeof identifier === "string") {
     return identifier
   }

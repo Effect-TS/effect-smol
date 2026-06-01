@@ -51,7 +51,7 @@ export * as NodeWS from "ws"
  * Service tag for the underlying Node `net.Socket` associated with the current
  * socket connection.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
@@ -59,9 +59,16 @@ export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
 ) {}
 
 /**
- * Opens a TCP connection with Node `net.createConnection` and exposes it as a
- * `Socket.Socket`, supporting `openTimeout` and closing or destroying the
- * socket when the enclosing scope is finalized.
+ * Opens a Node TCP connection as an Effect socket.
+ *
+ * **When to use**
+ *
+ * Use to create a scoped `Socket.Socket` from Node `net.createConnection`.
+ *
+ * **Details**
+ *
+ * Supports `openTimeout` and closes or destroys the underlying socket when the
+ * enclosing scope is finalized.
  *
  * @category constructors
  * @since 4.0.0

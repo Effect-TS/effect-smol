@@ -72,7 +72,7 @@ export type MetricNameMapper = (name: string) => string
 /**
  * Options for formatting metrics.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface FormatOptions {
@@ -90,7 +90,7 @@ export interface FormatOptions {
 /**
  * Options for exporting Prometheus metrics over HTTP.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface HttpOptions extends FormatOptions {
@@ -101,7 +101,7 @@ export interface HttpOptions extends FormatOptions {
 }
 
 /**
- * Format all metrics in the registry to Prometheus exposition format.
+ * Formats all metrics in the registry to Prometheus exposition format.
  *
  * **Example** (Formatting metrics)
  *
@@ -128,7 +128,7 @@ export interface HttpOptions extends FormatOptions {
  * })
  * ```
  *
- * @category Formatting
+ * @category formatting
  * @since 4.0.0
  */
 export const format: (options?: FormatOptions | undefined) => Effect.Effect<string> = Effect.fnUntraced(
@@ -139,14 +139,16 @@ export const format: (options?: FormatOptions | undefined) => Effect.Effect<stri
 )
 
 /**
- * Synchronously format all metrics in the registry to Prometheus exposition format.
+ * Formats all metrics in the registry to Prometheus exposition format synchronously.
  *
  * **When to use**
  *
- * Use when you use this low-level function when you already have access to the context. Most
- * users should use `format` instead.
+ * Use when you already have access to the context and need low-level
+ * synchronous formatting.
  *
- * @category Formatting
+ * @see {@link format} for effectful formatting from the current context
+ *
+ * @category formatting
  * @since 4.0.0
  */
 export const formatUnsafe = (

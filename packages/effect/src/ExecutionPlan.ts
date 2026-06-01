@@ -441,7 +441,7 @@ const makeProto = <Provides, In, PlanE, PlanR>(
  *
  * @see {@link make} for building a plan from individual steps instead of combining existing plans
  *
- * @category Combining
+ * @category combining
  * @since 3.16.0
  */
 export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<any>>>(
@@ -461,7 +461,7 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
  * `attempt` is the current 1-based attempt number, and `stepIndex` is the
  * 0-based index of the plan step currently being evaluated.
  *
- * @category Metadata
+ * @category metadata
  * @since 4.0.0
  */
 export interface Metadata {
@@ -470,10 +470,15 @@ export interface Metadata {
 }
 
 /**
- * `Context.Reference` containing metadata for the currently running
+ * Context reference containing metadata for the currently running
  * execution-plan attempt.
  *
- * @category Metadata
+ * **When to use**
+ *
+ * Use to read the active plan step and attempt while code is running under an
+ * execution plan.
+ *
+ * @category metadata
  * @since 4.0.0
  */
 export const CurrentMetadata = Context.Reference<Metadata>("effect/ExecutionPlan/CurrentMetadata", {

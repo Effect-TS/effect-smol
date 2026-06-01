@@ -37,7 +37,7 @@ export class ReporterError extends Data.TaggedError("ReporterError")<{
 /**
  * Options for generating a bundle size comparison report against fixture files from a base directory.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ReportOptions {
@@ -47,7 +47,7 @@ export interface ReportOptions {
 /**
  * Options for generating bundle visualizations for selected entry files into an output directory.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface VisualizeOptions {
@@ -58,7 +58,7 @@ export interface VisualizeOptions {
 /**
  * Options for generating a bundle size report for an explicit list of entry files.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface ReportSelectedOptions {
