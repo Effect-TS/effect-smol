@@ -179,6 +179,27 @@ describe("toCodeDocument", () => {
       )
     })
 
+    it("Redacted options", () => {
+      assertSchema(
+        {
+          schema: Schema.Redacted(Schema.String, {
+            label: "password",
+            disallowJsonEncode: true
+          })
+        },
+        {
+          codes: makeCode(
+            `Schema.Redacted(Schema.String, {"label":"password","disallowJsonEncode":true})`,
+            "Redacted.Redacted<string>"
+          ),
+          artifacts: [{
+            _tag: "Import",
+            importDeclaration: `import * as Redacted from "effect/Redacted"`
+          }]
+        }
+      )
+    })
+
     it("CauseReason(String, Number)", () => {
       assertSchema({ schema: Schema.CauseReason(Schema.String, Schema.Number) }, {
         codes: makeCode("Schema.CauseReason(Schema.String, Schema.Number)", "Cause.Failure<string, number>"),

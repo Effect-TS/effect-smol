@@ -1857,7 +1857,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
       case "effect/Result":
         return Schema.Result(typeParameters[0], typeParameters[1])
       case "effect/Redacted":
-        return Schema.Redacted(typeParameters[0])
+        return Schema.Redacted(typeParameters[0], typeConstructor.options as any)
       case "effect/DateTime.TimeZone":
         return Schema.TimeZone
       case "effect/DateTime.TimeZone.Named":
