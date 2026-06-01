@@ -3680,10 +3680,10 @@ export interface StructWithRest<
  *
  * const schema = Schema.StructWithRest(
  *   Schema.Struct({ id: Schema.Number }),
- *   [Schema.Record(Schema.String, Schema.String)]
+ *   [Schema.Record(Schema.String, Schema.Number)]
  * )
  *
- * // { readonly id: number } & { readonly [x: string]: string }
+ * // { readonly id: number, readonly [x: string]: number }
  * type T = typeof schema.Type
  * ```
  *
