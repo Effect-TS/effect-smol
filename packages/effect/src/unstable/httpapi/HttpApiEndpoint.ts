@@ -64,30 +64,32 @@ type SuccessType<S> = S extends
   : S extends Schema.Top ? S["Type"]
   : never
 
+type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
+type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
+
 type SuccessEncodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer Events extends Schema.Top,
   infer Error extends Schema.Top
-> ? Events["EncodingServices"] | Error["EncodingServices"]
+> ? EncodingServices<Events> | EncodingServices<Error>
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? S["EncodingServices"]
+  : S extends Schema.Top ? EncodingServices<S>
   : never
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer Events extends Schema.Top,
   infer Error extends Schema.Top
-> ? Events["DecodingServices"] | Error["DecodingServices"]
+> ? DecodingServices<Events> | DecodingServices<Error>
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? S["DecodingServices"]
+  : S extends Schema.Top ? DecodingServices<S>
   : never
 
 type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<SuccessSchema> ? S[number] : S
 
 type ExtractBufferedSuccess<S extends SuccessConstraint> = Extract<ExtractSuccessOrArray<S>, Schema.Top>
 
-type ExtractStreamSuccess<S extends SuccessConstraint> = Extract<
-  ExtractSuccessOrArray<S>,
-  HttpApiSchema.StreamDeclaration
->
+type ExtractStreamSuccess<S extends SuccessConstraint> = ExtractSuccessOrArray<S> extends infer Success ?
+  Success extends HttpApiSchema.StreamDeclaration ? Success : never
+  : never
 
 type JsonSuccessOrArray<S extends SuccessConstraint> = [ExtractBufferedSuccess<S>] extends [never] ?
   ExtractStreamSuccess<S>
@@ -623,12 +625,12 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    | _Params["DecodingServices"]
-    | _Query["DecodingServices"]
-    | _Payload["DecodingServices"]
-    | _Headers["DecodingServices"]
+    | DecodingServices<_Params>
+    | DecodingServices<_Query>
+    | DecodingServices<_Payload>
+    | DecodingServices<_Headers>
     | SuccessEncodingServices<_Success>
-    | _Error["EncodingServices"]
+    | EncodingServices<_Error>
     | HttpApiMiddleware.ErrorServicesEncode<_M>
   : never
 
@@ -652,12 +654,12 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    | _Params["EncodingServices"]
-    | _Query["EncodingServices"]
-    | _Payload["EncodingServices"]
-    | _Headers["EncodingServices"]
+    | EncodingServices<_Params>
+    | EncodingServices<_Query>
+    | EncodingServices<_Payload>
+    | EncodingServices<_Headers>
     | SuccessDecodingServices<_Success>
-    | _Error["DecodingServices"]
+    | DecodingServices<_Error>
   : never
 
 /**

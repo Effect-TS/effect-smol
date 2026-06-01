@@ -44,8 +44,10 @@ const AnnotatedStreamingApi = HttpApi.make("AnnotatedStreamingApi").add(
     )
 )
 
-const clientFromResponse = (response: () => Response) =>
-  HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, response())))
+const clientFromResponse = (response: () => Response): HttpClient.HttpClient =>
+  HttpClient.make((request): Effect.Effect<HttpClientResponse.HttpClientResponse, never, never> =>
+    Effect.succeed(HttpClientResponse.fromWeb(request, response()))
+  )
 
 const textStream = (chunks: ReadonlyArray<string>): ReadableStream<Uint8Array> => {
   let index = 0
@@ -131,7 +133,10 @@ describe("HttpApiClient", () => {
 
         const stream = yield* client.test.download({})
         const first = yield* stream.pipe(Stream.take(1), Stream.runCollect)
-        assert.deepStrictEqual(Array.from(first, (chunk) => Array.from(chunk)), [[1, 2]])
+        assert.deepStrictEqual(
+          Array.from(first, (chunk) => Array.from(chunk)),
+          [[1, 2]]
+        )
       }))
 
     it.effect("decodes StreamSse successes at the annotated status", () =>
@@ -157,7 +162,10 @@ describe("HttpApiClient", () => {
 
         const stream = yield* client.test.download({})
         const chunks = yield* stream.pipe(Stream.runCollect)
-        assert.deepStrictEqual(Array.from(chunks, (chunk) => Array.from(chunk)), [[4, 5]])
+        assert.deepStrictEqual(
+          Array.from(chunks, (chunk) => Array.from(chunk)),
+          [[4, 5]]
+        )
       }))
 
     it.effect("decodes non-success responses through endpoint error schemas before returning a stream", () =>
@@ -187,7 +195,10 @@ describe("HttpApiClient", () => {
 
         const response = yield* client.test.download({ responseMode: "response-only" })
         const chunks = yield* response.stream.pipe(Stream.runCollect)
-        assert.deepStrictEqual(Array.from(chunks, (chunk) => Array.from(chunk)), [[1], [2, 3]])
+        assert.deepStrictEqual(
+          Array.from(chunks, (chunk) => Array.from(chunk)),
+          [[1], [2, 3]]
+        )
       }))
   })
 

@@ -103,8 +103,8 @@ describe("HttpApi", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
         error: Schema.String
           .pipe(
-            HttpApiSchema.status("MethodNotAllowed"),
-            HttpApiSchema.asText()
+            HttpApiSchema.asText(),
+            HttpApiSchema.status("MethodNotAllowed")
           )
       }) {}
 
@@ -1434,8 +1434,8 @@ describe("HttpApi", () => {
             decode: (message) => new RateLimitError({ message })
           })
         ),
-        HttpApiSchema.status("TooManyRequests"),
-        HttpApiSchema.asText()
+        HttpApiSchema.asText(),
+        HttpApiSchema.status("TooManyRequests")
       )
 
       const Api = HttpApi.make("api").add(
@@ -1450,7 +1450,8 @@ describe("HttpApi", () => {
           HttpApiBuilder.group(
             Api,
             "group",
-            (handlers) => handlers.handle("error", () => new RateLimitError({ message: "Rate limit exceeded" }))
+            (handlers) =>
+              handlers.handle("error", () => Effect.fail(new RateLimitError({ message: "Rate limit exceeded" })))
           )
         ),
         HttpRouter.serve,

@@ -57,7 +57,7 @@ export interface HttpApi<
   /**
    * Add a `HttpApiGroup` to the `HttpApi`.
    */
-  add<A extends NonEmptyReadonlyArray<HttpApiGroup.Any>>(...groups: A): HttpApi<Id, Groups | A[number]>
+  add<const A extends NonEmptyReadonlyArray<HttpApiGroup.Any>>(...groups: A): HttpApi<Id, Groups | A[number]>
 
   /**
    * Add another `HttpApi` to the `HttpApi`.

@@ -81,12 +81,15 @@ type ClientSuccessType<S> = S extends HttpApiSchema.StreamSse<
   : S extends Schema.Top ? S["Type"]
   : never
 
+type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
+type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
+
 type ClientSuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer Events extends Schema.Top,
   infer Error extends Schema.Top
-> ? Events["DecodingServices"] | Error["DecodingServices"]
+> ? DecodingServices<Events> | DecodingServices<Error>
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? S["DecodingServices"]
+  : S extends Schema.Top ? DecodingServices<S>
   : never
 
 /**
@@ -163,12 +166,12 @@ export declare namespace Client {
       | HttpClientError.HttpClientError
       | ([Mode] extends ["response-only"] ? never : _Error["Type"] | Schema.SchemaError),
       | R
-      | _Params["EncodingServices"]
-      | _Query["EncodingServices"]
-      | _Payload["EncodingServices"]
-      | _Headers["EncodingServices"]
+      | EncodingServices<_Params>
+      | EncodingServices<_Query>
+      | EncodingServices<_Payload>
+      | EncodingServices<_Headers>
       | ([Mode] extends ["response-only"] ? never
-        : ClientSuccessDecodingServices<_Success> | _Error["DecodingServices"])
+        : ClientSuccessDecodingServices<_Success> | DecodingServices<_Error>)
     > :
     never
 
