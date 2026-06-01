@@ -4,7 +4,7 @@
  * Define a schema-first API, implement handlers, secure endpoints with
  * middleware, serve it over HTTP, and call it using a generated typed client.
  */
-import { NodeHttpServer, NodeRuntime } from "@effect/platform-node"
+import { NodeHttpServer } from "@effect/platform-node"
 import { Context, Effect, flow, Layer, Schedule } from "effect"
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/unstable/http"
 import { HttpApiBuilder, HttpApiClient, HttpApiMiddleware, HttpApiScalar } from "effect/unstable/httpapi"
@@ -48,13 +48,12 @@ const AllRoutes = Layer.mergeAll(ApiRoutes, DocsRoute)
 // Here we are using the NodeHttpServer, but you could also use the
 // BunHttpServer
 export const HttpServerLayer = HttpRouter.serve(AllRoutes).pipe(
+  Layer.provide(HttpServer.layerServices),
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
 
-// Then run the server using Layer.launch
-Layer.launch(HttpServerLayer).pipe(
-  NodeRuntime.runMain
-)
+// Then launch the server layer from your application entrypoint.
+export const main = Layer.launch(HttpServerLayer)
 
 // Or create a web handler, which can be used in serverless environments
 export const { handler, dispose } = HttpRouter.toWebHandler(AllRoutes.pipe(
