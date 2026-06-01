@@ -8601,10 +8601,11 @@ export function Redacted<S extends Top>(value: S, options?: {
     },
     {
       typeConstructor: {
-        _tag: "effect/Redacted"
+        _tag: "effect/Redacted",
+        options
       },
       generation: {
-        runtime: `Schema.Redacted(?)`,
+        runtime: options !== undefined ? `Schema.Redacted(?, ${format(options)})` : `Schema.Redacted(?)`,
         Type: `Redacted.Redacted<?>`,
         importDeclaration: `import * as Redacted from "effect/Redacted"`
       },
@@ -13614,6 +13615,7 @@ export declare namespace Annotations {
     readonly toFormatter?: ToFormatter.Declaration<T, TypeParameters> | undefined
     readonly typeConstructor?: {
       readonly _tag: string
+      readonly [key: string]: unknown
     } | undefined
     readonly generation?: {
       readonly runtime: string

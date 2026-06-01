@@ -1,4 +1,4 @@
-import { Schema, SchemaRepresentation } from "effect"
+import { Redacted, Schema, SchemaRepresentation } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "../../utils/assert.ts"
 
@@ -225,6 +225,28 @@ describe("toSchema", () => {
       assertToSchemaWithReviver(
         Schema.Redacted(Schema.String),
         `Schema.Redacted(Schema.String)`
+      )
+    })
+
+    it("Redacted options", () => {
+      const schema = Schema.Redacted(Schema.String, {
+        label: "password",
+        disallowJsonEncode: true
+      })
+      const document = SchemaRepresentation.fromAST(schema.ast)
+      const roundtrip = SchemaRepresentation.toSchema<typeof schema>(document, {
+        reviver: SchemaRepresentation.toSchemaDefaultReviver
+      })
+      const encode = Schema.encodeUnknownExit(Schema.toCodecJson(roundtrip))
+
+      strictEqual(
+        String(encode(Redacted.make("secret", { label: "password" }))),
+        `Failure(Cause([Fail(SchemaError(Cannot serialize Redacted with label: "password"))]))`
+      )
+      strictEqual(
+        String(encode(Redacted.make("secret", { label: "other" }))),
+        `Failure(Cause([Fail(SchemaError(Expected "password", got "other"
+  at ["label"]))]))`
       )
     })
 
