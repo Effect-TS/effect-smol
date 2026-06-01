@@ -126,6 +126,8 @@ const statusCodeByLiteral = {
   NetworkAuthenticationRequired: 511
 } as const
 
+const StreamTypeId = "~effect/httpapi/HttpApiSchema/Stream"
+
 /**
  * Common HTTP status code literals accepted by {@link status}.
  *
@@ -140,18 +142,28 @@ export type StatusLiteral = keyof typeof statusCodeByLiteral
  * **Details**
  *
  * This is equivalent to calling `.annotate({ httpApiStatus: code })` on the
- * schema. You can pass either a numeric status code (for example, `201`) or a
- * common literal name (for example, `"Created"`).
+ * schema. For streaming success declarations, it stores the same metadata on
+ * the declaration. You can pass either a numeric status code (for example,
+ * `201`) or a common literal name (for example, `"Created"`).
  *
  * @category status
  * @since 4.0.0
  */
-export function status(code: number): <S extends Schema.Top>(self: S) => S["Rebuild"]
-export function status(code: StatusLiteral): <S extends Schema.Top>(self: S) => S["Rebuild"]
-export function status(code: number | StatusLiteral) {
+export function status(code: number): {
+  <S extends StreamDeclaration>(self: S): S
+  <S extends Schema.Top>(self: S): S["Rebuild"]
+}
+export function status(code: StatusLiteral): {
+  <S extends StreamDeclaration>(self: S): S
+  <S extends Schema.Top>(self: S): S["Rebuild"]
+}
+export function status(code: number | StatusLiteral): any {
   const statusCode = typeof code === "string" ? statusCodeByLiteral[code] : code
-  return <S extends Schema.Top>(self: S): S["Rebuild"] => {
-    return self.annotate({ httpApiStatus: statusCode })
+  return (self: Schema.Top | StreamDeclaration) => {
+    if (Predicate.hasProperty(self, StreamTypeId)) {
+      return { ...self, httpApiStatus: statusCode }
+    }
+    return (self as Schema.Top).annotate({ httpApiStatus: statusCode })
   }
 }
 
@@ -164,7 +176,7 @@ export function status(code: number | StatusLiteral) {
  * @category Empty
  * @since 4.0.0
  */
-export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code))
+export const Empty = (code: number): Schema.Void => Schema.Void.annotate({ httpApiStatus: code })
 
 /**
  * Type of the `NoContent` schema, a void schema annotated with HTTP status code 204.
@@ -252,8 +264,6 @@ export function asNoContent<S extends Schema.Top>(options: {
   }
 }
 
-const StreamTypeId = "~effect/httpapi/HttpApiSchema/Stream"
-
 type StreamMode = "sse" | "uint8array"
 
 /**
@@ -272,6 +282,7 @@ export interface StreamSse<Events extends Schema.Top, Error extends Schema.Top> 
   readonly [StreamTypeId]: typeof StreamTypeId
   readonly _tag: "StreamSse"
   readonly mode: "sse"
+  readonly httpApiStatus?: number | undefined
   readonly contentType: string
   readonly events: Events
   readonly error: Error
@@ -293,6 +304,7 @@ export interface StreamUint8Array {
   readonly [StreamTypeId]: typeof StreamTypeId
   readonly _tag: "StreamUint8Array"
   readonly mode: "uint8array"
+  readonly httpApiStatus?: number | undefined
   readonly contentType: string
 }
 
@@ -615,6 +627,11 @@ export function getResponseEncoding(ast: SchemaAST.AST): ResponseEncoding {
 /** @internal */
 export function getStatusSuccess(self: SchemaAST.AST): number {
   return resolveHttpApiStatus(self) ?? 200
+}
+
+/** @internal */
+export function getStatusStream(self: StreamDeclaration): number {
+  return self.httpApiStatus ?? 200
 }
 
 /** @internal */

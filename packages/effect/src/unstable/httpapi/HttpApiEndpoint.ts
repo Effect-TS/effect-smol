@@ -1297,8 +1297,6 @@ function getPayload(
   return result
 }
 
-const streamSuccessStatus = 200
-
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
 function getSuccessResponse(
@@ -1340,7 +1338,7 @@ function validateSuccessResponse(schemas: ReadonlyArray<SuccessSchema>, method: 
   for (const schema of schemas) {
     if (HttpApiSchema.isStreamDeclaration(schema)) {
       validateStreamSuccess(schema, method)
-      const status = streamSuccessStatus
+      const status = HttpApiSchema.getStatusStream(schema)
       const entry = getStatusEntry(statuses, status)
       if (entry.stream !== undefined) {
         throw new Error(`Multiple streaming success responses for status: ${status}`)

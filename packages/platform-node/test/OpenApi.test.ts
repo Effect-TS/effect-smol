@@ -1022,6 +1022,34 @@ describe("OpenAPI spec", () => {
           assert.strictEqual(typeof stream.errorSchema, "object")
         })
 
+        it("StreamSse with annotated status", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: HttpApiSchema.status(202)(
+                      HttpApiSchema.StreamSse({
+                        events: Schema.Struct({
+                          event: Schema.Literal("message"),
+                          data: Schema.String
+                        }),
+                        error: Schema.Struct({
+                          message: Schema.String
+                        })
+                      })
+                    )
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.strictEqual(spec.paths["/a"].get?.responses["200"], undefined)
+          assert.strictEqual(
+            spec.paths["/a"].get?.responses["202"].content?.["text/event-stream"]?.["x-effect-stream"]?.encoding,
+            "sse"
+          )
+        })
+
         it("StreamUint8Array", () => {
           const Api = HttpApi.make("api")
             .add(
@@ -1034,6 +1062,31 @@ describe("OpenAPI spec", () => {
             )
           const spec = OpenApi.fromApi(Api)
           assert.deepStrictEqual(spec.paths["/a"].get?.responses["200"].content, {
+            "application/octet-stream": {
+              schema: {
+                "type": "string",
+                "format": "binary"
+              },
+              "x-effect-stream": {
+                encoding: "uint8array"
+              }
+            }
+          })
+        })
+
+        it("StreamUint8Array with annotated status", () => {
+          const Api = HttpApi.make("api")
+            .add(
+              HttpApiGroup.make("group")
+                .add(
+                  HttpApiEndpoint.get("a", "/a", {
+                    success: HttpApiSchema.status(206)(HttpApiSchema.StreamUint8Array())
+                  })
+                )
+            )
+          const spec = OpenApi.fromApi(Api)
+          assert.strictEqual(spec.paths["/a"].get?.responses["200"], undefined)
+          assert.deepStrictEqual(spec.paths["/a"].get?.responses["206"].content, {
             "application/octet-stream": {
               schema: {
                 "type": "string",

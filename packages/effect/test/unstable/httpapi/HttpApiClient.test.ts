@@ -32,6 +32,18 @@ const StreamingApi = HttpApi.make("StreamingApi").add(
     )
 )
 
+const AnnotatedStreamingApi = HttpApi.make("AnnotatedStreamingApi").add(
+  HttpApiGroup.make("test")
+    .add(
+      HttpApiEndpoint.get("events", "/events", {
+        success: HttpApiSchema.status(202)(HttpApiSchema.StreamSse({ events: Events, error: StreamError }))
+      }),
+      HttpApiEndpoint.get("download", "/download", {
+        success: HttpApiSchema.status(206)(HttpApiSchema.StreamUint8Array())
+      })
+    )
+)
+
 const clientFromResponse = (response: () => Response) =>
   HttpClient.make((request) => Effect.succeed(HttpClientResponse.fromWeb(request, response())))
 
@@ -120,6 +132,32 @@ describe("HttpApiClient", () => {
         const stream = yield* client.test.download({})
         const first = yield* stream.pipe(Stream.take(1), Stream.runCollect)
         assert.deepStrictEqual(Array.from(first, (chunk) => Array.from(chunk)), [[1, 2]])
+      }))
+
+    it.effect("decodes StreamSse successes at the annotated status", () =>
+      Effect.gen(function*() {
+        const client = yield* HttpApiClient.makeWith(AnnotatedStreamingApi, {
+          baseUrl: "http://test",
+          httpClient: clientFromResponse(() =>
+            new Response(textStream(["event: annotated\ndata: ok\n\n"]), { status: 202 })
+          )
+        })
+
+        const stream = yield* client.test.events({})
+        const events = yield* stream.pipe(Stream.runCollect)
+        assert.deepStrictEqual(Array.from(events), [{ event: "annotated", data: "ok" }])
+      }))
+
+    it.effect("decodes StreamUint8Array successes at the annotated status", () =>
+      Effect.gen(function*() {
+        const client = yield* HttpApiClient.makeWith(AnnotatedStreamingApi, {
+          baseUrl: "http://test",
+          httpClient: clientFromResponse(() => new Response(byteStream([new Uint8Array([4, 5])]), { status: 206 }))
+        })
+
+        const stream = yield* client.test.download({})
+        const chunks = yield* stream.pipe(Stream.runCollect)
+        assert.deepStrictEqual(Array.from(chunks, (chunk) => Array.from(chunk)), [[4, 5]])
       }))
 
     it.effect("decodes non-success responses through endpoint error schemas before returning a stream", () =>

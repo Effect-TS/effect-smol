@@ -39,7 +39,9 @@ describe("HttpApiBuilder streaming success responses", () => {
       const Api = HttpApi.make("Api").add(
         HttpApiGroup.make("test").add(
           HttpApiEndpoint.get("download", "/test", {
-            success: HttpApiSchema.StreamUint8Array({ contentType: "application/custom-bytes" })
+            success: HttpApiSchema.status(206)(
+              HttpApiSchema.StreamUint8Array({ contentType: "application/custom-bytes" })
+            )
           })
         )
       )
@@ -51,7 +53,7 @@ describe("HttpApiBuilder streaming success responses", () => {
         () => Effect.succeed(Stream.make(new Uint8Array([1, 2]), new Uint8Array([3])))
       )
 
-      assert.strictEqual(response.status, 200)
+      assert.strictEqual(response.status, 206)
       assert.strictEqual(response.headers["content-type"], "application/custom-bytes")
       const chunks = yield* streamBody(response).pipe(Stream.runCollect)
       assert.deepStrictEqual(Array.from(chunks, (chunk) => Array.from(chunk)), [[1, 2], [3]])
@@ -66,11 +68,13 @@ describe("HttpApiBuilder streaming success responses", () => {
       const Api = HttpApi.make("Api").add(
         HttpApiGroup.make("test").add(
           HttpApiEndpoint.get("events", "/test", {
-            success: HttpApiSchema.StreamSse({
-              contentType: "text/event-stream; charset=utf-8",
-              events: Events,
-              error: StreamError
-            })
+            success: HttpApiSchema.status(202)(
+              HttpApiSchema.StreamSse({
+                contentType: "text/event-stream; charset=utf-8",
+                events: Events,
+                error: StreamError
+              })
+            )
           })
         )
       )
@@ -81,7 +85,7 @@ describe("HttpApiBuilder streaming success responses", () => {
           { event: "second" as const, data: "two" }
         )))
 
-      assert.strictEqual(response.status, 200)
+      assert.strictEqual(response.status, 202)
       assert.strictEqual(response.headers["content-type"], "text/event-stream; charset=utf-8")
       const chunks = yield* streamBody(response).pipe(Stream.runCollect)
       assert.deepStrictEqual(

@@ -625,7 +625,6 @@ type ResponseBodies = Map<
   }
 >
 
-const streamSuccessStatus = 200
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
 function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.AnyWithProps): ResponseBodies {
@@ -714,9 +713,10 @@ function extractResponseBodies(
   }
 
   function addStreamContent(stream: HttpApiSchema.StreamDeclaration) {
-    const statusMap = map.get(streamSuccessStatus)
+    const status = HttpApiSchema.getStatusStream(stream)
+    const statusMap = map.get(status)
     if (statusMap === undefined) {
-      map.set(streamSuccessStatus, {
+      map.set(status, {
         descriptions: new Set(),
         content: undefined,
         streamContent: new Map([[stream.contentType, stream]])

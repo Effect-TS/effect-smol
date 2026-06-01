@@ -337,9 +337,8 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
         successes.forEach((schemas, status) => {
           decodeMap[status] = schemasToResponse(schemas)
         })
-        const streamSuccess = getStreamSuccessDeclaration(endpoint)
-        if (streamSuccess !== undefined) {
-          decodeMap[streamSuccessStatus] = streamSuccessToResponse(streamSuccess)
+        for (const streamSuccess of getStreamSuccessDeclarations(endpoint)) {
+          decodeMap[HttpApiSchema.getStatusStream(streamSuccess)] = streamSuccessToResponse(streamSuccess)
         }
 
         // encoders
@@ -674,15 +673,16 @@ function schemasToResponse(schemas: readonly [Schema.Top, ...Array<Schema.Top>])
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
 }
 
-const streamSuccessStatus = 200
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
-function getStreamSuccessDeclaration(endpoint: HttpApiEndpoint.AnyWithProps) {
+function getStreamSuccessDeclarations(endpoint: HttpApiEndpoint.AnyWithProps): Array<HttpApiSchema.StreamDeclaration> {
+  const declarations: Array<HttpApiSchema.StreamDeclaration> = []
   for (const schema of endpoint.success) {
     if (HttpApiSchema.isStreamDeclaration(schema)) {
-      return schema
+      declarations.push(schema)
     }
   }
+  return declarations
 }
 
 function streamSuccessToResponse(declaration: HttpApiSchema.StreamDeclaration) {

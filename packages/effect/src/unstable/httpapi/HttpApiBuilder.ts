@@ -787,7 +787,6 @@ const makeSecurityMiddleware = (
 
 const $HttpServerResponse = Schema.declare(Response.isHttpServerResponse)
 
-const streamSuccessStatus = 200
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 const textEncoder = new TextEncoder()
 
@@ -811,6 +810,7 @@ function encodeStreamSuccess(
         })
       ))
   }
+  const status = HttpApiSchema.getStatusStream(declaration)
   if (HttpApiSchema.isStreamUint8Array(declaration)) {
     return Effect.succeed(Response.stream(
       Stream.provideContext(
@@ -818,7 +818,7 @@ function encodeStreamSuccess(
         context as Context.Context<unknown>
       ),
       {
-        status: streamSuccessStatus,
+        status,
         contentType: declaration.contentType
       }
     ))
@@ -829,7 +829,7 @@ function encodeStreamSuccess(
       context as Context.Context<unknown>
     ),
     {
-      status: streamSuccessStatus,
+      status,
       contentType: declaration.contentType
     }
   ))

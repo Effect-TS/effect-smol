@@ -18,6 +18,17 @@ describe("HttpApiSchema", () => {
       expect(stream.mode).type.toBe<"sse">()
     })
 
+    it("preserves the declaration type when annotated with status", () => {
+      const Events = Schema.Struct({
+        event: Schema.Literal("user.created"),
+        data: Schema.String
+      })
+      const Error = Schema.Struct({ reason: Schema.String })
+      const stream = HttpApiSchema.status(202)(HttpApiSchema.StreamSse({ events: Events, error: Error }))
+
+      expect(stream).type.toBe<HttpApiSchema.StreamSse<typeof Events, typeof Error>>()
+    })
+
     it("requires event and error schemas", () => {
       expect(HttpApiSchema.StreamSse).type.not.toBeCallableWith({
         events: {},
@@ -37,6 +48,12 @@ describe("HttpApiSchema", () => {
       expect(stream).type.toBe<HttpApiSchema.StreamUint8Array>()
       expect(stream.mode).type.toBe<"uint8array">()
       expect(stream.contentType).type.toBe<string>()
+    })
+
+    it("preserves the declaration type when annotated with status", () => {
+      const stream = HttpApiSchema.status("PartialContent")(HttpApiSchema.StreamUint8Array())
+
+      expect(stream).type.toBe<HttpApiSchema.StreamUint8Array>()
     })
   })
 })

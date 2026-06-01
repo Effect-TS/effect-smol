@@ -67,6 +67,30 @@ describe("HttpApiEndpoint streaming success declarations", () => {
     )
   })
 
+  it("streaming success mixed with a buffered success at distinct statuses is allowed", () => {
+    const stream = HttpApiSchema.status(206)(sse())
+    const endpoint = HttpApiEndpoint.get("events", "/events", {
+      success: [
+        stream,
+        Schema.Struct({ ok: Schema.Boolean })
+      ]
+    })
+
+    assert.isTrue(endpoint.success.has(stream))
+  })
+
+  it("streaming success mixed with NoContent at distinct statuses is allowed", () => {
+    const stream = HttpApiSchema.status(200)(sse())
+    const endpoint = HttpApiEndpoint.get("events", "/events", {
+      success: [
+        stream,
+        HttpApiSchema.NoContent
+      ]
+    })
+
+    assert.isTrue(endpoint.success.has(stream))
+  })
+
   it("two streaming successes for the same status throw", () => {
     assert.throws(() =>
       HttpApiEndpoint.get("events", "/events", {
@@ -76,6 +100,19 @@ describe("HttpApiEndpoint streaming success declarations", () => {
         ]
       })
     )
+  })
+
+  it("two streaming successes for distinct statuses are allowed", () => {
+    const stream = HttpApiSchema.status(206)(sse())
+    const bytes = HttpApiSchema.status(200)(
+      HttpApiSchema.StreamUint8Array({ contentType: "application/custom-stream" })
+    )
+    const endpoint = HttpApiEndpoint.get("events", "/events", {
+      success: [stream, bytes]
+    })
+
+    assert.isTrue(endpoint.success.has(stream))
+    assert.isTrue(endpoint.success.has(bytes))
   })
 
   it("statically detectable SSE reserved failure event name throws", () => {
