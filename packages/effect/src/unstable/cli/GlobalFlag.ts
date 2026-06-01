@@ -183,13 +183,14 @@ export const Help: Action<boolean> = action({
  *
  * **When to use**
  *
- * Use to add a built-in `--version` flag to a command runner.
+ * Use to add a built-in `--version / -v` flag to a command runner.
  *
  * @category references
  * @since 4.0.0
  */
 export const Version: Action<boolean> = action({
   flag: Flag.boolean("version").pipe(
+    Flag.withAlias("v"),
     Flag.withDescription("Show version information")
   ),
   run: (_, { command, version }) =>
