@@ -70,26 +70,23 @@ export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
   HttpApi.HttpApi<infer _Id, infer Groups> ? Client<Groups, E, R> :
   never
 
-type ClientSuccessType<S> = S extends HttpApiSchema.StreamSse<
-  infer Events extends Schema.Top,
-  infer Error extends Schema.Top
+type SuccessType<S> = S extends HttpApiSchema.StreamSse<
+  infer _Events extends Schema.Top,
+  infer _Error extends Schema.Top
 > ? Stream.Stream<
-    Events["Type"],
-    Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry
+    _Events["Type"],
+    _Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry
   >
   : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, HttpClientError.HttpClientError>
   : S extends Schema.Top ? S["Type"]
   : never
 
-type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
-type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
-
-type ClientSuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
-  infer Events extends Schema.Top,
-  infer Error extends Schema.Top
-> ? DecodingServices<Events> | DecodingServices<Error>
+type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
+  infer _Events extends Schema.Top,
+  infer _Error extends Schema.Top
+> ? _Events["DecodingServices"] | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? DecodingServices<S>
+  : S extends Schema.Top ? S["DecodingServices"]
   : never
 
 /**
@@ -159,19 +156,19 @@ export declare namespace Client {
   ] ? <Mode extends ResponseMode = ResponseMode>(
       request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, Mode>>
     ) => Effect.Effect<
-      Response<ClientSuccessType<_Success>, Mode>,
+      Response<SuccessType<_Success>, Mode>,
       | HttpApiMiddleware.Error<_Middleware>
       | HttpApiMiddleware.ClientError<_Middleware>
       | E
       | HttpClientError.HttpClientError
       | ([Mode] extends ["response-only"] ? never : _Error["Type"] | Schema.SchemaError),
       | R
-      | EncodingServices<_Params>
-      | EncodingServices<_Query>
-      | EncodingServices<_Payload>
-      | EncodingServices<_Headers>
+      | _Params["EncodingServices"]
+      | _Query["EncodingServices"]
+      | _Payload["EncodingServices"]
+      | _Headers["EncodingServices"]
       | ([Mode] extends ["response-only"] ? never
-        : ClientSuccessDecodingServices<_Success> | DecodingServices<_Error>)
+        : SuccessDecodingServices<_Success> | _Error["DecodingServices"])
     > :
     never
 
@@ -341,7 +338,7 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
           decodeMap[status] = schemasToResponse(schemas)
         })
         for (const streamSuccess of getStreamSuccessDeclarations(endpoint)) {
-          decodeMap[HttpApiSchema.getStatusStream(streamSuccess)] = streamSuccessToResponse(streamSuccess)
+          decodeMap[HttpApiSchema.getStatusStream(streamSuccess)] = streamToResponse(streamSuccess)
         }
 
         // encoders
@@ -688,7 +685,7 @@ function getStreamSuccessDeclarations(endpoint: HttpApiEndpoint.AnyWithProps): A
   return declarations
 }
 
-function streamSuccessToResponse(declaration: HttpApiSchema.StreamDeclaration) {
+function streamToResponse(declaration: HttpApiSchema.StreamDeclaration) {
   return (response: HttpClientResponse.HttpClientResponse) =>
     Effect.map(Effect.context<never>(), (context) =>
       Stream.provideContext(

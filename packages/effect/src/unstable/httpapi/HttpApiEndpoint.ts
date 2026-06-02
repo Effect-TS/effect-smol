@@ -58,29 +58,26 @@ export type PayloadMap = ReadonlyMap<string, {
 export type SuccessSchema = Schema.Top | HttpApiSchema.StreamDeclaration
 
 type SuccessType<S> = S extends
-  HttpApiSchema.StreamSse<infer Events extends Schema.Top, infer Error extends Schema.Top> ?
-  Stream.Stream<Events["Type"], Error["Type"]>
+  HttpApiSchema.StreamSse<infer _Events extends Schema.Top, infer _Error extends Schema.Top> ?
+  Stream.Stream<_Events["Type"], _Error["Type"]>
   : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, unknown>
   : S extends Schema.Top ? S["Type"]
   : never
 
-type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
-type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
-
 type SuccessEncodingServices<S> = S extends HttpApiSchema.StreamSse<
-  infer Events extends Schema.Top,
-  infer Error extends Schema.Top
-> ? EncodingServices<Events> | EncodingServices<Error>
+  infer _Events extends Schema.Top,
+  infer _Error extends Schema.Top
+> ? _Events["EncodingServices"] | _Error["EncodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? EncodingServices<S>
+  : S extends Schema.Top ? S["EncodingServices"]
   : never
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
-  infer Events extends Schema.Top,
-  infer Error extends Schema.Top
-> ? DecodingServices<Events> | DecodingServices<Error>
+  infer _Events extends Schema.Top,
+  infer _Error extends Schema.Top
+> ? _Events["DecodingServices"] | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? DecodingServices<S>
+  : S extends Schema.Top ? S["DecodingServices"]
   : never
 
 type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<SuccessSchema> ? S[number] : S

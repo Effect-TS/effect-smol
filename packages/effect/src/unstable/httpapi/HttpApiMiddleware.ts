@@ -214,9 +214,6 @@ export type ErrorSchema<A> = A extends { readonly [TypeId]: { readonly error: in
  */
 export type Error<A> = ErrorSchema<A>["Type"]
 
-type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
-type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
-
 /**
  * Extracts the client-side error type for middleware that is required on generated clients.
  *
@@ -250,7 +247,7 @@ export type MiddlewareClient<A> = A extends {
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesEncode<A> = EncodingServices<ErrorSchema<A>>
+export type ErrorServicesEncode<A> = ErrorSchema<A>["EncodingServices"]
 
 /**
  * Extracts the schema services required to decode errors declared by a middleware identifier.
@@ -258,7 +255,7 @@ export type ErrorServicesEncode<A> = EncodingServices<ErrorSchema<A>>
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesDecode<A> = DecodingServices<ErrorSchema<A>>
+export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
 
 /**
  * Class type produced by `Service` for an HTTP API middleware service.

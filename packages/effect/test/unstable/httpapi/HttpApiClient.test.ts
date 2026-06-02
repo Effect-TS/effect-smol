@@ -5,76 +5,6 @@ import { Sse } from "effect/unstable/encoding"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/unstable/httpapi"
 
-const textEncoder = new TextEncoder()
-
-const StreamError = Schema.Struct({ reason: Schema.String })
-
-const Events = Schema.Struct({
-  event: Schema.String,
-  data: Schema.String
-})
-
-class EndpointError extends Schema.TaggedErrorClass<EndpointError>()("EndpointError", {
-  message: Schema.String
-}, { httpApiStatus: 400 }) {}
-
-const StreamingApi = HttpApi.make("StreamingApi").add(
-  HttpApiGroup.make("test")
-    .add(
-      HttpApiEndpoint.get("events", "/events", {
-        success: HttpApiSchema.StreamSse({ events: Events, error: StreamError }),
-        error: EndpointError
-      }),
-      HttpApiEndpoint.get("download", "/download", {
-        success: HttpApiSchema.StreamUint8Array(),
-        error: EndpointError
-      })
-    )
-)
-
-const AnnotatedStreamingApi = HttpApi.make("AnnotatedStreamingApi").add(
-  HttpApiGroup.make("test")
-    .add(
-      HttpApiEndpoint.get("events", "/events", {
-        success: HttpApiSchema.status(202)(HttpApiSchema.StreamSse({ events: Events, error: StreamError }))
-      }),
-      HttpApiEndpoint.get("download", "/download", {
-        success: HttpApiSchema.status(206)(HttpApiSchema.StreamUint8Array())
-      })
-    )
-)
-
-const clientFromResponse = (response: () => Response): HttpClient.HttpClient =>
-  HttpClient.make((request): Effect.Effect<HttpClientResponse.HttpClientResponse, never, never> =>
-    Effect.succeed(HttpClientResponse.fromWeb(request, response()))
-  )
-
-const textStream = (chunks: ReadonlyArray<string>): ReadableStream<Uint8Array> => {
-  let index = 0
-  return new ReadableStream<Uint8Array>({
-    pull(controller) {
-      if (index === chunks.length) {
-        controller.close()
-      } else {
-        controller.enqueue(textEncoder.encode(chunks[index++]!))
-      }
-    }
-  })
-}
-
-const byteStream = (chunks: ReadonlyArray<Uint8Array>): ReadableStream<Uint8Array> => {
-  let index = 0
-  return new ReadableStream<Uint8Array>({
-    pull(controller) {
-      if (index === chunks.length) {
-        controller.close()
-      } else {
-        controller.enqueue(chunks[index++]!)
-      }
-    }
-  })
-}
-
 describe("HttpApiClient", () => {
   describe("streaming responses", () => {
     it.effect("decodes StreamSse events incrementally", () =>
@@ -94,7 +24,7 @@ describe("HttpApiClient", () => {
 
         const stream = yield* client.test.events({})
         const first = yield* stream.pipe(Stream.take(1), Stream.runCollect)
-        assert.deepStrictEqual(Array.from(first), [{ event: "first", data: "one" }])
+        assert.deepStrictEqual(first, [{ event: "first", data: "one" }])
       }))
 
     it.effect("decodes StreamSse reserved failure events as full causes", () =>
@@ -109,13 +39,15 @@ describe("HttpApiClient", () => {
           id: undefined,
           data: encodedCause
         })
+
         const client = yield* HttpApiClient.makeWith(StreamingApi, {
           baseUrl: "http://test",
           httpClient: clientFromResponse(() => new Response(textStream([failureEvent]), { status: 200 }))
         })
 
         const stream = yield* client.test.events({})
-        const exit = yield* stream.pipe(Stream.runCollect, Effect.exit)
+        const exit = yield* Effect.exit(Stream.runCollect(stream))
+
         assert.strictEqual(exit._tag, "Failure")
         if (exit._tag === "Failure") {
           assert.deepStrictEqual(exit.cause, expectedCause)
@@ -133,10 +65,7 @@ describe("HttpApiClient", () => {
 
         const stream = yield* client.test.download({})
         const first = yield* stream.pipe(Stream.take(1), Stream.runCollect)
-        assert.deepStrictEqual(
-          Array.from(first, (chunk) => Array.from(chunk)),
-          [[1, 2]]
-        )
+        assert.deepStrictEqual(first.map((chunk) => Array.from(chunk)), [[1, 2]])
       }))
 
     it.effect("decodes StreamSse successes at the annotated status", () =>
@@ -149,8 +78,8 @@ describe("HttpApiClient", () => {
         })
 
         const stream = yield* client.test.events({})
-        const events = yield* stream.pipe(Stream.runCollect)
-        assert.deepStrictEqual(Array.from(events), [{ event: "annotated", data: "ok" }])
+        const events = yield* Stream.runCollect(stream)
+        assert.deepStrictEqual(events, [{ event: "annotated", data: "ok" }])
       }))
 
     it.effect("decodes StreamUint8Array successes at the annotated status", () =>
@@ -161,11 +90,8 @@ describe("HttpApiClient", () => {
         })
 
         const stream = yield* client.test.download({})
-        const chunks = yield* stream.pipe(Stream.runCollect)
-        assert.deepStrictEqual(
-          Array.from(chunks, (chunk) => Array.from(chunk)),
-          [[4, 5]]
-        )
+        const chunks = yield* Stream.runCollect(stream)
+        assert.deepStrictEqual(chunks.map((chunk) => Array.from(chunk)), [[4, 5]])
       }))
 
     it.effect("decodes non-success responses through endpoint error schemas before returning a stream", () =>
@@ -189,16 +115,19 @@ describe("HttpApiClient", () => {
         const client = yield* HttpApiClient.makeWith(StreamingApi, {
           baseUrl: "http://test",
           httpClient: clientFromResponse(() =>
-            new Response(byteStream([new Uint8Array([1]), new Uint8Array([2, 3])]), { status: 200 })
+            new Response(
+              byteStream([
+                new Uint8Array([1]),
+                new Uint8Array([2, 3])
+              ]),
+              { status: 200 }
+            )
           )
         })
 
         const response = yield* client.test.download({ responseMode: "response-only" })
-        const chunks = yield* response.stream.pipe(Stream.runCollect)
-        assert.deepStrictEqual(
-          Array.from(chunks, (chunk) => Array.from(chunk)),
-          [[1], [2, 3]]
-        )
+        const chunks = yield* Stream.runCollect(response.stream)
+        assert.deepStrictEqual(chunks.map((chunk) => Array.from(chunk)), [[1], [2, 3]])
       }))
   })
 
@@ -389,3 +318,73 @@ describe("HttpApiClient", () => {
       strictEqual(urls[1], "https://api.example.com/files/a%2Fb")
     }))
 })
+
+const textEncoder = new TextEncoder()
+
+const StreamError = Schema.Struct({ reason: Schema.String })
+
+const Events = Schema.Struct({
+  event: Schema.String,
+  data: Schema.String
+})
+
+class EndpointError extends Schema.TaggedErrorClass<EndpointError>()("EndpointError", {
+  message: Schema.String
+}, { httpApiStatus: 400 }) {}
+
+const StreamingApi = HttpApi.make("StreamingApi").add(
+  HttpApiGroup.make("test")
+    .add(
+      HttpApiEndpoint.get("events", "/events", {
+        success: HttpApiSchema.StreamSse({ events: Events, error: StreamError }),
+        error: EndpointError
+      }),
+      HttpApiEndpoint.get("download", "/download", {
+        success: HttpApiSchema.StreamUint8Array(),
+        error: EndpointError
+      })
+    )
+)
+
+const AnnotatedStreamingApi = HttpApi.make("AnnotatedStreamingApi").add(
+  HttpApiGroup.make("test")
+    .add(
+      HttpApiEndpoint.get("events", "/events", {
+        success: HttpApiSchema.status(202)(HttpApiSchema.StreamSse({ events: Events, error: StreamError }))
+      }),
+      HttpApiEndpoint.get("download", "/download", {
+        success: HttpApiSchema.status(206)(HttpApiSchema.StreamUint8Array())
+      })
+    )
+)
+
+const clientFromResponse = (response: () => Response): HttpClient.HttpClient =>
+  HttpClient.make((request): Effect.Effect<HttpClientResponse.HttpClientResponse, never, never> =>
+    Effect.succeed(HttpClientResponse.fromWeb(request, response()))
+  )
+
+const textStream = (chunks: ReadonlyArray<string>): ReadableStream<Uint8Array> => {
+  let index = 0
+  return new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (index === chunks.length) {
+        controller.close()
+      } else {
+        controller.enqueue(textEncoder.encode(chunks[index++]!))
+      }
+    }
+  })
+}
+
+const byteStream = (chunks: ReadonlyArray<Uint8Array>): ReadableStream<Uint8Array> => {
+  let index = 0
+  return new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (index === chunks.length) {
+        controller.close()
+      } else {
+        controller.enqueue(chunks[index++]!)
+      }
+    }
+  })
+}
