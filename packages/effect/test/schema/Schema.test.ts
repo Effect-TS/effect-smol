@@ -8304,13 +8304,14 @@ describe("Check", () => {
     deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
       _tag: "isUUID",
       regExp:
-        /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/,
+        /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$/,
       version: undefined
     })
 
     const decoding = asserts.decoding()
     await decoding.succeed("00000000-0000-0000-0000-000000000000")
     await decoding.succeed("ffffffff-ffff-ffff-ffff-ffffffffffff")
+    await decoding.succeed("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
     await decoding.succeed("00000000-0000-4000-8000-000000000001")
     await decoding.fail(
       "00000000-0000-0000-0000-000000000001",
