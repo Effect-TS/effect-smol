@@ -1,5 +1,12 @@
 # @effect/sql-d1
 
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [[`016108a`](https://github.com/Effect-TS/effect-smol/commit/016108a472af7048ddbbfd05f233e67529fafe12), [`95c03d2`](https://github.com/Effect-TS/effect-smol/commit/95c03d2c55930668c215b5a41c23cf7742fead84), [`07299a3`](https://github.com/Effect-TS/effect-smol/commit/07299a33c09fd52faa9810d30835a2622c752386)]:
+  - effect@4.0.0-beta.76
+
 ## 4.0.0-beta.75
 
 ### Patch Changes
