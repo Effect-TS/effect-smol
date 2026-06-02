@@ -521,7 +521,8 @@ describe("toJsonSchemaDocument", () => {
           "properties": {
             "name": { "type": "string" },
             "message": { "type": "string" },
-            "stack": { "type": "string" }
+            "stack": { "type": "string" },
+            "cause": {}
           },
           "required": ["message"],
           "additionalProperties": false
