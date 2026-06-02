@@ -415,6 +415,13 @@ describe("toSchema", () => {
       )
     })
 
+    it("Error with excluded cause", () => {
+      assertToSchemaWithReviver(
+        Schema.Error({ excludeCause: true }),
+        `Schema.Error({"excludeCause":true})`
+      )
+    })
+
     it("Defect", () => {
       assertToSchemaWithReviver(
         Schema.Defect(),

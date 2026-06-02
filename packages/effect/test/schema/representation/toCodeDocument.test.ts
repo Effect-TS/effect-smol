@@ -100,6 +100,12 @@ describe("toCodeDocument", () => {
       })
     })
 
+    it("Error with excluded cause", () => {
+      assertSchema({ schema: Schema.Error({ excludeCause: true }) }, {
+        codes: makeCode(`Schema.Error({"excludeCause":true})`, "globalThis.Error")
+      })
+    })
+
     it("RegExp", () => {
       assertSchema({ schema: Schema.RegExp }, {
         codes: makeCode(`Schema.RegExp`, "globalThis.RegExp")

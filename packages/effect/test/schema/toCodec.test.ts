@@ -920,6 +920,31 @@ describe("Serializers", () => {
           new Error("a"),
           { name: "Error", message: "a" }
         )
+        await encoding.succeed(
+          new Error("a", { cause: new Error("b") }),
+          { name: "Error", message: "a", cause: { name: "Error", message: "b" } }
+        )
+        await encoding.succeed(
+          new Error("a", { cause: "b" }),
+          { name: "Error", message: "a", cause: "b" }
+        )
+        const selfCause = new Error("a")
+        selfCause.stack = "stack"
+        selfCause.cause = selfCause
+        await encoding.succeed(
+          selfCause,
+          {
+            name: "Error",
+            message: "a",
+            cause: "[Circular]"
+          }
+        )
+        const cyclicCause: Record<string, unknown> = {}
+        cyclicCause.self = cyclicCause
+        await encoding.succeed(
+          new Error("a", { cause: cyclicCause }),
+          { name: "Error", message: "a", cause: {} }
+        )
 
         const decoding = asserts.decoding()
         // Error: message only
@@ -946,6 +971,16 @@ describe("Serializers", () => {
             return err
           })()
         )
+        // Error: message and cause
+        await decoding.succeed(
+          { message: "a", cause: { message: "b" } },
+          new Error("a", { cause: new Error("b") })
+        )
+        // Error: explicit null cause
+        await decoding.succeed(
+          { message: "a", cause: null },
+          new Error("a", { cause: null })
+        )
       })
 
       it("Error with stack", async () => {
@@ -969,6 +1004,17 @@ describe("Serializers", () => {
         await decoding.succeed(
           { name: "CustomError", message: "b", stack: "custom stack" },
           customError
+        )
+      })
+
+      it("Error with excluded cause", async () => {
+        const schema = Schema.Error({ excludeCause: true })
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(
+          new Error("a", { cause: new Error("b") }),
+          { name: "Error", message: "a" }
         )
       })
 
@@ -1398,8 +1444,40 @@ describe("Serializers", () => {
 
         const encoding = asserts.encoding()
         await encoding.succeed(new Error("a"), { name: "Error", message: "a" })
+        await encoding.succeed(
+          new Error("a", { cause: new Error("b") }),
+          { name: "Error", message: "a", cause: { name: "Error", message: "b" } }
+        )
+        await encoding.succeed(
+          new Error("a", { cause: "b" }),
+          { name: "Error", message: "a", cause: "b" }
+        )
+        const cyclicDefect: Record<string, unknown> = {}
+        cyclicDefect.self = cyclicDefect
+        await encoding.succeed(cyclicDefect, {})
         await encoding.succeed("a")
         await encoding.succeed({ a: 1 })
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          { message: "a", cause: { message: "b" } },
+          new Error("a", { cause: new Error("b") })
+        )
+        await decoding.succeed(
+          { message: "a", cause: null },
+          new Error("a", { cause: null })
+        )
+      })
+
+      it("Defect with excluded cause", async () => {
+        const schema = Schema.Defect({ excludeCause: true })
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(
+          new Error("a", { cause: new Error("b") }),
+          { name: "Error", message: "a" }
+        )
       })
 
       it("Cause(Option(Finite), Option(String))", async () => {

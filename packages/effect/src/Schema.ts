@@ -9029,12 +9029,6 @@ export interface Error extends instanceOf<globalThis.Error> {
   readonly "Rebuild": Error
 }
 
-const JsonError = Struct({
-  message: String,
-  name: optionalKey(String),
-  stack: optionalKey(String)
-})
-
 /**
  * Options for {@link Error} and {@link Defect}.
  *
@@ -9042,7 +9036,19 @@ const JsonError = Struct({
  * @since 4.0.0
  */
 export interface ErrorOptions {
+  /**
+   * Includes string stack traces in encoded `Error` values when set to `true`.
+   *
+   * @default false
+   */
   readonly includeStack?: boolean | undefined
+  /**
+   * Excludes `Error.cause` values from encoded `Error` values when set to
+   * `true`.
+   *
+   * @default false
+   */
+  readonly excludeCause?: boolean | undefined
 }
 
 /**
@@ -9051,10 +9057,11 @@ export interface ErrorOptions {
  * **Details**
  *
  * Default JSON serializer:
- * Encodes an `Error` as an object with `message` and optional `name` properties,
- * and decodes that object back into an `Error`. The stack trace is omitted by
- * default for security. Pass `{ includeStack: true }` to include stack traces
- * in the encoded form.
+ *
+ * Encodes an `Error` as an object with `message`, optional `name`, and optional
+ * `cause` properties, and decodes that object back into an `Error`. Stack
+ * traces are omitted by default for security. Pass `{ includeStack: true }` to
+ * include stack traces, or `{ excludeCause: true }` to omit causes.
  *
  * @category constructors
  * @since 4.0.0
@@ -9101,10 +9108,12 @@ export interface Defect extends decodeTo<Unknown, typeof Json> {
  * non-default `name` and any string `stack`. Other JSON values decode
  * unchanged.
  *
- * During encoding, JavaScript `Error` values encode to JSON objects with `name`
- * and `message` properties. Pass `{ includeStack: true }` to include string
- * stack traces in encoded `Error` defects. Other values are serialized through
- * Effect's JSON formatter and then parsed back into JSON when possible.
+ * During encoding, JavaScript `Error` values encode to JSON objects with
+ * `name`, `message`, and optional `cause` properties. Pass
+ * `{ includeStack: true }` to include string stack traces in encoded `Error`
+ * defects, or `{ excludeCause: true }` to omit causes. Other values are
+ * serialized through Effect's JSON formatter and then parsed back into JSON
+ * when possible.
  *
  * **Gotchas**
  *
@@ -13325,6 +13334,13 @@ export interface JsonObject {
  * @since 4.0.0
  */
 export const Json: Codec<Json> = make(SchemaAST.Json)
+
+const JsonError = Struct({
+  message: String,
+  name: optionalKey(String),
+  stack: optionalKey(String),
+  cause: optionalKey(Json)
+})
 
 /**
  * Recursive TypeScript type for mutable JSON values: `null`, `number`,
