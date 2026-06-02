@@ -396,6 +396,15 @@ describe("toCodeDocument", () => {
           }
         )
       })
+
+      it("isGUID with annotations", () => {
+        assertSchema(
+          { schema: Schema.String.check(Schema.isGUID({ message: "message" })) },
+          {
+            codes: makeCode(`Schema.String.check(Schema.isGUID({ "message": "message" }))`, "string")
+          }
+        )
+      })
     })
   })
 

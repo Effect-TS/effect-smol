@@ -612,6 +612,7 @@ export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isLengthBetween"
   | "isTrimmed"
   | "isUUID"
+  | "isGUID"
   | "isULID"
   | "isBase64"
   | "isBase64Url"
@@ -973,6 +974,11 @@ const $IsUUID = Schema.Struct({
   version: Schema.UndefinedOr(Schema.Literals([1, 2, 3, 4, 5, 6, 7, 8]))
 }).annotate({ identifier: "IsUUID" })
 
+const $IsGUID = Schema.Struct({
+  _tag: Schema.tag("isGUID"),
+  regExp: Schema.RegExp
+}).annotate({ identifier: "IsGUID" })
+
 const $IsULID = Schema.Struct({
   _tag: Schema.tag("isULID"),
   regExp: Schema.RegExp
@@ -1061,6 +1067,7 @@ export const $StringMeta = Schema.Union([
   $IsStringSymbol,
   $IsTrimmed,
   $IsUUID,
+  $IsGUID,
   $IsULID,
   $IsBase64,
   $IsBase64Url,
@@ -2148,6 +2155,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
         return Schema.isTrimmed(a)
       case "isUUID":
         return Schema.isUUID(filter.meta.version, a)
+      case "isGUID":
+        return Schema.isGUID(a)
       case "isULID":
         return Schema.isULID(a)
       case "isBase64":
@@ -2779,6 +2788,7 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
     const ca = a === "" ? "" : `, ${a}`
     switch (filter.meta._tag) {
       case "isTrimmed":
+      case "isGUID":
       case "isULID":
       case "isBase64":
       case "isBase64Url":
@@ -2790,7 +2800,7 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
       case "isInt":
       case "isUnique":
       case "isDateValid":
-        return `Schema.${filter.meta._tag}(${ca})`
+        return `Schema.${filter.meta._tag}(${a})`
 
       case "isStringFinite":
       case "isStringBigInt":

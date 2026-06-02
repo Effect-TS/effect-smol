@@ -660,6 +660,7 @@ export function toJsonSchemaMultiDocument(
             ? { allOf: [{ minItems: meta.minimum }, { maxItems: meta.maximum }] }
             : { allOf: [{ minLength: meta.minimum }, { maxLength: meta.maximum }] }
         case "isPattern":
+        case "isGUID":
         case "isULID":
         case "isBase64":
         case "isBase64Url":

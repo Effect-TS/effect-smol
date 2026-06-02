@@ -31,7 +31,7 @@
  * - Type guard: {@link is}
  * - Assertion: {@link asserts}
  * - Add constraints: `.check(...)` with filters like {@link isMinLength},
- *   {@link isGreaterThan}, {@link isPattern}, {@link isUUID}
+ *   {@link isGreaterThan}, {@link isPattern}, {@link isUUID}, {@link isGUID}
  * - Transform between schemas: {@link decodeTo}, {@link encodeTo}
  * - Add a default for missing keys: {@link withDecodingDefault}, {@link withDecodingDefaultKey}
  * - Create branded types: {@link brand}
@@ -6235,7 +6235,7 @@ export const isStringBigInt: (annotations?: Annotations.Filter) => SchemaAST.Fil
 export const isStringSymbol: (annotations?: Annotations.Filter) => SchemaAST.Filter<string> = SchemaAST.isStringSymbol
 
 /**
- * Returns a RegExp for validating an RFC 4122 UUID.
+ * Returns a RegExp for validating an RFC 9562 / RFC 4122 UUID.
  *
  * Optionally specify a version 1-8. If no version is specified (`undefined`), all versions are supported.
  */
@@ -6245,15 +6245,24 @@ const getUUIDRegExp = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): globalThis.RegE
       `^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`
     )
   }
-  return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$/
+  return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/
 }
 
 /**
- * Validates that a string is a valid Universally Unique Identifier (UUID).
- * Optionally specify a version (1-8) to validate against a specific UUID version.
- * If no version is specified (`undefined`), all versions are supported.
+ * Validates that a string is a strict Universally Unique Identifier (UUID).
+ *
+ * **When to use**
+ *
+ * Use when you need UUID semantics, including version and RFC variant bits,
+ * rather than only the dashed hexadecimal shape.
  *
  * **Details**
+ *
+ * Without a version argument, this accepts UUID versions 1 through 8, the nil
+ * UUID (`00000000-0000-0000-0000-000000000000`), and the max UUID
+ * (`ffffffff-ffff-ffff-ffff-ffffffffffff`). With a version argument, this
+ * accepts only UUIDs with that version and RFC variant bits; nil and max UUIDs
+ * are not versioned UUIDs and do not match version-specific checks.
  *
  * JSON Schema:
  *
@@ -6265,6 +6274,7 @@ const getUUIDRegExp = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): globalThis.RegE
  * When generating test data with fast-check, this applies a `patterns`
  * constraint to ensure generated strings match the UUID pattern.
  *
+ * @see {@link isGUID} for shape-only GUID validation.
  * @category String checks
  * @since 4.0.0
  */
@@ -6278,6 +6288,46 @@ export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, annotations?: An
         _tag: "isUUID",
         regExp,
         version
+      },
+      ...annotations
+    }
+  )
+}
+
+const GUID_REGEXP = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
+
+/**
+ * Validates that a string has the GUID / UUID textual shape.
+ *
+ * **When to use**
+ *
+ * Use when you need to accept dashed hexadecimal identifiers without enforcing
+ * UUID version or variant bits.
+ *
+ * **Details**
+ *
+ * This check accepts strings in the `8-4-4-4-12` hexadecimal form. JSON Schema
+ * output includes the corresponding `pattern` constraint and intentionally does
+ * not include `format: "uuid"` because GUID validation is looser than UUID
+ * validation.
+ *
+ * Arbitrary:
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the GUID pattern.
+ *
+ * @see {@link isUUID} for strict UUID validation.
+ * @category String checks
+ * @since 4.0.0
+ */
+export function isGUID(annotations?: Annotations.Filter) {
+  return isPattern(
+    GUID_REGEXP,
+    {
+      expected: "a GUID",
+      meta: {
+        _tag: "isGUID",
+        regExp: GUID_REGEXP
       },
       ...annotations
     }
@@ -13903,6 +13953,10 @@ export declare namespace Annotations {
       readonly _tag: "isUUID"
       readonly regExp: globalThis.RegExp
       readonly version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined
+    }
+    readonly isGUID: {
+      readonly _tag: "isGUID"
+      readonly regExp: globalThis.RegExp
     }
     readonly isULID: {
       readonly _tag: "isULID"

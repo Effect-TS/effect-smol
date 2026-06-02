@@ -45,6 +45,13 @@ describe("toSchema", () => {
           `Schema.String.check(Schema.isULID())`
         )
       })
+
+      it("isGUID", () => {
+        assertToSchemaRoundtrip(
+          { schema: Schema.String.check(Schema.isGUID()) },
+          `Schema.String.check(Schema.isGUID())`
+        )
+      })
     })
   })
 

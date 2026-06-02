@@ -8293,6 +8293,69 @@ describe("Check", () => {
     })
   })
 
+  it("isUUID", async () => {
+    const schema = Schema.String.check(Schema.isUUID())
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      asserts.arbitrary().verifyGeneration()
+    }
+
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
+      _tag: "isUUID",
+      regExp:
+        /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/,
+      version: undefined
+    })
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("00000000-0000-0000-0000-000000000000")
+    await decoding.succeed("ffffffff-ffff-ffff-ffff-ffffffffffff")
+    await decoding.succeed("00000000-0000-4000-8000-000000000001")
+    await decoding.fail(
+      "00000000-0000-0000-0000-000000000001",
+      `Expected a UUID, got "00000000-0000-0000-0000-000000000001"`
+    )
+  })
+
+  it("isUUID version-specific checks reject nil and max UUIDs", async () => {
+    const schema = Schema.String.check(Schema.isUUID(4))
+    const asserts = new TestSchema.Asserts(schema)
+    const decoding = asserts.decoding()
+
+    await decoding.succeed("00000000-0000-4000-8000-000000000001")
+    await decoding.fail(
+      "00000000-0000-0000-0000-000000000000",
+      `Expected a UUID v4, got "00000000-0000-0000-0000-000000000000"`
+    )
+    await decoding.fail(
+      "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      `Expected a UUID v4, got "ffffffff-ffff-ffff-ffff-ffffffffffff"`
+    )
+  })
+
+  it("isGUID", async () => {
+    const schema = Schema.String.check(Schema.isGUID())
+    const asserts = new TestSchema.Asserts(schema)
+
+    if (verifyGeneration) {
+      asserts.arbitrary().verifyGeneration()
+    }
+
+    deepStrictEqual(Schema.resolveAnnotations(schema)?.["meta"], {
+      _tag: "isGUID",
+      regExp: /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
+    })
+
+    const decoding = asserts.decoding()
+    await decoding.succeed("00000000-0000-0000-0000-000000000001")
+    await decoding.succeed("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")
+    await decoding.fail(
+      "not-a-guid",
+      `Expected a GUID, got "not-a-guid"`
+    )
+  })
+
   it("isULID", async () => {
     const schema = Schema.String.check(Schema.isULID())
     const asserts = new TestSchema.Asserts(schema)
