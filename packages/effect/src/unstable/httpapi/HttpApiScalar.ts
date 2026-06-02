@@ -80,6 +80,8 @@ export type ScalarConfig = {
   layout?: "modern" | "classic"
   /** URL to a request proxy for the API client */
   proxyUrl?: string
+  /** Browser JavaScript function expression used by Scalar for documents and test requests */
+  customFetch?: string
   /** Whether to show the sidebar */
   showSidebar?: boolean
   /**
@@ -179,9 +181,10 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
   readonly scalar: ScalarConfig | undefined
 }) => {
   const spec = OpenApi.fromApi(options.api)
+  const { customFetch, ...scalar } = options.scalar ?? {}
   const scalarConfig = {
     _integration: "html",
-    ...options.scalar
+    ...scalar
   }
   const response = HttpServerResponse.html(`<!doctype html>
 <html>
@@ -203,12 +206,7 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
       content="width=device-width, initial-scale=1" />
   </head>
   <body>
-    <script id="api-reference" type="application/json">
-      ${Html.escapeJson(spec)}
-    </script>
-    <script>
-      document.getElementById('api-reference').dataset.configuration = JSON.stringify(${Html.escapeJson(scalarConfig)})
-    </script>
+    <div id="api-reference-container"></div>
     ${
     options.source._tag === "Cdn"
       ? `<script src="${`https://cdn.jsdelivr.net/npm/@scalar/api-reference@${
@@ -216,6 +214,15 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
       }/dist/browser/standalone.min.js`}" crossorigin></script>`
       : `<script>${options.source.source}</script>`
   }
+    <script>
+      window.Scalar.createApiReference(document.getElementById('api-reference-container'), {
+        ...${Html.escapeJson(scalarConfig)},
+        content: ${Html.escapeJson(spec)}${
+    customFetch === undefined ? "" : `,
+        customFetch: ${customFetch}`
+  }
+      })
+    </script>
   </body>
 </html>`)
   return Effect.succeed(response)
