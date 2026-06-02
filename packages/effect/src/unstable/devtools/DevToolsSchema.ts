@@ -64,7 +64,7 @@ export const SpanStatusEnded = Schema.Struct({
   _tag: Schema.tag("Ended"),
   startTime: Schema.BigInt,
   endTime: Schema.BigInt,
-  exit: Schema.Exit(Schema.Void, Schema.DefectWithStack, Schema.DefectWithStack).pipe(
+  exit: Schema.Exit(Schema.Void, Schema.Defect({ includeStack: true }), Schema.Defect({ includeStack: true })).pipe(
     Schema.decodeTo(
       Schema.Exit(Schema.Unknown, Schema.Unknown, Schema.Unknown),
       SchemaTransformation.transform({

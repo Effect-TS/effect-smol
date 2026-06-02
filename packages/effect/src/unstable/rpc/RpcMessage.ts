@@ -350,11 +350,11 @@ export interface ResponseDefectEncoded {
   readonly defect: unknown
 }
 
-const encodeDefect = Schema.encodeSync(Schema.Defect)
+const encodeDefect = Schema.encodeSync(Schema.Defect())
 
 /**
  * Creates an encoded terminal response for a request whose exit is a defect
- * encoded with `Schema.Defect`.
+ * encoded with `Schema.Defect()`.
  *
  * @category response
  * @since 4.0.0
@@ -376,7 +376,7 @@ export const ResponseExitDieEncoded = (options: {
 
 /**
  * Creates a transport-encoded defect response by encoding the input with
- * `Schema.Defect`.
+ * `Schema.Defect()`.
  *
  * @category response
  * @since 4.0.0

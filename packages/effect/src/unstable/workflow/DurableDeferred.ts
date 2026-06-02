@@ -113,7 +113,7 @@ export const make = <
     exitSchema: Schema.Exit(
       Schema.toCodecJson(successSchema),
       Schema.toCodecJson(errorSchema),
-      Schema.toCodecJson(Schema.Defect)
+      Schema.toCodecJson(Schema.Defect())
     ) as any,
     withActivityAttempt: Effect.gen(function*() {
       const attempt = yield* CurrentAttempt

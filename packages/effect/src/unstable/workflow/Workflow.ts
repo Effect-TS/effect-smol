@@ -566,7 +566,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
       Complete<Success["Type"], Error["Type"]>,
       Complete<Success["Encoded"], Error["Encoded"]>
     >()(
-      [Schema.Exit(options.success, options.error, Schema.Defect)],
+      [Schema.Exit(options.success, options.error, Schema.Defect())],
       ([exit]) => (input, ast, options) => {
         if (!(isResult(input) && input._tag === "Complete")) {
           return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))
@@ -618,7 +618,7 @@ export class Suspended extends Schema.Class<Suspended>(
   "effect/workflow/Workflow/Suspended"
 )({
   _tag: Schema.tag("Suspended"),
-  cause: Schema.optional(Schema.Cause(Schema.Never, Schema.Defect))
+  cause: Schema.optional(Schema.Cause(Schema.Never, Schema.Defect()))
 }) {
   /**
    * Marks this value as a workflow result for runtime guards.

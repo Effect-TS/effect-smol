@@ -52,7 +52,7 @@ const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
 export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorTypeId)({
   _tag: Schema.tag("PersistenceError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {
   /**
    * Marks this value as a persistence error for runtime guards.

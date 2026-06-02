@@ -481,7 +481,7 @@ export class UnknownSubcommand extends Schema.ErrorClass<UnknownSubcommand>(`${T
  */
 export class UserError extends Schema.ErrorClass<UserError>(`${TypeId}/UserError`)({
   _tag: Schema.tag("UserError"),
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   /**
    * Marks this value as a user handler error for runtime guards.

@@ -93,6 +93,7 @@ import * as SchemaGetter from "./SchemaGetter.ts"
 import * as SchemaIssue from "./SchemaIssue.ts"
 import type * as SchemaParser from "./SchemaParser.ts"
 import * as SchemaTransformation from "./SchemaTransformation.ts"
+import type * as FastCheck from "./testing/FastCheck.ts"
 
 /**
  * Discriminated union of all AST node types.
@@ -3790,7 +3791,8 @@ export const Json = new Declaration(
       Type: `Schema.Json`
     },
     expected: "JSON value",
-    toCodecJson: () => new Link(unknown, SchemaTransformation.passthrough())
+    toCodecJson: () => new Link(unknown, SchemaTransformation.passthrough()),
+    toArbitrary: () => (fc: typeof FastCheck) => fc.jsonValue()
   }
 )
 

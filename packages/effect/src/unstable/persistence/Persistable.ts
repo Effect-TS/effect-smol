@@ -224,7 +224,7 @@ export const exitSchema = <A extends Schema.Top, E extends Schema.Top>(
 ): Schema.Exit<A, E, Schema.Defect> => {
   let schema = exitSchemaCache.get(self)
   if (schema) return schema as Schema.Exit<A, E, Schema.Defect>
-  schema = Schema.Exit(self[symbol].success, self[symbol].error, Schema.Defect)
+  schema = Schema.Exit(self[symbol].success, self[symbol].error, Schema.Defect())
   exitSchemaCache.set(self, schema)
   return schema as Schema.Exit<A, E, Schema.Defect>
 }

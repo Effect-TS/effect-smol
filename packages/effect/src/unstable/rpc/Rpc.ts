@@ -35,7 +35,7 @@
  * - Streaming RPCs store element and stream-error schemas in
  *   `RpcSchema.Stream`; the immediate exit success is `void` and the ordinary
  *   RPC error schema is `Schema.Never`
- * - Defects use a separate defect schema, defaulting to `Schema.Defect`; custom
+ * - Defects use a separate defect schema, defaulting to `Schema.Defect()`; custom
  *   defect schemas must not require decoding or encoding services
  * - Schema services are directional: clients encode payloads and decode
  *   responses, while servers decode payloads and encode responses
@@ -956,7 +956,7 @@ export const make = <
 > => {
   const successSchema = options?.success ?? Schema.Void
   const errorSchema = options?.error ?? Schema.Never
-  const defectSchema = options?.defect ?? Schema.Defect
+  const defectSchema = options?.defect ?? Schema.Defect()
   let payloadSchema: any
   if (options?.primaryKey) {
     payloadSchema = class Payload extends Schema.Class<Payload>(`effect/rpc/Rpc/${tag}`)(options.payload as any) {
@@ -1058,7 +1058,7 @@ export const custom = <Def extends Custom>(
 > => {
   const success = options?.success ?? Schema.Void
   const error = options?.error ?? Schema.Never
-  const defect = options?.defect ?? Schema.Defect
+  const defect = options?.defect ?? Schema.Defect()
   const out = f({
     success,
     error,

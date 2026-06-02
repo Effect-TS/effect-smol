@@ -115,7 +115,7 @@ const ErrorTypeId: ErrorTypeId = "~effect/persistence/Redis/RedisError"
  */
 export class RedisError extends Schema.ErrorClass<RedisError>(ErrorTypeId)({
   _tag: Schema.tag("RedisError"),
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   /**
    * Marks this value as a Redis persistence error for runtime guards.

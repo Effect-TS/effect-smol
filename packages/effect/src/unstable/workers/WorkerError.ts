@@ -68,7 +68,7 @@ export class WorkerSpawnError extends Schema.ErrorClass<WorkerSpawnError>(
 )({
   _tag: Schema.tag("WorkerSpawnError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 /**
@@ -82,7 +82,7 @@ export class WorkerSendError extends Schema.ErrorClass<WorkerSendError>(
 )({
   _tag: Schema.tag("WorkerSendError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 /**
@@ -97,7 +97,7 @@ export class WorkerReceiveError extends Schema.ErrorClass<WorkerReceiveError>(
 )({
   _tag: Schema.tag("WorkerReceiveError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 /**
@@ -111,7 +111,7 @@ export class WorkerUnknownError extends Schema.ErrorClass<WorkerUnknownError>(
 )({
   _tag: Schema.tag("WorkerUnknownError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 /**

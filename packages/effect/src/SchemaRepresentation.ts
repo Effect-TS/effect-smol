@@ -1839,9 +1839,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
       case "Date":
         return Schema.Date
       case "Error":
-        return Schema.Error
-      case "ErrorWithStack":
-        return Schema.ErrorWithStack
+        return Schema.Error(typeConstructor.options as Schema.ErrorOptions | undefined)
       case "File":
         return Schema.File
       case "FormData":

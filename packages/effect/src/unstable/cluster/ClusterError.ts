@@ -97,7 +97,7 @@ export class EntityNotAssignedToRunner
  */
 export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${TypeId}/MalformedMessage`)({
   _tag: Schema.tag("MalformedMessage"),
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   /**
    * Marks this value as a cluster error for runtime guards.
@@ -136,7 +136,7 @@ export class MalformedMessage extends Schema.ErrorClass<MalformedMessage>(`${Typ
  */
 export class PersistenceError extends Schema.ErrorClass<PersistenceError>(`${TypeId}/PersistenceError`)({
   _tag: Schema.tag("PersistenceError"),
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   /**
    * Marks this value as a cluster error for runtime guards.

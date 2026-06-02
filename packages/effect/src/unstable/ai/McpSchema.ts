@@ -2161,7 +2161,7 @@ export class ElicitationDeclined
   extends Schema.ErrorClass<ElicitationDeclined>("@effect/ai/McpSchema/ElicitationDeclined")({
     _tag: Schema.tag("ElicitationDeclined"),
     request: Elicit.payloadSchema,
-    cause: optional(Schema.Defect)
+    cause: optional(Schema.Defect())
   })
 {}
 

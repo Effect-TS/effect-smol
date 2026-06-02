@@ -165,7 +165,7 @@ export const make = <
     name: options.name,
     successSchema,
     errorSchema,
-    exitSchema: Schema.Exit(successSchemaJson, errorSchemaJson, Schema.Defect),
+    exitSchema: Schema.Exit(successSchemaJson, errorSchemaJson, Schema.Defect()),
     annotations: options.annotations ?? Context.empty(),
     annotate(tag: Context.Key<any, any>, value: any) {
       return make({

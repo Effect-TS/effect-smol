@@ -912,7 +912,7 @@ describe("Serializers", () => {
       })
 
       it("Error", async () => {
-        const schema = Schema.Error
+        const schema = Schema.Error()
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
@@ -945,6 +945,30 @@ describe("Serializers", () => {
             err.stack = "c"
             return err
           })()
+        )
+      })
+
+      it("Error with stack", async () => {
+        const schema = Schema.Error({ includeStack: true })
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+        const error = new Error("a")
+        error.stack = "stack"
+        const customError = new Error("b")
+        customError.name = "CustomError"
+        customError.stack = "custom stack"
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(error, { name: "Error", message: "a", stack: "stack" })
+        await encoding.succeed(customError, { name: "CustomError", message: "b", stack: "custom stack" })
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          { message: "a", stack: "stack" },
+          error
+        )
+        await decoding.succeed(
+          { name: "CustomError", message: "b", stack: "custom stack" },
+          customError
         )
       })
 
@@ -1369,7 +1393,7 @@ describe("Serializers", () => {
       })
 
       it("Defect", async () => {
-        const schema = Schema.Defect
+        const schema = Schema.Defect()
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
 
         const encoding = asserts.encoding()
@@ -2315,7 +2339,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
       })
 
       it("Error", async () => {
-        const schema = Schema.Error
+        const schema = Schema.Error()
         const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
 
         const encoding = asserts.encoding()

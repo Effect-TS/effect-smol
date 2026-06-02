@@ -111,7 +111,7 @@ export class ReplyWithContext<R extends Rpc.Any> extends Data.TaggedClass("Reply
       reply: new WithExit({
         requestId: options.requestId,
         id: options.id,
-        exit: Exit.die(Schema.encodeSync(Schema.Defect)(options.defect))
+        exit: Exit.die(Schema.encodeSync(Schema.Defect())(options.defect))
       }),
       context: Context.empty() as any,
       rpc: neverRpc

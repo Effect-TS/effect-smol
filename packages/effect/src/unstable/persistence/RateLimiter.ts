@@ -396,7 +396,7 @@ export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
 )({
   _tag: Schema.tag("RateLimitStoreError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 /**

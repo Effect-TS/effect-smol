@@ -331,7 +331,7 @@ export class HttpClientErrorSchema extends Schema.ErrorClass<HttpClientErrorSche
       "EmptyBodyError"
     ] satisfies ReadonlyArray<HttpClientErrorReason["_tag"]>
   ),
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {
   /**
    * Builds the serializable schema representation for an HTTP client error.

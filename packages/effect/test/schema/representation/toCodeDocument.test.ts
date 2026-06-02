@@ -89,8 +89,14 @@ describe("toCodeDocument", () => {
     })
 
     it("Error", () => {
-      assertSchema({ schema: Schema.Error }, {
-        codes: makeCode(`Schema.Error`, "globalThis.Error")
+      assertSchema({ schema: Schema.Error() }, {
+        codes: makeCode(`Schema.Error()`, "globalThis.Error")
+      })
+    })
+
+    it("Error with stack", () => {
+      assertSchema({ schema: Schema.Error({ includeStack: true }) }, {
+        codes: makeCode(`Schema.Error({"includeStack":true})`, "globalThis.Error")
       })
     })
 

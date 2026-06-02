@@ -989,7 +989,7 @@ export const Schema = <
     AsyncResult<A["Type"], E["Type"]>,
     AsyncResult<A["Encoded"], E["Encoded"]>
   >()(
-    [success_, Schema_.Cause(error, Schema_.Defect)],
+    [success_, Schema_.Cause(error, Schema_.Defect())],
     ([value, cause]) => (input, ast, options) => {
       if (!isAsyncResult(input)) {
         return Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input)))

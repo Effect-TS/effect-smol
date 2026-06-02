@@ -1393,4 +1393,4 @@ export class ConnectionHooks extends Context.Service<ConnectionHooks, {
 
 // internal
 
-const decodeDefect = Schema.decodeSync(Schema.Defect)
+const decodeDefect = Schema.decodeSync(Schema.Defect())

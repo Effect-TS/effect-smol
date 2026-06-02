@@ -2859,7 +2859,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("Defect", async () => {
-    const schema = Schema.Defect
+    const schema = Schema.Defect()
     const asserts = new TestSchema.Asserts(schema)
 
     const noPrototypeObject = Object.create(null)
@@ -2976,12 +2976,41 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   it("Error", async () => {
-    const schema = Schema.Error
+    const schema = Schema.Error()
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
       asserts.arbitrary().verifyGeneration()
     }
+
+    const error = new Error("a")
+    const customError = new Error("b")
+    customError.name = "CustomError"
+    customError.stack = "stack"
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(error)
+    await decoding.succeed(customError)
+    await decoding.fail(
+      { message: "a" },
+      `Expected Error, got {"message":"a"}`
+    )
+    await decoding.fail(
+      "a",
+      `Expected Error, got "a"`
+    )
+
+    const encoding = asserts.encoding()
+    await encoding.succeed(error)
+    await encoding.succeed(customError)
+    await encoding.fail(
+      { message: "a" },
+      `Expected Error, got {"message":"a"}`
+    )
+    await encoding.fail(
+      "a",
+      `Expected Error, got "a"`
+    )
   })
 
   describe("Exit", () => {
@@ -3023,7 +3052,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Exit(FiniteFromString, String, Defect)", async () => {
-      const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Defect)
+      const schema = Schema.Exit(Schema.FiniteFromString, Schema.String, Schema.Defect())
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()

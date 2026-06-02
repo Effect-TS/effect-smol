@@ -9029,11 +9029,21 @@ export interface Error extends instanceOf<globalThis.Error> {
   readonly "Rebuild": Error
 }
 
-const ErrorJsonEncoded = Struct({
+const JsonError = Struct({
   message: String,
   name: optionalKey(String),
   stack: optionalKey(String)
 })
+
+/**
+ * Options for {@link Error} and {@link Defect}.
+ *
+ * @category options
+ * @since 4.0.0
+ */
+export interface ErrorOptions {
+  readonly includeStack?: boolean | undefined
+}
 
 /**
  * Schema for JavaScript `Error` objects.
@@ -9042,56 +9052,28 @@ const ErrorJsonEncoded = Struct({
  *
  * Default JSON serializer:
  * Encodes an `Error` as an object with `message` and optional `name` properties,
- * and decodes that object back into an `Error`. The stack trace is omitted from
- * the encoded form for security.
+ * and decodes that object back into an `Error`. The stack trace is omitted by
+ * default for security. Pass `{ includeStack: true }` to include stack traces
+ * in the encoded form.
  *
- * @category schemas
+ * @category constructors
  * @since 4.0.0
  */
-export const Error: Error = instanceOf(globalThis.Error, {
-  typeConstructor: {
-    _tag: "Error"
-  },
-  generation: {
-    runtime: `Schema.Error`,
-    Type: `globalThis.Error`
-  },
-  expected: "Error",
-  toCodecJson: () => link<globalThis.Error>()(ErrorJsonEncoded, SchemaTransformation.errorFromErrorJsonEncoded()),
-  toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
-})
-
-/**
- * Schema for JavaScript `Error` objects that preserves stack traces in the JSON
- * encoded form.
- *
- * **Details**
- *
- * Default JSON serializer:
- * Encodes an `Error` as an object with `message`, optional `name`, and optional
- * `stack` properties, and decodes that object back into an `Error`.
- *
- * @category schemas
- * @since 4.0.0
- */
-export const ErrorWithStack: Error = instanceOf(globalThis.Error, {
-  typeConstructor: {
-    _tag: "ErrorWithStack"
-  },
-  generation: {
-    runtime: `Schema.ErrorWithStack`,
-    Type: `globalThis.Error`
-  },
-  expected: "Error",
-  toCodecJson: () =>
-    link<globalThis.Error>()(
-      ErrorJsonEncoded,
-      SchemaTransformation.errorFromErrorJsonEncoded({
-        includeStack: true
-      })
-    ),
-  toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
-})
+export function Error(options?: ErrorOptions): Error {
+  return instanceOf(globalThis.Error, {
+    typeConstructor: {
+      _tag: "Error",
+      options
+    },
+    generation: {
+      runtime: options !== undefined ? `Schema.Error(${format(options)})` : `Schema.Error()`,
+      Type: `globalThis.Error`
+    },
+    expected: "Error",
+    toCodecJson: () => link<globalThis.Error>()(JsonError, SchemaTransformation.errorFromJsonError(options)),
+    toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
+  })
+}
 
 /**
  * Type-level representation of {@link Defect}.
@@ -9099,80 +9081,52 @@ export const ErrorWithStack: Error = instanceOf(globalThis.Error, {
  * @category Defect
  * @since 3.10.0
  */
-export interface Defect extends
-  Union<
-    readonly [
-      decodeTo<
-        Error,
-        Struct<{
-          readonly message: String
-          readonly name: optionalKey<String>
-          readonly stack: optionalKey<String>
-        }>
-      >,
-      decodeTo<Unknown, Any>
-    ]
-  >
-{
+export interface Defect extends decodeTo<Unknown, typeof Json> {
   readonly "Rebuild": Defect
 }
 
-const defectTransformation = new SchemaTransformation.Transformation(
-  SchemaGetter.passthrough(),
-  SchemaGetter.transform((u) => {
-    try {
-      return JSON.parse(JSON.stringify(u))
-    } catch {
-      return format(u)
-    }
-  })
-)
-
 /**
- * Schema for defect values, accepting either JavaScript `Error` values encoded
- * with `message` and optional `name`, or arbitrary unknown defect values.
+ * Schema for unexpected defect values represented as `unknown` with a JSON
+ * encoded form.
+ *
+ * **When to use**
+ *
+ * Use when you need a schema for `Cause` defects or other unexpected failures
+ * whose runtime value may be any value.
  *
  * **Details**
  *
- * Default JSON serializer:
- * Unknown defects are serialized with `JSON.stringify` when possible and fall
- * back to Effect's formatted representation when JSON serialization fails.
+ * The encoded side is {@link Json}. During decoding, JSON objects with a string
+ * `message` property are decoded into JavaScript `Error` values, preserving a
+ * non-default `name` and any string `stack`. Other JSON values decode
+ * unchanged.
  *
+ * During encoding, JavaScript `Error` values encode to JSON objects with `name`
+ * and `message` properties. Pass `{ includeStack: true }` to include string
+ * stack traces in encoded `Error` defects. Other values are serialized through
+ * Effect's JSON formatter and then parsed back into JSON when possible.
+ *
+ * **Gotchas**
+ *
+ * This schema is for carrying defects across JSON boundaries, not for
+ * preserving every JavaScript value exactly. Some values cannot round-trip
+ * unchanged:
+ *
+ * - A non-`Error` object such as `{ message: "boom" }` encodes as an
+ *   error-shaped JSON object and decodes back as an `Error`.
+ * - JSON serialization normalizes unsupported values. For example,
+ *   `undefined` array elements encode as `null`, unsupported object properties
+ *   are omitted, and circular references are dropped.
+ * - Values that cannot be represented as JSON fall back to Effect's formatted
+ *   string representation.
+ *
+ * @see {@link Error} for a schema that only accepts JavaScript `Error` values.
  * @category constructors
- * @since 3.10.0
- */
-export const Defect: Defect = Union([
-  ErrorJsonEncoded.pipe(decodeTo(Error, SchemaTransformation.errorFromErrorJsonEncoded())),
-  Any.pipe(decodeTo(
-    Unknown.annotate({
-      toCodecJson: () => link<unknown>()(Any, defectTransformation),
-      toArbitrary: () => (fc) => fc.json()
-    }),
-    defectTransformation
-  ))
-])
-
-/**
- * Schema for defects that also includes stack traces in the encoded form.
- *
- * @category Defect
  * @since 4.0.0
  */
-export const DefectWithStack: Defect = Union([
-  ErrorJsonEncoded.pipe(decodeTo(
-    ErrorWithStack,
-    SchemaTransformation.errorFromErrorJsonEncoded({
-      includeStack: true
-    })
-  )),
-  Any.pipe(decodeTo(
-    Unknown.annotate({
-      toCodecJson: () => link<unknown>()(Any, defectTransformation),
-      toArbitrary: () => (fc) => fc.json()
-    }),
-    defectTransformation
-  ))
-])
+export function Defect(options?: ErrorOptions): Defect {
+  return Json.pipe(decodeTo(Unknown, SchemaTransformation.defectFromJson(options)))
+}
 
 /**
  * Type-level representation returned by {@link Exit}.

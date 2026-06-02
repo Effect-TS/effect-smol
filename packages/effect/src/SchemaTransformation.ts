@@ -89,9 +89,10 @@ import * as BigDecimal from "./BigDecimal.ts"
 import * as DateTime from "./DateTime.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
-import { formatDate } from "./Formatter.ts"
+import { format, formatDate, formatJson } from "./Formatter.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
+import type { ErrorOptions, Json } from "./Schema.ts"
 import type * as SchemaAST from "./SchemaAST.ts"
 import * as SchemaGetter from "./SchemaGetter.ts"
 import * as SchemaIssue from "./SchemaIssue.ts"
@@ -1075,34 +1076,54 @@ export const durationFromMillis: Transformation<Duration.Duration, number> = tra
   encode: (a) => Duration.toMillis(a)
 })
 
-/** @internal */
-export const errorFromErrorJsonEncoded = (options?: {
-  readonly includeStack?: boolean | undefined
-}): Transformation<Error, {
+type JsonError = {
   message: string
   name?: string
   stack?: string
-}> =>
+}
+
+const isJsonError = (input: unknown): input is JsonError =>
+  Predicate.isObject(input) && typeof input["message"] === "string"
+
+const decodeJsonError = (input: JsonError): Error => {
+  const err = new Error(input.message)
+  if (typeof input.name === "string" && input.name !== "Error") err.name = input.name
+  if (typeof input.stack === "string") err.stack = input.stack
+  return err
+}
+
+const encodeJsonError = (input: Error, options?: ErrorOptions): JsonError => {
+  const encoded: JsonError = {
+    name: input.name,
+    message: input.message
+  }
+  if (options?.includeStack && typeof input.stack === "string") {
+    return { ...encoded, stack: input.stack }
+  }
+  return encoded
+}
+
+/** @internal */
+export const errorFromJsonError = (options?: ErrorOptions): Transformation<Error, JsonError> =>
   transform({
-    decode: (i) => {
-      const err = new Error(i.message)
-      if (typeof i.name === "string" && i.name !== "Error") err.name = i.name
-      if (typeof i.stack === "string") err.stack = i.stack
-      return err
-    },
-    encode: (a) => {
-      const e: {
-        message: string
-        name?: string
-        stack?: string
-      } = {
-        name: a.name,
-        message: a.message
+    decode: decodeJsonError,
+    encode: (input) => encodeJsonError(input, options)
+  })
+
+/** @internal */
+export const defectFromJson = (options?: ErrorOptions) =>
+  transform({
+    decode: (input): unknown => isJsonError(input) ? decodeJsonError(input) : input,
+    encode: (input: unknown): Json => {
+      if (Predicate.isError(input)) {
+        return encodeJsonError(input, options)
       }
-      if (options?.includeStack && typeof a.stack === "string") {
-        e.stack = a.stack
+      try {
+        const json = formatJson(input)
+        return json === undefined ? format(input) : JSON.parse(json)
+      } catch {
+        return format(input)
       }
-      return e
     }
   })
 

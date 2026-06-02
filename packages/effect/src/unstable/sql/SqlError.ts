@@ -42,7 +42,7 @@ const TypeId = "~effect/sql/SqlError" as const
 const ReasonTypeId = "~effect/sql/SqlError/Reason" as const
 
 const ReasonFields = {
-  cause: Schema.Defect,
+  cause: Schema.Defect(),
   message: Schema.optional(Schema.String),
   operation: Schema.optional(Schema.String)
 }

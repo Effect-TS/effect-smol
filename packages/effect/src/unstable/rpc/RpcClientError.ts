@@ -48,7 +48,7 @@ const TypeId = "~effect/rpc/RpcClientError"
 export class RpcClientDefect extends Schema.ErrorClass<RpcClientDefect>("effect/rpc/RpcClientError/RpcClientDefect")({
   _tag: Schema.tag("RpcClientDefect"),
   message: Schema.String,
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {}
 
 /**

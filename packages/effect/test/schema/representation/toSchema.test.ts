@@ -271,13 +271,6 @@ describe("toSchema", () => {
       )
     })
 
-    it("Error", () => {
-      assertToSchemaWithReviver(
-        Schema.Error,
-        `Schema.Error`
-      )
-    })
-
     it("Exit", () => {
       assertToSchemaWithReviver(
         Schema.Exit(Schema.String, Schema.Number, Schema.Boolean),
@@ -408,10 +401,24 @@ describe("toSchema", () => {
       )
     })
 
-    it("ErrorWithStack", () => {
+    it("Error", () => {
       assertToSchemaWithReviver(
-        Schema.ErrorWithStack,
-        `Schema.ErrorWithStack`
+        Schema.Error(),
+        `Schema.Error()`
+      )
+    })
+
+    it("Error with stack", () => {
+      assertToSchemaWithReviver(
+        Schema.Error({ includeStack: true }),
+        `Schema.Error({"includeStack":true})`
+      )
+    })
+
+    it("Defect", () => {
+      assertToSchemaWithReviver(
+        Schema.Defect(),
+        `Schema.Json`
       )
     })
 

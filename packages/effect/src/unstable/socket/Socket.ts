@@ -237,7 +237,7 @@ export const isSocketError = (u: unknown): u is SocketError => Predicate.hasProp
  */
 export class SocketReadError extends Schema.ErrorClass<SocketReadError>("effect/socket/Socket/SocketReadError")({
   _tag: Schema.tag("SocketReadError"),
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   /**
    * Default message used for socket read failures.
@@ -255,7 +255,7 @@ export class SocketReadError extends Schema.ErrorClass<SocketReadError>("effect/
  */
 export class SocketWriteError extends Schema.ErrorClass<SocketWriteError>("effect/socket/Socket/SocketWriteError")({
   _tag: Schema.tag("SocketWriteError"),
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   /**
    * Default message used for socket write failures.
@@ -275,7 +275,7 @@ export class SocketWriteError extends Schema.ErrorClass<SocketWriteError>("effec
 export class SocketOpenError extends Schema.ErrorClass<SocketOpenError>("effect/socket/Socket/SocketOpenError")({
   _tag: Schema.tag("SocketOpenError"),
   kind: Schema.Literals(["Unknown", "Timeout"]),
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {
   /**
    * Formats timeout and unknown open failures for display.
