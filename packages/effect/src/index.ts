@@ -622,6 +622,11 @@ export * as Take from "./Take.ts"
 export * as Terminal from "./Terminal.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Toml from "./Toml.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Tracer from "./Tracer.ts"
@@ -710,3 +715,8 @@ export * as Unify from "./Unify.ts"
  * @since 2.0.0
  */
 export * as Utils from "./Utils.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Yaml from "./Yaml.ts"

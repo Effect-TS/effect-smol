@@ -61,8 +61,6 @@
  * @since 4.0.0
  */
 import * as Ini from "ini"
-import * as Toml from "toml"
-import * as Yaml from "yaml"
 import * as Config from "../../Config.ts"
 import * as Effect from "../../Effect.ts"
 import * as FileSystem from "../../FileSystem.ts"
@@ -70,10 +68,13 @@ import { format } from "../../Formatter.ts"
 import { identity } from "../../Function.ts"
 import * as Path from "../../Path.ts"
 import * as Redacted from "../../Redacted.ts"
+import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
 import type { Formatter } from "../../SchemaIssue.ts"
 import type * as Struct from "../../Struct.ts"
+import * as Toml from "../../Toml.ts"
 import type { Covariant } from "../../Types.ts"
+import * as Yaml from "../../Yaml.ts"
 
 const TypeId = "~effect/cli/Primitive"
 
@@ -571,9 +572,9 @@ export type FileParseOptions = {
 const fileParsers: Record<string, (content: string) => unknown> = {
   ini: (content: string) => Ini.parse(content),
   json: (content: string) => JSON.parse(content),
-  toml: (content: string) => Toml.parse(content),
-  yml: (content: string) => Yaml.parse(content),
-  yaml: (content: string) => Yaml.parse(content)
+  toml: (content: string) => Result.getOrThrow(Toml.parse(content)),
+  yml: (content: string) => Result.getOrThrow(Yaml.parse(content)),
+  yaml: (content: string) => Result.getOrThrow(Yaml.parse(content))
 }
 
 /**
