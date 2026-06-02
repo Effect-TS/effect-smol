@@ -2905,6 +2905,30 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await encoding.succeed(noPrototypeObject, { message: "a" })
   })
 
+  it("Error and Defect memoize equivalent options", () => {
+    const assertMemoized = <S>(schema: (options?: Schema.ErrorOptions) => S) => {
+      strictEqual(schema(), schema({}))
+      strictEqual(schema(), schema({ includeStack: false }))
+      strictEqual(schema(), schema({ excludeCause: false }))
+      strictEqual(schema(), schema({ includeStack: false, excludeCause: false }))
+      strictEqual(schema({ includeStack: true }), schema({ includeStack: true }))
+      strictEqual(schema({ includeStack: true }), schema({ includeStack: true, excludeCause: false }))
+      strictEqual(schema({ excludeCause: true }), schema({ excludeCause: true }))
+      strictEqual(schema({ excludeCause: true }), schema({ includeStack: false, excludeCause: true }))
+      strictEqual(
+        schema({ includeStack: true, excludeCause: true }),
+        schema({ includeStack: true, excludeCause: true })
+      )
+      assertFalse(schema() === schema({ includeStack: true }))
+      assertFalse(schema() === schema({ excludeCause: true }))
+      assertFalse(schema({ includeStack: true }) === schema({ includeStack: true, excludeCause: true }))
+      assertFalse(schema({ excludeCause: true }) === schema({ includeStack: true, excludeCause: true }))
+    }
+
+    assertMemoized(Schema.Error)
+    assertMemoized(Schema.Defect)
+  })
+
   describe("CauseReason", () => {
     it("should expose the values", () => {
       const schema = Schema.CauseReason(Schema.String, Schema.Number)

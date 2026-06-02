@@ -9051,6 +9051,27 @@ export interface ErrorOptions {
   readonly excludeCause?: boolean | undefined
 }
 
+type ErrorOptionsKey = 0 | 1 | 2 | 3
+
+const getErrorOptionsKey = (options?: ErrorOptions): ErrorOptionsKey =>
+  ((options?.includeStack === true ? 1 : 0) |
+    (options?.excludeCause === true ? 2 : 0)) as ErrorOptionsKey
+
+const getErrorOptions = (key: ErrorOptionsKey): ErrorOptions | undefined => {
+  switch (key) {
+    case 0:
+      return undefined
+    case 1:
+      return { includeStack: true }
+    case 2:
+      return { excludeCause: true }
+    case 3:
+      return { includeStack: true, excludeCause: true }
+  }
+}
+
+const errorSchemaCache: Array<Error | undefined> = []
+
 /**
  * Schema for JavaScript `Error` objects.
  *
@@ -9067,19 +9088,27 @@ export interface ErrorOptions {
  * @since 4.0.0
  */
 export function Error(options?: ErrorOptions): Error {
-  return instanceOf(globalThis.Error, {
+  const key = getErrorOptionsKey(options)
+  const cached = errorSchemaCache[key]
+  if (cached !== undefined) {
+    return cached
+  }
+  const normalizedOptions = getErrorOptions(key)
+  const schema = instanceOf(globalThis.Error, {
     typeConstructor: {
       _tag: "Error",
-      options
+      ...(normalizedOptions === undefined ? {} : { options: normalizedOptions })
     },
     generation: {
-      runtime: options !== undefined ? `Schema.Error(${format(options)})` : `Schema.Error()`,
+      runtime: normalizedOptions !== undefined ? `Schema.Error(${format(normalizedOptions)})` : `Schema.Error()`,
       Type: `globalThis.Error`
     },
     expected: "Error",
-    toCodecJson: () => link<globalThis.Error>()(JsonError, SchemaTransformation.errorFromJsonError(options)),
+    toCodecJson: () => link<globalThis.Error>()(JsonError, SchemaTransformation.errorFromJsonError(normalizedOptions)),
     toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
   })
+  errorSchemaCache[key] = schema
+  return schema
 }
 
 /**
@@ -9091,6 +9120,8 @@ export function Error(options?: ErrorOptions): Error {
 export interface Defect extends decodeTo<Unknown, typeof Json> {
   readonly "Rebuild": Defect
 }
+
+const defectSchemaCache: Array<Defect | undefined> = []
 
 /**
  * Schema for unexpected defect values represented as `unknown` with a JSON
@@ -9134,7 +9165,14 @@ export interface Defect extends decodeTo<Unknown, typeof Json> {
  * @since 4.0.0
  */
 export function Defect(options?: ErrorOptions): Defect {
-  return Json.pipe(decodeTo(Unknown, SchemaTransformation.defectFromJson(options)))
+  const key = getErrorOptionsKey(options)
+  const cached = defectSchemaCache[key]
+  if (cached !== undefined) {
+    return cached
+  }
+  const schema = Json.pipe(decodeTo(Unknown, SchemaTransformation.defectFromJson(getErrorOptions(key))))
+  defectSchemaCache[key] = schema
+  return schema
 }
 
 /**
