@@ -165,6 +165,10 @@ export declare namespace Machine {
     readonly event: EventByTag<Events, EventTag>
   }
 
+  export type HandlerResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
+    | StateOf<States>
+    | Effect.Effect<StateOf<States>, E, R>
+
   export type HandlerEffect<Handlers> = Handlers[keyof Handlers]
   export type HandlerError<Handlers> = Effect.Error<HandlerEffect<Handlers>>
   export type HandlerServices<Handlers> = Effect.Services<HandlerEffect<Handlers>>
@@ -188,7 +192,7 @@ export declare namespace Machine {
       const Handlers extends Partial<
         Record<
           TagOf<Events[number]>,
-          Effect.Effect<StateOf<States>, any, any>
+          HandlerResult<States, any, any>
         >
       >
     >(
@@ -232,7 +236,7 @@ export declare namespace Machine {
   > = Readonly<
     Record<
       PropertyKey,
-      (context: HandlerContext<States, Events, StateTag, EventTag, E, R>) => Effect.Effect<StateOf<States>, E, R>
+      (context: HandlerContext<States, Events, StateTag, EventTag, E, R>) => HandlerResult<States, E, R>
     >
   >
 
@@ -407,12 +411,14 @@ export const start: <
 
             if (handler === undefined) return state
 
-            return yield* handler({
+            const result = handler({
               state: state as Machine.StateByTag<States, UnhandledStates>,
               event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
-            }).pipe(
-              Effect.provideService(DeferredActions, deferredActions)
-            ) as any
+            })
+
+            return Effect.isEffect(result)
+              ? yield* result.pipe(Effect.provideService(DeferredActions, deferredActions))
+              : result
           }))
 
         const actions = yield* deferredActions.read

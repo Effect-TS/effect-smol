@@ -92,6 +92,24 @@ describe("StateMachine", () => {
     assert.strictEqual("Submit" in machine.handlers.Idle, true)
   })
 
+  it.effect("handlers can return states directly", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        Submit: () => new Loading({ requestId: "request-1" })
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+    }))
+
   it("can reuse the same machine with multiple different handlers", () => {
     const effect = Effect.succeed("submitted")
     const machine = StateMachine.make({
