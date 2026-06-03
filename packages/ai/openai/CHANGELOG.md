@@ -1,5 +1,12 @@
 # @effect/ai-openai
 
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [[`6e9a5ca`](https://github.com/Effect-TS/effect-smol/commit/6e9a5ca62a61156fd67b2518ad3ab14ac0d25f23), [`302f398`](https://github.com/Effect-TS/effect-smol/commit/302f3984ce206e35d86ddd99d3b72be144850a51)]:
+  - effect@4.0.0-beta.77
+
 ## 4.0.0-beta.76
 
 ### Patch Changes
