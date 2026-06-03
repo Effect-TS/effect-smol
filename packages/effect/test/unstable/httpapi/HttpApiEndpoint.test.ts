@@ -56,11 +56,38 @@ describe("HttpApiEndpoint streaming success declarations", () => {
     )
   })
 
-  it("streaming success mixed with a buffered success at the same status throws", () => {
+  it("streaming success mixed with a buffered success at the same status is allowed for distinct content types", () => {
+    const stream = sse()
+    const endpoint = HttpApiEndpoint.get("events", "/events", {
+      success: [
+        stream,
+        Schema.Struct({ ok: Schema.Boolean })
+      ]
+    })
+
+    assert.isTrue(endpoint.success.has(stream))
+  })
+
+  it("streaming success mixed with a buffered success at the same content type throws", () => {
     assert.throws(() =>
       HttpApiEndpoint.get("events", "/events", {
         success: [
-          sse(),
+          HttpApiSchema.StreamSse({ contentType: "application/json", events: Events, error: StreamError }),
+          Schema.Struct({ ok: Schema.Boolean })
+        ]
+      })
+    )
+  })
+
+  it("streaming success mixed with a buffered success at content types differing only by parameters throws", () => {
+    assert.throws(() =>
+      HttpApiEndpoint.get("events", "/events", {
+        success: [
+          HttpApiSchema.StreamSse({
+            contentType: "application/json; charset=utf-8",
+            events: Events,
+            error: StreamError
+          }),
           Schema.Struct({ ok: Schema.Boolean })
         ]
       })

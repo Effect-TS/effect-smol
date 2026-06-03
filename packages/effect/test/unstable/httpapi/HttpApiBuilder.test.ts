@@ -171,4 +171,53 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
         "SchemaError(The server sent event name 'effect/httpapi/stream/failure' is reserved for internal use)"
       )
     }))
+
+  it.effect("supports buffered and stream successes with the same status", () =>
+    Effect.gen(function*() {
+      const Buffered = Schema.Struct({ message: Schema.String })
+      const Events = Schema.Struct({
+        event: Schema.String,
+        data: Schema.String
+      })
+
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("test").add(
+          HttpApiEndpoint.get("chat", "/test", {
+            query: {
+              stream: Schema.String
+            },
+            success: [
+              Buffered,
+              HttpApiSchema.StreamSse({ events: Events, error: StreamError })
+            ]
+          })
+        )
+      )
+
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "test",
+        (handlers) =>
+          handlers.handle("chat", ({ query }) =>
+            Effect.succeed(
+              query.stream === "true" ?
+                Stream.make({ event: "token", data: "hello" }) :
+                { message: "done" }
+            ))
+      )
+
+      const client = yield* HttpApiTest.groups(Api, ["test"]).pipe(Effect.provide(GroupLive))
+      const bufferedResponse = yield* client.test.chat({ query: { stream: "false" }, responseMode: "response-only" })
+      assert.strictEqual(bufferedResponse.status, 200)
+      assert.strictEqual(bufferedResponse.headers["content-type"], "application/json")
+
+      const streamResponse = yield* client.test.chat({ query: { stream: "true" }, responseMode: "response-only" })
+      const chunks = yield* Stream.runCollect(streamResponse.stream)
+
+      assert.strictEqual(streamResponse.status, 200)
+      assert.strictEqual(streamResponse.headers["content-type"], "text/event-stream")
+      assert.deepStrictEqual(Array.from(chunks, (chunk) => textDecoder.decode(chunk)), [
+        "event: token\ndata: hello\n\n"
+      ])
+    }))
 })

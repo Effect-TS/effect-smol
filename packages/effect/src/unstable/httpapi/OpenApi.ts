@@ -691,19 +691,21 @@ function extractResponseBodies(
         streamContent: undefined
       })
     } else {
-      if (statusMap.content !== undefined) {
-        // concat descriptions
-        if (description !== undefined) {
-          statusMap.descriptions.add(description)
-        }
+      // concat descriptions
+      if (description !== undefined) {
+        statusMap.descriptions.add(description)
+      }
 
-        const contentTypeMap = statusMap.content.get(_tag)
-        if (contentTypeMap === undefined) {
+      if (statusMap.content === undefined) {
+        statusMap.content = new Map([[_tag, new Map([[contentType, new Set([schema])]])]])
+      } else {
+        const schemasByContentType = statusMap.content.get(_tag)
+        if (schemasByContentType === undefined) {
           statusMap.content.set(_tag, new Map([[contentType, new Set([schema])]]))
         } else {
-          const set = contentTypeMap.get(contentType)
+          const set = schemasByContentType.get(contentType)
           if (set === undefined) {
-            contentTypeMap.set(contentType, new Set([schema]))
+            schemasByContentType.set(contentType, new Set([schema]))
           } else {
             set.add(schema)
           }
@@ -721,7 +723,9 @@ function extractResponseBodies(
         content: undefined,
         streamContent: new Map([[stream.contentType, stream]])
       })
-    } else if (statusMap.streamContent !== undefined) {
+    } else if (statusMap.streamContent === undefined) {
+      statusMap.streamContent = new Map([[stream.contentType, stream]])
+    } else {
       statusMap.streamContent.set(stream.contentType, stream)
     }
   }

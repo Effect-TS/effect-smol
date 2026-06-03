@@ -129,6 +129,42 @@ describe("HttpApiClient", () => {
         const chunks = yield* Stream.runCollect(response.stream)
         assert.deepStrictEqual(chunks.map((chunk) => Array.from(chunk)), [[1], [2, 3]])
       }))
+
+    it.effect("selects a buffered response by content type when a stream uses the same status", () =>
+      Effect.gen(function*() {
+        const client = yield* HttpApiClient.makeWith(MixedSuccessApi, {
+          baseUrl: "http://test",
+          httpClient: clientFromResponse(() =>
+            new Response(JSON.stringify({ message: "done" }), {
+              status: 200,
+              headers: { "content-type": "application/json" }
+            })
+          )
+        })
+
+        const response = yield* client.test.chat({})
+        assert.deepStrictEqual(response, { message: "done" })
+      }))
+
+    it.effect("selects a stream response by content type when buffered success uses the same status", () =>
+      Effect.gen(function*() {
+        const client = yield* HttpApiClient.makeWith(MixedSuccessApi, {
+          baseUrl: "http://test",
+          httpClient: clientFromResponse(() =>
+            new Response(textStream(["event: token\ndata: hello\n\n"]), {
+              status: 200,
+              headers: { "content-type": "text/event-stream; charset=utf-8" }
+            })
+          )
+        })
+
+        const stream = yield* client.test.chat({})
+        if (!Stream.isStream(stream)) {
+          throw new Error("Expected stream response")
+        }
+        const events = yield* Stream.runCollect(stream)
+        assert.deepStrictEqual(events, [{ event: "token", data: "hello" }])
+      }))
   })
 
   describe("urlBuilder", () => {
@@ -332,6 +368,10 @@ class EndpointError extends Schema.TaggedErrorClass<EndpointError>()("EndpointEr
   message: Schema.String
 }, { httpApiStatus: 400 }) {}
 
+const MixedSuccess = Schema.Struct({
+  message: Schema.String
+})
+
 const StreamingApi = HttpApi.make("StreamingApi").add(
   HttpApiGroup.make("test")
     .add(
@@ -354,6 +394,18 @@ const AnnotatedStreamingApi = HttpApi.make("AnnotatedStreamingApi").add(
       }),
       HttpApiEndpoint.get("download", "/download", {
         success: HttpApiSchema.status(206)(HttpApiSchema.StreamUint8Array())
+      })
+    )
+)
+
+const MixedSuccessApi = HttpApi.make("MixedSuccessApi").add(
+  HttpApiGroup.make("test")
+    .add(
+      HttpApiEndpoint.get("chat", "/chat", {
+        success: [
+          MixedSuccess,
+          HttpApiSchema.StreamSse({ events: Events, error: StreamError })
+        ]
       })
     )
 )

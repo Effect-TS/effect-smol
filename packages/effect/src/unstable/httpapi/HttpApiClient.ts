@@ -338,12 +338,23 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
               Effect.fail
             )
         })
+        const successAlternatives = new Map<number, Array<ResponseAlternative>>()
         successes.forEach((schemas, status) => {
-          decodeMap[status] = schemasToResponse(schemas)
+          groupSchemasByContentType(schemas).forEach((schemas, contentType) => {
+            addResponseAlternative(successAlternatives, status, contentType, schemasToResponse(schemas))
+          })
         })
         for (const streamSuccess of getStreamSuccessDeclarations(endpoint)) {
-          decodeMap[HttpApiSchema.getStatusStream(streamSuccess)] = streamToResponse(streamSuccess)
+          addResponseAlternative(
+            successAlternatives,
+            HttpApiSchema.getStatusStream(streamSuccess),
+            streamSuccess.contentType,
+            streamToResponse(streamSuccess)
+          )
         }
+        successAlternatives.forEach((alternatives, status) => {
+          decodeMap[status] = makeResponseDecoder(alternatives)
+        })
 
         // encoders
         const encodeParams = UndefinedOr.map(endpoint.params, Schema.encodeUnknownEffect)
@@ -675,6 +686,83 @@ function schemasToResponse(schemas: readonly [Schema.Top, ...Array<Schema.Top>])
   const codec = toCodecArrayBuffer(schemas)
   const decode = Schema.decodeEffect(codec)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
+}
+
+type ResponseDecoder = (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
+
+interface ResponseAlternative {
+  readonly contentType: string
+  readonly decode: ResponseDecoder
+}
+
+function addResponseAlternative(
+  map: Map<number, Array<ResponseAlternative>>,
+  status: number,
+  contentType: string,
+  decode: ResponseDecoder
+) {
+  const normalizedContentType = normalizeContentType(contentType)
+  const alternatives = map.get(status)
+  if (alternatives === undefined) {
+    map.set(status, [{ contentType: normalizedContentType, decode }])
+  } else {
+    alternatives.push({ contentType: normalizedContentType, decode })
+  }
+}
+
+function makeResponseDecoder(alternatives: ReadonlyArray<ResponseAlternative>): ResponseDecoder {
+  const first = alternatives[0]
+  if (alternatives.length === 1 && first !== undefined) {
+    return first.decode
+  }
+  return (response) => {
+    const contentType = normalizeContentType(response.headers["content-type"] ?? "")
+    const alternative = alternatives.find((alternative) => alternative.contentType === contentType)
+    return alternative === undefined
+      ? failUnsupportedContentType(response, contentType, alternatives)
+      : alternative.decode(response)
+  }
+}
+
+function groupSchemasByContentType(
+  schemas: readonly [Schema.Top, ...Array<Schema.Top>]
+): Map<string, [Schema.Top, ...Array<Schema.Top>]> {
+  const grouped = new Map<string, [Schema.Top, ...Array<Schema.Top>]>()
+  for (const schema of schemas) {
+    const contentType = HttpApiSchema.getResponseEncoding(schema.ast).contentType
+    const existing = grouped.get(contentType)
+    if (existing === undefined) {
+      grouped.set(contentType, [schema])
+    } else {
+      existing.push(schema)
+    }
+  }
+  return grouped
+}
+
+function normalizeContentType(contentType: string): string {
+  const normalized = contentType.toLowerCase().trim()
+  const index = normalized.indexOf(";")
+  return index === -1 ? normalized : normalized.slice(0, index).trim()
+}
+
+function failUnsupportedContentType(
+  response: HttpClientResponse.HttpClientResponse,
+  contentType: string,
+  alternatives: ReadonlyArray<ResponseAlternative>
+) {
+  const expected = Array.from(new Set(alternatives.map((alternative) => alternative.contentType))).join(", ")
+  return Effect.fail(
+    new HttpClientError.HttpClientError({
+      reason: new HttpClientError.DecodeError({
+        request: response.request,
+        response,
+        description: `Unsupported response content-type for status ${response.status}: ${
+          contentType || "<missing>"
+        }. Expected one of: ${expected}`
+      })
+    })
+  )
 }
 
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"

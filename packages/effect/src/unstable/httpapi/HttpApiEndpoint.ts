@@ -1333,7 +1333,7 @@ function getErrorResponse(
 function validateSuccessResponse(schemas: ReadonlyArray<SuccessSchema>, method: HttpMethod) {
   const statuses = new Map<number, {
     readonly stream?: HttpApiSchema.StreamDeclaration | undefined
-    buffered: boolean
+    bufferedContentTypes: Set<string>
     noContent: boolean
   }>()
 
@@ -1348,8 +1348,10 @@ function validateSuccessResponse(schemas: ReadonlyArray<SuccessSchema>, method: 
       if (entry.noContent) {
         throw new Error(`Cannot combine no-content and streaming success responses for status: ${status}`)
       }
-      if (entry.buffered) {
-        throw new Error(`Cannot combine buffered and streaming success responses for status: ${status}`)
+      if (entry.bufferedContentTypes.has(normalizeResponseContentType(schema.contentType))) {
+        throw new Error(
+          `Cannot combine buffered and streaming success responses for status ${status} and content-type: ${schema.contentType}`
+        )
       }
       statuses.set(status, { ...entry, stream: schema })
     } else {
@@ -1357,29 +1359,45 @@ function validateSuccessResponse(schemas: ReadonlyArray<SuccessSchema>, method: 
       const entry = getStatusEntry(statuses, status)
       const noContent = HttpApiSchema.isNoContent(schema.ast)
       if (entry.stream !== undefined) {
-        throw new Error(
-          noContent ?
-            `Cannot combine no-content and streaming success responses for status: ${status}` :
-            `Cannot combine buffered and streaming success responses for status: ${status}`
+        if (noContent) {
+          throw new Error(`Cannot combine no-content and streaming success responses for status: ${status}`)
+        }
+        const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
+        if (
+          normalizeResponseContentType(encoding.contentType) === normalizeResponseContentType(entry.stream.contentType)
+        ) {
+          throw new Error(
+            `Cannot combine buffered and streaming success responses for status ${status} and content-type: ${encoding.contentType}`
+          )
+        }
+      }
+      if (!noContent) {
+        entry.bufferedContentTypes.add(
+          normalizeResponseContentType(HttpApiSchema.getResponseEncoding(schema.ast).contentType)
         )
       }
-      entry.buffered = true
       entry.noContent = entry.noContent || noContent
     }
   }
 }
 
+function normalizeResponseContentType(contentType: string): string {
+  const normalized = contentType.toLowerCase().trim()
+  const index = normalized.indexOf(";")
+  return index === -1 ? normalized : normalized.slice(0, index).trim()
+}
+
 function getStatusEntry(
   statuses: Map<number, {
     readonly stream?: HttpApiSchema.StreamDeclaration | undefined
-    buffered: boolean
+    bufferedContentTypes: Set<string>
     noContent: boolean
   }>,
   status: number
 ) {
   let entry = statuses.get(status)
   if (entry === undefined) {
-    entry = { buffered: false, noContent: false }
+    entry = { bufferedContentTypes: new Set(), noContent: false }
     statuses.set(status, entry)
   }
   return entry
