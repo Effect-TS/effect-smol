@@ -1112,7 +1112,7 @@ const encodeJsonError = (
 ): JsonError => {
   const encoded: JsonError = {
     name: input.name,
-    message: input.message
+    message: typeof input.message === "string" ? input.message : ""
   }
   if (options?.includeStack && typeof input.stack === "string") {
     encoded.stack = input.stack
