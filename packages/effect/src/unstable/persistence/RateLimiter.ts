@@ -630,11 +630,13 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
     },
     tokenBucket(options) {
       const key = `${prefix}${options.key}`
+      const lastRefillKey = `${key}:refill`
       const refillMillis = Duration.toMillis(options.refillRate)
       return Effect.clockWith((clock) =>
         Effect.mapError(
           tokenBucket(
             key,
+            lastRefillKey,
             options.tokens,
             refillMillis,
             options.limit,
@@ -687,17 +689,18 @@ return { next, nextpttl }
 const tokenBucketScript = Redis.script(
   (
     key: string,
+    lastRefillKey: string,
     tokens: number,
     refillMillis: number,
     limit: number,
     now: number,
     overflow: 0 | 1
-  ) => [key, tokens, refillMillis, limit, now, overflow],
+  ) => [key, lastRefillKey, tokens, refillMillis, limit, now, overflow],
   {
-    numberOfKeys: 1,
+    numberOfKeys: 2,
     lua: `
 local key = KEYS[1]
-local last_refill_key = key .. ":refill"
+local last_refill_key = KEYS[2]
 local tokens = tonumber(ARGV[1])
 local refill_ms = tonumber(ARGV[2])
 local limit = tonumber(ARGV[3])

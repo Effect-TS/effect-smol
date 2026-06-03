@@ -89,14 +89,22 @@ export const make = Effect.fnUntraced(function*(
   >(
     script: Script<Config>
   ) =>
-  (...params: Config["params"]): Effect.Effect<Config["result"], RedisError> =>
-    Effect.flatMap(Cache.get(scriptCache, script), (sha) =>
+  (...params: Config["params"]): Effect.Effect<Config["result"], RedisError> => {
+    const evalSha = (sha: string) =>
       options.send<Config["result"]>(
         "EVALSHA",
         sha,
         script.numberOfKeys(...params).toString(),
         ...script.params(...params).map((param) => String(param))
-      ))
+      )
+    return Cache.get(scriptCache, script).pipe(
+      Effect.flatMap(evalSha),
+      Effect.catchIf(
+        (error) => String(error.cause).includes("NOSCRIPT"),
+        () => Cache.refresh(scriptCache, script).pipe(Effect.flatMap(evalSha))
+      )
+    )
+  }
 
   return identity<Redis["Service"]>({
     send: options.send,
