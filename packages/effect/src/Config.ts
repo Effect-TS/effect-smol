@@ -82,6 +82,7 @@ import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
 import * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaGetter from "./SchemaGetter.ts"
 import * as SchemaIssue from "./SchemaIssue.ts"
 import * as SchemaParser from "./SchemaParser.ts"
 import * as SchemaTransformation from "./SchemaTransformation.ts"
@@ -873,6 +874,41 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
   )
 
   return Schema.Union([record, recordString])
+}
+
+/**
+ * Schema for array types that can also be parsed from a flat separated string.
+ *
+ * **When to use**
+ *
+ * Use when reading list values from a single env var, such as comma-separated
+ * exporter names.
+ *
+ * **Details**
+ *
+ * Accepts either a JSON-like array from the provider or a flat string like
+ * `"a,b,c"`. The `separator` defaults to `","` and can be customized.
+ *
+ * @category schemas
+ * @since 4.0.0
+ */
+export const List = <V extends Schema.Top>(value: V, options?: {
+  readonly separator?: string | undefined
+}) => {
+  const list = Schema.Array(value)
+  const separator = options?.separator ?? ","
+  const listString = Schema.String.pipe(
+    Schema.decodeTo(
+      Schema.Array(Schema.String),
+      {
+        decode: SchemaGetter.split(options),
+        encode: SchemaGetter.transform((input: ReadonlyArray<string>) => input.join(separator))
+      }
+    ),
+    Schema.decodeTo(list)
+  )
+
+  return Schema.Union([listString, list])
 }
 
 // -----------------------------------------------------------------------------

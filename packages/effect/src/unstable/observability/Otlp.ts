@@ -111,6 +111,42 @@ export const layer = (options: {
 }
 
 /**
+ * Creates a combined OTLP layer for logs, metrics, and traces from
+ * OpenTelemetry configuration.
+ *
+ * @category layers
+ * @since 4.0.0
+ */
+export const layerFromConfig = (options?: {
+  readonly resource?: {
+    readonly serviceName?: string | undefined
+    readonly serviceVersion?: string | undefined
+    readonly attributes?: Record<string, unknown>
+  } | undefined
+  readonly headers?: Headers.Input | undefined
+  readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
+  readonly loggerExcludeLogSpans?: boolean | undefined
+  readonly loggerMergeWithExisting?: boolean | undefined
+}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization.OtlpSerialization> =>
+  Layer.mergeAll(
+    OtlpLogger.layerFromConfig({
+      resource: options?.resource,
+      headers: options?.headers,
+      excludeLogSpans: options?.loggerExcludeLogSpans,
+      mergeWithExisting: options?.loggerMergeWithExisting
+    }),
+    OtlpMetrics.layerFromConfig({
+      resource: options?.resource,
+      headers: options?.headers
+    }),
+    OtlpTracer.layerFromConfig({
+      resource: options?.resource,
+      headers: options?.headers,
+      context: options?.tracerContext
+    })
+  )
+
+/**
  * Creates the combined OTLP logs, metrics, and traces layer using JSON
  * serialization.
  *
