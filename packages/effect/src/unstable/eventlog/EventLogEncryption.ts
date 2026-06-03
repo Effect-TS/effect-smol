@@ -9,16 +9,6 @@
  * such as an encrypted event-log server, offline-first synchronization backend,
  * or multi-device replicated store.
  *
- * Encryption keys are deterministically derived from the identity private key
- * material, so the same stable identity is required to decrypt entries across
- * sessions and devices. The public key identifies the replicated log, while the
- * private key material must remain secret and must not be rotated without a
- * migration plan for existing encrypted entries. The default implementation
- * uses Web Crypto AES-GCM with generated initialization vectors that are stored
- * alongside encrypted entries; persisted ciphertext, IVs, entry schemas, and
- * identity key derivation labels are part of the compatibility surface for
- * future event-log encryption versions.
- *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

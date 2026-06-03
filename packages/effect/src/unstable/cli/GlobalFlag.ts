@@ -1,26 +1,12 @@
 /**
- * The `GlobalFlag` module defines flags that are available to every command in
- * an Effect CLI application. Global flags are useful for cross-cutting command
- * line behavior such as printing help, showing the application version,
- * generating shell completions, or configuring shared handler settings like the
- * minimum log level.
+ * Global flags for Effect CLI command trees. Global flags are parsed outside a
+ * single command's local flags and can apply to a command and its descendants.
  *
- * **Common tasks**
- *
- * - Create an action flag with {@link action} for side effects that should run
- *   before the selected command, such as `--help` or `--version`
- * - Create a setting flag with {@link setting} for values that should be made
- *   available to command handlers through the Effect context
- * - Reuse the built-in {@link Help}, {@link Version}, {@link Completions}, and
- *   {@link LogLevel} flags when constructing command runners
- *
- * **Gotchas**
- *
- * - Action flags are intended to perform their effect and exit instead of
- *   continuing into the command handler
- * - Setting flags allocate a distinct context service for each call to
- *   {@link setting}, so reuse exported settings when handlers need to read the
- *   same parsed global value
+ * This module defines two kinds of global flags: action flags, which run an
+ * effect and stop normal command execution, and setting flags, which provide a
+ * parsed value to the command handler through the Effect context. It also
+ * defines the built-in help, version, shell-completion, and log-level flags
+ * used by `Command.run` and `Command.runWith`.
  *
  * @since 4.0.0
  */

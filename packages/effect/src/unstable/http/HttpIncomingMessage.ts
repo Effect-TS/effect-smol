@@ -6,22 +6,8 @@
  * the surrounding request and response modules while this module focuses on
  * headers, optional remote address information, byte streams, buffered body
  * views, and schema decoders for JSON bodies, URL-encoded bodies, and headers.
- *
- * Use these helpers in middleware, route handlers, client response processing,
- * and adapters when code should work with any incoming message instead of a
- * concrete request or response type. Body access is effectful because reading,
- * parsing, and decoding can fail; use `stream` when bytes should stay
- * streaming, and use `text`, `json`, `urlParamsBody`, or `arrayBuffer` when a
- * buffered view is appropriate. Some runtimes expose bodies as one-shot Web
- * streams, so prefer one body representation per message and let each
- * implementation's cached accessors handle repeated reads where available.
- *
- * Headers use the HTTP `Headers` module's lowercase, single-value map, so
- * repeated values may already have been combined or normalized by the adapter.
- * Decode headers with `schemaHeaders` when their shape matters. For form
- * bodies, `urlParamsBody` handles URL-encoded payloads; multipart support lives
- * on `HttpServerRequest`, with `MaxBodySize` providing the shared limit
- * reference used by multipart parsing.
+ * It also includes the shared max body size setting and the inspection helper
+ * used by request and response implementations.
  *
  * @since 4.0.0
  */

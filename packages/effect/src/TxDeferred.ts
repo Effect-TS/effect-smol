@@ -7,23 +7,9 @@
  * and when another transaction completes the deferred the waiting transaction
  * can resume with either the success value or the typed failure.
  *
- * **Mental model**
- *
- * `TxDeferred` is the transaction-aware counterpart to a regular deferred
- * value. Completion is single-assignment, reads participate in transaction
- * retry semantics, and all observers see the same committed result once the
- * deferred has been completed.
- *
- * **Common tasks**
- *
- * Create an empty deferred with {@link make}, wait for completion with
- * `await`, inspect the current state with {@link poll}, and complete it with
- * {@link done}, {@link succeed}, or {@link fail}.
- *
- * **Gotchas**
- *
- * Only the first completion wins. Later completion attempts return `false`
- * instead of replacing the stored result.
+ * This module provides constructors, `await` for waiting on completion, `poll`
+ * for inspecting the current state without retrying, and completion helpers for
+ * successes, failures, or already built `Result` values.
  *
  * @since 4.0.0
  */

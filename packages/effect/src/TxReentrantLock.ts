@@ -1,44 +1,14 @@
 /**
- * The `TxReentrantLock` module provides a transactional read/write lock whose
- * ownership is tracked per fiber. Multiple fibers may hold read locks at the
- * same time, while a write lock gives one fiber exclusive access.
+ * Transactional read/write locks whose ownership is tracked per fiber. Multiple
+ * fibers may hold read locks at the same time, while a write lock gives one
+ * fiber exclusive access. A fiber that already holds a lock can acquire it
+ * again, and the lock keeps a count so each acquisition can be released.
  *
- * **Mental model**
- *
- * The lock stores reader counts and an optional writer count in transactional
- * state. A fiber can reacquire locks it already owns, so nested read or write
- * sections are safe as long as each acquisition is matched by a release. A
- * write acquisition waits when another fiber owns a read or write lock, and a
- * read acquisition waits when another fiber owns the write lock.
- *
- * **Common tasks**
- *
- * - Use `withReadLock` to run an effect that may share access with other
- *   readers.
- * - Use `withWriteLock` or `withLock` to run an effect with exclusive access.
- * - Use `readLock` or `writeLock` when lock ownership should be tied to an
- *   existing scope.
- *
- * **Example** (Protecting a read/write workflow)
- *
- * ```ts
- * import { Effect, Ref, TxReentrantLock } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const lock = yield* TxReentrantLock.make()
- *   const state = yield* Ref.make(0)
- *
- *   yield* TxReentrantLock.withWriteLock(lock, Ref.update(state, (n) => n + 1))
- *   return yield* TxReentrantLock.withReadLock(lock, Ref.get(state))
- * })
- * ```
- *
- * **Gotchas**
- *
- * - Manual acquisitions are counted; release the same number of times or use
- *   the scoped and `with*` helpers.
- * - Releasing a lock from a fiber that does not own it leaves the lock
- *   unchanged and returns `0`.
+ * This module provides manual read and write acquire/release operations,
+ * scoped lock acquisition, wrappers that run an effect while holding a read or
+ * write lock, a general lock wrapper, lock-count and locked-state inspection,
+ * and a guard. Acquiring a lock retries transactionally when another fiber
+ * currently prevents access.
  *
  * @since 4.0.0
  */

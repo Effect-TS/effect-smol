@@ -6,22 +6,6 @@
  * the hello/authenticate session handshake, authenticated write and changes
  * RPCs, and msgpack payloads for encrypted or plaintext journal entries.
  *
- * **Mental model**
- *
- * A remote session starts with `HelloRpc`, then proves control of the client's
- * signing key with `AuthenticateRpc`. After authentication, writes flow from the
- * client to the server as encoded entry batches, and `ChangesRpc` streams
- * encoded remote entries back to replicas from a requested sequence number. The
- * `EventLogAuthentication` middleware marks the RPCs that require an
- * authenticated event-log identity.
- *
- * **Gotchas**
- *
- * Entry batches are binary payloads. Small payloads travel as `SingleMessage`,
- * while larger payloads are split into `ChunkedMessage` parts and reassembled by
- * message id after every part arrives. Transports must preserve `Uint8Array`
- * bytes exactly; do not treat msgpack payloads as text or JSON.
- *
  * @since 4.0.0
  */
 import type { NonEmptyArray, NonEmptyReadonlyArray } from "../../Array.ts"

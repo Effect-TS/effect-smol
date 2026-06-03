@@ -1,55 +1,14 @@
 /**
- * The `Prompt` module provides several data structures to simplify creating and
- * combining prompts.
+ * Data model and helpers for prompts sent to AI language models. A prompt is an
+ * ordered list of messages, and messages can use roles such as system, user,
+ * assistant, and tool.
  *
- * This module defines the complete structure of a conversation with a large
- * language model, including messages, content parts, and provider-specific
- * options. It supports rich content types like text, files, tool calls, and
- * reasoning.
- *
- * **Example** (Creating a structured conversation)
- *
- * ```ts
- * import { Prompt } from "effect/unstable/ai"
- *
- * // Create a structured conversation
- * const conversation = Prompt.make([
- *   {
- *     role: "system",
- *     content: "You are a helpful assistant specialized in mathematics."
- *   },
- *   {
- *     role: "user",
- *     content: [{
- *       type: "text",
- *       text: "What is the derivative of x²?"
- *     }]
- *   },
- *   {
- *     role: "assistant",
- *     content: [{
- *       type: "text",
- *       text: "The derivative of x² is 2x."
- *     }]
- *   }
- * ])
- * ```
- *
- * **Example** (Combining prompts)
- *
- * ```ts
- * import { Prompt } from "effect/unstable/ai"
- *
- * // Concatenate multiple prompts together sequentially
- * const systemPrompt = Prompt.make([{
- *   role: "system",
- *   content: "You are a coding assistant."
- * }])
- *
- * const userPrompt = Prompt.make("Help me write a function")
- *
- * const combined = Prompt.concat(systemPrompt, userPrompt)
- * ```
+ * This module defines schemas, types, guards, and constructors for prompt
+ * messages and their content parts, including text, files, reasoning, tool
+ * calls, tool results, and tool approval requests or responses. It also
+ * provides helpers for turning raw input or response parts into prompts,
+ * joining prompts together, and setting, prepending, or appending system
+ * instructions.
  *
  * @since 4.0.0
  */

@@ -5,29 +5,9 @@
  * application code usually benefits from unification through APIs such as
  * `Effect`, `Option`, `Result`, `Stream`, `Layer`, and `Match`.
  *
- * **Mental model**
- *
- * A type opts in by carrying phantom entries keyed by {@link typeSymbol} and
- * {@link unifySymbol}. {@link Unify} reads those entries, ignores any protocol
- * members listed through {@link ignoreSymbol}, and widens matching union
- * members to the public type each entry returns. The runtime helper
- * {@link unify} is an identity function; it changes only the static type that
- * TypeScript sees.
- *
- * **Common tasks**
- *
- * - Add unification support to a new Effect data type so mixed unions infer as
- *   the public container type instead of an implementation shape.
- * - Normalize the return type of branching APIs, matchers, or builders that can
- *   produce several protocol-enabled values.
- * - Apply unification to a value or curried function result with {@link unify}
- *   while preserving the original runtime behavior.
- *
- * **Gotchas**
- *
- * - Unification is a compile-time protocol, not a runtime conversion hook.
- * - Protocol entries should be specific to the data type they widen; overly
- *   broad entries can make inferred unions less precise.
+ * This module exports the protocol symbols, the `Unify` type that performs the
+ * type-level normalization, and `unify`, an identity function that keeps the
+ * runtime value unchanged while applying `Unify` to the inferred type.
  *
  * @since 2.0.0
  */

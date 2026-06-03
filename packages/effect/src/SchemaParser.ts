@@ -1,45 +1,13 @@
 /**
- * Build reusable runtime parsers from Effect schemas.
+ * Functions that run schemas against real values. They are used to construct
+ * values from schema input, check whether a value matches a schema, decode
+ * encoded input, and encode decoded values back to their external form.
  *
- * `SchemaParser` is the execution layer behind schema ASTs. It walks schema
- * structure, applies transformations, merges parse options, runs checks, and
- * reports failures as `SchemaIssue.Issue` values while exposing adapters for
- * the result shape a boundary needs.
- *
- * **Mental model**
- *
- * - A schema has a decoded `Type` side and an `Encoded` side.
- * - Decoders read `Encoded` or `unknown` input and produce `Type`.
- * - Encoders read `Type` or `unknown` input and produce `Encoded`.
- * - Maker helpers construct decoded `Type` values and apply constructor
- *   defaults before validation.
- * - The same underlying parser can be adapted to `Effect`, `Promise`, `Exit`,
- *   `Result`, `Option`, a throwing synchronous function, or a type guard.
- *
- * **Common tasks**
- *
- * - Construct decoded values: {@link make}, {@link makeEffect},
- *   {@link makeOption}
- * - Decode untrusted boundary input: {@link decodeUnknownEffect},
- *   {@link decodeUnknownSync}, {@link decodeUnknownResult}
- * - Decode already typed encoded input: {@link decodeEffect},
- *   {@link decodeSync}
- * - Encode values back to their encoded representation:
- *   {@link encodeEffect}, {@link encodeSync}, {@link encodeUnknownEffect}
- * - Check values without collecting issue details: {@link is}, {@link asserts}
- * - Build directly from an AST: {@link run}
- *
- * **Gotchas**
- *
- * - `decodeUnknown*` accepts untyped input; `decode*` variants expect the
- *   schema's `Encoded` type.
- * - `encodeUnknown*` accepts untyped input; `encode*` variants expect the
- *   schema's decoded `Type`.
- * - Synchronous adapters cannot run asynchronous parsing work. Use `Effect`
- *   adapters when transformations require services or asynchronous effects.
- * - Parse options supplied when a parser is created are merged with options
- *   supplied at call time, and schema-level parse annotations can further
- *   refine behavior.
+ * This module exposes the same work through several result styles: `Effect`,
+ * `Promise`, `Exit`, `Option`, `Result`, and synchronous functions that throw
+ * on failure. It also contains the lower-level parser runner that walks a
+ * schema AST, applies transformations and checks, respects parse options, and
+ * reports schema failures as `SchemaIssue.Issue` values.
  *
  * @since 4.0.0
  */

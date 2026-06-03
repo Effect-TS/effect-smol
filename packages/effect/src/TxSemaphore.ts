@@ -1,39 +1,13 @@
 /**
- * Coordinate access to limited resources with a semaphore whose permit count
- * participates in Effect transactions. A `TxSemaphore` keeps a fixed capacity
- * and records permit changes in transactional state, so acquiring or releasing
- * permits can commit atomically with related `TxRef` updates.
+ * Transactional semaphores for coordinating access to limited resources. A
+ * `TxSemaphore` has a fixed capacity and stores its available permit count in a
+ * `TxRef`, so acquiring or releasing permits can commit atomically with other
+ * transactional state changes.
  *
- * **Mental model**
- *
- * - {@link make} creates a semaphore with a fixed number of permits.
- * - {@link acquire} and {@link acquireN} wait by retrying the transaction when
- *   there are not enough permits available.
- * - {@link tryAcquire} and {@link tryAcquireN} update the permit count only
- *   when enough permits are already available.
- * - {@link release} and {@link releaseN} return permits, and the total cannot
- *   exceed the original capacity.
- * - {@link withPermit} and {@link withPermits} bracket a supplied effect,
- *   while {@link withPermitScoped} holds one permit until the current scope
- *   closes.
- *
- * **Common tasks**
- *
- * - Reserve capacity before committing related transactional state changes.
- * - Protect a pool, queue, or rate-limited section with permit accounting that
- *   composes with `TxRef`.
- * - Inspect the current number of permits with {@link available} and the fixed
- *   total with {@link capacity}.
- *
- * **Gotchas**
- *
- * - Permit operations enter `Effect.tx`; group related transactional
- *   work inside the same boundary when it must commit together.
- * - Requesting more permits than the semaphore capacity with
- *   {@link acquireN} can wait forever because the capacity never grows.
- * - Creating a semaphore with negative permits, acquiring a non-positive number
- *   of permits, or releasing a non-positive number of permits defects.
- * - Extra releases are capped at the fixed capacity.
+ * This module provides constructors, capacity and availability checks, retrying
+ * permit acquisition, non-retrying acquisition attempts, permit release,
+ * wrappers that run an effect with one or more permits, scoped permit
+ * acquisition, and a guard.
  *
  * @since 4.0.0
  */

@@ -1,49 +1,14 @@
 /**
- * The `TxPubSub` module provides a transactional publish/subscribe hub for
- * broadcasting values to scoped subscribers. Each subscriber owns a `TxQueue`,
- * so every value is offered independently to the queues registered at the time
- * of publication.
+ * Transactional publish/subscribe hubs for broadcasting values to scoped
+ * subscribers. Each subscriber owns a `TxQueue`, so each published value is
+ * offered to the subscriber queues that are registered at the time of
+ * publication.
  *
- * **Mental model**
- *
- * A `TxPubSub` is a registry of subscriber queues plus a shutdown flag.
- * Publishing reads the current subscribers and offers the value to each queue
- * in one transactional operation. Subscribers only receive values published
- * after they subscribe, and `subscribe` removes the queue when its scope
- * closes.
- *
- * **Common tasks**
- *
- * - Use `bounded` when slow subscribers should apply backpressure to
- *   publishers.
- * - Use `dropping` when new messages may be skipped for full subscribers.
- * - Use `sliding` when full subscribers should keep the newest messages.
- * - Use `unbounded` when subscriber queues should grow without backpressure.
- *
- * **Example** (Broadcasting to a subscriber)
- *
- * ```ts
- * import { Effect, TxPubSub, TxQueue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const hub = yield* TxPubSub.unbounded<string>()
- *
- *   return yield* Effect.scoped(
- *     Effect.gen(function*() {
- *       const subscriber = yield* TxPubSub.subscribe(hub)
- *       yield* TxPubSub.publish(hub, "updated")
- *       return yield* TxQueue.take(subscriber)
- *     })
- *   )
- * })
- * ```
- *
- * **Gotchas**
- *
- * - `size` reports the maximum pending messages in any subscriber queue, not
- *   the total number of queued copies.
- * - `shutdown` stops future publishes and shuts down subscriber queues that are
- *   registered at shutdown time.
+ * This module provides bounded, dropping, sliding, and unbounded hubs; capacity
+ * and size checks; publishing one or many values; scoped subscription; lower
+ * level subscriber acquire and release helpers; shutdown; waiting for shutdown;
+ * and a guard. Publication and subscriber management participate in Effect
+ * transactions.
  *
  * @since 4.0.0
  */

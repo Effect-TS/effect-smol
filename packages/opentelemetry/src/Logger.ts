@@ -1,35 +1,11 @@
 /**
  * Connects Effect logging to the OpenTelemetry Logs SDK.
  *
- * This module turns Effect log events into OpenTelemetry log records. It
- * provides the `OtelLoggerProvider` service, a `Logger` implementation created
- * by {@link make}, a {@link layer} that installs it into Effect logging, and
- * {@link layerLoggerProvider} for creating a scoped SDK `LoggerProvider` from
- * one or more `LogRecordProcessor`s.
- *
- * **Mental model**
- *
- * Effect decides when a log is emitted and supplies the message, fiber id, log
- * level, annotations, log spans, and active parent span. This module maps that
- * data into an OpenTelemetry log record, including severity text/number, trace
- * and span identifiers when available, and timestamps from the Effect `Clock`.
- *
- * **Common tasks**
- *
- * Use {@link layerLoggerProvider} when the application wants this package to own
- * the OpenTelemetry logger provider lifecycle. Provide it with processors such
- * as OTLP, console, or vendor-specific exporters, then install {@link layer} so
- * regular Effect logging emits records through that provider. If the provider is
- * created elsewhere, supply `OtelLoggerProvider` yourself and still use
- * {@link layer} or {@link make}.
- *
- * **Gotchas**
- *
- * This module does not choose an exporter. Export behavior, batching, retries,
- * and delivery guarantees come from the configured OpenTelemetry processors.
- * The scoped provider is force-flushed and shut down when the layer is released,
- * using the configured shutdown timeout; externally managed providers should be
- * flushed and shut down by the owner to avoid dropping buffered logs.
+ * This module turns Effect log events into OpenTelemetry log records. It maps
+ * Effect log levels to OpenTelemetry severity numbers, provides the
+ * `OtelLoggerProvider` service, creates an Effect `Logger` with `make`, and
+ * offers layers for installing that logger or creating a scoped SDK
+ * `LoggerProvider` from one or more `LogRecordProcessor`s.
  *
  * @since 4.0.0
  */

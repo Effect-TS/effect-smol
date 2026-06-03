@@ -6,47 +6,9 @@
  * Middleware is where you put cross-cutting behavior that belongs to the API
  * contract: authentication, authorization, request logging, tracing, rate
  * limiting, request-scoped services, schema-error normalization, and client
- * request decoration.
- *
- * **Mental model**
- *
- * - A middleware is declared with {@link Service}; the declaration is both a
- *   `Context.Service` key and a typed description of the middleware contract.
- * - Server implementations receive the endpoint response effect plus endpoint
- *   and group metadata. Security middleware also receives decoded credentials
- *   from the configured `HttpApiSecurity` scheme.
- * - The service metadata records provided services, required services, declared
- *   error schemas, client error types, security schemes, and whether generated
- *   clients must install a matching client middleware.
- * - Client middleware is published through the {@link ForClient} marker by
- *   {@link layerClient} and participates in the generated client's request
- *   pipeline.
- *
- * **Common tasks**
- *
- * - Declare middleware services with {@link Service}.
- * - Detect security middleware with {@link isSecurity}.
- * - Convert `HttpApiSchemaError` failures into declared API errors with
- *   {@link layerSchemaErrorTransform}.
- * - Install a generated-client middleware with {@link layerClient}.
- *
- * **Gotchas**
- *
- * - Middleware error declarations must be `Schema` values, or arrays of
- *   `Schema` values, because builders and clients encode and decode them as
- *   part of the endpoint error surface.
- * - A security middleware must declare at least one security scheme. Ordinary
- *   middleware does not receive credentials.
- * - A schema-error transform must fail with an error covered by the middleware's
- *   declared error schema.
- * - `requiredForClient` adds a client-side requirement. Provide it with
- *   {@link layerClient}; the layer captures its surrounding context.
- *
- * **See also**
- *
- * - {@link Service} for declaring middleware service keys.
- * - {@link layerSchemaErrorTransform} for mapping schema failures.
- * - {@link layerClient} for generated-client middleware.
+ * request decoration. This module also provides the service constructor used to
+ * declare middleware, helpers for security middleware, a layer for transforming
+ * request schema errors, and a layer for installing generated-client middleware.
  *
  * @since 4.0.0
  */

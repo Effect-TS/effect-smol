@@ -1,33 +1,15 @@
 /**
- * The `Runners` module defines the service used by the unstable cluster runtime
- * to communicate with processes that host entity shards. It is the transport
- * boundary between sharding decisions and runner execution: callers can ping a
- * runner, send requests or envelopes, notify a runner that persisted work is
- * available, and report an address as unavailable.
+ * Communication service and RPC protocol for runner-to-runner messages in
+ * Effect Cluster. `Runners` sits between sharding decisions and runner
+ * execution: callers can ping a runner, send requests or control envelopes,
+ * notify a runner that persisted work is available, and report a runner address
+ * as unavailable.
  *
- * The default implementation wraps lower-level runner callbacks with cluster
- * message semantics. Persisted messages are written to `MessageStorage` before
- * delivery, duplicate requests can resume from stored replies, and local sends
- * can optionally serialize and deserialize messages to exercise the same path as
- * remote delivery.
- *
- * **Common tasks**
- *
- * - Provide runner communication with {@link layerRpc}
- * - Build a custom implementation with {@link make}
- * - Use {@link makeNoop} or {@link layerNoop} when no remote runners are
- *   available
- * - Define runner-to-runner protocol support with {@link Rpcs} and
- *   {@link RpcClientProtocol}
- *
- * **Gotchas**
- *
- * - `notify` is only for RPCs annotated as persisted; non-persisted messages
- *   should be sent directly.
- * - Failed remote sends can fall back to reading replies from storage, so reply
- *   polling and `entityReplyPollInterval` affect recovery latency.
- * - Unavailable runners invalidate cached RPC clients, but shard ownership and
- *   rebalancing are coordinated by the sharding layer rather than this module.
+ * This module defines the `Runners` service, constructors that add local
+ * persistence and reply recovery around lower-level callbacks, a no-op service,
+ * the runner RPC group and generated client, an RPC-backed implementation that
+ * caches clients by runner address, and the `RpcClientProtocol` service used by
+ * transport-specific runner layers.
  *
  * @since 4.0.0
  */

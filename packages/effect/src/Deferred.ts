@@ -1,62 +1,9 @@
 /**
- * The `Deferred` module provides a one-shot coordination cell for Effect
- * programs. A `Deferred<A, E>` starts empty, can be completed exactly once, and
- * allows any number of fibers to wait until that completion is available.
- *
- * `Deferred` is useful when one fiber must hand a single result, failure, or
- * interruption signal to other fibers. Awaiters suspend without blocking an OS
- * thread and resume with the same completion once a producer wins the race to
- * complete the cell.
- *
- * **Mental model**
- *
- * - `Deferred.make` creates an empty cell
- * - `Deferred.await` waits for the cell and then observes its stored
- *   success, failure, defect, or interruption
- * - Completion functions such as {@link succeed}, {@link fail},
- *   {@link failCause}, {@link interrupt}, and {@link complete} return
- *   `true` when they complete the cell, or `false` when another fiber already
- *   completed it
- * - Once completed, the result is stable for both current and future awaiters
- *
- * **Common tasks**
- *
- * - Create a cell with {@link make}
- * - Wait for a result with {@link _await await}
- * - Complete with a value or failure using {@link succeed}, {@link fail},
- *   {@link failCause}, {@link die}, or {@link interrupt}
- * - Complete from another effect using {@link complete} or {@link completeWith}
- * - Check completion state with {@link isDone} or inspect it with {@link poll}
- *
- * **Gotchas**
- *
- * - A `Deferred` is for a single handoff; use `Queue` when producers emit many
- *   values over time
- * - `complete` runs an effect once and shares its memoized result, while
- *   `completeWith` stores an effect directly and each awaiter may run it
- * - Interrupting a fiber that is waiting on a `Deferred` removes that waiter;
- *   it does not complete the `Deferred`
- *
- * **Example** (Opening a start gate)
- *
- * ```ts
- * import { Deferred, Effect, Fiber } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const ready = yield* Deferred.make<void>()
- *
- *   const worker = yield* Effect.forkChild(
- *     Effect.gen(function*() {
- *       yield* Deferred.await(ready)
- *       return "started"
- *     })
- *   )
- *
- *   yield* Deferred.succeed(ready, undefined)
- *
- *   return yield* Fiber.join(worker)
- * })
- * ```
+ * One-time coordination cells for Effect programs. A `Deferred<A, E>` starts
+ * empty, can be completed exactly once with a success, failure, defect, or
+ * interruption, and lets any number of fibers wait for that result. Awaiting a
+ * `Deferred` suspends the fiber instead of blocking an operating-system thread,
+ * and every waiter observes the same completion.
  *
  * @since 2.0.0
  */

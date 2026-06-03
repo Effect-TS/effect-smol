@@ -10,15 +10,6 @@
  * middleware behavior, and tests that want to call an API through its typed
  * client while keeping all traffic in memory.
  *
- * The selected groups must be provided in the test environment, usually by
- * supplying the corresponding `HttpApiBuilder.group` layers. Groups that are not
- * selected are still present on the returned client shape, but their handlers
- * are placeholders that die if called, which helps catch accidental calls outside
- * the test scope. The generated client is still a real `HttpApiClient`, so
- * endpoint middleware, client middleware, platform services, and the optional
- * `baseUrl` used for URL construction follow the same rules as normal clients;
- * only the HTTP transport is replaced with an in-memory router dispatch.
- *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

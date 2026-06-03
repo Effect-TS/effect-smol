@@ -9,18 +9,6 @@
  * effectful functions, and supplied from defaults, config, or prompts when
  * missing.
  *
- * **Gotchas**
- *
- * - Positional arguments are order-sensitive; compose them in the same order the
- *   user should type them.
- * - `variadic` arguments can consume more than one value, so place them where
- *   the remaining positional input belongs.
- * - Use {@link withDescription} and {@link withMetavar} to keep generated help
- *   text clear, especially when the parser name differs from the value users
- *   should provide.
- * - Boolean positional arguments are intentionally not provided. Prefer boolean
- *   flags, or use {@link choice} for explicit `"true"` / `"false"` values.
- *
  * @since 4.0.0
  */
 import type * as Config from "../../Config.ts"

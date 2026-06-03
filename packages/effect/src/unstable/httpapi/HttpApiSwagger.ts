@@ -6,30 +6,6 @@
  * running application can expose interactive API documentation without writing a
  * separate OpenAPI file.
  *
- * **Mental model**
- *
- * {@link layer} registers one `GET` route, defaulting to `/docs`. When that
- * route is requested, the module derives the OpenAPI document with
- * `OpenApi.fromApi`, embeds it into an HTML page, and boots the bundled Swagger
- * UI script in the browser. API implementation, middleware, and server wiring
- * stay with the surrounding `HttpApi` and router layers.
- *
- * **Common tasks**
- *
- * - Use {@link layer} to mount Swagger UI for an `HttpApi`
- * - Set `path` when the documentation route should be mounted somewhere other
- *   than `/docs`
- * - Add OpenAPI annotations to the API definition so the generated UI has the
- *   desired titles, descriptions, servers, security schemes, and operation
- *   metadata
- *
- * **Gotchas**
- *
- * The mounted route serves HTML, not a raw OpenAPI JSON endpoint. Clients,
- * gateways, and documentation pipelines that need the specification directly
- * should derive it separately with `OpenApi.fromApi` or expose a JSON route from
- * the surrounding API server.
- *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"

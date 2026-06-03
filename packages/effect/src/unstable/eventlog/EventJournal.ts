@@ -7,30 +7,9 @@
  * this service when rebuilding projections, syncing offline clients, importing
  * remote changes, or coordinating writes per store.
  *
- * **Mental model**
- *
- * A local write creates a UUID v7 entry id, runs the caller-provided effect,
- * and commits the entry only when that effect succeeds. Remote writes first
- * split duplicate entries from new entries, optionally compact the new remote
- * history, run replay effects with conflict entries, and then persist the
- * imported entries. Remote metadata tracks the last known sequence number and
- * which local entries each remote still needs.
- *
- * **Common tasks**
- *
- * Use `entries` to replay the full journal, `changes` to subscribe to local
- * writes, `writeFromRemote` to import replicated entries, and
- * `withRemoteUncommited` to send entries a remote has not yet acknowledged. Use
- * `withLock` when multiple event-log operations must serialize work for the
- * same store id.
- *
- * **Gotchas**
- *
- * Entry ordering comes from UUID v7 timestamps, so conflict detection is tied
- * to clock-derived ids. Payloads are opaque encoded bytes and must remain
- * compatible with the schemas that decode historical entries. Remote imports
- * can include duplicates, and replay handlers should expect entries that arrive
- * after local changes for the same event and primary key.
+ * This module also defines journal errors, branded remote and entry ids, entry
+ * and remote-entry schemas, helpers for generating and reading UUID-based entry
+ * ids, and in-memory or IndexedDB-backed journal implementations with layers.
  *
  * @since 4.0.0
  */

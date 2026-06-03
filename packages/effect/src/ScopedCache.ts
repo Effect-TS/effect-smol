@@ -1,27 +1,13 @@
 /**
- * The `ScopedCache` module provides a cache for values that acquire scoped
- * resources during lookup. Each cached entry owns a `Scope`, so resources
- * created while computing a value stay alive for as long as that entry remains
- * cached and are released when the entry is removed.
+ * A cache for values that need a scope while they are created. Each cached
+ * entry owns its own `Scope`, so resources opened during lookup stay alive
+ * while that entry is cached and are released when the entry is removed.
  *
- * A `ScopedCache` is itself created inside a scope. Calls to {@link get} run the
- * lookup effect on cache misses, share the same in-flight lookup among
- * concurrent callers for the same key, and store the resulting exit according
- * to a time-to-live policy. Entries can be inserted manually with {@link set},
- * refreshed with {@link refresh}, inspected without triggering lookup with
- * {@link getOption}, and removed with {@link invalidate} or
- * {@link invalidateAll}. Capacity limits evict the oldest entries.
- *
- * **Lifecycle notes**
- *
- * - Entry scopes are closed when entries expire, are invalidated, are evicted,
- *   are replaced, or when the cache's owning scope closes
- * - Successful and failed lookup exits are both cached according to the
- *   configured TTL
- * - Expired entries may remain counted by {@link size} until a cache operation
- *   observes and removes them
- * - Once the owning scope closes, the cache is closed and lookup-style
- *   operations interrupt instead of acquiring new values
+ * A `ScopedCache` is created inside another scope. `get` runs the lookup effect
+ * on cache misses, shares one in-progress lookup between callers asking for the
+ * same key, and stores the result according to the configured time-to-live.
+ * Entries can also be inserted, refreshed, checked, inspected, invalidated, or
+ * cleared, and capacity limits evict the oldest cached entries.
  *
  * @since 4.0.0
  */

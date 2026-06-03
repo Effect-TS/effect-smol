@@ -4,43 +4,6 @@
  * runner membership, serialization, persistence, mailbox capacity, and duplicate
  * envelope boundaries.
  *
- * **Mental model**
- *
- * - Cluster operations fail with typed values so callers can distinguish retry,
- *   supervision, decoding, and storage failures.
- * - Each error has a stable `_tag` and schema representation for transport or
- *   storage boundaries.
- * - Static `is` helpers recognize errors from this module at runtime, and
- *   `refail` helpers map lower-level failures into cluster errors.
- *
- * **Common tasks**
- *
- * - Report wrong-runner delivery with {@link EntityNotAssignedToRunner}.
- * - Surface runner membership and liveness failures with
- *   {@link RunnerNotRegistered} or {@link RunnerUnavailable}.
- * - Convert encode and decode failures to {@link MalformedMessage}.
- * - Preserve storage failures as {@link PersistenceError}.
- * - Signal mailbox pressure with {@link MailboxFull}.
- * - Reject duplicate in-flight envelopes with
- *   {@link AlreadyProcessingMessage}.
- *
- * **Gotchas**
- *
- * - Ownership and health can change while a message is in flight, so routing
- *   and availability errors are often retryable by higher-level cluster logic.
- * - {@link MalformedMessage} means the payload crossed a schema or
- *   serialization boundary incorrectly; it is not an entity handler failure.
- * - {@link AlreadyProcessingMessage} is per-envelope protection, not a general
- *   entity lock.
- *
- * **See also**
- *
- * - {@link EntityNotAssignedToRunner}, {@link RunnerUnavailable}, and
- *   {@link RunnerNotRegistered} for routing and membership failures.
- * - {@link MalformedMessage} and {@link PersistenceError} for boundary
- *   failures.
- * - {@link MailboxFull} and {@link AlreadyProcessingMessage} for mailbox state.
- *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"

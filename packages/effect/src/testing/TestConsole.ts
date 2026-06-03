@@ -8,34 +8,6 @@
  * for reading captured `Console.log` and `Console.error` arguments, and a way
  * to access the provided test console service directly.
  *
- * **Mental model**
- *
- * - {@link layer} replaces the current `Console` service with a fresh
- *   in-memory test console for the effect it is provided to
- * - Code under test must call Effect's `Console` APIs; direct calls to
- *   `globalThis.console` are outside the service and are not captured
- * - {@link logLines} returns the values passed to `Console.log` in call order
- * - {@link errorLines} returns the values passed to `Console.error` in call
- *   order
- * - {@link testConsoleWith} gives direct access to the current `TestConsole`
- *   service when a test needs to inspect or call it manually
- *
- * **Common tasks**
- *
- * - Capture console output by providing {@link layer}
- * - Assert on logged values with {@link logLines}
- * - Assert on error output with {@link errorLines}
- * - Construct a standalone test console service with {@link make}
- * - Access the provided service with {@link testConsoleWith}
- *
- * **Gotchas**
- *
- * - Captured log and error values are the original arguments, not formatted
- *   strings
- * - `logLines` and `errorLines` expose `Console.log` and `Console.error`
- *   output; other console methods are implemented for compatibility but do not
- *   have dedicated accessor effects in this module
- *
  * @since 4.0.0
  */
 import * as Array from "../Array.ts"

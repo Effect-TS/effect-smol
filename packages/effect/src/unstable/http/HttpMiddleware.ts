@@ -6,20 +6,9 @@
  * is evaluated with the current `HttpServerRequest` service in its context, so
  * middleware in this module can inspect or rewrite the request, provide
  * request-scoped services, attach pre-response hooks, or observe the app exit
- * while preserving normal Effect error and interruption semantics.
- *
- * Use this module for common server concerns such as access logging, trace span
- * creation, trusting forwarded proxy headers, parsing search parameters, and
- * adding CORS handling. Middleware can be applied directly when serving an
- * `HttpServer` / `HttpEffect` app or registered through `HttpRouter.middleware`
- * for route-scoped or global behavior.
- *
- * Middleware composition is order-sensitive, and each middleware may change the
- * wrapped effect's requirements or error channel. These functions expect a
- * per-request `HttpServerRequest` to be present; context-providing middleware
- * should wrap handlers before they access the provided service, and
- * error-handling middleware should be installed where its transformed error type
- * matches the surrounding app or router registration.
+ * while preserving normal Effect error and interruption semantics. The exported
+ * middleware covers response logging, server tracing, forwarded proxy headers,
+ * parsed search parameters, and CORS response headers.
  *
  * @since 4.0.0
  */

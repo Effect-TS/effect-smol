@@ -5,24 +5,9 @@
  * workers `take` one value at a time inside a scoped processing window. It is
  * useful for durable handoffs, background jobs, outbox-style integrations, and
  * workloads where failed work should be retried across fibers, process
- * restarts, or multiple workers sharing Redis or SQL.
- *
- * Delivery is at-least-once: a handler that fails, is interrupted, or loses its
- * backing-store lock may see the same element again until `maxAttempts` is
- * reached. Use stable custom ids when offering idempotent work, and choose ids
- * that are collision-free for the backing store because stores can enforce
- * uniqueness at the queue, prefix, or table level. Ordering is intentionally a
- * store-level concern; retries, lock expiration, polling, and multiple workers
- * can move entries behind newer work, so handlers should not rely on strict
- * FIFO processing.
- *
- * Values are encoded and decoded with the supplied schema using the JSON codec,
- * so schema services must be available when offering and taking values. Changing
- * a queue name, schema, Redis prefix, SQL table, or id format is a persistence
- * migration: old entries may decode differently, stop being visible, or collide
- * with new entries. The memory store is process-local and volatile, while Redis
- * and SQL stores use leases that should be tuned for the expected processing
- * time.
+ * restarts, or multiple workers. The module provides a queue factory, the
+ * low-level store service, id-based de-duplication for offered items, retry
+ * handling with maximum attempts, and in-memory, Redis, and SQL store layers.
  *
  * @since 4.0.0
  */

@@ -1,43 +1,12 @@
 /**
- * An Effect-native module for working with child processes.
+ * Command descriptions for running child processes with Effect.
  *
- * This module uses an AST-based approach where commands are built first
- * using `make` and `pipeTo`, then executed using `spawn`.
- *
- * **Example** (Spawning and piping commands)
- *
- * ```ts
- * import { Effect, Stream } from "effect"
- * import { NodeServices } from "@effect/platform-node"
- * import { ChildProcess } from "effect/unstable/process"
- *
- * // Build a command
- * const command = ChildProcess.make`echo "hello world"`
- *
- * // Spawn and collect output
- * const program = Effect.gen(function*() {
- *   // You can `yield*` a command, which calls `ChildProcess.spawn`
- *   const handle = yield* command
- *   const chunks = yield* Stream.runCollect(handle.stdout)
- *   const exitCode = yield* handle.exitCode
- *   return { chunks, exitCode }
- * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
- *
- * // With options
- * const withOptions = ChildProcess.make({ cwd: "/tmp" })`ls -la`
- *
- * // Piping commands
- * const pipeline = ChildProcess.make`cat package.json`.pipe(
- *   ChildProcess.pipeTo(ChildProcess.make`grep name`)
- * )
- *
- * // Spawn the pipeline
- * const pipelineProgram = Effect.gen(function*() {
- *   const handle = yield* pipeline
- *   const chunks = yield* Stream.runCollect(handle.stdout)
- *   return chunks
- * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
- * ```
+ * Commands are values that describe a child process before it starts. This
+ * module provides constructors for commands, helpers for piping commands
+ * together, and options for working directories, environment variables, standard
+ * streams, extra file descriptors, shells, and shutdown signals. A `Command` is
+ * also an Effect; when it is run, it asks the `ChildProcessSpawner` service to
+ * start the process and returns a `ChildProcessHandle`.
  *
  * @since 4.0.0
  */

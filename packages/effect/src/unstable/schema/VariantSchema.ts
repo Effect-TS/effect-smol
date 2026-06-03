@@ -1,22 +1,12 @@
 /**
- * Build families of related struct schemas from one field definition.
+ * Builds several related struct schemas from one field definition.
  *
- * `VariantSchema` is useful when the same domain object needs several schema
- * views, such as database select / insert / update shapes, JSON read / write
- * shapes, public versus private API views, or constructor schemas with
- * generated defaults. {@link make} fixes a closed set of variant names and a
- * default variant, then returns helpers for defining shared `Struct` values,
- * per-variant `Field` values, schema classes, unions, and extracted
- * `Schema.Struct` projections.
- *
- * A plain schema in a variant struct is present in every variant, a `Field`
- * contributes a property only to the variants named in its config, and nested
- * variant structs are extracted recursively. Variants are projections, not
- * discriminated alternatives: this module does not add a tag field, so include
- * an explicit literal tag when a decoded union needs runtime discrimination.
- * Also remember that the default variant is the schema used by generated
- * classes and ordinary variant unions; per-variant schemas are exposed
- * separately on those generated values.
+ * `make` fixes a set of variant names and one default variant, then returns a
+ * toolkit for defining shared `Struct` values and per-variant `Field` values.
+ * From those definitions it can create schema classes, unions, extracted
+ * `Schema.Struct` projections, and helpers for evolving fields across variants.
+ * The module also provides `Override` and `Overrideable` for schemas whose
+ * constructor default can be replaced by an explicit value.
  *
  * @since 4.0.0
  */

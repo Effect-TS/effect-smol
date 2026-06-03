@@ -4,46 +4,11 @@
  * batch `embedMany` operations, and keeps provider failures represented as
  * `AiError` values.
  *
- * **Mental model**
- *
- * Providers supply one batch embedding function through `make`. The module
- * derives single-input `embed` calls from a request resolver, so concurrent
- * single-input requests can be batched into one provider call. Provider
- * vectors are wrapped as `EmbedResponse` values, while `EmbedManyResponse`
- * preserves input order and carries token usage when the provider reports it.
- *
- * **Common tasks**
- *
- * - Build an `EmbeddingModel` service from a provider implementation.
- * - Use `embed` for one query or document, and `embedMany` when the caller
- *   already has a batch.
- * - Read `Dimensions` when downstream code needs the configured vector size.
- *
- * **Example** (Building a small embedding model)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { EmbeddingModel } from "effect/unstable/ai"
- *
- * const program = Effect.gen(function*() {
- *   const model = yield* EmbeddingModel.make({
- *     embedMany: ({ inputs }) =>
- *       Effect.succeed({
- *         results: inputs.map((input) => [input.length]),
- *         usage: { inputTokens: inputs.join(" ").length }
- *       })
- *   })
- *
- *   const response = yield* model.embed("hello")
- *   return response.vector
- * })
- * ```
- *
- * **Gotchas**
- *
- * - `embedMany([])` returns an empty response without invoking the provider.
- * - Provider batch responses must contain exactly one vector for each input,
- *   in the same order as the input array.
+ * This module also defines the embedding dimensions service, request and
+ * response models, usage metadata, provider input and output contracts, and a
+ * constructor that adapts a provider batch implementation into a service.
+ * Single `embed` calls use a request resolver so concurrent requests can be
+ * batched together.
  *
  * @since 4.0.0
  */

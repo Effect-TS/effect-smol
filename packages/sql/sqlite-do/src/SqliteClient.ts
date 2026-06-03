@@ -1,35 +1,11 @@
 /**
- * Effect SQL client for Cloudflare Durable Object SQLite storage.
+ * Connects Effect SQL to SQLite storage inside Cloudflare Durable Objects.
  *
- * This module adapts a Durable Object `SqlStorage` handle into both the
- * Durable Object-specific {@link SqliteClient} service and the generic Effect
- * SQL `SqlClient` service. Use it inside a Durable Object for per-object
- * queries, repositories, migrations, transactional read/write workflows, and
- * tests that exercise Cloudflare's SQLite-backed storage API.
- *
- * **Mental model**
- *
- * Durable Object storage is scoped to one object id. Each object instance has
- * its own database, and {@link make} wraps the same `SqlStorage` handle that
- * the object uses for normal reads and writes. Effect SQL access is serialized
- * through one connection; a transaction keeps that permit for the lifetime of
- * its scope.
- *
- * **Common tasks**
- *
- * Use {@link layer} when the Durable Object constructor already has a concrete
- * `SqlStorage` handle. Use {@link layerConfig} when the handle and transform
- * options should be supplied through Effect `Config`. Keep using generic
- * `SqlClient` APIs for ordinary SQL, and depend on {@link SqliteClient} when
- * code needs the Durable Object-specific service identity.
- *
- * **Gotchas**
- *
- * Keep transactions short and avoid suspending them across unrelated work,
- * because all access through one client waits on the same serialized
- * connection. `SqlStorage.exec` returns SQLite blob values as `ArrayBuffer`,
- * which this client normalizes to `Uint8Array`. SQLite does not support
- * `updateValues`.
+ * This module wraps a Durable Object `SqlStorage` handle and exposes it as both
+ * `SqliteClient` and the generic Effect SQL client. It serializes access,
+ * supports normal and streaming queries, converts returned `ArrayBuffer` values
+ * to `Uint8Array`, and provides layers for wiring the client into an Effect
+ * application. `updateValues` is not supported by this driver.
  *
  * @since 4.0.0
  */

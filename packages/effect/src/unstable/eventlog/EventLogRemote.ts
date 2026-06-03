@@ -10,14 +10,6 @@
  * synchronizing browser, edge, or service replicas across an untrusted network,
  * while the unencrypted constructor is intended for trusted transports or tests.
  *
- * Remote sessions begin with `Hello` and `Authenticate`, cache authentication by
- * identity public key, and retry forbidden responses by refreshing the handshake.
- * The RPC transport must preserve a stable client session across hello,
- * authentication, writes, and change streams. Entries and change batches may be
- * split into protocol chunks, so callers should treat `changes` as a scoped
- * streaming queue and rely on the remote `Registry` registration instead of
- * manually sharing partially assembled payloads between sessions.
- *
  * @since 4.0.0
  */
 import * as Cache from "../../Cache.ts"

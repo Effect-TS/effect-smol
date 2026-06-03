@@ -1,80 +1,11 @@
 /**
- * The `Order` module defines total orderings: pure comparison functions that
- * decide whether one value is less than, equal to, or greater than another. An
- * `Order<A>` returns a normalized {@link Ordering} (`-1`, `0`, or `1`), making
- * it suitable for sorting, finding minimum and maximum values, range checks, and
- * building ordered data structures.
- *
- * **Mental model**
- *
- * - An {@link Order} is a comparator with laws: totality, antisymmetry, and
- *   transitivity. If those laws do not hold, sorting and range operations can
- *   produce surprising results.
- * - `-1` means the left value comes before the right value, `0` means they are
- *   equal for this ordering, and `1` means the left value comes after the right
- *   value.
- * - Primitive orders such as {@link Number}, {@link String}, {@link Boolean},
- *   {@link BigInt}, and {@link Date} are building blocks.
- * - Use {@link mapInput} to compare larger values by a field or derived key.
- * - Use {@link combine} or {@link combineAll} for tie-breaking, where the first
- *   non-zero comparison result wins.
- *
- * **Common tasks**
- *
- * - Create a custom order from a comparison function with {@link make}.
- * - Sort or compare using built-in orders such as {@link Number} and
- *   {@link String}.
- * - Compare records and tuples with {@link Struct} and {@link Tuple}.
- * - Compare arrays lexicographically with {@link Array}.
- * - Convert an order into predicates with {@link isLessThan},
- *   {@link isGreaterThan}, {@link isLessThanOrEqualTo}, and
- *   {@link isGreaterThanOrEqualTo}.
- * - Select boundaries with {@link min}, {@link max}, {@link clamp}, and
- *   {@link isBetween}.
- *
- * **Gotchas**
- *
- * - {@link make} returns `0` immediately when `self === that`; the custom
- *   comparison function is not called for identical references.
- * - {@link Number} treats all `NaN` values as equal to each other and less than
- *   every non-`NaN` number.
- * - {@link Array} compares elements first and length second. {@link Tuple}
- *   compares a fixed number of positions.
- * - {@link Struct} compares fields in the key order of the object passed to it,
- *   so put the highest-priority fields first.
- * - {@link min} and {@link max} return the first argument when two values
- *   compare as equal.
- *
- * **Example** (Sorting by multiple fields)
- *
- * ```ts
- * import { Array, Order } from "effect"
- *
- * interface User {
- *   readonly name: string
- *   readonly age: number
- * }
- *
- * const byAge = Order.mapInput(Order.Number, (user: User) => user.age)
- * const byName = Order.mapInput(Order.String, (user: User) => user.name)
- * const byAgeThenName = Order.combine(byAge, byName)
- *
- * const users = [
- *   { name: "Charlie", age: 30 },
- *   { name: "Bob", age: 25 },
- *   { name: "Alice", age: 30 }
- * ]
- *
- * const sorted = Array.sort(users, byAgeThenName)
- * console.log(sorted.map((user) => user.name))
- * // ["Bob", "Alice", "Charlie"]
- * ```
- *
- * **See also**
- *
- * - {@link Ordering} for the normalized comparison result type.
- * - `Equivalence` for equality without less-than or greater-than.
- * - {@link Reducer} for combining orders with reducer-style APIs.
+ * Comparison functions for deciding whether one value is less than, equal to,
+ * or greater than another. An `Order<A>` returns an `Ordering` value (`-1`,
+ * `0`, or `1`) and can be used for sorting, minimum and maximum selection,
+ * range checks, and ordered data structures. This module provides built-in
+ * orders for common JavaScript values, constructors for custom orders,
+ * combinators for reversing, mapping, and tie-breaking orders, helpers for
+ * tuples and structs, comparison predicates, clamping, and reducer support.
  *
  * @since 2.0.0
  */

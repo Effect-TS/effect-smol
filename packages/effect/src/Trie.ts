@@ -1,54 +1,13 @@
 /**
- * Immutable string-keyed maps optimized for prefix lookup.
+ * Immutable string-keyed maps optimized for prefix lookup. A `Trie<Value>`
+ * stores values under `string` keys, similar to a map whose key type is fixed
+ * to strings, and organizes those keys by shared prefixes.
  *
- * A `Trie<Value>` stores values under `string` keys, similar to a `HashMap`
- * whose key type is fixed to `string`. That restriction lets the data
- * structure organize keys by their shared prefixes, which is useful for
- * autocomplete, route tables, dictionaries, command lookup, and any workflow
- * that needs to ask "which entries start with this string?".
- *
- * **Mental model**
- *
- * - Exact-key lookup uses {@link get}, {@link has}, or {@link getUnsafe}.
- * - Prefix lookup uses {@link keysWithPrefix}, {@link valuesWithPrefix},
- *   {@link entriesWithPrefix}, {@link toEntriesWithPrefix}, or
- *   {@link longestPrefixOf}.
- * - Iteration yields entries in key order, not insertion order.
- * - Lookup work is proportional to the key or prefix length rather than the
- *   total number of entries.
- *
- * **Common tasks**
- *
- * - Create tries with {@link empty}, {@link make}, or {@link fromIterable}.
- * - Read all keys, values, or entries with {@link keys}, {@link values},
- *   {@link entries}, and {@link toEntries}.
- * - Transform values with {@link map}, {@link filter}, {@link filterMap},
- *   {@link compact}, {@link forEach}, and {@link reduce}.
- *
- * **Gotchas**
- *
- * - Keys must be strings. Use `HashMap` when keys need structural equality or
- *   are not naturally represented as strings.
- * - {@link get} returns an `Option`; {@link getUnsafe} throws when the key is
- *   absent.
- * - Sorted iteration is convenient for presentation, but it also means
- *   insertion order is not preserved.
- *
- * **Example** (Finding entries by prefix)
- *
- * ```ts
- * import { Trie } from "effect"
- * import * as assert from "node:assert"
- *
- * const commands = Trie.make(
- *   ["commit", "Record changes"],
- *   ["checkout", "Switch branches"],
- *   ["clone", "Copy a repository"]
- * )
- *
- * const matches = Trie.toEntriesWithPrefix(commands, "ch")
- * assert.deepStrictEqual(matches, [["checkout", "Switch branches"]])
- * ```
+ * This is useful for autocomplete, route tables, dictionaries, command lookup,
+ * and any workflow that needs to ask which entries start with a string. The
+ * module provides exact lookup, prefix lookup, longest-prefix lookup,
+ * insertion, removal, batch updates, iteration in key order, mapping,
+ * filtering, reducing, and traversal helpers.
  *
  * @since 2.0.0
  */

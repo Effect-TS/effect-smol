@@ -4,24 +4,10 @@
  * that use `Effect.sleep`, timeouts, schedules, retries, and other time-based
  * operators can be driven deterministically by advancing the test clock.
  *
- * **Common use cases**
- *
- * - Testing sleeps, delays, timeouts, debouncing, retries, and schedules without
- *   slowing the test suite down
- * - Advancing time with {@link adjust} or jumping to an exact timestamp with
- *   {@link setTime}
- * - Running a specific effect against the live clock with {@link withLive}
- *   while the rest of the test remains under test-clock control
- *
- * **Testing gotchas**
- *
- * - Effects that sleep semantically block until the clock is advanced far
- *   enough, so tests usually fork the time-dependent effect before calling
- *   {@link adjust} or {@link setTime}
- * - Scheduled sleeps are resumed in clock-time order as the test clock moves
- *   forward
- * - If a test uses time but never advances the `TestClock`, the module starts a
- *   delayed warning to help identify a hanging test
+ * This module provides a `TestClock` service, constructors, a layer, helpers
+ * for adjusting time or setting the current timestamp, and `withLive` for
+ * running part of a test with the real clock. The test clock also warns when a
+ * test appears to be waiting on time without advancing the clock.
  *
  * @since 2.0.0
  */

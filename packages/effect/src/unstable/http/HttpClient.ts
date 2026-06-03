@@ -7,32 +7,11 @@
  * values, returns `HttpClientResponse` values, and keeps outbound HTTP behind a
  * service boundary so call sites do not depend on a concrete runtime transport.
  *
- * **Mental model**
- *
- * A client is an `execute` function plus method helpers such as `get`, `post`,
- * and `del`. Before a request reaches the runtime, it passes through a
- * preprocessing pipeline. After the runtime returns a response, it passes
- * through a postprocessing pipeline. Combinators such as `mapRequest`,
- * `filterStatusOk`, `retry`, `followRedirects`, `withCookiesRef`, and
- * `withRateLimiter` return a new client with behavior layered around the
- * previous one.
- *
- * **Common tasks**
- *
- * Use method helpers for straightforward calls, construct `HttpClientRequest`
- * values directly when a request is assembled across several steps, and use
- * `make` or `makeWith` when adapting a lower-level transport. Use
- * `filterStatus` or `filterStatusOk` when non-success HTTP statuses should fail
- * the Effect. Use `withScope` when response resources should live for a
- * surrounding scope instead of only the individual request.
- *
- * **Gotchas**
- *
- * Receiving a response is a successful Effect even for non-2xx statuses unless
- * a status filter has been applied. `mapRequestInput` prepends work before
- * existing request middleware, while `mapRequest` appends after it. Without
- * `withScope`, non-scoped responses are attached to an abort controller so
- * interruption can clean up the request.
+ * It also provides accessors for common HTTP methods, constructors and layer
+ * helpers, request and response transformations, status filters, error recovery,
+ * retry helpers, transient-error retrying, rate limiting, cookie persistence,
+ * scoped request abortion, redirect following, and tracing configuration for
+ * outgoing client spans.
  *
  * @since 4.0.0
  */

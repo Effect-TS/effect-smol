@@ -1,30 +1,13 @@
 /**
- * The `AtomHttpApi` module adapts typed `HttpApi` clients to the unstable atom
- * reactivity runtime. Use it to define a `Context.Service` whose generated HTTP
- * API client is available directly and whose endpoints can also be invoked as
- * atoms: `query` creates an atom of `AsyncResult` for reads, while `mutation`
- * creates an `AtomResultFn` for writes.
+ * Atom helpers for typed `HttpApi` clients.
  *
- * It is intended for applications that want server state to participate in atom
- * caching, invalidation, and hydration. Queries can be associated with
- * `reactivityKeys` so they refresh when those keys are invalidated, mutations can
- * invalidate the same keys after the request succeeds, and `timeToLive` controls
- * whether idle query atoms expire, stay alive for a duration, or are kept alive.
- *
- * Serialization is schema-based and intentionally limited to decoded values.
- * Mutation atoms are serializable only in `"decoded-only"` mode, while query
- * atoms are serializable only in `"decoded-only"` mode when a stable
- * `serializationKey` is supplied. Choose serialization keys that uniquely
- * identify the endpoint request, keep reactivity keys stable across client and
- * server registries during hydration, and avoid serializing response modes that
- * expose raw `HttpClientResponse` values.
- *
- * The service wraps `HttpApiClient.make`, so the same `HttpApi` definition,
- * schemas, base URL, middleware services, and HTTP client layer must be available
- * wherever the atom runtime is constructed. Use `transformClient` and
- * `transformResponse` for cross-cutting client behavior, and remember that
- * schema or low-level HTTP client failures are raised as defects while endpoint
- * and middleware failures remain typed errors.
+ * This module creates a `Context.Service` that exposes the generated HTTP API
+ * client and adds atom-based helpers for endpoints. `query` calls an endpoint as
+ * a read atom whose value is an `AsyncResult`, while `mutation` calls an
+ * endpoint as a writable `AtomResultFn`. Query atoms can be cached, serialized
+ * for hydration, refreshed through `reactivityKeys`, and kept or disposed with
+ * `timeToLive`; mutations can invalidate the same keys after a successful
+ * request.
  *
  * @since 4.0.0
  */

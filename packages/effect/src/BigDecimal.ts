@@ -1,59 +1,9 @@
 /**
- * Decimal arithmetic backed by an unscaled `bigint` and a decimal scale.
- *
- * `BigDecimal` is useful when values must keep their decimal representation
- * instead of inheriting JavaScript's binary floating-point rounding, such as
- * money, quantities, measurements, or protocol values exchanged as decimal
- * strings. The module includes constructors, parsers, arithmetic operations,
- * comparisons, rounding helpers, and string formatting.
- *
- * **Mental model**
- *
- * - A `BigDecimal` stores `value * 10^-scale`; `make(12345n, 2)` represents
- *   `123.45`
- * - Values are immutable; arithmetic returns new `BigDecimal` values
- * - Equivalent values can have different internal scales, so equality and
- *   ordering normalize trailing zeros
- * - Division can produce repeating decimals, so {@link divide} and
- *   {@link divideUnsafe} use the module's default division precision
- *
- * **Common tasks**
- *
- * - Construct values: {@link make}, {@link fromBigInt}, {@link fromString},
- *   {@link fromNumber}
- * - Render values: {@link format}, {@link toExponential},
- *   {@link toNumberUnsafe}
- * - Do arithmetic: {@link sum}, {@link subtract}, {@link multiply},
- *   {@link divide}, {@link remainder}, {@link negate}, {@link abs}
- * - Compare and constrain values: {@link equals}, {@link Order},
- *   {@link isLessThan}, {@link between}, {@link clamp}, {@link min},
- *   {@link max}
- * - Adjust decimal places: {@link scale}, {@link round}, {@link truncate},
- *   {@link ceil}, {@link floor}
- *
- * **Gotchas**
- *
- * - Prefer {@link fromString} or {@link fromBigInt} for external decimal data.
- *   {@link fromNumber} can only preserve the decimal spelling of a finite
- *   JavaScript number after any binary floating-point precision has already
- *   been lost.
- * - {@link divide} and {@link remainder} return `Option.none()` for division
- *   by zero; {@link divideUnsafe} and {@link remainderUnsafe} throw instead.
- * - Parsed scales must fit in JavaScript's safe integer range.
- *
- * **Example** (Decimal arithmetic)
- *
- * ```ts
- * import { BigDecimal } from "effect"
- *
- * const subtotal = BigDecimal.multiply(
- *   BigDecimal.fromStringUnsafe("19.99"),
- *   BigDecimal.fromBigInt(3n)
- * )
- * const total = BigDecimal.sum(subtotal, BigDecimal.fromStringUnsafe("1.50"))
- *
- * console.log(BigDecimal.format(total)) // "61.47"
- * ```
+ * Decimal numbers and arithmetic for cases where JavaScript `number` rounding
+ * is not precise enough. A `BigDecimal` stores digits as a `bigint` plus a
+ * decimal scale, which lets the module parse, compare, add, subtract, multiply,
+ * divide, round, and format decimal values such as money, quantities, and
+ * measurements.
  *
  * @since 2.0.0
  */

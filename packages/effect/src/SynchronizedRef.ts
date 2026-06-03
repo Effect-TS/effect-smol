@@ -1,25 +1,14 @@
 /**
- * The `SynchronizedRef` module provides mutable references whose updates are
- * serialized, including updates that run effects before deciding the next
- * value. A `SynchronizedRef<A>` behaves like a `Ref<A>` for reading and basic
- * updates, but uses an internal semaphore so concurrent modifications observe a
- * consistent current value and apply one at a time.
+ * Mutable references whose updates are serialized. A `SynchronizedRef` behaves
+ * like a `Ref` for reading and simple state storage, but update and modify
+ * operations run one at a time so each change observes a consistent current
+ * value.
  *
- * **When to use**
- *
- * Use to coordinate shared state that may be updated by many fibers
- * - Running effectful state transitions that must not overlap
- * - Computing both a return value and a new stored value atomically
- * - Applying partial updates with `Option`, where `None` leaves the value
- *   unchanged
- *
- * **Gotchas**
- *
- * - Effectful update functions run while the semaphore is held, so long-running
- *   effects delay other updates to the same ref
- * - Failed effectful updates do not replace the stored value
- * - `getUnsafe` and `makeUnsafe` bypass the `Effect` API and should be reserved
- *   for low-level or carefully controlled code
+ * This module is especially useful when the next value must be computed by an
+ * effect, because the effectful transition is still protected from concurrent
+ * updates. It provides constructors, reads, sets, get-and-set operations,
+ * update and modify operations, partial-update variants, and effectful versions
+ * of the update and modify helpers.
  *
  * @since 2.0.0
  */

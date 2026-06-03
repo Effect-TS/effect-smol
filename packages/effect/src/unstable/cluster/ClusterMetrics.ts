@@ -1,25 +1,11 @@
 /**
- * The `ClusterMetrics` module defines the standard metrics emitted by the
- * unstable cluster runtime. These gauges track the shape and health of a
- * running cluster from the perspective of runners, entities, singletons, and
- * shard ownership.
+ * Standard metric definitions used by the unstable cluster runtime. The gauges
+ * track runner-local entities, singleton processes, registered runners,
+ * healthy runners, and acquired shards.
  *
- * **Common tasks**
- *
- * - Monitor how many entity instances and singleton processes are active on a
- *   runner
- * - Track registered runners and the subset currently considered healthy
- * - Observe shard distribution across runners during startup, rebalancing, and
- *   failover
- *
- * **Gotchas**
- *
- * - Runner-local gauges such as {@link entities}, {@link singletons}, and
- *   {@link shards} describe the current runner, so aggregate them carefully in
- *   dashboards
- * - Cluster-wide gauges such as {@link runners} and {@link runnersHealthy}
- *   reflect the runtime's current view, which may lag briefly during membership
- *   changes or failure detection
+ * This module only defines the metric handles. The runtime components that
+ * manage entities, runners, singletons, and sharding update these gauges while
+ * the cluster is running.
  *
  * @since 4.0.0
  */

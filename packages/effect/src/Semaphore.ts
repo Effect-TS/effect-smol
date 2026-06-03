@@ -1,34 +1,13 @@
 /**
- * The `Semaphore` module provides counting semaphores for limiting concurrent
- * access to shared resources. A semaphore owns a pool of permits; effects take
- * permits before running protected work and return them when the work exits.
+ * Counting semaphores for limiting how many effects may use a shared resource
+ * at the same time. A semaphore owns a number of permits; work can run only
+ * after taking enough permits, and the permits are returned when the work
+ * finishes.
  *
- * **Mental model**
- *
- * - The permit count is the maximum amount of guarded work that can run at once
- * - {@link withPermit} and {@link withPermits} acquire permits around one
- *   effect and release them on success, failure, or interruption
- * - {@link take} and {@link release} expose the lower-level protocol when
- *   acquisition and release cannot be scoped to one effect
- * - {@link resize} changes future availability while preserving permits that
- *   are already taken
- *
- * **Common tasks**
- *
- * - Create a semaphore: {@link make}, {@link makeUnsafe}
- * - Guard one effect: {@link withPermit}, {@link withPermits}
- * - Run only when permits are immediately available:
- *   {@link withPermitsIfAvailable}
- * - Manage permits manually: {@link take}, {@link release}, {@link releaseAll}
- * - Change capacity: {@link resize}
- *
- * **Gotchas**
- *
- * - Pending acquisitions wait until enough permits are available
- * - {@link withPermitsIfAvailable} never waits; it returns `Option.none` when
- *   the requested permits are not available immediately
- * - Manual {@link take} / {@link release} usage must keep permit counts
- *   balanced; prefer scoped helpers when possible
+ * This module provides constructors, automatic wrappers that acquire and
+ * release permits around an effect, a non-waiting wrapper that runs only when
+ * permits are immediately available, manual `take` and `release` operations,
+ * and `resize` for changing the permit limit of an existing semaphore.
  *
  * @since 4.0.0
  */

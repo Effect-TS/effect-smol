@@ -4,56 +4,10 @@
  * alternative to wrapping values in `Option` when your domain already uses
  * `undefined` to mean "no value".
  *
- * **Mental model**
- *
- * - A defined value is the present branch.
- * - `undefined` is reserved for absence; the payload type `A` should not itself
- *   include `undefined`.
- * - Helpers such as {@link map} and {@link match} keep values unwrapped and use
- *   `undefined` directly instead of allocating tagged values.
- * - The fail-fast combiner and reducer helpers propagate `undefined` when a
- *   required value is missing.
- *
- * **Common tasks**
- *
- * - Transform a present value: {@link map}
- * - Branch on present versus absent: {@link match}
- * - Unwrap at a boundary: {@link getOrThrow}, {@link getOrThrowWith}
- * - Adapt throwing code to an optional result: {@link liftThrowable}
- * - Lift combination and reduction logic: {@link makeReducer},
- *   {@link makeCombinerFailFast}, {@link makeReducerFailFast}
- *
- * **Gotchas**
- *
- * - `A | undefined` cannot distinguish "missing" from "present and
- *   undefined". Use `Option` when that distinction matters.
- * - {@link liftThrowable} discards the thrown value and also returns
- *   `undefined` when the wrapped function throws.
- *
- * **Example** (Parsing optional input)
- *
- * ```ts
- * import { UndefinedOr } from "effect"
- *
- * const parseInteger = UndefinedOr.liftThrowable((input: string) => {
- *   const value = Number.parseInt(input, 10)
- *   if (Number.isNaN(value)) {
- *     throw new Error("not an integer")
- *   }
- *   return value
- * })
- *
- * console.log(UndefinedOr.map(parseInteger("42"), (n) => n + 1))
- * // 43
- *
- * console.log(
- *   UndefinedOr.match(parseInteger("abc"), {
- *     onUndefined: () => "missing",
- *     onDefined: (n) => `parsed ${n}`
- *   })
- * )
- * // "missing"
- * ```
+ * This module provides helpers for mapping defined values, matching both
+ * cases, throwing when a value is missing, turning throwing functions into
+ * undefined-returning functions, and building reducers or combiners for values
+ * that may be `undefined`.
  *
  * @since 4.0.0
  */

@@ -5,37 +5,6 @@
  * `Hash`, so callers can mix referential and structural lookup in the same
  * collection.
  *
- * **Mental model**
- *
- * - `MutableHashMap<K, V>` stores entries on a single mutable map instance
- * - {@link set}, {@link remove}, and {@link clear} mutate that instance and
- *   return it for convenient piping
- * - Keys that implement `Equal` / `Hash` are matched structurally through hash
- *   buckets; other keys use JavaScript map semantics
- * - The map is iterable as `[key, value]` pairs and reports size in O(1)
- *
- * **Common tasks**
- *
- * - Create maps: {@link empty}, {@link make}, {@link fromIterable}
- * - Read entries: {@link get}, {@link has}, {@link size}
- * - Mutate entries: {@link set}, {@link modify}, {@link remove}, {@link clear}
- * - Narrow unknown values: {@link isMutableHashMap}
- *
- * **Gotchas**
- *
- * - This data structure is intentionally mutable; share it only when callers
- *   agree on ownership
- * - Mutating a structural key after insertion can make future lookups fail if
- *   its equality or hash changes
- * - Iteration follows the underlying storage order and should not be used as a
- *   sorting guarantee
- *
- * **Performance**
- *
- * - Lookup, insertion, removal, clearing, and size are O(1) on average
- * - Hash collisions can make key lookup and removal O(n)
- * - Iteration is O(n)
- *
  * @since 2.0.0
  */
 import type { NonEmptyArray } from "./Array.ts"

@@ -1,52 +1,15 @@
 /**
- * The `LanguageModel` module provides AI text generation capabilities with tool
- * calling support.
+ * Provider-neutral service for language model operations. It exposes text
+ * generation, streaming text generation, and schema-based structured output,
+ * with optional tools that the model can request and the framework can resolve.
  *
- * This module offers a comprehensive interface for interacting with large
- * language models, supporting both streaming and non-streaming text generation,
- * structured output generation, and tool calling functionality. It provides a
- * unified API that can be implemented by different AI providers while
- * maintaining type safety and effect management.
- *
- * **Example** (Generating text)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { LanguageModel } from "effect/unstable/ai"
- *
- * // Basic text generation
- * const program = Effect.gen(function*() {
- *   const response = yield* LanguageModel.generateText({
- *     prompt: "Explain quantum computing"
- *   })
- *
- *   console.log(response.text)
- *
- *   return response
- * })
- * ```
- *
- * **Example** (Generating structured output)
- *
- * ```ts
- * import { Effect, Schema } from "effect"
- * import { LanguageModel } from "effect/unstable/ai"
- *
- * // Structured output generation
- * const ContactSchema = Schema.Struct({
- *   name: Schema.String,
- *   email: Schema.String
- * })
- *
- * const extractContact = Effect.gen(function*() {
- *   const response = yield* LanguageModel.generateObject({
- *     prompt: "Extract contact: John Doe, john@example.com",
- *     schema: ContactSchema
- *   })
- *
- *   return response.value
- * })
- * ```
+ * This module defines the service tag, provider contract, request options,
+ * response wrappers, tool-choice types, toolkit input types, extraction helper
+ * types, structured-output codec transformers, and accessors for the active
+ * service. The `make` constructor adapts provider-specific generate and stream
+ * functions into the shared service, validates provider response parts with
+ * schemas, resolves tool calls with configurable concurrency, handles tool
+ * approval requests, supports response-id tracking, and records tracing spans.
  *
  * @since 4.0.0
  */

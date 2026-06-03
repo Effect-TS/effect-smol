@@ -7,29 +7,6 @@
  * raw channel helpers for already-agreed value shapes and schema helpers for
  * validating, transforming, or decoding domain values at the boundary.
  *
- * **Mental model**
- *
- * - Each input value passed to {@link encode} becomes one MessagePack byte array
- * - {@link decode} can receive arbitrary byte chunks; incomplete frames are
- *   buffered until enough bytes arrive
- * - Schema helpers run Effect schema encoding before packing and schema decoding
- *   after unpacking
- *
- * **Common tasks**
- *
- * - Pack values into bytes: {@link encode}
- * - Unpack byte chunks into values: {@link decode}
- * - Encode or decode domain values with schemas: {@link encodeSchema}, {@link decodeSchema}
- *
- * **Gotchas**
- *
- * - MessagePack preserves binary data better than JSON, but it is not a schema;
- *   use schema helpers when runtime validation matters
- * - Packing failures surface as {@link MsgPackError}; schema failures surface as
- *   `SchemaError` before or after the binary boundary
- * - Decoding expects complete MessagePack documents over time, not arbitrary
- *   byte payloads with out-of-band framing
- *
  * @since 4.0.0
  */
 import { Packr, Unpackr } from "msgpackr"

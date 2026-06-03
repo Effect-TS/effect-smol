@@ -1,51 +1,9 @@
 /**
- * The `Context` module implements Effect's typed service environment. A
- * `Context<Services>` is an immutable collection of service implementations,
- * keyed by `Context.Service` or `Context.Reference` values. The type parameter
- * records which service identifiers are present so effects can require
- * dependencies without passing every implementation as an argument.
- *
- * **Mental model**
- *
- * - A service key is both a runtime identifier and a typed handle for one
- *   dependency
- * - `Context.Service` creates keys for dependencies that must be provided by
- *   the surrounding context
- * - `Context.Reference` creates keys that have a cached default value when no
- *   explicit implementation is stored
- * - A `Context` value stores implementations, while Effect fibers carry the
- *   active context used to satisfy service requirements
- * - Context operations such as {@link add}, {@link merge}, {@link pick}, and
- *   {@link omit} return new contexts instead of mutating the original one
- *
- * **Common tasks**
- *
- * - Create service keys: {@link Service}, {@link Reference}
- * - Build contexts: {@link empty}, {@link make}, {@link add}, {@link merge}
- * - Read services: {@link get}, {@link getOption}, {@link getOrElse}
- * - Keep or remove selected services: {@link pick}, {@link omit}
- *
- * **Example** (Building and reading a context)
- *
- * ```ts
- * import { Context } from "effect"
- *
- * const Logger = Context.Service<{ log: (message: string) => void }>("Logger")
- *
- * const context = Context.make(Logger, {
- *   log: (message) => console.log(message)
- * })
- *
- * const logger = Context.get(context, Logger)
- * logger.log("started")
- * ```
- *
- * **Gotchas**
- *
- * - The service key string is the runtime identity; reusing the same string for
- *   unrelated services makes them occupy the same slot
- * - `Context.Reference` defaults are used only when no explicit value is stored
- *   for that key
+ * Typed maps for services that Effects can require from their environment. A
+ * `Context` stores service implementations under `Context.Service` or
+ * `Context.Reference` keys, and the type records which keys are present. The
+ * module provides helpers to create keys, build contexts, add, get, merge,
+ * pick, omit, and mutate services without passing every dependency manually.
  *
  * @since 4.0.0
  */

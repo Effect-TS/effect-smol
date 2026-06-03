@@ -1,23 +1,13 @@
 /**
- * The `TxHashSet` module provides a transactional hash set for storing unique
- * values inside Effect transactions. A `TxHashSet<A>` wraps a `HashSet<A>` in a
- * transactional reference, so reads and writes can be composed with other
- * transactional operations and committed atomically.
+ * Transactional hash sets for storing unique values inside Effect
+ * transactions. A `TxHashSet` stores an immutable `HashSet` in a `TxRef`, so
+ * membership checks and updates can be committed atomically with other
+ * transactional operations.
  *
- * **Common tasks**
- *
- * - Create transactional sets with {@link empty}, {@link make}, or {@link fromIterable}
- * - Mutate an existing set with {@link add}, {@link remove}, and {@link clear}
- * - Query membership and size with {@link has}, {@link size}, and {@link isEmpty}
- * - Derive new sets with {@link map}, {@link filter}, {@link union}, {@link intersection}, and {@link difference}
- * - Fold or collect values with {@link reduce} and {@link toHashSet}
- *
- * **Gotchas**
- *
- * - Mutation operations update the same transactional set; transform operations
- *   return a new `TxHashSet`
- * - Operations are `Effect` values and must be yielded, piped, or run to take effect
- * - Use `Effect.tx` when several operations must observe and commit one atomic transaction
+ * This module provides constructors, guards, adding, removing, clearing,
+ * membership checks, size checks, conversion to `HashSet`, set algebra
+ * operations such as union and intersection, subset checks, predicates,
+ * mapping, filtering, and reducing.
  *
  * @since 2.0.0
  */

@@ -1,66 +1,10 @@
 /**
- * Predicates are small boolean functions for checking values at runtime.
- * Refinements are predicates that also narrow TypeScript types after a
- * successful check. This module provides primitive guards for common JavaScript
- * values and combinators for building larger checks from smaller ones.
- *
- * **Mental model**
- *
- * - A `Predicate<A>` is `(a: A) => boolean`
- * - A `Refinement<A, B>` is `(a: A) => a is B`; when it returns `true`,
- *   TypeScript can treat the value as `B`
- * - Guards such as {@link isString}, {@link isNumber}, and {@link isObject}
- *   refine `unknown` values into useful runtime types
- * - Combinators such as {@link and}, {@link or}, {@link not}, and {@link xor}
- *   build new predicates while preserving refinement information where possible
- * - {@link Tuple} and {@link Struct} lift element and property predicates to
- *   tuple-like arrays and object shapes
- *
- * **Common tasks**
- *
- * - Check primitive runtime types: {@link isString}, {@link isNumber},
- *   {@link isBoolean}, {@link isBigInt}, {@link isSymbol}
- * - Check object-like values: {@link isObject}, {@link isObjectOrArray},
- *   {@link hasProperty}, {@link isTagged}
- * - Combine predicates: {@link and}, {@link or}, {@link not}, {@link xor}
- * - Reuse a predicate on derived input: {@link mapInput}
- * - Compose refinements that narrow in stages: {@link compose}
- * - Validate tuple or object shapes: {@link Tuple}, {@link Struct}
- *
- * **Gotchas**
- *
- * - Predicates only return `true` or `false`; they do not explain why a value
- *   failed a check
- * - {@link isTruthy} uses JavaScript truthiness, so `0`, `""`, and `false`
- *   are rejected
- * - {@link isObject} excludes arrays; use {@link isObjectOrArray} when arrays
- *   should also pass
- * - {@link isIterable} accepts strings because strings are iterable in
- *   JavaScript
- * - {@link isPromise} and {@link isPromiseLike} are structural checks, not
- *   `instanceof` checks
- * - {@link isTupleOf} and {@link isTupleOfAtLeast} check length only, not
- *   element types
- *
- * **Quickstart**
- *
- * **Example** (Filter by a predicate)
- *
- * ```ts
- * import { Predicate } from "effect"
- *
- * const values: Array<unknown> = ["one", 2, "three", null]
- * const strings = values.filter(Predicate.isString)
- *
- * console.log(strings)
- * // Output: ["one", "three"]
- * ```
- *
- * **See also**
- *
- * - {@link Predicate} for plain boolean checks
- * - {@link Refinement} for checks that narrow types
- * - {@link Struct} and {@link Tuple} for checking compound values
+ * Boolean checks for values at runtime. A `Predicate<A>` returns `true` or
+ * `false`, while a `Refinement<A, B>` also narrows the TypeScript type after a
+ * successful check. This module provides guards for common JavaScript values,
+ * tuple and struct checks, property and tag checks, helpers for composing
+ * refinements, and boolean combinators such as `and`, `or`, `not`, `every`,
+ * and `some`.
  *
  * @since 2.0.0
  */

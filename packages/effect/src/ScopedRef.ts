@@ -1,23 +1,14 @@
 /**
- * The `ScopedRef` module provides a mutable reference for values that are tied
- * to scoped resources. Each value stored in a `ScopedRef` is acquired within its
- * own `Scope`, and replacing the value safely releases the resources associated
- * with the previous value.
+ * A mutable reference whose current value has its own `Scope`. This is useful
+ * for storing a resource-backed value, such as a client, connection,
+ * subscription, or handle, and later replacing it without leaking the resources
+ * owned by the previous value.
  *
- * Use `ScopedRef` when an application needs to keep a current resource-backed
- * value, such as a live client, connection, subscription, or cached handle, and
- * later swap it for a newly acquired value without leaking the old resources.
- * Reads are simple, while updates are synchronized and resource-safe.
- *
- * **Gotchas**
- *
- * - A `ScopedRef` must itself be created and used within a `Scope`; when that
- *   scope closes, the currently stored value is finalized.
- * - Use {@link fromAcquire} or {@link set} for resourceful values so acquisition
- *   and finalization are tracked correctly.
- * - Use {@link make} only for values that do not acquire resources.
- * - Updating a `ScopedRef` waits for the replacement acquisition and old
- *   finalization to complete before returning.
+ * `fromAcquire` creates the initial value from an acquiring effect, `make`
+ * creates one from an already available value, and `set` acquires a replacement
+ * in a new scope before updating the reference. Reads can be effectful or
+ * synchronous, while updates are synchronized so only one replacement happens
+ * at a time.
  *
  * @since 2.0.0
  */

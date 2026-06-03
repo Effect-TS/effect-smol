@@ -1,35 +1,14 @@
 /**
- * OpenTelemetry span annotation helpers for Effect AI operations.
+ * OpenTelemetry span annotation helpers for Effect AI operations. This module
+ * models the GenAI semantic-convention attributes used by language model and
+ * embedding providers.
  *
- * The `Telemetry` module models the OpenTelemetry GenAI semantic-convention
- * attributes used by language model and embedding providers, and exposes small
- * helpers for writing those attributes onto Effect tracing spans. It is used by
- * provider implementations and by applications that want consistent
- * `gen_ai.*` span metadata around model requests, responses, token usage, and
- * provider-specific identifiers.
- *
- * **Mental model**
- *
- * Attribute options are grouped by semantic-convention namespace: base
- * `gen_ai`, `operation`, `request`, `response`, `token`, and `usage`.
- * `addGenAIAnnotations` flattens those groups into span attributes, ignores
- * nullish values, and converts camelCase field names to snake_case keys.
- * `addSpanAttributes` provides the same prefix-and-transform behavior for
- * custom namespaces.
- *
- * **Common tasks**
- *
- * - Add standard GenAI attributes to the current span with
- *   `addGenAIAnnotations`.
- * - Create a custom attribute writer with `addSpanAttributes`.
- * - Provide `CurrentSpanTransformer` so a language model implementation can
- *   annotate the span after seeing the provider response.
- *
- * **Gotchas**
- *
- * These helpers annotate spans that already exist; they do not create or scope
- * spans. Attribute writers mutate the provided span, and only non-nullish
- * values are emitted.
+ * It provides attribute types, helpers for writing non-null attributes onto
+ * existing Effect tracing spans, and the `CurrentSpanTransformer` service for
+ * adding custom span annotations from provider options and response parts.
+ * Provider implementations and applications use these helpers to produce
+ * consistent `gen_ai.*` metadata for model requests, responses, token usage,
+ * and provider-specific identifiers.
  *
  * @since 4.0.0
  */

@@ -1,44 +1,16 @@
 /**
- * The `Sharding` module provides the runtime service that maps entity ids to
- * shard ids, decides which runner owns each shard, and delivers cluster
- * messages to the owning runner. It connects typed entity protocols with runner
- * membership, shard locks, mailbox storage, and the transport used between
- * runners.
+ * Runtime sharding service for Effect Cluster. `Sharding` maps entity ids to
+ * shard ids, keeps the current shard ownership view from runner storage,
+ * acquires and releases shard locks for the local runner, and sends cluster
+ * messages to local handlers or remote runners.
  *
- * **Mental model**
- *
- * - Entity ids are hashed into shard ids inside a shard group.
- * - Healthy runners are placed on a hash ring for each shard group.
- * - The local runner starts handlers only for shards it currently owns.
- * - Clients created by {@link Sharding.Service.makeClient} route encoded RPC requests
- *   to the current owner instead of calling handlers directly.
- * - Persisted messages are polled from storage and replayed only for shards the
- *   local runner owns.
- *
- * **Common tasks**
- *
- * - Register entity handlers with {@link Sharding.Service.registerEntity}.
- * - Register singleton effects that run once per shard group with
- *   {@link Sharding.Service.registerSingleton}.
- * - Build typed entity clients with {@link Sharding.Service.makeClient}.
- * - Send an already encoded incoming message with {@link Sharding.Service.send}.
- * - Generate runner-local snowflake ids with {@link Sharding.Service.getSnowflake}.
- *
- * **Gotchas**
- *
- * - Assignment and acquisition are separate: a runner may be assigned a shard
- *   before it has acquired the storage lock.
- * - Changing shard group names, shard counts, or runner weights changes
- *   placement for entity ids.
- * - Ownership can move during shutdown, runner failure, or health refreshes, so
- *   callers must handle routing and mailbox errors.
- * - Durable replay depends on the configured message storage; in-memory storage
- *   does not provide process restart recovery.
- *
- * **See also**
- *
- * - {@link ShardingConfig} for runner identity, shard counts, and timing.
- * - {@link Runner} for the membership record used during shard assignment.
+ * The service also creates typed clients for entities, registers entity handlers
+ * and singletons on the current runner, polls message storage for persisted
+ * work, resumes unprocessed messages, generates runner-local snowflake ids,
+ * exposes registration events and active entity counts, and tracks shutdown
+ * state. The exported layer wires those responsibilities to runner
+ * communication, storage, health checks, configuration, and local resource
+ * management.
  *
  * @since 4.0.0
  */

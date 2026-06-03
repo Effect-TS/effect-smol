@@ -1,34 +1,15 @@
 /**
- * The `Sink` module provides composable consumers for `Stream` values. A
- * `Sink<A, In, L, E, R>` pulls input elements of type `In`, may require
- * services `R`, may fail with `E`, and eventually produces a result `A` plus
- * any leftover input `L` that was read but not consumed.
+ * Composable consumers for `Stream` values. A `Sink` reads input elements from
+ * a stream, may consume none, one, or many of them, and eventually produces a
+ * result. If it reads more input than it needs, it can return the unused values
+ * as leftovers for the stream to continue with.
  *
- * **Mental model**
- *
- * - A sink is the terminal consumer used by `Stream.run`
- * - Sinks can consume zero, one, many, or all input elements before finishing
- * - Leftovers allow one sink to stop early without losing already-pulled input
- * - Sink composition preserves typed errors and service requirements
- * - Most sinks are built from `Channel` internally, but users compose them with
- *   the higher-level APIs in this module
- *
- * **Common tasks**
- *
- * - Create simple sinks: {@link succeed}, {@link fail}, {@link fromEffect}
- * - Fold input: {@link fold}
- * - Collect values: {@link collect}
- * - Count or drain input: {@link count}, {@link drain}
- * - Transform results: {@link map}, {@link mapEffect}, {@link as}
- * - Adapt input before consumption: {@link mapInput}, {@link mapInputEffect}
- *
- * **Gotchas**
- *
- * - A sink can finish before the stream is exhausted; check leftover-aware
- *   combinators when composing parsers or protocol decoders
- * - `In` is contravariant, so a sink that accepts broader input can be used
- *   where narrower input is expected
- * - Resource and service requirements are tracked in the `R` type parameter
+ * This module provides sinks for folding, reducing, collecting, taking,
+ * searching, counting, summing, running effects for each input, reading from
+ * queues or pubsubs, and converting to or from lower-level channels. It also
+ * includes combinators for mapping inputs, results, errors, and leftovers,
+ * composing sinks, handling failures, providing services, timing execution,
+ * and running cleanup when a sink finishes.
  *
  * @since 2.0.0
  */

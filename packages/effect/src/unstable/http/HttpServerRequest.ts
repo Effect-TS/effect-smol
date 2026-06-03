@@ -6,32 +6,8 @@
  * and adapters. A request value carries the method, URL, original URL, headers,
  * cookies, remote address, body stream, and platform source object, plus helpers
  * for converting to and from Effect client requests and Web `Request` values.
- *
- * **Mental model**
- *
- * Server handlers read the current request from context. Metadata such as the
- * method, URL, headers, and cookies is available directly, while body access is
- * effectful because reading, parsing, schema decoding, or multipart persistence
- * can fail. Schema helpers decode cookies, headers, search parameters, JSON
- * bodies, URL-encoded bodies, multipart bodies, and form JSON without each
- * handler needing to parse raw values by hand.
- *
- * **Common tasks**
- *
- * - Inspect request metadata or derive a modified request view.
- * - Decode cookies, headers, search parameters, or body content with schemas.
- * - Upgrade a request to a WebSocket channel.
- * - Convert between server requests, client requests, and Web `Request` values.
- *
- * **Gotchas**
- *
- * Streaming request bodies may be single-use depending on the underlying
- * platform. Cached accessors such as text, JSON, URL parameters, array buffers,
- * and persisted multipart data reuse the first read. Multipart persistence
- * requires `Scope`, `FileSystem`, and `Path` services. Search parameter decoding
- * depends on the `ParsedSearchParams` service being provided by the router or
- * adapter, and body size limits are controlled through the re-exported
- * `MaxBodySize` fiber reference.
+ * The module also provides schema decoders for cookies, headers, search
+ * parameters, JSON bodies, form bodies, URL-encoded bodies, and multipart bodies.
  *
  * @since 4.0.0
  */

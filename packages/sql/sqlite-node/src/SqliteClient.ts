@@ -1,44 +1,11 @@
 /**
- * Node.js SQLite driver for Effect SQL, backed by `better-sqlite3`.
+ * Connects Effect SQL to SQLite on Node.js using `better-sqlite3`.
  *
- * Use this module to provide a scoped {@link SqliteClient} for file-backed or
- * in-memory SQLite databases in Node.js. The provided layers install both the
- * SQLite-specific service and the generic `SqlClient`, making the module useful
- * for local applications, tests, migrations, development tools, and embedded
- * persistence that need Effect SQL query compilation with SQLite-specific
- * operations.
- *
- * ## Mental model
- *
- * Each client owns one scoped `better-sqlite3` database handle and serializes
- * all SQL access through it. Because `better-sqlite3` executes statements
- * synchronously, a long-running query or transaction holds the serialized
- * connection until it completes. Prepared statements are cached by SQL text and
- * result-name transforms are applied after rows are read.
- *
- * The service adds Node SQLite capabilities on top of the generic `SqlClient`:
- * database export, file backup, and native extension loading.
- *
- * ## Common tasks
- *
- * - Use {@link layer} with a concrete filename and options.
- * - Use {@link layerConfig} when the filename or flags should come from
- *   `Config`.
- * - Use {@link make} inside a custom scoped layer when you need to manage the
- *   client lifecycle directly.
- * - Use `client.export`, `client.backup`, or `client.loadExtension` for
- *   operations that are specific to this Node SQLite driver.
- *
- * ## Gotchas
- *
- * WAL mode is enabled by default. Set `disableWAL` for read-only databases or
- * when the database file or directory cannot be updated with SQLite WAL side
- * files. Separate database handles or processes can still contend for SQLite
- * write locks even though access through one client is serialized.
- *
- * Safe integer handling follows the generic `SqlClient` fiber-local setting.
- * `executeStream` is not implemented for this driver, and SQLite does not
- * support `updateValues`.
+ * This module opens a SQLite database and exposes it as both `SqliteClient` and
+ * the generic Effect SQL client. It serializes access through one connection,
+ * caches prepared statements, enables WAL mode unless disabled, and supports
+ * database export, backup, and extension loading. Streaming queries and
+ * `updateValues` are not supported by this driver.
  *
  * @since 4.0.0
  */

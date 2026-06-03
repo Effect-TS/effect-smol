@@ -6,29 +6,6 @@
  * UTF-8 transport chunks, string helpers handle already-decoded text, and
  * schema helpers validate or transform each record at the edge of the pipeline.
  *
- * **Mental model**
- *
- * - Encoders receive non-empty chunks of values and emit one NDJSON chunk ending
- *   with a newline
- * - Decoders accumulate partial lines across input chunks and emit parsed JSON
- *   records as soon as complete lines are available
- * - Schema helpers compose channel encoding and decoding with the plain NDJSON
- *   framing helpers
- *
- * **Common tasks**
- *
- * - Encode values to UTF-8 bytes: {@link encode}
- * - Encode values to strings: {@link encodeString}
- * - Decode UTF-8 bytes or strings: {@link decode}, {@link decodeString}
- * - Add schema validation at the boundary: {@link encodeSchema}, {@link decodeSchema}
- *
- * **Gotchas**
- *
- * - Records must be valid JSON values, not JavaScript expressions
- * - Empty lines are ignored only when `ignoreEmptyLines` is enabled
- * - Encoders append a trailing newline, so downstream consumers should treat it
- *   as record framing rather than as an extra record
- *
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"

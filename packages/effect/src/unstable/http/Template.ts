@@ -7,26 +7,6 @@
  * fragments can contribute errors and service requirements to the final
  * response-producing program.
  *
- * **Mental model**
- *
- * `make` evaluates effectful interpolations and returns one complete string.
- * `stream` emits static template text together with effect and stream
- * interpolations as a `Stream`. Plain primitive values are converted to text,
- * arrays are concatenated without separators, and `Option.none`, `null`, and
- * `undefined` render as empty text.
- *
- * **Common tasks**
- *
- * Use `make` when the entire rendered body should be available before creating
- * the response. Use `stream` when a response can be emitted incrementally, for
- * example when part of an HTML page is produced by an existing stream.
- *
- * **Gotchas**
- *
- * Templates do not escape HTML, encode bytes, set content types, or compute
- * content lengths. Escape or encode untrusted values before interpolation and
- * choose the response constructor that matches the rendered body.
- *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"

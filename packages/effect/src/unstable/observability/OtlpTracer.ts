@@ -4,22 +4,10 @@
  * This module creates a `Tracer.Tracer` backed by the shared OTLP/HTTP batch
  * exporter, so Effect spans created with tracing APIs can be delivered to an
  * OpenTelemetry Collector, vendor OTLP intake, or local development collector.
- * Use `make` when you need to install the tracer manually, or `layer` when an
- * application should provide it through the Effect environment.
- *
- * Pass a concrete traces endpoint, typically `/v1/traces`, or use the
- * higher-level `Otlp` module when you want `baseUrl` path construction for all
- * observability signals. The tracer exports only ended sampled spans, converts
- * span attributes, events, links, status, parent identifiers, and failure
- * causes into OTLP trace data, and groups every batch under the configured
- * resource. Resource options are resolved through `OtlpResource`, so ensure a
- * stable `service.name` is available through options or standard OTEL resource
- * environment variables because it is also used as the instrumentation scope
- * name. Tune `exportInterval`, `maxBatchSize`, and `shutdownTimeout` for the
- * target backend and process shutdown behavior, provide `headers` for
- * authentication or routing, choose an `OtlpSerialization` layer accepted by
- * the endpoint, and use `context` only when a backend needs custom evaluation
- * around the active span.
+ * Exported spans include ids, parent ids, attributes, events, links, span kind,
+ * timing, and status information derived from the span exit. Use `make` when
+ * you need to install the tracer manually, or `layer` when an application should
+ * provide it through the Effect environment.
  *
  * @since 4.0.0
  */

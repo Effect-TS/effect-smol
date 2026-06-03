@@ -1,56 +1,9 @@
 /**
- * The `Fiber` module provides operations for handles returned by forking
- * effects. A `Fiber<A, E>` is a lightweight runtime execution of an `Effect`
- * that may still be running, may already have completed, and can be observed or
- * interrupted by other fibers.
- *
- * Applications create fibers with operations such as `Effect.forkChild`,
- * `Effect.forkScoped`, `Effect.forkIn`, or `Effect.forkDetach`, then use this
- * module to wait for results, inspect exits, or cancel work that is no longer
- * needed.
- *
- * **Mental model**
- *
- * - A fiber is a handle to a running or completed effect, not the effect itself
- * - {@link await_ await} observes completion as an `Exit` without failing the current
- *   effect
- * - {@link join} waits for success and propagates the fiber's failure into the
- *   current effect
- * - {@link interrupt} requests cancellation and waits until the target fiber
- *   finishes running finalizers
- * - Group operations such as {@link awaitAll}, {@link joinAll}, and
- *   {@link interruptAll} apply the same ideas to collections of fibers
- *
- * **Common tasks**
- *
- * - Wait for one fiber with {@link await_ await} or {@link join}
- * - Wait for many fibers with {@link awaitAll} or {@link joinAll}
- * - Stop work with {@link interrupt}, {@link interruptAs},
- *   {@link interruptAll}, or {@link interruptAllAs}
- * - Recognize fiber handles with {@link isFiber}
- * - Link a manually managed fiber to a `Scope` with {@link runIn}
- *
- * **Gotchas**
- *
- * - `await` gives you an `Exit`; use `join` when the current effect should fail
- *   if the fiber failed
- * - Interruption is cooperative, so a fiber can continue through
- *   uninterruptible regions and finalizers before it finishes
- * - `joinAll` stops waiting on the first failure, but it does not interrupt the
- *   remaining fibers for you
- *
- * **Example** (Joining a forked effect)
- *
- * ```ts
- * import { Effect, Fiber } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const fiber = yield* Effect.forkChild(Effect.succeed(42))
- *   const value = yield* Fiber.join(fiber)
- *
- *   return value
- * })
- * ```
+ * Operations for handles returned by forking effects. A `Fiber<A, E>` is a
+ * lightweight execution of an `Effect` that may still be running or may already
+ * have completed. This module lets callers await or join fiber results,
+ * interrupt one or many fibers, check unknown values, access the current fiber,
+ * and attach manually managed fibers to a `Scope` for cleanup.
  *
  * @since 2.0.0
  */

@@ -10,14 +10,6 @@
  * define the accepted input shape, while combinators add aliases, defaults,
  * optionality, fallback config or prompts, validation, and typed mapping.
  *
- * Flag names are rendered as long options, for example `Flag.integer("port")`
- * parses `--port 8080`. Boolean flags also support the disabled form shown by
- * this module's boolean documentation, and repeated flags are modeled with the
- * repetition combinators instead of by manually inspecting raw arguments. Help
- * text is generated from flag metadata, so prefer {@link withDescription} and
- * {@link withMetavar} when a flag's value, format, or file-system expectation
- * would otherwise be ambiguous.
- *
  * @since 4.0.0
  */
 import type * as Config from "../../Config.ts"

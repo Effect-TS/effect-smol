@@ -1,23 +1,13 @@
 /**
- * Workflow engine service definitions and the default in-memory engine used to
- * run durable workflows.
+ * Workflow engine services and an in-memory implementation.
  *
- * This module is the runtime boundary for `Workflow` values. It registers
- * workflow handlers, starts or polls executions by stable execution ID, links
- * child workflow interruption to parents, and coordinates activities, durable
- * deferred values, and durable clocks. Library users usually depend on the
- * typed `WorkflowEngine` service, while persistence backends implement the
- * lower-level `Encoded` contract and pass it to `makeUnsafe`.
- *
- * Durable execution requires engine implementations to make retries and resumes
- * idempotent. Reusing an execution ID should observe the existing execution
- * instead of starting duplicate work, suspended executions are retried according
- * to `suspendedRetrySchedule`, and concurrent deferred completions or clock
- * wake-ups must be serialized by the backend. Use `interrupt` when
- * compensation and child workflow cleanup matter; `interruptUnsafe` can stop
- * work more directly but may bypass those guarantees. The provided
- * `layerMemory` is useful for tests and local development, but it keeps state
- * in process memory and does not provide production durability.
+ * The `WorkflowEngine` service registers workflow handlers, runs executions by
+ * id, polls results, interrupts or resumes suspended runs, executes activities,
+ * stores durable deferred results, and schedules durable clocks.
+ * `WorkflowInstance` holds the runtime state for one workflow run. The
+ * lower-level `Encoded` contract works with encoded values, and `makeUnsafe`
+ * wraps it with schema encoding and decoding. `layerMemory` provides an
+ * in-memory engine for tests and local development.
  *
  * @since 4.0.0
  */

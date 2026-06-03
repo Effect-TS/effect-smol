@@ -1,40 +1,15 @@
 /**
  * Low-level SQL statement and fragment primitives.
  *
- * This module is the foundation used by SQL clients to build executable,
- * parameterized SQL. It defines the {@link Statement} and {@link Fragment}
- * models, the tagged-template {@link Constructor}, segment constructors for
- * identifiers, parameters, literals, arrays, records, and custom dialect data,
- * plus compilers that render those segments into dialect-specific SQL text and
- * bind parameters.
- *
- * **Mental model**
- *
- * A statement is a sequence of {@link Segment} values. In a tagged template,
- * nested fragments and known segments are spliced into that sequence, while
- * ordinary interpolated values become bound parameters. A {@link Compiler}
- * turns the sequence into SQL for one dialect, escaping identifiers and
- * formatting placeholders for that dialect. Executing a {@link Statement} uses
- * the connection acquirer captured by {@link make} and can return rows, raw
- * results, streams, values, or unprepared execution paths.
- *
- * **Common tasks**
- *
- * - Build statements with a {@link Constructor} tagged template
- * - Use {@link identifier} for table and column names rather than interpolating
- *   plain strings
- * - Compose optional clauses with {@link and}, {@link or}, {@link csv}, and
- *   {@link join}
- * - Create insert and update fragments with record helpers
- * - Add custom segment handling with {@link custom} and {@link makeCompiler}
- *
- * **Gotchas**
- *
- * Bound parameters protect values, not SQL syntax. Use `literal` and `unsafe`
- * only for trusted SQL text, and use identifiers for names that need escaping.
- * Compiled SQL is dialect-specific and cached on the statement;
- * `withoutTransform` intentionally bypasses identifier or row transforms, so
- * its output can differ from normal execution.
+ * This module is used by `SqlClient` to build executable, parameterized SQL.
+ * It defines `Fragment` and `Statement` values, the tagged-template
+ * constructor, helper segments for identifiers, parameters, literals, arrays,
+ * inserts, updates, and custom dialect data, and helpers for `AND`, `OR`, comma
+ * lists, and dialect branches. Statements can execute normally, run raw,
+ * stream rows, return value arrays, run unprepared, or compile to SQL text and
+ * parameters. The module also provides compiler helpers, a SQLite compiler,
+ * identifier escaping, primitive classification, row transforms, and the current
+ * statement transformer reference.
  *
  * @since 4.0.0
  */

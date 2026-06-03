@@ -8,20 +8,6 @@
  * server-side handlers. The group itself does not execute writes; it preserves
  * the event tags and schema services that the event-log runtime uses later.
  *
- * **Mental model**
- *
- * Each tag in a group is the durable name of an event. Its `primaryKey` function
- * derives the entity or aggregate partition from the decoded payload, while its
- * schemas describe the bytes written to the journal and the typed result returned
- * by the handler.
- *
- * **Gotchas**
- *
- * Keep tags unique within a group and stable once entries have been persisted.
- * Omitted schemas default to `Schema.Void` for payload and success and
- * `Schema.Never` for errors. Use `addError` only for errors shared by every
- * event in the group.
- *
  * @since 4.0.0
  */
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
