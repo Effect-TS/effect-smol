@@ -401,7 +401,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
                 })
                 pathOps.push({
                   _tag: "schema",
-                  ast: SchemaAST.getAST(Schema.toCodecJson(Schema.Cause(stream.error, Schema.Defect))),
+                  ast: SchemaAST.getAST(Schema.toCodecJson(Schema.Cause(stream.error, Schema.Defect()))),
                   path: [
                     "paths",
                     path,

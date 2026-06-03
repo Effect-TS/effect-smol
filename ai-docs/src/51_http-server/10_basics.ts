@@ -23,9 +23,7 @@ import { UsersApiHandlers } from "./fixtures/server/Users/http.ts"
 const SystemApiHandlers = HttpApiBuilder.group(
   Api,
   "system",
-  Effect.fn(function*(handlers) {
-    return handlers.handle("health", () => Effect.void)
-  })
+  (handlers) => handlers.handle("health", () => Effect.void)
 )
 
 const ApiRoutes = HttpApiBuilder.layer(Api, {
@@ -53,9 +51,7 @@ export const HttpServerLayer = HttpRouter.serve(AllRoutes).pipe(
 )
 
 // Then run the server using Layer.launch
-Layer.launch(HttpServerLayer).pipe(
-  NodeRuntime.runMain
-)
+NodeRuntime.runMain(Layer.launch(HttpServerLayer))
 
 // Or create a web handler, which can be used in serverless environments
 export const { handler, dispose } = HttpRouter.toWebHandler(AllRoutes.pipe(

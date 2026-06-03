@@ -75,18 +75,22 @@ type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   infer _Error extends Schema.Top
 > ? Stream.Stream<
     _Events["Type"],
-    _Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry
+    _Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry,
+    never
   >
-  : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, HttpClientError.HttpClientError>
+  : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, HttpClientError.HttpClientError, never>
   : S extends Schema.Top ? S["Type"]
   : never
+
+type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
+type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer _Events extends Schema.Top,
   infer _Error extends Schema.Top
-> ? _Events["DecodingServices"] | _Error["DecodingServices"]
+> ? DecodingServices<_Events> | DecodingServices<_Error>
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? S["DecodingServices"]
+  : S extends Schema.Top ? DecodingServices<S>
   : never
 
 /**
@@ -163,12 +167,12 @@ export declare namespace Client {
       | HttpClientError.HttpClientError
       | ([Mode] extends ["response-only"] ? never : _Error["Type"] | Schema.SchemaError),
       | R
-      | _Params["EncodingServices"]
-      | _Query["EncodingServices"]
-      | _Payload["EncodingServices"]
-      | _Headers["EncodingServices"]
+      | EncodingServices<_Params>
+      | EncodingServices<_Query>
+      | EncodingServices<_Payload>
+      | EncodingServices<_Headers>
       | ([Mode] extends ["response-only"] ? never
-        : SuccessDecodingServices<_Success> | _Error["DecodingServices"])
+        : SuccessDecodingServices<_Success> | DecodingServices<_Error>)
     > :
     never
 
@@ -702,7 +706,7 @@ function decodeSseStream(
 ): Stream.Stream<unknown, unknown, unknown> {
   const decodeEvent = Schema.decodeUnknownEffect(Sse.EventEncoded.pipe(Schema.decodeTo(declaration.events)))
   const decodeCause = Schema.decodeUnknownEffect(
-    Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect)))
+    Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
   )
   return stream.pipe(
     Stream.decodeText,

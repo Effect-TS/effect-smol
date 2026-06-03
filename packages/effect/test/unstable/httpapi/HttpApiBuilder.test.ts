@@ -131,7 +131,7 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.isTrue(rendered[0]!.endsWith("\n\n"))
 
       const data = rendered[0]!.split("\n")[1]!.slice("data: ".length)
-      const FailureSchema = Schema.toCodecJson(Schema.Cause(StreamError, Schema.Defect))
+      const FailureSchema = Schema.toCodecJson(Schema.Cause(StreamError, Schema.Defect()))
       const cause = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(FailureSchema))(data)
       assert.deepStrictEqual(cause, Cause.fail({ reason: "boom" }))
     }))

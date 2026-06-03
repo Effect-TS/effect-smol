@@ -872,7 +872,7 @@ const makeSseEncoder = <Events extends Schema.Top, Error extends Schema.Top>(
 ): SseStreamEncoder => ({
   encodeEvent: Schema.encodeUnknownEffect(declaration.events),
   decodeEvent: Schema.decodeUnknownEffect(Sse.EventEncoded),
-  encodeCause: Schema.encodeUnknownEffect(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect)))
+  encodeCause: Schema.encodeUnknownEffect(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
 })
 
 type SseStreamItem =
