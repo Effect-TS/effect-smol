@@ -26,10 +26,10 @@
  * **Gotchas**
  *
  * `service.name` is required because the signal exporters also use it as the
- * instrumentation scope name. Explicit options take precedence over
- * environment variables. `service.name` and `service.version` are normalized
- * into canonical OTLP attributes instead of being left in the custom attribute
- * map. Unsupported runtime values are formatted as strings.
+ * instrumentation scope name. OpenTelemetry environment variables take
+ * precedence over explicit options. `service.name` and `service.version` are
+ * normalized into canonical OTLP attributes instead of being left in the custom
+ * attribute map. Unsupported runtime values are formatted as strings.
  *
  * **See also**
  *
@@ -102,9 +102,9 @@ export const make = (options: {
  *
  * **Details**
  *
- * Explicit options override `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`,
- * and `OTEL_SERVICE_VERSION`; missing required configuration is converted to a
- * defect.
+ * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
+ * `OTEL_SERVICE_VERSION` override explicit options; missing required
+ * configuration is converted to a defect.
  *
  * @category constructors
  * @since 4.0.0
@@ -120,19 +120,30 @@ export const fromConfig: (
   readonly serviceVersion?: string | undefined
   readonly attributes?: Record<string, unknown> | undefined
 }) {
+  const env = yield* Config.schema(
+    Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
+    "OTEL_RESOURCE_ATTRIBUTES"
+  )
+
+  const serviceName = (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_NAME"))
+    ?? env?.["service.name"] as string | undefined
+    ?? options?.attributes?.["service.name"] as string | undefined
+    ?? options?.serviceName
+    ?? (yield* Config.string("OTEL_SERVICE_NAME"))
+
+  const serviceVersion = (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_VERSION"))
+    ?? env?.["service.version"] as string | undefined
+    ?? options?.attributes?.["service.version"] as string | undefined
+    ?? options?.serviceVersion
+
   const attributes = {
-    ...(yield* Config.schema(
-      Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
-      "OTEL_RESOURCE_ATTRIBUTES"
-    )),
-    ...options?.attributes
+    ...options?.attributes,
+    ...env
   }
-  const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
-    (yield* Config.schema(Schema.String, "OTEL_SERVICE_NAME"))
+
   delete attributes["service.name"]
-  const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
-    (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_VERSION"))
   delete attributes["service.version"]
+
   return make({
     serviceName,
     serviceVersion,
