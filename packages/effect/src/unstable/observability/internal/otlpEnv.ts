@@ -8,7 +8,7 @@ import * as HttpClientRequest from "../../http/HttpClientRequest.ts"
 
 export type Signal = "LOGS" | "METRICS" | "TRACES"
 
-const ExporterList = Config.List(
+const ExporterList = Config.Array(
   Schema.String.pipe(
     Schema.decode(SchemaTransformation.trim()),
     Schema.decode(SchemaTransformation.toLowerCase())

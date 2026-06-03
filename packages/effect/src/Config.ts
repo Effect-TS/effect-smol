@@ -877,27 +877,15 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
 }
 
 /**
- * Schema for array types that can also be parsed from a flat separated string.
- *
- * **When to use**
- *
- * Use when reading list values from a single env var, such as comma-separated
- * exporter names.
- *
- * **Details**
- *
- * Accepts either a JSON-like array from the provider or a flat string like
- * `"a,b,c"`. The `separator` defaults to `","` and can be customized.
- *
  * @category schemas
  * @since 4.0.0
  */
-export const List = <V extends Schema.Top>(value: V, options?: {
+const ArrayConfig = <V extends Schema.Top>(value: V, options?: {
   readonly separator?: string | undefined
 }) => {
-  const list = Schema.Array(value)
+  const array = Schema.Array(value)
   const separator = options?.separator ?? ","
-  const listString = Schema.String.pipe(
+  const arrayString = Schema.String.pipe(
     Schema.decodeTo(
       Schema.Array(Schema.String),
       {
@@ -905,10 +893,30 @@ export const List = <V extends Schema.Top>(value: V, options?: {
         encode: SchemaGetter.transform((input: ReadonlyArray<string>) => input.join(separator))
       }
     ),
-    Schema.decodeTo(list)
+    Schema.decodeTo(array)
   )
 
-  return Schema.Union([listString, list])
+  return Schema.Union([arrayString, array])
+}
+
+export {
+  /**
+   * Schema for array types that can also be parsed from a flat separated string.
+   *
+   * **When to use**
+   *
+   * Use when reading array values from a single env var, such as comma-separated
+   * exporter names.
+   *
+   * **Details**
+   *
+   * Accepts either a JSON-like array from the provider or a flat string like
+   * `"a,b,c"`. The `separator` defaults to `","` and can be customized.
+   *
+   * @category schemas
+   * @since 4.0.0
+   */
+  ArrayConfig as Array
 }
 
 // -----------------------------------------------------------------------------
