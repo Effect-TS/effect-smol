@@ -188,7 +188,7 @@ export const layerFromConfig = (options?: {
     const exportInterval = Option.map(scheduleDelay, (_) => Duration.millis(_))
 
     return layer({
-      url: endpoint,
+      url: endpoint.toString(),
       resource: options?.resource,
       headers: options?.headers ?? (yield* OtlpEnv.headers("LOGS")),
       exportInterval: Option.getOrUndefined(exportInterval),

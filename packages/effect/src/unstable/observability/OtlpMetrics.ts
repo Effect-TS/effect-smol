@@ -506,7 +506,11 @@ export const layerFromConfig = (options?: {
       baseTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TIMEOUT")),
       metricsTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_METRICS_TIMEOUT")),
       exportTimeout: Config.option(Config.int("OTEL_METRIC_EXPORT_TIMEOUT")),
-      exportInterval: Config.option(Config.int("OTEL_METRIC_EXPORT_INTERVAL")),
+      exportInterval: Config.option(
+        Config.int("OTEL_METRIC_EXPORT_INTERVAL").pipe(
+          Config.map(Duration.millis)
+        )
+      ),
       temporalityPreference: Config.option(
         Config.literals(["delta", "cumulative"], "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE")
       )
@@ -517,10 +521,10 @@ export const layerFromConfig = (options?: {
     )
 
     return layer({
-      url: endpoint,
+      url: endpoint.toString(),
       resource: options?.resource,
       headers: options?.headers ?? (yield* OtlpEnv.headers("METRICS")),
-      exportInterval: Option.getOrUndefined(Option.map(exportInterval, (_) => Duration.millis(_))),
+      exportInterval: Option.getOrUndefined(exportInterval),
       shutdownTimeout: Option.getOrUndefined(shutdownTimeout),
       temporality: Option.getOrUndefined(temporalityPreference)
     })

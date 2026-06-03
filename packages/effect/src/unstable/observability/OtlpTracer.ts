@@ -179,20 +179,23 @@ export const layerFromConfig = (options?: {
       baseTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TIMEOUT")),
       tracesTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TRACES_TIMEOUT")),
       exportTimeout: Config.option(Config.int("OTEL_BSP_EXPORT_TIMEOUT")),
-      scheduleDelay: Config.option(Config.int("OTEL_BSP_SCHEDULE_DELAY")),
+      scheduleDelay: Config.option(
+        Config.int("OTEL_BSP_SCHEDULE_DELAY").pipe(
+          Config.map(Duration.millis)
+        )
+      ),
       maxBatchSize: Config.option(Config.int("OTEL_BSP_MAX_EXPORT_BATCH_SIZE"))
     })
 
     const shutdownTimeout = Option.firstSomeOf([tracesTimeout, baseTimeout, exportTimeout]).pipe(
       Option.map((_) => Duration.millis(_))
     )
-    const exportInterval = Option.map(scheduleDelay, (_) => Duration.millis(_))
 
     return layer({
-      url: endpoint,
+      url: endpoint.toString(),
       resource: options?.resource,
       headers: options?.headers ?? (yield* OtlpEnv.headers("TRACES")),
-      exportInterval: Option.getOrUndefined(exportInterval),
+      exportInterval: Option.getOrUndefined(scheduleDelay),
       maxBatchSize: Option.getOrUndefined(maxBatchSize),
       context: options?.context,
       shutdownTimeout: Option.getOrUndefined(shutdownTimeout)
