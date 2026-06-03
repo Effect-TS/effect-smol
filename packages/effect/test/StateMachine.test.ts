@@ -44,6 +44,22 @@ describe("StateMachine", () => {
     assert.deepStrictEqual(machine.initial({ userId: "user-1" }), new Idle({ userId: "user-1" }))
   })
 
+  it("make stores the machine id", () => {
+    const machine = StateMachine.make({
+      id: "UserMachine",
+      states: [Idle, Loading],
+      events: [Submit],
+      input: Input,
+      initial: (input) => new Idle({ userId: input.userId })
+    }).handle("Idle", {
+      Submit: Effect.fn(function*() {
+        return new Loading({ requestId: "request-1" })
+      })
+    })
+
+    assert.strictEqual(machine.id, "UserMachine")
+  })
+
   it("handle stores handlers and sync transitions enqueue actions", () => {
     const effect = Effect.succeed("submitted")
     const machine = StateMachine.make({

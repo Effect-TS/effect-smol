@@ -48,6 +48,7 @@ export interface Machine<
   readonly states: States
   readonly events: Events
   readonly input: Input
+  readonly id: string | undefined
 
   readonly initial: (input: Input["Type"]) => Machine.StateOf<States>
   readonly handlers: Machine.Handlers<States, Events, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
@@ -269,6 +270,7 @@ const handleUnsafe = (
   machine.states = self.states
   machine.events = self.events
   machine.input = self.input
+  machine.id = self.id
   machine.initial = self.initial
   machine.handlers = {
     ...self.handlers,
@@ -310,6 +312,7 @@ export const make = <
   const Input extends Schema.Top
 >(
   config: {
+    readonly id?: string
     readonly states: States
     readonly events: Events
     readonly input: Input
@@ -320,6 +323,7 @@ export const make = <
   self.states = config.states
   self.events = config.events
   self.input = config.input
+  self.id = config.id
   self.initial = config.initial
   self.handlers = {}
   return self
