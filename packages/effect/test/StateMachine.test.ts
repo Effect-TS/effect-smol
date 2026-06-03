@@ -41,7 +41,7 @@ describe("StateMachine", () => {
     })
 
     assert.strictEqual(StateMachine.isMachine(machine), true)
-    assert.deepStrictEqual(machine.initial({ userId: "user-1" }), new Idle({ userId: "user-1" }))
+    assert.deepStrictEqual(StateMachine.initial(machine, { userId: "user-1" }), new Idle({ userId: "user-1" }))
   })
 
   it("make stores the machine id", () => {
@@ -59,6 +59,20 @@ describe("StateMachine", () => {
 
     assert.strictEqual(machine.id, "UserMachine")
   })
+
+  it.effect("starts a machine without input", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        initial: () => new Idle({ userId: "user-1" })
+      })
+
+      const actor = yield* StateMachine.start(machine)
+
+      assert.deepStrictEqual(StateMachine.initial(machine), new Idle({ userId: "user-1" }))
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
 
   it("handle stores handlers and sync transitions enqueue actions", () => {
     const effect = Effect.succeed("submitted")

@@ -39,7 +39,7 @@ export const TypeId: TypeId = "~effect/StateMachine"
 export interface Machine<
   States extends ReadonlyArray<Machine.TaggedSchema>,
   Events extends ReadonlyArray<Machine.TaggedSchema>,
-  Input extends Schema.Top,
+  Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
   R = never
@@ -47,13 +47,14 @@ export interface Machine<
   readonly [TypeId]: TypeId
   readonly states: States
   readonly events: Events
-  readonly input: Input
+  readonly input: Input | undefined
   readonly id: string | undefined
 
-  readonly initial: (input: Input["Type"]) => Machine.StateOf<States>
   readonly handlers: Machine.Handlers<States, Events, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
-
   readonly handle: Machine.Handler<States, Events, Input, UnhandledStates, E, R>
+
+  /** @internal */
+  readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.StateOf<States>
 }
 
 /**
@@ -96,6 +97,9 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type TaggedSchema = Schema.Top & { readonly Type: { readonly _tag: PropertyKey } }
+
+  export type InputArgs<Input extends Schema.Top> = Input extends typeof Schema.Void ? []
+    : [input: Input["Type"]]
 
   /**
    * Extracts the discriminator value represented by a tagged schema.
@@ -309,14 +313,14 @@ export const isMachine = (
 export const make = <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Input extends Schema.Top
+  const Input extends Schema.Top = typeof Schema.Void
 >(
   config: {
     readonly id?: string
     readonly states: States
     readonly events: Events
-    readonly input: Input
-    readonly initial: (input: Input["Type"]) => Machine.StateOf<States>
+    readonly input?: Input
+    readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.StateOf<States>
   }
 ): Machine<States, Events, Input> => {
   const self = Object.create(Proto)
@@ -328,6 +332,24 @@ export const make = <
   self.handlers = {}
   return self
 }
+
+/**
+ * Returns the initial state for a state machine.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const initial = <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  ...args: [...Machine.InputArgs<Input>]
+): Machine.StateOf<States> => machine.initial(...args)
 
 export const action = <E, R>(
   effect: Effect.Effect<void, E, R>
@@ -346,27 +368,27 @@ export const action = <E, R>(
 export const start: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Input extends Schema.Top,
-  UnhandledStates extends Machine.TagOf<States[number]>,
-  E,
-  R
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
-  input: Input["Type"]
+  ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<Actor<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>> = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Input extends Schema.Top,
-  UnhandledStates extends Machine.TagOf<States[number]>,
-  E,
-  R
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
-  input: Input["Type"]
+  ...args: [...Machine.InputArgs<Input>]
 ) {
   const deferredActions = yield* makeDeferredActions
   const stopped = yield* Ref.make(false)
-  const current = yield* SynchronizedRef.make(machine.initial(input))
+  const current = yield* SynchronizedRef.make(initial(machine, ...args))
 
   return {
     state: SynchronizedRef.get(current),
