@@ -9,20 +9,19 @@ describe("Redis", () => {
       let evalShaAttempts = 0
       const redis = yield* Redis.make({
         send: (command, ...args) =>
-          Effect.sync(() => {
+          Effect.suspend(() => {
             commands.push([command, args])
             if (command === "EVALSHA") {
               evalShaAttempts += 1
             }
-          }).pipe(Effect.flatMap(() => {
             if (command === "SCRIPT") {
-              return Effect.succeed("sha")
+              return Effect.succeed("sha" as any)
             }
             if (command === "EVALSHA" && evalShaAttempts === 1) {
               return Effect.fail(new Redis.RedisError({ cause: new Error("NOSCRIPT No matching script") }))
             }
             return Effect.succeed("ok")
-          }))
+          })
       })
       const evalScript = redis.eval(
         Redis.script((key: string) => [key], {
