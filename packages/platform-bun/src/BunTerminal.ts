@@ -1,17 +1,35 @@
 /**
  * Bun-backed implementation of Effect's `Terminal` service.
  *
- * This module provides a scoped, process-backed terminal for Bun programs by
- * adapting the runtime's Node-compatible stdin, stdout, and `readline` support.
- * It is useful for CLIs, prompts, REPLs, and terminal interfaces that need
- * prompt output, line input, keypress input, or terminal dimensions.
+ * This module adapts Bun's Node-compatible `stdin`, `stdout`, and `readline`
+ * support into a scoped `Terminal` service. It is intended for Bun CLIs,
+ * prompts, REPLs, and terminal interfaces that need prompt output, line input,
+ * keypress input, or terminal dimensions through Effect services.
  *
- * The service uses the current process streams, so acquire it with a scope or
- * provide `layer` to ensure cleanup. When stdin is attached to a TTY, raw mode
- * is enabled while the terminal is active and restored when the scope closes;
- * this changes how keys are delivered and can affect other consumers of stdin.
- * In pipes, redirected input, or CI, raw mode may be unavailable, keypress input
- * is limited, and stdout dimensions may be reported as zero.
+ * **Mental model**
+ *
+ * - {@link make} creates a scoped terminal from the current process streams.
+ * - {@link layer} provides the default live terminal service for Bun programs.
+ * - The implementation reuses the shared Node-compatible terminal adapter, so
+ *   behavior follows the capabilities of Bun's process streams and readline
+ *   support.
+ *
+ * **Common tasks**
+ *
+ * - Provide terminal access at the edge of a Bun CLI with {@link layer}.
+ * - Customize which key ends keypress input by calling {@link make} directly.
+ * - Read lines, read keypresses, display prompts, and inspect terminal size
+ *   through the `Terminal` service once it is provided.
+ *
+ * **Gotchas**
+ *
+ * - The service uses global process streams. Acquire it with a scope, or
+ *   provide {@link layer}, so raw mode and readline listeners are cleaned up.
+ * - When `stdin` is a TTY, raw mode is enabled while the terminal is active and
+ *   restored when the scope closes; this changes how keys are delivered and can
+ *   affect other stdin consumers.
+ * - In pipes, redirected input, or CI, raw mode may be unavailable, keypress
+ *   input is limited, and stdout dimensions may be reported as zero.
  *
  * @since 4.0.0
  */

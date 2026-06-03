@@ -24,7 +24,12 @@ import type * as Atom from "effect/unstable/reactivity/Atom"
 import * as React from "react"
 
 /**
- * Type identifier for ScopedAtom.
+ * Literal type used as the `ScopedAtom` type identifier.
+ *
+ * **Details**
+ *
+ * Used as the computed property key and marker value stored on `ScopedAtom`
+ * objects.
  *
  * @category type IDs
  * @since 4.0.0
@@ -33,6 +38,11 @@ export type TypeId = "~@effect/atom-react/ScopedAtom"
 
 /**
  * Type identifier for ScopedAtom.
+ *
+ * **Details**
+ *
+ * Used as the computed property key and marker value stored on `ScopedAtom`
+ * objects.
  *
  * @category type IDs
  * @since 4.0.0
@@ -45,15 +55,15 @@ export const TypeId: TypeId = "~@effect/atom-react/ScopedAtom"
  * **Example** (Providing and reading a scoped atom)
  *
  * ```ts
- * import * as AtomReact from "@effect/atom-react"
+ * import { make, useAtomValue } from "@effect/atom-react"
  * import { Atom } from "effect/unstable/reactivity"
  * import * as React from "react"
  *
- * const Counter = AtomReact.make(() => Atom.make(0))
+ * const Counter = make(() => Atom.make(0))
  *
  * function View() {
  *   const atom = Counter.use()
- *   const value = AtomReact.useAtomValue(atom)
+ *   const value = useAtomValue(atom)
  *   return React.createElement("div", null, value)
  * }
  *
@@ -76,18 +86,34 @@ export interface ScopedAtom<A extends Atom.Atom<any>, Input = never> {
 /**
  * Creates a ScopedAtom from a factory function.
  *
+ * **When to use**
+ *
+ * Use to create an atom instance that is owned by a React provider and scoped
+ * to a component subtree.
+ *
+ * **Details**
+ *
+ * The returned scoped atom includes a `Provider`, `Context`, and `use`
+ * accessor. The provider creates the atom once for its lifetime, passing the
+ * `value` prop to the factory when the scoped atom expects input.
+ *
+ * **Gotchas**
+ *
+ * `use` must run under the matching provider. Changing the provider `value`
+ * prop after mount does not recreate the atom.
+ *
  * **Example** (Creating a scoped atom with input)
  *
  * ```ts
- * import * as AtomReact from "@effect/atom-react"
+ * import { make, useAtomValue } from "@effect/atom-react"
  * import { Atom } from "effect/unstable/reactivity"
  * import * as React from "react"
  *
- * const User = AtomReact.make((name: string) => Atom.make(name))
+ * const User = make((name: string) => Atom.make(name))
  *
  * function UserName() {
  *   const atom = User.use()
- *   const value = AtomReact.useAtomValue(atom)
+ *   const value = useAtomValue(atom)
  *   return React.createElement("span", null, value)
  * }
  *

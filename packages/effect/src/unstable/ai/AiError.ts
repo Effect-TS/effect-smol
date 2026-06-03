@@ -364,7 +364,12 @@ export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 export interface UnknownErrorMetadata extends ProviderMetadata {}
 
 /**
- * Token usage information from AI operations.
+ * Schema for token usage information from AI operations.
+ *
+ * **Details**
+ *
+ * Schema for optional provider-reported token counts for prompt tokens,
+ * completion tokens, and total tokens.
  *
  * @category schemas
  * @since 4.0.0
@@ -376,7 +381,20 @@ export const UsageInfo = Schema.Struct({
 }).annotate({ identifier: "UsageInfo" })
 
 /**
- * Combined HTTP context for error reporting.
+ * Schema for the combined HTTP context used in error reporting.
+ *
+ * **When to use**
+ *
+ * Use to attach request details, optional response details, and optional body
+ * text to AI provider errors.
+ *
+ * **Details**
+ *
+ * Includes the required request details plus optional response details and raw
+ * response body.
+ *
+ * @see {@link HttpRequestDetails} for captured request details
+ * @see {@link HttpResponseDetails} for captured response details
  *
  * @category schemas
  * @since 4.0.0
@@ -937,7 +955,7 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
 }
 
 /**
- * Catch-all error for unknown or unexpected errors.
+ * Error data for unknown or unexpected AI failures.
  *
  * **Details**
  *
@@ -1415,6 +1433,16 @@ export type AiErrorReason =
 /**
  * Schema for validating and parsing AI error reasons.
  *
+ * **When to use**
+ *
+ * Use when decoding or validating unknown AI error reason values with Schema.
+ *
+ * **Details**
+ *
+ * This runtime schema is the union of the concrete AI error reason classes.
+ *
+ * @see {@link isAiErrorReason} for checking an existing value without Schema decoding
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -1465,11 +1493,12 @@ export const AiErrorReason: Schema.Union<[
 const TypeId = "~effect/unstable/ai/AiError/AiError" as const
 
 /**
- * Top-level AI error wrapper using the `reason` pattern.
+ * Schema for the top-level AI error wrapper using the `reason` pattern.
  *
  * **When to use**
  *
- * Use with `Effect.catchReason` for ergonomic error handling.
+ * Use when you need AI errors that can be handled by semantic reason with
+ * `Effect.catchReason`.
  *
  * **Details**
  *
@@ -1619,7 +1648,8 @@ export const make = (params: {
  *
  * **When to use**
  *
- * Provider packages can use this as a base for provider-specific mapping.
+ * Use as the base mapping when provider packages translate HTTP status codes into
+ * provider-specific error reasons.
  *
  * **Example** (Mapping an HTTP status to a reason)
  *

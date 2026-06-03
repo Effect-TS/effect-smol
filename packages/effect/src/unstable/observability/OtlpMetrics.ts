@@ -25,14 +25,17 @@
  */
 import * as Arr from "../../Array.ts"
 import { Clock } from "../../Clock.ts"
+import * as Config from "../../Config.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Metric from "../../Metric.ts"
+import * as Option from "../../Option.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Headers from "../http/Headers.ts"
 import type { HttpBody } from "../http/HttpBody.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
+import * as OtlpEnv from "./internal/otlpEnv.ts"
 import * as Exporter from "./OtlpExporter.ts"
 import type { Fixed64, KeyValue } from "./OtlpResource.ts"
 import * as OtlpResource from "./OtlpResource.ts"
@@ -474,6 +477,54 @@ export const layer = (options: {
   readonly shutdownTimeout?: Duration.Input | undefined
   readonly temporality?: AggregationTemporality | undefined
 }): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> => Layer.effectDiscard(make(options))
+
+/**
+ * Creates an OTLP metrics layer from OpenTelemetry configuration.
+ *
+ * @category layers
+ * @since 4.0.0
+ */
+export const layerFromConfig = (options?: {
+  readonly resource?: {
+    readonly serviceName?: string | undefined
+    readonly serviceVersion?: string | undefined
+    readonly attributes?: Record<string, unknown>
+  } | undefined
+  readonly headers?: Headers.Input | undefined
+}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> =>
+  Effect.gen(function*() {
+    const { disabled, endpoint, exporters } = yield* Config.all({
+      disabled: Config.boolean("OTEL_SDK_DISABLED").pipe(Config.withDefault(false)),
+      endpoint: OtlpEnv.endpoint("METRICS"),
+      exporters: OtlpEnv.exporters("METRICS")
+    })
+    if (disabled || !endpoint || !exporters.includes("otlp")) {
+      return Layer.empty
+    }
+
+    const { baseTimeout, metricsTimeout, exportTimeout, exportInterval, temporalityPreference } = yield* Config.all({
+      baseTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TIMEOUT")),
+      metricsTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_METRICS_TIMEOUT")),
+      exportTimeout: Config.option(Config.int("OTEL_METRIC_EXPORT_TIMEOUT")),
+      exportInterval: Config.option(Config.int("OTEL_METRIC_EXPORT_INTERVAL")),
+      temporalityPreference: Config.option(
+        Config.literals(["delta", "cumulative"], "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE")
+      )
+    })
+
+    const shutdownTimeout = Option.firstSomeOf([metricsTimeout, baseTimeout, exportTimeout]).pipe(
+      Option.map((_) => Duration.millis(_))
+    )
+
+    return layer({
+      url: endpoint,
+      resource: options?.resource,
+      headers: options?.headers ?? (yield* OtlpEnv.headers("METRICS")),
+      exportInterval: Option.getOrUndefined(Option.map(exportInterval, (_) => Duration.millis(_))),
+      shutdownTimeout: Option.getOrUndefined(shutdownTimeout),
+      temporality: Option.getOrUndefined(temporalityPreference)
+    })
+  }).pipe(Effect.orDie, Layer.unwrap)
 
 /**
  * OTLP metrics payload serialized by `OtlpMetrics`.

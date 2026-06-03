@@ -1,17 +1,58 @@
 /**
- * The `SubscriptionRef` module provides a mutable reference that can be read
- * and updated like a `Ref`, while also exposing a stream of its current value
- * and every subsequent change. It is useful when one part of an application
- * owns evolving state and many fibers need to subscribe to consistent updates,
- * such as configuration, coordination state, cached snapshots, or UI models.
+ * The `SubscriptionRef` module combines a fiber-safe mutable reference with a
+ * replaying stream of state changes. A `SubscriptionRef<A>` stores the latest
+ * value, serializes updates, and publishes each committed value so subscribers
+ * can observe state as it evolves.
  *
- * Updates are serialized with an internal semaphore and each update is
- * published to subscribers. The {@link changes} stream replays the latest value
- * first, then emits future updates, so new subscribers can start from the
- * current state without performing a separate read. Prefer the effectful
- * getters and update operations for concurrent code; the unsafe helpers bypass
- * synchronization and should only be used when the caller already controls
- * access.
+ * **Mental model**
+ *
+ * - {@link make} creates the reference and immediately publishes the initial
+ *   value.
+ * - {@link get} reads the latest value without subscribing.
+ * - {@link set}, {@link update}, and {@link modify} change the value under the
+ *   reference semaphore and publish the new value.
+ * - {@link changes} returns a stream that first emits the current value and
+ *   then emits future published values.
+ * - The `Some` variants leave the value unchanged and publish nothing when
+ *   their `Option` result is empty.
+ *
+ * **Common tasks**
+ *
+ * - Create shared state with {@link make}.
+ * - Read once with {@link get} or observe over time with {@link changes}.
+ * - Replace state with {@link set}, {@link setAndGet}, or {@link getAndSet}.
+ * - Transform state with {@link update}, {@link updateAndGet},
+ *   {@link getAndUpdate}, or their effectful variants.
+ * - Compute a separate result while updating with {@link modify} or
+ *   {@link modifyEffect}.
+ *
+ * **Example** (Reading the current value through changes)
+ *
+ * ```ts
+ * import { Effect, Stream, SubscriptionRef } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const ref = yield* SubscriptionRef.make(0)
+ *
+ *   yield* SubscriptionRef.update(ref, (n) => n + 1)
+ *
+ *   const latest = yield* SubscriptionRef.changes(ref).pipe(
+ *     Stream.take(1),
+ *     Stream.runCollect
+ *   )
+ *
+ *   return latest
+ * })
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - Every successful set or non-empty update is published, even when the new
+ *   value is equal to the old one.
+ * - New subscribers receive the current value from the replay buffer before
+ *   future updates.
+ * - Unsafe helpers bypass the semaphore and should only be used when the caller
+ *   already controls access.
  *
  * @since 2.0.0
  */
@@ -34,7 +75,7 @@ const TypeId = "~effect/SubscriptionRef"
  *
  * **When to use**
  *
- * Use `changes` to observe the current value and subsequent updates as a
+ * Use to observe the current value and subsequent updates as a
  * stream.
  *
  * @category models
@@ -48,6 +89,11 @@ export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A>, 
 
 /**
  * Returns `true` if the provided value is a `SubscriptionRef`.
+ *
+ * **When to use**
+ *
+ * Use to narrow an unknown value before calling `SubscriptionRef` operations
+ * that require a subscription reference.
  *
  * @category guards
  * @since 4.0.0
@@ -92,6 +138,19 @@ const Proto = {
 
 /**
  * Constructs a new `SubscriptionRef` from an initial value.
+ *
+ * **When to use**
+ *
+ * Use to create a `SubscriptionRef` when consumers need to read the latest
+ * value and subscribe to every update.
+ *
+ * **Details**
+ *
+ * The initial value is published during construction, so `changes` starts new
+ * subscribers with that value before future updates.
+ *
+ * @see {@link changes} for streaming the current value and subsequent updates
+ * @see {@link set} for replacing the value and notifying subscribers
  *
  * @category constructors
  * @since 2.0.0
@@ -148,7 +207,12 @@ export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
 export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream.fromPubSub(self.pubsub)
 
 /**
- * Unsafely retrieves the current value of the `SubscriptionRef`.
+ * Retrieves the current value of the `SubscriptionRef` unsafely.
+ *
+ * **When to use**
+ *
+ * Use when you are in synchronous internals or test setup where concurrent
+ * updates are controlled.
  *
  * **Gotchas**
  *
@@ -196,7 +260,7 @@ export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.value
 export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.sync(() => self.value)
 
 /**
- * Atomically retrieves the current value and sets a new value, notifying
+ * Retrieves the current value and sets a new value atomically, notifying
  * subscribers of the change.
  *
  * **Example** (Getting and setting a value)
@@ -234,7 +298,7 @@ const setUnsafe = <A>(self: SubscriptionRef<A>, value: A) => {
 }
 
 /**
- * Atomically retrieves the current value and updates it with the result of
+ * Retrieves the current value and updates it atomically with the result of
  * applying a function, notifying subscribers of the change.
  *
  * **Example** (Getting and updating a value)
@@ -268,7 +332,7 @@ export const getAndUpdate: {
   })))
 
 /**
- * Atomically retrieves the current value and updates it with the result of
+ * Retrieves the current value and updates it atomically with the result of
  * applying an effectful function, notifying subscribers of the change.
  *
  * **Example** (Getting and updating with an effect)
@@ -309,9 +373,18 @@ export const getAndUpdateEffect: {
   })))
 
 /**
- * Atomically retrieves the current value and applies an update function. If
- * the function returns `Option.some`, sets and publishes that value; if it
- * returns `Option.none`, leaves the reference unchanged and does not publish.
+ * Retrieves the current value and optionally updates the reference.
+ *
+ * **When to use**
+ *
+ * Use to read the old `SubscriptionRef` value while applying a synchronous
+ * update only when a new value is available.
+ *
+ * **Details**
+ *
+ * If the function returns `Option.some`, the new value is set and published. If
+ * it returns `Option.none`, the reference is left unchanged and no update is
+ * published.
  *
  * **Example** (Getting and conditionally updating a value)
  *
@@ -353,10 +426,18 @@ export const getAndUpdateSome: {
   })))
 
 /**
- * Atomically retrieves the current value and applies an effectful update
- * function. If it succeeds with `Option.some`, sets and publishes that value;
- * if it succeeds with `Option.none`, leaves the reference unchanged and does
- * not publish.
+ * Retrieves the current value and optionally updates the reference effectfully.
+ *
+ * **When to use**
+ *
+ * Use to read the old `SubscriptionRef` value while applying an effectful
+ * update only when a new value is available.
+ *
+ * **Details**
+ *
+ * If the effect succeeds with `Option.some`, the new value is set and
+ * published. If it succeeds with `Option.none`, the reference is left unchanged
+ * and no update is published.
  *
  * **Example** (Getting and conditionally updating with an effect)
  *
@@ -402,7 +483,7 @@ export const getAndUpdateSomeEffect: {
   })))
 
 /**
- * Atomically modifies the `SubscriptionRef` with a function that computes a
+ * Modifies the `SubscriptionRef` atomically with a function that computes a
  * return value and a new value, notifying subscribers of the change.
  *
  * **Example** (Modifying a value)
@@ -441,7 +522,7 @@ export const modify: {
   })))
 
 /**
- * Atomically modifies the `SubscriptionRef` with an effectful function that
+ * Modifies the `SubscriptionRef` atomically with an effectful function that
  * computes a return value and a new value, notifying subscribers of the
  * change.
  *
@@ -487,9 +568,18 @@ export const modifyEffect: {
   )))
 
 /**
- * Atomically computes a return value and an optional new value. If the function
- * returns `Option.some` for the new value, sets and publishes it; if it returns
- * `Option.none`, leaves the reference unchanged and does not publish.
+ * Computes a return value and optionally updates the reference.
+ *
+ * **When to use**
+ *
+ * Use to return a separate result while synchronously deciding whether to
+ * publish a new `SubscriptionRef` value.
+ *
+ * **Details**
+ *
+ * If the function returns `Option.some` for the new value, the value is set and
+ * published. If it returns `Option.none`, the reference is left unchanged and
+ * no update is published.
  *
  * **Example** (Conditionally modifying a value)
  *
@@ -534,10 +624,18 @@ export const modifySome: {
   })))
 
 /**
- * Atomically computes a return value and an optional new value with an
- * effectful function. If the effect succeeds with `Option.some`, sets and
- * publishes the new value; if it succeeds with `Option.none`, leaves the
- * reference unchanged and does not publish.
+ * Computes a return value and optionally updates the reference effectfully.
+ *
+ * **When to use**
+ *
+ * Use to return a separate result while effectfully deciding whether to publish
+ * a new `SubscriptionRef` value.
+ *
+ * **Details**
+ *
+ * If the effect succeeds with `Option.some`, the new value is set and
+ * published. If it succeeds with `Option.none`, the reference is left unchanged
+ * and no update is published.
  *
  * **Example** (Conditionally modifying with an effect)
  *
@@ -817,9 +915,18 @@ export const updateSome: {
   })))
 
 /**
- * Applies an effectful update function to the current value. If it succeeds
- * with `Option.some`, sets and publishes that value; if it succeeds with
- * `Option.none`, leaves the reference unchanged and does not publish.
+ * Applies an effectful update only when it produces a new value.
+ *
+ * **When to use**
+ *
+ * Use to conditionally update a `SubscriptionRef` with an effectful function
+ * while discarding the resulting value.
+ *
+ * **Details**
+ *
+ * If the effect succeeds with `Option.some`, the new value is set and
+ * published. If it succeeds with `Option.none`, the reference is left unchanged
+ * and no update is published.
  *
  * **Example** (Conditionally updating with an effect)
  *
@@ -862,10 +969,18 @@ export const updateSomeEffect: {
   )))
 
 /**
- * Applies an update function and returns the resulting current value. If the
- * function returns `Option.some`, sets, publishes, and returns that value; if
- * it returns `Option.none`, returns the unchanged current value without
- * publishing.
+ * Applies an optional update and returns the current value afterward.
+ *
+ * **When to use**
+ *
+ * Use to conditionally update a `SubscriptionRef` and read the value that is
+ * current after the update decision.
+ *
+ * **Details**
+ *
+ * If the function returns `Option.some`, the new value is set, published, and
+ * returned. If it returns `Option.none`, the unchanged current value is
+ * returned without publishing.
  *
  * **Example** (Conditionally updating and reading the new value)
  *
@@ -902,10 +1017,18 @@ export const updateSomeAndGet: {
   })))
 
 /**
- * Applies an effectful update function and returns the resulting current
- * value. If the effect succeeds with `Option.some`, sets, publishes, and
- * returns that value; if it succeeds with `Option.none`, returns the unchanged
- * current value without publishing.
+ * Applies an effectful optional update and returns the current value afterward.
+ *
+ * **When to use**
+ *
+ * Use to conditionally update a `SubscriptionRef` effectfully and read the
+ * value that is current after the update decision.
+ *
+ * **Details**
+ *
+ * If the effect succeeds with `Option.some`, the new value is set, published,
+ * and returned. If it succeeds with `Option.none`, the unchanged current value
+ * is returned without publishing.
  *
  * **Example** (Conditionally updating with an effect and reading the new value)
  *

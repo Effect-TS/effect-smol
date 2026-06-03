@@ -1,23 +1,36 @@
 /**
- * Error types and response conversion helpers used by the HTTP server runtime.
+ * Error model used by the unstable HTTP server runtime.
  *
- * This module models the failure cases that can happen around a server request:
- * malformed or unreadable requests, unmatched routes, unexpected handler
- * failures, response construction or delivery failures, and lower-level server
- * implementation failures. These errors keep the relevant request, and for
- * response failures the response that was being produced, so applications can
- * report, inspect, or translate failures without losing HTTP context.
+ * This module defines the tagged failures that can occur while a server accepts
+ * a request, matches a route, runs a handler, or builds and sends a response.
+ * Request-scoped failures keep the request that caused them, and response
+ * failures keep the response that was being produced, so applications can log,
+ * report, or translate failures without reconstructing HTTP context.
  *
- * Most users encounter these errors when decoding request bodies, implementing
- * fallback routes, adding error reporting, or customizing how handler failures
- * become responses. Request parse errors become `400` responses, missing routes
- * become `404` responses and are ignored by the error reporter, and internal or
- * response errors become `500` responses. A `ResponseError` records the response
- * involved in the failure, but its default conversion intentionally sends an
- * empty `500` instead of reusing a response that may already be invalid or
- * partially failed. Handler causes can also contain respondable failures,
- * response defects, or interrupts; the conversion helpers preserve those
- * distinctions, including `499` for client aborts and `503` for server aborts.
+ * **Mental model**
+ *
+ * {@link HttpServerError} wraps a concrete {@link HttpServerErrorReason}.
+ * {@link RequestParseError}, {@link RouteNotFound}, and {@link InternalError}
+ * describe failures before or during request handling, while
+ * {@link ResponseError} describes a failure tied to a response that was already
+ * being built or sent. {@link ServeError} represents lower-level server
+ * implementation failures outside an individual handler response.
+ *
+ * **Common tasks**
+ *
+ * Use {@link isHttpServerError} to refine unknown failures, inspect `request`
+ * and `response` when reporting failures, and use {@link causeResponse} or
+ * {@link exitResponse} when a handler cause or exit must be translated into the
+ * HTTP response sent to the client.
+ *
+ * **Gotchas**
+ *
+ * The default response mapping is intentionally small: request parse errors
+ * become `400`, route misses become ignored `404` failures, internal and
+ * response errors become `500`, client aborts marked with {@link ClientAbort}
+ * become `499`, and server-side interrupts become `503`. A
+ * {@link ResponseError} does not reuse the failed response when converted; it
+ * produces an empty `500` because that response may be invalid or partly sent.
  *
  * @since 4.0.0
  */
@@ -45,7 +58,7 @@ const TypeId = "~effect/http/HttpServerError"
  * response, and can be converted to an HTTP response through the `Respondable`
  * protocol.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class HttpServerError extends Data.TaggedError("HttpServerError")<{
@@ -96,7 +109,7 @@ export class HttpServerError extends Data.TaggedError("HttpServerError")<{
  *
  * When converted to a response it produces an empty `400` response.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class RequestParseError extends Data.TaggedError("RequestParseError")<{
@@ -130,7 +143,7 @@ export class RequestParseError extends Data.TaggedError("RequestParseError")<{
  * When converted to a response it produces an empty `404` response, and it is
  * ignored by the error reporter.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
@@ -160,7 +173,7 @@ export class RouteNotFound extends Data.TaggedError("RouteNotFound")<{
  *
  * When converted to a response it produces an empty `500` response.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class InternalError extends Data.TaggedError("InternalError")<{
@@ -202,7 +215,7 @@ export const isHttpServerError = (u: unknown): u is HttpServerError => hasProper
  * It carries the request and response involved in the failure. When converted to
  * a response it produces an empty `500` response.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class ResponseError extends Data.TaggedError("ResponseError")<{
@@ -228,7 +241,7 @@ export class ResponseError extends Data.TaggedError("ResponseError")<{
 /**
  * Union of errors that are tied directly to an incoming server request.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export type RequestError = RequestParseError | RouteNotFound | InternalError
@@ -236,7 +249,7 @@ export type RequestError = RequestParseError | RouteNotFound | InternalError
 /**
  * Reason carried by an `HttpServerError`, either a request-level error or a response-level error.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export type HttpServerErrorReason = RequestError | ResponseError
@@ -244,7 +257,7 @@ export type HttpServerErrorReason = RequestError | ResponseError
 /**
  * Error wrapping a low-level failure from the HTTP server implementation.
  *
- * @category error
+ * @category errors
  * @since 4.0.0
  */
 export class ServeError extends Data.TaggedError("ServeError")<{
@@ -337,7 +350,7 @@ export const causeResponse = <E>(
 }
 
 /**
- * Synchronously derives an HTTP response from a failed handler cause.
+ * Derives an HTTP response from a failed handler cause synchronously.
  *
  * **Details**
  *

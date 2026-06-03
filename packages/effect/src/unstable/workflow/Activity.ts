@@ -165,7 +165,7 @@ export const make = <
     name: options.name,
     successSchema,
     errorSchema,
-    exitSchema: Schema.Exit(successSchemaJson, errorSchemaJson, Schema.Defect),
+    exitSchema: Schema.Exit(successSchemaJson, errorSchemaJson, Schema.Defect()),
     annotations: options.annotations ?? Context.empty(),
     annotate(tag: Context.Key<any, any>, value: any) {
       return make({
@@ -275,7 +275,7 @@ export const idempotencyKey: (
  * Runs a non-empty collection of activities as a durable race and returns the
  * first completed success or failure using unioned success and error schemas.
  *
- * @category Racing
+ * @category racing
  * @since 4.0.0
  */
 export const raceAll = <const Activities extends NonEmptyReadonlyArray<Any>>(

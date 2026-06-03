@@ -1,30 +1,44 @@
 /**
- * The `HttpApiBuilder` module connects declarative `HttpApi` definitions to
- * runnable HTTP server routes.
+ * Server builders for declarative `HttpApi` contracts.
  *
- * Use this module when you have described an API with `HttpApi`,
- * `HttpApiGroup`, and `HttpApiEndpoint` values and need to provide the
- * server-side implementation. `group` creates a layer for implementing every
- * endpoint in one API group, `layer` registers the implemented groups with an
- * `HttpRouter` and can expose the generated OpenAPI specification, and
- * `endpoint` builds the effect for a single endpoint when custom composition is
- * needed.
+ * This module is the server-side bridge between an `HttpApi` description and an
+ * `HttpRouter`. It turns endpoint metadata into routes, decodes incoming
+ * request parts with `Schema`, runs HTTP API middleware, invokes the registered
+ * handlers, and encodes successes or declared errors back into
+ * `HttpServerResponse` values.
  *
- * The builder performs the runtime work implied by endpoint metadata: it decodes
- * path parameters, headers, query parameters, and request payloads with
- * `Schema`, applies endpoint middleware and security middleware, invokes the
- * registered handler, and encodes successful or declared error results into
- * `HttpServerResponse` values. Handlers can return an `HttpServerResponse`
- * directly to bypass success encoding, and `handleRaw` can be used when payload
- * decoding should be handled manually.
+ * **Mental model**
  *
- * A few implementation details are worth keeping in mind. Every group in the
- * API must be provided with `HttpApiBuilder.group` before `layer` is evaluated,
- * otherwise registration fails with a defect that names the missing group and
- * the available group services. Payload decoding is selected by request media type;
- * unsupported content types produce a `415` response before the handler runs.
- * Schema failures are wrapped as `HttpApiSchemaError`, while ordinary handler
- * failures are encoded with the endpoint's declared error schemas.
+ * `HttpApi` values describe what can be served; this module supplies how it is
+ * served. Implement each group with {@link group}, then register the completed
+ * API with {@link layer}. The layer reads the group implementations from the
+ * Effect context, adds their routes to the active `HttpRouter`, and can also
+ * expose the generated OpenAPI document.
+ *
+ * **Common tasks**
+ *
+ * Use {@link group} with `handlers.handle` to implement every endpoint in one
+ * API group. Use `handlers.handleRaw` when the handler needs direct access to
+ * the `HttpServerRequest` or must decode the payload manually. Use
+ * {@link endpoint} when composing one endpoint route by hand, and use
+ * {@link securityDecode} or {@link securitySetCookie} inside security-aware
+ * middleware.
+ *
+ * **Gotchas**
+ *
+ * Every group in the API must have a matching {@link group} layer before
+ * {@link layer} is evaluated; otherwise registration fails with a defect naming
+ * the missing group service. Payload decoding is selected from the request
+ * media type, so unsupported content types return `415` before the handler
+ * runs. Request decoding failures are wrapped in `HttpApiSchemaError`; handler
+ * failures are encoded only when they match the endpoint or middleware error
+ * schemas.
+ *
+ * **See also**
+ *
+ * `HttpApi` for the top-level contract, `HttpApiGroup` and `HttpApiEndpoint`
+ * for declaration, `HttpApiMiddleware` for server and client middleware, and
+ * `OpenApi` for generated specifications.
  *
  * @since 4.0.0
  */
@@ -42,9 +56,9 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
@@ -71,7 +85,7 @@ import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
- * Register an `HttpApi` with a `HttpRouter`.
+ * Registers an `HttpApi` with a `HttpRouter`.
  *
  * @category constructors
  * @since 4.0.0
@@ -172,7 +186,7 @@ export const group = <
 /**
  * Type identifier symbol used to brand `Handlers` values.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
@@ -180,7 +194,7 @@ export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpAp
 /**
  * Type of the `Handlers` type identifier symbol.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export type HandlersTypeId = typeof HandlersTypeId
@@ -429,10 +443,11 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
   HttpServerRequest | Request.ParsedSearchParams
 > => {
   switch (self._tag) {
-    case "Bearer": {
+    case "Http": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+        // schemeLength + space
+        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength + 1)) as any
       )
     }
     case "ApiKey": {
@@ -507,7 +522,6 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const bearerLen = `Bearer `.length
 const basicLen = `Basic `.length
 
 const HandlersProto = {
@@ -583,7 +597,7 @@ function buildPayloadDecoders(
       result.set(contentType, {
         _tag: encoding._tag,
         decode,
-        nullOnEmpty: schemas.some((s) => AST.isNull(AST.toEncoded(s.ast)))
+        nullOnEmpty: schemas.some((s) => SchemaAST.isNull(SchemaAST.toEncoded(s.ast)))
       })
     }
   })
@@ -815,8 +829,8 @@ function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
-function toResponseSchema(getStatus: (ast: AST.AST) => number) {
-  const cache = new WeakMap<AST.AST, Schema.Top>()
+function toResponseSchema(getStatus: (ast: SchemaAST.AST) => number) {
+  const cache = new WeakMap<SchemaAST.AST, Schema.Top>()
 
   return (schema: Schema.Top): Schema.Encoder<HttpServerResponse, unknown> => {
     const cached = cache.get(schema.ast)
@@ -832,9 +846,9 @@ function toResponseSchema(getStatus: (ast: AST.AST) => number) {
 }
 
 function getResponseTransformation(
-  getStatus: (ast: AST.AST) => number,
+  getStatus: (ast: SchemaAST.AST) => number,
   schema: Schema.Top
-): Transformation.Transformation<unknown, Response.HttpServerResponse> {
+): SchemaTransformation.Transformation<unknown, Response.HttpServerResponse> {
   const ast = schema.ast
   const encode = getResponseEncode(
     getStatus(ast),
@@ -842,8 +856,8 @@ function getResponseTransformation(
     HttpApiSchema.isNoContent(ast)
   )
 
-  return Transformation.transformOrFail({
-    decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
+  return SchemaTransformation.transformOrFail({
+    decode: (res) => Effect.fail(new SchemaIssue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode
   })
 }
@@ -852,7 +866,7 @@ function getResponseEncode<E>(
   status: number,
   encoding: HttpApiSchema.ResponseEncoding,
   isNoContent: boolean
-): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
+): (e: E) => Effect.Effect<Response.HttpServerResponse, SchemaIssue.InvalidValue, never> {
   switch (encoding._tag) {
     case "Json": {
       return ((e) => {
@@ -863,7 +877,7 @@ function getResponseEncode<E>(
           const s = JSON.stringify(e)
           return Effect.succeed(Response.text(s, { status, contentType: encoding.contentType }))
         } catch (error) {
-          return Effect.fail(new Issue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
+          return Effect.fail(new SchemaIssue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
         }
       })
     }

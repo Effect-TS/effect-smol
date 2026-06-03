@@ -51,6 +51,26 @@ const withTracerDisabled = Effect.withTracerEnabled(false)
  * shard locks, using the configured table prefix and advisory locks where
  * supported and enabled.
  *
+ * **When to use**
+ *
+ * Use to create a SQL-backed `RunnerStorage` value directly when building
+ * custom service or layer composition around the storage implementation.
+ *
+ * **Details**
+ *
+ * When `prefix` is omitted, `make` uses the `cluster` prefix, creating
+ * `cluster_runners` and `cluster_locks`. PostgreSQL and MySQL use advisory
+ * locks unless `ShardingConfig.shardLockDisableAdvisory` is enabled; other
+ * dialects use rows in the locks table.
+ *
+ * **Gotchas**
+ *
+ * Changing `prefix` changes both generated table names, so runners using
+ * different prefixes do not share registrations or shard locks.
+ *
+ * @see {@link layer} for the default SQL-backed storage layer
+ * @see {@link layerWith} for a SQL-backed storage layer with a custom table prefix
+ *
  * @category constructors
  * @since 4.0.0
  */

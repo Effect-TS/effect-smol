@@ -1,22 +1,38 @@
 /**
- * Composable HTTP client service for executing `HttpClientRequest` values and
- * receiving `HttpClientResponse` values inside Effect programs.
+ * Dependency-injected HTTP client for executing outgoing requests from Effect
+ * programs.
  *
- * This module provides the `HttpClient` service tag, method-specific accessors,
- * constructors for low-level runtimes, and middleware-style combinators for
- * common client concerns such as request rewriting, response filtering, retries,
- * redirects, cookies, rate limiting, and tracing. It is intended for code that
- * needs dependency-injected outbound HTTP calls, reusable clients customized for
- * an API, or cross-cutting behavior layered around a concrete platform client.
+ * This module defines the `HttpClient` service used by platform clients,
+ * tests, and API-specific clients. It executes immutable `HttpClientRequest`
+ * values, returns `HttpClientResponse` values, and keeps outbound HTTP behind a
+ * service boundary so call sites do not depend on a concrete runtime transport.
  *
- * Responses are successful Effects even for non-2xx status codes unless a
- * filter such as `filterStatus` or `filterStatusOk` is applied. Request
- * middleware is ordered by whether it prepends to or appends after the existing
- * preprocessing pipeline, so use `mapRequestInput` for transformations that
- * should run before previously installed request middleware and `mapRequest`
- * for transformations that should run after it. Non-scoped responses are tied to
- * an abort controller for interruption cleanup; use `withScope` when the request
- * lifetime should instead be controlled by a surrounding `Scope`.
+ * **Mental model**
+ *
+ * A client is an `execute` function plus method helpers such as `get`, `post`,
+ * and `del`. Before a request reaches the runtime, it passes through a
+ * preprocessing pipeline. After the runtime returns a response, it passes
+ * through a postprocessing pipeline. Combinators such as `mapRequest`,
+ * `filterStatusOk`, `retry`, `followRedirects`, `withCookiesRef`, and
+ * `withRateLimiter` return a new client with behavior layered around the
+ * previous one.
+ *
+ * **Common tasks**
+ *
+ * Use method helpers for straightforward calls, construct `HttpClientRequest`
+ * values directly when a request is assembled across several steps, and use
+ * `make` or `makeWith` when adapting a lower-level transport. Use
+ * `filterStatus` or `filterStatusOk` when non-success HTTP statuses should fail
+ * the Effect. Use `withScope` when response resources should live for a
+ * surrounding scope instead of only the individual request.
+ *
+ * **Gotchas**
+ *
+ * Receiving a response is a successful Effect even for non-2xx statuses unless
+ * a status filter has been applied. `mapRequestInput` prepends work before
+ * existing request middleware, while `mapRequest` appends after it. Without
+ * `withScope`, non-scoped responses are attached to an abort controller so
+ * interruption can clean up the request.
  *
  * @since 4.0.0
  */
@@ -145,9 +161,14 @@ export declare namespace HttpClient {
 }
 
 /**
- * Service tag for the default `HttpClient` used by HTTP client accessors.
+ * Service tag for the default outgoing HTTP client service.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to provide the default outgoing HTTP client service used by request
+ * accessors such as `execute`, `get`, and `post`.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const HttpClient: Context.Service<HttpClient, HttpClient> = Context.Service<HttpClient, HttpClient>(
@@ -372,7 +393,15 @@ export const catchTag: {
       e: ExtractTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
   ): HttpClient.With<E1 | ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> =>
-    transformResponse(self, Effect.catchTag(tag, f))
+    transformResponse(
+      self,
+      (effect) =>
+        Effect.catchTag<HttpClientResponse.HttpClientResponse, E, R, K, R1, E1, HttpClientResponse.HttpClientResponse>(
+          effect,
+          tag,
+          f
+        )
+    )
 )
 
 /**
@@ -871,7 +900,7 @@ export const retry: {
  *
  * **When to use**
  *
- * Use `retryOn` to focus on retrying errors, transient responses, or both.
+ * Use to focus on retrying errors, transient responses, or both.
  *
  * **Details**
  *
@@ -1328,7 +1357,12 @@ export const tapRequest: {
 )
 
 /**
- * Associates a `Ref` of cookies with the client for handling cookies across requests.
+ * Adds a `Ref` of cookies to the client for handling cookies across requests.
+ *
+ * **When to use**
+ *
+ * Use to add shared cookie storage to a client so response cookies are retained
+ * and sent by later requests.
  *
  * @category cookies
  * @since 4.0.0
@@ -1361,9 +1395,9 @@ export const withCookiesRef: {
 )
 
 /**
- * Ties the lifetime of the `HttpClientRequest` to a `Scope`.
+ * Attaches the lifetime of the `HttpClientRequest` to a `Scope`.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const withScope = <E, R>(
@@ -1382,7 +1416,7 @@ export const withScope = <E, R>(
   )
 
 /**
- * Follows HTTP redirects up to a specified number of times.
+ * Enables following HTTP redirects up to a specified number of times.
  *
  * @category redirects
  * @since 4.0.0

@@ -1,34 +1,35 @@
 /**
- * The `Telemetry` module provides OpenTelemetry integration for operations
- * performed against a large language model provider by defining telemetry
- * attributes and utilities that follow the OpenTelemetry GenAI semantic
- * conventions.
+ * OpenTelemetry span annotation helpers for Effect AI operations.
  *
- * **Example** (Annotating AI spans)
+ * The `Telemetry` module models the OpenTelemetry GenAI semantic-convention
+ * attributes used by language model and embedding providers, and exposes small
+ * helpers for writing those attributes onto Effect tracing spans. It is used by
+ * provider implementations and by applications that want consistent
+ * `gen_ai.*` span metadata around model requests, responses, token usage, and
+ * provider-specific identifiers.
  *
- * ```ts
- * import { Effect } from "effect"
- * import { Telemetry } from "effect/unstable/ai"
+ * **Mental model**
  *
- * // Add telemetry attributes to a span
- * const addTelemetry = Effect.gen(function*() {
- *   const span = yield* Effect.currentSpan
+ * Attribute options are grouped by semantic-convention namespace: base
+ * `gen_ai`, `operation`, `request`, `response`, `token`, and `usage`.
+ * `addGenAIAnnotations` flattens those groups into span attributes, ignores
+ * nullish values, and converts camelCase field names to snake_case keys.
+ * `addSpanAttributes` provides the same prefix-and-transform behavior for
+ * custom namespaces.
  *
- *   Telemetry.addGenAIAnnotations(span, {
- *     system: "openai",
- *     operation: { name: "chat" },
- *     request: {
- *       model: "gpt-4",
- *       temperature: 0.7,
- *       maxTokens: 1000
- *     },
- *     usage: {
- *       inputTokens: 100,
- *       outputTokens: 50
- *     }
- *   })
- * })
- * ```
+ * **Common tasks**
+ *
+ * - Add standard GenAI attributes to the current span with
+ *   `addGenAIAnnotations`.
+ * - Create a custom attribute writer with `addSpanAttributes`.
+ * - Provide `CurrentSpanTransformer` so a language model implementation can
+ *   annotate the span after seeing the provider response.
+ *
+ * **Gotchas**
+ *
+ * These helpers annotate spans that already exist; they do not create or scope
+ * spans. Attribute writers mutate the provided span, and only non-nullish
+ * values are emitted.
  *
  * @since 4.0.0
  */
@@ -45,7 +46,12 @@ import type * as Response from "./Response.ts"
  * The attributes used to describe telemetry in the context of Generative
  * Artificial Intelligence (GenAI) models requests and responses.
  *
- * @see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/
+ * **Details**
+ *
+ * These attributes follow the OpenTelemetry generative AI semantic
+ * conventions:
+ * https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/
+ *
  * @category models
  * @since 4.0.0
  */
@@ -329,7 +335,7 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
  * // Results in attributes: "custom.ai.model_name" and "custom.ai.max_tokens"
  * ```
  *
- * @category utils
+ * @category annotations
  * @since 4.0.0
  */
 export const addSpanAttributes = (
@@ -401,7 +407,7 @@ const addSpanUsageAttributes = addSpanAttributes("gen_ai.usage", String.camelToS
  * }
  * ```
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type GenAITelemetryAttributeOptions = BaseAttributes & {
@@ -430,10 +436,15 @@ export type GenAITelemetryAttributeOptions = BaseAttributes & {
 /**
  * Applies GenAI telemetry attributes to an OpenTelemetry span.
  *
+ * **When to use**
+ *
+ * Use when you need to write GenAI request, response, token, or usage
+ * attributes onto an existing OpenTelemetry span.
+ *
  * **Details**
  *
- * This function adds standardized GenAI attributes to a span following OpenTelemetry
- * semantic conventions. It supports both curried and direct application patterns.
+ * This function adds standardized GenAI attributes to a span following
+ * OpenTelemetry semantic conventions.
  *
  * **Gotchas**
  *
@@ -456,7 +467,7 @@ export type GenAITelemetryAttributeOptions = BaseAttributes & {
  * })
  * ```
  *
- * @category utils
+ * @category annotations
  * @since 4.0.0
  */
 export const addGenAIAnnotations: {
@@ -512,6 +523,13 @@ export interface SpanTransformer {
 /**
  * Service tag for providing a `SpanTransformer` to large language model
  * operations.
+ *
+ * **When to use**
+ *
+ * Use to retrieve or provide the current `SpanTransformer` through context for
+ * language model span annotation.
+ *
+ * @see {@link SpanTransformer} for the transformer contract provided by this service
  *
  * @category services
  * @since 4.0.0

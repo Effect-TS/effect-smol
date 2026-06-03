@@ -1,19 +1,34 @@
 /**
- * Defines the supported HTTP method literals shared by the unstable HTTP client,
- * server, and routing APIs.
+ * HTTP method literals and helpers shared by the unstable HTTP client, server,
+ * and routing APIs.
  *
- * Use this module when constructing method-specific requests, matching incoming
- * requests, validating unknown method values, or deriving method helper names.
- * Methods are represented as uppercase string literals, so values such as `"get"`
- * are not accepted as `HttpMethod` values.
+ * This module keeps the supported method vocabulary in one place: the
+ * {@link HttpMethod} union, {@link all} set, {@link allShort} mapping,
+ * {@link hasBody} body classification helper, and {@link isHttpMethod} runtime
+ * refinement. Values are uppercase string literals such as `"GET"` and
+ * `"POST"`, matching the method tokens used by the HTTP APIs in this package.
  *
- * The body classification is intentionally conservative and file-specific:
- * `GET`, `HEAD`, `OPTIONS`, and `TRACE` are modeled as bodyless methods, while
- * `POST`, `PUT`, `DELETE`, and `PATCH` are modeled as methods that can carry a
- * request body. This means `DELETE` is allowed to carry a body even though some
- * servers and intermediaries may ignore it, and `GET` request bodies are not
- * represented by these helpers even though the wire protocol does not strictly
- * forbid them.
+ * **Mental model**
+ *
+ * {@link HttpMethod} is the complete set this module recognizes.
+ * {@link HttpMethod.NoBody} is the subset treated as bodyless (`GET`, `HEAD`,
+ * `OPTIONS`, and `TRACE`), and {@link HttpMethod.WithBody} is the remaining
+ * subset accepted by request builders that can carry a body.
+ *
+ * **Common tasks**
+ *
+ * Use {@link isHttpMethod} before accepting an unknown value as an HTTP method,
+ * {@link hasBody} to narrow a method before attaching a body, {@link all} for
+ * membership checks or iteration, and {@link allShort} when deriving the short
+ * constructor names used by request helpers.
+ *
+ * **Gotchas**
+ *
+ * Lowercase method names are not valid {@link HttpMethod} values. The body
+ * split is a typed helper convention, not a full statement of every
+ * wire-protocol edge case: `DELETE` is treated as able to carry a body, while
+ * `GET` helpers are treated as bodyless even though some systems may send a
+ * body on the wire.
  *
  * @since 4.0.0
  */
@@ -67,9 +82,14 @@ export const hasBody = (method: HttpMethod): method is HttpMethod.WithBody =>
   method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && method !== "TRACE"
 
 /**
- * Set containing every supported `HttpMethod` literal.
+ * Provides a readonly set containing every supported `HttpMethod` literal.
  *
- * @category models
+ * **When to use**
+ *
+ * Use when you need to iterate over or test membership against every supported
+ * HTTP method literal.
+ *
+ * @category constants
  * @since 4.0.0
  */
 export const all: ReadonlySet<HttpMethod> = new Set([
@@ -84,9 +104,15 @@ export const all: ReadonlySet<HttpMethod> = new Set([
 ])
 
 /**
- * Tuples mapping each supported HTTP method to its short request-constructor name.
+ * Provides tuples mapping each supported HTTP method to its short
+ * request-constructor name.
  *
- * @category models
+ * **When to use**
+ *
+ * Use when you need the mapping from supported HTTP method literals to their
+ * short request-constructor names.
+ *
+ * @category constants
  * @since 4.0.0
  */
 export const allShort = [
@@ -101,7 +127,7 @@ export const allShort = [
 ] as const
 
 /**
- * Tests if a value is a `HttpMethod`.
+ * Checks whether a value is a `HttpMethod`.
  *
  * **Example** (Checking HTTP method values)
  *

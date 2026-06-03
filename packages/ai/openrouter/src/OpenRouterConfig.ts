@@ -1,21 +1,34 @@
 /**
- * The `OpenRouterConfig` module provides contextual configuration for the
- * OpenRouter provider integration. It is used to customize the HTTP client that
- * backs OpenRouter requests without rebuilding the provider layer itself.
+ * The `OpenRouterConfig` module provides scoped contextual configuration for
+ * OpenRouter request execution. It lets a workflow customize the HTTP client
+ * used by generated OpenRouter request methods without rebuilding the
+ * `OpenRouterClient` layer.
  *
- * Use {@link withClientTransform} when a single effect, workflow, or scoped
- * portion of an application needs to add cross-cutting HTTP client behavior
- * such as request logging, retries, proxy routing, additional headers, or test
- * doubles. The configuration is read from the current Effect context, so the
- * transform only applies where the returned effect is run with that context.
+ * **Mental model**
+ *
+ * - {@link OpenRouterConfig} is a context service carrying optional
+ *   OpenRouter-specific request configuration
+ * - {@link withClientTransform} provides that service around one effect
+ * - Generated request methods read the current context and apply the transform
+ *   to their `HttpClient`
+ * - The scoped configuration only applies while the returned effect is run
+ *
+ * **Common tasks**
+ *
+ * - Add request logging, retries, proxy routing, headers, or test doubles with
+ *   {@link withClientTransform}
+ * - Scope OpenRouter client customization to one workflow without changing the
+ *   shared client layer
  *
  * **Gotchas**
  *
- * - Each call to {@link withClientTransform} replaces the current client
- *   transform for the provided effect; compose transforms manually when both
- *   behaviors should apply.
+ * - Each {@link withClientTransform} call replaces the current scoped
+ *   transform for the supplied effect; compose transforms manually when both
+ *   behaviors should apply
  * - The transform receives and returns an `HttpClient`, so it should preserve
- *   the OpenRouter client contract while adding behavior around it.
+ *   the OpenRouter request contract while adding behavior around it
+ * - Streaming chat completion requests are sent directly by `OpenRouterClient`
+ *   and do not read this scoped transform
  *
  * @since 4.0.0
  */
@@ -25,8 +38,15 @@ import { dual } from "effect/Function"
 import type { HttpClient } from "effect/unstable/http/HttpClient"
 
 /**
- * Context service carrying scoped OpenRouter provider configuration for client
+ * Context service for scoped OpenRouter provider configuration used by client
  * operations.
+ *
+ * **When to use**
+ *
+ * Use as the context service tag when manually providing or reading scoped
+ * OpenRouter provider configuration in an Effect context.
+ *
+ * @see {@link withClientTransform} for scoping an HTTP client transformation
  *
  * @category services
  * @since 4.0.0
@@ -67,6 +87,24 @@ export declare namespace OpenRouterConfig {
 /**
  * Provides a scoped transform for the OpenRouter HTTP client used by provider
  * operations.
+ *
+ * **When to use**
+ *
+ * Use when you need temporary OpenRouter HTTP client customization for a
+ * single effect or workflow without rebuilding the client layer.
+ *
+ * **Details**
+ *
+ * Supports both data-first and data-last forms. The transform is stored in the
+ * scoped `OpenRouterConfig` service and read by generated OpenRouter request
+ * operations while running the supplied effect.
+ *
+ * **Gotchas**
+ *
+ * If a transform is already present in the scoped config, this helper replaces
+ * it. Compose transforms manually when both should apply. Streaming chat
+ * completion requests are sent directly by `OpenRouterClient.make` and do not
+ * read this scoped transform.
  *
  * @category configuration
  * @since 4.0.0

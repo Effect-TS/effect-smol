@@ -1,21 +1,36 @@
 /**
- * Schema-driven helpers for wrapping SQL executions in typed query functions.
+ * Wraps SQL execution callbacks with request encoding and result decoding.
  *
- * This module connects `Schema` request and result definitions to an `execute`
- * callback that runs the actual SQL statement. The returned functions accept
- * the request schema's decoded `Type`, encode it to the SQL-facing `Encoded`
- * shape, run the callback, and then decode unknown driver rows through the
- * result schema. This is useful for repository methods, CRUD helpers, request
- * resolvers, and write operations where callers should work with domain values
- * instead of raw SQL parameters or rows.
+ * `SqlSchema` is a small adapter between Effect Schema and SQL statements. Each
+ * helper builds a function that accepts the decoded request type used by
+ * application code, encodes it before calling `execute`, and decodes unknown
+ * driver rows into the result schema. The helpers differ only in how many rows
+ * they expect and how they represent an empty result set.
  *
- * The `execute` callback always receives `Req["Encoded"]`, so schema
- * transformations, required encoding services, and database representations
- * such as nullable columns, JSON values, dates, and bigints must line up with
- * the statement builder and dialect in use. Result schemas decode the rows
- * returned by the driver after any SQL client row transforms; `findOne` and
- * `findOneOption` only inspect the first row, `findNonEmpty` requires at least
- * one row, and `void` discards any driver result after request encoding.
+ * **Mental model**
+ *
+ * The request schema protects the boundary going into SQL, and the result
+ * schema protects the boundary coming back out. `execute` still owns statement
+ * construction and database execution; this module only shapes the values that
+ * cross that boundary.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link findAll} for queries that may return any number of rows.
+ * - Use {@link findNonEmpty} when an empty result is a failure.
+ * - Use {@link findOne} when the first row is required.
+ * - Use {@link findOneOption} when the first row is optional.
+ * - Use `void` for writes where the encoded request matters but the driver
+ *   result should be discarded.
+ *
+ * **Gotchas**
+ *
+ * `execute` receives `Req["Encoded"]`, not `Req["Type"]`. Any schema
+ * transformations, encoding services, nullable columns, JSON values, dates, and
+ * bigint representations must match the SQL builder and dialect in use. Result
+ * schemas decode rows after SQL client row transforms have run. {@link findOne}
+ * and {@link findOneOption} only inspect the first returned row; they do not
+ * assert that the query returned exactly one row.
  *
  * @since 4.0.0
  */
@@ -26,8 +41,15 @@ import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * Builds a query function that encodes the request, decodes all result rows,
- * and fails with `NoSuchElementError` when the result set is empty.
+ * Builds a query function that encodes the request and decodes all result rows,
+ * allowing an empty result set.
+ *
+ * **When to use**
+ *
+ * Use when you need to run a query that may return zero or more rows and
+ * represent an empty result as an empty array.
+ *
+ * @see {@link findNonEmpty} for queries where an empty result is a failure
  *
  * @category constructors
  * @since 4.0.0
@@ -51,7 +73,15 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 }
 
 /**
- * Run a sql query with a request schema and a result schema.
+ * Builds a query function that encodes the request, decodes all result rows,
+ * and fails with `NoSuchElementError` when the result set is empty.
+ *
+ * **When to use**
+ *
+ * Use when you need to run a query that must return at least one row and treat
+ * an empty result as a failure.
+ *
+ * @see {@link findAll} for queries where an empty result should return an empty array
  *
  * @category constructors
  * @since 4.0.0
@@ -91,7 +121,7 @@ const void_ = <Req extends Schema.Top, E, R>(
 }
 export {
   /**
-   * Run a sql query with a request schema and discard the result.
+   * Runs a sql query with a request schema and discard the result.
    *
    * @category constructors
    * @since 4.0.0

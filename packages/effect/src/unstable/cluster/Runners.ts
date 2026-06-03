@@ -67,7 +67,7 @@ import * as Snowflake from "./Snowflake.ts"
  */
 export class Runners extends Context.Service<Runners, {
   /**
-   * Checks if a Runner is responsive.
+   * Checks whether a Runner is responsive.
    */
   readonly ping: (address: RunnerAddress) => Effect.Effect<void, RunnerUnavailable>
 
@@ -149,6 +149,30 @@ export class Runners extends Context.Service<Runners, {
  * Builds the `Runners` service from remote runner callbacks and adds local
  * message persistence, duplicate request handling, optional local serialization
  * simulation, and polling for persisted replies.
+ *
+ * **When to use**
+ *
+ * Use when you need a custom `Runners` service around remote `ping`, `send`,
+ * `notify`, and `onRunnerUnavailable` callbacks, with standard local
+ * persistence and reply recovery behavior.
+ *
+ * **Details**
+ *
+ * `make` uses the supplied remote callbacks for runner communication and
+ * derives `sendLocal` and `notifyLocal`. Local sends can optionally simulate
+ * remote serialization, persisted notifications are saved through
+ * `MessageStorage`, duplicate requests are resumed from stored replies when
+ * possible, and pending replies are polled according to
+ * `ShardingConfig.entityReplyPollInterval`.
+ *
+ * **Gotchas**
+ *
+ * `notify` and `notifyLocal` only support RPCs annotated as persisted; calling
+ * either path with a non-persisted message dies instead of returning a typed
+ * error.
+ *
+ * @see {@link makeRpc} for the RPC-backed implementation built on top of this constructor
+ * @see {@link makeNoop} for a no-op implementation when remote runner communication is not needed
  *
  * @category constructors
  * @since 4.0.0
@@ -678,7 +702,7 @@ export const layerRpc: Layer.Layer<
  * Service that creates an RPC client protocol for communicating with a runner at a
  * given address.
  *
- * @category Client
+ * @category client
  * @since 4.0.0
  */
 export class RpcClientProtocol extends Context.Service<

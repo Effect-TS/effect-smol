@@ -101,6 +101,22 @@ export const layerRpcHandlers = Layer.unwrap(Effect.gen(function*() {
  * Provides an encrypted event-log RPC server using `EventLogRemoteRpcs` and the
  * encrypted server RPC handlers.
  *
+ * **When to use**
+ *
+ * Use when you need an encrypted event-log RPC server for encrypted
+ * `EventLogRemote` replication over an existing `RpcServer.Protocol`.
+ *
+ * **Details**
+ *
+ * This layer installs `EventLogRemoteRpcs` on the provided RPC server protocol
+ * and wires those RPCs to `layerRpcHandlers`. Encrypted entries, session
+ * authentication bindings, remote ids, and change streams are delegated to
+ * `Storage`.
+ *
+ * @see {@link layerRpcHandlers} for the encrypted handler layer without installing an RPC server protocol
+ * @see {@link Storage} for the storage service required by this layer
+ * @see {@link layerStorageMemory} for the process-local in-memory storage layer
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -109,7 +125,7 @@ export const layer: Layer.Layer<never, never, RpcServer.Protocol | Storage> = Rp
 )
 
 /**
- * Encrypted entry representation persisted by the encrypted event-log server.
+ * Schema for encrypted entries persisted by the encrypted event-log server.
  *
  * @category storage
  * @since 4.0.0
@@ -132,7 +148,12 @@ export class PersistedEntry extends Schema.Class<PersistedEntry>(
 }
 
 /**
- * Storage service used by the encrypted event-log server.
+ * Defines the backing store service used by the encrypted event-log server.
+ *
+ * **When to use**
+ *
+ * Use to provide durable encrypted event-log persistence for an encrypted
+ * event-log server layer.
  *
  * **Details**
  *

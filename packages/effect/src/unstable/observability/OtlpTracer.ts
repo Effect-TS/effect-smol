@@ -24,6 +24,7 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
+import * as Config from "../../Config.ts"
 import type * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
@@ -36,6 +37,7 @@ import * as Tracer from "../../Tracer.ts"
 import type { ExtractTag, Mutable } from "../../Types.ts"
 import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
+import * as OtlpEnv from "./internal/otlpEnv.ts"
 import * as Exporter from "./OtlpExporter.ts"
 import type { KeyValue, Resource } from "./OtlpResource.ts"
 import { entriesToAttributes } from "./OtlpResource.ts"
@@ -146,6 +148,56 @@ export const layer: (options: {
   readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.Input | undefined
 }) => Layer.Layer<never, never, OtlpSerialization | HttpClient.HttpClient> = flow(make, Layer.effect(Tracer.Tracer))
+
+/**
+ * Creates an OTLP traces layer from OpenTelemetry configuration.
+ *
+ * @category layers
+ * @since 4.0.0
+ */
+export const layerFromConfig = (options?: {
+  readonly resource?: {
+    readonly serviceName?: string | undefined
+    readonly serviceVersion?: string | undefined
+    readonly attributes?: Record<string, unknown>
+  } | undefined
+  readonly headers?: Headers.Input | undefined
+  readonly context?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
+}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization> =>
+  Effect.gen(function*() {
+    const { disabled, endpoint, exporters } = yield* Config.all({
+      disabled: Config.boolean("OTEL_SDK_DISABLED").pipe(Config.withDefault(false)),
+      endpoint: OtlpEnv.endpoint("TRACES"),
+      exporters: OtlpEnv.exporters("TRACES")
+    })
+
+    if (disabled || !endpoint || !exporters.includes("otlp")) {
+      return Layer.empty
+    }
+
+    const { baseTimeout, tracesTimeout, exportTimeout, scheduleDelay, maxBatchSize } = yield* Config.all({
+      baseTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TIMEOUT")),
+      tracesTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TRACES_TIMEOUT")),
+      exportTimeout: Config.option(Config.int("OTEL_BSP_EXPORT_TIMEOUT")),
+      scheduleDelay: Config.option(Config.int("OTEL_BSP_SCHEDULE_DELAY")),
+      maxBatchSize: Config.option(Config.int("OTEL_BSP_MAX_EXPORT_BATCH_SIZE"))
+    })
+
+    const shutdownTimeout = Option.firstSomeOf([tracesTimeout, baseTimeout, exportTimeout]).pipe(
+      Option.map((_) => Duration.millis(_))
+    )
+    const exportInterval = Option.map(scheduleDelay, (_) => Duration.millis(_))
+
+    return layer({
+      url: endpoint,
+      resource: options?.resource,
+      headers: options?.headers ?? (yield* OtlpEnv.headers("TRACES")),
+      exportInterval: Option.getOrUndefined(exportInterval),
+      maxBatchSize: Option.getOrUndefined(maxBatchSize),
+      context: options?.context,
+      shutdownTimeout: Option.getOrUndefined(shutdownTimeout)
+    })
+  }).pipe(Effect.orDie, Layer.unwrap)
 
 // internal
 

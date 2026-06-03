@@ -1,27 +1,41 @@
 /**
- * The `Runner` module defines the membership record used by the unstable
- * cluster runtime to describe a process that can host entity shards.
+ * Cluster runner metadata for processes that can host entity shards.
  *
- * A runner combines the network address used by other runners to reach it, the
- * shard groups it participates in, and a relative weight used when the sharding
- * service assigns shards across the healthy runners in each group.
+ * A {@link Runner} combines the stable {@link RunnerAddress} used to contact a
+ * process, the shard groups that process participates in, and the relative
+ * weight used when the sharding service distributes shards across healthy
+ * runners.
+ *
+ * **Mental model**
+ *
+ * `Runner` is cluster membership data, not a running process handle. The value
+ * is persisted, exchanged, encoded, and compared by cluster services so they can
+ * decide where entity shards may live. The address identifies the runner, groups
+ * limit the shard pools it can join, and weight changes how much ownership it
+ * receives relative to the other healthy runners in the same group.
  *
  * **Common tasks**
  *
- * - Construct the runner registered by the local `Sharding` layer
- * - Persist or exchange runner metadata through `RunnerStorage`
- * - Encode and decode runner values at cluster transport or storage boundaries
+ * - Construct runner metadata with {@link make}.
+ * - Encode and decode runner values at cluster transport or storage boundaries.
+ * - Persist or exchange runner records through cluster runner storage.
  * - Tune shard distribution by adjusting the runner's group membership and
- *   relative weight
+ *   relative weight.
  *
  * **Gotchas**
  *
  * - Runner addresses must be stable and unique while a runner is registered,
  *   because they identify the owner used for routing and shard locks.
- * - Weights are relative within each shard group; changing weights or groups can
- *   rebalance shard ownership as the cluster refreshes its runner view.
- * - Runner equality and hashing are based on address and weight, so compare
- *   `groups` explicitly when group membership is the important distinction.
+ * - Weights are relative inside each shard group; changing a weight or group can
+ *   rebalance shard ownership when the cluster refreshes its runner view.
+ * - Equality and hashing use address and weight. Compare `groups` explicitly
+ *   when group membership is the important distinction.
+ *
+ * **See also**
+ *
+ * - {@link Runner}
+ * - {@link RunnerAddress}
+ * - {@link make}
  *
  * @since 4.0.0
  */
@@ -34,7 +48,7 @@ import { RunnerAddress } from "./RunnerAddress.ts"
 const TypeId = "~effect/cluster/Runner"
 
 /**
- * A cluster runner that can host entities.
+ * Represents a cluster runner that can host entities.
  *
  * **Details**
  *
@@ -117,6 +131,25 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
 /**
  * Constructs a `Runner` from its network address, shard groups, and relative
  * shard-assignment weight.
+ *
+ * **When to use**
+ *
+ * Use to build runner metadata from an existing `RunnerAddress`, shard groups,
+ * and relative weight when registering or exchanging a cluster runner.
+ *
+ * **Details**
+ *
+ * The `groups` array lists the shard groups the runner can host. During shard
+ * assignment, the runner's address is added to each group's hash ring with
+ * `weight` as its relative weight.
+ *
+ * **Gotchas**
+ *
+ * This helper constructs the value without runtime schema validation, so only
+ * pass trusted `RunnerAddress`, `groups`, and `weight` values.
+ *
+ * @see {@link Runner} for the value created by this helper
+ * @see {@link RunnerAddress} for the network address accepted in `props.address`
  *
  * @category constructors
  * @since 4.0.0

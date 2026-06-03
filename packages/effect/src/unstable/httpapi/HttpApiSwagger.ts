@@ -1,22 +1,34 @@
 /**
- * Serves Swagger UI for an `HttpApi` by rendering the OpenAPI document generated
- * from the API directly into an HTML page.
+ * Swagger documentation UI for declarative `HttpApi` contracts.
  *
- * Use this module when you want a lightweight documentation route for a running
- * `HttpApi`, typically in development, staging, internal consoles, or public API
- * reference pages where Swagger UI's exploration and request-building tools are
- * preferred. The exported `layer` adds a `GET` route to an `HttpRouter`,
- * defaults the mount path to `/docs`, and leaves API implementation and server
- * wiring to `HttpApiBuilder` and the surrounding router layers.
+ * This module mounts a browser-based Swagger UI route on an `HttpRouter`. The
+ * page renders the OpenAPI document derived from the supplied `HttpApi`, so a
+ * running application can expose interactive API documentation without writing a
+ * separate OpenAPI file.
  *
- * The page is self-contained: `OpenApi.fromApi` derives the specification from
- * the API's groups, endpoints, schemas, and OpenAPI annotations, then the JSON
- * is embedded into the HTML served to the browser. No separate `/openapi.json`
- * endpoint is installed by this module, so clients or documentation pipelines
- * that need the raw spec should use `OpenApi.fromApi` directly or expose a JSON
- * route elsewhere. If the docs are public, mount the layer behind the same
- * routing, security, or environment controls you want for the UI; generated
- * server URLs and operation metadata come from the API's OpenAPI annotations.
+ * **Mental model**
+ *
+ * {@link layer} registers one `GET` route, defaulting to `/docs`. When that
+ * route is requested, the module derives the OpenAPI document with
+ * `OpenApi.fromApi`, embeds it into an HTML page, and boots the bundled Swagger
+ * UI script in the browser. API implementation, middleware, and server wiring
+ * stay with the surrounding `HttpApi` and router layers.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link layer} to mount Swagger UI for an `HttpApi`
+ * - Set `path` when the documentation route should be mounted somewhere other
+ *   than `/docs`
+ * - Add OpenAPI annotations to the API definition so the generated UI has the
+ *   desired titles, descriptions, servers, security schemes, and operation
+ *   metadata
+ *
+ * **Gotchas**
+ *
+ * The mounted route serves HTML, not a raw OpenAPI JSON endpoint. Clients,
+ * gateways, and documentation pipelines that need the specification directly
+ * should derive it separately with `OpenApi.fromApi` or expose a JSON route from
+ * the surrounding API server.
  *
  * @since 4.0.0
  */

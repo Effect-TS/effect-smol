@@ -71,12 +71,12 @@ import { pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 
 /**
- * Symbol used to identify objects that implement the {@link Redactable}
+ * Defines the symbol used to identify objects that implement the {@link Redactable}
  * protocol.
  *
  * **When to use**
  *
- * Use this symbol as the property key when implementing {@link Redactable}.
+ * Use as the property key when implementing the `Redactable` protocol.
  *
  * **Details**
  *
@@ -99,9 +99,9 @@ import { hasProperty } from "./Predicate.ts"
  * }
  * ```
  *
- * @see {@link Redactable} - the interface this symbol belongs to
- * @see {@link isRedactable} - check whether a value has this symbol
- * @category symbol
+ * @see {@link Redactable} for the interface this symbol belongs to
+ * @see {@link isRedactable} to check whether a value has this symbol
+ * @category symbols
  * @since 3.10.0
  */
 export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
@@ -111,8 +111,8 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
  *
  * **When to use**
  *
- * Implement this interface on any class or object that holds sensitive data and
- * should present a sanitized form when inspected or logged.
+ * Use to define classes or objects that hold sensitive data and should present
+ * a sanitized form when inspected or logged.
  *
  * **Details**
  *
@@ -133,9 +133,9 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Redactable")
  * }
  * ```
  *
- * @see {@link symbolRedactable} - the symbol key to implement
- * @see {@link redact} - apply redaction to any value
- * @see {@link isRedactable} - type guard for this interface
+ * @see {@link symbolRedactable} for the symbol key to implement
+ * @see {@link redact} to apply redaction to any value
+ * @see {@link isRedactable} for the type guard for this interface
  * @category models
  * @since 3.10.0
  */
@@ -147,34 +147,38 @@ export interface Redactable {
  * Type guard that checks whether a value implements the {@link Redactable}
  * interface.
  *
- * @see {@link Redactable} - the interface being checked
- * @see {@link redact} - applies redaction if the value is redactable
+ * **When to use**
+ *
+ * Use to narrow an unknown value before calling redaction-specific helpers.
+ *
+ * @see {@link Redactable} for the interface being checked
+ * @see {@link redact} to apply redaction if the value is redactable
  * @category guards
  * @since 3.10.0
  */
 export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symbolRedactable)
 
 /**
- * Redacts a value if it implements {@link Redactable}, otherwise returns it
+ * Returns a redacted value if it implements {@link Redactable}, otherwise returns it
  * unchanged.
  *
  * **When to use**
  *
- * Use this as the general-purpose entry point for redaction when the input may
+ * Use as the general-purpose entry point for redaction when the input may
  * or may not implement the redaction protocol.
  *
  * **Details**
  *
  * This function calls {@link isRedactable} and, when it returns `true`,
- * delegates to {@link getRedacted}. It does not mutate the input.
+ * delegates to {@link getRedacted}.
  *
  * **Gotchas**
  *
  * Redaction is not recursive. Nested redactable values inside the returned
  * object are not automatically redacted.
  *
- * @see {@link isRedactable} - check before redacting
- * @see {@link getRedacted} - lower-level variant for known redactables
+ * @see {@link isRedactable} to check before redacting
+ * @see {@link getRedacted} for the lower-level variant for known redactables
  * @category destructors
  * @since 3.10.0
  */
@@ -184,25 +188,25 @@ export function redact(u: unknown): unknown {
 }
 
 /**
- * Calls `[symbolRedactable]` on a value that is already known to be
- * {@link Redactable} and returns the result.
+ * Returns the result of calling `[symbolRedactable]` on a value that is
+ * already known to be {@link Redactable}.
  *
  * **When to use**
  *
- * Use this when you have already verified the value is `Redactable`, for
- * example with {@link isRedactable}, and want to avoid a second check.
+ * Use when you need to read the redacted representation from a value already
+ * verified as `Redactable`.
  *
  * **Details**
  *
  * This function reads the current fiber's `Context` from the global fiber
- * reference and passes it to the redaction method. It does not mutate the input.
+ * reference and passes it to the redaction method.
  *
  * **Gotchas**
  *
  * If no fiber is active, an empty `Context` is passed to the redaction method.
  *
- * @see {@link redact} - higher-level variant that handles non-redactable values
- * @see {@link isRedactable} - type guard to verify before calling this
+ * @see {@link redact} for the higher-level variant that handles non-redactable values
+ * @see {@link isRedactable} for the type guard to verify before calling this
  * @category destructors
  * @since 4.0.0
  */

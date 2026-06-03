@@ -67,35 +67,35 @@ export const layerHttpApi = <
         const workflow = workflow_ as Workflow.AnyWithProps
         handlers = handlers
           .handle(
-            workflow.name as any,
+            workflow._tag as any,
             ({ payload }: { payload: any }) =>
               workflow.execute(payload).pipe(
                 Effect.tapDefect(Effect.logError),
                 Effect.annotateLogs({
                   module: "WorkflowProxyServer",
-                  method: workflow.name
+                  method: workflow._tag
                 })
               )
           )
           .handle(
-            workflow.name + "Discard" as any,
+            workflow._tag + "Discard" as any,
             ({ payload }: { payload: any }) =>
               workflow.execute(payload, { discard: true } as any).pipe(
                 Effect.tapDefect(Effect.logError),
                 Effect.annotateLogs({
                   module: "WorkflowProxyServer",
-                  method: workflow.name + "Discard"
+                  method: workflow._tag + "Discard"
                 })
               )
           )
           .handle(
-            workflow.name + "Resume" as any,
+            workflow._tag + "Resume" as any,
             ({ payload }: { payload: any }) =>
               workflow.resume(payload.executionId).pipe(
                 Effect.tapDefect(Effect.logError),
                 Effect.annotateLogs({
                   module: "WorkflowProxyServer",
-                  method: workflow.name + "Resume"
+                  method: workflow._tag + "Resume"
                 })
               )
           )
@@ -127,7 +127,7 @@ export const layerRpcHandlers = <
     const handlers = new Map<string, Rpc.Handler<string>>()
     for (const workflow_ of workflows) {
       const workflow = workflow_ as Workflow.AnyWithProps
-      const tag = `${prefix}${workflow.name}`
+      const tag = `${prefix}${workflow._tag}`
       const tagDiscard = `${tag}Discard`
       const tagResume = `${tag}Resume`
       const key = `effect/rpc/Rpc/${tag}`

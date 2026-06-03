@@ -167,7 +167,7 @@ export declare namespace TestClock {
    * })
    * ```
    *
-   * @category models
+   * @category options
    * @since 4.0.0
    */
   export interface Options {
@@ -419,7 +419,7 @@ export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = fl
  * })
  * ```
  *
- * @category utils
+ * @category testing
  * @since 2.0.0
  */
 export const testClockWith = <A, E, R>(
@@ -454,7 +454,7 @@ export const testClockWith = <A, E, R>(
  * })
  * ```
  *
- * @category utils
+ * @category testing
  * @since 2.0.0
  */
 export const adjust = (duration: Duration.Input): Effect.Effect<void> =>
@@ -488,7 +488,7 @@ export const adjust = (duration: Duration.Input): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category utils
+ * @category testing
  * @since 2.0.0
  */
 export const setTime = (timestamp: number): Effect.Effect<void> =>
@@ -522,7 +522,7 @@ export const setTime = (timestamp: number): Effect.Effect<void> =>
  * })
  * ```
  *
- * @category utils
+ * @category testing
  * @since 4.0.0
  */
 export const withLive = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>

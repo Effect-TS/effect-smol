@@ -1,24 +1,35 @@
 /**
- * Groups typed `Rpc` definitions into a protocol that can be shared by
- * clients, servers, tests, cluster entities, workflows, and other RPC
+ * Protocol composition for typed RPC definitions.
+ *
+ * An {@link RpcGroup} collects RPC definitions under their tags and preserves
+ * the payload, success, error, defect, middleware, and annotation metadata used
+ * by clients, servers, tests, cluster entities, workflows, and other RPC
  * integrations.
  *
- * An `RpcGroup` keeps RPC definitions keyed by their tags while preserving the
- * payload, success, error, defect, middleware, and annotation metadata carried
- * by each `Rpc`. Build groups with `make`, extend them with `add`, combine them
- * with `merge`, remove calls with `omit`, and turn the final protocol into
- * handler contexts or layers with `toHandlers`, `toLayer`, or `toLayerHandler`.
+ * **Mental model**
  *
- * Common uses include defining a service surface once and deriving both client
- * and server implementations from it, splitting a large protocol into feature
- * groups that are merged later, prefixing generated or proxied RPC names, and
- * attaching metadata for higher-level runtimes. Composition order matters:
- * `middleware` and `annotateRpcs` update only the RPCs currently in the group,
- * duplicate tags from `add` or `merge` replace the existing definition, and
- * handlers are keyed by the tags after any prefixing. Schema requirements still
- * come from each RPC's payload, success, error, defect, and middleware schemas;
- * grouping preserves those requirements but does not provide the services
- * needed to encode, decode, or handle them.
+ * A group is a typed map from RPC tag to RPC definition. The `add`, `merge`,
+ * `omit`, `prefix`, `middleware`, and `annotateRpcs` methods return new groups
+ * whose type tracks the changed protocol. The final group can then be turned
+ * into handler contexts or layers with `toHandlers`, `toLayer`, or
+ * `toLayerHandler`.
+ *
+ * **Common tasks**
+ *
+ * Use {@link make} to define a service surface once, split large protocols into
+ * feature groups that are merged later, prefix generated or proxied names, and
+ * attach metadata for higher-level runtimes. Use {@link HandlersFrom} and
+ * {@link HandlerFrom} when implementing handlers separately from the group
+ * expression that declares them.
+ *
+ * **Gotchas**
+ *
+ * Composition order matters. `middleware` and `annotateRpcs` affect only the
+ * RPCs already in the group, duplicate tags from `add` or `merge` replace the
+ * existing definition, and handlers are keyed by tags after any prefixing.
+ * Schema requirements still come from each RPC's payload, success, error,
+ * defect, and middleware schemas; grouping preserves those requirements but
+ * does not provide the services needed to encode, decode, or handle them.
  *
  * @since 4.0.0
  */

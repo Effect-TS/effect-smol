@@ -1,19 +1,36 @@
 /**
- * The `RunnerAddress` module defines the network identity used to locate a
- * cluster runner. A runner address is a host and port pair that can be encoded,
- * compared, hashed, inspected, and used as a stable primary key.
+ * The `RunnerAddress` module defines the stable network identity used to locate
+ * a cluster runner. A runner address is a host and port pair that can be
+ * encoded with its schema, compared structurally, hashed, inspected, and used as
+ * a primary key in runner registries and shard ownership data.
  *
- * **Common use cases**
+ * **Mental model**
  *
- * - Representing the target runner for cluster routing and placement decisions
- * - Persisting or exchanging runner endpoints through schemas
- * - Using runner endpoints as keys in maps, registries, or shard ownership data
+ * `RunnerAddress` is identity data, not connection configuration. Equality,
+ * hashing, and the primary key all use the host and port exactly as supplied,
+ * so callers should normalize host names before constructing the value when the
+ * surrounding routing layer requires a canonical form.
+ *
+ * **Common tasks**
+ *
+ * - Build runner endpoints with {@link make}.
+ * - Persist or exchange runner endpoints through the {@link RunnerAddress}
+ *   schema.
+ * - Use addresses as stable keys in runner maps, registries, and shard ownership
+ *   records.
  *
  * **Gotchas**
  *
- * - Identity is structural: two addresses are equal when both host and port match
+ * - Identity is structural: two addresses are equal only when both host and port
+ *   match.
  * - The primary key is formatted as `host:port`, so host strings should already
- *   be normalized for the routing layer using them
+ *   be normalized for the routing layer using them.
+ * - The constructor does not check whether the endpoint is reachable.
+ *
+ * **See also**
+ *
+ * - {@link RunnerAddress}
+ * - {@link make}
  *
  * @since 4.0.0
  */
@@ -26,7 +43,13 @@ import * as Schema from "../../Schema.ts"
 const TypeId = "~effect/cluster/RunnerAddress"
 
 /**
- * Network address of a cluster runner, identified by host and port.
+ * Represents the network address of a cluster runner, identified by host and
+ * port.
+ *
+ * **When to use**
+ *
+ * Use to represent the host and port that identify a runner in cluster routing,
+ * registration, and health checks.
  *
  * @category models
  * @since 4.0.0
@@ -90,6 +113,25 @@ export class RunnerAddress extends Schema.Class<RunnerAddress>(TypeId)({
 
 /**
  * Constructs a `RunnerAddress` from a host and port.
+ *
+ * **When to use**
+ *
+ * Use to create the stable network identity for a cluster runner when
+ * configuring sharding, registering runner metadata, or targeting a runner by
+ * host and port.
+ *
+ * **Details**
+ *
+ * The returned `RunnerAddress` stores the supplied `host` and `port`. Equality,
+ * hashing, and the primary key use both fields, with the primary key formatted
+ * as `host:port`.
+ *
+ * **Gotchas**
+ *
+ * `make` does not normalize the host. Pass the host string exactly as the
+ * cluster routing and storage layers should identify it.
+ *
+ * @see {@link RunnerAddress} for the constructed address type and its equality, hashing, primary-key, and formatting behavior
  *
  * @category constructors
  * @since 4.0.0

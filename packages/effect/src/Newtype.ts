@@ -78,9 +78,9 @@ const TypeId = "~effect/Newtype"
  *
  * **When to use**
  *
- * Define your newtype as an `interface` extending
- * `Newtype<"MyKey", CarrierType>` when you need two structurally identical
- * carrier types to remain distinct in TypeScript.
+ * Use to define a newtype as an `interface` extending
+ * `Newtype<"MyKey", CarrierType>` when structurally identical carrier types
+ * should remain distinct in TypeScript.
  *
  * **Details**
  *
@@ -116,12 +116,21 @@ export interface Newtype<in out Key extends string, out Carrier> {
  * Namespace containing type-level helpers for `Newtype` values, including
  * constraints and utilities for extracting a newtype's key and carrier type.
  *
+ * **When to use**
+ *
+ * Use to access generic constraints and type-level utilities for `Newtype`
+ * values.
+ *
  * @since 4.0.0
  */
 export declare namespace Newtype {
   /**
    * A type that matches any `Newtype`, useful as a generic constraint:
    * `<N extends Newtype.Any>`.
+   *
+   * **When to use**
+   *
+   * Use as a generic constraint when a type parameter can be any `Newtype`.
    *
    * @see {@link Newtype} — the base tagged interface
    *
@@ -135,7 +144,7 @@ export declare namespace Newtype {
    *
    * **When to use**
    *
-   * Use this in generic code that needs to inspect or constrain the key.
+   * Use to inspect or constrain a newtype's key in generic code.
    *
    * @category utility types
    * @since 4.0.0
@@ -147,7 +156,7 @@ export declare namespace Newtype {
    *
    * **When to use**
    *
-   * Use this when you need to refer to the wrapped type in generic utilities.
+   * Use when you need to refer to the wrapped type in generic utilities.
    *
    * @category utility types
    * @since 4.0.0
@@ -160,8 +169,8 @@ export declare namespace Newtype {
  *
  * **When to use**
  *
- * Use this when you only need to read the inner value and do not need to wrap
- * new values. For both wrapping and unwrapping, prefer {@link makeIso}.
+ * Use when you need the carrier value from an existing newtype without
+ * constructing a new newtype value at the same call site.
  *
  * **Details**
  *
@@ -193,7 +202,7 @@ export const value: <N extends Newtype.Any>(newtype: N) => Newtype.Carrier<N> = 
  *
  * **When to use**
  *
- * Use this as the primary way to construct and deconstruct newtype values.
+ * Use as the primary way to construct and deconstruct newtype values.
  *
  * **Details**
  *
@@ -228,7 +237,8 @@ export function makeIso<N extends Newtype.Any>(): Optic.Iso<N, Newtype.Carrier<N
  *
  * **When to use**
  *
- * Use this when you need to compare two newtype values for equality.
+ * Use when you need equality for newtype-wrapped values to behave like
+ * equality for the wrapped carrier value, without manually unwrapping.
  *
  * **Details**
  *
@@ -263,7 +273,8 @@ export const makeEquivalence: <N extends Newtype.Any>(
  *
  * **When to use**
  *
- * Use this when you need to sort or compare newtype values.
+ * Use when you need to sort newtype-wrapped values according to the ordering
+ * of the wrapped carrier value, without manually unwrapping.
  *
  * **Details**
  *
@@ -294,7 +305,8 @@ export const makeOrder: <N extends Newtype.Any>(order: Order.Order<Newtype.Carri
  *
  * **When to use**
  *
- * Use this when you need to combine newtype values.
+ * Use when you need to combine newtype-wrapped values with the carrier's
+ * combining logic, without manually unwrapping.
  *
  * **Details**
  *
@@ -329,8 +341,8 @@ export const makeCombiner: <N extends Newtype.Any>(
  *
  * **When to use**
  *
- * Use this when you need to fold or reduce over a collection of newtype
- * values.
+ * Use when you need to reduce a collection of newtype-wrapped values with the
+ * carrier's reducer, without manually unwrapping.
  *
  * **Details**
  *

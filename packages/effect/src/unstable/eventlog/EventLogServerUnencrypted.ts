@@ -1,19 +1,41 @@
 /**
- * Server implementation for event logs whose entries are persisted and streamed
- * in plaintext.
+ * Plaintext server implementation for the event-log remote protocol.
  *
- * This module is useful for trusted deployments, local development, tests, and
- * server-side event sources that need typed event handlers, conflict detection,
- * compaction, and RPC change streams without an encryption layer. It includes
- * services for mapping client store ids to server stores, authorizing reads and
- * writes, storing remote entries, and binding session authentication keys.
+ * The module accepts unencrypted event batches from remote clients, runs the
+ * registered event handlers, persists journal entries through `Storage`, and
+ * streams compacted backlog entries plus live changes through the shared
+ * `EventLogServer` RPC protocol. It is intended for trusted deployments, local
+ * development, tests, and server-side producers that want typed event handling
+ * and conflict detection without an encryption layer.
  *
- * Because payloads and journals are unencrypted, storage must be protected by
- * the surrounding infrastructure. Session authentication bindings are part of
- * the storage contract and must be persisted by durable implementations so a
- * public key cannot silently bind to a different signing key after a restart.
- * The provided memory storage is process-local and intended for ephemeral
- * servers, tests, or examples rather than durable multi-process use.
+ * **Mental model**
+ *
+ * `StoreMapping` resolves the client-requested store id to the server store,
+ * `EventLogServerAuthorization` gates reads, writes, and identities, and
+ * `Storage` is the durable boundary for remote entries and session
+ * authentication bindings. Remote writes are sorted, checked for duplicates and
+ * conflicts, passed to event handlers inside the storage transaction, and then
+ * committed as remote entries. Change streams replay the requested backlog,
+ * apply registered compactors when possible, and then continue with live
+ * entries.
+ *
+ * **Common tasks**
+ *
+ * Use `layer` for a complete RPC server, `layerNoRpcServer` when an
+ * `RpcServer.Protocol` is installed elsewhere, and `layerServer` plus
+ * `makeWrite` for server-side plaintext writes that do not enter through RPC.
+ * `layerStoreMappingStatic` and `layerStorageMemory` are small local defaults;
+ * production systems usually provide their own mapping, authorization, and
+ * durable storage services.
+ *
+ * **Gotchas**
+ *
+ * Payloads, journals, and change streams are plaintext, so protect the backing
+ * store and transport with the surrounding infrastructure. Durable storage must
+ * preserve session authentication bindings across restarts so a public key
+ * cannot silently bind to a different signing key. The memory storage is
+ * process-local and volatile; it is useful for tests and examples, not for
+ * multi-process or restart-safe servers.
  *
  * @since 4.0.0
  */
@@ -49,10 +71,15 @@ import {
 import * as EventLogServer from "./EventLogServer.ts"
 
 /**
- * Server-side service for writing plaintext event-log entries directly to
+ * Service that writes plaintext event-log entries directly to
  * unencrypted storage through registered event handlers.
  *
- * @category EventLogServerUnencrypted
+ * **When to use**
+ *
+ * Use to access or provide the server service that handles plaintext
+ * event-log writes.
+ *
+ * @category services
  * @since 4.0.0
  */
 export class EventLogServerUnencrypted extends Context.Service<EventLogServerUnencrypted, {
@@ -255,10 +282,15 @@ export class EventLogServerAuthError extends Data.TaggedError("EventLogServerAut
 }> {}
 
 /**
- * Authorization service used by the unencrypted event-log server to validate
+ * Service that validates unencrypted event-log server
  * write access, read access, and identities.
  *
- * @category context
+ * **When to use**
+ *
+ * Use to provide authorization checks for plaintext event-log writes, reads,
+ * and identity authentication.
+ *
+ * @category services
  * @since 4.0.0
  */
 export class EventLogServerAuthorization extends Context.Service<EventLogServerAuthorization, {
@@ -280,7 +312,12 @@ export class EventLogServerAuthorization extends Context.Service<EventLogServerA
  * Service that resolves client-requested store ids to server store ids and checks
  * whether a store exists.
  *
- * @category context
+ * **When to use**
+ *
+ * Use to map client-visible store identifiers to server storage identifiers
+ * before authorizing or serving unencrypted event-log requests.
+ *
+ * @category services
  * @since 4.0.0
  */
 export class StoreMapping extends Context.Service<StoreMapping, {
@@ -330,7 +367,12 @@ export const layerStoreMappingStatic = (options: {
   })
 
 /**
- * Storage service used by the unencrypted event-log server.
+ * Defines the backing store service used by the unencrypted event-log server.
+ *
+ * **When to use**
+ *
+ * Use to provide durable event-log persistence for an unencrypted event-log
+ * server layer.
  *
  * **Details**
  *
@@ -457,7 +499,12 @@ const toCompactedRemoteEntries = (options: {
 }
 
 /**
- * Compacts a backlog of remote entries using the registered compactors.
+ * Runs the registered compactors over a backlog of remote entries.
+ *
+ * **When to use**
+ *
+ * Use to reduce stored remote entries before replaying them to an unencrypted
+ * event-log client.
  *
  * **Details**
  *
@@ -653,6 +700,26 @@ export const layerStorageMemory: Layer.Layer<Storage> = Layer.effect(Storage)(ma
  * Creates the `EventLogServerUnencrypted` service from the configured storage and
  * registered event handlers.
  *
+ * **When to use**
+ *
+ * Use when you need the unencrypted event-log server service from provided
+ * `Storage` and an event-log `Registry`.
+ *
+ * **Details**
+ *
+ * The constructed service exposes `makeWrite`, which builds a typed server-side
+ * write function from an `EventLogSchema`. Each write encodes the payload with
+ * the event schema, runs the registered handler, and persists the generated
+ * entry inside `Storage.withTransaction`.
+ *
+ * **Gotchas**
+ *
+ * The write function dies if the requested event tag is not present in the
+ * schema passed to `makeWrite`; it does not report that case as a typed failure.
+ *
+ * @see {@link makeWrite} for the accessor that retrieves the typed server-side write function from the service environment
+ * @see {@link layerServer} for the layer form that provides this service together with an event-log `Registry`
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -716,6 +783,11 @@ export const make = Effect.gen(function*() {
  * Provides `EventLogServerUnencrypted` and an event-log `Registry` using the
  * configured unencrypted server `Storage`.
  *
+ * **When to use**
+ *
+ * Use to provide the unencrypted event-log server service together with the
+ * registry needed by event handlers.
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -730,6 +802,29 @@ export const layerServer: Layer.Layer<
 /**
  * Builds a full unencrypted event-log RPC server for the supplied schema and
  * event-group handler layer.
+ *
+ * **When to use**
+ *
+ * Use when you need the full unencrypted event-log RPC server layer with
+ * storage, authorization, RPC protocol, and event-group handler dependencies
+ * supplied externally.
+ *
+ * **Details**
+ *
+ * The layer installs `EventLogRemoteRpcs`, wires `layerRpcHandlers`, registers
+ * the supplied event-group handler layer, and provides `layerServer`, leaving
+ * only the required infrastructure services in the environment.
+ *
+ * **Gotchas**
+ *
+ * Entries are persisted and streamed in plaintext. Protect the backing
+ * `Storage` with the surrounding infrastructure, and use durable storage that
+ * preserves session authentication bindings when the server must survive
+ * restarts.
+ *
+ * @see {@link layerNoRpcServer} for installing the same unencrypted handlers when an `RpcServer.Protocol` is provided elsewhere
+ * @see {@link layerRpcHandlers} for wiring the unencrypted RPC handlers directly
+ * @see {@link layerServer} for constructing the server service and event-log registry without RPC handlers
  *
  * @category layers
  * @since 4.0.0

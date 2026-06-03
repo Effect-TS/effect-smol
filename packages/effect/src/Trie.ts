@@ -1,17 +1,54 @@
 /**
- * A `Trie` is used for locating specific `string` keys from within a set.
+ * Immutable string-keyed maps optimized for prefix lookup.
  *
- * It works similar to `HashMap`, but with keys required to be `string`.
- * This constraint unlocks some performance optimizations and new methods to get string prefixes (e.g. `keysWithPrefix`, `longestPrefixOf`).
+ * A `Trie<Value>` stores values under `string` keys, similar to a `HashMap`
+ * whose key type is fixed to `string`. That restriction lets the data
+ * structure organize keys by their shared prefixes, which is useful for
+ * autocomplete, route tables, dictionaries, command lookup, and any workflow
+ * that needs to ask "which entries start with this string?".
  *
- * Prefix search is also the main feature that makes a `Trie` more suited than `HashMap` for certain usecases.
+ * **Mental model**
  *
- * A `Trie` is often used to store a dictionary (list of words) that can be searched
- * in a manner that allows for efficient generation of completion lists
- * (e.g. predict the rest of a word a user is typing).
+ * - Exact-key lookup uses {@link get}, {@link has}, or {@link getUnsafe}.
+ * - Prefix lookup uses {@link keysWithPrefix}, {@link valuesWithPrefix},
+ *   {@link entriesWithPrefix}, {@link toEntriesWithPrefix}, or
+ *   {@link longestPrefixOf}.
+ * - Iteration yields entries in key order, not insertion order.
+ * - Lookup work is proportional to the key or prefix length rather than the
+ *   total number of entries.
  *
- * A `Trie` has O(n) lookup time where `n` is the size of the key,
- * or even less than `n` on search misses.
+ * **Common tasks**
+ *
+ * - Create tries with {@link empty}, {@link make}, or {@link fromIterable}.
+ * - Read all keys, values, or entries with {@link keys}, {@link values},
+ *   {@link entries}, and {@link toEntries}.
+ * - Transform values with {@link map}, {@link filter}, {@link filterMap},
+ *   {@link compact}, {@link forEach}, and {@link reduce}.
+ *
+ * **Gotchas**
+ *
+ * - Keys must be strings. Use `HashMap` when keys need structural equality or
+ *   are not naturally represented as strings.
+ * - {@link get} returns an `Option`; {@link getUnsafe} throws when the key is
+ *   absent.
+ * - Sorted iteration is convenient for presentation, but it also means
+ *   insertion order is not preserved.
+ *
+ * **Example** (Finding entries by prefix)
+ *
+ * ```ts
+ * import { Trie } from "effect"
+ * import * as assert from "node:assert"
+ *
+ * const commands = Trie.make(
+ *   ["commit", "Record changes"],
+ *   ["checkout", "Switch branches"],
+ *   ["clone", "Copy a repository"]
+ * )
+ *
+ * const matches = Trie.toEntriesWithPrefix(commands, "ch")
+ * assert.deepStrictEqual(matches, [["checkout", "Switch branches"]])
+ * ```
  *
  * @since 2.0.0
  */
@@ -153,7 +190,7 @@ export const make: <Entries extends Array<readonly [string, any]>>(
 ) => Trie<Entries[number] extends readonly [any, infer V] ? V : never> = TR.make
 
 /**
- * Insert a new entry in the `Trie`.
+ * Inserts a new entry in the `Trie`.
  *
  * **Example** (Inserting entries)
  *
@@ -470,7 +507,7 @@ export const longestPrefixOf: {
 export const size: <V>(self: Trie<V>) => number = TR.size
 
 /**
- * Safely lookup the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` safely.
  *
  * **Example** (Looking up values safely)
  *
@@ -504,7 +541,7 @@ export const get: {
 } = TR.get
 
 /**
- * Check if the given key exists in the `Trie`.
+ * Checks whether the given key exists in the `Trie`.
  *
  * **Example** (Checking key membership)
  *
@@ -559,7 +596,12 @@ export const has: {
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
 /**
- * Unsafely looks up the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` unsafely.
+ *
+ * **When to use**
+ *
+ * Use when the trie key is known to exist and a missing key should be treated
+ * as a programming error.
  *
  * **Gotchas**
  *
@@ -589,7 +631,7 @@ export const getUnsafe: {
 } = TR.getUnsafe
 
 /**
- * Remove the entry for the specified key in the `Trie`.
+ * Removes the entry for the specified key in the `Trie`.
  *
  * **Example** (Removing entries)
  *
@@ -621,7 +663,7 @@ export const remove: {
 } = TR.remove
 
 /**
- * Reduce a state over the entries of the `Trie`.
+ * Reduces a state over the entries of the `Trie`.
  *
  * **Example** (Reducing entries)
  *
@@ -918,7 +960,7 @@ export const removeMany: {
 } = TR.removeMany
 
 /**
- * Insert multiple entries in the `Trie` at once.
+ * Inserts multiple entries in the `Trie` at once.
  *
  * **Example** (Inserting multiple entries)
  *

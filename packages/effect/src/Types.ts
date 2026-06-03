@@ -43,8 +43,6 @@
  *
  * - {@link TupleOf} with a non-literal `number` (e.g. `TupleOf<number, string>`)
  *   degrades to `Array<string>`.
- * - {@link MergeRecord} is an alias for {@link MergeLeft}; prefer
- *   {@link MergeLeft} or {@link MergeRight} for clarity.
  * - {@link NoInfer} uses the `[A][A extends any ? 0 : never]` trick, not the
  *   built-in `NoInfer` from TypeScript 5.4+.
  * - {@link DeepMutable} recurses into `Map`, `Set`, arrays, and objects but
@@ -168,7 +166,8 @@ export type Tags<E> = E extends { readonly _tag: string } ? E["_tag"] : never
  *
  * **When to use**
  *
- * Use to narrow a union by removing a specific variant.
+ * Use to remove tagged-union members whose `_tag` matches a specific value in
+ * type-level code.
  *
  * **Details**
  *
@@ -201,7 +200,8 @@ export type ExcludeTag<E, K extends string> = Exclude<E, { readonly _tag: K }>
  *
  * **When to use**
  *
- * Use to narrow a union down to a single variant.
+ * Use to select tagged-union members whose `_tag` matches a specific value in
+ * type-level code.
  *
  * **Details**
  *
@@ -298,7 +298,7 @@ export type Simplify<A> = {
  *
  * **When to use**
  *
- * Use in conditional types or type-level tests to assert type equality.
+ * Use to assert type equality in conditional types or type-level tests.
  *
  * **Details**
  *
@@ -354,11 +354,12 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
 export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? Y : N
 
 /**
- * Checks if an object type contains any of the specified keys.
+ * Checks whether an object type contains any of the specified keys.
  *
  * **When to use**
  *
- * Use to conditionally branch based on the presence of keys in a type.
+ * Use to branch type-level logic when at least one key from a candidate key set
+ * exists on an object type.
  *
  * **Details**
  *
@@ -382,8 +383,8 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
   : true
 
 /**
- * Merges two object types where keys from `Source` take precedence over
- * `Target` on conflict.
+ * Left-biased merge of two object types where keys from `Source` take
+ * precedence over `Target` on conflict.
  *
  * **When to use**
  *
@@ -406,7 +407,6 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
  * ```
  *
  * @see {@link MergeRight}
- * @see {@link MergeRecord}
  * @see {@link Simplify}
  *
  * @category models
@@ -415,8 +415,8 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
 export type MergeLeft<Source, Target> = MergeRight<Target, Source>
 
 /**
- * Merges two object types where keys from `Source` take precedence over
- * `Target` on conflict.
+ * Right-biased merge of two object types where keys from `Source` take
+ * precedence over `Target` on conflict.
  *
  * **When to use**
  *
@@ -452,37 +452,12 @@ export type MergeRight<Target, Source> = Simplify<
 >
 
 /**
- * Alias for {@link MergeLeft}. Merges two object types where keys from
- * `Source` take precedence on conflict.
+ * Describes the concurrency level for Effect operations that run multiple
+ * effects.
  *
  * **When to use**
  *
- * Prefer {@link MergeLeft} or {@link MergeRight} for clarity about which
- * side wins.
- *
- * **Example** (Merging records)
- *
- * ```ts
- * import type { Types } from "effect"
- *
- * type Result = Types.MergeRecord<
- *   { a: number; b: number },
- *   { a: string; c: boolean }
- * >
- * // { a: number; b: number; c: boolean }
- * ```
- *
- * @see {@link MergeLeft}
- * @see {@link MergeRight}
- *
- * @category models
- * @since 2.0.0
- */
-export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
-
-/**
- * Describes the concurrency level for Effect operations that run multiple
- * effects.
+ * Use to type options that control how many effects may run at the same time.
  *
  * **Details**
  *
@@ -587,8 +562,8 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
  *
  * **When to use**
  *
- * Use on a function parameter when you want inference to come from other
- * parameters, not this one.
+ * Use when a function parameter must match an inferred type without becoming
+ * an inference source.
  *
  * **Details**
  *
@@ -647,11 +622,19 @@ export type Invariant<A> = (_: A) => A
 /**
  * Namespace for {@link Invariant}-related utilities.
  *
+ * **When to use**
+ *
+ * Use when referring to type-level helpers nested under `Invariant`.
+ *
  * @since 3.9.0
  */
 export declare namespace Invariant {
   /**
    * Extracts the type parameter `A` from an `Invariant<A>`.
+   *
+   * **When to use**
+   *
+   * Use to recover the carried type from an invariant phantom marker.
    *
    * **Example** (Extracting the inner type)
    *
@@ -707,11 +690,19 @@ export type Covariant<A> = (_: never) => A
 /**
  * Namespace for {@link Covariant}-related utilities.
  *
+ * **When to use**
+ *
+ * Use when referring to type-level helpers nested under `Covariant`.
+ *
  * @since 3.9.0
  */
 export declare namespace Covariant {
   /**
    * Extracts the type parameter `A` from a `Covariant<A>`.
+   *
+   * **When to use**
+   *
+   * Use to recover the carried type from a covariant phantom marker.
    *
    * **Example** (Extracting the inner type)
    *
@@ -767,11 +758,19 @@ export type Contravariant<A> = (_: A) => void
 /**
  * Namespace for {@link Contravariant}-related utilities.
  *
+ * **When to use**
+ *
+ * Use when referring to type-level helpers nested under `Contravariant`.
+ *
  * @since 3.9.0
  */
 export declare namespace Contravariant {
   /**
    * Extracts the type parameter `A` from a `Contravariant<A>`.
+   *
+   * **When to use**
+   *
+   * Use to recover the carried type from a contravariant phantom marker.
    *
    * **Example** (Extracting the inner type)
    *
@@ -793,6 +792,10 @@ export declare namespace Contravariant {
 /**
  * Conditional type that returns `void` if `S` is an empty object type,
  * otherwise returns `S`.
+ *
+ * **When to use**
+ *
+ * Use to erase an empty object type from an API result or parameter position.
  *
  * @category types
  * @since 3.19.20
@@ -829,8 +832,7 @@ export type NotFunction<T> = T extends Function ? never : T
  *
  * **When to use**
  *
- * Use in generic functions to catch accidental extra properties at compile
- * time.
+ * Use to catch accidental extra properties in generic functions at compile time.
  *
  * **Details**
  *
@@ -856,6 +858,11 @@ export type NoExcessProperties<T, U> = T & Readonly<Record<Exclude<keyof U, keyo
 /**
  * Branded marker interface representing an unassigned type parameter.
  *
+ * **When to use**
+ *
+ * Use when Effect's type-level machinery needs to represent a type parameter
+ * that has not been assigned yet.
+ *
  * **Details**
  *
  * Used internally by the Effect type system to indicate that a type parameter
@@ -873,6 +880,11 @@ export interface unassigned {
 /**
  * Branded marker interface representing an unhandled error type.
  *
+ * **When to use**
+ *
+ * Use when Effect's type-level machinery needs to represent an error type that
+ * has not been handled yet.
+ *
  * **Details**
  *
  * Used internally by the Effect type system to indicate that an error type
@@ -889,6 +901,10 @@ export interface unhandled {
 
 /**
  * Checks whether a type `T` is a union type.
+ *
+ * **When to use**
+ *
+ * Use to branch type-level logic depending on whether a type is a union.
  *
  * **Details**
  *
@@ -918,8 +934,8 @@ export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
  *
  * **When to use**
  *
- * Use with the nested error pattern where errors wrap sub-errors in a `reason`
- * field.
+ * Use when an error type stores nested sub-errors in a `reason` field and you
+ * need that field's full union type as a standalone type.
  *
  * **Details**
  *
@@ -949,6 +965,11 @@ export type ReasonOf<E> = E extends { readonly reason: infer R } ? R : never
 
 /**
  * Extracts the `_tag` values from the `reason` type of an error.
+ *
+ * **When to use**
+ *
+ * Use to get the discriminant values available inside a nested `reason`
+ * error union.
  *
  * **Details**
  *
@@ -983,7 +1004,8 @@ export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string
  *
  * **When to use**
  *
- * Use to narrow down to a single reason variant from a nested error type.
+ * Use when you need the nested reason variant type itself, selected by `_tag`,
+ * rather than the enclosing error type.
  *
  * **Details**
  *
@@ -1020,7 +1042,8 @@ export type ExtractReason<E, K extends string> = E extends { readonly reason: in
  *
  * **When to use**
  *
- * Use to narrow down to a single reason variant from a nested error type.
+ * Use to preserve the original error shape while narrowing its nested reason
+ * field to the matching variant.
  *
  * **Details**
  *
@@ -1096,7 +1119,8 @@ export type OmitReason<E, K extends string> = E extends { readonly reason: infer
  *
  * **When to use**
  *
- * Use to remove a handled reason variant from an error's reason union.
+ * Use when you need the remaining nested reason union type after removing
+ * variants handled by `_tag`, rather than the enclosing error type.
  *
  * **Details**
  *
@@ -1128,6 +1152,10 @@ export type ExcludeReason<E, K extends string> = E extends { readonly reason: in
 
 /**
  * Extracts the required keys from a type.
+ *
+ * **When to use**
+ *
+ * Use to derive the keys whose properties must be present on an object type.
  *
  * @category types
  * @since 4.0.0

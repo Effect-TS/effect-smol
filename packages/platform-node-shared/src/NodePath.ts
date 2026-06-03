@@ -1,17 +1,26 @@
 /**
- * Shared Node-compatible implementation of Effect's `Path` service.
+ * Node-backed provider for Effect's `Path` service.
  *
- * This module adapts Node's `node:path` and `node:url` APIs into layers that
- * can be provided to Effect programs needing path manipulation, such as
- * resolving configuration files, building file system locations, parsing
- * names and extensions, or converting between file paths and `file:` URLs.
+ * This module turns Node's `node:path` and `node:url` APIs into `Layer`s for
+ * programs that depend on `Path`. Use it when code should receive path
+ * operations from the Effect environment instead of importing `node:path`
+ * directly, including configuration loading, filesystem composition, and file
+ * URL conversion.
  *
- * The default layer follows the host platform semantics exposed by
- * `node:path`, while `layerPosix` and `layerWin32` provide stable POSIX or
- * Windows behavior regardless of the current runtime. Path operations are
- * syntactic and do not check whether files exist; separators, drive letters,
- * UNC paths, and URL encoding rules can also differ by platform. Invalid
- * file URL conversions are reported through `BadArgument`.
+ * **Mental model**
+ *
+ * `layer` follows the platform semantics of the current Node runtime. The
+ * `layerPosix` and `layerWin32` variants pin the syntax rules to POSIX or
+ * Windows, which is useful for deterministic parsing, formatting, and tests.
+ * All three layers include `fromFileUrl` and `toFileUrl` behavior backed by
+ * Node's URL conversion functions.
+ *
+ * **Gotchas**
+ *
+ * Path operations are syntactic: they normalize separators, roots, drive
+ * letters, UNC segments, extensions, and relative segments without checking the
+ * filesystem. File URL conversion follows Node's validation and encoding
+ * rules, and invalid conversions fail with `BadArgument`.
  *
  * @since 4.0.0
  */

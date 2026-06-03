@@ -46,8 +46,8 @@ import { ShardingConfig } from "./ShardingConfig.ts"
 const constVoid = constant(Effect.void)
 
 /**
- * Layer of RPC handlers for the runner protocol, forwarding ping, notify, effect,
- * stream, and envelope requests to `Sharding` and `MessageStorage`.
+ * Layer that handles runner protocol RPCs by forwarding requests to `Sharding`
+ * and `MessageStorage`.
  *
  * @category layers
  * @since 4.0.0
@@ -160,6 +160,20 @@ const constWaitUntilRead = { waitUntilRead: true } as const
  * runners, forwards them to the `Sharding` layer, and responds to `Ping`
  * requests.
  *
+ * **When to use**
+ *
+ * Use when a runner process should accept runner-to-runner protocol messages
+ * over a provided server `RpcServer.Protocol`.
+ *
+ * **Gotchas**
+ *
+ * This layer does not choose or provide the wire transport; provide a
+ * transport-specific `RpcServer.Protocol` separately.
+ *
+ * @see {@link layerHandlers} for the lower-level handler layer used when the RPC server is supplied elsewhere
+ * @see {@link layerWithClients} for a runner server layer that also provides the `Sharding` and `Runners` clients
+ * @see {@link layerClientOnly} for embedding a cluster client without serving runner RPCs
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -173,7 +187,8 @@ export const layer: Layer.Layer<
 }).pipe(Layer.provide(layerHandlers))
 
 /**
- * A `RunnerServer` layer that includes the `Runners` & `Sharding` clients.
+ * Layer that provides `RunnerServer` together with `Runners` and `Sharding`
+ * clients.
  *
  * @category layers
  * @since 4.0.0
@@ -197,8 +212,8 @@ export const layerWithClients: Layer.Layer<
  *
  * **When to use**
  *
- * Use this layer to embed a cluster client inside another Effect application
- * without registering with the ShardManager or receiving shard assignments.
+ * Use to embed a cluster client inside another Effect application without registering with
+ * the ShardManager or receiving shard assignments.
  *
  * @category layers
  * @since 4.0.0

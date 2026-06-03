@@ -139,7 +139,7 @@ export class Database extends Context.Service<Database, {
 }
 
 export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()("DatabaseError", {
-  cause: Schema.Defect
+  cause: Schema.Defect()
 }) {}
 
 // If you ever need to access the service type, use `Database["Service"]`

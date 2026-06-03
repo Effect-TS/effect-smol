@@ -101,7 +101,7 @@ export interface KeyValueStore {
   readonly has: (key: string) => Effect.Effect<boolean, KeyValueStoreError>
 
   /**
-   * Checks if the KeyValueStore contains any entries.
+   * Checks whether the KeyValueStore contains any entries.
    */
   readonly isEmpty: Effect.Effect<boolean, KeyValueStoreError>
 }
@@ -114,7 +114,7 @@ export interface KeyValueStore {
  * Primitive operations are required, while helpers such as `has`, `isEmpty`,
  * and `modify` can be supplied to override the defaults.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type MakeOptions = Partial<KeyValueStore> & {
@@ -153,7 +153,7 @@ export type MakeOptions = Partial<KeyValueStore> & {
  * Implementation callbacks for adapting a string-only backing store into a
  * `KeyValueStore`.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
@@ -207,9 +207,14 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
 }
 
 /**
- * Context service tag for the `KeyValueStore` service.
+ * Service tag for string and binary key/value storage.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide the persistence store used for lightweight durable
+ * state.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const KeyValueStore: Context.Service<
@@ -738,7 +743,7 @@ export interface SchemaStore<S extends Schema.Top> {
   readonly has: (key: string) => Effect.Effect<boolean, KeyValueStoreError>
 
   /**
-   * Checks if the KeyValueStore contains any entries.
+   * Checks whether the KeyValueStore contains any entries.
    */
   readonly isEmpty: Effect.Effect<boolean, KeyValueStoreError>
 }
@@ -798,7 +803,10 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
  * Provides a `KeyValueStore` backed by a Web `Storage` instance such as
  * `localStorage` or `sessionStorage`.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
+ * **Details**
+ *
+ * This layer uses the Web Storage API:
+ * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
  * @category layers
  * @since 4.0.0

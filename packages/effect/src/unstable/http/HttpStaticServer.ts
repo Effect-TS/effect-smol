@@ -1,19 +1,36 @@
 /**
  * Static file serving for Effect HTTP applications.
  *
- * This module builds request handlers and router layers that serve files from a
- * configured root directory. It is intended for public assets such as compiled
- * front-end bundles, images, fonts, downloads, documentation sites, and single
- * page applications that need an `index.html` fallback.
+ * `HttpStaticServer` turns HTTP requests into file responses rooted at a
+ * configured directory. Use {@link make} when you need an application value, or
+ * {@link layer} when static files should be mounted onto an `HttpRouter`,
+ * optionally under a URL prefix.
  *
- * Requests are resolved relative to the configured root after decoding and
- * normalizing the URL path. Malformed paths, null bytes, and `..` traversal
- * outside the root are rejected, but the module still serves anything the
- * configured `FileSystem` can reach below that root. Keep secrets out of the
- * served tree, be careful with symlinks or generated files, and remember that
- * dotfiles are not hidden automatically. File responses include content type,
- * optional cache control, byte-range support, and conditional request handling
- * based on the metadata supplied by `HttpPlatform`.
+ * **Mental model**
+ *
+ * The request path is decoded, normalized, and resolved below `root`. Invalid
+ * paths, null bytes, and `..` traversal outside `root` fail as route-not-found
+ * errors. A matching file is served through `HttpPlatform.fileResponse`, a
+ * matching directory serves `index` when configured, and `spa: true` falls back
+ * to the index file for extensionless HTML requests.
+ *
+ * **Common tasks**
+ *
+ * - Serve a public assets directory with {@link make}
+ * - Mount static assets beside API routes with {@link layer}
+ * - Add `Cache-Control` headers with `cacheControl`
+ * - Extend MIME type detection with `mimeTypes`
+ * - Support single-page application routing with `spa: true`
+ *
+ * **Gotchas**
+ *
+ * - {@link layer} installs `GET` routes only; handle other methods elsewhere.
+ * - Dotfiles are served when they live under `root`; keep secrets outside the
+ *   served tree.
+ * - Symlinks or generated files reachable from `root` may expose more than
+ *   expected.
+ * - Conditional requests and byte ranges depend on metadata supplied by
+ *   `HttpPlatform`.
  *
  * @since 4.0.0
  */

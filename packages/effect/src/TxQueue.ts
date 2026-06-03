@@ -1,11 +1,52 @@
 /**
- * TxQueue is a transactional queue data structure that provides Software Transactional Memory (STM)
- * semantics for queue operations. It uses TxRef for transactional state management and supports
- * multiple queue strategies: bounded, unbounded, dropping, and sliding.
+ * The `TxQueue` module provides queues whose state changes participate in
+ * Effect transactions. A `TxQueue<A, E>` stores values of type `A`, exposes
+ * write-only {@link TxEnqueue} and read-only {@link TxDequeue} handles, and can
+ * complete or fail with causes observed by consumers.
  *
- * Accessed values are tracked by the transaction in order to detect conflicts and to track changes.
- * A transaction will retry whenever a conflict is detected or whenever the transaction explicitly
- * calls `Effect.txRetry` and any of the accessed TxQueue values change.
+ * **Mental model**
+ *
+ * - Queue contents and lifecycle state are transactional, so a transaction can
+ *   offer, take, inspect, and update other transactional values atomically
+ * - {@link take}, {@link takeAll}, {@link takeN}, {@link takeBetween}, and
+ *   {@link peek} retry while the queue has no required value available
+ * - {@link bounded} queues retry producers when full; {@link dropping}
+ *   rejects new values; {@link sliding} removes old values; {@link unbounded}
+ *   always accepts while open
+ * - {@link interrupt}, {@link fail}, {@link failCause}, {@link end}, and
+ *   {@link shutdown} move the queue toward completion and affect later offers
+ *   and takes
+ *
+ * **Common tasks**
+ *
+ * - Create queues: {@link bounded}, {@link dropping}, {@link sliding},
+ *   {@link unbounded}
+ * - Produce values: {@link offer}, {@link offerAll}
+ * - Consume values: {@link take}, {@link poll}, {@link peek}, {@link takeN},
+ *   {@link takeBetween}, {@link takeAll}
+ * - Inspect state: {@link size}, {@link isEmpty}, {@link isFull},
+ *   {@link isOpen}, {@link isClosing}, {@link isDone}
+ * - Finish queues: {@link end}, {@link fail}, {@link failCause},
+ *   {@link interrupt}, {@link shutdown}, {@link awaitCompletion}
+ *
+ * **Gotchas**
+ *
+ * - {@link take} and {@link peek} are blocking in transactional terms: they
+ *   use `Effect.txRetry` until an item is offered or the queue reaches a
+ *   terminal state. Use {@link poll} when absence should be immediate.
+ * - {@link offer} returns `false` for closing or done queues, and for full
+ *   {@link dropping} queues
+ * - Closing queues keep serving buffered values; done queues fail blocking
+ *   consumers with the stored cause, while {@link poll} returns `Option.none`
+ * - `TxQueue` is for coordinating transactional state. Use `Queue` for general
+ *   fiber communication outside an atomic transaction.
+ *
+ * **See also**
+ *
+ * - {@link TxEnqueue} for write-only queue handles
+ * - {@link TxDequeue} for read-only queue handles
+ * - {@link TxChunk} and {@link TxRef} for the transactional storage used by
+ *   this module
  *
  * @since 4.0.0
  */
@@ -245,7 +286,7 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
 }
 
 /**
- * Checks if the given value is a TxEnqueue.
+ * Checks whether the given value is a TxEnqueue.
  *
  * **Example** (Checking enqueue handles)
  *
@@ -266,7 +307,7 @@ export interface TxQueue<in out A, in out E = never> extends TxEnqueue<A, E>, Tx
 export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueue<A, E> => hasProperty(u, EnqueueTypeId)
 
 /**
- * Checks if the given value is a TxDequeue.
+ * Checks whether the given value is a TxDequeue.
  *
  * **Example** (Checking dequeue handles)
  *
@@ -287,7 +328,7 @@ export const isTxEnqueue = <A = unknown, E = unknown>(u: unknown): u is TxEnqueu
 export const isTxDequeue = <A = unknown, E = unknown>(u: unknown): u is TxDequeue<A, E> => hasProperty(u, DequeueTypeId)
 
 /**
- * Checks if the given value is a TxQueue.
+ * Checks whether the given value is a TxQueue.
  *
  * **Example** (Checking queue handles)
  *
@@ -1054,7 +1095,7 @@ export const peek = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
 export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(self.items)
 
 /**
- * Checks if the queue is empty.
+ * Checks whether the queue is empty.
  *
  * **Example** (Checking whether a queue is empty)
  *
@@ -1079,7 +1120,7 @@ export const size = (self: TxQueueState): Effect.Effect<number> => TxChunk.size(
 export const isEmpty = (self: TxQueueState): Effect.Effect<boolean> => TxChunk.isEmpty(self.items)
 
 /**
- * Checks if the queue is at capacity.
+ * Checks whether the queue is at capacity.
  *
  * **Example** (Checking whether a queue is full)
  *
@@ -1107,7 +1148,7 @@ export const isFull = (self: TxQueueState): Effect.Effect<boolean> =>
     : Effect.map(size(self), (currentSize) => currentSize >= self.capacity)
 
 /**
- * Gracefully interrupts the queue with the current fiber's interruption cause.
+ * Interrupts the queue gracefully with the current fiber's interruption cause.
  *
  * **Details**
  *
@@ -1348,7 +1389,7 @@ export const shutdown = <A, E>(self: TxEnqueue<A, E>): Effect.Effect<boolean> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the queue is in the open state.
+ * Checks whether the queue is in the open state.
  *
  * **Example** (Checking open state)
  *
@@ -1374,7 +1415,7 @@ export const isOpen = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Open")
 
 /**
- * Checks if the queue is in the closing state.
+ * Checks whether the queue is in the closing state.
  *
  * **Example** (Checking closing state)
  *
@@ -1401,7 +1442,7 @@ export const isClosing = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Closing")
 
 /**
- * Checks if the queue is done (completed or failed).
+ * Checks whether the queue is done (completed or failed).
  *
  * **Example** (Checking done state)
  *
@@ -1427,7 +1468,7 @@ export const isDone = (self: TxQueueState): Effect.Effect<boolean> =>
   Effect.map(TxRef.get(self.stateRef), (state) => state._tag === "Done")
 
 /**
- * Checks if the queue is shutdown (legacy compatibility).
+ * Checks whether the queue is shutdown (legacy compatibility).
  *
  * **Example** (Checking shutdown state)
  *

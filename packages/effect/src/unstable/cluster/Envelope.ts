@@ -28,7 +28,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Headers from "../http/Headers.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import { EntityAddress } from "./EntityAddress.ts"
@@ -156,7 +156,8 @@ export interface PartialRequestEncoded {
 }
 
 /**
- * Envelope acknowledging receipt of a streamed reply chunk for a request.
+ * Represents an envelope acknowledging receipt of a streamed reply chunk for a
+ * request.
  *
  * **Details**
  *
@@ -214,7 +215,7 @@ export interface AckChunkEncoded {
 }
 
 /**
- * Envelope used to interrupt an in-flight entity request.
+ * Represents an envelope used to interrupt an in-flight entity request.
  *
  * @category models
  * @since 4.0.0
@@ -266,7 +267,7 @@ export interface InterruptEncoded {
 }
 
 /**
- * Schema union for partially decoded cluster envelopes.
+ * Schema for partially decoded cluster envelopes.
  *
  * **Details**
  *
@@ -303,7 +304,7 @@ export const PartialJson: Schema.Codec<
 > = Schema.toCodecJson(Partial) as any
 
 /**
- * Mutable array schema for JSON-encoded partial cluster envelopes.
+ * Schema for mutable arrays of JSON-encoded partial cluster envelopes.
  *
  * @category schemas
  * @since 4.0.0
@@ -378,10 +379,9 @@ export const makeRequest = <Rpc extends Rpc.Any>(
 })
 
 /**
- * Schema declaration that recognizes runtime `Envelope` values by their type
- * identifier.
+ * Schema for runtime cluster envelopes recognized by their type identifier.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const Envelope = Schema.declare(isEnvelope, {
@@ -389,9 +389,9 @@ export const Envelope = Schema.declare(isEnvelope, {
 })
 
 /**
- * Schema declaration that recognizes runtime request envelopes.
+ * Schema for runtime request envelopes.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const Request = Schema.declare(
@@ -400,16 +400,16 @@ export const Request = Schema.declare(
 )
 
 /**
- * Transformation that decodes plain request data with `makeRequest` and encodes
+ * Transforms plain request data with `makeRequest` and encodes
  * request envelopes back to their raw representation.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
-export const RequestTransform: Transformation.Transformation<
+export const RequestTransform: SchemaTransformation.Transformation<
   Request.Any,
   any
-> = Transformation.transform({
+> = SchemaTransformation.transform({
   decode: (u: any) => makeRequest(u),
   encode: (u) => u as any
 })

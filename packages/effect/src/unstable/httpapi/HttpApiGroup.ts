@@ -1,27 +1,38 @@
 /**
- * The `HttpApiGroup` module defines named collections of `HttpApiEndpoint`s
- * within an `HttpApi`.
+ * Defines named collections of `HttpApiEndpoint`s inside an `HttpApi`.
  *
- * Groups are the main way to organize endpoints by a domain boundary, resource,
- * or feature area before those endpoints are added to an API and implemented
- * with `HttpApiBuilder.group`. A group carries its identifier, endpoint set,
- * annotations, and `topLevel` flag, which are later used by builders, clients,
- * URL builders, and OpenAPI generation. Non-top-level groups expose nested
- * client methods under the group name, while top-level groups expose their
- * endpoint methods directly.
+ * A group is the boundary for endpoints that belong to the same resource,
+ * feature area, or domain concern. Builders, generated clients, URL builders,
+ * and OpenAPI generation read the same group value, including its identifier,
+ * endpoint set, annotations, and `topLevel` flag.
  *
- * Composition is order-sensitive. Adding an endpoint with the same name as an
- * existing endpoint replaces it, and `prefix`, `middleware`,
- * `annotateEndpoints`, and `annotateEndpointsMerge` only affect endpoints that
- * are already present when those APIs are called. Group annotations apply to the
- * group itself; use the endpoint annotation helpers when metadata should be
- * attached to each endpoint.
+ * **Mental model**
  *
- * The type helpers in this module reflect the endpoint union for a group and
- * aggregate the services required by endpoint schemas, middleware, and declared
- * errors. Error schemas are still declared on endpoints, while middleware can
- * contribute additional error schemas and client/server service requirements
- * through the endpoint middleware set.
+ * Start with {@link make}, add endpoints, then apply group-wide transforms such
+ * as `prefix`, `middleware`, or endpoint annotations. A regular group becomes a
+ * named namespace in generated clients. A `topLevel` group exposes its endpoint
+ * methods directly on the client.
+ *
+ * **Common tasks**
+ *
+ * Use this module to collect related endpoints, share a path prefix or
+ * middleware across the current endpoint set, attach metadata to the group or to
+ * each current endpoint, and derive group-level types for builders and generated
+ * clients.
+ *
+ * **Gotchas**
+ *
+ * Adding an endpoint with the same name as an existing endpoint replaces it.
+ * `prefix`, `middleware`, `annotateEndpoints`, and `annotateEndpointsMerge`
+ * affect only endpoints that are already present when those APIs are called.
+ * Group annotations stay on the group; use endpoint annotation helpers when
+ * metadata must be attached to each endpoint.
+ *
+ * **See also**
+ *
+ * `HttpApiEndpoint` for individual route contracts, `HttpApi` for composing
+ * groups into a complete API, and `HttpApiBuilder` for supplying
+ * implementations.
  *
  * @since 4.0.0
  */

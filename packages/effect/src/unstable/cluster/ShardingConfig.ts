@@ -1,18 +1,39 @@
 /**
- * The `ShardingConfig` module defines the configuration used by a cluster
- * runner to participate in Effect Cluster sharding. It describes how a runner is
- * addressed by other runners, which shard groups it can host, how many shards
- * are assigned per group, and the timing settings used for locks, assignment
- * refreshes, health checks, entity lifecycle, and message polling.
+ * The `ShardingConfig` module describes how an Effect Cluster runner joins and
+ * participates in sharding. It combines the runner network identity, shard group
+ * membership, shard-count and weight settings, storage-lock timing, entity
+ * mailbox and lifecycle limits, and polling intervals used by the local runner.
  *
- * Use this module when wiring a sharded application locally with
- * {@link layer}, loading deployment settings from environment variables with
- * {@link layerFromEnv}, or overriding selected defaults for tests and
- * single-node development. In production, keep cluster-wide values such as
- * `shardsPerGroup` and shard groups consistent across runners, choose stable
- * externally reachable runner addresses, and tune lock expiration and refresh
- * intervals to match the storage backend and shutdown behavior of the
- * deployment platform.
+ * **Mental model**
+ *
+ * - {@link ShardingConfig} is provided as a service so cluster components read
+ *   one consistent set of sharding settings.
+ * - {@link defaults} is the local-development baseline; {@link layer} overlays
+ *   explicit values, and {@link layerFromEnv} loads constant-case environment
+ *   variables before applying optional overrides.
+ * - `runnerAddress` is the externally reachable address advertised to other
+ *   runners; `runnerListenAddress` can differ when the process binds a
+ *   different interface.
+ * - `availableShardGroups`, `assignedShardGroups`, `shardsPerGroup`, and
+ *   `runnerShardWeight` decide which shards a runner may own and how assignment
+ *   is balanced.
+ *
+ * **Common tasks**
+ *
+ * - Provide default local configuration with {@link layerDefaults}.
+ * - Override selected fields in code with {@link layer}.
+ * - Load deployment configuration from the environment with
+ *   {@link configFromEnv} or {@link layerFromEnv}.
+ * - Normalize configured shard groups with {@link shardGroupConfig}.
+ *
+ * **Gotchas**
+ *
+ * - Keep cluster-wide values such as `availableShardGroups` and
+ *   `shardsPerGroup` consistent for runners sharing the same storage backend.
+ * - Use stable, reachable `runnerAddress` values; client-only nodes should use
+ *   `Option.none()` for `runnerAddress`.
+ * - Tune lock expiration, refresh intervals, and termination timeouts together
+ *   so normal shutdown does not look like runner failure.
  *
  * @since 4.0.0
  */
@@ -180,6 +201,29 @@ export const defaults: ShardingConfig["Service"] = {
  * Creates a `ShardingConfig` layer by merging the provided partial options over
  * `defaults`.
  *
+ * **When to use**
+ *
+ * Use when you need to wire a cluster runner with explicit `ShardingConfig`
+ * values, especially in tests, local development, or code paths where
+ * configuration should be provided programmatically instead of loaded from
+ * environment variables.
+ *
+ * **Details**
+ *
+ * The merge is shallow: omitted fields use `defaults`, and provided fields
+ * replace the corresponding default value.
+ *
+ * **Gotchas**
+ *
+ * This layer only merges and provides configuration; it does not check that
+ * cluster-wide settings are consistent across runners. Keep values such as
+ * `shardsPerGroup` and `availableShardGroups` aligned for runners that should
+ * share shard assignments.
+ *
+ * @see {@link defaults} for the values used when an option is omitted
+ * @see {@link layerDefaults} for a layer with no overrides
+ * @see {@link layerFromEnv} for loading configuration from environment variables before applying explicit overrides
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -195,10 +239,10 @@ export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer
 export const layerDefaults: Layer.Layer<ShardingConfig> = layer()
 
 /**
- * Config descriptor for loading `ShardingConfig` values, applying the same
+ * Describes how to load `ShardingConfig` values, applying the same
  * defaults used by the in-memory `defaults` object.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
@@ -301,7 +345,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
  * Effect that loads `ShardingConfig` from environment variables using the
  * constant-case config provider.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const configFromEnv = config.pipe(

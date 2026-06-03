@@ -1,9 +1,26 @@
 /**
- * OpenAI telemetry attributes for OpenTelemetry integration.
+ * OpenAI-specific telemetry annotations for GenAI spans.
  *
- * Provides OpenAI-specific GenAI telemetry attributes following OpenTelemetry
- * semantic conventions, extending the base GenAI attributes with OpenAI-specific
- * request and response metadata.
+ * This module extends the provider-neutral GenAI telemetry model with
+ * attributes that only exist on OpenAI requests and responses. Use
+ * {@link addGenAIAnnotations} when an OpenAI operation already has an
+ * OpenTelemetry span and you want to record both standard GenAI metadata and
+ * OpenAI details such as response format, requested service tier, actual
+ * service tier, or system fingerprint.
+ *
+ * **Mental model**
+ *
+ * The public option shape stays idiomatic TypeScript (`responseFormat`,
+ * `serviceTier`, `systemFingerprint`). When annotations are applied, the
+ * attributes are written to the span under OpenTelemetry semantic-convention
+ * keys such as `gen_ai.openai.request.response_format` and
+ * `gen_ai.openai.response.system_fingerprint`.
+ *
+ * **Gotchas**
+ *
+ * Annotation mutates the provided span in place. It does not create, end, or
+ * export spans, and OpenAI-specific attributes are only added when the
+ * `openai.request` or `openai.response` option objects are present.
  *
  * @since 4.0.0
  */
@@ -17,7 +34,11 @@ import * as Telemetry from "effect/unstable/ai/Telemetry"
  * The attributes used to describe telemetry in the context of Generative
  * Artificial Intelligence (GenAI) Models requests and responses.
  *
- * @see https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/
+ * **Details**
+ *
+ * These attributes follow the OpenTelemetry generative AI semantic
+ * conventions:
+ * https://opentelemetry.io/docs/specs/semconv/attributes-registry/gen-ai/
  *
  * @category models
  * @since 4.0.0
@@ -30,7 +51,7 @@ export type OpenAiTelemetryAttributes = Simplify<
 
 /**
  * All telemetry attributes which are part of the GenAI specification,
- * including the OpenAi-specific attributes.
+ * including the OpenAI-specific attributes.
  *
  * @category models
  * @since 4.0.0
@@ -106,7 +127,7 @@ export type WellKnownServiceTier = "auto" | "default"
  * Options accepted by `addGenAIAnnotations`, combining standard GenAI
  * telemetry attributes with optional OpenAI request and response attributes.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type OpenAiTelemetryAttributeOptions = Telemetry.GenAITelemetryAttributeOptions & {
@@ -124,12 +145,20 @@ const addOpenAiResponseAttributes = Telemetry.addSpanAttributes("gen_ai.openai.r
 >
 
 /**
- * Applies the specified OpenAi GenAI telemetry attributes to the provided
+ * Applies the specified OpenAI GenAI telemetry attributes to the provided
  * `Span`.
+ *
+ * **When to use**
+ *
+ * Use to annotate an existing OpenTelemetry span with standard GenAI attributes
+ * plus OpenAI-specific request and response metadata.
  *
  * **Gotchas**
  *
- * This method will mutate the `Span` **in-place**.
+ * Mutates the supplied `Span` in place.
+ *
+ * @see {@link OpenAiTelemetryAttributeOptions} for the accepted telemetry attributes
+ * @see {@link Telemetry.addGenAIAnnotations} for the provider-neutral annotation helper
  *
  * @category tracing
  * @since 4.0.0

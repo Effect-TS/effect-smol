@@ -65,7 +65,11 @@ import type * as Scope from "./Scope.ts"
  * String literal type used as the runtime type identifier for
  * `ErrorReporter` values.
  *
- * @category Type Identifiers
+ * **When to use**
+ *
+ * Use to refer to the runtime type identifier type in low-level integrations.
+ *
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/ErrorReporter"
@@ -73,7 +77,13 @@ export type TypeId = "~effect/ErrorReporter"
 /**
  * Runtime type identifier attached to `ErrorReporter` values.
  *
- * @category Type Identifiers
+ * **Details**
+ *
+ * This marker is part of the runtime representation of `ErrorReporter`
+ * implementations. Most code should create reporters with `make` and register
+ * them with `layer`.
+ *
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/ErrorReporter"
@@ -82,12 +92,22 @@ export const TypeId: TypeId = "~effect/ErrorReporter"
  * An `ErrorReporter` receives reported failures and forwards them to an
  * external system such as a logging service or error tracker.
  *
+ * **When to use**
+ *
+ * Use as the interface for custom reporters that forward reported Effect
+ * failures to logging, monitoring, or error-tracking systems.
+ *
  * **Details**
  *
  * Reporting is triggered by `Effect.withErrorReporting`,
  * `ErrorReporter.report`, or built-in boundaries in the HTTP and RPC server
  * modules. Use {@link make} to create a reporter; it handles deduplication
  * and per-error annotation extraction automatically.
+ *
+ * @see {@link make} for creating an `ErrorReporter` from a callback
+ * @see {@link layer} for registering reporters in the environment
+ * @see {@link report} for manually reporting a `Cause`
+ * @see {@link Effect.withErrorReporting} for reporting failures from an effect
  *
  * @category models
  * @since 4.0.0
@@ -103,6 +123,11 @@ export interface ErrorReporter {
 
 /**
  * Creates an `ErrorReporter` from a callback.
+ *
+ * **When to use**
+ *
+ * Use to define how reported failures are forwarded to a logging, monitoring,
+ * or error-tracking backend.
  *
  * **Details**
  *
@@ -123,6 +148,9 @@ export interface ErrorReporter {
  *   }
  * )
  * ```
+ *
+ * @see {@link layer} for registering reporters in the environment
+ * @see {@link report} for manually reporting a `Cause`
  *
  * @category constructors
  * @since 4.0.0
@@ -166,14 +194,13 @@ export const make = (
 }
 
 /**
- * A `Context.Reference` holding the set of active `ErrorReporter`s for the
+ * Context reference that holds the set of active error reporters for the
  * current fiber. Defaults to an empty set (no reporting).
  *
  * **When to use**
  *
- * Prefer {@link layer} to configure reporters via the `Layer` API. Use this
- * reference directly only when you need low-level control (e.g. reading the
- * current reporters or swapping them inside a `FiberRef`).
+ * Use when you need to read or replace the current set of error reporters
+ * directly.
  *
  * @category references
  * @since 4.0.0
@@ -182,6 +209,11 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
 
 /**
  * Creates a `Layer` that registers one or more `ErrorReporter`s.
+ *
+ * **When to use**
+ *
+ * Use to provide one or more error reporters to effects that perform error
+ * reporting.
  *
  * **Details**
  *
@@ -221,6 +253,9 @@ export const CurrentErrorReporters: Context.Reference<ReadonlySet<ErrorReporter>
  * )
  * ```
  *
+ * @see {@link make} for creating an `ErrorReporter` from a callback
+ * @see {@link CurrentErrorReporters} for low-level access to the current reporters
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -251,13 +286,11 @@ export const layer = <
   )
 
 /**
- * Manually reports a `Cause` to all registered `ErrorReporter`s on the
- * current fiber.
+ * Runs all registered error reporters on the current fiber for a `Cause`.
  *
  * **When to use**
  *
- * This is useful when you want to report an error for observability without
- * actually failing the fiber.
+ * Use to report a failure for observability without failing the current fiber.
  *
  * **Example** (Reporting a cause manually)
  *
@@ -284,6 +317,11 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
 /**
  * Interface that object errors can implement to control reporting behavior.
  *
+ * **When to use**
+ *
+ * Use as the annotation contract for object errors that customize how error
+ * reporting handles them.
+ *
  * **Details**
  *
  * All three annotation properties are optional: `[ErrorReporter.ignore]`
@@ -292,6 +330,11 @@ export const report = <E>(cause: Cause.Cause<E>): Effect.Effect<void> =>
  * key/value pairs forwarded to reporters. The global `Error` interface is
  * augmented with `Reportable`, so these properties are available on `Error`
  * instances at the type level.
+ *
+ * @see {@link ignore} for the runtime annotation key that suppresses reports
+ * @see {@link severity} for the runtime annotation key that overrides severity
+ * @see {@link attributes} for the runtime annotation key that attaches reporter
+ * metadata
  *
  * @category annotations
  * @since 4.0.0
@@ -307,8 +350,13 @@ declare global {
 }
 
 /**
- * String property key used to mark an object error as ignored by error
+ * Defines the string property key used to mark an object error as ignored by error
  * reporting.
+ *
+ * **When to use**
+ *
+ * Use to type the property key that suppresses reporting for expected object
+ * errors.
  *
  * **Details**
  *
@@ -322,8 +370,13 @@ declare global {
 export type ignore = "~effect/ErrorReporter/ignore"
 
 /**
- * Runtime property key used to mark an object error as ignored by error
+ * Defines the runtime property key used to mark an object error as ignored by error
  * reporting.
+ *
+ * **When to use**
+ *
+ * Use to suppress reporting for expected object errors, such as HTTP 404
+ * responses.
  *
  * **Details**
  *
@@ -341,6 +394,10 @@ export type ignore = "~effect/ErrorReporter/ignore"
  * }
  * ```
  *
+ * @see {@link isIgnored} for checking whether a value carries this annotation
+ * @see {@link Reportable} for the annotation contract recognized on object
+ * errors
+ *
  * @category annotations
  * @since 4.0.0
  */
@@ -350,6 +407,13 @@ export const ignore: ignore = "~effect/ErrorReporter/ignore"
  * Returns `true` if the given value has the `ErrorReporter.ignore` annotation
  * set to `true`.
  *
+ * **When to use**
+ *
+ * Use to check whether an error value is annotated to be skipped before
+ * forwarding it to error reporting code.
+ *
+ * @see {@link ignore} for the annotation key this predicate reads
+ *
  * @category annotations
  * @since 4.0.0
  */
@@ -357,7 +421,12 @@ export const isIgnored = (u: unknown): boolean =>
   typeof u === "object" && u !== null && ignore in u && u[ignore] === true
 
 /**
- * String property key used to override the severity level of an object error.
+ * Defines the string property key used to override the severity level of an object error.
+ *
+ * **When to use**
+ *
+ * Use to type the property key that overrides the reporting severity for object
+ * errors.
  *
  * **Details**
  *
@@ -370,7 +439,12 @@ export const isIgnored = (u: unknown): boolean =>
 export type severity = "~effect/ErrorReporter/severity"
 
 /**
- * Runtime property key used to override the severity level of an object error.
+ * Defines the runtime property key used to override the severity level of an object error.
+ *
+ * **When to use**
+ *
+ * Use to annotate object errors with the severity reporter callbacks should
+ * receive.
  *
  * **Details**
  *
@@ -387,6 +461,10 @@ export type severity = "~effect/ErrorReporter/severity"
  * }
  * ```
  *
+ * @see {@link getSeverity} for reading the severity stored under this key
+ * @see {@link Reportable} for the annotation contract recognized on object
+ * errors
+ *
  * @category annotations
  * @since 4.0.0
  */
@@ -395,6 +473,14 @@ export const severity: severity = "~effect/ErrorReporter/severity"
 /**
  * Reads the `ErrorReporter.severity` annotation from an error object,
  * falling back to `"Info"` when the annotation is unset or invalid.
+ *
+ * **When to use**
+ *
+ * Use to inspect the severity that reporter callbacks will receive for an
+ * object error.
+ *
+ * @see {@link severity} for the annotation key used to override severity
+ * @see {@link Reportable} for the annotation properties recognized on object errors
  *
  * @category annotations
  * @since 4.0.0
@@ -407,8 +493,12 @@ export const getSeverity = (error: object): Severity => {
 }
 
 /**
- * String property key used to attach extra key/value metadata to an object
+ * Defines the string property key used to attach extra key/value metadata to an object
  * error report.
+ *
+ * **When to use**
+ *
+ * Use to type the property key that attaches metadata to object error reports.
  *
  * **Details**
  *
@@ -422,8 +512,13 @@ export const getSeverity = (error: object): Severity => {
 export type attributes = "~effect/ErrorReporter/attributes"
 
 /**
- * Runtime property key used to attach extra key/value metadata to an object
+ * Defines the runtime property key used to attach extra key/value metadata to an object
  * error report.
+ *
+ * **When to use**
+ *
+ * Use to attach domain metadata to object errors so reporter callbacks receive
+ * it with the reported failure.
  *
  * **Details**
  *
@@ -444,6 +539,12 @@ export type attributes = "~effect/ErrorReporter/attributes"
  * }
  * ```
  *
+ * @see {@link ignore} for suppressing reports for expected object errors
+ * @see {@link severity} for overriding reporter severity
+ * @see {@link getAttributes} for reading the metadata stored under this key
+ * @see {@link Reportable} for the annotation contract recognized on object
+ * errors
+ *
  * @category annotations
  * @since 4.0.0
  */
@@ -452,6 +553,24 @@ export const attributes: attributes = "~effect/ErrorReporter/attributes"
 /**
  * Reads the `ErrorReporter.attributes` annotation from an error object,
  * returning an empty record when unset.
+ *
+ * **When to use**
+ *
+ * Use to inspect the attributes that reporter callbacks will receive for an
+ * object error.
+ *
+ * **Details**
+ *
+ * Returns the value stored under `ErrorReporter.attributes`, or the module's
+ * shared empty record when the annotation is absent.
+ *
+ * **Gotchas**
+ *
+ * The annotation value is returned as-is; this helper does not validate or
+ * clone it.
+ *
+ * @see {@link attributes} for the annotation key used to attach metadata
+ * @see {@link Reportable} for the annotation properties recognized on object errors
  *
  * @category annotations
  * @since 4.0.0

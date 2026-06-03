@@ -60,7 +60,7 @@ import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
  *
  * **When to use**
  *
- * Use `Formatter` when you want to type a formatting or rendering function generically, or when you are building a pipeline that accepts pluggable formatters.
+ * Use when you want to type a formatting or rendering function generically, or when you are building a pipeline that accepts pluggable formatters.
  *
  * **Details**
  *
@@ -91,17 +91,16 @@ export interface Formatter<in Value, out Format = string> {
  *
  * **When to use**
  *
- * - Pretty-printing values for debugging, logging, or error messages.
- * - You need to handle `BigInt`, `Symbol`, `Set`, `Map`, `Date`, `RegExp`,
- *   or class instances that `JSON.stringify` cannot represent.
- * - You want circular references shown as `"[Circular]"` instead of
- *   throwing.
+ * Use when you need to format arbitrary JavaScript values for debugging,
+ * logging, or error messages.
  *
  * **Details**
  *
- * - Does not mutate input.
  * - Output is **not** valid JSON; use {@link formatJson} when you need
  *   parseable JSON.
+ * - Handles `BigInt`, `Symbol`, `Set`, `Map`, `Date`, `RegExp`, and class
+ *   instances that `JSON.stringify` cannot represent.
+ * - Circular references are shown as `"[Circular]"` instead of throwing.
  * - Primitives: stringified naturally (`null`, `undefined`, `123`, `true`).
  *   Strings are JSON-quoted.
  * - Objects with a custom `toString` (not `Object.prototype.toString`):
@@ -113,7 +112,6 @@ export interface Formatter<in Value, out Format = string> {
  * - `Redactable` values are automatically redacted.
  * - Arrays/objects with 0–1 entries are inline; larger ones are
  *   pretty-printed when `space` is set.
- * - Circular references are replaced with `"[Circular]"`.
  * - `space` — indentation unit (number of spaces, or a string like
  *   `"\t"`). Defaults to `0` (compact).
  * - `ignoreToString` — skip calling `toString()`. Defaults to `false`.
@@ -285,27 +283,22 @@ function safeToString(input: any): string {
 }
 
 /**
- * Safely stringifies a value to JSON, silently dropping circular references.
+ * Stringifies a value to JSON safely, silently dropping circular references.
  *
  * **When to use**
  *
- * - You need valid JSON output (unlike {@link format}).
- * - The input may contain circular references and you want them silently
- *   omitted rather than throwing a `TypeError`.
+ * Use when you need valid JSON output, unlike `format`, and the input may
+ * contain circular references that should be silently omitted rather than
+ * throwing a `TypeError`.
  *
  * **Details**
  *
- * - Does not mutate input.
- * - Uses `JSON.stringify` internally with a replacer that tracks the
- *   current object ancestry.
- * - Circular references are replaced with `undefined` (omitted from
- *   output).
- * - `Redactable` values are automatically redacted before serialization.
- * - Types not supported by JSON (`BigInt`, `Symbol`, `undefined`,
- *   functions) follow standard `JSON.stringify` behavior (omitted or
- *   `null` in arrays).
- * - `space` — indentation unit (number of spaces, or a string like
- *   `"\t"`). Defaults to `0` (compact).
+ * Uses `JSON.stringify` internally with a replacer that tracks the current
+ * object ancestry. Circular references are replaced with `undefined`, which
+ * omits them from object output. `Redactable` values are automatically redacted
+ * before serialization. Values not supported by JSON, such as `BigInt`,
+ * `Symbol`, `undefined`, and functions, follow standard `JSON.stringify`
+ * behavior. The `space` parameter controls indentation and defaults to `0`.
  *
  * **Example** (Compact JSON)
  *

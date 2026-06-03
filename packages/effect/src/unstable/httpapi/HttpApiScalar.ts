@@ -1,22 +1,34 @@
 /**
- * The `HttpApiScalar` module mounts an interactive Scalar API reference for a
- * declarative `HttpApi`.
+ * Scalar documentation UI for declarative `HttpApi` contracts.
  *
- * Use this module when you want a browser-friendly documentation page for an
- * `HttpApi` without maintaining a separate OpenAPI document. The `layer`
- * helper registers a `GET` route on an `HttpRouter`, generates the OpenAPI
- * specification with `OpenApi.fromApi`, embeds it into the HTML page, and loads
- * the bundled Scalar browser script. `layerCdn` provides the same UI while
- * loading Scalar from jsDelivr, optionally pinned with `version`.
+ * Use this module to mount a browser-based API reference on an `HttpRouter`
+ * without writing or storing a separate OpenAPI file. The route renders an HTML
+ * page containing the OpenAPI document produced from the supplied `HttpApi` and
+ * boots Scalar in the browser.
  *
- * The mounted path is a documentation UI route, defaulting to `/docs`, rather
- * than a raw JSON specification endpoint. If clients, gateways, or external
- * documentation pipelines need the OpenAPI document directly, expose it
- * separately with `HttpApiBuilder.layer`'s `openapiPath` option. Scalar
- * configuration is forwarded to the page through `ScalarConfig`; values such as
- * `proxyUrl`, theme and layout settings, and `baseServerURL` matter when
- * enabling "Test Request", styling the docs, or rendering relative server URLs
- * outside the browser origin.
+ * ## Mental model
+ *
+ * {@link layer} serves the UI with the bundled Scalar script. {@link layerCdn}
+ * serves the same UI while loading Scalar from jsDelivr, optionally pinned with
+ * `version`. Both helpers register a `GET` route, defaulting to `/docs`, and
+ * pass {@link ScalarConfig} through to Scalar's HTML configuration.
+ *
+ * ## Common tasks
+ *
+ * - Use {@link layer} when the application should serve the bundled Scalar
+ *   assets without depending on a CDN at runtime.
+ * - Use {@link layerCdn} when a CDN-loaded Scalar bundle is preferred, and pin
+ *   `version` when repeatable output matters.
+ * - Set `path` to mount the documentation UI somewhere other than `/docs`.
+ * - Set `proxyUrl`, theme, layout, and `baseServerURL` in `ScalarConfig` for
+ *   request testing, styling, and relative server URLs.
+ *
+ * ## Gotchas
+ *
+ * The mounted route is an HTML documentation page, not a raw OpenAPI JSON
+ * endpoint. If clients, gateways, or documentation pipelines need the OpenAPI
+ * document directly, expose it separately with `HttpApiBuilder.layer`'s
+ * `openapiPath` option.
  *
  * @since 4.0.0
  */
@@ -53,7 +65,10 @@ export type ScalarThemeId =
 /**
  * Configuration passed to the embedded Scalar API reference UI.
  *
- * @see https://github.com/scalar/scalar/blob/main/documentation/configuration.md
+ * **Details**
+ *
+ * This configuration follows Scalar's API reference configuration:
+ * https://github.com/scalar/scalar/blob/main/documentation/configuration.md
  *
  * @category models
  * @since 4.0.0
@@ -65,6 +80,8 @@ export type ScalarConfig = {
   layout?: "modern" | "classic"
   /** URL to a request proxy for the API client */
   proxyUrl?: string
+  /** Browser JavaScript function expression used by Scalar for documents and test requests */
+  customFetch?: string
   /** Whether to show the sidebar */
   showSidebar?: boolean
   /**
@@ -164,9 +181,10 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
   readonly scalar: ScalarConfig | undefined
 }) => {
   const spec = OpenApi.fromApi(options.api)
+  const { customFetch, ...scalar } = options.scalar ?? {}
   const scalarConfig = {
     _integration: "html",
-    ...options.scalar
+    ...scalar
   }
   const response = HttpServerResponse.html(`<!doctype html>
 <html>
@@ -188,12 +206,7 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
       content="width=device-width, initial-scale=1" />
   </head>
   <body>
-    <script id="api-reference" type="application/json">
-      ${Html.escapeJson(spec)}
-    </script>
-    <script>
-      document.getElementById('api-reference').dataset.configuration = JSON.stringify(${Html.escapeJson(scalarConfig)})
-    </script>
+    <div id="api-reference-container"></div>
     ${
     options.source._tag === "Cdn"
       ? `<script src="${`https://cdn.jsdelivr.net/npm/@scalar/api-reference@${
@@ -201,6 +214,15 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
       }/dist/browser/standalone.min.js`}" crossorigin></script>`
       : `<script>${options.source.source}</script>`
   }
+    <script>
+      window.Scalar.createApiReference(document.getElementById('api-reference-container'), {
+        ...${Html.escapeJson(scalarConfig)},
+        content: ${Html.escapeJson(spec)}${
+    customFetch === undefined ? "" : `,
+        customFetch: ${customFetch}`
+  }
+      })
+    </script>
   </body>
 </html>`)
   return Effect.succeed(response)

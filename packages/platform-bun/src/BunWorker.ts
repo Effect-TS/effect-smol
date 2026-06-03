@@ -1,21 +1,38 @@
 /**
- * Parent-side Bun support for Effect workers.
+ * Parent-side worker support for Bun applications.
  *
- * This module provides the `WorkerPlatform` used by Bun programs that spawn
- * and communicate with `globalThis.Worker` instances through Effect's worker
+ * This module provides the `WorkerPlatform` used by Bun programs that spawn and
+ * communicate with `globalThis.Worker` instances through Effect's worker
  * protocol. Pair it with `BunWorkerRunner` in the worker entrypoint when
  * building worker-backed RPC clients, moving CPU-bound work off the main
  * thread, isolating Bun-only services, or hosting long-lived handlers behind a
  * typed message boundary.
  *
- * The supplied spawner is responsible for creating the Bun worker for each
- * numeric worker id. Messages follow Bun's worker cloning and transfer
- * semantics, so payloads and transfer lists must be accepted by the Bun worker
- * runtime. Calls to `send` are buffered until the worker runner posts its ready
- * signal; if the worker entrypoint never starts `BunWorkerRunner`, those
- * buffered messages will not be delivered. Scope finalization sends the Effect
- * worker close signal, waits for Bun's `close` event for a short grace period,
- * and then terminates the worker if graceful shutdown does not complete.
+ * **Mental model**
+ *
+ * `layer(spawn)` installs both the Bun `WorkerPlatform` and a `Worker.Spawner`.
+ * The supplied `spawn` function creates the Bun worker for each numeric worker
+ * id. The platform listens for worker messages and errors, wraps outgoing data
+ * in the Effect worker protocol, and buffers `send` calls until the worker
+ * runner posts its ready signal.
+ *
+ * **Common tasks**
+ *
+ * - Run Effect worker clients in a Bun parent process.
+ * - Move RPC handlers, CPU-bound computations, or Bun-only services into a
+ *   dedicated worker.
+ * - Provide custom worker creation logic while keeping message handling and
+ *   cleanup inside Effect scopes.
+ *
+ * **Gotchas**
+ *
+ * This module is for the parent side only; the worker entrypoint must start
+ * `BunWorkerRunner`. If the runner never starts or never posts readiness,
+ * buffered messages will not be delivered. Payloads and transfer lists use
+ * Bun's worker cloning and transfer semantics, so they must be accepted by the
+ * Bun worker runtime. Scope finalization sends the Effect worker close signal,
+ * waits for Bun's `close` event for a short grace period, and then terminates
+ * the worker if graceful shutdown does not complete.
  *
  * @since 4.0.0
  */

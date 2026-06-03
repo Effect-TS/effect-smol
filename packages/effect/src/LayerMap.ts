@@ -115,8 +115,7 @@ export interface LayerMap<in out K, in out I, in out E = never> {
 }
 
 /**
- * A `LayerMap` allows you to create a map of Layer's that can be used to
- * dynamically access resources based on a key.
+ * Creates a `LayerMap` that dynamically provides resources based on a key.
  *
  * **Example** (Creating a layer map)
  *
@@ -272,10 +271,18 @@ export const fromRecord = <
 /**
  * Service class shape produced by `LayerMap.Service`.
  *
+ * **When to use**
+ *
+ * Use as the public type for classes returned by `LayerMap.Service` when an API
+ * needs to accept, return, or alias the generated service class and its static
+ * helpers.
+ *
  * **Details**
  *
  * It combines a `Context.Service` tag for the `LayerMap` with default layers
  * and helper accessors for retrieving, using, and invalidating keyed resources.
+ *
+ * @see {@link Service} for creating concrete `LayerMap` service classes
  *
  * @category services
  * @since 3.14.0

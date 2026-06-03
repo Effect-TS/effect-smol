@@ -1,24 +1,36 @@
 /**
- * Builds type-safe clients and URL builders from `HttpApi` declarations.
+ * Type-safe HTTP clients derived from `HttpApi` declarations.
  *
  * This module turns the groups and endpoints described by an `HttpApi` into
- * callable client methods backed by an `HttpClient`. Applications commonly use
- * `make` or `makeWith` to call a remote API with the same schema-driven contract
- * as the server, while `group`, `endpoint`, and `urlBuilder` are useful when only
- * part of an API or only the encoded URL is needed.
+ * callable client methods backed by an `HttpClient`. Use {@link make} or
+ * {@link makeWith} to call a remote API with the same schema-driven contract as
+ * the server, and use {@link group}, {@link endpoint}, or {@link urlBuilder}
+ * when only part of an API or only the encoded URL is needed.
  *
- * Client calls encode path parameters, query values, headers, and payloads from
- * endpoint schemas before executing the request, then decode successful responses
- * according to the endpoint success schemas. The selected `responseMode` can
- * return the decoded value, the raw `HttpClientResponse`, or both; the raw
- * response mode skips success and error decoding for custom response handling.
+ * **Mental model**
  *
- * Pay attention to the endpoint schemas when shaping requests: payloads for HTTP
- * methods without request bodies are encoded into URL parameters, multipart
- * payloads must be supplied as `FormData`, and response decoding can fail with
- * `SchemaError`. Declared error responses are decoded into the endpoint error
- * type, unknown statuses fail as `HttpClientError.DecodeError`, and failures while
- * decoding a declared error response include the original status-code failure.
+ * A generated client mirrors the API structure: top-level endpoints become
+ * methods on the client, and named groups become nested objects. Each call
+ * encodes path parameters, query values, headers, and payloads from endpoint
+ * schemas, runs client middleware, executes the request, and decodes successful
+ * or declared error responses from the returned `HttpClientResponse`.
+ *
+ * **Common tasks**
+ *
+ * Use {@link make} when the `HttpClient` service should come from the Effect
+ * environment. Use {@link makeWith} when a concrete or transformed client is
+ * already available. Use {@link urlBuilder} to reuse endpoint path and query
+ * encoding without executing a request. Select `responseMode` per call when
+ * code needs the decoded value, the raw response, or both.
+ *
+ * **Gotchas**
+ *
+ * Payloads for HTTP methods without request bodies are encoded into URL
+ * parameters, and multipart payloads must be supplied as `FormData`.
+ * `response-only` skips success and error decoding for custom response
+ * handling. Declared error responses decode into the endpoint error type;
+ * unknown statuses fail as `HttpClientError.DecodeError`, and response decoding
+ * can fail with `SchemaError`.
  *
  * @since 4.0.0
  */
@@ -30,9 +42,9 @@ import { identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type { Simplify } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as HttpBody from "../http/HttpBody.ts"
@@ -667,7 +679,7 @@ const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {
 const Uint8ArrayFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.Uint8Array as Schema.instanceOf<Uint8Array<ArrayBuffer>>,
-    Transformation.transform({
+    SchemaTransformation.transform({
       decode(fromA) {
         return new Uint8Array(fromA)
       },
@@ -684,7 +696,7 @@ const Uint8ArrayFromArrayBuffer = ArrayBuffer.pipe(
 const StringFromArrayBuffer = ArrayBuffer.pipe(
   Schema.decodeTo(
     Schema.String,
-    Transformation.transform({
+    SchemaTransformation.transform({
       decode(fromA) {
         return new TextDecoder().decode(fromA)
       },
@@ -704,7 +716,7 @@ const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
     // Handle No Content
     Schema.Literal("").pipe(Schema.decodeTo(
       Schema.Undefined,
-      Transformation.transform({
+      SchemaTransformation.transform({
         decode: () => undefined,
         encode: () => ""
       })
@@ -721,11 +733,11 @@ function toCodecArrayBuffer(schemas: readonly [Schema.Top, ...Array<Schema.Top>]
     switch (encoding._tag) {
       case "Json": {
         // handle json codecs that transform void schemas to null
-        const encodedIsNull = AST.isNull(AST.toEncoded(schema.ast))
+        const encodedIsNull = SchemaAST.isNull(SchemaAST.toEncoded(schema.ast))
         return UnknownFromArrayBuffer.pipe(Schema.decodeTo(
           schema,
           encodedIsNull ?
-            Transformation.transform({
+            SchemaTransformation.transform({
               decode: (a) => a === undefined ? null : a,
               encode: (a) => a === null ? undefined : a
             }) as any :
@@ -764,7 +776,7 @@ function getEncodePayloadSchema(
   return Schema.Union(schemas.map((s) => getEncodePayloadSchemaFromBody(s, method)))
 }
 
-const bodyFromPayloadCache = new WeakMap<AST.AST, Schema.Top>()
+const bodyFromPayloadCache = new WeakMap<SchemaAST.AST, Schema.Top>()
 
 function getEncodePayloadSchemaFromBody(
   schema: Schema.Top,
@@ -778,40 +790,40 @@ function getEncodePayloadSchemaFromBody(
   const encoding = HttpApiSchema.getPayloadEncoding(ast, method)
   const out = $HttpBody.pipe(Schema.decodeTo(
     schema,
-    Transformation.transformOrFail<unknown, HttpBody.HttpBody>({
+    SchemaTransformation.transformOrFail<unknown, HttpBody.HttpBody>({
       decode(httpBody) {
-        return Effect.fail(new Issue.Forbidden(Option.some(httpBody), { message: "Encode only schema" }))
+        return Effect.fail(new SchemaIssue.Forbidden(Option.some(httpBody), { message: "Encode only schema" }))
       },
       encode(t) {
         switch (encoding._tag) {
           case "Multipart":
-            return Effect.fail(new Issue.Forbidden(Option.some(t), { message: "Payload must be a FormData" }))
+            return Effect.fail(new SchemaIssue.Forbidden(Option.some(t), { message: "Payload must be a FormData" }))
           case "Json": {
             try {
               const body = JSON.stringify(t)
               return Effect.succeed(HttpBody.text(body, encoding.contentType))
             } catch (error) {
-              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: globalThis.String(error) }))
+              return Effect.fail(new SchemaIssue.InvalidValue(Option.some(t), { message: globalThis.String(error) }))
             }
           }
           case "Text": {
             if (typeof t !== "string") {
               return Effect.fail(
-                new Issue.InvalidValue(Option.some(t), { message: "Expected a string" })
+                new SchemaIssue.InvalidValue(Option.some(t), { message: "Expected a string" })
               )
             }
             return Effect.succeed(HttpBody.text(t, encoding.contentType))
           }
           case "FormUrlEncoded": {
             if (!Predicate.isObject(t)) {
-              return Effect.fail(new Issue.InvalidValue(Option.some(t), { message: "Expected a record" }))
+              return Effect.fail(new SchemaIssue.InvalidValue(Option.some(t), { message: "Expected a record" }))
             }
             return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
           }
           case "Uint8Array": {
             if (!(t instanceof Uint8Array)) {
               return Effect.fail(
-                new Issue.InvalidValue(Option.some(t), { message: "Expected a Uint8Array" })
+                new SchemaIssue.InvalidValue(Option.some(t), { message: "Expected a Uint8Array" })
               )
             }
             return Effect.succeed(HttpBody.uint8Array(t, encoding.contentType))

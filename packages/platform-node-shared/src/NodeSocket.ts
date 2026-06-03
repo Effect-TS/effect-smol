@@ -1,17 +1,27 @@
 /**
- * Shared Node socket constructors for adapting `node:net` connections and
- * other Node `Duplex` streams to Effect's `Socket.Socket` interface.
+ * Node socket adapters for Effect sockets.
  *
- * Use this module when building TCP clients, Unix domain socket clients, or
- * higher-level protocols that already expose a Node `Duplex`. Connections are
- * scoped, so finalizers close or destroy the underlying stream, open timeouts
- * are reported as socket open errors, and Node read, write, and close events
- * are translated into `SocketError` values.
+ * This module opens `node:net` connections or wraps existing Node `Duplex`
+ * streams and presents them as `Socket.Socket` values, socket channels, or
+ * layers. It is the low-level bridge for TCP clients, Unix domain socket
+ * clients, and protocols that already expose a Node duplex stream.
  *
- * Node sockets have a few operational details worth keeping in mind: Unix
- * socket paths are supplied through `NetConnectOpts.path`, writes complete only
- * after Node accepts or flushes the chunk, and abnormal close events are
- * surfaced as close errors while normal remote ends complete the socket run.
+ * **Mental model**
+ *
+ * A socket acquired here is scoped. `makeNet` dials with
+ * `net.createConnection`, `fromDuplex` adapts any duplex returned by an Effect,
+ * `makeNetChannel` exposes the socket as a `Channel`, and `layerNet` provides
+ * it through the Effect environment. While a socket handler is running,
+ * `NetSocket` gives access to the underlying Node `net.Socket` for cases that
+ * need Node-specific operations.
+ *
+ * **Gotchas**
+ *
+ * `openTimeout` only limits opening the connection. Writes complete when Node
+ * accepts or flushes a chunk, close events are translated to `SocketError`
+ * values, and finalizers close or destroy the stream when the surrounding scope
+ * ends. Unix socket paths are supplied through `NetConnectOpts.path`, so use
+ * the same platform path rules as Node.
  *
  * @since 4.0.0
  */
@@ -41,7 +51,7 @@ export * as NodeWS from "ws"
  * Service tag for the underlying Node `net.Socket` associated with the current
  * socket connection.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
@@ -49,9 +59,16 @@ export class NetSocket extends Context.Service<NetSocket, Net.Socket>()(
 ) {}
 
 /**
- * Opens a TCP connection with Node `net.createConnection` and exposes it as a
- * `Socket.Socket`, supporting `openTimeout` and closing or destroying the
- * socket when the enclosing scope is finalized.
+ * Opens a Node TCP connection as an Effect socket.
+ *
+ * **When to use**
+ *
+ * Use to create a scoped `Socket.Socket` from Node `net.createConnection`.
+ *
+ * **Details**
+ *
+ * Supports `openTimeout` and closes or destroys the underlying socket when the
+ * enclosing scope is finalized.
  *
  * @category constructors
  * @since 4.0.0

@@ -1,9 +1,49 @@
 /**
- * TxPubSub is a transactional publish/subscribe hub that provides Software Transactional Memory
- * (STM) semantics for message broadcasting. Publishers broadcast messages to all current
- * subscribers, with each subscriber receiving its own copy of every published message.
+ * The `TxPubSub` module provides a transactional publish/subscribe hub for
+ * broadcasting values to scoped subscribers. Each subscriber owns a `TxQueue`,
+ * so every value is offered independently to the queues registered at the time
+ * of publication.
  *
- * Supports multiple queue strategies: bounded, unbounded, dropping, and sliding.
+ * **Mental model**
+ *
+ * A `TxPubSub` is a registry of subscriber queues plus a shutdown flag.
+ * Publishing reads the current subscribers and offers the value to each queue
+ * in one transactional operation. Subscribers only receive values published
+ * after they subscribe, and `subscribe` removes the queue when its scope
+ * closes.
+ *
+ * **Common tasks**
+ *
+ * - Use `bounded` when slow subscribers should apply backpressure to
+ *   publishers.
+ * - Use `dropping` when new messages may be skipped for full subscribers.
+ * - Use `sliding` when full subscribers should keep the newest messages.
+ * - Use `unbounded` when subscriber queues should grow without backpressure.
+ *
+ * **Example** (Broadcasting to a subscriber)
+ *
+ * ```ts
+ * import { Effect, TxPubSub, TxQueue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const hub = yield* TxPubSub.unbounded<string>()
+ *
+ *   return yield* Effect.scoped(
+ *     Effect.gen(function*() {
+ *       const subscriber = yield* TxPubSub.subscribe(hub)
+ *       yield* TxPubSub.publish(hub, "updated")
+ *       return yield* TxQueue.take(subscriber)
+ *     })
+ *   )
+ * })
+ * ```
+ *
+ * **Gotchas**
+ *
+ * - `size` reports the maximum pending messages in any subscriber queue, not
+ *   the total number of queued copies.
+ * - `shutdown` stops future publishes and shuts down subscriber queues that are
+ *   registered at shutdown time.
  *
  * @since 4.0.0
  */
@@ -291,7 +331,7 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the TxPubSub has no pending messages (all subscriber queues are empty).
+ * Checks whether the TxPubSub has no pending messages (all subscriber queues are empty).
  *
  * **Example** (Checking whether a pub/sub is empty)
  *
@@ -311,7 +351,7 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
 export const isEmpty = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => Effect.map(size(self), (s) => s === 0)
 
 /**
- * Checks if any subscriber queue is at capacity.
+ * Checks whether any subscriber queue is at capacity.
  *
  * **Example** (Checking whether a pub/sub is full)
  *
@@ -339,7 +379,7 @@ export const isFull = <A>(self: TxPubSub<A>): Effect.Effect<boolean> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the TxPubSub has been shut down.
+ * Checks whether the TxPubSub has been shut down.
  *
  * **Example** (Checking whether a pub/sub is shut down)
  *
@@ -508,9 +548,17 @@ export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A
 /**
  * Creates a subscriber queue and registers it with the pub/sub.
  *
+ * **When to use**
+ *
+ * Use to create and register a subscriber queue inside a larger transaction
+ * when registration must be atomic with other Tx operations.
+ *
  * **Details**
  *
  * This is the transactional acquire step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction, such as `TxSubscriptionRef.changes`.
+ *
+ * @see {@link subscribe} for the scoped acquire and release wrapper when no custom transaction composition is needed
+ * @see {@link releaseSubscriber} to remove and shut down a queue returned by `acquireSubscriber`
  *
  * @category mutations
  * @since 4.0.0
@@ -527,9 +575,23 @@ export const acquireSubscriber = <A>(
 /**
  * Removes a subscriber queue from the pub/sub and shuts it down.
  *
+ * **When to use**
+ *
+ * Use to release a manually acquired subscriber queue inside a larger
+ * transaction, removing it from the pub/sub and shutting it down together with
+ * related transactional cleanup.
+ *
  * **Details**
  *
  * This is the transactional release step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction.
+ *
+ * **Gotchas**
+ *
+ * The supplied queue is shut down after being removed, so callers should pass a
+ * queue acquired for this pub/sub.
+ *
+ * @see {@link acquireSubscriber} for the matching transactional acquire step
+ * @see {@link subscribe} for the scoped acquire and release wrapper
  *
  * @category mutations
  * @since 4.0.0
@@ -640,7 +702,7 @@ export const awaitShutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
 // =============================================================================
 
 /**
- * Checks if the given value is a TxPubSub.
+ * Checks whether the given value is a TxPubSub.
  *
  * **Example** (Checking for a TxPubSub)
  *

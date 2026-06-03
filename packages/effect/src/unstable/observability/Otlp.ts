@@ -1,22 +1,37 @@
 /**
- * Convenience layers for exporting Effect logs, metrics, and traces over
- * OTLP/HTTP.
+ * Combined OTLP/HTTP export for Effect logs, metrics, and traces.
  *
- * This module wires the signal-specific OTLP logger, metrics, and tracer
- * exporters together so an application can install full observability with a
- * single layer. It is useful for services that report to an OpenTelemetry
- * Collector, vendor OTLP endpoint, or local collector during development
- * without configuring each signal independently.
+ * This module installs the signal-specific OTLP logger, metrics exporter, and
+ * tracer exporter from one shared configuration. Use it when an application
+ * sends all three observability signals to the same OpenTelemetry Collector,
+ * vendor OTLP intake, or local development collector and should not configure
+ * each exporter separately.
  *
- * Pass `baseUrl` as the OTLP/HTTP root URL, such as `http://localhost:4318`;
- * this module appends `/v1/logs`, `/v1/metrics`, and `/v1/traces` itself.
- * Use `layerJson` or `layerProtobuf` when you want the serialization layer
- * provided for you, or use `layer` with a custom `OtlpSerialization`
- * implementation. Configure authentication with `headers`, provide resource
- * metadata explicitly or through the standard OTEL resource environment
- * variables, and tune batch size, export intervals, metric temporality, and
- * shutdown timeout for the target backend so buffered telemetry is accepted
- * and flushed before shutdown.
+ * **Mental model**
+ *
+ * `baseUrl` is the OTLP/HTTP root, such as `http://localhost:4318`. The
+ * combined layer appends `/v1/logs`, `/v1/metrics`, and `/v1/traces`, then
+ * delegates batching, resource handling, and payload construction to the
+ * signal-specific modules. `layerJson` and `layerProtobuf` provide the
+ * serialization layer; `layer` leaves `OtlpSerialization` in the requirements
+ * so callers can provide a custom encoder.
+ *
+ * **Common tasks**
+ *
+ * - Use `layerJson` for JSON OTLP/HTTP endpoints and `layerProtobuf` for
+ *   protobuf endpoints.
+ * - Pass `headers` for collector authentication or routing.
+ * - Set `resource` to define service name, service version, and additional
+ *   resource attributes.
+ * - Tune export intervals, `maxBatchSize`, `metricsTemporality`, and
+ *   `shutdownTimeout` for the target backend.
+ *
+ * **Gotchas**
+ *
+ * Do not include a signal path in `baseUrl`; this module adds the paths itself.
+ * Buffered telemetry flushes when the scoped exporters finalize, subject to
+ * `shutdownTimeout`, so long-running services should keep the layer installed
+ * for the lifetime of the runtime.
  *
  * @since 4.0.0
  */
@@ -94,6 +109,42 @@ export const layer = (options: {
     })
   )
 }
+
+/**
+ * Creates a combined OTLP layer for logs, metrics, and traces from
+ * OpenTelemetry configuration.
+ *
+ * @category layers
+ * @since 4.0.0
+ */
+export const layerFromConfig = (options?: {
+  readonly resource?: {
+    readonly serviceName?: string | undefined
+    readonly serviceVersion?: string | undefined
+    readonly attributes?: Record<string, unknown>
+  } | undefined
+  readonly headers?: Headers.Input | undefined
+  readonly tracerContext?: (<X>(primitive: Tracer.EffectPrimitive<X>, span: Tracer.AnySpan) => X) | undefined
+  readonly loggerExcludeLogSpans?: boolean | undefined
+  readonly loggerMergeWithExisting?: boolean | undefined
+}): Layer.Layer<never, never, HttpClient.HttpClient | OtlpSerialization.OtlpSerialization> =>
+  Layer.mergeAll(
+    OtlpLogger.layerFromConfig({
+      resource: options?.resource,
+      headers: options?.headers,
+      excludeLogSpans: options?.loggerExcludeLogSpans,
+      mergeWithExisting: options?.loggerMergeWithExisting
+    }),
+    OtlpMetrics.layerFromConfig({
+      resource: options?.resource,
+      headers: options?.headers
+    }),
+    OtlpTracer.layerFromConfig({
+      resource: options?.resource,
+      headers: options?.headers,
+      context: options?.tracerContext
+    })
+  )
 
 /**
  * Creates the combined OTLP logs, metrics, and traces layer using JSON

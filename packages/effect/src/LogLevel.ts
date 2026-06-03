@@ -48,6 +48,11 @@ import * as References from "./References.ts"
  * Represents every level used by Effect logging, including concrete message
  * severities and the `All` and `None` sentinel levels.
  *
+ * **When to use**
+ *
+ * Use to type values that may be either concrete log message severities or
+ * logging configuration sentinels.
+ *
  * **Details**
  *
  * The levels are ordered from most severe to least severe:
@@ -89,14 +94,43 @@ export type LogLevel = "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "
  * Log levels that represent actual message severities, excluding the `All` and
  * `None` sentinel levels.
  *
+ * **When to use**
+ *
+ * Use when typing emitted log message severities, such as explicit log calls,
+ * current log level references, or error-report severity annotations, where
+ * `All` and `None` are not valid values.
+ *
+ * @see {@link LogLevel} for the wider log-level type that also accepts the
+ * `All` and `None` sentinel levels
+ * @see {@link values} for the runtime list of all accepted `LogLevel` values,
+ * including sentinels
+ *
  * @category models
  * @since 4.0.0
  */
 export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 
 /**
- * All `LogLevel` values in order from `All` through the concrete severities to
+ * Returns all `LogLevel` values in order from `All` through the concrete severities to
  * `None`.
+ *
+ * **When to use**
+ *
+ * Use to enumerate or validate all accepted `LogLevel` string values, including
+ * the `All` and `None` sentinel levels.
+ *
+ * **Details**
+ *
+ * The array order matches the module severity order: `All`, concrete
+ * severities from `Fatal` to `Trace`, then `None`.
+ *
+ * **Gotchas**
+ *
+ * This list includes `All` and `None`, so it is not limited to concrete emitted
+ * severities.
+ *
+ * @see {@link Severity} for the concrete message severity type that excludes `All` and `None`
+ * @see {@link Order} for comparing these levels by severity order
  *
  * @category models
  * @since 4.0.0
@@ -104,7 +138,11 @@ export type Severity = "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace"
 export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn", "Info", "Debug", "Trace", "None"]
 
 /**
- * An `Order` instance for `LogLevel` that defines the severity ordering.
+ * Order instance for `LogLevel` that defines the severity ordering.
+ *
+ * **When to use**
+ *
+ * Use to sort or compare log levels according to Effect's severity order.
  *
  * **Details**
  *
@@ -128,7 +166,16 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
 export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
 
 /**
- * An `Equivalence` instance for log levels using strict equality (`===`).
+ * Equivalence instance for log levels using strict equality (`===`).
+ *
+ * **When to use**
+ *
+ * Use to compare two `LogLevel` values when only the exact same level should
+ * match.
+ *
+ * **Details**
+ *
+ * Each log level string, including `All` and `None`, only matches itself.
  *
  * **Example** (Comparing log levels)
  *
@@ -139,6 +186,9 @@ export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
  * console.log(LogLevel.Equivalence("Error", "Info")) // false
  * ```
  *
+ * @see {@link Order} for severity ordering rather than exact level equality
+ * @see {@link isGreaterThanOrEqualTo} for minimum-threshold checks
+ *
  * @category instances
  * @since 4.0.0
  */
@@ -146,6 +196,26 @@ export const Equivalence: Equ.Equivalence<LogLevel> = Equ.strictEqual<LogLevel>(
 
 /**
  * Returns the ordinal value of the log level.
+ *
+ * **When to use**
+ *
+ * Use to project a `LogLevel` into the numeric sort key used by
+ * `LogLevel.Order` when custom ordering code or an integration needs a number
+ * instead of an `Order` comparison.
+ *
+ * **Details**
+ *
+ * The mapping is `All` to `Number.MIN_SAFE_INTEGER`, `Trace` to `0`, `Debug` to
+ * `10000`, `Info` to `20000`, `Warn` to `30000`, `Error` to `40000`, `Fatal` to
+ * `50000`, and `None` to `Number.MAX_SAFE_INTEGER`.
+ *
+ * **Gotchas**
+ *
+ * These ordinals are internal sort keys; do not treat them as external severity
+ * numbers.
+ *
+ * @see {@link Order} for comparing log levels without exposing numeric keys
+ * @see {@link isGreaterThanOrEqualTo} for minimum-threshold filtering
  *
  * @category ordering
  * @since 4.0.0
@@ -157,8 +227,7 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  *
  * **When to use**
  *
- * Use this for strict severity comparisons when filtering logs based on minimum
- * severity requirements.
+ * Use to check whether one log level is strictly more severe than another.
  *
  * **Details**
  *
@@ -200,7 +269,8 @@ export const isGreaterThan: {
  *
  * **When to use**
  *
- * Use this for implementing minimum log level filtering.
+ * Use to implement minimum log-level filtering by checking whether a message
+ * level meets a threshold.
  *
  * **Details**
  *
@@ -250,8 +320,7 @@ export const isGreaterThanOrEqualTo: {
  *
  * **When to use**
  *
- * Use this for strict severity comparisons when filtering out logs that are too
- * verbose.
+ * Use to check whether one log level is strictly less severe than another.
  *
  * **Details**
  *
@@ -293,7 +362,8 @@ export const isLessThan: {
  *
  * **When to use**
  *
- * Use this for implementing maximum log level filtering.
+ * Use to implement maximum log-level filtering by checking whether a level is
+ * at or below a threshold.
  *
  * **Details**
  *
@@ -338,6 +408,11 @@ export const isLessThanOrEqualTo: {
 
 /**
  * Checks whether a given log level is enabled for the current fiber.
+ *
+ * **When to use**
+ *
+ * Use to check whether a log level would be emitted under the current fiber's
+ * minimum log level.
  *
  * **Details**
  *

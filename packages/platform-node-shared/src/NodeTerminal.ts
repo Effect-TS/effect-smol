@@ -1,17 +1,30 @@
 /**
  * Shared Node.js implementation of Effect's `Terminal` service.
  *
- * This module is the process-backed terminal implementation used by Node
- * platform packages. It adapts Node's `readline` APIs and the current
- * process' `stdin` and `stdout` streams into a `Terminal`, making it suitable
- * for CLIs, REPLs, prompts, full-screen terminal programs, and other
- * command-line tools that need line input, keypress input, terminal
- * dimensions, or prompt output.
+ * `NodeTerminal` adapts Node's `readline` APIs plus the current process'
+ * `stdin` and `stdout` streams into {@link Terminal.Terminal}. It is the shared
+ * process-backed terminal used by Node platform packages for prompts, REPLs,
+ * command-line tools, and interactive programs that need line input, key input,
+ * terminal dimensions, or display output.
  *
- * The implementation works with global process streams, so callers should
- * acquire it with a scope or provide `layer` to ensure cleanup. When `stdin`
- * is a TTY, raw mode is enabled while the scoped readline interface is active
- * and restored on release; raw mode changes how keys are delivered and can
+ * **Mental model**
+ *
+ * {@link make} creates a scoped terminal around the global process streams, and
+ * {@link layer} provides that terminal with the default quit behavior for key
+ * input. While the scope is active, the module owns the Node `readline`
+ * interface it created; it does not own the process streams themselves.
+ *
+ * **Common tasks**
+ *
+ * Use {@link make} when a custom `shouldQuit` predicate should decide when key
+ * input ends. Use {@link layer} when Ctrl+C and Ctrl+D should end the key-input
+ * stream. For plain byte-oriented stdin/stdout access, use the `Stdio` service
+ * instead.
+ *
+ * **Gotchas**
+ *
+ * When stdin is a TTY, raw mode is enabled while the scoped terminal is active
+ * and restored on release. Raw mode changes how keys are delivered and can
  * affect other code reading stdin. In non-TTY environments such as pipes,
  * redirected input, or CI, raw mode is unavailable, keypress behavior is
  * limited, and stdout dimensions may be reported as zero.

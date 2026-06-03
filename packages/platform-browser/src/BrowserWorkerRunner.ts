@@ -1,21 +1,33 @@
 /**
- * Browser runtime support for Effect worker runners.
+ * Runner-side browser platform for Effect worker handlers.
  *
- * This module is intended for code that is already executing in a browser
- * worker context, or for tests and adapters that supply a `MessagePort` or
- * `Window` endpoint directly. It provides the `WorkerRunnerPlatform` used by
- * `WorkerRunner` and `RpcServer.layerProtocolWorkerRunner` to receive parent
- * or client requests, run Effect handlers, and send responses through the
- * browser `postMessage` channel.
+ * This module is for code already executing inside a browser worker, or for
+ * tests and adapters that pass a `MessagePort` or `Window` endpoint directly.
+ * It provides the `WorkerRunnerPlatform` used by `WorkerRunner` and protocols
+ * such as `RpcServer.layerProtocolWorkerRunner` to receive parent or client
+ * requests, run Effect handlers, and post responses back through the browser
+ * messaging channel.
  *
- * Use it with `BrowserWorker` when a browser application needs to move RPC
+ * **Mental model**
+ *
+ * Dedicated workers use the ambient `self` endpoint. Shared workers receive one
+ * `MessagePort` per `onconnect` event, and this module caches ports that arrive
+ * before the runner layer starts. `layer` reads from the global worker `self`;
+ * `make` and `layerMessagePort` are for explicit endpoints supplied by tests,
+ * custom channels, or adapter code.
+ *
+ * **Common tasks**
+ *
+ * Pair this module with `BrowserWorker` in the parent page when moving RPC
  * handlers, CPU-bound computations, or browser-only services into a dedicated
- * worker or shared worker. Dedicated workers communicate through the current
- * `self` endpoint; shared workers accept multiple `onconnect` ports and cache
- * ports that connect before the runner layer starts. Messages still use the
- * browser structured-clone algorithm, so payload schemas, transfer lists,
- * `messageerror` events, and the lifetime of each `MessagePort` must be
- * considered when crossing worker boundaries.
+ * worker or shared worker. Use `layer` in normal worker entry points and
+ * `layerMessagePort` when a test or integration already owns the transport.
+ *
+ * **Gotchas**
+ *
+ * Payloads and transfer lists must satisfy the browser structured-clone
+ * algorithm. `messageerror` and `error` events fail the runner, and each
+ * connected `MessagePort` is closed when its scope finalizes.
  *
  * @since 4.0.0
  */
@@ -172,6 +184,25 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
 
 /**
  * Layer that provides a browser `WorkerRunnerPlatform` using the global `self` worker context.
+ *
+ * **When to use**
+ *
+ * Use when you need a browser worker entry point to use the ambient `self`
+ * object as the worker transport.
+ *
+ * **Details**
+ *
+ * Delegates to `make(self)` and provides the runner-side platform used by
+ * protocols such as `RpcServer.layerProtocolWorkerRunner`.
+ *
+ * **Gotchas**
+ *
+ * This layer depends on the browser worker global `self`. Use
+ * `layerMessagePort` when the transport is an explicit `MessagePort` or
+ * `Window`.
+ *
+ * @see {@link make} for constructing a runner platform from an explicit endpoint
+ * @see {@link layerMessagePort} for providing a platform from an explicit endpoint
  *
  * @category layers
  * @since 4.0.0

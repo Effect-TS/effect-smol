@@ -1,54 +1,62 @@
 /**
- * JSON Patch operations for transforming JSON documents.
+ * The `JsonPatch` module computes and applies deterministic patch documents for
+ * JSON values. A patch is an ordered list of `add`, `remove`, and `replace`
+ * operations addressed by JSON Pointer paths. Use it to describe the structural
+ * difference between two JSON documents, serialize that difference, and replay
+ * it without mutating the original input.
  *
- * This module implements a subset of RFC 6902, providing operations that can be applied deterministically without additional context. It supports computing structural diffs between JSON values and applying patches to transform documents.
+ * **Mental model**
  *
- * ## Mental model
+ * - A {@link JsonPatch} is applied from left to right; each operation observes
+ *   the document produced by the operations before it.
+ * - Paths use JSON Pointer syntax. The empty path `""` targets the whole
+ *   document, and `/users/0/name` targets a nested property or array element.
+ * - This module implements the deterministic `add`, `remove`, and `replace`
+ *   subset of RFC 6902. It does not model `test`, `move`, or `copy`.
+ * - {@link get} compares JSON structure, not domain meaning. It can detect that
+ *   a value changed, but it does not infer semantic edits such as array moves.
+ * - {@link apply} copies changed containers and returns a new JSON value. An
+ *   empty patch returns the original document reference.
  *
- * - **JSON Patch**: An ordered sequence of operations that transform a document from one state to another
- * - **JSON Pointer**: Path syntax for targeting specific locations in a JSON document (e.g., `/users/0/name`)
- * - **Operations**: Three types - `add` (insert value), `remove` (delete value), `replace` (update value)
- * - **Immutable transformations**: All operations return new values; inputs are never mutated
- * - **Sequential application**: Operations are applied in order, with later operations observing changes from earlier ones
- * - **Structural diff**: The `get` function computes differences by comparing structure, not content semantics
+ * **Common tasks**
  *
- * ## Common tasks
+ * - Compute a structural diff between two JSON values with {@link get}.
+ * - Apply generated or hand-written operations with {@link apply}.
+ * - Accept, store, or serialize complete patch documents as {@link JsonPatch}.
+ * - Type individual operations with {@link JsonPatchOperation}.
  *
- * - Computing diffs between JSON values → {@link get}
- * - Applying patches to transform documents → {@link apply}
- * - Creating patches manually → {@link JsonPatchOperation}
- * - Storing and validating patch documents → {@link JsonPatch}
+ * **Gotchas**
  *
- * ## Gotchas
- *
- * - Array removals are emitted from highest index to lowest to avoid index shifting during application
- * - Root operations use an empty string path `""` to target the entire document
- * - Array append operations use `-` as the last token in the path (e.g., `/items/-`)
- * - Generated patches are deterministic but not guaranteed to be minimal
- * - Empty patches return the original document reference (no allocation)
- * - Invalid paths or operations throw errors rather than returning a result type
- *
- * ## Quickstart
+ * - Generated patches are deterministic, but not guaranteed to be minimal.
+ * - Array removals are emitted from highest index to lowest so later removals do
+ *   not shift earlier targets.
+ * - `"-"` is valid only as the final token for array append operations.
+ * - Invalid paths, missing properties, and out-of-bounds array indices throw.
+ * - Root `add` and `replace` operations replace the whole document; root
+ *   `remove` is unsupported.
  *
  * **Example** (Computing and applying a patch)
  *
  * ```ts
  * import { JsonPatch } from "effect"
  *
- * const oldValue = { name: "Alice", age: 30 }
- * const newValue = { name: "Alice", age: 31, city: "NYC" }
+ * const before = { title: "draft", tags: ["fp"] }
+ * const after = { title: "published", tags: ["fp", "effect"] }
  *
- * const patch = JsonPatch.get(oldValue, newValue)
- * // [{ op: "replace", path: "/age", value: 31 }, { op: "add", path: "/city", value: "NYC" }]
+ * const patch = JsonPatch.get(before, after)
+ * // [
+ * //   { op: "add", path: "/tags/1", value: "effect" },
+ * //   { op: "replace", path: "/title", value: "published" }
+ * // ]
  *
- * const result = JsonPatch.apply(patch, oldValue)
- * // { name: "Alice", age: 31, city: "NYC" }
+ * const updated = JsonPatch.apply(patch, before)
+ * // { title: "published", tags: ["fp", "effect"] }
  * ```
  *
- * ## See also
+ * **See also**
  *
- * - {@link JsonPointer} - Utilities for working with JSON Pointer paths
- * - {@link Schema.Json} - The JSON value type used by this module
+ * - `JsonPointer` for escaping and unescaping JSON Pointer path tokens.
+ * - {@link Schema.Json} for the JSON value shape accepted by this module.
  *
  * @since 4.0.0
  */
@@ -62,8 +70,8 @@ import type * as Schema from "./Schema.ts"
  *
  * **When to use**
  *
- * Use this type when manually constructing patch operations, accepting patch
- * operations from callers, or type-checking patch operation structures.
+ * Use to manually construct patch operations, accept patch operations from
+ * callers, or type-check patch operation structures.
  *
  * **Details**
  *
@@ -97,9 +105,9 @@ import type * as Schema from "./Schema.ts"
  * }
  * ```
  *
- * @see {@link JsonPatch} - Array of operations forming a complete patch
- * @see {@link get} - Computes operations automatically from value differences
- * @see {@link apply} - Applies operations to transform documents
+ * @see {@link JsonPatch} for the array of operations forming a complete patch
+ * @see {@link get} to compute operations automatically from value differences
+ * @see {@link apply} to apply operations to transform documents
  * @category models
  * @since 4.0.0
  */
@@ -109,6 +117,10 @@ export type JsonPatchOperation =
     /**
      * JSON Pointer to the target location. For arrays, the last token may be `-`
      * to append.
+     *
+     * **When to use**
+     *
+     * Use to identify where the `add` operation inserts its value.
      */
     readonly path: string
     readonly value: Schema.Json
@@ -116,13 +128,25 @@ export type JsonPatchOperation =
   }
   | {
     readonly op: "remove"
-    /** JSON Pointer to the target location. */
+    /**
+     * JSON Pointer to the target location.
+     *
+     * **When to use**
+     *
+     * Use to identify which location the `remove` operation deletes.
+     */
     readonly path: string
     readonly description?: string
   }
   | {
     readonly op: "replace"
-    /** JSON Pointer to the target location. Use `""` to replace the root document. */
+    /**
+     * JSON Pointer to the target location. Use `""` to replace the root document.
+     *
+     * **When to use**
+     *
+     * Use to identify which location the `replace` operation overwrites.
+     */
     readonly path: string
     readonly value: Schema.Json
     readonly description?: string
@@ -133,8 +157,7 @@ export type JsonPatchOperation =
  *
  * **When to use**
  *
- * Use this type when storing, serializing, passing, or validating complete patch
- * documents.
+ * Use to store, serialize, pass, or validate complete patch documents.
  *
  * **Details**
  *
@@ -158,9 +181,9 @@ export type JsonPatchOperation =
  * // { count: 5, items: ["apple"] }
  * ```
  *
- * @see {@link JsonPatchOperation} - Individual operation types
- * @see {@link get} - Generates patches from value differences
- * @see {@link apply} - Executes patches to transform documents
+ * @see {@link JsonPatchOperation} for individual operation types
+ * @see {@link get} to generate patches from value differences
+ * @see {@link apply} to execute patches to transform documents
  * @category models
  * @since 4.0.0
  */
@@ -171,9 +194,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  *
  * **When to use**
  *
- * Use `get` to compute differences between JSON documents, detect structural
- * changes, or create deterministic update operations from before and after
- * states.
+ * Use to compute a JSON Patch from before and after JSON documents, detect
+ * structural changes, or create deterministic update operations.
  *
  * **Details**
  *
@@ -181,7 +203,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * yields `newValue` when applied to `oldValue`. It returns an empty array when
  * values are identical, recursively diffs nested structures, emits root
  * `replace` operations for primitive changes, and processes object keys in
- * sorted order for stable output. Inputs are not mutated.
+ * sorted order for stable output.
  *
  * **Gotchas**
  *
@@ -205,8 +227,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * // ]
  * ```
  *
- * @see {@link apply} - Applies the generated patch to a document
- * @see {@link JsonPatchOperation} - The operation types in the patch
+ * @see {@link apply} to apply the generated patch to a document
+ * @see {@link JsonPatchOperation} for the operation types in the patch
  * @category transforming
  * @since 4.0.0
  */
@@ -278,7 +300,7 @@ export function get(oldValue: Schema.Json, newValue: Schema.Json): JsonPatch {
  *
  * **When to use**
  *
- * Use `apply` to execute patches generated by {@link get}, transform documents
+ * Use to execute patches generated by {@link get}, transform documents
  * with manually constructed patches, or process patch operations from external
  * sources.
  *
@@ -310,8 +332,8 @@ export function get(oldValue: Schema.Json, newValue: Schema.Json): JsonPatch {
  * // { items: [1, 2, 3, 4], total: 10 }
  * ```
  *
- * @see {@link get} - Generates patches from value differences
- * @see {@link JsonPatchOperation} - The operation types being applied
+ * @see {@link get} to generate patches from value differences
+ * @see {@link JsonPatchOperation} for the operation types being applied
  * @category transforming
  * @since 4.0.0
  */

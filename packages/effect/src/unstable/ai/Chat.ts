@@ -1,48 +1,58 @@
 /**
- * The `Chat` module provides a stateful conversation interface for AI language
- * models.
+ * Stateful conversation sessions on top of a language model.
  *
- * This module enables persistent chat sessions that maintain conversation
- * history, support tool calling, and offer both streaming and non-streaming
- * text generation. It integrates seamlessly with the Effect AI ecosystem,
- * providing type-safe conversational AI capabilities.
+ * A `Chat` keeps `Prompt` history in a `Ref` and reuses it for text generation,
+ * streaming, and structured output. Each generation call combines the current
+ * history with the caller's new prompt, invokes the active language model, and
+ * appends the response parts back into history. Constructors create fresh
+ * sessions, seed sessions from prompts, restore exported history, or connect a
+ * chat to persistence.
  *
- * **Example** (Creating a chat session)
+ * **Mental model**
+ *
+ * A {@link Service} is a mutable conversation handle. It stores history, while
+ * the language model implementation is still supplied through the Effect
+ * environment when `generateText`, `streamText`, or `generateObject` runs.
+ * Local sessions created with {@link empty} and {@link fromPrompt} live only in
+ * memory; persisted sessions add a backing store and save after generation.
+ *
+ * **Common tasks**
+ *
+ * - Start an empty session with {@link empty}.
+ * - Seed system prompts or prior messages with {@link fromPrompt}.
+ * - Restore saved history with {@link fromExport} or {@link fromJson}.
+ * - Persist sessions by providing {@link Persistence} with {@link makePersisted}
+ *   or {@link layerPersisted}.
+ *
+ * **Example** (Starting a chat session)
  *
  * ```ts
  * import { Effect } from "effect"
  * import { Chat } from "effect/unstable/ai"
  *
- * // Create a new chat session
  * const program = Effect.gen(function*() {
- *   const chat = yield* Chat.empty
+ *   const chat = yield* Chat.fromPrompt([{
+ *     role: "system",
+ *     content: "Answer in one sentence."
+ *   }])
  *
- *   // Send a message and get response
  *   const response = yield* chat.generateText({
- *     prompt: "Hello! What can you help me with?"
+ *     prompt: "What does Effect provide for TypeScript applications?"
  *   })
  *
- *   console.log(response.content)
+ *   const saved = yield* chat.exportJson
  *
- *   return response
+ *   return { text: response.text, saved }
  * })
  * ```
  *
- * **Example** (Streaming chat responses)
+ * **Gotchas**
  *
- * ```ts
- * import { Effect, Stream } from "effect"
- * import { Chat } from "effect/unstable/ai"
- *
- * // Streaming chat with tool support
- * const streamingChat = Effect.gen(function*() {
- *   const chat = yield* Chat.empty
- *
- *   yield* chat.streamText({
- *     prompt: "Generate a creative story"
- *   }).pipe(Stream.runForEach((part) => Effect.sync(() => console.log(part))))
- * })
- * ```
+ * Generation requires a language model service in the environment. `streamText`
+ * records the parts emitted by the stream when the stream finalizes, so consume
+ * the stream to completion when the full assistant response should become part
+ * of history. Direct writes to `history` are possible, but bypass the helpers
+ * that encode, decode, export, and persist the conversation.
  *
  * @since 4.0.0
  */
@@ -69,7 +79,12 @@ import type * as Response from "./Response.ts"
 import type * as Tool from "./Tool.ts"
 
 /**
- * The `Chat` service tag for dependency injection.
+ * Service tag for stateful AI conversation sessions.
+ *
+ * **When to use**
+ *
+ * Use to access or provide conversational AI sessions through the Effect
+ * context.
  *
  * **Details**
  *
@@ -101,6 +116,15 @@ export class Chat extends Context.Service<Chat, Service>()(
 
 /**
  * Represents the interface that the `Chat` service provides.
+ *
+ * **When to use**
+ *
+ * Use as the service contract for code that receives or constructs a stateful
+ * chat session and needs history, export, text generation, streaming, and
+ * structured-output operations.
+ *
+ * @see {@link Chat} for the context tag that provides this service
+ * @see {@link Persisted} for the persistence-backed extension
  *
  * @category models
  * @since 4.0.0
@@ -481,8 +505,8 @@ const makeUnsafe = (history: Ref.Ref<Prompt.Prompt>) => {
  *
  * **When to use**
  *
- * This is the most common way to start a fresh chat session without
- * any initial context or system prompts.
+ * Use when you need to start a fresh chat session without initial context or
+ * system prompts.
  *
  * **Example** (Creating an empty chat)
  *
@@ -675,8 +699,13 @@ export const fromJson = (data: string): Effect.Effect<
 // =============================================================================
 
 /**
- * An error that occurs when attempting to retrieve a persisted `Chat` that
+ * Represents an error that occurs when attempting to retrieve a persisted `Chat` that
  * does not exist in the backing persistence store.
+ *
+ * **When to use**
+ *
+ * Use to represent a missing persisted conversation when lookup by id cannot
+ * find stored history.
  *
  * @category errors
  * @since 4.0.0
@@ -689,7 +718,12 @@ export class ChatNotFoundError extends Schema.ErrorClass<ChatNotFoundError>(
 }) {}
 
 /**
- * The context tag for chat persistence.
+ * Service tag for persistence-backed AI conversation storage.
+ *
+ * **When to use**
+ *
+ * Use to provide the storage operations needed by persisted conversation
+ * sessions.
  *
  * @category services
  * @since 4.0.0
@@ -761,10 +795,17 @@ export interface Persisted extends Service {
 /**
  * Creates a new chat persistence service.
  *
+ * **When to use**
+ *
+ * Use when you need programmatic persisted chat creation and retrieval backed
+ * by the current `BackingPersistence`.
+ *
  * **Details**
  *
  * The provided store identifier will be used to indicate which "store" the
  * backing persistence should load chats from.
+ *
+ * @see {@link layerPersisted} for the `Layer`-based constructor
  *
  * @category constructors
  * @since 4.0.0
@@ -916,10 +957,17 @@ export const makePersisted = Effect.fnUntraced(function*(options: {
 /**
  * Creates a `Layer` for a new chat persistence service.
  *
+ * **When to use**
+ *
+ * Use to provide `Chat.Persistence` from a configured `BackingPersistence` when
+ * your application needs persisted chat sessions backed by a named store.
+ *
  * **Details**
  *
  * The provided store identifier will be used to indicate which "store" the
  * backing persistence should load chats from.
+ *
+ * @see {@link makePersisted} for the effect constructor when building the service directly instead of providing it as a layer
  *
  * @category constructors
  * @since 4.0.0

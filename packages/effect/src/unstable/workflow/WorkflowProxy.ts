@@ -43,8 +43,7 @@ import type * as Workflow from "./Workflow.ts"
  * import { RpcServer } from "effect/unstable/rpc"
  * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
  *
- * const EmailWorkflow = Workflow.make({
- *   name: "EmailWorkflow",
+ * const EmailWorkflow = Workflow.make("EmailWorkflow", {
  *   payload: {
  *     id: Schema.String,
  *     to: Schema.String
@@ -82,15 +81,15 @@ export const toRpcGroup = <
   for (const workflow_ of workflows) {
     const workflow = workflow_ as Workflow.AnyWithProps
     rpcs.push(
-      Rpc.make(`${prefix}${workflow.name}`, {
+      Rpc.make(`${prefix}${workflow._tag}`, {
         payload: workflow.payloadSchema,
         error: workflow.errorSchema,
         success: workflow.successSchema
       }).annotateMerge(workflow.annotations),
-      Rpc.make(`${prefix}${workflow.name}Discard`, {
+      Rpc.make(`${prefix}${workflow._tag}Discard`, {
         payload: workflow.payloadSchema
       }).annotateMerge(workflow.annotations),
-      Rpc.make(`${prefix}${workflow.name}Resume`, { payload: ResumePayload })
+      Rpc.make(`${prefix}${workflow._tag}Resume`, { payload: ResumePayload })
         .annotateMerge(workflow.annotations)
     )
   }
@@ -125,8 +124,7 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
  * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
  *
- * const EmailWorkflow = Workflow.make({
- *   name: "EmailWorkflow",
+ * const EmailWorkflow = Workflow.make("EmailWorkflow", {
  *   payload: {
  *     id: Schema.String,
  *     to: Schema.String
@@ -161,17 +159,17 @@ export const toHttpApiGroup = <const Name extends string, const Workflows extend
   let group = HttpApiGroup.make(name)
   for (const workflow_ of workflows) {
     const workflow = workflow_ as Workflow.AnyWithProps
-    const path = `/${tagToPath(workflow.name)}` as const
+    const path = `/${tagToPath(workflow._tag)}` as const
     group = group.add(
-      HttpApiEndpoint.post(workflow.name, path, {
+      HttpApiEndpoint.post(workflow._tag, path, {
         payload: workflow.payloadSchema,
         success: workflow.successSchema,
         error: workflow.errorSchema
       }).annotateMerge(workflow.annotations),
-      HttpApiEndpoint.post(workflow.name + "Discard", `${path}/discard`, {
+      HttpApiEndpoint.post(workflow._tag + "Discard", `${path}/discard`, {
         payload: workflow.payloadSchema
       }).annotateMerge(workflow.annotations),
-      HttpApiEndpoint.post(workflow.name + "Resume", `${path}/resume`, {
+      HttpApiEndpoint.post(workflow._tag + "Resume", `${path}/resume`, {
         payload: ResumePayload
       }).annotateMerge(workflow.annotations)
     ) as any

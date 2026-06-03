@@ -72,9 +72,14 @@ export interface RateLimiter {
 }
 
 /**
- * Context service tag for the `RateLimiter` service.
+ * Service tag for persistent token-consumption services.
  *
- * @category Tags
+ * **When to use**
+ *
+ * Use to access or provide rate-limit checks backed by fixed-window counters or
+ * token-bucket state.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const RateLimiter: Context.Service<RateLimiter, RateLimiter> = Context.Service<RateLimiter>(TypeId)
@@ -235,7 +240,7 @@ export const layer: Layer.Layer<
 > = Layer.effect(RateLimiter, make)
 
 /**
- * Access a function that applies rate limiting to an effect.
+ * Accesses a function that applies rate limiting to an effect.
  *
  * **Example** (Applying rate limits to effects)
  *
@@ -260,7 +265,7 @@ export const layer: Layer.Layer<
  * })
  * ```
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const makeWithRateLimiter: Effect.Effect<
@@ -284,7 +289,7 @@ export const makeWithRateLimiter: Effect.Effect<
 )
 
 /**
- * Access a function that sleeps when the rate limit is exceeded.
+ * Accesses a function that sleeps when the rate limit is exceeded.
  *
  * **Example** (Sleeping until rate limit permits)
  *
@@ -307,7 +312,7 @@ export const makeWithRateLimiter: Effect.Effect<
  * })
  * ```
  *
- * @category Accessors
+ * @category accessors
  * @since 4.0.0
  */
 export const makeSleep: Effect.Effect<
@@ -338,7 +343,7 @@ export const makeSleep: Effect.Effect<
 /**
  * Runtime type identifier for `RateLimiterError`.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
@@ -346,7 +351,7 @@ export const ErrorTypeId: ErrorTypeId = "~@effect/experimental/RateLimiter/RateL
 /**
  * Type-level identifier used to brand `RateLimiterError` values.
  *
- * @category errors
+ * @category type IDs
  * @since 4.0.0
  */
 export type ErrorTypeId = "~@effect/experimental/RateLimiter/RateLimiterError"
@@ -391,7 +396,7 @@ export class RateLimitStoreError extends Schema.ErrorClass<RateLimitStoreError>(
 )({
   _tag: Schema.tag("RateLimitStoreError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {}
 
 /**
@@ -481,9 +486,14 @@ export interface ConsumeResult {
 }
 
 /**
- * Low-level backing store for fixed-window counters and token-bucket state.
+ * Defines the low-level backing store for fixed-window counters and token-bucket state.
  *
- * @category RateLimiterStore
+ * **When to use**
+ *
+ * Use to provide the shared counter storage used by persistent rate-limit
+ * checks.
+ *
+ * @category store
  * @since 4.0.0
  */
 export class RateLimiterStore extends Context.Service<
@@ -620,11 +630,13 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
     },
     tokenBucket(options) {
       const key = `${prefix}${options.key}`
+      const lastRefillKey = `${key}:refill`
       const refillMillis = Duration.toMillis(options.refillRate)
       return Effect.clockWith((clock) =>
         Effect.mapError(
           tokenBucket(
             key,
+            lastRefillKey,
             options.tokens,
             refillMillis,
             options.limit,
@@ -677,17 +689,18 @@ return { next, nextpttl }
 const tokenBucketScript = Redis.script(
   (
     key: string,
+    lastRefillKey: string,
     tokens: number,
     refillMillis: number,
     limit: number,
     now: number,
     overflow: 0 | 1
-  ) => [key, tokens, refillMillis, limit, now, overflow],
+  ) => [key, lastRefillKey, tokens, refillMillis, limit, now, overflow],
   {
-    numberOfKeys: 1,
+    numberOfKeys: 2,
     lua: `
 local key = KEYS[1]
-local last_refill_key = key .. ":refill"
+local last_refill_key = KEYS[2]
 local tokens = tonumber(ARGV[1])
 local refill_ms = tonumber(ARGV[2])
 local limit = tonumber(ARGV[3])

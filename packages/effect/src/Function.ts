@@ -52,6 +52,11 @@ import { pipeArguments } from "./Pipeable.ts"
 /**
  * Type lambda for function types, used for higher-kinded type operations.
  *
+ * **When to use**
+ *
+ * Use when defining higher-kinded abstractions that must accept function types
+ * as one of their type-lambda inputs.
+ *
  * **Example** (Creating a function type with a type lambda)
  *
  * ```ts
@@ -72,6 +77,11 @@ export interface FunctionTypeLambda extends TypeLambda {
 /**
  * Creates a function that can be called in data-first style or data-last
  * (`pipe`-friendly) style.
+ *
+ * **When to use**
+ *
+ * Use to expose one implementation through both direct and `pipe`-friendly
+ * call styles.
  *
  * **Details**
  *
@@ -184,7 +194,16 @@ export const dual: {
   }
 }
 /**
- * Apply a function to a given value.
+ * Applies a function to a given value.
+ *
+ * **When to use**
+ *
+ * Use to pass a fixed value into a unary function, especially when the function
+ * is the value flowing through `pipe`.
+ *
+ * **Details**
+ *
+ * `apply(a)(f)` is equivalent to `f(a)`.
  *
  * **Example** (Applying an argument to a function)
  *
@@ -195,6 +214,8 @@ export const dual: {
  * assert.deepStrictEqual(pipe(String.length, Function.apply("hello")), 5)
  * ```
  *
+ * @see {@link pipe} for building left-to-right pipelines
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -202,6 +223,10 @@ export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
 
 /**
  * A zero-argument function that produces a value when invoked.
+ *
+ * **When to use**
+ *
+ * Use to type a lazy value provider that should not run until called.
  *
  * **Example** (Creating a lazy argument)
  *
@@ -219,6 +244,11 @@ export type LazyArg<A> = () => A
 /**
  * Represents a function with multiple arguments.
  *
+ * **When to use**
+ *
+ * Use to describe a function whose argument list is represented as a tuple
+ * type.
+ *
  * **Example** (Typing a variadic function)
  *
  * ```ts
@@ -235,7 +265,11 @@ export type LazyArg<A> = () => A
 export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 
 /**
- * The identity function, i.e. A function that returns its input argument.
+ * Returns its input argument unchanged.
+ *
+ * **When to use**
+ *
+ * Use to return a value unchanged where a function is required.
  *
  * **Example** (Returning the same value)
  *
@@ -252,8 +286,13 @@ export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 export const identity = <A>(a: A): A => a
 
 /**
- * A function that ensures that the type of an expression matches some type,
+ * Ensures that the type of an expression matches some type,
  * without changing the resulting type of that expression.
+ *
+ * **When to use**
+ *
+ * Use to check assignability while preserving the expression's precise inferred
+ * type.
  *
  * **Example** (Checking an expression against a type)
  *
@@ -270,7 +309,9 @@ export const identity = <A>(a: A): A => a
  * assert.deepStrictEqual(Function.satisfies<number>()(5), 5)
  * ```
  *
- * @category type utils
+ * @see {@link cast} for changing only the static TypeScript type
+ *
+ * @category utility types
  * @since 2.0.0
  */
 export const satisfies = <A>() => <B extends A>(b: B) => b
@@ -278,12 +319,19 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
 /**
  * Returns the input value with a different static type.
  *
+ * **When to use**
+ *
+ * Use when you need an explicit type-level cast and accept that the value is
+ * returned unchanged at runtime.
+ *
  * **Gotchas**
  *
  * This is a type-level cast only; it performs no runtime validation or
  * conversion.
  *
- * @category type utils
+ * @see {@link satisfies} for checking assignability without changing the resulting type
+ *
+ * @category utility types
  * @since 4.0.0
  */
 export const cast: <A, B>(a: A) => B = identity as any
@@ -293,8 +341,8 @@ export const cast: <A, B>(a: A) => B = identity as any
  *
  * **When to use**
  *
- * Use `constant` when an API expects a thunk or callback and every invocation
- * should return the same value.
+ * Use when you need a thunk or callback that returns the same value on every
+ * invocation.
  *
  * **Example** (Creating a constant thunk)
  *
@@ -314,7 +362,11 @@ export const cast: <A, B>(a: A) => B = identity as any
 export const constant = <A>(value: A): LazyArg<A> => () => value
 
 /**
- * A thunk that returns always `true`.
+ * Returns `true` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `true` on every invocation.
  *
  * **Example** (Returning true from a thunk)
  *
@@ -331,7 +383,11 @@ export const constant = <A>(value: A): LazyArg<A> => () => value
 export const constTrue: LazyArg<boolean> = constant(true)
 
 /**
- * A thunk that returns always `false`.
+ * Returns `false` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `false` on every invocation.
  *
  * **Example** (Returning false from a thunk)
  *
@@ -348,7 +404,11 @@ export const constTrue: LazyArg<boolean> = constant(true)
 export const constFalse: LazyArg<boolean> = constant(false)
 
 /**
- * A thunk that returns always `null`.
+ * Returns `null` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `null` on every invocation.
  *
  * **Example** (Returning null from a thunk)
  *
@@ -365,7 +425,11 @@ export const constFalse: LazyArg<boolean> = constant(false)
 export const constNull: LazyArg<null> = constant(null)
 
 /**
- * A thunk that returns always `undefined`.
+ * Returns `undefined` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `undefined` on every invocation.
  *
  * **Example** (Returning undefined from a thunk)
  *
@@ -382,7 +446,12 @@ export const constNull: LazyArg<null> = constant(null)
 export const constUndefined: LazyArg<undefined> = constant(undefined)
 
 /**
- * A thunk that returns always `void`.
+ * Returns no meaningful value when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that is called only for its effect and has no
+ * meaningful return value.
  *
  * **Example** (Returning void from a thunk)
  *
@@ -400,6 +469,11 @@ export const constVoid: LazyArg<void> = constUndefined
 
 /**
  * Reverses the order of arguments for a curried function.
+ *
+ * **When to use**
+ *
+ * Use to adapt a curried function when its argument groups need to be supplied
+ * in the opposite order.
  *
  * **Example** (Flipping curried arguments)
  *
@@ -425,6 +499,10 @@ export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
  * Composes two functions, `ab` and `bc` into a single function that takes in an argument `a` of type `A` and returns a result of type `C`.
  * The result is obtained by first applying the `ab` function to `a` and then applying the `bc` function to the result of `ab`.
  *
+ * **When to use**
+ *
+ * Use to compose exactly two unary functions into a reusable unary function.
+ *
  * **Example** (Composing two functions)
  *
  * ```ts
@@ -436,6 +514,9 @@ export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
  *
  * assert.strictEqual(Function.compose(increment, square)(2), 9)
  * ```
+ *
+ * @see {@link flow} for composing a left-to-right sequence of functions
+ * @see {@link pipe} for applying a value through a left-to-right sequence immediately
  *
  * @category combinators
  * @since 2.0.0
@@ -451,8 +532,8 @@ export const compose: {
  *
  * **When to use**
  *
- * Use `absurd` when exhaustive checks prove a branch cannot be reached, but
- * TypeScript still needs a return value.
+ * Use when you need a return value in a branch that exhaustive checks prove
+ * cannot be reached.
  *
  * **Gotchas**
  *
@@ -469,7 +550,7 @@ export const compose: {
  * }
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 2.0.0
  */
 export const absurd = <A>(_: never): A => {
@@ -478,6 +559,10 @@ export const absurd = <A>(_: never): A => {
 
 /**
  * Creates a tupled version of this function: instead of `n` arguments, it accepts a single tuple argument.
+ *
+ * **When to use**
+ *
+ * Use to adapt a multi-argument function so it accepts one tuple argument.
  *
  * **Example** (Converting arguments to a tuple)
  *
@@ -490,13 +575,19 @@ export const absurd = <A>(_: never): A => {
  * assert.deepStrictEqual(sumTupled([1, 2]), 3)
  * ```
  *
+ * @see {@link untupled} for adapting a tuple-argument function back to multiple arguments
+ *
  * @category combinators
  * @since 2.0.0
  */
 export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): (a: A) => B => (a) => f(...a)
 
 /**
- * Inverse function of `tupled`
+ * Converts a tupled function back to an uncurried function.
+ *
+ * **When to use**
+ *
+ * Use to adapt a tuple-argument function so it accepts multiple arguments.
  *
  * **Example** (Converting a tuple to arguments)
  *
@@ -509,6 +600,8 @@ export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): 
  * assert.deepStrictEqual(getFirst(1, 2), 1)
  * ```
  *
+ * @see {@link tupled} for adapting a multi-argument function to one tuple argument
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -520,21 +613,20 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  *
  * **When to use**
  *
- * Use `pipe` with data-last functions to build readable transformation
- * pipelines and to write method-style chains as ordinary function calls.
+ * Use when you need to compose data-last functions into readable
+ * transformation pipelines instead of method-style chains.
  *
  * **Details**
  *
- * `pipe` takes an initial value, passes it to the first function, then passes
- * each result to the next function in order. The final function result is
- * returned.
+ * Takes an initial value, passes it to the first function, then passes each
+ * result to the next function in order. The final function result is returned.
  *
  * **Gotchas**
  *
  * Each function passed after the initial value must accept a single argument,
  * because `pipe` calls each step with only the previous result.
  *
- * **Example** (Showing pipeline syntax)
+ * **Example** (Using pipeline syntax)
  *
  * In this example, `1` is passed to the first function, and each result becomes
  * the input for the next function.
@@ -1075,10 +1167,15 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
 /**
  * Performs left-to-right function composition.
  *
+ * **When to use**
+ *
+ * Use to build a reusable function from a left-to-right sequence of
+ * transformations.
+ *
  * **Details**
  *
  * The first function may have any arity. Every following function must be
- * unary. See also [`pipe`](#pipe).
+ * unary.
  *
  * **Example** (Composing functions left to right)
  *
@@ -1093,6 +1190,9 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
  *
  * assert.strictEqual(f("aaa"), 6)
  * ```
+ *
+ * @see {@link pipe} for applying a value through a left-to-right sequence immediately
+ * @see {@link compose} for composing exactly two functions
  *
  * @category combinators
  * @since 2.0.0
@@ -1265,6 +1365,10 @@ export function flow(
 /**
  * Creates a compile-time placeholder for a value of any type.
  *
+ * **When to use**
+ *
+ * Use as a temporary typed placeholder while developing incomplete code.
+ *
  * **Gotchas**
  *
  * `hole` is intended for temporary development use. If the placeholder is
@@ -1284,19 +1388,19 @@ export function flow(
  * console.log(typeof buildUser) // "function"
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 2.0.0
  */
 export const hole: <T>() => T = cast(absurd)
 
 /**
- * The SK combinator, also known as the "S-K combinator" or "S-combinator", is
+ * Returns the second argument and discards the first. The SK combinator is
  * a fundamental combinator in the lambda calculus and the SKI combinator
  * calculus.
  *
  * **When to use**
  *
- * Use `SK` to discard the first argument and return the second argument.
+ * Use to discard the first argument and return the second argument.
  *
  * **Example** (Discarding the first argument)
  *
@@ -1313,10 +1417,27 @@ export const hole: <T>() => T = cast(absurd)
 export const SK = <A, B>(_: A, b: B): B => b
 
 /**
- * Memoizes a function whose input is an object, caching results by object
- * identity.
+ * Creates a memoized function whose input is an object, caching results by
+ * object identity.
  *
- * @category utils
+ * **When to use**
+ *
+ * Use to reuse the result of a synchronous computation whose output is stable
+ * for a given object reference.
+ *
+ * **Details**
+ *
+ * Each memoized wrapper owns a private `WeakMap` keyed by object identity.
+ * Cached `undefined` results are still returned because the cache is checked
+ * with `WeakMap.has`.
+ *
+ * **Gotchas**
+ *
+ * Structurally equal objects do not share cache entries. If the same object is
+ * mutated after its first call, later calls still return the cached result for
+ * that reference.
+ *
+ * @category caching
  * @since 4.0.0
  */
 export function memoize<A extends object, O>(f: (a: A) => O): (ast: A) => O {

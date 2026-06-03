@@ -447,6 +447,23 @@ export const fromRpcGroup = <const Type extends string, Rpcs extends Rpc.Any>(
  * Creates a new `Entity` of the specified `type` which will accept messages
  * that adhere to the provided schemas.
  *
+ * **When to use**
+ *
+ * Use to define a cluster entity from individual `Rpc` definitions, giving the
+ * cluster runtime a typed protocol for handlers and per-entity clients.
+ *
+ * **Details**
+ *
+ * The `type` argument is stored as the entity `EntityType`, and the RPC array
+ * is grouped into the entity's `protocol`.
+ *
+ * **Gotchas**
+ *
+ * RPC tags should be unique within the array. If multiple definitions use the
+ * same tag, the resulting protocol keeps the later definition for that tag.
+ *
+ * @see {@link fromRpcGroup} for creating an entity from an existing `RpcGroup`
+ *
  * @category constructors
  * @since 4.0.0
  */
@@ -463,7 +480,12 @@ export const make = <const Type extends string, Rpcs extends ReadonlyArray<Rpc.A
 ): Entity<Type, Rpcs[number]> => fromRpcGroup(type, RpcGroup.make(...protocol))
 
 /**
- * A Context.Tag to access the current entity address.
+ * Service tag for the entity address currently being processed.
+ *
+ * **When to use**
+ *
+ * Use to read the current entity identity and shard address from entity
+ * handlers and keep-alive logic.
  *
  * @category context
  * @since 4.0.0
@@ -474,7 +496,12 @@ export class CurrentAddress extends Context.Service<
 >()("effect/cluster/Entity/EntityAddress") {}
 
 /**
- * A Context.Tag to access the current Runner address.
+ * Service tag for the runner address currently registering entity handlers.
+ *
+ * **When to use**
+ *
+ * Use to read the runner address associated with the current entity handler
+ * registration.
  *
  * @category context
  * @since 4.0.0
@@ -489,7 +516,7 @@ export class CurrentRunnerAddress extends Context.Service<
  *
  * **When to use**
  *
- * Use it to complete an entity request by succeeding, failing, failing with a
+ * Use when you use it to complete an entity request by succeeding, failing, failing with a
  * cause, or supplying an explicit `Exit`.
  *
  * @category Replier
@@ -540,14 +567,14 @@ export declare namespace Replier {
 }
 
 /**
- * Entity request envelope delivered to entity handlers.
+ * Represents an entity request envelope delivered to entity handlers.
  *
  * **Details**
  *
  * It includes the underlying request envelope plus the last stream reply chunk
  * that was sent, allowing handlers to resume chunk sequencing after a restart.
  *
- * @category Request
+ * @category request
  * @since 4.0.0
  */
 export class Request<Rpc extends Rpc.Any> extends Data.Class<
@@ -587,7 +614,7 @@ const shardingTag = Context.Service<Sharding, Sharding["Service"]>("effect/clust
  * The returned function creates a no-serialization RPC client for each entity ID,
  * using a test sharding service instead of the cluster transport.
  *
- * @category Testing
+ * @category testing
  * @since 4.0.0
  */
 export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE, LR>(
@@ -745,7 +772,7 @@ export const keepAlive: (
   ))
 
 /**
- * Internal persisted RPC used to keep an entity active while a resource is held.
+ * RPC used internally to keep an entity active while a resource is held.
  *
  * **Details**
  *

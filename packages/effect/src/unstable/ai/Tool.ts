@@ -1,28 +1,57 @@
 /**
- * The `Tool` module provides functionality for defining and managing tools
- * that language models can call to augment their capabilities.
+ * The `Tool` module describes callable capabilities that a language model can
+ * request during a workflow. A tool definition names the operation, describes
+ * its parameter shape, declares the success and failure payloads, and carries
+ * annotations that providers or MCP adapters can expose to clients.
  *
- * This module enables creation of both user-defined and provider-defined tools,
- * with full schema validation, type safety, and handler support. Tools allow
- * AI models to perform actions like searching databases, calling APIs, or
- * executing code within your application context.
+ * **Mental model**
  *
- * **Example** (Defining a calculator tool)
+ * - `Tool.make` defines an application-owned tool whose handler is supplied by
+ *   a toolkit.
+ * - `dynamic` represents tools discovered at runtime, including tools backed by
+ *   raw JSON Schema.
+ * - `providerDefined` represents native provider features such as web search or
+ *   code execution, optionally with an application handler for returned data.
+ * - Schemas validate tool-call parameters and encode/decode handler results;
+ *   `failureMode` controls whether handler failures fail the effect or become a
+ *   returned tool-result value.
+ *
+ * **Common tasks**
+ *
+ * - Define typed application tools with {@link make}.
+ * - Register runtime-discovered tools with {@link dynamic}.
+ * - Model provider-native tools with {@link providerDefined}.
+ * - Generate provider-facing parameter JSON Schema with {@link getJsonSchema}.
+ * - Add tool metadata with annotations such as {@link Title}, {@link Readonly},
+ *   {@link Destructive}, {@link Idempotent}, {@link OpenWorld}, and
+ *   {@link Strict}.
+ *
+ * **Gotchas**
+ *
+ * - Tool names are runtime lookup keys for toolkits; choose stable names.
+ * - Tool definitions do not execute anything by themselves. Handlers are bound
+ *   when tools are placed in a toolkit.
+ * - Dynamic tools created from raw JSON Schema receive `unknown` parameters in
+ *   handlers. Use Effect `Schema` values when you need typed parameters.
+ * - Provider-defined tools have both a custom Effect name and a provider name
+ *   so multiple providers can expose similarly named native tools.
+ *
+ * **Example** (Defining a typed tool)
  *
  * ```ts
  * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
- * // Define a simple calculator tool
- * const Calculator = Tool.make("Calculator", {
- *   description: "Performs basic arithmetic operations",
+ * const SearchDocs = Tool.make("SearchDocs", {
+ *   description: "Search project documentation",
  *   parameters: Schema.Struct({
- *     operation: Schema.Literals(["add", "subtract", "multiply", "divide"]),
- *     a: Schema.Number,
- *     b: Schema.Number
+ *     query: Schema.String,
+ *     limit: Schema.optional(Schema.Number)
  *   }),
- *   success: Schema.Number
- * })
+ *   success: Schema.Array(Schema.String),
+ *   failure: Schema.String,
+ *   needsApproval: ({ limit }) => limit !== undefined && limit > 20
+ * }).annotate(Tool.Readonly, true)
  * ```
  *
  * @since 4.0.0
@@ -34,7 +63,7 @@ import type * as JsonSchema from "../../JsonSchema.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import type * as Struct from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
 import type * as AiError from "./AiError.ts"
@@ -1289,8 +1318,8 @@ export const make = <
  *
  * **When to use**
  *
- * This is useful for tools where the schema isn't known at compile time,
- * such as MCP tools discovered at runtime or tools from external configurations.
+ * Use when you do not know a tool schema at compile time, such as MCP tools
+ * discovered at runtime or tools from external configurations.
  *
  * **Details**
  *
@@ -1515,8 +1544,8 @@ export const providerDefined = <
 // =============================================================================
 
 /**
- * A utility which allows mapping between a provider-defined name for a tool
- * and the name given to the tool by the Effect AI SDK.
+ * Maps between a provider-defined tool name and the name given to the tool by
+ * the Effect AI SDK.
  *
  * **Details**
  *
@@ -1525,7 +1554,7 @@ export const providerDefined = <
  * naming conflicts (i.e. `"web_search"`) to instead use custom names (i.e.
  * `"OpenAiWebSearch"`).
  *
- * @category utils
+ * @category models
  * @since 4.0.0
  */
 export class NameMapper<Tools extends ReadonlyArray<Any>> {
@@ -1603,7 +1632,7 @@ export class NameMapper<Tools extends ReadonlyArray<Any>> {
  * console.log(description) // "This is an example tool"
  * ```
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined => {
@@ -1611,7 +1640,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
     return tool.description
   }
   if (Schema.isSchema(tool.parametersSchema)) {
-    return AST.resolveDescription(tool.parametersSchema.ast)
+    return SchemaAST.resolveDescription(tool.parametersSchema.ast)
   }
   return undefined
 }
@@ -1654,7 +1683,7 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * // }
  * ```
  *
- * @category utils
+ * @category getters
  * @since 4.0.0
  */
 export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
@@ -1676,7 +1705,7 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
  * `Schema.toJsonSchemaDocument` and any generated definitions are attached as
  * `$defs`.
  *
- * @category utils
+ * @category converting
  * @since 4.0.0
  */
 export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
@@ -1860,7 +1889,19 @@ export const Strict = Context.Reference<boolean | undefined>("effect/ai/Tool/Str
 /**
  * Returns the strict mode setting for a tool, or `undefined` if not set.
  *
- * @category utils
+ * **When to use**
+ *
+ * Use to inspect the per-tool strict JSON Schema override attached through
+ * `Tool.Strict`.
+ *
+ * **Gotchas**
+ *
+ * `undefined` means no per-tool override is set. It is distinct from `false`;
+ * provider or global configuration determines the final behavior.
+ *
+ * @see {@link Strict} for the annotation read by this helper
+ *
+ * @category getters
  * @since 4.0.0
  */
 export const getStrictMode = <T extends Any>(tool: T): boolean | undefined => Context.get(tool.annotations, Strict)
@@ -1942,10 +1983,20 @@ function filter(obj: any) {
 }
 
 /**
- * **Unsafe**: This function will throw an error if an insecure property is
- * found in the parsed JSON or if the provided JSON text is not parseable.
+ * Parses JSON text while rejecting prototype-pollution keys.
  *
- * @category utils
+ * **When to use**
+ *
+ * Use when you need a JSON parser that throws for invalid JSON or unsafe
+ * object shapes.
+ *
+ * **Gotchas**
+ *
+ * Invalid JSON throws through `JSON.parse`. Parsed objects containing an own
+ * `__proto__` property or a dangerous `constructor.prototype` shape throw a
+ * `SyntaxError`.
+ *
+ * @category unsafe
  * @since 4.0.0
  */
 export const unsafeSecureJsonParse = (text: string): unknown => {
@@ -1973,7 +2024,18 @@ export const unsafeSecureJsonParse = (text: string): unknown => {
 export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never> {}
 
 /**
- * A schema for tools that accept no parameters.
+ * Schema for tools that accept no parameters.
+ *
+ * **When to use**
+ *
+ * Use when you need an explicit no-parameter `parameters` schema for a tool.
+ *
+ * **Details**
+ *
+ * This is `Schema.Record(Schema.String, Schema.Never)`, representing an empty
+ * object parameter shape with no additional properties.
+ *
+ * @see {@link make} for the tool constructor that defaults omitted parameters to this schema
  *
  * @category schemas
  * @since 4.0.0
@@ -1981,6 +2043,6 @@ export interface EmptyParams extends Schema.$Record<Schema.String, Schema.Never>
 export const EmptyParams: EmptyParams = Schema.Record(Schema.String, Schema.Never)
 
 /** @internal */
-export function isEmptyParamsRecord(indexSignature: AST.IndexSignature): boolean {
-  return indexSignature.parameter === AST.string && AST.isNever(indexSignature.type)
+export function isEmptyParamsRecord(indexSignature: SchemaAST.IndexSignature): boolean {
+  return indexSignature.parameter === SchemaAST.string && SchemaAST.isNever(indexSignature.type)
 }

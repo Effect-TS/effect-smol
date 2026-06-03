@@ -267,7 +267,7 @@ export const xForwardedHeaders = make((httpApp) =>
 /**
  * Middleware that parses the current request URL's search parameters and provides them as `ParsedSearchParams`.
  *
- * @category Search params
+ * @category search params
  * @since 4.0.0
  */
 export const searchParamsParser = <E, R>(

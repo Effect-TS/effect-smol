@@ -1,20 +1,33 @@
 /**
- * Persistent caching for `Persistable` request keys.
+ * Combines scoped memory caching with durable persistence for `Persistable`
+ * lookup keys.
  *
- * A `PersistedCache` combines a scoped in-memory `Cache` with a named
- * `Persistence` store. It is useful for expensive or idempotent lookups such as
- * remote API calls, database reads, and request results that should be reused
- * across fibers, process restarts, or multiple workers sharing the same backing
- * store.
+ * A `PersistedCache` first checks a process-local `Cache`, then a named
+ * `Persistence` store, before running the supplied lookup. It is designed for
+ * expensive or idempotent requests whose encoded `Exit` can be reused across
+ * fibers, process restarts, or multiple workers sharing the same backing store.
  *
- * The persistent `timeToLive` is evaluated for the stored `Exit`, so successes
- * and failures can be cached with different lifetimes. The in-memory cache has
- * its own `inMemoryTTL` and capacity, and `invalidate` removes both the
- * persisted value and the in-memory entry. Persisted values are encoded with
- * the key's success and error schemas and stored under the key's primary key, so
- * schema changes, primary-key changes, or store-id collisions can make old
- * entries fail to decode until they are invalidated or written under a new
- * `storeId`.
+ * **Mental model**
+ *
+ * `make` creates a scoped cache backed by a scoped persistence store. The memory
+ * cache controls repeated reads inside the current runtime with `inMemoryTTL`
+ * and capacity, while the persistence store controls durable reuse with
+ * `timeToLive`, `storeId`, and request primary keys. Both successes and failures
+ * are stored as `Exit` values when the persistent TTL allows the write.
+ *
+ * **Common tasks**
+ *
+ * Use `get` for lookups that should reuse memory and persisted values, and use
+ * `invalidate` when the underlying data changes so both layers forget the key.
+ * Use `requireServicesAt` to choose whether lookup services are supplied when
+ * constructing the cache or when reading from it.
+ *
+ * **Gotchas**
+ *
+ * Persisted entries are decoded with the key's success and error schemas.
+ * Changing schemas, primary-key formats, or `storeId` values is a persistence
+ * migration; old entries can stop being found or fail to decode. `invalidate`
+ * removes the persisted value first and then the in-memory entry.
  *
  * @since 4.0.0
  */

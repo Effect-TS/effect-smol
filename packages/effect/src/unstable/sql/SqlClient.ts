@@ -95,9 +95,14 @@ export interface SqlClient extends Constructor {
 }
 
 /**
- * Context service tag for the `SqlClient` service.
+ * Service tag for the active SQL client service.
  *
- * @category models
+ * **When to use**
+ *
+ * Use to access or provide the SQL client used to build statements, stream
+ * rows, reserve connections, and run transactions.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const SqlClient = Context.Service<SqlClient>("effect/sql/SqlClient")
@@ -113,7 +118,7 @@ export declare namespace SqlClient {
    * the SQL compiler, transaction SQL, row transformation, tracing attributes,
    * and optional reactive query integration.
    *
-   * @category models
+   * @category options
    * @since 4.0.0
    */
   export interface MakeOptions {
@@ -331,7 +336,7 @@ export declare namespace TransactionConnection {
  * Creates a unique context service tag for the active transaction connection of
  * a specific SQL client.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const TransactionConnection = (

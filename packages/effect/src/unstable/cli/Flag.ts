@@ -161,7 +161,19 @@ export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [str
 ): Flag<Choice[number][1]> => Param.choiceWithValue(Param.flagKind, name, choices)
 
 /**
- * Simpler variant of `choiceWithValue` which maps each string to itself.
+ * Creates a flag that accepts one of the provided string choices and returns
+ * the selected string.
+ *
+ * **When to use**
+ *
+ * Use when you need to define a named CLI flag with fixed string choices and no
+ * custom value mapping.
+ *
+ * **Gotchas**
+ *
+ * An empty choices array compiles, but no input value can parse successfully.
+ *
+ * @see {@link choiceWithValue} for mapping accepted strings to different typed values
  *
  * @category constructors
  * @since 4.0.0
@@ -362,7 +374,8 @@ export const fileSchema = <A>(
  *
  * **When to use**
  *
- * Use this for options that accept configuration values.
+ * Use when you need a CLI flag that accepts one or more `key=value`
+ * configuration entries.
  *
  * **Details**
  *
@@ -504,9 +517,9 @@ export const withMetavar: {
  *
  * **When to use**
  *
- * Use this for experimental or internal flags that should be accepted but not
- * advertised, such as `--experimental-foo`, debug toggles, or escape hatches
- * that are not yet committed to the public CLI surface.
+ * Use when experimental or internal flags should be accepted but not advertised, such as
+ * `--experimental-foo`, debug toggles, or escape hatches that are not yet committed to the
+ * public CLI surface.
  *
  * **Example** (Hiding a flag from help)
  *
@@ -723,7 +736,7 @@ export const mapTryCatch: {
 ) => Param.mapTryCatch(self, f, onError))
 
 /**
- * Requires a flag to be specified at least a minimum number of times.
+ * Ensures a flag is specified at least a minimum number of times.
  *
  * **Example** (Requiring repeated values)
  *
@@ -749,7 +762,7 @@ export const atLeast: {
 } = dual(2, <A>(self: Flag<A>, min: number) => Param.atLeast(self, min))
 
 /**
- * Limits a flag to be specified at most a maximum number of times.
+ * Ensures a flag is specified at most a maximum number of times.
  *
  * **Example** (Limiting repeated values)
  *
@@ -775,7 +788,7 @@ export const atMost: {
 } = dual(2, <A>(self: Flag<A>, max: number) => Param.atMost(self, max))
 
 /**
- * Constrains a flag to be specified between a minimum and maximum number of times.
+ * Ensures a flag is specified between a minimum and maximum number of times.
  *
  * **Example** (Bounding repeated values)
  *

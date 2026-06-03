@@ -1,20 +1,36 @@
 /**
- * Mutable reactive references for local, in-memory state that should be read,
- * updated, and observed without going through an `AtomRegistry`.
+ * Mutable reactive references for local, in-memory state.
  *
- * `AtomRef` is useful for small state models, form-like state, and collections
- * of item references where callers need direct mutation methods together with
- * subscriptions. A ref exposes its current `value`, notifies subscribers after
- * `set` or `update`, can derive read-only views with `map`, and can focus on
- * nested object or array properties with `prop`.
+ * `AtomRef` provides small observable state cells that can be read, updated,
+ * focused, and subscribed to without going through an `AtomRegistry`. It is
+ * suited to form state, local view models, and collections of item references
+ * where callers need direct mutation methods together with change notifications.
  *
- * Notifications are equality-aware: setting a value that is `Equal.equals` to
- * the current value is ignored, and mapped or property subscriptions only emit
- * when their derived value changes. Mutate state through `set`, `update`, or a
- * property ref so subscribers are notified; direct mutation of the stored value
- * does not notify listeners. Collection subscribers are notified when items are
- * inserted, removed, or when an item ref changes, while `toArray` returns the
- * current raw item values.
+ * **Mental model**
+ *
+ * An `AtomRef` is a value cell with a stable key and a subscriber list.
+ * {@link make} creates a mutable cell, `map` derives read-only views, and `prop`
+ * focuses on nested object or array properties while preserving mutation
+ * helpers. {@link collection} stores ordered item refs and emits collection
+ * updates when items are inserted, removed, or changed through their refs.
+ *
+ * **Common tasks**
+ *
+ * - Use {@link make} for standalone local state.
+ * - Use `ref.set` or `ref.update` to replace the current value.
+ * - Use `ref.map` for derived read-only values.
+ * - Use `ref.prop` to update nested object fields or array entries.
+ * - Use {@link collection} for ordered lists whose items should remain
+ *   individually mutable.
+ *
+ * **Gotchas**
+ *
+ * Notifications are equality-aware: values that are `Equal.equals` to the
+ * current value do not notify subscribers, and mapped or property subscriptions
+ * only emit when their derived value changes. Directly mutating an object or
+ * array stored in a ref does not notify listeners; use `set`, `update`, or a
+ * property ref instead. `toArray` returns the current raw item values, not the
+ * item refs.
  *
  * @since 4.0.0
  */
@@ -137,25 +153,36 @@ class ReadonlyRefImpl<A> implements ReadonlyRef<A> {
     return Hash.hash(this.value)
   }
 
-  listeners: Array<(a: A) => void> = []
-  listenerCount = 0
+  listeners: Listener<A> | null = null
 
   notify(a: A) {
-    for (let i = 0; i < this.listenerCount; i++) {
-      this.listeners[i](a)
+    let listener = this.listeners
+    while (listener !== null) {
+      listener.f(a)
+      listener = listener.next
     }
   }
 
   subscribe(f: (a: A) => void): () => void {
-    this.listeners.push(f)
-    this.listenerCount++
+    const listener: Listener<A> = {
+      f,
+      prev: null,
+      next: this.listeners
+    }
+    if (this.listeners) {
+      this.listeners.prev = listener
+    }
+    this.listeners = listener
 
     return () => {
-      const index = this.listeners.indexOf(f)
-      if (index !== -1) {
-        this.listeners[index] = this.listeners[this.listenerCount - 1]
-        this.listeners.pop()
-        this.listenerCount--
+      if (this.listeners === listener) {
+        this.listeners = listener.next
+      }
+      if (listener.prev) {
+        listener.prev.next = listener.next
+      }
+      if (listener.next) {
+        listener.next.prev = listener.prev
       }
     }
   }
@@ -163,6 +190,12 @@ class ReadonlyRefImpl<A> implements ReadonlyRef<A> {
   map<B>(f: (a: A) => B): ReadonlyRef<B> {
     return new MapRefImpl(this, f)
   }
+}
+
+type Listener<A> = {
+  readonly f: (a: A) => void
+  prev: Listener<A> | null
+  next: Listener<A> | null
 }
 
 class AtomRefImpl<A> extends ReadonlyRefImpl<A> implements AtomRef<A> {

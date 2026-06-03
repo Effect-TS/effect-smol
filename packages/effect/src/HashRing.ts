@@ -73,6 +73,11 @@ const TypeId = "~effect/cluster/HashRing" as const
  * A weighted consistent-hashing ring for assigning inputs to nodes with stable
  * remapping as nodes are added or removed.
  *
+ * **When to use**
+ *
+ * Use to maintain a mutable weighted hash ring for routing keys or shards to
+ * nodes identified by `PrimaryKey`.
+ *
  * **Details**
  *
  * Nodes are identified by their `PrimaryKey` value and can be iterated from the
@@ -92,6 +97,24 @@ export interface HashRing<A extends PrimaryKey.PrimaryKey> extends Pipeable, Ite
 /**
  * Checks whether a value is a `HashRing`.
  *
+ * **When to use**
+ *
+ * Use to narrow an `unknown` value before treating it as a `HashRing`, such as
+ * values crossing an untyped boundary.
+ *
+ * **Details**
+ *
+ * The guard checks for the module's internal `TypeId` property and narrows to
+ * `HashRing<any>`.
+ *
+ * **Gotchas**
+ *
+ * This is a structural type-id check; it does not validate the ring's `nodes`,
+ * `ring`, or weight state.
+ *
+ * @see {@link HashRing} for the type narrowed by this guard
+ * @see {@link make} for creating an empty `HashRing`
+ *
  * @category guards
  * @since 3.19.0
  */
@@ -100,10 +123,18 @@ export const isHashRing = (u: unknown): u is HashRing<any> => hasProperty(u, Typ
 /**
  * Creates an empty `HashRing`.
  *
+ * **When to use**
+ *
+ * Use to create an empty weighted consistent-hashing ring with the default or
+ * custom virtual-point density.
+ *
  * **Details**
  *
  * `baseWeight` controls how many virtual points are added for a node with
  * weight `1`; it defaults to `128` and is clamped to at least `1`.
+ *
+ * @see {@link add} for registering one node after creation
+ * @see {@link addMany} for registering several nodes after creation
  *
  * @category constructors
  * @since 3.19.0
@@ -135,8 +166,12 @@ const Proto = {
 }
 
 /**
- * Add new nodes to the ring. If a node already exists in the ring, it
+ * Adds new nodes to the ring. If a node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
+ *
+ * **When to use**
+ *
+ * Use to register or update several nodes in a `HashRing` at the same weight.
  *
  * @category combinators
  * @since 3.19.0
@@ -194,8 +229,26 @@ function addNodesToRing<A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, keys
 }
 
 /**
- * Add a new node to the ring. If the node already exists in the ring, it
+ * Adds a new node to the ring. If the node already exists in the ring, it
  * will be updated. For example, you can use this to update the node's weight.
+ *
+ * **When to use**
+ *
+ * Use to register one node in a `HashRing` so lookups and shard assignments can
+ * return it, or update that node's weight.
+ *
+ * **Details**
+ *
+ * Nodes are matched by `PrimaryKey.value`. The weight defaults to `1` and is
+ * clamped to at least `0.1`.
+ *
+ * **Gotchas**
+ *
+ * This mutates and returns the same ring instance.
+ *
+ * @see {@link addMany} for adding or updating several nodes
+ * @see {@link remove} for unregistering a node
+ * @see {@link has} for checking primary-key membership
  *
  * @category combinators
  * @since 3.19.0
@@ -213,6 +266,23 @@ export const add: {
 
 /**
  * Removes the node from the ring. No-op's if the node does not exist.
+ *
+ * **When to use**
+ *
+ * Use to remove a node that has left the pool so future lookups and shard
+ * assignments stop returning it.
+ *
+ * **Details**
+ *
+ * Removal matches by `PrimaryKey.value`, so any value with the same primary key
+ * removes the same ring member.
+ *
+ * **Gotchas**
+ *
+ * This mutates and returns the same ring instance.
+ *
+ * @see {@link add} for registering or updating a node
+ * @see {@link has} for checking membership by primary key
  *
  * @category combinators
  * @since 3.19.0
@@ -234,6 +304,20 @@ export const remove: {
 /**
  * Checks whether the ring contains a node with the same `PrimaryKey` value.
  *
+ * **When to use**
+ *
+ * Use when you need to know whether registering a node would update an existing
+ * ring member because another node already has the same primary-key identity.
+ *
+ * **Details**
+ *
+ * Membership is checked with `self.nodes.has(PrimaryKey.value(node))`, so
+ * matching is by primary key, not object identity or weight.
+ *
+ * @see {@link add} for registering or updating nodes
+ * @see {@link remove} for removing nodes by the same primary-key identity
+ * @see {@link get} for routing an input string to a node
+ *
  * @category combinators
  * @since 3.19.0
  */
@@ -249,6 +333,14 @@ export const has: {
  * Gets the node which should handle the given input. Returns undefined if
  * the hashring has no elements with weight.
  *
+ * **When to use**
+ *
+ * Use to route a single string input key to the current ring member responsible
+ * for that key.
+ *
+ * @see {@link getShards} for assigning fixed shard indexes instead of routing
+ * one input string at a time
+ *
  * @category combinators
  * @since 3.19.0
  */
@@ -262,9 +354,12 @@ export const get = <A extends PrimaryKey.PrimaryKey>(self: HashRing<A>, input: s
 }
 
 /**
- * Distributes `count` shards across the nodes in the ring, attempting to
- * balance the number of shards allocated to each node. Returns undefined if
- * the hashring has no elements with weight.
+ * Computes a balanced shard distribution across the nodes in the ring.
+ *
+ * **When to use**
+ *
+ * Use to precompute ownership for a fixed number of shard indexes across the
+ * current ring members.
  *
  * @category combinators
  * @since 3.19.0

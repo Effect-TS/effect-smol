@@ -57,13 +57,11 @@
  *
  * **When to use**
  *
- * - Building JSON Pointers from object keys or path segments that may contain special characters
- * - Escaping tokens before joining them with `/` to form a complete JSON Pointer
- * - Preparing reference tokens for use in JSON Patch operations or schema references
+ * Use when you need to escape a single JSON Pointer path segment.
  *
  * **Details**
  *
- * - Does not mutate the input string; returns a new escaped string
+ * - Returns a new escaped string
  * - Replaces `~` (tilde) with `~0` and `/` (forward slash) with `~1`
  * - Returns the input unchanged if it contains no special characters
  * - Empty strings are valid and returned unchanged
@@ -91,17 +89,15 @@ export function escapeToken(token: string): string {
 }
 
 /**
- * Unescapes a JSON Pointer reference token according to RFC 6901 by decoding escaped characters to recover the original token value.
+ * Decodes a JSON Pointer reference token according to RFC 6901 escaping rules.
  *
  * **When to use**
  *
- * - Parsing JSON Pointers to extract the original token values from escaped segments
- * - Converting escaped tokens back to their original form for use as object keys or identifiers
- * - Resolving schema references or JSON Patch paths that use escaped tokens
+ * Use when you need to decode a single escaped JSON Pointer path segment.
  *
  * **Details**
  *
- * - Does not mutate the input string; returns a new unescaped string
+ * - Returns a new unescaped string
  * - Replaces `~1` with `/` (forward slash) and `~0` with `~` (tilde)
  * - Returns the input unchanged if it contains no escaped sequences
  * - Empty strings are valid and returned unchanged

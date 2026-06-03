@@ -1,17 +1,23 @@
 /**
  * The `Cache` module provides an effectful, mutable key-value cache for values
- * that are computed by a lookup function. A `Cache<Key, A, E, R>` stores lookup
- * results for keys, shares concurrent lookups for the same key, and manages
- * entry lifetime with capacity limits and optional time-to-live policies.
+ * computed by lookup effects. A `Cache<Key, A, E, R>` stores lookup exits for
+ * keys, shares concurrent misses for the same key, and manages entry lifetime
+ * with capacity limits and optional time-to-live policies.
  *
  * **Mental model**
  *
- * - A cache is created from a lookup function and a maximum capacity
- * - {@link get} returns a cached value when present, or runs the lookup on a miss
- * - Concurrent misses for the same key share one pending lookup
- * - Lookup failures are cached as failures until the entry expires, is invalidated, or is refreshed
- * - Entries can live forever, expire after a fixed duration, or use a dynamic TTL based on the lookup `Exit`
- * - Capacity is enforced by removing the oldest stored entries when new entries are added
+ * - {@link make} and {@link makeWith} create a cache from a lookup function and
+ *   a maximum capacity
+ * - {@link get} returns a cached value when present, or runs the lookup for a
+ *   missing or expired key
+ * - Concurrent misses for the same key share one pending lookup and all await
+ *   the same result
+ * - Successes and failures are both cached as `Exit` values until their entry
+ *   expires or is replaced
+ * - Entries can live forever, use a fixed TTL, or use a dynamic TTL based on
+ *   the lookup `Exit`
+ * - Capacity uses access order: reads move entries to the back and overflow
+ *   removes the oldest entries
  *
  * **Common tasks**
  *
@@ -24,10 +30,15 @@
  *
  * **Gotchas**
  *
- * - {@link getOption} does not run the lookup; it only reads an existing non-expired entry
+ * - {@link getOption} does not run the lookup, but it awaits pending entries
+ *   and fails when the existing entry is a failure
+ * - {@link getSuccess} returns `Option.none` for missing, expired, pending, or
+ *   failed entries
  * - {@link size} may include expired entries until they are observed and removed
- * - {@link values} and {@link entries} include only successfully resolved entries
- * - Use `Data` or another `Equal`-compatible key type when keys need structural equality
+ * - {@link values} and {@link entries} include only successfully resolved,
+ *   non-expired entries
+ * - Use `Data` or another `Equal`-compatible key type when keys should compare
+ *   structurally
  *
  * **See also**
  *
@@ -140,11 +151,17 @@ export interface Cache<in out Key, in out A, in out E = never, out R = never> ex
  * Represents a low-level cache entry containing a deferred lookup result and
  * an optional expiration timestamp.
  *
+ * **When to use**
+ *
+ * Use when inspecting a `Cache`'s low-level map and you need the stored
+ * deferred lookup result or expiration timestamp for a key.
+ *
  * **Details**
  *
- * An `expiresAt` value of `undefined` means the entry does not expire. Most
- * users should interact with entries through the `Cache` combinators rather
- * than constructing them directly.
+ * An `expiresAt` value of `undefined` means the entry does not expire.
+ *
+ * @see {@link Cache} for the public cache API that manages entries through
+ * combinators
  *
  * @category models
  * @since 4.0.0
@@ -156,6 +173,11 @@ export interface Entry<A, E> {
 
 /**
  * Creates a cache with dynamic time-to-live based on the result and key.
+ *
+ * **When to use**
+ *
+ * Use when you need different cache entry lifetimes based on the lookup result
+ * or key characteristics.
  *
  * **Details**
  *
@@ -187,6 +209,7 @@ export interface Entry<A, E> {
  * })
  * ```
  *
+ * @see {@link make} for a simpler cache constructor with a fixed time-to-live for all entries
  * @category constructors
  * @since 2.0.0
  */
@@ -599,6 +622,15 @@ const getImpl = <Key, A, E, R>(
  * Retrieves the value associated with the specified key from the cache, only if
  * it contains a resolved successful value.
  *
+ * **Details**
+ *
+ * This checks only an existing non-expired entry. It returns `Option.some` when
+ * the entry has already resolved successfully, and `Option.none` for missing,
+ * expired, failed, or still-pending entries.
+ *
+ * @see {@link get} for triggering or awaiting the cache lookup
+ * @see {@link getOption} for reading an existing entry as an optional effect
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -741,7 +773,12 @@ export const set: {
 )
 
 /**
- * Checks if the cache contains an entry for the specified key.
+ * Checks whether the cache contains an entry for the specified key.
+ *
+ * **Details**
+ *
+ * This checks for an existing non-expired entry without invoking the cache
+ * lookup function. Expired entries are treated as absent.
  *
  * **Example** (Checking for cached keys)
  *
@@ -890,8 +927,8 @@ export const invalidate: {
   }))
 
 /**
- * Conditionally invalidates the entry associated with the specified key in the cache
- * if the predicate returns true for the cached value.
+ * Invalidates the entry associated with the specified key in the cache when the
+ * predicate returns true for the cached value.
  *
  * **Example** (Invalidating entries conditionally)
  *
@@ -1270,6 +1307,13 @@ export const values = <Key, A, E, R>(self: Cache<Key, A, E, R>): Effect.Effect<I
  * Retrieves all key-value pairs from the cache as an iterable. This function
  * only returns entries with successfully resolved values, filtering out any
  * failed lookups or expired entries.
+ *
+ * **Gotchas**
+ *
+ * Expired entries are removed from the cache while `entries` filters them out.
+ *
+ * @see {@link keys} for retrieving only cached keys
+ * @see {@link values} for retrieving only cached values
  *
  * @category combinators
  * @since 4.0.0

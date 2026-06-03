@@ -1,17 +1,30 @@
 /**
  * Node.js layers for Effect's `Path` service.
  *
- * Use this module when an Effect program running on Node needs path operations
- * from the `Path` service, such as joining and normalizing filesystem
- * locations, resolving configuration or static asset paths, working with CLI
- * path arguments, or converting between file paths and `file:` URLs.
+ * This module adapts Node's path and file URL behavior to the
+ * platform-independent `Path` service. Provide one of its layers when a Node
+ * program needs to build, normalize, parse, resolve, or convert paths without
+ * depending directly on `node:path`.
  *
- * `layer` follows the host platform's `node:path` semantics. Use `layerPosix`
- * or `layerWin32` when code needs stable POSIX or Windows behavior regardless
- * of the operating system. These layers provide only path manipulation; they do
- * not read the filesystem or validate that paths exist. `NodeServices.layer`
- * already includes the default Node path layer, so provide this module directly
- * when you want the narrower service or one of the platform-specific variants.
+ * **Mental model**
+ *
+ * `Path` is a syntactic service: it manipulates strings and `file:` URLs. It
+ * does not read the filesystem, check permissions, or validate that paths
+ * exist. The selected layer decides which separator, drive-letter, UNC, and URL
+ * conversion rules are used.
+ *
+ * **Common tasks**
+ *
+ * Use `layer` for host-platform Node semantics, `layerPosix` for stable POSIX
+ * behavior, and `layerWin32` for stable Windows behavior. `NodeServices.layer`
+ * already includes `layer`, so import this module directly when a program wants
+ * only path support or a platform-specific variant.
+ *
+ * **Gotchas**
+ *
+ * Results that are correct on one platform may not be portable to another.
+ * `fromFileUrl` and `toFileUrl` use Node's `node:url` conversion rules and
+ * report invalid conversions as `BadArgument` failures.
  *
  * @since 4.0.0
  */

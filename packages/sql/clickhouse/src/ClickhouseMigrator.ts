@@ -1,20 +1,32 @@
 /**
- * Utilities for applying Effect SQL migrations to ClickHouse databases.
+ * ClickHouse adapter for the shared Effect SQL migration runner.
  *
- * This module re-exports the shared `Migrator` loaders and error types, then
- * provides `run` and `layer` helpers for applying ordered migrations through
- * the current ClickHouse `SqlClient`. It is typically used during application
- * startup, deployment, or integration tests that need to prepare analytical
- * tables before dependent services begin reading or writing data.
+ * This module re-exports the common `Migrator` loaders and error types, then
+ * provides `run` and `layer` helpers that apply ordered migrations through the
+ * current ClickHouse `SqlClient`. Use it during application startup,
+ * deployment, or integration tests when analytical tables must exist before
+ * dependent services start reading or writing data.
  *
- * Applied migrations are stored in `effect_sql_migrations` by default and use
- * the shared `<id>_<name>` loader convention. Only migrations with ids greater
- * than the latest recorded id are run. ClickHouse schema changes often depend
- * on engine, `ORDER BY`, database, and cluster settings, and many deployments
- * rely on explicit `ON CLUSTER` clauses or coordinated rollout tooling. This
- * adapter does not add a ClickHouse-specific table lock or schema dumper, so
- * coordinate concurrent migrators and do not expect `schemaDirectory` to emit a
- * ClickHouse schema snapshot.
+ * **Mental model**
+ *
+ * Migrations are loaded with the shared `<id>_<name>` convention and recorded in
+ * `effect_sql_migrations` by default. The runner reads the latest recorded id
+ * and applies only migrations with larger ids, returning the ids and names that
+ * were applied in the current run.
+ *
+ * **Common tasks**
+ *
+ * - Call `run` when an effect should explicitly migrate a ClickHouse database.
+ * - Use `layer` when schema setup should happen while building a layer graph.
+ * - Reuse the shared `Migrator` loaders from this module for file-based or
+ *   in-memory migration definitions.
+ *
+ * **Gotchas**
+ *
+ * ClickHouse schema changes often depend on engine, `ORDER BY`, database, and
+ * cluster settings. This adapter does not add a ClickHouse-specific table lock
+ * or schema dumper, so coordinate concurrent migrators yourself and do not
+ * expect `schemaDirectory` to write a ClickHouse schema snapshot.
  *
  * @since 4.0.0
  */

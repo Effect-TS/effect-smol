@@ -109,7 +109,16 @@ export interface Console {
 }
 
 /**
- * A reference to the current console service in the Effect system, allowing access to the active console implementation from within the Effect context.
+ * Context reference for the current console service in the Effect system, allowing access to the active console implementation from within the Effect context.
+ *
+ * **When to use**
+ *
+ * Use when you need an effect to run against a provided console implementation,
+ * such as tests or alternate runtimes, rather than the default console.
+ *
+ * **Details**
+ *
+ * When no override is provided, the reference resolves to `globalThis.console`.
  *
  * **Example** (Accessing the current console)
  *
@@ -122,6 +131,8 @@ export interface Console {
  *   })
  * )
  * ```
+ *
+ * @see {@link consoleWith} for using the current console service inside an effect
  *
  * @category references
  * @since 2.0.0
@@ -175,7 +186,17 @@ export const assert = (condition: boolean, ...args: ReadonlyArray<any>): Effect.
   )
 
 /**
- * Clears all previously logged messages from the console.
+ * Runs the current console service's clear operation.
+ *
+ * **When to use**
+ *
+ * Use to request that the active console implementation clear its visible
+ * output.
+ *
+ * **Gotchas**
+ *
+ * The clearing behavior depends on the active console implementation and host
+ * environment.
  *
  * **Example** (Clearing console output)
  *
@@ -331,7 +352,8 @@ export const dirxml = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   )
 
 /**
- * Outputs an error-level message to the console, typically displayed with error styling by the active console implementation.
+ * Writes an error-level message to the console, typically displayed with error
+ * styling by the active console implementation.
  *
  * **Example** (Writing error messages)
  *
@@ -400,7 +422,8 @@ export const group = (
   )
 
 /**
- * Outputs an informational message to the console, typically displayed with info styling by the active console implementation.
+ * Writes an informational message to the console, typically displayed with info
+ * styling by the active console implementation.
  *
  * **Example** (Writing informational messages)
  *
@@ -427,7 +450,7 @@ export const info = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   )
 
 /**
- * Outputs a general-purpose message to the console for ordinary logging.
+ * Logs a general-purpose message to the console.
  *
  * **Example** (Writing log messages)
  *
@@ -548,7 +571,8 @@ export const timeLog = (label?: string, ...args: ReadonlyArray<any>): Effect.Eff
   )
 
 /**
- * Outputs the current stack trace to the console to show how the current point in the code was reached.
+ * Writes the current stack trace to the console to show how the current point in
+ * the code was reached.
  *
  * **Example** (Writing stack traces)
  *
@@ -572,7 +596,8 @@ export const trace = (...args: ReadonlyArray<any>): Effect.Effect<void> =>
   )
 
 /**
- * Outputs a warning-level message to the console, typically displayed with warning styling by the active console implementation.
+ * Writes a warning-level message to the console, typically displayed with
+ * warning styling by the active console implementation.
  *
  * **Example** (Writing warning messages)
  *

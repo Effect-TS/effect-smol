@@ -1,18 +1,37 @@
 /**
- * Provides a React Native SQLite `SqlClient` backed by `@op-engineering/op-sqlite`.
+ * React Native SQLite client implementation for Effect SQL, backed by
+ * `@op-engineering/op-sqlite`.
  *
- * Use this module to open an on-device SQLite database, expose it as both the
- * React Native-specific `SqliteClient` and the generic Effect `SqlClient`, and
- * run application queries, migrations, and transactional reads or writes from
- * Effect services and layers.
+ * This module opens an on-device SQLite database and exposes it as both the
+ * React Native-specific `SqliteClient` service and the generic Effect
+ * `SqlClient` service. Use it for mobile application storage, offline caches,
+ * local migrations, sync queues, and tests that need the same SQLite driver as
+ * the app runtime.
  *
- * The client uses one serialized connection. Regular queries and transactions
- * share that handle, and a transaction holds it for the lifetime of its scope,
- * so keep mobile transactions short and wrap multi-statement writes in a
- * transaction to avoid partial updates. By default statements use the driver's
- * synchronous API, which can block the JavaScript thread; `withAsyncQuery`
- * switches a fiber to the asynchronous driver API when UI responsiveness is more
- * important than sync execution.
+ * **Mental model**
+ *
+ * A client owns one scoped op-sqlite database handle configured with the
+ * provided `filename`, optional `location`, and optional `encryptionKey`.
+ * Queries are compiled through the Effect SQL SQLite compiler and serialized
+ * through that single handle. A transaction keeps the serialized connection
+ * permit for the whole transaction scope, so other fibers using the same client
+ * wait until the transaction finishes.
+ *
+ * **Common tasks**
+ *
+ * Use `layer` when a React Native app should provide both `SqliteClient` and
+ * the generic `SqlClient` from a concrete configuration, `layerConfig` when the
+ * configuration should come from Effect `Config`, and `make` inside a custom
+ * scoped layer when you need direct lifecycle control. Use `withAsyncQuery`
+ * around UI-sensitive effects or longer migration steps to run statements with
+ * the driver's asynchronous API instead of the default synchronous API.
+ *
+ * **Gotchas**
+ *
+ * The default synchronous op-sqlite API can block the JavaScript thread, so keep
+ * transactions short and wrap multi-statement writes in a transaction to avoid
+ * partial updates. `executeStream` is not implemented for this driver, and
+ * SQLite does not support `updateValues`.
  *
  * @since 4.0.0
  */
@@ -68,9 +87,9 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
- * Context service tag for the React Native SQLite client.
+ * Service tag for the React Native SQLite client.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-react-native/SqliteClient")
@@ -91,7 +110,12 @@ export interface SqliteClientConfig {
 }
 
 /**
- * Fiber-local flag that makes the React Native SQLite client run queries through the asynchronous `execute` API instead of `executeSync`.
+ * Fiber reference that makes the React Native SQLite client run queries through the asynchronous `execute` API instead of `executeSync`.
+ *
+ * **When to use**
+ *
+ * Use to switch React Native SQLite query execution to the asynchronous driver
+ * API for a scoped effect.
  *
  * @category fiber refs
  * @since 4.0.0

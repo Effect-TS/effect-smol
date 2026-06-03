@@ -1,22 +1,40 @@
 /**
- * Helpers and data types for describing the OTLP resource attached to exported
- * logs, metrics, and traces.
+ * OTLP resource metadata for logs, metrics, and traces exported by Effect.
  *
- * A resource identifies the service that produced telemetry and carries
- * process- or deployment-level attributes that should be shared across every
- * signal sent by the Effect OTLP logger, metrics exporter, and tracer. Use this
- * module when building explicit resource metadata, reading the standard OTEL
- * resource environment variables, or converting application metadata into OTLP
- * `KeyValue` / `AnyValue` shapes before serialization.
+ * This module builds the resource object attached to every OTLP signal sent by
+ * the Effect observability exporters. A resource carries service identity such
+ * as `service.name` and `service.version`, plus process, host, deployment, or
+ * application attributes that should be shared by all exported telemetry.
+ *
+ * **Mental model**
+ *
+ * A {@link Resource} is the OTLP envelope for service-level metadata. Use
+ * {@link make} when the service metadata is already known, or use
+ * {@link fromConfig} when explicit options should be merged with standard
+ * OpenTelemetry environment variables before export. Attribute helpers convert
+ * JavaScript values into OTLP {@link KeyValue} and {@link AnyValue} structures
+ * used by JSON and protobuf serialization.
+ *
+ * **Common tasks**
+ *
+ * - Create explicit resource metadata with {@link make}.
+ * - Read `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
+ *   `OTEL_SERVICE_VERSION` with {@link fromConfig}.
+ * - Convert custom attribute records with {@link entriesToAttributes}.
+ * - Convert individual runtime values with {@link unknownToAttributeValue}.
+ *
+ * **Gotchas**
  *
  * `service.name` is required because the signal exporters also use it as the
- * instrumentation scope name. Explicit resource options take precedence over
- * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
- * `OTEL_SERVICE_VERSION`; `service.name` and `service.version` are normalized
- * through the service metadata inputs and re-added as canonical OTLP
- * attributes rather than left in the custom attribute map. Attribute values are
- * converted to OTLP scalar or array values where possible, with unsupported
- * runtime values formatted as strings.
+ * instrumentation scope name. OpenTelemetry environment variables take
+ * precedence over explicit options. `service.name` and `service.version` are
+ * normalized into canonical OTLP attributes instead of being left in the custom
+ * attribute map. Unsupported runtime values are formatted as strings.
+ *
+ * **See also**
+ *
+ * {@link Resource}, {@link make}, {@link fromConfig},
+ * {@link unknownToAttributeValue}.
  *
  * @since 4.0.0
  */
@@ -84,9 +102,9 @@ export const make = (options: {
  *
  * **Details**
  *
- * Explicit options override `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`,
- * and `OTEL_SERVICE_VERSION`; missing required configuration is converted to a
- * defect.
+ * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
+ * `OTEL_SERVICE_VERSION` override explicit options; missing required
+ * configuration is converted to a defect.
  *
  * @category constructors
  * @since 4.0.0
@@ -102,19 +120,30 @@ export const fromConfig: (
   readonly serviceVersion?: string | undefined
   readonly attributes?: Record<string, unknown> | undefined
 }) {
+  const env = yield* Config.schema(
+    Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
+    "OTEL_RESOURCE_ATTRIBUTES"
+  )
+
+  const serviceName = (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_NAME"))
+    ?? env?.["service.name"] as string | undefined
+    ?? options?.attributes?.["service.name"] as string | undefined
+    ?? options?.serviceName
+    ?? (yield* Config.string("OTEL_SERVICE_NAME"))
+
+  const serviceVersion = (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_VERSION"))
+    ?? env?.["service.version"] as string | undefined
+    ?? options?.attributes?.["service.version"] as string | undefined
+    ?? options?.serviceVersion
+
   const attributes = {
-    ...(yield* Config.schema(
-      Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
-      "OTEL_RESOURCE_ATTRIBUTES"
-    )),
-    ...options?.attributes
+    ...options?.attributes,
+    ...env
   }
-  const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
-    (yield* Config.schema(Schema.String, "OTEL_SERVICE_NAME"))
+
   delete attributes["service.name"]
-  const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
-    (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_VERSION"))
   delete attributes["service.version"]
+
   return make({
     serviceName,
     serviceVersion,
@@ -124,6 +153,11 @@ export const fromConfig: (
 
 /**
  * Returns the `service.name` attribute from an OTLP resource.
+ *
+ * **When to use**
+ *
+ * Use when an OTLP resource is known to contain a string `service.name` and
+ * throwing is acceptable if that invariant is broken.
  *
  * **Gotchas**
  *

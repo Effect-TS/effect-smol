@@ -1,19 +1,35 @@
 /**
- * Browser clipboard service for Effect programs.
+ * Browser clipboard integration for Effect programs.
  *
- * This module wraps the browser `navigator.clipboard` API in a `Clipboard`
- * service so client-side applications can read, write, and clear clipboard
- * contents as typed Effects. It is useful for common UI workflows such as copy
- * buttons, paste/import actions, sharing generated text, and moving rich
- * clipboard payloads like `Blob`-backed `ClipboardItem`s through an Effect
- * environment.
+ * This module provides a `Clipboard` service backed by `navigator.clipboard`.
+ * It keeps copy, paste, clear, and rich clipboard operations inside the Effect
+ * environment so browser UI code can require clipboard capability without
+ * calling the global API directly. Text helpers cover portable copy and paste
+ * flows, while `read`, `write`, and `writeBlob` expose `ClipboardItem` payloads
+ * for browsers that support richer MIME types.
  *
- * Browser clipboard rules still apply. Clipboard access generally requires a
- * secure context, and browsers may require a user gesture, permission prompt, or
- * active focused document before reads or writes are allowed. Support also
- * varies by operation and payload type: text helpers are the most portable,
- * while `ClipboardItem` and non-text MIME types may be unavailable or restricted
- * in some browsers. Failed browser operations are surfaced as `ClipboardError`.
+ * **Mental model**
+ *
+ * `Clipboard` is a capability service. Application code depends on the service
+ * tag, {@link layer} supplies the live browser implementation, and {@link make}
+ * builds custom implementations for tests, unsupported browsers, or constrained
+ * capabilities. Browser failures are converted to {@link ClipboardError}.
+ *
+ * **Common tasks**
+ *
+ * - Provide {@link layer} near the browser application edge.
+ * - Use `writeString` for copy buttons and generated text.
+ * - Use `readString` for paste or import workflows.
+ * - Use `write` or `writeBlob` for rich clipboard payloads when
+ *   `ClipboardItem` is available.
+ * - Use `clear` to replace the clipboard with an empty string.
+ *
+ * **Gotchas**
+ *
+ * Clipboard access requires a secure context in modern browsers and may also
+ * require user activation, permissions, and a focused document. Support differs
+ * between reads, writes, text, and custom MIME payloads, so feature detection or
+ * graceful fallback is often needed around `ClipboardItem` usage.
  *
  * @since 4.0.0
  */
@@ -26,7 +42,25 @@ const TypeId = "~@effect/platform-browser/Clipboard"
 const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
 
 /**
- * Service interface for reading from, writing to, and clearing the browser clipboard.
+ * Defines the service interface for reading from, writing to, and clearing the browser clipboard.
+ *
+ * **When to use**
+ *
+ * Use when an application needs clipboard operations through an Effect service
+ * so browser failures stay in the error channel.
+ *
+ * **Details**
+ *
+ * `read` and `write` work with `ClipboardItem` arrays. `readString` and
+ * `writeString` use text, `writeBlob` writes one `Blob`, and `clear` writes an
+ * empty string.
+ *
+ * **Gotchas**
+ *
+ * Clipboard access generally requires a secure context and may require user
+ * activation, permissions, or a focused document. `ClipboardItem` and non-text
+ * MIME type support varies by browser. Failed browser operations are surfaced
+ * as `ClipboardError`.
  *
  * @category models
  * @since 4.0.0
@@ -55,7 +89,15 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
 }
 
 /**
- * Service tag for the browser `Clipboard` service.
+ * Service tag for browser clipboard capabilities.
+ *
+ * **When to use**
+ *
+ * Use when you need to require or provide clipboard capabilities through
+ * Effect's context.
+ *
+ * @see {@link make} for building a custom clipboard service
+ * @see {@link layer} for providing the browser-backed clipboard service
  *
  * @category services
  * @since 4.0.0
@@ -79,7 +121,7 @@ export const make = (
   })
 
 /**
- * A layer that directly interfaces with the navigator.clipboard api
+ * Layer that directly interfaces with the browser Clipboard API.
  *
  * @category layers
  * @since 4.0.0

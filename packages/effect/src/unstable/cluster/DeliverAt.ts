@@ -27,7 +27,12 @@ import type { DateTime } from "../../DateTime.ts"
 import { hasProperty } from "../../Predicate.ts"
 
 /**
- * Property key used by values that provide a scheduled delivery time.
+ * Defines the property key used by values that provide a scheduled delivery time.
+ *
+ * **When to use**
+ *
+ * Use to implement the scheduled-delivery protocol on cluster message payloads
+ * by defining a method at this property key.
  *
  * @category symbols
  * @since 4.0.0

@@ -1,21 +1,41 @@
 /**
- * Utilities for parsing and working with HTTP `multipart/form-data` request
- * bodies.
+ * Parses and persists HTTP `multipart/form-data` request bodies.
  *
- * This module converts multipart byte streams into typed `Part` values, either
- * as decoded text `Field` values or streamed `File` values. It is used by HTTP
- * server request handling for browser form submissions, API endpoints that
- * accept file uploads, and mixed payloads where structured fields accompany one
- * or more uploaded files. Persisted helpers collect fields into records and
- * write files into scoped temporary paths that can be decoded with schemas.
+ * `Multipart` turns incoming byte streams into typed {@link Part} values. Text
+ * parts become decoded {@link Field} values, while upload parts remain streamed
+ * {@link File} values until they are collected or written to scoped temporary
+ * files. The persisted representation can then be decoded with schemas for
+ * request handlers that receive fields and uploaded files together.
  *
- * Multipart bodies can be large and are often backed by one-shot request
- * streams, so prefer streaming file content unless the file is small enough to
- * collect with `contentEffect`. Persisted file paths are valid only while their
- * scope is open, and client-provided filenames should be treated as metadata
- * rather than trusted filesystem paths. Parser limits for part count, field
- * size, file size, total body size, and field MIME type handling are provided
- * through the module's context references.
+ * **Mental model**
+ *
+ * Multipart parsing is incremental. {@link makeChannel} consumes request body
+ * chunks and emits fields or files as soon as the parser reaches each part. A
+ * `File` owns a one-shot byte stream for that upload; {@link toPersisted}
+ * drains those file streams into scoped paths and collects text fields into a
+ * {@link Persisted} record.
+ *
+ * **Common tasks**
+ *
+ * - Parse a request body stream into {@link Part} values with {@link makeChannel}.
+ * - Persist parsed parts with {@link toPersisted} before schema decoding.
+ * - Decode persisted forms with {@link schemaPersisted}, {@link schemaJson},
+ *   {@link PersistedFileSchema}, or {@link SingleFileSchema}.
+ * - Configure parser limits with {@link limitsServices} or the `Max*` context
+ *   references.
+ *
+ * **Gotchas**
+ *
+ * Multipart request bodies are usually one-shot streams. Read each file stream
+ * once, and use `contentEffect` only when the file is small enough to hold in
+ * memory. Paths produced by {@link toPersisted} are scoped resources and stop
+ * being valid when the scope closes. Client-provided file names are metadata,
+ * not trusted filesystem paths.
+ *
+ * **See also**
+ *
+ * {@link Part}, {@link Field}, {@link File}, {@link Persisted},
+ * {@link makeChannel}, {@link toPersisted}.
  *
  * @since 4.0.0
  */
@@ -35,7 +55,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
 import * as Schema from "../../Schema.ts"
 import type { ParseOptions } from "../../SchemaAST.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
@@ -193,7 +213,7 @@ export interface Persisted {
 const MultipartErrorTypeId = "~effect/http/Multipart/MultipartError"
 
 /**
- * Reason carried by a `MultipartError`.
+ * Error reason carried by a `MultipartError`.
  *
  * **Details**
  *
@@ -286,7 +306,7 @@ export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
           contentType: Schema.String.annotate({ contentEncoding: "binary" }),
           path: Schema.String
         }),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: ({ contentType, key, name, path }) => new PersistedFileImpl(key, name, contentType, path),
           encode: (file) => ({
             key: file.key,
@@ -324,7 +344,7 @@ export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.$Arra
   ).pipe(
     Schema.decodeTo(
       PersistedFileSchema,
-      Transformation.transform({
+      SchemaTransformation.transform({
         decode: ([file]) => file,
         encode: (file) => [file]
       })
@@ -384,7 +404,7 @@ export const schemaJson = <A, I, RD, RE>(schema: Schema.Codec<A, I, RD, RE>, opt
  * Parser limits are read from the multipart references, including maximum parts,
  * field size, file size, total body size, and field MIME type overrides.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const makeConfig = (

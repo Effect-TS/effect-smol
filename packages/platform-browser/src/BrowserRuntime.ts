@@ -28,6 +28,22 @@ import { makeRunMain, type Teardown } from "effect/Runtime"
 /**
  * Runs an effect as the browser main program and interrupts its fiber when the page receives a `beforeunload` event.
  *
+ * **When to use**
+ *
+ * Use to launch a browser page, single-page application, demo, or browser test
+ * harness as a root Effect program.
+ *
+ * **Details**
+ *
+ * Supports both direct and curried call forms. Options are forwarded to
+ * `makeRunMain`, including `disableErrorReporting` and custom `teardown`
+ * behavior.
+ *
+ * **Gotchas**
+ *
+ * The `beforeunload` interruption is best-effort. Browser teardown may prevent
+ * asynchronous finalizers, network work, timers, or prompts from completing.
+ *
  * @category Runtime
  * @since 4.0.0
  */

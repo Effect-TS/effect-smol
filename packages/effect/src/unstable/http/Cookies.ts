@@ -1,17 +1,63 @@
 /**
- * Utilities for representing, validating, parsing, and serializing HTTP cookies.
+ * Immutable HTTP cookie values and collections for request and response
+ * workflows.
  *
- * This module provides an immutable `Cookies` collection keyed by cookie name,
- * constructors for validated `Cookie` values, and helpers for common server and
- * client flows such as reading `Cookie` request headers, emitting `Set-Cookie`
- * response headers, merging cookie sets, and expiring cookies.
+ * The module models a validated {@link Cookie}, an immutable {@link Cookies}
+ * collection keyed by cookie name, and the conversions needed around HTTP
+ * headers. Use it to read request `Cookie` headers, build cookies with standard
+ * attributes, merge or remove cookies immutably, expire cookies, and emit
+ * response `Set-Cookie` headers.
  *
- * Cookie parsing is intentionally tolerant of malformed input: unsupported or
- * invalid `Set-Cookie` attributes are ignored, values are percent-decoded on a
- * best-effort basis, and collections keep one cookie per name. Security
- * attributes such as `HttpOnly`, `Secure`, `SameSite`, and `Partitioned` are
- * serialized when present, but browsers enforce their final behavior, so set
- * them explicitly for session, cross-site, and HTTPS-sensitive cookies.
+ * **Mental model**
+ *
+ * - A `Cookie` stores both the decoded `value` and the encoded `valueEncoded`
+ *   used in headers
+ * - A `Cookies` collection contains at most one cookie per name; later writes,
+ *   merges, and iterable inputs replace earlier cookies with the same name
+ * - `Cookie` request headers carry name/value pairs, while `Set-Cookie`
+ *   response headers carry one cookie plus optional attributes
+ * - Safe constructors return `Result` failures for invalid names, values,
+ *   domains, paths, or infinite `Max-Age` values
+ *
+ * **Common tasks**
+ *
+ * - Create cookies: {@link makeCookie}, {@link makeCookieUnsafe}
+ * - Build collections: {@link empty}, {@link fromIterable},
+ *   {@link fromSetCookie}, {@link fromReadonlyRecord}
+ * - Read values: {@link get}, {@link getValue}, {@link toRecord},
+ *   {@link isEmpty}
+ * - Update collections: {@link set}, {@link setUnsafe}, {@link setAll},
+ *   {@link setCookie}, {@link setAllCookie}, {@link remove}, {@link merge}
+ * - Expire cookies: {@link expireCookie}, {@link expireCookieUnsafe}
+ * - Encode and decode headers: {@link toCookieHeader},
+ *   {@link toSetCookieHeaders}, {@link serializeCookie}, {@link parseHeader}
+ *
+ * **Gotchas**
+ *
+ * - Use {@link toCookieHeader} for an outbound request `Cookie` header and
+ *   {@link toSetCookieHeaders} for response `Set-Cookie` headers.
+ * - Parsing is intentionally tolerant: malformed `Set-Cookie` input can be
+ *   ignored, unsupported attributes are skipped, and percent-decoding falls
+ *   back to the original text.
+ * - Security attributes such as `HttpOnly`, `Secure`, `SameSite`, and
+ *   `Partitioned` are serialized when present, but browser policy enforces
+ *   their final behavior.
+ *
+ * **Example** (Serializing a session cookie)
+ *
+ * ```ts
+ * import { Cookies } from "effect/unstable/http"
+ *
+ * const cookies = Cookies.setUnsafe(Cookies.empty, "session", "abc123", {
+ *   httpOnly: true,
+ *   path: "/",
+ *   sameSite: "lax",
+ *   secure: true
+ * })
+ *
+ * console.log(Cookies.toSetCookieHeaders(cookies))
+ * // ["session=abc123; Path=/; HttpOnly; Secure; SameSite=Lax"]
+ * ```
  *
  * @since 4.0.0
  */
@@ -25,7 +71,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Types from "../../Types.ts"
 
 const TypeId = "~effect/http/Cookies"
@@ -84,7 +130,7 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
     toCodecJson: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: (input) => fromSetCookie(input),
           encode: (cookies) => toSetCookieHeaders(cookies)
         })
@@ -92,7 +138,7 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
     toCodecIso: () =>
       Schema.link<Cookies>()(
         Schema.Record(Schema.String, CookieSchema),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: (input) => fromReadonlyRecord(input),
           encode: (cookies) => cookies.cookies
         })
@@ -106,7 +152,7 @@ const CookieTypeId = "~effect/http/Cookies/Cookie"
  * HTTP cookie value with its decoded value, encoded value, and optional cookie
  * attributes such as domain, path, expiration, security, and same-site settings.
  *
- * @category cookie
+ * @category cookies
  * @since 4.0.0
  */
 export interface Cookie extends Inspectable.Inspectable {
@@ -167,8 +213,8 @@ export const CookieSchema: CookieSchema = Schema.declare(
 const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
 
 /**
- * Structured reason describing why cookie construction failed, such as invalid
- * name, value, domain, path, or infinite max-age.
+ * Error reason describing why cookie construction failed, such as invalid name,
+ * value, domain, path, or infinite max-age.
  *
  * @category errors
  * @since 4.0.0
@@ -502,7 +548,7 @@ export const makeCookieUnsafe = (
 ): Cookie => Result.getOrThrow(makeCookie(name, value, options))
 
 /**
- * Add a cookie to a Cookies object
+ * Adds a cookie to a Cookies object
  *
  * @category combinators
  * @since 4.0.0
@@ -521,7 +567,7 @@ export const setCookie: {
 )
 
 /**
- * Add multiple cookies to a Cookies object
+ * Adds multiple cookies to a Cookies object
  *
  * @category combinators
  * @since 4.0.0
@@ -538,7 +584,7 @@ export const setAllCookie: {
 })
 
 /**
- * Combine two Cookies objects, removing duplicates from the first
+ * Combines two Cookies objects, removing duplicates from the first
  *
  * @category combinators
  * @since 4.0.0
@@ -553,7 +599,7 @@ export const merge: {
   }))
 
 /**
- * Remove a cookie by name
+ * Removes a cookie by name
  *
  * @category combinators
  * @since 4.0.0
@@ -564,7 +610,7 @@ export const remove: {
 } = dual(2, (self: Cookies, name: string) => fromReadonlyRecord(Record.remove(self.cookies, name)))
 
 /**
- * Get a cookie from a Cookies object
+ * Gets a cookie from a Cookies object safely.
  *
  * @category combinators
  * @since 4.0.0
@@ -578,7 +624,7 @@ export const get: {
 )
 
 /**
- * Gets the decoded value of a cookie by name.
+ * Gets the decoded value of a cookie by name safely.
  *
  * **Details**
  *
@@ -596,7 +642,7 @@ export const getValue: {
 )
 
 /**
- * Creates and adds a cookie by name and value.
+ * Creates and adds a cookie safely by name and value.
  *
  * **Details**
  *
@@ -655,7 +701,7 @@ export const setUnsafe: {
 )
 
 /**
- * Adds an expired cookie with an empty value, `Max-Age=0`, and an epoch `Expires` value.
+ * Adds an expired cookie safely with an empty value, `Max-Age=0`, and an epoch `Expires` value.
  *
  * **Details**
  *
@@ -689,7 +735,7 @@ export const expireCookie: {
 )
 
 /**
- * Add an expired cookie to a Cookies object, throwing an error if invalid
+ * Adds an expired cookie to a Cookies object, throwing an error if invalid
  *
  * @category combinators
  * @since 4.0.0
@@ -719,7 +765,7 @@ export const expireCookieUnsafe: {
 )
 
 /**
- * Creates and adds multiple cookies from name/value/options tuples.
+ * Creates and adds multiple cookies safely from name/value/options tuples.
  *
  * **Details**
  *
@@ -755,7 +801,7 @@ export const setAll: {
 )
 
 /**
- * Add multiple cookies to a Cookies object, throwing an error if invalid
+ * Adds multiple cookies to a Cookies object, throwing an error if invalid
  *
  * @category combinators
  * @since 4.0.0
@@ -772,7 +818,7 @@ export const setAllUnsafe: {
 )
 
 /**
- * Serialize a cookie into a string
+ * Serializes a cookie into a string.
  *
  * **Details**
  *
@@ -852,7 +898,7 @@ export function serializeCookie(self: Cookie): string {
 }
 
 /**
- * Serialize a Cookies object into a Cookie header
+ * Serializes a `Cookies` object into a Cookie header.
  *
  * @category encoding
  * @since 4.0.0
@@ -877,7 +923,8 @@ export const toRecord = (self: Cookies): Record<string, string> => {
 }
 
 /**
- * Schema transformation between `Cookies` and a record of decoded string values keyed by cookie name.
+ * Schema for transforming `Cookies` into records of decoded string values keyed
+ * by cookie name.
  *
  * @category schemas
  * @since 4.0.0
@@ -885,7 +932,7 @@ export const toRecord = (self: Cookies): Record<string, string> => {
 export const schemaRecord = CookiesSchema.pipe(
   Schema.decodeTo(
     Schema.Record(Schema.String, Schema.String),
-    Transformation.transform({
+    SchemaTransformation.transform({
       decode: toRecord,
       encode: (self) => fromIterable(Object.entries(self).map(([name, value]) => makeCookieUnsafe(name, value)))
     })
@@ -901,7 +948,7 @@ export const schemaRecord = CookiesSchema.pipe(
 export const toSetCookieHeaders = (self: Cookies): Array<string> => Object.values(self.cookies).map(serializeCookie)
 
 /**
- * Parse a cookie header into a record of key-value pairs
+ * Parses a cookie header into a record of key-value pairs
  *
  * **Details**
  *

@@ -30,7 +30,7 @@ import type * as CliError from "./CliError.ts"
 import type { HelpDoc } from "./HelpDoc.ts"
 
 /**
- * Service interface for formatting CLI output including help, errors, and version info.
+ * Defines the service interface for formatting CLI output including help, errors, and version info.
  * This allows customization of output formatting, including color support.
  *
  * **Example** (Customizing CLI output formatting)

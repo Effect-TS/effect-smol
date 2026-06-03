@@ -453,6 +453,11 @@ export interface ParsedTokens {
 /**
  * Returns `true` if the provided value is a `Command`.
  *
+ * **Gotchas**
+ *
+ * This checks for the `Command` type-id property; it does not validate the full
+ * command shape.
+ *
  * @category guards
  * @since 4.0.0
  */
@@ -889,7 +894,7 @@ export const withSharedFlags: {
 )
 
 /**
- * Declares global flags for a command scope.
+ * Adds global flags to a command scope.
  *
  * **Details**
  *
@@ -1041,8 +1046,8 @@ export const withAlias: {
  *
  * **When to use**
  *
- * Use this for experimental or internal subcommands that should be accepted but
- * not advertised on the public CLI surface.
+ * Use when experimental or internal subcommands should be accepted but not advertised on
+ * the public CLI surface.
  *
  * **Example** (Hiding a subcommand)
  *
@@ -1071,6 +1076,22 @@ export const withHidden = <const Name extends string, Input, E, R, ContextInput>
 /**
  * Adds a custom annotation to a command.
  *
+ * **When to use**
+ *
+ * Use to attach one command-scoped metadata value under a `Context.Key`,
+ * especially for consumers such as custom help formatters.
+ *
+ * **Details**
+ *
+ * Annotations are stored on the command's annotation context and flow into
+ * generated help document annotations.
+ *
+ * **Gotchas**
+ *
+ * Adding the same `Context.Key` again replaces the earlier value.
+ *
+ * @see {@link annotateMerge} for merging an existing annotation context
+ *
  * @category combinators
  * @since 4.0.0
  */
@@ -1097,6 +1118,23 @@ export const annotate: {
 
 /**
  * Merges a Context of annotations into a command.
+ *
+ * **When to use**
+ *
+ * Use when you need to attach an already-built `Context.Context` of command
+ * annotations.
+ *
+ * **Details**
+ *
+ * Merged annotations are stored on the command and exposed through generated
+ * help document annotations.
+ *
+ * **Gotchas**
+ *
+ * If both contexts contain the same `Context.Key`, the incoming annotations
+ * context wins.
+ *
+ * @see {@link annotate} for adding a single annotation without constructing a `Context`
  *
  * @category combinators
  * @since 4.0.0
@@ -1236,6 +1274,11 @@ export const provide: {
  * Provides the handler of a command with the implementation of a service that
  * optionally depends on the command-line input to be constructed.
  *
+ * **When to use**
+ *
+ * Use when a command handler needs a pure service implementation, optionally
+ * derived from the parsed command input.
+ *
  * @category providing services
  * @since 4.0.0
  */
@@ -1266,6 +1309,15 @@ export const provideSync: {
 /**
  * Provides the handler of a command with the service produced by an effect
  * that optionally depends on the command-line input to be created.
+ *
+ * **When to use**
+ *
+ * Use to acquire a service effectfully for each command run, optionally using
+ * parsed command input.
+ *
+ * @see {@link provideSync} for synchronous service acquisition
+ * @see {@link provide} for providing an already-available service
+ * @see {@link provideEffectDiscard} for running an effect before the handler without providing a service
  *
  * @category providing services
  * @since 4.0.0
@@ -1377,9 +1429,8 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
  *
  * **When to use**
  *
- * Use `run` at an application entry point when arguments should come from
- * `Stdio`; use `runWith` when you need an explicit argument array, such as in
- * tests.
+ * Use when command-line arguments should come from `Stdio` at the application
+ * entry point.
  *
  * **Example** (Running commands with standard input)
  *
@@ -1399,6 +1450,8 @@ const showHelp = <Name extends string, Input, E, R, ContextInput>(
  *   version: "1.0.0"
  * })
  * ```
+ *
+ * @see {@link runWith} for running a command with an explicit argument array
  *
  * @category command execution
  * @since 4.0.0
@@ -1433,8 +1486,8 @@ export const run: {
  *
  * **When to use**
  *
- * Use this function for testing CLI applications or when you want to
- * programmatically execute commands with specific arguments.
+ * Use when you need to test CLI applications or programmatically execute
+ * commands with specific arguments.
  *
  * **Example** (Running commands with explicit arguments)
  *
@@ -1489,7 +1542,11 @@ export const runWith = <const Name extends string, Input, E, R, ContextInput>(
       // 2. Extract global flag tokens
       const allFlagParams = allFlags.flatMap((f) => Param.extractSingleParams(f.flag))
       const globalRegistry = Parser.createFlagRegistry(allFlagParams.filter(Param.isFlagParam))
-      const { flagMap, remainder, errors: globalFlagErrors } = Parser.consumeKnownFlags(tokens, globalRegistry)
+      const { flagMap, remainder, errors: globalFlagErrors } = Parser.consumeGlobalFlags(
+        tokens,
+        command,
+        globalRegistry
+      )
       const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
 
       // 3. Parse command arguments from remaining tokens
