@@ -10475,6 +10475,57 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
 }
 
 /**
+ * Type-level representation returned by {@link fromYamlString}.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface fromYamlString<S extends Top> extends decodeTo<S, String> {
+  readonly "Rebuild": fromYamlString<S>
+}
+
+/**
+ * Returns a schema that decodes a YAML string and then decodes the parsed value
+ * using the given schema.
+ *
+ * **When to use**
+ *
+ * Use when you need to validate YAML-encoded configuration or document text
+ * with an existing schema.
+ *
+ * **Details**
+ *
+ * The resulting schema parses the input string as YAML before running the
+ * provided schema. Encoding runs the provided schema and then serializes the
+ * encoded value as YAML text.
+ *
+ * **Example** (Decoding YAML strings with a schema)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.fromYamlString(
+ *   Schema.Struct({ name: Schema.String })
+ * )
+ *
+ * Schema.decodeUnknownSync(schema)("name: example")
+ * // => { name: "example" }
+ * ```
+ *
+ * @see {@link fromJsonString} for JSON text
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export function fromYamlString<S extends Top>(schema: S): fromYamlString<S> {
+  return String.annotate({
+    expected: "a string that will be decoded as YAML",
+    contentMediaType: "application/yaml",
+    contentSchema: SchemaAST.toEncoded(schema.ast)
+  }).pipe(decodeTo(schema, SchemaTransformation.fromYamlString))
+}
+
+/**
  * Type-level representation of {@link File}.
  *
  * @category file

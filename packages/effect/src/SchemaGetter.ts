@@ -36,6 +36,7 @@
  * - Coerce to a primitive type → {@link String}, {@link Number}, {@link Boolean}, {@link BigInt}, {@link Date}
  * - Transform strings → {@link trim}, {@link capitalize}, {@link toLowerCase}, {@link toUpperCase}, {@link split}, {@link splitKeyValue}, {@link joinKeyValue}
  * - Parse/stringify JSON → {@link parseJson}, {@link stringifyJson}
+ * - Parse/stringify YAML → {@link parseYaml}, {@link stringifyYaml}
  * - Encode/decode Base64 → {@link encodeBase64}, {@link decodeBase64}, {@link decodeBase64String}
  * - Encode/decode Hex → {@link encodeHex}, {@link decodeHex}, {@link decodeHexString}
  * - Encode/decode URI components → {@link encodeUriComponent}, {@link decodeUriComponent}
@@ -96,6 +97,7 @@ import type * as Schema from "./Schema.ts"
 import type * as SchemaAST from "./SchemaAST.ts"
 import * as SchemaIssue from "./SchemaIssue.ts"
 import * as Str from "./String.ts"
+import * as Yaml from "./Yaml.ts"
 
 /**
  * Represents a composable transformation from an encoded type `E` to a decoded type `T`.
@@ -1115,6 +1117,76 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
     Effect.try({
       try: () => Option.some(JSON.stringify(input, options?.replacer, options?.space)),
       catch: (e) => new SchemaIssue.InvalidValue(Option.some(input), { message: globalThis.String(e) })
+    })
+  )
+}
+
+/**
+ * Parses a YAML string into a value.
+ *
+ * **When to use**
+ *
+ * Use when you need a schema getter to parse a present encoded YAML string
+ * during decoding.
+ *
+ * **Details**
+ *
+ * Parse failures become `SchemaIssue.InvalidValue` values.
+ *
+ * **Example** (Parse YAML)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const parse = SchemaGetter.parseYaml<string>()
+ * // Getter<unknown, string>
+ * ```
+ *
+ * @see {@link stringifyYaml} for the inverse operation
+ *
+ * @category YAML getters
+ * @since 4.0.0
+ */
+export function parseYaml<E extends string>(options?: Yaml.ParseOptions): Getter<unknown, E> {
+  return transformOrFail((input) =>
+    Result.match(Yaml.parse(input, options), {
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
+    })
+  )
+}
+
+/**
+ * Stringifies a present value as YAML.
+ *
+ * **When to use**
+ *
+ * Use when you need a schema getter to serialize a present decoded value to
+ * YAML text during encoding.
+ *
+ * **Details**
+ *
+ * Stringify failures become `SchemaIssue.InvalidValue` values.
+ *
+ * **Example** (Stringify YAML)
+ *
+ * ```ts
+ * import { SchemaGetter } from "effect"
+ *
+ * const stringify = SchemaGetter.stringifyYaml()
+ * // Getter<string, unknown>
+ * ```
+ *
+ * @see {@link parseYaml} for the inverse operation
+ *
+ * @category YAML getters
+ * @since 4.0.0
+ */
+export function stringifyYaml(options?: Yaml.StringifyOptions): Getter<string, unknown> {
+  return transformOrFail((input) =>
+    Result.match(Yaml.stringify(input, options), {
+      onFailure: (e) => Effect.fail(new SchemaIssue.InvalidValue(Option.some(input), { message: e.message })),
+      onSuccess: Effect.succeed
     })
   )
 }

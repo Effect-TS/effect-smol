@@ -3579,6 +3579,23 @@ describe("toJsonSchemaDocument", () => {
     })
   })
 
+  describe("fromYamlString", () => {
+    it("top level fromYamlString", () => {
+      assertJsonSchemaDocument(
+        Schema.fromYamlString(Schema.FiniteFromString),
+        {
+          schema: {
+            "type": "string",
+            "contentMediaType": "application/yaml",
+            "contentSchema": {
+              "type": "string"
+            }
+          }
+        }
+      )
+    })
+  })
+
   it("Class", () => {
     class A extends Schema.Class<A>("A")({
       a: Schema.String

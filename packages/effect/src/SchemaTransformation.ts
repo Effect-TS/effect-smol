@@ -43,6 +43,7 @@
  * - Base64 ↔ string → {@link stringFromBase64String}
  * - URI component ↔ string → {@link stringFromUriComponent}
  * - JSON string ↔ unknown → {@link fromJsonString}
+ * - YAML string ↔ unknown → {@link fromYamlString}
  * - FormData/URLSearchParams ↔ unknown → {@link fromFormData}, {@link fromURLSearchParams}
  * - Check if a value is a Transformation → {@link isTransformation}
  *
@@ -1652,6 +1653,38 @@ export const stringFromUriComponent: Transformation<string, string> = new Transf
 export const fromJsonString = new Transformation<unknown, string>(
   SchemaGetter.parseJson(),
   SchemaGetter.stringifyJson()
+)
+
+/**
+ * Decodes a YAML string and encodes a value as YAML text.
+ *
+ * **When to use**
+ *
+ * Use when you need a schema transformation to decode YAML stored or
+ * transmitted as a string before validating the parsed structure.
+ *
+ * **Details**
+ *
+ * Decode and encode failures become `InvalidValue` schema issues.
+ *
+ * **Example** (Parsing YAML)
+ *
+ * ```ts
+ * import { Schema, SchemaTransformation } from "effect"
+ *
+ * const schema = Schema.String.pipe(
+ *   Schema.decodeTo(Schema.Unknown, SchemaTransformation.fromYamlString)
+ * )
+ * ```
+ *
+ * @see {@link fromJsonString} for JSON text
+ *
+ * @category decoding
+ * @since 4.0.0
+ */
+export const fromYamlString = new Transformation<unknown, string>(
+  SchemaGetter.parseYaml(),
+  SchemaGetter.stringifyYaml()
 )
 
 /**

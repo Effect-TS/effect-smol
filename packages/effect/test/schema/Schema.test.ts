@@ -4925,6 +4925,44 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("fromYamlString", () => {
+    it("use case: create a YAML string serializer for an existing schema", async () => {
+      const schema = Schema.fromYamlString(Schema.Struct({
+        name: Schema.String,
+        ports: Schema.Array(Schema.Number)
+      }))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(
+        `name: example
+ports:
+  - 3000
+  - 3001
+`,
+        { name: "example", ports: [3000, 3001] }
+      )
+      await decoding.fail(
+        "name: [",
+        `Flow sequence in block collection must be sufficiently indented and end with a ] at line 1, column 8:
+
+name: [
+       ^
+`
+      )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(
+        { name: "example", ports: [3000, 3001] },
+        `name: example
+ports:
+  - 3000
+  - 3001
+`
+      )
+    })
+  })
+
   it("fromFormData", async () => {
     const schema = Schema.fromFormData(Schema.Struct({
       a: Schema.NonEmptyString,
