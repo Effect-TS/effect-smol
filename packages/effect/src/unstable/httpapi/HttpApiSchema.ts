@@ -278,7 +278,7 @@ type StreamMode = "sse" | "uint8array"
  * @category models
  * @since 4.0.0
  */
-export interface StreamSse<Events extends Schema.Top, Error extends Schema.Top> {
+export interface StreamSse<Events extends SseEventSchema, Error extends Schema.Top> {
   readonly [StreamTypeId]: typeof StreamTypeId
   readonly _tag: "StreamSse"
   readonly mode: "sse"
@@ -287,6 +287,26 @@ export interface StreamSse<Events extends Schema.Top, Error extends Schema.Top> 
   readonly events: Events
   readonly error: Error
 }
+
+/**
+ * Encoded event shape required by {@link StreamSse} event schemas.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface SseEventEncoded {
+  readonly id?: string | undefined
+  readonly event: string
+  readonly data: string
+}
+
+/**
+ * Schema constraint for Server-Sent Events emitted by {@link StreamSse}.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type SseEventSchema = Schema.Codec<any, SseEventEncoded, any, any>
 
 /**
  * A schema-like declaration for a streaming `Uint8Array` success response.
@@ -309,14 +329,14 @@ export interface StreamUint8Array {
 }
 
 /** @internal */
-export type StreamDeclaration = StreamSse<Schema.Top, Schema.Top> | StreamUint8Array
+export type StreamDeclaration = StreamSse<SseEventSchema, Schema.Top> | StreamUint8Array
 
 /** @internal */
 export type StreamDeclarationMetadata =
   | {
     readonly mode: "sse"
     readonly contentType: string
-    readonly events: Schema.Top
+    readonly events: SseEventSchema
     readonly error: Schema.Top
   }
   | {
@@ -330,7 +350,7 @@ export type StreamDeclarationMetadata =
  * @category constructors
  * @since 4.0.0
  */
-export const StreamSse = <Events extends Schema.Top, Error extends Schema.Top>(options: {
+export const StreamSse = <Events extends SseEventSchema, Error extends Schema.Top>(options: {
   readonly contentType?: string | undefined
   readonly events: Events
   readonly error: Error
@@ -362,7 +382,7 @@ export const StreamUint8Array = (options?: {
 export const isStreamDeclaration = (u: unknown): u is StreamDeclaration => Predicate.hasProperty(u, StreamTypeId)
 
 /** @internal */
-export const isStreamSse = (u: unknown): u is StreamSse<Schema.Top, Schema.Top> =>
+export const isStreamSse = (u: unknown): u is StreamSse<SseEventSchema, Schema.Top> =>
   isStreamDeclaration(u) && u._tag === "StreamSse"
 
 /** @internal */

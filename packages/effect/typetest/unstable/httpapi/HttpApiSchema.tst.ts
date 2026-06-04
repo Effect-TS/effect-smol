@@ -39,6 +39,21 @@ describe("HttpApiSchema", () => {
         error: {}
       })
     })
+
+    it("requires event schemas to encode to SSE events", () => {
+      expect(HttpApiSchema.StreamSse).type.not.toBeCallableWith({
+        events: Schema.String,
+        error: Schema.String
+      })
+      expect(HttpApiSchema.StreamSse).type.not.toBeCallableWith({
+        events: Schema.Struct({ event: Schema.String }),
+        error: Schema.String
+      })
+      expect(HttpApiSchema.StreamSse).type.not.toBeCallableWith({
+        events: Schema.Struct({ event: Schema.String, data: Schema.Number }),
+        error: Schema.String
+      })
+    })
   })
 
   describe("StreamUint8Array", () => {

@@ -71,7 +71,7 @@ export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
   never
 
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
-  infer _Events extends Schema.Top,
+  infer _Events extends HttpApiSchema.SseEventSchema,
   infer _Error extends Schema.Top
 > ? Stream.Stream<
     _Events["Type"],
@@ -86,7 +86,7 @@ type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingService
 type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
-  infer _Events extends Schema.Top,
+  infer _Events extends HttpApiSchema.SseEventSchema,
   infer _Error extends Schema.Top
 > ? DecodingServices<_Events> | DecodingServices<_Error>
   : S extends HttpApiSchema.StreamUint8Array ? never
@@ -790,7 +790,7 @@ function streamToResponse(declaration: HttpApiSchema.StreamDeclaration) {
 
 function decodeSseStream(
   stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
-  declaration: HttpApiSchema.StreamSse<Schema.Top, Schema.Top>
+  declaration: HttpApiSchema.StreamSse<HttpApiSchema.SseEventSchema, Schema.Top>
 ): Stream.Stream<unknown, unknown, unknown> {
   const decodeEvent = Schema.decodeUnknownEffect(Sse.EventEncoded.pipe(Schema.decodeTo(declaration.events)))
   const decodeCause = Schema.decodeUnknownEffect(

@@ -867,7 +867,7 @@ interface SseStreamEncoder {
   readonly encodeCause: (input: unknown) => Effect.Effect<unknown, Schema.SchemaError, unknown>
 }
 
-const makeSseEncoder = <Events extends Schema.Top, Error extends Schema.Top>(
+const makeSseEncoder = <Events extends HttpApiSchema.SseEventSchema, Error extends Schema.Top>(
   declaration: HttpApiSchema.StreamSse<Events, Error>
 ): SseStreamEncoder => ({
   encodeEvent: Schema.encodeUnknownEffect(declaration.events),
