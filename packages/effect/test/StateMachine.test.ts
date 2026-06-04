@@ -59,6 +59,7 @@ describe("StateMachine", () => {
   }) {}
 
   class Reset extends Schema.TaggedClass<Reset>("Reset")("Reset", {}) {}
+  class Resolve extends Schema.TaggedClass<Resolve>("Resolve")("Resolve", {}) {}
 
   it("make constructs the initial state from input", () => {
     const machine = StateMachine.make({
@@ -709,6 +710,141 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* deferredLog.read, ["submit", "always"])
     }))
 
+  it.effect("plan processes raised events before settling", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.raise(new Resolve({}))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          on: {
+            Resolve: ({ state }) => new Success({ requestId: state.requestId })
+          }
+        })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      )
+
+      assert.deepStrictEqual(planned.next, new Success({ requestId: "request-1" }))
+      assert.strictEqual(planned.microsteps.length, 2)
+    }))
+
+  it.effect("send processes raised events from entry actions", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          entry: () => StateMachine.raise(new Resolve({})),
+          on: {
+            Resolve: ({ state }) => new Success({ requestId: state.requestId })
+          }
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+    }))
+
+  it.effect("processes raised events in FIFO order", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Reset, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.raise(new Reset({}))
+              yield* StateMachine.raise(new Resolve({}))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          on: {
+            Reset: ({ state }) => new Success({ requestId: state.requestId })
+          }
+        })
+        .handle("Success", {
+          on: {
+            Resolve: () => new Loading({ requestId: "request-2" })
+          }
+        })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      )
+
+      assert.deepStrictEqual(planned.next, new Loading({ requestId: "request-2" }))
+      assert.strictEqual(planned.microsteps.length, 3)
+    }))
+
+  it.effect("selects always transitions before raised events", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Reset],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.raise(new Reset({}))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          always: ({ state }) => new Success({ requestId: state.requestId }),
+          on: {
+            Reset: () => new Idle({ userId: "wrong" })
+          }
+        })
+        .handle("Success", {
+          on: {
+            Reset: () => new Loading({ requestId: "request-2" })
+          }
+        })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      )
+
+      assert.deepStrictEqual(planned.next, new Success({ requestId: "request-2" }))
+      assert.strictEqual(planned.microsteps.length, 4)
+    }))
+
   it.effect("stops following always transitions after a no-op microstep", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
@@ -802,6 +938,83 @@ describe("StateMachine", () => {
       )
 
       assert.deepStrictEqual(yield* deferredLog.read, ["transition"])
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
+
+  it.effect("runs exit, transition, and entry actions for reentering self-transitions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: Effect.fn(function*({ event }) {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push(`entry:${event._tag}`))
+        }),
+        exit: Effect.fn(function*({ event }) {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push(`exit:${event._tag}`))
+        }),
+        on: {
+          Submit: {
+            reenter: true,
+            transition: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("transition"))
+              return new Idle({ userId: "user-2" })
+            })
+          }
+        }
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* deferredLog.read, ["exit:Submit", "transition", "entry:Submit"])
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-2" }))
+    }))
+
+  it.effect("reentering self-transitions can omit returning a state", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: Effect.fn(function*({ event }) {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push(`entry:${event._tag}`))
+        }),
+        exit: Effect.fn(function*({ event }) {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push(`exit:${event._tag}`))
+        }),
+        on: {
+          Submit: {
+            reenter: true,
+            transition: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("transition"))
+            })
+          }
+        }
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* deferredLog.read, ["exit:Submit", "transition", "entry:Submit"])
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
     }))
 

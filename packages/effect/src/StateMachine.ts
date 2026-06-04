@@ -4,9 +4,9 @@
  * @since 4.0.0
  */
 
+import * as Context from "./Context.ts"
 import * as Data from "./Data.ts"
 import * as Effect from "./Effect.ts"
-import { Context } from "./index.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
@@ -101,6 +101,11 @@ class DeferredActions extends Context.Service<DeferredActions, {
   readonly add: <E, R>(effect: Effect.Effect<void, E, R>) => Effect.Effect<void>
   readonly read: Effect.Effect<ReadonlyArray<Effect.Effect<void, any, any>>>
 }>()("effect/StateMachine/DeferredActions") {}
+
+class DeferredRaisedEvents extends Context.Service<DeferredRaisedEvents, {
+  readonly add: <Event>(event: Event) => Effect.Effect<void>
+  readonly read: Effect.Effect<ReadonlyArray<any>>
+}>()("effect/StateMachine/DeferredRaisedEvents") {}
 
 /**
  * Namespace containing type-level members associated with `Machine`.
@@ -241,8 +246,11 @@ export declare namespace Machine {
   export type StateActionReturn<Config, Key extends "entry" | "exit"> = Key extends keyof Config
     ? NonNullable<Config[Key]> extends (...args: any) => infer Ret ? Ret : never
     : never
+  export type EventTransitionReturn<Transition> = Transition extends (...args: any) => infer Ret ? Ret
+    : Transition extends { readonly transition: (...args: any) => infer Ret } ? Ret
+    : never
   export type EventHandlerReturn<Config> = Config extends { readonly on?: infer On }
-    ? { readonly [EventTag in keyof On]: NonNullable<On[EventTag]> extends (...args: any) => infer Ret ? Ret : never }[
+    ? { readonly [EventTag in keyof On]: EventTransitionReturn<NonNullable<On[EventTag]>> }[
       keyof On
     ]
     : never
@@ -273,9 +281,16 @@ export declare namespace Machine {
         readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
         readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, any, any>
         readonly on?: {
-          readonly [EventTag in TagOf<Events[number]>]?: (
-            context: HandlerContext<States, Events, StateTag, EventTag, E, R>
-          ) => HandlerResult<States, any, any>
+          readonly [EventTag in TagOf<Events[number]>]?:
+            | ((
+              context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+            ) => HandlerResult<States, any, any>)
+            | {
+              readonly reenter?: boolean
+              readonly transition: (
+                context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+              ) => HandlerResult<States, any, any>
+            }
         }
       }
     >(
@@ -325,7 +340,13 @@ export declare namespace Machine {
   > = Readonly<
     Record<
       PropertyKey,
-      (context: HandlerContext<States, Events, StateTag, EventTag, E, R>) => HandlerResult<States, E, R>
+      | ((context: HandlerContext<States, Events, StateTag, EventTag, E, R>) => HandlerResult<States, E, R>)
+      | {
+        readonly reenter?: boolean
+        readonly transition: (
+          context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+        ) => HandlerResult<States, E, R>
+      }
     >
   >
 
@@ -407,12 +428,27 @@ const makeDeferredActions = Effect.gen(function*() {
   })
 })
 
+const makeDeferredRaisedEvents = Effect.gen(function*() {
+  const events: Array<any> = []
+  return DeferredRaisedEvents.of({
+    read: Effect.sync(() => events),
+    add: (event) =>
+      Effect.sync(() => {
+        events.push(event)
+      })
+  })
+})
+
 const runStateAction = <Context, E, R>(
   handler: ((context: Context) => Machine.StateActionResult<E, R>) | undefined,
   context: Context,
   deferredActions: {
     readonly add: <E, R>(effect: Effect.Effect<void, E, R>) => Effect.Effect<void>
     readonly read: Effect.Effect<ReadonlyArray<Effect.Effect<void, any, any>>>
+  },
+  deferredRaisedEvents: {
+    readonly add: <Event>(event: Event) => Effect.Effect<void>
+    readonly read: Effect.Effect<ReadonlyArray<any>>
   }
 ): Effect.Effect<void, E, R> => {
   if (handler === undefined) {
@@ -421,25 +457,52 @@ const runStateAction = <Context, E, R>(
 
   const result = handler(context)
   return Effect.isEffect(result)
-    ? result.pipe(Effect.provideService(DeferredActions, deferredActions))
+    ? result.pipe(
+      Effect.provideService(DeferredActions, deferredActions),
+      Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents)
+    )
     : Effect.void
 }
 
-type MicrostepPlan<State, E, R> = {
+type MicrostepPlan<State, Event, E, R> = {
   readonly next: State
   readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
+  readonly raisedEvents: ReadonlyArray<Event>
   readonly changed: boolean
 }
 
-type MacrostepPlan<State, E, R> = {
+type MacrostepPlan<State, Event, E, R> = {
   readonly next: State
   readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
-  readonly microsteps: ReadonlyArray<MicrostepPlan<State, E, R>>
+  readonly microsteps: ReadonlyArray<MicrostepPlan<State, Event, E, R>>
 }
 
 type TransitionHandler<States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context> = (
   context: Context
 ) => Machine.HandlerResult<States, E, R>
+
+type EventTransition<States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context> =
+  | TransitionHandler<States, E, R, Context>
+  | {
+    readonly reenter?: boolean
+    readonly transition: TransitionHandler<States, E, R, Context>
+  }
+
+type MicrostepTransition<States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context> = {
+  readonly reenter: boolean
+  readonly transition: TransitionHandler<States, E, R, Context>
+}
+
+const normalizeEventTransition = <States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context>(
+  transition: EventTransition<States, E, R, Context> | undefined
+): MicrostepTransition<States, E, R, Context> | undefined => {
+  if (transition === undefined) {
+    return undefined
+  }
+  return typeof transition === "function"
+    ? { reenter: false, transition }
+    : { reenter: transition.reenter === true, transition: transition.transition }
+}
 
 const MaxMacrostepIterations = 1000
 
@@ -599,10 +662,10 @@ const microstep: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
-  handler: TransitionHandler<States, E, R, Context> | undefined,
+  transition: MicrostepTransition<States, E, R, Context> | undefined,
   context: Context
 ) => Effect.Effect<
-  MicrostepPlan<Machine.StateOf<States>, E, R>,
+  MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
   E | UnhandledEventError,
   R
 > = Effect.fnUntraced(function*<
@@ -619,13 +682,14 @@ const microstep: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
-  handler: TransitionHandler<States, E, R, Context> | undefined,
+  transition: MicrostepTransition<States, E, R, Context> | undefined,
   context: Context
 ) {
   const deferredActions = yield* makeDeferredActions
+  const deferredRaisedEvents = yield* makeDeferredRaisedEvents
   const stateConfig = machine.handlers[state._tag]
 
-  if (handler === undefined) {
+  if (transition === undefined) {
     return yield* new UnhandledEventError({
       machineId: machine.id,
       state: String(state._tag),
@@ -633,47 +697,61 @@ const microstep: <
     })
   }
 
-  const result = handler(context)
+  const result = transition.transition(context)
 
   const nextState = Effect.isEffect(result)
-    ? yield* result.pipe(Effect.provideService(DeferredActions, deferredActions))
+    ? yield* result.pipe(
+      Effect.provideService(DeferredActions, deferredActions),
+      Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents)
+    )
     : result
 
   const stateAfterTransition = nextState === undefined ? state : nextState
   const actions = yield* deferredActions.read
-  if (stateAfterTransition._tag === state._tag) {
+  const raisedEvents = yield* deferredRaisedEvents.read
+  if (stateAfterTransition._tag === state._tag && !transition.reenter) {
     return {
       next: stateAfterTransition,
       actions: actions as ReadonlyArray<Effect.Effect<void, E, R>>,
+      raisedEvents: raisedEvents as ReadonlyArray<Machine.EventOf<Events>>,
       changed: false
     }
   }
 
   const exitDeferredActions = yield* makeDeferredActions
+  const exitDeferredRaisedEvents = yield* makeDeferredRaisedEvents
   yield* runStateAction(
     stateConfig?.exit,
     {
       state: state as Machine.StateByTag<States, UnhandledStates>,
       event
     },
-    exitDeferredActions
+    exitDeferredActions,
+    exitDeferredRaisedEvents
   )
   const exitActions = yield* exitDeferredActions.read
+  const exitRaisedEvents = yield* exitDeferredRaisedEvents.read
 
   const entryDeferredActions = yield* makeDeferredActions
+  const entryDeferredRaisedEvents = yield* makeDeferredRaisedEvents
   yield* runStateAction(
     machine.handlers[stateAfterTransition._tag]?.entry,
     {
       state: stateAfterTransition as Machine.StateByTag<States, UnhandledStates>,
       event
     },
-    entryDeferredActions
+    entryDeferredActions,
+    entryDeferredRaisedEvents
   )
   const entryActions = yield* entryDeferredActions.read
+  const entryRaisedEvents = yield* entryDeferredRaisedEvents.read
 
   return {
     next: stateAfterTransition,
     actions: [...exitActions, ...actions, ...entryActions] as ReadonlyArray<Effect.Effect<void, E, R>>,
+    raisedEvents: [...exitRaisedEvents, ...raisedEvents, ...entryRaisedEvents] as ReadonlyArray<
+      Machine.EventOf<Events>
+    >,
     changed: true
   }
 })
@@ -692,7 +770,7 @@ const macrostep: <
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<
-  MacrostepPlan<Machine.StateOf<States>, E, R>,
+  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
   E | UnhandledEventError | InfiniteTransitionError,
   R
 > = Effect.fnUntraced(function*<
@@ -714,23 +792,21 @@ const macrostep: <
     machine,
     state,
     event,
-    stateConfig?.on?.[event._tag],
+    normalizeEventTransition(stateConfig?.on?.[event._tag]),
     {
       state: state as Machine.StateByTag<States, UnhandledStates>,
       event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
     }
   )
   const actions = [...step.actions]
+  const raisedEvents = [...step.raisedEvents]
   const microsteps = [step]
   let next = step.next
+  let currentEvent = event
+  let shouldRunAlways = true
   let iterations = 0
 
   while (true) {
-    const always = machine.handlers[next._tag]?.always
-    if (always === undefined) {
-      break
-    }
-
     iterations += 1
     if (iterations > MaxMacrostepIterations) {
       return yield* new InfiniteTransitionError({
@@ -740,23 +816,50 @@ const macrostep: <
       })
     }
 
-    const alwaysStep = yield* microstep(
-      machine,
-      next,
-      event,
-      always,
-      {
-        state: next as Machine.StateByTag<States, UnhandledStates>,
-        event
-      }
-    )
-    actions.push(...alwaysStep.actions)
-    microsteps.push(alwaysStep)
-    next = alwaysStep.next
+    const always = shouldRunAlways
+      ? machine.handlers[next._tag]?.always
+      : undefined
+    if (always !== undefined) {
+      const alwaysStep: MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R> = yield* microstep(
+        machine,
+        next,
+        currentEvent,
+        { reenter: false, transition: always },
+        {
+          state: next as Machine.StateByTag<States, UnhandledStates>,
+          event: currentEvent
+        }
+      )
+      actions.push(...alwaysStep.actions)
+      raisedEvents.push(...alwaysStep.raisedEvents)
+      microsteps.push(alwaysStep)
+      next = alwaysStep.next
+      shouldRunAlways = alwaysStep.changed
+      continue
+    }
 
-    if (!alwaysStep.changed) {
+    const raisedEvent = raisedEvents.shift()
+    if (raisedEvent === undefined) {
       break
     }
+
+    currentEvent = raisedEvent
+    const raisedStateConfig = machine.handlers[next._tag]
+    const raisedStep = yield* microstep(
+      machine,
+      next,
+      raisedEvent,
+      normalizeEventTransition(raisedStateConfig?.on?.[raisedEvent._tag]),
+      {
+        state: next as Machine.StateByTag<States, UnhandledStates>,
+        event: raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+      }
+    )
+    actions.push(...raisedStep.actions)
+    raisedEvents.push(...raisedStep.raisedEvents)
+    microsteps.push(raisedStep)
+    next = raisedStep.next
+    shouldRunAlways = true
   }
 
   return {
@@ -822,6 +925,14 @@ export const action = <E, R>(
   Effect.gen(function*() {
     const actions = yield* DeferredActions
     yield* actions.add(effect)
+  }) as any
+
+export const raise = <Event>(
+  event: Event
+): Effect.Effect<void> =>
+  Effect.gen(function*() {
+    const events = yield* DeferredRaisedEvents
+    yield* events.add(event)
   }) as any
 
 /**
