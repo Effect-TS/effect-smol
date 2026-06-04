@@ -191,7 +191,12 @@ const runStep = <State, E, R>(
 const scenarioSteps = (
   feature: Parser.Feature,
   scenario: Parser.Scenario
-): ReadonlyArray<Parser.ParsedStep> => Arr.appendAll(feature.background?.steps ?? [], scenario.steps)
+): ReadonlyArray<Parser.ParsedStep> =>
+  pipe(
+    feature.background?.steps ?? [],
+    Arr.appendAll(scenario.background?.steps ?? []),
+    Arr.appendAll(scenario.steps)
+  )
 
 const decodeArgument = <State, E, R>(
   transition: Transition<State, E, R>,

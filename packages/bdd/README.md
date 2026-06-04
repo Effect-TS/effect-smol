@@ -163,7 +163,8 @@ The core parser currently supports:
 - `Feature`
 - `Scenario`
 - `Background`
-- tags on features and scenarios
+- `Rule`
+- tags on features, rules, and scenarios
 - `Given`, `When`, `Then`
 - `And` and `But` keyword inheritance
 - DataTables

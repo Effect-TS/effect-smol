@@ -174,26 +174,31 @@ Feature: Shopping cart
       }
     }))
 
-  it.effect("rejects unsupported Rule syntax", () =>
+  it.effect("accepts Rule syntax and inherits rule tags", () =>
     Effect.gen(function*() {
-      const feature = Bdd.feature("Shopping cart", { initial: 0 })
-      const result = yield* Effect.exit(Bdd.run(
+      const feature = Bdd.feature("Shopping cart", { initial: 0 }).pipe(
+        Bdd.given`an empty cart`((_captures, state) => Effect.succeed(state))
+      )
+      const report = yield* Bdd.run(
         feature,
         `
+@feature
 Feature: Shopping cart
 
+  @rule
   Rule: Checkout
+    Checkout scenarios.
 
-  Scenario: Invalid rule
+  @scenario
+  Scenario: Rule scenario
     Given an empty cart
 `
-      ))
+      )
 
-      assert.strictEqual(result._tag, "Failure")
-      if (result._tag === "Failure") {
-        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
-        assert.strictEqual(error._tag, "ParseError")
-        assert.strictEqual(error.message, "Rule is not supported by @effect/bdd")
-      }
+      assert.deepStrictEqual(report.scenarios, [{
+        name: "Rule scenario",
+        steps: 1,
+        tags: ["@feature", "@rule", "@scenario"]
+      }])
     }))
 })

@@ -1,6 +1,7 @@
 import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
 import { Cause, Effect, Option, Schema } from "effect"
+import * as Arr from "effect/Array"
 
 type Cart = {
   readonly items: ReadonlyArray<{
@@ -372,6 +373,52 @@ Feature: Shopping cart
         name: "Adding items computes the total",
         steps: 5,
         tags: ["@checkout", "@happy-path"]
+      }])
+    })
+  })
+
+  it.effect("runs rule backgrounds after feature backgrounds", () => {
+    type State = ReadonlyArray<string>
+    const feature = Bdd.feature("Checkout", { initial: [] as State }).pipe(
+      Bdd.given`feature setup`((_captures, state) => Effect.succeed(Arr.append(state, "feature"))),
+      Bdd.given`rule setup`((_captures, state) => Effect.succeed(Arr.append(state, "rule"))),
+      Bdd.when`scenario runs`((_captures, state) => Effect.succeed(Arr.append(state, "scenario"))),
+      Bdd.then`rule setup ran after feature setup`((_captures, state) =>
+        Effect.sync(() => {
+          assert.deepStrictEqual(state, ["feature", "rule", "scenario"])
+          return state
+        })
+      )
+    )
+
+    return Effect.gen(function*() {
+      const report = yield* Bdd.run(
+        feature,
+        `
+@feature
+Feature: Checkout
+
+  Background:
+    Given feature setup
+
+  @rule
+  Rule: Paid accounts
+    Paid users can check out.
+
+    Background:
+      Given rule setup
+
+    @scenario
+    Scenario: Uses rule background
+      When scenario runs
+      Then rule setup ran after feature setup
+`
+      )
+
+      assert.deepStrictEqual(report.scenarios, [{
+        name: "Uses rule background",
+        steps: 4,
+        tags: ["@feature", "@rule", "@scenario"]
       }])
     })
   })
