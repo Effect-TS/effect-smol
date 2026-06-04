@@ -4,6 +4,7 @@
  * @since 4.0.0
  */
 
+import * as Data from "./Data.ts"
 import * as Effect from "./Effect.ts"
 import { Context } from "./index.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
@@ -65,9 +66,21 @@ export interface Machine<
  */
 export interface Actor<State, Event, out E = never, out R = never> {
   readonly state: Effect.Effect<State>
-  readonly send: (event: Event) => Effect.Effect<void, E, R>
+  readonly send: (event: Event) => Effect.Effect<void, E | UnhandledEventError, R>
   readonly stop: Effect.Effect<void>
 }
+
+/**
+ * Error returned when an event has no handler for the current state.
+ *
+ * @category errors
+ * @since 4.0.0
+ */
+export class UnhandledEventError extends Data.TaggedError("UnhandledEventError")<{
+  readonly machineId: string | undefined
+  readonly state: string
+  readonly event: string
+}> {}
 
 class DeferredActions extends Context.Service<DeferredActions, {
   readonly add: <E, R>(effect: Effect.Effect<void, E, R>) => Effect.Effect<void>
@@ -398,7 +411,7 @@ export const start: <
     state: SynchronizedRef.get(current),
     stop: Ref.set(stopped, true),
 
-    send: (event: Machine.EventOf<Events>): Effect.Effect<void, E, R> =>
+    send: (event: Machine.EventOf<Events>): Effect.Effect<void, E | UnhandledEventError, R> =>
       Effect.gen(function*() {
         if (yield* Ref.get(stopped)) {
           // TODO: Some error or warning?
@@ -409,7 +422,13 @@ export const start: <
           Effect.gen(function*() {
             const handler = machine.handlers[state._tag]?.[event._tag]
 
-            if (handler === undefined) return state
+            if (handler === undefined) {
+              return yield* new UnhandledEventError({
+                machineId: machine.id,
+                state: String(state._tag),
+                event: String(event._tag)
+              })
+            }
 
             const result = handler({
               state: state as Machine.StateByTag<States, UnhandledStates>,

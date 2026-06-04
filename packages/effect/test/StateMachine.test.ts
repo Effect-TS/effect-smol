@@ -164,9 +164,10 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
     }))
 
-  it.effect("sending an event that is not handled by the current state does nothing", () =>
+  it.effect("sending an event that is not handled by the current state fails", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
+        id: "UserMachine",
         states: [Idle, Loading],
         events: [Submit, Reset],
         input: Input,
@@ -183,8 +184,13 @@ describe("StateMachine", () => {
 
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
 
-      yield* actor.send(new Reset({}))
+      const error = yield* Effect.flip(actor.send(new Reset({})))
 
+      assert.instanceOf(error, StateMachine.UnhandledEventError)
+      assert.strictEqual(error._tag, "UnhandledEventError")
+      assert.strictEqual(error.machineId, "UserMachine")
+      assert.strictEqual(error.state, "Idle")
+      assert.strictEqual(error.event, "Reset")
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
     }))
 
