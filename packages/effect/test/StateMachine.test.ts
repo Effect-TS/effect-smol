@@ -1,10 +1,18 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Context, Effect, Ref, Schema, StateMachine } from "effect"
+import { Context, Data, Effect, Ref, Schema, StateMachine } from "effect"
 
 class DeferredLog extends Context.Service<DeferredLog, {
   readonly push: (message: string) => Effect.Effect<void>
   readonly read: Effect.Effect<ReadonlyArray<string>>
 }>()("test/Machine/DeferredLog") {}
+
+class EntryRequirement extends Context.Service<EntryRequirement, {
+  readonly entryMessage: string
+}>()("test/Machine/EntryRequirement") {}
+
+class ExitRequirement extends Context.Service<ExitRequirement, {
+  readonly exitMessage: string
+}>()("test/Machine/ExitRequirement") {}
 
 const makeDeferredLog = Effect.gen(function*() {
   const ref = yield* Ref.make<ReadonlyArray<string>>([])
@@ -13,6 +21,14 @@ const makeDeferredLog = Effect.gen(function*() {
     read: Ref.get(ref)
   })
 })
+
+class EntryError extends Data.TaggedError("EntryError")<{
+  readonly state: string
+}> {}
+
+class ExitError extends Data.TaggedError("ExitError")<{
+  readonly state: string
+}> {}
 
 describe("StateMachine", () => {
   const Input = Schema.Struct({
@@ -52,9 +68,11 @@ describe("StateMachine", () => {
       input: Input,
       initial: (input) => new Idle({ userId: input.userId })
     }).handle("Idle", {
-      Submit: Effect.fn(function*() {
-        return new Loading({ requestId: "request-1" })
-      })
+      on: {
+        Submit: Effect.fn(function*() {
+          return new Loading({ requestId: "request-1" })
+        })
+      }
     })
 
     assert.strictEqual(machine.id, "UserMachine")
@@ -82,14 +100,16 @@ describe("StateMachine", () => {
       input: Input,
       initial: (input) => Idle.make({ userId: input.userId })
     }).handle("Idle", {
-      Submit: Effect.fn(function*() {
-        yield* StateMachine.action(effect)
-        return new Loading({ requestId: "request-1" })
-      })
+      on: {
+        Submit: Effect.fn(function*() {
+          yield* StateMachine.action(effect)
+          return new Loading({ requestId: "request-1" })
+        })
+      }
     })
 
     assert.strictEqual("Idle" in machine.handlers, true)
-    assert.strictEqual("Submit" in machine.handlers.Idle, true)
+    assert.strictEqual("Submit" in (machine.handlers.Idle.on ?? {}), true)
   })
 
   it.effect("handlers can return states directly", () =>
@@ -100,7 +120,9 @@ describe("StateMachine", () => {
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       }).handle("Idle", {
-        Submit: () => new Loading({ requestId: "request-1" })
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
       })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -118,10 +140,14 @@ describe("StateMachine", () => {
       initial: (input) => new Idle({ userId: input.userId })
     })
       .handle("Idle", {
-        Submit: () => new Loading({ requestId: "request-1" })
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
       })
       .handle("Loading", {
-        Reset: () => new Idle({ userId: "user-1" })
+        on: {
+          Reset: () => new Idle({ userId: "user-1" })
+        }
       })
 
     assert.deepStrictEqual(StateMachine.enabled(machine, new Idle({ userId: "user-1" })), ["Submit"])
@@ -136,7 +162,9 @@ describe("StateMachine", () => {
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       }).handle("Idle", {
-        Submit: () => new Loading({ requestId: "request-1" })
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
       })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -156,11 +184,13 @@ describe("StateMachine", () => {
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       }).handle("Idle", {
-        Submit: Effect.fn(function*() {
-          const deferredLog = yield* DeferredLog
-          yield* StateMachine.action(deferredLog.push("submitted"))
-          return new Loading({ requestId: "request-1" })
-        })
+        on: {
+          Submit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("submitted"))
+            return new Loading({ requestId: "request-1" })
+          })
+        }
       })
 
       const planned = yield* StateMachine.plan(
@@ -182,11 +212,13 @@ describe("StateMachine", () => {
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       }).handle("Idle", {
-        Submit: Effect.fn(function*() {
-          const deferredLog = yield* DeferredLog
-          yield* StateMachine.action(deferredLog.push("submitted"))
-          return new Loading({ requestId: "request-1" })
-        })
+        on: {
+          Submit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("submitted"))
+            return new Loading({ requestId: "request-1" })
+          })
+        }
       })
 
       const nextState = yield* StateMachine.next(
@@ -207,7 +239,9 @@ describe("StateMachine", () => {
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       }).handle("Idle", {
-        Submit: () => {}
+        on: {
+          Submit: () => {}
+        }
       })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -226,14 +260,16 @@ describe("StateMachine", () => {
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       }).handle("Idle", {
-        Submit: Effect.fn(function*() {
-          yield* StateMachine.action(
-            Effect.gen(function*() {
-              const deferredLog = yield* DeferredLog
-              yield* deferredLog.push("submitted")
-            })
-          )
-        })
+        on: {
+          Submit: Effect.fn(function*() {
+            yield* StateMachine.action(
+              Effect.gen(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* deferredLog.push("submitted")
+              })
+            )
+          })
+        }
       })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -256,21 +292,25 @@ describe("StateMachine", () => {
     })
 
     const machine1 = machine.handle("Idle", {
-      Submit: Effect.fn(function*() {
-        yield* StateMachine.action(effect)
-        return new Loading({ requestId: "request-1" })
-      })
+      on: {
+        Submit: Effect.fn(function*() {
+          yield* StateMachine.action(effect)
+          return new Loading({ requestId: "request-1" })
+        })
+      }
     })
 
     const machine2 = machine.handle("Idle", {
-      Reset: Effect.fn(function*() {
-        return new Idle({ userId: "user-1" })
-      })
+      on: {
+        Reset: Effect.fn(function*() {
+          return new Idle({ userId: "user-1" })
+        })
+      }
     })
 
     assert.strictEqual("Idle" in machine1.handlers, true)
-    assert.strictEqual("Submit" in machine1.handlers.Idle, true)
-    assert.strictEqual("Reset" in machine2.handlers.Idle, true)
+    assert.strictEqual("Submit" in (machine1.handlers.Idle.on ?? {}), true)
+    assert.strictEqual("Reset" in (machine2.handlers.Idle.on ?? {}), true)
   })
 
   it.effect("start creates a runtime that sends events and stops", () =>
@@ -282,13 +322,17 @@ describe("StateMachine", () => {
         initial: (input) => new Idle({ userId: input.userId })
       })
         .handle("Idle", {
-          Submit: Effect.fn(function*() {
-            yield* StateMachine.action(Effect.succeed("submitted"))
-            return new Loading({ requestId: "request-1" })
-          })
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(Effect.succeed("submitted"))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
         })
         .handle("Loading", {
-          Reset: () => Effect.succeed(new Idle({ userId: "user-1" }))
+          on: {
+            Reset: () => Effect.succeed(new Idle({ userId: "user-1" }))
+          }
         })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -310,10 +354,12 @@ describe("StateMachine", () => {
         initial: (input) => new Idle({ userId: input.userId })
       })
         .handle("Idle", {
-          Submit: Effect.fn(function*() {
-            yield* StateMachine.action(Effect.succeed("submitted"))
-            return new Loading({ requestId: "request-1" })
-          })
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(Effect.succeed("submitted"))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
         })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -340,16 +386,18 @@ describe("StateMachine", () => {
         initial: (input) => new Idle({ userId: input.userId })
       })
         .handle("Idle", {
-          Submit: Effect.fn(function*() {
-            yield* StateMachine.action(
-              Effect.gen(function*() {
-                const deferredLog = yield* DeferredLog
-                yield* deferredLog.push("submitted")
-              })
-            )
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                Effect.gen(function*() {
+                  const deferredLog = yield* DeferredLog
+                  yield* deferredLog.push("submitted")
+                })
+              )
 
-            return new Loading({ requestId: "request-1" })
-          })
+              return new Loading({ requestId: "request-1" })
+            })
+          }
         })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -372,17 +420,19 @@ describe("StateMachine", () => {
         initial: (input) => new Idle({ userId: input.userId })
       })
         .handle("Idle", {
-          Submit: Effect.fn(function*() {
-            yield* StateMachine.action(
-              Effect.gen(function*() {
-                const deferredLog = yield* DeferredLog
-                yield* deferredLog.push("submitted1")
-                yield* deferredLog.push("submitted2")
-              })
-            )
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                Effect.gen(function*() {
+                  const deferredLog = yield* DeferredLog
+                  yield* deferredLog.push("submitted1")
+                  yield* deferredLog.push("submitted2")
+                })
+              )
 
-            return new Loading({ requestId: "request-1" })
-          })
+              return new Loading({ requestId: "request-1" })
+            })
+          }
         })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -393,5 +443,211 @@ describe("StateMachine", () => {
 
       assert.deepStrictEqual(yield* deferredLog.read, ["submitted1", "submitted2"])
       assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+    }))
+
+  it.effect("runs exit, transition, and entry actions in order", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          exit: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push(`exit:${event._tag}`))
+          }),
+          on: {
+            Submit: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("transition"))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          entry: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push(`entry:${event._tag}`))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* deferredLog.read, ["exit:Submit", "transition", "entry:Submit"])
+      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+    }))
+
+  it.effect("plan collects entry and exit actions without running them", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          exit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("exit"))
+          }),
+          on: {
+            Submit: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("transition"))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry"))
+          })
+        })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      ).pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      assert.deepStrictEqual(planned.next, new Loading({ requestId: "request-1" }))
+      assert.strictEqual(planned.actions.length, 3)
+      assert.deepStrictEqual(yield* deferredLog.read, [])
+    }))
+
+  it.effect("does not run entry or exit actions for implicit self-transitions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: Effect.fn(function*() {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push("entry"))
+        }),
+        exit: Effect.fn(function*() {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push("exit"))
+        }),
+        on: {
+          Submit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("transition"))
+          })
+        }
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* deferredLog.read, ["transition"])
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
+
+  it.effect("carries entry and exit action requirements", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          exit: () =>
+            ExitRequirement.pipe(
+              Effect.flatMap((requirement) =>
+                StateMachine.action(
+                  DeferredLog.pipe(Effect.flatMap((deferredLog) => deferredLog.push(requirement.exitMessage)))
+                )
+              )
+            ),
+          on: {
+            Submit: (): Loading => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          entry: () =>
+            EntryRequirement.pipe(
+              Effect.flatMap((requirement) =>
+                StateMachine.action(
+                  DeferredLog.pipe(Effect.flatMap((deferredLog) => deferredLog.push(requirement.entryMessage)))
+                )
+              )
+            )
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(EntryRequirement, EntryRequirement.of({ entryMessage: "entry" })),
+        Effect.provideService(ExitRequirement, ExitRequirement.of({ exitMessage: "exit" })),
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* deferredLog.read, ["exit", "entry"])
+      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+    }))
+
+  it.effect("propagates entry action failures", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          entry: ({ state }) => StateMachine.action(Effect.fail(new EntryError({ state: state._tag })))
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      const error = yield* Effect.flip(actor.send(new Submit({ value: "hello" })))
+
+      assert.instanceOf(error, EntryError)
+      assert.strictEqual(error._tag, "EntryError")
+      assert.strictEqual(error.state, "Loading")
+    }))
+
+  it.effect("propagates exit action failures", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        exit: ({ state }) => StateMachine.action(Effect.fail(new ExitError({ state: state._tag }))),
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      const error = yield* Effect.flip(actor.send(new Submit({ value: "hello" })))
+
+      assert.instanceOf(error, ExitError)
+      assert.strictEqual(error._tag, "ExitError")
+      assert.strictEqual(error.state, "Idle")
     }))
 })

@@ -51,7 +51,7 @@ export interface Machine<
   readonly input: Input | undefined
   readonly id: string | undefined
 
-  readonly handlers: Machine.Handlers<States, Events, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
+  readonly handlers: Machine.StateConfigs<States, Events, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
   readonly handle: Machine.Handler<States, Events, Input, UnhandledStates, E, R>
 
   /** @internal */
@@ -178,6 +178,23 @@ export declare namespace Machine {
     readonly event: EventByTag<Events, EventTag>
   }
 
+  /**
+   * Context passed to an entry or exit state handler.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface StateActionContext<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>
+  > {
+    readonly state: StateByTag<States, StateTag>
+    readonly event: EventOf<Events>
+  }
+
+  export type StateActionResult<E, R> = void | Effect.Effect<void, E, R>
+
   export type HandlerResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
     | StateOf<States>
     | void
@@ -186,6 +203,14 @@ export declare namespace Machine {
   export type HandlerEffect<Handlers> = Handlers[keyof Handlers]
   export type HandlerError<Handlers> = Effect.Error<HandlerEffect<Handlers>>
   export type HandlerServices<Handlers> = Effect.Services<HandlerEffect<Handlers>>
+  export type StateActionReturn<Config, Key extends "entry" | "exit"> = Key extends keyof Config
+    ? NonNullable<Config[Key]> extends (...args: any) => infer Ret ? Ret : never
+    : never
+  export type EventHandlerReturn<Config> = Config extends { readonly on?: infer On }
+    ? { readonly [EventTag in keyof On]: NonNullable<On[EventTag]> extends (...args: any) => infer Ret ? Ret : never }[
+      keyof On
+    ]
+    : never
 
   /**
    * Adds handlers for an unhandled state tag.
@@ -203,36 +228,41 @@ export declare namespace Machine {
   > {
     <
       const StateTag extends UnhandledStates,
-      const Handlers extends Partial<
-        Record<
-          TagOf<Events[number]>,
-          HandlerResult<States, any, any>
-        >
-      >
+      const Config extends {
+        readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+        readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+        readonly on?: {
+          readonly [EventTag in TagOf<Events[number]>]?: (
+            context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+          ) => HandlerResult<States, any, any>
+        }
+      }
     >(
       stateTag: StateTag,
-      handlers: {
-        readonly [EventTag in keyof Handlers]: EventTag extends TagOf<Events[number]> ?
-          (context: HandlerContext<States, Events, StateTag, EventTag, E, R>) => Handlers[EventTag]
-          : never
-      }
+      config: Config
     ): Machine<
       States,
       Events,
       Input,
       Exclude<UnhandledStates, StateTag>,
-      E | HandlerError<Handlers>,
-      R | HandlerServices<Handlers>
+      | E
+      | Effect.Error<EventHandlerReturn<Config>>
+      | Effect.Error<StateActionReturn<Config, "entry">>
+      | Effect.Error<StateActionReturn<Config, "exit">>,
+      | R
+      | Effect.Services<EventHandlerReturn<Config>>
+      | Effect.Services<StateActionReturn<Config, "entry">>
+      | Effect.Services<StateActionReturn<Config, "exit">>
     >
   }
 
   /**
-   * Any event handler map.
+   * Any state config.
    *
    * @category utility types
    * @since 4.0.0
    */
-  export type AnyEventHandlerMap = EventHandlerMap<any, any, any, any, any, any>
+  export type AnyStateConfig = StateConfig<any, any, any, any, any, any>
 
   /**
    * Runtime event-handler map stored for a single state tag.
@@ -255,26 +285,45 @@ export declare namespace Machine {
   >
 
   /**
-   * Runtime handler table stored on a machine.
+   * Runtime state config stored for a single state tag.
    *
    * @category models
    * @since 4.0.0
    */
-  export type Handlers<
+  export interface StateConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     EventTag extends TagOf<Events[number]>,
     E,
     R
-  > = Readonly<Record<PropertyKey, EventHandlerMap<States, Events, StateTag, EventTag, E, R>>>
+  > {
+    readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
+    readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
+    readonly on?: EventHandlerMap<States, Events, StateTag, EventTag, E, R>
+  }
+
+  /**
+   * Runtime handler table stored on a machine.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export type StateConfigs<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>,
+    EventTag extends TagOf<Events[number]>,
+    E,
+    R
+  > = Readonly<Record<PropertyKey, StateConfig<States, Events, StateTag, EventTag, E, R>>>
 }
 
 const Proto = {
   ...PipeInspectableProto,
   [TypeId]: TypeId,
-  handle(this: Machine.Any, stateTag: PropertyKey, handlers: Machine.AnyEventHandlerMap) {
-    return handleUnsafe(this, stateTag, handlers)
+  handle(this: Machine.Any, stateTag: PropertyKey, config: Machine.AnyStateConfig) {
+    return handleUnsafe(this, stateTag, config)
   },
   toJSON() {
     return {
@@ -286,7 +335,7 @@ const Proto = {
 const handleUnsafe = (
   self: Machine.Any,
   stateTag: PropertyKey,
-  handlers: Machine.AnyEventHandlerMap
+  config: Machine.AnyStateConfig
 ): Machine.Any => {
   const machine = Object.create(Proto)
   machine.states = self.states
@@ -296,7 +345,7 @@ const handleUnsafe = (
   machine.initial = self.initial
   machine.handlers = {
     ...self.handlers,
-    [stateTag]: handlers
+    [stateTag]: config
   }
   return machine
 }
@@ -311,6 +360,24 @@ const makeDeferredActions = Effect.gen(function*() {
       })
   })
 })
+
+const runStateAction = <Context, E, R>(
+  handler: ((context: Context) => Machine.StateActionResult<E, R>) | undefined,
+  context: Context,
+  deferredActions: {
+    readonly add: <E, R>(effect: Effect.Effect<void, E, R>) => Effect.Effect<void>
+    readonly read: Effect.Effect<ReadonlyArray<Effect.Effect<void, any, any>>>
+  }
+): Effect.Effect<void, E, R> => {
+  if (handler === undefined) {
+    return Effect.void
+  }
+
+  const result = handler(context)
+  return Effect.isEffect(result)
+    ? result.pipe(Effect.provideService(DeferredActions, deferredActions))
+    : Effect.void
+}
 
 /**
  * Returns `true` if a value is a `StateMachine`.
@@ -386,7 +453,7 @@ export const enabled = <
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
   state: Machine.StateOf<States>
 ): ReadonlyArray<Machine.TagOf<Events[number]>> =>
-  Reflect.ownKeys(machine.handlers[state._tag] ?? {}) as Array<Machine.TagOf<Events[number]>>
+  Reflect.ownKeys(machine.handlers[state._tag]?.on ?? {}) as Array<Machine.TagOf<Events[number]>>
 
 /**
  * Plans the next state for a state machine without running deferred actions.
@@ -425,7 +492,8 @@ export const plan: <
   event: Machine.EventOf<Events>
 ) {
   const deferredActions = yield* makeDeferredActions
-  const handler = machine.handlers[state._tag]?.[event._tag]
+  const stateConfig = machine.handlers[state._tag]
+  const handler = stateConfig?.on?.[event._tag]
 
   if (handler === undefined) {
     return yield* new UnhandledEventError({
@@ -446,10 +514,38 @@ export const plan: <
 
   const stateAfterTransition = nextState === undefined ? state : nextState
   const actions = yield* deferredActions.read
+  if (stateAfterTransition._tag === state._tag) {
+    return {
+      next: stateAfterTransition,
+      actions: actions as ReadonlyArray<Effect.Effect<void, E, R>>
+    }
+  }
+
+  const exitDeferredActions = yield* makeDeferredActions
+  yield* runStateAction(
+    stateConfig?.exit,
+    {
+      state: state as Machine.StateByTag<States, UnhandledStates>,
+      event
+    },
+    exitDeferredActions
+  )
+  const exitActions = yield* exitDeferredActions.read
+
+  const entryDeferredActions = yield* makeDeferredActions
+  yield* runStateAction(
+    machine.handlers[stateAfterTransition._tag]?.entry,
+    {
+      state: stateAfterTransition as Machine.StateByTag<States, UnhandledStates>,
+      event
+    },
+    entryDeferredActions
+  )
+  const entryActions = yield* entryDeferredActions.read
 
   return {
     next: stateAfterTransition,
-    actions: actions as ReadonlyArray<Effect.Effect<void, E, R>>
+    actions: [...exitActions, ...actions, ...entryActions] as ReadonlyArray<Effect.Effect<void, E, R>>
   }
 })
 
