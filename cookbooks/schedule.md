@@ -94,6 +94,8 @@ const jitteredBackoff = Schedule.exponential("100 millis").pipe(
 )
 ```
 
+Explanation: jitter randomly changes each computed delay a little. This helps when many callers fail at the same time, because they will not all retry again at the exact same moment.
+
 Caution: jitter spreads delay across callers; it does not add a retry limit.
 
 ### Combine Backoff With Count And Time Limits
@@ -108,6 +110,8 @@ const boundedBackoff = Schedule.exponential("100 millis").pipe(
   Schedule.both(Schedule.during("10 seconds"))
 )
 ```
+
+Explanation: `Schedule.both` runs both schedules against the same input. The combined schedule continues only while both schedules continue. Its output is a pair, which matters when another operator reads the schedule output.
 
 Caution: `recurs(n)` counts follow-up recurrences after the first execution.
 
@@ -153,6 +157,8 @@ const keepLatestStatus = Schedule.spaced("1 second").pipe(
   Schedule.passthrough
 )
 ```
+
+Explanation: `Schedule.setInputType` tells TypeScript what kind of input the schedule receives. `Schedule.passthrough` changes the schedule output to the latest input, so `Effect.repeat` can return the latest successful value instead of the schedule's counter or delay.
 
 ### Continue While Input Matches
 
@@ -493,6 +499,8 @@ const rateLimitPolicy = Schedule.exponential("100 millis").pipe(
 
 const program = Effect.retry(callApi, rateLimitPolicy)
 ```
+
+Explanation: `Schedule.identity<HttpError>()` keeps the retry error available as schedule output. `Schedule.modifyDelay` can then compare the normal backoff delay with `retryAfter` and choose the longer delay.
 
 Caution: classify permanent failures before applying retry; backoff does not make invalid input transient.
 
@@ -1376,6 +1384,8 @@ Caution: `recurs(n)` counts follow-up recurrences after the first execution.
 
 ## Polling And State Observation
 
+In these recipes, non-terminal states are successful values, not failures. `Effect.repeat` runs the effect again after each success and stops when the schedule stops. A real failure from the effect still fails the whole program.
+
 ### Poll Job Status Until Terminal
 
 Write the Effect code that polls `readJobStatus("job-1")` until the status is `succeeded` or `failed`, or until about 30 seconds pass.
@@ -1920,6 +1930,8 @@ const program = readStatus.pipe(
   )
 )
 ```
+
+Explanation: exhausting the schedule is not a failure by itself. `Effect.repeat` returns the latest schedule output, so the final `flatMap` turns an unfinished latest status into a domain-specific timeout.
 
 Caution: raw `Effect.repeat(schedule)` returns the schedule output; `Schedule.passthrough` preserves the latest successful value.
 
@@ -3318,6 +3330,8 @@ Effect.runPromise(program.pipe(Effect.provide(TestClock.layer()), Effect.scoped)
 
 Use `TestClock` when the timing behavior itself is the recipe contract. Fork the repeated or retried program,
 advance virtual time, then check the result.
+
+The examples fork the program because the program is waiting for time to pass. While the fiber is suspended, `TestClock.adjust` moves virtual time forward. `Fiber.join` then waits for the forked program to finish after the expected retries or repeats have run.
 
 ### Assert Retry Delay
 
