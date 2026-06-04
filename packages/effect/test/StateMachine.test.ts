@@ -50,6 +50,10 @@ describe("StateMachine", () => {
     requestId: Schema.String
   }) {}
 
+  class Success extends Schema.TaggedClass<Success>("Success")("Success", {
+    requestId: Schema.String
+  }) {}
+
   class Submit extends Schema.TaggedClass<Submit>("Submit")("Submit", {
     value: Schema.String
   }) {}
@@ -629,6 +633,141 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(planned.next, new Loading({ requestId: "request-1" }))
       assert.strictEqual(planned.actions.length, 3)
       assert.deepStrictEqual(yield* deferredLog.read, [])
+    }))
+
+  it.effect("plan follows always transitions to a settled state", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("submit"))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          always: Effect.fn(function*({ event, state }) {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push(`always:${event._tag}`))
+            return new Success({ requestId: state.requestId })
+          })
+        })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      ).pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      assert.deepStrictEqual(planned.next, new Success({ requestId: "request-1" }))
+      assert.strictEqual(planned.microsteps.length, 2)
+      assert.strictEqual(planned.actions.length, 2)
+      assert.deepStrictEqual(yield* deferredLog.read, [])
+    }))
+
+  it.effect("send follows always transitions before exposing the actor state", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("submit"))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          always: Effect.fn(function*({ state }) {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("always"))
+            return new Success({ requestId: state.requestId })
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["submit", "always"])
+    }))
+
+  it.effect("stops following always transitions after a no-op microstep", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          always: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("always"))
+          })
+        })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      ).pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      assert.deepStrictEqual(planned.next, new Loading({ requestId: "request-1" }))
+      assert.strictEqual(planned.microsteps.length, 2)
+      assert.strictEqual(planned.microsteps[1]?.changed, false)
+    }))
+
+  it.effect("fails when always transitions do not stabilize", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        id: "LoopMachine",
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          always: () => new Loading({ requestId: "request-1" }),
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          always: () => new Idle({ userId: "user-1" })
+        })
+
+      const error = yield* Effect.flip(
+        StateMachine.plan(machine, new Idle({ userId: "user-1" }), new Submit({ value: "hello" }))
+      )
+
+      assert.instanceOf(error, StateMachine.InfiniteTransitionError)
+      assert.strictEqual(error._tag, "InfiniteTransitionError")
+      assert.strictEqual(error.machineId, "LoopMachine")
+      assert.strictEqual(error.maxIterations, 1000)
     }))
 
   it.effect("does not run entry or exit actions for implicit self-transitions", () =>
