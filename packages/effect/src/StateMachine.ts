@@ -4,6 +4,7 @@
  * @since 4.0.0
  */
 
+import type * as Cause from "./Cause.ts"
 import * as Context from "./Context.ts"
 import * as Data from "./Data.ts"
 import * as Effect from "./Effect.ts"
@@ -95,6 +96,17 @@ export class InfiniteTransitionError extends Data.TaggedError("InfiniteTransitio
   readonly machineId: string | undefined
   readonly state: string
   readonly maxIterations: number
+}> {}
+
+/**
+ * Error returned when a state machine fails while running startup lifecycle
+ * logic after the initial state has been computed.
+ *
+ * @category errors
+ * @since 4.0.0
+ */
+export class StartupError extends Data.TaggedError("StartupError")<{
+  readonly cause: Cause.Cause<unknown>
 }> {}
 
 class DeferredActions extends Context.Service<DeferredActions, {
@@ -505,6 +517,13 @@ const normalizeEventTransition = <States extends ReadonlyArray<Machine.TaggedSch
 }
 
 const MaxMacrostepIterations = 1000
+const InitialEventTypeId: unique symbol = Symbol("effect/StateMachine/InitialEvent")
+const InitialEvent = { _tag: InitialEventTypeId }
+
+const catchStartup = <A>(
+  effect: Effect.Effect<A, unknown, unknown>
+): Effect.Effect<A, StartupError> =>
+  Effect.catchCause(effect as Effect.Effect<A, unknown, never>, (cause) => Effect.fail(new StartupError({ cause })))
 
 /**
  * Returns `true` if a value is a `StateMachine`.
@@ -597,9 +616,9 @@ export const planInitial: <
 ) => Effect.Effect<
   {
     readonly state: Machine.StateOf<States>
-    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE, InitialR>>
+    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>
   },
-  never,
+  InitialE | StartupError,
   never
 > = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
@@ -622,10 +641,36 @@ export const planInitial: <
     >)
     : result
   const actions = yield* deferredActions.read
+  const settled = yield* catchStartup(Effect.gen(function*() {
+    const entryDeferredActions = yield* makeDeferredActions
+    const entryDeferredRaisedEvents = yield* makeDeferredRaisedEvents
+    yield* (runStateAction(
+      machine.handlers[state._tag]?.entry,
+      {
+        state: state as Machine.StateByTag<States, UnhandledStates>,
+        event: InitialEvent as Machine.EventOf<Events>
+      },
+      entryDeferredActions,
+      entryDeferredRaisedEvents
+    ) as Effect.Effect<void>)
+    const entryActions = yield* entryDeferredActions.read
+    const entryRaisedEvents = yield* entryDeferredRaisedEvents.read
+    return yield* (settle(
+      machine,
+      state,
+      InitialEvent as Machine.EventOf<Events>,
+      entryActions as Array<Effect.Effect<void, never, never>>,
+      entryRaisedEvents as Array<Machine.EventOf<Events>>,
+      []
+    ) as Effect.Effect<MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, never, never>>)
+  }))
 
   return {
-    state,
-    actions: actions as ReadonlyArray<Effect.Effect<void, InitialE, InitialR>>
+    state: settled.next,
+    actions: [
+      ...actions,
+      ...settled.actions.map((action) => catchStartup(action))
+    ] as ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>
   }
 })
 
@@ -756,7 +801,7 @@ const microstep: <
   }
 })
 
-const macrostep: <
+const settle: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   const Input extends Schema.Top = typeof Schema.Void,
@@ -768,7 +813,10 @@ const macrostep: <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
-  event: Machine.EventOf<Events>
+  event: Machine.EventOf<Events>,
+  actions: Array<Effect.Effect<void, E, R>>,
+  raisedEvents: Array<Machine.EventOf<Events>>,
+  microsteps: Array<MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>>
 ) => Effect.Effect<
   MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
   E | UnhandledEventError | InfiniteTransitionError,
@@ -785,23 +833,12 @@ const macrostep: <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
-  event: Machine.EventOf<Events>
+  event: Machine.EventOf<Events>,
+  actions: Array<Effect.Effect<void, E, R>>,
+  raisedEvents: Array<Machine.EventOf<Events>>,
+  microsteps: Array<MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>>
 ) {
-  const stateConfig = machine.handlers[state._tag]
-  const step = yield* microstep(
-    machine,
-    state,
-    event,
-    normalizeEventTransition(stateConfig?.on?.[event._tag]),
-    {
-      state: state as Machine.StateByTag<States, UnhandledStates>,
-      event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
-    }
-  )
-  const actions = [...step.actions]
-  const raisedEvents = [...step.raisedEvents]
-  const microsteps = [step]
-  let next = step.next
+  let next = state
   let currentEvent = event
   let shouldRunAlways = true
   let iterations = 0
@@ -867,6 +904,54 @@ const macrostep: <
     actions,
     microsteps
   }
+})
+
+const macrostep: <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) => Effect.Effect<
+  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
+  E | UnhandledEventError | InfiniteTransitionError,
+  R
+> = Effect.fnUntraced(function*<
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) {
+  const stateConfig = machine.handlers[state._tag]
+  const step = yield* microstep(
+    machine,
+    state,
+    event,
+    normalizeEventTransition(stateConfig?.on?.[event._tag]),
+    {
+      state: state as Machine.StateByTag<States, UnhandledStates>,
+      event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+    }
+  )
+  const actions = [...step.actions]
+  const raisedEvents = [...step.raisedEvents]
+  const microsteps = [step]
+  return yield* settle(machine, step.next, event, actions, raisedEvents, microsteps)
 })
 
 /**
@@ -955,7 +1040,7 @@ export const start: <
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
   Actor<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
-  InitialE,
+  InitialE | StartupError,
   InitialR
 > = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,

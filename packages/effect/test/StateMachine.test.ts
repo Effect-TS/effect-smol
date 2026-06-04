@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Context, Data, Effect, Ref, Schema, StateMachine } from "effect"
+import { Cause, Context, Data, Effect, Ref, Schema, StateMachine } from "effect"
 
 class DeferredLog extends Context.Service<DeferredLog, {
   readonly push: (message: string) => Effect.Effect<void>
@@ -156,6 +156,130 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* deferredLog.read, ["initial"])
     }))
 
+  it.effect("planInitial collects initial state entry actions without running them", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: Effect.fn(function*({ event }) {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push(`entry:${String(event._tag)}`))
+        })
+      })
+
+      const planned = yield* StateMachine.planInitial(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(planned.state, new Idle({ userId: "user-1" }))
+      assert.strictEqual(planned.actions.length, 1)
+      assert.deepStrictEqual(yield* deferredLog.read, [])
+    }))
+
+  it.effect("start runs initial state entry actions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push("initial"))
+          return new Idle({ userId })
+        })
+      }).handle("Idle", {
+        entry: Effect.fn(function*({ event }) {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push(`entry:${String(event._tag)}`))
+        })
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["initial", "entry:Symbol(effect/StateMachine/InitialEvent)"])
+    }))
+
+  it.effect("start follows always transitions from the initial state before exposing actor state", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry"))
+          }),
+          always: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("always"))
+            return new Loading({ requestId: "request-1" })
+          })
+        })
+        .handle("Loading", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("loading-entry"))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["entry", "always", "loading-entry"])
+    }))
+
+  it.effect("start processes raised events from initial state entry actions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry"))
+            yield* StateMachine.raise(new Resolve({}))
+          }),
+          on: {
+            Resolve: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("resolve"))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("loading-entry"))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["entry", "resolve", "loading-entry"])
+    }))
+
   it.effect("carries initial action requirements", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
@@ -202,6 +326,30 @@ describe("StateMachine", () => {
       assert.instanceOf(error, InitialError)
       assert.strictEqual(error._tag, "InitialError")
       assert.strictEqual(error.state, "Idle")
+    }))
+
+  it.effect("propagates initial state entry action failures", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: ({ state }) => StateMachine.action(Effect.fail(new EntryError({ state: state._tag })))
+      })
+
+      const error = yield* Effect.flip(StateMachine.start(machine, { userId: "user-1" }))
+
+      assert.instanceOf(error, StateMachine.StartupError)
+      assert.strictEqual(error._tag, "StartupError")
+      const reason = error.cause.reasons[0]
+      assert.ok(reason !== undefined)
+      assert.strictEqual(Cause.isFailReason(reason), true)
+      if (Cause.isFailReason(reason)) {
+        assert.instanceOf(reason.error, EntryError)
+        assert.strictEqual(reason.error.state, "Idle")
+      }
     }))
 
   it("handle stores handlers and sync transitions enqueue actions", () => {
@@ -931,13 +1079,15 @@ describe("StateMachine", () => {
         }
       })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
 
       yield* actor.send(new Submit({ value: "hello" })).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      assert.deepStrictEqual(yield* deferredLog.read, ["transition"])
+      assert.deepStrictEqual(yield* deferredLog.read, ["entry", "transition"])
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
     }))
 
@@ -952,7 +1102,7 @@ describe("StateMachine", () => {
       }).handle("Idle", {
         entry: Effect.fn(function*({ event }) {
           const deferredLog = yield* DeferredLog
-          yield* StateMachine.action(deferredLog.push(`entry:${event._tag}`))
+          yield* StateMachine.action(deferredLog.push(`entry:${String(event._tag)}`))
         }),
         exit: Effect.fn(function*({ event }) {
           const deferredLog = yield* DeferredLog
@@ -970,13 +1120,20 @@ describe("StateMachine", () => {
         }
       })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
 
       yield* actor.send(new Submit({ value: "hello" })).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      assert.deepStrictEqual(yield* deferredLog.read, ["exit:Submit", "transition", "entry:Submit"])
+      assert.deepStrictEqual(yield* deferredLog.read, [
+        "entry:Symbol(effect/StateMachine/InitialEvent)",
+        "exit:Submit",
+        "transition",
+        "entry:Submit"
+      ])
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-2" }))
     }))
 
@@ -991,7 +1148,7 @@ describe("StateMachine", () => {
       }).handle("Idle", {
         entry: Effect.fn(function*({ event }) {
           const deferredLog = yield* DeferredLog
-          yield* StateMachine.action(deferredLog.push(`entry:${event._tag}`))
+          yield* StateMachine.action(deferredLog.push(`entry:${String(event._tag)}`))
         }),
         exit: Effect.fn(function*({ event }) {
           const deferredLog = yield* DeferredLog
@@ -1008,13 +1165,20 @@ describe("StateMachine", () => {
         }
       })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
 
       yield* actor.send(new Submit({ value: "hello" })).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      assert.deepStrictEqual(yield* deferredLog.read, ["exit:Submit", "transition", "entry:Submit"])
+      assert.deepStrictEqual(yield* deferredLog.read, [
+        "entry:Symbol(effect/StateMachine/InitialEvent)",
+        "exit:Submit",
+        "transition",
+        "entry:Submit"
+      ])
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
     }))
 
