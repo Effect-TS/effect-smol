@@ -4,7 +4,7 @@ An Effect-native core runner for testing Gherkin feature source with strongly ty
 
 `@effect/bdd` exposes a small `Bdd` module for building immutable feature definitions from tagged-template step definitions. Captures, DataTables, and DocStrings are decoded with `Schema`, and each step implementation returns an `Effect` that produces the next state.
 
-This package is intentionally the core API only. It does not discover `.feature` files, integrate with Vitest, filter by tags, or provide a CLI yet. Those can be layered on top without changing the state-machine model.
+The package also ships an `effect-bdd` CLI for discovering feature files and step definition modules from globs.
 
 ## Quick Start
 
@@ -177,7 +177,7 @@ The core parser currently supports:
 `Bdd.run(feature, source)` parses the Gherkin source, matches every scenario step, runs each transition in order, and returns a report when all scenarios pass.
 
 ```ts
-const report = yield * Bdd.run(feature, source)
+const program = Bdd.run(feature, source)
 ```
 
 Reports include the feature name, scenario names, step counts, and inherited tags:
@@ -202,15 +202,72 @@ Reports include the feature name, scenario names, step counts, and inherited tag
 Schema decode failures are preserved on `MatchError.cause`. Step implementation failures are preserved on `StepError.cause`.
 
 ```ts
-const exit = yield * Effect.exit(Bdd.run(feature, source))
+const program = Effect.exit(Bdd.run(feature, source))
 ```
 
-## Non-Goals For The Core Package
+## CLI
+
+`@effect/bdd` publishes an `effect-bdd` bin for running feature files from a package script or `npx`.
+
+```sh
+effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.steps.ts" \
+  --reporter text
+```
+
+Both `--features` (`-f`) and `--steps` (`-s`) are repeatable and support glob patterns:
+
+```sh
+effect-bdd \
+  --features "features/cart/**/*.feature" \
+  --features "features/checkout/**/*.feature" \
+  --steps "features/**/*.steps.ts"
+```
+
+Reporters are also repeatable:
+
+```sh
+effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.steps.ts" \
+  --reporter text \
+  --reporter html \
+  --output-file.html reports/bdd.html
+```
+
+The CLI supports:
+
+- `text`: writes to stdout by default, or `--output-file.text <path>`.
+- `html`: writes to `--output-file.html <path>`.
+- `--parallel <n>`: runs scenarios concurrently while preserving source order in reports.
+
+### TypeScript Step Modules
+
+Bun can load `.ts` step definition modules directly when the CLI is executed by Bun:
+
+```sh
+bunx --bun effect-bdd --features "features/**/*.feature" --steps "features/**/*.steps.ts"
+```
+
+Node requires an explicit TypeScript loader. The CLI does not install or register one implicitly:
+
+```sh
+node --import tsx ./node_modules/.bin/effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.steps.ts"
+```
+
+This keeps runtime behavior visible and avoids hidden loader magic.
+
+### Step Definition Services
+
+Step definitions can require services when they are run with `Bdd.run` inside an Effect program. The CLI only provides the platform services it needs for file loading and reporting. If a step definition needs additional services, provide them inside the step module or run the feature programmatically with `Bdd.run(...).pipe(Effect.provide(...))`.
+
+## Non-Goals
 
 The current package deliberately does not include:
 
-- CLI commands
-- automatic file discovery
 - Vitest adapter APIs
 - hooks
 - tag filtering

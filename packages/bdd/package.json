@@ -33,10 +33,15 @@
     "node": ">=18.0.0"
   },
   "sideEffects": [],
+  "bin": {
+    "effect-bdd": "./src/bin.ts"
+  },
   "exports": {
     "./package.json": "./package.json",
     ".": "./src/index.ts",
     "./*": "./src/*.ts",
+    "./bin": null,
+    "./main": null,
     "./internal/*": null,
     "./*/index": null
   },
@@ -50,10 +55,15 @@
   "publishConfig": {
     "access": "public",
     "provenance": true,
+    "bin": {
+      "effect-bdd": "./dist/bin.js"
+    },
     "exports": {
       "./package.json": "./package.json",
       ".": "./dist/index.js",
       "./*": "./dist/*.js",
+      "./bin": null,
+      "./main": null,
       "./internal/*": null,
       "./*/index": null
     }
@@ -74,5 +84,9 @@
     "@types/node": "^25.7.0",
     "effect": "workspace:^",
     "vitest": "4.1.4"
+  },
+  "dependencies": {
+    "@effect/platform-node": "workspace:^",
+    "glob": "^13.0.6"
   }
 }

@@ -1,18 +1,11 @@
 import { Bdd as bdd } from "./Bdd.ts"
 import type {
   Capture as Capture_,
-  CapturesOf as CapturesOf_,
   DocStringArg as DocStringArg_,
-  Expression as Expression_,
   Feature as Feature_,
   Report as Report_,
   RunError as RunError_,
-  StepArg as StepArg_,
-  StepBuilder as StepBuilder_,
-  StepKind as StepKind_,
-  StepTag as StepTag_,
-  TableArg as TableArg_,
-  Transition as Transition_
+  TableArg as TableArg_
 } from "./Bdd.ts"
 import { MatchError as matchError, ParseError as parseError, StepError as stepError } from "./Errors.ts"
 
@@ -106,28 +99,12 @@ export const StepError = stepError
 export type Capture<Name extends string, A> = Capture_<Name, A>
 
 /**
- * The decoded values produced by an expression matcher.
- *
- * @category re-exports
- * @since 4.0.0
- */
-export type CapturesOf<Captures extends ReadonlyArray<Capture<string, unknown>>> = CapturesOf_<Captures>
-
-/**
  * A decoded DocString argument.
  *
  * @category re-exports
  * @since 4.0.0
  */
 export type DocStringArg<A> = DocStringArg_<A>
-
-/**
- * A compiled step expression.
- *
- * @category re-exports
- * @since 4.0.0
- */
-export type Expression<A> = Expression_<A>
 
 /**
  * A local immutable feature definition used to interpret scenarios from Gherkin source.
@@ -154,49 +131,9 @@ export type Report = Report_
 export type RunError = RunError_
 
 /**
- * A decoded step argument.
- *
- * @category re-exports
- * @since 4.0.0
- */
-export type StepArg<A> = StepArg_<A>
-
-/**
- * Builder returned by a tagged-template transition.
- *
- * @category re-exports
- * @since 4.0.0
- */
-export type StepBuilder<Captures, Kind extends StepKind> = StepBuilder_<Captures, Kind>
-
-/**
- * Keyword metadata attached to a transition.
- *
- * @category re-exports
- * @since 4.0.0
- */
-export type StepKind = StepKind_
-
-/**
- * Tagged-template function used to register transitions.
- *
- * @category re-exports
- * @since 4.0.0
- */
-export type StepTag<Kind extends StepKind> = StepTag_<Kind>
-
-/**
  * A decoded DataTable argument.
  *
  * @category re-exports
  * @since 4.0.0
  */
 export type TableArg<A> = TableArg_<A>
-
-/**
- * A transition registered on a feature definition.
- *
- * @category re-exports
- * @since 4.0.0
- */
-export type Transition<State, E, R> = Transition_<State, E, R>

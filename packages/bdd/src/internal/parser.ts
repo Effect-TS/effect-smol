@@ -221,7 +221,7 @@ const parseAfterFeature = (
   const unsupported = unsupportedKeyword(line)
   if (unsupported !== undefined) {
     return Option.some(
-      parseError(`${unsupported} is not supported in @effect/bdd v1`, lineNumber, raw.indexOf(unsupported) + 1)
+      parseError(`${unsupported} is not supported by @effect/bdd`, lineNumber, raw.indexOf(unsupported) + 1)
     )
   }
 
@@ -594,7 +594,7 @@ const parseTags = (line: string): ReadonlyArray<string> | undefined => {
   return Arr.every(tags, (tag) => /^@[A-Za-z0-9][A-Za-z0-9_-]*$/.test(tag)) ? tags : undefined
 }
 
-const joinDescription = (lines: ReadonlyArray<string>): string => Arr.join(lines, "\n")
+const joinDescription = Arr.join("\n")
 
 const parseError = (message: string, line: number, column: number): Effect.Effect<never, ParseError> =>
   Effect.fail(new ParseError({ message, line, column }))

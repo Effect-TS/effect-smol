@@ -56,6 +56,33 @@ Feature: Shopping cart
     })
   })
 
+  it.effect("starts every scenario from the feature initial state", () => {
+    const expected = Bdd.capture("expected", Schema.NumberFromString)
+    const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
+      Bdd.when`increment`((_captures, state) => Effect.succeed(state + 1)),
+      Bdd.then`the counter is ${expected}`(({ expected }, state) =>
+        Effect.sync(() => {
+          assert.strictEqual(state, expected)
+          return state
+        })
+      )
+    )
+
+    return Bdd.run(
+      feature,
+      `
+Feature: Counter
+
+  Scenario: Mutates local scenario state
+    When increment
+    Then the counter is 1
+
+  Scenario: Starts clean
+    Then the counter is 0
+`
+    )
+  })
+
   it.effect("decodes data tables", () => {
     const Item = Schema.Struct({
       sku: Schema.String,

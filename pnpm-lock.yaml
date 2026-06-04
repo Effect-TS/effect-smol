@@ -334,6 +334,13 @@ importers:
         version: 3.5.34(typescript@6.0.3)
 
   packages/bdd:
+    dependencies:
+      '@effect/platform-node':
+        specifier: workspace:^
+        version: link:../platform-node
+      glob:
+        specifier: ^13.0.6
+        version: 13.0.6
     devDependencies:
       '@effect/vitest':
         specifier: workspace:^

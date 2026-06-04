@@ -61,12 +61,23 @@ export interface Report {
 /** @internal */
 export type RunError = ParseError | MatchError | StepError
 
+/** @internal */
+export interface ScenarioTask<State, E, R> {
+  readonly featureDefinition: Feature<State, E, R>
+  readonly featureName: string
+  readonly scenarioName: string
+  readonly scenarioIndex: number
+  readonly tags: ReadonlyArray<string>
+  readonly steps: ReadonlyArray<Parser.ParsedStep>
+}
+
 interface ResolvedTransition<State, E, R> {
   readonly transition: Transition<State, E, R>
   readonly captures: unknown
 }
 
-type ScenarioReport = Report["scenarios"][number]
+/** @internal */
+export type ScenarioReport = Report["scenarios"][number]
 
 /** @internal */
 export const decodeTable = <S extends Schema.Decoder<unknown, never>>(row: S) => {
@@ -95,7 +106,7 @@ export const run = <State, E, R>(
     Parser.parse(source),
     Effect.flatMap((feature) =>
       pipe(
-        runScenarios(featureDefinition, feature),
+        Effect.forEach(buildScenarioTasks(featureDefinition, feature), runScenarioTask),
         Effect.map((scenarios): Report => ({
           feature: feature.name,
           scenarios
@@ -104,27 +115,35 @@ export const run = <State, E, R>(
     )
   )
 
-const runScenarios = <State, E, R>(
+/** @internal */
+export const buildScenarioTasks = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
   feature: Parser.Feature
-): Effect.Effect<ReadonlyArray<ScenarioReport>, RunError, R> =>
-  Effect.forEach(feature.scenarios, (scenario) => runScenario(featureDefinition, feature, scenario))
+): ReadonlyArray<ScenarioTask<State, E, R>> =>
+  Arr.map(feature.scenarios, (scenario, scenarioIndex): ScenarioTask<State, E, R> => {
+    const steps = scenarioSteps(feature, scenario)
+    return {
+      featureDefinition,
+      featureName: feature.name,
+      scenarioName: scenario.name,
+      scenarioIndex,
+      tags: Arr.appendAll(feature.tags, scenario.tags),
+      steps
+    }
+  })
 
-const runScenario = <State, E, R>(
-  featureDefinition: Feature<State, E, R>,
-  feature: Parser.Feature,
-  scenario: Parser.Scenario
-): Effect.Effect<ScenarioReport, RunError, R> => {
-  const steps = scenarioSteps(feature, scenario)
-  return pipe(
-    runSteps(featureDefinition, scenario.name, steps, featureDefinition.initial),
+/** @internal */
+export const runScenarioTask = <State, E, R>(
+  task: ScenarioTask<State, E, R>
+): Effect.Effect<ScenarioReport, RunError, R> =>
+  pipe(
+    runSteps(task.featureDefinition, task.scenarioName, task.steps, task.featureDefinition.initial),
     Effect.as({
-      name: scenario.name,
-      steps: steps.length,
-      tags: Arr.appendAll(feature.tags, scenario.tags)
+      name: task.scenarioName,
+      steps: task.steps.length,
+      tags: task.tags
     })
   )
-}
 
 const runSteps = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
@@ -214,18 +233,16 @@ const resolve = <State, E, R>(
 ): Effect.Effect<ResolvedTransition<State, E, R>, MatchError> => {
   const matches = pipe(
     featureDefinition.transitions,
-    Arr.reduce([] as Array<ResolvedTransition<State, E, R>>, (matches, transition) => {
+    Arr.map((transition): Option.Option<ResolvedTransition<State, E, R>> => {
       if (!keywordMatches(transition.kind, step.kind)) {
-        return matches
+        return Option.none()
       }
       return pipe(
         transition.expression.match(step.text),
-        Option.match({
-          onNone: () => matches,
-          onSome: (captures) => Arr.append(matches, { transition, captures })
-        })
+        Option.map((captures) => ({ transition, captures }))
       )
-    })
+    }),
+    Arr.getSomes
   )
 
   return pipe(
