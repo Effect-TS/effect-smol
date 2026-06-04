@@ -3506,7 +3506,7 @@ Schema.flip(schema).make
 
 # Classes and Opaque Types
 
-Schema supports two kinds of nominal types: _opaque structs_ for lightweight distinct types, and _classes_ for full-featured types with methods and equality.
+Schema supports two kinds of nominal types: _opaque structs_ for lightweight distinct types, and _classes_ for full-featured types with methods and prototype-backed instances.
 
 ## Opaque Structs
 
@@ -3524,7 +3524,7 @@ This is not enforced at the type level, but it may be enforced through a linter 
 `Schema.Class` also wraps a `Struct`, **but** it turns the wrapper into a proper class:
 
 - You can add instance methods, getters, setters, custom constructors.
-- The generated class automatically implements `Equal` so structural equality works out of the box.
+- Instances compare structurally with `Equal.equals`, but they do not implement `Equal`.
 - Instances carry the class prototype at runtime, so `instanceof` checks succeed and methods are callable.
 
 **Example** (Creating an Opaque Struct)
@@ -3813,7 +3813,7 @@ g(A.make({ a: "a" })) // error: Argument of type 'A' is not assignable to parame
 
 `Schema.asClass` turns any schema into a class that can be extended with `extends`. The resulting class inherits the full schema API (e.g. `annotate`) and supports static methods that reference `this`.
 
-Unlike `Schema.Opaque`, it does **not** make the decoded type nominally distinct, and unlike `Schema.Class`, it does **not** add `Equal` or prototype-based features. It is a lightweight way to attach custom static helpers to a schema.
+Unlike `Schema.Opaque`, it does **not** make the decoded type nominally distinct, and unlike `Schema.Class`, it does **not** create prototype-backed instances with methods or constructors. It is a lightweight way to attach custom static helpers to a schema.
 
 ### Wrapping a Primitive Schema
 
