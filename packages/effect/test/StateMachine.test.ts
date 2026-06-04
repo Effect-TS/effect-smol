@@ -414,6 +414,222 @@ describe("StateMachine", () => {
     assert.deepStrictEqual(StateMachine.enabled(machine, new Loading({ requestId: "request-1" })), ["Reset"])
   })
 
+  it("enabled returns no event tags for final states", () => {
+    const machine = StateMachine.make({
+      states: [Idle, Success],
+      events: [Submit],
+      input: Input,
+      initial: (input) => new Idle({ userId: input.userId })
+    })
+      .handle("Idle", {
+        on: {
+          Submit: () => new Success({ requestId: "request-1" })
+        }
+      })
+      .handle("Success", {
+        type: "final"
+      })
+
+    assert.deepStrictEqual(StateMachine.enabled(machine, new Success({ requestId: "request-1" })), [])
+  })
+
+  it.effect("runs final state entry actions when entering a final state", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("success"))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["success"])
+    }))
+
+  it.effect("exposes final state output from an actor", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ event, state }) => `${state.requestId}:${event._tag}`
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      assert.strictEqual(yield* actor.output, undefined)
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.output, "request-1:Submit")
+    }))
+
+  it.effect("plans final state output without running deferred actions", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      )
+
+      assert.strictEqual(planned.output, "request-1")
+    }))
+
+  it.effect("exposes output when the initial state is final", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Success],
+        events: [Submit],
+        initial: () => new Success({ requestId: "request-1" })
+      }).handle("Success", {
+        type: "final",
+        output: ({ state }) => state.requestId
+      })
+
+      const planned = yield* StateMachine.planInitial(machine)
+      const actor = yield* StateMachine.start(machine)
+
+      assert.strictEqual(planned.output, "request-1")
+      assert.strictEqual(yield* actor.output, "request-1")
+    }))
+
+  it.effect("defaults final state output to undefined", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final"
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.output, undefined)
+    }))
+
+  it.effect("does not process events after reaching a final state", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit, Reset],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" }),
+            Reset: () => new Idle({ userId: "user-2" })
+          }
+        })
+        .handle("Success", {
+          type: "final"
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* actor.send(new Reset({}))
+
+      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+    }))
+
+  it.effect("plans no-op transitions from final states", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Success", {
+        type: "final"
+      })
+
+      const state = new Success({ requestId: "request-1" })
+      const planned = yield* StateMachine.plan(machine, state, new Submit({ value: "hello" }))
+      const nextState = yield* StateMachine.next(machine, state, new Submit({ value: "hello" }))
+
+      assert.deepStrictEqual(planned.next, state)
+      assert.deepStrictEqual(planned.actions, [])
+      assert.deepStrictEqual(planned.microsteps, [])
+      assert.deepStrictEqual(nextState, state)
+    }))
+
+  it.effect("does not process raised events from final state entry actions", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit, Reset],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" }),
+            Reset: () => new Idle({ userId: "user-2" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          entry: () => StateMachine.raise(new Reset({}))
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+    }))
+
   it.effect("next computes the next state without starting an actor", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({

@@ -46,7 +46,9 @@ export interface Machine<
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 > extends Pipeable {
   readonly [TypeId]: TypeId
   readonly states: States
@@ -55,7 +57,18 @@ export interface Machine<
   readonly id: string | undefined
 
   readonly handlers: Machine.StateConfigs<States, Events, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
-  readonly handle: Machine.Handler<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>
+  readonly handle: Machine.Handler<
+    States,
+    Events,
+    Input,
+    UnhandledStates,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates,
+    Output
+  >
 
   /** @internal */
   readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.InitialResult<States, InitialE, InitialR>
@@ -67,8 +80,9 @@ export interface Machine<
  * @category models
  * @since 4.0.0
  */
-export interface Actor<State, Event, out E = never, out R = never> {
+export interface Actor<State, Event, out E = never, out R = never, out Output = never> {
   readonly state: Effect.Effect<State>
+  readonly output: Effect.Effect<Output | undefined>
   readonly send: (event: Event) => Effect.Effect<void, E | UnhandledEventError | InfiniteTransitionError, R>
   readonly stop: Effect.Effect<void>
 }
@@ -131,7 +145,7 @@ export declare namespace Machine {
    * @category models
    * @since 4.0.0
    */
-  export type Any = Machine<any, any, any, any, any, any>
+  export type Any = Machine<any, any, any, any, any, any, any, any, any, any>
 
   /**
    * A schema whose decoded value contains a `_tag` discriminator.
@@ -240,6 +254,21 @@ export declare namespace Machine {
     readonly event: EventOf<Events>
   }
 
+  /**
+   * Context passed to a final state output function.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface FinalOutputContext<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>
+  > {
+    readonly state: StateByTag<States, StateTag>
+    readonly event: EventOf<Events>
+  }
+
   export type StateActionResult<E, R> = void | Effect.Effect<void, E, R>
 
   export type InitialResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
@@ -269,6 +298,62 @@ export declare namespace Machine {
   export type AlwaysReturn<Config> = Config extends { readonly always?: infer Always }
     ? NonNullable<Always> extends (...args: any) => infer Ret ? Ret : never
     : never
+  export type FinalOutputReturn<Config> = Config extends { readonly output?: infer Output }
+    ? NonNullable<Output> extends (...args: any) => infer Ret ? Ret : never
+    : never
+
+  export type FinalStateFromConfig<Config, StateTag extends PropertyKey> = Config extends { readonly type: "final" }
+    ? StateTag
+    : never
+
+  export type ActiveStateConfig<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>,
+    E,
+    R
+  > = {
+    readonly type?: "active"
+    readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+    readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+    readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, any, any>
+    readonly output?: never
+    readonly on?: {
+      readonly [EventTag in TagOf<Events[number]>]?:
+        | ((
+          context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+        ) => HandlerResult<States, any, any>)
+        | {
+          readonly reenter?: boolean
+          readonly transition: (
+            context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+          ) => HandlerResult<States, any, any>
+        }
+    }
+  }
+
+  export type FinalStateConfig<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>
+  > = {
+    readonly type: "final"
+    readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+    readonly output?: (context: FinalOutputContext<States, Events, StateTag>) => any
+    readonly exit?: never
+    readonly always?: never
+    readonly on?: never
+  }
+
+  export type HandlerConfig<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>,
+    E,
+    R
+  > =
+    | ActiveStateConfig<States, Events, StateTag, E, R>
+    | FinalStateConfig<States, Events, StateTag>
 
   /**
    * Adds handlers for an unhandled state tag.
@@ -284,27 +369,13 @@ export declare namespace Machine {
     E,
     R,
     InitialE,
-    InitialR
+    InitialR,
+    FinalStates extends TagOf<States[number]>,
+    Output
   > {
     <
       const StateTag extends UnhandledStates,
-      const Config extends {
-        readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
-        readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
-        readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, any, any>
-        readonly on?: {
-          readonly [EventTag in TagOf<Events[number]>]?:
-            | ((
-              context: HandlerContext<States, Events, StateTag, EventTag, E, R>
-            ) => HandlerResult<States, any, any>)
-            | {
-              readonly reenter?: boolean
-              readonly transition: (
-                context: HandlerContext<States, Events, StateTag, EventTag, E, R>
-              ) => HandlerResult<States, any, any>
-            }
-        }
-      }
+      const Config extends HandlerConfig<States, Events, StateTag, E, R>
     >(
       stateTag: StateTag,
       config: Config
@@ -324,7 +395,9 @@ export declare namespace Machine {
       | Effect.Services<StateActionReturn<Config, "entry">>
       | Effect.Services<StateActionReturn<Config, "exit">>,
       InitialE,
-      InitialR
+      InitialR,
+      FinalStates | FinalStateFromConfig<Config, StateTag>,
+      Output | FinalOutputReturn<Config>
     >
   }
 
@@ -376,9 +449,11 @@ export declare namespace Machine {
     E,
     R
   > {
+    readonly type?: "final" | "active"
     readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
     readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
     readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, E, R>
+    readonly output?: (context: FinalOutputContext<States, Events, StateTag>) => any
     readonly on?: EventHandlerMap<States, Events, StateTag, EventTag, E, R>
   }
 
@@ -483,10 +558,11 @@ type MicrostepPlan<State, Event, E, R> = {
   readonly changed: boolean
 }
 
-type MacrostepPlan<State, Event, E, R> = {
+type MacrostepPlan<State, Event, E, R, Output> = {
   readonly next: State
   readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
   readonly microsteps: ReadonlyArray<MicrostepPlan<State, Event, E, R>>
+  readonly output: Output | undefined
 }
 
 type TransitionHandler<States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context> = (
@@ -534,6 +610,43 @@ const catchStartup = <A>(
 export const isMachine = (
   u: unknown
 ): u is Machine.Any => hasProperty(u, TypeId)
+
+const isFinalState = (
+  machine: Machine.Any,
+  state: { readonly _tag: PropertyKey }
+): boolean => machine.handlers[state._tag]?.type === "final"
+
+const output = <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  StateTag extends Machine.TagOf<States[number]>,
+  Output
+>(
+  machine: Machine.Any,
+  state: Machine.StateByTag<States, StateTag>,
+  event: Machine.EventOf<Events>
+): Output | undefined => machine.handlers[state._tag]?.output?.({ state, event }) as Output | undefined
+
+/**
+ * Returns `true` if a state is final for a state machine.
+ *
+ * @category guards
+ * @since 4.0.0
+ */
+export const isFinal = <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates>,
+  state: Machine.StateOf<States>
+): state is Machine.StateByTag<States, FinalStates> => isFinalState(machine, state)
 
 /**
  * Creates a schema-first state machine definition.
@@ -609,14 +722,17 @@ export const planInitial: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
   {
     readonly state: Machine.StateOf<States>
     readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>
+    readonly output: Output | undefined
   },
   InitialE | StartupError,
   never
@@ -628,9 +744,11 @@ export const planInitial: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   ...args: [...Machine.InputArgs<Input>]
 ) {
   const deferredActions = yield* makeDeferredActions
@@ -662,7 +780,7 @@ export const planInitial: <
       entryActions as Array<Effect.Effect<void, never, never>>,
       entryRaisedEvents as Array<Machine.EventOf<Events>>,
       []
-    ) as Effect.Effect<MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, never, never>>)
+    ) as Effect.Effect<MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, never, never, Output>>)
   }))
 
   return {
@@ -670,7 +788,8 @@ export const planInitial: <
     actions: [
       ...actions,
       ...settled.actions.map((action) => catchStartup(action))
-    ] as ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>
+    ] as ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>,
+    output: settled.output
   }
 })
 
@@ -691,7 +810,9 @@ export const enabled = <
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
   state: Machine.StateOf<States>
 ): ReadonlyArray<Machine.TagOf<Events[number]>> =>
-  Reflect.ownKeys(machine.handlers[state._tag]?.on ?? {}) as Array<Machine.TagOf<Events[number]>>
+  isFinalState(machine, state)
+    ? []
+    : Reflect.ownKeys(machine.handlers[state._tag]?.on ?? {}) as Array<Machine.TagOf<Events[number]>>
 
 const microstep: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
@@ -809,16 +930,18 @@ const settle: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
   microsteps: Array<MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>>
 ) => Effect.Effect<
-  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
+  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R, Output>,
   E | UnhandledEventError | InfiniteTransitionError,
   R
 > = Effect.fnUntraced(function*<
@@ -829,9 +952,11 @@ const settle: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
@@ -842,8 +967,18 @@ const settle: <
   let currentEvent = event
   let shouldRunAlways = true
   let iterations = 0
+  let finalOutput: Output | undefined = undefined
 
   while (true) {
+    if (isFinalState(machine, next)) {
+      finalOutput = output<States, Events, Machine.TagOf<States[number]>, Output>(
+        machine,
+        next as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
+        currentEvent
+      )
+      break
+    }
+
     iterations += 1
     if (iterations > MaxMacrostepIterations) {
       return yield* new InfiniteTransitionError({
@@ -902,7 +1037,8 @@ const settle: <
   return {
     next,
     actions,
-    microsteps
+    microsteps,
+    output: finalOutput
   }
 })
 
@@ -914,13 +1050,15 @@ const macrostep: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<
-  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
+  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R, Output>,
   E | UnhandledEventError | InfiniteTransitionError,
   R
 > = Effect.fnUntraced(function*<
@@ -931,12 +1069,23 @@ const macrostep: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) {
+  if (isFinalState(machine, state)) {
+    return {
+      next: state,
+      actions: [],
+      microsteps: [],
+      output: undefined
+    }
+  }
+
   const stateConfig = machine.handlers[state._tag]
   const step = yield* microstep(
     machine,
@@ -978,9 +1127,11 @@ export const next: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<Machine.StateOf<States>, E | UnhandledEventError | InfiniteTransitionError, R> = Effect.fnUntraced(
@@ -992,9 +1143,11 @@ export const next: <
     E = never,
     R = never,
     InitialE = never,
-    InitialR = never
+    InitialR = never,
+    FinalStates extends Machine.TagOf<States[number]> = never,
+    Output = never
   >(
-    machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+    machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
     state: Machine.StateOf<States>,
     event: Machine.EventOf<Events>
   ) {
@@ -1034,12 +1187,14 @@ export const start: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
-  Actor<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
+  Actor<Machine.StateOf<States>, Machine.EventOf<Events>, E, R, Output>,
   InitialE | StartupError,
   InitialR
 > = Effect.fnUntraced(function*<
@@ -1050,18 +1205,25 @@ export const start: <
   E = never,
   R = never,
   InitialE = never,
-  InitialR = never
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   ...args: [...Machine.InputArgs<Input>]
 ) {
   const stopped = yield* Ref.make(false)
   const planned = yield* planInitial(machine, ...args)
   yield* Effect.all(planned.actions, { discard: true })
   const current = yield* SynchronizedRef.make(planned.state)
+  const currentOutput = yield* Ref.make<Output | undefined>(planned.output)
+  if (isFinalState(machine, planned.state)) {
+    yield* Ref.set(stopped, true)
+  }
 
   return {
     state: SynchronizedRef.get(current),
+    output: Ref.get(currentOutput),
     stop: Ref.set(stopped, true),
 
     send: (
@@ -1073,10 +1235,16 @@ export const start: <
           return
         }
 
-        const actions = yield* SynchronizedRef.modifyEffect(current, (state) =>
+        const [actions, isFinal, output] = yield* SynchronizedRef.modifyEffect(current, (state) =>
           macrostep(machine, state, event).pipe(
-            Effect.map((planned) => [planned.actions, planned.next] as const)
+            Effect.map((planned) =>
+              [[planned.actions, isFinalState(machine, planned.next), planned.output] as const, planned.next] as const
+            )
           ))
+        if (isFinal) {
+          yield* Ref.set(stopped, true)
+          yield* Ref.set(currentOutput, output)
+        }
 
         return yield* Effect.all(actions, { discard: true })
       })
