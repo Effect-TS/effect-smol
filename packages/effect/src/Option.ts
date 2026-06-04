@@ -1,12 +1,14 @@
 /**
- * Optional values without using `null` or `undefined` as the main data model.
- * An `Option<A>` is either `Some<A>`, which contains a value, or `None`, which
- * represents absence. This module provides constructors, guards, pattern
- * matching, conversions from nullable values, iterables, and `Result`, fallback
- * and extraction helpers, mapping and flat-mapping, filtering, zipping,
- * collection helpers, do-notation and generator support, and reusable
- * `Equivalence`, `Order`, `Reducer`, and `Combiner` helpers for optional
- * values.
+ * Models a value that may be present or absent.
+ *
+ * An `Option<A>` is `Some<A>` when a value is available and `None` when it is
+ * not. This lets code handle missing values explicitly instead of relying on
+ * `null` or `undefined`. The module includes helpers to create, inspect,
+ * transform, combine, and extract optional values, plus conversions to and from
+ * nullable values, iterables, and `Result`.
+ *
+ * `Option` is yieldable in `Effect.gen`, producing the inner value or
+ * short-circuiting with `NoSuchElementError`
  *
  * @since 2.0.0
  */
