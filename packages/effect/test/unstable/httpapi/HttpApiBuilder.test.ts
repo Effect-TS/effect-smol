@@ -175,9 +175,8 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
   it.effect("supports buffered and stream successes with the same status", () =>
     Effect.gen(function*() {
       const Buffered = Schema.Struct({ message: Schema.String })
-      const Events = Schema.Struct({
-        event: Schema.String,
-        data: Schema.String
+      const EventData = Schema.Struct({
+        text: Schema.String
       })
 
       const Api = HttpApi.make("Api").add(
@@ -188,7 +187,7 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
             },
             success: [
               Buffered,
-              HttpApiSchema.StreamSse({ events: Events, error: StreamError })
+              HttpApiSchema.StreamSse({ data: EventData, error: StreamError })
             ]
           })
         )
@@ -201,7 +200,7 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
           handlers.handle("chat", ({ query }) =>
             Effect.succeed(
               query.stream === "true" ?
-                Stream.make({ event: "token", data: "hello" }) :
+                Stream.make({ id: undefined, event: "token", data: { text: "hello" } }) :
                 { message: "done" }
             ))
       )
@@ -217,7 +216,7 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.strictEqual(streamResponse.status, 200)
       assert.strictEqual(streamResponse.headers["content-type"], "text/event-stream")
       assert.deepStrictEqual(Array.from(chunks, (chunk) => textDecoder.decode(chunk)), [
-        "event: token\ndata: hello\n\n"
+        `event: token\ndata: {"text":"hello"}\n\n`
       ])
     }))
 })

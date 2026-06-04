@@ -43,6 +43,23 @@ describe("HttpApiSchema", () => {
 
       assert.strictEqual(stream.contentType, "text/event-stream; charset=utf-8")
     })
+
+    it("creates an event schema from a JSON data schema", () => {
+      const Data = Schema.Struct({ id: Schema.String })
+      const error = Schema.Struct({ reason: Schema.String })
+      const stream = HttpApiSchema.StreamSse({ data: Data, error })
+      const encode = Schema.encodeUnknownSync(stream.events)
+      const decode = Schema.decodeUnknownSync(stream.events)
+
+      assert.deepStrictEqual(
+        encode({ id: undefined, event: "user.created", data: { id: "123" } }),
+        { id: undefined, event: "user.created", data: "{\"id\":\"123\"}" }
+      )
+      assert.deepStrictEqual(
+        decode({ id: undefined, event: "user.created", data: "{\"id\":\"123\"}" }),
+        { id: undefined, event: "user.created", data: { id: "123" } }
+      )
+    })
   })
 
   describe("StreamUint8Array", () => {

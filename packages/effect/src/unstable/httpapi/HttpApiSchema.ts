@@ -309,6 +309,25 @@ export interface SseEventEncoded {
 export type SseEventSchema = Schema.Codec<any, SseEventEncoded, any, any>
 
 /**
+ * Event schema produced when {@link StreamSse} is constructed from a JSON data schema.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface SseEventFromData<Data extends Schema.Top> extends
+  Schema.Codec<
+    {
+      readonly id: string | undefined
+      readonly event: string
+      readonly data: Data["Type"]
+    },
+    SseEventEncoded,
+    Data["DecodingServices"],
+    Data["EncodingServices"]
+  >
+{}
+
+/**
  * A schema-like declaration for a streaming `Uint8Array` success response.
  *
  * **Details**
@@ -350,18 +369,39 @@ export type StreamDeclarationMetadata =
  * @category constructors
  * @since 4.0.0
  */
-export const StreamSse = <Events extends SseEventSchema, Error extends Schema.Top>(options: {
+export function StreamSse<Events extends SseEventSchema, Error extends Schema.Top>(options: {
   readonly contentType?: string | undefined
   readonly events: Events
   readonly error: Error
-}): StreamSse<Events, Error> => ({
-  [StreamTypeId]: StreamTypeId,
-  _tag: "StreamSse",
-  mode: "sse",
-  contentType: options.contentType ?? defaultStreamContentType("sse"),
-  events: options.events,
-  error: options.error
-})
+}): StreamSse<Events, Error>
+export function StreamSse<Data extends Schema.Top, Error extends Schema.Top>(options: {
+  readonly contentType?: string | undefined
+  readonly data: Data
+  readonly error: Error
+}): StreamSse<SseEventFromData<Data>, Error>
+export function StreamSse(options: {
+  readonly contentType?: string | undefined
+  readonly events?: SseEventSchema | undefined
+  readonly data?: Schema.Top | undefined
+  readonly error: Schema.Top
+}): StreamSse<SseEventSchema, Schema.Top> {
+  const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
+    id: Schema.UndefinedOr(Schema.String),
+    event: Schema.String,
+    data: Schema.fromJsonString(options.data)
+  }))
+  if (events === undefined) {
+    throw new Error("StreamSse requires either an events schema or a data schema")
+  }
+  return {
+    [StreamTypeId]: StreamTypeId,
+    _tag: "StreamSse",
+    mode: "sse",
+    contentType: options.contentType ?? defaultStreamContentType("sse"),
+    events,
+    error: options.error
+  }
+}
 
 /**
  * Declares a streaming `Uint8Array` success response.

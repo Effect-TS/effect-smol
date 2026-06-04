@@ -29,6 +29,20 @@ describe("HttpApiSchema", () => {
       expect(stream).type.toBe<HttpApiSchema.StreamSse<typeof Events, typeof Error>>()
     })
 
+    it("creates an event schema from a JSON data schema", () => {
+      const Data = Schema.Struct({ id: Schema.String })
+      const Error = Schema.Struct({ reason: Schema.String })
+      const stream = HttpApiSchema.StreamSse({ data: Data, error: Error })
+
+      expect(stream).type.toBe<HttpApiSchema.StreamSse<HttpApiSchema.SseEventFromData<typeof Data>, typeof Error>>()
+      expect(stream.events["Type"]).type.toBe<{
+        readonly id: string | undefined
+        readonly event: string
+        readonly data: { readonly id: string }
+      }>()
+      expect(stream.events["Encoded"]).type.toBe<HttpApiSchema.SseEventEncoded>()
+    })
+
     it("requires event and error schemas", () => {
       expect(HttpApiSchema.StreamSse).type.not.toBeCallableWith({
         events: {},

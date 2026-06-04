@@ -151,7 +151,7 @@ describe("HttpApiClient", () => {
         const client = yield* HttpApiClient.makeWith(MixedSuccessApi, {
           baseUrl: "http://test",
           httpClient: clientFromResponse(() =>
-            new Response(textStream(["event: token\ndata: hello\n\n"]), {
+            new Response(textStream([`event: token\ndata: {"text":"hello"}\n\n`]), {
               status: 200,
               headers: { "content-type": "text/event-stream; charset=utf-8" }
             })
@@ -163,7 +163,7 @@ describe("HttpApiClient", () => {
           throw new Error("Expected stream response")
         }
         const events = yield* Stream.runCollect(stream)
-        assert.deepStrictEqual(events, [{ event: "token", data: "hello" }])
+        assert.deepStrictEqual(events, [{ id: undefined, event: "token", data: { text: "hello" } }])
       }))
   })
 
@@ -372,6 +372,10 @@ const MixedSuccess = Schema.Struct({
   message: Schema.String
 })
 
+const MixedEventData = Schema.Struct({
+  text: Schema.String
+})
+
 const StreamingApi = HttpApi.make("StreamingApi").add(
   HttpApiGroup.make("test")
     .add(
@@ -404,7 +408,7 @@ const MixedSuccessApi = HttpApi.make("MixedSuccessApi").add(
       HttpApiEndpoint.get("chat", "/chat", {
         success: [
           MixedSuccess,
-          HttpApiSchema.StreamSse({ events: Events, error: StreamError })
+          HttpApiSchema.StreamSse({ data: MixedEventData, error: StreamError })
         ]
       })
     )
