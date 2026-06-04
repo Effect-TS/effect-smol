@@ -180,7 +180,8 @@ export declare namespace Machine {
 
   export type HandlerResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
     | StateOf<States>
-    | Effect.Effect<StateOf<States>, E, R>
+    | void
+    | Effect.Effect<StateOf<States> | void, E, R>
 
   export type HandlerEffect<Handlers> = Handlers[keyof Handlers]
   export type HandlerError<Handlers> = Effect.Error<HandlerEffect<Handlers>>
@@ -435,9 +436,11 @@ export const start: <
               event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
             })
 
-            return Effect.isEffect(result)
+            const nextState = Effect.isEffect(result)
               ? yield* result.pipe(Effect.provideService(DeferredActions, deferredActions))
               : result
+
+            return nextState === undefined ? state : nextState
           }))
 
         const actions = yield* deferredActions.read

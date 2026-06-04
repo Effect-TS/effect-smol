@@ -110,6 +110,53 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
     }))
 
+  it.effect("handlers can omit returning a state for self-transitions", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        Submit: () => {}
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
+
+  it.effect("effect handlers can omit returning a state for self-transitions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        Submit: Effect.fn(function*() {
+          yield* StateMachine.action(
+            Effect.gen(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* deferredLog.push("submitted")
+            })
+          )
+        })
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* deferredLog.read, ["submitted"])
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
+
   it("can reuse the same machine with multiple different handlers", () => {
     const effect = Effect.succeed("submitted")
     const machine = StateMachine.make({
