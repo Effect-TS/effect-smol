@@ -110,6 +110,24 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
     }))
 
+  it("enabled returns the event tags handled by the current state", () => {
+    const machine = StateMachine.make({
+      states: [Idle, Loading],
+      events: [Submit, Reset],
+      input: Input,
+      initial: (input) => new Idle({ userId: input.userId })
+    })
+      .handle("Idle", {
+        Submit: () => new Loading({ requestId: "request-1" })
+      })
+      .handle("Loading", {
+        Reset: () => new Idle({ userId: "user-1" })
+      })
+
+    assert.deepStrictEqual(StateMachine.enabled(machine, new Idle({ userId: "user-1" })), ["Submit"])
+    assert.deepStrictEqual(StateMachine.enabled(machine, new Loading({ requestId: "request-1" })), ["Reset"])
+  })
+
   it.effect("next computes the next state without starting an actor", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({

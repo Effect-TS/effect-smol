@@ -370,6 +370,25 @@ export const initial = <
 ): Machine.StateOf<States> => machine.initial(...args)
 
 /**
+ * Returns the event tags handled by the current state.
+ *
+ * @category getters
+ * @since 4.0.0
+ */
+export const enabled = <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  state: Machine.StateOf<States>
+): ReadonlyArray<Machine.TagOf<Events[number]>> =>
+  Reflect.ownKeys(machine.handlers[state._tag] ?? {}) as Array<Machine.TagOf<Events[number]>>
+
+/**
  * Plans the next state for a state machine without running deferred actions.
  *
  * @category combinators
