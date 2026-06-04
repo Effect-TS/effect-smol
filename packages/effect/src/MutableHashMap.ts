@@ -1,9 +1,11 @@
 /**
- * `MutableHashMap` is an in-place key-value map with fast lookup, insertion,
- * removal, clearing, and iteration. It combines a native `Map` for ordinary
- * JavaScript keys with hash buckets for keys that implement Effect `Equal` /
- * `Hash`, so callers can mix referential and structural lookup in the same
- * collection.
+ * Stores key/value entries in a mutable hash map.
+ *
+ * `MutableHashMap` updates the same collection in place and supports fast
+ * lookup, insertion, removal, clearing, and iteration. It combines a native
+ * `Map` for ordinary JavaScript keys with hash buckets for keys that implement
+ * Effect `Equal` and `Hash`, so callers can mix reference-based and structural
+ * lookup in the same collection.
  *
  * @since 2.0.0
  */

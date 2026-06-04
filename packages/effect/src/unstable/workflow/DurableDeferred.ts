@@ -1,13 +1,11 @@
 /**
- * Named durable wait points for workflow executions.
+ * Defines named wait points for durable workflow executions.
  *
- * A `DurableDeferred` stores a workflow wait point with success and error
- * schemas. `await` reads the persisted exit from the `WorkflowEngine` or
- * suspends the workflow until one exists, while `into` records the exit of an
- * effect into the deferred. `raceAll` completes a deferred with the first result
- * from several effects. Tokens encode the workflow name, execution id, and
- * deferred name so `done`, `succeed`, `fail`, and `failCause` can complete the
- * correct workflow execution later.
+ * A `DurableDeferred` has a stable name and schemas for the value that will be
+ * recorded later. Workflows can await it, suspend when no result exists yet, and
+ * resume after its result is recorded. Tokens identify the workflow name,
+ * execution id, and deferred name so external code can complete the correct
+ * wait point later.
  *
  * @since 4.0.0
  */

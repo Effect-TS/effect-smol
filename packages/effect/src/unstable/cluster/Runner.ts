@@ -1,10 +1,9 @@
 /**
  * Cluster runner metadata for processes that can host entity shards.
  *
- * A {@link Runner} combines the stable {@link RunnerAddress} used to contact a
- * process, the shard groups that process participates in, and the relative
- * weight used when the sharding service distributes shards across healthy
- * runners.
+ * A `Runner` combines the stable `RunnerAddress` used to contact a process, the
+ * shard groups that process participates in, and the relative weight used when
+ * the sharding service distributes shards across healthy runners.
  *
  * @since 4.0.0
  */

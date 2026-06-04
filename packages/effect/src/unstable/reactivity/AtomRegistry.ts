@@ -1,12 +1,11 @@
 /**
- * Runtime storage for reactive atoms.
+ * Stores and runs atoms for one reactive runtime.
  *
- * An `AtomRegistry` evaluates atom reads, stores current values, tracks which
- * atoms depend on each other, applies writes and refreshes, manages
- * subscriptions, converts atoms to streams or effects, and disposes unused
- * nodes. Each registry has its own cache, so the same atom can hold different
- * values in different registries. Serializable atoms can also be preloaded by
- * key so a registry can start with hydrated values before the first read.
+ * An `AtomRegistry` evaluates atoms, caches their current values, tracks
+ * dependencies, applies writes and refreshes, manages subscriptions, and
+ * disposes unused nodes. Each registry is independent, so the same atom can hold
+ * different values in different registries. Serializable atom values can also be
+ * preloaded before the first read.
  *
  * @since 4.0.0
  */

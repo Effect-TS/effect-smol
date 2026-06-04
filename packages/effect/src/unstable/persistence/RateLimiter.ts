@@ -1,15 +1,12 @@
 /**
- * Persistent rate limiting for effects that need to coordinate token
- * consumption through a shared `RateLimiterStore`.
+ * Coordinates rate limits through shared persistent storage.
  *
- * The module exposes a `RateLimiter` service that can consume tokens for
- * string keys using either fixed-window counters or token-bucket state. It is
- * useful for protecting external APIs, enforcing per-user or per-tenant quotas,
- * throttling job workers, and coordinating limits across multiple fibers or
- * processes when they share a store. The helpers can fail fast with
- * `RateLimiterError`, return a delay to apply yourself, or wrap an effect so it
- * waits before continuing. The module also provides the low-level store service
- * plus in-memory and Redis-backed store layers.
+ * The `RateLimiter` service consumes tokens for string keys using fixed-window
+ * counters or token-bucket state. It can protect external APIs, enforce quotas,
+ * or throttle workers across fibers and processes that share the same store.
+ * This module includes helpers that fail when a limit is exceeded, return the
+ * delay needed before continuing, or wrap an effect so it waits automatically.
+ * It also defines the store service and in-memory or Redis-backed store layers.
  *
  * @since 4.0.0
  */

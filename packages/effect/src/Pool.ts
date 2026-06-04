@@ -1,11 +1,11 @@
 /**
- * Scoped resource pools for sharing expensive or limited resources across
- * fibers. A `Pool` acquires values with a scoped effect, lets fibers borrow
- * them with `get`, can invalidate broken values, and releases every acquired
- * value when the pool scope closes. This module provides fixed-size pools,
- * pools that grow and shrink with a time-to-live policy, custom strategy pools,
- * per-item concurrency control, and the runtime state types used by those
- * pools.
+ * Shares scoped resources across fibers.
+ *
+ * A `Pool<A, E>` acquires resource-backed values with a scoped effect, lets
+ * fibers borrow them with `get`, can invalidate broken values, and releases all
+ * acquired values when the pool scope closes. This module includes fixed-size
+ * pools, pools that resize with a time-to-live policy, custom strategy pools,
+ * per-item concurrency limits, and runtime state types used by pool strategies.
  *
  * @since 2.0.0
  */

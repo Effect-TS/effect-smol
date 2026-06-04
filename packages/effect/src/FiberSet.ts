@@ -1,10 +1,10 @@
 /**
- * Scoped containers for managing many fibers as one lifecycle. A
- * `FiberSet<A, E>` tracks fibers whose successful values are compatible with
- * `A` and whose failures are compatible with `E`, removes each fiber when it
- * completes, and interrupts all still-running fibers when the owning `Scope`
- * closes. The module includes scoped runtime constructors plus helpers to add,
- * clear, run, count, join, or wait for managed fibers.
+ * Manages many fibers together inside one scope.
+ *
+ * A `FiberSet<A, E>` tracks running fibers, removes each fiber when it
+ * completes, and interrupts all still-running fibers when the owning scope
+ * closes. This module includes scoped runtime constructors plus helpers for
+ * adding, clearing, running, counting, joining, and waiting for managed fibers.
  *
  * @since 2.0.0
  */

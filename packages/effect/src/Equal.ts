@@ -1,9 +1,11 @@
 /**
- * Equality helpers used across Effect data structures. `equals` compares
- * primitives, arrays, plain objects, Maps, Sets, Dates, RegExps, and values
- * that implement the `Equal` interface. The module also defines the equality
- * symbol, guards and adapters, map and set comparison builders, and helpers for
- * marking objects that should compare only by reference.
+ * Compares values with Effect's structural equality rules.
+ *
+ * `equals` compares primitives, arrays, plain objects, maps, sets, dates,
+ * regular expressions, and values that implement the `Equal` interface. This
+ * module also defines the equality symbol, guards, adapters, map and set
+ * comparison builders, and helpers for marking objects that should compare only
+ * by reference.
  *
  * @since 2.0.0
  */

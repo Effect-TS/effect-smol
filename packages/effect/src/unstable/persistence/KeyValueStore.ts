@@ -1,14 +1,12 @@
 /**
- * Effectful key/value storage for persistence backends.
+ * Provides effectful key/value storage for persistence backends.
  *
- * This module defines the `KeyValueStore` service used by the persistence
- * package when a simple string or binary store is enough. It is useful for
- * lightweight durable state, browser storage, local file-backed data, SQL
- * tables, test stores, and as the storage primitive underneath higher-level
- * persistence APIs. The service supports get, set, remove, clear, size,
- * existence checks, and value updates. This module also provides prefixed store
- * views, a schema-aware JSON store view, and memory, filesystem, Web Storage,
- * and SQL layers.
+ * `KeyValueStore` is a service for storing string or binary values by key. It
+ * is useful for lightweight durable state, browser storage, local files, SQL
+ * tables, tests, and as a storage building block for higher-level persistence
+ * APIs. This module includes store operations, prefixed views, schema-aware JSON
+ * storage, error values, and layers for memory, filesystem, Web Storage, and
+ * SQL-backed stores.
  *
  * @since 4.0.0
  */

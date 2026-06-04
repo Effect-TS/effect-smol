@@ -1,14 +1,13 @@
 /**
- * Shared error model for AI operations. `AiError` is the top-level error: it
- * records the module and method where a failure happened, and stores the
- * detailed cause in a `reason` field.
+ * Defines shared errors for AI operations.
  *
- * This module defines reason classes for network failures, provider responses,
- * rate limits, quota exhaustion, authentication, content policy failures,
- * invalid requests, invalid or structured output, unsupported schemas, tool
- * problems, invalid user input, and unknown failures. It also provides metadata
- * schemas, guards, a constructor helper, and a helper for turning HTTP status
- * information into an AI error reason.
+ * `AiError` records where a failure happened and stores the detailed reason in a
+ * `reason` field. Those reasons cover transport problems, provider responses,
+ * rate limits, authentication, content policy failures, invalid requests,
+ * invalid output, unsupported schemas, tool failures, invalid user input, and
+ * unknown failures. This module also includes metadata schemas, guards,
+ * constructors, and helpers for converting HTTP response information into AI
+ * error reasons.
  *
  * @since 4.0.0
  */

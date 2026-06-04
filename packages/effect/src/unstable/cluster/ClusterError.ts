@@ -1,8 +1,10 @@
 /**
- * The `ClusterError` module defines the tagged, schema-backed error values used
- * by the unstable cluster runtime. These errors describe failures at routing,
- * runner membership, serialization, persistence, mailbox capacity, and duplicate
- * envelope boundaries.
+ * Defines the structured errors used by the unstable cluster runtime.
+ *
+ * These tagged, schema-backed errors describe failures at routing, runner
+ * membership, serialization, persistence, mailbox capacity, and duplicate
+ * envelope boundaries. Cluster clients, runners, and storage adapters use these
+ * shared error values to report failures through typed Effect errors.
  *
  * @since 4.0.0
  */

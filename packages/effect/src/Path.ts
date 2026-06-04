@@ -1,10 +1,11 @@
 /**
- * Effect service for working with file system paths. The `Path` service exposes
- * common operations such as joining, normalizing, parsing, formatting, and
- * resolving paths, plus conversions to and from file URLs. This module provides
- * the service interface, service tag, parsed path type, runtime marker, and a
- * built-in POSIX path layer, so programs can depend on path behavior through
- * the Effect environment.
+ * Provides path operations through the Effect environment.
+ *
+ * The `Path` service works with file system paths without tying code to one
+ * concrete platform module. It exposes common operations such as joining,
+ * normalizing, parsing, formatting, resolving, and converting paths to or from
+ * file URLs. This module includes the service interface, parsed path type,
+ * service tag, runtime marker, and built-in POSIX path layer.
  *
  * @since 4.0.0
  */

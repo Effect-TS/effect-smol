@@ -1,7 +1,10 @@
 /**
- * Pseudo-random generation through Effect's service context. The module exposes
- * effectful generators for booleans, doubles, safe integers, bounded numbers,
- * shuffling, and deterministic seeded runs.
+ * Provides pseudo-random generation through an Effect service.
+ *
+ * This module exposes effectful generators for booleans, doubles, safe
+ * integers, bounded numbers, shuffling, and deterministic seeded runs. Because
+ * random generation is a service, tests and applications can replace the
+ * generator used by Effect programs.
  *
  * @since 4.0.0
  */

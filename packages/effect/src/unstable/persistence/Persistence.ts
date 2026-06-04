@@ -1,13 +1,10 @@
 /**
- * Durable storage for encoded `Persistable` request results.
+ * Stores encoded results for `Persistable` requests.
  *
- * The `Persistence` service creates scoped stores that read and write
- * schema-encoded `Exit` values keyed by each request's `PrimaryKey`. It is the
- * lower-level persistence layer used by `PersistedCache` and similar request
- * workflows to reuse expensive or idempotent lookup results across fibers,
- * process restarts, and workers that share a backing store. The module also
- * provides the raw backing-store service, TTL handling, and memory,
- * key-value-store, Redis, and SQL layers.
+ * The `Persistence` service creates scoped stores keyed by each request's
+ * `PrimaryKey`. Stores read and write schema-encoded `Exit` values with
+ * optional TTLs, letting request workflows reuse expensive or idempotent results
+ * across fibers, process restarts, or workers that share a backing store.
  *
  * @since 4.0.0
  */

@@ -1,12 +1,11 @@
 /**
- * Low-level tracing types and services used by Effect. A span records the
- * lifetime of an operation, including its name, parent, attributes, links,
- * annotations, sampling decision, kind, and completion status.
+ * Defines the low-level tracing model used by Effect.
  *
- * This module defines tracer backends, Effect-created spans, external spans,
- * span links, span options, parent-span context, trace-level and propagation
- * controls, the active tracer reference, and the default in-memory span
- * implementation used by the native tracer.
+ * A span records the lifetime of an operation, including its name, parent,
+ * attributes, links, annotations, sampling decision, kind, and completion
+ * status. The module also defines the tracer service, parent-span context,
+ * external span support, trace propagation settings, and the default in-memory
+ * span implementation.
  *
  * @since 2.0.0
  */

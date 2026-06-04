@@ -1,13 +1,14 @@
 /**
  * Transactional hash sets for storing unique values inside Effect
- * transactions. A `TxHashSet` stores an immutable `HashSet` in a `TxRef`, so
- * membership checks and updates can be committed atomically with other
- * transactional operations.
+ * transactions.
  *
- * This module provides constructors, guards, adding, removing, clearing,
- * membership checks, size checks, conversion to `HashSet`, set algebra
- * operations such as union and intersection, subset checks, predicates,
- * mapping, filtering, and reducing.
+ * A `TxHashSet` keeps an immutable `HashSet` inside a `TxRef`, so membership
+ * checks and updates can commit atomically with other transactional operations.
+ * Use it when several pieces of shared transactional state must change
+ * together, such as adding a value only after checking related state. The
+ * module includes the usual set operations, including adding, removing,
+ * membership checks, set algebra, mapping, filtering, reducing, and conversion
+ * back to `HashSet`.
  *
  * @since 2.0.0
  */

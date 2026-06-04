@@ -1,12 +1,11 @@
 /**
- * Describes typed event groups for the unstable event-log system.
+ * Defines groups of typed events for the unstable event-log system.
  *
- * An `EventGroup` is an immutable catalog of event definitions that belong to one
- * domain, such as an aggregate, workflow, or synced store. Start with `empty`,
- * add tags with their payload, success, and error schemas, and then pass the
- * resulting group to `EventLog.schema` for clients and `EventLog.group` for
- * server-side handlers. The group itself does not execute writes; it preserves
- * the event tags and schema services that the event-log runtime uses later.
+ * An `EventGroup` collects event definitions that belong together. Start with
+ * `empty`, add events with their payload, success, and error schemas, then use
+ * the group to build clients with `EventLog.schema` and server handlers with
+ * `EventLog.group`. The group only describes events; it does not write or run
+ * them.
  *
  * @since 4.0.0
  */

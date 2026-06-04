@@ -1,14 +1,12 @@
 /**
- * Schema-backed declarations for individual RPC procedures.
+ * Defines schema-backed contracts for individual RPC procedures.
  *
- * An `Rpc` is the shared contract for one remote procedure. It records the tag,
- * payload schema, success schema, error schema, defect schema, middleware, and
- * annotations used by clients and servers. The module provides constructors,
- * custom constructors, type helpers for deriving payloads, results, services,
- * and handler signatures, an exit schema builder, and wrappers that let server
- * handlers request forked or uninterruptible execution. RPC declarations are
- * transport independent; groups, clients, and servers all read the same
- * metadata.
+ * An `Rpc` describes one remote procedure by recording its tag, payload schema,
+ * success schema, error schema, defect schema, middleware, and annotations.
+ * Clients and servers read the same declaration, so the procedure contract is
+ * independent of the transport used to call it. This module includes
+ * constructors, type helpers for deriving client and handler shapes, exit
+ * schemas, and handler wrappers for special execution modes.
  *
  * @since 4.0.0
  */

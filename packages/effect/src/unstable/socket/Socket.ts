@@ -1,11 +1,10 @@
 /**
- * Effect-based sockets for bidirectional frame connections.
+ * Models bidirectional socket connections in Effect.
  *
- * The `Socket` service can run handlers for binary, string, or raw frames and
- * provides a scoped writer for outgoing bytes, text, or `CloseEvent` values.
- * This module defines close events, typed socket errors, channel adapters,
- * WebSocket constructor services and layers, WebSocket-backed sockets,
- * transform-stream-backed sockets, and the send queue capacity setting.
+ * The `Socket` service runs handlers for binary, string, or raw frames and
+ * provides a scoped writer for outgoing bytes, text, or close events. This
+ * module also includes socket errors, channel adapters, WebSocket layers, and
+ * transform-stream-backed sockets.
  *
  * @since 4.0.0
  */

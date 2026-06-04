@@ -1,12 +1,11 @@
 /**
- * Testing utilities for asserting Schema decoding, encoding, make, and
- * arbitrary-generation behavior. Used in unit tests to verify that schemas
- * accept, reject, and round-trip values correctly.
+ * Provides helpers for testing Schema behavior.
  *
- * The main entry point is `Asserts`, which creates helpers for `make`,
- * decoding, encoding, arbitrary generation, and lossless encode/decode
- * property checks. `Decoding` and `Encoding` can also be used directly when a
- * test only needs one direction.
+ * These utilities assert how schemas construct values, decode input, encode
+ * output, generate arbitrary values, and round-trip between encoded and decoded
+ * forms. The `Asserts` class groups the common checks for one schema, while
+ * `Decoding` and `Encoding` can be used directly when a test only needs one
+ * direction.
  *
  * @since 4.0.0
  */

@@ -1,10 +1,11 @@
 /**
- * Low-level building blocks for streaming data through Effect. A `Channel` can
- * read input elements, write output elements, fail with a typed error, and
- * finish with a typed result while safely managing resources. This module
- * includes constructors from effects, iterables, queues, pub/sub values, and
- * async sources, plus operators for mapping, filtering, combining, error
- * handling, buffering, providing services, and running channels.
+ * Provides low-level building blocks for streaming data through Effect.
+ *
+ * A `Channel` can read input elements, write output elements, fail with a typed
+ * error, and finish with a typed result while managing resources safely.
+ * Streams and sinks are built on channels, so most application code uses those
+ * higher-level modules instead. This module is useful when implementing stream
+ * operators or specialized streaming workflows.
  *
  * @since 2.0.0
  */

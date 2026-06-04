@@ -1,13 +1,10 @@
 /**
- * Low-level OTLP/HTTP batch exporter used by the observability modules for
- * logs, metrics, and traces.
+ * Shared batch exporter for OTLP/HTTP observability modules.
  *
- * This module owns the scoped transport loop for already-encoded telemetry
- * payloads: callers provide the OTLP endpoint, request headers, a body encoder,
- * and batching settings, then push records that should be delivered to a
- * collector. It is useful when implementing a concrete signal exporter, such
- * as the OTLP logger or tracer, or when wiring a snapshot-based exporter like
- * metrics into the same lifecycle and retry behavior.
+ * Signal modules use this exporter to buffer already-encoded telemetry and post
+ * it to a configured OTLP endpoint. It owns the scoped transport loop, batching,
+ * retry behavior, temporary disabling after repeated failures, and final flush
+ * during shutdown.
  *
  * @since 4.0.0
  */

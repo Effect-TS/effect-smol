@@ -1,14 +1,12 @@
 /**
- * Shared schemas for Model Context Protocol (MCP) messages. MCP clients and
- * servers use these definitions to describe the requests, notifications,
- * results, and errors that can be sent across the protocol.
+ * Defines schemas for Model Context Protocol messages.
  *
- * This module defines the protocol vocabulary for request ids, metadata,
- * capabilities, errors, resources, prompts, tools, logging, sampling,
- * completions, roots, and elicitation. It also groups related messages for the
- * RPC layer and provides small helpers for optional fields and parameter
- * metadata. The module describes message shapes; transport and server behavior
- * live in other modules.
+ * MCP clients and servers use these schemas to describe the JSON-RPC requests,
+ * notifications, results, and errors that can cross the protocol boundary. This
+ * module focuses on message shapes: it defines the shared protocol data model,
+ * groups related messages for the RPC layer, and provides helpers for optional
+ * fields and parameter metadata. Transport and server behavior live in other
+ * modules.
  *
  * @since 4.0.0
  */

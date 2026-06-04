@@ -1,10 +1,11 @@
 /**
- * Immutable key-value maps with efficient lookup, insertion, removal, and
- * transformation operations. A `HashMap<Key, Value>` stores entries by hashing
- * keys and resolving matches with Effect's structural equality semantics. The
- * module includes constructors, lookup and update helpers, bulk operations,
- * temporary mutation helpers, iteration and conversion functions, and
- * collection-style mapping, filtering, and reducing.
+ * Stores key/value entries in an immutable hash map.
+ *
+ * A `HashMap<Key, Value>` hashes keys and resolves matches with Effect's
+ * structural equality rules. Lookup, insertion, removal, and transformation
+ * operations return new maps, while temporary mutation helpers support efficient
+ * batch updates. This module also includes constructors, iteration, conversion,
+ * mapping, filtering, and reducing helpers.
  *
  * @since 2.0.0
  */

@@ -1,14 +1,13 @@
 /**
- * The `HttpApiMiddleware` module defines middleware service keys for
- * declarative HTTP APIs. Middleware wraps endpoint execution on the server and,
- * when required by an API, can also wrap requests made by generated clients.
+ * Declares middleware for schema-driven HTTP APIs.
  *
- * Middleware is where you put cross-cutting behavior that belongs to the API
- * contract: authentication, authorization, request logging, tracing, rate
- * limiting, request-scoped services, schema-error normalization, and client
- * request decoration. This module also provides the service constructor used to
- * declare middleware, helpers for security middleware, a layer for transforming
- * request schema errors, and a layer for installing generated-client middleware.
+ * HTTP API middleware wraps endpoint execution on the server and, when the API
+ * requires it, can also wrap requests made by generated clients. It is used for
+ * cross-cutting behavior that belongs to the API contract, such as
+ * authentication, authorization, logging, tracing, rate limiting,
+ * request-scoped services, schema-error handling, and client request
+ * decoration. This module defines the middleware service keys and helpers used
+ * by `HttpApi` declarations.
  *
  * @since 4.0.0
  */

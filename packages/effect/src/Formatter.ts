@@ -1,10 +1,11 @@
 /**
- * Formatting helpers for turning JavaScript values into readable strings.
- * `format` handles primitives, objects, arrays, dates, regexps, maps, sets,
- * class instances, errors, circular references, and redactable values for logs
- * and messages. `formatJson` wraps JSON formatting with redaction and circular
- * reference handling, and the module also exposes small helpers for property
- * keys, paths, and dates.
+ * Formats JavaScript values into readable strings.
+ *
+ * `format` is intended for logs, diagnostics, and error messages. It handles
+ * primitives, objects, arrays, dates, regular expressions, maps, sets, class
+ * instances, errors, circular references, and redactable values. `formatJson`
+ * wraps JSON formatting with redaction and circular-reference handling, and the
+ * module also includes helpers for property keys, paths, and dates.
  *
  * @since 4.0.0
  */

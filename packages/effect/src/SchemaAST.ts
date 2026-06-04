@@ -1,11 +1,12 @@
 /**
- * Runtime tree representation used by Effect schemas. Every `Schema` has an
- * AST made from nodes for declarations, primitives, literals, arrays, objects,
- * unions, suspended schemas, checks, annotations, encoding links, and parsing
- * context. Most users work with the `Schema` module directly; use `SchemaAST`
- * when you need to inspect schema nodes, build ASTs programmatically, add or
- * replace checks and annotations, change encoded or decoded views, collect
- * issues, or run low-level schema checks.
+ * Represents Effect schemas as runtime trees.
+ *
+ * Every `Schema` has an AST made from nodes for declarations, primitives,
+ * literals, arrays, objects, unions, suspended schemas, checks, annotations,
+ * encoding links, and parsing context. Most users work with the higher-level
+ * `Schema` module. Use `SchemaAST` when you need to inspect schema nodes, build
+ * ASTs programmatically, change encoded or decoded views, collect issues, or
+ * run low-level schema checks.
  *
  * @since 4.0.0
  */

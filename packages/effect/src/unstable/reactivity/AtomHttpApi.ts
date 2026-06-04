@@ -1,13 +1,11 @@
 /**
- * Atom helpers for typed `HttpApi` clients.
+ * Connects typed `HttpApi` clients to atoms.
  *
- * This module creates a `Context.Service` that exposes the generated HTTP API
- * client and adds atom-based helpers for endpoints. `query` calls an endpoint as
- * a read atom whose value is an `AsyncResult`, while `mutation` calls an
- * endpoint as a writable `AtomResultFn`. Query atoms can be cached, serialized
- * for hydration, refreshed through `reactivityKeys`, and kept or disposed with
- * `timeToLive`; mutations can invalidate the same keys after a successful
- * request.
+ * The service created here exposes the generated HTTP API client plus
+ * atom-based query and mutation helpers. Query atoms call endpoints and track
+ * their asynchronous result, while mutations run endpoint calls that can
+ * invalidate reactivity keys after a successful request. Query atoms can also be
+ * cached, serialized for hydration, and kept alive with a time-to-live.
  *
  * @since 4.0.0
  */

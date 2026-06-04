@@ -1,16 +1,12 @@
 /**
- * Runtime sharding service for Effect Cluster. `Sharding` maps entity ids to
- * shard ids, keeps the current shard ownership view from runner storage,
- * acquires and releases shard locks for the local runner, and sends cluster
- * messages to local handlers or remote runners.
+ * Runs shard ownership and message routing for Effect Cluster.
  *
- * The service also creates typed clients for entities, registers entity handlers
- * and singletons on the current runner, polls message storage for persisted
- * work, resumes unprocessed messages, generates runner-local snowflake ids,
- * exposes registration events and active entity counts, and tracks shutdown
- * state. The exported layer wires those responsibilities to runner
- * communication, storage, health checks, configuration, and local resource
- * management.
+ * `Sharding` decides which shard owns an entity id, tracks which shards belong
+ * to the local runner, and sends cluster messages to local handlers or remote
+ * runners. It also registers entities and singletons, creates clients for
+ * entity requests, polls stored messages, and tracks shutdown state. The main
+ * layer connects these responsibilities to runner communication, storage,
+ * health checks, configuration, and local resources.
  *
  * @since 4.0.0
  */

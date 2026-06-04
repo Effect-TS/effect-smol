@@ -1,10 +1,11 @@
 /**
- * Immutable sets for storing unique values with efficient membership checks,
- * additions, removals, and set operations. A `HashSet<A>` contains at most one
- * value for each equality class as determined by Effect's `Equal` and `Hash`
- * semantics. The module includes constructors, membership and update helpers,
- * union, intersection, difference, subset checks, and collection-style mapping,
- * filtering, and reducing.
+ * Stores unique values in an immutable hash set.
+ *
+ * A `HashSet<A>` contains at most one value for each equality class according
+ * to Effect's `Equal` and `Hash` rules. Membership checks, additions, removals,
+ * and set operations return new sets. This module also includes constructors,
+ * union, intersection, difference, subset checks, mapping, filtering, and
+ * reducing helpers.
  *
  * @since 2.0.0
  */

@@ -1,16 +1,13 @@
 /**
- * Schemas for describing data shapes, validating unknown input, and converting
- * values between decoded and encoded forms. This module provides schema,
- * codec, decoder, and encoder types; built-in schemas for primitives, objects,
- * tuples, records, arrays, unions, collections, JSON, dates, durations, and
- * other Effect data types; and decoding or encoding helpers that return
- * `Effect`, `Exit`, `Option`, `Result`, `Promise`, or synchronous values.
+ * Describes data shapes and how unknown input becomes trusted values.
  *
- * Schemas can be annotated, refined, branded, transformed, made optional or
- * mutable in structs, given constructor or decoding defaults, and used to build
- * classes and tagged classes. The module also derives standard schemas, JSON
- * Schema documents, arbitrary values for testing, formatters, equivalences,
- * representations, optics, and differs from schema definitions.
+ * A schema can validate input, decode it into an application type, and encode
+ * that value back to another representation. This module contains the main
+ * schema, codec, decoder, and encoder APIs, together with schemas for common
+ * JavaScript values and Effect data types. It also supports refinements,
+ * transformations, defaults, classes, JSON Schema generation, test data
+ * generation, formatting, equivalence, optics, and differs derived from schema
+ * definitions.
  *
  * @since 4.0.0
  */

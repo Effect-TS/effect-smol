@@ -1,13 +1,12 @@
 /**
- * Sharded, addressable entity definitions for Effect Cluster. An entity pairs a
- * stable entity type name with an RPC protocol and describes how requests for
- * individual entity ids are routed to shard groups and runners.
+ * Defines addressable entity types for Effect Cluster.
  *
- * This module provides constructors from RPC groups or RPC arrays, annotation
- * helpers, shard lookup, per-entity client creation, layer registration for
- * normal handlers or mailbox queues, request and replier types, current address
- * services, an in-memory test client helper, and keep-alive support for
- * entities that must stay active while a resource is held.
+ * An entity gives a stable name and RPC protocol to a group of values that are
+ * addressed by id. The cluster uses that information to choose a shard and
+ * route each request to the runner responsible for that id. This module
+ * includes constructors for entity definitions, helpers for creating sharded
+ * clients, layer builders for registering handlers, and services that expose
+ * the current entity address while a request is being handled.
  *
  * @since 4.0.0
  */

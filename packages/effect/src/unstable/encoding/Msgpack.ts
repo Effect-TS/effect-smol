@@ -1,11 +1,11 @@
 /**
- * Encode and decode MessagePack frames in Effect channels.
+ * Encodes and decodes MessagePack frames in Effect channels.
  *
  * MessagePack is a compact binary serialization format for protocols and
- * storage layers that expect bytes rather than JSON text, such as RPC
- * transports, socket streams, caches, or database columns. This module provides
- * raw channel helpers for already-agreed value shapes and schema helpers for
- * validating, transforming, or decoding domain values at the boundary.
+ * storage layers that expect bytes instead of JSON text, such as RPC
+ * transports, socket streams, caches, or database columns. This module includes
+ * raw channel helpers for values whose shape is already agreed on, and
+ * schema-based helpers for validating and transforming values at the boundary.
  *
  * @since 4.0.0
  */

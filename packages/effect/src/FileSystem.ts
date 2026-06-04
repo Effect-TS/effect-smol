@@ -1,10 +1,12 @@
 /**
- * Effect service and related types for reading, writing, inspecting, streaming,
- * and watching files. `FileSystem` is the portable boundary between Effect
- * programs and the host file system; platform packages provide concrete layers
- * at the edge. Operations return `Effect`, `Stream`, or `Sink` values and fail
- * with `PlatformError`. The module also defines file handles, size helpers,
- * open flags, watch events, and a watch backend service.
+ * Defines the portable file system service for Effect programs.
+ *
+ * `FileSystem` is the boundary between Effect code and the host file system.
+ * Platform packages provide concrete layers, while this module defines the
+ * operations for reading, writing, inspecting, streaming, and watching files.
+ * Operations return `Effect`, `Stream`, or `Sink` values and fail with
+ * `PlatformError`. The module also includes file handles, size helpers, open
+ * flags, watch events, and the watch backend service.
  *
  * @since 4.0.0
  */

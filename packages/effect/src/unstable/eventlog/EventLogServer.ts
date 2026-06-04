@@ -1,8 +1,8 @@
 /**
- * Builds server-side RPC handlers for the event-log remote protocol.
+ * Builds server-side handlers for the event-log remote protocol.
  *
- * Concrete transports use this module when exposing a journal to remote replicas.
- * The handlers run the hello / authenticate challenge flow, attach the
+ * Transport modules use these handlers to expose an event journal to remote
+ * replicas. The handlers run the hello/authenticate challenge flow, attach the
  * authenticated `EventLog.Identity` to later requests, accept single or chunked
  * writes, and stream changes back as single or chunked messages.
  *

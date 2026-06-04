@@ -1,10 +1,11 @@
 /**
- * Utilities for managing scoped resources that are selected by key and built
- * from `Layer` values. A `LayerMap<K, I, E>` turns a key into a cached service
- * `Context<I>`, exposes that context as either a `Layer` or scoped effect, and
- * can invalidate or expire unused entries. The module also provides record-based
- * constructors and service-class helpers for keyed resource families such as
- * tenant clients, regional connections, or environment-specific services.
+ * Caches scoped services selected by key and built from layers.
+ *
+ * A `LayerMap<K, I, E>` turns a key into a cached service `Context<I>` and
+ * exposes that context as either a `Layer` or a scoped effect. Entries can be
+ * invalidated explicitly or released after they sit unused. This is useful for
+ * keyed resource families such as tenant clients, regional connections, or
+ * environment-specific services.
  *
  * @since 3.14.0
  */

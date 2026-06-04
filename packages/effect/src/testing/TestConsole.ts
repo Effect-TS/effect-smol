@@ -1,12 +1,11 @@
 /**
- * The `TestConsole` module provides a test implementation of the Effect
- * `Console` service. When {@link layer} is provided, calls made through the
- * Effect console APIs are captured in memory instead of being written to the
- * host console, so tests can assert on logged values deterministically.
+ * Provides a test implementation of the Effect `Console` service.
  *
- * This module is intentionally small: it gives tests a console layer, helpers
- * for reading captured `Console.log` and `Console.error` arguments, and a way
- * to access the provided test console service directly.
+ * When the test layer is provided, calls made through the Effect console APIs
+ * are captured in memory instead of being written to the host console. Tests can
+ * then assert on logged values deterministically. This module includes the
+ * console layer, helpers for reading captured `Console.log` and `Console.error`
+ * arguments, and access to the provided test console service.
  *
  * @since 4.0.0
  */

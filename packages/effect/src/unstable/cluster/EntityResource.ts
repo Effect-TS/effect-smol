@@ -1,14 +1,12 @@
 /**
- * Helpers for acquiring resources inside a cluster entity and keeping them
- * available across entity restarts. This is useful for long-lived resources
- * tied to an entity address, such as external processes, network clients,
- * Kubernetes Pods, or other handles that should not be torn down during routine
- * shard movement.
+ * Keeps resources available across cluster entity restarts.
  *
- * This module defines the `EntityResource` wrapper, a close scope that survives
- * normal entity restarts, a generic resource constructor with idle timeout and
- * eager acquisition options, and a Kubernetes Pod resource helper built on
- * `K8sHttpClient`.
+ * `EntityResource` is useful for long-lived resources tied to an entity
+ * address, such as external processes, network clients, Kubernetes Pods, or
+ * other handles that should survive routine shard movement. This module
+ * includes the resource wrapper, a close scope that survives normal entity
+ * restarts, a generic resource constructor, and a Kubernetes Pod resource
+ * helper built on `K8sHttpClient`.
  *
  * @since 4.0.0
  */

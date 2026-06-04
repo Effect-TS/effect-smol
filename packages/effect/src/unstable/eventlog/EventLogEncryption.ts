@@ -1,13 +1,10 @@
 /**
- * Event-log encryption primitives for encrypted remote replication.
+ * Cryptographic service for encrypted event-log replication.
  *
- * This module defines the `EventLogEncryption` service used by encrypted
- * `EventLogRemote` clients to turn local journal entries into encrypted remote
- * payloads, decrypt encrypted changes received from a server, hash byte data,
- * and create event-log identities. It is useful when events need to be
- * replicated through infrastructure that stores or transports only ciphertext,
- * such as an encrypted event-log server, offline-first synchronization backend,
- * or multi-device replicated store.
+ * `EventLogEncryption` turns local journal entries into encrypted remote
+ * payloads and decrypts encrypted changes received from a server. It also
+ * hashes byte data and creates event-log identities, so remote replication can
+ * use storage or transport that should not see plaintext event data.
  *
  * @since 4.0.0
  */

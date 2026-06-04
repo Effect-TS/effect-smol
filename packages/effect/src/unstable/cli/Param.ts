@@ -1,15 +1,12 @@
 /**
- * Shared parameter model used by the unstable CLI `Argument` and `Flag`
- * modules. A `Param<Kind, A>` describes how to consume either positional
- * arguments or named flags from parsed command-line input and return a typed
- * value.
+ * Defines the shared parameter model for CLI arguments and flags.
  *
- * This module defines the parser tree behind both public APIs, including
- * single parameters, mapped parameters, transformed parameters, optional
- * parameters, and variadic parameters. It also provides the primitive
- * constructors, help metadata helpers, aliases, defaults, config and prompt
- * fallbacks, validation, schema decoding, fallback parameters, and traversal
- * helpers used by command parsing and help generation.
+ * A `Param<Kind, A>` describes how to consume parsed command-line input and
+ * return a typed value. The `Kind` decides whether the parameter reads
+ * positional arguments or named flags. `Argument` and `Flag` build on this
+ * module to share parsing structure, primitive constructors, help metadata,
+ * aliases, defaults, prompts, configuration fallbacks, validation, schema
+ * decoding, fallback parameters, and traversal helpers.
  *
  * @since 4.0.0
  */

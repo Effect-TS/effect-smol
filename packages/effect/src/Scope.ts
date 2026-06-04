@@ -1,13 +1,11 @@
 /**
- * Tools for controlling how long resources stay open. A scope is a lifetime
- * boundary: code can register cleanup effects on it, and closing the scope runs
- * those cleanup effects with the `Exit` value that ended the work.
+ * Controls how long resources stay open.
  *
- * This module exposes the `Scope` service, closeable scopes, scope states, and
- * operations for creating, providing, forking, closing, and using scopes. Most
- * application code uses higher-level APIs such as `Effect.scoped` and `Layer`,
- * while this module is useful when you need to manage a lifetime boundary
- * directly.
+ * A scope is a lifetime boundary. Code can register cleanup effects on it, and
+ * closing the scope runs those cleanups with the `Exit` value that ended the
+ * work. Most application code uses higher-level APIs such as `Effect.scoped`
+ * and `Layer`, while this module is useful when code needs to create, provide,
+ * fork, close, or inspect scopes directly.
  *
  * @since 2.0.0
  */

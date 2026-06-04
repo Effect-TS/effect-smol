@@ -1,14 +1,12 @@
 /**
- * Mutable references whose updates are serialized. A `SynchronizedRef` behaves
- * like a `Ref` for reading and simple state storage, but update and modify
- * operations run one at a time so each change observes a consistent current
- * value.
+ * Stores mutable state whose updates run one at a time.
  *
- * This module is especially useful when the next value must be computed by an
- * effect, because the effectful transition is still protected from concurrent
- * updates. It provides constructors, reads, sets, get-and-set operations,
- * update and modify operations, partial-update variants, and effectful versions
- * of the update and modify helpers.
+ * A `SynchronizedRef<A>` behaves like a `Ref<A>` for reading and simple state
+ * storage, but update and modify operations are serialized so each change sees
+ * a consistent current value. This is especially useful when the next value is
+ * computed by an effect, because the effectful transition is still protected
+ * from concurrent updates. This module includes constructors, reads, writes,
+ * updates, partial updates, and effectful update helpers.
  *
  * @since 2.0.0
  */

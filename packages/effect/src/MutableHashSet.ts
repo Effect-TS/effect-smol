@@ -1,7 +1,9 @@
 /**
- * `MutableHashSet` is an in-place hash set for storing unique values with fast
- * membership checks, insertion, removal, clearing, and iteration. It is built on
- * {@link MutableHashMap}: each set value is stored as a map key, so uniqueness
+ * Stores unique values in a mutable hash set.
+ *
+ * `MutableHashSet` updates the same collection in place and supports fast
+ * membership checks, insertion, removal, clearing, and iteration. It is built
+ * on `MutableHashMap`: each set value is stored as a map key, so uniqueness
  * follows the same hashing and equality rules as the underlying mutable hash
  * map.
  *

@@ -1,12 +1,11 @@
 /**
- * Runtime boundary for serving Effect HTTP responses on a concrete HTTP server.
+ * Service for serving Effect HTTP responses on a concrete HTTP server.
  *
- * `HttpServer` is the service implemented by platform adapters and consumed by
- * routers, API layers, tests, and applications that start serving from a
- * `Layer`. It exposes the listening address and a `serve` operation that runs
- * an `HttpServerResponse` effect for each incoming request. The module also
- * includes address formatting and logging helpers, plus test helpers for
- * creating a client that targets the current server.
+ * Platform adapters provide `HttpServer`, and routers or applications consume
+ * it to run an `HttpServerResponse` effect for each incoming request. The
+ * service exposes the listening address, while this module also includes helpers
+ * for address formatting, server logging, and clients that target the current
+ * server in tests.
  *
  * @since 4.0.0
  */

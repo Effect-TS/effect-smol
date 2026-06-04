@@ -1,12 +1,10 @@
 /**
- * Utilities for parsing and rendering Server-Sent Events text streams.
+ * Parses and renders Server-Sent Events text streams.
  *
- * SSE is the EventSource wire format used by live updates, notifications,
- * progress feeds, and other unidirectional server-to-client HTTP streams. This
- * module provides low-level parser and encoder primitives, channel combinators
- * for streaming text chunks through Effect pipelines, and schema-aware helpers
- * for validating or transforming the `id`, `event`, and string `data` fields
- * at the edge of an application.
+ * Server-Sent Events, or SSE, are the text format used by `EventSource` for
+ * one-way server-to-client updates. This module includes parsers, encoders,
+ * channel helpers, and schema-based helpers for the `id`, `event`, and `data`
+ * fields of each event.
  *
  * @since 4.0.0
  */

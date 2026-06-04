@@ -1,15 +1,13 @@
 /**
- * Describes the body attached to outgoing HTTP requests and server responses.
+ * Describes HTTP request and response bodies before they reach a platform
+ * adapter.
  *
- * `HttpBody` is the transport-facing representation used by the HTTP modules
- * before a platform adapter turns a request or response into a concrete Web,
- * Node, or other runtime value. Each body variant carries the payload plus the
- * metadata an adapter can safely know ahead of time, such as `contentType` and
- * `contentLength`.
- *
- * This module also provides constructors for empty, raw, byte-array, text,
- * JSON, schema-encoded JSON, URL-encoded, `FormData`, streaming, and file-backed
- * bodies, plus the error type used when body construction fails.
+ * `HttpBody` is the shared body representation used by the HTTP modules. Each
+ * variant stores the payload together with metadata that can be known before
+ * sending it, such as `contentType` and `contentLength`. This module includes
+ * body constructors for common payload shapes, support for schema-encoded JSON
+ * bodies, streaming and file-backed bodies, and the error type used when body
+ * construction fails.
  *
  * @since 4.0.0
  */

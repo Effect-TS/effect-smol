@@ -1,11 +1,10 @@
 /**
- * Asynchronous queues for passing values between fibers. A `Queue<A, E>`
- * accepts values of type `A`, hands each value to one consumer in offer order,
- * and can complete, fail, interrupt, or shut down through its lifecycle. This
- * module provides full queues, write-only `Enqueue` handles, read-only
- * `Dequeue` handles, bounded, dropping, sliding, and unbounded constructors,
- * offering helpers, taking and polling helpers, bulk collection helpers, size
- * checks, and transfer helpers.
+ * Passes values asynchronously between fibers.
+ *
+ * A `Queue<A, E>` accepts values, hands each value to one consumer in offer
+ * order, and can complete, fail, interrupt, or shut down. Queues can be bounded
+ * or unbounded, and bounded queues can suspend, drop, or slide values when
+ * producers are faster than consumers.
  *
  * @since 3.8.0
  */

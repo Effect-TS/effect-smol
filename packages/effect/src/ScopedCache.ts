@@ -1,13 +1,12 @@
 /**
- * A cache for values that need a scope while they are created. Each cached
- * entry owns its own `Scope`, so resources opened during lookup stay alive
- * while that entry is cached and are released when the entry is removed.
+ * Caches values that need scoped resource management.
  *
- * A `ScopedCache` is created inside another scope. `get` runs the lookup effect
- * on cache misses, shares one in-progress lookup between callers asking for the
- * same key, and stores the result according to the configured time-to-live.
- * Entries can also be inserted, refreshed, checked, inspected, invalidated, or
- * cleared, and capacity limits evict the oldest cached entries.
+ * Each cached entry owns its own `Scope`, so resources opened while creating a
+ * value stay alive while that entry is cached and are released when the entry is
+ * removed. A `ScopedCache` also belongs to an outer scope, which closes all
+ * remaining entries when the cache is closed. Lookups for the same missing key
+ * share one in-progress effect, and entries can expire, be refreshed, be
+ * invalidated, or be evicted by capacity limits.
  *
  * @since 4.0.0
  */

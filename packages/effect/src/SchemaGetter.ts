@@ -1,13 +1,13 @@
 /**
- * Single-direction transformations used by the Schema system. A
- * `Getter<T, E, R>` turns an optional encoded value into an optional decoded
- * value, can fail with a schema issue, and may require Effect services. Getters
- * are used by schema transformations such as `Schema.decodeTo` and
- * `Schema.decode`. This module provides identity, constant, failing, required,
- * default, optional, validation, pure transformation, and effectful
- * transformation getters, plus ready-made getters for primitive conversion,
- * string casing, JSON, base64, hex, URI components, `DateTime`, `FormData`,
- * `URLSearchParams`, and tree-record parsing.
+ * Builds one-way conversions used by schemas.
+ *
+ * A `Getter<T, E, R>` receives an optional encoded value and returns an
+ * optional decoded value. It can also report a schema issue or require Effect
+ * services. Schema transformations use getters to describe one direction of a
+ * conversion, for example decoding a field from input data. This module
+ * includes basic getters, validation helpers, pure and effectful conversions,
+ * and ready-made conversions for common string, number, binary, date, form, and
+ * URL-related values.
  *
  * @since 4.0.0
  */

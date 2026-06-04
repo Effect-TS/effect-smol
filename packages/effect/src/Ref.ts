@@ -1,10 +1,12 @@
 /**
- * Fiber-safe mutable references for state inside Effect programs. A `Ref<A>`
- * holds one value and exposes reads, writes, and atomic transformations as
- * effects, so state changes compose with Effect's concurrency model. This
- * module provides constructors, safe and unsafe reads, set and get-and-set
- * helpers, update and modify helpers, and conditional update variants that
- * leave the value unchanged when an `Option.none` result is returned.
+ * Stores fiber-safe mutable state inside Effect programs.
+ *
+ * A `Ref<A>` holds one value and exposes reads, writes, and atomic
+ * transformations as effects, so state changes compose with Effect's
+ * concurrency model. This module includes constructors, safe and unsafe reads,
+ * set and get-and-set helpers, update and modify helpers, and conditional
+ * update variants that leave the value unchanged when an `Option.none` result
+ * is returned.
  *
  * @since 2.0.0
  */

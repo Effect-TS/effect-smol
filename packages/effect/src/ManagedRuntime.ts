@@ -1,10 +1,11 @@
 /**
- * Reusable runtimes built from a `Layer`. A `ManagedRuntime` builds the
- * services from a layer once, keeps those services available for running many
- * effects, and releases the acquired resources when it is disposed. This module
- * provides the runtime type, a constructor, a guard, and runners for connecting
- * Effect programs to JavaScript entry points such as promises, callbacks, and
- * synchronous code.
+ * Runs many effects against services built once from a `Layer`.
+ *
+ * A `ManagedRuntime` builds the services from a layer, keeps those services
+ * available for repeated effect runs, and releases acquired resources when it
+ * is disposed. This module includes the runtime type, a constructor, a guard,
+ * and runners for connecting Effect programs to JavaScript entry points such as
+ * promises, callbacks, and synchronous code.
  *
  * @since 2.0.0
  */

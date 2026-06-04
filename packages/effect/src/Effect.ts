@@ -1,11 +1,12 @@
 /**
- * Core data type and operators for describing Effect programs. An
- * `Effect<A, E, R>` is lazy: creating one describes a workflow, and running it
- * executes that workflow. The workflow can perform synchronous or asynchronous
- * work, succeed with `A`, fail with typed `E`, require services `R`, acquire
- * resources, run concurrently, log, trace, retry, time out, or be interrupted.
- * This module includes constructors, combinators, service and scope helpers,
- * concurrency utilities, and functions for running effects.
+ * Describes workflows that run only when executed by the Effect runtime.
+ *
+ * An `Effect<A, E, R>` can succeed with an `A`, fail with an `E`, and require
+ * services `R`. Creating an effect does not perform the work; it builds a value
+ * that can be composed, provided with services, retried, interrupted, run
+ * concurrently, or inspected by the runtime. This module is the main API for
+ * creating effects, combining them, handling failures, managing resources, and
+ * running effect programs.
  *
  * @since 2.0.0
  */

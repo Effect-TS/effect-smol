@@ -1,9 +1,12 @@
 /**
- * Typed maps for services that Effects can require from their environment. A
- * `Context` stores service implementations under `Context.Service` or
- * `Context.Reference` keys, and the type records which keys are present. The
- * module provides helpers to create keys, build contexts, add, get, merge,
- * pick, omit, and mutate services without passing every dependency manually.
+ * Stores Effect services in typed maps.
+ *
+ * A `Context` holds service implementations under `Context.Service` or
+ * `Context.Reference` keys, and its type records which keys are present.
+ * Effects use contexts as their environment, so services can be provided once
+ * instead of passed through every function call. This module includes helpers
+ * for creating keys, building contexts, adding and reading services, merging
+ * contexts, and selecting or removing services.
  *
  * @since 4.0.0
  */

@@ -1,7 +1,8 @@
 /**
- * Runtime scheduling services used by Effect fibers. A scheduler decides how
- * runnable tasks are enqueued, when they are dispatched, and whether a fiber
- * should yield after consuming its operation budget. This module provides the
+ * Controls how runnable Effect fiber tasks are dispatched.
+ *
+ * A scheduler decides how tasks are queued, when queued tasks run, and when a
+ * fiber should pause so other work can continue. This module includes the
  * scheduler service reference, the default `MixedScheduler`, dispatcher types
  * for queued tasks, and references for tuning or disabling automatic scheduler
  * yields.

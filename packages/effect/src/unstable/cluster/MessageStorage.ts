@@ -1,13 +1,11 @@
 /**
- * Mailbox storage for Effect Cluster messages and replies. `MessageStorage` is
- * the boundary between runner logic and the backend that keeps mailbox state
- * recoverable.
+ * Stores Effect Cluster messages and replies behind a pluggable backend.
  *
- * The service saves outgoing requests, control envelopes, and replies, finds
- * unprocessed messages for assigned shards, tracks duplicate requests by primary
- * key, manages waiting reply handlers, and resets mailbox state. This module
- * also defines save-result types, the lower-level encoded storage-driver
- * contract, adapters for building a service from concrete storage, and no-op or
+ * `MessageStorage` is the boundary between cluster runner logic and the storage
+ * system that keeps mailbox state recoverable. It saves requests, control
+ * envelopes, and replies; finds unprocessed messages for assigned shards;
+ * tracks duplicate requests; and manages reply handlers waiting for responses.
+ * This module also includes the encoded storage-driver contract and no-op or
  * in-memory implementations for local use and tests.
  *
  * @since 4.0.0

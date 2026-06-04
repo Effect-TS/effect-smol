@@ -1,8 +1,10 @@
 /**
- * Reusable equality functions for deciding whether two values of the same type
- * should be treated as equivalent. The module includes strict equality
+ * Defines reusable equality functions for values of the same type.
+ *
+ * An `Equivalence<A>` returns `true` when two `A` values should be treated as
+ * the same for a particular purpose. This module includes strict equality
  * instances for primitive types, constructors for custom comparisons, and
- * combinators for tuples, arrays, structs, records, dates, and values compared
+ * helpers for tuples, arrays, structs, records, dates, and values compared
  * through a derived field.
  *
  * @since 2.0.0

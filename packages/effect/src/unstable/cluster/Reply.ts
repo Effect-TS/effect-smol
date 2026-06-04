@@ -1,12 +1,12 @@
 /**
- * Reply values produced by clustered RPC execution. Every reply belongs to a
- * request and is either a final `WithExit`, which carries the final RPC `Exit`,
- * or a streaming `Chunk`, which carries a non-empty batch of success values.
+ * Defines reply values produced by clustered RPC execution.
  *
- * This module defines the runtime and encoded reply shapes, guards, schema
- * builders that validate replies for a specific RPC, `ReplyWithContext` for
- * carrying the services needed to encode a reply, and serialization helpers used
- * before replies are stored or sent over a transport.
+ * Every reply belongs to a request and is either a final `WithExit`, which
+ * carries the final RPC `Exit`, or a streaming `Chunk`, which carries a
+ * non-empty batch of success values. This module includes runtime and encoded
+ * reply shapes, guards, per-RPC schema builders, `ReplyWithContext` for
+ * carrying encoding services, and serialization helpers for storage or
+ * transport.
  *
  * @since 4.0.0
  */

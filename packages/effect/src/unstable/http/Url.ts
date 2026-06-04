@@ -1,11 +1,10 @@
 /**
- * Immutable helpers for parsing and editing platform `URL` values.
+ * Parses and edits platform `URL` values.
  *
- * This module keeps the WHATWG `URL` object as the URL representation used by
- * HTTP clients and servers, then adds safe parsing and pipeable setters for
- * credentials, host, path, protocol, query, and hash components. Query strings
- * can be read, replaced, or transformed through `UrlParams` so repeated keys and
- * key/value encoding stay explicit.
+ * The HTTP modules use the standard `URL` object as their URL representation.
+ * This module adds safe parsing and helpers that return updated copies when
+ * changing credentials, host, path, protocol, query, or hash parts. Query
+ * strings can also be read or updated through `UrlParams`.
  *
  * @since 4.0.0
  */

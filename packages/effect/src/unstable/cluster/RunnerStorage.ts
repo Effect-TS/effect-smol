@@ -1,11 +1,11 @@
 /**
- * Runner registry storage for cluster sharding. `RunnerStorage` records which
- * runners are registered, whether they are healthy, which machine id a runner
- * receives, and which shard locks are held by each runner.
+ * Stores runner registration and shard-lock state for cluster sharding.
  *
- * This module defines the typed storage service, a string-encoded backend
- * interface, an adapter that converts encoded storage into the typed service,
- * and an in-memory implementation for tests and local use.
+ * `RunnerStorage` records which runners are registered, whether they are
+ * healthy, which machine id a runner receives, and which shard locks are held
+ * by each runner. This module includes the typed storage service, a
+ * string-encoded backend interface, an adapter from encoded storage to the typed
+ * service, and an in-memory implementation for tests and local use.
  *
  * @since 4.0.0
  */

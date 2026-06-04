@@ -1,10 +1,11 @@
 /**
- * Data-loading resolvers for `Effect.request`. A `Request` describes what a
- * fiber needs, while a `RequestResolver` describes how to collect request
- * entries, group them, run backend work, and complete each entry. This module
- * provides constructors from batch functions, pure functions, effects, and
- * tagged handlers, plus helpers for delay control, around hooks, batch sizing,
- * grouping, racing resolvers, tracing spans, request caches, and persistence.
+ * Resolves data requests made with `Effect.request`.
+ *
+ * A `Request` describes what a fiber needs, while a `RequestResolver` describes
+ * how to collect request entries, group them into batches, run backend work,
+ * and complete each waiting entry. This module includes constructors for common
+ * resolver shapes and tools for controlling batching, grouping, delays,
+ * tracing, caching, racing, hooks around resolver execution, and persistence.
  *
  * @since 2.0.0
  */

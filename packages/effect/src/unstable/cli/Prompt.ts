@@ -1,14 +1,12 @@
 /**
- * Interactive terminal prompts for CLI applications. A `Prompt<A>` describes a
- * small terminal UI that renders frames, reads keyboard input, validates
- * responses, and eventually produces a value of type `A`.
+ * Builds interactive terminal prompts for CLI applications.
  *
- * This module provides prompt constructors for confirmation, text, hidden
- * text, password, integer, float, date, file selection, single select,
- * autocomplete, multi-select, lists, toggles, and custom prompt loops. It also
- * includes helpers for combining prompts, transforming their output, running a
- * prompt through the `Terminal` service, and choosing terminal symbols that
- * work across platforms.
+ * A `Prompt<A>` describes a small terminal UI that renders frames, reads
+ * keyboard input, validates responses, and eventually produces an `A`. Prompts
+ * can ask for simple values, selections, lists, files, hidden text, or custom
+ * interactions. This module includes prompt constructors, tools for combining
+ * and transforming prompt output, and support for running prompts through the
+ * `Terminal` service.
  *
  * @since 4.0.0
  */

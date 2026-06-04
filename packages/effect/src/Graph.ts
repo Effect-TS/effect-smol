@@ -1,9 +1,10 @@
 /**
- * The `Graph` module provides immutable and scoped-mutable graph data
- * structures for modeling relationships between indexed nodes and edges. A
- * graph can be directed or undirected, stores user-defined data on both nodes
- * and edges, and exposes traversal, analysis, path finding, transformation, and
- * diagram export utilities.
+ * Models relationships between indexed nodes and edges.
+ *
+ * This module provides immutable and scoped-mutable graph data structures. A
+ * graph can be directed or undirected, and it can store user-defined data on
+ * both nodes and edges. The module includes traversal, analysis, path-finding,
+ * transformation, and diagram export utilities.
  *
  * @since 4.0.0
  */

@@ -1,13 +1,12 @@
 /**
  * Parses and persists HTTP `multipart/form-data` request bodies.
  *
- * `Multipart` turns incoming byte streams into typed {@link Part} values. Text
- * parts become decoded {@link Field} values, while upload parts remain streamed
- * {@link File} values until they are collected or written to scoped temporary
- * files. The persisted representation can then be decoded with schemas for
- * request handlers that receive fields and uploaded files together. The module
- * also provides multipart error types, schema helpers for persisted files, and
- * context settings for parser limits.
+ * `Multipart` turns incoming byte streams into typed form parts. Text parts
+ * become decoded fields, while upload parts stay as streamed files until they
+ * are collected or written to scoped temporary files. The persisted
+ * representation can then be decoded with schemas for handlers that receive
+ * fields and uploaded files together. This module also includes multipart error
+ * types, schema helpers for persisted files, and parser limit settings.
  *
  * @since 4.0.0
  */

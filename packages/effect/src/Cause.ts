@@ -1,9 +1,11 @@
 /**
- * Structured information about why an Effect failed. A `Cause` can contain
- * typed failures, unexpected defects, interruptions, and annotations, so
- * failure details are not collapsed to a single value too early. This module
- * provides constructors, guards, search and formatting helpers, and common
- * yieldable error types used by Effect.
+ * Records the full reason an `Effect` failed.
+ *
+ * A `Cause<E>` can contain typed failures, unexpected defects, interruptions,
+ * and annotations. Keeping those details together lets code inspect or format
+ * failures without first collapsing them to a single error value. This module
+ * includes the `Cause` and `Reason` data types, helpers for building and
+ * checking causes, and small error types used by several Effect APIs.
  *
  * @since 2.0.0
  */

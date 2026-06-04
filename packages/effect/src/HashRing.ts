@@ -1,10 +1,11 @@
 /**
- * Weighted consistent-hashing rings for assigning arbitrary string inputs to a
- * changing set of nodes. A hash ring minimizes remapping when nodes are added,
- * removed, or reweighted, which makes it useful for routing requests,
- * partitioning keys, and distributing shards across service instances or
- * storage backends. The module can create rings, add or remove nodes by
- * `PrimaryKey`, route an input string to a node, and compute shard assignments.
+ * Assigns string inputs to nodes with weighted consistent hashing.
+ *
+ * A hash ring minimizes remapping when nodes are added, removed, or reweighted.
+ * This makes it useful for routing requests, partitioning keys, and
+ * distributing shards across service instances or storage backends. This module
+ * can create rings, add or remove nodes by `PrimaryKey`, route an input string
+ * to a node, and compute shard assignments.
  *
  * @since 4.0.0
  */

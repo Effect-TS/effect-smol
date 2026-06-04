@@ -1,13 +1,12 @@
 /**
- * Provider-neutral data model for AI model output. Responses are represented as
- * typed parts so different providers can expose text, reasoning, tools, files,
- * sources, metadata, finish information, and errors through one shared shape.
+ * Defines a shared data model for AI model output.
  *
- * This module defines the part unions, encoded forms, schemas, provider
- * metadata, and constructors used for both complete responses and streaming
- * responses. Streaming parts include start, delta, and end events for text,
- * reasoning, and tool parameters. Toolkit-aware schemas add the right tool
- * call and tool result parts for the tools supplied with a request.
+ * Responses are represented as typed parts so different providers can expose
+ * text, reasoning, tool calls, files, sources, metadata, finish information, and
+ * errors through one shape. The same model is used for complete responses and
+ * streaming responses, where start, delta, and end parts describe content as it
+ * arrives. This module also carries provider metadata and schemas used by tools
+ * that need to validate response parts.
  *
  * @since 4.0.0
  */

@@ -1,13 +1,11 @@
 /**
- * Formatter service for CLI text output. This module turns help documents,
- * CLI errors, grouped errors, and version information into strings; it does
- * not write those strings to the terminal itself.
+ * Formats CLI help and errors as text.
  *
- * It defines the `Formatter` interface, the context reference used by CLI
- * runners, a layer for providing a custom formatter, and a default formatter.
- * The default formatter can auto-detect color support or be forced on or off,
- * and it renders common help sections such as usage, arguments, flags, global
- * flags, subcommands, and examples.
+ * This module turns help documents, CLI errors, grouped errors, and version
+ * information into strings. It does not write those strings to the terminal
+ * itself. It includes the `Formatter` interface, the formatter service, a layer
+ * for custom formatters, and the default formatter with configurable color
+ * support.
  *
  * @since 4.0.0
  */

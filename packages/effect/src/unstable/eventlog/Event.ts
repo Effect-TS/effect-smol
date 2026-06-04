@@ -4,13 +4,9 @@
  * An `Event` is the durable contract shared by writers, handlers, journals, and
  * replicas. It gives an event a stable tag, derives the aggregate or entity
  * primary key from the decoded payload, and records the schemas used for the
- * payload and handler result. The payload schema also derives the MessagePack
- * schema used when entries are written to an event journal or sent to a remote
- * replica.
- *
- * The module also provides type helpers for extracting payload, success, error,
- * and service requirements from event definitions, plus constructors for making
- * an event definition or adding another error schema to one.
+ * payload, handler result, and handler errors. The payload schema is also used
+ * to derive the MessagePack encoding for journal entries and remote
+ * replication.
  *
  * @since 4.0.0
  */

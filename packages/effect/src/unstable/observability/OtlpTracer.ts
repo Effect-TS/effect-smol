@@ -1,13 +1,12 @@
 /**
- * Exports Effect spans to an OpenTelemetry Protocol (OTLP) traces endpoint.
+ * Exports Effect tracing spans over OTLP/HTTP.
  *
- * This module creates a `Tracer.Tracer` backed by the shared OTLP/HTTP batch
- * exporter, so Effect spans created with tracing APIs can be delivered to an
- * OpenTelemetry Collector, vendor OTLP intake, or local development collector.
- * Exported spans include ids, parent ids, attributes, events, links, span kind,
- * timing, and status information derived from the span exit. Use `make` when
- * you need to install the tracer manually, or `layer` when an application should
- * provide it through the Effect environment.
+ * This module creates a `Tracer.Tracer` backed by the shared OTLP batch
+ * exporter, so spans created by Effect tracing APIs can be sent to an
+ * OpenTelemetry Collector, vendor endpoint, or local collector. Exported spans
+ * include identifiers, parent links, attributes, events, timing, kind, and
+ * status information. Use the constructor directly or install it through the
+ * provided layer.
  *
  * @since 4.0.0
  */

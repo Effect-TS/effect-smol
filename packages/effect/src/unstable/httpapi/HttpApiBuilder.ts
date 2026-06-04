@@ -1,13 +1,10 @@
 /**
- * Server builders for declarative `HttpApi` contracts.
+ * Builds server routes from declarative `HttpApi` contracts.
  *
- * This module is the server-side bridge between an `HttpApi` description and an
- * `HttpRouter`. It turns endpoint metadata into routes, decodes incoming
- * request parts with `Schema`, runs HTTP API middleware, invokes the registered
- * handlers, and encodes successes or declared errors back into
- * `HttpServerResponse` values. It also provides the handler collection used to
- * implement API groups, a helper for building one endpoint effect, and security
- * helpers for reading credentials or setting API-key cookies.
+ * This module turns an `HttpApi` description plus group handlers into
+ * `HttpRouter` routes. At runtime it decodes request parts with schemas, runs
+ * middleware and security handlers, invokes the registered endpoint handler, and
+ * encodes successes or declared errors into `HttpServerResponse` values.
  *
  * @since 4.0.0
  */

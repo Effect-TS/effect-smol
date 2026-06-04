@@ -1,12 +1,12 @@
 /**
- * Defines named collections of `HttpApiEndpoint`s inside an `HttpApi`.
+ * Defines named groups of HTTP API endpoints.
  *
- * A group collects endpoints that belong to the same resource or feature area.
- * Builders, generated clients, URL builders, and OpenAPI generation read the
- * same group value, including its identifier, endpoint set, annotations, and
- * `topLevel` flag. This module provides helpers for creating groups, adding
- * endpoints, prefixing paths, applying middleware, annotating groups or
- * endpoints, and deriving the types used by builders and clients.
+ * A group collects endpoints that belong to the same resource or feature area
+ * inside an `HttpApi`. Builders, generated clients, URL builders, and OpenAPI
+ * generation read the same group value, including its identifier, endpoints,
+ * annotations, and `topLevel` flag. This module includes helpers for creating
+ * groups, adding endpoints, prefixing paths, applying middleware, annotating
+ * groups or endpoints, and deriving builder or client types.
  *
  * @since 4.0.0
  */

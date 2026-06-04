@@ -1,9 +1,12 @@
 /**
- * Data types and utilities for instants, UTC date-times, zoned date-times, and
- * time zones. A `DateTime` is always an absolute point in time, represented by
- * epoch milliseconds, and may also carry a `TimeZone` for zone-aware calendar
- * parts and formatting. The module includes constructors, time zone helpers,
- * comparisons, date arithmetic, current-time effects, and formatting functions.
+ * Works with absolute instants, UTC date-times, zoned date-times, and time
+ * zones.
+ *
+ * A `DateTime` always represents an absolute point in time with epoch
+ * milliseconds. It may also carry a `TimeZone` for calendar parts, formatting,
+ * and zone-aware transformations. This module includes constructors, time-zone
+ * helpers, comparisons, date arithmetic, current-time effects, and formatting
+ * functions.
  *
  * @since 3.6.0
  */

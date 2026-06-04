@@ -1,12 +1,12 @@
 /**
- * Structured SQL failures for SQL clients and driver integrations.
+ * Defines structured failures for SQL clients and driver integrations.
  *
- * This module provides the top-level `SqlError` wrapper, the concrete
- * `SqlErrorReason` variants used by adapters, schemas for encoding or decoding
- * those errors, guards for recognizing them, and a SQLite classifier for native
- * driver causes. Each reason carries the original cause, optional message and
- * operation metadata, and whether retrying may succeed. The module also defines
- * `ResultLengthMismatch` for ordered batched SQL resolvers.
+ * `SqlError` wraps the different reasons a SQL operation can fail, such as
+ * connection, authentication, authorization, syntax, constraint, or transaction
+ * problems. Each reason keeps the original cause, optional message and
+ * operation metadata, and whether retrying may succeed. This module also
+ * includes schemas, guards, a SQLite error classifier, and the
+ * `ResultLengthMismatch` error used by ordered batched SQL resolvers.
  *
  * @since 4.0.0
  */

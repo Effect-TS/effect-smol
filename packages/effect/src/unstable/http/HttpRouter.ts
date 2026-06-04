@@ -1,12 +1,11 @@
 /**
- * Layer-based server-side routing for Effect HTTP applications.
+ * Builds server-side routers for Effect HTTP applications.
  *
- * `HttpRouter` collects routes and router middleware while an application layer
- * is being built, then exposes the registered route table as an
- * `HttpServerResponse` effect for each incoming `HttpServerRequest`. It includes
- * helpers for route definitions, path prefixes, route parameters, request schema
- * decoding, route-scoped middleware, CORS, and running the completed router as
- * an HTTP server or Fetch-compatible handler.
+ * `HttpRouter` collects routes and middleware while an application layer is
+ * being built. Once the router is complete, it handles each
+ * `HttpServerRequest` by finding a matching route and producing an
+ * `HttpServerResponse`. The module also includes helpers for route definitions,
+ * prefixes, parameters, request decoding, CORS, and running the router.
  *
  * @since 4.0.0
  */

@@ -1,13 +1,11 @@
 /**
- * Atom helpers for typed RPC clients.
+ * Connects typed RPC clients to atoms.
  *
- * This module creates a `Context.Service` that exposes a flattened `RpcClient`
- * and adds atom-based helpers for RPC calls. `query` calls an RPC as an atom:
- * normal RPCs return an `AsyncResult` atom, while streaming RPCs return a pull
- * atom. `mutation` calls an RPC as a writable `AtomResultFn`. Query atoms can
- * use request headers, `reactivityKeys`, `timeToLive`, and serialization keys
- * for hydration. The RPC `protocol` layer supplies the transport and can be
- * fixed or built from the current atom context.
+ * The service created here exposes a flattened RPC client plus atom-based query
+ * and mutation helpers. Query atoms call RPCs and track asynchronous or
+ * streaming results, while mutations run RPC calls that can invalidate
+ * reactivity keys after success. Query atoms can also use request headers,
+ * time-to-live settings, and serialization keys for hydration.
  *
  * @since 4.0.0
  */

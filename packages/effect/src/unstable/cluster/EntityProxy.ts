@@ -1,11 +1,9 @@
 /**
- * Derives external RPC and HTTP API surfaces from a clustered
- * {@link Entity.Entity}. Callers can use ordinary RPC clients or HTTP routes
- * while the cluster runtime still locates and delivers messages to the entity
- * instance identified by `entityId`.
+ * Derives RPC and HTTP API surfaces from clustered entities.
  *
- * This module builds proxy RPC groups and HTTP API groups from an entity
- * protocol. Each generated operation includes an `entityId`, keeps the
+ * The generated APIs let callers use ordinary RPC clients or HTTP routes while
+ * the cluster runtime still locates and delivers messages to the entity
+ * instance identified by `entityId`. Each generated operation keeps the
  * original payload and success schema, adds cluster client errors, and creates
  * a discard variant for fire-and-forget delivery.
  *

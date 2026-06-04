@@ -1,15 +1,12 @@
 /**
  * Low-level SQL statement and fragment primitives.
  *
- * This module is used by `SqlClient` to build executable, parameterized SQL.
- * It defines `Fragment` and `Statement` values, the tagged-template
- * constructor, helper segments for identifiers, parameters, literals, arrays,
- * inserts, updates, and custom dialect data, and helpers for `AND`, `OR`, comma
- * lists, and dialect branches. Statements can execute normally, run raw,
- * stream rows, return value arrays, run unprepared, or compile to SQL text and
- * parameters. The module also provides compiler helpers, a SQLite compiler,
- * identifier escaping, primitive classification, row transforms, and the current
- * statement transformer reference.
+ * `SqlClient` uses this module to build executable, parameterized SQL from
+ * reusable fragments. A statement can be executed, streamed, run without row
+ * transformation, or compiled to SQL text and parameters for a specific
+ * dialect. The module also contains helpers for identifiers, parameters,
+ * inserts, updates, custom dialect fragments, statement compilation, and row
+ * transformation.
  *
  * @since 4.0.0
  */

@@ -1,12 +1,11 @@
 /**
- * Transport message shapes exchanged by Effect Cluster entities while
- * processing RPC requests. Request envelopes wrap decoded payloads with the
- * entity address, RPC tag, request id, headers, and optional tracing context.
+ * Defines the transport envelopes exchanged by cluster entities.
  *
- * This module also defines acknowledgement envelopes for streamed reply chunks,
- * interrupt envelopes for in-flight requests, JSON codecs for partially decoded
- * envelopes, runtime guards and request constructors, and helpers for deriving
- * storage primary keys from request payloads or entity addresses.
+ * Request envelopes wrap decoded RPC payloads with the target entity address,
+ * RPC tag, request id, headers, and optional tracing context. The module also
+ * includes acknowledgement envelopes for streamed reply chunks, interrupt
+ * envelopes for in-flight requests, JSON codecs for partially decoded
+ * envelopes, guards, request constructors, and storage primary-key helpers.
  *
  * @since 4.0.0
  */

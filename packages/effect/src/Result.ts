@@ -1,11 +1,11 @@
 /**
- * Synchronous values that are either a success or a failure. A
- * `Result<A, E>` is already evaluated and carries no side effects, unlike
- * `Effect`. This module provides constructors, guards, conversions from
- * `Option` and nullable values, success and failure extraction, pattern
- * matching, mapping on success or failure, flat-mapping, filtering, fallbacks,
- * collection helpers, do-notation and generator support, `Option`
- * transposition, and equivalence helpers.
+ * Models a value that has already succeeded or failed.
+ *
+ * A `Result<A, E>` is `Success<A, E>` when a value is available and
+ * `Failure<A, E>` when an error is available. It is plain data, so inspecting
+ * or transforming it does not run side effects. This module includes helpers
+ * for creating, checking, mapping, combining, and extracting results, plus
+ * conversions to and from `Option` and nullable values.
  *
  * @since 4.0.0
  */

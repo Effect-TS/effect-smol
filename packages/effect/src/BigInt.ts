@@ -1,9 +1,10 @@
 /**
- * Utilities for working with JavaScript `bigint` values. The module includes
- * type checks, arithmetic, comparisons, range helpers, safe parsing and
- * conversions that return `Option`, integer square roots, aggregations, and
- * reusable helpers for Effect APIs that compare, reduce, or combine bigint
- * values.
+ * Works with JavaScript `bigint` values.
+ *
+ * This module exposes the native `BigInt` constructor together with helpers for
+ * checking, arithmetic, comparison, range checks, safe parsing and conversions
+ * that return `Option`, integer square roots, aggregation, ordering,
+ * equivalence, reducers, and combiners.
  *
  * @since 2.0.0
  */

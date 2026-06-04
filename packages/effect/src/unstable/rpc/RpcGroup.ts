@@ -1,10 +1,10 @@
 /**
- * Groups of typed RPC definitions.
+ * Collects typed RPC definitions and server handlers.
  *
- * An `RpcGroup` stores RPC definitions by their tags and keeps group-level
- * annotations. This module lets callers create groups, add, merge, omit, or
- * prefix RPCs, apply middleware or annotations, derive handler types, and turn
- * handler objects into `Context` or `Layer` values used by RPC servers.
+ * An `RpcGroup` stores RPC definitions by tag and keeps annotations shared by
+ * the group. This module provides helpers for composing groups, applying
+ * middleware or annotations, deriving handler types, and turning handler objects
+ * into `Context` or `Layer` values used by RPC servers.
  *
  * @since 4.0.0
  */

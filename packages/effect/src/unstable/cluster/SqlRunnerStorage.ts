@@ -1,11 +1,11 @@
 /**
- * SQL-backed `RunnerStorage` for runner registration and shard ownership. It
- * records runners, health flags, machine ids, and shard locks in SQL so multiple
- * processes can coordinate which runner owns each shard.
+ * Stores cluster runner registration and shard ownership in SQL.
  *
- * This module creates the runner and lock tables with an optional table prefix,
- * uses advisory locks for PostgreSQL and MySQL when supported and enabled, and
- * provides constructors and layers for the default or custom-prefixed storage.
+ * The SQL-backed `RunnerStorage` records runners, health flags, machine ids,
+ * and shard locks so multiple processes can coordinate which runner owns each
+ * shard. This module creates the required runner and lock tables, supports an
+ * optional table prefix, uses advisory locks for PostgreSQL and MySQL when
+ * enabled, and provides constructors and layers for the storage service.
  *
  * @since 4.0.0
  */

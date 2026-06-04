@@ -1,10 +1,11 @@
 /**
- * Dependency-injection building blocks for Effect applications. A
- * `Layer<ROut, E, RIn>` describes how to acquire one or more services, which
+ * Builds and wires services for Effect applications.
+ *
+ * A `Layer<ROut, E, RIn>` describes how to acquire one or more services, which
  * services are required to build them, and which errors can occur during
- * acquisition. Layers can be built with scopes, memoized so shared services are
- * acquired once, combined with other layers, provided to effects or streams,
- * and wrapped with error handling, tracing, and lifecycle hooks.
+ * acquisition. Layers can manage scoped resources, memoize shared services,
+ * combine with other layers, provide services to effects or streams, and attach
+ * error handling, tracing, or lifecycle hooks.
  *
  * @since 2.0.0
  */

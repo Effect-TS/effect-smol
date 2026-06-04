@@ -1,16 +1,12 @@
 /**
  * Main building block for defining and running Effect-based command-line
- * applications. A `Command` combines a name, typed flags and positional
- * arguments, optional subcommands, metadata for help output, and an effectful
- * handler.
+ * applications.
  *
- * This module provides constructors and combinators for handlers, subcommands,
- * shared flags, global flags, descriptions, aliases, hidden commands,
- * annotations, examples, and service provision. It also defines the command
- * context that lets subcommands read parsed parent configuration. The `run` and
- * `runWith` helpers lex command-line input, parse flags and arguments, handle
- * built-in global actions such as help and version, provide global settings,
- * render help through `CliOutput`, and run the selected handler.
+ * A `Command` combines a name, typed flags and positional arguments, optional
+ * subcommands, help metadata, and an effectful handler. The module includes
+ * builders for command trees and the runners that parse command-line input,
+ * handle built-in help and version behavior, render help through `CliOutput`,
+ * and execute the selected handler.
  *
  * @since 4.0.0
  */

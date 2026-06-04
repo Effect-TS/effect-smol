@@ -1,13 +1,10 @@
 /**
- * Helpers for working with TypeScript `string` values. This module wraps common
- * string operations in Effect's pipe-friendly style and keeps several helpers
- * type-aware for string literal types.
+ * Works with TypeScript `string` values.
  *
- * It includes the global `String` constructor, guards, ordering and equality
- * instances, constants, concatenation, trimming, casing, slicing, padding,
- * replacement, normalization, search helpers that return `Option`, safe
- * character access, line iterators, margin stripping, identifier case
- * conversion, and a reducer for concatenating strings.
+ * This module exposes common string operations in a pipe-friendly style. The
+ * helpers cover checks, comparison, concatenation, trimming, casing, slicing,
+ * padding, replacement, normalization, safe character access, search helpers
+ * that return `Option`, and joining strings through a reducer.
  *
  * @since 2.0.0
  */

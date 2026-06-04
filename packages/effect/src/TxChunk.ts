@@ -1,12 +1,12 @@
 /**
- * Transactional collection backed by an immutable `Chunk`. A `TxChunk` stores
- * its current chunk inside a `TxRef`, so reads and updates participate in
- * Effect transactions and can be committed atomically with other transactional
- * operations.
+ * Stores a `Chunk` inside transactional state.
  *
- * This module provides constructors and common chunk operations for reading,
- * setting, modifying, appending, prepending, checking size or emptiness,
- * taking, dropping, slicing, mapping, filtering, and concatenating values.
+ * A `TxChunk<A>` keeps its current `Chunk<A>` in a `TxRef`, so reads and
+ * updates can be committed atomically with other transactional operations. This
+ * module offers a transactional version of common chunk workflows, including
+ * creating collections, reading or replacing the current chunk, adding or
+ * removing values, checking size, slicing, mapping, filtering, and combining
+ * chunks.
  *
  * @since 4.0.0
  */

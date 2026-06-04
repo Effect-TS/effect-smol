@@ -1,9 +1,11 @@
 /**
- * Scoped mutable maps for managing fibers by key. A `FiberMap<K, A, E>` owns a
- * set of running fibers, interrupts them when its scope closes, and
- * automatically removes each entry when the corresponding fiber completes. The
- * module includes scoped runtime constructors plus helpers to set, get, check,
- * remove, clear, run, count, join, or wait for managed fibers by key.
+ * Manages fibers by key inside a scope.
+ *
+ * A `FiberMap<K, A, E>` owns a map of running fibers, interrupts them when its
+ * scope closes, and automatically removes each entry when the corresponding
+ * fiber completes. Use it when a program needs to start, replace, join, or
+ * interrupt background work by a stable key while keeping all fibers tied to
+ * one scope.
  *
  * @since 2.0.0
  */

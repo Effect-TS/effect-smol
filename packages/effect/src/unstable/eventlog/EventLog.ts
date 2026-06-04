@@ -1,13 +1,11 @@
 /**
- * High-level runtime for typed event logs. `EventLog` connects event groups,
- * handler layers, an `EventJournal`, the local identity, reactivity invalidation,
- * and optional remote replicas.
+ * Runtime for writing typed events to an event journal.
  *
- * Writers use a typed client to encode an event payload, run the matching
- * handler, and commit the journal entry only after the handler succeeds. This
- * module also provides the registry service, event-log schema builder, handler
- * layer builder, compaction and reactivity registration, identity string helpers,
- * remote replay support, and layers for assembling the runtime.
+ * `EventLog` combines event groups, handlers, a journal, local identity,
+ * optional remote replicas, and reactivity hooks. Writers send typed payloads
+ * through a client; the matching handler runs first, and the journal entry is
+ * committed only after the handler succeeds. This module also contains the
+ * layers and helpers needed to assemble that runtime.
  *
  * @since 4.0.0
  */

@@ -1,15 +1,12 @@
 /**
  * Transactional queues whose state changes participate in Effect transactions.
+ *
  * A `TxQueue<A, E>` stores values of type `A`, exposes write-only `TxEnqueue`
  * and read-only `TxDequeue` handles, and can complete, fail, or shut down with
- * causes observed by consumers.
- *
- * This module provides bounded, unbounded, dropping, and sliding queues;
- * offering, polling, taking, peeking, draining, and batch-taking operations;
- * queue state checks; interruption, failure, clean completion, clearing,
- * shutdown, and waiting for completion. Queue operations can retry
- * transactionally when they cannot proceed, such as taking from an empty open
- * queue or offering to a full bounded queue.
+ * causes observed by consumers. Queue operations can retry transactionally when
+ * they cannot proceed, such as taking from an empty open queue or offering to a
+ * full bounded queue. This makes the queue useful for coordinating producers
+ * and consumers alongside other transactional state changes.
  *
  * @since 4.0.0
  */

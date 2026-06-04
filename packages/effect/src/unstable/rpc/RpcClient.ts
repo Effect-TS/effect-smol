@@ -1,13 +1,12 @@
 /**
- * Client-side runtime for typed RPC calls.
+ * Runs typed RPC calls from the client side.
  *
  * This module turns RPC definitions from an `RpcGroup` into callable client
- * methods, either as an object with one method per RPC tag or as a flat
- * `(tag, payload)` function. Each call encodes its payload, sends a message
- * through the active `Protocol`, decodes exits or stream chunks from the server,
- * and routes matching responses back to the waiting `Effect`, `Stream`, or
- * queue. The module also provides a decoded-message client, request header
- * helpers, the `Protocol` service, and HTTP, socket, and worker protocol layers.
+ * methods. Each call encodes its payload, sends a message through the active
+ * `Protocol`, decodes exits or stream chunks from the server, and routes the
+ * response back to the waiting `Effect`, `Stream`, or queue. It also defines
+ * the protocol service and includes protocol layers for HTTP, sockets, and
+ * workers.
  *
  * @since 4.0.0
  */

@@ -1,14 +1,10 @@
 /**
- * The `HttpApiTest` module provides helpers for testing `HttpApi`
- * implementations through the generated client interface without starting an
- * HTTP server.
+ * Tests `HttpApi` implementations through an in-memory generated client.
  *
- * Use this module when a test should exercise one or more implemented API
- * groups with the same request encoding, routing, response encoding, and client
- * decoding used by the production `HttpApiBuilder` and `HttpApiClient`
- * pipeline. This is useful for focused handler tests, schema round-trip checks,
- * middleware behavior, and tests that want to call an API through its typed
- * client while keeping all traffic in memory.
+ * The helpers use the same request encoding, routing, response encoding, and
+ * client decoding as the normal `HttpApiBuilder` and `HttpApiClient` pipeline,
+ * but they do not start an HTTP server. This is useful for focused handler
+ * tests, schema round trips, middleware behavior, and typed client calls.
  *
  * @since 4.0.0
  */

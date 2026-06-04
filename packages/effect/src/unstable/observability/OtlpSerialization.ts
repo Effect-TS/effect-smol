@@ -1,9 +1,9 @@
 /**
- * OTLP/HTTP serialization service shared by logs, metrics, and traces.
+ * Serializes OTLP payloads into HTTP request bodies.
  *
- * This module decides how in-memory OTLP payloads become HTTP request bodies.
- * The signal exporters build trace, metric, and log data structures, then call
- * `OtlpSerialization` immediately before posting them to a collector.
+ * Signal exporters build trace, metric, and log data structures in memory. This
+ * module provides the service that turns those structures into JSON or protobuf
+ * HTTP bodies before they are posted to an OTLP collector.
  *
  * @since 4.0.0
  */

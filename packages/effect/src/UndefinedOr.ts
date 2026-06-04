@@ -1,13 +1,12 @@
 /**
- * The `UndefinedOr` module works with plain TypeScript values of type
- * `A | undefined` where `undefined` is the only absence marker. It is a small
- * alternative to wrapping values in `Option` when your domain already uses
- * `undefined` to mean "no value".
+ * Works with values that may be `undefined`.
  *
- * This module provides helpers for mapping defined values, matching both
- * cases, throwing when a value is missing, turning throwing functions into
- * undefined-returning functions, and building reducers or combiners for values
- * that may be `undefined`.
+ * Use this module for plain TypeScript values of type `A | undefined` when
+ * `undefined` is the only absence marker. It is a small alternative to wrapping
+ * values in `Option` when your data already uses `undefined` to mean "no
+ * value". The module includes helpers for mapping defined values, matching both
+ * cases, throwing when a value is missing, adapting throwing functions, and
+ * building reducers or combiners.
  *
  * @since 4.0.0
  */

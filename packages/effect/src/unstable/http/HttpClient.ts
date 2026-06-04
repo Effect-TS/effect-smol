@@ -1,17 +1,13 @@
 /**
- * Dependency-injected HTTP client for executing outgoing requests from Effect
- * programs.
+ * Provides the service used to run outgoing HTTP requests.
  *
- * This module defines the `HttpClient` service used by platform clients,
- * tests, and API-specific clients. It executes immutable `HttpClientRequest`
- * values, returns `HttpClientResponse` values, and keeps outbound HTTP behind a
- * service boundary so call sites do not depend on a concrete runtime transport.
- *
- * It also provides accessors for common HTTP methods, constructors and layer
- * helpers, request and response transformations, status filters, error recovery,
- * retry helpers, transient-error retrying, rate limiting, cookie persistence,
- * scoped request abortion, redirect following, and tracing configuration for
- * outgoing client spans.
+ * `HttpClient` executes immutable `HttpClientRequest` values and returns
+ * `HttpClientResponse` values. Keeping HTTP behind this service lets programs,
+ * tests, and generated API clients use the same request model without depending
+ * on one concrete platform transport. This module includes request accessors,
+ * constructors and layers, request and response transformations, status
+ * filtering, retries, rate limiting, cookies, redirect handling, scoped request
+ * abortion, and tracing support.
  *
  * @since 4.0.0
  */

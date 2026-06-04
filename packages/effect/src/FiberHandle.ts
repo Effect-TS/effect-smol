@@ -1,10 +1,12 @@
 /**
- * Scoped handles for managing at most one fiber at a time. A
- * `FiberHandle<A, E>` can hold one `Fiber<A, E>`; when a new fiber is
- * installed, the previous fiber is interrupted unless the operation is
- * configured with `onlyIfMissing`. The module includes constructors for
- * handles and scoped runtimes, helpers to set, get, clear, or run fibers, and
- * functions to join the current fiber or wait until the handle is empty.
+ * Manages at most one fiber inside a scope.
+ *
+ * A `FiberHandle<A, E>` can hold one `Fiber<A, E>`. Installing a new fiber
+ * interrupts the previous one unless the operation is configured with
+ * `onlyIfMissing`, and closing the owning scope interrupts the current fiber.
+ * This module includes constructors for handles and scoped runtimes, helpers
+ * for setting, reading, clearing, and running fibers, and operations for joining
+ * the current fiber or waiting until the handle is empty.
  *
  * @since 2.0.0
  */

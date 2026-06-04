@@ -3,12 +3,10 @@
  *
  * An `Option<A>` is `Some<A>` when a value is available and `None` when it is
  * not. This lets code handle missing values explicitly instead of relying on
- * `null` or `undefined`. The module includes helpers to create, inspect,
- * transform, combine, and extract optional values, plus conversions to and from
- * nullable values, iterables, and `Result`.
- *
- * `Option` is yieldable in `Effect.gen`, producing the inner value or
- * short-circuiting with `NoSuchElementError`
+ * `null` or `undefined`. The module includes helpers for creating, checking,
+ * transforming, combining, and extracting optional values, plus conversions to
+ * and from common nullable or result-like shapes. It also includes `Option.gen`
+ * for writing small generator-based computations that stop at the first `None`.
  *
  * @since 2.0.0
  */

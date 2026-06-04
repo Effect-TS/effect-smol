@@ -1,10 +1,10 @@
 /**
- * Defines the remote event-log protocol messages and RPC group.
+ * Defines protocol messages for event-log remote clients and servers.
  *
  * This module is the shared boundary between `EventLogRemote` clients and
- * event-log servers. It provides branded store ids, structured protocol errors,
- * the hello/authenticate session handshake, authenticated write and changes
- * RPCs, and msgpack payloads for encrypted or plaintext journal entries.
+ * event-log servers. It defines store ids, protocol errors, the
+ * hello/authenticate session handshake, remote calls for writes and changes,
+ * and message formats for encrypted or plaintext journal entries.
  *
  * @since 4.0.0
  */

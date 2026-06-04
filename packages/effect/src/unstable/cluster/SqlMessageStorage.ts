@@ -1,12 +1,12 @@
 /**
- * SQL-backed `MessageStorage` implementation for durable cluster mailboxes. It
- * persists encoded cluster envelopes and replies in SQL so runners can recover
- * mailbox state after restarts, redeliver unprocessed messages, deduplicate
- * requests by primary key, and replay reply chunks until they are acknowledged.
+ * Persists cluster mailbox messages and replies in SQL.
  *
- * This module provides the storage constructor and layers, runs the required SQL
- * migrations, supports an optional table prefix, and adapts SQL rows to the
- * encoded storage contract used by `MessageStorage.makeEncoded`.
+ * The SQL-backed `MessageStorage` stores encoded cluster envelopes and reply
+ * chunks so runners can recover mailbox state after restarts. It supports
+ * redelivering unprocessed messages, deduplicating requests by primary key, and
+ * replaying reply chunks until they are acknowledged. This module includes the
+ * storage constructor, layers, migrations, optional table prefixes, and the row
+ * mapping needed by encoded message storage.
  *
  * @since 4.0.0
  */

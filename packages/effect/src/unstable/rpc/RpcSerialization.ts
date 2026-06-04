@@ -1,13 +1,11 @@
 /**
- * Serialization services for RPC protocol messages.
+ * Serializes RPC protocol messages for transports.
  *
- * `RpcSerialization` is the boundary between encoded RPC protocol messages and
- * the bytes or strings carried by a transport. RPC clients and servers use the
- * service to turn `RpcMessage` envelopes into JSON, newline-delimited JSON,
- * JSON-RPC 2.0, or MessagePack payloads, and to parse those payloads back into
- * protocol messages. The module also provides parsers and layers for the
- * built-in formats, including framed formats that can decode multiple messages
- * from streaming chunks.
+ * `RpcSerialization` is the boundary between `RpcMessage` envelopes and the
+ * bytes or strings carried by a transport. This module provides built-in
+ * serializers for JSON, newline-delimited JSON, JSON-RPC 2.0, and MessagePack,
+ * including framed formats that can decode multiple messages from streaming
+ * chunks.
  *
  * @since 4.0.0
  */

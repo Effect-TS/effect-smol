@@ -1,12 +1,10 @@
 /**
- * Builds several related struct schemas from one field definition.
+ * Builds related schemas for named variants from shared field definitions.
  *
- * `make` fixes a set of variant names and one default variant, then returns a
- * toolkit for defining shared `Struct` values and per-variant `Field` values.
- * From those definitions it can create schema classes, unions, extracted
- * `Schema.Struct` projections, and helpers for evolving fields across variants.
- * The module also provides `Override` and `Overrideable` for schemas whose
- * constructor default can be replaced by an explicit value.
+ * `make` fixes the variant names and default variant, then lets callers define
+ * fields that are shared by all variants or specific to some variants. From
+ * those definitions it can create schema classes, unions, extracted struct
+ * schemas, and helpers for changing fields across variants.
  *
  * @since 4.0.0
  */

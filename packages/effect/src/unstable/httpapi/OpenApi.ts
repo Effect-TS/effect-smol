@@ -1,11 +1,10 @@
 /**
- * OpenAPI 3.1 generation for declarative `HttpApi` contracts.
+ * Generates OpenAPI 3.1 documents from declarative `HttpApi` contracts.
  *
- * This module reflects an `HttpApi` into an OpenAPI document and provides the
- * annotations used to shape the generated output. The result can be served from
- * `HttpApiBuilder.layer`, rendered by Swagger UI or Scalar, passed to client
- * generators, or published through API gateway and documentation pipelines. The
- * module also exports the TypeScript model for the OpenAPI objects it generates.
+ * The generator reads API groups, endpoints, schemas, security definitions, and
+ * annotations, then produces an OpenAPI document. This module also provides the
+ * annotations used to shape that output and the TypeScript model for the
+ * OpenAPI objects it generates.
  *
  * @since 4.0.0
  */

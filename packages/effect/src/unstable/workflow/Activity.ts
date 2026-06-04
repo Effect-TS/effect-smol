@@ -1,12 +1,10 @@
 /**
- * Named, schema-backed effects for durable workflows.
+ * Defines named effects whose results can be stored by a workflow engine.
  *
- * An `Activity` is an `Effect` with a stable name, success and error schemas,
- * annotations, and encoded execution form. `make` creates an activity from an
- * effect and lets the `WorkflowEngine` store or replay its result during a
- * workflow run. The module also provides retry attempt tracking, deterministic
- * idempotency keys, and `raceAll` for running several activities as one durable
- * race.
+ * An `Activity` is an `Effect` with a stable name and schemas for its success
+ * and error values. `make` wraps an effect so the `WorkflowEngine` can execute
+ * it, store its result, or replay that result during a workflow run. This module
+ * also includes helpers for retry attempts, idempotency keys, and durable races.
  *
  * @since 4.0.0
  */

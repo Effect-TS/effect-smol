@@ -1,14 +1,13 @@
 /**
- * Bidirectional conversions used by schemas. A `Transformation` describes how
- * to decode an encoded value into a decoded value, and how to encode it back in
- * the opposite direction.
+ * Builds two-way conversions used by schemas.
  *
- * This module provides the `Transformation` and `Middleware` classes,
- * constructors for pure and effectful transformations, and common conversions
- * for strings, options, numbers, bigints, dates, durations, errors, URLs,
- * encoded strings, JSON, `FormData`, `URLSearchParams`, and `DateTime` values.
- * These transformations are used by schema APIs such as `Schema.decodeTo`,
- * `Schema.encodeTo`, `Schema.decode`, `Schema.encode`, and `Schema.link`.
+ * A `Transformation<T, E>` describes how to decode an encoded value into a
+ * decoded value and how to encode it back again. Schema APIs use
+ * transformations to connect two representations, such as a string and a
+ * number, a JSON value and a richer TypeScript value, or a form field and an
+ * application value. This module includes transformation and middleware types,
+ * constructors for pure or effectful conversions, and common conversions used
+ * by the Schema module.
  *
  * @since 4.0.0
  */

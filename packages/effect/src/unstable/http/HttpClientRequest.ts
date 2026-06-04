@@ -1,10 +1,11 @@
 /**
- * Immutable outgoing HTTP client requests.
+ * Describes immutable outgoing HTTP client requests.
  *
  * `HttpClientRequest` is the request model shared by Effect HTTP clients and
  * platform adapters. A request stores its method, URL, query parameters, hash,
- * headers, and body as structured data, and this module provides constructors,
- * pipeable update helpers, body encoders, and Web `Request` conversions.
+ * headers, and body as structured data. This module includes constructors,
+ * helpers for updating requests, body encoders for common payloads, and
+ * conversions to and from Web `Request` values.
  *
  * @since 4.0.0
  */

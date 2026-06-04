@@ -1,10 +1,12 @@
 /**
- * Low-level pull steps used by stream-like consumers. A
- * `Pull<A, E, Done, R>` is an `Effect` that can produce one value, fail with
- * an ordinary error, or signal end-of-input with a `Cause.Done<Done>` value.
- * This module provides type extractors for pull values, errors, leftovers, and
- * services, plus helpers for detecting, filtering, catching, converting, and
- * matching `Cause.Done` completion signals separately from ordinary failures.
+ * Models one low-level pull step for stream-like consumers.
+ *
+ * A `Pull<A, E, Done, R>` is an `Effect` that can produce one `A`, fail with an
+ * ordinary error `E`, or signal end-of-input with `Cause.Done<Done>`. The
+ * separate done signal lets low-level consumers distinguish normal completion
+ * from failure. This module includes type extractors and helpers for detecting,
+ * filtering, catching, converting, and matching done signals separately from
+ * ordinary failures.
  *
  * @since 4.0.0
  */

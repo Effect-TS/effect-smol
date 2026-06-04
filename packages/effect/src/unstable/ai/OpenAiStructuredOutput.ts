@@ -1,15 +1,12 @@
 /**
- * Converts Effect Schema codecs into shapes that OpenAI structured output can
- * accept. The main entry point, {@link toCodecOpenAI}, returns both the JSON
- * Schema sent to OpenAI and the codec used to decode the model response back
- * into the original application type.
+ * Adapts Effect schemas for OpenAI structured output.
  *
- * The conversion rewrites unsupported shapes where possible: tuples become
- * objects with numeric string keys, records become arrays of key-value pairs,
- * optional properties become nullable required properties, and `oneOf` unions
- * are emitted as `anyOf`. It also flattens `allOf` output and merges multiple
- * regex patterns because OpenAI structured output does not support those
- * shapes directly. Unsupported schema kinds throw during conversion.
+ * OpenAI structured output accepts only a subset of JSON Schema. This module
+ * converts an Effect `Schema.Codec` into a provider-compatible JSON Schema and
+ * a matching codec for decoding the model response back into the original
+ * application type. When possible, unsupported schema shapes are rewritten into
+ * supported ones; schema kinds that cannot be represented safely fail during
+ * conversion.
  *
  * @since 4.0.0
  */

@@ -1,12 +1,12 @@
 /**
- * Server-side layers for exposing clustered entities through proxy APIs. Proxy
- * handlers extract the target `entityId`, call the entity client, and forward
- * the payload to the matching entity RPC method.
+ * Serves the proxy APIs generated from clustered entities.
  *
- * This module provides handlers for HTTP API groups created by
- * `EntityProxy.toHttpApiGroup` and RPC handler services for RPC groups created
- * by `EntityProxy.toRpcGroup`. Both normal requests and discard requests are
- * forwarded to the underlying entity client.
+ * Proxy handlers read the target `entityId`, call the entity client, and
+ * forward the payload to the matching entity RPC method. This module provides
+ * handlers for HTTP API groups created by `EntityProxy.toHttpApiGroup` and RPC
+ * handler services for RPC groups created by `EntityProxy.toRpcGroup`. Both
+ * normal requests and discard requests are forwarded to the underlying entity
+ * client.
  *
  * @since 4.0.0
  */

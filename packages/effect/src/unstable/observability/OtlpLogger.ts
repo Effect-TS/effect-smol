@@ -1,12 +1,10 @@
 /**
- * OTLP/HTTP log exporter for Effect's logging system.
+ * Exports Effect log entries over OTLP/HTTP.
  *
- * This module turns Effect log entries into OTLP log records and sends them to
- * a logs endpoint such as an OpenTelemetry Collector or vendor OTLP intake. It
- * records log levels, messages, annotations, causes, fiber ids, optional log
- * spans, and the current trace/span ids when present. It is the signal-specific
- * logger used by the higher-level `Otlp` module when an application wants logs,
- * metrics, and traces configured together.
+ * The logger turns Effect log entries into OTLP log records and sends them to a
+ * logs endpoint, such as an OpenTelemetry Collector or vendor OTLP endpoint. It
+ * includes log levels, messages, annotations, causes, fiber ids, optional log
+ * spans, and current trace/span ids when they are present.
  *
  * @since 4.0.0
  */

@@ -1,8 +1,10 @@
 /**
- * Small, pure helpers for defining, composing, adapting, and reusing
- * TypeScript functions. The module includes `pipe` and `flow` for left-to-right
- * composition, `dual` for data-first and data-last APIs, identity and constant
- * helpers, tuple adapters, type-level checks, and memoization for object keys.
+ * Provides small helpers for defining and reusing TypeScript functions.
+ *
+ * The main helpers are `pipe` and `flow` for left-to-right composition and
+ * `dual` for APIs that support both direct and pipe-friendly call styles. The
+ * module also contains small identity, constant, tuple, type-level, and
+ * memoization helpers used across the library.
  *
  * @since 2.0.0
  */

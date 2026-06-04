@@ -1,9 +1,10 @@
 /**
- * Constructors and types for small data models. The module helps define plain
- * classes, tagged classes, tagged unions, and yieldable errors with readonly
- * fields and `_tag` values for pattern matching. These helpers are commonly
- * used for domain values and typed errors that should be easy to construct and
- * narrow in Effect code.
+ * Defines helpers for small immutable data models.
+ *
+ * This module helps create plain classes, tagged classes, tagged unions, and
+ * typed errors with readonly fields. Tagged values carry a `_tag` field, which
+ * makes them easy to narrow with pattern matching or simple checks. These
+ * helpers are commonly used for domain values and errors in Effect programs.
  *
  * @since 2.0.0
  */

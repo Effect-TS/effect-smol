@@ -1,10 +1,11 @@
 /**
- * Reusable rules for merging two values of the same type. A `Combiner<A>`
- * contains only a `combine(self, that)` function; it does not choose an initial
- * value for reducing a collection. This module provides constructors for custom
- * combiners and common choices such as minimum, maximum, first value, last
- * value, a constant result, reversed argument order, and inserting a separator
- * while combining.
+ * Defines reusable rules for merging two values of the same type.
+ *
+ * A `Combiner<A>` contains one operation, `combine(self, that)`, which returns
+ * the merged value. It does not define an initial value for reducing a
+ * collection; use a `Reducer` when you need that. This module includes the
+ * `Combiner` interface, a constructor for custom combining logic, and common
+ * combiners for choosing or ordering values.
  *
  * @since 4.0.0
  */

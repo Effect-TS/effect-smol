@@ -1,14 +1,11 @@
 /**
- * OpenTelemetry span annotation helpers for Effect AI operations. This module
- * models the GenAI semantic-convention attributes used by language model and
- * embedding providers.
+ * Adds OpenTelemetry GenAI attributes to Effect AI spans.
  *
- * It provides attribute types, helpers for writing non-null attributes onto
- * existing Effect tracing spans, and the `CurrentSpanTransformer` service for
- * adding custom span annotations from provider options and response parts.
- * Provider implementations and applications use these helpers to produce
- * consistent `gen_ai.*` metadata for model requests, responses, token usage,
- * and provider-specific identifiers.
+ * This module models the `gen_ai.*` attributes used by language model and
+ * embedding providers. It includes attribute types, helpers for writing
+ * non-null attributes onto existing spans, and a `CurrentSpanTransformer`
+ * service for adding custom span annotations from provider options and response
+ * parts.
  *
  * @since 4.0.0
  */

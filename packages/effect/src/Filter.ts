@@ -1,11 +1,12 @@
 /**
- * Composable functions for accepting, rejecting, narrowing, and transforming
- * values. A `Filter<Input, Pass, Fail>` receives an input and returns a
- * `Result`: success means the value passed the filter, while failure means the
- * value was filtered out. The module includes constructors from predicates,
- * options, and effects, built-in filters for common JavaScript types and tags,
- * combinators for combining filters, and conversions to predicates, options,
- * and results.
+ * Defines composable checks that can also transform values.
+ *
+ * A `Filter<Input, Pass, Fail>` receives an input and returns a `Result`.
+ * Success means the value passed the filter, and failure means the value was
+ * filtered out. Filters may also narrow or transform the passing value. This
+ * module includes constructors from predicates, options, and effects, built-in
+ * filters for common JavaScript values and tags, helpers for combining filters,
+ * and conversions to predicates, options, and results.
  *
  * @since 4.0.0
  */

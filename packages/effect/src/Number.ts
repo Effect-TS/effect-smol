@@ -1,8 +1,9 @@
 /**
- * Helpers for working with TypeScript `number` values. This module exposes the
- * native `Number` constructor, a type guard, arithmetic helpers, safe parsing
- * and division, comparisons, range checks, clamping, rounding, `Order` and
- * `Equivalence` instances, and reducers for numeric aggregation.
+ * Works with TypeScript `number` values.
+ *
+ * This module exposes the native `Number` constructor together with helpers for
+ * checking, parsing, arithmetic, safe division, comparison, range checks,
+ * clamping, rounding, ordering, equivalence, and numeric aggregation.
  *
  * @since 2.0.0
  */

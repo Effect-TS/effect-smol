@@ -1,11 +1,9 @@
 /**
- * Prometheus metrics exporter for Effect's Metric system.
+ * Formats Effect metrics for Prometheus.
  *
- * This module snapshots the metrics registered in the current Effect context
- * and renders them in the Prometheus text exposition format. It is intended for
- * services that already record `Metric` counters, gauges, histograms,
- * frequencies, or summaries and need a pull-based `/metrics` endpoint, or for
- * integrations that want the formatted scrape body for a custom HTTP server.
+ * This module reads metrics from the current Effect context and renders them in
+ * the Prometheus text format. It can also register a pull-based HTTP endpoint,
+ * such as `/metrics`, for Prometheus to scrape.
  *
  * @since 4.0.0
  */

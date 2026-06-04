@@ -1,13 +1,11 @@
 /**
- * The `Argument` module defines typed positional command-line arguments for
- * Effect CLI applications. Arguments consume ordered values after a command name
- * and its flags, then parse them into the types your command handler expects.
+ * Defines typed positional arguments for Effect CLI applications.
  *
- * Use this module for required inputs such as file paths, directories, numbers,
- * dates, choices, secrets, and structured configuration files. Arguments can be
- * made optional, variadic, validated with Schema, transformed with pure or
- * effectful functions, and supplied from defaults, config, or prompts when
- * missing.
+ * Arguments consume ordered values after a command name and its flags, then
+ * parse them into the types a command handler expects. This module includes
+ * constructors for common argument shapes, plus helpers for optional or
+ * variadic arguments, schema validation, transformations, defaults, config
+ * fallbacks, and prompts for missing values.
  *
  * @since 4.0.0
  */

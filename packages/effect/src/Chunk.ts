@@ -1,9 +1,11 @@
 /**
- * Immutable ordered collections for working with many values without changing
- * the original collection. A `Chunk` is designed for efficient append, prepend,
- * and concatenation, and the module includes helpers for creating, reading,
- * slicing, mapping, filtering, sorting, zipping, combining, and converting
- * chunks to and from arrays and iterables.
+ * Stores many values in an immutable ordered collection.
+ *
+ * A `Chunk<A>` is useful when you need to build or transform collections
+ * without changing the original collection. It is designed for efficient
+ * append, prepend, and concatenation. This module includes helpers for
+ * creating, reading, slicing, mapping, filtering, sorting, zipping, combining,
+ * and converting chunks to and from arrays and iterables.
  *
  * @since 2.0.0
  */

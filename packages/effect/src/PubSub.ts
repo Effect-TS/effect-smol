@@ -1,11 +1,12 @@
 /**
- * Asynchronous publish-subscribe hubs for broadcasting values to many
- * subscribers. Publishers add messages with `publish` or `publishAll`, and each
- * active `Subscription` receives its own copy of every accepted message.
- * Unlike a queue, subscribers do not compete for messages. This module provides
- * bounded, dropping, sliding, and unbounded hubs, optional replay buffers for
- * late subscribers, message-taking helpers, size and capacity checks, shutdown
- * operations, and the low-level atomic and strategy types used by custom hubs.
+ * Broadcasts values from publishers to many subscribers.
+ *
+ * Publishers add messages with `publish` or `publishAll`, and each active
+ * `Subscription` receives its own copy of every accepted message. Unlike a
+ * queue, subscribers do not compete for messages. This module includes bounded,
+ * dropping, sliding, and unbounded hubs, optional replay buffers for late
+ * subscribers, message-taking helpers, capacity and shutdown operations, and
+ * low-level types for custom hub strategies.
  *
  * @since 2.0.0
  */

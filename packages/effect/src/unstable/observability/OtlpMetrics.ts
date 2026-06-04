@@ -1,15 +1,13 @@
 /**
- * OTLP/HTTP metrics exporter for Effect's Metric system.
+ * Exports Effect metrics over OTLP/HTTP.
  *
- * This module periodically snapshots the metrics registered in the current
- * Effect context, serializes them as OTLP resource metrics, and posts them to a
- * metrics endpoint such as an OpenTelemetry Collector or vendor OTLP intake.
- * It is typically installed with `layer` in long-running services that already
- * update `Metric` counters, gauges, histograms, frequencies, or summaries and
- * need those values exported without adding instrumentation-specific plumbing
- * to the application code. The exporter supports cumulative metrics, which
- * report values since a fixed start time, and delta metrics, which report
- * changes since the previous export.
+ * This module periodically snapshots metrics from the current Effect context,
+ * serializes them as OTLP resource metrics, and posts them to a metrics
+ * endpoint such as an OpenTelemetry Collector or vendor intake. It is meant for
+ * long-running services that already update `Metric` counters, gauges,
+ * histograms, frequencies, or summaries. The exporter supports cumulative
+ * reporting from a fixed start time and delta reporting from the previous
+ * export.
  *
  * @since 4.0.0
  */

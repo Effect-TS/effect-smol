@@ -1,14 +1,12 @@
 /**
  * Reactive state primitives for values managed by an `AtomRegistry`.
  *
- * An `Atom` describes how to produce a value. Some atoms are read-only and some
- * are writable. The registry runs atom reads, remembers current values, tracks
- * which atoms depend on each other, starts effects and streams, and cleans up
- * unused atoms. This module provides constructors for values, effects, streams,
- * functions, and subscription refs, plus helpers for caching, refreshing,
- * debouncing, stale-while-revalidate behavior, optimistic updates, browser focus,
- * key-value storage, URL search parameters, serialization, and server-side
- * values.
+ * An `Atom` describes how to produce or update one piece of reactive state. The
+ * registry runs atom reads, remembers current values, tracks dependencies
+ * between atoms, starts effects and streams, and cleans up atoms that are no
+ * longer used. This module includes the atom constructors and update helpers
+ * used for cached values, effect-backed values, streams, browser state, stored
+ * values, and server-rendered values.
  *
  * @since 4.0.0
  */

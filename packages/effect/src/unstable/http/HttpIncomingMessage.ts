@@ -1,13 +1,11 @@
 /**
- * Shared utilities for reading and decoding incoming HTTP messages.
+ * Common model for incoming HTTP messages.
  *
- * `HttpIncomingMessage` is the common body-and-header surface used by HTTP
- * server requests and client responses. It keeps transport-specific metadata in
- * the surrounding request and response modules while this module focuses on
- * headers, optional remote address information, byte streams, buffered body
- * views, and schema decoders for JSON bodies, URL-encoded bodies, and headers.
- * It also includes the shared max body size setting and the inspection helper
- * used by request and response implementations.
+ * `HttpIncomingMessage` is used by server requests and client responses to
+ * expose headers, an optional remote address, and body accessors. This module
+ * provides decoders for JSON bodies, URL-encoded bodies, and headers, plus the
+ * shared body-size setting and inspection helper used by request and response
+ * implementations.
  *
  * @since 4.0.0
  */

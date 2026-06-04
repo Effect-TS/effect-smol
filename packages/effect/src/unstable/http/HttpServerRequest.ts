@@ -1,13 +1,12 @@
 /**
- * Server-side access to the current incoming HTTP request.
+ * Provides server-side access to the current incoming HTTP request.
  *
- * This module defines the `HttpServerRequest` context service used by HTTP
- * handlers, middleware, schema decoders, multipart parsers, WebSocket upgrades,
- * and adapters. A request value carries the method, URL, original URL, headers,
- * cookies, remote address, body stream, and platform source object, plus helpers
- * for converting to and from Effect client requests and Web `Request` values.
- * The module also provides schema decoders for cookies, headers, search
- * parameters, JSON bodies, form bodies, URL-encoded bodies, and multipart bodies.
+ * `HttpServerRequest` is the context service used by handlers, middleware,
+ * schema decoders, multipart parsers, WebSocket upgrades, and adapters. A
+ * request stores its method, URL, original URL, headers, cookies, remote
+ * address, body stream, and platform source object. This module also includes
+ * request conversions and schema decoders for cookies, headers, search
+ * parameters, JSON, forms, URL-encoded bodies, and multipart bodies.
  *
  * @since 4.0.0
  */

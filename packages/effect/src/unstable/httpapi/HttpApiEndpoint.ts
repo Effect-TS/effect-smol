@@ -1,11 +1,11 @@
 /**
- * Endpoint declarations used inside an HTTP API group.
+ * Defines endpoint declarations used inside an HTTP API group.
  *
  * An endpoint records a stable name, HTTP method, router path, request schemas,
  * response schemas, declared errors, middleware, and annotations. Endpoint
  * values are declarations, not handlers: builders use them to decode requests,
  * type handler input, encode responses, generate OpenAPI metadata, and derive
- * generated-client call signatures. This module also provides the HTTP method
+ * generated-client call signatures. This module also includes HTTP method
  * constructors, payload and response schema helpers, and type utilities used by
  * builders and generated clients.
  *

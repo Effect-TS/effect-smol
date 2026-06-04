@@ -1,8 +1,10 @@
 /**
- * Utilities for working with TypeScript `boolean` values. The module includes
- * a type check, lazy branching, logical operators such as `and`, `or`, and
- * `xor`, collection checks such as `every` and `some`, and helpers for Effect
- * APIs that compare or reduce boolean values.
+ * Works with TypeScript `boolean` values.
+ *
+ * This module exposes the native `Boolean` constructor together with helpers
+ * for checking values, choosing between lazy branches, combining booleans with
+ * logical operations, checking collections with `every` or `some`, ordering
+ * booleans, and reducing boolean values.
  *
  * @since 2.0.0
  */

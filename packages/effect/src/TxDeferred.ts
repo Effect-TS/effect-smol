@@ -7,10 +7,6 @@
  * and when another transaction completes the deferred the waiting transaction
  * can resume with either the success value or the typed failure.
  *
- * This module provides constructors, `await` for waiting on completion, `poll`
- * for inspecting the current state without retrying, and completion helpers for
- * successes, failures, or already built `Result` values.
- *
  * @since 4.0.0
  */
 

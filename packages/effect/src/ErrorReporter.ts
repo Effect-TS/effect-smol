@@ -1,10 +1,12 @@
 /**
- * Pluggable error reporting for Effect failures. An `ErrorReporter` receives
- * `Cause` values from `Effect.withErrorReporting`, manual `report` calls, or
- * built-in reporting boundaries, and forwards each non-interruption error to a
- * callback. The module also provides layers for installing reporters and
- * symbols for marking reported errors as ignored or attaching severity and
- * attributes.
+ * Reports Effect failures to external code.
+ *
+ * An `ErrorReporter` receives `Cause` values from `Effect.withErrorReporting`,
+ * manual `report` calls, or built-in reporting boundaries. It forwards each
+ * non-interruption error to a callback, so applications can send failures to
+ * logging, monitoring, or error-tracking systems. This module also includes
+ * layers for installing reporters and symbols for marking errors as ignored or
+ * attaching severity and attributes.
  *
  * @since 4.0.0
  */

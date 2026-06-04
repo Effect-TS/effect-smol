@@ -1,9 +1,11 @@
 /**
- * Ordered fallback plans for rerunning effects or streams with different
- * services. An `ExecutionPlan` contains one or more steps, and each step
- * provides a `Context` or `Layer` plus optional attempt limits, retry schedules,
- * and predicates that decide whether to keep trying. The module also supports
- * merging plans and reading metadata for the active step and attempt.
+ * Describes ordered fallback steps for running effects or streams.
+ *
+ * An `ExecutionPlan` contains one or more steps. Each step provides a `Context`
+ * or `Layer`, and may also define attempt limits, retry schedules, or
+ * predicates that decide whether to keep trying. The runtime tries steps in
+ * order until the workflow succeeds or the plan is exhausted. This module also
+ * supports merging plans and reading metadata for the active step and attempt.
  *
  * @since 3.16.0
  */

@@ -1,10 +1,11 @@
 /**
- * Type-level helpers for writing generic code over type constructors.
+ * Provides type-level helpers for generic code over container-like types.
+ *
  * TypeScript cannot directly abstract over shapes such as `Option<A>`,
- * `ReadonlyArray<A>`, or `Effect<A, E, R>`, so this module represents those
- * shapes with `TypeLambda` and applies concrete type arguments with `Kind`. It
- * also provides `TypeClass` and `URI` for linking type-class definitions to the
- * type lambda they use.
+ * `ReadonlyArray<A>`, or `Effect<A, E, R>`. This module represents those shapes
+ * with `TypeLambda` and applies concrete type arguments with `Kind`. It is
+ * mostly useful when defining generic helpers or type classes that should work
+ * across several data types.
  *
  * @since 2.0.0
  */

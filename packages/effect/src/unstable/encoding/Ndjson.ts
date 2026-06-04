@@ -1,10 +1,9 @@
 /**
- * Encode and decode newline-delimited JSON streams in Effect channels.
+ * Encodes and decodes newline-delimited JSON streams in Effect channels.
  *
- * NDJSON represents a stream as one complete JSON value per line. This module
- * keeps that framing explicit for streaming boundaries: byte helpers handle
- * UTF-8 transport chunks, string helpers handle already-decoded text, and
- * schema helpers validate or transform each record at the edge of the pipeline.
+ * NDJSON stores one complete JSON value on each line. This module has helpers
+ * for byte streams, string streams, and schema-checked records, so streaming
+ * code can read or write one JSON record at a time.
  *
  * @since 4.0.0
  */

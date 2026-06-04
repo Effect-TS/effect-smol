@@ -1,11 +1,10 @@
 /**
- * Bridges Effect HTTP server programs with platform request handlers.
+ * Runs Effect HTTP server handlers at platform boundaries.
  *
- * This module runs effects that produce `HttpServerResponse` values at the edge
- * of a server runtime. It can turn an Effect handler into a Web `Request`
- * handler, build that handler from a `Layer`, adapt an existing Web handler back
- * into an Effect server effect, apply HTTP middleware, translate failures into
- * responses, and run pre-response hooks immediately before a response is sent.
+ * This module turns effects that produce `HttpServerResponse` values into Web
+ * `Request` handlers and other server adapters. It also applies middleware,
+ * converts failures into responses, runs hooks before a response is sent, and
+ * manages request scopes for streamed responses.
  *
  * @since 4.0.0
  */

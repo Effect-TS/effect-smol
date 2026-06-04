@@ -1,15 +1,12 @@
 /**
- * Communication service and RPC protocol for runner-to-runner messages in
- * Effect Cluster. `Runners` sits between sharding decisions and runner
- * execution: callers can ping a runner, send requests or control envelopes,
- * notify a runner that persisted work is available, and report a runner address
- * as unavailable.
+ * Handles communication between Effect Cluster runners.
  *
- * This module defines the `Runners` service, constructors that add local
- * persistence and reply recovery around lower-level callbacks, a no-op service,
- * the runner RPC group and generated client, an RPC-backed implementation that
- * caches clients by runner address, and the `RpcClientProtocol` service used by
- * transport-specific runner layers.
+ * `Runners` sits between sharding decisions and runner execution. It can ping a
+ * runner, send requests or control envelopes, notify a runner that persisted
+ * work is available, and record that a runner address is unavailable. This
+ * module defines the runner communication service, its RPC protocol, no-op and
+ * RPC-backed implementations, local persistence support, reply recovery, and
+ * the protocol service used by transport-specific runner layers.
  *
  * @since 4.0.0
  */

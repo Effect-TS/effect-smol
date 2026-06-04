@@ -1,10 +1,11 @@
 /**
- * Effect wrappers around console operations. The module exposes a `Console`
- * service, accessors for common console methods such as `log`, `error`, `warn`,
- * `debug`, groups, counters, tables, and timers, and scoped helpers that close
- * groups or timers automatically. Because console access goes through a
- * service, programs can use custom console implementations in tests or other
- * environments.
+ * Wraps console operations in Effect.
+ *
+ * The `Console` service exposes common console methods such as logging,
+ * warnings, errors, groups, counters, tables, and timers. Because console access
+ * goes through a service, programs can use custom console implementations in
+ * tests or other environments. This module also includes scoped helpers that
+ * close console groups or timers automatically.
  *
  * @since 2.0.0
  */

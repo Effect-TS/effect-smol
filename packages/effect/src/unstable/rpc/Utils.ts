@@ -1,13 +1,10 @@
 /**
- * Internal helpers for constructing RPC protocol services whose receive loop is
- * installed separately from the operations that write to it.
+ * Helps RPC protocol services buffer messages until their receive loop starts.
  *
- * This module is used by the client and server `Protocol.make` constructors to
- * let transports expose a stable service immediately while buffering messages
- * until the protocol's `run` method has installed the active receiver. Buffered
- * writes keep the `Context` that was current at the time of the write, so
- * replaying early messages preserves fiber-local services such as tracing or
- * request metadata.
+ * Client and server protocol constructors use these helpers to expose a stable
+ * service before the active receiver is installed. Writes made before `run`
+ * starts are buffered with their current `Context`, then replayed once the
+ * receiver is ready.
  *
  * @since 4.0.0
  */

@@ -1,21 +1,13 @@
 /**
- * Utilities for defining schema-backed domain models that need different shapes
- * for database access and JSON APIs.
+ * Defines schema-backed domain models with separate database and JSON shapes.
  *
- * A model defined with this module keeps one field declaration as the source of
- * truth and derives the `select`, `insert`, `update`, `json`, `jsonCreate`, and
- * `jsonUpdate` variants from it. This is useful for persistence models whose
- * database representation differs from the public API, for example generated
- * columns, application-generated identifiers, sensitive fields that must not be
- * serialized to JSON, nullable database columns exposed as `Option`, SQLite
- * booleans, JSON stored as text, date-time audit columns, and generated UUIDs.
- *
- * Each variant is a schema in its own right, so choose the variant that matches
- * the boundary you are validating or encoding. Plain schemas are included in all
- * variants, while `Field` helpers opt a property into only the variants they
- * declare. Overrideable defaults such as timestamp helpers can still be provided
- * explicitly with `Override`, and JSON variants may differ from database variants
- * in both optionality and encoded representation.
+ * A model keeps one field declaration as the source of truth and derives
+ * variants for selecting, inserting, updating, and JSON encoding. This is useful
+ * when the database shape is not exactly the same as the public API shape, such
+ * as generated ids, audit timestamps, nullable columns, private fields, or
+ * values that need different encodings at different boundaries. Each generated
+ * variant is its own schema, so callers can validate or encode the shape that
+ * matches the operation they are performing.
  *
  * @since 4.0.0
  */

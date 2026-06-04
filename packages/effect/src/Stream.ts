@@ -1,13 +1,12 @@
 /**
- * Effectful sequences that emit values over time. A `Stream` can produce zero
- * or more values, fail, and require services while the runtime manages pulling,
- * interruption, scopes, and finalizers as the stream is consumed.
+ * Describes effectful sources that emit values over time.
  *
- * This module provides constructors from effects, collections, queues, pubsubs,
- * schedules, callbacks, readable streams, async iterables, and pagination
- * functions. It also includes combinators for transforming, combining,
- * buffering, throttling, retrying, handling errors, providing services, and
- * consuming streams with sinks or collection and fold helpers.
+ * A `Stream<A, E, R>` can emit many `A` values, fail with `E`, and require
+ * services `R` while it is being consumed. Streams are useful for data that is
+ * pulled in steps, such as values from collections, queues, pubsubs, schedules,
+ * callbacks, async iterables, or platform streams. The APIs here cover the full
+ * stream lifecycle: create a stream, transform or combine it, control buffering
+ * and timing, handle failures, and finally consume it.
  *
  * @since 2.0.0
  */

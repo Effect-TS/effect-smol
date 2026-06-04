@@ -1,12 +1,12 @@
 /**
- * Configuration for how an Effect Cluster runner joins and participates in
- * sharding. It covers the runner network address, shard group membership, shard
- * count and weight, storage-lock timing, entity mailbox and lifecycle limits,
- * polling intervals, health-check timing, and local serialization simulation.
+ * Configures how an Effect Cluster runner participates in sharding.
  *
- * This module provides the `ShardingConfig` service, default values,
- * programmatic and environment-based layers, a `Config` description for loading
- * values, and a helper that normalizes available and assigned shard groups.
+ * `ShardingConfig` describes the runner address, shard group membership, shard
+ * counts and weights, lock timing, entity mailbox and lifecycle limits, polling
+ * intervals, health checks, and local serialization simulation. This module
+ * includes the service, default values, programmatic and environment-based
+ * layers, a `Config` description for loading values, and helpers for normalizing
+ * assigned shard groups.
  *
  * @since 4.0.0
  */

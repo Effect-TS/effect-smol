@@ -1,12 +1,9 @@
 /**
- * Defines the request-side contract used by the persistence layer.
+ * Describes request values whose results can be persisted.
  *
- * A `Persistable` request is a `PrimaryKey` value that carries the success and
- * error schemas needed to encode and decode the stored `Exit` for that request.
- * Persisted request resolvers and `PersistedCache` use this metadata to restore
- * previous lookup results from a backing store before running the lookup again.
- * This module also provides a request class factory and helpers for building,
- * encoding, and decoding the `Exit` schema for a persistable request.
+ * A `Persistable` request has a primary key and schemas for its success and
+ * error results. `Persistence` and `PersistedCache` use that information to
+ * store the request's `Exit` value and restore it later from a backing store.
  *
  * @since 4.0.0
  */

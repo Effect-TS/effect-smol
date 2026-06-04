@@ -1,11 +1,13 @@
 /**
- * Composable tools for reading and updating part of a value without mutating
- * the original value. An optic describes how to focus on a whole value, a
- * nested field, a union variant, an optional value, or many values in a
- * collection. This module provides `Iso`, `Lens`, `Prism`, `Optional`, and
- * `Traversal` types, constructors for each kind, helpers for focusing record
- * keys, tags, refinements, `Option`, and `Result` values, and operations for
- * replacing, modifying, or collecting focused values.
+ * Reads and updates focused parts of values without mutating the original
+ * value.
+ *
+ * An optic describes where to look inside a value, such as a record field, a
+ * union variant, an optional value, or several values in a collection. Different
+ * optic types describe different kinds of focus: some always find a value,
+ * some may not, and some can find many. This module includes the optic types,
+ * constructors, focusing helpers, and operations for replacing, modifying, or
+ * collecting focused values.
  *
  * @since 4.0.0
  */

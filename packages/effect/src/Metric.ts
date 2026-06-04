@@ -1,10 +1,12 @@
 /**
- * Metrics for recording and reading numeric or categorical information from
- * Effect programs. A `Metric<Input, State>` accepts typed update values and
- * stores an aggregated state that can be read directly or included in a
- * snapshot. This module provides counters, gauges, frequencies, histograms,
- * summaries, timers, metric attributes, boundary helpers, registry snapshots,
- * text dumps, and controls for enabling runtime metrics.
+ * Records and reads measurements from Effect programs.
+ *
+ * A `Metric<Input, State>` accepts typed update values and stores an aggregated
+ * state that can be read directly or included in a snapshot. Metrics are used
+ * for counters, gauges, frequencies, histograms, summaries, and timers. This
+ * module includes metric constructors, update and read helpers, attributes,
+ * histogram boundaries, registry snapshots, text dumps, and controls for
+ * enabling runtime metrics.
  *
  * @since 2.0.0
  */

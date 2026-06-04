@@ -1,13 +1,12 @@
 /**
- * Server-side layers for the cluster runner protocol. The handlers receive
- * ping, notification, request, stream, and envelope messages from other runners,
- * then forward them into `Sharding` and coordinate persisted replies through
- * `MessageStorage`.
+ * Provides server-side layers for the cluster runner protocol.
  *
- * This module exposes the low-level handler layer, a transport-agnostic RPC
- * server layer, a full server layer that also provides `Runners` and `Sharding`
- * clients, and a client-only layer for applications that need cluster clients
- * without serving runner RPCs.
+ * Runner protocol handlers receive ping, notification, request, stream, and
+ * envelope messages from other runners. They forward those messages into
+ * `Sharding` and coordinate persisted replies through `MessageStorage`. This
+ * module includes the handler layer, a transport-independent RPC server layer, a
+ * full server layer that also provides runner clients, and a client-only layer
+ * for applications that do not serve runner RPCs.
  *
  * @since 4.0.0
  */

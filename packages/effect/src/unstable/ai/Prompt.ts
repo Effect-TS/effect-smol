@@ -1,14 +1,11 @@
 /**
- * Data model and helpers for prompts sent to AI language models. A prompt is an
- * ordered list of messages, and messages can use roles such as system, user,
- * assistant, and tool.
+ * Defines prompts sent to AI language models.
  *
- * This module defines schemas, types, guards, and constructors for prompt
- * messages and their content parts, including text, files, reasoning, tool
- * calls, tool results, and tool approval requests or responses. It also
- * provides helpers for turning raw input or response parts into prompts,
- * joining prompts together, and setting, prepending, or appending system
- * instructions.
+ * A prompt is an ordered list of messages. Messages can use roles such as
+ * system, user, assistant, and tool, and their content can be split into typed
+ * parts such as text, files, reasoning, tool calls, tool results, and approval
+ * messages. This module helps build prompts, combine them, and convert raw
+ * input or response parts into the shared prompt shape.
  *
  * @since 4.0.0
  */

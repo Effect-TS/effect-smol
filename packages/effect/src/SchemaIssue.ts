@@ -1,14 +1,12 @@
 /**
- * Error values produced while decoding, encoding, or checking data with
- * schemas. An `Issue` records what failed and, for nested data, where the
- * failure happened.
+ * Describes problems found while decoding, encoding, or checking data with
+ * schemas.
  *
- * This module defines the issue classes used by the Schema system, including
- * missing keys, unexpected keys, invalid types, invalid values, failed filters,
- * failed transformations, and groups of alternatives. It also provides helpers
- * for creating issues from filter output, reading the actual value from an
- * issue, formatting issues for users, converting them to Standard Schema V1
- * failures, and redacting sensitive values.
+ * An `Issue` records what failed and, for nested data, where the failure
+ * happened. The Schema system uses these values for missing keys, unexpected
+ * keys, invalid types, invalid values, failed filters, failed transformations,
+ * and alternatives that did not match. This module also formats issues and
+ * supports redaction for sensitive values.
  *
  * @since 4.0.0
  */

@@ -1,15 +1,11 @@
 /**
- * Composable consumers for `Stream` values. A `Sink` reads input elements from
- * a stream, may consume none, one, or many of them, and eventually produces a
- * result. If it reads more input than it needs, it can return the unused values
- * as leftovers for the stream to continue with.
+ * Consumes values from a `Stream` and produces one final result.
  *
- * This module provides sinks for folding, reducing, collecting, taking,
- * searching, counting, summing, running effects for each input, reading from
- * queues or pubsubs, and converting to or from lower-level channels. It also
- * includes combinators for mapping inputs, results, errors, and leftovers,
- * composing sinks, handling failures, providing services, timing execution,
- * and running cleanup when a sink finishes.
+ * A `Sink` may read no input, a fixed amount of input, or keep reading until a
+ * condition is met. If it reads more than it needs, it can return leftovers so
+ * the stream can continue from those values. Sinks are used to collect, fold,
+ * search, count, or otherwise reduce streamed input, and they can be composed
+ * when a stream needs more than one consuming step.
  *
  * @since 2.0.0
  */

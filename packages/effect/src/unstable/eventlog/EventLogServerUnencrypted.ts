@@ -1,17 +1,13 @@
 /**
  * Plaintext server implementation for the event-log remote protocol.
  *
- * The module accepts unencrypted event batches from remote clients, runs the
- * registered event handlers, persists journal entries through `Storage`, and
- * streams compacted backlog entries plus live changes through the shared
- * `EventLogServer` RPC protocol. It is intended for trusted deployments, local
- * development, tests, and server-side producers that want typed event handling
- * and conflict detection without an encryption layer.
- *
- * This module also defines the authorization, store-mapping, and storage
- * services used by the plaintext server, in-memory storage and static store
- * mapping layers, backlog compaction, typed server-side write helpers, and full
- * or handler-only layers for installing the remote RPC protocol.
+ * This module accepts unencrypted event batches from remote clients, runs the
+ * registered event handlers, stores journal entries, and streams backlog plus
+ * live changes through the shared `EventLogServer` RPC protocol. It is intended
+ * for trusted deployments, local development, and tests where event data does
+ * not need a server-side encryption layer. The module also provides the
+ * services and layers needed to authorize requests, map stores, persist entries,
+ * and install the plaintext server.
  *
  * @since 4.0.0
  */

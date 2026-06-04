@@ -1,12 +1,11 @@
 /**
- * HTTP client response values, status checks, and response decoders.
+ * Represents responses returned by the Effect HTTP client.
  *
- * This module represents responses produced by the Effect HTTP client. An
- * {@link HttpClientResponse} keeps the original request together with the
- * response status, headers, cookies, and effectful body accessors inherited from
- * the shared incoming-message model. The module also provides constructors,
- * schema-based decoders, helpers for streaming response bodies, and utilities
- * for matching or filtering by HTTP status.
+ * An `HttpClientResponse` keeps the original request together with the response
+ * status, headers, cookies, and body accessors from the shared incoming-message
+ * model. This module includes constructors, schema-based decoders, helpers for
+ * streaming response bodies, and utilities for matching or filtering by HTTP
+ * status.
  *
  * @since 4.0.0
  */

@@ -1,15 +1,13 @@
 /**
- * Provider-neutral service for language model operations. It exposes text
- * generation, streaming text generation, and schema-based structured output,
- * with optional tools that the model can request and the framework can resolve.
+ * Defines the shared service for language model providers.
  *
- * This module defines the service tag, provider contract, request options,
- * response wrappers, tool-choice types, toolkit input types, extraction helper
- * types, structured-output codec transformers, and accessors for the active
- * service. The `make` constructor adapts provider-specific generate and stream
- * functions into the shared service, validates provider response parts with
- * schemas, resolves tool calls with configurable concurrency, handles tool
- * approval requests, supports response-id tracking, and records tracing spans.
+ * The `LanguageModel` service lets application code ask for generated text,
+ * streamed text, or structured output without depending on a specific provider.
+ * Requests can include tools, and the service can resolve tool calls while the
+ * model is generating a response. This module contains the service contract,
+ * request and response types, structured-output support, and the constructor
+ * used by provider packages to adapt their own generate and stream functions to
+ * the shared interface.
  *
  * @since 4.0.0
  */

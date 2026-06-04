@@ -1,10 +1,11 @@
 /**
- * Platform-agnostic service for cryptographic operations. Runtime packages
- * provide concrete implementations backed by the host platform's cryptography
- * APIs, while this module defines the service shape and a constructor from
- * random-byte and digest primitives. The service exposes secure random bytes
- * and numbers, UUIDv4 and UUIDv7 generation, shuffling, and message digests for
- * SHA algorithms.
+ * Defines a platform-independent service for cryptographic operations.
+ *
+ * Runtime packages provide concrete implementations backed by the host
+ * platform's cryptography APIs. This module defines the service interface and a
+ * constructor from random-byte and digest primitives. The service provides
+ * secure random bytes and numbers, UUIDv4 and UUIDv7 generation, shuffling, and
+ * SHA message digests.
  *
  * @since 4.0.0
  */

@@ -1,13 +1,11 @@
 /**
- * Immutable string-keyed maps optimized for prefix lookup. A `Trie<Value>`
- * stores values under `string` keys, similar to a map whose key type is fixed
- * to strings, and organizes those keys by shared prefixes.
+ * Stores string-keyed values in an immutable prefix tree.
  *
- * This is useful for autocomplete, route tables, dictionaries, command lookup,
- * and any workflow that needs to ask which entries start with a string. The
- * module provides exact lookup, prefix lookup, longest-prefix lookup,
- * insertion, removal, batch updates, iteration in key order, mapping,
- * filtering, reducing, and traversal helpers.
+ * A `Trie<Value>` is similar to a map whose keys are strings, but it is built
+ * for looking up keys by prefix. It is useful for autocomplete, route tables,
+ * dictionaries, and command lookup. Updates return new tries, and the module
+ * includes exact lookup, prefix lookup, longest-prefix lookup, iteration,
+ * mapping, filtering, reducing, and traversal helpers.
  *
  * @since 2.0.0
  */

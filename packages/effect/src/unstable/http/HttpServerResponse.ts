@@ -1,12 +1,12 @@
 /**
- * Immutable HTTP response values for Effect HTTP servers.
+ * Describes immutable responses returned by Effect HTTP handlers.
  *
- * Handlers return an `HttpServerResponse`, and the server runtime later converts
- * it to a platform response such as a Web `Response`. A response contains a
- * status, optional status text, headers, cookies, and a body. This module
- * provides constructors for common body types, helpers for updating headers,
- * cookies, body, and status, file response helpers through `HttpPlatform`, and
- * conversions to and from Web responses and Effect HTTP client responses.
+ * An `HttpServerResponse` stores the status, optional status text, headers,
+ * cookies, and body that the server runtime later turns into a platform
+ * response such as a Web `Response`. This module includes constructors for
+ * common response bodies, helpers for updating response data, file response
+ * support through `HttpPlatform`, and conversions to or from Web and Effect
+ * HTTP client responses.
  *
  * @since 4.0.0
  */

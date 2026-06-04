@@ -1,15 +1,13 @@
 /**
  * Definitions and helpers for tools that AI models can request during a
- * workflow. A tool names an operation, describes the parameters it accepts,
- * declares successful and failed results, and can require approval before it is
- * executed.
+ * workflow.
  *
- * This module supports user-defined tools, provider-defined tools such as
- * built-in web search, and dynamic tools whose schema may only be known at
- * runtime. It also provides constructors, type guards, helper types for tool
- * handlers and results, JSON Schema conversion, name mapping for
- * provider-defined tools, MCP and provider annotations, a safe JSON parser, and
- * the `EmptyParams` schema used by tools with no parameters.
+ * A tool names an operation, describes the parameters it accepts, declares
+ * successful and failed results, and can require approval before execution.
+ * This module supports tools defined by the application, tools built into a
+ * provider, and dynamic tools whose schema is known only at runtime. It also
+ * includes the shared types and conversion helpers needed by language-model
+ * requests, tool handlers, and provider integrations.
  *
  * @since 4.0.0
  */

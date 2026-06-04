@@ -1,9 +1,11 @@
 /**
- * Synchronously inspectable results of Effect computations. An `Exit<A, E>` is
- * either a success with a value or a failure with a `Cause<E>`, preserving
- * typed errors, defects, and interruptions after a workflow has finished. The
- * module includes constructors, guards, filters, extractors, mapping functions,
- * and pattern matching helpers for working with those outcomes as plain values.
+ * Represents the result of an Effect computation as a plain value.
+ *
+ * An `Exit<A, E>` is either a success with an `A` or a failure with a
+ * `Cause<E>`. The failure cause preserves typed errors, defects, and
+ * interruptions after a workflow has finished. Use this module when completed
+ * Effect results need to be inspected, transformed, filtered, or matched
+ * synchronously as data.
  *
  * @since 2.0.0
  */

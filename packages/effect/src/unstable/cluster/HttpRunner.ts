@@ -1,12 +1,11 @@
 /**
- * HTTP and WebSocket transport layers for cluster runner RPCs. Runner nodes
- * communicate through the `Runners.Rpcs` protocol, and this module connects
- * that protocol to HTTP-based transports.
+ * Connects cluster runner RPCs to HTTP and WebSocket transports.
  *
- * It provides client protocol layers for dialing runner addresses over HTTP or
+ * Runner nodes communicate through the `Runners.Rpcs` protocol. This module
+ * provides client protocol layers for dialing runner addresses over HTTP or
  * WebSocket, HTTP effects that serve runner RPC handlers, route layers for
- * installing runner endpoints into an `HttpRouter`, and ready-made full or
- * client-only layers for HTTP and WebSocket runner communication.
+ * installing runner endpoints into an `HttpRouter`, and ready-made layers for
+ * HTTP or WebSocket runner communication.
  *
  * @since 4.0.0
  */

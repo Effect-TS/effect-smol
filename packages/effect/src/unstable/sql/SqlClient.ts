@@ -1,13 +1,10 @@
 /**
- * Defines the main SQL client service.
+ * Main SQL client service for tagged-template queries.
  *
- * A `SqlClient` combines the tagged-template statement constructor with a
- * scoped connection acquirer, dialect compiler, tracing attributes, optional row
- * transforms, reactive query helpers, and transaction management. `make` builds
- * the service from those pieces, while `makeWithTransaction` handles top-level
- * transactions and nested savepoints. The module also exposes the transaction
- * connection service tag and the `SafeIntegers` setting used by SQL
- * integrations.
+ * `SqlClient` combines the tagged-template statement constructor with
+ * connection acquisition, dialect compilation, transactions, row transforms,
+ * tracing, and reactive query helpers. Driver integrations build this service
+ * from their connection and compiler pieces.
  *
  * @since 4.0.0
  */

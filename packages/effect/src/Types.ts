@@ -1,11 +1,10 @@
 /**
- * Type-level utility types for TypeScript.
+ * Provides compile-time utility types for TypeScript.
  *
- * This module provides generic type aliases used throughout the Effect
- * ecosystem. Everything here is compile-time only — there are no runtime
- * values. Use these types to manipulate tuple lengths, object shapes, tagged
- * unions, reason-tagged errors, mutability, exactness, required keys,
- * concurrency settings, and variance markers at the type level.
+ * Everything in this module is type-level only; it does not define runtime
+ * values. The types are used throughout Effect to work with tuple lengths,
+ * object shapes, tagged unions, reason-tagged errors, mutability, exactness,
+ * required keys, concurrency settings, and variance markers.
  *
  * @since 4.0.0
  */

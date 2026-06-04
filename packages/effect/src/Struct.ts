@@ -1,13 +1,12 @@
 /**
- * Utilities for working with plain TypeScript objects, also called structs.
- * The runtime helpers in this module create new objects instead of mutating
- * their inputs.
+ * Works with plain TypeScript objects, also called structs.
  *
- * This module includes type helpers for simplifying and merging object types,
- * property access, typed keys, picking, omitting, assigning, renaming keys,
- * transforming values, transforming keys and values together, mapping selected
- * fields, deriving equivalence and ordering, building combiners and reducers
- * for object shapes, and creating records from a list of keys.
+ * The runtime helpers in this module create new objects instead of mutating
+ * their inputs. They cover common object workflows such as reading properties,
+ * listing typed keys, picking or omitting fields, assigning and renaming keys,
+ * transforming values, deriving comparison helpers, and creating records from a
+ * list of keys. The module also includes type-level helpers for simplifying and
+ * merging object shapes.
  *
  * @since 2.0.0
  */

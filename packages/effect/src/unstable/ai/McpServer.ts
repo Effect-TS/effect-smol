@@ -1,14 +1,12 @@
 /**
- * Tools for building Model Context Protocol (MCP) servers with Effect. The
- * central `McpServer` service stores the tools, resources, resource templates,
- * prompts, completions, initialized clients, and outgoing notifications that a
- * server exposes.
+ * Builds Model Context Protocol (MCP) servers with Effect.
  *
- * This module also provides the server runner, layers for custom protocols,
- * stdio, and HTTP, and helper APIs for registering toolkits, resources,
- * resource templates, and prompts. Server handlers can also use this module to
- * ask the connected client for structured input and to read the client's
- * advertised capabilities.
+ * The `McpServer` service stores the tools, resources, resource templates,
+ * prompts, completions, initialized clients, and outgoing notifications exposed
+ * by a server. This module also includes the server runner, custom protocol,
+ * stdio, and HTTP layers, registration helpers, and APIs that let handlers ask
+ * the connected client for structured input or read its advertised
+ * capabilities.
  *
  * @since 4.0.0
  */

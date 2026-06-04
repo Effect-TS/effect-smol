@@ -1,13 +1,11 @@
 /**
- * Groups AI `Tool` definitions into a typed toolkit. A toolkit is the bridge
- * between tool schemas and the handler functions an application provides for a
- * language model workflow.
+ * Groups AI tools together with their handlers.
  *
- * This module defines toolkit types, handler context, helper types, and
- * constructors for empty, single, and merged toolkits. A toolkit can build a
- * handler context or layer, then execute tool calls by name: it validates the
- * parameters, runs the handler, encodes the result, supports preliminary
- * streamed results, and applies the tool's failure mode.
+ * A toolkit connects `Tool` schemas to the handler functions an application
+ * provides for a language model workflow. It can build a handler context or
+ * layer and execute tool calls by name. Execution validates parameters, runs the
+ * handler, encodes the result, supports preliminary streamed results, and
+ * applies the tool's failure mode.
  *
  * @since 4.0.0
  */

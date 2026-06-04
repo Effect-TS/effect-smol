@@ -1,14 +1,11 @@
 /**
- * Transactional publish/subscribe hubs for broadcasting values to scoped
- * subscribers. Each subscriber owns a `TxQueue`, so each published value is
- * offered to the subscriber queues that are registered at the time of
- * publication.
+ * Broadcasts values to subscribers inside Effect transactions.
  *
- * This module provides bounded, dropping, sliding, and unbounded hubs; capacity
- * and size checks; publishing one or many values; scoped subscription; lower
- * level subscriber acquire and release helpers; shutdown; waiting for shutdown;
- * and a guard. Publication and subscriber management participate in Effect
- * transactions.
+ * A `TxPubSub<A>` is a transactional publish/subscribe hub. Each subscriber
+ * owns a `TxQueue`, and each published value is offered to the subscriber
+ * queues that are registered at the time of publication. This module includes
+ * bounded, dropping, sliding, and unbounded hubs, publishing helpers, scoped
+ * subscriptions, shutdown operations, and a guard.
  *
  * @since 4.0.0
  */

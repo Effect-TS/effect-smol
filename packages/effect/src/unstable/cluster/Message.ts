@@ -1,12 +1,11 @@
 /**
- * Message shapes used by Effect Cluster while moving entity requests and
- * control envelopes between callers, durable storage, transports, and runner
- * handlers.
+ * Defines the message shapes moved through Effect Cluster.
  *
- * It defines incoming and outgoing message variants for encoded stored
- * requests, decoded local requests, acknowledgements, and interrupts. It also
- * provides helpers for turning outgoing messages into local incoming messages
- * and for encoding or decoding request payloads with the matching RPC schemas.
+ * Messages carry entity requests and control envelopes between callers, durable
+ * storage, transports, and runner handlers. This module includes incoming and
+ * outgoing variants for encoded stored requests, decoded local requests,
+ * acknowledgements, and interrupts. It also provides helpers for local delivery
+ * and for encoding or decoding request payloads with matching RPC schemas.
  *
  * @since 4.0.0
  */

@@ -1,13 +1,10 @@
 /**
- * OTLP resource metadata for logs, metrics, and traces exported by Effect.
+ * Builds OTLP resource metadata shared by exported telemetry.
  *
- * This module builds the resource object attached to every OTLP signal sent by
- * the Effect observability exporters. A resource carries service identity such
- * as `service.name` and `service.version`, plus process, host, deployment, or
- * application attributes that should be shared by all exported telemetry. The
- * module can build resources from explicit options or OpenTelemetry environment
- * variables, and includes helpers for converting JavaScript values into OTLP
- * attribute values.
+ * An OTLP resource describes the service and other attributes attached to every
+ * exported log, metric, or trace. This module builds resources from explicit
+ * options or OpenTelemetry environment variables and converts JavaScript values
+ * into OTLP attribute values.
  *
  * @since 4.0.0
  */

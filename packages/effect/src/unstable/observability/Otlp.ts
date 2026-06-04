@@ -1,11 +1,10 @@
 /**
- * Combined OTLP/HTTP export for Effect logs, metrics, and traces.
+ * Configures OpenTelemetry Protocol (OTLP) HTTP export for Effect telemetry.
  *
- * This module installs the signal-specific OTLP logger, metrics exporter, and
- * tracer exporter from one shared configuration. Use it when an application
- * sends all three observability signals to the same OpenTelemetry Collector,
- * vendor OTLP intake, or local development collector and should not configure
- * each exporter separately.
+ * This module installs the OTLP logger, metrics exporter, and tracer exporter
+ * from one shared configuration. Use it when an application sends logs, metrics,
+ * and traces to the same OpenTelemetry Collector, vendor OTLP endpoint, or local
+ * development collector.
  *
  * @since 4.0.0
  */

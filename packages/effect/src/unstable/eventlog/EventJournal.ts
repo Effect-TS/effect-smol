@@ -1,15 +1,13 @@
 /**
- * Persistence boundary for unstable event-log entries and replication state.
+ * Stores event-log entries and replication state.
  *
- * `EventJournal` stores committed entries, exposes them for replay, publishes
- * local changes, and records the remote metadata needed to exchange entries
- * with other journals. Higher-level event-log schemas and handlers build on
- * this service when rebuilding projections, syncing offline clients, importing
- * remote changes, or coordinating writes per store.
- *
- * This module also defines journal errors, branded remote and entry ids, entry
- * and remote-entry schemas, helpers for generating and reading UUID-based entry
- * ids, and in-memory or IndexedDB-backed journal implementations with layers.
+ * `EventJournal` records committed entries, exposes them for replay, publishes
+ * local changes, and tracks the remote metadata needed to exchange entries with
+ * other journals. Higher-level event-log schemas and handlers use this service
+ * to rebuild projections, sync offline clients, import remote changes, and
+ * coordinate writes per store. This module also defines journal errors, entry
+ * and remote identifiers, schemas, and in-memory or IndexedDB-backed journal
+ * layers.
  *
  * @since 4.0.0
  */

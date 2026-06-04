@@ -5,10 +5,9 @@
  *
  * Use `TxPriorityQueue` when multiple fibers coordinate through a shared queue
  * and queue operations need to compose with other transactional state changes.
- * This module provides constructors, size checks, peeking, offering, taking,
- * draining, bounded taking, conditional removal or retention, conversion to an
- * array, and a guard. The retrying `peek` and `take` operations wait
- * transactionally when the queue is empty.
+ * The retrying `peek` and `take` operations wait transactionally when the queue
+ * is empty, so they can be combined with other transactional reads and writes in
+ * one atomic workflow.
  *
  * @since 4.0.0
  */

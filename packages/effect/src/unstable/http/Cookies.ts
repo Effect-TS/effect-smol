@@ -1,12 +1,11 @@
 /**
- * Immutable HTTP cookie values and collections for request and response
- * workflows.
+ * Models HTTP cookies and cookie collections for requests and responses.
  *
- * The module models a validated {@link Cookie}, an immutable {@link Cookies}
- * collection keyed by cookie name, and the conversions needed around HTTP
- * headers. Use it to read request `Cookie` headers, build cookies with standard
- * attributes, merge or remove cookies immutably, expire cookies, and emit
- * response `Set-Cookie` headers.
+ * A `Cookie` stores a name, value, encoded value, and standard cookie
+ * attributes. A `Cookies` value is an immutable collection keyed by cookie
+ * name. This module parses request `Cookie` headers, builds response
+ * `Set-Cookie` headers, and provides helpers for adding, removing, merging, and
+ * expiring cookies.
  *
  * @since 4.0.0
  */

@@ -1,9 +1,11 @@
 /**
- * Immutable values for spans of time. A `Duration` can be finite, positive
- * infinity, or negative infinity, and is the standard representation for
- * delays, timeouts, intervals, and TTL-like values across Effect APIs. The
- * module includes constructors from common input shapes, unit conversions,
- * comparisons, arithmetic, formatting, and reusable reducer or combiner helpers.
+ * Represents immutable spans of time.
+ *
+ * A `Duration` can be finite, positive infinity, or negative infinity. It is
+ * the standard representation for delays, timeouts, intervals, and
+ * time-to-live values across Effect APIs. This module includes constructors
+ * from common input shapes, unit conversions, comparisons, arithmetic,
+ * formatting, and reusable reducer or combiner helpers.
  *
  * @since 2.0.0
  */

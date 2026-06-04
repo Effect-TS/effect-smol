@@ -1,13 +1,12 @@
 /**
- * Schema-aware persisted queues for background work.
+ * Stores schema-encoded queue work in persistent storage.
  *
- * A `PersistedQueue` stores JSON-encoded values in a named queue and lets
- * workers `take` one value at a time inside a scoped processing window. It is
+ * A `PersistedQueue<A>` keeps JSON-encoded values in a named queue and lets
+ * workers take one value at a time inside a scoped processing window. It is
  * useful for durable handoffs, background jobs, outbox-style integrations, and
- * workloads where failed work should be retried across fibers, process
- * restarts, or multiple workers. The module provides a queue factory, the
- * low-level store service, id-based de-duplication for offered items, retry
- * handling with maximum attempts, and in-memory, Redis, and SQL store layers.
+ * work that should retry across fibers, process restarts, or multiple workers.
+ * This module includes a queue factory, store service, id-based de-duplication,
+ * retry handling, and in-memory, Redis, and SQL-backed store layers.
  *
  * @since 4.0.0
  */

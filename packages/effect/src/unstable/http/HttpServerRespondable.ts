@@ -1,13 +1,10 @@
 /**
- * Protocol for values that can render themselves as HTTP server responses.
+ * Converts supported values into HTTP server responses.
  *
- * This module lets server-side domain errors, HTTP API errors, and helper
- * values describe the response they should send to a client. Implement
- * `Respondable` when a value should choose its own status, headers, cookies, or
- * body during route error handling without forcing every call site to construct
- * an `HttpServerResponse` directly. The module also includes guards and
- * conversion helpers, including fallback handling for schema errors and missing
- * values.
+ * Server-side errors and helper values can implement `Respondable` when they
+ * know which status, headers, cookies, or body should be sent to the client.
+ * This module detects those values and converts them to `HttpServerResponse`
+ * values, with fallback handling for schema errors and missing values.
  *
  * @since 4.0.0
  */

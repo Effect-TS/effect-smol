@@ -1,9 +1,10 @@
 /**
- * Effect-powered key-value caches for values loaded by a lookup function. A
- * cache stores successful and failed lookup results, shares in-progress lookups
- * when multiple callers request the same missing key, and controls entries with
- * capacity and optional time-to-live rules. The module also includes helpers to
- * read, set, refresh, invalidate, and inspect cache contents.
+ * Caches values loaded by an Effect lookup function.
+ *
+ * A cache stores successful and failed lookup results, shares an in-progress
+ * lookup when multiple callers request the same missing key, and limits entries
+ * by capacity and optional time-to-live rules. This module includes helpers for
+ * reading, setting, refreshing, invalidating, and inspecting cache contents.
  *
  * @since 4.0.0
  */

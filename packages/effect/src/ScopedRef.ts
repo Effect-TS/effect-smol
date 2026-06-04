@@ -1,14 +1,11 @@
 /**
- * A mutable reference whose current value has its own `Scope`. This is useful
- * for storing a resource-backed value, such as a client, connection,
- * subscription, or handle, and later replacing it without leaking the resources
- * owned by the previous value.
+ * Stores a current value together with the scope that owns it.
  *
- * `fromAcquire` creates the initial value from an acquiring effect, `make`
- * creates one from an already available value, and `set` acquires a replacement
- * in a new scope before updating the reference. Reads can be effectful or
- * synchronous, while updates are synchronized so only one replacement happens
- * at a time.
+ * A `ScopedRef<A>` is useful for resource-backed values such as clients,
+ * connections, subscriptions, or handles. Replacing the value acquires the
+ * replacement in a new scope and releases the resources owned by the previous
+ * value. Reads can be effectful or synchronous, and updates are synchronized so
+ * only one replacement happens at a time.
  *
  * @since 2.0.0
  */

@@ -1,13 +1,10 @@
 /**
- * SQL migration runner for `SqlClient`.
+ * Runs SQL migrations with `SqlClient`.
  *
- * A migrator loads numbered migration effects, records which ids have already
- * run in a migrations table, and executes only the pending migrations in a
- * transaction through a `SqlClient`. It creates the migrations table when
- * needed, detects duplicate migration ids, treats concurrent runs as locked,
- * and can dump the schema after successful migrations. The loader helpers read
- * migrations from dynamic glob imports, Babel-style glob records, in-memory
- * records, or filesystem directories.
+ * A migrator loads numbered migration effects, records completed ids in a
+ * migrations table, and runs only pending migrations in a transaction. It
+ * creates the table when needed, detects duplicate ids, treats concurrent runs
+ * as locked, and can dump the schema after successful migrations.
  *
  * @since 4.0.0
  */

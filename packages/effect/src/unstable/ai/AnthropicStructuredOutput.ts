@@ -1,16 +1,13 @@
 /**
- * Adapt Effect Schema codecs to the JSON Schema subset accepted by Anthropic
+ * Adapts Effect Schema codecs to the JSON Schema subset accepted by Anthropic
  * structured output.
  *
- * The main entry point is {@link toCodecAnthropic}. It returns the JSON Schema
- * to send to Anthropic and a codec that preserves the original decoded value
- * type while changing the encoded representation when Anthropic cannot express
- * that shape directly.
- *
- * The conversion rewrites unsupported shapes where possible: tuples become
- * objects with numeric string keys, records become arrays of key-value pairs,
- * optional properties become nullable required properties, and `oneOf` unions
- * are emitted as `anyOf`. Unsupported schema kinds throw during conversion.
+ * The main entry point returns the JSON Schema to send to Anthropic and a codec
+ * for decoding the model response back into the original application type. When
+ * Anthropic cannot express the original schema shape directly, the conversion
+ * rewrites supported cases such as tuples, records, optional properties, and
+ * `oneOf` unions. Schema kinds that cannot be represented throw during
+ * conversion instead of producing a lossy schema.
  *
  * @since 4.0.0
  */

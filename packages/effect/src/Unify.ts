@@ -1,13 +1,12 @@
 /**
- * The `Unify` module defines the type-level protocol Effect uses to collapse
- * unions of protocol-enabled values into their public data types. It is mostly
- * for maintainers of Effect data types and advanced library authors; ordinary
- * application code usually benefits from unification through APIs such as
- * `Effect`, `Option`, `Result`, `Stream`, `Layer`, and `Match`.
+ * Defines Effect's type-level unification protocol.
  *
- * This module exports the protocol symbols, the `Unify` type that performs the
- * type-level normalization, and `unify`, an identity function that keeps the
- * runtime value unchanged while applying `Unify` to the inferred type.
+ * Unification collapses unions of protocol-enabled values into their public data
+ * types. It is mostly for maintainers of Effect data types and advanced library
+ * authors; application code usually benefits from it through APIs such as
+ * `Effect`, `Option`, `Result`, `Stream`, `Layer`, and `Match`. This module
+ * exports the protocol symbols, the `Unify` type that performs normalization,
+ * and `unify`, an identity function that changes only the inferred type.
  *
  * @since 2.0.0
  */

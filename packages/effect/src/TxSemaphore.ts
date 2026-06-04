@@ -1,13 +1,11 @@
 /**
- * Transactional semaphores for coordinating access to limited resources. A
- * `TxSemaphore` has a fixed capacity and stores its available permit count in a
- * `TxRef`, so acquiring or releasing permits can commit atomically with other
- * transactional state changes.
+ * Coordinates access to limited resources inside transactions.
  *
- * This module provides constructors, capacity and availability checks, retrying
- * permit acquisition, non-retrying acquisition attempts, permit release,
- * wrappers that run an effect with one or more permits, scoped permit
- * acquisition, and a guard.
+ * A `TxSemaphore` has a fixed capacity and stores its available permit count in
+ * a `TxRef`. Acquiring or releasing permits can therefore commit atomically
+ * with other transactional state changes. This module includes operations for
+ * creating semaphores, checking capacity and availability, acquiring or
+ * releasing permits, and running effects while permits are held.
  *
  * @since 4.0.0
  */

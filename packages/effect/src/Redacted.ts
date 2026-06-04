@@ -1,10 +1,12 @@
 /**
- * Wrappers for sensitive values whose normal string, JSON, and inspection
- * output shows a redacted placeholder instead of the underlying value. A
- * `Redacted<A>` still stores the original value so trusted code can recover it
- * with `value`. This module provides constructors with optional labels, a
- * guard, value recovery, unsafe wiping of the stored value, and equivalence
- * helpers for comparing wrapped values without exposing them at the call site.
+ * Wraps sensitive values so normal output does not reveal them.
+ *
+ * A `Redacted<A>` shows a redacted placeholder in string, JSON, and inspection
+ * output, while still storing the original value for trusted code that needs to
+ * recover it. This helps reduce accidental leaks in logs and diagnostics. This
+ * module includes constructors, runtime checks, value recovery, wiping of stored
+ * values, and comparison helpers that avoid exposing the wrapped value at the
+ * call site.
  *
  * @since 3.3.0
  */

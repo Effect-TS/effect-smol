@@ -1,13 +1,12 @@
 /**
- * Server-side runtime for RPC groups.
+ * Runs server-side handlers for RPC groups.
  *
  * This module connects typed handlers for an `RpcGroup` to a server `Protocol`.
  * It receives client messages, decodes request payloads, runs matching handlers
- * and middleware, manages in-flight requests, acknowledgements, interrupts,
- * concurrency, and tracing, and sends exits, stream chunks, defects, and
- * client-end messages back to clients. It also provides the decoded-message
- * server plus HTTP, WebSocket, socket, stdio, and worker-runner protocol
- * constructors and layers.
+ * and middleware, tracks in-flight requests, handles acknowledgements and
+ * interrupts, and sends responses back to clients. It also provides constructors
+ * and layers for decoded messages, HTTP, WebSocket, sockets, stdio, and worker
+ * runner protocols.
  *
  * @since 4.0.0
  */

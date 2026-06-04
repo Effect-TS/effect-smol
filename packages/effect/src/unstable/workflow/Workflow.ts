@@ -1,13 +1,12 @@
 /**
- * Typed durable workflow definitions and helpers.
+ * Defines typed durable workflows.
  *
- * A `Workflow` has a stable tag, a payload schema, success and error schemas,
- * and an idempotency key used to build execution ids. This module provides
- * helpers to create workflows, execute or discard runs, poll results, interrupt
- * or resume suspended executions, and register handlers with `toLayer`. It also
- * defines workflow results, helpers for turning effects into workflow results,
- * scoped workflow cleanup, compensation, suspension, and workflow settings for
- * defect capture and failure suspension.
+ * A `Workflow` has a stable tag, schemas for payload, success, and failure, and
+ * an idempotency key used to derive execution ids. Workflow definitions can be
+ * executed, discarded, polled, interrupted, resumed, and registered with a
+ * handler layer. This module also includes workflow result types, compensation
+ * and cleanup helpers, suspension support, and settings for defect capture or
+ * failure suspension.
  *
  * @since 4.0.0
  */

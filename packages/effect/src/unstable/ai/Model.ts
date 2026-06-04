@@ -1,11 +1,11 @@
 /**
- * Wrapper for an AI model layer plus its runtime metadata. A `Model` can be
- * used anywhere its underlying `Layer` can be used, and it also provides the
- * current provider name and model name through the Effect context.
+ * Wraps an AI model layer with provider and model metadata.
  *
- * This module defines the `Model` interface, the `ProviderName` and `ModelName`
- * service tags, and the `make` constructor. Models can also capture their
- * required services from the current context when they need to be used from
+ * A `Model` can be used anywhere its underlying `Layer` can be used. It also
+ * provides the current provider name and model name through the Effect context.
+ * This module includes the `Model` interface, the `ProviderName` and
+ * `ModelName` service tags, and the `make` constructor. Models can also capture
+ * their required services from the current context when they need to be used
  * inside another Effect service.
  *
  * @since 4.0.0

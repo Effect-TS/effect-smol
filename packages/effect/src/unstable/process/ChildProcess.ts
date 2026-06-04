@@ -1,12 +1,11 @@
 /**
- * Command descriptions for running child processes with Effect.
+ * Describes child processes before they are started.
  *
- * Commands are values that describe a child process before it starts. This
- * module provides constructors for commands, helpers for piping commands
- * together, and options for working directories, environment variables, standard
- * streams, extra file descriptors, shells, and shutdown signals. A `Command` is
- * also an Effect; when it is run, it asks the `ChildProcessSpawner` service to
- * start the process and returns a `ChildProcessHandle`.
+ * A `Command` stores the executable, arguments, environment, standard streams,
+ * working directory, and other process options. Commands can also be piped
+ * together. A command is an `Effect`; running it asks the
+ * `ChildProcessSpawner` service to start the process and returns a
+ * `ChildProcessHandle`.
  *
  * @since 4.0.0
  */

@@ -1,12 +1,11 @@
 /**
- * Utilities for working with fixed-length arrays, also called tuples. The
- * runtime helpers in this module create new tuples instead of mutating their
- * inputs, and the types preserve element positions where possible.
+ * Works with fixed-length arrays, also called tuples.
  *
- * This module includes tuple construction, indexed access, picking and
- * omitting positions, appending elements, transforming selected elements,
- * renaming indices, mapping all or some positions with typed lambdas, deriving
- * equivalence and ordering, and building combiners or reducers for tuple
+ * The runtime helpers in this module create new tuples instead of mutating
+ * their inputs, and the types preserve element positions where possible. The
+ * helpers cover tuple construction, indexed access, selecting or removing
+ * positions, appending values, transforming elements, renaming indices, mapping
+ * typed positions, and deriving comparison or combination helpers for tuple
  * shapes.
  *
  * @since 2.0.0

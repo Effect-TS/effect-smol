@@ -1,11 +1,12 @@
 /**
- * Pattern matching for TypeScript values, predicates, and tagged unions.
- * `Match` builds ordered cases and then finishes them with a result, fallback,
- * option, or exhaustive check. Use `Match.type` to define a reusable matcher
- * for a type, or `Match.value` to match one value immediately. Cases can match
- * literal values, predicates, object patterns, discriminators, tags, negated
- * patterns, and common refinements such as strings, numbers, records, and
- * class instances.
+ * Builds pattern matchers for TypeScript values.
+ *
+ * `Match` lets you add ordered cases and then finish them with a result,
+ * fallback, `Option`, or exhaustive check. Use `Match.type` to define a
+ * reusable matcher for a type, or `Match.value` to match one value immediately.
+ * Cases can match literal values, predicates, object shapes, tags, negated
+ * patterns, and common checks such as strings, numbers, records, and class
+ * instances.
  *
  * @since 4.0.0
  */

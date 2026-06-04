@@ -1,14 +1,11 @@
 /**
  * Transactional hash maps for storing and updating key-value pairs inside
- * Effect transactions. A `TxHashMap` stores an immutable `HashMap` in a `TxRef`,
- * so map reads and writes can be committed atomically with other transactional
- * operations.
+ * Effect transactions.
  *
- * Use it for shared registries, caches, counters, indexes, and other mutable
- * maps that need safe read-modify-write sequences. This module provides
- * constructors, lookup, insertion, removal, modification, batch updates,
- * snapshots, key/value/entry collection, hash-aware lookup helpers, mapping,
- * filtering, reducing, traversal, predicates, and compaction.
+ * A `TxHashMap` stores an immutable `HashMap` in a `TxRef`, so map reads and
+ * writes can commit atomically with other transactional operations. Use it for
+ * shared registries, counters, indexes, and other maps that need safe
+ * read-modify-write sequences alongside related transactional state.
  *
  * @since 2.0.0
  */

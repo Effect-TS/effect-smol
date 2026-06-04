@@ -1,13 +1,12 @@
 /**
- * Functions that run schemas against real values. They are used to construct
- * values from schema input, check whether a value matches a schema, decode
- * encoded input, and encode decoded values back to their external form.
+ * Runs schemas against real values.
  *
- * This module exposes the same work through several result styles: `Effect`,
- * `Promise`, `Exit`, `Option`, `Result`, and synchronous functions that throw
- * on failure. It also contains the lower-level parser runner that walks a
- * schema AST, applies transformations and checks, respects parse options, and
- * reports schema failures as `SchemaIssue.Issue` values.
+ * Schema parsers construct values from schema input, check whether a value
+ * matches a schema, decode encoded input, and encode decoded values back to
+ * their external form. This module exposes those operations through several
+ * result styles, including `Effect`, `Promise`, `Exit`, `Option`, `Result`, and
+ * synchronous functions that throw. It also contains the lower-level runner that
+ * walks a schema AST and reports schema failures as `SchemaIssue.Issue` values.
  *
  * @since 4.0.0
  */

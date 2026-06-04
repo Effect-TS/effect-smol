@@ -1,11 +1,12 @@
 /**
- * Compact, sortable identifiers for cluster messages and runtime events. A
- * snowflake id is a branded `bigint` made from a millisecond timestamp, a
- * machine id, and a per-machine sequence number.
+ * Creates compact, sortable identifiers for cluster messages and runtime
+ * events.
  *
- * This module provides schemas for bigint and string encodings, helpers for
- * creating ids and reading their timestamp, machine id, and sequence parts, and
- * a `Clock`-backed generator service with a layer for cluster runtime use.
+ * A snowflake id is a branded `bigint` built from a millisecond timestamp, a
+ * machine id, and a sequence number for that machine. The parts make generated
+ * ids sortable by time while still being unique for a runner. This module
+ * includes schemas for bigint and string encodings, helpers for creating and
+ * reading ids, and a `Clock`-backed generator service for cluster runtime use.
  *
  * @since 4.0.0
  */

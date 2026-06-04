@@ -1,12 +1,10 @@
 /**
- * Top-level declaration for an Effect HTTP API.
+ * Describes an Effect HTTP API as groups of endpoints.
  *
- * An `HttpApi` has an identifier, annotations, and groups of endpoints that
- * describe request inputs, response schemas, middleware, and route metadata. The
- * same value is used by server builders, generated clients, URL builders,
- * OpenAPI generation, and reflection tools. This module also includes helpers
- * for creating APIs, combining or prefixing groups, reflecting over the API
- * structure, and registering extra schemas for generated documentation.
+ * An `HttpApi` value is data: it has an identifier, annotations, and groups of
+ * endpoints that describe request inputs, responses, middleware, and route
+ * metadata. The same description can be used by server builders, generated
+ * clients, URL builders, OpenAPI generation, and reflection tools.
  *
  * @since 4.0.0
  */

@@ -1,10 +1,11 @@
 /**
- * Boolean checks for values at runtime. A `Predicate<A>` returns `true` or
- * `false`, while a `Refinement<A, B>` also narrows the TypeScript type after a
- * successful check. This module provides guards for common JavaScript values,
- * tuple and struct checks, property and tag checks, helpers for composing
- * refinements, and boolean combinators such as `and`, `or`, `not`, `every`,
- * and `some`.
+ * Defines runtime checks for values.
+ *
+ * A `Predicate<A>` returns `true` or `false` for an `A`. A
+ * `Refinement<A, B>` is a predicate that also narrows the TypeScript type when
+ * it succeeds. This module includes guards for common JavaScript values,
+ * property and tag checks, tuple and struct checks, boolean combinators, and
+ * helpers for composing predicates and refinements.
  *
  * @since 2.0.0
  */

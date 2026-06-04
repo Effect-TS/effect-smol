@@ -1,14 +1,12 @@
 /**
- * Transactional read/write locks whose ownership is tracked per fiber. Multiple
- * fibers may hold read locks at the same time, while a write lock gives one
- * fiber exclusive access. A fiber that already holds a lock can acquire it
- * again, and the lock keeps a count so each acquisition can be released.
+ * Coordinates shared access inside transactions with read and write locks.
  *
- * This module provides manual read and write acquire/release operations,
- * scoped lock acquisition, wrappers that run an effect while holding a read or
- * write lock, a general lock wrapper, lock-count and locked-state inspection,
- * and a guard. Acquiring a lock retries transactionally when another fiber
- * currently prevents access.
+ * A `TxReentrantLock` lets many fibers hold read locks at the same time, or one
+ * fiber hold a write lock for exclusive access. Lock ownership is tracked by
+ * fiber, so a fiber that already holds the lock can acquire it again and later
+ * release each acquisition. Attempts that cannot proceed retry transactionally
+ * until the lock becomes available. This module includes manual, scoped, and
+ * wrapper-style operations for read and write locking.
  *
  * @since 4.0.0
  */

@@ -1,13 +1,11 @@
 /**
- * Service for generating identifiers used by AI features, such as tool calls
- * and generated response items. The service exposes one operation,
- * `generateId`, which returns a string inside `Effect`.
+ * Provides identifier generation for AI features.
  *
- * This module provides the service tag, the service interface, configuration
- * options, a default generator, a constructor for custom generators with
- * alphabet, prefix, separator, and size settings, and a layer for providing the
- * generator service. Custom generator creation validates that the separator is
- * not part of the alphabet.
+ * The `IdGenerator` service exposes one operation, `generateId`, which returns
+ * a string inside `Effect`. AI modules use it for values such as tool call ids
+ * and generated response item ids. This module includes the service tag,
+ * service interface, default generator, configurable custom generator, and layer
+ * for providing the service.
  *
  * @since 4.0.0
  */

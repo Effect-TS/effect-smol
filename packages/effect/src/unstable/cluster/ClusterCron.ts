@@ -1,13 +1,11 @@
 /**
- * The `ClusterCron` module provides a small integration between cron schedules
- * and cluster sharding. It turns a `Cron.Cron` schedule into a `Layer` that
- * coordinates one recurring job across a cluster by registering a singleton for
- * the initial scheduling step and a persisted entity message for each run.
+ * Runs recurring cron jobs through cluster sharding.
  *
- * This is useful for distributed maintenance work such as periodic cleanup,
- * reconciliation, report generation, cache refreshes, or polling external
- * systems where the job should be owned by the cluster rather than by every
- * runner independently.
+ * This module turns a `Cron.Cron` schedule into a `Layer` that coordinates one
+ * recurring job across a cluster. It registers a singleton for the initial
+ * scheduling step and a persisted entity message for each run. This is useful
+ * for distributed maintenance work where the job should be owned by the cluster
+ * rather than by every runner independently.
  *
  * @since 4.0.0
  */

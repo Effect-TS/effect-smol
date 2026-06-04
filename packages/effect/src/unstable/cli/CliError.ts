@@ -1,13 +1,12 @@
 /**
- * Structured errors used by the unstable CLI parser and runner. The error
- * classes describe unknown or duplicate flags, missing flags, missing
- * arguments, invalid values, unknown subcommands, user handler failures, and
- * requests to show command help.
+ * Defines structured errors for the unstable CLI parser and runner.
  *
- * This module provides the `CliError` union, the `isCliError` guard,
- * schema-backed error classes with display messages, and the
- * `NonShowHelpErrors` union used when parse or validation errors should be
- * shown together with help output.
+ * CLI errors describe problems such as unknown or duplicate flags, missing
+ * flags or arguments, invalid values, unknown subcommands, user handler
+ * failures, and requests to show command help. This module includes the
+ * `CliError` union, the `isCliError` guard, schema-backed error classes with
+ * display messages, and the `NonShowHelpErrors` union used when parse or
+ * validation errors should be shown with help output.
  *
  * @since 4.0.0
  */

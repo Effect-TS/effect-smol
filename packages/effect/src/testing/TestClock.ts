@@ -1,13 +1,12 @@
 /**
- * The `TestClock` module provides a controllable implementation of the Effect
- * `Clock` service for tests. Instead of waiting for real time to pass, effects
- * that use `Effect.sleep`, timeouts, schedules, retries, and other time-based
- * operators can be driven deterministically by advancing the test clock.
+ * Controllable `Clock` service for tests.
  *
- * This module provides a `TestClock` service, constructors, a layer, helpers
- * for adjusting time or setting the current timestamp, and `withLive` for
- * running part of a test with the real clock. The test clock also warns when a
- * test appears to be waiting on time without advancing the clock.
+ * Instead of waiting for real time to pass, effects that use `Effect.sleep`,
+ * timeouts, schedules, retries, and other time-based operators can be driven by
+ * advancing the test clock. This makes time-based tests deterministic and fast.
+ * The module also includes helpers for moving test time, temporarily using the
+ * live clock, and warning when a test appears to be waiting on time without
+ * advancing it.
  *
  * @since 2.0.0
  */

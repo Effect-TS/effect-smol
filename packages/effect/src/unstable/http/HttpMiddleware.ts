@@ -1,13 +1,11 @@
 /**
- * Server-side HTTP middleware for wrapping `HttpServerResponse` effects with
- * cross-cutting request and response behavior.
+ * Wraps HTTP server apps with request and response behavior.
  *
  * A middleware is a function from one HTTP server app effect to another. The app
- * is evaluated with the current `HttpServerRequest` service in its context, so
- * middleware in this module can inspect or rewrite the request, provide
- * request-scoped services, attach pre-response hooks, or observe the app exit
- * while preserving normal Effect error and interruption semantics. The exported
- * middleware covers response logging, server tracing, forwarded proxy headers,
+ * runs with the current `HttpServerRequest` in its context, so middleware can
+ * inspect or rewrite the request, provide request-scoped services, attach hooks
+ * before the response is sent, or observe the app exit. This module includes
+ * middleware for response logging, server tracing, forwarded proxy headers,
  * parsed search parameters, and CORS response headers.
  *
  * @since 4.0.0

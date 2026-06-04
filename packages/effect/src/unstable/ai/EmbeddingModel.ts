@@ -1,14 +1,12 @@
 /**
- * The `EmbeddingModel` module defines the provider-neutral service for turning
- * text into embedding vectors. It exposes single-input `embed` and ordered
- * batch `embedMany` operations, and keeps provider failures represented as
- * `AiError` values.
+ * Defines the provider-neutral service for text embeddings.
  *
- * This module also defines the embedding dimensions service, request and
- * response models, usage metadata, provider input and output contracts, and a
- * constructor that adapts a provider batch implementation into a service.
- * Single `embed` calls use a request resolver so concurrent requests can be
- * batched together.
+ * An `EmbeddingModel` turns text into numeric vectors. It supports single-input
+ * embedding and ordered batch embedding, and represents provider failures as
+ * `AiError` values. This module also includes the embedding dimensions service,
+ * request and response models, usage metadata, provider contracts, and a
+ * constructor that adapts a provider batch implementation into the service.
+ * Single `embed` calls can be batched together internally.
  *
  * @since 4.0.0
  */

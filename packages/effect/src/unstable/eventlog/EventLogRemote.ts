@@ -1,14 +1,12 @@
 /**
- * Client-side remote replica support for writing event-log entries and
- * receiving change streams over the event-log RPC protocol.
+ * Connects a local event log to a remote replica.
  *
- * This module builds `EventLogRemote` services backed by `EventLogRemoteRpcs`.
- * It is used by local event logs that need to replicate entries to another
- * journal, subscribe to remote changes from a sequence number, or run effects
- * only after the current event-log identity has completed the remote
- * authentication handshake. The encrypted constructor is the default choice for
- * synchronizing browser, edge, or service replicas across an untrusted network,
- * while the unencrypted constructor is intended for trusted transports or tests.
+ * `EventLogRemote` writes local entries to another journal, receives remote
+ * change streams from a sequence number, and can wait until the current
+ * event-log identity has completed remote authentication. The encrypted
+ * constructor is the default for browser, edge, or service replicas crossing an
+ * untrusted network. The unencrypted constructor is intended for trusted
+ * transports or tests.
  *
  * @since 4.0.0
  */

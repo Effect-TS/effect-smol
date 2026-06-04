@@ -1,10 +1,9 @@
 /**
- * Immutable URL query parameters represented as ordered string pairs.
+ * Models URL query parameters as ordered string pairs.
  *
- * This module is the shared query-parameter model for HTTP client request
- * queries, URL-encoded form bodies, and server-side decoding. A `UrlParams`
- * value can be built from records, iterables, or native `URLSearchParams`, then
- * inspected, appended, replaced, removed, serialized, converted to a `URL`, or
+ * `UrlParams` is used for HTTP client query strings, URL-encoded form bodies,
+ * and server-side decoding. Values can be built from records, iterables, or
+ * native `URLSearchParams`, then updated, serialized, converted to a `URL`, or
  * decoded with schemas.
  *
  * @since 4.0.0

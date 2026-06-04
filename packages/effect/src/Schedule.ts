@@ -1,12 +1,10 @@
 /**
- * Declarative policies for retrying, repeating, and pacing Effect programs. A
- * `Schedule<Output, Input, Error, Env>` is a stateful policy that is stepped
- * with an input value. Each step either stops the recurrence or emits an output
- * together with the delay before the next step. This module provides schedules
- * for fixed, spaced, exponential, Fibonacci, cron, duration, and recurrence
- * policies, plus helpers for adding delays, collecting metadata, transforming
- * outputs, combining schedules, tapping inputs or outputs, limiting repeats,
- * and converting schedules to low-level step functions.
+ * Describes policies for retrying, repeating, and pacing Effect programs.
+ *
+ * A `Schedule<Output, Input, Error, Env>` is stepped with an input value. Each
+ * step either stops or produces an output together with the delay before the
+ * next step. Schedules are used by retry, repeat, stream, and channel APIs to
+ * decide when work should continue, how long to wait, and when to stop.
  *
  * @since 2.0.0
  */

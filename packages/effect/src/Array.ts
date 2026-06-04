@@ -1,10 +1,11 @@
 /**
- * Utilities for working with JavaScript arrays, readonly arrays, and arrays
- * that are known to contain at least one element. The module includes helpers
- * for creating arrays, checking their shape, reading elements, transforming
- * values, sorting, grouping, splitting, combining, and reducing collections to
- * a single result. Helpers that change the contents return new arrays, and keep
- * non-empty array types when the result is guaranteed to contain values.
+ * Works with JavaScript arrays, readonly arrays, and non-empty arrays.
+ *
+ * The helpers cover common collection work such as creating arrays, reading
+ * elements, transforming values, sorting, grouping, splitting, combining, and
+ * reducing many values to one result. Helpers that change contents return new
+ * arrays and preserve non-empty array types when the result is guaranteed to
+ * contain values.
  *
  * @since 2.0.0
  */

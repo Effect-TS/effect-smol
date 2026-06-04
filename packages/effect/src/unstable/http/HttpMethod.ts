@@ -1,12 +1,10 @@
 /**
- * HTTP method literals and helpers shared by the unstable HTTP client, server,
- * and routing APIs.
+ * Defines supported HTTP method names for the unstable HTTP modules.
  *
- * This module keeps the supported method vocabulary in one place: the
- * {@link HttpMethod} union, {@link all} set, {@link allShort} mapping,
- * {@link hasBody} body classification helper, and {@link isHttpMethod} runtime
- * refinement. Values are uppercase string literals such as `"GET"` and
- * `"POST"`, matching the method tokens used by the HTTP APIs in this package.
+ * Values are uppercase string literals such as `"GET"` and `"POST"`, matching
+ * the method tokens used by HTTP requests and routes. This module also includes
+ * helpers for checking whether a method can carry a request body and whether an
+ * unknown value is one of the supported methods.
  *
  * @since 4.0.0
  */

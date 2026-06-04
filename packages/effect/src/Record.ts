@@ -1,12 +1,11 @@
 /**
- * Tools for working with plain JavaScript records as immutable key-value
- * dictionaries. The module covers construction, lookup, updates, mapping,
- * filtering, folding, set-like combination, and typed conversions between
- * records and iterable entries.
+ * Works with plain JavaScript records as immutable key/value dictionaries.
  *
- * Reach for `Record` when your data is already represented as a plain object
- * with string or symbol keys and you want typed, data-first or data-last
- * helpers that return new records instead of mutating the input.
+ * A record is an object whose keys are strings or symbols. This module includes
+ * helpers for construction, lookup, updates, mapping, filtering, folding,
+ * set-like combination, and typed conversions between records and iterable
+ * entries. Helpers that change values return new records instead of mutating the
+ * input.
  *
  * @since 2.0.0
  */

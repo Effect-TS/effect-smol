@@ -1,13 +1,11 @@
 /**
- * Workflow engine services and an in-memory implementation.
+ * Defines workflow engine services and an in-memory implementation.
  *
- * The `WorkflowEngine` service registers workflow handlers, runs executions by
- * id, polls results, interrupts or resumes suspended runs, executes activities,
- * stores durable deferred results, and schedules durable clocks.
- * `WorkflowInstance` holds the runtime state for one workflow run. The
- * lower-level `Encoded` contract works with encoded values, and `makeUnsafe`
- * wraps it with schema encoding and decoding. `layerMemory` provides an
- * in-memory engine for tests and local development.
+ * `WorkflowEngine` registers workflow handlers, runs executions, polls results,
+ * resumes suspended runs, executes activities, stores durable deferred results,
+ * and schedules durable clocks. `WorkflowInstance` holds the runtime state for
+ * one workflow run. The in-memory layer is useful for tests and local
+ * development.
  *
  * @since 4.0.0
  */

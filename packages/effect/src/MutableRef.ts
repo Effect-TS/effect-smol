@@ -1,9 +1,11 @@
 /**
- * Small synchronous containers for mutable state. A `MutableRef<A>` stores one
- * current value, exposes it through `.current`, and provides pipeable helpers
- * for reading, setting, comparing, and updating the value in place. The module
- * also includes common numeric helpers for incrementing and decrementing refs,
- * plus a boolean toggle helper.
+ * Stores synchronous mutable state in a small reference object.
+ *
+ * A `MutableRef<A>` stores one current value and exposes it through `.current`.
+ * Unlike `Ref`, its operations are synchronous and update the same object in
+ * place. This module includes pipeable helpers for reading, setting, comparing,
+ * and updating the value, plus numeric increment/decrement helpers and a
+ * boolean toggle helper.
  *
  * @since 2.0.0
  */

@@ -1,13 +1,12 @@
 /**
- * Lowest-level value parsers used by the unstable CLI package. A
- * `Primitive<A>` takes one raw command-line string and returns an `Effect` that
- * either produces an `A` or fails with a parser message.
+ * Parses raw command-line strings into typed values.
  *
- * This module provides primitives for booleans, strings, numbers, dates,
- * choices, paths, redacted strings, file text, parsed INI/JSON/TOML/YAML files,
- * schema-decoded files, key-value pairs, and values that should not be
- * accepted. `Argument` and `Flag` build on these primitives to add names,
- * aliases, defaults, prompts, config fallbacks, repetition, and help metadata.
+ * A `Primitive<A>` receives one string and returns an `Effect` that either
+ * produces an `A` or fails with a parser message. `Argument` and `Flag` build
+ * on these primitives to add names, aliases, defaults, prompts, configuration
+ * fallbacks, repetition, and help metadata. Primitive parsers cover common
+ * scalar values, paths, files, structured config files, schema-decoded input,
+ * redacted values, and key-value pairs.
  *
  * @since 4.0.0
  */

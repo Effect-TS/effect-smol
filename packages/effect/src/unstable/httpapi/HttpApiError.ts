@@ -3,7 +3,7 @@
  *
  * This module provides reusable `Schema.ErrorClass` values for common HTTP
  * status codes, plus `HttpApiSchemaError` for request decoding failures raised
- * by the HTTP API runtime. The status errors are ready to use in endpoint or
+ * by the HTTP API runtime. The status errors can be used in endpoint or
  * middleware error declarations and are understood by builders, generated
  * clients, reflection, and OpenAPI generation.
  *

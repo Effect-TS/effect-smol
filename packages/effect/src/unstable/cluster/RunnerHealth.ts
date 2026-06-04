@@ -1,11 +1,11 @@
 /**
- * Health checks for cluster runners. `RunnerHealth` answers whether a runner
- * address should still be treated as alive when the sharding service decides
- * whether assigned shards can stay where they are or must move elsewhere.
+ * Checks whether cluster runners should be treated as alive.
  *
- * This module defines the health-check service, a noop layer that always reports
- * runners as alive, a ping-based checker that calls the runner, and a
- * Kubernetes-based checker that looks at pod readiness for the runner host.
+ * `RunnerHealth` is used by sharding when deciding whether assigned shards can
+ * stay on a runner or need to move elsewhere. This module includes the
+ * health-check service, a no-op layer that always reports runners as alive, a
+ * ping-based checker, and a Kubernetes-based checker that looks at pod readiness
+ * for the runner host.
  *
  * @since 4.0.0
  */

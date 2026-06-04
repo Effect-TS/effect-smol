@@ -1,13 +1,12 @@
 /**
- * Counting semaphores for limiting how many effects may use a shared resource
- * at the same time. A semaphore owns a number of permits; work can run only
- * after taking enough permits, and the permits are returned when the work
- * finishes.
+ * Limits how many effects can use a shared resource at the same time.
  *
- * This module provides constructors, automatic wrappers that acquire and
- * release permits around an effect, a non-waiting wrapper that runs only when
- * permits are immediately available, manual `take` and `release` operations,
- * and `resize` for changing the permit limit of an existing semaphore.
+ * A `Semaphore` owns a number of permits. Work can run only after acquiring the
+ * permits it needs, and those permits are returned when the work finishes. This
+ * module includes constructors, automatic wrappers that acquire and release
+ * permits around an effect, manual permit operations, a non-waiting variant for
+ * work that should only run immediately, and resizing support for an existing
+ * semaphore.
  *
  * @since 4.0.0
  */

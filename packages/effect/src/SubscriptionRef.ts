@@ -1,11 +1,11 @@
 /**
- * A mutable reference that can also be watched as a stream of changes. A
- * `SubscriptionRef` stores the latest value, publishes the initial value, and
- * publishes every committed update so subscribers can observe state over time.
+ * Stores mutable state and publishes changes as a stream.
  *
- * Updates are serialized so only one change is applied at a time. This module
- * provides constructors, current-value reads, the `changes` stream, and the
- * usual set, update, modify, partial-update, and effectful-update operations.
+ * A `SubscriptionRef<A>` stores the latest value, publishes the initial value,
+ * and publishes every committed update so subscribers can observe state over
+ * time. Updates are serialized so only one change is applied at a time. This
+ * module includes constructors, current-value reads, the `changes` stream,
+ * writes, updates, partial updates, and effectful update helpers.
  *
  * @since 2.0.0
  */

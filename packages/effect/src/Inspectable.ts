@@ -1,9 +1,11 @@
 /**
- * Protocol and helpers for stable string, JSON, and Node.js inspection output.
- * Effect data types use `Inspectable` to control how they appear in logs,
- * REPLs, test failures, and diagnostics. The module defines the Node inspect
- * symbol, the `Inspectable` interface, safe `toJson` and `toStringUnknown`
- * helpers, and shared prototype or class implementations for custom values.
+ * Controls how values appear in logs and debugging output.
+ *
+ * Effect data types use `Inspectable` to provide stable string, JSON, and
+ * Node.js inspection output. This keeps custom values readable in logs, REPLs,
+ * test failures, and diagnostics. This module defines the Node inspect symbol,
+ * the `Inspectable` interface, safe conversion helpers, and shared prototype or
+ * class implementations for custom values.
  *
  * @since 2.0.0
  */

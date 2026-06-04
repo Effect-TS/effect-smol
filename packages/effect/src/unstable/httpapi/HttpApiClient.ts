@@ -1,14 +1,12 @@
 /**
- * Type-safe HTTP clients derived from `HttpApi` declarations.
+ * Builds HTTP clients from `HttpApi` declarations.
  *
- * This module turns the groups and endpoints described by an `HttpApi` into
- * callable client methods backed by an `HttpClient`. Use {@link make} or
- * {@link makeWith} to call a remote API with the same schema-driven contract as
- * the server, and use {@link group}, {@link endpoint}, or {@link urlBuilder}
- * when only part of an API or only the encoded URL is needed. Generated methods
- * encode path parameters, query parameters, headers, and payloads from endpoint
- * schemas, run client middleware, execute the HTTP request, and decode declared
- * success or error responses.
+ * The client methods are derived from the groups and endpoints in an `HttpApi`
+ * and run through an `HttpClient`. They use the same schema-driven contract as
+ * the server: request parts are encoded from endpoint schemas, client
+ * middleware is applied, the HTTP request is executed, and declared success or
+ * error responses are decoded. This module also includes helpers for building a
+ * client for only one group, one endpoint, or only the encoded URL.
  *
  * @since 4.0.0
  */

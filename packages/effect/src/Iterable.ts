@@ -1,8 +1,10 @@
 /**
- * The `Iterable` module works with any JavaScript value that implements
- * `[Symbol.iterator]`, including arrays, strings, generators, sets, and custom
- * lazy sequences. It provides constructors, transformations, searches, grouping,
- * and folding helpers that can be used without converting to an array first.
+ * Works with JavaScript values that implement `[Symbol.iterator]`.
+ *
+ * Iterables include arrays, strings, generators, sets, and custom lazy
+ * sequences. The helpers in this module let code transform, search, group, and
+ * fold iterable values while preserving the input as an iterable instead of
+ * forcing an array first.
  *
  * @since 2.0.0
  */

@@ -1,12 +1,12 @@
 /**
- * SQL storage for encrypted event-log server state.
+ * Stores encrypted event-log server state in SQL.
  *
  * This module provides the durable `Storage` implementation used by
- * `EventLogServerEncrypted` when remote entries should be stored in SQL without
- * exposing plaintext event data to the database. It persists the server remote
- * id, session authentication bindings, and per-public-key/store encrypted entry
- * tables, assigns stable sequence numbers, and streams changes while clients
- * remain responsible for encrypting writes and decrypting reads.
+ * `EventLogServerEncrypted` when entries should be stored without exposing
+ * plaintext event data to the database. It persists the server remote id,
+ * session authentication bindings, and encrypted entry tables, assigns stable
+ * sequence numbers, and streams changes. Clients remain responsible for
+ * encrypting writes and decrypting reads.
  *
  * @since 4.0.0
  */

@@ -1,12 +1,11 @@
 /**
- * Typed request values for data loading with `Effect.request`. A request is a
- * description of work, not the execution of that work: it records the success
- * type, typed error, service requirements, and fields needed by a resolver to
- * perform one logical operation. This module provides request interfaces,
- * type extractors, function and class constructors, guards, request entries,
- * and helpers for completing entries with success, failure, causes, exits, or
- * effects. Requests are paired with `RequestResolver`, which performs the
- * backend-specific loading and completes each pending entry.
+ * Typed request values for data loading with `Effect.request`.
+ *
+ * A request describes one logical piece of work without performing it. It
+ * records the success type, typed error, service requirements, and fields a
+ * resolver needs to complete the request. Requests are paired with
+ * `RequestResolver`, which performs backend-specific loading and completes each
+ * pending request entry with a success, failure, cause, exit, or effect.
  *
  * @since 2.0.0
  */

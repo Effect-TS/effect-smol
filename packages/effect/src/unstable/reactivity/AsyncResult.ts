@@ -1,13 +1,12 @@
 /**
- * State containers for asynchronous values used by reactivity APIs.
+ * Represents observable state for asynchronous values.
  *
- * `AsyncResult` records the latest observable state of work that may still be
- * loading, refreshing, retrying, or recovering from failure. The value is one of
- * `Initial`, `Success`, or `Failure`, and every variant also carries a `waiting`
- * flag so callers can keep rendering the current state while newer work is
- * running. The module provides constructors, checks, accessors, mapping and
- * matching helpers, ways to combine several results, and schemas for encoding
- * or decoding results.
+ * `AsyncResult<A, E>` records whether asynchronous work has no value yet,
+ * succeeded with an `A`, or failed with an `E`. Every state also carries a
+ * `waiting` flag, so callers can keep showing the current value while newer
+ * work is loading, refreshing, retrying, or recovering. This module includes
+ * constructors, checks, accessors, mapping and matching helpers, ways to combine
+ * several results, and schemas for encoding or decoding results.
  *
  * @since 4.0.0
  */

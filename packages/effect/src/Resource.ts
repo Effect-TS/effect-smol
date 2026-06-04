@@ -1,8 +1,10 @@
 /**
- * The `Resource` module provides refreshable, scoped values. A
- * `Resource<A, E>` stores the latest successful or failed acquisition result and
- * can be read with {@link get}, refreshed manually with {@link refresh}, or
- * refreshed automatically with {@link auto}.
+ * Stores refreshable scoped values.
+ *
+ * A `Resource<A, E>` keeps the latest successful or failed acquisition result.
+ * It can be read repeatedly, refreshed manually, or refreshed automatically on a
+ * schedule. Resource acquisition runs in a scope, so replacements and final
+ * cleanup release the resources owned by previous values.
  *
  * @since 2.0.0
  */

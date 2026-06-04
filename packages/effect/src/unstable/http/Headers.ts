@@ -1,11 +1,10 @@
 /**
- * Immutable HTTP header collections for the unstable HTTP modules.
+ * Models HTTP headers for the unstable HTTP client and server modules.
  *
- * This module defines the `Headers` data type used by HTTP client and server
- * request / response models. It converts records or iterables into a
- * predictable lowercase map, provides pipeable operations for reading and
- * updating header values, and integrates with inspection redaction so sensitive
- * header names can be masked before logging or serialization.
+ * `Headers` values are immutable maps keyed by lowercase header name. This
+ * module converts common header inputs into that shape, provides helpers for
+ * reading and updating header values, and redacts configured sensitive headers
+ * when values are inspected.
  *
  * @since 4.0.0
  */

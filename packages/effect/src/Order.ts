@@ -1,11 +1,12 @@
 /**
- * Comparison functions for deciding whether one value is less than, equal to,
- * or greater than another. An `Order<A>` returns an `Ordering` value (`-1`,
- * `0`, or `1`) and can be used for sorting, minimum and maximum selection,
- * range checks, and ordered data structures. This module provides built-in
- * orders for common JavaScript values, constructors for custom orders,
- * combinators for reversing, mapping, and tie-breaking orders, helpers for
- * tuples and structs, comparison predicates, clamping, and reducer support.
+ * Defines comparison functions for ordered values.
+ *
+ * An `Order<A>` compares two `A` values and returns whether the first is less
+ * than, equal to, or greater than the second. Orders are used for sorting,
+ * choosing minimum or maximum values, checking ranges, and building ordered data
+ * structures. This module includes built-in orders, constructors for custom
+ * orders, tools for reversing and combining comparisons, tuple and struct
+ * helpers, comparison predicates, clamping, and reducer support.
  *
  * @since 2.0.0
  */

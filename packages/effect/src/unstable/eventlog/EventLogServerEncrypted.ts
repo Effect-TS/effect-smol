@@ -1,15 +1,12 @@
 /**
- * Server-side RPC layers and storage contracts for encrypted event-log
- * replication.
+ * Serves encrypted event-log replication.
  *
- * This module is used by encrypted `EventLogRemote` clients that need a remote
- * synchronization endpoint without exposing plaintext events to the server. The
- * server stores ciphertext, initialization vectors, entry ids, and remote
- * sequence numbers keyed by the client's public key and store id, then streams
- * encrypted changes back to clients so they can decrypt locally with their
- * identity private key material. This makes it suitable for offline-first
- * synchronization, multi-device replication, and hosted backends where the
- * transport or storage layer should not inspect event payloads.
+ * Encrypted `EventLogRemote` clients use this module when they need a remote
+ * synchronization endpoint that never sees plaintext events. The server stores
+ * encrypted entries and replication metadata keyed by client public key and
+ * store id, then streams encrypted changes back to clients for local
+ * decryption. This module defines the RPC handlers, server layer, storage
+ * contract, and in-memory storage layer for that encrypted server path.
  *
  * @since 4.0.0
  */

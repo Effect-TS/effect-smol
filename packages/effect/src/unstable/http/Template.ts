@@ -1,11 +1,10 @@
 /**
- * Effect-aware template literal rendering for HTTP response text.
+ * Builds HTTP response text from template literals.
  *
- * This module backs HTTP response helpers that accept template tags, especially
- * HTML responses assembled from plain values, optional values, effects, and
- * streams. It keeps template interpolation in the Effect type system so dynamic
- * fragments can contribute errors and service requirements to the final
- * response-producing program.
+ * Template interpolations can be plain values, optional values, effects, or
+ * streams. The resulting effect or stream keeps the errors and service
+ * requirements from any effectful interpolations, which lets response helpers
+ * assemble dynamic text without losing type information.
  *
  * @since 4.0.0
  */

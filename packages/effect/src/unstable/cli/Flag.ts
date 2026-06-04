@@ -1,14 +1,12 @@
 /**
- * The `Flag` module provides typed command-line options for Effect CLI
- * applications. A `Flag<A>` describes how to read one named option from the
- * parsed command line, validate it, and produce a value of type `A`.
+ * Defines named options for command-line applications.
  *
- * Use flags for inputs that are naturally named options, such as ports,
- * verbosity switches, configuration files, output directories, enum-like
- * choices, secrets, and repeated values. Constructors such as {@link string},
- * {@link boolean}, {@link integer}, {@link file}, and {@link fileSchema}
- * define the accepted input shape, while combinators add aliases, defaults,
- * optionality, fallback config or prompts, validation, and typed mapping.
+ * A `Flag<A>` describes how to read one named value from parsed command-line
+ * input, validate it, and produce an `A`. Flags are useful for inputs such as
+ * ports, verbosity switches, configuration files, output directories, choices,
+ * secrets, and repeated values. The helpers here build flags with aliases,
+ * defaults, optional values, prompts, configuration fallbacks, validation, and
+ * value transformations.
  *
  * @since 4.0.0
  */

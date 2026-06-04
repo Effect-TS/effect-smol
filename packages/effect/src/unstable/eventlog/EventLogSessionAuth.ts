@@ -1,11 +1,10 @@
 /**
- * Challenge-response helpers for authenticating event log sessions with Ed25519
- * signatures.
+ * Signs and verifies event-log session authentication payloads.
  *
- * Event log transports use this module when a remote peer must prove control of
- * a session signing key before sending session traffic. The signed payload binds
- * the remote identifier, a short-lived challenge, the advertised event log public
- * key, and the signing public key into one canonical byte sequence.
+ * Remote peers use this challenge-response flow to prove that they control a
+ * session signing key before sending session traffic. The signed payload
+ * includes the remote id, a short-lived challenge, the event-log public key, and
+ * the signing public key in a stable byte format.
  *
  * @since 4.0.0
  */

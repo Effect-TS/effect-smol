@@ -1,11 +1,12 @@
 /**
- * Compile-time wrapper types for values that have the same runtime shape but
- * should not be mixed by mistake, such as `UserId` and `OrderId` values that
- * are both strings. A newtype adds a TypeScript-only tag to a carrier type, so
- * no runtime object is allocated. This module provides the base `Newtype`
- * interface, helpers for wrapping and unwrapping values, and helpers for
- * reusing carrier `Equivalence`, `Order`, `Combiner`, and `Reducer` instances
- * with newtype values.
+ * Creates compile-time-only wrappers around existing value types.
+ *
+ * A newtype lets TypeScript distinguish values with the same runtime shape, such
+ * as two different ids that are both strings. The tag exists only in the type
+ * system, so wrapping does not allocate a runtime object. This module includes
+ * the base `Newtype` interface, wrapping and unwrapping helpers, optics, and
+ * helpers for reusing carrier instances such as `Equivalence`, `Order`,
+ * `Combiner`, and `Reducer`.
  *
  * @since 4.0.0
  */

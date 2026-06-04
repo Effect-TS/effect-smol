@@ -1,12 +1,11 @@
 /**
- * Transactional references that can also be observed as streams of committed
- * values. A `TxSubscriptionRef` combines a `TxRef` for the current value with a
- * transactional pub/sub channel used to publish each update.
+ * Stores transactional state and publishes committed changes.
  *
- * Subscribers first receive the current value and then every value published by
- * later updates. This module provides construction, reading, set, update,
- * get-and-set, get-and-update, update-and-get, general modify, scoped
- * transactional-queue subscriptions, stream subscriptions, and a guard.
+ * A `TxSubscriptionRef<A>` combines a `TxRef<A>` for the current value with a
+ * transactional pub/sub channel for updates. Subscribers first receive the
+ * current value and then every later value that is published by committed
+ * updates. This module includes constructors, reads, writes, update and modify
+ * helpers, transactional-queue subscriptions, stream subscriptions, and a guard.
  *
  * @since 4.0.0
  */

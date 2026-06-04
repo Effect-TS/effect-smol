@@ -1,13 +1,12 @@
 /**
- * Error model used by the unstable HTTP server runtime.
+ * Describes failures raised while handling HTTP server requests.
  *
- * This module defines the tagged failures that can occur while a server accepts
- * a request, matches a route, runs a handler, or builds and sends a response.
+ * `HttpServerError` covers failures that happen while accepting a request,
+ * matching a route, running a handler, or building and sending a response.
  * Request-scoped failures keep the request that caused them, and response
- * failures keep the response that was being produced, so applications can log,
- * report, or translate failures without reconstructing HTTP context. The module
- * also provides helpers that turn failed causes or exits into HTTP responses and
- * an annotation for marking interrupts caused by client aborts.
+ * failures keep the response being produced. This module also includes helpers
+ * for turning failed causes or exits into HTTP responses and an annotation for
+ * interrupts caused by client aborts.
  *
  * @since 4.0.0
  */

@@ -1,8 +1,9 @@
 /**
- * Logging model and logger constructors used by Effect programs. A
- * `Logger<Message, Output>` receives each log event as `Options` and turns it
+ * Defines loggers and log-event data for Effect programs.
+ *
+ * A `Logger<Message, Output>` receives each log event as `Options` and turns it
  * into output such as a formatted string, structured object, console write,
- * file write, JSON line, or trace span event. The module also provides active
+ * file write, JSON line, or trace span event. This module also includes active
  * logger references, console routing helpers, built-in formatters, batching,
  * file logging, and layers for installing loggers.
  *
