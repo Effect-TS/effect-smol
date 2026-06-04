@@ -390,6 +390,18 @@ const runStateAction = <Context, E, R>(
     : Effect.void
 }
 
+type MicrostepPlan<State, E, R> = {
+  readonly next: State
+  readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
+  readonly changed: boolean
+}
+
+type MacrostepPlan<State, E, R> = {
+  readonly next: State
+  readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
+  readonly microsteps: ReadonlyArray<MicrostepPlan<State, E, R>>
+}
+
 /**
  * Returns `true` if a value is a `StateMachine`.
  *
@@ -532,13 +544,7 @@ export const enabled = <
 ): ReadonlyArray<Machine.TagOf<Events[number]>> =>
   Reflect.ownKeys(machine.handlers[state._tag]?.on ?? {}) as Array<Machine.TagOf<Events[number]>>
 
-/**
- * Plans the next state for a state machine without running deferred actions.
- *
- * @category combinators
- * @since 4.0.0
- */
-export const plan: <
+const microstep: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   const Input extends Schema.Top = typeof Schema.Void,
@@ -552,10 +558,7 @@ export const plan: <
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<
-  {
-    readonly next: Machine.StateOf<States>
-    readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
-  },
+  MicrostepPlan<Machine.StateOf<States>, E, R>,
   E | UnhandledEventError,
   R
 > = Effect.fnUntraced(function*<
@@ -598,7 +601,8 @@ export const plan: <
   if (stateAfterTransition._tag === state._tag) {
     return {
       next: stateAfterTransition,
-      actions: actions as ReadonlyArray<Effect.Effect<void, E, R>>
+      actions: actions as ReadonlyArray<Effect.Effect<void, E, R>>,
+      changed: false
     }
   }
 
@@ -626,9 +630,58 @@ export const plan: <
 
   return {
     next: stateAfterTransition,
-    actions: [...exitActions, ...actions, ...entryActions] as ReadonlyArray<Effect.Effect<void, E, R>>
+    actions: [...exitActions, ...actions, ...entryActions] as ReadonlyArray<Effect.Effect<void, E, R>>,
+    changed: true
   }
 })
+
+const macrostep: <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) => Effect.Effect<
+  MacrostepPlan<Machine.StateOf<States>, E, R>,
+  E | UnhandledEventError,
+  R
+> = Effect.fnUntraced(function*<
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) {
+  const step = yield* microstep(machine, state, event)
+
+  return {
+    next: step.next,
+    actions: step.actions,
+    microsteps: [step]
+  }
+})
+
+/**
+ * Plans the next state for a state machine without running deferred actions.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const plan = macrostep
 
 /**
  * Computes the next state for a state machine without mutating a running actor.
@@ -730,7 +783,7 @@ export const start: <
         }
 
         const actions = yield* SynchronizedRef.modifyEffect(current, (state) =>
-          plan(machine, state, event).pipe(
+          macrostep(machine, state, event).pipe(
             Effect.map((planned) => [planned.actions, planned.next] as const)
           ))
 
