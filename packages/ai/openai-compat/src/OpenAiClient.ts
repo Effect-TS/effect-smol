@@ -1094,7 +1094,10 @@ const ChatCompletionToolFunction = Schema.Struct({
 })
 
 const ChatCompletionToolFunctionDelta = Schema.Struct({
-  name: Schema.optionalKey(Schema.String),
+  // Some OpenAI-compatible providers (e.g. Fireworks) send `name: null` on
+  // streamed tool-call continuation fragments. `name` must be nullable, else
+  // the whole chunk fails validation and its argument delta is dropped.
+  name: Schema.optionalKey(Schema.NullOr(Schema.String)),
   arguments: Schema.optionalKey(Schema.String)
 })
 

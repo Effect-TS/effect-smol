@@ -1258,8 +1258,11 @@ const makeStreamResponse = Effect.fnUntraced(
             const toolIndex = deltaTool.index ?? indexInChunk
             const activeToolCall = activeToolCalls[toolIndex]
             const toolId = activeToolCall?.id ?? deltaTool.id ?? `${event.id}_tool_${toolIndex}`
+            // Providers may send `function.name: null` on continuation
+            // fragments; keep the name already accumulated for this tool call
+            // rather than overwriting it with a placeholder.
             const providerToolName = deltaTool.function?.name
-            const toolName = providerToolName !== undefined
+            const toolName = typeof providerToolName === "string"
               ? toolNameMapper.getCustomName(providerToolName)
               : activeToolCall?.name ?? toolNameMapper.getCustomName("unknown_tool")
             const argumentsDelta = deltaTool.function?.arguments ?? ""
